@@ -30813,7 +30813,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
 
         e->projectile_prime += PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_CUSTOM;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_CUSTOM;
 
         e->position.y = a;
     }
@@ -30828,7 +30828,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_WEAPON;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_PROJECTILE;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_PROJECTILE;
 
         e->position.y = a;
     }
@@ -30843,7 +30843,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_ANIMATION;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_KNIFE;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_KNIFE;
 
         e->position.y = a;
     }
@@ -30858,7 +30858,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_FLOOR;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_STATIONARY;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_ANIMATION;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_FLASH;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_FLASH;
 
         e->position.y = 0;
     }
@@ -30873,7 +30873,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_HEADER;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_KNIFE;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_KNIFE;
 
         e->position.y = a;
     }
@@ -30888,7 +30888,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_FLOOR;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_STATIONARY;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_HEADER;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_PSHOTNO;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_PSHOTNO;
 
         e->position.y = 0;
     }
@@ -30903,7 +30903,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_GLOBAL;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_SHOT;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_SHOT;
 
         e->position.y = a;
     }
@@ -30918,7 +30918,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime = PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
         e->projectile_prime += PROJECTILE_PRIME_SOURCE_GLOBAL;
-        e->projectile_prime += PROJECTILE_PRIME_TYPE_KNIFE;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_KNIFE;
 
         e->position.y = a;
     }
