@@ -171,21 +171,21 @@ typedef enum
     PROJECTILE_PRIME_LAUNCH_MOVING      = 0x00000004,
     PROJECTILE_PRIME_LAUNCH_STATIONARY  = 0x00000008,
 
-    // How was projectile model determined?
-    PROJECTILE_PRIME_SOURCE_ANIMATION   = 0x00000010,   //  Animation setting.
-    PROJECTILE_PRIME_SOURCE_GLOBAL      = 0x00000020,   //  Global "knife" or global "shot".
-    PROJECTILE_PRIME_SOURCE_INDEX       = 0x00000040,   //  By projectile's model index.
-    PROJECTILE_PRIME_SOURCE_HEADER      = 0x00000080,   //  Model header setting.
-    PROJECTILE_PRIME_SOURCE_NAME        = 0x00000100,   //  By projectile's model name.
-    PROJECTILE_PRIME_SOURCE_WEAPON      = 0x00000200,   //  From a SUBTYPE_PROJECTLE weapon pickup.
-
     // Type of projectile as determined by launch method.
-    PROJECTILE_PRIME_REQUEST_CUSTOM     = 0x00000400,
-    PROJECTILE_PRIME_REQUEST_FLASH      = 0x00000800,
-    PROJECTILE_PRIME_REQUEST_KNIFE      = 0x00001000,
-    PROJECTILE_PRIME_REQUEST_PROJECTILE = 0x00002000,
-    PROJECTILE_PRIME_REQUEST_PSHOTNO    = 0x00004000,
-    PROJECTILE_PRIME_REQUEST_SHOT       = 0x00008000
+    PROJECTILE_PRIME_REQUEST_CUSTOM     = 0x00000010,
+    PROJECTILE_PRIME_REQUEST_FLASH      = 0x00000020,
+    PROJECTILE_PRIME_REQUEST_KNIFE      = 0x00000040,
+    PROJECTILE_PRIME_REQUEST_PROJECTILE = 0x00000080,
+    PROJECTILE_PRIME_REQUEST_PSHOTNO    = 0x00000100,
+    PROJECTILE_PRIME_REQUEST_SHOT       = 0x00000200,
+
+    // How was projectile model determined?
+    PROJECTILE_PRIME_SOURCE_ANIMATION   = 0x00000400,   //  Animation setting.
+    PROJECTILE_PRIME_SOURCE_GLOBAL      = 0x00000800,   //  Global "knife" or global "shot".
+    PROJECTILE_PRIME_SOURCE_INDEX       = 0x00001000,   //  By projectile's model index.
+    PROJECTILE_PRIME_SOURCE_HEADER      = 0x00002000,   //  Model header setting.
+    PROJECTILE_PRIME_SOURCE_NAME        = 0x00004000,   //  By projectile's model name.
+    PROJECTILE_PRIME_SOURCE_WEAPON      = 0x00008000    //  From a SUBTYPE_PROJECTLE weapon pickup.
 } e_projectile_prime;
 
 // State of attack boxes.
