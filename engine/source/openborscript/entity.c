@@ -325,6 +325,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _ENTITY_ENERGY_STATUS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->energy_status;
+
+            break;
+
         case _ENTITY_PLAYER_INDEX:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
