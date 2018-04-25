@@ -34709,6 +34709,8 @@ int playlevel(char *filename)
             player[i].spawnhealth = player[i].ent->health;
             player[i].spawnmp = player[i].ent->mp;
         }
+        // reset
+        player[i].weapnum = 0;
     }
 
     if(!musicoverlap)
