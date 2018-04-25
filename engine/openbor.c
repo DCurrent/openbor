@@ -20909,29 +20909,23 @@ void check_attack()
 // energy was added, 0 otherwise.
 int do_energy_charge(entity *ent)
 {
-    #define SPEED_RATE  0.25   // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
-
-    // not charging? Nothing else to do.
-    if(ent->charging)
-    {
-        return 0;
-    }
-
     // Have we surpassed the next allowed charge time?
     // If so, we add the amount of energy from chargerate
     // and reset the next available time.
-    if(time >= ent->mpchargetime)
+    if(ent->charging && time >= ent->mpchargetime)
     {
+        // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
+        float speed_rate = 0.25;
+        int factor = GAME_SPEED * speed_rate;
+
         ent->mp += ent->modeldata.chargerate;
-        ent->mpchargetime = time + (GAME_SPEED * SPEED_RATE);
+        ent->mpchargetime = time + factor;
 
         return 1;
     }
 
     // Didn't charge.
     return 0;
-
-    #undef SPEED_RATE
 }
 
 
