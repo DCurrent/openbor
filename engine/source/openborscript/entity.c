@@ -324,6 +324,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _ENTITY_PLAYER_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->playerindex;
+
+            break;
+
         case _ENTITY_POSITION_ALTERNATE_BASE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
