@@ -681,6 +681,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _ENTITY_PLAYER_INDEX:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->playerindex = temp_int;
+            }
+
+            break;
+
         case _ENTITY_POSITION_ALTERNATE_BASE:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
