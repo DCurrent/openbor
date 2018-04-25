@@ -126,6 +126,9 @@
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_config_windows.h">
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_config_winrt.h">
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_config_wiz.h">
 			<Option target="Release" />
 		</Unit>
@@ -133,6 +136,9 @@
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_cpuinfo.h">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_egl.h">
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_endian.h">
@@ -192,10 +198,25 @@
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengl.h">
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengl_glext.h">
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengles.h">
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengles2.h">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengles2_gl2.h">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengles2_gl2ext.h">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengles2_gl2platform.h">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_opengles2_khrplatform.h">
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_pixels.h">
@@ -273,6 +294,9 @@
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_test_md5.h">
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_test_memory.h">
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_test_random.h">
 			<Option target="Release" />
 		</Unit>
@@ -292,6 +316,9 @@
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/SDL_video.h">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/jni/openbor/include/sdl/SDL_vulkan.h">
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../android/jni/openbor/include/sdl/begin_code.h">
@@ -343,7 +370,16 @@
 			<Option compilerVar="CC" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../android/src/org/libsdl/app/SDL.java">
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="../android/src/org/libsdl/app/SDLActivity.java">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/src/org/libsdl/app/SDLAudioManager.java">
+			<Option target="Release" />
+		</Unit>
+		<Unit filename="../android/src/org/libsdl/app/SDLControllerManager.java">
 			<Option target="Release" />
 		</Unit>
 		<Unit filename="../dc/bios.h">
@@ -917,8 +953,11 @@
 		</Unit>
 		<Unit filename="../source/openborscript/binding.c">
 			<Option compilerVar="CC" />
+			<Option target="Release" />
 		</Unit>
-		<Unit filename="../source/openborscript/binding.h" />
+		<Unit filename="../source/openborscript/binding.h">
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="../source/openborscript/collision_attack.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
@@ -929,6 +968,7 @@
 		</Unit>
 		<Unit filename="../source/openborscript/collision_coordinates.c">
 			<Option compilerVar="CC" />
+			<Option target="Release" />
 		</Unit>
 		<Unit filename="../source/openborscript/config.h">
 			<Option target="Release" />
@@ -939,8 +979,11 @@
 		</Unit>
 		<Unit filename="../source/openborscript/entity.c">
 			<Option compilerVar="CC" />
+			<Option target="Release" />
 		</Unit>
-		<Unit filename="../source/openborscript/entity.h" />
+		<Unit filename="../source/openborscript/entity.h">
+			<Option target="Release" />
+		</Unit>
 		<Unit filename="../source/openborscript/index.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
