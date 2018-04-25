@@ -14508,6 +14508,7 @@ void load_level(char *filename)
     nopause                 = 0;
     nofadeout               = 0;
     noscreenshot            = 0;
+
     panel_width = panel_height = frontpanels_loaded = 0;
 
     //reset_playable_list(1);
@@ -20908,29 +20909,23 @@ void check_attack()
 // energy was added, 0 otherwise.
 int do_energy_charge(entity *ent)
 {
-    #define SPEED_RATE  0.25   // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
-
-    // not charging? Nothing else to do.
-    if(ent->charging)
-    {
-        return 0;
-    }
-
     // Have we surpassed the next allowed charge time?
     // If so, we add the amount of energy from chargerate
     // and reset the next available time.
-    if(time >= ent->mpchargetime)
+    if(ent->charging && time >= ent->mpchargetime)
     {
+        // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
+        float speed_rate = 0.25;
+        int factor = GAME_SPEED * speed_rate;
+
         ent->mp += ent->modeldata.chargerate;
-        ent->mpchargetime = time + (GAME_SPEED * SPEED_RATE);
+        ent->mpchargetime = time + factor;
 
         return 1;
     }
 
     // Didn't charge.
     return 0;
-
-    #undef SPEED_RATE
 }
 
 
@@ -23656,7 +23651,7 @@ entity *drop_item(entity *e)
     entity *item;
     memset(&p, 0, sizeof(p));
 
-    p.index = e->item;
+    p.index = e->itemindex;
     p.itemindex = p.weaponindex = -1;
     strcpy(p.alias, e->itemalias);
     p.position.y = e->position.y + 0.01; // for check, or an enemy "item" will drop from the sky
@@ -23718,7 +23713,7 @@ entity *drop_driver(entity *e)
         return NULL;    // should not happen, just in case
     }
     /*p.x = e->position.x - advancex; p.z = e->position.z; */p.position.y = e->position.y + 10;
-    p.itemindex = e->item;
+    p.itemindex = e->itemindex;
     p.weaponindex = -1;
     strcpy(p.itemalias, e->itemalias);
     strcpy(p.alias, e->name);
@@ -23765,7 +23760,7 @@ void checkdeath()
     }
 
     // drop item
-    if(self->item && count_ents(TYPE_PLAYER) > self->itemplayer_count)
+    if(self->itemindex >= 0 && count_ents(TYPE_PLAYER) > self->itemplayer_count)
     {
         drop_item(self);
     }
@@ -31494,6 +31489,9 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
 
     //printf("%s, (%f, %f, %f) - (%f, %f, %f)", props->name, props->position.x, props->position.z, props->position.y, e->position.x, e->position.z, e->position.y);
 
+    // initialize...
+    e->itemindex = -1;
+
     // Alias?
     if(props->alias[0])
     {
@@ -31501,7 +31499,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     }
     if(props->item)
     {
-        e->item = props->itemindex;
+        e->itemindex = props->itemindex;
     }
     if(props->itemalias[0])
     {
@@ -34711,6 +34709,8 @@ int playlevel(char *filename)
             player[i].spawnhealth = player[i].ent->health;
             player[i].spawnmp = player[i].ent->mp;
         }
+        // reset
+        player[i].weapnum = 0;
     }
 
     if(!musicoverlap)
