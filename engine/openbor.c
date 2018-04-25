@@ -17050,6 +17050,13 @@ void free_ent(entity *e)
     clear_all_scripts(e->scripts, 2);
     free_all_scripts(&e->scripts);
 
+    // Item properties.
+    if(e->item)
+    {
+        free(e->item);
+        e->item = NULL;
+    }
+
     if(e->waypoints)
     {
         free(e->waypoints);
@@ -31484,8 +31491,13 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     {
         strncpy(e->name, props->alias, MAX_NAME_LEN);
     }
+
     if(props->item)
     {
+        // Allocate item and use it to store item properties (in progress 2018-04-25).
+        e->item = malloc(sizeof(*e->item));
+        memset(e->item, 0, sizeof(*e->item));
+
         e->itemindex = props->itemindex;
     }
     if(props->itemalias[0])
@@ -31501,6 +31513,8 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         e->itemhealth = props->itemhealth;
     }
     e->itemplayer_count = props->itemplayer_count;
+
+
 
     if(props->spawntype)
     {
