@@ -2226,17 +2226,22 @@ typedef struct
     u32 time;           //Time to perform combo.
 } s_rush;
 
+typedef struct
+{
+    int health_current;
+    int health_old;
+    int mp_current;
+    int mp_old;
+} s_energy_status;
+
 typedef struct entity
 {
     e_spawn_type spawntype;                 // Type of spawn (level spawn, script spawn, ...)
     bool exists;                            // flag to determine if it is a valid entity.
     bool deduct_ammo;                       // Check for ammo count?
     e_projectile_prime projectile_prime;    // If this entity is a projectile, several priming values go here to set up its behavior.
-    int playerindex;
-    int health; // current hp
-    int mp; // current mp
-    int oldhealth;
-    int oldmp; //mp's variable for mp for players by tails
+    int playerindex;                        // Player controlling the entity.
+    s_energy_status energy_status;          // Health and MP.
     char name[MAX_NAME_LEN + 1]; // this is display name
     s_model *defaultmodel; // this is the default model
     s_model *model; // current model
@@ -2362,7 +2367,7 @@ typedef struct entity
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
     struct entity *opponent;
-        struct entity *custom_target; // target forced by modder via script
+    struct entity *custom_target; // target forced by modder via script
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
