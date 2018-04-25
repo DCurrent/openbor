@@ -114,7 +114,7 @@ HRESULT openbor_get_energy_status_property(ScriptVariant **varlist , ScriptVaria
 
             break;
 
-        case _ENERGY_STATUS_MP_CURRENT:
+        case _ENERGY_STATUS_MP_OLD:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->mp_old;
