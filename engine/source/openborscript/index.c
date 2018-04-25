@@ -194,6 +194,16 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "getentityproperty";
     }
+
+    else if (functionRef == ((void *)openbor_get_energy_status_property))
+    {
+        return "get_energy_status_property";
+    }
+    else if (functionRef == ((void *)openbor_set_energy_status_property))
+    {
+        return "set_energy_status_property";
+    }
+
     else if (functionRef == ((void *)openbor_get_entity_property))
     {
         return "get_entity_property";
@@ -802,6 +812,14 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_entityproperty;
     }
+    else if (functionRef == ((void *)openbor_get_energy_status_property))
+    {
+        return (void *)mapstrings_energy_status_property;
+    }
+    else if (functionRef == ((void *)openbor_set_energy_status_property))
+    {
+        return (void *)mapstrings_energy_status_property;
+    }
     else if (functionRef == ((void *)openbor_get_entity_property))
     {
         return (void *)mapstrings_entity_property;
@@ -998,6 +1016,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_body_collision_property, "get_body_collision_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_body_collision_property, "set_body_collision_property");
+
+    // Energy status properties.
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_energy_status_property, "get_energy_status_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_energy_status_property, "set_energy_status_property");
 
     // Entity properties.
     List_InsertAfter(&theFunctionList,

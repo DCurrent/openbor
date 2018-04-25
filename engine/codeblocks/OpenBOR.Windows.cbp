@@ -977,6 +977,10 @@
 			<Option compilerVar="CC" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../source/openborscript/energy_status.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../source/openborscript/energy_status.h" />
 		<Unit filename="../source/openborscript/entity.c">
 			<Option compilerVar="CC" />
 			<Option target="Release" />
