@@ -2362,7 +2362,7 @@ typedef struct entity
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
     struct entity *opponent;
-        struct entity *custom_target; // target forced by modder via script
+    struct entity *custom_target; // target forced by modder via script
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
