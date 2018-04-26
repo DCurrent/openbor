@@ -2234,18 +2234,35 @@ typedef struct
     int mp_old;
 } s_energy_status;
 
+// Caskey, Damon V.
+// 2018-04-25
+//
+// Entity item values. Encapsulates properties
+// entity uses for item pickups.
+typedef struct
+{
+    int alpha;                      // int itemmap alpha effect of item
+    int colorset;                   // int itemmap; // Now items spawned can have their properties changed
+    int health;                     // int itemhealth; // Now items spawned can have their properties changed
+    int index;                      // int itemindex; // item model index
+    int player_count;               // int itemplayer_count;
+    char alias[MAX_NAME_LEN + 1];   // char itemalias[MAX_NAME_LEN + 1]; // Now items spawned can have their properties changed
+} s_item_properties;
+
+
 typedef struct entity
 {
-    e_spawn_type spawntype;                 // Type of spawn (level spawn, script spawn, ...)
-    bool exists;                            // flag to determine if it is a valid entity.
-    bool deduct_ammo;                       // Check for ammo count?
-    e_projectile_prime projectile_prime;    // If this entity is a projectile, several priming values go here to set up its behavior.
-    int playerindex;                        // Player controlling the entity.
-    s_energy_status energy_status;          // Health and MP.
-    char name[MAX_NAME_LEN + 1]; // this is display name
-    s_model *defaultmodel; // this is the default model
-    s_model *model; // current model
-    s_model modeldata; // model data copyied here
+    e_spawn_type        spawntype;              // Type of spawn (level spawn, script spawn, ...)
+    bool                exists;                 // flag to determine if it is a valid entity.
+    bool                deduct_ammo;            // Check for ammo count?
+    e_projectile_prime  projectile_prime;       // If this entity is a projectile, several priming values go here to set up its behavior.
+    int playerindex;                            // Player controlling the entity.
+    s_energy_status     energy_status;          // Health and MP.
+    char                name[MAX_NAME_LEN + 1]; // this is display name
+    s_model             *defaultmodel;          // this is the default model
+    s_model             *model;                 // current model
+    s_model             modeldata;              // model data copyied here
+    s_item_properties   *item;
     int itemindex; // item model index
     int itemmap; // Now items spawned can have their properties changed
     int itemtrans; // alpha effect of item

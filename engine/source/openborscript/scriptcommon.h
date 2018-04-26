@@ -55,9 +55,9 @@
         } else { \
             \
             printf(FAILMSG, propname, ##args);  \
-            printf("\n Available properties:"); \
+            printf("\n Available properties:\n"); \
             \
-            for(proplist_cursor = 0; LIST[proplist_cursor] != '\0'; proplist_cursor++){ \
+            for(proplist_cursor = 0; LIST[proplist_cursor] != NULL; proplist_cursor++){ \
                printf("\n\t%s", LIST[proplist_cursor]); \
             } \
             \
