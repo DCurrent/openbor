@@ -92,8 +92,10 @@ public class SDLActivity extends Activity {
     protected static SDLClipboardHandler mClipboardHandler;
     protected static Hashtable<Integer, Object> mCursors;
     protected static int mLastCursorID;
-    protected static WakeLock wakeLock;
 
+    //White Dragon: added statics
+    protected static WakeLock wakeLock;
+    protected static View decorView;
 
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
