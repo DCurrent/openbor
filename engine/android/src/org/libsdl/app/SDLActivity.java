@@ -1,3 +1,15 @@
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved, see LICENSE in OpenBOR root for details.
+ *
+ * Copyright (c) 2004 - 2014 OpenBOR Team
+ *
+ * SDLActivity.java - Main code for Android build.
+ * Original by UTunnels (utunnels@hotmail.com).
+ * Modifications by CRxTRDude and White Dragon.
+*/
+
 package org.libsdl.app;
 
 import java.io.*;
@@ -371,11 +383,25 @@ public class SDLActivity extends Activity {
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
            mNextNativeState = NativeState.RESUMED;
+           hideSystemUI(); //White Dragon: hide navigation bar
         } else {
            mNextNativeState = NativeState.PAUSED;
         }
 
         SDLActivity.handleNativeState();
+    }
+
+    //White Dragon: after for future use
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        //int orientation = this.getResources().getConfiguration().orientation;
+
+        /*if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            setContentView(R.layout.settings);
+        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            setContentView(R.layout.settings);
+        }*/
     }
 
     @Override
