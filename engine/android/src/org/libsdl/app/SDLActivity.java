@@ -468,7 +468,7 @@ public class SDLActivity extends Activity {
             keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
             keyCode == KeyEvent.KEYCODE_CAMERA ||
             keyCode == KeyEvent.KEYCODE_ZOOM_IN || /* API 11 */
-            keyCode == KeyEvent.KEYCODE_ZOOM_OUT || /* API 11 */
+            keyCode == KeyEvent.KEYCODE_ZOOM_OUT /* API 11 */
             ) {
             return false;
         }
