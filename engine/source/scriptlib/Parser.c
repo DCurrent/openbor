@@ -1756,7 +1756,7 @@ void Parser_Mult_expr2(Parser *pparser )
 
 void Parser_Unary_expr(Parser *pparser )
 {
-    static CHAR buf[MAX_TOKEN_LENGTH + 1];
+    static CHAR buf[MAX_TOKEN_LENGTH + 2];
     Instruction *pInstruction = NULL;
 
     if (ParserSet_First(&(pparser->theParserSet), postfix_expr, pparser->theNextToken.theType ))
