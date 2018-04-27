@@ -23664,7 +23664,7 @@ entity *drop_item(entity *e)
     p.index         = e->item->index;
     p.itemindex     = p.weaponindex = -1;
     strcpy(p.alias, e->item->alias);
-    p.position.y    = e->position.y + 0.01; // for check, or an enemy "item" will drop from the sky
+    p.position.y    = e->position.y + 0.01; // For check, or an enemy "item" will drop from the sky
     p.health[0]     = e->item->health;
     p.alpha         = e->item->alpha;
     p.colourmap     = e->item->colorset;
