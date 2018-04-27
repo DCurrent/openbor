@@ -2256,19 +2256,13 @@ typedef struct entity
     bool                exists;                 // flag to determine if it is a valid entity.
     bool                deduct_ammo;            // Check for ammo count?
     e_projectile_prime  projectile_prime;       // If this entity is a projectile, several priming values go here to set up its behavior.
-    int playerindex;                            // Player controlling the entity.
+    int                 playerindex;            // Player controlling the entity.
     s_energy_status     energy_status;          // Health and MP.
     char                name[MAX_NAME_LEN + 1]; // this is display name
     s_model             *defaultmodel;          // this is the default model
     s_model             *model;                 // current model
-    s_model             modeldata;              // model data copyied here
-    s_item_properties   *item;
-    int itemindex; // item model index
-    int itemmap; // Now items spawned can have their properties changed
-    int itemtrans; // alpha effect of item
-    char itemalias[MAX_NAME_LEN + 1]; // Now items spawned can have their properties changed
-    int itemhealth; // Now items spawned can have their properties changed
-    int itemplayer_count;
+    s_model             modeldata;              // model data copied here
+    s_item_properties   *item;                  // Properties copied to an item entity when it is dropped.
     bool boss;
     unsigned int dying;   // Corresponds with which remap is to be used for the dying flash
     unsigned int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
@@ -2814,6 +2808,7 @@ void free_ent(entity *e);
 void free_ents();
 int alloc_ents();
 entity *smartspawn(s_spawn_entry *p);
+void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry);
 int adjust_grabposition(entity *ent, entity *other, float dist, int grabin);
 int player_trymove(float xdir, float zdir);
 void toss(entity *ent, float lift);

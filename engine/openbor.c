@@ -23655,14 +23655,14 @@ entity *drop_item(entity *e)
     entity *item;
     memset(&p, 0, sizeof(p));
 
-    p.index = e->itemindex;
-    p.itemindex = p.weaponindex = -1;
-    strcpy(p.alias, e->itemalias);
-    p.position.y = e->position.y + 0.01; // for check, or an enemy "item" will drop from the sky
-    p.health[0] = e->itemhealth;
-    p.alpha = e->itemtrans;
-    p.colourmap = e->itemmap;
-    p.flip = e->direction;
+    p.index         = e->item->index;
+    p.itemindex     = p.weaponindex = -1;
+    strcpy(p.alias, e->item->alias);
+    p.position.y    = e->position.y + 0.01; // for check, or an enemy "item" will drop from the sky
+    p.health[0]     = e->item->health;
+    p.alpha         = e->item->alpha;
+    p.colourmap     = e->item->colorset;
+    p.flip          = e->direction;
 
     item = smartspawn(&p);
 
@@ -23717,14 +23717,14 @@ entity *drop_driver(entity *e)
         return NULL;    // should not happen, just in case
     }
     /*p.x = e->position.x - advancex; p.z = e->position.z; */p.position.y = e->position.y + 10;
-    p.itemindex = e->itemindex;
+    p.itemindex = e->item->index;
     p.weaponindex = -1;
-    strcpy(p.itemalias, e->itemalias);
+    strcpy(p.itemalias, e->item->alias);
     strcpy(p.alias, e->name);
-    p.itemmap = e->itemmap;
-    p.itemtrans = e->itemtrans;
-    p.itemhealth = e->itemhealth;
-    p.itemplayer_count = e->itemplayer_count;
+    p.itemmap = e->item->colorset;
+    p.itemtrans = e->item->alpha;
+    p.itemhealth = e->item->health;
+    p.itemplayer_count = e->item->player_count;
     //p.colourmap = e->map;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
@@ -23764,7 +23764,7 @@ void checkdeath()
     }
 
     // drop item
-    if(self->itemindex >= 0 && count_ents(TYPE_PLAYER) > self->itemplayer_count)
+    if(self->item->index >= 0 && count_ents(TYPE_PLAYER) > self->item->player_count)
     {
         drop_item(self);
     }
@@ -31440,6 +31440,48 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag
     return 1;
 }
 
+// Caskey, Damon V.
+// 2018-04-27
+//
+// Allocate memory and set entity properties that will be transfered
+// to a dropped item.
+void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
+{
+    // It's possible to call this from script, so if
+    // if there is already memory for an item allocated
+    // here, clear it out to make sure we don't end up
+    // with any memory leaks.
+    if(ent->item)
+    {
+       free(ent->item);
+       ent->item = NULL;
+    }
+
+    // Allocate memory for the item.
+    ent->item = malloc(sizeof(*ent->item));
+    memset(ent->item, 0, sizeof(*ent->item));
+
+    if(spawn_entry)
+    {
+        ent->item->index = spawn_entry->itemindex;
+
+        if(spawn_entry->itemalias[0])
+        {
+            strncpy(ent->item->alias, spawn_entry->itemalias, MAX_NAME_LEN);
+        }
+
+        if(spawn_entry->itemmap)
+        {
+            ent->item->colorset = spawn_entry->itemmap;
+        }
+
+        if(spawn_entry->itemhealth)
+        {
+            ent->item->health = spawn_entry->itemhealth;
+        }
+        ent->item->player_count = spawn_entry->itemplayer_count;
+    }
+}
 
 entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replaced with lord balls code
 {
@@ -31483,38 +31525,18 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
 
     //printf("%s, (%f, %f, %f) - (%f, %f, %f)", props->name, props->position.x, props->position.z, props->position.y, e->position.x, e->position.z, e->position.y);
 
-    // initialize...
-    e->itemindex = -1;
-
     // Alias?
     if(props->alias[0])
     {
         strncpy(e->name, props->alias, MAX_NAME_LEN);
     }
 
+    // If we have item properties in spawn entry, then prepare a set of
+    // properties to pass on to the item when it is dropped.
     if(props->item)
     {
-        // Allocate item and use it to store item properties (in progress 2018-04-25).
-        e->item = malloc(sizeof(*e->item));
-        memset(e->item, 0, sizeof(*e->item));
-
-        e->itemindex = props->itemindex;
+        initialize_item_carry(e, props);
     }
-    if(props->itemalias[0])
-    {
-        strncpy(e->itemalias, props->itemalias, MAX_NAME_LEN);
-    }
-    if(props->itemmap)
-    {
-        e->itemmap = props->itemmap;
-    }
-    if(props->itemhealth)
-    {
-        e->itemhealth = props->itemhealth;
-    }
-    e->itemplayer_count = props->itemplayer_count;
-
-
 
     if(props->spawntype)
     {
@@ -31551,7 +31573,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     }
     if(props->itemtrans)
     {
-        e->itemtrans = props->itemtrans;
+        e->item->alpha = props->itemtrans;
     }
     if(props->alpha)
     {
