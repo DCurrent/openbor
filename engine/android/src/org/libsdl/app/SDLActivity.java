@@ -8,7 +8,7 @@
  * SDLActivity.java - Main code for Android build.
  * Original by UTunnels (utunnels@hotmail.com).
  * Modifications by CRxTRDude and White Dragon.
-*/
+ */
 
 package org.libsdl.app;
 
@@ -51,21 +51,6 @@ public class SDLActivity extends Activity {
 
     public static boolean mIsResumedCalled, mIsSurfaceReady, mHasFocus;
 
-    // Cursor types
-    private static final int SDL_SYSTEM_CURSOR_NONE = -1;
-    private static final int SDL_SYSTEM_CURSOR_ARROW = 0;
-    private static final int SDL_SYSTEM_CURSOR_IBEAM = 1;
-    private static final int SDL_SYSTEM_CURSOR_WAIT = 2;
-    private static final int SDL_SYSTEM_CURSOR_CROSSHAIR = 3;
-    private static final int SDL_SYSTEM_CURSOR_WAITARROW = 4;
-    private static final int SDL_SYSTEM_CURSOR_SIZENWSE = 5;
-    private static final int SDL_SYSTEM_CURSOR_SIZENESW = 6;
-    private static final int SDL_SYSTEM_CURSOR_SIZEWE = 7;
-    private static final int SDL_SYSTEM_CURSOR_SIZENS = 8;
-    private static final int SDL_SYSTEM_CURSOR_SIZEALL = 9;
-    private static final int SDL_SYSTEM_CURSOR_NO = 10;
-    private static final int SDL_SYSTEM_CURSOR_HAND = 11;
-
     // Handle the state of the native layer
     public enum NativeState {
            INIT, RESUMED, PAUSED
@@ -90,8 +75,6 @@ public class SDLActivity extends Activity {
     protected static boolean mScreenKeyboardShown;
     protected static ViewGroup mLayout;
     protected static SDLClipboardHandler mClipboardHandler;
-    protected static Hashtable<Integer, Object> mCursors;
-    protected static int mLastCursorID;
 
     //White Dragon: added statics
     protected static WakeLock wakeLock;
@@ -167,8 +150,6 @@ public class SDLActivity extends Activity {
         mTextEdit = null;
         mLayout = null;
         mClipboardHandler = null;
-        mCursors = new Hashtable<Integer, Object>();
-        mLastCursorID = 0;
         mSDLThread = null;
         mExitCalledFromJava = false;
         mBrokenLibraries = false;
@@ -244,7 +225,7 @@ public class SDLActivity extends Activity {
         // Set up the surface
         mSurface = new SDLSurface(getApplication());
 
-        mLayout = new RelativeLayout(this);
+        mLayout = new RelativeLayout(this); // AbsoluteLayout(this);
         mLayout.addView(mSurface);
 
         setContentView(mLayout);
@@ -384,26 +365,14 @@ public class SDLActivity extends Activity {
 
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
-           mNextNativeState = NativeState.RESUMED;
-           hideSystemUI(); //White Dragon: hide navigation bar
+			mNextNativeState = NativeState.RESUMED;
+
+            hideSystemUI(); //White Dragon: disable navigation bar
         } else {
-           mNextNativeState = NativeState.PAUSED;
+			mNextNativeState = NativeState.PAUSED;
         }
 
         SDLActivity.handleNativeState();
-    }
-
-    //White Dragon: after for future use
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        //int orientation = this.getResources().getConfiguration().orientation;
-
-        /*if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            setContentView(R.layout.settings);
-        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            setContentView(R.layout.settings);
-        }*/
     }
 
     @Override
@@ -457,6 +426,19 @@ public class SDLActivity extends Activity {
         SDLActivity.initialize();
     }
 
+	public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        //int orientation = this.getResources().getConfiguration().orientation;
+
+        /*if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            setContentView(R.layout.settings);
+        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            setContentView(R.layout.settings);
+        }*/
+
+    }
+
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
 
@@ -467,10 +449,12 @@ public class SDLActivity extends Activity {
         int keyCode = event.getKeyCode();
         // Ignore certain special keys so they're handled by Android
         if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
-            keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
-            keyCode == KeyEvent.KEYCODE_CAMERA ||
-            keyCode == KeyEvent.KEYCODE_ZOOM_IN || /* API 11 */
-            keyCode == KeyEvent.KEYCODE_ZOOM_OUT /* API 11 */
+            keyCode == KeyEvent.KEYCODE_VOLUME_UP   ||
+            keyCode == KeyEvent.KEYCODE_CAMERA      ||
+			keyCode == KeyEvent.KEYCODE_HOME        ||
+			keyCode == KeyEvent.KEYCODE_POWER       ||
+            keyCode == 168                          || /* API 11: KeyEvent.KEYCODE_ZOOM_IN */
+            keyCode == 169                             /* API 11: KeyEvent.KEYCODE_ZOOM_OUT */
             ) {
             return false;
         }
@@ -1202,95 +1186,6 @@ public class SDLActivity extends Activity {
      */
     public static void clipboardSetText(String string) {
         mClipboardHandler.clipboardSetText(string);
-    }
-
-    /**
-     * This method is called by SDL using JNI.
-     */
-    public static int createCustomCursor(int[] colors, int width, int height, int hotSpotX, int hotSpotY) {
-        Bitmap bitmap = Bitmap.createBitmap(colors, width, height, Bitmap.Config.ARGB_8888);
-        ++mLastCursorID;
-        // This requires API 24, so use reflection to implement this
-        try {
-            Class PointerIconClass = Class.forName("android.view.PointerIcon");
-            Class[] arg_types = new Class[] { Bitmap.class, float.class, float.class };
-            Method create = PointerIconClass.getMethod("create", arg_types);
-            mCursors.put(mLastCursorID, create.invoke(null, bitmap, hotSpotX, hotSpotY));
-        } catch (Exception e) {
-            return 0;
-        }
-        return mLastCursorID;
-    }
-
-    /**
-     * This method is called by SDL using JNI.
-     */
-    public static boolean setCustomCursor(int cursorID) {
-        // This requires API 24, so use reflection to implement this
-        try {
-            Class PointerIconClass = Class.forName("android.view.PointerIcon");
-            Method setPointerIcon = SDLSurface.class.getMethod("setPointerIcon", PointerIconClass);
-            setPointerIcon.invoke(mSurface, mCursors.get(cursorID));
-        } catch (Exception e) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * This method is called by SDL using JNI.
-     */
-    public static boolean setSystemCursor(int cursorID) {
-        int cursor_type = 0; //PointerIcon.TYPE_NULL;
-        switch (cursorID) {
-        case SDL_SYSTEM_CURSOR_ARROW:
-            cursor_type = 1000; //PointerIcon.TYPE_ARROW;
-            break;
-        case SDL_SYSTEM_CURSOR_IBEAM:
-            cursor_type = 1008; //PointerIcon.TYPE_TEXT;
-            break;
-        case SDL_SYSTEM_CURSOR_WAIT:
-            cursor_type = 1004; //PointerIcon.TYPE_WAIT;
-            break;
-        case SDL_SYSTEM_CURSOR_CROSSHAIR:
-            cursor_type = 1007; //PointerIcon.TYPE_CROSSHAIR;
-            break;
-        case SDL_SYSTEM_CURSOR_WAITARROW:
-            cursor_type = 1004; //PointerIcon.TYPE_WAIT;
-            break;
-        case SDL_SYSTEM_CURSOR_SIZENWSE:
-            cursor_type = 1017; //PointerIcon.TYPE_TOP_LEFT_DIAGONAL_DOUBLE_ARROW;
-            break;
-        case SDL_SYSTEM_CURSOR_SIZENESW:
-            cursor_type = 1016; //PointerIcon.TYPE_TOP_RIGHT_DIAGONAL_DOUBLE_ARROW;
-            break;
-        case SDL_SYSTEM_CURSOR_SIZEWE:
-            cursor_type = 1014; //PointerIcon.TYPE_HORIZONTAL_DOUBLE_ARROW;
-            break;
-        case SDL_SYSTEM_CURSOR_SIZENS:
-            cursor_type = 1015; //PointerIcon.TYPE_VERTICAL_DOUBLE_ARROW;
-            break;
-        case SDL_SYSTEM_CURSOR_SIZEALL:
-            cursor_type = 1020; //PointerIcon.TYPE_GRAB;
-            break;
-        case SDL_SYSTEM_CURSOR_NO:
-            cursor_type = 1012; //PointerIcon.TYPE_NO_DROP;
-            break;
-        case SDL_SYSTEM_CURSOR_HAND:
-            cursor_type = 1002; //PointerIcon.TYPE_HAND;
-            break;
-        }
-        // This requires API 24, so use reflection to implement this
-        try {
-            Class PointerIconClass = Class.forName("android.view.PointerIcon");
-            Class[] arg_types = new Class[] { Context.class, int.class };
-            Method getSystemIcon = PointerIconClass.getMethod("getSystemIcon", arg_types);
-            Method setPointerIcon = SDLSurface.class.getMethod("setPointerIcon", PointerIconClass);
-            setPointerIcon.invoke(mSurface, getSystemIcon.invoke(null, SDL.getContext(), cursor_type));
-        } catch (Exception e) {
-            return false;
-        }
-        return true;
     }
 }
 
