@@ -1802,11 +1802,11 @@ typedef struct
 typedef struct
 {
     bool                    antigrav;               // This animation ignores gravity.
-    unsigned int      animhits;               // How many consecutive hits have been made? Used for canceling.
-    unsigned int      chargetime;             // charge time for an animation
-    unsigned int      flipframe;              // Turns entities around on the desired frame
-    unsigned int      numframes;              // Count of frames in the animation.
-    unsigned int      unsummonframe;          // Un-summon the entity
+    int                     animhits;               // How many consecutive hits have been made? Used for canceling.
+    unsigned int            chargetime;             // charge time for an animation
+    int                     flipframe;              // Turns entities around on the desired frame
+    int                     numframes;              // Count of frames in the animation.
+    int                     unsummonframe;          // Un-summon the entity
     bool                    attackone;              // Attack hits only one target.
     int                     cancel;                 // Cancel anims with freespecial
     int                     index;                  // unique id
@@ -1830,8 +1830,8 @@ typedef struct
     float                   *starvelocity;          // 3 velocities for the start projectile
     int                     *sprite;                // sprite[set][framenumber]
     float                   *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    unsigned int      *vulnerable;
-    unsigned int      *weaponframe;           // Specify with a frame when to switch to a weapon model
+    int                     *vulnerable;
+    int                     *weaponframe;           // Specify with a frame when to switch to a weapon model
     s_collision_attack_list **collision_attack;
     s_collision_body_list   **collision_body;
     s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
