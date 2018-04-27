@@ -23647,7 +23647,6 @@ void common_charge()
     set_idle(self);
 }
 
-
 // common code for entities hold an item
 entity *drop_item(entity *e)
 {
@@ -23655,10 +23654,17 @@ entity *drop_item(entity *e)
     entity *item;
     memset(&p, 0, sizeof(p));
 
+    // Just to make sure there is an item so
+    // we don't look for data on a NULL pointer.
+    if(!e->item)
+    {
+        return NULL;
+    }
+
     p.index         = e->item->index;
     p.itemindex     = p.weaponindex = -1;
     strcpy(p.alias, e->item->alias);
-    p.position.y    = e->position.y + 0.01; // for check, or an enemy "item" will drop from the sky
+    p.position.y    = e->position.y + 0.01; // For check, or an enemy "item" will drop from the sky
     p.health[0]     = e->item->health;
     p.alpha         = e->item->alpha;
     p.colourmap     = e->item->colorset;
@@ -23716,15 +23722,24 @@ entity *drop_driver(entity *e)
     {
         return NULL;    // should not happen, just in case
     }
-    /*p.x = e->position.x - advancex; p.z = e->position.z; */p.position.y = e->position.y + 10;
-    p.itemindex = e->item->index;
+    p.position.y = e->position.y + 10;
     p.weaponindex = -1;
-    strcpy(p.itemalias, e->item->alias);
     strcpy(p.alias, e->name);
-    p.itemmap = e->item->colorset;
-    p.itemtrans = e->item->alpha;
-    p.itemhealth = e->item->health;
-    p.itemplayer_count = e->item->player_count;
+
+    // Carrying an item, so let's transfer that to spawn
+    // entry for the driver.
+    if(e->item)
+    {
+        strcpy(p.itemalias, e->item->alias);
+
+        p.itemindex         = e->item->index;
+        p.itemmap           = e->item->colorset;
+        p.itemtrans         = e->item->alpha;
+        p.itemhealth        = e->item->health;
+        p.itemplayer_count  = e->item->player_count;
+    }
+
+
     //p.colourmap = e->map;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
@@ -23763,11 +23778,15 @@ void checkdeath()
         sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
     }
 
-    // drop item
-    if(self->item->index >= 0 && count_ents(TYPE_PLAYER) > self->item->player_count)
+    // Drop an item if we have one.
+    if(self->item)
     {
-        drop_item(self);
+        if(count_ents(TYPE_PLAYER) > self->item->player_count)
+        {
+            drop_item(self);
+        }
     }
+
 
     if(self->boss)
     {
