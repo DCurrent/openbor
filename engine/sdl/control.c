@@ -187,7 +187,7 @@ void getPads(Uint8* keystate)
 					if(ev.jhat.which == i)
 					{
 						int hatfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*joysticks[i].NumAxes + 4*ev.jhat.hat;
-						x = (joysticks[i].Hats >> (4*ev.jhat.hat)) & 15; // hat's previous state
+						x = (joysticks[i].Hats >> (4*ev.jhat.hat)) & 0x0F; // hat's previous state
 						if(ev.jhat.value & SDL_HAT_UP && !(x & SDL_HAT_UP))			lastjoy = hatfirst;
 						if(ev.jhat.value & SDL_HAT_RIGHT && !(x & SDL_HAT_RIGHT))	lastjoy = hatfirst + 1;
 						if(ev.jhat.value & SDL_HAT_DOWN && !(x & SDL_HAT_DOWN))		lastjoy = hatfirst + 2;
@@ -256,7 +256,7 @@ static int flag_to_index(u32 flag)
 {
 	int index = 0;
 	u32 bit = 1;
-	while(!((bit<<index)&flag) && index<31) ++index;
+	while(!((bit<<index)&flag) && index<JOY_MAX_INPUTS-1) ++index;
 	return index;
 }
 
@@ -308,7 +308,7 @@ void joystick_scan(int scan)
 									joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
 			else if(numjoy > 1)
 			{
-				if(i) printf("                                "); // print 32 spaces for alignment
+				if(i) printf("                                "); // print JOY_MAX_INPUTS (32) spaces for alignment
 				printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1,
 						joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
 			}
@@ -574,7 +574,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 		k = 0;
 
-		for(i=0;i<32;i++)
+		for(i=0;i<JOY_MAX_INPUTS;i++)
 		{
 			t = pcontrols->settings[i];
 			if(t >= SDLK_FIRST && t < SDLK_LAST){
@@ -584,7 +584,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 		if(usejoy)
 		{
-			for(i=0; i<32; i++)
+			for(i=0; i<JOY_MAX_INPUTS; i++)
 			{
 				t = pcontrols->settings[i];
 				if(t >= JOY_LIST_FIRST && t <= JOY_LIST_LAST)
