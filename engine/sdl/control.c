@@ -30,8 +30,8 @@ extern int nativeHeight;
 #define MAX_POINTERS 30
 typedef enum
 {
-    TOUCH_STATUS_DOWN,
-    TOUCH_STATUS_UP
+    TOUCH_STATUS_UP,
+    TOUCH_STATUS_DOWN
 } touch_status;
 typedef struct TouchStatus {
     float px[MAX_POINTERS];
@@ -40,7 +40,7 @@ typedef struct TouchStatus {
     touch_status pstatus[MAX_POINTERS];
 } TouchStatus;
 static TouchStatus touch_info;
-void control_update_android_touch(TouchStatus *touch_info, int maxp);
+void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate);
 #endif
 
 /*
@@ -88,7 +88,7 @@ void getPads(Uint8* keystate)
 						break;
 					}
 				}
-				control_update_android_touch(&touch_info, MAX_POINTERS);
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate);
 			}
 				break;
 			case SDL_FINGERUP:
@@ -101,7 +101,7 @@ void getPads(Uint8* keystate)
 						break;
 					}
 				}
-				control_update_android_touch(&touch_info, MAX_POINTERS);
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate);
 			}
 				break;
 			case SDL_FINGERMOTION:
@@ -116,7 +116,7 @@ void getPads(Uint8* keystate)
 						break;
 					}
 				}
-				control_update_android_touch(&touch_info, MAX_POINTERS);
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate);
 			}
 				break;
 #endif
@@ -400,9 +400,8 @@ extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
 extern unsigned touchstates[MAXTOUCHB];
 int hide_t = 5000;
-void control_update_android_touch(TouchStatus *touch_info, int maxp)
+void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate)
 {
-	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL);
 	int i, j;
 	float tx, ty, tr;
 	float r[MAXTOUCHB];
@@ -565,9 +564,10 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	int player;
 	int t;
 	s_playercontrols * pcontrols;
-	Uint8* keystate =  (Uint8*)SDL_GetKeyState(NULL);
+	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL);
 
 	getPads(keystate);
+
 	for(player=0; player<numplayers; player++){
 
 		pcontrols = playercontrols[player];
