@@ -66,6 +66,10 @@ List *levelordercmdlist = NULL;
 
 int atkchoices[MAX_ANIS]; //tempory values for ai functions, should be well enough LOL
 
+#ifdef ANDROID
+int touch_default_keys[MAX_BTN_NUM];
+#endif
+
 //see types.h
 const s_drawmethod plainmethod =
 {
@@ -3154,6 +3158,21 @@ void clearsettings()
     savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
     #ifdef SDL
         //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
+    #endif
+
+    #ifdef ANDROID
+    touch_default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
+    touch_default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
+    touch_default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
+    touch_default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
+    touch_default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
+    touch_default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
+    touch_default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
+    touch_default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
+    touch_default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
+    touch_default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
+    touch_default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
+    touch_default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
     #endif
 }
 
