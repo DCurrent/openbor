@@ -708,6 +708,9 @@ s_playercontrols    playercontrols2;
 s_playercontrols    playercontrols3;
 s_playercontrols    playercontrols4;
 s_playercontrols   *playercontrolpointers[] = {&playercontrols1, &playercontrols2, &playercontrols3, &playercontrols4};
+#if ANDROID
+s_playercontrols    touch_control;
+#endif
 
 //global script
 Script level_script;    //execute when level start
@@ -3173,6 +3176,20 @@ void clearsettings()
     touch_default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
     touch_default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
     touch_default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
+
+    control_setkey(&touch_control, FLAG_ESC,        CONTROL_ESC);
+    control_setkey(&touch_control, FLAG_MOVEUP,     touch_default_keys[SDID_MOVEUP]);
+    control_setkey(&touch_control, FLAG_MOVEDOWN,   touch_default_keys[SDID_MOVEDOWN]);
+    control_setkey(&touch_control, FLAG_MOVELEFT,   touch_default_keys[SDID_MOVELEFT]);
+    control_setkey(&touch_control, FLAG_MOVERIGHT,  touch_default_keys[SDID_MOVERIGHT]);
+    control_setkey(&touch_control, FLAG_ATTACK,     touch_default_keys[SDID_ATTACK]);
+    control_setkey(&touch_control, FLAG_ATTACK2,    touch_default_keys[SDID_ATTACK2]);
+    control_setkey(&touch_control, FLAG_ATTACK3,    touch_default_keys[SDID_ATTACK3]);
+    control_setkey(&touch_control, FLAG_ATTACK4,    touch_default_keys[SDID_ATTACK4]);
+    control_setkey(&touch_control, FLAG_JUMP,       touch_default_keys[SDID_JUMP]);
+    control_setkey(&touch_control, FLAG_SPECIAL,    touch_default_keys[SDID_SPECIAL]);
+    control_setkey(&touch_control, FLAG_START,      touch_default_keys[SDID_START]);
+    control_setkey(&touch_control, FLAG_SCREENSHOT, touch_default_keys[SDID_SCREENSHOT]);
     #endif
 }
 
