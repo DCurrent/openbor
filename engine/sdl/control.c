@@ -30,6 +30,7 @@ extern int nativeHeight;
 static TouchStatus touch_info;
 void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def);
 extern int touch_default_keys[MAX_BTN_NUM];
+extern s_playercontrols touch_control;
 #endif
 
 /*
@@ -583,13 +584,19 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 		{
 			t = pcontrols->settings[i];
 			if(t >= SDLK_FIRST && t < SDLK_LAST){
-                #ifdef ANDROID
-				if(keystate[t] || keystate_def[t]) k |= (1<<i);
-                #elif
                 if(keystate[t]) k |= (1<<i);
-                #endif
 			}
 		}
+
+        #ifdef ANDROID
+		for(i=0;i<JOY_MAX_INPUTS;i++)
+		{
+			t = touch_control.settings[i];
+			if(t >= SDLK_FIRST && t < SDLK_LAST){
+                if(keystate_def[t]) k |= (1<<i);
+			}
+		}
+        #endif
 
 		if(usejoy)
 		{
