@@ -9271,7 +9271,7 @@ HRESULT openbor_clearspawnentry(ScriptVariant **varlist , ScriptVariant **pretva
 {
     *pretvar = NULL;
     memset(&spawnentry, 0, sizeof(spawnentry));
-    spawnentry.index = spawnentry.itemindex = spawnentry.weaponindex = -1;
+    spawnentry.index = spawnentry.item_properties.index = spawnentry.weaponindex = -1;
     return S_OK;
 }
 
@@ -9406,7 +9406,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         }
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
         spawnentry.item = spawnentry.itemmodel->name;
-        spawnentry.itemindex = get_cached_model_index(spawnentry.item);
+        spawnentry.item_properties.index = get_cached_model_index(spawnentry.item);
         spawnentry.itemplayer_count = 0;
         break;
     case _sse_2pitem:

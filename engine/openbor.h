@@ -2448,26 +2448,26 @@ typedef struct
     u32 musicoffset;
     char *name; // must be a name in the model list, so just reference
     int index; // model index
-    int itemindex; // item model index
     int weaponindex; // the spawned entity with an weapon item, this is the index of the item model
     int alpha; // Used for alpha effects
     int boss;
     int flip;
-    int itemtrans;
-    int itemmap;
     int colourmap;
     int dying; // Used for the dying flash animation
     int dying2; // Used for the dying flash animation health 25% (optional)
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     int nolife; // So nolife can be overriden for all characters
-    int itemplayer_count; // spawn the item according to the amount of players
+    s_item_properties item_properties; // Alias, health, index, etc. for items.
+        int itemtrans;
+        int itemmap;
+        int itemplayer_count; // spawn the item according to the amount of players
+        char itemalias[MAX_NAME_LEN + 1];
+        int itemhealth;
+    char *item; // must be a name in the model list, so just reference
     s_model *itemmodel;
     s_model *model;
     char alias[MAX_NAME_LEN + 1];
-    char *item; // must be a name in the model list, so just reference
-    char itemalias[MAX_NAME_LEN + 1];
-    int itemhealth;
     int health[MAX_PLAYERS];
     int mp; // mp's variable for mpbar by tails
     unsigned score; // So score can be overridden for enemies/obstacles

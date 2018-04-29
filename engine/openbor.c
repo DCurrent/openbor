@@ -15234,7 +15234,7 @@ void load_level(char *filename)
             // Back to defaults
             next.spawnplayer_count = 0;
             memset(&next, 0, sizeof(next));
-            next.index = next.itemindex = next.weaponindex = -1;
+            next.index = next.item_properties.index = next.weaponindex = -1;
             // Name of entry to be spawned
             // Load model (if not loaded already)
             cached_model = findmodel(GET_ARG(1));
@@ -15370,7 +15370,7 @@ void load_level(char *filename)
             if(tempmodel)
             {
                 next.item = tempmodel->name;
-                next.itemindex = get_cached_model_index(next.item);
+                next.item_properties.index = get_cached_model_index(next.item);
             }
             break;
         case CMD_LEVEL_ITEMMAP:
@@ -23698,7 +23698,7 @@ entity *drop_item(entity *e)
     }
 
     p.index         = e->item->index;
-    p.itemindex     = p.weaponindex = -1;
+    p.item_properties.index = p.weaponindex = -1;
     strcpy(p.alias, e->item->alias);
     p.position.y    = e->position.y + 0.01; // For check, or an enemy "item" will drop from the sky
     p.health[0]     = e->item->health;
@@ -23768,7 +23768,7 @@ entity *drop_driver(entity *e)
     {
         strcpy(p.itemalias, e->item->alias);
 
-        p.itemindex         = e->item->index;
+        p.item_properties.index = e->item->index;
         p.itemmap           = e->item->colorset;
         p.itemtrans         = e->item->alpha;
         p.itemhealth        = e->item->health;
@@ -31518,7 +31518,7 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
 
     if(spawn_entry)
     {
-        ent->item->index = spawn_entry->itemindex;
+        ent->item->index = spawn_entry->item_properties.index;
 
         if(spawn_entry->itemalias[0])
         {
@@ -31715,7 +31715,7 @@ void spawnplayer(int index)
     memset(&p, 0, sizeof(p));
     p.name = player[index].name;
     p.index = -1;
-    p.itemindex = -1;
+    p.item_properties.index = -1;
     p.weaponindex = -1;
     p.colourmap = player[index].colourmap;
     p.spawnplayer_count = -1;
