@@ -15234,7 +15234,7 @@ void load_level(char *filename)
             // Back to defaults
             next.spawnplayer_count = 0;
             memset(&next, 0, sizeof(next));
-            next.index = next.itemindex = next.weaponindex = -1;
+            next.index = next.item_properties.index = next.weaponindex = -1;
             // Name of entry to be spawned
             // Load model (if not loaded already)
             cached_model = findmodel(GET_ARG(1));
@@ -15343,16 +15343,16 @@ void load_level(char *filename)
             {
                 // Item to be contained by new entry
             case CMD_LEVEL_ITEM:
-                next.itemplayer_count = 0;
+                next.item_properties.player_count = 0;
                 break;
             case CMD_LEVEL_2PITEM:
-                next.itemplayer_count = 1;
+                next.item_properties.player_count = 1;
                 break;
             case CMD_LEVEL_3PITEM:
-                next.itemplayer_count = 2;
+                next.item_properties.player_count = 2;
                 break;
             case CMD_LEVEL_4PITEM:
-                next.itemplayer_count = 3;
+                next.item_properties.player_count = 3;
                 break;
             default:
                 assert(0);
@@ -15370,17 +15370,17 @@ void load_level(char *filename)
             if(tempmodel)
             {
                 next.item = tempmodel->name;
-                next.itemindex = get_cached_model_index(next.item);
+                next.item_properties.index = get_cached_model_index(next.item);
             }
             break;
         case CMD_LEVEL_ITEMMAP:
-            next.itemmap = GET_INT_ARG(1);
+            next.item_properties.colorset = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_ITEMHEALTH:
-            next.itemhealth = GET_INT_ARG(1);
+            next.item_properties.health = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_ITEMALIAS:
-            strncpy(next.itemalias, GET_ARG(1), MAX_NAME_LEN);
+            strncpy(next.item_properties.alias, GET_ARG(1), MAX_NAME_LEN);
             break;
         case CMD_LEVEL_WEAPON:
             //spawn with a weapon 2007-2-12 by UTunnels
@@ -15409,7 +15409,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_ITEMTRANS:
         case CMD_LEVEL_ITEMALPHA:
-            next.itemtrans = GET_INT_ARG(1);
+            next.item_properties.alpha = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_COORDS:
             next.position.x = GET_FLOAT_ARG(1);
@@ -17087,10 +17087,10 @@ void free_ent(entity *e)
     free_all_scripts(&e->scripts);
 
     // Item properties.
-    if(e->item)
+    if(e->item_properties)
     {
-        free(e->item);
-        e->item = NULL;
+        free(e->item_properties);
+        e->item_properties = NULL;
     }
 
     if(e->waypoints)
@@ -23692,18 +23692,18 @@ entity *drop_item(entity *e)
 
     // Just to make sure there is an item so
     // we don't look for data on a NULL pointer.
-    if(!e->item)
+    if(!e->item_properties)
     {
         return NULL;
     }
 
-    p.index         = e->item->index;
-    p.itemindex     = p.weaponindex = -1;
-    strcpy(p.alias, e->item->alias);
+    p.index         = e->item_properties->index;
+    p.item_properties.index = p.weaponindex = -1;
+    strcpy(p.alias, e->item_properties->alias);
     p.position.y    = e->position.y + 0.01; // For check, or an enemy "item" will drop from the sky
-    p.health[0]     = e->item->health;
-    p.alpha         = e->item->alpha;
-    p.colourmap     = e->item->colorset;
+    p.health[0]     = e->item_properties->health;
+    p.alpha         = e->item_properties->alpha;
+    p.colourmap     = e->item_properties->colorset;
     p.flip          = e->direction;
 
     item = smartspawn(&p);
@@ -23764,15 +23764,15 @@ entity *drop_driver(entity *e)
 
     // Carrying an item, so let's transfer that to spawn
     // entry for the driver.
-    if(e->item)
+    if(e->item_properties)
     {
-        strcpy(p.itemalias, e->item->alias);
+        strcpy(p.item_properties.alias, e->item_properties->alias);
 
-        p.itemindex         = e->item->index;
-        p.itemmap           = e->item->colorset;
-        p.itemtrans         = e->item->alpha;
-        p.itemhealth        = e->item->health;
-        p.itemplayer_count  = e->item->player_count;
+        p.item_properties.index         = e->item_properties->index;
+        p.item_properties.colorset      = e->item_properties->colorset;
+        p.item_properties.alpha         = e->item_properties->alpha;
+        p.item_properties.health        = e->item_properties->health;
+        p.item_properties.player_count  = e->item_properties->player_count;
     }
 
 
@@ -23815,9 +23815,9 @@ void checkdeath()
     }
 
     // Drop an item if we have one.
-    if(self->item)
+    if(self->item_properties)
     {
-        if(count_ents(TYPE_PLAYER) > self->item->player_count)
+        if(count_ents(TYPE_PLAYER) > self->item_properties->player_count)
         {
             drop_item(self);
         }
@@ -31506,35 +31506,35 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
     // if there is already memory for an item allocated
     // here, clear it out to make sure we don't end up
     // with any memory leaks.
-    if(ent->item)
+    if(ent->item_properties)
     {
-       free(ent->item);
-       ent->item = NULL;
+       free(ent->item_properties);
+       ent->item_properties = NULL;
     }
 
     // Allocate memory for the item.
-    ent->item = malloc(sizeof(*ent->item));
-    memset(ent->item, 0, sizeof(*ent->item));
+    ent->item_properties = malloc(sizeof(*ent->item_properties));
+    memset(ent->item_properties, 0, sizeof(*ent->item_properties));
 
     if(spawn_entry)
     {
-        ent->item->index = spawn_entry->itemindex;
+        ent->item_properties->index = spawn_entry->item_properties.index;
 
-        if(spawn_entry->itemalias[0])
+        if(spawn_entry->item_properties.alias[0])
         {
-            strncpy(ent->item->alias, spawn_entry->itemalias, MAX_NAME_LEN);
+            strncpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
         }
 
-        if(spawn_entry->itemmap)
+        if(spawn_entry->item_properties.colorset)
         {
-            ent->item->colorset = spawn_entry->itemmap;
+            ent->item_properties->colorset = spawn_entry->item_properties.colorset;
         }
 
-        if(spawn_entry->itemhealth)
+        if(spawn_entry->item_properties.health)
         {
-            ent->item->health = spawn_entry->itemhealth;
+            ent->item_properties->health = spawn_entry->item_properties.health;
         }
-        ent->item->player_count = spawn_entry->itemplayer_count;
+        ent->item_properties->player_count = spawn_entry->item_properties.player_count;
     }
 }
 
@@ -31626,9 +31626,9 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     {
         e->modeldata.aggression = props->aggression;    // Aggression can be changed with spawn points now
     }
-    if(props->itemtrans)
+    if(props->item_properties.alpha)
     {
-        e->item->alpha = props->itemtrans;
+        e->item_properties->alpha = props->item_properties.alpha;
     }
     if(props->alpha)
     {
@@ -31715,7 +31715,7 @@ void spawnplayer(int index)
     memset(&p, 0, sizeof(p));
     p.name = player[index].name;
     p.index = -1;
-    p.itemindex = -1;
+    p.item_properties.index = -1;
     p.weaponindex = -1;
     p.colourmap = player[index].colourmap;
     p.spawnplayer_count = -1;

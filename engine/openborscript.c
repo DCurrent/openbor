@@ -9271,7 +9271,7 @@ HRESULT openbor_clearspawnentry(ScriptVariant **varlist , ScriptVariant **pretva
 {
     *pretvar = NULL;
     memset(&spawnentry, 0, sizeof(spawnentry));
-    spawnentry.index = spawnentry.itemindex = spawnentry.weaponindex = -1;
+    spawnentry.index = spawnentry.item_properties.index = spawnentry.weaponindex = -1;
     return S_OK;
 }
 
@@ -9406,8 +9406,8 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         }
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
         spawnentry.item = spawnentry.itemmodel->name;
-        spawnentry.itemindex = get_cached_model_index(spawnentry.item);
-        spawnentry.itemplayer_count = 0;
+        spawnentry.item_properties.index = get_cached_model_index(spawnentry.item);
+        spawnentry.item_properties.player_count = 0;
         break;
     case _sse_2pitem:
         if(arg->vt != VT_STR)
@@ -9423,7 +9423,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             spawnentry.item = tempmodel->name;
         }
-        spawnentry.itemplayer_count = 1;
+        spawnentry.item_properties.player_count = 1;
         break;
     case _sse_3pitem:
         if(arg->vt != VT_STR)
@@ -9431,7 +9431,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
             goto setspawnentry_error;
         }
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
-        spawnentry.itemplayer_count = 2;
+        spawnentry.item_properties.player_count = 2;
         break;
     case _sse_4pitem:
         if(arg->vt != VT_STR)
@@ -9439,7 +9439,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
             goto setspawnentry_error;
         }
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
-        spawnentry.itemplayer_count = 3;
+        spawnentry.item_properties.player_count = 3;
         break;
     case _sse_health:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
@@ -9454,7 +9454,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
     case _sse_itemhealth:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
-            spawnentry.itemhealth = (int)ltemp;
+            spawnentry.item_properties.health = (int)ltemp;
         }
         else
         {
@@ -9466,7 +9466,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             return E_FAIL;
         }
-        strcpy(spawnentry.itemalias, (char *)StrCache_Get(arg->strVal));
+        strcpy(spawnentry.item_properties.alias, (char *)StrCache_Get(arg->strVal));
         break;
     case _sse_2phealth:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
@@ -9555,7 +9555,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
     case _sse_itemmap:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
-            spawnentry.itemmap = (int)ltemp;
+            spawnentry.item_properties.colorset = (int)ltemp;
         }
         else
         {
