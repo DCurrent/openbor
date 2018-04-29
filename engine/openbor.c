@@ -15343,16 +15343,16 @@ void load_level(char *filename)
             {
                 // Item to be contained by new entry
             case CMD_LEVEL_ITEM:
-                next.itemplayer_count = 0;
+                next.item_properties.player_count = 0;
                 break;
             case CMD_LEVEL_2PITEM:
-                next.itemplayer_count = 1;
+                next.item_properties.player_count = 1;
                 break;
             case CMD_LEVEL_3PITEM:
-                next.itemplayer_count = 2;
+                next.item_properties.player_count = 2;
                 break;
             case CMD_LEVEL_4PITEM:
-                next.itemplayer_count = 3;
+                next.item_properties.player_count = 3;
                 break;
             default:
                 assert(0);
@@ -23768,11 +23768,11 @@ entity *drop_driver(entity *e)
     {
         strcpy(p.itemalias, e->item->alias);
 
-        p.item_properties.index     = e->item->index;
-        p.item_properties.colorset  = e->item->colorset;
-        p.item_properties.alpha     = e->item->alpha;
+        p.item_properties.index         = e->item->index;
+        p.item_properties.colorset      = e->item->colorset;
+        p.item_properties.alpha         = e->item->alpha;
         p.itemhealth        = e->item->health;
-        p.itemplayer_count  = e->item->player_count;
+        p.item_properties.player_count  = e->item->player_count;
     }
 
 
@@ -31534,7 +31534,7 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
         {
             ent->item->health = spawn_entry->itemhealth;
         }
-        ent->item->player_count = spawn_entry->itemplayer_count;
+        ent->item->player_count = spawn_entry->item_properties.player_count;
     }
 }
 
