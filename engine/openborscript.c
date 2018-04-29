@@ -9407,7 +9407,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
         spawnentry.item = spawnentry.itemmodel->name;
         spawnentry.item_properties.index = get_cached_model_index(spawnentry.item);
-        spawnentry.itemplayer_count = 0;
+        spawnentry.item_properties.player_count = 0;
         break;
     case _sse_2pitem:
         if(arg->vt != VT_STR)
@@ -9423,7 +9423,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             spawnentry.item = tempmodel->name;
         }
-        spawnentry.itemplayer_count = 1;
+        spawnentry.item_properties.player_count = 1;
         break;
     case _sse_3pitem:
         if(arg->vt != VT_STR)
@@ -9431,7 +9431,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
             goto setspawnentry_error;
         }
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
-        spawnentry.itemplayer_count = 2;
+        spawnentry.item_properties.player_count = 2;
         break;
     case _sse_4pitem:
         if(arg->vt != VT_STR)
@@ -9439,7 +9439,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
             goto setspawnentry_error;
         }
         spawnentry.itemmodel = findmodel((char *)StrCache_Get(arg->strVal));
-        spawnentry.itemplayer_count = 3;
+        spawnentry.item_properties.player_count = 3;
         break;
     case _sse_health:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
