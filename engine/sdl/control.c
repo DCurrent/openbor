@@ -27,20 +27,10 @@ int sdl_game_started  = 0;
 #ifdef ANDROID
 extern int nativeWidth;
 extern int nativeHeight;
-#define MAX_POINTERS 30
-typedef enum
-{
-    TOUCH_STATUS_UP,
-    TOUCH_STATUS_DOWN
-} touch_status;
-typedef struct TouchStatus {
-    float px[MAX_POINTERS];
-    float py[MAX_POINTERS];
-    SDL_FingerID pid[MAX_POINTERS];
-    touch_status pstatus[MAX_POINTERS];
-} TouchStatus;
 static TouchStatus touch_info;
-void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate);
+void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def);
+extern int touch_default_keys[MAX_BTN_NUM];
+extern s_playercontrols touch_control;
 #endif
 
 /*
@@ -48,7 +38,7 @@ Here is where we aquiring all joystick events
 and map them to BOR's layout.  Currently support
 up to 4 controllers.
 */
-void getPads(Uint8* keystate)
+void getPads(Uint8* keystate, Uint8* keystate_def)
 {
 	int i, j, x, axis;
 	SDL_Event ev;
@@ -88,7 +78,7 @@ void getPads(Uint8* keystate)
 						break;
 					}
 				}
-				control_update_android_touch(&touch_info, MAX_POINTERS, keystate);
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
 			}
 				break;
 			case SDL_FINGERUP:
@@ -101,7 +91,7 @@ void getPads(Uint8* keystate)
 						break;
 					}
 				}
-				control_update_android_touch(&touch_info, MAX_POINTERS, keystate);
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
 			}
 				break;
 			case SDL_FINGERMOTION:
@@ -116,7 +106,7 @@ void getPads(Uint8* keystate)
 						break;
 					}
 				}
-				control_update_android_touch(&touch_info, MAX_POINTERS, keystate);
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
 			}
 				break;
 #endif
@@ -400,7 +390,7 @@ extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
 extern unsigned touchstates[MAXTOUCHB];
 int hide_t = 5000;
-void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate)
+void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def)
 {
 	int i, j;
 	float tx, ty, tr;
@@ -484,19 +474,34 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keys
 	extern s_savedata savedata;
 	#define pc(x) savedata.keys[0][x]
 	keystate[pc(SDID_MOVEUP)] = touchstates[SDID_MOVEUP];
-	keystate[pc(SDID_MOVERIGHT)] = touchstates[SDID_MOVERIGHT];
 	keystate[pc(SDID_MOVEDOWN)] = touchstates[SDID_MOVEDOWN];
 	keystate[pc(SDID_MOVELEFT)] = touchstates[SDID_MOVELEFT];
-	keystate[pc(SDID_SPECIAL)] = touchstates[SDID_SPECIAL];
-	keystate[pc(SDID_ATTACK2)] = touchstates[SDID_ATTACK2];
-	keystate[pc(SDID_JUMP)] = touchstates[SDID_JUMP];
+	keystate[pc(SDID_MOVERIGHT)] = touchstates[SDID_MOVERIGHT];
 	keystate[pc(SDID_ATTACK)] = touchstates[SDID_ATTACK];
-	keystate[pc(SDID_START)] = touchstates[SDID_START];
-	keystate[CONTROL_ESC] = touchstates[SDID_ESC];
+	keystate[pc(SDID_ATTACK2)] = touchstates[SDID_ATTACK2];
 	keystate[pc(SDID_ATTACK3)] = touchstates[SDID_ATTACK3];
 	keystate[pc(SDID_ATTACK4)] = touchstates[SDID_ATTACK4];
+	keystate[pc(SDID_JUMP)] = touchstates[SDID_JUMP];
+	keystate[pc(SDID_SPECIAL)] = touchstates[SDID_SPECIAL];
+	keystate[pc(SDID_START)] = touchstates[SDID_START];
 	keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
 	#undef pc
+
+	//use default value for touch key mapping
+    keystate_def[touch_default_keys[SDID_MOVEUP]]    = touchstates[SDID_MOVEUP];
+    keystate_def[touch_default_keys[SDID_MOVEDOWN]]  = touchstates[SDID_MOVEDOWN];
+    keystate_def[touch_default_keys[SDID_MOVELEFT]]  = touchstates[SDID_MOVELEFT];
+    keystate_def[touch_default_keys[SDID_MOVERIGHT]] = touchstates[SDID_MOVERIGHT];
+    keystate_def[touch_default_keys[SDID_ATTACK]]    = touchstates[SDID_ATTACK];
+    keystate_def[touch_default_keys[SDID_ATTACK2]]   = touchstates[SDID_ATTACK2];
+    keystate_def[touch_default_keys[SDID_ATTACK3]]   = touchstates[SDID_ATTACK3];
+    keystate_def[touch_default_keys[SDID_ATTACK4]]   = touchstates[SDID_ATTACK4];
+    keystate_def[touch_default_keys[SDID_JUMP]]      = touchstates[SDID_JUMP];
+    keystate_def[touch_default_keys[SDID_SPECIAL]]   = touchstates[SDID_SPECIAL];
+    keystate_def[touch_default_keys[SDID_START]]     = touchstates[SDID_START];
+    keystate_def[touch_default_keys[SDID_SCREENSHOT]] = touchstates[SDID_SCREENSHOT];
+
+    keystate[CONTROL_ESC] = keystate_def[CONTROL_ESC] = touchstates[SDID_ESC];
 }
 #endif
 
@@ -565,8 +570,9 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	int t;
 	s_playercontrols * pcontrols;
 	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL);
+	Uint8* keystate_def = (Uint8*)SDL_GetKeyState(NULL);
 
-	getPads(keystate);
+	getPads(keystate,keystate_def);
 
 	for(player=0; player<numplayers; player++){
 
@@ -578,9 +584,19 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 		{
 			t = pcontrols->settings[i];
 			if(t >= SDLK_FIRST && t < SDLK_LAST){
-				if(keystate[t]) k |= (1<<i);
+                if(keystate[t]) k |= (1<<i);
 			}
 		}
+
+        #ifdef ANDROID
+		for(i=0;i<JOY_MAX_INPUTS;i++)
+		{
+			t = touch_control.settings[i];
+			if(t >= SDLK_FIRST && t < SDLK_LAST){
+                if(keystate_def[t]) k |= (1<<i);
+			}
+		}
+        #endif
 
 		if(usejoy)
 		{
