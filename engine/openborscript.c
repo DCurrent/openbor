@@ -9466,7 +9466,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
         {
             return E_FAIL;
         }
-        strcpy(spawnentry.itemalias, (char *)StrCache_Get(arg->strVal));
+        strcpy(spawnentry.item_properties.alias, (char *)StrCache_Get(arg->strVal));
         break;
     case _sse_2phealth:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
