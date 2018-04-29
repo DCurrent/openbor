@@ -9454,7 +9454,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
     case _sse_itemhealth:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
-            spawnentry.itemhealth = (int)ltemp;
+            spawnentry.item_properties.health = (int)ltemp;
         }
         else
         {
