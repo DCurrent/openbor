@@ -2459,7 +2459,6 @@ typedef struct
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     int nolife; // So nolife can be overriden for all characters
     s_item_properties item_properties; // Alias, health, index, etc. for items.
-        int itemmap;
         int itemplayer_count; // spawn the item according to the amount of players
         char itemalias[MAX_NAME_LEN + 1];
         int itemhealth;
