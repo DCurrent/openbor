@@ -1802,11 +1802,11 @@ typedef struct
 typedef struct
 {
     bool                    antigrav;               // This animation ignores gravity.
-    unsigned int      animhits;               // How many consecutive hits have been made? Used for canceling.
-    unsigned int      chargetime;             // charge time for an animation
-    unsigned int      flipframe;              // Turns entities around on the desired frame
-    unsigned int      numframes;              // Count of frames in the animation.
-    unsigned int      unsummonframe;          // Un-summon the entity
+    int                     animhits;               // How many consecutive hits have been made? Used for canceling.
+    unsigned int            chargetime;             // charge time for an animation
+    int                     flipframe;              // Turns entities around on the desired frame
+    int                     numframes;              // Count of frames in the animation.
+    int                     unsummonframe;          // Un-summon the entity
     bool                    attackone;              // Attack hits only one target.
     int                     cancel;                 // Cancel anims with freespecial
     int                     index;                  // unique id
@@ -1830,8 +1830,8 @@ typedef struct
     float                   *starvelocity;          // 3 velocities for the start projectile
     int                     *sprite;                // sprite[set][framenumber]
     float                   *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    unsigned int      *vulnerable;
-    unsigned int      *weaponframe;           // Specify with a frame when to switch to a weapon model
+    int                     *vulnerable;
+    int                     *weaponframe;           // Specify with a frame when to switch to a weapon model
     s_collision_attack_list **collision_attack;
     s_collision_body_list   **collision_body;
     s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
@@ -2262,7 +2262,7 @@ typedef struct entity
     s_model             *defaultmodel;          // this is the default model
     s_model             *model;                 // current model
     s_model             modeldata;              // model data copied here
-    s_item_properties   *item;                  // Properties copied to an item entity when it is dropped.
+    s_item_properties   *item_properties;       // Properties copied to an item entity when it is dropped.
     bool boss;
     unsigned int dying;   // Corresponds with which remap is to be used for the dying flash
     unsigned int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
@@ -2448,26 +2448,21 @@ typedef struct
     u32 musicoffset;
     char *name; // must be a name in the model list, so just reference
     int index; // model index
-    int itemindex; // item model index
     int weaponindex; // the spawned entity with an weapon item, this is the index of the item model
     int alpha; // Used for alpha effects
     int boss;
     int flip;
-    int itemtrans;
-    int itemmap;
     int colourmap;
     int dying; // Used for the dying flash animation
     int dying2; // Used for the dying flash animation health 25% (optional)
     unsigned per1; // Used to store at what health value the entity begins to flash
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     int nolife; // So nolife can be overriden for all characters
-    int itemplayer_count; // spawn the item according to the amount of players
+    s_item_properties item_properties; // Alias, health, index, etc. for items.
+    char *item; // must be a name in the model list, so just reference
     s_model *itemmodel;
     s_model *model;
     char alias[MAX_NAME_LEN + 1];
-    char *item; // must be a name in the model list, so just reference
-    char itemalias[MAX_NAME_LEN + 1];
-    int itemhealth;
     int health[MAX_PLAYERS];
     int mp; // mp's variable for mpbar by tails
     unsigned score; // So score can be overridden for enemies/obstacles
