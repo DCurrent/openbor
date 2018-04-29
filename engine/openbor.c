@@ -17087,10 +17087,10 @@ void free_ent(entity *e)
     free_all_scripts(&e->scripts);
 
     // Item properties.
-    if(e->item)
+    if(e->item_properties)
     {
-        free(e->item);
-        e->item = NULL;
+        free(e->item_properties);
+        e->item_properties = NULL;
     }
 
     if(e->waypoints)
@@ -23692,18 +23692,18 @@ entity *drop_item(entity *e)
 
     // Just to make sure there is an item so
     // we don't look for data on a NULL pointer.
-    if(!e->item)
+    if(!e->item_properties)
     {
         return NULL;
     }
 
-    p.index         = e->item->index;
+    p.index         = e->item_properties->index;
     p.item_properties.index = p.weaponindex = -1;
-    strcpy(p.alias, e->item->alias);
+    strcpy(p.alias, e->item_properties->alias);
     p.position.y    = e->position.y + 0.01; // For check, or an enemy "item" will drop from the sky
-    p.health[0]     = e->item->health;
-    p.alpha         = e->item->alpha;
-    p.colourmap     = e->item->colorset;
+    p.health[0]     = e->item_properties->health;
+    p.alpha         = e->item_properties->alpha;
+    p.colourmap     = e->item_properties->colorset;
     p.flip          = e->direction;
 
     item = smartspawn(&p);
@@ -23764,15 +23764,15 @@ entity *drop_driver(entity *e)
 
     // Carrying an item, so let's transfer that to spawn
     // entry for the driver.
-    if(e->item)
+    if(e->item_properties)
     {
-        strcpy(p.item_properties.alias, e->item->alias);
+        strcpy(p.item_properties.alias, e->item_properties->alias);
 
-        p.item_properties.index         = e->item->index;
-        p.item_properties.colorset      = e->item->colorset;
-        p.item_properties.alpha         = e->item->alpha;
-        p.item_properties.health        = e->item->health;
-        p.item_properties.player_count  = e->item->player_count;
+        p.item_properties.index         = e->item_properties->index;
+        p.item_properties.colorset      = e->item_properties->colorset;
+        p.item_properties.alpha         = e->item_properties->alpha;
+        p.item_properties.health        = e->item_properties->health;
+        p.item_properties.player_count  = e->item_properties->player_count;
     }
 
 
@@ -23815,9 +23815,9 @@ void checkdeath()
     }
 
     // Drop an item if we have one.
-    if(self->item)
+    if(self->item_properties)
     {
-        if(count_ents(TYPE_PLAYER) > self->item->player_count)
+        if(count_ents(TYPE_PLAYER) > self->item_properties->player_count)
         {
             drop_item(self);
         }
@@ -31506,35 +31506,35 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
     // if there is already memory for an item allocated
     // here, clear it out to make sure we don't end up
     // with any memory leaks.
-    if(ent->item)
+    if(ent->item_properties)
     {
-       free(ent->item);
-       ent->item = NULL;
+       free(ent->item_properties);
+       ent->item_properties = NULL;
     }
 
     // Allocate memory for the item.
-    ent->item = malloc(sizeof(*ent->item));
-    memset(ent->item, 0, sizeof(*ent->item));
+    ent->item_properties = malloc(sizeof(*ent->item_properties));
+    memset(ent->item_properties, 0, sizeof(*ent->item_properties));
 
     if(spawn_entry)
     {
-        ent->item->index = spawn_entry->item_properties.index;
+        ent->item_properties->index = spawn_entry->item_properties.index;
 
         if(spawn_entry->item_properties.alias[0])
         {
-            strncpy(ent->item->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
+            strncpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
         }
 
         if(spawn_entry->item_properties.colorset)
         {
-            ent->item->colorset = spawn_entry->item_properties.colorset;
+            ent->item_properties->colorset = spawn_entry->item_properties.colorset;
         }
 
         if(spawn_entry->item_properties.health)
         {
-            ent->item->health = spawn_entry->item_properties.health;
+            ent->item_properties->health = spawn_entry->item_properties.health;
         }
-        ent->item->player_count = spawn_entry->item_properties.player_count;
+        ent->item_properties->player_count = spawn_entry->item_properties.player_count;
     }
 }
 
@@ -31628,7 +31628,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     }
     if(props->item_properties.alpha)
     {
-        e->item->alpha = props->item_properties.alpha;
+        e->item_properties->alpha = props->item_properties.alpha;
     }
     if(props->alpha)
     {
