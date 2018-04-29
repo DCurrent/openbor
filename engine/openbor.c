@@ -15377,7 +15377,7 @@ void load_level(char *filename)
             next.item_properties.colorset = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_ITEMHEALTH:
-            next.itemhealth = GET_INT_ARG(1);
+            next.item_properties.health = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_ITEMALIAS:
             strncpy(next.item_properties.alias, GET_ARG(1), MAX_NAME_LEN);
@@ -23771,7 +23771,7 @@ entity *drop_driver(entity *e)
         p.item_properties.index         = e->item->index;
         p.item_properties.colorset      = e->item->colorset;
         p.item_properties.alpha         = e->item->alpha;
-        p.itemhealth        = e->item->health;
+        p.item_properties.health        = e->item->health;
         p.item_properties.player_count  = e->item->player_count;
     }
 
@@ -31530,9 +31530,9 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
             ent->item->colorset = spawn_entry->item_properties.colorset;
         }
 
-        if(spawn_entry->itemhealth)
+        if(spawn_entry->item_properties.health)
         {
-            ent->item->health = spawn_entry->itemhealth;
+            ent->item->health = spawn_entry->item_properties.health;
         }
         ent->item->player_count = spawn_entry->item_properties.player_count;
     }
