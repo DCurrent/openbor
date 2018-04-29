@@ -153,5 +153,22 @@ void control_update(s_playercontrols ** playercontrols, int numplayers);
 void control_rumble(int port, int msec);
 int keyboard_getlastkey();
 
+#ifdef ANDROID
+#define MAX_POINTERS 30
+typedef enum
+{
+    TOUCH_STATUS_UP,
+    TOUCH_STATUS_DOWN
+} touch_status;
+typedef struct TouchStatus {
+    float px[MAX_POINTERS];
+    float py[MAX_POINTERS];
+    SDL_FingerID pid[MAX_POINTERS];
+    touch_status pstatus[MAX_POINTERS];
+} TouchStatus;
+#endif
+
+
+
 #endif
 
