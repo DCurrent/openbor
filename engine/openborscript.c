@@ -9555,7 +9555,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
     case _sse_itemmap:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
-            spawnentry.itemmap = (int)ltemp;
+            spawnentry.item_properties.colorset = (int)ltemp;
         }
         else
         {
