@@ -2459,7 +2459,6 @@ typedef struct
     unsigned per2; // Used to store at what health value the entity flashes more rapidly
     int nolife; // So nolife can be overriden for all characters
     s_item_properties item_properties; // Alias, health, index, etc. for items.
-        char itemalias[MAX_NAME_LEN + 1];
         int itemhealth;
     char *item; // must be a name in the model list, so just reference
     s_model *itemmodel;

@@ -15380,7 +15380,7 @@ void load_level(char *filename)
             next.itemhealth = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_ITEMALIAS:
-            strncpy(next.itemalias, GET_ARG(1), MAX_NAME_LEN);
+            strncpy(next.item_properties.alias, GET_ARG(1), MAX_NAME_LEN);
             break;
         case CMD_LEVEL_WEAPON:
             //spawn with a weapon 2007-2-12 by UTunnels
@@ -23766,7 +23766,7 @@ entity *drop_driver(entity *e)
     // entry for the driver.
     if(e->item)
     {
-        strcpy(p.itemalias, e->item->alias);
+        strcpy(p.item_properties.alias, e->item->alias);
 
         p.item_properties.index         = e->item->index;
         p.item_properties.colorset      = e->item->colorset;
@@ -31520,9 +31520,9 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
     {
         ent->item->index = spawn_entry->item_properties.index;
 
-        if(spawn_entry->itemalias[0])
+        if(spawn_entry->item_properties.alias[0])
         {
-            strncpy(ent->item->alias, spawn_entry->itemalias, MAX_NAME_LEN);
+            strncpy(ent->item->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
         }
 
         if(spawn_entry->item_properties.colorset)
