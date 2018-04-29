@@ -15409,7 +15409,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_ITEMTRANS:
         case CMD_LEVEL_ITEMALPHA:
-            next.itemtrans = GET_INT_ARG(1);
+            next.item_properties.alpha = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_COORDS:
             next.position.x = GET_FLOAT_ARG(1);
@@ -23770,7 +23770,7 @@ entity *drop_driver(entity *e)
 
         p.item_properties.index = e->item->index;
         p.itemmap           = e->item->colorset;
-        p.itemtrans         = e->item->alpha;
+        p.item_properties.alpha         = e->item->alpha;
         p.itemhealth        = e->item->health;
         p.itemplayer_count  = e->item->player_count;
     }
@@ -31626,9 +31626,9 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     {
         e->modeldata.aggression = props->aggression;    // Aggression can be changed with spawn points now
     }
-    if(props->itemtrans)
+    if(props->item_properties.alpha)
     {
-        e->item->alpha = props->itemtrans;
+        e->item->alpha = props->item_properties.alpha;
     }
     if(props->alpha)
     {
