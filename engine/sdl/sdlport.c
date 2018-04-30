@@ -30,7 +30,7 @@
 char packfile[128] = {"bor.pak"};
 #if ANDROID
 #include <unistd.h>
-char rootDir[128] = AndroidRoot;
+char rootDir[128] = {"/mnt/sdcard/OpenBOR"};
 #endif
 char paksDir[128] = {"Paks"};
 char savesDir[128] = {"Saves"};
