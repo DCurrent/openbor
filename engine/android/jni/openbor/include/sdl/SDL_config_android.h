@@ -33,6 +33,9 @@
 
 #include <stdarg.h>
 
+//msmalik681 added root directory manually this needs to be automated for future update.
+#define AndroidRoot "/mnt/sdcard/Android/data/org.openbor.engine/files"
+
 #define HAVE_GCC_ATOMICS    1
 
 #define STDC_HEADERS    1
