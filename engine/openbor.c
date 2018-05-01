@@ -36298,7 +36298,7 @@ void keyboard_setup(int player)
         }
         _menutextm((selector == btnnum), ++voffset, 0, Tr("OK"));
         _menutextm((selector == btnnum+1), ++voffset, 0, Tr("Cancel"));
-        _menutextm((selector == btnnum+2), ++voffset, 0, Tr("Reset"));
+        _menutextm((selector == btnnum+2), ++voffset, 0, Tr("Default"));
         update((level != NULL), 0);
 
         if(setting > -1)
