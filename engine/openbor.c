@@ -36202,13 +36202,25 @@ void safe_set(int *arr, int index, int newkey, int oldkey)
     arr[index] = newkey;
 }
 
-void keyboard_setup_menu_conf(int player, char *buf, char* command, char* filename, char buttonnames[][16])
+void keyboard_setup(int player)
 {
-    ptrdiff_t pos;
+    const int btnnum = MAX_BTN_NUM;
+    int quit = 0, sdid = 0,
+        selector = 0,
+        setting = -1,
+        i, k, ok = 0,
+              disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+                                col1 = -8, col2 = 6;
+    ptrdiff_t voffset, pos;
+    char *buf,
+         *command,
+         *filename = "data/menu.txt",
+         buttonnames[btnnum][16];
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
-    int sdid;
+
+    printf("Loading control settings.......\t");
 
     strncpy(buttonnames[SDID_MOVEUP], "Move Up", 16);
     strncpy(buttonnames[SDID_MOVEDOWN], "Move Down", 16);
@@ -36270,24 +36282,6 @@ void keyboard_setup_menu_conf(int player, char *buf, char* command, char* filena
     {
         break;
     }
-}
-
-void keyboard_setup(int player)
-{
-    const int btnnum = MAX_BTN_NUM;
-    int quit = 0,
-        selector = 0,
-        setting = -1,
-        i, k, ok = 0,
-              disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-                                col1 = -8, col2 = 6;
-    ptrdiff_t voffset;
-    char *buf, *command, *filename = "data/menu.txt",
-                          buttonnames[btnnum][16];
-
-    printf("Loading control settings.......\t");
-
-    keyboard_setup_menu_conf(player,buf,command,filename,buttonnames);
 
     while(!quit)
     {
