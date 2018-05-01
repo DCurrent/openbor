@@ -28797,16 +28797,16 @@ void common_prejump()
     {
         return;
     }
-    dojump(self->jump.velocity.y, self->jump.velocity.x, self->jump.velocity.z, self->jump.id);
+    dojump(self->jump.velocity.y, self->jump.velocity.x, self->jump.velocity.z, self->jump.animation_id);
 }
 
 
-void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
+void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
 {
     self->jump.velocity.y = jumpv;
     self->jump.velocity.x = jumpx;
     self->jump.velocity.z = jumpz;
-    self->jump.id = jumpid;
+    self->jump.animation_id = animation_id;
     if(validanim(self, ANI_JUMPDELAY))
     {
         self->takeaction = common_prejump;
@@ -28817,12 +28817,12 @@ void tryjump(float jumpv, float jumpx, float jumpz, int jumpid)
     }
     else
     {
-        dojump(jumpv, jumpx, jumpz, jumpid);
+        dojump(jumpv, jumpx, jumpz, animation_id);
     }
 }
 
 
-void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
+void dojump(float jumpv, float jumpx, float jumpz, int animation_id)
 {
     entity *dust;
 
@@ -28860,7 +28860,7 @@ void dojump(float jumpv, float jumpx, float jumpz, int jumpid)
     }
 
     self->velocity.z = jumpz;
-    ent_set_anim(self, jumpid, 0);
+    ent_set_anim(self, animation_id, 0);
 }
 
 // Function created to combine the action taken if either picking up an item, or running into an item that is a
@@ -29457,7 +29457,7 @@ void player_jump_check()
 {
     int candospecial = 0;
 
-    if(!noaircancel || !self->animating || self->animnum == self->jump.id)
+    if(!noaircancel || !self->animating || self->animnum == self->jump.animation_id)
     {
         //air special, copied and changed from Fugue's code
         if((!level->nospecial || level->nospecial == 3) && player[self->playerindex].playkeys & FLAG_SPECIAL)
