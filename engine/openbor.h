@@ -1409,7 +1409,6 @@ typedef struct
     int x;      //Horizontal axis.
     int y;      //Altitude/Vertical axis.
     int z;      //Lateral axis.
-    int base;   //Base altitude.
 } s_axis_i;
 
 typedef struct
@@ -1729,9 +1728,21 @@ typedef struct
     2011-04-01
     Damon V. Caskey
     */
-
     s_axis_i max;   //max ranges.
     s_axis_i min;   //min ranges.
+
+    s_metric_i base;
+    s_mertic_i x;
+    s_metric_i y;
+    s_metric_i z;
+    int base_max;
+    int base_min;
+    int x_max;
+    int x_min;
+    int y_max;
+    int y_min;
+    int z_max;
+    int z_min;
 } s_range;
 
 typedef struct
