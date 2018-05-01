@@ -2192,12 +2192,6 @@ s_modelcache *model_cache;
 // Jumping action setup.
 typedef struct
 {
-    /*
-    Jumping parameters struct.
-    2013-12-08
-    Damon Caskey
-    */
-
     e_animations    animation_id;   // Jumping Animation.
     s_axis_f        velocity;       // x,a,z velocity setting.
 } s_jump;
