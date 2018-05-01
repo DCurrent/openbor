@@ -2186,6 +2186,10 @@ typedef struct
 } s_modelcache;
 s_modelcache *model_cache;
 
+// Caskey, Damon V.
+// 2013-12-08
+//
+// Jumping action setup.
 typedef struct
 {
     /*
@@ -2194,8 +2198,8 @@ typedef struct
     Damon Caskey
     */
 
-    int id; //Jumping ID.
-    s_axis_f velocity; //x,a,z velocity setting.
+    e_animations    animation_id;   // Jumping Animation.
+    s_axis_f        velocity;       // x,a,z velocity setting.
 } s_jump;
 
 
