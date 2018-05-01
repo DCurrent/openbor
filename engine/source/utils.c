@@ -80,12 +80,15 @@ typedef void DIR;
 #define COPY_ROOT_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/"); strcat(buf, name); strncat(buf, "/", 1);
 #define COPY_PAKS_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/Paks/"); strcat(buf, name);
 #elif ANDROID
-#define CHECK_LOGFILE(type)  type ? fileExists("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt") : fileExists("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt")
-#define OPEN_LOGFILE(type)   type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "wt")
-#define APPEND_LOGFILE(type) type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "at")
-#define READ_LOGFILE(type)   type ? fopen("/mnt/sdcard/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("/mnt/sdcard/OpenBOR/Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) strncpy(buf, "/mnt/sdcard/OpenBOR/", 20); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
-#define COPY_PAKS_PATH(buf, name) strncpy(buf, "/mnt/sdcard/OpenBOR/Paks/", 25); strncat(buf, name, strlen(name));
+#define Alog AndroidRoot "/Logs/OpenBorLog.txt"
+#define Aslog AndroidRoot "/Logs/ScriptLog.txt"
+#define Apak AndroidRoot "/Paks/"
+#define CHECK_LOGFILE(type)  type ? fileExists(Alog) : fileExists(Aslog)
+#define OPEN_LOGFILE(type)   type ? fopen(Alog, "wt") : fopen(Aslog, "wt")
+#define APPEND_LOGFILE(type) type ? fopen(Alog, "at") : fopen(Aslog, "at")
+#define READ_LOGFILE(type)   type ? fopen(Alog, "rt") : fopen(Aslog, "rt")
+#define COPY_ROOT_PATH(buf, name) strncpy(buf, AndroidRoot,strlen(AndroidRoot)); strncat(buf, "/", 1); strncat(buf, name,strlen(name)); strncat(buf, "/", 1);
+#define COPY_PAKS_PATH(buf, name) strncpy(buf, Apak,strlen(Apak)); strncat(buf, name, strlen(name));
 #else
 #define CHECK_LOGFILE(type)  type ? fileExists("./Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "wt") : fopen("./Logs/ScriptLog.txt", "wt")
