@@ -43,12 +43,7 @@ import android.content.pm.ApplicationInfo;
 //Added imports
 import android.os.PowerManager.*;
 import android.content.res.*;
-
-//msmalik681 added imports for new pak copy !
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+//msmalik681 added imports for new pak copy!
 import android.os.Environment;
 import android.widget.Toast;
 
@@ -319,14 +314,14 @@ private void CopyPak(){
 		Context context = getApplicationContext();
 		String version = null;
 		String toast = null;
-		
+
 			try{
 			version = context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName; //get version number as string
-			} catch (Exception e) { } 
+			} catch (Exception e) { }
 		//Toast.makeText(context,context.getPackageName().toString(), Toast.LENGTH_LONG).show();
         File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
         File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
-		
+
 		if(context.getPackageName().equals("org.openbor.engine")) {
 			if (!outFolder.isDirectory()) {
 				outFolder.mkdirs();
@@ -340,10 +335,10 @@ private void CopyPak(){
 			//directory is empty
 			}
 			}
-			
+
 			} else {
-		
-		if (outFolder.isDirectory() & !outFile.exists()) //if local folder true and file does not match version empty folder 
+
+		if (outFolder.isDirectory() & !outFile.exists()) //if local folder true and file does not match version empty folder
 		{
 		toast = "Updating please wait!";
 		String[] children = outFolder.list();
@@ -352,7 +347,7 @@ private void CopyPak(){
 			new File(outFolder, children[i]).delete();
 			}
 		} else {toast = "First time setup please wait!";}
-		
+
 		if(!outFile.exists()){
 		Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
 		outFolder.mkdirs();
