@@ -5302,7 +5302,7 @@ int load_special_sounds()
     return 1;
 }
 
-static int nextcolourmap(s_model *model, int c)
+int nextcolourmap(s_model *model, int c)
 {
     do
     {
@@ -5320,7 +5320,51 @@ static int nextcolourmap(s_model *model, int c)
     return c;
 }
 
-static int prevcolourmap(s_model *model, int c)
+int nextcolourmapln(s_model *model, int c, int p)
+{
+    int color_index = nextcolourmap(model, c);
+    s_set_entry *set = levelsets + current_set;
+
+    if ( colourselect && (set->nosame & 2) )
+    {
+        int i = 0, j = 0;
+        int maps_count = model->maps_loaded;
+        int used_colors_map[maps_count];
+        int used_color_count = 0;
+
+        // reset color map
+        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
+        // check max color map count
+        if (model->maps.frozen > 0) --maps_count;
+        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+
+        // map all used colors
+        for(i = 0; i < MAX_PLAYERS; i++)
+        {
+            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
+            {
+                used_colors_map[player[i].colourmap] = 1;
+                ++used_color_count;
+                // all busy colors? return the next natural
+                if (used_color_count >= maps_count) return color_index;
+            }
+        }
+
+        // search the first free color
+        for(i = color_index, j = 0; j < maps_count; j++)
+        {
+            if ( !used_colors_map[i] )
+            {
+                return i;
+            }
+            i = nextcolourmap(model, i);
+        }
+    }
+
+    return color_index;
+}
+
+int prevcolourmap(s_model *model, int c)
 {
     do
     {
@@ -5336,6 +5380,50 @@ static int prevcolourmap(s_model *model, int c)
     );
 
     return c;
+}
+
+int prevcolourmapln(s_model *model, int c, int p)
+{
+    int color_index = prevcolourmap(model, c);
+    s_set_entry *set = levelsets + current_set;
+
+    if ( colourselect && (set->nosame & 2) )
+    {
+        int i = 0, j = 0;
+        int maps_count = model->maps_loaded;
+        int used_colors_map[maps_count];
+        int used_color_count = 0;
+
+        // reset color map
+        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
+        // check max color map count
+        if (model->maps.frozen > 0) --maps_count;
+        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+
+        // map all used colors
+        for(i = 0; i < MAX_PLAYERS; i++)
+        {
+            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
+            {
+                used_colors_map[player[i].colourmap] = 1;
+                ++used_color_count;
+                // all busy colors? return the next natural
+                if (used_color_count >= maps_count) return color_index;
+            }
+        }
+
+        // search the first free color
+        for(i = color_index, j = 0; j < maps_count; j++)
+        {
+            if ( !used_colors_map[i] )
+            {
+                return i;
+            }
+            i = prevcolourmap(model, i);
+        }
+    }
+
+    return color_index;
 }
 
 // Use by player select menus
@@ -5380,16 +5468,44 @@ s_model *nextplayermodeln(s_model *current, int p)
     int i;
     s_set_entry *set = levelsets + current_set;
     s_model *model = nextplayermodel(current);
+
     if(set->nosame & 1)
     {
-        for(i = 0; model && i < set->maxplayers; i++)
+        int used_player_count = 0, player_count = 0;
+
+        // check count of selectable players
+        for(i = 0; i < models_cached; i++)
+        {
+            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
+                    (allow_secret_chars || !model_cache[i].model->secret) &&
+                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+            {
+                ++player_count;
+            }
+        }
+
+        // count all used player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
+        {
+            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            {
+                ++used_player_count;
+                // all busy players? return the next natural
+                if (used_player_count >= player_count) return nextplayermodel(current);
+            }
+        }
+
+        // search the first free player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
         {
             if(i != p && stricmp(model->name, player[i].name) == 0)
             {
+                i = -1;
                 model = nextplayermodel(model);
             }
         }
     }
+
     return model;
 }
 
@@ -5435,16 +5551,44 @@ s_model *prevplayermodeln(s_model *current, int p)
     int i;
     s_set_entry *set = levelsets + current_set;
     s_model *model = prevplayermodel(current);
+
     if(set->nosame & 1)
     {
-        for(i = 0; model && i < set->maxplayers; i++)
+        int used_player_count = 0, player_count = 0;
+
+        // check count of selectable players
+        for(i = 0; i < models_cached; i++)
+        {
+            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
+                    (allow_secret_chars || !model_cache[i].model->secret) &&
+                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+            {
+                ++player_count;
+            }
+        }
+
+        // count all used player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
+        {
+            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            {
+                ++used_player_count;
+                // all busy players? return the prev natural
+                if (used_player_count >= player_count) return prevplayermodel(current);
+            }
+        }
+
+        // search the first free player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
         {
             if(i != p && stricmp(model->name, player[i].name) == 0)
             {
+                i = -1;
                 model = prevplayermodel(model);
             }
         }
     }
+
     return model;
 }
 
@@ -16043,57 +16187,15 @@ void updatestatus()
                 model = ((player[i].playkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(model, i);
                 strcpy(player[i].name, model->name);
 
-                //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
-                // NOSAME X 2 // By White Dragon
-                player[i].colourmap = 0;
-                if ( colourselect && (set->nosame & 2) )
-                {
-                    int nosamef = -1;
-                    int ii = 0;
-                    for(ii = 0; ii < set->maxplayers; ii++)
-                    {
-                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-                        {
-                            if ( player[i].colourmap == player[ii].colourmap  )
-                            {
-                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                                player[i].colourmap = nextcolourmap(model,player[i].colourmap);
-                                ii = 0;
-                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                                continue;
-                            }
-                        } else continue;
-                    }
-                }
-                // NOSAME X 2
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i) : 0;
 
                 player[i].playkeys = 0;
             }
             // don't like a characters color try a new one!
             else if(player[i].playkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect)
             {
-                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
-                // NOSAME X 2 // By White Dragon
-                if ( colourselect && (set->nosame & 2) )
-                {
-                    int nosamef = -1;
-                    int ii = 0;
-                    for(ii = 0; ii < set->maxplayers; ii++)
-                    {
-                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-                        {
-                            if ( player[i].colourmap == player[ii].colourmap  )
-                            {
-                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
-                                ii = 0;
-                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                                continue;
-                            }
-                        } else continue;
-                    }
-                }
-                // NOSAME X 2
+                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(model, player[i].colourmap, i);
+
                 player[i].playkeys = 0;
             }
         }
@@ -16105,29 +16207,7 @@ void updatestatus()
                 model = skipselect[i][0] ? findmodel(skipselect[i]) : nextplayermodeln(NULL, i);
                 strncpy(player[i].name, model->name, MAX_NAME_LEN);
 
-                //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
-                // NOSAME X 2 // By White Dragon
-                player[i].colourmap = 0;
-                if ( colourselect && (set->nosame & 2) )
-                {
-                    int nosamef = -1;
-                    int ii = 0;
-                    for(ii = 0; ii < set->maxplayers; ii++)
-                    {
-                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-                        {
-                            if ( player[i].colourmap == player[ii].colourmap  )
-                            {
-                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                                player[i].colourmap = nextcolourmap(model,player[i].colourmap);
-                                ii = 0;
-                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                                continue;
-                            }
-                        } else continue;
-                    }
-                }
-                // NOSAME X 2
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i) : 0;
 
                 player[i].joining = 1;
                 player[i].disablekeys = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
@@ -34840,29 +34920,7 @@ static entity *spawnexample(int i)
     strcpy(player[i].name, example->model->name);
     model = example->model;
 
-    //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(example->model, i - 1) : 0;
-    // NOSAME X 2 // By White Dragon
-    player[i].colourmap = 0;
-    if ( colourselect && (set->nosame & 2) )
-    {
-        int nosamef = -1;
-        int ii = 0;
-        for(ii = 0; ii < set->maxplayers; ii++)
-        {
-            if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-            {
-                if ( player[i].colourmap == player[ii].colourmap  )
-                {
-                    if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                    player[i].colourmap = nextcolourmap(model,player[i].colourmap);
-                    ii = 0;
-                    if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                    continue;
-                }
-            } else continue;
-        }
-    }
-    // NOSAME X 2
+    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example->model, player[i].colourmap, i) : 0;
 
     ent_set_colourmap(example, player[i].colourmap);
     example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
@@ -35197,13 +35255,13 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     }
                     ent_set_model(example[i], ((player[i].newkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(example[i]->model, i)->name, 0);
                     strcpy(player[i].name, example[i]->model->name);
-                    player[i].colourmap = nextcolourmap(example[i]->model, i - 1);
+                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example[i]->model, player[i].colourmap, i) : 0;
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 // oooh pretty colors! - selectable color scheme for player characters
                 else if(player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
                 {
-                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(example[i]->model, player[i].colourmap);
+                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(example[i]->model, player[i].colourmap, i);
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
