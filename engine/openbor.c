@@ -34914,11 +34914,9 @@ int playlevel(char *filename)
 static entity *spawnexample(int i)
 {
     entity *example;
-    s_model *model = NULL;
     s_set_entry *set = levelsets + current_set;
     example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
     strcpy(player[i].name, example->model->name);
-    model = example->model;
 
     player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example->model, player[i].colourmap, i) : 0;
 
