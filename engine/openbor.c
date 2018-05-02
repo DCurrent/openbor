@@ -34932,7 +34932,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
     selectScreen = 1;
     kill_all();
-    if(!skipselect[0][0] && !set->noselect) reset_playable_list(1); // or (allowselect_args[0] != 'a') 'a' is the first char of allowselect, if there's 'a' then there is allowselect
+    if( allowselect_args[0] != ('a'||'A') ) reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
     memset(player, 0, sizeof(*player) * 4);
 
     if(useSavedGame && save)
