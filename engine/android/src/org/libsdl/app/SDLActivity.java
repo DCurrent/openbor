@@ -324,7 +324,7 @@ public class SDLActivity extends Activity {
             if(context.getPackageName().equals("org.openbor.engine")) {
                 if (!outFolder.isDirectory()) {
                     outFolder.mkdirs();
-                    toast = "folder:("+outFolder+") is empty!";
+                    toast = "Folder: ("+outFolder+") is empty!";
                     Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
                 } else {
                     String[] files = outFolder.list();
