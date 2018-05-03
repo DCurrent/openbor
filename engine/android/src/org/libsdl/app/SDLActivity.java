@@ -307,70 +307,74 @@ public class SDLActivity extends Activity {
 
    // public static native void setRootDir(String dir); msmalik681: left commented as it may be useful in future.
 
-//msmalik681 new method to copy pak file from res/raw/ folder
-private void CopyPak(){
-    try {
-		Context ctx = getContext();
-		Context context = getApplicationContext();
-		String version = null;
-		String toast = null;
+    //msmalik681 new method to copy pak file from res/raw/ folder
+    private void CopyPak(){
+        try {
+            Context ctx = getContext();
+            Context context = getApplicationContext();
+            String version = null;
+            String toast = null;
 
-			try{
-			version = context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName; //get version number as string
-			} catch (Exception e) { }
-		//Toast.makeText(context,context.getPackageName().toString(), Toast.LENGTH_LONG).show();
-        File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
-        File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
+            version = context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName; //get version number as string
 
-		if(context.getPackageName().equals("org.openbor.engine")) {
-			if (!outFolder.isDirectory()) {
-				outFolder.mkdirs();
-				toast = "folder:("+outFolder+") is empty!";
-				Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
-			} else {
-			String[] files = outFolder.list();
-			if (files.length == 0) {
-			toast = "Paks folder:("+outFolder+") is empty!";
-			Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
-			//directory is empty
-			}
-			}
+            //Toast.makeText(context,context.getPackageName().toString(), Toast.LENGTH_LONG).show();
+            File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
+            File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
 
-			} else {
+            if(context.getPackageName().equals("org.openbor.engine")) {
+                if (!outFolder.isDirectory()) {
+                    outFolder.mkdirs();
+                    toast = "folder:("+outFolder+") is empty!";
+                    Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                } else {
+                    String[] files = outFolder.list();
+                    if (files.length == 0) {
+                        toast = "Paks folder: ("+outFolder+") is empty!";
+                        Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                        //directory is empty
+                    }
+                }
+            } else {
+                if (outFolder.isDirectory() & !outFile.exists()) { //if local folder true and file does not match version empty folder
+                    toast = "Updating please wait!";
+                    String[] children = outFolder.list();
+                    for (int i = 0; i < children.length; i++) {
+                        new File(outFolder, children[i]).delete();
+                    }
+                } else {
+                    toast = "First time setup please wait!";
+                }
 
-		if (outFolder.isDirectory() & !outFile.exists()) //if local folder true and file does not match version empty folder
-		{
-		toast = "Updating please wait!";
-		String[] children = outFolder.list();
-			for (int i = 0; i < children.length; i++)
-			{
-			new File(outFolder, children[i]).delete();
-			}
-		} else {toast = "First time setup please wait!";}
+                if(!outFile.exists()) {
+                    Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                    outFolder.mkdirs();
 
-		if(!outFile.exists()){
-		Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
-		outFolder.mkdirs();
-		int resId = context.getResources().getIdentifier("raw/bor", null, context.getPackageName());
-		InputStream in = getResources().openRawResource(resId);
-        FileOutputStream out = new FileOutputStream(outFile);
-        copyFile(in, out);
-        in.close();
-        in = null;
-        out.flush();
-        out.close();
-        out = null;
-		}
-    }} catch (IOException e1) { }
-}
+                    int resId = context.getResources().getIdentifier("raw/bor", null, context.getPackageName());
+                    InputStream in = getResources().openRawResource(resId);
+                    FileOutputStream out = new FileOutputStream(outFile);
 
-private void copyFile(InputStream in, OutputStream out) throws IOException {
-    byte[] buffer = new byte[1024];
-    int read;
-    while ((read = in.read(buffer)) != -1) {
-        out.write(buffer, 0, read);
+                    copyFile(in, out);
+                    in.close();
+                    in = null;
+                    out.flush();
+                    out.close();
+                    out = null;
+                }
+            }
+        } catch (IOException e) {
+            // not handled
+        } catch (Exception e) {
+            // not handled
+        }
     }
-}
+
+    private void copyFile(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+        }
+    }
 
     // Events
     @Override
