@@ -214,7 +214,7 @@ case $1 in
        echo "-------------------------------------------------------"
        echo "      Windows SDK - Not Found, Installing SDK!"
        echo "-------------------------------------------------------"
-       ../tools/7-Zip/7za.exe x -y ../tools/win-sdk/MinGW.7z -o../tools/win-sdk/
+       ../tools/7-Zip/7za.exe x -y ../tools/win-sdk/win-sdk.7z -o../tools/win-sdk/
        echo
        echo "-------------------------------------------------------"
        echo "      Windows SDK - Installation Has Completed!"
