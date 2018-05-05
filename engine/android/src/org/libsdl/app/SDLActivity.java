@@ -319,17 +319,18 @@ public class SDLActivity extends Activity {
 
             //Toast.makeText(context,context.getPackageName().toString(), Toast.LENGTH_LONG).show();
             File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
+			File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");  //Default ouput folder
             File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
 
             if(context.getPackageName().equals("org.openbor.engine")) {
-                if (!outFolder.isDirectory()) {
-                    outFolder.mkdirs();
-                    toast = "Folder: ("+outFolder+") is empty!";
+                if (!outFolderDefault.isDirectory()) {
+                    outFolderDefault.mkdirs();
+                    toast = "Folder: ("+outFolderDefault+") is empty!";
                     Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
                 } else {
-                    String[] files = outFolder.list();
+                    String[] files = outFolderDefault.list();
                     if (files.length == 0) {
-                        toast = "Paks folder: ("+outFolder+") is empty!";
+                        toast = "Paks Folder: ("+outFolderDefault+") is empty!";
                         Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
                         //directory is empty
                     }

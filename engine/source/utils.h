@@ -19,7 +19,8 @@
 
 #ifdef ANDROID
     //msmalik681: this is the root directory needs to be updated to automated process.
-    #define AndroidRoot "/mnt/sdcard/Android/data/org.openbor.engine/files"
+    // example for custom apk #define AndroidRoot "/mnt/sdcard/Android/data/org.openbor.engine/files"
+	#define AndroidRoot "/mnt/sdcard/Openbor"
 #endif
 
 // *** VARIABLE DECLARATIONS ***
