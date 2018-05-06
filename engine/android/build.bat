@@ -11,6 +11,9 @@
 @echo Building libraries from OpenBOR source...
 @echo -----------------------------------------------------------------------
 call ndk-build
+if exist "copy_and_rename_me_to_local.properties" (
+	copy /y "copy_and_rename_me_to_local.properties" "local.properties" 1>NUL
+)
 @echo -----------------------------------------------------------------------
 @echo Compiling APK ...
 @echo -----------------------------------------------------------------------
