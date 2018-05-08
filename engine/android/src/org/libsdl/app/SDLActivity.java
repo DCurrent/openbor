@@ -43,6 +43,9 @@ import android.content.pm.ApplicationInfo;
 //Added imports
 import android.os.PowerManager.*;
 import android.content.res.*;
+//msmalik681 added imports for new pak copy!
+import android.os.Environment;
+import android.widget.Toast;
 
 /**
     SDL Activity
@@ -252,7 +255,7 @@ public class SDLActivity extends Activity {
 
         setWindowStyle(false);
 
-		CopyPak("BOR");
+		CopyPak();
 
         //White Dragon: hide navigation bar programmatically
         SDLActivity.decorView = getWindow().getDecorView();
@@ -302,45 +305,75 @@ public class SDLActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_IMMERSIVE);
     }
 
-    public static native void setRootDir(String dir);
+   // public static native void setRootDir(String dir); msmalik681: left commented as it may be useful in future.
 
-    private void CopyPak(String pakName)
-    {
-        try
-        {
+    //msmalik681 new method to copy pak file from res/raw/ folder
+    private void CopyPak(){
+        try {
             Context ctx = getContext();
-            String fileRoot = Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + ctx.getApplicationInfo().loadLabel(ctx.getPackageManager());//"/Android/data/org.openbor.engine/files";
-            setRootDir(fileRoot);
+            Context context = getApplicationContext();
+            String version = null;
+            String toast = null;
 
-            File pakFile = new File(fileRoot + "/Paks/" + pakName + ".pak");
+            version = context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName; //get version number as string
 
-            if(!pakFile.exists())
-            {
-                File pakDir = new File(fileRoot + "/Paks/");
-                pakDir.mkdirs();
-                AssetManager am = ctx.getAssets();
-                OutputStream os = null;
-                byte []b = new byte[1024*1024];
-                int i, r;
-                String []Files = am.list("");
-                Arrays.sort(Files);
-                for(i=1;;i++)
-                {
-                    String fn = String.format(pakName+".pak."+"%03d", i);
-                    if(Arrays.binarySearch(Files, fn) < 0)
-                        break;
-                    InputStream is = am.open(fn);
-                    if(null==os)
-                        os = new FileOutputStream(pakFile);
-                    while((r = is.read(b)) != -1)
-                        os.write(b, 0, r);
-                    is.close();
+            //Toast.makeText(context,context.getPackageName().toString(), Toast.LENGTH_LONG).show();
+            File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
+			File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");  //Default ouput folder
+            File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
+
+            if(context.getPackageName().equals("org.openbor.engine")) {
+                if (!outFolderDefault.isDirectory()) {
+                    outFolderDefault.mkdirs();
+                    toast = "Folder: ("+outFolderDefault+") is empty!";
+                    Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                } else {
+                    String[] files = outFolderDefault.list();
+                    if (files.length == 0) {
+                        toast = "Paks Folder: ("+outFolderDefault+") is empty!";
+                        Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                        //directory is empty
+                    }
                 }
-                if(os!=null) os.close();
+            } else {
+                if (outFolder.isDirectory() & !outFile.exists()) { //if local folder true and file does not match version empty folder
+                    toast = "Updating please wait!";
+                    String[] children = outFolder.list();
+                    for (int i = 0; i < children.length; i++) {
+                        new File(outFolder, children[i]).delete();
+                    }
+                } else {
+                    toast = "First time setup please wait!";
+                }
+
+                if(!outFile.exists()) {
+                    Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                    outFolder.mkdirs();
+
+                    int resId = context.getResources().getIdentifier("raw/bor", null, context.getPackageName());
+                    InputStream in = getResources().openRawResource(resId);
+                    FileOutputStream out = new FileOutputStream(outFile);
+
+                    copyFile(in, out);
+                    in.close();
+                    in = null;
+                    out.flush();
+                    out.close();
+                    out = null;
+                }
             }
+        } catch (IOException e) {
+            // not handled
+        } catch (Exception e) {
+            // not handled
         }
-        catch (IOException ex)
-        {
+    }
+
+    private void copyFile(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[1024];
+        int read;
+        while ((read = in.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
         }
     }
 

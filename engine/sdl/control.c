@@ -574,7 +574,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 	getPads(keystate,keystate_def);
 
-	for(player=0; player<numplayers; player++){
+	for(player = 0; player < numplayers; player++){
 
 		pcontrols = playercontrols[player];
 
@@ -589,13 +589,15 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 		}
 
         #ifdef ANDROID
-		for(i=0;i<JOY_MAX_INPUTS;i++)
-		{
-			t = touch_control.settings[i];
-			if(t >= SDLK_FIRST && t < SDLK_LAST){
-                if(keystate_def[t]) k |= (1<<i);
-			}
-		}
+        if (player <= 0) {
+            for(i=0;i<JOY_MAX_INPUTS;i++)
+            {
+                t = touch_control.settings[i];
+                if(t >= SDLK_FIRST && t < SDLK_LAST){
+                    if(keystate_def[t]) k |= (1<<i);
+                }
+            }
+        }
         #endif
 
 		if(usejoy)

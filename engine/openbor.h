@@ -2714,6 +2714,7 @@ void    execute_updateentity_script (entity *ent);
 void    execute_think_script        (entity *ent);
 void    execute_didhit_script       (entity *ent, entity *other, s_collision_attack *attack, int blocked);
 void    execute_onspawn_script      (entity *ent);
+void    clearbuttonss(int player);
 void    clearsettings(void);
 void    savesettings(void);
 void    saveasdefault(void);
@@ -3048,6 +3049,7 @@ void term_videomodes();
 void init_videomodes(int log);
 void safe_set(int *arr, int index, int newkey, int oldkey);
 
+void keyboard_setup_menu(int player);
 void keyboard_setup(int player);
 void inputrefresh();
 

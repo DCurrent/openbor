@@ -3056,8 +3056,115 @@ void execute_pdie_script(int index)
 
 // ------------------------ Save/load -----------------------------
 
+void clearbuttons(int player)
+{
+    if (player == 0)
+    {
+        savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
+        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
+        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
+        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
+        savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
+        savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
+        savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
+        savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
+        savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
+        savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
+        savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
+        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
+        #ifdef SDL
+            //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
+        #endif
+
+        #ifdef ANDROID
+        touch_default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
+        touch_default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
+        touch_default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
+        touch_default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
+        touch_default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
+        touch_default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
+        touch_default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
+        touch_default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
+        touch_default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
+        touch_default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
+        touch_default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
+        touch_default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
+
+        control_setkey(&touch_control, FLAG_ESC,        CONTROL_ESC);
+        control_setkey(&touch_control, FLAG_MOVEUP,     touch_default_keys[SDID_MOVEUP]);
+        control_setkey(&touch_control, FLAG_MOVEDOWN,   touch_default_keys[SDID_MOVEDOWN]);
+        control_setkey(&touch_control, FLAG_MOVELEFT,   touch_default_keys[SDID_MOVELEFT]);
+        control_setkey(&touch_control, FLAG_MOVERIGHT,  touch_default_keys[SDID_MOVERIGHT]);
+        control_setkey(&touch_control, FLAG_ATTACK,     touch_default_keys[SDID_ATTACK]);
+        control_setkey(&touch_control, FLAG_ATTACK2,    touch_default_keys[SDID_ATTACK2]);
+        control_setkey(&touch_control, FLAG_ATTACK3,    touch_default_keys[SDID_ATTACK3]);
+        control_setkey(&touch_control, FLAG_ATTACK4,    touch_default_keys[SDID_ATTACK4]);
+        control_setkey(&touch_control, FLAG_JUMP,       touch_default_keys[SDID_JUMP]);
+        control_setkey(&touch_control, FLAG_SPECIAL,    touch_default_keys[SDID_SPECIAL]);
+        control_setkey(&touch_control, FLAG_START,      touch_default_keys[SDID_START]);
+        control_setkey(&touch_control, FLAG_SCREENSHOT, touch_default_keys[SDID_SCREENSHOT]);
+        #endif
+    }
+    else if (player == 1)
+    {
+        savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP;
+        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_DEFAULT2_DOWN;
+        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_DEFAULT2_LEFT;
+        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_DEFAULT2_RIGHT;
+        savedata.keys[1][SDID_ATTACK]    = CONTROL_DEFAULT2_FIRE1;
+        savedata.keys[1][SDID_ATTACK2]   = CONTROL_DEFAULT2_FIRE2;
+        savedata.keys[1][SDID_ATTACK3]   = CONTROL_DEFAULT2_FIRE3;
+        savedata.keys[1][SDID_ATTACK4]   = CONTROL_DEFAULT2_FIRE4;
+        savedata.keys[1][SDID_JUMP]      = CONTROL_DEFAULT2_FIRE5;
+        savedata.keys[1][SDID_SPECIAL]   = CONTROL_DEFAULT2_FIRE6;
+        savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
+        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
+        #ifdef SDL
+            //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
+        #endif
+    }
+    else if (player == 2)
+    {
+        savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP;
+        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_DEFAULT3_DOWN;
+        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_DEFAULT3_LEFT;
+        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_DEFAULT3_RIGHT;
+        savedata.keys[2][SDID_ATTACK]    = CONTROL_DEFAULT3_FIRE1;
+        savedata.keys[2][SDID_ATTACK2]   = CONTROL_DEFAULT3_FIRE2;
+        savedata.keys[2][SDID_ATTACK3]   = CONTROL_DEFAULT3_FIRE3;
+        savedata.keys[2][SDID_ATTACK4]   = CONTROL_DEFAULT3_FIRE4;
+        savedata.keys[2][SDID_JUMP]      = CONTROL_DEFAULT3_FIRE5;
+        savedata.keys[2][SDID_SPECIAL]   = CONTROL_DEFAULT3_FIRE6;
+        savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
+        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
+        #ifdef SDL
+            //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
+        #endif
+    }
+    else if (player == 3)
+    {
+        savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP;
+        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_DEFAULT4_DOWN;
+        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_DEFAULT4_LEFT;
+        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_DEFAULT4_RIGHT;
+        savedata.keys[3][SDID_ATTACK]    = CONTROL_DEFAULT4_FIRE1;
+        savedata.keys[3][SDID_ATTACK2]   = CONTROL_DEFAULT4_FIRE2;
+        savedata.keys[3][SDID_ATTACK3]   = CONTROL_DEFAULT4_FIRE3;
+        savedata.keys[3][SDID_ATTACK4]   = CONTROL_DEFAULT4_FIRE4;
+        savedata.keys[3][SDID_JUMP]      = CONTROL_DEFAULT4_FIRE5;
+        savedata.keys[3][SDID_SPECIAL]   = CONTROL_DEFAULT4_FIRE6;
+        savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
+        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
+        #ifdef SDL
+            //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
+        #endif
+    }
+}
+
 void clearsettings()
 {
+    int i = 0;
+
     savedata.compatibleversion = COMPATIBLEVERSION;
     savedata.gamma = 0;
     savedata.brightness = 0;
@@ -3077,7 +3184,6 @@ void clearsettings()
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
     savedata.stretch = 0;
-
 
 #ifdef SDL
     savedata.usegl = 1;
@@ -3099,98 +3205,10 @@ void clearsettings()
     savedata.overscan[3] = 0;
 #endif
 
-    savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-    savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-    savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-    savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-    savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-    savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-    savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-    savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-    savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-    savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-    savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
-    savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-    #ifdef SDL
-        //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
-    #endif
-
-    savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP;
-    savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_DEFAULT2_DOWN;
-    savedata.keys[1][SDID_MOVELEFT]  = CONTROL_DEFAULT2_LEFT;
-    savedata.keys[1][SDID_MOVERIGHT] = CONTROL_DEFAULT2_RIGHT;
-    savedata.keys[1][SDID_ATTACK]    = CONTROL_DEFAULT2_FIRE1;
-    savedata.keys[1][SDID_ATTACK2]   = CONTROL_DEFAULT2_FIRE2;
-    savedata.keys[1][SDID_ATTACK3]   = CONTROL_DEFAULT2_FIRE3;
-    savedata.keys[1][SDID_ATTACK4]   = CONTROL_DEFAULT2_FIRE4;
-    savedata.keys[1][SDID_JUMP]      = CONTROL_DEFAULT2_FIRE5;
-    savedata.keys[1][SDID_SPECIAL]   = CONTROL_DEFAULT2_FIRE6;
-    savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
-    savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
-    #ifdef SDL
-        //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
-    #endif
-
-    savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP;
-    savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_DEFAULT3_DOWN;
-    savedata.keys[2][SDID_MOVELEFT]  = CONTROL_DEFAULT3_LEFT;
-    savedata.keys[2][SDID_MOVERIGHT] = CONTROL_DEFAULT3_RIGHT;
-    savedata.keys[2][SDID_ATTACK]    = CONTROL_DEFAULT3_FIRE1;
-    savedata.keys[2][SDID_ATTACK2]   = CONTROL_DEFAULT3_FIRE2;
-    savedata.keys[2][SDID_ATTACK3]   = CONTROL_DEFAULT3_FIRE3;
-    savedata.keys[2][SDID_ATTACK4]   = CONTROL_DEFAULT3_FIRE4;
-    savedata.keys[2][SDID_JUMP]      = CONTROL_DEFAULT3_FIRE5;
-    savedata.keys[2][SDID_SPECIAL]   = CONTROL_DEFAULT3_FIRE6;
-    savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
-    savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
-    #ifdef SDL
-        //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
-    #endif
-
-    savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP;
-    savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_DEFAULT4_DOWN;
-    savedata.keys[3][SDID_MOVELEFT]  = CONTROL_DEFAULT4_LEFT;
-    savedata.keys[3][SDID_MOVERIGHT] = CONTROL_DEFAULT4_RIGHT;
-    savedata.keys[3][SDID_ATTACK]    = CONTROL_DEFAULT4_FIRE1;
-    savedata.keys[3][SDID_ATTACK2]   = CONTROL_DEFAULT4_FIRE2;
-    savedata.keys[3][SDID_ATTACK3]   = CONTROL_DEFAULT4_FIRE3;
-    savedata.keys[3][SDID_ATTACK4]   = CONTROL_DEFAULT4_FIRE4;
-    savedata.keys[3][SDID_JUMP]      = CONTROL_DEFAULT4_FIRE5;
-    savedata.keys[3][SDID_SPECIAL]   = CONTROL_DEFAULT4_FIRE6;
-    savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
-    savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
-    #ifdef SDL
-        //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
-    #endif
-
-    #ifdef ANDROID
-    touch_default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-    touch_default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-    touch_default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-    touch_default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-    touch_default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-    touch_default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-    touch_default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-    touch_default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-    touch_default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-    touch_default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-    touch_default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
-    touch_default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-
-    control_setkey(&touch_control, FLAG_ESC,        CONTROL_ESC);
-    control_setkey(&touch_control, FLAG_MOVEUP,     touch_default_keys[SDID_MOVEUP]);
-    control_setkey(&touch_control, FLAG_MOVEDOWN,   touch_default_keys[SDID_MOVEDOWN]);
-    control_setkey(&touch_control, FLAG_MOVELEFT,   touch_default_keys[SDID_MOVELEFT]);
-    control_setkey(&touch_control, FLAG_MOVERIGHT,  touch_default_keys[SDID_MOVERIGHT]);
-    control_setkey(&touch_control, FLAG_ATTACK,     touch_default_keys[SDID_ATTACK]);
-    control_setkey(&touch_control, FLAG_ATTACK2,    touch_default_keys[SDID_ATTACK2]);
-    control_setkey(&touch_control, FLAG_ATTACK3,    touch_default_keys[SDID_ATTACK3]);
-    control_setkey(&touch_control, FLAG_ATTACK4,    touch_default_keys[SDID_ATTACK4]);
-    control_setkey(&touch_control, FLAG_JUMP,       touch_default_keys[SDID_JUMP]);
-    control_setkey(&touch_control, FLAG_SPECIAL,    touch_default_keys[SDID_SPECIAL]);
-    control_setkey(&touch_control, FLAG_START,      touch_default_keys[SDID_START]);
-    control_setkey(&touch_control, FLAG_SCREENSHOT, touch_default_keys[SDID_SCREENSHOT]);
-    #endif
+    for (i = 0; i < MAX_PLAYERS; i++)
+    {
+        clearbuttons(i);
+    }
 }
 
 
@@ -5284,7 +5302,7 @@ int load_special_sounds()
     return 1;
 }
 
-static int nextcolourmap(s_model *model, int c)
+int nextcolourmap(s_model *model, int c)
 {
     do
     {
@@ -5302,7 +5320,51 @@ static int nextcolourmap(s_model *model, int c)
     return c;
 }
 
-static int prevcolourmap(s_model *model, int c)
+int nextcolourmapln(s_model *model, int c, int p)
+{
+    int color_index = nextcolourmap(model, c);
+    s_set_entry *set = levelsets + current_set;
+
+    if ( colourselect && (set->nosame & 2) )
+    {
+        int i = 0, j = 0;
+        int maps_count = model->maps_loaded;
+        int used_colors_map[maps_count];
+        int used_color_count = 0;
+
+        // reset color map
+        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
+        // check max color map count
+        if (model->maps.frozen > 0) --maps_count;
+        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+
+        // map all used colors
+        for(i = 0; i < MAX_PLAYERS; i++)
+        {
+            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
+            {
+                used_colors_map[player[i].colourmap] = 1;
+                ++used_color_count;
+                // all busy colors? return the next natural
+                if (used_color_count >= maps_count) return color_index;
+            }
+        }
+
+        // search the first free color
+        for(i = color_index, j = 0; j < maps_count; j++)
+        {
+            if ( !used_colors_map[i] )
+            {
+                return i;
+            }
+            i = nextcolourmap(model, i);
+        }
+    }
+
+    return color_index;
+}
+
+int prevcolourmap(s_model *model, int c)
 {
     do
     {
@@ -5318,6 +5380,50 @@ static int prevcolourmap(s_model *model, int c)
     );
 
     return c;
+}
+
+int prevcolourmapln(s_model *model, int c, int p)
+{
+    int color_index = prevcolourmap(model, c);
+    s_set_entry *set = levelsets + current_set;
+
+    if ( colourselect && (set->nosame & 2) )
+    {
+        int i = 0, j = 0;
+        int maps_count = model->maps_loaded;
+        int used_colors_map[maps_count];
+        int used_color_count = 0;
+
+        // reset color map
+        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
+        // check max color map count
+        if (model->maps.frozen > 0) --maps_count;
+        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+
+        // map all used colors
+        for(i = 0; i < MAX_PLAYERS; i++)
+        {
+            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
+            {
+                used_colors_map[player[i].colourmap] = 1;
+                ++used_color_count;
+                // all busy colors? return the next natural
+                if (used_color_count >= maps_count) return color_index;
+            }
+        }
+
+        // search the first free color
+        for(i = color_index, j = 0; j < maps_count; j++)
+        {
+            if ( !used_colors_map[i] )
+            {
+                return i;
+            }
+            i = prevcolourmap(model, i);
+        }
+    }
+
+    return color_index;
 }
 
 // Use by player select menus
@@ -5362,16 +5468,44 @@ s_model *nextplayermodeln(s_model *current, int p)
     int i;
     s_set_entry *set = levelsets + current_set;
     s_model *model = nextplayermodel(current);
+
     if(set->nosame & 1)
     {
-        for(i = 0; model && i < set->maxplayers; i++)
+        int used_player_count = 0, player_count = 0;
+
+        // check count of selectable players
+        for(i = 0; i < models_cached; i++)
+        {
+            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
+                    (allow_secret_chars || !model_cache[i].model->secret) &&
+                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+            {
+                ++player_count;
+            }
+        }
+
+        // count all used player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
+        {
+            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            {
+                ++used_player_count;
+                // all busy players? return the next natural
+                if (used_player_count >= player_count) return nextplayermodel(current);
+            }
+        }
+
+        // search the first free player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
         {
             if(i != p && stricmp(model->name, player[i].name) == 0)
             {
+                i = -1;
                 model = nextplayermodel(model);
             }
         }
     }
+
     return model;
 }
 
@@ -5417,16 +5551,44 @@ s_model *prevplayermodeln(s_model *current, int p)
     int i;
     s_set_entry *set = levelsets + current_set;
     s_model *model = prevplayermodel(current);
+
     if(set->nosame & 1)
     {
-        for(i = 0; model && i < set->maxplayers; i++)
+        int used_player_count = 0, player_count = 0;
+
+        // check count of selectable players
+        for(i = 0; i < models_cached; i++)
+        {
+            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
+                    (allow_secret_chars || !model_cache[i].model->secret) &&
+                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+            {
+                ++player_count;
+            }
+        }
+
+        // count all used player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
+        {
+            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            {
+                ++used_player_count;
+                // all busy players? return the prev natural
+                if (used_player_count >= player_count) return prevplayermodel(current);
+            }
+        }
+
+        // search the first free player
+        for(i = 0; model && i < MAX_PLAYERS; i++)
         {
             if(i != p && stricmp(model->name, player[i].name) == 0)
             {
+                i = -1;
                 model = prevplayermodel(model);
             }
         }
     }
+
     return model;
 }
 
@@ -16025,57 +16187,15 @@ void updatestatus()
                 model = ((player[i].playkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(model, i);
                 strcpy(player[i].name, model->name);
 
-                //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
-                // NOSAME X 2 // By White Dragon
-                player[i].colourmap = 0;
-                if ( colourselect && (set->nosame & 2) )
-                {
-                    int nosamef = -1;
-                    int ii = 0;
-                    for(ii = 0; ii < set->maxplayers; ii++)
-                    {
-                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-                        {
-                            if ( player[i].colourmap == player[ii].colourmap  )
-                            {
-                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                                player[i].colourmap = nextcolourmap(model,player[i].colourmap);
-                                ii = 0;
-                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                                continue;
-                            }
-                        } else continue;
-                    }
-                }
-                // NOSAME X 2
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i) : 0;
 
                 player[i].playkeys = 0;
             }
             // don't like a characters color try a new one!
             else if(player[i].playkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect)
             {
-                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
-                // NOSAME X 2 // By White Dragon
-                if ( colourselect && (set->nosame & 2) )
-                {
-                    int nosamef = -1;
-                    int ii = 0;
-                    for(ii = 0; ii < set->maxplayers; ii++)
-                    {
-                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-                        {
-                            if ( player[i].colourmap == player[ii].colourmap  )
-                            {
-                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(model, player[i].colourmap);
-                                ii = 0;
-                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                                continue;
-                            }
-                        } else continue;
-                    }
-                }
-                // NOSAME X 2
+                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(model, player[i].colourmap, i);
+
                 player[i].playkeys = 0;
             }
         }
@@ -16087,29 +16207,7 @@ void updatestatus()
                 model = skipselect[i][0] ? findmodel(skipselect[i]) : nextplayermodeln(NULL, i);
                 strncpy(player[i].name, model->name, MAX_NAME_LEN);
 
-                //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(model, i - 1) : 0;
-                // NOSAME X 2 // By White Dragon
-                player[i].colourmap = 0;
-                if ( colourselect && (set->nosame & 2) )
-                {
-                    int nosamef = -1;
-                    int ii = 0;
-                    for(ii = 0; ii < set->maxplayers; ii++)
-                    {
-                        if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-                        {
-                            if ( player[i].colourmap == player[ii].colourmap  )
-                            {
-                                if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                                player[i].colourmap = nextcolourmap(model,player[i].colourmap);
-                                ii = 0;
-                                if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                                continue;
-                            }
-                        } else continue;
-                    }
-                }
-                // NOSAME X 2
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i) : 0;
 
                 player[i].joining = 1;
                 player[i].disablekeys = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
@@ -34816,35 +34914,11 @@ int playlevel(char *filename)
 static entity *spawnexample(int i)
 {
     entity *example;
-    s_model *model = NULL;
     s_set_entry *set = levelsets + current_set;
     example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
     strcpy(player[i].name, example->model->name);
-    model = example->model;
 
-    //player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmap(example->model, i - 1) : 0;
-    // NOSAME X 2 // By White Dragon
-    player[i].colourmap = 0;
-    if ( colourselect && (set->nosame & 2) )
-    {
-        int nosamef = -1;
-        int ii = 0;
-        for(ii = 0; ii < set->maxplayers; ii++)
-        {
-            if ( i != ii && stricmp(player[i].name,player[ii].name) == 0 )
-            {
-                if ( player[i].colourmap == player[ii].colourmap  )
-                {
-                    if ( nosamef == player[ii].colourmap ) break; // avoid infinite loop
-                    player[i].colourmap = nextcolourmap(model,player[i].colourmap);
-                    ii = 0;
-                    if ( nosamef == -1 ) nosamef = player[ii].colourmap;
-                    continue;
-                }
-            } else continue;
-        }
-    }
-    // NOSAME X 2
+    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example->model, player[i].colourmap, i) : 0;
 
     ent_set_colourmap(example, player[i].colourmap);
     example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
@@ -34914,7 +34988,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
     selectScreen = 1;
     kill_all();
-    if(!skipselect[0][0] && !set->noselect) reset_playable_list(1); // or (allowselect_args[0] != 'a') 'a' is the first char of allowselect, if there's 'a' then there is allowselect
+    if( allowselect_args[0] != 'a' && allowselect_args[0] != 'A' ) reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
     memset(player, 0, sizeof(*player) * 4);
 
     if(useSavedGame && save)
@@ -35179,13 +35253,13 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     }
                     ent_set_model(example[i], ((player[i].newkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(example[i]->model, i)->name, 0);
                     strcpy(player[i].name, example[i]->model->name);
-                    player[i].colourmap = nextcolourmap(example[i]->model, i - 1);
+                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example[i]->model, player[i].colourmap, i) : 0;
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 // oooh pretty colors! - selectable color scheme for player characters
                 else if(player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
                 {
-                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmap : prevcolourmap)(example[i]->model, player[i].colourmap);
+                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(example[i]->model, player[i].colourmap, i);
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
@@ -36184,22 +36258,23 @@ void safe_set(int *arr, int index, int newkey, int oldkey)
     arr[index] = newkey;
 }
 
-
 void keyboard_setup(int player)
 {
     const int btnnum = MAX_BTN_NUM;
-    int quit = 0, sdid,
+    int quit = 0, sdid = 0,
         selector = 0,
         setting = -1,
         i, k, ok = 0,
               disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
                                 col1 = -8, col2 = 6;
-    ptrdiff_t pos, voffset;
+    ptrdiff_t voffset, pos;
+    char *buf,
+         *command,
+         *filename = "data/menu.txt",
+         buttonnames[btnnum][16];
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
-    char *buf, *command, *filename = "data/menu.txt",
-                          buttonnames[btnnum][16];
 
     printf("Loading control settings.......\t");
 
@@ -36260,9 +36335,9 @@ void keyboard_setup(int player)
     }
 
     while(disabledkey[selector]) if(++selector > btnnum-1)
-        {
-            break;
-        }
+    {
+        break;
+    }
 
     while(!quit)
     {
@@ -36279,6 +36354,7 @@ void keyboard_setup(int player)
         }
         _menutextm((selector == btnnum), ++voffset, 0, Tr("OK"));
         _menutextm((selector == btnnum+1), ++voffset, 0, Tr("Cancel"));
+        _menutextm((selector == btnnum+2), ++voffset, 0, Tr("Default"));
         update((level != NULL), 0);
 
         if(setting > -1)
@@ -36334,9 +36410,9 @@ void keyboard_setup(int player)
             }
             if(selector < 0)
             {
-                selector = btnnum+1;
+                selector = btnnum+2;
             }
-            if(selector > btnnum+1)
+            if(selector > btnnum+2)
             {
                 selector = 0;
                 while(disabledkey[selector]) if(++selector > btnnum-1)
@@ -36354,6 +36430,10 @@ void keyboard_setup(int player)
                 else if(selector == btnnum+1)
                 {
                     quit = 1;
+                }
+                else if(selector == btnnum+2)
+                {
+                    clearbuttons(player);
                 }
                 else
                 {

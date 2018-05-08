@@ -280,6 +280,20 @@ function darwin {
   fi
 }
 
+# Android Compile
+function android {
+  export PATH=$OLD_PATH
+    if test -f "./android/bin/OpenBOR-debug.apk"; then
+      if test ! -e "./releases/Android/"; then
+		rm -rf ./releases/ANDROID
+        mkdir ./releases/ANDROID
+      fi
+      cp ./android/bin/OpenBOR-debug.apk ./releases/ANDROID
+		echo "Android Build Copied!"
+    fi
+}
+
+
 function build_all {
   clean
   version
@@ -293,6 +307,7 @@ function build_all {
     windows
     wii
     darwin
+	android
   fi
   distribute
 }
