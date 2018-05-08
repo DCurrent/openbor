@@ -564,7 +564,7 @@ char *control_getkeyname(unsigned int keycode)
 
 void control_update(s_playercontrols ** playercontrols, int numplayers)
 {
-	unsigned k;
+	u32 k;
 	unsigned i;
 	int player;
 	int t;

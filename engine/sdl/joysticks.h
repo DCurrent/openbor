@@ -43,10 +43,10 @@ typedef struct{
 	int NumHats;
 	int NumAxes;
 	int NumButtons;
-	unsigned Hats;
-	unsigned Axes;
-	unsigned Buttons;
-	unsigned Data;
+	u32 Hats;
+	u32 Axes;
+	u32 Buttons;
+	u32 Data;
 }s_joysticks;
 extern s_joysticks joysticks[JOY_LIST_TOTAL];
 
