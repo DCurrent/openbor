@@ -67,6 +67,7 @@ void initSDL()
         borExit(0);
     }
     SDL_ShowCursor(SDL_DISABLE);
+    SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
     atexit(SDL_Quit);
 
     if ( !var )
