@@ -1305,22 +1305,6 @@ if(n<1) n = 1;
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
 
-#define check_range(self, target, animnum) \
-		 ( target && \
-		  (self->direction == DIRECTION_RIGHT ? \
-		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.x.min &&\
-		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.x.max\
-		:\
-		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.x.min &&\
-		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.x.max)\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.z.min \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.z.max \
-		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.y.min \
-		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.y.max \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.base.min \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.base.max \
-		  )\
-
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing.attack_force == -1) || e->damage_on_landing.attack_force == -2))
 
