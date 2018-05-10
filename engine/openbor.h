@@ -1317,8 +1317,8 @@ if(n<1) n = 1;
 		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
 		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
 		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.max.y \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.base.min \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.base.max \
 		  )\
 
 #define check_range_both(self, target, animnum) \
@@ -1332,8 +1332,8 @@ if(n<1) n = 1;
 		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
 		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
 		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.max.y \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.base.min \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.base.max \
 		  )\
 
 
@@ -1410,6 +1410,22 @@ typedef struct
     int y;      //Altitude/Vertical axis.
     int z;      //Lateral axis.
 } s_axis_i;
+
+typedef struct
+{
+    int x;
+    int y;
+    int z;
+    int base;
+} s_axis_world_int;
+
+typedef struct
+{
+    float base;
+    float x;
+    float y;
+    float z;
+} s_axis_world_float;
 
 typedef struct
 {
@@ -1728,8 +1744,8 @@ typedef struct
     2011-04-01
     Damon V. Caskey
     */
-    s_axis_i max;   //max ranges.
-    s_axis_i min;   //min ranges.
+    s_axis_world_int max;   //max ranges.
+    s_axis_world_int min;   //min ranges.
 
     s_metric_range base;
     s_metric_range x;
@@ -1851,7 +1867,7 @@ typedef struct
     s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    s_axis_i                **move;                 // base = seta, x = move, y = movea, z = movez
+    s_axis_world_int                **move;                 // base = seta, x = move, y = movea, z = movez
     s_axis_i_2d             **offset;               // original sprite offsets
 } s_anim;
 
@@ -1960,8 +1976,8 @@ typedef struct
     2013-12-16
     */
 
-    s_axis_i max;   //Maximum.
-    s_axis_i min;   //Minimum.
+    s_axis_world_int max;   //Maximum.
+    s_axis_world_int min;   //Minimum.
 } s_sight;
 
 typedef struct
@@ -2774,7 +2790,7 @@ int                     addframe(s_anim             *a,
                                 unsigned            idle,
                                 s_collision_body    *bbox,
                                 s_collision_attack  *attack,
-                                s_axis_i            *move,
+                                s_axis_world_int            *move,
                                 float               *platform,
                                 int                 frameshadow,
                                 int                 *shadow_coords,

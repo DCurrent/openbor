@@ -6345,7 +6345,7 @@ int addframe(s_anim             *a,
              unsigned           idle,
              s_collision_body   *bbox,
              s_collision_attack *attack,
-             s_axis_i           *move,
+             s_axis_world_int           *move,
              float              *platform,
              int                frameshadow,
              int                *shadow_coords,
@@ -8989,7 +8989,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     float               platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
                         platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    s_axis_i            move = {    .base = -1,    //-1 = Disabled, 0+ base set
+    s_axis_world_int            move = {    .base = -1,    //-1 = Disabled, 0+ base set
                                     .x = 0,
                                     .y = 0,
                                     .z = 0};
@@ -10404,8 +10404,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.max.z            = (int)newchar->grabdistance / 3;      //zmax
                 newanim->range.min.y            = T_MIN_BASEMAP;                               //amin
                 newanim->range.max.y            = 1000;                                //amax
-                newanim->range.min.base         = T_MIN_BASEMAP;                            //Base min.
-                newanim->range.max.base         = 1000;                             //Base max.
+                newanim->range.base.min         = T_MIN_BASEMAP;                            //Base min.
+                newanim->range.base.max         = 1000;                             //Base max.
                 newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
@@ -11442,8 +11442,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangeb: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.min.base = GET_INT_ARG(1);
-                newanim->range.max.base = GET_INT_ARG(2);
+                newanim->range.base.min = GET_INT_ARG(1);
+                newanim->range.base.max = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PATHFINDSTEP:
                 newchar->pathfindstep = GET_FLOAT_ARG(1);
@@ -16326,12 +16326,12 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     typedef struct
     {
-        s_axis_i    position;
+        s_axis_world_int    position;
         s_axis_i_2d size;
     } draw_coords;
 
     s_axis_i_2d screen_offset;          // Base location calculated from screen offsets.
-    s_axis_i    base_pos;               // Entity position with screen offsets applied.
+    s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
     draw_coords box;                    // On screen coords for display elements.
 
     int pos_value[POS_ARRAY_SIZE];      // Entity position for display - truncated to int.
@@ -16455,12 +16455,12 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     typedef struct
     {
-        s_axis_i    position;
+        s_axis_world_int    position;
         s_axis_i_2d size;
     } draw_coords;
 
     s_axis_i_2d screen_offset;          // Base location calculated from screen offsets.
-    s_axis_i    base_pos;               // Entity position with screen offsets applied.
+    s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
     draw_coords box;                    // On screen coords for display elements.
 
     char *char_value[CHAR_ARRAY_SIZE];  // Entity features for display
@@ -16570,11 +16570,11 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod)
 {
     s_axis_i_2d screen_offset;  // Base location calculated from screen offsets.
-    s_axis_i    base_pos;       // Entity position with screen offsets applied.
+    s_axis_world_int    base_pos;       // Entity position with screen offsets applied.
 
     typedef struct
     {
-        s_axis_i position;
+        s_axis_world_int position;
         s_axis_i_2d size;
     } draw_coords;
 

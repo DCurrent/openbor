@@ -4756,11 +4756,11 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         case _ep_range_bmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.base;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.base.max;
             break;
         case _ep_range_bmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.base;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.base.min;
             break;
         case _ep_range_xmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
