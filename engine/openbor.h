@@ -1737,28 +1737,16 @@ typedef struct //2011_04_01, DC: Frame based screen shake functionality.
     int v;          //Vertical distance of screen movement (in pixels).
 } s_quakeframe;
 
+// Caskey, Damon V.
+//
+// Distance to target verification for AI running, jumping,
+// following parent, and combo chains for all entity types.
 typedef struct
 {
-    /*
-    Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
-    2011-04-01
-    Damon V. Caskey
-    */
-    s_axis_world_int max;   //max ranges.
-    s_axis_world_int min;   //min ranges.
-
     s_metric_range base;
     s_metric_range x;
     s_metric_range y;
     s_metric_range z;
-    int base_max;
-    int base_min;
-    int x_max;
-    int x_min;
-    int y_max;
-    int y_min;
-    int z_max;
-    int z_min;
 } s_range;
 
 typedef struct
