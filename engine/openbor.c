@@ -10402,8 +10402,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.x.max            = (int)newchar->jumpheight * 20;       //30-12-2004 default range affected by jump height
                 newanim->range.min.z            = (int) - newchar->grabdistance / 3;   //zmin
                 newanim->range.max.z            = (int)newchar->grabdistance / 3;      //zmax
-                newanim->range.min.y            = T_MIN_BASEMAP;                               //amin
-                newanim->range.max.y            = 1000;                                //amax
+                newanim->range.y.min            = T_MIN_BASEMAP;                               //amin
+                newanim->range.y.max            = 1000;                                //amax
                 newanim->range.base.min         = T_MIN_BASEMAP;                            //Base min.
                 newanim->range.base.max         = 1000;                             //Base max.
                 newanim->energycost             = NULL;
@@ -11433,8 +11433,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangea: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.min.y = GET_INT_ARG(1);
-                newanim->range.max.y = GET_INT_ARG(2);
+                newanim->range.y.min = GET_INT_ARG(1);
+                newanim->range.y.max = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEB:
                 if(!newanim)
@@ -16659,7 +16659,7 @@ void draw_visual_debug()
         // Collision body debug requested?
         if(savedata.debug_collision_range)
         {
-            draw_box_on_entity(entity, entity->animation->range.x.min, entity->animation->range.min.y, entity->position.z+1, entity->animation->range.x.max, entity->animation->range.max.y, -1, LOCAL_COLOR_GREEN, &drawmethod);
+            draw_box_on_entity(entity, entity->animation->range.x.min, entity->animation->range.y.min, entity->position.z+1, entity->animation->range.x.max, entity->animation->range.y.max, -1, LOCAL_COLOR_GREEN, &drawmethod);
         }
 
         // Collision body debug requested?
