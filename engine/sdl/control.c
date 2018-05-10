@@ -193,9 +193,9 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 					if(ev.jaxis.which == i)
 					{
 						int axisfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*ev.jaxis.axis;
-						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 3; // previous state of axis
-						if(ev.jaxis.value < -7000 && !(x & JoystickBits[0]))		lastjoy = axisfirst;
-						if(ev.jaxis.value > +7000 && !(x & JoystickBits[1]))		lastjoy = axisfirst + 1;
+						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 0x03; // previous state of axis
+						if(ev.jaxis.value < -7000 && !(x & 0x01))		lastjoy = axisfirst;
+						if(ev.jaxis.value > +7000 && !(x & 0x02))		lastjoy = axisfirst + 1;
 						//if(lastjoy) fprintf(stderr, "SDL_JOYAXISMOTION - Joystick %i Axis %i = Position %i (Index %i)\n", i, ev.jaxis.axis, ev.jaxis.value, lastjoy);
 					}
 				}
@@ -221,8 +221,8 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 			for(j=0; j<joysticks[i].NumAxes; j++)
 			{
 				axis = SDL_JoystickGetAxis(joystick[i], j);
-				if(axis < -7000)  { joysticks[i].Axes |= 1 << (j*2); }
-				if(axis > +7000)  { joysticks[i].Axes |= 2 << (j*2); }
+				if(axis < -7000)  { joysticks[i].Axes |= 0x01 << (j*2); }
+				if(axis > +7000)  { joysticks[i].Axes |= 0x02 << (j*2); }
 			}
 
 			// check hats
@@ -564,7 +564,7 @@ char *control_getkeyname(unsigned int keycode)
 
 void control_update(s_playercontrols ** playercontrols, int numplayers)
 {
-	unsigned k;
+	u32 k;
 	unsigned i;
 	int player;
 	int t;

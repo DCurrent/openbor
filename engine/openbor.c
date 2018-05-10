@@ -33520,7 +33520,7 @@ void update(int ingame, int usevwait)
     {
         if( debug_xy_msg.x >= 0 && debug_xy_msg.y >= 0 )
         {
-            if ( !debug_xy_msg.font_index ) debug_xy_msg.font_index = 0;
+            if ( debug_xy_msg.font_index < 0 ) debug_xy_msg.font_index = 0;
             screen_printf(vscreen, debug_xy_msg.x, debug_xy_msg.y, debug_xy_msg.font_index, debug_msg);
         } else screen_printf(vscreen, 0, videomodes.vRes-fontheight(0), 0, debug_msg);
     }
