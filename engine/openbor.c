@@ -28705,6 +28705,109 @@ int check_energy(e_cost_check which, int ani)
     return result;
 }
 
+int check_range(entity *ent, entity *target, e_animations animation_id)
+{
+    s_anim              *animation; // Current animation
+    s_axis_world_int    ent_pos;    // Entity position (cast as int).
+    s_axis_world_int    target_pos; // Target position (cast as int).
+    s_range             ent_range;  // Animation range settings.
+
+    // Must have a valid target entity.
+    if(!target)
+    {
+        return;
+    }
+
+    return(check_range_x(ent, target, animation_id)
+           && check_range_y(ent, target, animation_id));
+
+    /*
+    check_range(self, target, animnum) \
+		 ( target && \
+		  (self->direction == DIRECTION_RIGHT ? \
+		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.x.min &&\
+		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.x.max\
+		:\
+		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.x.min &&\
+		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.x.max)\
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.z.min \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.z.max \
+		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.y.min \
+		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.y.max \
+		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.base.min \
+		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.base.max \
+		  )\
+    */
+}
+
+// Caskey, Damon V.
+// 2018-05-10
+//
+// Return true if target is within X range
+// of entity's animation.
+int check_range_x(entity *ent, entity *target, e_animations animation_id)
+{
+    int ent_x;
+    int target_x;
+    s_metric_range range;
+
+    // Must have a target.
+    if(!target)
+    {
+        return 0;
+    }
+
+    // Get positions cast as integers.
+    ent_x       = (int)ent->position.x;
+    target_x    = (int)target->position.x;
+
+    // Animation's range settings.
+    range.min   = ent->modeldata.animation[animnum]->range.x.min;
+    range.max   = ent->modeldata.animation[animnum]->range.x.max;
+
+    // Return true if target position is between entity's
+    // X position plus the animation's minimum X range, AND
+    // entity's X position plus animation's max X range.
+    if(ent->direction == DIRECTION_RIGHT)
+    {
+        return (target_x >= ent_x + range.min && target_x <= ent_x + range.max);
+    }
+    else
+    {
+        return (target_x <= ent_x + range.min && target_x >= ent_x + range.max);
+    }
+}
+
+// Caskey, Damon V.
+// 2018-05-10
+//
+// Return true if target is within Y range
+// of entity's animation.
+int check_range_y(entity *ent, entity *target, e_animations animation_id)
+{
+    int ent_y;
+    int target_y;
+    s_metric_range range;
+
+    // Must have a target.
+    if(!target)
+    {
+        return 0;
+    }
+
+    // Get positions cast as integers.
+    ent_y       = (int)ent->position.y;
+    target_y    = (int)target->position.y;
+
+    // Animation's range settings.
+    range.min   = ent->modeldata.animation[animnum]->range.y.min;
+    range.max   = ent->modeldata.animation[animnum]->range.y.max;
+
+    // Return true if the target's Y position subtracted from
+    // entity's Y position is within entity's animation range
+    // minimum and maximum.
+    return (target_y - ent_y >= range.min && target_y - ent_y <= range.max);
+}
 
 int check_special()
 {
