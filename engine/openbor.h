@@ -1308,11 +1308,11 @@ if(n<1) n = 1;
 #define check_range(self, target, animnum) \
 		 ( target && \
 		  (self->direction == DIRECTION_RIGHT ? \
-		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
-		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x\
+		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.x.min &&\
+		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.x.max\
 		:\
-		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.min.x &&\
-		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x)\
+		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.x.min &&\
+		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.x.max)\
 		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
 		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
 		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
@@ -1323,11 +1323,11 @@ if(n<1) n = 1;
 
 #define check_range_both(self, target, animnum) \
 		 ( target && \
-		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
-			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x)\
+		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.x.min &&\
+			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.x.max)\
 		||\
-		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.min.x &&\
-			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x))\
+		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.x.min &&\
+			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.x.max))\
 		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
 		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
 		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
