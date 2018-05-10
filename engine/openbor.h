@@ -1445,7 +1445,7 @@ typedef struct
 
     int max;    //max value.
     int min;    //min value.
-} s_metric_i;
+} s_metric_range;
 
 typedef struct
 {
@@ -1458,7 +1458,7 @@ typedef struct
     int current;    //Current.
     int max;    //max value.
     int min;    //min value.
-} s_metric_i_current;
+} s_metric_range_current;
 
 typedef struct
 {
@@ -1664,7 +1664,7 @@ typedef struct
 
     e_counteraction_condition condition; //Counter conditions.
     e_counteraction_damage damaged;      //Receive damage from attack.
-    s_metric_i frame;   //Frame range.
+    s_metric_range frame;   //Frame range.
 } s_counterrange;
 
 typedef struct
@@ -1709,7 +1709,7 @@ typedef struct
     2011-04-01
     */
 
-    s_metric_i frame;   // max = Frame animation reaches before looping, min = Frame animation loops back to.
+    s_metric_range frame;   // max = Frame animation reaches before looping, min = Frame animation loops back to.
     int mode;           // 0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 } s_loop;
 
@@ -1731,10 +1731,10 @@ typedef struct
     s_axis_i max;   //max ranges.
     s_axis_i min;   //min ranges.
 
-    s_metric_i base;
-    s_mertic_i x;
-    s_metric_i y;
-    s_metric_i z;
+    s_metric_range base;
+    s_metric_range x;
+    s_metric_range y;
+    s_metric_range z;
     int base_max;
     int base_min;
     int x_max;
@@ -1752,10 +1752,10 @@ typedef struct
     Damon V. Caskey
     (unknown date) revised 2013-12-16.
     */
-    s_metric_i cap;
+    s_metric_range cap;
     float factor;
     e_edelay_mode mode;
-    s_metric_i range;
+    s_metric_range range;
 } s_edelay;
 
 typedef struct
@@ -1979,7 +1979,7 @@ typedef struct
     int numkeys; // num keys pressed
     int anim;
     int	cancel;		//should be fine to have 0 if idle is not a valid choice
-    s_metric_i frame;
+    s_metric_range frame;
     int hits;
     int valid;		// should not be global unless nosame is set, but anyway...
     //int (*function)(); //reserved
@@ -2130,8 +2130,8 @@ typedef struct
     s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
-    s_metric_i_current jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_metric_i_current guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_range_current jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_range_current guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
@@ -2231,7 +2231,7 @@ typedef struct
     2013-12-17
     */
 
-    s_metric_i_current count;   //Hits counter.
+    s_metric_range_current count;   //Hits counter.
     u32 time;           //Time to perform combo.
 } s_rush;
 
