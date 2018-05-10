@@ -15,6 +15,8 @@
 #include "joysticks.h"
 #include "openbor.h"
 
+#define T_AXIS 7000
+
 
 SDL_Joystick *joystick[JOY_LIST_TOTAL]; // SDL struct for joysticks
 static int usejoy;						// To be or Not to be used?
@@ -194,8 +196,8 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 					{
 						int axisfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*ev.jaxis.axis;
 						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 0x03; // previous state of axis
-						if(ev.jaxis.value < -7000 && !(x & 0x01))		lastjoy = axisfirst;
-						if(ev.jaxis.value > +7000 && !(x & 0x02))		lastjoy = axisfirst + 1;
+						if(ev.jaxis.value <  -1*T_AXIS && !(x & 0x01))		lastjoy = axisfirst;
+						if(ev.jaxis.value >     T_AXIS && !(x & 0x02))		lastjoy = axisfirst + 1;
 						//if(lastjoy) fprintf(stderr, "SDL_JOYAXISMOTION - Joystick %i Axis %i = Position %i (Index %i)\n", i, ev.jaxis.axis, ev.jaxis.value, lastjoy);
 					}
 				}
@@ -221,8 +223,8 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 			for(j=0; j<joysticks[i].NumAxes; j++)
 			{
 				axis = SDL_JoystickGetAxis(joystick[i], j);
-				if(axis < -7000)  { joysticks[i].Axes |= 0x01 << (j*2); }
-				if(axis > +7000)  { joysticks[i].Axes |= 0x02 << (j*2); }
+				if(axis < -1*T_AXIS)  { joysticks[i].Axes |= 0x01 << (j*2); }
+				if(axis >    T_AXIS)  { joysticks[i].Axes |= 0x02 << (j*2); }
 			}
 
 			// check hats
