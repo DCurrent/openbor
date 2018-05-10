@@ -1313,8 +1313,8 @@ if(n<1) n = 1;
 		:\
 		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.x.min &&\
 		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.x.max)\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.z.min \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.z.max \
 		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.y.min \
 		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.y.max \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.base.min \
@@ -1328,8 +1328,8 @@ if(n<1) n = 1;
 		||\
 		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.x.min &&\
 			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.x.max))\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
+		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.z.min \
+		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.z.max \
 		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.y.min \
 		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.y.max \
 		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.base.min \

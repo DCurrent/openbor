@@ -10400,8 +10400,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newanim->range.x.min = -10;
                 }
                 newanim->range.x.max            = (int)newchar->jumpheight * 20;       //30-12-2004 default range affected by jump height
-                newanim->range.min.z            = (int) - newchar->grabdistance / 3;   //zmin
-                newanim->range.max.z            = (int)newchar->grabdistance / 3;      //zmax
+                newanim->range.z.min            = (int) - newchar->grabdistance / 3;   //zmin
+                newanim->range.z.max            = (int)newchar->grabdistance / 3;      //zmax
                 newanim->range.y.min            = T_MIN_BASEMAP;                               //amin
                 newanim->range.y.max            = 1000;                                //amax
                 newanim->range.base.min         = T_MIN_BASEMAP;                            //Base min.
@@ -11424,8 +11424,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot set rangez: no animation!";
                     goto lCleanup;
                 }
-                newanim->range.min.z = GET_INT_ARG(1);
-                newanim->range.max.z = GET_INT_ARG(2);
+                newanim->range.z.min = GET_INT_ARG(1);
+                newanim->range.z.max = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEA:
                 if(!newanim)
@@ -26648,7 +26648,7 @@ int common_try_avoid(entity *target, int dox, int doz)
             maxdx = videomodes.hRes / 5;
         }
         mindx = maxdx - 10;
-        maxdz = self->modeldata.animation[randomatk]->range.max.z - self->modeldata.speed;
+        maxdz = self->modeldata.animation[randomatk]->range.z.max - self->modeldata.speed;
         if(maxdz < videomodes.vRes / 5)
         {
             maxdz = videomodes.vRes / 5;
