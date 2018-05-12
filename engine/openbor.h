@@ -2862,7 +2862,7 @@ int check_range_target_base(entity *ent, entity *target, s_anim *animation);
 int check_range_target_x(entity *ent, entity *target, s_anim *animation);
 int check_range_target_y(entity *ent, entity *target, s_anim *animation);
 int check_range_target_z(entity *ent, entity *target, s_anim *animation);
-
+int check_range_waypoint_x(s_anim *animation, int waypoint);
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
 int testmove(entity *, float, float, float, float);
