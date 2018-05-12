@@ -2858,6 +2858,8 @@ int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);
 int check_lost();
 int check_range(entity *ent, entity *target, e_animations animation_id);
+int check_range_x(entity *ent, entity *target, s_anim *animation);
+
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);
 int testmove(entity *, float, float, float, float);
