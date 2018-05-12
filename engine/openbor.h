@@ -1305,38 +1305,6 @@ if(n<1) n = 1;
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
 
-#define check_range(self, target, animnum) \
-		 ( target && \
-		  (self->direction == DIRECTION_RIGHT ? \
-		  (int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
-		  (int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x\
-		:\
-		  (int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.min.x &&\
-		  (int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x)\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
-		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
-		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.max.y \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
-		  )\
-
-#define check_range_both(self, target, animnum) \
-		 ( target && \
-		  (((int)target->position.x >= self->position.x+self->modeldata.animation[animnum]->range.min.x &&\
-			(int)target->position.x <= self->position.x+self->modeldata.animation[animnum]->range.max.x)\
-		||\
-		   ((int)target->position.x <= self->position.x-self->modeldata.animation[animnum]->range.min.x &&\
-			(int)target->position.x >= self->position.x-self->modeldata.animation[animnum]->range.max.x))\
-		  && (int)(target->position.z - self->position.z) >= self->modeldata.animation[animnum]->range.min.z \
-		  && (int)(target->position.z - self->position.z) <= self->modeldata.animation[animnum]->range.max.z \
-		  && (int)(target->position.y - self->position.y) >= self->modeldata.animation[animnum]->range.min.y \
-		  && (int)(target->position.y - self->position.y) <= self->modeldata.animation[animnum]->range.max.y \
-		  && (int)(target->base - self->base) >= self->modeldata.animation[animnum]->range.min.base \
-		  && (int)(target->base - self->base) <= self->modeldata.animation[animnum]->range.max.base \
-		  )\
-
-
 #define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing.attack_force == -1) || e->damage_on_landing.attack_force == -2))
 
@@ -1409,8 +1377,23 @@ typedef struct
     int x;      //Horizontal axis.
     int y;      //Altitude/Vertical axis.
     int z;      //Lateral axis.
-    int base;   //Base altitude.
 } s_axis_i;
+
+typedef struct
+{
+    int x;
+    int y;
+    int z;
+    int base;
+} s_axis_world_int;
+
+typedef struct
+{
+    float base;
+    float x;
+    float y;
+    float z;
+} s_axis_world_float;
 
 typedef struct
 {
@@ -1446,7 +1429,7 @@ typedef struct
 
     int max;    //max value.
     int min;    //min value.
-} s_metric_i;
+} s_metric_range;
 
 typedef struct
 {
@@ -1459,7 +1442,7 @@ typedef struct
     int current;    //Current.
     int max;    //max value.
     int min;    //min value.
-} s_metric_i_current;
+} s_metric_range_current;
 
 typedef struct
 {
@@ -1665,7 +1648,7 @@ typedef struct
 
     e_counteraction_condition condition; //Counter conditions.
     e_counteraction_damage damaged;      //Receive damage from attack.
-    s_metric_i frame;   //Frame range.
+    s_metric_range frame;   //Frame range.
 } s_counterrange;
 
 typedef struct
@@ -1710,7 +1693,7 @@ typedef struct
     2011-04-01
     */
 
-    s_metric_i frame;   // max = Frame animation reaches before looping, min = Frame animation loops back to.
+    s_metric_range frame;   // max = Frame animation reaches before looping, min = Frame animation loops back to.
     int mode;           // 0 = No loop, 1 = Loop. Redundant after frame additions, but needed for backward compatibility.
 } s_loop;
 
@@ -1722,16 +1705,16 @@ typedef struct //2011_04_01, DC: Frame based screen shake functionality.
     int v;          //Vertical distance of screen movement (in pixels).
 } s_quakeframe;
 
+// Caskey, Damon V.
+//
+// Distance to target verification for AI running, jumping,
+// following parent, and combo chains for all entity types.
 typedef struct
 {
-    /*
-    Distance to target verification for AI running, jumping, following parent, and combo chains for all entity types.
-    2011-04-01
-    Damon V. Caskey
-    */
-
-    s_axis_i max;   //max ranges.
-    s_axis_i min;   //min ranges.
+    s_metric_range base;
+    s_metric_range x;
+    s_metric_range y;
+    s_metric_range z;
 } s_range;
 
 typedef struct
@@ -1741,10 +1724,10 @@ typedef struct
     Damon V. Caskey
     (unknown date) revised 2013-12-16.
     */
-    s_metric_i cap;
+    s_metric_range cap;
     float factor;
     e_edelay_mode mode;
-    s_metric_i range;
+    s_metric_range range;
 } s_edelay;
 
 typedef struct
@@ -1840,7 +1823,7 @@ typedef struct
     s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    s_axis_i                **move;                 // base = seta, x = move, y = movea, z = movez
+    s_axis_world_int                **move;                 // base = seta, x = move, y = movea, z = movez
     s_axis_i_2d             **offset;               // original sprite offsets
 } s_anim;
 
@@ -1949,8 +1932,8 @@ typedef struct
     2013-12-16
     */
 
-    s_axis_i max;   //Maximum.
-    s_axis_i min;   //Minimum.
+    s_axis_world_int max;   //Maximum.
+    s_axis_world_int min;   //Minimum.
 } s_sight;
 
 typedef struct
@@ -1968,7 +1951,7 @@ typedef struct
     int numkeys; // num keys pressed
     int anim;
     int	cancel;		//should be fine to have 0 if idle is not a valid choice
-    s_metric_i frame;
+    s_metric_range frame;
     int hits;
     int valid;		// should not be global unless nosame is set, but anyway...
     //int (*function)(); //reserved
@@ -2119,8 +2102,8 @@ typedef struct
     s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
-    s_metric_i_current jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_metric_i_current guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_range_current jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_metric_range_current guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
@@ -2186,16 +2169,14 @@ typedef struct
 } s_modelcache;
 s_modelcache *model_cache;
 
+// Caskey, Damon V.
+// 2013-12-08
+//
+// Jumping action setup.
 typedef struct
 {
-    /*
-    Jumping parameters struct.
-    2013-12-08
-    Damon Caskey
-    */
-
-    int id; //Jumping ID.
-    s_axis_f velocity; //x,a,z velocity setting.
+    e_animations    animation_id;   // Jumping Animation.
+    s_axis_f        velocity;       // x,a,z velocity setting.
 } s_jump;
 
 
@@ -2222,7 +2203,7 @@ typedef struct
     2013-12-17
     */
 
-    s_metric_i_current count;   //Hits counter.
+    s_metric_range_current count;   //Hits counter.
     u32 time;           //Time to perform combo.
 } s_rush;
 
@@ -2767,7 +2748,7 @@ int                     addframe(s_anim             *a,
                                 unsigned            idle,
                                 s_collision_body    *bbox,
                                 s_collision_attack  *attack,
-                                s_axis_i            *move,
+                                s_axis_world_int            *move,
                                 float               *platform,
                                 int                 frameshadow,
                                 int                 *shadow_coords,
@@ -2878,6 +2859,11 @@ entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);
 int check_lost();
+int check_range(entity *ent, entity *target, e_animations animation_id);
+int check_range_base(entity *ent, entity *target, s_anim *animation);
+int check_range_x(entity *ent, entity *target, s_anim *animation);
+int check_range_y(entity *ent, entity *target, s_anim *animation);
+int check_range_z(entity *ent, entity *target, s_anim *animation);
 
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);

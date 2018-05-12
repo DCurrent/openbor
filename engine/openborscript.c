@@ -3232,7 +3232,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)ent->dead;
             break;
         case _ep_aiflag_jumpid:
-            (*pretvar)->lVal = (LONG)ent->jump.id;
+            (*pretvar)->lVal = (LONG)ent->jump.animation_id;
             break;
         case _ep_aiflag_jumping:
             (*pretvar)->lVal = (LONG)ent->jumping;
@@ -4748,35 +4748,35 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_range_amax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.y;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.y.max;
             break;
         case _ep_range_amin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.y;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.y.min;
             break;
         case _ep_range_bmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.base;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.base.max;
             break;
         case _ep_range_bmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.base;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.base.min;
             break;
         case _ep_range_xmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.x;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.x.max;
             break;
         case _ep_range_xmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.x;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.x.min;
             break;
         case _ep_range_zmax:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.max.z;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.z.max;
             break;
         case _ep_range_zmin:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.min.z;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->range.z.min;
             break;
         default:
             *pretvar = NULL;
@@ -5377,7 +5377,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ent->dead = (int)ltemp;
                 break;
             case _ep_aiflag_jumpid:
-                ent->jump.id = (int)ltemp;
+                ent->jump.animation_id = (int)ltemp;
                 break;
             case _ep_aiflag_jumping:
                 ent->jumping = (int)ltemp;
