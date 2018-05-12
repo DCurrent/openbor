@@ -1371,7 +1371,7 @@ if(n<1) n = 1;
 //#define     MAX_MOVES             16
 //#define     MAX_MOVE_STEPS        16
 
-#pragma pack (4)
+#pragma pack(4)
 
 typedef struct
 {
@@ -2663,6 +2663,8 @@ typedef struct ArgList
     size_t arglen[MAX_ARG_COUNT];
     char *args[MAX_ARG_COUNT];
 } ArgList;
+
+#pragma pack()
 
 
 #define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")

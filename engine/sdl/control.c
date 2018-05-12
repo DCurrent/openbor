@@ -180,10 +180,10 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 					{
 						int hatfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*joysticks[i].NumAxes + 4*ev.jhat.hat;
 						x = (joysticks[i].Hats >> (4*ev.jhat.hat)) & 0x0F; // hat's previous state
-						if(ev.jhat.value & SDL_HAT_UP && !(x & SDL_HAT_UP))			lastjoy = hatfirst;
-						if(ev.jhat.value & SDL_HAT_RIGHT && !(x & SDL_HAT_RIGHT))	lastjoy = hatfirst + 1;
-						if(ev.jhat.value & SDL_HAT_DOWN && !(x & SDL_HAT_DOWN))		lastjoy = hatfirst + 2;
-						if(ev.jhat.value & SDL_HAT_LEFT && !(x & SDL_HAT_LEFT))		lastjoy = hatfirst + 3;
+						if(ev.jhat.value & SDL_HAT_UP       && !(x & SDL_HAT_UP))		lastjoy = hatfirst;
+						if(ev.jhat.value & SDL_HAT_RIGHT    && !(x & SDL_HAT_RIGHT))	lastjoy = hatfirst + 1;
+						if(ev.jhat.value & SDL_HAT_DOWN     && !(x & SDL_HAT_DOWN))		lastjoy = hatfirst + 2;
+						if(ev.jhat.value & SDL_HAT_LEFT     && !(x & SDL_HAT_LEFT))		lastjoy = hatfirst + 3;
 						//if(lastjoy) fprintf(stderr, "SDL_JOYHATMOTION - Joystick %i Hat %i (Index %i)\n", i, ev.jhat.hat, lastjoy);
 					}
 				}

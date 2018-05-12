@@ -15,6 +15,8 @@
 
 typedef HRESULT (*SCRIPTFUNCTION)(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
+#pragma pack(4)
+
 typedef struct Interpreter
 {
     StackedSymbolTable theSymbolTable;
@@ -51,6 +53,8 @@ typedef struct Interpreter
     BOOL bMainCompleted;
     BOOL bReset; // 2011/11/13 UT: prevent nested call which is not supported by the script interpreter
 } Interpreter;
+
+#pragma pack()
 
 void Interpreter_Init(Interpreter *pinterpreter, LPCSTR name, List *pflist);
 void Interpreter_Clear(Interpreter *pinterpreter);

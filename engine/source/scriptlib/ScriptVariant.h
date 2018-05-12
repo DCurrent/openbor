@@ -20,6 +20,8 @@ typedef enum VariantType
     VT_STR      = 6,    //char*
 } VARTYPE;
 
+#pragma pack(4)
+
 typedef struct ScriptVariant
 {
     union//value
@@ -31,6 +33,8 @@ typedef struct ScriptVariant
     };
     VARTYPE vt;//variatn type
 } ScriptVariant;
+
+#pragma pack()
 
 //clear the string cache
 void StrCache_Clear();

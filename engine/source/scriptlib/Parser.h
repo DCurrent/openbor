@@ -12,6 +12,9 @@
 #include "ParserSet.h"
 #include "Instruction.h"
 #include "Stack.h"
+
+#pragma pack(4)
+
 typedef struct Parser
 {
     //Private data members
@@ -28,6 +31,8 @@ typedef struct Parser
     BOOL errorFound;
     BOOL isImport;
 } Parser;
+
+#pragma pack()
 
 void Parser_Init(Parser *pparser);
 void Parser_Clear(Parser *pparser);
