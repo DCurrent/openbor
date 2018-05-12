@@ -28787,7 +28787,6 @@ int check_range_y(entity *ent, entity *target, s_anim *animation)
 {
     int ent_y;
     int target_y;
-    s_metric_range range;
 
     // Must have a target.
     if(!target)
@@ -28804,6 +28803,35 @@ int check_range_y(entity *ent, entity *target, s_anim *animation)
     // minimum and maximum.
     return (target_y - ent_y >= animation->range.y.min
             && target_y - ent_y <= animation->range.y.max);
+}
+
+// Caskey, Damon V.
+// 2018-05-12
+//
+// Return true if target is within Z range
+// of entity's animation.
+int check_range_z(entity *ent, entity *target, s_anim *animation)
+{
+    int ent_z;
+    int target_z;
+
+    // Must have a target.
+    if(!target)
+    {
+        return 0;
+    }
+
+    // Get positions cast as integers.
+    ent_z       = (int)ent->position.z;
+    target_z    = (int)target->position.z;
+
+    // Subtract entity Z position from target position.
+    target_z -= ent_z;
+
+    // Return true if final target location is
+    // within range min and max.
+    return (target_z >= animation->range.z.min
+            && target_z <= animation->range.z.max);
 }
 
 
