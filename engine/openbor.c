@@ -28752,6 +28752,7 @@ int check_range_x(entity *ent, entity *target, s_anim *animation)
 {
     int ent_x;
     int target_x;
+    s_metric_range range;
 
     // Must have a target.
     if(!target)
@@ -28763,18 +28764,23 @@ int check_range_x(entity *ent, entity *target, s_anim *animation)
     ent_x       = (int)ent->position.x;
     target_x    = (int)target->position.x;
 
-    // Return true if target position is between entity's
-    // X position plus the animation's minimum X range, AND
-    // entity's X position plus animation's max X range.
+    // Add entity X position to animation range
+    // for final X range coordinates.
+    range.min = ent_x + animation->range.x.min;
+    range.max = ent_x + animation->range.x.max;
+
+    // Return true if final target location is
+    // within range min and max. Range comparison
+    // is reversed when entity faces left.
     if(ent->direction == DIRECTION_RIGHT)
     {
-        return (target_x >= ent_x + animation->range.x.min
-                && target_x <= ent_x + animation->range.x.max);
+        return (target_x >= range.min
+                && target_x <= range.max);
     }
     else
     {
-        return (target_x <= ent_x + animation->range.x.min
-                && target_x >= ent_x + animation->range.x.max);
+        return (target_x <= range.min
+                && target_x >= range.max);
     }
 }
 
