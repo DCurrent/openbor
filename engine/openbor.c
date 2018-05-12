@@ -22882,7 +22882,7 @@ entity *block_find_target(int anim, int detect_adj)
         {
             if( attacker && attacker->exists && attacker != self //cant target self
                 && (attacker->modeldata.candamage & self->modeldata.type)
-                && (anim < 0 || (anim >= 0 && check_range(self, attacker, anim)))
+                && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim)))
                 && !attacker->dead //must be alive
                 && attacker->attacking != ATTACKING_INACTIVE
                 && attacker->animation->collision_attack && attacker->animation->collision_attack[attacker->animpos] && attacker->animation->collision_attack[attacker->animpos]->instance
@@ -22962,7 +22962,7 @@ entity *normal_find_target(int anim, int detect_adj)
         // in range of animation.
         if(anim >= 0)
         {
-            if(!check_range(self, ent_list[i], anim))
+            if(!check_range_target_all(self, ent_list[i], anim))
             {
                 continue;
             }
@@ -23162,7 +23162,7 @@ void normal_prepare()
     // let go the projectile, well
     if( self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
             validanim(self, ANI_THROWATTACK) &&
-            check_range(self, target, ANI_THROWATTACK))
+            check_range_target_all(self, target, ANI_THROWATTACK))
     {
         self->takeaction = common_attack_proc;
         set_attacking(self);
@@ -23177,7 +23177,7 @@ void normal_prepare()
         if(validanim(self, animspecials[i]) &&
                 (check_energy(COST_CHECK_MP, animspecials[i]) ||
                  check_energy(COST_CHECK_HP, animspecials[i])) &&
-                check_range(self, target, animspecials[i]))
+                check_range_target_all(self, target, animspecials[i]))
         {
             atkchoices[found++] = animspecials[i];
         }
@@ -23204,7 +23204,7 @@ void normal_prepare()
         for(i = 0; i < max_attacks; i++)
         {
             if( validanim(self, animattacks[i]) &&
-                    check_range(self, target, animattacks[i]))
+                    check_range_target_all(self, target, animattacks[i]))
             {
                 // a trick to make attack 1 has a greater chance to be chosen
                 // 6 5 4 3 2 1 1 1 1 1 ....
@@ -24693,7 +24693,7 @@ int pick_random_attack(entity *target, int testonly)
     for(i = 0; i < max_attacks; i++) // TODO: recheck range for attacks chains
     {
         if(validanim(self, animattacks[i]) &&
-                (!target || check_range(self, target, animattacks[i])))
+                (!target || check_range_target_all(self, target, animattacks[i])))
         {
             for(j = ((5 - i) >= 0 ? (5 - i) : 0) * 3; j >= 0; j--)
             {
@@ -24706,14 +24706,14 @@ int pick_random_attack(entity *target, int testonly)
         if(validanim(self, animspecials[i]) &&
                 (check_energy(COST_CHECK_MP, animspecials[i]) ||
                  check_energy(COST_CHECK_HP, animspecials[i])) &&
-                (!target || check_range(self, target, animspecials[i])))
+                (!target || check_range_target_all(self, target, animspecials[i])))
         {
             atkchoices[found++] = animspecials[i];
         }
     }
     if( validanim(self, ANI_THROWATTACK) &&
             self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
-            (!target || check_range(self, target, ANI_THROWATTACK) ))
+            (!target || check_range_target_all(self, target, ANI_THROWATTACK) ))
     {
         atkchoices[found++] = ANI_THROWATTACK;
     }
@@ -24728,7 +24728,7 @@ int pick_random_attack(entity *target, int testonly)
     }
 
     if( validanim(self, ANI_JUMPATTACK) &&
-            (!target || check_range(self, target, ANI_JUMPATTACK)) )
+            (!target || check_range_target_all(self, target, ANI_JUMPATTACK)) )
     {
         if(testonly)
         {
@@ -24737,7 +24737,7 @@ int pick_random_attack(entity *target, int testonly)
         atkchoices[found++] = ANI_JUMPATTACK;
     }
     if( validanim(self, ANI_UPPER) &&
-            (!target || check_range(self, target, ANI_UPPER)) )
+            (!target || check_range_target_all(self, target, ANI_UPPER)) )
     {
         if(testonly)
         {
@@ -27405,7 +27405,7 @@ int do_catch(entity *ent, entity *target, int animation_catch)
         // If target is in range, then destroy it
         // while we play the catch animation,
         // and return true.
-        if(check_range(ent, target, animation_catch))
+        if(check_range_target_all(ent, target, animation_catch))
         {
             ent->takeaction = common_animation_normal;
             ent->attacking = ATTACKING_INACTIVE;
@@ -28711,7 +28711,7 @@ int check_energy(e_cost_check which, int ani)
 // Replaces unreadable check_range() macro. Runs individual
 // check range functions for each axis and returns true
 // if target is within range of ALL.
-int check_range(entity *ent, entity *target, e_animations animation_id)
+int check_range_target_all(entity *ent, entity *target, e_animations animation_id)
 {
     s_anim *animation; // Current animation
 
@@ -28725,10 +28725,10 @@ int check_range(entity *ent, entity *target, e_animations animation_id)
     animation = ent->modeldata.animation[animation_id];
 
     // Return result of individual axis range checks.
-    return(check_range_base(ent, target, animation)
-           && check_range_x(ent, target, animation)
-           && check_range_y(ent, target, animation)
-           && check_range_z(ent, target, animation));
+    return(check_range_target_base(ent, target, animation)
+           && check_range_target_x(ent, target, animation)
+           && check_range_target_y(ent, target, animation)
+           && check_range_target_z(ent, target, animation));
 }
 
 // Caskey, Damon V.
@@ -28736,7 +28736,7 @@ int check_range(entity *ent, entity *target, e_animations animation_id)
 //
 // Return true if target is within Base range
 // of entity's animation.
-int check_range_base(entity *ent, entity *target, s_anim *animation)
+int check_range_target_base(entity *ent, entity *target, s_anim *animation)
 {
     int ent_base;
     int target_base;
@@ -28765,7 +28765,7 @@ int check_range_base(entity *ent, entity *target, s_anim *animation)
 //
 // Return true if target is within X range
 // of entity's animation.
-int check_range_x(entity *ent, entity *target, s_anim *animation)
+int check_range_target_x(entity *ent, entity *target, s_anim *animation)
 {
     int ent_x;
     int target_x;
@@ -28811,7 +28811,7 @@ int check_range_x(entity *ent, entity *target, s_anim *animation)
 //
 // Return true if target is within Y range
 // of entity's animation.
-int check_range_y(entity *ent, entity *target, s_anim *animation)
+int check_range_target_y(entity *ent, entity *target, s_anim *animation)
 {
     int ent_y;
     int target_y;
@@ -28840,7 +28840,7 @@ int check_range_y(entity *ent, entity *target, s_anim *animation)
 //
 // Return true if target is within Z range
 // of entity's animation.
-int check_range_z(entity *ent, entity *target, s_anim *animation)
+int check_range_target_z(entity *ent, entity *target, s_anim *animation)
 {
     int ent_z;
     int target_z;

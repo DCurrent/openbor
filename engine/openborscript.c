@@ -9256,7 +9256,7 @@ HRESULT openbor_checkrange(ScriptVariant **varlist , ScriptVariant **pretvar, in
         goto checkrange_error;
     }
 
-    (*pretvar)->lVal = check_range(ent, target, ani);
+    (*pretvar)->lVal = check_range_target_all(ent, target, ani);
 
     return S_OK;
 
