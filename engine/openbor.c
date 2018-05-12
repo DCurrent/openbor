@@ -28798,11 +28798,13 @@ int check_range_y(entity *ent, entity *target, s_anim *animation)
     ent_y       = (int)ent->position.y;
     target_y    = (int)target->position.y;
 
-    // Return true if the target's Y position subtracted from
-    // entity's Y position is within entity's animation range
-    // minimum and maximum.
-    return (target_y - ent_y >= animation->range.y.min
-            && target_y - ent_y <= animation->range.y.max);
+    // Subtract entity Y position from target position.
+    target_y -= ent_z;
+
+    // Return true if final target location is
+    // within range min and max.
+    return (target_y >= animation->range.y.min
+            && target_y <= animation->range.y.max);
 }
 
 // Caskey, Damon V.
