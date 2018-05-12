@@ -28718,8 +28718,11 @@ int check_range(entity *ent, entity *target, e_animations animation_id)
         return;
     }
 
-    return(check_range_x(ent, target, animation_id)
-           && check_range_y(ent, target, animation_id));
+    // Get pointer to animation.
+    animation = ent->modeldata.animation[animation_id];
+
+    return(check_range_x(ent, target, animation)
+           && check_range_y(ent, target, animation));
 
     /*
     check_range(self, target, animnum) \
@@ -28745,11 +28748,10 @@ int check_range(entity *ent, entity *target, e_animations animation_id)
 //
 // Return true if target is within X range
 // of entity's animation.
-int check_range_x(entity *ent, entity *target, e_animations animation_id)
+int check_range_x(entity *ent, entity *target, s_anim *animation)
 {
     int ent_x;
     int target_x;
-    s_metric_range range;
 
     // Must have a target.
     if(!target)
@@ -28761,20 +28763,18 @@ int check_range_x(entity *ent, entity *target, e_animations animation_id)
     ent_x       = (int)ent->position.x;
     target_x    = (int)target->position.x;
 
-    // Animation's range settings.
-    range.min   = ent->modeldata.animation[animnum]->range.x.min;
-    range.max   = ent->modeldata.animation[animnum]->range.x.max;
-
     // Return true if target position is between entity's
     // X position plus the animation's minimum X range, AND
     // entity's X position plus animation's max X range.
     if(ent->direction == DIRECTION_RIGHT)
     {
-        return (target_x >= ent_x + range.min && target_x <= ent_x + range.max);
+        return (target_x >= ent_x + animation->range.x.min
+                && target_x <= ent_x + animation->range.x.max);
     }
     else
     {
-        return (target_x <= ent_x + range.min && target_x >= ent_x + range.max);
+        return (target_x <= ent_x + animation->range.x.min
+                && target_x >= ent_x + animation->range.x.max);
     }
 }
 
@@ -28783,7 +28783,7 @@ int check_range_x(entity *ent, entity *target, e_animations animation_id)
 //
 // Return true if target is within Y range
 // of entity's animation.
-int check_range_y(entity *ent, entity *target, e_animations animation_id)
+int check_range_y(entity *ent, entity *target, s_anim *animation)
 {
     int ent_y;
     int target_y;
@@ -28799,15 +28799,14 @@ int check_range_y(entity *ent, entity *target, e_animations animation_id)
     ent_y       = (int)ent->position.y;
     target_y    = (int)target->position.y;
 
-    // Animation's range settings.
-    range.min   = ent->modeldata.animation[animnum]->range.y.min;
-    range.max   = ent->modeldata.animation[animnum]->range.y.max;
-
     // Return true if the target's Y position subtracted from
     // entity's Y position is within entity's animation range
     // minimum and maximum.
-    return (target_y - ent_y >= range.min && target_y - ent_y <= range.max);
+    return (target_y - ent_y >= animation->range.y.min
+            && target_y - ent_y <= animation->range.y.max);
 }
+
+
 
 int check_special()
 {
