@@ -28744,6 +28744,35 @@ int check_range(entity *ent, entity *target, e_animations animation_id)
 }
 
 // Caskey, Damon V.
+// 2018-05-12
+//
+// Return true if target is within Base range
+// of entity's animation.
+int check_range_base(entity *ent, entity *target, s_anim *animation)
+{
+    int ent_base;
+    int target_base;
+
+    // Must have a target.
+    if(!target)
+    {
+        return 0;
+    }
+
+    // Get positions cast as integers.
+    ent_base       = (int)ent->base;
+    target_base    = (int)target->base;
+
+    // Subtract entity Base position from target position.
+    target_base -= ent_base;
+
+    // Return true if final target location is
+    // within range min and max.
+    return (target_base >= animation->range.base.min
+            && target_base <= animation->range.base.max);
+}
+
+// Caskey, Damon V.
 // 2018-05-10
 //
 // Return true if target is within X range
