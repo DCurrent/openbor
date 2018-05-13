@@ -9256,7 +9256,7 @@ HRESULT openbor_checkrange(ScriptVariant **varlist , ScriptVariant **pretvar, in
         goto checkrange_error;
     }
 
-    (*pretvar)->lVal = check_range(ent, target, ani);
+    (*pretvar)->lVal = check_range_target_all(ent, target, ani);
 
     return S_OK;
 
@@ -10456,7 +10456,7 @@ changepalette_error:
 HRESULT openbor_changelight(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG x, z;
-    extern s_axis_i light;
+    extern s_axis_plane_vertical_int light;
     ScriptVariant *arg = NULL;
 
     *pretvar = NULL;
@@ -13437,7 +13437,7 @@ pickup_error:
 HRESULT openbor_waypoints(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int num, i;
-    s_axis_f *wp = NULL;
+    s_axis_principal_float *wp = NULL;
     DOUBLE x, z;
 
     entity *e;
