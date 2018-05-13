@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------
 # All rights reserved, see LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 - 2014 OpenBOR Team
+# Copyright (c) 2004 - 2018 OpenBOR Team
 #
 
 #!/bin/bash
