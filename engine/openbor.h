@@ -172,12 +172,13 @@ typedef enum
     PROJECTILE_PRIME_LAUNCH_STATIONARY  = 0x00000008,
 
     // Type of projectile as determined by launch method.
-    PROJECTILE_PRIME_REQUEST_CUSTOM     = 0x00000010,
-    PROJECTILE_PRIME_REQUEST_FLASH      = 0x00000020,
-    PROJECTILE_PRIME_REQUEST_KNIFE      = 0x00000040,
-    PROJECTILE_PRIME_REQUEST_PROJECTILE = 0x00000080,
-    PROJECTILE_PRIME_REQUEST_PSHOTNO    = 0x00000100,
-    PROJECTILE_PRIME_REQUEST_SHOT       = 0x00000200,
+    PROJECTILE_PRIME_REQUEST_FLASH      = 0x00000010,
+    PROJECTILE_PRIME_REQUEST_KNIFE      = 0x00000020,
+    PROJECTILE_PRIME_REQUEST_PROJECTILE = 0x00000040,
+    PROJECTILE_PRIME_REQUEST_PSHOTNO    = 0x00000080,
+    PROJECTILE_PRIME_REQUEST_SHOT       = 0x00000100,
+    PROJECTILE_PRIME_REQUEST_UNDEFINED  = 0x00000200,   // Probably by a script.
+
 
     // How was projectile model determined?
     PROJECTILE_PRIME_SOURCE_ANIMATION   = 0x00000400,   //  Animation setting.
@@ -752,7 +753,7 @@ typedef enum
     LEVEL_PROP_SIZE_X,                          // int width;
     LEVEL_PROP_SPAWN_COLLECTION,                // s_spawn_entry *spawnpoints;
     LEVEL_PROP_SPAWN_COUNT,                     // int numspawns;
-    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_f spawn[MAX_PLAYERS];
+    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_principal_float spawn[MAX_PLAYERS];
     LEVEL_PROP_SPECIAL_DISABLE,                 // int nospecial;
     LEVEL_PROP_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
     LEVEL_PROP_TEXT_OBJECT_COUNT,               // int numtextobjs;
@@ -1341,52 +1342,73 @@ if(n<1) n = 1;
 
 #pragma pack(4)
 
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis 3D - for switching.
 typedef struct
 {
-    /*
-    Axis structure for general coordinates and velocity use.
-    2013-12-07
-    Damon Caskey
-    */
+    bool x;
+    bool y;
+    bool z;
+} s_axis_principal_bool;
 
-    float x;    //Horizontial axis.
-    float y;    //Altitude/Vertical axis (Y).
-    float z;    //Lateral axis.
-} s_axis_f;
-
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis - 3D float.
 typedef struct
 {
-    /*
-    Axis structure for general coordinates and velocity use when only X and Y are needed..
-    2014-01-20
-    Damon Caskey
-    */
+    float x;
+    float y;
+    float z;
+} s_axis_principal_float;
 
-    float x;    //Horizontial axis.
-    float y;    //Altitude/Vertical axis.
-} s_axis_f_2d;
-
-typedef struct
-{
-    /*
-    Axis structure for general coordinates and velocity use when floats are not needed.
-    2013-12-09
-    Damon Caskey
-    */
-
-    int x;      //Horizontal axis.
-    int y;      //Altitude/Vertical axis.
-    int z;      //Lateral axis.
-} s_axis_i;
-
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis - 3D int.
 typedef struct
 {
     int x;
     int y;
     int z;
-    int base;
-} s_axis_world_int;
+} s_axis_principal_int;
 
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis - Horizontal and lateral only (float).
+typedef struct
+{
+    float x;    // Horizontal axis.
+    float z;    // Lateral axis.
+} s_axis_plane_lateral_float;
+
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis - Horizontal and lateral only (int).
+typedef struct
+{
+    int x;    // Horizontal axis.
+    int z;    // Lateral axis.
+} s_axis_plane_lateral_int;
+
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis - Horizontal and vertical only (int).
+typedef struct
+{
+    int x;      // Horizontal axis.
+    int y;      // Altitude/Vertical axis.
+} s_axis_plane_vertical_int;
+
+// Caskey, Damon V.
+// 2018-05-10
+//
+// Axis - Game world, float.
 typedef struct
 {
     float base;
@@ -1395,29 +1417,17 @@ typedef struct
     float z;
 } s_axis_world_float;
 
+// Caskey, Damon V.
+// 2018-05-10
+//
+// Axis - Game world, int.
 typedef struct
 {
-    /*
-    Axis structure for general coordinates when only X and Y are needed.
-    2014-01-04
-    Damon Caskey
-    */
-
-    int x;      //Horizontal axis.
-    int y;      //Altitude/Vertical axis.
-} s_axis_i_2d;
-
-typedef struct
-{
-    /*
-    Axis structure for general coordinates when only X and Z are needed.
-    2014-01-20
-    Damon Caskey
-    */
-
-    int x;      //Horizontal axis.
-    int z;      //Lateral axis.
-} s_axis_i_plane;
+    int base;
+    int x;
+    int y;
+    int z;
+} s_axis_world_int;
 
 typedef struct
 {
@@ -1609,7 +1619,7 @@ typedef struct
     unsigned int        sealtime;           // Time for seal to remain in effect.
     int                 tag;                // User defined tag for scripts. No hard coded purpose.
     int                 grab_distance;      // Distance used by "grab".
-    s_axis_f            dropv;              // Velocity of target if knocked down.
+    s_axis_principal_float            dropv;              // Velocity of target if knocked down.
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
@@ -1633,7 +1643,7 @@ typedef struct
 typedef struct
 {
     int                 confirm;    // Will engine's default hit handling be used?
-    s_axis_f            position;   // X,Y,Z of last hit.
+    s_axis_principal_float            position;   // X,Y,Z of last hit.
     s_collision_attack  *attack;    // Collision attacking box.
     s_collision_body    *body;      // Collision detect box.
 } s_lasthit;
@@ -1672,7 +1682,7 @@ typedef struct
 {
     unsigned int  frame;      // Frame to perform action.
     int                 ent;        // Index of entity to spawn.
-    s_axis_f            velocity;   // x,a,z velocity.
+    s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
 // Caskey, Damon V.
@@ -1743,30 +1753,6 @@ typedef struct
 } s_follow;
 
 // Caskey, Damon V.
-// 2018-04-18
-//
-// Axis switching flags
-// that involve the three main axes.
-typedef struct
-{
-    bool x;
-    bool y;
-    bool z;
-} s_axis_principal_toggle;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis short fields for adjustments that
-// don't need full size integers.
-typedef struct
-{
-    int x;
-    int y;
-    int z;
-} s_axis_principal_short;
-
-// Caskey, Damon V.
 // 2014-01-18
 //
 // Projectile spawning.
@@ -1778,7 +1764,7 @@ typedef struct
     int                     bomb;       // custbomb;
     int                     flash;      // custpshotno;
     int                     knife;      // custknife;
-    s_axis_principal_short  position;   // Location at which projectiles are spawned
+    s_axis_principal_int  position;   // Location at which projectiles are spawned
     int                     star;       // custstar;
 } s_projectile;
 
@@ -1802,7 +1788,7 @@ typedef struct
     s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
     s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
     s_range                 range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    s_axis_i                size;                   // Dimensions (height, width).
+    s_axis_principal_int                size;                   // Dimensions (height, width).
     unsigned                *idle;                  // Allow free move
     int                     *delay;
     float                   (*platform)[8];         // Now entities can have others land on them
@@ -1824,7 +1810,7 @@ typedef struct
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     s_axis_world_int                **move;                 // base = seta, x = move, y = movea, z = movez
-    s_axis_i_2d             **offset;               // original sprite offsets
+    s_axis_plane_vertical_int             **offset;               // original sprite offsets
 } s_anim;
 
 struct animlist
@@ -1837,8 +1823,8 @@ s_anim_list *anim_list;
 
 typedef struct
 {
-    s_axis_i_2d offset;
-    s_axis_i_2d size;
+    s_axis_plane_vertical_int offset;
+    s_axis_plane_vertical_int size;
     e_bartype type;
     e_barorient orientation;
     int noborder;
@@ -1854,8 +1840,8 @@ typedef struct
 {
     e_loadingScreenType set;    //Loading bar mode.
     int tf;                     //Font number for "LOADING" text (last element in command, moved here because of alignment)
-    s_axis_i_2d bar_position;   //Loading bar position.
-    s_axis_i_2d text_position;  //Loading text position.
+    s_axis_plane_vertical_int bar_position;   //Loading bar position.
+    s_axis_plane_vertical_int text_position;  //Loading text position.
     int bsize;                  // length of bar in pixels
     int refreshMs;              // modder defined number of milliseconds in which the screen is updated while loading
 } s_loadingbar;
@@ -1906,7 +1892,7 @@ typedef struct
     int pain; //Taking damage.
     int usemap;
     int weapon; //Weapon model.
-    s_axis_i_2d position;
+    s_axis_plane_vertical_int position;
 } s_icon;
 
 typedef struct
@@ -2057,7 +2043,7 @@ typedef struct
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
-    s_axis_i_2d size; // Used to set height of player in pixels
+    s_axis_plane_vertical_int size; // Used to set height of player in pixels
     float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
@@ -2176,7 +2162,7 @@ s_modelcache *model_cache;
 typedef struct
 {
     e_animations    animation_id;   // Jumping Animation.
-    s_axis_f        velocity;       // x,a,z velocity setting.
+    s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
 
@@ -2189,8 +2175,8 @@ typedef struct
 {
     unsigned int      ani_bind;       // Animation binding type.
     int               sortid;         // Relative binding sortid. Default = -1
-    s_axis_principal_toggle bind_toggle;    // Toggle binding on X, Y and Z axis.
-    s_axis_principal_short  offset;         // x,y,z offset.
+    s_axis_principal_bool bind_toggle;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int  offset;         // x,y,z offset.
     e_direction_adjust      direction;      // Direction force
     struct entity *ent;                     // Entity to bind.
 } s_bind;
@@ -2254,8 +2240,8 @@ typedef struct entity
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
     int movestep;
-    s_axis_f position; //x,y,z location.
-    s_axis_f velocity; //x,y,z movement speed.
+    s_axis_principal_float position; //x,y,z location.
+    s_axis_principal_float velocity; //x,y,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
@@ -2333,7 +2319,7 @@ typedef struct entity
     bool animating; // Set by animation code
     bool arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
-    s_axis_f *waypoints;
+    s_axis_principal_float *waypoints;
     int numwaypoints;
     unsigned int animpos; // Current animation frame.
     unsigned int animnum; // animation id.
@@ -2420,7 +2406,7 @@ typedef struct
     int scrollminx; // new scroll limit
     int scrollmaxx;
     int blockade; //limit how far you can go back
-    s_axis_i_2d light; // light direction, for gfx shadow
+    s_axis_plane_vertical_int light; // light direction, for gfx shadow
     int shadowcolor; // -1 no shadow
     int shadowalpha;
     int shadowopacity;
@@ -2448,7 +2434,7 @@ typedef struct
     int mp; // mp's variable for mpbar by tails
     unsigned score; // So score can be overridden for enemies/obstacles
     int multiple; // So score can be overridden for enemies/obstacles
-    s_axis_f position;  //x, y, z location.
+    s_axis_principal_float position;  //x, y, z location.
     unsigned credit;
     int aggression; // For enemy A.I.
     int spawntype; // Pass 1 when a level spawn.
@@ -2499,10 +2485,10 @@ typedef struct
     e_bgloldtype    oldtype;
     int             order;	        // for panel order
     gfx_entry       gfx;
-    s_axis_i_2d     size;
-    s_axis_f        ratio;          // Only x and z.
-    s_axis_i        offset;         // Only x and z.
-    s_axis_i        spacing;        // Only x and z.
+    s_axis_plane_vertical_int   size;
+    s_axis_plane_lateral_float  ratio;          // Only x and z.
+    s_axis_plane_lateral_int    offset;         // Only x and z.
+    s_axis_plane_lateral_int    spacing;        // Only x and z.
     s_drawmethod    drawmethod;
     float           bgspeedratio;
     int             enabled;
@@ -2520,7 +2506,7 @@ typedef struct
     */
 
     int font;           //Font index.
-    s_axis_i position;  //x,y,z location on screen.
+    s_axis_principal_int position;  //x,y,z location on screen.
     u32 time;           //Time to expire.
     char *text;         //Text to display.
 } s_textobj;
@@ -2534,8 +2520,8 @@ typedef struct
 
 typedef struct
 {
-    s_axis_i position;  //only x and z.
-    s_axis_i size;      //Only x and z.
+    s_axis_plane_lateral_int position;
+    s_axis_plane_lateral_int size;
     float *map;
 } s_basemap;
 
@@ -2617,7 +2603,7 @@ typedef struct
     int nohit; // Not able to grab / hit other player on a per level basis
     int force_finishlevel; // flag to force to finish a level
     int force_gameover; // flag to force game over
-    s_axis_f *spawn; // Used to determine the spawn position of players
+    s_axis_principal_float *spawn; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...
 //--------------------gravity system-------------------------
@@ -2754,7 +2740,7 @@ int                     addframe(s_anim             *a,
                                 int                 *shadow_coords,
                                 int                 soundtoplay,
                                 s_drawmethod        *drawmethod,
-                                s_axis_i_2d         *offset,
+                                s_axis_plane_vertical_int         *offset,
                                 s_damage_recursive  *recursive,
                                 s_hitbox            *attack_coords,
                                 s_hitbox            *body_coords);
@@ -2859,11 +2845,11 @@ entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);
 int check_lost();
-int check_range(entity *ent, entity *target, e_animations animation_id);
-int check_range_base(entity *ent, entity *target, s_anim *animation);
-int check_range_x(entity *ent, entity *target, s_anim *animation);
-int check_range_y(entity *ent, entity *target, s_anim *animation);
-int check_range_z(entity *ent, entity *target, s_anim *animation);
+int check_range_target_all(entity *ent, entity *target, e_animations animation_id);
+int check_range_target_base(entity *ent, entity *target, s_anim *animation);
+int check_range_target_x(entity *ent, entity *target, s_anim *animation);
+int check_range_target_y(entity *ent, entity *target, s_anim *animation);
+int check_range_target_z(entity *ent, entity *target, s_anim *animation);
 
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);

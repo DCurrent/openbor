@@ -1519,7 +1519,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 goto error_local;
             }
 
-            handle->spawn = (s_axis_f *)arg_value->ptrVal;
+            handle->spawn = (s_axis_principal_float *)arg_value->ptrVal;
             break;
 
         case LEVEL_PROP_SPECIAL_DISABLE:
