@@ -1395,7 +1395,7 @@ typedef struct
 // Caskey, Damon V.
 // 2014-01-20
 //
-// Axis structure for horizontal and vertical only.
+// Axis structure for horizontal and vertical only (int).
 typedef struct
 {
     int x;      // Horizontal axis.
@@ -1433,19 +1433,6 @@ typedef struct
     float x;    //Horizontial axis.
     float y;    //Altitude/Vertical axis.
 } s_axis_f_2d;
-
-typedef struct
-{
-    /*
-    Axis structure for general coordinates and velocity use when floats are not needed.
-    2013-12-09
-    Damon Caskey
-    */
-
-    int x;      //Horizontal axis.
-    int y;      //Altitude/Vertical axis.
-    int z;      //Lateral axis.
-} s_axis_i;
 
 typedef struct
 {
@@ -1806,7 +1793,7 @@ typedef struct
     s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
     s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
     s_range                 range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    s_axis_i                size;                   // Dimensions (height, width).
+    s_axis_principal_int                size;                   // Dimensions (height, width).
     unsigned                *idle;                  // Allow free move
     int                     *delay;
     float                   (*platform)[8];         // Now entities can have others land on them
@@ -2505,8 +2492,8 @@ typedef struct
     gfx_entry       gfx;
     s_axis_plane_vertical_int     size;
     s_axis_principal_float        ratio;          // Only x and z.
-    s_axis_i        offset;         // Only x and z.
-    s_axis_i        spacing;        // Only x and z.
+    s_axis_principal_int        offset;         // Only x and z.
+    s_axis_principal_int        spacing;        // Only x and z.
     s_drawmethod    drawmethod;
     float           bgspeedratio;
     int             enabled;
@@ -2524,7 +2511,7 @@ typedef struct
     */
 
     int font;           //Font index.
-    s_axis_i position;  //x,y,z location on screen.
+    s_axis_principal_int position;  //x,y,z location on screen.
     u32 time;           //Time to expire.
     char *text;         //Text to display.
 } s_textobj;
@@ -2538,8 +2525,8 @@ typedef struct
 
 typedef struct
 {
-    s_axis_i position;  //only x and z.
-    s_axis_i size;      //Only x and z.
+    s_axis_principal_int position;  //only x and z.
+    s_axis_principal_int size;      //Only x and z.
     float *map;
 } s_basemap;
 

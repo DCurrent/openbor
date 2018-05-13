@@ -10456,7 +10456,7 @@ changepalette_error:
 HRESULT openbor_changelight(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG x, z;
-    extern s_axis_i light;
+    extern s_axis_principal_int light;
     ScriptVariant *arg = NULL;
 
     *pretvar = NULL;
