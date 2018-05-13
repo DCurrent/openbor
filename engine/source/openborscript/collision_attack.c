@@ -652,7 +652,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             // Reassign sub structure memory address
             // to new handle.
-            handle->dropv = *(s_axis_f *)varlist[ARG_VALUE]->ptrVal;
+            handle->dropv = *(s_axis_principal_float *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 

@@ -180,7 +180,7 @@ const s_collision_attack emptyattack =
     .tag                = 0
 };
 
-s_axis_f default_model_dropv =
+s_axis_principal_float default_model_dropv =
 {
     /* Default values for knockdown velocity */
 
@@ -17902,7 +17902,7 @@ void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
     s_collision_attack attack;
-    s_axis_f move;
+    s_axis_principal_float move;
     s_anim *anim = ent->animation;
 
     if(f >= anim->numframes) // prevent a crash with invalid frame index.
@@ -26023,7 +26023,7 @@ int common_try_pick(entity *other)
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
 // requires jump.
-int astar(entity *ent, float destx, float destz, float step, s_axis_f **wp)
+int astar(entity *ent, float destx, float destz, float step, s_axis_principal_float **wp)
 {
     int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
     unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
@@ -26322,7 +26322,7 @@ int checkpathblocked()
     float x, z, r;
     int aitype, wpc;
     entity *target;
-    s_axis_f *wp;
+    s_axis_principal_float *wp;
     if(self->modeldata.nomove)
     {
         return 0;

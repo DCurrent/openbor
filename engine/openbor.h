@@ -753,7 +753,7 @@ typedef enum
     LEVEL_PROP_SIZE_X,                          // int width;
     LEVEL_PROP_SPAWN_COLLECTION,                // s_spawn_entry *spawnpoints;
     LEVEL_PROP_SPAWN_COUNT,                     // int numspawns;
-    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_f spawn[MAX_PLAYERS];
+    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_principal_float spawn[MAX_PLAYERS];
     LEVEL_PROP_SPECIAL_DISABLE,                 // int nospecial;
     LEVEL_PROP_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
     LEVEL_PROP_TEXT_OBJECT_COUNT,               // int numtextobjs;
@@ -1342,18 +1342,39 @@ if(n<1) n = 1;
 
 #pragma pack(4)
 
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis switching flags
+// that involve the three main axes.
 typedef struct
 {
-    /*
-    Axis structure for general coordinates and velocity use.
-    2013-12-07
-    Damon Caskey
-    */
+    bool x;
+    bool y;
+    bool z;
+} s_axis_principal_bool;
 
-    float x;    //Horizontial axis.
-    float y;    //Altitude/Vertical axis (Y).
-    float z;    //Lateral axis.
-} s_axis_f;
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Integer axis values.
+typedef struct
+{
+    int x;
+    int y;
+    int z;
+} s_axis_principal_int;
+
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Float axis values.
+typedef struct
+{
+    float x;
+    float y;
+    float z;
+} s_axis_principal_float;
 
 typedef struct
 {
@@ -1610,7 +1631,7 @@ typedef struct
     unsigned int        sealtime;           // Time for seal to remain in effect.
     int                 tag;                // User defined tag for scripts. No hard coded purpose.
     int                 grab_distance;      // Distance used by "grab".
-    s_axis_f            dropv;              // Velocity of target if knocked down.
+    s_axis_principal_float            dropv;              // Velocity of target if knocked down.
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
@@ -1634,7 +1655,7 @@ typedef struct
 typedef struct
 {
     int                 confirm;    // Will engine's default hit handling be used?
-    s_axis_f            position;   // X,Y,Z of last hit.
+    s_axis_principal_float            position;   // X,Y,Z of last hit.
     s_collision_attack  *attack;    // Collision attacking box.
     s_collision_body    *body;      // Collision detect box.
 } s_lasthit;
@@ -1673,7 +1694,7 @@ typedef struct
 {
     unsigned int  frame;      // Frame to perform action.
     int                 ent;        // Index of entity to spawn.
-    s_axis_f            velocity;   // x,a,z velocity.
+    s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
 // Caskey, Damon V.
@@ -1742,30 +1763,6 @@ typedef struct
     unsigned int animation;   // Follow animation to perform.
     e_follow_condition condition;   // Condition in which follow up will be performed.
 } s_follow;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis switching flags
-// that involve the three main axes.
-typedef struct
-{
-    bool x;
-    bool y;
-    bool z;
-} s_axis_principal_bool;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis short fields for adjustments that
-// don't need full size integers.
-typedef struct
-{
-    int x;
-    int y;
-    int z;
-} s_axis_principal_int;
 
 // Caskey, Damon V.
 // 2014-01-18
@@ -2177,7 +2174,7 @@ s_modelcache *model_cache;
 typedef struct
 {
     e_animations    animation_id;   // Jumping Animation.
-    s_axis_f        velocity;       // x,a,z velocity setting.
+    s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
 
@@ -2255,8 +2252,8 @@ typedef struct entity
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
     int movestep;
-    s_axis_f position; //x,y,z location.
-    s_axis_f velocity; //x,y,z movement speed.
+    s_axis_principal_float position; //x,y,z location.
+    s_axis_principal_float velocity; //x,y,z movement speed.
     float destx; // temporary values for ai functions
     float destz;
     float movex;
@@ -2334,7 +2331,7 @@ typedef struct entity
     bool animating; // Set by animation code
     bool arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
-    s_axis_f *waypoints;
+    s_axis_principal_float *waypoints;
     int numwaypoints;
     unsigned int animpos; // Current animation frame.
     unsigned int animnum; // animation id.
@@ -2449,7 +2446,7 @@ typedef struct
     int mp; // mp's variable for mpbar by tails
     unsigned score; // So score can be overridden for enemies/obstacles
     int multiple; // So score can be overridden for enemies/obstacles
-    s_axis_f position;  //x, y, z location.
+    s_axis_principal_float position;  //x, y, z location.
     unsigned credit;
     int aggression; // For enemy A.I.
     int spawntype; // Pass 1 when a level spawn.
@@ -2501,7 +2498,7 @@ typedef struct
     int             order;	        // for panel order
     gfx_entry       gfx;
     s_axis_i_2d     size;
-    s_axis_f        ratio;          // Only x and z.
+    s_axis_principal_float        ratio;          // Only x and z.
     s_axis_i        offset;         // Only x and z.
     s_axis_i        spacing;        // Only x and z.
     s_drawmethod    drawmethod;
@@ -2618,7 +2615,7 @@ typedef struct
     int nohit; // Not able to grab / hit other player on a per level basis
     int force_finishlevel; // flag to force to finish a level
     int force_gameover; // flag to force game over
-    s_axis_f *spawn; // Used to determine the spawn position of players
+    s_axis_principal_float *spawn; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...
 //--------------------gravity system-------------------------
