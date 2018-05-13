@@ -1345,8 +1345,7 @@ if(n<1) n = 1;
 // Caskey, Damon V.
 // 2018-04-18
 //
-// Axis switching flags
-// that involve the three main axes.
+// Axis 3D - for switching.
 typedef struct
 {
     bool x;
@@ -1357,7 +1356,18 @@ typedef struct
 // Caskey, Damon V.
 // 2018-04-18
 //
-// Integer axis values.
+// Axis - 3D float.
+typedef struct
+{
+    float x;
+    float y;
+    float z;
+} s_axis_principal_float;
+
+// Caskey, Damon V.
+// 2018-04-18
+//
+// Axis - 3D int.
 typedef struct
 {
     int x;
@@ -1366,46 +1376,9 @@ typedef struct
 } s_axis_principal_int;
 
 // Caskey, Damon V.
-// 2018-04-18
-//
-// Float axis values.
-typedef struct
-{
-    float x;
-    float y;
-    float z;
-} s_axis_principal_float;
-
-typedef struct
-{
-    int base;
-    int x;
-    int y;
-    int z;
-} s_axis_world_int;
-
-typedef struct
-{
-    float base;
-    float x;
-    float y;
-    float z;
-} s_axis_world_float;
-
-// Caskey, Damon V.
 // 2014-01-20
 //
-// Axis structure for horizontal and vertical only (int).
-typedef struct
-{
-    int x;      // Horizontal axis.
-    int y;      // Altitude/Vertical axis.
-} s_axis_plane_vertical_int;
-
-// Caskey, Damon V.
-// 2014-01-20
-//
-// Axis structure for horizontal and lateral only (float).
+// Axis - Horizontal and lateral only (float).
 typedef struct
 {
     float x;    // Horizontal axis.
@@ -1415,24 +1388,46 @@ typedef struct
 // Caskey, Damon V.
 // 2014-01-20
 //
-// Axis structure for horizontal and lateral only (int).
+// Axis - Horizontal and lateral only (int).
 typedef struct
 {
     int x;    // Horizontal axis.
     int z;    // Lateral axis.
 } s_axis_plane_lateral_int;
 
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis - Horizontal and vertical only (int).
 typedef struct
 {
-    /*
-    Axis structure for general coordinates and velocity use when only X and Y are needed..
-    2014-01-20
-    Damon Caskey
-    */
+    int x;      // Horizontal axis.
+    int y;      // Altitude/Vertical axis.
+} s_axis_plane_vertical_int;
 
-    float x;    //Horizontial axis.
-    float y;    //Altitude/Vertical axis.
-} s_axis_f_2d;
+// Caskey, Damon V.
+// 2018-05-10
+//
+// Axis - Game world, float.
+typedef struct
+{
+    float base;
+    float x;
+    float y;
+    float z;
+} s_axis_world_float;
+
+// Caskey, Damon V.
+// 2018-05-10
+//
+// Axis - Game world, int.
+typedef struct
+{
+    int base;
+    int x;
+    int y;
+    int z;
+} s_axis_world_int;
 
 typedef struct
 {
@@ -2490,10 +2485,10 @@ typedef struct
     e_bgloldtype    oldtype;
     int             order;	        // for panel order
     gfx_entry       gfx;
-    s_axis_plane_vertical_int     size;
-    s_axis_principal_float        ratio;          // Only x and z.
-    s_axis_principal_int        offset;         // Only x and z.
-    s_axis_principal_int        spacing;        // Only x and z.
+    s_axis_plane_vertical_int   size;
+    s_axis_plane_lateral_float  ratio;          // Only x and z.
+    s_axis_plane_lateral_int    offset;         // Only x and z.
+    s_axis_plane_lateral_int    spacing;        // Only x and z.
     s_drawmethod    drawmethod;
     float           bgspeedratio;
     int             enabled;
@@ -2525,8 +2520,8 @@ typedef struct
 
 typedef struct
 {
-    s_axis_principal_int position;  //only x and z.
-    s_axis_principal_int size;      //Only x and z.
+    s_axis_plane_lateral_int position;
+    s_axis_plane_lateral_int size;
     float *map;
 } s_basemap;
 
