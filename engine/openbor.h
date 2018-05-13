@@ -1765,7 +1765,7 @@ typedef struct
     int x;
     int y;
     int z;
-} s_axis_principal_short;
+} s_axis_principal_int;
 
 // Caskey, Damon V.
 // 2014-01-18
@@ -1779,7 +1779,7 @@ typedef struct
     int                     bomb;       // custbomb;
     int                     flash;      // custpshotno;
     int                     knife;      // custknife;
-    s_axis_principal_short  position;   // Location at which projectiles are spawned
+    s_axis_principal_int  position;   // Location at which projectiles are spawned
     int                     star;       // custstar;
 } s_projectile;
 
@@ -2191,7 +2191,7 @@ typedef struct
     unsigned int      ani_bind;       // Animation binding type.
     int               sortid;         // Relative binding sortid. Default = -1
     s_axis_principal_bool bind_toggle;    // Toggle binding on X, Y and Z axis.
-    s_axis_principal_short  offset;         // x,y,z offset.
+    s_axis_principal_int  offset;         // x,y,z offset.
     e_direction_adjust      direction;      // Direction force
     struct entity *ent;                     // Entity to bind.
 } s_bind;
