@@ -17,7 +17,7 @@
 #include "openbor.h"
 
 #define T_AXIS 7000
-
+#define TIMESTAMP_PATTERN "%Y-%m-%d %H:%M:%S"
 
 SDL_Joystick *joystick[JOY_LIST_TOTAL]; // SDL struct for joysticks
 static int usejoy;						// To be or Not to be used?
@@ -236,7 +236,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     int i = ev.jdevice.which;
                     char buffer[26];
                     joystick[i] = SDL_JoystickOpen(i);
-                    get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, "%Y-%m-%d %H:%M:%S");
+                    get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
                     printf("Joystick connected at port: %d at %s\n",i,buffer);
                 }
                 break;
@@ -249,7 +249,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     {
                         char buffer[26];
                         SDL_JoystickClose(joystick[i]);
-                        get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, "%Y-%m-%d %H:%M:%S");
+                        get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
                         printf("Joystick disconnected from port: %d at %s\n",i,buffer);
                     }
                 }

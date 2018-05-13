@@ -718,11 +718,8 @@ void Array_Check_Size( const char *f_caller, char **array, int new_size, int *cu
 void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern)
 {
     struct tm* tm_info;
-
     tm_info = localtime(&timestamp);
-
-    strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", tm_info);
-
+    strftime(buffer, buffer_size, pattern, tm_info);
     return;
 }
 
