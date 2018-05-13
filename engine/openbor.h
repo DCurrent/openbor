@@ -1378,6 +1378,52 @@ typedef struct
 
 typedef struct
 {
+    int base;
+    int x;
+    int y;
+    int z;
+} s_axis_world_int;
+
+typedef struct
+{
+    float base;
+    float x;
+    float y;
+    float z;
+} s_axis_world_float;
+
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis structure for horizontal and vertical only.
+typedef struct
+{
+    int x;      // Horizontal axis.
+    int y;      // Altitude/Vertical axis.
+} s_axis_plane_vertical_int;
+
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis structure for horizontal and lateral only (float).
+typedef struct
+{
+    float x;    // Horizontal axis.
+    float z;    // Lateral axis.
+} s_axis_plane_lateral_float;
+
+// Caskey, Damon V.
+// 2014-01-20
+//
+// Axis structure for horizontal and lateral only (int).
+typedef struct
+{
+    int x;    // Horizontal axis.
+    int z;    // Lateral axis.
+} s_axis_plane_lateral_int;
+
+typedef struct
+{
     /*
     Axis structure for general coordinates and velocity use when only X and Y are needed..
     2014-01-20
@@ -1400,43 +1446,6 @@ typedef struct
     int y;      //Altitude/Vertical axis.
     int z;      //Lateral axis.
 } s_axis_i;
-
-typedef struct
-{
-    int base;
-    int x;
-    int y;
-    int z;
-} s_axis_world_int;
-
-typedef struct
-{
-    float base;
-    float x;
-    float y;
-    float z;
-} s_axis_world_float;
-
-typedef struct
-{
-    /*
-    Axis structure for general coordinates when only X and Y are needed.
-    2014-01-04
-    Damon Caskey
-    */
-
-    int x;      //Horizontal axis.
-    int y;      //Altitude/Vertical axis.
-} s_axis_plane_flat_int;
-
-// Caskey, Damon V.
-// 2014-01-20
-// Axis structure for general coordinates when only X and Z are needed.
-typedef struct
-{
-    int x;      //Horizontal axis.
-    int z;      //Lateral axis.
-} s_axis_plane_lateral_int;
 
 typedef struct
 {
@@ -1819,7 +1828,7 @@ typedef struct
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
     s_axis_world_int                **move;                 // base = seta, x = move, y = movea, z = movez
-    s_axis_plane_flat_int             **offset;               // original sprite offsets
+    s_axis_plane_vertical_int             **offset;               // original sprite offsets
 } s_anim;
 
 struct animlist
@@ -1832,8 +1841,8 @@ s_anim_list *anim_list;
 
 typedef struct
 {
-    s_axis_plane_flat_int offset;
-    s_axis_plane_flat_int size;
+    s_axis_plane_vertical_int offset;
+    s_axis_plane_vertical_int size;
     e_bartype type;
     e_barorient orientation;
     int noborder;
@@ -1849,8 +1858,8 @@ typedef struct
 {
     e_loadingScreenType set;    //Loading bar mode.
     int tf;                     //Font number for "LOADING" text (last element in command, moved here because of alignment)
-    s_axis_plane_flat_int bar_position;   //Loading bar position.
-    s_axis_plane_flat_int text_position;  //Loading text position.
+    s_axis_plane_vertical_int bar_position;   //Loading bar position.
+    s_axis_plane_vertical_int text_position;  //Loading text position.
     int bsize;                  // length of bar in pixels
     int refreshMs;              // modder defined number of milliseconds in which the screen is updated while loading
 } s_loadingbar;
@@ -1901,7 +1910,7 @@ typedef struct
     int pain; //Taking damage.
     int usemap;
     int weapon; //Weapon model.
-    s_axis_plane_flat_int position;
+    s_axis_plane_vertical_int position;
 } s_icon;
 
 typedef struct
@@ -2052,7 +2061,7 @@ typedef struct
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
-    s_axis_plane_flat_int size; // Used to set height of player in pixels
+    s_axis_plane_vertical_int size; // Used to set height of player in pixels
     float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
@@ -2415,7 +2424,7 @@ typedef struct
     int scrollminx; // new scroll limit
     int scrollmaxx;
     int blockade; //limit how far you can go back
-    s_axis_plane_flat_int light; // light direction, for gfx shadow
+    s_axis_plane_vertical_int light; // light direction, for gfx shadow
     int shadowcolor; // -1 no shadow
     int shadowalpha;
     int shadowopacity;
@@ -2494,7 +2503,7 @@ typedef struct
     e_bgloldtype    oldtype;
     int             order;	        // for panel order
     gfx_entry       gfx;
-    s_axis_plane_flat_int     size;
+    s_axis_plane_vertical_int     size;
     s_axis_principal_float        ratio;          // Only x and z.
     s_axis_i        offset;         // Only x and z.
     s_axis_i        spacing;        // Only x and z.
@@ -2749,7 +2758,7 @@ int                     addframe(s_anim             *a,
                                 int                 *shadow_coords,
                                 int                 soundtoplay,
                                 s_drawmethod        *drawmethod,
-                                s_axis_plane_flat_int         *offset,
+                                s_axis_plane_vertical_int         *offset,
                                 s_damage_recursive  *recursive,
                                 s_hitbox            *attack_coords,
                                 s_hitbox            *body_coords);

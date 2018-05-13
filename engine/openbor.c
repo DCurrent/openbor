@@ -258,7 +258,7 @@ s_lasthit           lasthit;  //Last collision variables. 2013-12-15, moved to s
 int					combodelay = GAME_SPEED / 2;		// avoid annoying 112112... infinite combo
 
 //Use for gfx_shadow
-s_axis_plane_flat_int light = {   .x = 128,
+s_axis_plane_vertical_int light = {   .x = 128,
                         .y = 64};
 
 int                 shadowcolor = 0;
@@ -6351,7 +6351,7 @@ int addframe(s_anim             *a,
              int                *shadow_coords,
              int                soundtoplay,
              s_drawmethod       *drawmethod,
-             s_axis_plane_flat_int        *offset,
+             s_axis_plane_vertical_int        *offset,
              s_damage_recursive *recursive,
              s_hitbox           *attack_coords,
              s_hitbox           *body_coords)
@@ -8981,7 +8981,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     .z1 = 0,
                                     .z2 = 0};
 
-    s_axis_plane_flat_int         offset = {  .x = 0,
+    s_axis_plane_vertical_int         offset = {  .x = 0,
                                     .y = 0 };
     int                 shadow_xz[2] = {0, 0};
     int                 shadow_coords[2] = {0, 0};
@@ -16327,10 +16327,10 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     typedef struct
     {
         s_axis_world_int    position;
-        s_axis_plane_flat_int size;
+        s_axis_plane_vertical_int size;
     } draw_coords;
 
-    s_axis_plane_flat_int screen_offset;          // Base location calculated from screen offsets.
+    s_axis_plane_vertical_int screen_offset;          // Base location calculated from screen offsets.
     s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
     draw_coords box;                    // On screen coords for display elements.
 
@@ -16456,10 +16456,10 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
     typedef struct
     {
         s_axis_world_int    position;
-        s_axis_plane_flat_int size;
+        s_axis_plane_vertical_int size;
     } draw_coords;
 
-    s_axis_plane_flat_int screen_offset;          // Base location calculated from screen offsets.
+    s_axis_plane_vertical_int screen_offset;          // Base location calculated from screen offsets.
     s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
     draw_coords box;                    // On screen coords for display elements.
 
@@ -16569,13 +16569,13 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 // position and draw a box.
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod)
 {
-    s_axis_plane_flat_int screen_offset;  // Base location calculated from screen offsets.
+    s_axis_plane_vertical_int screen_offset;  // Base location calculated from screen offsets.
     s_axis_world_int    base_pos;       // Entity position with screen offsets applied.
 
     typedef struct
     {
         s_axis_world_int position;
-        s_axis_plane_flat_int size;
+        s_axis_plane_vertical_int size;
     } draw_coords;
 
     draw_coords box;
