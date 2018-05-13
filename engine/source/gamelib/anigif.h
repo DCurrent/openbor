@@ -26,7 +26,7 @@
 #define			NO_CODE				-1
 
 
-#pragma pack (1)
+#pragma pack(1)
 typedef struct
 {
     char		magic[6];
@@ -35,6 +35,7 @@ typedef struct
     unsigned char	background;
     unsigned char	aspect;
 } gifheaderstruct;
+#pragma pack()
 
 
 #pragma pack(1)
@@ -44,6 +45,7 @@ typedef struct
     unsigned short width, height;
     unsigned char	flags;
 } gifblockstruct;
+#pragma pack()
 
 #define anigif_magic 0x464947
 
@@ -70,6 +72,7 @@ typedef struct
     s_screen *backbuffer;
     s_screen *gifbuffer[3];
 } anigif_info;
+#pragma pack()
 
 
 //Gif file format should be always the same, so no need to use sizeof

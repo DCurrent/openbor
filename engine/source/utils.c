@@ -13,6 +13,7 @@
 #include <malloc.h>
 #include <locale.h>
 #include <math.h>
+#include <time.h>
 
 #include "stringptr.h"
 #include "utils.h"
@@ -651,8 +652,7 @@ char* multistrcatsp(char* buf, ...)
 	\param curr_size_allocated : current allocated size to the array (in BYTE)
 	\param grow_step : bloc size of expansion of the array (in BYTE)
 */
-void
-Array_Check_Size( const char *f_caller, char **array, int new_size, int *curr_size_allocated, int grow_step )
+void Array_Check_Size( const char *f_caller, char **array, int new_size, int *curr_size_allocated, int grow_step )
 {
     // Deallocation
     if( new_size <= 0 )
@@ -713,5 +713,16 @@ Array_Check_Size( const char *f_caller, char **array, int new_size, int *curr_si
 
     // ReAssign the new allocated array
     *array = copy;
+}
+
+void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern)
+{
+    struct tm* tm_info;
+
+    tm_info = localtime(&timestamp);
+
+    strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", tm_info);
+
+    return;
 }
 

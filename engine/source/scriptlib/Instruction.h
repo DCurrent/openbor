@@ -21,6 +21,8 @@ typedef enum OpCode { CONSTSTR, CONSTDBL, CONSTINT, LOAD, SAVE, INC, DEC, FIELD,
                       IMMEDIATE, DEFERRED, RET, CHECKARG, CLEAN, JUMPR, FUNCDECL, OPCODE_END
                     } OpCode;
 
+#pragma pack(4)
+
 typedef struct Instruction
 {
     unsigned OpCode;
@@ -41,6 +43,7 @@ typedef struct Instruction
     };
 } Instruction;
 
+#pragma pack()
 
 void Instruction_InitViaToken(Instruction *pins, OpCode code, Token *pToken );
 void Instruction_InitViaLabel(Instruction *pins, OpCode code, LPCSTR label );

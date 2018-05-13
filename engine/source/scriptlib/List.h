@@ -54,6 +54,8 @@
 
 #define NAME(s) ((s==NULL)?NULL:(strcpy((char*)malloc(strlen(s)+1),s)))
 
+#pragma pack(4)
+
 typedef struct Node
 {
     struct Node *prev;          //pointer to previous Node
@@ -101,6 +103,8 @@ typedef struct List
 #endif
 
 } List;
+
+#pragma pack()
 
 void List_SetCurrent(List *list, Node *current);
 void Node_Clear(Node *node);

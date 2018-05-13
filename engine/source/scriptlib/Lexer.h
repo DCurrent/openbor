@@ -37,6 +37,8 @@ typedef enum MY_TOKEN_TYPE
     TOKEN_ERROR, TOKEN_COMMENT, TOKEN_EOF, EPSILON, END_OF_TOKENS
 } MY_TOKEN_TYPE;
 
+#pragma pack(4)
+
 /******************************************************************************
 *  CToken -- This class encapsulates the tokens that CLexer creates.  It serves
 *  to encapsulate the information for OOD purposes.
@@ -64,6 +66,7 @@ typedef struct Lexer
     TEXTPOS theTokenPosition;
 } Lexer;
 
+#pragma pack()
 
 //Constructor
 void Token_Init(Token *ptoken, MY_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset);
