@@ -31131,7 +31131,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
 
         e->projectile_prime += PROJECTILE_PRIME_BASE_Y;
         e->projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime += PROJECTILE_PRIME_REQUEST_CUSTOM;
+        e->projectile_prime += PROJECTILE_PRIME_REQUEST_UNDEFINED;
 
         e->position.y = a;
     }
