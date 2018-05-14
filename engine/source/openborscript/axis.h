@@ -48,9 +48,6 @@ HRESULT openbor_get_axis_plane_vertical_float_property(ScriptVariant **varlist ,
 HRESULT openbor_set_axis_plane_vertical_float_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 // Principal (x, y, z).
-HRESULT openbor_get_axis_principal_bool_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_axis_principal_bool_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
 HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 

@@ -1375,17 +1375,6 @@ typedef struct
 // Caskey, Damon V.
 // 2018-04-18
 //
-// Axis 3D - for switching.
-typedef struct
-{
-    bool x;
-    bool y;
-    bool z;
-} s_axis_principal_bool;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
 // Axis - 3D float.
 typedef struct
 {
@@ -2175,7 +2164,7 @@ typedef struct
 {
     unsigned int      ani_bind;       // Animation binding type.
     int               sortid;         // Relative binding sortid. Default = -1
-    s_axis_principal_bool bind_toggle;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int bind_toggle;    // Toggle binding on X, Y and Z axis.
     s_axis_principal_int  offset;         // x,y,z offset.
     e_direction_adjust      direction;      // Direction force
     struct entity *ent;                     // Entity to bind.
