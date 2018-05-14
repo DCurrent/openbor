@@ -951,6 +951,9 @@
 			<Option compilerVar="CC" />
 			<Option target="Release" />
 		</Unit>
+		<Unit filename="../source/openborscript/axis.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/openborscript/axis.h" />
 		<Unit filename="../source/openborscript/binding.c">
 			<Option compilerVar="CC" />
