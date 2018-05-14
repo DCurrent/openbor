@@ -2716,23 +2716,23 @@ s_collision_attack      **collision_alloc_attack_list();
 s_collision_body        *collision_alloc_body_instance(s_collision_body *properties);
 s_collision_body        **collision_alloc_body_list();
 s_hitbox                *collision_alloc_coords(s_hitbox *coords);
-int                     addframe(s_anim             *a,
-                                int                 spriteindex,
-                                int                 framecount,
-                                int                 delay,
-                                unsigned            idle,
-                                s_collision_body    *bbox,
-                                s_collision_attack  *attack,
-                                s_axis_world_int            *move,
-                                float               *platform,
-                                int                 frameshadow,
-                                int                 *shadow_coords,
-                                int                 soundtoplay,
-                                s_drawmethod        *drawmethod,
-                                s_axis_plane_vertical_int         *offset,
-                                s_damage_recursive  *recursive,
-                                s_hitbox            *attack_coords,
-                                s_hitbox            *body_coords);
+int                     addframe(s_anim                     *a,
+                                int                         spriteindex,
+                                int                         framecount,
+                                int                         delay,
+                                unsigned                    idle,
+                                s_collision_body            *bbox,
+                                s_collision_attack          *attack,
+                                s_axis_principal_int        *move,
+                                float                       *platform,
+                                int                         frameshadow,
+                                int                         *shadow_coords,
+                                int                         soundtoplay,
+                                s_drawmethod                *drawmethod,
+                                s_axis_plane_vertical_int   *offset,
+                                s_damage_recursive          *recursive,
+                                s_hitbox                    *attack_coords,
+                                s_hitbox                    *body_coords);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
