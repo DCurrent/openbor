@@ -1565,7 +1565,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 keyCode=KeyEvent.KEYCODE_E; break;
             case KeyEvent.KEYCODE_BUTTON_9: //key code constant: Generic Game Pad Button #9.
                 keyCode=KeyEvent.KEYCODE_F; break;*/
-            case KeyEvent.KEYCODE_BUTTON_A: //key code constant: A Button key.
+            /*case KeyEvent.KEYCODE_BUTTON_A: //key code constant: A Button key.
                 keyCode=KeyEvent.KEYCODE_G; break;
             case KeyEvent.KEYCODE_BUTTON_B: //key code constant: B Button key.
                 keyCode=KeyEvent.KEYCODE_H; break;
@@ -1602,7 +1602,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             case KeyEvent.KEYCODE_DPAD_DOWN: //key code constant: D-Pad Down key.
                 keyCode=KeyEvent.KEYCODE_Y; break;
             case KeyEvent.KEYCODE_DPAD_LEFT: //key code constant: D-Pad Left key.
-                keyCode=KeyEvent.KEYCODE_W; break;
+                keyCode=KeyEvent.KEYCODE_W; break;*/
         }
 
         // Dispatch the different events depending on where they come from
