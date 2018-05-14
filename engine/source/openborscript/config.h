@@ -317,6 +317,13 @@ HRESULT openbor_recordinputs(ScriptVariant **varlist , ScriptVariant **pretvar, 
 HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount);
+
+// Axis properties.
+int mapstrings_axis_plane_lateral_property(ScriptVariant **varlist, int paramCount);
+int mapstrings_axis_plane_vertical_property(ScriptVariant **varlist, int paramCount);
+int mapstrings_axis_principal_property(ScriptVariant **varlist, int paramCount);
+int mapstrings_axis_world_property(ScriptVariant **varlist, int paramCount);
+
 int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount);
