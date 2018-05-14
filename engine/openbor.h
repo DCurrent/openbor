@@ -2237,7 +2237,6 @@ typedef struct entity
     float movez;
     float speedmul;
     float base;     // Default altitude
-    float altbase; // Altitude affected by movea
     s_jump jump;    //Jumping velocity and id.
     unsigned combostep[MAX_SPECIAL_INPUTS];  // merge into an array to clear up some code
 
