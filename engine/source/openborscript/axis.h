@@ -19,19 +19,19 @@ typedef enum
 
 typedef enum
 {
-    _AXIS_PLANE_PRINCIPAL_X,
-    _AXIS_PLANE_PRINCIPAL_Y,
-    _AXIS_PLANE_PRINCIPAL_Z,
-    _AXIS_PLANE_PRINCIPAL_END,
+    _AXIS_PRINCIPAL_X,
+    _AXIS_PRINCIPAL_Y,
+    _AXIS_PRINCIPAL_Z,
+    _AXIS_PRINCIPAL_END,
 } e_axis_principal_properties;
 
 typedef enum
 {
-    _AXIS_PLANE_WORLD_BASE,
-    _AXIS_PLANE_WORLD_X,
-    _AXIS_PLANE_WORLD_Y,
-    _AXIS_PLANE_WORLD_Z,
-    _AXIS_PLANE_WORLD_END,
+    _AXIS_WORLD_BASE,
+    _AXIS_WORLD_X,
+    _AXIS_WORLD_Y,
+    _AXIS_WORLD_Z,
+    _AXIS_WORLD_END,
 } e_axis_principal_properties;
 
 // Access and mutator prototypes.
