@@ -6338,23 +6338,23 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
     return result;
 }
 
-int addframe(s_anim                     *a,
-             int                        spriteindex,
-             int                        framecount,
-             int                        delay,
-             unsigned                   idle,
-             s_collision_body           *bbox,
-             s_collision_attack         *attack,
-             s_axis_principal_int       *move,
-             float                      *platform,
-             int                        frameshadow,
-             int                        *shadow_coords,
-             int                        soundtoplay,
-             s_drawmethod               *drawmethod,
-             s_axis_plane_vertical_int  *offset,
-             s_damage_recursive         *recursive,
-             s_hitbox                   *attack_coords,
-             s_hitbox                   *body_coords)
+int addframe(s_anim             *a,
+             int                spriteindex,
+             int                framecount,
+             int                delay,
+             unsigned           idle,
+             s_collision_body   *bbox,
+             s_collision_attack *attack,
+             s_axis_world_int   *move,
+             float              *platform,
+             int                frameshadow,
+             int                *shadow_coords,
+             int                soundtoplay,
+             s_drawmethod       *drawmethod,
+             s_axis_plane_vertical_int        *offset,
+             s_damage_recursive *recursive,
+             s_hitbox           *attack_coords,
+             s_hitbox           *body_coords)
 {
     int     i;
     size_t  size_col_on_frame,
@@ -8989,7 +8989,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     float               platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
                         platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    s_axis_principal_int    move = {.x = 0,
+    s_axis_world_int            move = {    .base = -1,    //-1 = Disabled, 0+ base set
+                                    .x = 0,
                                     .y = 0,
                                     .z = 0};
 
@@ -10387,6 +10388,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.blocksound               = -1;
                 drawmethod                      = plainmethod;
                 idle                            = 0;
+                move.base                       = -1;
                 move.x                          = 0;
                 move.y                          = 0;
                 move.z                          = 0;
@@ -11389,15 +11391,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 idle = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_SETA:
-                // Caskey, Damon V
-                // 2018-05-14
-                //
-                // Previously set a "move.base" value but
-                // the engine logic did nothing with it
-                // what-so-ever, and movea already works
-                // by setting the base anyway. Depreciating
-                // so we don't need a "base" axis for the
-                // move attribute.
+                move.base = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MOVE:
                 move.x = GET_INT_ARG(1);
@@ -16332,13 +16326,13 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     typedef struct
     {
-        s_axis_principal_int        position;
-        s_axis_plane_vertical_int   size;
+        s_axis_world_int    position;
+        s_axis_plane_vertical_int size;
     } draw_coords;
 
-    s_axis_plane_vertical_int       screen_offset;  // Base location calculated from screen offsets.
-    s_axis_principal_int            base_pos;       // Entity position with screen offsets applied.
-    draw_coords                     box;            // On screen coords for display elements.
+    s_axis_plane_vertical_int screen_offset;          // Base location calculated from screen offsets.
+    s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
+    draw_coords box;                    // On screen coords for display elements.
 
     int pos_value[POS_ARRAY_SIZE];      // Entity position for display - truncated to int.
     int i;                              // Counter.
