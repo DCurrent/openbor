@@ -1313,8 +1313,8 @@ if(n<1) n = 1;
 
 #define canbegrabbed(self, other) \
 		(other->animation->vulnerable[other->animpos] && \
-		 (!self->animation->move || self->animation->move[self->animpos]->x == 0) && \
-		 (!self->animation->move || self->animation->move[self->animpos]->z == 0 ) && \
+		 (!self->animation->move || self->animation->move[self->animpos]->axis.x == 0) && \
+		 (!self->animation->move || self->animation->move[self->animpos]->axis.z == 0 ) && \
 		 !(other->nograb || other->invincible || other->link || \
 		   other->model->animal || inair(other) || \
 		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
@@ -1417,6 +1417,12 @@ typedef struct
     int y;
     int z;
 } s_axis_world_int;
+
+typedef struct
+{
+    s_axis_principal_int    axis;
+    int                     base;
+} s_move;
 
 typedef struct
 {
@@ -1798,8 +1804,8 @@ typedef struct
     s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    s_axis_world_int                **move;                 // base = seta, x = move, y = movea, z = movez
-    s_axis_plane_vertical_int             **offset;               // original sprite offsets
+    s_move                  **move;                 // base = seta, x = move, y = movea, z = movez
+    s_axis_plane_vertical_int   **offset;               // original sprite offsets
 } s_anim;
 
 struct animlist
@@ -2723,7 +2729,7 @@ int                     addframe(s_anim             *a,
                                 unsigned            idle,
                                 s_collision_body    *bbox,
                                 s_collision_attack  *attack,
-                                s_axis_world_int            *move,
+                                s_move              *move,
                                 float               *platform,
                                 int                 frameshadow,
                                 int                 *shadow_coords,

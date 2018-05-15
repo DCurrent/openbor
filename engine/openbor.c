@@ -6345,7 +6345,7 @@ int addframe(s_anim             *a,
              unsigned           idle,
              s_collision_body   *bbox,
              s_collision_attack *attack,
-             s_axis_world_int   *move,
+             s_move             *move,
              float              *platform,
              int                frameshadow,
              int                *shadow_coords,
@@ -8989,10 +8989,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     float               platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
                         platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    s_axis_world_int            move = {    .base = -1,    //-1 = Disabled, 0+ base set
-                                    .x = 0,
-                                    .y = 0,
-                                    .z = 0};
+    s_move                  move = {    {   .x = 0,
+                                            .y = 0,
+                                            .z = 0},
+                                        .base = -1    //-1 = Disabled, 0+ base set
+                                    };
 
     s_damage_recursive  recursive;
     s_hitbox            attack_coords;
@@ -10389,9 +10390,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 drawmethod                      = plainmethod;
                 idle                            = 0;
                 move.base                       = -1;
-                move.x                          = 0;
-                move.y                          = 0;
-                move.z                          = 0;
+                move.axis.x                     = 0;
+                move.axis.y                     = 0;
+                move.axis.z                     = 0;
                 frameshadow                     = -1;
                 soundtoplay                     = -1;
 
@@ -11394,13 +11395,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 move.base = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MOVE:
-                move.x = GET_INT_ARG(1);
+                move.axis.x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MOVEA:
-                move.y = GET_INT_ARG(1);
+                move.axis.y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MOVEZ:
-                move.z = GET_INT_ARG(1);
+                move.axis.z = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_FSHADOW:
                 frameshadow = GET_INT_ARG(1);
@@ -17929,10 +17930,10 @@ void update_frame(entity *ent, unsigned int f)
         goto uf_interrupted;
     }
 
-    if(level && (anim->move[f]->x || anim->move[f]->z))
+    if(level && (anim->move[f]->axis.x || anim->move[f]->axis.z))
     {
-        move.x = (float)(anim->move[f]->x ? anim->move[f]->x : 0);
-        move.z = (float)(anim->move[f]->z ? anim->move[f]->z : 0);
+        move.x = (float)(anim->move[f]->axis.x ? anim->move[f]->axis.x : 0);
+        move.z = (float)(anim->move[f]->axis.z ? anim->move[f]->axis.z : 0);
         if(self->direction == DIRECTION_LEFT)
         {
             move.x = -move.x;
@@ -17947,7 +17948,7 @@ void update_frame(entity *ent, unsigned int f)
     }
     else if(!anim->move[0]->base || anim->move[0]->base < 0)
     {
-        move.y = (float)(anim->move[f]->y ? anim->move[f]->y : 0);
+        move.y = (float)(anim->move[f]->axis.y ? anim->move[f]->axis.y : 0);
         self->base += move.y;
         if(move.y != 0)
         {
@@ -20471,7 +20472,7 @@ void check_gravity(entity *e)
                     }
                 }
                 else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
-                        (!self->animation->move[self->animpos]->y || self->animation->move[self->animpos]->y <= 0))
+                        (!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y <= 0))
                 {
                     if( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) ) self->velocity.x = self->velocity.z = self->velocity.y = 0;
                 }
@@ -20809,7 +20810,7 @@ void adjust_base(entity *e, entity **pla)
             {
                 self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase);
             }
-            else if(!self->animation->move[self->animpos]->y || self->animation->move[self->animpos]->y == 0)
+            else if(!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y == 0)
             {
                 // No obstacle/wall or seta, so just set to 0
                 self->base = 0;
