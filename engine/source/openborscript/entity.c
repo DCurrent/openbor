@@ -353,7 +353,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
         case _ENTITY_POSITION_COORDINATES:
 
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)&handle->position;
 
             break;
