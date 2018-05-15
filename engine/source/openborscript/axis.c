@@ -211,6 +211,257 @@ HRESULT openbor_get_axis_plane_lateral_float_property(ScriptVariant **varlist , 
     #undef ARG_INDEX
 }
 
+
+// Caskey, Damon  V.
+// 2018-05-14
+//
+// Return an axis property. Requires
+// the handle from axis property
+// and property name to access.
+HRESULT openbor_get_axis_plane_lateral_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "openbor_get_axis_plane_lateral_int_property(void handle, char property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+    s_axis_plane_lateral_int        *handle     = NULL; // Property handle.
+    e_axis_plane_lateral_properties property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_axis_plane_lateral_property(varlist, paramCount);
+
+    // Verify arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property constant is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        // Populate local vars for readability.
+        handle      = (s_axis_plane_lateral_int *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // All values are float (DOUBLE) type.
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+    switch(property)
+    {
+        case _AXIS_PLANE_LATERAL_X:
+
+            (*pretvar)->lVal = (LONG)handle->x;
+
+            break;
+
+        case _AXIS_PLANE_LATERAL_Z:
+
+            (*pretvar)->lVal = (LONG)handle->z;
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return S_OK;
+
+    error_local:
+
+    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
+    *pretvar = NULL;
+
+    return E_FAIL;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_INDEX
+}
+
+// Caskey, Damon  V.
+// 2018-05-14
+//
+// Return an axis property. Requires
+// the handle from axis property
+// and property name to access.
+HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "openbor_get_axis_principal_float_property(void handle, char property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+    s_axis_principal_float      *handle     = NULL; // Property handle.
+    e_axis_principal_properties property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_axis_principal_property(varlist, paramCount);
+
+    // Verify arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property constant is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        // Populate local vars for readability.
+        handle      = (s_axis_principal_float *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // All values are float (DOUBLE) type.
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+    switch(property)
+    {
+        case _AXIS_PRINCIPAL_X:
+
+            (*pretvar)->lVal = (LONG)handle->x;
+
+            break;
+
+        case _AXIS_PRINCIPAL_Y:
+
+            (*pretvar)->lVal = (LONG)handle->y;
+
+            break;
+
+        case _AXIS_PRINCIPAL_Z:
+
+            (*pretvar)->lVal = (LONG)handle->z;
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return S_OK;
+
+    error_local:
+
+    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
+    *pretvar = NULL;
+
+    return E_FAIL;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_INDEX
+}
+
+
+// Caskey, Damon  V.
+// 2018-05-14
+//
+// Return an axis property. Requires
+// the handle from axis property
+// and property name to access.
+HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "openbor_get_axis_plane_vertical_int_property(void handle, char property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+    s_axis_plane_vertical_int        *handle     = NULL; // Property handle.
+    e_axis_plane_vertical_properties property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_axis_plane_vertical_property(varlist, paramCount);
+
+    // Verify arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property constant is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        // Populate local vars for readability.
+        handle      = (s_axis_plane_vertical_int *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // All values are float (DOUBLE) type.
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+    switch(property)
+    {
+        case _AXIS_PLANE_VERTICAL_X:
+
+            (*pretvar)->lVal = (LONG)handle->x;
+
+            break;
+
+        case _AXIS_PLANE_VERTICAL_Y:
+
+            (*pretvar)->lVal = (LONG)handle->y;
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return S_OK;
+
+    error_local:
+
+    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
+    *pretvar = NULL;
+
+    return E_FAIL;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_INDEX
+}
+
 // Caskey, Damon  V.
 // 2018-05-14
 //
@@ -303,87 +554,6 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
 // Caskey, Damon  V.
 // 2018-05-14
 //
-// Return an axis property. Requires
-// the handle from axis property
-// and property name to access.
-HRESULT openbor_get_axis_plane_lateral_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
-    #define SELF_NAME       "openbor_get_axis_plane_lateral_int_property(void handle, char property)"
-    #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY    1   // Property to access.
-
-    s_axis_plane_lateral_int        *handle     = NULL; // Property handle.
-    e_axis_plane_lateral_properties property    = 0;    // Property argument.
-
-    // Clear pass by reference argument used to send
-    // property data back to calling script.     .
-    ScriptVariant_Clear(*pretvar);
-
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_axis_plane_lateral_property(varlist, paramCount);
-
-    // Verify arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property constant is accessed.
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
-        *pretvar = NULL;
-        goto error_local;
-    }
-    else
-    {
-        // Populate local vars for readability.
-        handle      = (s_axis_plane_lateral_int *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
-
-    // All values are float (DOUBLE) type.
-    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-    switch(property)
-    {
-        case _AXIS_PLANE_LATERAL_X:
-
-            (*pretvar)->lVal = (LONG)handle->x;
-
-            break;
-
-        case _AXIS_PLANE_LATERAL_Z:
-
-            (*pretvar)->lVal = (LONG)handle->z;
-
-            break;
-
-        default:
-
-            printf("Unsupported property.\n");
-            goto error_local;
-
-            break;
-    }
-
-    return S_OK;
-
-    error_local:
-
-    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
-    *pretvar = NULL;
-
-    return E_FAIL;
-
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_HANDLE
-    #undef ARG_INDEX
-}
-
-// Caskey, Damon  V.
-// 2018-05-14
-//
 // Mutate an axis property. Requires
 // the handle from axis property, property
 // name to modify, and the new value.
@@ -470,86 +640,6 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
     #undef ARG_VALUE
 }
 
-// Caskey, Damon  V.
-// 2018-05-14
-//
-// Return an axis property. Requires
-// the handle from axis property
-// and property name to access.
-HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
-    #define SELF_NAME       "openbor_get_axis_plane_vertical_int_property(void handle, char property)"
-    #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY    1   // Property to access.
-
-    s_axis_plane_vertical_int        *handle     = NULL; // Property handle.
-    e_axis_plane_vertical_properties property    = 0;    // Property argument.
-
-    // Clear pass by reference argument used to send
-    // property data back to calling script.     .
-    ScriptVariant_Clear(*pretvar);
-
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_axis_plane_vertical_property(varlist, paramCount);
-
-    // Verify arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property constant is accessed.
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
-        *pretvar = NULL;
-        goto error_local;
-    }
-    else
-    {
-        // Populate local vars for readability.
-        handle      = (s_axis_plane_vertical_int *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
-
-    // All values are float (DOUBLE) type.
-    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-    switch(property)
-    {
-        case _AXIS_PLANE_VERTICAL_X:
-
-            (*pretvar)->lVal = (LONG)handle->x;
-
-            break;
-
-        case _AXIS_PLANE_VERTICAL_Y:
-
-            (*pretvar)->lVal = (LONG)handle->y;
-
-            break;
-
-        default:
-
-            printf("Unsupported property.\n");
-            goto error_local;
-
-            break;
-    }
-
-    return S_OK;
-
-    error_local:
-
-    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
-    *pretvar = NULL;
-
-    return E_FAIL;
-
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_HANDLE
-    #undef ARG_INDEX
-}
 
 // Caskey, Damon  V.
 // 2018-05-14
@@ -639,3 +729,4 @@ HRESULT openbor_set_axis_plane_vertical_int_property(ScriptVariant **varlist, Sc
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
+
