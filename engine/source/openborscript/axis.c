@@ -726,6 +726,100 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
     #undef ARG_VALUE
 }
 
+// Caskey, Damon  V.
+// 2018-05-14
+//
+// Mutate an axis property. Requires
+// the handle from axis property, property
+// name to modify, and the new value.
+HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "openbor_set_axis_principal_float_property(void handle, char property, value)"
+    #define ARG_MINIMUM         3   // Minimum required arguments.
+    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY        1   // Property to access.
+    #define ARG_VALUE           2   // New value to apply.
+
+    int                         result      = S_OK; // Success or error?
+    s_axis_principal_float      *handle     = NULL; // Property handle.
+    e_axis_principal_properties property    = 0;    // Property to access.
+
+    // Value carriers to apply on properties after
+    // taken from argument.
+    DOUBLE temp_double;
+
+    // Map string property name to a
+    // matching integer constant.
+    mapstrings_axis_plane_lateral_property(varlist, paramCount);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+
+    // Populate local handle and property vars.
+    handle      = (s_axis_principal_float *)varlist[ARG_HANDLE]->ptrVal;
+    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+
+    // All values are same type for this property set,
+    // so we can copy to temp var right here.
+    if(!SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_double)))
+    {
+        goto error_local;
+    }
+
+    // Which property to modify?
+    switch(property)
+    {
+
+        case _AXIS_PRINCIPAL_X:
+
+            handle->x = temp_double;
+
+            break;
+
+        case _AXIS_PRINCIPAL_Y:
+
+            handle->x = temp_double;
+
+            break;
+
+        case _AXIS_PRINCIPAL_Z:
+
+            handle->z = temp_double;
+
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid binding handle, property, and new value: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+    #undef ARG_VALUE
+}
 
 // Caskey, Damon  V.
 // 2018-05-14
