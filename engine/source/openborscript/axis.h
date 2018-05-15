@@ -25,15 +25,6 @@ typedef enum
     _AXIS_PRINCIPAL_END,
 } e_axis_principal_properties;
 
-typedef enum
-{
-    _AXIS_WORLD_BASE,
-    _AXIS_WORLD_X,
-    _AXIS_WORLD_Y,
-    _AXIS_WORLD_Z,
-    _AXIS_WORLD_END,
-} e_axis_principal_properties;
-
 // Access and mutator prototypes.
 
 // Lateral plane (x, z).
