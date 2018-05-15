@@ -16326,13 +16326,13 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     typedef struct
     {
-        s_axis_world_int    position;
-        s_axis_plane_vertical_int size;
+        s_axis_principal_int        position;
+        s_axis_plane_vertical_int   size;
     } draw_coords;
 
-    s_axis_plane_vertical_int screen_offset;          // Base location calculated from screen offsets.
-    s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
-    draw_coords box;                    // On screen coords for display elements.
+    s_axis_plane_vertical_int   screen_offset;  // Base location calculated from screen offsets.
+    s_axis_plane_vertical_int   base_pos;       // Entity position with screen offsets applied.
+    draw_coords                 box;            // On screen coords for display elements.
 
     int pos_value[POS_ARRAY_SIZE];      // Entity position for display - truncated to int.
     int i;                              // Counter.
@@ -16455,13 +16455,13 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     typedef struct
     {
-        s_axis_world_int    position;
-        s_axis_plane_vertical_int size;
+        s_axis_principal_int        position;
+        s_axis_plane_vertical_int   size;
     } draw_coords;
 
-    s_axis_plane_vertical_int screen_offset;          // Base location calculated from screen offsets.
-    s_axis_world_int    base_pos;               // Entity position with screen offsets applied.
-    draw_coords box;                    // On screen coords for display elements.
+    s_axis_plane_vertical_int   screen_offset;  // Base location calculated from screen offsets.
+    s_axis_plane_vertical_int   base_pos;       // Entity position with screen offsets applied.
+    draw_coords                 box;            // On screen coords for display elements.
 
     char *char_value[CHAR_ARRAY_SIZE];  // Entity features for display
     int i;                              // Counter.
@@ -16569,13 +16569,13 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 // position and draw a box.
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod)
 {
-    s_axis_plane_vertical_int screen_offset;  // Base location calculated from screen offsets.
-    s_axis_world_int    base_pos;       // Entity position with screen offsets applied.
+    s_axis_plane_vertical_int   screen_offset;  // Base location calculated from screen offsets.
+    s_axis_plane_vertical_int   base_pos;       // Entity position with screen offsets applied.
 
     typedef struct
     {
-        s_axis_world_int position;
-        s_axis_plane_vertical_int size;
+        s_axis_principal_int        position;
+        s_axis_plane_vertical_int   size;
     } draw_coords;
 
     draw_coords box;

@@ -1907,8 +1907,8 @@ typedef struct
     2013-12-16
     */
 
-    s_axis_world_int max;   //Maximum.
-    s_axis_world_int min;   //Minimum.
+    s_axis_principal_int max;   //Maximum.
+    s_axis_principal_int min;   //Minimum.
 } s_sight;
 
 typedef struct
