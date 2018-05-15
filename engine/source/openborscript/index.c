@@ -172,6 +172,47 @@ const char *Script_GetFunctionName(void *functionRef)
         return "changeplayerproperty";
     }
 
+    // Axis
+    else if (functionRef == ((void *)openbor_get_axis_plane_lateral_float_property))
+    {
+        return "get_axis_plane_lateral_float_property";
+    }
+    else if (functionRef == ((void *)openbor_get_axis_plane_lateral_int_property))
+    {
+        return "get_axis_plane_lateral_int_property";
+    }
+    else if (functionRef == ((void *)openbor_get_axis_plane_vertical_int_property))
+    {
+        return "get_axis_plane_vertical_int_property";
+    }
+    else if (functionRef == ((void *)openbor_get_axis_principal_float_property))
+    {
+        return "get_axis_principal_float_property";
+    }
+    else if (functionRef == ((void *)openbor_get_axis_principal_int_property))
+    {
+        return "get_axis_principal_int_property";
+    }
+    else if (functionRef == ((void *)openbor_set_axis_plane_lateral_float_property))
+    {
+        return "set_axis_plane_lateral_float_property";
+    }
+    else if (functionRef == ((void *)openbor_set_axis_plane_lateral_int_property))
+    {
+        return "set_axis_plane_lateral_int_property";
+    }
+    else if (functionRef == ((void *)openbor_set_axis_plane_vertical_int_property))
+    {
+        return "set_axis_plane_vertical_int_property";
+    }
+    else if (functionRef == ((void *)openbor_set_axis_principal_float_property))
+    {
+        return "set_axis_principal_float_property";
+    }
+    else if (functionRef == ((void *)openbor_set_axis_principal_int_property))
+    {
+        return "set_axis_principal_int_property";
+    }
 
     // Binding
     else if (functionRef == ((void *)openbor_get_binding_property))
@@ -182,6 +223,7 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_binding_property";
     }
+
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -837,6 +879,48 @@ void *Script_GetStringMapFunction(void *functionRef)
         return (void *)mapstrings_playerproperty;
     }
 
+    // Axis
+    else if (functionRef == ((void *)openbor_get_axis_plane_lateral_float_property))
+    {
+        return (void *)mapstrings_axis_plane_lateral_property;
+    }
+    else if (functionRef == ((void *)openbor_get_axis_plane_lateral_int_property))
+    {
+        return (void *)mapstrings_axis_plane_lateral_property;
+    }
+    else if (functionRef == ((void *)openbor_get_axis_plane_vertical_int_property))
+    {
+        return (void *)mapstrings_axis_plane_vertical_property;
+    }
+    else if (functionRef == ((void *)openbor_get_axis_principal_float_property))
+    {
+        return (void *)mapstrings_axis_principal_property;
+    }
+    else if (functionRef == ((void *)openbor_get_axis_principal_int_property))
+    {
+        return (void *)mapstrings_axis_principal_property;
+    }
+    else if (functionRef == ((void *)openbor_set_axis_plane_lateral_float_property))
+    {
+        return (void *)mapstrings_axis_plane_lateral_property;
+    }
+    else if (functionRef == ((void *)openbor_set_axis_plane_lateral_int_property))
+    {
+        return (void *)mapstrings_axis_plane_lateral_property;
+    }
+    else if (functionRef == ((void *)openbor_set_axis_plane_vertical_int_property))
+    {
+        return (void *)mapstrings_axis_plane_vertical_property;
+    }
+    else if (functionRef == ((void *)openbor_set_axis_principal_float_property))
+    {
+        return (void *)mapstrings_axis_principal_property;
+    }
+    else if (functionRef == ((void *)openbor_set_axis_principal_int_property))
+    {
+        return (void *)mapstrings_axis_principal_property;
+    }
+
     // Binding
     else if (functionRef == ((void *)openbor_get_binding_property))
     {
@@ -846,6 +930,7 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_binding;
     }
+
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
         return (void *)mapstrings_setspawnentry;
@@ -983,6 +1068,29 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_drawscreen, "drawscreen");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeplayerproperty, "changeplayerproperty");
+
+
+    // Axis
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_axis_plane_lateral_float_property, "get_axis_plane_lateral_float_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_axis_plane_lateral_int_property, "get_axis_plane_lateral_int_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_axis_plane_vertical_int_property, "get_axis_plane_vertical_int_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_axis_principal_float_property, "get_axis_principal_float_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_axis_principal_int_property, "get_axis_principal_int_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_axis_plane_lateral_float_property, "set_axis_plane_lateral_float_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_axis_plane_lateral_int_property, "set_axis_plane_lateral_int_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_axis_plane_vertical_int_property, "set_axis_plane_vertical_int_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_axis_principal_float_property, "set_axis_principal_float_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_axis_principal_int_property, "set_axis_principal_int_property");
 
     // Binding
     List_InsertAfter(&theFunctionList,
