@@ -231,7 +231,7 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
 
     // Value carriers to apply on properties after
     // taken from argument.
-    float         temp_float;
+    DOUBLE temp_double;
 
     // Map string property name to a
     // matching integer constant.
@@ -254,7 +254,7 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
 
     // All values are same type for this property set,
     // so we can copy to temp var right here.
-    if(!SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+    if(!SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_double)))
     {
         goto error_local;
     }
@@ -265,13 +265,13 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
 
         case _AXIS_PLANE_LATERAL_X:
 
-            handle->x = temp_float;
+            handle->x = temp_double;
 
             break;
 
         case _AXIS_PLANE_LATERAL_Z:
 
-            handle->z = temp_float;
+            handle->z = temp_double;
 
             break;
 
@@ -476,7 +476,7 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
 // Return an axis property. Requires
 // the handle from axis property
 // and property name to access.
-HRESULT openbor_get_axis_plane_vertical_int_property()_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME       "openbor_get_axis_plane_vertical_int_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
@@ -524,7 +524,7 @@ HRESULT openbor_get_axis_plane_vertical_int_property()_int_property(ScriptVarian
 
         case _AXIS_PLANE_VERTICAL_Y:
 
-            (*pretvar)->lVal = (LONG)handle->z;
+            (*pretvar)->lVal = (LONG)handle->y;
 
             break;
 
