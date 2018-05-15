@@ -17949,6 +17949,14 @@ void update_frame(entity *ent, unsigned int f)
     {
         move.y = (float)(anim->move[f]->y ? anim->move[f]->y : 0);
         self->base += move.y;
+        if(move.y != 0)
+        {
+            self->altbase += move.y;
+        }
+        else
+        {
+            self->altbase = 0;
+        }
     }
 
     if(anim->flipframe == f)
@@ -18142,6 +18150,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 
         ent->animating = 1;
         ent->lasthit = ent->grabbing;
+        ent->altbase = 0;
         ent->walking = 0;
 
         update_frame(ent, 0);
@@ -20789,16 +20798,16 @@ void adjust_base(entity *e, entity **pla)
         {
             if(other != NULL && other != self )
             {
-                self->base = (seta >= 0) * seta + (other->position.y + other->animation->platform[other->animpos][7]);
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.y + other->animation->platform[other->animpos][7]);
             }
             else if(wall >= 0)
             {
                 //self->modeldata.subject_to_wall &&//we move this up to avoid some checking time
-                self->base = (seta >= 0) * seta + level->walls[wall].height;
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + level->walls[wall].height;
             }
             else if(seta >= 0)
             {
-                self->base = seta;
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase);
             }
             else if(!self->animation->move[self->animpos]->y || self->animation->move[self->animpos]->y == 0)
             {
