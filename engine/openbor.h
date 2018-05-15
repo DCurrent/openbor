@@ -1394,30 +1394,6 @@ typedef struct
     int z;
 } s_axis_principal_int;
 
-// Caskey, Damon V.
-// 2018-05-10
-//
-// Axis - Game world, float.
-typedef struct
-{
-    float base;
-    float x;
-    float y;
-    float z;
-} s_axis_world_float;
-
-// Caskey, Damon V.
-// 2018-05-10
-//
-// Axis - Game world, int.
-typedef struct
-{
-    int base;
-    int x;
-    int y;
-    int z;
-} s_axis_world_int;
-
 typedef struct
 {
     s_axis_principal_int    axis;

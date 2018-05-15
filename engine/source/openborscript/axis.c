@@ -130,47 +130,6 @@ int mapstrings_axis_principal_property(ScriptVariant **varlist, int paramCount)
     #undef ARG_PROPERTY
 }
 
-// Use string property argument to find an
-// integer property constant and populate
-// varlist->lval.
-int mapstrings_axis_world_property(ScriptVariant **varlist, int paramCount)
-{
-    #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
-    #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
-
-    char *propname = NULL;  // Placeholder for string property name from varlist.
-    int prop;               // Placeholder for integer constant located by string.
-
-    static const char *proplist[] =
-    {
-        "base",
-        "x",
-        "y",
-        "z"
-    };
-
-    // If the minimum argument count
-    // was not passed, then there is
-    // nothing to map. Return true - we'll
-    // catch the mistake in property access
-    // functions.
-    if(paramCount < ARG_MINIMUM)
-    {
-        return 1;
-    }
-
-    // See macro - will return 0 on fail.
-    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _AXIS_WORLD_END,
-               "Property name '%s' is not supported by axis world.\n");
-
-
-    // If we made it this far everything should be OK.
-    return 1;
-
-    #undef ARG_MINIMUM
-    #undef ARG_PROPERTY
-}
-
 // Caskey, Damon  V.
 // 2018-05-14
 //

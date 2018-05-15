@@ -54,16 +54,8 @@ HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist , Scri
 HRESULT openbor_get_axis_principal_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
-// World (base, x, y, z).
-HRESULT openbor_get_axis_world_float_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_axis_world_float_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
-HRESULT openbor_get_axis_world_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_axis_world_int_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
 // Mapstring prototypes.
 int mapstrings_axis_plane_lateral_property(ScriptVariant **varlist, int paramCount);
 int mapstrings_axis_plane_vertical_property(ScriptVariant **varlist, int paramCount);
 int mapstrings_axis_principal_property(ScriptVariant **varlist, int paramCount);
-int mapstrings_axis_world_property(ScriptVariant **varlist, int paramCount);
 
