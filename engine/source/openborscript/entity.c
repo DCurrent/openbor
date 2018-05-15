@@ -50,12 +50,10 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "deduct_ammo",
         "energy_status",
         "player_index",
-        "position_alternate_base",
-        "position_base",
+        "position_base_alternate",
+        "position_base_default",
+        "position_coordinates",
         "position_direction",
-        "position_x",
-        "position_y",
-        "position_z",
         "projectile_prime",
         "spawn_type",
     };
@@ -339,17 +337,24 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_POSITION_ALTERNATE_BASE:
+        case _ENTITY_POSITION_BASE_ALTERNATE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->altbase;
 
             break;
 
-        case _ENTITY_POSITION_BASE:
+        case _ENTITY_POSITION_BASE_DEFAULT:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->base;
+
+            break;
+
+        case _ENTITY_POSITION_COORDINATES:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->ptrVal = (VOID *)&handle->position;
 
             break;
 
@@ -357,27 +362,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->direction;
-
-            break;
-
-        case _ENTITY_POSITION_X:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->position.x;
-
-            break;
-
-        case _ENTITY_POSITION_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->position.y;
-
-            break;
-
-        case _ENTITY_POSITION_Z:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->position.z;
 
             break;
 
@@ -704,7 +688,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_POSITION_ALTERNATE_BASE:
+        case _ENTITY_POSITION_BASE_ALTERNATE:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
@@ -713,7 +697,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_POSITION_BASE:
+        case _ENTITY_POSITION_BASE_DEFAULT:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
@@ -722,38 +706,17 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+        case _ENTITY_POSITION_COORDINATES:
+
+            // Read only.
+
+            break;
+
         case _ENTITY_POSITION_DIRECTION:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->direction = temp_int;
-            }
-
-            break;
-
-        case _ENTITY_POSITION_X:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->position.x = temp_float;
-            }
-
-            break;
-
-        case _ENTITY_POSITION_Y:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->position.y = temp_float;
-            }
-
-            break;
-
-        case _ENTITY_POSITION_Z:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->position.z = temp_float;
             }
 
             break;
