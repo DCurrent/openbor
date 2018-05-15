@@ -1313,8 +1313,8 @@ if(n<1) n = 1;
 
 #define canbegrabbed(self, other) \
 		(other->animation->vulnerable[other->animpos] && \
-		 (!self->animation->move || self->animation->move[self->animpos]->x == 0) && \
-		 (!self->animation->move || self->animation->move[self->animpos]->z == 0 ) && \
+		 (!self->animation->move || self->animation->move[self->animpos]->axis.x == 0) && \
+		 (!self->animation->move || self->animation->move[self->animpos]->axis.z == 0 ) && \
 		 !(other->nograb || other->invincible || other->link || \
 		   other->model->animal || inair(other) || \
 		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
@@ -1341,39 +1341,6 @@ if(n<1) n = 1;
 //#define     MAX_MOVE_STEPS        16
 
 #pragma pack(4)
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis 3D - for switching.
-typedef struct
-{
-    bool x;
-    bool y;
-    bool z;
-} s_axis_principal_bool;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis - 3D float.
-typedef struct
-{
-    float x;
-    float y;
-    float z;
-} s_axis_principal_float;
-
-// Caskey, Damon V.
-// 2018-04-18
-//
-// Axis - 3D int.
-typedef struct
-{
-    int x;
-    int y;
-    int z;
-} s_axis_principal_int;
 
 // Caskey, Damon V.
 // 2014-01-20
@@ -1406,28 +1373,32 @@ typedef struct
 } s_axis_plane_vertical_int;
 
 // Caskey, Damon V.
-// 2018-05-10
+// 2018-04-18
 //
-// Axis - Game world, float.
+// Axis - 3D float.
 typedef struct
 {
-    float base;
     float x;
     float y;
     float z;
-} s_axis_world_float;
+} s_axis_principal_float;
 
 // Caskey, Damon V.
-// 2018-05-10
+// 2018-04-18
 //
-// Axis - Game world, int.
+// Axis - 3D int.
 typedef struct
 {
-    int base;
     int x;
     int y;
     int z;
-} s_axis_world_int;
+} s_axis_principal_int;
+
+typedef struct
+{
+    s_axis_principal_int    axis;
+    int                     base;
+} s_move;
 
 typedef struct
 {
@@ -1809,8 +1780,8 @@ typedef struct
     s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
     s_onframe_set           *landframe;             // Landing behavior.
     s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    s_axis_world_int                **move;                 // base = seta, x = move, y = movea, z = movez
-    s_axis_plane_vertical_int             **offset;               // original sprite offsets
+    s_move                  **move;                 // base = seta, x = move, y = movea, z = movez
+    s_axis_plane_vertical_int   **offset;               // original sprite offsets
 } s_anim;
 
 struct animlist
@@ -1918,8 +1889,8 @@ typedef struct
     2013-12-16
     */
 
-    s_axis_world_int max;   //Maximum.
-    s_axis_world_int min;   //Minimum.
+    s_axis_principal_int max;   //Maximum.
+    s_axis_principal_int min;   //Minimum.
 } s_sight;
 
 typedef struct
@@ -2175,7 +2146,7 @@ typedef struct
 {
     unsigned int      ani_bind;       // Animation binding type.
     int               sortid;         // Relative binding sortid. Default = -1
-    s_axis_principal_bool bind_toggle;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int bind_toggle;    // Toggle binding on X, Y and Z axis.
     s_axis_principal_int  offset;         // x,y,z offset.
     e_direction_adjust      direction;      // Direction force
     struct entity *ent;                     // Entity to bind.
@@ -2734,7 +2705,7 @@ int                     addframe(s_anim             *a,
                                 unsigned            idle,
                                 s_collision_body    *bbox,
                                 s_collision_attack  *attack,
-                                s_axis_world_int            *move,
+                                s_move              *move,
                                 float               *platform,
                                 int                 frameshadow,
                                 int                 *shadow_coords,
