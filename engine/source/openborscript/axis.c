@@ -335,7 +335,7 @@ HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , Scri
     }
 
     // All values are float (DOUBLE) type.
-    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 
     switch(property)
     {
