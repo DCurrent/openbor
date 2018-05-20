@@ -701,7 +701,7 @@ int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
 
 s_player            player[MAX_PLAYERS];
-u32                 bothkeys, bothnewkeys;
+u64                 bothkeys, bothnewkeys;
 
 s_playercontrols    playercontrols1;
 s_playercontrols    playercontrols2;
@@ -28925,7 +28925,7 @@ int check_special()
 // Check keys for special move. Used several times, so I func'd it.
 int player_check_special()
 {
-    u32 thekey = 0;
+    u64 thekey = 0;
     if((!ajspecial || (ajspecial && !validanim(self, ANI_BLOCK))) &&
             (player[self->playerindex].playkeys & FLAG_SPECIAL))
     {
@@ -33028,7 +33028,7 @@ void inputrefresh(int playrecmode)
 {
     int p;
     s_player *pl;
-    u32 k;
+    u64 k;
 
     control_update(playercontrolpointers, MAX_PLAYERS);
 

@@ -9958,7 +9958,7 @@ HRESULT openbor_playerkeys(ScriptVariant **varlist , ScriptVariant **pretvar, in
     LONG ltemp;
     int index, newkey;
     int i;
-    u32 keys;
+    u64 keys;
     ScriptVariant *arg = NULL;
 
     if(paramCount < 3)

@@ -136,7 +136,7 @@
 
 typedef struct{
 	int		settings[JOY_MAX_INPUTS];
-	u32		keyflags, newkeyflags;
+	u64		keyflags, newkeyflags;
 	int		kb_break;
 }s_playercontrols;
 

@@ -14,7 +14,7 @@
 #define JOY_TYPE_GAMEPARK  1
 #define JOY_AXIS_X         0
 #define JOY_AXIS_Y         1
-#define JOY_MAX_INPUTS     32
+#define JOY_MAX_INPUTS     64
 #define	JOY_LIST_FIRST     600
 #define JOY_LIST_TOTAL     4
 #define	JOY_LIST_LAST      JOY_LIST_FIRST + JOY_MAX_INPUTS * JOY_LIST_TOTAL
@@ -46,7 +46,7 @@ typedef struct{
 	u32 Hats;
 	u32 Axes;
 	u32 Buttons;
-	u32 Data;
+	u64 Data;
 }s_joysticks;
 extern s_joysticks joysticks[JOY_LIST_TOTAL];
 

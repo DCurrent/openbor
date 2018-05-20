@@ -308,10 +308,10 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 /*
 Convert binary masked data to indexes
 */
-static int flag_to_index(u32 flag)
+static int flag_to_index(u64 flag)
 {
 	int index = 0;
-	u32 bit = 1;
+	u64 bit = 1;
 	while(!((bit<<index)&flag) && index<JOY_MAX_INPUTS-1) ++index;
 	return index;
 }
@@ -636,7 +636,7 @@ char *control_getkeyname(unsigned int keycode)
 
 void control_update(s_playercontrols ** playercontrols, int numplayers)
 {
-	u32 k;
+	u64 k;
 	unsigned i;
 	int player;
 	int t;
@@ -681,7 +681,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 				{
 					int portnum = (t-JOY_LIST_FIRST-1) / JOY_MAX_INPUTS;
 					int shiftby = (t-JOY_LIST_FIRST-1) % JOY_MAX_INPUTS;
-					if(portnum >= 0 && portnum <= 3)
+					if(portnum >= 0 && portnum <= JOY_LIST_TOTAL-1)
 					{
 						if((joysticks[portnum].Data >> shiftby) & 1) k |= (1<<i);
 					}

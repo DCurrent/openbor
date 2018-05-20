@@ -119,10 +119,10 @@ movement restirctions are here!
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
-    u32 keys[MAX_PLAYERS];
-    u32 newkeys[MAX_PLAYERS];
-    u32 releasekeys[MAX_PLAYERS];
-    u32 playkeys[MAX_PLAYERS];
+    u64 keys[MAX_PLAYERS];
+    u64 newkeys[MAX_PLAYERS];
+    u64 releasekeys[MAX_PLAYERS];
+    u64 playkeys[MAX_PLAYERS];
     u32 time;
     u32 interval;
     u32 synctime;
@@ -2347,14 +2347,14 @@ typedef struct
     unsigned lives;
     unsigned credits;
     entity *ent;
-    u32 keys;
-    u32 newkeys;
-    u32 playkeys;
-    u32 releasekeys;
-    u32 combokey[MAX_SPECIAL_INPUTS];
+    u64 keys;
+    u64 newkeys;
+    u64 playkeys;
+    u64 releasekeys;
+    u64 combokey[MAX_SPECIAL_INPUTS];
     u32 inputtime[MAX_SPECIAL_INPUTS];
-    u32 disablekeys;
-    u32 prevkeys; // used for play/rec mode
+    u64 disablekeys;
+    u64 prevkeys; // used for play/rec mode
     int combostep;
     int spawnhealth;
     int spawnmp;
