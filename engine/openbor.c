@@ -33867,43 +33867,44 @@ void display_credits()
 
         font_printf(_strmidx(1, "OpenBOR"), s + v * m,  1, 0, "OpenBOR"); ++m;
 
-        font_printf(col1,  s + v * m,  0, 0, "Caskey, Damon V.");
+        font_printf(col1, s + v * m,  0, 0, "Caskey, Damon V.");
         font_printf(col2, s + v * m,  0, 0, "Project Lead"); ++m;
 
-        font_printf(col1,  s + v * m,  0, 0, "White Dragon");
+        font_printf(col1, s + v * m,  0, 0, "White Dragon");
         font_printf(col2, s + v * m,  0, 0, "Developer"); ++m;
 
-        font_printf(col1,  s + v * m,  0, 0, "Plombo");
+        font_printf(col1, s + v * m,  0, 0, "Plombo");
         font_printf(col2, s + v * m,  0, 0, "Developer"); ++m;
 
         font_printf(_strmidx(1, "Former Staff"), s + v * m,  1, 0, "Former Staff"); ++m;
 
         font_printf(col1, s + v * m, 0, 0, "Fightn Words");
         font_printf(col2, s + v * m,  0, 0, "Fugue"); ++m;
-        font_printf(col1,  s + v * m, 0, 0, "KBAndressen");
+        font_printf(col1, s + v * m, 0, 0, "KBAndressen");
         font_printf(col2, s + v * m,  0, 0, "Kirby"); ++m;
-        font_printf(col1,  s + v * m,  0, 0, "LordBall");
+        font_printf(col1, s + v * m,  0, 0, "LordBall");
         font_printf(col2, s + v * m, 0, 0, "Orochi_X");  ++m;
         font_printf(col1, s + v * m, 0, 0, "SX");
         font_printf(col2, s + v * m,  0, 0, "Tails"); ++m;
-        font_printf(col1,  s + v * m,  0, 0, "uTunnels"); ++m;
+        font_printf(col1, s + v * m,  0, 0, "uTunnels"); ++m;
 
         font_printf(_strmidx(1, "Ports"), s + v * m,  1, 0, "Ports"); ++m;
-        font_printf(col1,  s + v * m, 0, 0, "PSP/Linux/OSX");
+        font_printf(col1, s + v * m, 0, 0, "PSP/Linux/OSX");
         font_printf(col2, s + v * m, 0, 0, "SX"); ++m;
 
-        font_printf(col1,  s + v * m, 0, 0, "OpenDingux");
+        font_printf(col1, s + v * m, 0, 0, "OpenDingux");
         font_printf(col2, s + v * m, 0, 0, "Shin-NiL"); ++m;
 
-        font_printf(col1,  s + v * m, 0, 0, "DreamCast");
+        font_printf(col1, s + v * m, 0, 0, "DreamCast");
         font_printf(col2, s + v * m, 0, 0, "Neill Corlett, SX"); ++m;
 
-        font_printf(col1,  s + v * m, 0, 0, "Wii");
+        font_printf(col1, s + v * m, 0, 0, "Wii");
         font_printf(col2, s + v * m, 0, 0, "Plombo, SX"); ++m;
 
-        font_printf(col1,  s + v * m, 0, 0, "Android");
+        font_printf(col1, s + v * m, 0, 0, "Android");
         font_printf(col2, s + v * m, 0, 0, "CRxTRDude, Plombo,"); ++m;
-        font_printf(col2, s + v * m, 0, 0, "uTunnels, White Dragon"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "uTunnels,"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "White Dragon"); ++m;
 
         font_printf(col1,  s + v * m, 0, 0, "PS Vita");
         font_printf(col2, s + v * m, 0, 0, "Plombo"); ++m;
