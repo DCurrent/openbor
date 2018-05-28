@@ -255,7 +255,7 @@ public class SDLActivity extends Activity {
 
         setWindowStyle(false);
 
-		CopyPak();
+        CopyPak();
 
         //White Dragon: hide navigation bar programmatically
         SDLActivity.decorView = getWindow().getDecorView();
@@ -290,6 +290,7 @@ public class SDLActivity extends Activity {
             }
         }
     }
+
 
     //White Dragon: disable navigation bar
     private void hideSystemUI() {
@@ -419,7 +420,6 @@ public class SDLActivity extends Activity {
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
            mNextNativeState = NativeState.RESUMED;
-
            hideSystemUI(); //White Dragon: disable navigation bar
         } else {
            mNextNativeState = NativeState.PAUSED;
@@ -529,6 +529,8 @@ public class SDLActivity extends Activity {
 
         // Try a transition to paused state
         if (mNextNativeState == NativeState.PAUSED) {
+            //White Dragon: wakelock release!
+            if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
             nativePause();
             if (mSurface != null)
                 mSurface.handlePause();
@@ -539,6 +541,8 @@ public class SDLActivity extends Activity {
         // Try a transition to resumed state
         if (mNextNativeState == NativeState.RESUMED) {
             if (mIsSurfaceReady && mHasFocus && mIsResumedCalled) {
+                //White Dragon: wakelock acquire!
+                if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
                 if (mSDLThread == null) {
                     // This is the entry point to the C app.
                     // Start up the C app thread and enable sensor input for the first time
@@ -1530,9 +1534,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onKey(View  v, int keyCode, KeyEvent event) {
         //uTunnels: remap keys, for sdl doesn't support them
-        switch(keyCode)
+        /*switch(keyCode)
         {
-            /*
             case KeyEvent.KEYCODE_BUTTON_1://	Key code constant: Generic Game Pad Button #1.
                 keyCode=KeyEvent.KEYCODE_1; break;
             case KeyEvent.KEYCODE_BUTTON_10: //key code constant: Generic Game Pad Button #10.
@@ -1564,8 +1567,9 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             case KeyEvent.KEYCODE_BUTTON_8: //key code constant: Generic Game Pad Button #8.
                 keyCode=KeyEvent.KEYCODE_E; break;
             case KeyEvent.KEYCODE_BUTTON_9: //key code constant: Generic Game Pad Button #9.
-                keyCode=KeyEvent.KEYCODE_F; break;*/
-            /*case KeyEvent.KEYCODE_BUTTON_A: //key code constant: A Button key.
+                keyCode=KeyEvent.KEYCODE_F; break;
+
+            case KeyEvent.KEYCODE_BUTTON_A: //key code constant: A Button key.
                 keyCode=KeyEvent.KEYCODE_G; break;
             case KeyEvent.KEYCODE_BUTTON_B: //key code constant: B Button key.
                 keyCode=KeyEvent.KEYCODE_H; break;
@@ -1595,6 +1599,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                 keyCode=KeyEvent.KEYCODE_T; break;
             case KeyEvent.KEYCODE_BUTTON_Z: //key code constant: Z Button key.
                 keyCode=KeyEvent.KEYCODE_U; break;
+
             case KeyEvent.KEYCODE_DPAD_UP: //key code constant: D-Pad Up key.
                 keyCode=KeyEvent.KEYCODE_V; break;
             case KeyEvent.KEYCODE_DPAD_RIGHT: //key code constant: D-Pad Right key.
@@ -1602,8 +1607,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             case KeyEvent.KEYCODE_DPAD_DOWN: //key code constant: D-Pad Down key.
                 keyCode=KeyEvent.KEYCODE_Y; break;
             case KeyEvent.KEYCODE_DPAD_LEFT: //key code constant: D-Pad Left key.
-                keyCode=KeyEvent.KEYCODE_W; break;*/
-        }
+                keyCode=KeyEvent.KEYCODE_W; break;
+        }*/
 
         // Dispatch the different events depending on where they come from
         // Some SOURCE_JOYSTICK, SOURCE_DPAD or SOURCE_GAMEPAD are also SOURCE_KEYBOARD
