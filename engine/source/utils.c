@@ -13,7 +13,6 @@
 #include <malloc.h>
 #include <locale.h>
 #include <math.h>
-#include <time.h>
 
 #include "stringptr.h"
 #include "utils.h"

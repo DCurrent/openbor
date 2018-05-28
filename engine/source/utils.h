@@ -10,6 +10,7 @@
 #define UTILS_H
 
 // *** INCLUDES ***
+#include <time.h>
 #include "types.h"
 #include "stringptr.h"
 
