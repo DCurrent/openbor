@@ -574,7 +574,7 @@ endif
 
 
 ifdef BUILD_WIN
-LIBS           += -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -limm32 -lversion -mwindows
+LIBS           += -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -luuid -limm32 -lversion -mwindows
 endif
 
 
