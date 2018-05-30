@@ -2351,7 +2351,7 @@ typedef struct
     u64 newkeys;
     u64 playkeys;
     u64 releasekeys;
-    u64 combokey[MAX_SPECIAL_INPUTS];
+    u32 combokey[MAX_SPECIAL_INPUTS];
     u32 inputtime[MAX_SPECIAL_INPUTS];
     u64 disablekeys;
     u64 prevkeys; // used for play/rec mode
