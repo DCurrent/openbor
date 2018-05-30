@@ -18457,7 +18457,7 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
             e->speedmul = 1;
             ent_set_colourmap(e, 0);
             e->lifespancountdown = model->lifespan; // new life span countdown
-            if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_ON) || savedata.mode))
+            if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
             {
                 e->modeldata.hostile &= ~TYPE_PLAYER;
                 e->modeldata.candamage &= ~TYPE_PLAYER;
@@ -31303,7 +31303,7 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
     {
         e->modeldata.candamage = self->modeldata.candamage;
     }
-    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_ON) || savedata.mode))
+    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
         e->modeldata.hostile &= ~TYPE_PLAYER;
         e->modeldata.candamage &= ~TYPE_PLAYER;
