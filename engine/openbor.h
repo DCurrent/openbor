@@ -1327,11 +1327,6 @@ if(n<1) n = 1;
 		 diff(other->position.y, self->position.y) <= T_WALKOFF)
 		 //diff(other->position.y, self->position.y) <= 0.1)
 
-#define unfrozen(e) \
-		ent_set_colourmap(e, e->map);\
-		e->frozen = 0;\
-		e->freezetime = 0;
-
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
 
 #define inScreen ( selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu || \
