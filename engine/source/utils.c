@@ -94,8 +94,8 @@ typedef void DIR;
 #define OPEN_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "wt") : fopen("./Logs/ScriptLog.txt", "wt")
 #define APPEND_LOGFILE(type) type ? fopen("./Logs/OpenBorLog.txt", "at") : fopen("./Logs/ScriptLog.txt", "at")
 #define READ_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "rt") : fopen("./Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) memcpy(buf, "./", 3); strcat(buf, name); strncat(buf, "/", 2); buf[strlen(buf)]='\0';
-#define COPY_PAKS_PATH(buf, name) memcpy(buf, "./Paks/", 8); strcat(buf, name); buf[strlen(buf)]='\0';
+#define COPY_ROOT_PATH(buf, name) memcpy(buf, "./", 3); strcat(buf, name); strncat(buf, "/", 2);
+#define COPY_PAKS_PATH(buf, name) memcpy(buf, "./Paks/", 8); strcat(buf, name);
 #endif
 
 void debugBuf(unsigned char *buf, size_t size, int columns)
