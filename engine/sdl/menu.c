@@ -508,10 +508,8 @@ static void drawMenu()
 			shift = 0;
 			colors = GRAY;
 			strncpy(listing, "", (isWide ? 44 : 28));
-			if(len < (isWide ? 44 : 28))
-				memcpy(listing, filelist[list+dListScrollPosition].filename, len);
-			if(len > (isWide ? 44 : 28))
-				memcpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
+			if(len < (isWide ? 44 : 28)) memcpy(listing, filelist[list+dListScrollPosition].filename, len);
+            else memcpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
 			if(list == dListCurrentPosition)
 			{
 				shift = 2;
@@ -576,14 +574,8 @@ static void drawBGMPlayer()
 			shift = 0;
 			colors = GRAY;
 			strncpy(listing, "", (isWide ? 44 : 28));
-			if(len < (isWide ? 44 : 28))
-            {
-                memcpy(listing, filelist[list+dListScrollPosition].filename, len);
-            }
-			if(len > (isWide ? 44 : 28))
-            {
-				memcpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
-            }
+			if(len < (isWide ? 44 : 28)) memcpy(listing, filelist[list+dListScrollPosition].filename, len);
+            else memcpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
 			if(list==dListCurrentPosition) { shift = 2; colors = RED; }
 			printText((isWide ? 30 : 7) + shift, (isWide ? 33 : 22)+(11*list) , colors, 0, 0, "%s", listing);
 		}
@@ -612,14 +604,8 @@ static void drawBGMPlayer()
 #endif
 
 	if(!bgmPlay) bgmCurrent = dListCurrentPosition+dListScrollPosition;
-	if(len < 24)
-    {
-        memcpy(bgmListing, filelist[bgmCurrent].filename, len);
-    }
-	if(len > 24)
-    {
-        memcpy(bgmListing, filelist[bgmCurrent].filename, 24);
-    }
+	if(len < 24) memcpy(bgmListing, filelist[bgmCurrent].filename, len);
+    else memcpy(bgmListing, filelist[bgmCurrent].filename, 24);
 
 	if(!sound_query_music(a1, t1))
 	{
