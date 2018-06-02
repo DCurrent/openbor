@@ -392,7 +392,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 {
 #ifndef DC
     int	 shotnum = 0;
-    char shotname[128] = {""};
+    char shotname[512] = {""};
     char modname[128]  = {""};
 
     getPakName(modname, 99);

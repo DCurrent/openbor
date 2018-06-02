@@ -1279,9 +1279,6 @@ if(n<1) n = 1;
 #define set_turning(e)  e->turning = 1;\
 						e->idling = 0;
 
-#define is_frozen(e)     ((textbox && e->modeldata.type != TYPE_TEXTBOX) || \
-						 (smartbomber && e != smartbomber && e->modeldata.type != TYPE_TEXTBOX) ||(self->frozen&&self->freezetime>time))
-
 #define expand_time(e)   if(e->stalltime>0) e->stalltime++;\
 						 if(e->releasetime>0)e->releasetime++;\
 						 if(e->nextanim>0)e->nextanim++;\
@@ -1326,11 +1323,6 @@ if(n<1) n = 1;
 		 !inair_range(self) && \
 		 diff(other->position.y, self->position.y) <= T_WALKOFF)
 		 //diff(other->position.y, self->position.y) <= 0.1)
-
-#define unfrozen(e) \
-		ent_set_colourmap(e, e->map);\
-		e->frozen = 0;\
-		e->freezetime = 0;
 
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
 
@@ -2616,6 +2608,8 @@ typedef struct ArgList
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
+int is_frozen(entity *e);
+void unfrozen(entity *e);
 int     buffer_pakfile(char *filename, char **pbuffer, size_t *psize);
 size_t  ParseArgs(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex(ScriptVariant *var, int index);

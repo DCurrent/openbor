@@ -1998,6 +1998,19 @@ void load_scripts()
     }
 }
 
+void unfrozen(entity *e)
+{
+    ent_set_colourmap(e, e->map);
+    e->frozen = 0;
+    e->freezetime = 0;
+}
+
+int is_frozen(entity *e)
+{
+    return ((textbox && e->modeldata.type != TYPE_TEXTBOX) ||
+						 (smartbomber && e != smartbomber && e->modeldata.type != TYPE_TEXTBOX) ||(self->frozen&&self->freezetime>time));
+}
+
 // This method is called once when the engine is shutting down, do not use it multiple times
 void clear_scripts()
 {
