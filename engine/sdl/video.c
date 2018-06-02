@@ -48,6 +48,10 @@ void initSDL()
 	SDL_DisplayMode video_info;
 	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
 
+    /*#if EE_CURRENT_PLATFORM == EE_PLATFORM_WINDOWS
+       SDL_setenv("SDL_AUDIODRIVER", "directsound", true);
+    #endif*/
+
 	if(SDL_Init(init_flags) < 0)
 	{
 		printf("SDL Failed to Init!!!! (%s)\n", SDL_GetError());
@@ -136,7 +140,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		SDL_FreeSurface(icon);
 		if(!savedata.fullscreen) SDL_GetWindowPosition(window, &last_x, &last_y);
 	}
-	
+
 	if(!gl)
 	{
 		renderer = SDL_CreateRenderer(window, -1, 0);
@@ -238,7 +242,7 @@ int video_copy_screen(s_screen* src)
 void video_clearscreen()
 {
 	if(opengl) { video_gl_clearscreen(); return; }
-	
+
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);

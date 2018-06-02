@@ -40,7 +40,7 @@ int SB_playstart(int bits, int samplerate)
 	//SDL_PauseAudio(1);
 	SDL_PauseAudioDevice(audio_dev, 1);
 	//if (SDL_OpenAudio(&spec,&cspec)<0) return 0;
-	if (!(audio_dev = SDL_OpenAudioDevice(NULL, 0, &spec, &cspec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE))) return 0;
+	if (!(audio_dev = SDL_OpenAudioDevice(NULL, 0, &spec, &cspec, 0))) return 0; //SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_CHANNELS_CHANGE
 	//SDL_PauseAudio(0);
 	SDL_PauseAudioDevice(audio_dev, 0);
 
