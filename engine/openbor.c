@@ -758,13 +758,6 @@ int isLoadingScreenTypeBar(e_loadingScreenType what)
     return (what & LS_TYPE_BAR) == LS_TYPE_BAR;
 }
 
-void unfrozen(entity *e)
-{
-    ent_set_colourmap(e, e->map);
-    e->frozen = 0;
-    e->freezetime = 0;
-}
-
 char *fill_s_loadingbar(s_loadingbar *s, e_loadingScreenType set, int bx, int by, int bsize, int tx, int ty, int tf, int ms)
 {
     switch (set)
@@ -3244,7 +3237,7 @@ void saveasdefault()
     FILE *handle = NULL;
     char path[128] = {""};
     getBasePath(path, "Saves", 0);
-    strncat(path, "default.cfg", 12);
+    strncat(path, "default.cfg", 128);
     handle = fopen(path, "wb");
     if(handle == NULL)
     {
@@ -3293,7 +3286,7 @@ void loadfromdefault()
     FILE *handle = NULL;
     char path[128] = {""};
     getBasePath(path, "Saves", 0);
-    strncat(path, "default.cfg", 12);
+    strncat(path, "default.cfg", 128);
     clearsettings();
     handle = fopen(path, "rb");
     if(handle == NULL)
@@ -8642,7 +8635,7 @@ size_t lcmScriptAddMain(char **buf)
             len2 = strlen(mtxt);
             newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
             strncpy(newbuf, *buf, pos);
-            memcpy(newbuf+pos, mtxt, len2);
+            strncpy(newbuf+pos, mtxt, len2);
             newbuf[len+len2] = '\0';
 
             free( (*buf) );
@@ -8660,7 +8653,7 @@ size_t lcmScriptAddMain(char **buf)
 
             newbuf = malloc(sizeof(**buf)*pos + sizeof(mtxt)*len2 + sizeof(**buf)*(len-pos2) + 1 );
             strncpy(newbuf, *buf, pos);
-            memcpy(newbuf+pos, mtxt, len2);
+            strncpy(newbuf+pos, mtxt, len2);
             strncpy(newbuf+pos+len2, *buf+pos2, len-pos2);
             newbuf[pos+len2+len-pos2] = '\0';
 
@@ -8703,7 +8696,7 @@ size_t lcmScriptJoinMain(char **buf, char *first_buf)
 
         newbuf = malloc(sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
         strncpy(newbuf, *buf, pos);
-        memcpy(newbuf+pos, first_buf, len2);
+        strncpy(newbuf+pos, first_buf, len2);
         strncpy(newbuf+pos+len2, *buf+pos, len-pos);
         newbuf[len+len2] = '\0';
 
@@ -12585,7 +12578,7 @@ int load_models()
         if(custBkgrds != NULL)
         {
             strcpy(tmpBuff, custBkgrds);
-            strncat(tmpBuff, "loading", 8);
+            strncat(tmpBuff, "loading", 7);
             load_background(tmpBuff, 0);
         }
         else
@@ -13950,10 +13943,10 @@ void load_levelorder()
         case CMD_LEVELORDER_RUSH:
             rush[0] = GET_INT_ARG(1);
             rush[1] = GET_INT_ARG(2);
-            memcpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
+            strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
             rush[2] = GET_INT_ARG(4);
             rush[3] = GET_INT_ARG(5);
-            memcpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
+            strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
             rush[4] = GET_INT_ARG(7);
             rush[5] = GET_INT_ARG(8);
             break;
@@ -14747,7 +14740,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_MUSIC:
             value = GET_ARG(1);
-            memcpy(string, value, 128);
+            strncpy(string, value, 128);
             musicOffset = atol(GET_ARG(2));
             if(loadingmusic)
             {
@@ -14806,7 +14799,7 @@ void load_level(char *filename)
             }
             break;
         case CMD_LEVEL_ALPHAMASK:
-            memcpy(maskPath, GET_ARG(1), 128);
+            strncpy(maskPath, GET_ARG(1), 128);
             break;
         case CMD_LEVEL_BACKGROUND:
         case CMD_LEVEL_BGLAYER:
@@ -31788,7 +31781,7 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
 
         if(spawn_entry->item_properties.alias[0])
         {
-            memcpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
+            strncpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
         }
 
         if(spawn_entry->item_properties.colorset)
@@ -31849,7 +31842,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // Alias?
     if(props->alias[0])
     {
-        memcpy(e->name, props->alias, MAX_NAME_LEN);
+        strncpy(e->name, props->alias, MAX_NAME_LEN);
     }
 
     // If we have item properties in spawn entry, then prepare a set of
@@ -34641,7 +34634,7 @@ void gameover()
     if(custScenes != NULL)
     {
         strcpy(tmpBuff, custScenes);
-        strncat(tmpBuff, "gameover.txt", 13);
+        strncat(tmpBuff, "gameover.txt", 12);
         if(testpackfile(tmpBuff, packfile) >= 0)
         {
             playscene(tmpBuff);
@@ -34690,7 +34683,7 @@ void hallfame(int addtoscore)
         if(custBkgrds != NULL)
         {
             strcpy(tmpBuff, custBkgrds);
-            strncat(tmpBuff, "hiscore", 8);
+            strncat(tmpBuff, "hiscore", 7);
             load_background(tmpBuff, 0);
         }
         else
@@ -34774,7 +34767,7 @@ void showcomplete(int num)
         if(custBkgrds != NULL)
         {
             strcpy(tmpBuff, custBkgrds);
-            strncat(tmpBuff, "complete", 9);
+            strncat(tmpBuff, "complete", 8);
             load_background(tmpBuff, 0);
         }
         else
@@ -35315,7 +35308,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 if(custBkgrds != NULL)
                 {
                     strcpy(string, custBkgrds);
-                    strncat(string, "unlockbg", 9);
+                    strncat(string, "unlockbg", 8);
                     load_background(string, 1);
                 }
                 else
@@ -35328,8 +35321,8 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 // New alternative background path for PSP
                 if(custBkgrds != NULL)
                 {
-                    memcpy(string, custBkgrds, 128);
-                    strncat(string, "select", 7);
+                    strncpy(string, custBkgrds, 128);
+                    strncat(string, "select", 6);
                     load_background(string, 1);
                 }
                 else
@@ -35793,7 +35786,7 @@ int menu_difficulty()
             else if(bonus >= levelsets[selector].ifcomplete)
             {
                 saveslot = selector;
-                memcpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
+                strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
                 newgameMenu = 0;
                 return saveslot;
             }
@@ -35844,7 +35837,7 @@ int menu_difficulty()
             else if(bonus >= levelsets[selector].ifcomplete)
             {
                 saveslot = selector;
-                memcpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
+                strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
                 newgameMenu = 0;
                 return saveslot;
             }
@@ -38112,7 +38105,7 @@ void openborMain(int argc, char **argv)
         if(custBkgrds != NULL)
         {
             strcpy(tmpBuff, custBkgrds);
-            strncat(tmpBuff, "logo", 5);
+            strncat(tmpBuff, "logo", 4);
             load_background(tmpBuff, 0);
         }
         else
@@ -38130,8 +38123,8 @@ void openborMain(int argc, char **argv)
         // New alternative scene path for PSP
         if(custScenes != NULL)
         {
-            memcpy(tmpBuff, custScenes, 128);
-            strncat(tmpBuff, "logo.txt", 9);
+            strncpy(tmpBuff, custScenes, 128);
+            strncat(tmpBuff, "logo.txt", 8);
             playscene(tmpBuff);
         }
         else
@@ -38150,8 +38143,8 @@ void openborMain(int argc, char **argv)
                 // New alternative scene path for PSP
                 if(custScenes != NULL)
                 {
-                    memcpy(tmpBuff, custScenes, 128);
-                    strncat(tmpBuff, "intro.txt", 10);
+                    strncpy(tmpBuff, custScenes, 128);
+                    strncat(tmpBuff, "intro.txt", 9);
                     playscene(tmpBuff);
                 }
                 else
@@ -38256,12 +38249,12 @@ void openborMain(int argc, char **argv)
                 {
                     int previousLoop = musicloop;
                     char previousMusic[sizeof(currentmusic)];
-                    memcpy(previousMusic, currentmusic, sizeof(previousMusic) - 1);
+                    strncpy(previousMusic, currentmusic, sizeof(previousMusic) - 1);
 
                     if(custScenes != NULL)
                     {
-                        memcpy(tmpBuff, custScenes, 128);
-                        strncat(tmpBuff, "howto.txt", 10);
+                        strncpy(tmpBuff, custScenes, 128);
+                        strncat(tmpBuff, "howto.txt", 9);
                         playscene(tmpBuff);
                     }
                     else
@@ -38294,8 +38287,8 @@ void openborMain(int argc, char **argv)
                 titleScreen = 0;
                 if(custBkgrds != NULL)
                 {
-                    memcpy(tmpBuff, custBkgrds, 128);
-                    strncat(tmpBuff, "titleb", 7);
+                    strncpy(tmpBuff, custBkgrds, 128);
+                    strncat(tmpBuff, "titleb", 6);
                     load_background(tmpBuff, 0);
                 }
                 else
@@ -38309,8 +38302,8 @@ void openborMain(int argc, char **argv)
                 titleScreen = 1;
                 if(custBkgrds != NULL)
                 {
-                    memcpy(tmpBuff, custBkgrds, 128);
-                    strncat(tmpBuff, "title", 6);
+                    strncpy(tmpBuff, custBkgrds, 128);
+                    strncat(tmpBuff, "title", 5);
                     load_background(tmpBuff, 0);
                 }
                 else

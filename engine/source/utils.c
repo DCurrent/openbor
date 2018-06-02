@@ -94,8 +94,8 @@ typedef void DIR;
 #define OPEN_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "wt") : fopen("./Logs/ScriptLog.txt", "wt")
 #define APPEND_LOGFILE(type) type ? fopen("./Logs/OpenBorLog.txt", "at") : fopen("./Logs/ScriptLog.txt", "at")
 #define READ_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "rt") : fopen("./Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) memcpy(buf, "./", 3); strcat(buf, name); strncat(buf, "/", 2);
-#define COPY_PAKS_PATH(buf, name) memcpy(buf, "./Paks/", 8); strcat(buf, name);
+#define COPY_ROOT_PATH(buf, name) strncpy(buf, "./", 2); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
+#define COPY_PAKS_PATH(buf, name) strncpy(buf, "./Paks/", 7); strncat(buf, name, strlen(name));
 #endif
 
 void debugBuf(unsigned char *buf, size_t size, int columns)
@@ -174,7 +174,7 @@ int dirExists(char *dname, int create)
     char realName[128] = {""};
     DIR	*fd1 = NULL;
     int  fd2 = -1;
-    memcpy(realName, dname, 128);
+    strncpy(realName, dname, 128);
     fd1 = opendir(realName);
     if(fd1 != NULL)
     {
@@ -337,26 +337,24 @@ void getPakName(char *name, int type)
     int i, x, y;
     char mod[256] = {""};
 
-    int len = strlen(packfile) - 4;
-    memcpy(mod, packfile, len);
-    mod[len] = '\0';
+    strncpy(mod, packfile, strlen(packfile) - 4);
 
     switch(type)
     {
     case 0:
-        strncat(mod, ".sav", 5);
+        strncat(mod, ".sav", 4);
         break;
     case 1:
-        strncat(mod, ".hi", 4);
+        strncat(mod, ".hi", 3);
         break;
     case 2:
-        strncat(mod, ".scr", 5);
+        strncat(mod, ".scr", 4);
         break;
     case 3:
-        strncat(mod, ".inp", 5);
+        strncat(mod, ".inp", 4);
         break;
     case 4:
-        strncat(mod, ".cfg", 5);
+        strncat(mod, ".cfg", 4);
         break;
     default:
         // Loose extension!
@@ -394,7 +392,7 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 {
 #ifndef DC
     int	 shotnum = 0;
-    char shotname[512] = {""};
+    char shotname[128] = {""};
     char modname[128]  = {""};
 
     getPakName(modname, 99);

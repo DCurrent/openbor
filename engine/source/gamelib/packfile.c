@@ -622,7 +622,7 @@ void makefilenamecache(void)
         {
             return;
         }
-        memcpy(target, (char *)pak_header + hpos + 12, PACKFILE_PATH_MAX);
+        strncpy(target, (char *)pak_header + hpos + 12, PACKFILE_PATH_MAX);
         fnlc(target);
         List_InsertAfter(filenamelist, (void *) hpos, target);
         hpos += readlsb32(pak_header + hpos);
@@ -695,7 +695,7 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
         makefilenamecache();
     }
 
-    memcpy(target, filename, PACKFILE_PATH_MAX);
+    strncpy(target, filename, PACKFILE_PATH_MAX);
     fnlc(target);
 
     n = List_GetNodeByName(filenamelist, target);
