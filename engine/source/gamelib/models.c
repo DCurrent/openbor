@@ -13,13 +13,13 @@
 #include "utils.h"
 
 static List *modellist = NULL;
-static char convertbuf[1024];
+static char convertbuf[MAX_MODELNAME_SIZE];
 
 void makelowercp(char *name)
 {
     assert(name);
     size_t len = strlen(name);
-    assert(len < 1024);
+    assert(len < MAX_MODELNAME_SIZE);
     strcpy(convertbuf, name);
     lc(convertbuf, len);
 }

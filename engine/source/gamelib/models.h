@@ -8,6 +8,8 @@
 
 #include "openbor.h"
 
+#define MAX_MODELNAME_SIZE 1024
+
 void createModelList(void);
 void freeModelList(void);
 void addModel(s_model *model);

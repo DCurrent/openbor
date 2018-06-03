@@ -8681,7 +8681,7 @@ size_t lcmScriptAddMain(char **buf)
     return len;
 }
 
-// used to join animationscript @scrip/@cmd width animationscript file main()
+// used to join animationscript @script/@cmd width animationscript file main()
 size_t lcmScriptJoinMain(char **buf, char *first_buf)
 {
     size_t len = 0, len2 = 0, buf_len = 0;
