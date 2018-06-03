@@ -77,7 +77,7 @@ typedef void DIR;
 #define OPEN_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "wt")
 #define APPEND_LOGFILE(type) type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "at")
 #define READ_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/"); strcat(buf, name); strncat(buf, "/", 1);
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/"); strcat(buf, name); strcat(buf, "/");
 #define COPY_PAKS_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/Paks/"); strcat(buf, name);
 #elif ANDROID
 #define Alog AndroidRoot "/Logs/OpenBorLog.txt"
@@ -87,15 +87,15 @@ typedef void DIR;
 #define OPEN_LOGFILE(type)   type ? fopen(Alog, "wt") : fopen(Aslog, "wt")
 #define APPEND_LOGFILE(type) type ? fopen(Alog, "at") : fopen(Aslog, "at")
 #define READ_LOGFILE(type)   type ? fopen(Alog, "rt") : fopen(Aslog, "rt")
-#define COPY_ROOT_PATH(buf, name) strncpy(buf, AndroidRoot,strlen(AndroidRoot)); strncat(buf, "/", 1); strncat(buf, name,strlen(name)); strncat(buf, "/", 1);
-#define COPY_PAKS_PATH(buf, name) strncpy(buf, Apak,strlen(Apak)); strncat(buf, name, strlen(name));
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, AndroidRoot); strcat(buf, "/"); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, Apak); strcat(buf, name);
 #else
 #define CHECK_LOGFILE(type)  type ? fileExists("./Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "wt") : fopen("./Logs/ScriptLog.txt", "wt")
 #define APPEND_LOGFILE(type) type ? fopen("./Logs/OpenBorLog.txt", "at") : fopen("./Logs/ScriptLog.txt", "at")
 #define READ_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "rt") : fopen("./Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) strncpy(buf, "./", 2); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
-#define COPY_PAKS_PATH(buf, name) strncpy(buf, "./Paks/", 7); strncat(buf, name, strlen(name));
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, "./"); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, "./Paks/"); strcat(buf, name);
 #endif
 
 void debugBuf(unsigned char *buf, size_t size, int columns)
@@ -174,7 +174,7 @@ int dirExists(char *dname, int create)
     char realName[128] = {""};
     DIR	*fd1 = NULL;
     int  fd2 = -1;
-    strncpy(realName, dname, 128);
+    memcpy(realName, dname, 128);
     fd1 = opendir(realName);
     if(fd1 != NULL)
     {
@@ -337,24 +337,24 @@ void getPakName(char *name, int type)
     int i, x, y;
     char mod[256] = {""};
 
-    strncpy(mod, packfile, strlen(packfile) - 4);
+    memcpy(mod, packfile, strlen(packfile) - 4);
 
     switch(type)
     {
     case 0:
-        strncat(mod, ".sav", 4);
+        strcat(mod, ".sav");
         break;
     case 1:
-        strncat(mod, ".hi", 3);
+        strcat(mod, ".hi");
         break;
     case 2:
-        strncat(mod, ".scr", 4);
+        strcat(mod, ".scr");
         break;
     case 3:
-        strncat(mod, ".inp", 4);
+        strcat(mod, ".inp");
         break;
     case 4:
-        strncat(mod, ".cfg", 4);
+        strcat(mod, ".cfg");
         break;
     default:
         // Loose extension!
@@ -469,110 +469,6 @@ int searchList(const char *list[], const char *value, int length)
     return -1;
 }
 
-// Optimized search in an arranged string table, return the index
-/*int searchListB(const char *list[], const char *value, int length)
-{
-    int i;
-    int a = 0;
-    int b = length / 2;
-    int c = length - 1;
-    int v = value[0];
-
-    // We must convert uppercase values to lowercase,
-    // since this is how every command is written in
-    // our source.  Refer to an ASCII Chart
-    if(v >= 0x41 && v <= 0x5A)
-    {
-        v += 0x20;
-    }
-
-    // Index value equals middle value,
-    // Lets search starting from center.
-    if(v == list[b][0])
-    {
-        if(stricmp(list[b], value) == 0)
-        {
-            return b;
-        }
-
-        // Search Down the List.
-        if(v == list[b - 1][0])
-        {
-            for(i = b - 1 ; i >= 0; i--)
-            {
-                if(stricmp(list[i], value) == 0)
-                {
-                    return i;
-                }
-                if(v != list[i - 1][0])
-                {
-                    break;
-                }
-            }
-        }
-
-        // Search Up the List.
-        if(v == list[b + 1][0])
-        {
-            for(i = b + 1; i < length; i++)
-            {
-                if(stricmp(list[i], value) == 0)
-                {
-                    return i;
-                }
-                if(v != list[i + 1][0])
-                {
-                    break;
-                }
-            }
-        }
-
-        // No match, return failure.
-        goto searchListFailed;
-    }
-
-    // Define the starting point.
-    if(v >= list[b + 1][0])
-    {
-        a = b + 1;
-    }
-    else if(v <= list[b - 1][0])
-    {
-        c = b - 1;
-    }
-    else
-    {
-        goto searchListFailed;
-    }
-
-    // Search Up from starting point.
-    for(i = a; i <= c; i++)
-    {
-        if(v == list[i][0])
-        {
-            if(stricmp(list[i], value) == 0)
-            {
-                return i;
-            }
-            if(v != list[i + 1][0])
-            {
-                break;
-            }
-        }
-    }
-
-searchListFailed:
-
-    // The search failed!
-    // On five reasons for failure!
-    // 1. Is the list in alphabetical order?
-    // 2. Is the first letter lowercase in list?
-    // 3. Does the value exist in the list?
-    // 4. Is it a typo?
-    // 5. Is it a text file error?
-    return -1;
-}*/
-
 char *commaprint(u64 n)
 {
     static int comma = '\0';
@@ -638,6 +534,14 @@ char* multistrcatsp(char* buf, ...)
     va_end(vl);
 
     return buf;
+}
+
+void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern)
+{
+    struct tm* tm_info;
+    tm_info = localtime(&timestamp);
+    strftime(buffer, buffer_size, pattern, tm_info);
+    return;
 }
 
 //! Increase or Decrease an array à la \e vector
@@ -712,13 +616,5 @@ void Array_Check_Size( const char *f_caller, char **array, int new_size, int *cu
 
     // ReAssign the new allocated array
     *array = copy;
-}
-
-void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern)
-{
-    struct tm* tm_info;
-    tm_info = localtime(&timestamp);
-    strftime(buffer, buffer_size, pattern, tm_info);
-    return;
 }
 

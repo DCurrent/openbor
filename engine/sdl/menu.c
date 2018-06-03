@@ -193,7 +193,7 @@ static int findPaks(void)
 					free(copy); copy = NULL;
 				}
 				memset(&filelist[i], 0, sizeof(fileliststruct));
-				strncpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
+				memcpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
 				i++;
 			}
 		}
@@ -511,7 +511,7 @@ static void drawMenu()
 			if(len < (isWide ? 44 : 28))
                 strncpy(listing, filelist[list+dListScrollPosition].filename, len);
 			else
-				strncpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
+				memcpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
 			if(list == dListCurrentPosition)
 			{
 				shift = 2;
@@ -577,9 +577,9 @@ static void drawBGMPlayer()
 			colors = GRAY;
 			strncpy(listing, "", (isWide ? 44 : 28));
 			if(len < (isWide ? 44 : 28))
-				strncpy(listing, filelist[list+dListScrollPosition].filename, len);
+				memcpy(listing, filelist[list+dListScrollPosition].filename, len);
 			else
-				strncpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
+				memcpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
 			if(list==dListCurrentPosition) { shift = 2; colors = RED; }
 			printText((isWide ? 30 : 7) + shift, (isWide ? 33 : 22)+(11*list) , colors, 0, 0, "%s", listing);
 		}
@@ -609,17 +609,17 @@ static void drawBGMPlayer()
 
 	if(!bgmPlay) bgmCurrent = dListCurrentPosition+dListScrollPosition;
 	if(filename_len < 24)
-		strncpy(bgmListing, filelist[bgmCurrent].filename, strlen(filelist[bgmCurrent].filename)-4);
+		memcpy(bgmListing, filelist[bgmCurrent].filename, strlen(filelist[bgmCurrent].filename)-4);
 	else
-		strncpy(bgmListing, filelist[bgmCurrent].filename, 24);
+		memcpy(bgmListing, filelist[bgmCurrent].filename, 24);
 	if(!sound_query_music(a1, t1))
 	{
 		PlayBGM();
 		sound_query_music(a1, t1);
 		StopBGM();
 	}
-	if(t1[0]) strncpy(t2, t1, 25);
-	if(a1[0]) strncpy(a2, a1, 25);
+	if(t1[0]) memcpy(t2, t1, 25);
+	if(a1[0]) memcpy(a2, a1, 25);
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 0), DARK_RED, 0, 0, "Game: %s", bgmListing);
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 1), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Total Tracks: %d", filelist[bgmCurrent].nTracks-1);
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 2), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Current Track: %d", filelist[bgmCurrent].bgmTrack);
