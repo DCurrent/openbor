@@ -20,7 +20,7 @@ void makelowercp(char *name)
     assert(name);
     size_t len = strlen(name);
     assert(len < 1024);
-    memcpy(convertbuf, name, 1024);
+    strcpy(convertbuf, name);
     lc(convertbuf, len);
 }
 

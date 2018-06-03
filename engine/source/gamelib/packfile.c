@@ -51,7 +51,7 @@
 #endif
 
 
-#define PACKFILE_PATH_MAX 512 // Maximum length of file path string.
+#define PACKFILE_PATH_MAX 2048 // Maximum length of file path string.
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -622,7 +622,7 @@ void makefilenamecache(void)
         {
             return;
         }
-        memcpy(target, (char *)pak_header + hpos + 12, PACKFILE_PATH_MAX);
+        safe_strncpy(target, (char *)pak_header + hpos + 12, PACKFILE_PATH_MAX);
         fnlc(target);
         List_InsertAfter(filenamelist, (void *) hpos, target);
         hpos += readlsb32(pak_header + hpos);
@@ -695,7 +695,7 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
         makefilenamecache();
     }
 
-    memcpy(target, filename, PACKFILE_PATH_MAX);
+    safe_strncpy(target, filename, PACKFILE_PATH_MAX);
     fnlc(target);
 
     n = List_GetNodeByName(filenamelist, target);

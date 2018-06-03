@@ -8645,10 +8645,9 @@ size_t lcmScriptAddMain(char **buf)
 
             pos += buf_len;
             pos = len; // pos before '\0' (at last char)
-            len2 = strlen(mtxt);
             newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
             strncpy(newbuf, *buf, pos);
-            memcpy(newbuf+pos, mtxt, len2);
+            strcpy(newbuf+pos, mtxt);
             newbuf[len+len2] = '\0';
 
             free( (*buf) );
@@ -8666,7 +8665,7 @@ size_t lcmScriptAddMain(char **buf)
 
             newbuf = malloc(sizeof(**buf)*pos + sizeof(mtxt)*len2 + sizeof(**buf)*(len-pos2) + 1 );
             strncpy(newbuf, *buf, pos);
-            memcpy(newbuf+pos, mtxt, len2);
+            strcpy(newbuf+pos, mtxt);
             strncpy(newbuf+pos+len2, *buf+pos2, len-pos2);
             newbuf[pos+len2+len-pos2] = '\0';
 
@@ -8709,7 +8708,7 @@ size_t lcmScriptJoinMain(char **buf, char *first_buf)
 
         newbuf = malloc(sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
         strncpy(newbuf, *buf, pos);
-        memcpy(newbuf+pos, first_buf, len2);
+        strcpy(newbuf+pos, first_buf);
         strncpy(newbuf+pos+len2, *buf+pos, len-pos);
         newbuf[len+len2] = '\0';
 
@@ -13959,7 +13958,7 @@ void load_levelorder()
             strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
             rush[2] = GET_INT_ARG(4);
             rush[3] = GET_INT_ARG(5);
-            memcpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
+            safe_strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
             rush[4] = GET_INT_ARG(7);
             rush[5] = GET_INT_ARG(8);
             break;
@@ -14753,7 +14752,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_MUSIC:
             value = GET_ARG(1);
-            memcpy(string, value, 128);
+            safe_strncpy(string, value, 128);
             musicOffset = atol(GET_ARG(2));
             if(loadingmusic)
             {
@@ -14812,7 +14811,7 @@ void load_level(char *filename)
             }
             break;
         case CMD_LEVEL_ALPHAMASK:
-            memcpy(maskPath, GET_ARG(1), 128);
+            safe_strncpy(maskPath, GET_ARG(1), 128);
             break;
         case CMD_LEVEL_BACKGROUND:
         case CMD_LEVEL_BGLAYER:
@@ -31794,7 +31793,7 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
 
         if(spawn_entry->item_properties.alias[0])
         {
-            memcpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
+            safe_strncpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
         }
 
         if(spawn_entry->item_properties.colorset)
@@ -31855,7 +31854,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // Alias?
     if(props->alias[0])
     {
-        memcpy(e->name, props->alias, MAX_NAME_LEN);
+        safe_strncpy(e->name, props->alias, MAX_NAME_LEN);
     }
 
     // If we have item properties in spawn entry, then prepare a set of
@@ -35799,7 +35798,7 @@ int menu_difficulty()
             else if(bonus >= levelsets[selector].ifcomplete)
             {
                 saveslot = selector;
-                memcpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
+                safe_strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
                 newgameMenu = 0;
                 return saveslot;
             }
@@ -35850,7 +35849,7 @@ int menu_difficulty()
             else if(bonus >= levelsets[selector].ifcomplete)
             {
                 saveslot = selector;
-                memcpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
+                safe_strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
                 newgameMenu = 0;
                 return saveslot;
             }
@@ -38262,7 +38261,8 @@ void openborMain(int argc, char **argv)
                 {
                     int previousLoop = musicloop;
                     char previousMusic[sizeof(currentmusic)];
-                    memcpy(previousMusic, currentmusic, sizeof(previousMusic) - 1);
+
+                    safe_strncpy(previousMusic, currentmusic, sizeof(previousMusic) - 1);
 
                     if(custScenes != NULL)
                     {

@@ -536,6 +536,15 @@ char* multistrcatsp(char* buf, ...)
     return buf;
 }
 
+char* safe_strncpy(char* dest, const char* source, size_t size)
+{
+    char src[size+1];
+    src[size] = '\0';
+    strcpy(src,source);
+    strncpy(dest,src,size);
+    return dest;
+}
+
 void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern)
 {
     struct tm* tm_info;
