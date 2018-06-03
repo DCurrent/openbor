@@ -708,12 +708,12 @@ HRESULT pp_parser_stringify(pp_parser *self)
         {
             if(*source == '"')
             {
-                strncat(self->token.theSource, "\\\"", 2);
+                strcat(self->token.theSource, "\\\"");
                 in_string = !in_string;
             }
             else if(*source == '\\' && in_string)
             {
-                strncat(self->token.theSource, "\\\\", 2);
+                strcat(self->token.theSource, "\\\\");
             }
             else
             {
@@ -729,7 +729,7 @@ HRESULT pp_parser_stringify(pp_parser *self)
         }
     }
 
-    strncat(self->token.theSource, "\"", 1);
+    strcat(self->token.theSource, "\"");
     return S_OK;
 }
 
