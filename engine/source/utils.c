@@ -538,9 +538,9 @@ char* multistrcatsp(char* buf, ...)
 
 char* safe_strncpy(char* dest, const char* source, size_t size)
 {
-    char src[size+1];
-    src[size] = '\0';
-    strncpy(src,source,size - 1);
+    char src[size + 1];
+    memset(src,'\0',size + 1);
+    strncpy(src,source,size);
     strncpy(dest,src,size);
     return dest;
 }

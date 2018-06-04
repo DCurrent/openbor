@@ -30,6 +30,8 @@
 #include "types.h"
 #endif
 
+#define     MAX_FILENAME_LEN    256
+
 //
 // Structure used for handling packfiles
 //
@@ -38,16 +40,16 @@ typedef struct pnamestruct
     unsigned int pns_len;	    // Length of the struct in bytes
     unsigned int filestart;	    // Start position of referenced file
     unsigned int filesize;	    // Size of referenced file
-    char		 namebuf[256];	// Buffer to hold the file's name
+    char		 namebuf[MAX_FILENAME_LEN];	// Buffer to hold the file's name
 } pnamestruct;
 
 typedef struct fileliststruct
 {
-    char filename[256];
+    char filename[MAX_FILENAME_LEN];
     int nTracks;
-    char bgmFileName[256][256];
+    char bgmFileName[MAX_FILENAME_LEN][MAX_FILENAME_LEN];
     int bgmTrack;
-    unsigned int bgmTracks[256];
+    unsigned int bgmTracks[MAX_FILENAME_LEN];
 #ifdef SDL
     SDL_Surface *preview;
 #elif PSP
