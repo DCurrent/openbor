@@ -10126,7 +10126,7 @@ HRESULT openbor_fademusic(ScriptVariant **varlist , ScriptVariant **pretvar, int
 
     if(paramCount == 4)
     {
-        safe_strncpy(musicname, StrCache_Get(varlist[1]->strVal), 128);
+        strncpy(musicname, StrCache_Get(varlist[1]->strVal), MAX_STR_LEN - 1);
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &values[0])))
         {
             goto fademusic_error;

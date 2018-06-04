@@ -25,7 +25,7 @@ HRESULT Token_InitFromPreprocessor(Token *ptoken, pp_token *ppToken)
 {
     ptoken->theTextPosition = ppToken->theTextPosition;
     ptoken->charOffset = ppToken->charOffset;
-    safe_strncpy(ptoken->theSource, ppToken->theSource, MAX_TOKEN_LENGTH);
+    strncpy(ptoken->theSource, ppToken->theSource, MAX_TOKEN_LENGTH + 1);
 
     switch (ppToken->theType)
     {

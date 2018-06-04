@@ -12,6 +12,8 @@
 #include "globals.h"
 #include "ScriptVariant.h"
 
+#define STRCACHE_INC      64
+
 typedef struct
 {
     int len;
@@ -20,7 +22,6 @@ typedef struct
 } Varstr;
 
 // use string cache to cut the memory usage down, because not all variants are string, no need to give each of them an array
-#define STRCACHE_INC      64
 Varstr *strcache = NULL;
 int   strcache_size = 0;
 int   strcache_top = -1;
