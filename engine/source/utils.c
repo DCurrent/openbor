@@ -540,7 +540,7 @@ char* safe_strncpy(char* dest, const char* source, size_t size)
 {
     char src[size+1];
     src[size] = '\0';
-    strcpy(src,source);
+    strncpy(src,source,size - 1);
     strncpy(dest,src,size);
     return dest;
 }
