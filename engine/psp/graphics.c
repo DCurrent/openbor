@@ -71,9 +71,10 @@ int displayMode;
 
 char* filterName[PSP_DISPLAY_FILTERS] = {"Linear", "Bilinear"};
 DisplayFormat displayFormat[PSP_DISPLAY_FORMATS] = {{"320x240 (4x3)",   80, 16, 320, 240},
-						  						    {"360x270 (4x3)",   60, 01, 360, 270},
-												    {"384x272 (24x17)", 48, 00, 384, 272},
-													{"480x272 (16x9)",  00, 00, 480, 272}};
+													{"480x272 (16x9)",  00, 00, 480, 272},
+													{"384x272 (24x17)", 48, 00, 384, 272},
+													{"360x270 (4x3)",   60, 01, 360, 270}};
+													
 int checkCable(int mode)
 {
 	if(getHardwareModel()==1)
@@ -168,7 +169,7 @@ void initGraphics(int mode, int pixel)
 	dispBuffer = (void*)PSP_VRAM_ADDRESS(displayMode%2) + PSP_FRAMEBUFFER_SIZE;
 	initialized = 1;
 	guSetup();
-	setGraphicsScreen(displayFormat[3], pixel, 0);
+	setGraphicsScreen(displayFormat[1], pixel, 0);
 }
 
 void disableGraphics()

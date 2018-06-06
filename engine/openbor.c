@@ -37660,9 +37660,9 @@ void menu_options_video()
 #endif
 
 #if PSP
-                if(videoMode == 0)
+                if(videoMode == 0 || videoMode == 1)
                 {
-                    // 320x240
+                    // 320x240 or 480x272
                     videomodes.mode += dir;
                     if(videomodes.mode > PSP_DISPLAY_FORMATS - 1)
                     {
@@ -37677,9 +37677,9 @@ void menu_options_video()
                 break;
 
             case 4:
-                if(videoMode == 0)
+                if(videoMode == 0 || videoMode == 1)
                 {
-                    // 320x240
+                    // 320x240 or 480x272
                     videomodes.filter += dir;
                     if(videomodes.filter > PSP_DISPLAY_FILTERS - 1)
                     {
