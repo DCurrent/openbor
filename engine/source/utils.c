@@ -536,10 +536,10 @@ char* multistrcatsp(char* buf, ...)
     return buf;
 }
 
-char* safe_strncpy(char* dest, const char* src, size_t size)
+char* safe_strncpy(char* dst, const char* src, size_t size)
 {
 	if (size > 0) {
-		register char *d = dest;
+		register char *d = dst;
 		register const char *s = src;
 
 		do {
@@ -551,7 +551,7 @@ char* safe_strncpy(char* dest, const char* src, size_t size)
 		} while (--size > 0);
 		*d = 0;
 	}
-	return (dest);
+	return (dst);
 }
 
 void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern)
