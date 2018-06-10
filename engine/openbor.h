@@ -231,6 +231,7 @@ typedef enum
     SPAWN_TYPE_PROJECTILE_BOMB,
     SPAWN_TYPE_PROJECTILE_NORMAL,
     SPAWN_TYPE_PROJECTILE_STAR,
+    SPAWN_TYPE_PROJECTILE_BOOMERANG,
     SPAWN_TYPE_STEAM,
     SPAWN_TYPE_WEAPON
 } e_spawn_type;
@@ -1729,6 +1730,7 @@ typedef struct
     int                     knife;      // custknife;
     s_axis_principal_int  position;   // Location at which projectiles are spawned
     int                     star;       // custstar;
+    int                     boomerang;       // custboomerang;
 } s_projectile;
 
 typedef struct
@@ -2001,6 +2003,7 @@ typedef struct
     int pshotno; // 7-1-2005 now every enemy can have their own "knife" projectile
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
+    int boomerang;
     float boomerang_acc;
     float boomerang_distx;
     int flash; // Now each entity can have their own flash
@@ -2781,7 +2784,7 @@ int projectile_wall_deflect(entity *ent);
 int boomerang_catch(entity *ent, float distance_x_current);
 void boomerang_initialize(entity *ent);
 int boomerang_move();
-void sort_invert(entity *ent);
+void sort_invert_by_parent(entity *ent, entity* parent);
 
 int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
@@ -2930,6 +2933,7 @@ void kill_all_enemies();
 void smart_bomb(entity *e, s_collision_attack *attack);
 void anything_walk(void);
 entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
+entity *boomerang_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 void bomb_explode(void);
 int star_spawn(float x, float z, float a, int direction);
