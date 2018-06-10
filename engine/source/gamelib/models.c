@@ -20,6 +20,7 @@ void makelowercp(char *name)
     assert(name);
     size_t len = strlen(name);
     assert(len < MAX_MODELNAME_SIZE);
+    memset(convertbuf,0,MAX_MODELNAME_SIZE);
     strcpy(convertbuf, name);
     lc(convertbuf, len);
 }

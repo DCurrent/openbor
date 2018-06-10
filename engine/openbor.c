@@ -8645,7 +8645,8 @@ size_t lcmScriptAddMain(char **buf)
 
             pos += buf_len;
             pos = len; // pos before '\0' (at last char)
-            newbuf = malloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1 );
+            len2 = strlen(mtxt);
+            newbuf = calloc(sizeof(**buf)*len + sizeof(mtxt)*len2 + 1, sizeof(char));
             strncpy(newbuf, *buf, pos);
             strcpy(newbuf+pos, mtxt);
             newbuf[len+len2] = '\0';
@@ -8660,10 +8661,10 @@ size_t lcmScriptAddMain(char **buf)
             int pos2 = 0;
             char mtxt[] = "\n\nvoid main()\n{\n    int frame = getlocalvar(\"frame\");\n    int animhandle = getlocalvar(\"animhandle\");\n\n";
 
-            len2 = strlen(mtxt);
             pos2 = pos + buf_len;
+            len2 = strlen(mtxt);
 
-            newbuf = malloc(sizeof(**buf)*pos + sizeof(mtxt)*len2 + sizeof(**buf)*(len-pos2) + 1 );
+            newbuf = calloc(sizeof(**buf)*pos + sizeof(mtxt)*len2 + sizeof(**buf)*(len-pos2) + 1, sizeof(char));
             strncpy(newbuf, *buf, pos);
             strcpy(newbuf+pos, mtxt);
             strncpy(newbuf+pos+len2, *buf+pos2, len-pos2);
@@ -8706,7 +8707,7 @@ size_t lcmScriptJoinMain(char **buf, char *first_buf)
         }
         --pos; // back to last '}' of main()
 
-        newbuf = malloc(sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1 );
+        newbuf = calloc(sizeof(**buf)*len + sizeof(*first_buf)*len2 + 1,sizeof(char));
         strncpy(newbuf, *buf, pos);
         strcpy(newbuf+pos, first_buf);
         strncpy(newbuf+pos+len2, *buf+pos, len-pos);
