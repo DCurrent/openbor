@@ -547,8 +547,8 @@ int                 psmenu[MAX_PLAYERS][4]        = {{0, 0, 0, 0}, {0, 0, 0, 0},
 int                 mpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 hpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 ldcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-char                musicname[128]      = {""};
-char                currentmusic[128]    = {""};
+char                musicname[MAX_BUFFER_LEN]      = {""};
+char                currentmusic[MAX_BUFFER_LEN]    = {""};
 float               musicfade[2]        = {0, 0};
 int                 musicloop           = 0;
 u32                 musicoffset         = 0;
@@ -608,13 +608,13 @@ s_barstatus mpbarstatus =
 int                 timeloc[6]			= {0, 0, 0, 0, 0, -1};		// Used for customizable timeclock location/size
 int                 timeicon			= -1;
 int                 timeicon_offsets[2] = {0, 0};
-char                timeicon_path[128]  = {""};
+char                timeicon_path[MAX_BUFFER_LEN]  = {""};
 int                 bgicon   			= -1;
 int                 bgicon_offsets[3]	= {0, 0, 0};
-char                bgicon_path[128]    = {""};
+char                bgicon_path[MAX_BUFFER_LEN]    = {""};
 int                 olicon    			= -1;
 int                 olicon_offsets[3]	= {0, 0, 0};
-char                olicon_path[128]    = {""};
+char                olicon_path[MAX_BUFFER_LEN]    = {""};
 int                 elife[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable enemy lifebar
 int                 ename[4][3]         = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable enemy name
 int                 eicon[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable enemy icon
@@ -1271,7 +1271,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_pakname:
     {
-        char tempstr[256];
+        char tempstr[MAX_BUFFER_LEN];
         getPakName(tempstr, -1);
         ScriptVariant_ChangeType(var, VT_STR);
         var->strVal = StrCache_CreateNewFrom(tempstr);
@@ -3229,8 +3229,8 @@ void savesettings()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[128] = {""};
-    char tmpname[128] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 4);
     strcat(path, tmpname);
@@ -3248,7 +3248,7 @@ void saveasdefault()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[128] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     strcat(path, "default.cfg");
     handle = fopen(path, "wb");
@@ -3266,8 +3266,8 @@ void loadsettings()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[128] = {""};
-    char tmpname[128] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 4);
     strcat(path, tmpname);
@@ -3297,7 +3297,7 @@ void loadfromdefault()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[128] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     strcat(path, "default.cfg");
     clearsettings();
@@ -3344,8 +3344,8 @@ int saveGameFile()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
 
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 0);
@@ -3374,8 +3374,8 @@ int loadGameFile()
 #ifndef DC
     int result = 1, i;
     FILE *handle = NULL;
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     //size_t filesize = 0;
 
     getBasePath(path, "Saves", 0);
@@ -3421,8 +3421,8 @@ int saveHighScoreFile()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 1);
     strcat(path, tmpname);
@@ -3444,8 +3444,8 @@ int loadHighScoreFile()
 {
 #ifndef DC
     FILE *handle = NULL;
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 1);
     strcat(path, tmpname);
@@ -3530,8 +3530,8 @@ int saveScriptFile()
     FILE *handle = NULL;
     int i, l, size;
     ScriptVariant *var;
-    char path[256] = {""};
-    char tmpvalue[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpvalue[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     getPakName(tmpvalue, 2);//.scr
     strcat(path, tmpvalue);
@@ -3613,8 +3613,8 @@ int loadScriptFile()
     size_t len;
     FILE *handle = NULL;
 
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 2);//.scr
     strcat(path, tmpname);
@@ -5138,7 +5138,7 @@ void unload_all_fonts()
 
 void load_all_fonts()
 {
-    char path[256];
+    char path[MAX_BUFFER_LEN];
     int i;
 
     for(i = 0; i < MAX_FONTS; i++)
@@ -8939,8 +8939,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
          *value2        = NULL,
          *value3        = NULL;
 
-    char fnbuf[128] = {""},
-                      namebuf[256] = {""},
+    char fnbuf[MAX_BUFFER_LEN] = {""},
+                      namebuf[MAX_BUFFER_LEN] = {""},
                                      argbuf[MAX_ARG_LEN + 1] = {""};
 
     ArgList arglist;
@@ -12237,7 +12237,7 @@ int load_script_setting()
 
 void load_model_constants()
 {
-    char filename[128] = "data/models.txt";
+    char filename[MAX_BUFFER_LEN] = "data/models.txt";
     int i;
     char *buf;
     size_t size;
@@ -12583,7 +12583,7 @@ void load_model_constants()
 // Load / cache all models
 int load_models()
 {
-    char filename[128] = "data/models.txt";
+    char filename[MAX_BUFFER_LEN] = "data/models.txt";
     int i;
     char *buf;
     size_t size;
@@ -12591,7 +12591,7 @@ int load_models()
     char *command;
     int line = 0;
 
-    char tmpBuff[128] = {""};
+    char tmpBuff[MAX_BUFFER_LEN] = {""};
 
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
@@ -13108,7 +13108,7 @@ void load_levelorder()
 {
     static const char *defaulterr = "Error in level order: a set must be specified.";
 #define CHKDEF if(!set) { errormessage = (char*) defaulterr; goto lCleanup; }
-    char filename[128] = "";
+    char filename[MAX_BUFFER_LEN] = "";
     int i = 0, j = 0, err = 0;
     char *buf;
     size_t size;
@@ -14614,16 +14614,16 @@ void load_level(char *filename)
     char *command;
     char *value;
     char *scriptbuf = NULL;
-    char string[128] = {""};
+    char string[MAX_BUFFER_LEN] = {""};
     s_spawn_entry next;
     s_model *tempmodel, *cached_model;
 
     int i = 0, j = 0, crlf = 0;
     int player_max = MAX_PLAYERS;
     int usemap[MAX_BLENDINGS];
-    char bgPath[128] = {""}, fnbuf[128];
+    char bgPath[MAX_BUFFER_LEN] = {""}, fnbuf[MAX_BUFFER_LEN];
     s_loadingbar bgPosi = {0, 0, {0,0}, {0,0}, 0, 0};
-    char musicPath[128] = {""};
+    char musicPath[MAX_BUFFER_LEN] = {""};
     u32 musicOffset = 0;
 
     ArgList arglist;
@@ -14644,7 +14644,7 @@ void load_level(char *filename)
     int *order = NULL;
     int panelcount = 0;
     int exit_blocked = 0, exit_hole = 0;
-    char maskPath[128] = {""};
+    char maskPath[MAX_BUFFER_LEN] = {""};
 
     unload_level();
 
@@ -14768,7 +14768,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_MUSIC:
             value = GET_ARG(1);
-            safe_strncpy(string, value, 128);
+            safe_strncpy(string, value, MAX_BUFFER_LEN);
             musicOffset = atol(GET_ARG(2));
             if(loadingmusic)
             {
@@ -14798,12 +14798,12 @@ void load_level(char *filename)
                     {
                         memset(&next, 0, sizeof(next));
                     }
-                    strncpy(next.music, string, 128);
+                    strncpy(next.music, string, MAX_BUFFER_LEN);
                     next.musicoffset = musicOffset;
                 }
                 else
                 {
-                    strncpy(musicPath, string, 128);
+                    strncpy(musicPath, string, MAX_BUFFER_LEN);
                 }
                 pos = oldpos;
 #undef GET_ARG2
@@ -14827,7 +14827,7 @@ void load_level(char *filename)
             }
             break;
         case CMD_LEVEL_ALPHAMASK:
-            safe_strncpy(maskPath, GET_ARG(1), 128);
+            safe_strncpy(maskPath, GET_ARG(1), MAX_BUFFER_LEN);
             break;
         case CMD_LEVEL_BACKGROUND:
         case CMD_LEVEL_BGLAYER:
@@ -32417,7 +32417,7 @@ void update_scroller()
             }
             else if(level->spawnpoints[current_spawn].music[0])
             {
-                strncpy(musicname, level->spawnpoints[current_spawn].music, 128);
+                strncpy(musicname, level->spawnpoints[current_spawn].music, MAX_BUFFER_LEN);
                 musicoffset = level->spawnpoints[current_spawn].musicoffset;
                 musicloop = 1;
             }
@@ -34698,7 +34698,7 @@ void playscene(char *filename)
     size_t size;
     int pos;
     char *command = NULL;
-    char videofile[256];
+    char videofile[MAX_BUFFER_LEN];
     int x = 0, y = 0, skipone = 0, noskip = 0, i;
     int closing = 0, status;
 
@@ -34788,7 +34788,7 @@ void playscene(char *filename)
 void gameover()
 {
     int done = 0;
-    char tmpBuff[128] = {""};
+    char tmpBuff[MAX_BUFFER_LEN] = {""};
 
     music("data/music/gameover", 0, 0);
 
@@ -34835,7 +34835,7 @@ void hallfame(int addtoscore)
     u32 score;
     char name[MAX_NAME_LEN + 1];
     int i, p, y;
-    char tmpBuff[128] = {""};
+    char tmpBuff[MAX_BUFFER_LEN] = {""};
     int col1 = -8;
     int col2 = 6;
 
@@ -34921,7 +34921,7 @@ void showcomplete(int num)
     u32 nexttime = 0;
     u32 finishtime = 0;
     int chan = 0;
-    char tmpBuff[128] = {""};
+    char tmpBuff[MAX_BUFFER_LEN] = {""};
 
     showComplete = 1;
 
@@ -35299,7 +35299,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     unsigned exitdelay = 0;
     int players_busy = 0;
     int players_ready = 0;
-    char string[128] = {""};
+    char string[MAX_BUFFER_LEN] = {""};
     char *buf, *command;
     size_t size = 0;
     ptrdiff_t pos = 0;
@@ -36017,7 +36017,7 @@ int load_saved_game()
     int quit = 0;
     int selector = 0;
     int savedStatus = 0;
-    char name[256] = {""};
+    char name[MAX_BUFFER_LEN] = {""};
     int col1 = -8, col2 = 6;
 
     loadgameMenu = 1;
@@ -38230,7 +38230,7 @@ void openborMain(int argc, char **argv)
     int selector = 0;
     u32 introtime = 0;
     int started = 0;
-    char tmpBuff[128] = {""};
+    char tmpBuff[MAX_BUFFER_LEN] = {""};
     int players[MAX_PLAYERS] = {0, 0, 0, 0};
     int i;
     int argl;

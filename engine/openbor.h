@@ -82,7 +82,8 @@
 #define		MAX_ATTACKS			4					// Total number of attacks players have
 #define     MAX_FOLLOWS         4					// For followup animations
 #define     MAX_COLLISIONS      2                   // Collision boxes.
-#define		MAX_ARG_LEN			512 //511
+#define		MAX_ARG_LEN			512
+#define		MAX_BUFFER_LEN		512
 #define		MAX_ALLOWSELECT_LEN	1024
 #define		MAX_SELECT_LOADS   	512
 #define		MAX_PAL_SIZE		1024
@@ -2376,7 +2377,7 @@ typedef struct
     int shadowcolor; // -1 no shadow
     int shadowalpha;
     int shadowopacity;
-    char music[128];
+    char music[MAX_BUFFER_LEN];
     float musicfade;
     u32 musicoffset;
     char *name; // must be a name in the model list, so just reference
@@ -2554,7 +2555,7 @@ typedef struct
     int bgdir; // Used to set which direction the backgrounds scroll for autoscrolling backgrounds
     int mirror;
     int bosses;
-    char bossmusic[256];
+    char bossmusic[MAX_BUFFER_LEN];
     unsigned bossmusic_offset;
     int numpalettes;
     unsigned char (*palettes)[1024];//dynamic palettes
