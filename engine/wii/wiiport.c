@@ -27,12 +27,12 @@
 #include <usync.h>
 #endif
 
-char packfile[128] = {"sd:/apps/OpenBOR/Battle Toads.pak"};
-char paksDir[128];
-char savesDir[128];
-char logsDir[128];
-char screenShotsDir[128];
-char rootDir[128]; // note: this one ends with a slash
+char packfile[MAX_FILENAME_LEN] = {"sd:/apps/OpenBOR/bor.pak"};
+char paksDir[MAX_FILENAME_LEN];
+char savesDir[MAX_FILENAME_LEN];
+char logsDir[MAX_FILENAME_LEN];
+char screenShotsDir[MAX_FILENAME_LEN];
+char rootDir[MAX_FILENAME_LEN]; // note: this one ends with a slash
 
 /*
  * Given a file's path relative to the OpenBOR executable; returns an absolute

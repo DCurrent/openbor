@@ -30,8 +30,8 @@ typedef void (*WriteToIO)(const char *msg, ...);
 static WriteToIO pWriteToIO;
 
 PspDebugRegBlock exception_regs;
-char packfile[256] = {"bor.pak"};
-char eboot[256];
+char packfile[MAX_FILENAME_LEN] = {"bor.pak"};
+char eboot[MAX_FILENAME_LEN];
 
 void borExit(int reset)
 {
@@ -138,7 +138,7 @@ void initExceptionHandler()
 
 int main(int argc, char *argv[])
 {
-	char cwd[256];
+	char cwd[MAX_FILENAME_LEN];
 	int status = 0;
 
 	scePowerSetClockFrequency(333, 333, 166);
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 	dirExists("Images", 1);
 	dirExists("Logs", 1);
 
-	getcwd(cwd, 256);
+	getcwd(cwd, MAX_FILENAME_LEN);
 	menu(cwd);
 	openborMain(argc, argv);
 	borExit(0);

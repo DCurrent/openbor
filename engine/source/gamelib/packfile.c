@@ -33,7 +33,6 @@
 #include "stristr.h"
 #include "packfile.h"
 #include "filecache.h"
-#include "globals.h"
 #include "soundmix.h"
 #include "savedata.h"
 #include "List.h"

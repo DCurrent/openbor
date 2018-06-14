@@ -9,14 +9,16 @@
 #ifndef VITAPORT_H_
 #define VITAPORT_H_
 
+#include "globals.h"
+
 void borExit(int reset);
 void openborMain(int argc, char** argv);
 
-extern char packfile[128];
-extern char paksDir[128];
-extern char savesDir[128];
-extern char logsDir[128];
-extern char screenShotsDir[128];
-extern char rootDir[128];
+extern char packfile[MAX_FILENAME_LEN];
+extern char paksDir[MAX_FILENAME_LEN];
+extern char savesDir[MAX_FILENAME_LEN];
+extern char logsDir[MAX_FILENAME_LEN];
+extern char screenShotsDir[MAX_FILENAME_LEN];
+extern char rootDir[MAX_FILENAME_LEN];
 
 #endif

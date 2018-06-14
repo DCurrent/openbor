@@ -392,8 +392,8 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 {
 #ifndef DC
     int	 shotnum = 0;
-    char shotname[512] = {""};
-    char modname[128]  = {""};
+    char shotname[1024] = {""};
+    char modname[MAX_FILENAME_LEN]  = {""};
 
     getPakName(modname, 99);
 #ifdef PSP

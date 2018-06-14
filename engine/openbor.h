@@ -83,7 +83,6 @@
 #define     MAX_FOLLOWS         4					// For followup animations
 #define     MAX_COLLISIONS      2                   // Collision boxes.
 #define		MAX_ARG_LEN			512
-#define		MAX_BUFFER_LEN		512
 #define		MAX_ALLOWSELECT_LEN	1024
 #define		MAX_SELECT_LOADS   	512
 #define		MAX_PAL_SIZE		1024

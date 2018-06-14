@@ -13,6 +13,8 @@
 
 #include <stdio.h>
 
+#include "globals.h"
+
 #ifndef WIN
 #include <unistd.h>
 #define O_BINARY 0
@@ -29,8 +31,6 @@
 #ifdef VITA
 #include "types.h"
 #endif
-
-#define     MAX_FILENAME_LEN    256
 
 //
 // Structure used for handling packfiles

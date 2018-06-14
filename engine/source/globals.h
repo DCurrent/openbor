@@ -24,6 +24,9 @@
 #include "utils.h"
 #include "safealloc.h"
 
+#define		MAX_BUFFER_LEN		512
+#define		MAX_FILENAME_LEN	256
+
 #ifdef PSP
 #include <stdarg.h>
 #include <psppower.h>

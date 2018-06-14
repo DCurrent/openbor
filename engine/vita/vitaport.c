@@ -22,12 +22,12 @@ unsigned int _newlib_heap_size_user = 240 * 1024 * 1024;
 
 void Menu(); // defined in menu.c
 
-char packfile[128] = {"ux0:/data/bor.pak"};
-char paksDir[128];
-char savesDir[128];
-char logsDir[128];
-char screenShotsDir[128];
-char rootDir[128]; // note: this one ends with a slash
+char packfile[MAX_FILENAME_LEN] = {"ux0:/data/bor.pak"};
+char paksDir[MAX_FILENAME_LEN];
+char savesDir[MAX_FILENAME_LEN];
+char logsDir[MAX_FILENAME_LEN];
+char screenShotsDir[MAX_FILENAME_LEN];
+char rootDir[MAX_FILENAME_LEN]; // note: this one ends with a slash
 
 void borExit(int reset)
 {
