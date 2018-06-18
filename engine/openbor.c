@@ -13972,10 +13972,10 @@ void load_levelorder()
         case CMD_LEVELORDER_RUSH:
             rush[0] = GET_INT_ARG(1);
             rush[1] = GET_INT_ARG(2);
-            strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN);
+            strncpy(rush_names[0], GET_ARG(3), MAX_NAME_LEN - 1);
             rush[2] = GET_INT_ARG(4);
             rush[3] = GET_INT_ARG(5);
-            safe_strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN);
+            strncpy(rush_names[1], GET_ARG(6), MAX_NAME_LEN - 1);
             rush[4] = GET_INT_ARG(7);
             rush[5] = GET_INT_ARG(8);
             break;
@@ -14769,7 +14769,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_MUSIC:
             value = GET_ARG(1);
-            safe_strncpy(string, value, MAX_BUFFER_LEN);
+            strncpy(string, value, MAX_BUFFER_LEN - 1);
             musicOffset = atol(GET_ARG(2));
             if(loadingmusic)
             {
@@ -14828,7 +14828,7 @@ void load_level(char *filename)
             }
             break;
         case CMD_LEVEL_ALPHAMASK:
-            safe_strncpy(maskPath, GET_ARG(1), MAX_BUFFER_LEN);
+            strncpy(maskPath, GET_ARG(1), MAX_BUFFER_LEN - 1);
             break;
         case CMD_LEVEL_BACKGROUND:
         case CMD_LEVEL_BGLAYER:
@@ -15506,7 +15506,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_ALIAS:
             // Alias (name displayed) of entry to be spawned
-            strncpy(next.alias, GET_ARG(1), MAX_NAME_LEN);
+            strncpy(next.alias, GET_ARG(1), MAX_NAME_LEN - 1);
             break;
         case CMD_LEVEL_MAP:
             // Colourmap for new entry
@@ -15572,7 +15572,7 @@ void load_level(char *filename)
             next.item_properties.health = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_ITEMALIAS:
-            strncpy(next.item_properties.alias, GET_ARG(1), MAX_NAME_LEN);
+            strncpy(next.item_properties.alias, GET_ARG(1), MAX_NAME_LEN - 1);
             break;
         case CMD_LEVEL_WEAPON:
             //spawn with a weapon 2007-2-12 by UTunnels
@@ -18518,7 +18518,7 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
                 textbox = e;
             }
 
-            strncpy(e->name, e->modeldata.name, MAX_NAME_LEN);
+            strncpy(e->name, e->modeldata.name, MAX_NAME_LEN - 1);
             // copy back the value
             e->sortid = id;
             e->defense = dfs;
@@ -31946,7 +31946,7 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry)
 
         if(spawn_entry->item_properties.alias[0])
         {
-            safe_strncpy(ent->item_properties->alias, spawn_entry->item_properties.alias, MAX_NAME_LEN);
+            strcpy(ent->item_properties->alias, spawn_entry->item_properties.alias);
         }
 
         if(spawn_entry->item_properties.colorset)
@@ -32007,7 +32007,8 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // Alias?
     if(props->alias[0])
     {
-        safe_strncpy(e->name, props->alias, MAX_NAME_LEN);
+        memset(e->name, 0, sizeof(e->name));
+        strcpy(e->name, props->alias);
     }
 
     // If we have item properties in spawn entry, then prepare a set of
@@ -35093,7 +35094,7 @@ void savelevelinfo()
     save->level = current_level;
     save->stage = current_stage;
     save->which_set = current_set;
-    strncpy(save->dName, set->name, MAX_NAME_LEN);
+    strncpy(save->dName, set->name, MAX_NAME_LEN - 1);
     for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = '\0'; // clear
     for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
 }
@@ -35951,7 +35952,7 @@ int menu_difficulty()
             else if(bonus >= levelsets[selector].ifcomplete)
             {
                 saveslot = selector;
-                safe_strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
+                strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN - 1);
                 newgameMenu = 0;
                 return saveslot;
             }
@@ -36002,7 +36003,7 @@ int menu_difficulty()
             else if(bonus >= levelsets[selector].ifcomplete)
             {
                 saveslot = selector;
-                safe_strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN + 1);
+                strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN - 1);
                 newgameMenu = 0;
                 return saveslot;
             }
@@ -38415,7 +38416,8 @@ void openborMain(int argc, char **argv)
                     int previousLoop = musicloop;
                     char previousMusic[sizeof(currentmusic)];
 
-                    safe_strncpy(previousMusic, currentmusic, sizeof(previousMusic) - 1);
+                    memset(previousMusic, 0, sizeof(previousMusic));
+                    strcpy(previousMusic, currentmusic);
 
                     if(custScenes != NULL)
                     {

@@ -137,8 +137,8 @@ typedef enum
 } a_recstatus;
 
 typedef struct PlayRecStatus {
-  char filename[MAX_ARG_LEN + 1];
-  char path[MAX_ARG_LEN + 1];
+  char filename[MAX_ARG_LEN];
+  char path[MAX_ARG_LEN];
   int status; // 0 = stop / 1 = rec / 2 = play
   int begin;
   u32 starttime;
@@ -1421,7 +1421,7 @@ typedef struct
 typedef struct
 {
     unsigned compatibleversion;
-    char dName[MAX_NAME_LEN + 1]; // Difficulty Name
+    char dName[MAX_NAME_LEN]; // Difficulty Name
     unsigned level; // Level Number
     unsigned stage; // Stage
     unsigned pLives[MAX_PLAYERS]; // Player Lives Left
@@ -1432,7 +1432,7 @@ typedef struct
     unsigned which_set;
     //-------------------new strict save features-----------------------
     int flag; // 0 useless slot 1 only load level number 2 load player info and level
-    char pName[MAX_PLAYERS][MAX_NAME_LEN + 1];   // player names
+    char pName[MAX_PLAYERS][MAX_NAME_LEN];   // player names
     int pSpawnhealth[MAX_PLAYERS];              // hit points left
     int pSpawnmp[MAX_PLAYERS];                  // magic points left
     int pWeapnum[MAX_PLAYERS];                  // weapon
@@ -1440,18 +1440,18 @@ typedef struct
 
     int selectFlag;                             // saved a select.txt infos
     char allowSelectArgs[MAX_ALLOWSELECT_LEN];      // allowselect arguments
-    char selectMusic[MAX_ARG_LEN + 1];          // select music arguments
-    char selectBackground[MAX_ARG_LEN + 1];     // select background arguments
-    char selectLoad[MAX_SELECT_LOADS][MAX_ARG_LEN + 1];           // select load arguments
+    char selectMusic[MAX_ARG_LEN];          // select music arguments
+    char selectBackground[MAX_ARG_LEN];     // select background arguments
+    char selectLoad[MAX_SELECT_LOADS][MAX_ARG_LEN];           // select load arguments
     int selectLoadCount;
-    char selectSkipSelect[MAX_ARG_LEN + 1];     // skipselect arguments
+    char selectSkipSelect[MAX_ARG_LEN];     // skipselect arguments
 } s_savelevel;
 
 typedef struct
 {
     unsigned compatibleversion;
     unsigned highsc[10];
-    char hscoren[10][MAX_NAME_LEN + 1];
+    char hscoren[10][MAX_NAME_LEN];
 } s_savescore;
 
 typedef struct
@@ -2179,7 +2179,7 @@ typedef struct
     int health;                     // int itemhealth; // Now items spawned can have their properties changed
     int index;                      // int itemindex; // item model index
     int player_count;               // int itemplayer_count;
-    char alias[MAX_NAME_LEN + 1];   // char itemalias[MAX_NAME_LEN + 1]; // Now items spawned can have their properties changed
+    char alias[MAX_NAME_LEN];   // char itemalias[MAX_NAME_LEN]; // Now items spawned can have their properties changed
 } s_item_properties;
 
 
@@ -2191,7 +2191,7 @@ typedef struct entity
     e_projectile_prime  projectile_prime;       // If this entity is a projectile, several priming values go here to set up its behavior.
     int                 playerindex;            // Player controlling the entity.
     s_energy_status     energy_status;          // Health and MP.
-    char                name[MAX_NAME_LEN + 1]; // this is display name
+    char                name[MAX_NAME_LEN]; // this is display name
     s_model             *defaultmodel;          // this is the default model
     s_model             *model;                 // current model
     s_model             modeldata;              // model data copied here
@@ -2336,7 +2336,7 @@ typedef struct entity
 
 typedef struct
 {
-    char name[MAX_NAME_LEN + 1];
+    char name[MAX_NAME_LEN];
     int colourmap;
     unsigned score;
     unsigned lives;
@@ -2395,7 +2395,7 @@ typedef struct
     char *item; // must be a name in the model list, so just reference
     s_model *itemmodel;
     s_model *model;
-    char alias[MAX_NAME_LEN + 1];
+    char alias[MAX_NAME_LEN];
     int health[MAX_PLAYERS];
     int mp; // mp's variable for mpbar by tails
     unsigned score; // So score can be overridden for enemies/obstacles
