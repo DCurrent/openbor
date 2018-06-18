@@ -193,7 +193,7 @@ static int findPaks(void)
 					free(copy); copy = NULL;
 				}
 				memset(&filelist[i], 0, sizeof(fileliststruct));
-				safe_strncpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
+				strcpy(filelist[i].filename, ds->d_name);
 				i++;
 			}
 		}
@@ -270,7 +270,7 @@ static s_screen *getPreview(char *filename)
 	scalescreen(scale, title);
 	memcpy(scale->palette, title->palette, PAL_BYTES);
 	// ScreenShots within Menu will be saved as "Menu"
-	strncpy(packfile,"Menu.xxx",128);
+	strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
 	freescreen(&title);
 	return scale;
 }
@@ -609,7 +609,7 @@ static void drawBGMPlayer()
 
 	if(!bgmPlay) bgmCurrent = dListCurrentPosition+dListScrollPosition;
 	if(filename_len < 24)
-		safe_strncpy(bgmListing, filelist[bgmCurrent].filename, strlen(filelist[bgmCurrent].filename)-4);
+		safe_strncpy(bgmListing, filelist[bgmCurrent].filename, strlen(filelist[bgmCurrent].filename) - 4);
 	else
 		safe_strncpy(bgmListing, filelist[bgmCurrent].filename, 24);
 	if(!sound_query_music(a1, t1))

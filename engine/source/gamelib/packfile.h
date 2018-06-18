@@ -40,16 +40,16 @@ typedef struct pnamestruct
     unsigned int pns_len;	    // Length of the struct in bytes
     unsigned int filestart;	    // Start position of referenced file
     unsigned int filesize;	    // Size of referenced file
-    char		 namebuf[MAX_FILENAME_LEN];	// Buffer to hold the file's name
+    char		 namebuf[MAX_BUFFER_LEN];	// Buffer to hold the file's name
 } pnamestruct;
 
 typedef struct fileliststruct
 {
-    char filename[MAX_FILENAME_LEN];
+    char filename[MAX_BUFFER_LEN];
     int nTracks;
-    char bgmFileName[MAX_FILENAME_LEN][MAX_FILENAME_LEN];
+    char bgmFileName[MAX_BUFFER_LEN][MAX_BUFFER_LEN];
     int bgmTrack;
-    unsigned int bgmTracks[MAX_FILENAME_LEN];
+    unsigned int bgmTracks[MAX_BUFFER_LEN];
 #ifdef SDL
     SDL_Surface *preview;
 #elif PSP
