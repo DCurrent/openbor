@@ -10449,7 +10449,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
-                newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife = newanim->projectile.star = newanim->projectile.flash = -1;
+                newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife =
+                                                  newanim->projectile.star = newanim->projectile.boomerang =
+                                                  newanim->projectile.flash = -1;
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = -1;
 
@@ -22779,6 +22781,10 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         if(newmodel->star           <   0)
         {
             newmodel->star          = model->star;
+        }
+        if(newmodel->boomerang      <   0)
+        {
+            newmodel->boomerang     = model->boomerang;
         }
         if(newmodel->flash          <   0)
         {
