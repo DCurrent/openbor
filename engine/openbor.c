@@ -18082,9 +18082,11 @@ void update_frame(entity *ent, unsigned int f)
         // custstar custknife in animation should be checked first
         // then if the entity is jumping, check star first, if failed, try knife instead
         // well, try knife at last, if still failed, try star, or just let if shutdown?
-#define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-#define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
-#define __tryboomerang boomerang_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0)
+
+        #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
+        #define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
+        #define __tryboomerang boomerang_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0)
+
         if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
         {
             __tryknife;
@@ -18101,20 +18103,18 @@ void update_frame(entity *ent, unsigned int f)
         {
             if(!__trystar)
             {
-                __tryknife;
-            }
-            else if(!__tryknife)
-            {
-                __tryboomerang;
+                if(!__tryknife)
+                {
+                    __tryboomerang;
+                }
             }
         }
         else if(!__tryknife)
         {
-            __trystar;
-        }
-        else if(!__trystar)
-        {
-            __tryboomerang;
+            if(!__trystar)
+            {
+                __tryboomerang;
+            }
         }
         self->deduct_ammo = 1;
     }
