@@ -43,6 +43,10 @@ void _usleep(u32 usec);
 #endif
 
 void initSDL();
+#ifdef ANDROID
+char* AndroidRoot(char *relPath);
+extern char rootDir[MAX_BUFFER_LEN];
+#endif
 void borExit(int reset);
 void openborMain(int argc, char** argv);
 

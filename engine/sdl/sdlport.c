@@ -30,7 +30,7 @@
 char packfile[MAX_FILENAME_LEN] = {"bor.pak"};
 #if ANDROID
 #include <unistd.h>
-char rootDir[MAX_BUFFER_LEN] = AndroidRoot;
+char rootDir[MAX_BUFFER_LEN];
 #endif
 char paksDir[MAX_FILENAME_LEN] = {"Paks"};
 char savesDir[MAX_FILENAME_LEN] = {"Saves"};
@@ -48,8 +48,18 @@ void _usleep(u32 usec)
 }
 #endif
 
+#if ANDROID
+char* AndroidRoot(char *relPath)
+{
+	static char filename[256];
+	strcpy(filename, rootDir);
+	strcat(filename, relPath);
+	return filename;
+}
+
 void borExit(int reset)
 {
+#endif
 
 #ifdef GP2X
 	gp2x_end();
@@ -100,7 +110,22 @@ int main(int argc, char *argv[])
 	initSDL();
 
 	packfile_mode(0);
+	
 #ifdef ANDROID
+if(strstr(SDL_AndroidGetExternalStoragePath(), "org.openbor.engine"))
+{
+		strcpy(rootDir, "/mnt/sdcard/OpenBOR/");
+		strcpy(paksDir, "/mnt/sdcard/OpenBOR/Paks");
+		strcpy(savesDir, "/mnt/sdcard/OpenBOR/Saves");
+		strcpy(logsDir, "/mnt/sdcard/OpenBOR/Logs");
+		strcpy(screenShotsDir, "/mnt/sdcard/OpenBOR/ScreenShots");
+} else	{
+		strcpy(rootDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/"));
+		strcpy(paksDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/Paks"));
+		strcpy(savesDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/Saves"));
+		strcpy(logsDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/Logs"));
+		strcpy(screenShotsDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/ScreenShots"));
+		}
 	dirExists(rootDir, 1);
     chdir(rootDir);
 #endif
@@ -108,15 +133,6 @@ int main(int argc, char *argv[])
 	dirExists(savesDir, 1);
 	dirExists(logsDir, 1);
 	dirExists(screenShotsDir, 1);
-
-#ifdef ANDROID
-    if(dirExists("/mnt/usbdrive/OpenBOR/Paks", 0))
-        strcpy(paksDir, "/mnt/usbdrive/OpenBOR/Paks");
-    else if(dirExists("/usbdrive/OpenBOR/Paks", 0))
-        strcpy(paksDir, "/usbdrive/OpenBOR/Paks");
-    else if(dirExists("/mnt/extsdcard/OpenBOR/Paks", 0))
-        strcpy(paksDir, "/mnt/extsdcard/OpenBOR/Paks");
-#endif
 
 	Menu();
 #ifndef SKIP_CODE

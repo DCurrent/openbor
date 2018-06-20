@@ -18,12 +18,6 @@
 #define SCRIPT_LOG 0
 #define OPENBOR_LOG 1
 
-#ifdef ANDROID
-    //msmalik681: this is the root directory needs to be updated to automated process.
-    // example for custom apk #define AndroidRoot "/mnt/sdcard/Android/data/org.openbor.engine/files"
-	#define AndroidRoot "/mnt/sdcard/Openbor"
-#endif
-
 // *** VARIABLE DECLARATIONS ***
 extern char debug_msg[2048];
 extern u32 debug_time;
