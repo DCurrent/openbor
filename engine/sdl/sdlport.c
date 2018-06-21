@@ -51,7 +51,7 @@ void _usleep(u32 usec)
 #if ANDROID
 char* AndroidRoot(char *relPath)
 {
-	static char filename[256];
+	static char filename[MAX_FILENAME_LEN];
 	strcpy(filename, rootDir);
 	strcat(filename, relPath);
 	return filename;
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 	initSDL();
 
 	packfile_mode(0);
-	
+
 #ifdef ANDROID
 if(strstr(SDL_AndroidGetExternalStoragePath(), "org.openbor.engine"))
 {
