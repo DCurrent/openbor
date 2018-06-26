@@ -56,10 +56,10 @@ char* AndroidRoot(char *relPath)
 	strcat(filename, relPath);
 	return filename;
 }
+#endif
 
 void borExit(int reset)
 {
-#endif
 
 #ifdef GP2X
 	gp2x_end();
