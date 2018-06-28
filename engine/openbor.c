@@ -2675,7 +2675,7 @@ void execute_ondoattack_script(entity *ent, entity *other, s_collision_attack *a
         Script_Set_Local_Variant(cs, "self",        &tempvar);
 
         tempvar.ptrVal = (VOID *)other;
-        Script_Set_Local_Variant(cs, "attacker",    &tempvar);
+        Script_Set_Local_Variant(cs, "other",    &tempvar);
 
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
 
