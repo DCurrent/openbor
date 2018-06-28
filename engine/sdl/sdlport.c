@@ -30,7 +30,7 @@
 char packfile[MAX_FILENAME_LEN] = {"bor.pak"};
 #if ANDROID
 #include <unistd.h>
-char rootDir[MAX_BUFFER_LEN];
+char rootDir[MAX_BUFFER_LEN] = {""};
 #endif
 char paksDir[MAX_FILENAME_LEN] = {"Paks"};
 char savesDir[MAX_FILENAME_LEN] = {"Saves"};
@@ -75,14 +75,14 @@ void borExit(int reset)
 int main(int argc, char *argv[])
 {
 #ifndef SKIP_CODE
-	char pakname[MAX_FILENAME_LEN];
+	char pakname[MAX_FILENAME_LEN] = {""};
 #endif
 #ifdef CUSTOM_SIGNAL_HANDLER
 	struct sigaction sigact;
 #endif
 
 #ifdef DARWIN
-	char resourcePath[PATH_MAX];
+	char resourcePath[PATH_MAX] = {""};
 	CFBundleRef mainBundle;
 	CFURLRef resourcesDirectoryURL;
 	mainBundle = CFBundleGetMainBundle();
