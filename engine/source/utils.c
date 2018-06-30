@@ -155,7 +155,7 @@ u32 debug_time = 0;
 void getBasePath(char *newName, char *name, int type)
 {
 #ifndef DC
-    char buf[128] = {""};
+    char buf[MAX_BUFFER_LEN] = {""};
     switch(type)
     {
     case 0:
@@ -165,9 +165,9 @@ void getBasePath(char *newName, char *name, int type)
         COPY_PAKS_PATH(buf, name);
         break;
     }
-    memcpy(newName, buf, sizeof(buf));
+    strcpy(newName, buf);
 #else
-    memcpy(newName, name, 128);
+    strncpy(newName, name, MAX_LABEL_LEN - 1);
 #endif
 }
 
@@ -176,10 +176,10 @@ void getBasePath(char *newName, char *name, int type)
 #ifndef DC
 int dirExists(char *dname, int create)
 {
-    char realName[128] = {""};
+    char realName[MAX_LABEL_LEN] = {""};
     DIR	*fd1 = NULL;
     int  fd2 = -1;
-    memcpy(realName, dname, 128);
+    strncpy(realName, dname, MAX_LABEL_LEN - 1);
     fd1 = opendir(realName);
     if(fd1 != NULL)
     {

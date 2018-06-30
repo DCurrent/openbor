@@ -36,7 +36,7 @@ SDL_Texture *buttons = NULL;
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
 
-char windowTitle[128] = {"OpenBOR"};
+char windowTitle[MAX_LABEL_LEN] = {"OpenBOR"};
 
 int stretch = 1;
 int opengl = 0;
@@ -191,8 +191,9 @@ Code to use touch.txt to displace buttons and set up skin.
 static int setup_touch_txt()
 {
     int pos, i, sdid, t;
-    static char filename[256];
-    static char pakname[256];
+    static char filename[MAX_FILENAME_LEN];
+    static char pakname[MAX_FILENAME_LEN];
+    static char touchfilename[MAX_FILENAME_LEN];
     char *buf, *command, *value;
     size_t size;
     ArgList arglist;
@@ -205,13 +206,14 @@ static int setup_touch_txt()
     size_t pngs;
 
     getPakName(pakname, -1);
-    sprintf(filename, "/mnt/sdcard/OpenBOR/Saves/%s", pakname);
+    sprintf(filename, "%s/%s", savesDir, pakname);
     dirExists(filename, 1);
-    sprintf(filename, "/mnt/sdcard/OpenBOR/Saves/%s/touch.txt", pakname);
+    sprintf(filename, "%s/%s/touch.txt", savesDir, pakname);
+    sprintf(touchfilename, "%s/touch.txt", savesDir);
     // Read file
     if( buffer_pakfile(filename, &buf, &size) != 1 &&
             buffer_pakfile("data/touch.txt", &buf, &size) != 1 &&
-            buffer_pakfile("/mnt/sdcard/OpenBOR/Saves/touch.txt", &buf, &size) != 1)
+            buffer_pakfile(touchfilename, &buf, &size) != 1)
     {
         return 0;
     }

@@ -112,23 +112,31 @@ int main(int argc, char *argv[])
 	packfile_mode(0);
 
 #ifdef ANDROID
-if(strstr(SDL_AndroidGetExternalStoragePath(), "org.openbor.engine"))
-{
-		strcpy(rootDir, "/mnt/sdcard/OpenBOR/");
-		strcpy(paksDir, "/mnt/sdcard/OpenBOR/Paks");
-		strcpy(savesDir, "/mnt/sdcard/OpenBOR/Saves");
-		strcpy(logsDir, "/mnt/sdcard/OpenBOR/Logs");
-		strcpy(screenShotsDir, "/mnt/sdcard/OpenBOR/ScreenShots");
-} else	{
-		strcpy(rootDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/"));
-		strcpy(paksDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/Paks"));
-		strcpy(savesDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/Saves"));
-		strcpy(logsDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/Logs"));
-		strcpy(screenShotsDir, strcat(strdup(SDL_AndroidGetExternalStoragePath()),"/ScreenShots"));
-		}
+    if(strstr(SDL_AndroidGetExternalStoragePath(), "org.openbor.engine"))
+    {
+        strcpy(rootDir, "/mnt/sdcard/OpenBOR/");
+        strcpy(paksDir, "/mnt/sdcard/OpenBOR/Paks");
+        strcpy(savesDir, "/mnt/sdcard/OpenBOR/Saves");
+        strcpy(logsDir, "/mnt/sdcard/OpenBOR/Logs");
+        strcpy(screenShotsDir, "/mnt/sdcard/OpenBOR/ScreenShots");
+    }
+    else
+    {
+        strcpy(rootDir, SDL_AndroidGetExternalStoragePath());
+        strcat(rootDir, "/");
+        strcpy(paksDir, SDL_AndroidGetExternalStoragePath());
+        strcat(paksDir, "/Paks");
+        strcpy(savesDir, SDL_AndroidGetExternalStoragePath());
+        strcat(savesDir, "/Saves");
+        strcpy(logsDir, SDL_AndroidGetExternalStoragePath());
+        strcat(logsDir, "/Logs");
+        strcpy(screenShotsDir, SDL_AndroidGetExternalStoragePath());
+        strcat(screenShotsDir, "/ScreenShots");
+    }
 	dirExists(rootDir, 1);
     chdir(rootDir);
 #endif
+
 	dirExists(paksDir, 1);
 	dirExists(savesDir, 1);
 	dirExists(logsDir, 1);
