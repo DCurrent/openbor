@@ -7,7 +7,7 @@
  *
  * Video.c - adjunct to the main build's video.c.
  * Made by UTunnels (utunnels@hotmail.com).
- * Modifications by CRxTRDude and White Dragon.
+ * Modifications by CRxTRDude, White Dragon and msmalik681.
  */
 
 #include <math.h>

@@ -57,6 +57,8 @@ static s_screen* logscreen;
 #define LOG_SCREEN_TOP 2
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
+#define MAX_MODS_NUM 50
+
 static int bpp = 32;
 static int isWide = 0;
 static int isFull = 0;
@@ -500,9 +502,9 @@ static void drawMenu()
 
 	putscreen(vscreen,bgscreen,0,0,NULL);
 	if(dListTotal < 1) printText((isWide ? 30 : 8), (isWide ? 33 : 24), RED, 0, 0, "No Mods In Paks Folder!");
-	for(list=0; list<dListTotal; list++)
+	for(list = 0; list < dListTotal; list++)
 	{
-		if(list<18)
+		if(list < MAX_MODS_NUM)
 		{
 		    int len = strlen(filelist[list+dListScrollPosition].filename)-4;
 			shift = 0;
@@ -744,6 +746,10 @@ void Menu()
 					drawBGMPlayer();
 					break;
 			}
+
+			#if ANDROID
+                video_copy_screen(vscreen);
+			#endif
 		}
 		freeAllLogs();
 		termMenu();
