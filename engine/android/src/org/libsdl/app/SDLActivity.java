@@ -291,6 +291,22 @@ public class SDLActivity extends Activity {
         }
     }
 
+    //White Dragon: add vibrator
+    public static native int getTouchVibration(float x, float y);
+    public static boolean isVibration(int action, float x, float y) {
+        int vibratorNativeFlag;
+
+        if (action != MotionEvent.ACTION_DOWN) return false;
+
+        vibratorNativeFlag = getTouchVibration(x, y);
+
+        //Toast.makeText(getContext().getApplicationContext(), "TEST: "+vibratorNativeFlag, Toast.LENGTH_LONG).show();
+        if (vibratorNativeFlag != 0) {
+            return true;
+        }
+
+        return false;
+    }
 
     //White Dragon: disable navigation bar
     private void hideSystemUI() {
@@ -312,27 +328,27 @@ public class SDLActivity extends Activity {
     private void CopyPak(){
         try {
             Context ctx = getContext();
-            Context context = getApplicationContext();
+            Context apCtx = getApplicationContext();
             String version = null;
             String toast = null;
 
-            version = context.getPackageManager().getPackageInfo(context.getPackageName(),0).versionName; //get version number as string
+            version = apCtx.getPackageManager().getPackageInfo(apCtx.getPackageName(),0).versionName; //get version number as string
 
-            //Toast.makeText(context,context.getPackageName().toString(), Toast.LENGTH_LONG).show();
+            //Toast.makeText(apCtx,apCtx.getPackageName().toString(), Toast.LENGTH_LONG).show();
             File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
 			File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");  //Default ouput folder
             File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
 
-            if(context.getPackageName().equals("org.openbor.engine")) {
+            if(apCtx.getPackageName().equals("org.openbor.engine")) {
                 if (!outFolderDefault.isDirectory()) {
                     outFolderDefault.mkdirs();
                     toast = "Folder: ("+outFolderDefault+") is empty!";
-                    Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                    Toast.makeText(apCtx,toast, Toast.LENGTH_LONG).show();
                 } else {
                     String[] files = outFolderDefault.list();
                     if (files.length == 0) {
                         toast = "Paks Folder: ("+outFolderDefault+") is empty!";
-                        Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                        Toast.makeText(apCtx,toast, Toast.LENGTH_LONG).show();
                         //directory is empty
                     }
                 }
@@ -348,10 +364,10 @@ public class SDLActivity extends Activity {
                 }
 
                 if(!outFile.exists()) {
-                    Toast.makeText(context,toast, Toast.LENGTH_LONG).show();
+                    Toast.makeText(apCtx,toast, Toast.LENGTH_LONG).show();
                     outFolder.mkdirs();
 
-                    int resId = context.getResources().getIdentifier("raw/bor", null, context.getPackageName());
+                    int resId = apCtx.getResources().getIdentifier("raw/bor", null, apCtx.getPackageName());
                     InputStream in = getResources().openRawResource(resId);
                     FileOutputStream out = new FileOutputStream(outFile);
 
@@ -1725,6 +1741,24 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                         p = 1.0f;
                     }
                     SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
+
+                    //White Dragon: add vibrator
+                    if ( SDLActivity.isVibration(action, x, y) ) {
+                        int vibrationTime = 3;
+                        Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
+                        if (vibrator.hasVibrator()) {
+                            // Start without a delay
+                            // Vibrate for 3 milliseconds
+                            // Sleep for 1000 milliseconds
+                            long[] pattern = {0, vibrationTime, 1000};
+                            // The '0' here means to repeat indefinitely
+                            // '0' is actually the index at which the pattern keeps repeating from (the start)
+                            // To repeat the pattern from any other point, you could increase the index, e.g. '1'
+                            // The '-1' here means to vibrate once, as '-1' is out of bounds in the pattern array
+                            vibrator.vibrate(pattern, -1);
+                        }
+                    }
+
                     break;
 
                 case MotionEvent.ACTION_CANCEL:

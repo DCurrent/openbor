@@ -31,7 +31,6 @@ int sdl_game_started  = 0;
 extern int nativeWidth;
 extern int nativeHeight;
 static TouchStatus touch_info;
-void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def);
 extern int touch_default_keys[MAX_BTN_NUM];
 extern s_playercontrols touch_control;
 #endif
@@ -434,6 +433,15 @@ int control_usejoy(int enable)
 	return 0;
 }
 
+#if ANDROID
+/*
+Get if touchscreen vibration is active
+*/
+int is_touchpad_vibration_enabled()
+{
+	return savedata.is_touchpad_vibration_enabled;
+}
+#endif
 
 /*
 Only used in openbor.c to get current status
@@ -470,6 +478,7 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keys
 	float dirx, diry, circlea, circleb, tan;
 
 	memset(touchstates, 0, sizeof(touchstates));
+
 	for(j=0; j<MAXTOUCHB; j++)
 	{
 		r[j] = br[j]*br[j]*(1.5*1.5);
@@ -495,34 +504,60 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keys
 			{
 				tan = ty/tx;
 				if(tan>=-tana && tan<=tana)
+                {
 					touchstates[SDID_MOVELEFT] = 1;
+				}
 				else if(tan<-tanb)
+                {
 					touchstates[SDID_MOVEDOWN] = 1;
+				}
 				else if(tan>tanb)
+				{
 					touchstates[SDID_MOVEUP] = 1;
+				}
 				else if(ty<0)
+				{
 					touchstates[SDID_MOVEUP] = touchstates[SDID_MOVELEFT] = 1;
+				}
 				else
+				{
 					touchstates[SDID_MOVELEFT] = touchstates[SDID_MOVEDOWN] = 1;
+                }
 			}
 			else if(tx>0)
 			{
 				tan = ty/tx;
 				if(tan>=-tana && tan<=tana)
+                {
 					touchstates[SDID_MOVERIGHT] = 1;
+				}
 				else if(tan<-tanb)
+				{
 					touchstates[SDID_MOVEUP] = 1;
+				}
 				else if(tan>tanb)
+                {
 					touchstates[SDID_MOVEDOWN] = 1;
+				}
 				else if(ty<0)
+                {
 					touchstates[SDID_MOVEUP] = touchstates[SDID_MOVERIGHT] = 1;
+				}
 				else
+                {
 					touchstates[SDID_MOVERIGHT] = touchstates[SDID_MOVEDOWN] = 1;
+                }
 			}
 			else
 			{
-				if(ty>0) touchstates[SDID_MOVEDOWN] = 1;
-				else touchstates[SDID_MOVEUP] = 1;
+				if(ty>0)
+				{
+                    touchstates[SDID_MOVEDOWN] = 1;
+				}
+				else
+				{
+				    touchstates[SDID_MOVEUP] = 1;
+                }
 			}
 		}
 		//rest buttons
@@ -534,7 +569,10 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keys
 			tx = touch_info->px[i]-bx[j];
 			ty = touch_info->py[i]-by[j];
 			tr = tx*tx + ty*ty;
-			if(tr<=r[j]) touchstates[j] = 1;
+			if(tr<=r[j])
+            {
+                touchstates[j] = 1;
+            }
 		}
 	}
 	#undef tana
@@ -574,6 +612,8 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keys
     keystate_def[touch_default_keys[SDID_SCREENSHOT]] = touchstates[SDID_SCREENSHOT];
 
     keystate[CONTROL_ESC] = keystate_def[CONTROL_ESC] = touchstates[SDID_ESC];
+
+    return;
 }
 #endif
 

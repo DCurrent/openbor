@@ -3218,6 +3218,10 @@ void clearsettings()
     savedata.overscan[3] = 0;
 #endif
 
+#ifdef ANDROID
+    savedata.is_touchpad_vibration_enabled = 0;
+#endif
+
     for (i = 0; i < MAX_PLAYERS; i++)
     {
         clearbuttons(i);
@@ -36804,6 +36808,11 @@ void menu_options_input()
     int quit = 0;
     int selector = 1; // 0
     int x_pos = -6;
+    #if ANDROID
+    int OPTIONS_NUM = 6;
+    #elif
+    int OPTIONS_NUM = 5;
+    #endif
 
     controloptionsMenu = 1;
     bothnewkeys = 0;
@@ -36833,7 +36842,7 @@ void menu_options_input()
 #else
         if(savedata.usejoy)
         {
-            _menutext((selector == 0),  x_pos, -2, Tr("GamePads Enabled"));
+            _menutext((selector == 0), x_pos, -2, Tr("GamePads Enabled"));
             if(!control_getjoyenabled())
             {
                 _menutext((selector == 0), x_pos+11, -2, Tr(" - Device Not Ready"));
@@ -36841,7 +36850,7 @@ void menu_options_input()
         }
         else
         {
-            _menutext((selector == 0),  x_pos, -2, Tr("GamePads Disabled"));
+            _menutext((selector == 0), x_pos, -2, Tr("GamePads Disabled"));
         }
 #endif
 
@@ -36849,7 +36858,20 @@ void menu_options_input()
         _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
         _menutext((selector == 3), x_pos, 1, Tr("Setup Player 3..."));
         _menutext((selector == 4), x_pos, 2, Tr("Setup Player 4..."));
+        #if ANDROID
+        if(savedata.is_touchpad_vibration_enabled)
+        {
+            _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Enabled"));
+        }
+        else
+        {
+            _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Disabled"));
+        }
+        _menutextm((selector == 6), 6, 0, Tr("Back"));
+        #elif
         _menutextm((selector == 5), 5, 0, Tr("Back"));
+        #endif
+
         update((level != NULL), 0);
 
         if(bothnewkeys & FLAG_ESC)
@@ -36874,9 +36896,9 @@ void menu_options_input()
         }
         if(selector < 0)
         {
-            selector = 5;
+            selector = OPTIONS_NUM;
         }
-        if(selector > 5)
+        if(selector > OPTIONS_NUM)
         {
             selector = 0;
         }
@@ -36905,6 +36927,11 @@ void menu_options_input()
             case 4:
                 keyboard_setup(3);
                 break;
+            #if ANDROID
+            case 5:
+                savedata.is_touchpad_vibration_enabled ^= 1;
+                break;
+            #endif
             default:
                 quit = (bothnewkeys & FLAG_ANYBUTTON);
             }

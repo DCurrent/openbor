@@ -52,7 +52,9 @@ typedef struct
     int overscan[4]; // Control TV Overscan
     int usetv; // Initilize TV at bootup
 #endif
-
+#if ANDROID
+    int is_touchpad_vibration_enabled;
+#endif
 } s_savedata;
 
 extern s_savedata     savedata;

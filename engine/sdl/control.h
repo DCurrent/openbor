@@ -133,7 +133,6 @@
 #define SDL_JoystickName(x) SDL_JoystickName(joystick[x])
 #endif
 
-
 typedef struct{
 	int		settings[JOY_MAX_INPUTS];
 	u64		keyflags, newkeyflags;
@@ -166,6 +165,8 @@ typedef struct TouchStatus {
     SDL_FingerID pid[MAX_POINTERS];
     touch_status pstatus[MAX_POINTERS];
 } TouchStatus;
+
+void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def);
 #endif
 
 
