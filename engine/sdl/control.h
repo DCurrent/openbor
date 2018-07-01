@@ -167,6 +167,7 @@ typedef struct TouchStatus {
 } TouchStatus;
 
 void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def);
+int is_touch_area(float x, float y);
 #endif
 
 
