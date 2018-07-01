@@ -27,6 +27,11 @@
 
          -->
     <property file="ant.properties" />
+	
+	<!-- compilation options -->
+	<!--<property name="java.compilerargs" value="-Xlint:-options" />-->
+	<property name="java.target" value="1.6" />
+	<property name="java.source" value="1.6" />
 
     <!-- if sdk.dir was not set from one of the property file, then
          get it from the ANDROID_HOME env var.
