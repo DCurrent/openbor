@@ -16,6 +16,12 @@ extern float br[MAXTOUCHB];
 extern int nativeWidth;
 extern int nativeHeight;
 
+extern "C" JNIEXPORT jint JNICALL Java_org_libsdl_app_SDLActivity_isNativeVibrationEnabled(JNIEnv* env, jobject obj)
+{
+    return is_touchpad_vibration_enabled();
+}
+
+
 extern "C" JNIEXPORT jint JNICALL Java_org_libsdl_app_SDLActivity_isTouchArea(JNIEnv* env, jobject obj, jfloat x, jfloat y)
 {
     return is_touch_area(x*nativeWidth, y*nativeHeight);
