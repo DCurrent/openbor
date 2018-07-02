@@ -37,7 +37,7 @@ FPSmanager framerate_manager;
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
 int yuv_mode = 0;
-char windowTitle[128] = {"OpenBOR"};
+char windowTitle[MAX_LABEL_LEN] = {"OpenBOR"};
 int stretch = 0;
 int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
@@ -46,7 +46,7 @@ int brightness = 0;
 void initSDL()
 {
 	SDL_DisplayMode video_info;
-	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
+	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC;
 
     /*#if EE_CURRENT_PLATFORM == EE_PLATFORM_WINDOWS
        SDL_setenv("SDL_AUDIODRIVER", "directsound", true);

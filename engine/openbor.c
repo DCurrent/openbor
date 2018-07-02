@@ -36810,7 +36810,7 @@ void menu_options_input()
     int x_pos = -6;
     #if ANDROID
     int OPTIONS_NUM = 6;
-    #elif
+    #else
     int OPTIONS_NUM = 5;
     #endif
 
@@ -36821,7 +36821,7 @@ void menu_options_input()
     {
         _menutextm(2, x_pos-1, 0, Tr("Control Options"));
 
-#if PSP
+        #if PSP
         if(savedata.usejoy)
         {
             _menutext((selector == 0), -4, -2, Tr("Analog Pad Enabled"));
@@ -36830,7 +36830,7 @@ void menu_options_input()
         {
             _menutext((selector == 0), -4, -2, Tr("Analog Pad Disabled"));
         }
-#elif WII
+        #elif WII
         if(savedata.usejoy)
         {
             _menutext((selector == 0), -4, -2, Tr("Nunchuk Analog Enabled"));
@@ -36839,7 +36839,7 @@ void menu_options_input()
         {
             _menutext((selector == 0), -4, -2, Tr("Nunchuk Analog Disabled"));
         }
-#else
+        #else
         if(savedata.usejoy)
         {
             _menutext((selector == 0), x_pos, -2, Tr("GamePads Enabled"));
@@ -36852,7 +36852,7 @@ void menu_options_input()
         {
             _menutext((selector == 0), x_pos, -2, Tr("GamePads Disabled"));
         }
-#endif
+        #endif
 
         _menutext((selector == 1), x_pos,-1, Tr("Setup Player 1..."));
         _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
@@ -36868,7 +36868,7 @@ void menu_options_input()
             _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Disabled"));
         }
         _menutextm((selector == 6), 6, 0, Tr("Back"));
-        #elif
+        #else
         _menutextm((selector == 5), 5, 0, Tr("Back"));
         #endif
 

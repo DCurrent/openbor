@@ -19,11 +19,12 @@
 #define T_AXIS 7000
 #define TIMESTAMP_PATTERN "%Y-%m-%d %H:%M:%S"
 
-SDL_Joystick *joystick[JOY_LIST_TOTAL]; // SDL struct for joysticks
-static int usejoy;						// To be or Not to be used?
-static int numjoy;						// Number of Joy(s) found
-static int lastkey;						// Last keyboard key Pressed
-static int lastjoy;                     // Last joystick button/axis/hat input
+SDL_Joystick *joystick[JOY_LIST_TOTAL];         // SDL struct for joysticks
+SDL_Haptic *joystick_haptic[JOY_LIST_TOTAL];   // SDL haptic for joysticks
+static int usejoy;						        // To be or Not to be used?
+static int numjoy;						        // Number of Joy(s) found
+static int lastkey;						        // Last keyboard key Pressed
+static int lastjoy;                             // Last joystick button/axis/hat input
 
 int sdl_game_started  = 0;
 
@@ -229,12 +230,13 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				}
 				break;
 
+            // PLUG AND PLAY
             case SDL_JOYDEVICEADDED:
                 if (ev.jdevice.which < JOY_LIST_TOTAL)
                 {
                     int i = ev.jdevice.which;
                     char buffer[26];
-                    joystick[i] = SDL_JoystickOpen(i);
+                    open_joystick(i);
                     get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
                     printf("Joystick connected at port: %d at %s\n",i,buffer);
                 }
@@ -247,7 +249,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     if(joystick[i])
                     {
                         char buffer[26];
-                        SDL_JoystickClose(joystick[i]);
+                        close_joystick(i);
                         get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
                         printf("Joystick disconnected from port: %d at %s\n",i,buffer);
                     }
@@ -322,7 +324,7 @@ types, defaults and keynames.
 */
 void joystick_scan(int scan)
 {
-	int i, j, k;
+	int i;
 
 	if(!scan) return;
 
@@ -340,43 +342,63 @@ void joystick_scan(int scan)
 
 	if (numjoy > JOY_LIST_TOTAL) numjoy = JOY_LIST_TOTAL; // avoid overflow bug
 
-	for(i=0, k=0; i<numjoy; i++, k+=JOY_MAX_INPUTS)
+	for(i = 0; i < numjoy; i++)
 	{
-		joystick[i] = SDL_JoystickOpen(i);
-		joysticks[i].NumHats = SDL_JoystickNumHats(joystick[i]);
-		joysticks[i].NumAxes = SDL_JoystickNumAxes(joystick[i]);
-		joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
-
-		joysticks[i].Name = SDL_JoystickName(i);
-
-#if GP2X
-		joysticks[i].Type = JOY_TYPE_GAMEPARK;
-		for(j=0; j<JOY_MAX_INPUTS+1; j++)
-		{
-			if(j) joysticks[i].KeyName[j] = GameparkKeyName[j + k];
-			else joysticks[i].KeyName[j] = GameparkKeyName[j];
-		}
-#else
-		//SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
-		for(j=1; j<JOY_MAX_INPUTS+1; j++)
-		{
-			joysticks[i].KeyName[j] = PC_GetJoystickKeyName(i, j);
-		}
-#endif
-		if(scan != 2)
-		{
-			if(numjoy == 1) printf("%s - %d axes, %d buttons, %d hat(s)\n",
-									joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
-			else if(numjoy > 1)
-			{
-				if(i) printf("                                "); // print JOY_MAX_INPUTS (32) spaces for alignment
-				printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1,
-						joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
-			}
-		}
+        open_joystick(i);
 	}
+
+    if(scan != 2)
+    {
+        if(numjoy == 1) printf("%s - %d axes, %d buttons, %d hat(s)\n",
+                                joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
+        else if(numjoy > 1)
+        {
+            if(i) printf("                                "); // print JOY_MAX_INPUTS (32) spaces for alignment
+            printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1,
+                    joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
+        }
+    }
 }
 
+/*
+Open a single joystick
+*/
+void open_joystick(int i)
+{
+    int j;
+
+    joystick[i] = SDL_JoystickOpen(i);
+    joysticks[i].NumHats = SDL_JoystickNumHats(joystick[i]);
+    joysticks[i].NumAxes = SDL_JoystickNumAxes(joystick[i]);
+    joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
+
+    joysticks[i].Name = SDL_JoystickName(i);
+
+    joystick_haptic[i] = SDL_HapticOpenFromJoystick(joystick[i]);
+    if (joystick_haptic[i] != NULL)
+    {
+        //Get initialize rumble
+        if( SDL_HapticRumbleInit( joystick_haptic[i] ) < 0 )
+        {
+            printf("\nWarning: Unable to initialize rumble for joystick: %s in port: %d! SDL Error: %s\n", joysticks[i].Name, i, SDL_GetError());
+        }
+    }
+
+    #if GP2X
+    joysticks[i].Type = JOY_TYPE_GAMEPARK;
+    for(j = 0; j < JOY_MAX_INPUTS+1; j++)
+    {
+        if(j) joysticks[i].KeyName[j] = GameparkKeyName[j + JOY_MAX_INPUTS * i];
+        else joysticks[i].KeyName[j] = GameparkKeyName[j];
+    }
+    #else
+    //SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
+    for(j = 1; j < JOY_MAX_INPUTS + 1; j++)
+    {
+        joysticks[i].KeyName[j] = PC_GetJoystickKeyName(i, j);
+    }
+    #endif
+}
 
 /*
 Reset All data back to Zero and
@@ -386,13 +408,24 @@ void control_exit()
 {
 	int i;
 	usejoy = 0;
-	for(i=0; i<numjoy; i++){
-		if(joystick[i]) SDL_JoystickClose(joystick[i]);
+	for(i = 0; i < numjoy; i++)
+    {
+		close_joystick(i);
 	}
 	memset(joystick, 0, sizeof(joystick));
 	memset(joysticks, 0, sizeof(joysticks));
 }
 
+/*
+Reset single joystick
+*/
+void close_joystick(int i)
+{
+	if(joystick[i]) SDL_JoystickClose(joystick[i]);
+	if(joystick_haptic[i]) SDL_HapticClose(joystick_haptic[i]);
+	joystick[i] = NULL;
+	memset(&joysticks[i], 0, sizeof(joysticks[i]));
+}
 
 /*
 Create default values for joysticks if enabled.
@@ -843,5 +876,8 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 void control_rumble(int port, int msec)
 {
+    #if SDL
+
+    #endif
 }
 

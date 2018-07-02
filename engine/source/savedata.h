@@ -28,6 +28,7 @@ typedef struct
     int mode; // Mode now saves
     int windowpos;
     int keys[MAX_PLAYERS][MAX_BTN_NUM];
+    int joyrumble[MAX_PLAYERS];
     int showtitles;
     int videoNTSC;
     int swfilter; // Software scaling filter

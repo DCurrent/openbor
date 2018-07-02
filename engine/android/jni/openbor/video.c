@@ -52,7 +52,7 @@ int brightness = 0;
 void initSDL()
 {
     SDL_DisplayMode mode;
-    int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK;
+    int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC;
     const char *var = SDL_getenv("SDL_VIDEO_FULLSCREEN_DISPLAY");
     int vm;
 
