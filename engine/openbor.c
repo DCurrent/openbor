@@ -36699,11 +36699,11 @@ void keyboard_setup(int player)
         ++voffset;
         if(savedata.joyrumble[player])
         {
-            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Vibration Enabled"));
+            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Rumble Enabled"));
         }
         else
         {
-            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Vibration Disabled"));
+            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Rumble Disabled"));
         }
         #endif
 
