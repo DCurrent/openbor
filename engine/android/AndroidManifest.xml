@@ -2,11 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="org.openbor.engine"
       android:versionCode="1"
-      android:versionName="1.4.3"
+      android:versionName="1.4.4"
       android:installLocation="preferExternal">
 
-    <!-- Android 4.4.2 -->
-    <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="19" />
+    <!-- Android 4.4.2 / 8.0.0 -->
+    <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="26" />
 
     <!-- OpenGL ES 2.0 -->
     <uses-feature android:glEsVersion="0x00020000" />
