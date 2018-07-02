@@ -36695,7 +36695,7 @@ void keyboard_setup(int player)
                 voffset++;
             }
         }
-        #if SDL || WII
+        #if SDL || WII || DC
         ++voffset;
         if(savedata.joyrumble[player])
         {
@@ -36770,7 +36770,7 @@ void keyboard_setup(int player)
                 while(disabledkey[selector]) if(++selector > btnnum - 1) break;
             }
 
-            #if SDL || WII
+            #if SDL || WII || DC
             if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
             #else
             if(bothnewkeys & (FLAG_ANYBUTTON))
@@ -36779,7 +36779,7 @@ void keyboard_setup(int player)
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                #if SDL || WII
+                #if SDL || WII || DC
                 if (selector != OPTIONS_NUM - 3 &&
                     bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
 
