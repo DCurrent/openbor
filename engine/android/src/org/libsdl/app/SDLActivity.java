@@ -292,16 +292,17 @@ public class SDLActivity extends Activity {
     }
 
     //White Dragon: add vibrator
-    public static native int getTouchVibration(float x, float y);
-    public static boolean isVibration(int action, float x, float y) {
-        int vibratorNativeFlag;
+    public static native int isTouchArea(float x, float y);
+    public static boolean isTouchArea(int action, float x, float y) {
+        int isTouchAreaFlag;
 
-        if (action != MotionEvent.ACTION_DOWN) return false;
+        if (action != MotionEvent.ACTION_DOWN &&
+            action != MotionEvent.ACTION_POINTER_DOWN) return false;
 
-        vibratorNativeFlag = getTouchVibration(x, y);
+        isTouchAreaFlag = isTouchArea(x, y);
 
-        //Toast.makeText(getContext().getApplicationContext(), "TEST: "+vibratorNativeFlag, Toast.LENGTH_LONG).show();
-        if (vibratorNativeFlag != 0) {
+        //Toast.makeText(getContext().getApplicationContext(), "TEST: "+isTouchAreaFlag, Toast.LENGTH_LONG).show();
+        if (isTouchAreaFlag != 0) {
             return true;
         }
 
@@ -1743,7 +1744,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
 
                     //White Dragon: add vibrator
-                    if ( SDLActivity.isVibration(action, x, y) ) {
+                    if ( SDLActivity.isTouchArea(action, x, y) ) {
                         int vibrationTime = 3;
                         Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
                         if (vibrator.hasVibrator()) {
