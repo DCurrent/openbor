@@ -151,7 +151,7 @@ int control_scankey();
 
 char *control_getkeyname(unsigned int keycode);
 void control_update(s_playercontrols ** playercontrols, int numplayers);
-void control_rumble(int port, int msec);
+void control_rumble(int port, int ratio, int msec);
 int keyboard_getlastkey();
 
 #ifdef ANDROID
@@ -161,6 +161,7 @@ typedef enum
     TOUCH_STATUS_UP,
     TOUCH_STATUS_DOWN
 } touch_status;
+
 typedef struct TouchStatus {
     float px[MAX_POINTERS];
     float py[MAX_POINTERS];

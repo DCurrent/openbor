@@ -236,7 +236,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	if (hwbutton) respondToPowerReset();
 }
 
-void control_rumble(int port, int msec)
+void control_rumble(int port, int ratio, int msec)
 {
 	WPADData *wpad;
 	wpad = WPAD_Data(port);

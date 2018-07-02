@@ -107,7 +107,7 @@ void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key);
 int control_scankey();
 char* control_getkeyname(unsigned int keycode);
 void control_update(s_playercontrols ** playercontrols, int numplayers);
-void control_rumble(int port, int msec);
+void control_rumble(int port, int ratio, int msec);
 unsigned long getPad(int port);
 
 #endif

@@ -3071,6 +3071,8 @@ void execute_pdie_script(int index)
 
 void clearbuttons(int player)
 {
+    savedata.joyrumble[player] = 0;
+
     if (player == 0)
     {
         savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
@@ -3198,29 +3200,29 @@ void clearsettings()
     savedata.fullscreen = 0;
     savedata.stretch = 0;
 
-#ifdef SDL
-    savedata.usegl = 1;
-    savedata.hwfilter = 1;
-#ifdef ANDROID
-    savedata.hwscale = 0.0;
-#else
-    savedata.hwscale = 1.0;
-#endif
-#endif
-
     savedata.swfilter = 0;
 
-#ifdef PSP
+    #ifdef SDL
+    savedata.usegl = 1;
+    savedata.hwfilter = 1;
+        #ifdef ANDROID
+        savedata.hwscale = 0.0;
+        #else
+        savedata.hwscale = 1.0;
+        #endif
+    #endif
+
+    #ifdef PSP
     savedata.pspcpuspeed = 2;
     savedata.overscan[0] = 0;
     savedata.overscan[1] = 0;
     savedata.overscan[2] = 0;
     savedata.overscan[3] = 0;
-#endif
+    #endif
 
-#ifdef ANDROID
+    #ifdef ANDROID
     savedata.is_touchpad_vibration_enabled = 0;
-#endif
+    #endif
 
     for (i = 0; i < MAX_PLAYERS; i++)
     {
@@ -20516,11 +20518,11 @@ void check_gravity(entity *e)
                     }
                     if(self->modeldata.type & TYPE_PLAYER)
                     {
-                        control_rumble(self->playerindex, 100 * (int)self->velocity.y / 2);
+                        if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, 100 * (int)self->velocity.y / 2);
                     }
                     for(i = 0; i < MAX_PLAYERS; i++)
                     {
-                        control_rumble(i, 75 * (int)self->velocity.y / 2);
+                        if (savedata.joyrumble[i]) control_rumble(i, 1, 75 * (int)self->velocity.y / 2);
                     }
                 }
                 else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
@@ -24235,7 +24237,7 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     {
         // Added obstacle so explosions can hurt enemies
         addscore(opp->playerindex, attack->attack_force * self->modeldata.multiple);  // New multiple variable
-        control_rumble(opp->playerindex, attack->attack_force * 2);
+        if (savedata.joyrumble[opp->playerindex]) control_rumble(opp->playerindex, 1, attack->attack_force * 2);
     }
     // Don't animate or fall if hurt by self, since
     // it means self fell to the ground already. :)
@@ -24536,7 +24538,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 
     if(self->modeldata.type & TYPE_PLAYER)
     {
-        control_rumble(self->playerindex, attack->attack_force * 3);
+        if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, attack->attack_force * 3);
     }
     if(self->position.y <= PIT_DEPTH && self->dead)
     {
@@ -24637,7 +24639,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         }
         if(self->modeldata.type & TYPE_PLAYER)
         {
-            control_rumble(self->playerindex, attack->attack_force * 3);
+            if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, attack->attack_force * 3);
         }
     }
     else if(attack->grab && !attack->no_pain)
@@ -28690,7 +28692,7 @@ void player_die()
         execute_respawn_script(playerindex);
         if(!nodropen)
         {
-            control_rumble(playerindex, 125);
+            if (savedata.joyrumble[playerindex]) control_rumble(playerindex, 1, 125);
             drop_all_enemies();
         }
     }
@@ -31769,7 +31771,7 @@ void bike_crash()
     }
     for(i = 0; i < levelsets[current_set].maxplayers; i++)
     {
-        control_rumble(i, 100);
+        if (savedata.joyrumble[i]) control_rumble(i, 1, 100);
     }
     //if(self->position.x < advancex-100 || self->position.x > advancex+(videomodes.hRes+100)) kill(self);
 }
@@ -31877,7 +31879,7 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag
     set_opponent(other, self);
     if(self->opponent && (self->opponent->modeldata.type & TYPE_PLAYER))
     {
-        control_rumble(self->opponent->playerindex, 75);
+        if (savedata.joyrumble[self->opponent->playerindex]) control_rumble(self->opponent->playerindex, 1, 75);
     }
     checkdamage(other, attack);
     self->playerindex = other->playerindex;    // Added so points go to the correct player
@@ -36614,6 +36616,11 @@ void keyboard_setup(int player)
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
+    #if SDL
+    int OPTIONS_NUM = btnnum + 3;
+    #else
+    int OPTIONS_NUM = btnnum + 2;
+    #endif
 
     printf("Loading control settings.......\t");
 
@@ -36673,10 +36680,7 @@ void keyboard_setup(int player)
         }
     }
 
-    while(disabledkey[selector]) if(++selector > btnnum-1)
-    {
-        break;
-    }
+    while(disabledkey[selector]) if(++selector > btnnum - 1) break;
 
     while(!quit)
     {
@@ -36691,9 +36695,21 @@ void keyboard_setup(int player)
                 voffset++;
             }
         }
-        _menutextm((selector == btnnum), ++voffset, 0, Tr("OK"));
-        _menutextm((selector == btnnum+1), ++voffset, 0, Tr("Cancel"));
-        _menutextm((selector == btnnum+2), ++voffset, 0, Tr("Default"));
+        #if SDL || WII
+        ++voffset;
+        if(savedata.joyrumble[player])
+        {
+            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Vibration Enabled"));
+        }
+        else
+        {
+            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Vibration Disabled"));
+        }
+        #endif
+
+        _menutextm((selector == OPTIONS_NUM - 2), ++voffset, 0, Tr("OK"));
+        _menutextm((selector == OPTIONS_NUM - 1), ++voffset, 0, Tr("Cancel"));
+        _menutextm((selector == OPTIONS_NUM), ++voffset, 0, Tr("Default"));
         update((level != NULL), 0);
 
         if(setting > -1)
@@ -36739,38 +36755,50 @@ void keyboard_setup(int player)
             {
                 do
                 {
-                    if(++selector > btnnum-1)
-                    {
-                        break;
-                    }
+                    if(++selector > btnnum - 1) break;
                 }
                 while(disabledkey[selector]);
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             if(selector < 0)
             {
-                selector = btnnum+2;
+                selector = OPTIONS_NUM;
             }
-            if(selector > btnnum+2)
+            if(selector > OPTIONS_NUM)
             {
                 selector = 0;
-                while(disabledkey[selector]) if(++selector > btnnum-1)
-                    {
-                        break;
-                    }
+                while(disabledkey[selector]) if(++selector > btnnum - 1) break;
             }
-            if(bothnewkeys & FLAG_ANYBUTTON)
+
+            #if SDL || WII
+            if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+            #else
+            if(bothnewkeys & (FLAG_ANYBUTTON))
+            #endif
+            if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-                if(selector == btnnum)
+
+                #if SDL || WII
+                if (selector != OPTIONS_NUM - 3 &&
+                    bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
+
+                if(selector == OPTIONS_NUM - 3)
+                {
+                    savedata.joyrumble[player] ^= 1;
+                }
+                else if(selector == OPTIONS_NUM - 2) // OK
+                #else
+                if(selector == OPTIONS_NUM - 2) // OK
+                #endif
                 {
                     quit = 2;
                 }
-                else if(selector == btnnum+1)
+                else if(selector == OPTIONS_NUM - 1) // cancel
                 {
                     quit = 1;
                 }
-                else if(selector == btnnum+2)
+                else if(selector == OPTIONS_NUM) // default
                 {
                     clearbuttons(player);
                 }
@@ -36779,9 +36807,9 @@ void keyboard_setup(int player)
                     setting = selector;
                     ok = savedata.keys[player][setting];
                     savedata.keys[player][setting] = 0;
-#ifndef DC
+                    #ifndef DC
                     keyboard_getlastkey();
-#endif
+                    #endif
                 }
             }
         }

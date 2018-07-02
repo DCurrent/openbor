@@ -874,10 +874,15 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	}
 }
 
-void control_rumble(int port, int msec)
+void control_rumble(int port, int ratio, int msec)
 {
     #if SDL
-
+    if (joystick_haptic[port] != NULL) {
+        if( SDL_HapticRumblePlay(joystick_haptic[port], ratio, msec) != 0 )
+        {
+            //printf( "Warning: Unable to play rumble! %s\n", SDL_GetError() );
+        }
+    }
     #endif
 }
 
