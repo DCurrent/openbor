@@ -1756,7 +1756,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
 
                     //White Dragon: vibrator
-                    if ( SDLActivity.isTouchArea(action, x, y) && SDLActivity.isVibrationEnabled() ) {
+                    if ( SDLActivity.isVibrationEnabled() && SDLActivity.isTouchArea(action, x, y) ) {
                         int vibrationTime = 3;
                         Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
                         if (vibrator.hasVibrator()) {
