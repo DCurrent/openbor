@@ -477,7 +477,7 @@ int searchList(const char *list[], const char *value, int length)
 char *commaprint(u64 n)
 {
     static int comma = '\0';
-    static char retbuf[64];
+    static char retbuf[32];
     char *p = &retbuf[sizeof(retbuf) - 1];
     int i = 0;
 
