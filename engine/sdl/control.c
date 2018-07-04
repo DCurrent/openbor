@@ -238,7 +238,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     char buffer[26];
                     open_joystick(i);
                     get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
-                    printf("Joystick connected at port: %d at %s\n",i,buffer);
+                    printf("Joystick %s connected at port: %d at %s\n",joysticks[i].Name,i,buffer);
                 }
                 break;
 
@@ -251,7 +251,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                         char buffer[26];
                         close_joystick(i);
                         get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
-                        printf("Joystick disconnected from port: %d at %s\n",i,buffer);
+                        printf("Joystick %s disconnected from port: %d at %s\n",joysticks[i].Name,i,buffer);
                     }
                 }
                 break;
