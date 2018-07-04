@@ -477,13 +477,13 @@ int searchList(const char *list[], const char *value, int length)
 char *commaprint(u64 n)
 {
     static int comma = '\0';
-    static char retbuf[30];
+    static char retbuf[64];
     char *p = &retbuf[sizeof(retbuf) - 1];
     int i = 0;
 
     if(comma == '\0')
     {
-#ifndef ANDROID
+        #ifndef ANDROID
         struct lconv *lcp = localeconv();
         if(lcp != NULL)
         {
@@ -497,7 +497,9 @@ char *commaprint(u64 n)
                 comma = ',';
             }
         }
-#endif
+        #else
+        comma = ',';
+        #endif
     }
 
     *p = '\0';
