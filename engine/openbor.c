@@ -17327,7 +17327,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
             if (forcemode || normal_find_target(iAni, 0))                           //Opponent in range of current animation?
             {
                 ent_set_anim(ent, iAni, 0);                                         //Set animation.
-                if ( defaulta == ANI_WALK || defaulta == ANI_UP || defaulta == ANI_DOWN ) ent->walking = 1; // set walking prop
+                if ( iAni == ANI_WALK || iAni == ANI_UP || iAni == ANI_DOWN ) ent->walking = 1; // set walking prop
 
                 return 1;                                                           //Return 1 and exit.
             }
