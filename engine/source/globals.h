@@ -65,7 +65,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #define		exit				borExit
-#define		time				borTime
+#define		_time				borTime
 #define		kill				borKill
 #define		pause				borPause
 #define		shutdown			borShutdown

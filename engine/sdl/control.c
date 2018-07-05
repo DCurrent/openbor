@@ -17,7 +17,6 @@
 #include "openbor.h"
 
 #define T_AXIS 7000
-#define TIMESTAMP_PATTERN "%Y-%m-%d %H:%M:%S"
 
 SDL_Joystick *joystick[JOY_LIST_TOTAL];         // SDL struct for joysticks
 SDL_Haptic *joystick_haptic[JOY_LIST_TOTAL];   // SDL haptic for joysticks
@@ -236,9 +235,11 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                 if (ev.jdevice.which < JOY_LIST_TOTAL)
                 {
                     int i = ev.jdevice.which;
-                    char buffer[26];
+                    char buffer[MAX_BUFFER_LEN];
+
                     open_joystick(i);
-                    get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
+                    //get_time_string(buffer, MAX_BUFFER_LEN, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
+                    get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
                     printf("Joystick: \"%s\" connected at port: %d at %s\n",get_joystick_name(joysticks[i].Name),i,buffer);
                 }
                 break;
@@ -249,8 +250,9 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     int i = ev.jdevice.which;
                     if(joystick[i])
                     {
-                        char buffer[26];
-                        get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
+                        char buffer[MAX_BUFFER_LEN];
+
+                        get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
                         printf("Joystick: \"%s\" disconnected from port: %d at %s\n",get_joystick_name(joysticks[i].Name),i,buffer);
                         close_joystick(i);
                     }

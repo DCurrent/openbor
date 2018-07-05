@@ -17,6 +17,7 @@
 // *** TYPE DECLARATIONS ***
 #define SCRIPT_LOG 0
 #define OPENBOR_LOG 1
+#define TIMESTAMP_PATTERN "%Y-%m-%d %H:%M:%S"
 
 // *** VARIABLE DECLARATIONS ***
 extern char debug_msg[2048];
@@ -58,7 +59,8 @@ int searchList(const char *list[], const char *value, int length);
 char *commaprint(u64 n);
 char* multistrcatsp(char* buf, ...);
 char* safe_strncpy(char* dst, const char* src, size_t size);
-void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern); // ex. "%Y-%m-%d %H:%M:%S"
+void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char* pattern); // pattern ex. "%Y-%m-%d %H:%M:%S"
+void get_now_string(char buffer[], unsigned buffer_size, char* pattern);
 
 void Array_Check_Size( const char *f_caller, char **array, int new_size, int *curr_size_allocated, int grow_step );
 

@@ -569,6 +569,14 @@ void get_time_string(char buffer[], unsigned buffer_size, time_t timestamp, char
     return;
 }
 
+void get_now_string(char buffer[], unsigned buffer_size, char* pattern)
+{
+    time_t rawtime;
+    time(&rawtime);
+    get_time_string(buffer, buffer_size, rawtime, pattern);
+    return;
+}
+
 //! Increase or Decrease an array à la \e vector
 /**
 	\param f_caller : name of the calling function for logging purpose

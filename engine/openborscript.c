@@ -12903,7 +12903,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
 {
     LONG anim = 0, resetable = 0, stalladd = 0;
     entity *e;
-    extern unsigned int time;
+    extern unsigned int _time;
 
     *pretvar = NULL;
     if(paramCount < 1)
@@ -12962,7 +12962,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
 
     if(stalladd > 0)
     {
-        e->stalltime = time + stalladd;
+        e->stalltime = _time + stalladd;
     }
 
     return S_OK;
