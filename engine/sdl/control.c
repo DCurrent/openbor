@@ -341,6 +341,12 @@ void joystick_scan(int scan)
 {
 	int i;
 
+	// init joysticks to NULL for safe..
+	for(i = 0; i < JOY_LIST_TOTAL; i++)
+	{
+	    close_joystick(i);
+	}
+
 	if(!scan) return;
 
 	numjoy = SDL_NumJoysticks();
