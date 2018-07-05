@@ -522,7 +522,7 @@ int                 ajspecial			= 0;					// Flag to determine if holding down at
 int                 nolost				= 0;					// variable to control if drop weapon when grab a enemy by tails
 int                 nocost				= 0;					// If set, special will not cost life unless an enemy is hit
 int                 mpstrict			= 0;					// If current system will check all animation's energy cost when set new animations
-int                 magic_type			= 0;					// use for restore mp by _time by tails
+int                 magic_type			= 0;					// use for restore mp by time by tails
 entity             *textbox				= NULL;
 entity             *smartbomber			= NULL;
 entity				*stalker				= NULL;					// an enemy (usually) tries to go behind the player
@@ -636,7 +636,7 @@ int					viewporth			= 0;
 
 
 int                 timeleft			= 0;
-int                 oldtime             = 0;                    // One second back from _time left.
+int                 oldtime             = 0;                    // One second back from time left.
 int                 holez				= 0;					// Used for setting spawn points
 int                 allow_secret_chars	= 0;
 unsigned int        lifescore			= 50000;				// Number of points needed to earn a 1-up
@@ -9208,7 +9208,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_NOLIFE:	// Feb 25, 2005 - Flag to display enemy life or not
                 newchar->nolife = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_MAKEINV:	// Mar 12, 2005 - If a value is supplied, corresponds to amount of _time the player spawns invincible
+            case CMD_MODEL_MAKEINV:	// Mar 12, 2005 - If a value is supplied, corresponds to amount of time the player spawns invincible
                 newchar->makeinv = GET_FLOAT_ARG(1) * GAME_SPEED;
                 if(GET_INT_ARG(2))
                 {
@@ -9642,7 +9642,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                                     for(i = 0; i < max_attack_types; i++)
                                                                                                     {
                                                                                                         /*
-                                                                                                        Skip the pit, lifespan, and _time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
+                                                                                                        Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
                                                                                                         */
                                                                                                         if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN)
                                                                                                         {
@@ -11403,7 +11403,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Disable special moves for specified time.
                 pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
                 pattack->staydown.rise          = GET_INT_ARG(1); //Risetime modifier.
-                pattack->staydown.riseattack    = GET_INT_ARG(2); //Riseattack _time addition and toggle.
+                pattack->staydown.riseattack    = GET_INT_ARG(2); //Riseattack time addition and toggle.
                 break;
             case CMD_MODEL_DOT:
 
@@ -13943,7 +13943,7 @@ void load_levelorder()
             set->credits = GET_INT_ARG(1);
             break;
         case CMD_LEVELORDER_TYPEMP:
-            //typemp for change for mp restored by _time (0) to by enemys (1) or no restore (2) by tails
+            //typemp for change for mp restored by time (0) to by enemys (1) or no restore (2) by tails
             CHKDEF;
             set->typemp = GET_INT_ARG(1);
             break;
@@ -14717,7 +14717,7 @@ void load_level(char *filename)
         goto lCleanup;
     }
 
-    level->settime          = 100;                          // Feb 25, 2005 - Default _time limit set to 100
+    level->settime          = 100;                          // Feb 25, 2005 - Default time limit set to 100
     level->nospecial        = 0;                            // Default set to specials can be used during bonus levels
     level->nohurt           = DAMAGE_FROM_ENEMY_ON;
     level->nohit            = DAMAGE_FROM_PLAYER_ON;        // Default able to hit the other player
@@ -15063,24 +15063,24 @@ void load_level(char *filename)
             noscreenshot = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_SETTIME:
-            // If settime is found, overwrite the default 100 for _time limit
+            // If settime is found, overwrite the default 100 for time limit
             level->settime = GET_INT_ARG(1);
             if(level->settime > 100 || level->settime < 0)
             {
                 level->settime = 100;
             }
-            // Feb 25, 2005 - _time limit loaded from individual .txt file
+            // Feb 25, 2005 - time limit loaded from individual .txt file
             break;
         case CMD_LEVEL_SETWEAP:
             // Specify a weapon for each level
             level->setweap = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_NOTIME:
-            // Flag to if the _time should be displayed 1 = no, else yes
+            // Flag to if the time should be displayed 1 = no, else yes
             level->notime = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_NORESET:
-            // Flag to if the _time should be reset when players respawn 1 = no, else yes
+            // Flag to if the time should be reset when players respawn 1 = no, else yes
             level->noreset = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_NOSLOW:
@@ -17066,7 +17066,7 @@ void drawstatus()
         }
     }
 
-    // _time box
+    // Time box
     if(!level->notime && !timeloc[4])    // Only draw if notime is set to 0 or not specified
     {
         spriteq_add_line(videomodes.hShift + timeloc[0],                savedata.windowpos + timeloc[1],                videomodes.hShift + timeloc[0] + timeloc[2],     savedata.windowpos + timeloc[1],                HUD_Z, color_black, NULL);
@@ -18492,7 +18492,7 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
             {
                 ent_max = ent_count;
             }
-            e->timestamp = _time; // log _time so update function will ignore it if it is new
+            e->timestamp = _time; // log time so update function will ignore it if it is new
 
             e->energy_status.health_current = e->modeldata.health;
             e->energy_status.mp_current = e->modeldata.mp;
@@ -20896,8 +20896,8 @@ int colorset_timed_expire(entity *ent)
         return 0;
     }
 
-    // If elapsed _time has surpassed color
-    // set time, then color set _time is expired.
+    // If elapsed time has surpassed color
+    // set time, then color set time is expired.
     // Revert entity back to default color set
     // and reset the color set timer.
     if(_time >= ent->maptime)
@@ -20961,7 +20961,7 @@ void update_animation()
         self->sleeptime = _time + self->modeldata.sleepwait;
     }
 
-    if(self->invincible && _time >= self->invinctime)    // Invincible _time has run out, turn off
+    if(self->invincible && _time >= self->invinctime)    // Invincible time has run out, turn off
     {
         self->invincible    = 0;
         self->blink         = 0;
@@ -21105,7 +21105,7 @@ int do_energy_charge(entity *ent)
     // and reset the next available time.
     if(ent->charging && _time >= ent->mpchargetime)
     {
-        // How much GAME_SPEED will be added onto elapsed _time to know when we can next add energy.
+        // How much GAME_SPEED will be added onto elapsed time to know when we can next add energy.
         float speed_rate = 0.25;
         int factor = GAME_SPEED * speed_rate;
 
@@ -21250,7 +21250,7 @@ void update_health()
 // 2009-06-17
 // --2018-01-02 retooled from former common_dot.
 //
-// Apply recursive damage (damage over _time (dot)).
+// Apply recursive damage (damage over time (dot)).
 //
 // When an entity is hit with a recursive damage
 // enabled attack, an array keyed from 0 to
@@ -21279,7 +21279,7 @@ void damage_recursive(entity *target)
     // Loop through all DOT indexes.
     for(index = 0; index < MAX_DOTS; index++)
     {
-        // Populate local _time vars.
+        // Populate local time vars.
         time_expire =   target->dot_time[index];
         time_tick   =   target->dot_cnt[index];
         time_rate   =   target->dot_rate[index];
@@ -21288,7 +21288,7 @@ void damage_recursive(entity *target)
         // know there is a recursive damage active on this index.
         if(time_expire)
         {
-            // If _time has expired, clear out other values
+            // If time has expired, clear out other values
             // and exit this iteration of the loop.
             if(_time > time_expire)
             {
@@ -21302,7 +21302,7 @@ void damage_recursive(entity *target)
                 continue;
             }
 
-            // If it is not yet _time for a tick, exit
+            // If it is not yet time for a tick, exit
             // this iteration of loop.
             if(!(_time >= time_tick))
             {
@@ -21331,7 +21331,7 @@ void damage_recursive(entity *target)
                 // Recursive HP Damage Logic:
                 //
                 // Normally it is preferable to apply takedamage(),
-                // any _time we want to damage a target, but because
+                // any time we want to damage a target, but because
                 // it breaks grabs and would spam the HUD,
                 // takedamage() is not tenable for every tick
                 // of a recursive damage effect. However, we DO want
@@ -24112,13 +24112,13 @@ void checkdamageeffects(s_collision_attack *attack)
 
     if(_seal)                                                                       //Sealed: Disable special moves.
     {
-        self->sealtime  = _time + _sealtime;                                         //Set _time to apply seal. No specials for you!
+        self->sealtime  = _time + _sealtime;                                         //Set time to apply seal. No specials for you!
         self->seal      = _seal;                                                    //Set seal. Any animation with energycost > seal is disabled.
     }
 
     if(attack->recursive)
     {
-        if(_dot)                                                                        //dot: Damage over _time effect.
+        if(_dot)                                                                        //dot: Damage over time effect.
         {
             self->dot_owner[_dot_index] = opp ? opp : self;			                    //dot owner.
             self->dot[_dot_index]       = _dot;                                         //Mode: 1. HP (non lethal), 2. MP, 3. HP (non lethal) & MP, 4. HP, 5. HP & MP.
@@ -27448,7 +27448,7 @@ int projectile_wall_deflect(entity *ent)
 // Destroy target and while ent plays catch animation
 // if ent has the catch animation and target is in range.
 // Mainly for boomerang projectiles but useful for any
-// _time one entity should "catch" another out of the air.
+// time one entity should "catch" another out of the air.
 //
 // Returns true on successful catch, false otherwise.
 int do_catch(entity *ent, entity *target, int animation_catch)
@@ -32331,7 +32331,7 @@ void time_over()
     attack.dropv.z = default_model_dropv.z;
     if(level->type == 1)
     {
-        level_completed = 1;    //    Feb 25, 2005 - Used for bonus levels so a life isn't taken away if _time expires.level->type == 1 means bonus level, else regular
+        level_completed = 1;    //    Feb 25, 2005 - Used for bonus levels so a life isn't taken away if time expires.level->type == 1 means bonus level, else regular
     }
     else if(!level_completed)
     {
@@ -32982,7 +32982,7 @@ void update_scrolled_bg()
     };   // fast, constant rumbling, like in/on a van or trailer
     int pb = pixelbytes[(int)PIXEL_32];
 
-    // _time to update neon and screen all flag false?
+    // Time to update neon and screen all flag false?
     if(_time >= neon_time && !freezeall)
     {
         memcpy(neonp, neontable + 128 * pb, 8 * pb);
@@ -33323,7 +33323,7 @@ void draw_textobjs()
     {
         textobj = level->textobjs + i;
 
-        if(textobj->time && textobj->time <= _time)		//If a _time was set and passed, remove the text object.
+        if(textobj->time && textobj->time <= _time)		//If a time was set and passed, remove the text object.
         {
             level->textobjs[i].time	= 0;
             level->textobjs[i].position.x = 0;
