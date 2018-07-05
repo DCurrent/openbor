@@ -2282,7 +2282,7 @@ typedef struct entity
     int noaicontrol; // pause A.I. control
     int projectile;
     int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
-    bool animating; // Set by animation code
+    int animating; // Set by animation code can be -1, 0 or 1 (used for reverse animation)
     bool arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
     s_axis_principal_float *waypoints;
