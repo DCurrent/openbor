@@ -74,11 +74,11 @@ extern unsigned long start;
 u64 getFreeRam(int byte_size)
 {
 #if WIN
-    MEMORYSTATUS stat;
-    memset(&stat, 0, sizeof(MEMORYSTATUS));
-    stat.dwLength = sizeof(MEMORYSTATUS);
-    GlobalMemoryStatus(&stat);
-    return stat.dwAvailPhys / byte_size;
+    MEMORYSTATUSEX stat;
+    memset(&stat, 0, sizeof(MEMORYSTATUSEX));
+    stat.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&stat);
+    return stat.ullAvailPhys / byte_size;
 #elif DARWIN
     vm_size_t size;
     unsigned int count = HOST_VM_INFO_COUNT;
@@ -128,11 +128,11 @@ u64 getFreeRam(int byte_size)
 void setSystemRam()
 {
 #if WIN
-    MEMORYSTATUS stat;
-    memset(&stat, 0, sizeof(MEMORYSTATUS));
-    stat.dwLength = sizeof(MEMORYSTATUS);
-    GlobalMemoryStatus(&stat);
-    systemRam = stat.dwTotalPhys;
+    MEMORYSTATUSEX stat;
+    memset(&stat, 0, sizeof(MEMORYSTATUSEX));
+    stat.dwLength = sizeof(MEMORYSTATUSEX);
+    GlobalMemoryStatusEx(&stat);
+    systemRam = stat.ullTotalPhys;
 #elif DARWIN
     u64 mem;
     size_t len = sizeof(mem);

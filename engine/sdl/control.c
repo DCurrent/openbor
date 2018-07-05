@@ -28,12 +28,13 @@ static int lastjoy;                             // Last joystick button/axis/hat
 
 int sdl_game_started  = 0;
 
+extern int default_keys[MAX_BTN_NUM];
+extern s_playercontrols default_control;
+
 #ifdef ANDROID
 extern int nativeWidth;
 extern int nativeHeight;
 static TouchStatus touch_info;
-extern int touch_default_keys[MAX_BTN_NUM];
-extern s_playercontrols touch_control;
 #endif
 
 /*
@@ -238,7 +239,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     char buffer[26];
                     open_joystick(i);
                     get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
-                    printf("Joystick: \"%s\" connected at port: %d at %s\n",joysticks[i].Name,i,buffer);
+                    printf("Joystick: \"%s\" connected at port: %d at %s\n",get_joystick_name(joysticks[i].Name),i,buffer);
                 }
                 break;
 
@@ -249,9 +250,9 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     if(joystick[i])
                     {
                         char buffer[26];
-                        close_joystick(i);
                         get_time_string(buffer, 26, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
-                        printf("Joystick: \"%s\" disconnected from port: %d at %s\n",joysticks[i].Name,i,buffer);
+                        printf("Joystick: \"%s\" disconnected from port: %d at %s\n",get_joystick_name(joysticks[i].Name),i,buffer);
+                        close_joystick(i);
                     }
                 }
                 break;
@@ -317,6 +318,18 @@ static int flag_to_index(u64 flag)
 	return index;
 }
 
+char* get_joystick_name(const char* name)
+{
+    char lname[strlen(name)];
+
+    strcpy(lname,name);
+    for(int i = 0; lname[i]; i++)
+    {
+        lname[i] = tolower(lname[i]);
+    }
+    if ( strstr(lname, "null") == NULL ) return JOY_UNKNOWN_NAME;
+    return ( (char*)name );
+}
 
 /*
 Search for usb joysticks. Set
@@ -345,19 +358,23 @@ void joystick_scan(int scan)
 	for(i = 0; i < numjoy; i++)
 	{
         open_joystick(i);
-	}
 
-    if(scan != 2)
-    {
-        if(numjoy == 1) printf("%s - %d axes, %d buttons, %d hat(s)\n",
-                                joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
-        else if(numjoy > 1)
+        if(scan != 2)
         {
-            if(i) printf("                                "); // print JOY_MAX_INPUTS (32) spaces for alignment
-            printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1,
-                    joysticks[i].Name, joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
+            // print JOY_MAX_INPUTS (32) spaces for alignment
+            if(numjoy == 1)
+            {
+                printf("%s - %d axes, %d buttons, %d hat(s)\n",
+                                    get_joystick_name(joysticks[i].Name), joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
+            }
+            else if(numjoy > 1)
+            {
+                if(i) printf("\n");
+                printf("%d. %s - %d axes, %d buttons, %d hat(s)\n", i + 1,
+                        get_joystick_name(joysticks[i].Name), joysticks[i].NumAxes, joysticks[i].NumButtons, joysticks[i].NumHats);
+            }
         }
-    }
+	}
 }
 
 /*
@@ -631,18 +648,18 @@ void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keys
 	#undef pc
 
 	//use default value for touch key mapping
-    keystate_def[touch_default_keys[SDID_MOVEUP]]    = touchstates[SDID_MOVEUP];
-    keystate_def[touch_default_keys[SDID_MOVEDOWN]]  = touchstates[SDID_MOVEDOWN];
-    keystate_def[touch_default_keys[SDID_MOVELEFT]]  = touchstates[SDID_MOVELEFT];
-    keystate_def[touch_default_keys[SDID_MOVERIGHT]] = touchstates[SDID_MOVERIGHT];
-    keystate_def[touch_default_keys[SDID_ATTACK]]    = touchstates[SDID_ATTACK];
-    keystate_def[touch_default_keys[SDID_ATTACK2]]   = touchstates[SDID_ATTACK2];
-    keystate_def[touch_default_keys[SDID_ATTACK3]]   = touchstates[SDID_ATTACK3];
-    keystate_def[touch_default_keys[SDID_ATTACK4]]   = touchstates[SDID_ATTACK4];
-    keystate_def[touch_default_keys[SDID_JUMP]]      = touchstates[SDID_JUMP];
-    keystate_def[touch_default_keys[SDID_SPECIAL]]   = touchstates[SDID_SPECIAL];
-    keystate_def[touch_default_keys[SDID_START]]     = touchstates[SDID_START];
-    keystate_def[touch_default_keys[SDID_SCREENSHOT]] = touchstates[SDID_SCREENSHOT];
+    keystate_def[default_keys[SDID_MOVEUP]]    = touchstates[SDID_MOVEUP];
+    keystate_def[default_keys[SDID_MOVEDOWN]]  = touchstates[SDID_MOVEDOWN];
+    keystate_def[default_keys[SDID_MOVELEFT]]  = touchstates[SDID_MOVELEFT];
+    keystate_def[default_keys[SDID_MOVERIGHT]] = touchstates[SDID_MOVERIGHT];
+    keystate_def[default_keys[SDID_ATTACK]]    = touchstates[SDID_ATTACK];
+    keystate_def[default_keys[SDID_ATTACK2]]   = touchstates[SDID_ATTACK2];
+    keystate_def[default_keys[SDID_ATTACK3]]   = touchstates[SDID_ATTACK3];
+    keystate_def[default_keys[SDID_ATTACK4]]   = touchstates[SDID_ATTACK4];
+    keystate_def[default_keys[SDID_JUMP]]      = touchstates[SDID_JUMP];
+    keystate_def[default_keys[SDID_SPECIAL]]   = touchstates[SDID_SPECIAL];
+    keystate_def[default_keys[SDID_START]]     = touchstates[SDID_START];
+    keystate_def[default_keys[SDID_SCREENSHOT]] = touchstates[SDID_SCREENSHOT];
 
     keystate[CONTROL_ESC] = keystate_def[CONTROL_ESC] = touchstates[SDID_ESC];
 
@@ -759,7 +776,7 @@ int keyboard_getlastkey()
 {
 		int i, ret = lastkey;
 		lastkey = 0;
-		for(i=0; i<JOY_LIST_TOTAL; i++) joysticks[i].Buttons = 0;
+		for(i = 0; i < JOY_LIST_TOTAL; i++) joysticks[i].Buttons = 0;
 		return ret;
 }
 
@@ -819,8 +836,8 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	int player;
 	int t;
 	s_playercontrols * pcontrols;
-	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL);
-	Uint8* keystate_def = (Uint8*)SDL_GetKeyState(NULL);
+	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL); // Here retrieve keyboard state
+	Uint8* keystate_def = (Uint8*)SDL_GetKeyState(NULL); // Here retrieve keyboard state for default
 
 	getPads(keystate,keystate_def);
 
@@ -838,17 +855,16 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 			}
 		}
 
-        #ifdef ANDROID
+        //White Dragon: Set input from default keys overriding previous keys
         if (player <= 0) {
             for(i=0;i<JOY_MAX_INPUTS;i++)
             {
-                t = touch_control.settings[i];
+                t = default_control.settings[i];
                 if(t >= SDLK_FIRST && t < SDLK_LAST){
                     if(keystate_def[t]) k |= (1<<i);
                 }
             }
         }
-        #endif
 
 		if(usejoy)
 		{

@@ -149,6 +149,7 @@ int control_getjoyenabled();
 void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key);
 int control_scankey();
 
+char* get_joystick_name(const char* name);
 char *control_getkeyname(unsigned int keycode);
 void control_update(s_playercontrols ** playercontrols, int numplayers);
 void control_rumble(int port, int ratio, int msec);

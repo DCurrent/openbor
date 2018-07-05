@@ -9,6 +9,7 @@
 #ifndef	JOYSTICKS_H
 #define	JOYSTICKS_H
 
+#define JOY_UNKNOWN_NAME "Unknown"
 
 #define JOY_TYPE_DEFAULT   0
 #define JOY_TYPE_GAMEPARK  1
