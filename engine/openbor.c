@@ -36611,7 +36611,7 @@ void keyboard_setup(int player)
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
-    #if SDL
+    #if SDL || WII || DC
     int OPTIONS_NUM = btnnum + 3;
     #else
     int OPTIONS_NUM = btnnum + 2;
