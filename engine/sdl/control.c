@@ -855,7 +855,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 		k = 0;
 
-		for(i=0;i<JOY_MAX_INPUTS;i++)
+		for(i = 0; i < JOY_MAX_INPUTS; i++)
 		{
 			t = pcontrols->settings[i];
 			if(t >= SDLK_FIRST && t < SDLK_LAST){
@@ -864,8 +864,10 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 		}
 
         //White Dragon: Set input from default keys overriding previous keys
-        if (player <= 0) {
-            for(i=0;i<JOY_MAX_INPUTS;i++)
+        //Default keys are available just if no configured keys are pressed!
+        if (player <= 0 && !k)
+        {
+            for(i = 0; i < JOY_MAX_INPUTS; i++)
             {
                 t = default_control.settings[i];
                 if(t >= SDLK_FIRST && t < SDLK_LAST){
@@ -876,7 +878,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 		if(usejoy)
 		{
-			for(i=0; i<JOY_MAX_INPUTS; i++)
+			for(i = 0; i < JOY_MAX_INPUTS; i++)
 			{
 				t = pcontrols->settings[i];
 				if(t >= JOY_LIST_FIRST && t <= JOY_LIST_LAST)
