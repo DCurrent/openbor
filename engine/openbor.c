@@ -3085,6 +3085,35 @@ void clearbuttons(int player)
         #ifdef SDL
             //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
         #endif
+
+        /* *************** SET DEFAULT KEYS *************** */
+        // White Dragon: These are default keys: for Android is the touchpad and for Win/Linux etc. is the keyboard
+        default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
+        default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
+        default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
+        default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
+        default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
+        default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
+        default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
+        default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
+        default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
+        default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
+        default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
+        default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
+
+        control_setkey(&default_control, FLAG_ESC,        CONTROL_ESC);
+        control_setkey(&default_control, FLAG_MOVEUP,     default_keys[SDID_MOVEUP]);
+        control_setkey(&default_control, FLAG_MOVEDOWN,   default_keys[SDID_MOVEDOWN]);
+        control_setkey(&default_control, FLAG_MOVELEFT,   default_keys[SDID_MOVELEFT]);
+        control_setkey(&default_control, FLAG_MOVERIGHT,  default_keys[SDID_MOVERIGHT]);
+        control_setkey(&default_control, FLAG_ATTACK,     default_keys[SDID_ATTACK]);
+        control_setkey(&default_control, FLAG_ATTACK2,    default_keys[SDID_ATTACK2]);
+        control_setkey(&default_control, FLAG_ATTACK3,    default_keys[SDID_ATTACK3]);
+        control_setkey(&default_control, FLAG_ATTACK4,    default_keys[SDID_ATTACK4]);
+        control_setkey(&default_control, FLAG_JUMP,       default_keys[SDID_JUMP]);
+        control_setkey(&default_control, FLAG_SPECIAL,    default_keys[SDID_SPECIAL]);
+        control_setkey(&default_control, FLAG_START,      default_keys[SDID_START]);
+        control_setkey(&default_control, FLAG_SCREENSHOT, default_keys[SDID_SCREENSHOT]);
     }
     else if (player == 1)
     {
@@ -3140,35 +3169,6 @@ void clearbuttons(int player)
             //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
         #endif
     }
-
-    /* *************** SET DEFAULT KEYS *************** */
-    // White Dragon: These are default keys: for Android is the touchpad and for Win/Linux etc. is the keyboard
-    default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-    default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-    default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-    default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-    default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-    default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-    default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-    default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-    default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-    default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-    default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
-    default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-
-    control_setkey(&default_control, FLAG_ESC,        CONTROL_ESC);
-    control_setkey(&default_control, FLAG_MOVEUP,     default_keys[SDID_MOVEUP]);
-    control_setkey(&default_control, FLAG_MOVEDOWN,   default_keys[SDID_MOVEDOWN]);
-    control_setkey(&default_control, FLAG_MOVELEFT,   default_keys[SDID_MOVELEFT]);
-    control_setkey(&default_control, FLAG_MOVERIGHT,  default_keys[SDID_MOVERIGHT]);
-    control_setkey(&default_control, FLAG_ATTACK,     default_keys[SDID_ATTACK]);
-    control_setkey(&default_control, FLAG_ATTACK2,    default_keys[SDID_ATTACK2]);
-    control_setkey(&default_control, FLAG_ATTACK3,    default_keys[SDID_ATTACK3]);
-    control_setkey(&default_control, FLAG_ATTACK4,    default_keys[SDID_ATTACK4]);
-    control_setkey(&default_control, FLAG_JUMP,       default_keys[SDID_JUMP]);
-    control_setkey(&default_control, FLAG_SPECIAL,    default_keys[SDID_SPECIAL]);
-    control_setkey(&default_control, FLAG_START,      default_keys[SDID_START]);
-    control_setkey(&default_control, FLAG_SCREENSHOT, default_keys[SDID_SCREENSHOT]);
 }
 
 void clearsettings()
