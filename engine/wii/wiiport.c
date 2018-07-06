@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
 	initDirPath(logsDir, "Logs");
 	initDirPath(screenShotsDir, "ScreenShots");
 #else
-	if(strncmp(argv[0], "usb:/", 5) == 0)
+	if(strstr(argv[0], "usb:/") != NULL)
 	{
 		strcpy(rootDir, "usb:/apps/OpenBOR/");
 		strcpy(paksDir, "usb:/apps/OpenBOR/Paks");
@@ -111,6 +111,11 @@ int main(int argc, char *argv[])
 	dirExists(savesDir, 1);
 	dirExists(logsDir, 1);
 	dirExists(screenShotsDir, 1);
+
+	printf("DIR1: %s\n", argv[0]);
+	char buff[MAX_BUFFER_LEN];
+	getcwd(buff,MAX_BUFFER_LEN);
+	printf("DIR2: %s\n", buff);
 
 	Menu();
 	openborMain(argc, argv);
