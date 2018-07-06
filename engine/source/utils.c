@@ -306,7 +306,7 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
 #ifndef WIN
         writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
 #endif
-        exit(2);
+        borExit(2);
     }
     return ptr;
 }
@@ -320,7 +320,7 @@ void exitIfFalse(int value, const char *assertion, const char *func, const char 
                        "\n*            Shutting Down            *\n\n");
         writeToLogFile("Assertion `%s' failed in function '%s' at %s:%i.\n", assertion, func, file, line);
         writeToLogFile("This is an OpenBOR bug.  Please report this at www.chronocrash.com.\n\n");
-        exit(1);
+        borExit(1);
     }
 }
 

@@ -34344,7 +34344,7 @@ void shutdown(int status, char *msg, ...)
     }
 
     shuttingdown = 0;
-    exit(status);
+    borExit(status);
 }
 
 

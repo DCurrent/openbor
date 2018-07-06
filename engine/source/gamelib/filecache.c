@@ -583,7 +583,7 @@ void filecache_term()
     if(sceKernelVolatileMemUnlock(0))
     {
         printf("Error allocation filecache!\n");
-        exit(0);
+        borExit(0);
     }
 #elif DC
     filecache_head = NULL;
@@ -621,7 +621,7 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
     if(sceKernelVolatileMemLock(0, (void *)&filecache_head, &size))
     {
         printf("Error allocation filecache!\n");
-        exit(0);
+        borExit(0);
     }
 #elif DC
     filecache_head = (void *)(0xA5500000 - 64);

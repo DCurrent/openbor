@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	if(sigaction(SIGSEGV, &sigact, NULL) != 0)
 	{
 		printf("Error setting signal handler for %d (%s)\n", SIGSEGV, strsignal(SIGSEGV));
-		exit(EXIT_FAILURE);
+		borExit(EXIT_FAILURE);
 	}
 #endif
 

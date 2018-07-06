@@ -30,7 +30,7 @@ void vorbis_destroy(vorbis_context *ctx)
 // call after reading header packets but before audio data
 void vorbis_prepare(vorbis_context *ctx)
 {
-    if (vorbis_synthesis_init(&ctx->v, &ctx->vi) != 0) exit(1);
+    if (vorbis_synthesis_init(&ctx->v, &ctx->vi) != 0) borExit(1);
     vorbis_block_init(&ctx->v, &ctx->vb);
 }
 
@@ -44,7 +44,7 @@ void vorbis_headerpacket(vorbis_context *ctx, void *data, size_t size, int packe
     op.e_o_s = 0;
     op.granulepos = 0;
     op.packetno = packetCount;
-    
+
     int result = vorbis_synthesis_headerin(&ctx->vi, &ctx->vc, &op);
     if (result != 0) fprintf(stdout, "vorbis_synthesis_headerin returned %i\n", result);
 }
