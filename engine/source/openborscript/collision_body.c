@@ -228,7 +228,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int         temp_int;
+    LONG         temp_int;
 
     // Verify incoming arguments. There should at least
     // be a pointer for the property handle and an integer

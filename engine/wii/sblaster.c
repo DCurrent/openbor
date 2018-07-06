@@ -90,29 +90,32 @@ static void SB_Callback(int voice)
 	if (!sb_thread_running)
 	{
 		ASND_StopVoice(0);
-		return;
-	}
-
-	if (sb_private.pcm_indx >= READ_SAMPLES)
-	{
-		if (ASND_AddVoice(0,
-				(void *) sb_private.pcmout[sb_private.pcmout_pos],
-				sb_private.pcm_indx << 1) == 0)
-		{
-			sb_private.pcmout_pos ^= 1;
-			sb_private.pcm_indx = 0;
-			sb_private.flag = 0;
-			LWP_ThreadSignal(sb_queue);
-		}
 	}
 	else
 	{
-		if (sb_private.flag & 64)
-		{
-			sb_private.flag &= ~64;
-			LWP_ThreadSignal(sb_queue);
-		}
+        if (sb_private.pcm_indx >= READ_SAMPLES)
+        {
+            if (ASND_AddVoice(0,
+                    (void *) sb_private.pcmout[sb_private.pcmout_pos],
+                    sb_private.pcm_indx << 1) == 0)
+            {
+                sb_private.pcmout_pos ^= 1;
+                sb_private.pcm_indx = 0;
+                sb_private.flag = 0;
+                LWP_ThreadSignal(sb_queue);
+            }
+        }
+        else
+        {
+            if (sb_private.flag & 64)
+            {
+                sb_private.flag &= ~64;
+                LWP_ThreadSignal(sb_queue);
+            }
+        }
 	}
+
+	return;
 }
 
 static void *SB_Thread(private_data * priv)

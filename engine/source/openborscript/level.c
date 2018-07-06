@@ -263,7 +263,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
 
     // Value carriers to apply on properties after
     // taken from argument.
-    //int     temp_int;
+    //LONG     temp_int;
     //DOUBLE  temp_float;
 
     // Verify incoming arguments. There must be a
@@ -923,7 +923,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
     // Value carriers to apply on properties after
     // taken from value argument.
-    int             temp_int;   // Integer type argument.
+    LONG             temp_int;   // Integer type argument.
     DOUBLE          temp_float; // Float type argument.
     ScriptVariant   *arg_value; // Argument input carrier.
 

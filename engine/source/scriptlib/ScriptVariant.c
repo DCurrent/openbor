@@ -264,7 +264,7 @@ void ScriptVariant_ToString(ScriptVariant *svar, LPSTR buffer )
         sprintf( buffer, "<VT_EMPTY>   Unitialized" );
         break;
     case VT_INTEGER:
-        sprintf( buffer, "%d", svar->lVal);
+        sprintf( buffer, "%ld", (long)svar->lVal);
         break;
     case VT_DECIMAL:
         sprintf( buffer, "%lf", svar->dblVal );
@@ -288,7 +288,7 @@ static int ScriptVariant_LengthAsString(ScriptVariant *svar)
     case VT_EMPTY:
         return snprintf(NULL, 0, "<VT_EMPTY>   Unitialized");
     case VT_INTEGER:
-        return snprintf(NULL, 0, "%d", svar->lVal);
+        return snprintf(NULL, 0, "%ld", (long)svar->lVal);
     case VT_DECIMAL:
         return snprintf(NULL, 0, "%lf", svar->dblVal);
     case VT_PTR:

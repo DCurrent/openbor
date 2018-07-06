@@ -22,7 +22,7 @@ void  video_stretch(int);
 void  video_set_color_correction(int,int);
 void  video_exit();
 
-void  video_swizzle_simple(const void*,void*,int,int);
+void video_swizzle_simple(const void*, void*, s32, s32);
 void  copyscreen32(s_screen*);
 
 // for WebM video playback

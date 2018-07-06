@@ -9116,7 +9116,7 @@ HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int pa
     #define ARG_ADJUST          2
     #define ARG_ADJUST_DEFAULT  1
 
-    int adjust          = ARG_ADJUST_DEFAULT;   // dograb adjust check.
+    LONG adjust          = ARG_ADJUST_DEFAULT;   // dograb adjust check.
     int result          = S_OK;                 // Function pass/fail result.
     entity *attacker    = NULL;                 // Attacker entity (attempting grab)
     entity *target      = NULL;                 // Target entity (to be grabbed)
@@ -9171,7 +9171,7 @@ HRESULT openbor_dograb(ScriptVariant **varlist , ScriptVariant **pretvar, int pa
 //findtarget(entity, int animation);
 HRESULT openbor_findtarget(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    int i = 0;
+    LONG i = 0;
     entity *ent = NULL;
     entity *tempself, *target;
     LONG anim = -1;
@@ -10232,7 +10232,8 @@ HRESULT openbor_pausesamples(ScriptVariant **varlist , ScriptVariant **pretvar, 
 //pausesample(toggle,channel)
 HRESULT openbor_pausesample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    int pause = 0, channel = 0;
+    int pause = 0;
+    LONG channel = 0;
     if(paramCount < 2)
     {
         return S_OK;

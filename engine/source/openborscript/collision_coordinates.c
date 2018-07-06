@@ -123,7 +123,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int         temp_int;
+    LONG         temp_int;
 
     // Verify incoming arguments. There must be a
     // pointer for the property handle, an integer

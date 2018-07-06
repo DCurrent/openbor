@@ -75,8 +75,8 @@ typedef void DIR;
 #define OPEN_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "wt") : fopen(getFullPath("Logs/ScriptLog.txt"), "wt")
 #define APPEND_LOGFILE(type) type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "at") : fopen(getFullPath("Logs/ScriptLog.txt"), "at")
 #define READ_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "rt") : fopen(getFullPath("Logs/ScriptLog.txt"), "rt")
-#define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
-#define COPY_PAKS_PATH(buf, name) strncpy(buf, paksDir, strlen(paksDir)); strncat(buf, "/", 1); strncat(buf, name, strlen(name));
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, paksDir); strcat(buf, "/"); strcat(buf, name);
 #elif VITA
 #define CHECK_LOGFILE(type)  type ? fileExists("ux0:/data/OpenBOR/Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "wt")
@@ -575,6 +575,49 @@ void get_now_string(char buffer[], unsigned buffer_size, char* pattern)
     time(&rawtime);
     get_time_string(buffer, buffer_size, rawtime, pattern);
     return;
+}
+
+int safe_stricmp(const char *s1, const char *s2)
+{
+    for (;;) {
+        if (*s1 != *s2) {
+            int c1 = toupper((unsigned char)*s1);
+            int c2 = toupper((unsigned char)*s2);
+
+            if (c2 != c1) {
+                return c2 > c1 ? -1 : 1;
+            }
+        } else {
+            if (*s1 == '\0') {
+                return 0;
+            }
+        }
+        ++s1;
+        ++s2;
+    }
+}
+
+int safe_strnicmp(const char *s1, const char *s2, size_t n)
+{
+    for (;;) {
+        if (n-- == 0) {
+            return 0;
+        }
+        if (*s1 != *s2) {
+            int c1 = toupper((unsigned char)*s1);
+            int c2 = toupper((unsigned char)*s2);
+
+            if (c2 != c1) {
+                return c2 > c1 ? -1 : 1;
+            }
+        } else {
+            if (*s1 == '\0') {
+                return 0;
+            }
+        }
+        ++s1;
+        ++s2;
+    }
 }
 
 //! Increase or Decrease an array à la \e vector

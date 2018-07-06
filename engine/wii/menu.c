@@ -325,7 +325,7 @@ int findPaks(void)
 				free(copy); copy = NULL;
 			}
 			memset(&filelist[i], 0, sizeof(fileliststruct));
-			strncpy(filelist[i].filename, ds->d_name, strlen(ds->d_name));
+			strcpy(filelist[i].filename, ds->d_name);
 			i++;
 		}
 	}
@@ -423,7 +423,7 @@ s_screen *getPreview(char *filename)
 	if((scale = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
 
 	scalescreen(scale, title);
-	memcpy(scale->palette, scale->palette, PAL_BYTES);
+	memcpy(scale->palette, title->palette, PAL_BYTES);
 
 	// Free Images and Terminate FileCaching
 	freescreen(&title);
@@ -547,9 +547,9 @@ void drawMenu()
 			colors = GRAY;
 			strncpy(listing, "", (isWide ? 44 : 28));
 			if(strlen(filelist[list+dListScrollPosition].filename)-4 < (isWide ? 44 : 28))
-				strncpy(listing, filelist[list+dListScrollPosition].filename, strlen(filelist[list+dListScrollPosition].filename)-4);
+				safe_strncpy(listing, filelist[list+dListScrollPosition].filename, strlen(filelist[list+dListScrollPosition].filename)-4);
 			if(strlen(filelist[list+dListScrollPosition].filename)-4 > (isWide ? 44 : 28))
-				strncpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
+				safe_strncpy(listing, filelist[list+dListScrollPosition].filename, (isWide ? 44 : 28));
 			if(list == dListCurrentPosition)
 			{
 				shift = 2;

@@ -13,6 +13,9 @@
 
 #include "globals.h"
 
+//#define stricmp safe_stricmp
+//#define strnicmp safe_strnicmp
+
 char* getFullPath(char *relPath);
 void borExit(int reset);
 void openborMain(int argc, char** argv);

@@ -176,8 +176,8 @@ typedef unsigned char (*transpixelfunc)(unsigned char *table, unsigned char src,
 typedef unsigned short (*blend16fp)(unsigned short, unsigned short);
 typedef unsigned (*blend32fp)(unsigned, unsigned);
 
-blend16fp getblendfunction16(int alpha);
-blend32fp getblendfunction32(int alpha);
+blend16fp getblendfunction16(unsigned short alpha);
+blend32fp getblendfunction32(unsigned alpha);
 
 extern blend16fp blendfunctions16[MAX_BLENDINGS];
 extern blend32fp blendfunctions32[MAX_BLENDINGS];

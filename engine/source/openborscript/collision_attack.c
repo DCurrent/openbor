@@ -442,7 +442,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int     temp_int;
+    LONG     temp_int;
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer

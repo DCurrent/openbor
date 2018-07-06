@@ -175,7 +175,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int     temp_int;
+    LONG     temp_int;
     //DOUBLE  temp_float;
 
     // Verify incoming arguments. There must be a

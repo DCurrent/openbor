@@ -657,7 +657,7 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int temp_int;
+    LONG temp_int;
 
     // Map string property name to a
     // matching integer constant.
@@ -841,7 +841,7 @@ HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist, ScriptV
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int temp_int;
+    LONG temp_int;
 
     // Map string property name to a
     // matching integer constant.
@@ -936,7 +936,7 @@ HRESULT openbor_set_axis_plane_vertical_int_property(ScriptVariant **varlist, Sc
 
     // Value carriers to apply on properties after
     // taken from argument.
-    int temp_int;
+    LONG temp_int;
 
     // Map string property name to a
     // matching integer constant.

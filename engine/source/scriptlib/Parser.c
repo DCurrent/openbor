@@ -217,7 +217,7 @@ Label Parser_CreateLabel( Parser *pparser )
     //Increment the label count.
     pparser->LabelCount++;
 
-    sprintf(theLabel, "L%d", pparser->LabelCount);
+    sprintf(theLabel, "L%ld", (long)pparser->LabelCount);
 
     return theLabel;
 }
