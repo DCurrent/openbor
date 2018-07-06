@@ -112,11 +112,6 @@ int main(int argc, char *argv[])
 	dirExists(logsDir, 1);
 	dirExists(screenShotsDir, 1);
 
-	printf("DIR1: %s\n", argv[0]);
-	char buff[MAX_BUFFER_LEN];
-	getcwd(buff,MAX_BUFFER_LEN);
-	printf("DIR2: %s\n", buff);
-
 	Menu();
 	openborMain(argc, argv);
 	borExit(0);
