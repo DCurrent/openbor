@@ -27333,7 +27333,7 @@ int check_block_wall(entity *entity)
         wall = checkwall(entity->position.x, entity->position.z);
 
         // Did we find a wall?
-        if (wall > 0)
+        if (wall >= 0)
         {
             // Compare wall height to our current
             // Y axis position. If the wall is
@@ -27424,6 +27424,12 @@ int projectile_wall_deflect(entity *ent)
             ent->damage_on_landing.attack_force = 0;
             ent->damage_on_landing.attack_type = ATK_NONE;
             toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
+
+            // Reset base detection
+            ent->modeldata.subject_to_basemap = 0;
+            ent->modeldata.no_adjust_base = 0;
+            ent->modeldata.subject_to_hole = 1;
+            ent->base = 0;
 
             // Use default attack values.
             attack = emptyattack;

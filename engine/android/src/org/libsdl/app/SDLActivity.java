@@ -107,7 +107,7 @@ public class SDLActivity extends Activity {
     //White Dragon: added statics
     protected static WakeLock wakeLock;
     protected static View decorView;
-	
+
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
 
@@ -276,11 +276,11 @@ public class SDLActivity extends Activity {
         setContentView(mLayout);
 
         setWindowStyle(false);
-		
+
 		//White Dragon: check android permissions
 		if (Build.VERSION.SDK_INT >= 23) {
 			String[] permissions = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
-			
+
 			if ( !hasPermissions(permissions) ) {
 				int permsRequestCode = 200; // own custom conventional code for granted permissions
 				requestPermissions(permissions, permsRequestCode);
@@ -323,9 +323,9 @@ public class SDLActivity extends Activity {
             }
         }
     }
-	
+
 	//White Dragon: Check permissions (useful for future update)
-	@Override
+	/*@Override
 	public void onRequestPermissionsResult(int permsRequestCode, String[] permissions, int[] grantResults){
 		switch(permsRequestCode){
 			case 200:
@@ -336,8 +336,8 @@ public class SDLActivity extends Activity {
 				break;
 		}
 		return;
-	}
-	
+	}*/
+
 	//White Dragon: Check permissions
 	private boolean hasPermissions(String[] permissions){
 		Context appCtx = getApplicationContext();
@@ -1870,7 +1870,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     if ( SDLActivity.isVibrationEnabled() && SDLActivity.isTouchArea(action, x, y) ) {
                         int vibrationTime = 3;
 						Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
-						
+
 						if (vibrator.hasVibrator()) {
 							if (Build.VERSION.SDK_INT >= 26) {
 								vibrator.vibrate(VibrationEffect.createOneShot(vibrationTime,VibrationEffect.DEFAULT_AMPLITUDE));
