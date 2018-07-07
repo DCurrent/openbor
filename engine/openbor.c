@@ -5505,7 +5505,7 @@ s_model *nextplayermodeln(s_model *current, int p)
             {
                 ++used_player_count;
                 // all busy players? return the next natural
-                if (used_player_count >= player_count) return nextplayermodel(current);
+                if (used_player_count >= player_count) return model;
             }
         }
 
@@ -5588,7 +5588,7 @@ s_model *prevplayermodeln(s_model *current, int p)
             {
                 ++used_player_count;
                 // all busy players? return the prev natural
-                if (used_player_count >= player_count) return prevplayermodel(current);
+                if (used_player_count >= player_count) return model;
             }
         }
 
