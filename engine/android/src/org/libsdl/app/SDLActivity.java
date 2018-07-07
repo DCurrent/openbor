@@ -113,14 +113,7 @@ public class SDLActivity extends Activity {
 
     protected static SDLGenericMotionListener_API12 getMotionListener() {
         if (mMotionListener == null) {
-            if (Build.VERSION.SDK_INT >= 26) {
-                mMotionListener = new SDLGenericMotionListener_API26();
-            } else
-            if (Build.VERSION.SDK_INT >= 24) {
-                mMotionListener = new SDLGenericMotionListener_API24();
-            } else {
-                mMotionListener = new SDLGenericMotionListener_API12();
-            }
+            mMotionListener = new SDLGenericMotionListener_API12();
         }
 
         return mMotionListener;
@@ -277,16 +270,6 @@ public class SDLActivity extends Activity {
 
         setWindowStyle(false);
 
-		//White Dragon: check android permissions
-		if (Build.VERSION.SDK_INT >= 23) {
-			String[] permissions = {Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE};
-
-			if ( !hasPermissions(permissions) ) {
-				int permsRequestCode = 200; // own custom conventional code for granted permissions
-				requestPermissions(permissions, permsRequestCode);
-			}
-		}
-
         //msmalik681 copy pak
         CopyPak();
 
@@ -323,29 +306,6 @@ public class SDLActivity extends Activity {
             }
         }
     }
-
-	//White Dragon: Check permissions (useful for future update)
-	/*@Override
-	public void onRequestPermissionsResult(int permsRequestCode, String[] permissions, int[] grantResults){
-		switch(permsRequestCode){
-			case 200:
-				boolean readExternalSorageAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-				boolean writeExternalSorageAccepted = grantResults[1] == PackageManager.PERMISSION_GRANTED;
-				break;
-			default:
-				break;
-		}
-		return;
-	}*/
-
-	//White Dragon: Check permissions
-	private boolean hasPermissions(String[] permissions){
-		Context appCtx = getApplicationContext();
-		for (String permission : permissions) {
-			if (appCtx.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) return false;
-		}
-		return true;
-	}
 
     //public static native void setRootDir(String dir); msmalik681: left commented as it may be useful in future.
 
@@ -1500,11 +1460,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         if (Build.VERSION.SDK_INT >= 12) {
             setOnGenericMotionListener(SDLActivity.getMotionListener());
         }
-
-        if (Build.VERSION.SDK_INT >= 26) {
-            setOnCapturedPointerListener(new SDLCapturedPointerListener_API26());
-        }
-
+		
         // Some arbitrary defaults to avoid a potential division by zero
         mWidth = 1.0f;
         mHeight = 1.0f;
@@ -1872,19 +1828,15 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 						Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
 
 						if (vibrator.hasVibrator()) {
-							if (Build.VERSION.SDK_INT >= 26) {
-								vibrator.vibrate(VibrationEffect.createOneShot(vibrationTime,VibrationEffect.DEFAULT_AMPLITUDE));
-							} else {
-								// Start without a delay
-								// Vibrate for 3 milliseconds
-								// Sleep for 1000 milliseconds
-								long[] pattern = {0, vibrationTime, 1000};
-								// The '0' here means to repeat indefinitely
-								// '0' is actually the index at which the pattern keeps repeating from (the start)
-								// To repeat the pattern from any other point, you could increase the index, e.g. '1'
-								// The '-1' here means to vibrate once, as '-1' is out of bounds in the pattern array
-								vibrator.vibrate(pattern, -1);
-							}
+							// Start without a delay
+							// Vibrate for 3 milliseconds
+							// Sleep for 1000 milliseconds
+							long[] pattern = {0, vibrationTime, 1000};
+							// The '0' here means to repeat indefinitely
+							// '0' is actually the index at which the pattern keeps repeating from (the start)
+							// To repeat the pattern from any other point, you could increase the index, e.g. '1'
+							// The '-1' here means to vibrate once, as '-1' is out of bounds in the pattern array
+							vibrator.vibrate(pattern, -1);
 						}
                     }
 

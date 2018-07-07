@@ -787,7 +787,7 @@ void menu(char *path)
 			{
 				case 1:
 				case 2:
-					done = 1;
+					if (dListTotal > 0) done = 1;
 					break;
 
 				case -1:
@@ -799,7 +799,7 @@ void menu(char *path)
 					break;
 
 				case -3:
-					drawBGMPlayer();
+					if (dListTotal > 0) drawBGMPlayer();
 					break;
 
 				case -4:

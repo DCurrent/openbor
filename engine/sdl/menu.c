@@ -731,7 +731,7 @@ void Menu()
 			{
 				case 1:
 				case 2:
-					done = 1;
+					if (dListTotal > 0) done = 1;
 					break;
 
 				case 3:
@@ -743,7 +743,7 @@ void Menu()
 					break;
 
 				case -2:
-					drawBGMPlayer();
+				    if (dListTotal > 0) drawBGMPlayer();
 					break;
 			}
 
