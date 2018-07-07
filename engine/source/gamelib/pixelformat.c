@@ -626,7 +626,7 @@ void set_blendtables(unsigned char *tables[])
 }
 
 //getting too long so make 2 functions
-blend16fp getblendfunction16(unsigned short alpha)
+blend16fp getblendfunction16(int alpha)
 {
     blend16fp fp = (alpha > 0) ? blendfunctions16[alpha - 1] : NULL;
     //tint mode means tint the sprite with color
@@ -645,7 +645,7 @@ blend16fp getblendfunction16(unsigned short alpha)
     return fp;
 }
 
-blend32fp getblendfunction32(unsigned alpha)
+blend32fp getblendfunction32(int alpha)
 {
     blend32fp fp = (alpha > 0) ? blendfunctions32[alpha - 1] : NULL;
     if(tintmode > 0)
