@@ -496,10 +496,13 @@ void Menu()
             ctrl = Control();
             switch (ctrl)
             {
-                case 1:
-                case 2:
-                    if (dListTotal > 0) done = 1;
-                    break;
+				case 1:
+					if (dListTotal > 0) done = 1;
+					break;
+
+				case 2:
+					done = 1;
+					break;
 
                 case 3:
                     drawLogs();
@@ -508,6 +511,10 @@ void Menu()
                 case -1:
                     drawMenu();
                     break;
+
+                default:
+					done = 1;
+					break;
             }
         }
         freeAllLogs();

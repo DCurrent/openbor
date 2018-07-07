@@ -23,9 +23,9 @@
 #define LOG_SCREEN_TOP 3
 #define LOG_SCREEN_END 24
 
-char wMode[128] = {""};
-char wStatus[128] = {"WiFi Disabled"};
-char dListPath[256] = {""};
+char wMode[MAX_LABEL_LEN] = {""};
+char wStatus[MAX_LABEL_LEN] = {"WiFi Disabled"};
+char dListPath[MAX_FILENAME_LEN] = {""};
 int dListTotal;
 int dListCurrentPosition;
 int dListScrollPosition;
@@ -124,7 +124,7 @@ Image *getPreview(char *filename)
 	freescreen(&scaledown);
 
 	// ScreenShots within Menu will be saved as "Menu"
-	strncpy(packfile,"Menu.xxx",128);
+	strncpy(packfile,"Menu.xxx",MAX_LABEL_LEN);
 
 	return preview;
 }
@@ -786,8 +786,11 @@ void menu(char *path)
 			switch(ctrl)
 			{
 				case 1:
-				case 2:
 					if (dListTotal > 0) done = 1;
+					break;
+
+				case 2:
+					done = 1;
 					break;
 
 				case -1:
@@ -810,6 +813,9 @@ void menu(char *path)
 					drawLogs();
 					break;
 
+                default:
+					done = 1;
+					break;
 			}
 		}
 		sound_exit();
