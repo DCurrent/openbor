@@ -814,7 +814,6 @@ void menu(char *path)
 					break;
 
                 default:
-					done = 1;
 					break;
 			}
 		}

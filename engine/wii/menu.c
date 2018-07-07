@@ -752,7 +752,6 @@ void Menu()
 					break;
 
                 default:
-					done = 1;
 					break;
 			}
 		}
