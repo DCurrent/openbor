@@ -5334,7 +5334,8 @@ int nextcolourmap(s_model *model, int c)
     return c;
 }
 
-int nextcolourmapln(s_model *model, int c, int p)
+//White Dragon: "noforce" used when you joing player without forced color choose from player (by using UP/DOWN buttons)
+int nextcolourmapln(s_model *model, int c, int p, int noforce)
 {
     int color_index = nextcolourmap(model, c);
     s_set_entry *set = levelsets + current_set;
@@ -5360,7 +5361,14 @@ int nextcolourmapln(s_model *model, int c, int p)
                 used_colors_map[player[i].colourmap] = 1;
                 ++used_color_count;
                 // all busy colors? return the next natural
-                if (used_color_count >= maps_count) return color_index;
+                if (noforce)
+                {
+                    return 0;
+                }
+                else
+                {
+                    if (used_color_count >= maps_count) return color_index;
+                }
             }
         }
 
@@ -5396,7 +5404,8 @@ int prevcolourmap(s_model *model, int c)
     return c;
 }
 
-int prevcolourmapln(s_model *model, int c, int p)
+//White Dragon: "noforce" used when you joing player without forced color choose from player (by using UP/DOWN buttons)
+int prevcolourmapln(s_model *model, int c, int p, int noforce)
 {
     int color_index = prevcolourmap(model, c);
     s_set_entry *set = levelsets + current_set;
@@ -5422,7 +5431,14 @@ int prevcolourmapln(s_model *model, int c, int p)
                 used_colors_map[player[i].colourmap] = 1;
                 ++used_color_count;
                 // all busy colors? return the next natural
-                if (used_color_count >= maps_count) return color_index;
+                if (noforce)
+                {
+                    return 0;
+                }
+                else
+                {
+                    if (used_color_count >= maps_count) return color_index;
+                }
             }
         }
 
@@ -16220,14 +16236,14 @@ void updatestatus()
                 model = ((player[i].playkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(model, i);
                 strcpy(player[i].name, model->name);
 
-                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i) : 0;
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i, 1) : 0;
 
                 player[i].playkeys = 0;
             }
             // don't like a characters color try a new one!
             else if(player[i].playkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect)
             {
-                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(model, player[i].colourmap, i);
+                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(model, player[i].colourmap, i, 0);
 
                 player[i].playkeys = 0;
             }
@@ -16240,7 +16256,7 @@ void updatestatus()
                 model = skipselect[i][0] ? findmodel(skipselect[i]) : nextplayermodeln(NULL, i);
                 strncpy(player[i].name, model->name, MAX_NAME_LEN);
 
-                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i) : 0;
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i, 1) : 0;
 
                 player[i].joining = 1;
                 player[i].disablekeys = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
@@ -35260,7 +35276,7 @@ static entity *spawnexample(int i)
     example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
     strcpy(player[i].name, example->model->name);
 
-    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example->model, player[i].colourmap, i) : 0;
+    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example->model, player[i].colourmap, i, 1) : 0;
 
     ent_set_colourmap(example, player[i].colourmap);
     example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
@@ -35595,13 +35611,13 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     }
                     ent_set_model(example[i], ((player[i].newkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(example[i]->model, i)->name, 0);
                     strcpy(player[i].name, example[i]->model->name);
-                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example[i]->model, player[i].colourmap, i) : 0;
+                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example[i]->model, player[i].colourmap, i, 1) : 0;
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 // oooh pretty colors! - selectable color scheme for player characters
                 else if(player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
                 {
-                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(example[i]->model, player[i].colourmap, i);
+                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(example[i]->model, player[i].colourmap, i, 0);
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
