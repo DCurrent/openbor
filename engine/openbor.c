@@ -27442,7 +27442,7 @@ int projectile_wall_deflect(entity *ent)
             toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
 
             // Reset base detection
-            ent->modeldata.subject_to_basemap = 0;
+            ent->modeldata.subject_to_basemap = 1;
             ent->modeldata.no_adjust_base = 0;
             ent->modeldata.subject_to_hole = 1;
             ent->base = 0;
