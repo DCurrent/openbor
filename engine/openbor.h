@@ -2630,7 +2630,7 @@ void    execute_inhole_script       (entity *ent, s_terrain *hole, int index);
 void    execute_onblocks_script     (entity *ent);
 void    execute_onblockw_script     (entity *ent, s_terrain *wall, int index, e_plane plane);
 void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
-void    execute_onblocko_script     (entity *ent, entity *other);
+void    execute_onblocko_script     (entity *ent, int plane, entity *other);
 void    execute_onblockz_script     (entity *ent);
 void    execute_onblocka_script     (entity *ent, entity *other);
 void    execute_onmovex_script      (entity *ent);

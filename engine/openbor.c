@@ -2413,7 +2413,7 @@ void execute_onblockp_script(entity *ent, int plane, entity *platform)
     }
 }
 
-void execute_onblocko_script(entity *ent, entity *other)
+void execute_onblocko_script(entity *ent, int plane, entity *other)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onblocko_script;
@@ -2423,6 +2423,10 @@ void execute_onblocko_script(entity *ent, entity *other)
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)plane;
+        Script_Set_Local_Variant(cs, "plane",      &tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)other;
         Script_Set_Local_Variant(cs, "obstacle",    &tempvar);
         Script_Execute(cs);
@@ -2430,6 +2434,7 @@ void execute_onblocko_script(entity *ent, entity *other)
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "plane", &tempvar);
         Script_Set_Local_Variant(cs, "obstacle",    &tempvar);
     }
 }
@@ -5334,8 +5339,7 @@ int nextcolourmap(s_model *model, int c)
     return c;
 }
 
-//White Dragon: "noforce" used when you joing player without forced color choose from player (by using UP/DOWN buttons)
-int nextcolourmapln(s_model *model, int c, int p, int noforce)
+int nextcolourmapn(s_model *model, int c, int p)
 {
     int color_index = nextcolourmap(model, c);
     s_set_entry *set = levelsets + current_set;
@@ -5361,14 +5365,7 @@ int nextcolourmapln(s_model *model, int c, int p, int noforce)
                 used_colors_map[player[i].colourmap] = 1;
                 ++used_color_count;
                 // all busy colors? return the next natural
-                if (noforce)
-                {
-                    return 0;
-                }
-                else
-                {
-                    if (used_color_count >= maps_count) return color_index;
-                }
+                if (used_color_count >= maps_count) return color_index;
             }
         }
 
@@ -5404,8 +5401,7 @@ int prevcolourmap(s_model *model, int c)
     return c;
 }
 
-//White Dragon: "noforce" used when you joing player without forced color choose from player (by using UP/DOWN buttons)
-int prevcolourmapln(s_model *model, int c, int p, int noforce)
+int prevcolourmapn(s_model *model, int c, int p)
 {
     int color_index = prevcolourmap(model, c);
     s_set_entry *set = levelsets + current_set;
@@ -5431,14 +5427,7 @@ int prevcolourmapln(s_model *model, int c, int p, int noforce)
                 used_colors_map[player[i].colourmap] = 1;
                 ++used_color_count;
                 // all busy colors? return the next natural
-                if (noforce)
-                {
-                    return 0;
-                }
-                else
-                {
-                    if (used_color_count >= maps_count) return color_index;
-                }
+                if (used_color_count >= maps_count) return color_index;
             }
         }
 
@@ -16236,14 +16225,14 @@ void updatestatus()
                 model = ((player[i].playkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(model, i);
                 strcpy(player[i].name, model->name);
 
-                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i, 1) : 0;
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(model, -1, i) : 0;
 
                 player[i].playkeys = 0;
             }
             // don't like a characters color try a new one!
             else if(player[i].playkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect)
             {
-                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(model, player[i].colourmap, i, 0);
+                player[i].colourmap = ((player[i].playkeys & FLAG_MOVEUP) ? nextcolourmapn : prevcolourmapn)(model, player[i].colourmap, i);
 
                 player[i].playkeys = 0;
             }
@@ -16256,7 +16245,7 @@ void updatestatus()
                 model = skipselect[i][0] ? findmodel(skipselect[i]) : nextplayermodeln(NULL, i);
                 strncpy(player[i].name, model->name, MAX_NAME_LEN);
 
-                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(model, player[i].colourmap, i, 1) : 0;
+                player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(model, -1, i) : 0;
 
                 player[i].joining = 1;
                 player[i].disablekeys = player[i].playkeys = player[i].newkeys = player[i].releasekeys = 0;
@@ -25483,23 +25472,23 @@ int common_trymove(float xdir, float zdir)
 
         //TODO, check once instead of twice
         if((other = find_ent_here(self, x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
-                (xdir > 0 ? other->position.x > self->position.x : other->position.x < self->position.x) &&
+                (xdir > 0 ? other->position.x >= self->position.x : other->position.x <= self->position.x) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             xdir    = 0;
             if ( self->falling ) hit |= 1;
             te = other;
-            execute_onblocko_script(self, other);
+            execute_onblocko_script(self, PLANE_X, other);
         }
         if((other = find_ent_here(self, self->position.x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
-                (zdir > 0 ? other->position.z > self->position.z : other->position.z < self->position.z) &&
+                (zdir > 0 ? other->position.z >= self->position.z : other->position.z <= self->position.z) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][7]))
         {
             zdir    = 0;
             if ( self->falling ) hit |= 1;
             if(te != other) //just in case they are the same obstacle
             {
-                execute_onblocko_script(self, other);
+                execute_onblocko_script(self, PLANE_Z, other);
             }
         }
 
@@ -25540,13 +25529,13 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = 0;
             if ( self->falling ) hit |= 1;
-            execute_onblockp_script(self, 1, other);
+            execute_onblockp_script(self, PLANE_X, other);
         }
         if(zdir && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self))  )
         {
             zdir = 0;
             if ( self->falling ) hit |= 1;
-            execute_onblockp_script(self, 2, other);
+            execute_onblockp_script(self, PLANE_Z, other);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITPLATFORM) ) ent_set_anim(self, ANI_HITPLATFORM, 0);
@@ -27426,7 +27415,7 @@ int projectile_wall_deflect(entity *ent)
         blocking_wall = check_block_wall(self);
         blocking_obstacle = check_block_obstacle(self);
 
-        if(blocking_wall || blocking_obstacle) {
+        if(blocking_wall >= 0 || blocking_obstacle) {
 
             // Use the projectiles speed and our factor to see how
             // hard it will bounce off wall.
@@ -35276,7 +35265,7 @@ static entity *spawnexample(int i)
     example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
     strcpy(player[i].name, example->model->name);
 
-    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example->model, player[i].colourmap, i, 1) : 0;
+    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(example->model, -1, i) : 0;
 
     ent_set_colourmap(example, player[i].colourmap);
     example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
@@ -35611,13 +35600,13 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     }
                     ent_set_model(example[i], ((player[i].newkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(example[i]->model, i)->name, 0);
                     strcpy(player[i].name, example[i]->model->name);
-                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapln(example[i]->model, player[i].colourmap, i, 1) : 0;
+                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(example[i]->model, -1, i) : 0;
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 // oooh pretty colors! - selectable color scheme for player characters
                 else if(player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
                 {
-                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapln : prevcolourmapln)(example[i]->model, player[i].colourmap, i, 0);
+                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapn : prevcolourmapn)(example[i]->model, player[i].colourmap, i);
                     ent_set_colourmap(example[i], player[i].colourmap);
                 }
                 else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
