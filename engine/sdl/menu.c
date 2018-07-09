@@ -695,7 +695,7 @@ static void drawLogs()
 static void drawLogo()
 {
     int i;
-    int delay = 800;
+    int delay = 500;
 
     if(savedata.logo) return;
 
