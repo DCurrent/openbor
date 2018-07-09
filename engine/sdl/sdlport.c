@@ -60,7 +60,6 @@ char* AndroidRoot(char *relPath)
 
 void borExit(int reset)
 {
-
 #ifdef GP2X
 	gp2x_end();
 	chdir("/usr/gp2x");
@@ -69,7 +68,11 @@ void borExit(int reset)
 	SDL_Delay(1000);
 #endif
 
+#ifdef SDL
 	appExit(0);
+#else
+    exit(0);
+#endif
 }
 
 int main(int argc, char *argv[])

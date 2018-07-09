@@ -609,7 +609,7 @@ static void drawBGMPlayer()
 	printText((isWide ? 390 : 244),(isWide ? 251 : 226), WHITE, 0, 0, "%s: Exit Player", control_getkeyname(savedata.keys[0][SDID_SPECIAL]));
 #endif
 	//CRxTRDude - Fixed the placement of these texts and appropriately changed the site for Chrono Crash
-  printText((isWide ? 320 : 188),(isWide ? 175 : 158), BLACK, 0, 0, "www.chronocrash.com");
+    printText((isWide ? 320 : 188),(isWide ? 175 : 158), BLACK, 0, 0, "www.chronocrash.com");
 	printText((isWide ? 322 : 190),(isWide ? 185 : 168), BLACK, 0, 0, "www.SenileTeam.com");
 
 #ifdef SPK_SUPPORTED
@@ -769,9 +769,7 @@ void Menu()
 					break;
 			}
 
-			#if ANDROID
-                blit_video_menu(vscreen);
-			#endif
+            blit_video_menu(vscreen);
 		}
 		freeAllLogs();
 		termMenu();
