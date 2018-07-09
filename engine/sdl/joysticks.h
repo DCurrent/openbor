@@ -54,7 +54,7 @@ extern s_joysticks joysticks[JOY_LIST_TOTAL];
 
 extern const char *JoystickKeyName[JOY_NAME_SIZE];
 extern const char *GameparkKeyName[JOY_NAME_SIZE];
-extern const int JoystickBits[JOY_MAX_INPUTS + 1];
+extern const u64 JoystickBits[JOY_MAX_INPUTS + 1];
 
 const char* PC_GetJoystickKeyName(int portnum, int keynum);
 char* JOY_GetKeyName(int keycode);
