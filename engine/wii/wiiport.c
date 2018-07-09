@@ -54,7 +54,7 @@ void borExit(int reset)
 	else if(reset == WII_RESET) SYS_ResetSystem(SYS_HOTRESET, 0, 0);
 	else exit(reset);
 #else
-	SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0); //exit(0);
+	SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0); //exit(reset);
 #endif
 }
 

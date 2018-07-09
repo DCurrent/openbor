@@ -63,7 +63,7 @@ void borExit(int reset)
 	SDL_Delay(1000);
 #endif
 
-    exit(0);
+    exit(reset);
 }
 
 int main(int argc, char *argv[])

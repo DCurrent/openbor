@@ -351,15 +351,18 @@ void joystick_scan(int scan)
 
 	numjoy = SDL_NumJoysticks();
 
-	if(!numjoy && scan != 2)
-	{
-		printf("No Joystick(s) Found!\n");
-		return;
-	}
-	else
-	{
-		printf("\n%d joystick(s) found!\n", numjoy);
-	}
+	if (scan != 2)
+    {
+        if(numjoy <= 0)
+        {
+            printf("No Joystick(s) Found!\n");
+            return;
+        }
+        else
+        {
+            printf("\n%d joystick(s) found!\n", numjoy);
+        }
+    }
 
 	if (numjoy > JOY_LIST_TOTAL) numjoy = JOY_LIST_TOTAL; // avoid overflow bug
 

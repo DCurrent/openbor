@@ -31,7 +31,7 @@ char rootDir[MAX_FILENAME_LEN]; // note: this one ends with a slash
 
 void borExit(int reset)
 {
-    sceKernelExitProcess(0);
+    sceKernelExitProcess(reset);
 }
 
 int main(int argc, char *argv[])
