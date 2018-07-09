@@ -492,6 +492,13 @@ static void termMenu()
 	control_exit();
 }
 
+static void blit_video_menu(s_screen* vscreen)
+{
+    video_stretch(1); // set to fullscreen
+    video_copy_screen(vscreen);
+    video_stretch(savedata.stretch); // reset to saved value
+}
+
 static void drawMenu()
 {
 	char listing[45] = {""};
@@ -555,7 +562,7 @@ static void drawMenu()
 	else
 		printText((isWide ? 288 : 157), (isWide ? 141 : 130), RED, 0, 0, "No Preview Available!");
 
-	video_copy_screen(vscreen);
+	blit_video_menu(vscreen);
 }
 
 static void drawBGMPlayer()
@@ -629,7 +636,7 @@ static void drawBGMPlayer()
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 4), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Track: %s", t2);
 	printText((isWide ? 288 : 157),(isWide ? 35 : 23) + (11 * 5), bgmPlay ? DARK_GREEN : DARK_BLUE, 0, 0, "Artist: %s", a2);
 
-	video_copy_screen(vscreen);
+	blit_video_menu(vscreen);
 }
 
 static void drawLogs()
@@ -680,17 +687,26 @@ static void drawLogs()
 		else if(i == SCRIPT_LOG) printText(5, 3, RED, 0, 0, "Log NOT Found: ScriptLog.txt");
 		else                     printText(5, 3, RED, 0, 0, "Log NOT Found: OpenBorLog.txt");
 
-	    video_copy_screen(vscreen);
+	    blit_video_menu(vscreen);
 	}
 	drawMenu();
 }
 
 static void drawLogo()
 {
+    int i;
+    int delay = 800;
+
     if(savedata.logo) return;
+
 	initMenu(0);
-	video_copy_screen(bgscreen);
-	SDL_Delay(3000);
+
+	for(i = 0; i < delay; i++)
+    {
+        blit_video_menu(bgscreen);
+        SDL_Delay(1);
+    }
+
 	termMenu();
 }
 
@@ -754,7 +770,7 @@ void Menu()
 			}
 
 			#if ANDROID
-                video_copy_screen(vscreen);
+                blit_video_menu(vscreen);
 			#endif
 		}
 		freeAllLogs();
