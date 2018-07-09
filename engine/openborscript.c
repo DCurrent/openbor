@@ -8973,7 +8973,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         ent->energy_status.health_current -= atk.attack_force;
         if(ent->energy_status.health_current <= 0)
         {
-            kill(ent);
+            kill_entity(ent);
         }
         (*pretvar)->lVal = (LONG)1;
     }
@@ -9090,7 +9090,7 @@ HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         (*pretvar)->lVal = (LONG)0;
         return S_OK;
     }
-    kill(ent);
+    kill_entity(ent);
     (*pretvar)->lVal = (LONG)1;
     return S_OK;
 }

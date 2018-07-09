@@ -64,12 +64,6 @@
 
 /////////////////////////////////////////////////////////////////////////////
 
-#define		exit				borExit
-#define		_time				borTime
-#define		kill				borKill
-#define		pause				borPause
-#define		shutdown			borShutdown
-
 #ifndef PP_TEST
 #define printf writeToLogFile
 

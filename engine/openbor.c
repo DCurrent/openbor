@@ -498,7 +498,7 @@ int                 completebg			= 0;           			// If set to 1, will look for
 s_loadingbar        loadingbg[2] = {{0, 0, {0, 0}, {0, 0}, 0, 0}, {0, 0, {0, 0}, {0, 0}, 0, 0}}; // If set to 1, will look for a background image to display at the loading screen
 int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
-int                 pause               = 0;
+int                 _pause              = 0;
 int                 goto_mainmenu_flag  = 0;
 int					nofadeout			= 0;
 int					nosave				= 0;
@@ -1087,7 +1087,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_game_paused:
     case _sv_pause:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        if( !(goto_mainmenu_flag&1) ) var->lVal = (pause);
+        if( !(goto_mainmenu_flag&1) ) var->lVal = (_pause);
         else var->lVal = 0;
         break;
     case _sv_game_time:
@@ -14493,7 +14493,7 @@ void unload_level()
     tospeedup = 0;    // Reset so it sets to normal speed for the next level
     reached[0] = reached[1] = reached[2] = reached[3] = 0;    // TYPE_ENDLEVEL values reset after level completed //4player
     showtimeover = 0;
-    pause = 0;
+    _pause = 0;
     endgame = 0;
     go_time = 0;
     debug_time = 0;
@@ -16053,7 +16053,7 @@ void static backto_mainmenu()
 
     sound_pause_music(1);
     sound_pause_sample(1);
-    pause = 2;
+    _pause = 2;
 
     if ( (goto_mainmenu_flag&1) ) goto_mainmenu_flag -= 1;
 
@@ -16067,7 +16067,7 @@ void static backto_mainmenu()
     //sound_pause_music(0);
     //sound_pause_sample(0);
 
-    pause = 0;
+    _pause = 0;
     bothnewkeys = 0;
     spriteq_unlock();
     spriteq_clear();
@@ -16100,7 +16100,7 @@ void pausemenu()
         }
     }
 
-    pause = 2;
+    _pause = 2;
     bothnewkeys = 0;
     while(!quit)
     {
@@ -16143,14 +16143,14 @@ void pausemenu()
         }
         if(newkeys & FLAG_SCREENSHOT)
         {
-            pause = 1;
+            _pause = 1;
             sound_pause_music(1);
             sound_pause_sample(1);
             sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
             menu_options();
         }
     }
-    pause = 0;
+    _pause = 0;
     bothnewkeys = 0;
     spriteq_unlock();
     spriteq_clear();
@@ -18052,7 +18052,7 @@ void update_frame(entity *ent, unsigned int f)
             }
             else
             {
-                kill(self);
+                kill_entity(self);
             }
             self = ent; // lol ...
             self->subentity = NULL;
@@ -18458,7 +18458,7 @@ entity *spawn(float x, float z, float a, int direction, char *name, int index, s
             e = ent_list[i];
             if(e->exists)
             {
-                kill(e);
+                kill_entity(e);
             }
             // save these values, or they will loss when memset called
             id      = e->sortid;
@@ -18567,7 +18567,7 @@ void ents_link(entity *e1, entity *e2)
 
 
 
-void kill(entity *victim)
+void kill_entity(entity *victim)
 {
     int i = 0;
     s_collision_attack attack;
@@ -18615,7 +18615,7 @@ void kill(entity *victim)
         }
         else
         {
-            kill(self);
+            kill_entity(self);
         }
     }
     victim->subentity = NULL;
@@ -18654,7 +18654,7 @@ void kill(entity *victim)
                     }
                     else
                     {
-                        kill(self);
+                        kill_entity(self);
                     }
                 }
             }
@@ -20277,7 +20277,7 @@ void do_attack(entity *e)
 
         if(e->remove_on_attack)
         {
-            kill(e);
+            kill_entity(e);
         }
     }//end of if ###
 #undef followed
@@ -20578,7 +20578,7 @@ int check_lost()
         }
         else
         {
-            kill(self);
+            kill_entity(self);
         }
         return 1;
     }
@@ -20588,7 +20588,7 @@ int check_lost()
     {
         if(!self->takedamage)
         {
-            kill(self);
+            kill_entity(self);
         }
         else
         {
@@ -20606,7 +20606,7 @@ int check_lost()
     {
         if(!self->takedamage)
         {
-            kill(self);
+            kill_entity(self);
         }
         else
         {
@@ -21025,7 +21025,7 @@ void update_animation()
 
                 if(self->autokill)
                 {
-                    kill(self);
+                    kill_entity(self);
                     return;
                 }
             }
@@ -21047,7 +21047,7 @@ void update_animation()
 
                 if(self->autokill)
                 {
-                    kill(self);
+                    kill_entity(self);
                     return;
                 }
             }
@@ -21408,7 +21408,7 @@ void damage_recursive(entity *target)
                         else
                         {
                             // Kill target instantly.
-                            kill(target);
+                            kill_entity(target);
                         }
                     }
                     else
@@ -21469,7 +21469,7 @@ void adjust_bind(entity *e)
                 {
                     if(e->binding.ani_bind & 4)
                     {
-                        kill(e);
+                        kill_entity(e);
                     }
                     e->binding.ent = NULL;
                     return;
@@ -23393,7 +23393,7 @@ void common_drop()
     self->takeaction = NULL;
     if(self->energy_status.health_current <= 0)
     {
-        kill(self);
+        kill_entity(self);
     }
 }
 
@@ -24384,7 +24384,7 @@ void checkdamageonlanding()
         }
         else
         {
-            kill(self);
+            kill_entity(self);
         }
         if (self)
         {
@@ -24548,7 +24548,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         }
         else
         {
-            kill(self);
+            kill_entity(self);
         }
         return 1;
     }
@@ -24632,7 +24632,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
                 }
                 else
                 {
-                    kill(self);
+                    kill_entity(self);
                 }
                 return 1;
             }
@@ -27476,7 +27476,7 @@ int do_catch(entity *ent, entity *target, int animation_catch)
             ent->attacking = ATTACKING_INACTIVE;
             ent->idling = 0;
             ent_set_anim(ent, animation_catch, 0);
-            kill(target);
+            kill_entity(target);
 
             return 1;
         }
@@ -27908,7 +27908,7 @@ int star_move()
 {
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && !self->modeldata.falldie))
     {
-        kill(self);
+        kill_entity(self);
         return 0;
     }
 
@@ -28605,7 +28605,7 @@ void suicide()
         return;
     }
     level_completed |= self->boss;
-    kill(self);
+    kill_entity(self);
 }
 
 
@@ -28640,7 +28640,7 @@ void player_die()
 
     if(self->modeldata.nodieblink != 3)
     {
-        kill(self);
+        kill_entity(self);
     }
     else
     {
@@ -29052,7 +29052,7 @@ void runanimal()
 
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))
     {
-        kill(self);
+        kill_entity(self);
         return;
     }
 
@@ -31146,7 +31146,7 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
                 self->energy_status.health_current -= attack->attack_force;
                 if(self->energy_status.health_current <= 0)
                 {
-                    kill(self);
+                    kill_entity(self);
                 }
             }
         }
@@ -31179,7 +31179,7 @@ void anything_walk()
 {
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))
     {
-        kill(self);
+        kill_entity(self);
         return;
     }
     //self->position.x += self->velocity.x;
@@ -31506,7 +31506,7 @@ void bomb_explode()
     {
         return;
     }
-    kill(self);
+    kill_entity(self);
 }
 
 
@@ -31666,7 +31666,7 @@ void steam_think()
 {
     if(!self->animating)
     {
-        kill(self);
+        kill_entity(self);
         return;
     }
 
@@ -31718,7 +31718,7 @@ void text_think()     // New function so text can be displayed
     // wait to suicide
     if(!self->animating)
     {
-        kill(self);
+        kill_entity(self);
     }
 }
 
@@ -31779,7 +31779,7 @@ void bike_crash()
     {
         if (savedata.joyrumble[i]) control_rumble(i, 1, 100);
     }
-    //if(self->position.x < advancex-100 || self->position.x > advancex+(videomodes.hRes+100)) kill(self);
+    //if(self->position.x < advancex-100 || self->position.x > advancex+(videomodes.hRes+100)) kill_entity(self);
 }
 
 
@@ -31795,7 +31795,7 @@ int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     // Fell in a hole
     if(self->position.y < PIT_DEPTH)
     {
-        kill(self);
+        kill_entity(self);
         return 0;
     }
     if(other != self)
@@ -31856,7 +31856,7 @@ void obstacle_fall()
     self->velocity.x = self->velocity.z = 0;
     if((!self->animating && validanim(self, ANI_DIE)) || !validanim(self, ANI_DIE))
     {
-        kill(self);    // Fixed so ANI_DIE can be used
+        kill_entity(self);    // Fixed so ANI_DIE can be used
     }
 }
 
@@ -31867,7 +31867,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
     //self->position.x += self->velocity.x * 4;    // Equivelant of speed 40
     if(self->position.x > advancex + (videomodes.hRes + 200) || self->position.x < advancex - 200)
     {
-        kill(self);
+        kill_entity(self);
     }
 }
 
@@ -31877,7 +31877,7 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag
 {
     if(self->position.y <= PIT_DEPTH)
     {
-        kill(self);
+        kill_entity(self);
         return 0;
     }
 
@@ -33285,7 +33285,7 @@ void execute_keyscripts()
     int p;
     for(p = 0; p < levelsets[current_set].maxplayers; p++)
     {
-        if(!pause && (level || inScreen) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys))
+        if(!_pause && (level || inScreen) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys))
         {
             if(level)
             {
@@ -33673,17 +33673,17 @@ void update(int ingame, int usevwait)
     int p_keys = 0;
 
     getinterval();
-    if(playrecstatus->status == A_REC_PLAY && !pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
+    if(playrecstatus->status == A_REC_PLAY && !_pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
-    if(playrecstatus->status == A_REC_REC && !pause && level) if ( !recordInputs() ) stopRecordInputs();
+    if(playrecstatus->status == A_REC_REC && !_pause && level) if ( !recordInputs() ) stopRecordInputs();
 
-    if ((!pause && ingame == 1) || alwaysupdate)
+    if ((!_pause && ingame == 1) || alwaysupdate)
     {
         execute_updatescripts();
     }
 
     newtime = 0;
-    if(!pause)
+    if(!_pause)
     {
         if(ingame == 1 || inScreen)
         {
@@ -33780,7 +33780,7 @@ void update(int ingame, int usevwait)
 
     clearscreen(vscreen);
 
-    if(ingame == 1 && !pause)
+    if(ingame == 1 && !_pause)
     {
         draw_scrolled_bg();
         if(level->type != 2)
@@ -33804,7 +33804,7 @@ void update(int ingame, int usevwait)
 
     // entity sprites queueing
     if(ingame == 1 || inScreen)
-        if(!pause)
+        if(!_pause)
         {
             display_ents();
         }
@@ -33825,13 +33825,13 @@ void update(int ingame, int usevwait)
     }
 
     // 2011/10/22 UT: move pause menu logic here
-    /*if(ingame == 1 && !pause && !nopause &&
+    /*if(ingame == 1 && !_pause && !nopause &&
             ((player[0].ent && (player[0].newkeys & FLAG_START)) ||
              (player[1].ent && (player[1].newkeys & FLAG_START)) ||
              (player[2].ent && (player[2].newkeys & FLAG_START)) ||
              (player[3].ent && (player[3].newkeys & FLAG_START)))
       )*/
-    if(ingame == 1 && !pause && !nopause && p_keys)
+    if(ingame == 1 && !_pause && !nopause && p_keys)
     {
         if ( !(goto_mainmenu_flag&1) )
         {
@@ -33852,7 +33852,7 @@ void update(int ingame, int usevwait)
 
     spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0); // notice, always draw sprites at the very end of other methods
 
-    if(pause != 2 && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
+    if(_pause != 2 && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
     {
         screenshot(vscreen, getpal, 1);
     }
@@ -35194,7 +35194,7 @@ int playlevel(char *filename)
                 }
                 if (player[i].ent)
 				{
-					kill(player[i].ent);
+					kill_entity(player[i].ent);
 					player[i].ent = NULL;
 				}
                 //self = player[i].ent;
@@ -38082,7 +38082,7 @@ void menu_options()
 
     if (cheats && !forcecheatsoff)
     {
-        if(level != NULL && pause > 0) y_offset += CHEAT_PAUSE_POSY;
+        if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
         y_offset -= TOT_CHEATS;
         cheat_opt_offset += 1;
         BACK_OPTION += TOT_CHEATS;
@@ -38156,7 +38156,7 @@ void menu_options()
                 if (cheats && !forcecheatsoff)
                 {
                     y_offset = OPT_Y_POS-TOT_CHEATS;
-                    if(level != NULL && pause > 0) y_offset += CHEAT_PAUSE_POSY;
+                    if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
                     cheat_opt_offset = 1;
                     BACK_OPTION = END_OPTION-TOT_CHEATS+TOT_CHEATS;
                 }
@@ -38174,9 +38174,9 @@ void menu_options()
         }
     }
     savesettings();
-    if(pause == 1)
+    if(_pause == 1)
     {
-        pause = 2;
+        _pause = 2;
     }
     bothnewkeys = 0;
     optionsMenu = 0;

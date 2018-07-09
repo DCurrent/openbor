@@ -2755,7 +2755,6 @@ void steamer_think(void);
 void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
-void kill(entity *);
 int player_takedamage(entity *other, s_collision_attack *attack, int);
 int biker_takedamage(entity *other, s_collision_attack *attack, int);
 int obstacle_takedamage(entity *other, s_collision_attack *attack, int);
@@ -2775,7 +2774,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim);
 entity *spawn(float x, float z, float a, int direction, char *name, int index, s_model *model);
 void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
-void kill(entity *victim);
+void kill_entity(entity *victim);
 void kill_all();
 
 

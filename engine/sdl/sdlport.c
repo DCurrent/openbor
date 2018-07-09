@@ -22,11 +22,6 @@
 #undef main
 #endif
 
-#ifdef SDL
-#define appExit exit
-#undef exit
-#endif
-
 char packfile[MAX_FILENAME_LEN] = {"bor.pak"};
 #if ANDROID
 #include <unistd.h>
@@ -64,15 +59,11 @@ void borExit(int reset)
 	gp2x_end();
 	chdir("/usr/gp2x");
 	execl("/usr/gp2x/gp2xmenu", "/usr/gp2x/gp2xmenu", NULL);
-#else
+#elif SDL
 	SDL_Delay(1000);
 #endif
 
-#ifdef SDL
-	appExit(0);
-#else
     exit(0);
-#endif
 }
 
 int main(int argc, char *argv[])
