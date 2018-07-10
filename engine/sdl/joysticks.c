@@ -299,7 +299,9 @@ const char* JoystickButtonNames[JOY_NAME_SIZE] = {
 
 const char* JoystickAxisNames[JOY_NAME_SIZE] = {
 	"...",
-#define AXIS_BUTTONS(x,n)   x" Axis "n" -", x" Axis "n" +",
+#define AXIS_BUTTONS(x,n) \
+    x" Axis "n" -",       \
+    x" Axis "n" +",
 #define AXIS_NAMES(x)     \
 	AXIS_BUTTONS(x,"1")   \
 	AXIS_BUTTONS(x,"2")   \

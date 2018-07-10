@@ -341,12 +341,6 @@ void joystick_scan(int scan)
 {
 	int i;
 
-	// init joysticks to NULL for safe..
-	for(i = 0; i < JOY_LIST_TOTAL; i++)
-	{
-	    close_joystick(i);
-	}
-
 	if(!scan) return;
 
 	numjoy = SDL_NumJoysticks();
@@ -414,10 +408,9 @@ void open_joystick(int i)
 
     #if GP2X
     joysticks[i].Type = JOY_TYPE_GAMEPARK;
-    for(j = 0; j < JOY_MAX_INPUTS+1; j++)
+    for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
     {
-        if(j) joysticks[i].KeyName[j] = GameparkKeyName[j + JOY_MAX_INPUTS * i];
-        else joysticks[i].KeyName[j] = GameparkKeyName[j];
+        joysticks[i].KeyName[j] = GameparkKeyName[j + i * JOY_MAX_INPUTS];
     }
     #else
     //SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
@@ -461,19 +454,19 @@ Then scan for joysticks and update their data.
 */
 void control_init(int joy_enable)
 {
-	int i, j, k;
+	int i, j;
 #ifdef GP2X
 	usejoy = joy_enable ? joy_enable : 1;
 #else
 	usejoy = joy_enable;
 #endif
 	memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
-	for(i=0, k=0; i<JOY_LIST_TOTAL; i++, k+=JOY_MAX_INPUTS)
+	for(i = 0; i < JOY_LIST_TOTAL; i++)
 	{
-		for(j=0; j<JOY_MAX_INPUTS+1; j++)
+		for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
 		{
-			if(j) joysticks[i].KeyName[j] = JoystickKeyName[j + k];
-			else joysticks[i].KeyName[j] = JoystickKeyName[j];
+            if(j) joysticks[i].KeyName[j] = JoystickKeyName[j + i * JOY_MAX_INPUTS];
+            else joysticks[i].KeyName[j] = JoystickKeyName[j];
 		}
 	}
 	joystick_scan(usejoy);
@@ -483,6 +476,20 @@ void control_init(int joy_enable)
 #endif
 }
 
+char *control_getkeyname(unsigned int keycode)
+{
+	int i;
+	for(i = 0; i < JOY_LIST_TOTAL; i++)
+	{
+		if((keycode >= (JOY_LIST_FIRST + 1 + (i * JOY_MAX_INPUTS))) && (keycode <= JOY_LIST_FIRST + JOY_MAX_INPUTS + (i * JOY_MAX_INPUTS)))
+			return (char*)joysticks[i].KeyName[keycode - (JOY_LIST_FIRST + (i * JOY_MAX_INPUTS))];
+	}
+
+	if(keycode > SDLK_FIRST && keycode < SDLK_LAST)
+		return JOY_GetKeyName(keycode);
+	else
+		return "...";
+}
 
 /*
 Set global variable, which is used for
@@ -823,22 +830,6 @@ int control_scankey()
 	ready = (!k || !j);
 	return 0;
 }
-
-
-char *control_getkeyname(unsigned int keycode)
-{
-	int i;
-	for(i=0; i<JOY_LIST_TOTAL; i++)
-	{
-		if((keycode >= (JOY_LIST_FIRST + 1 + (i * JOY_MAX_INPUTS))) && (keycode <= JOY_LIST_FIRST + JOY_MAX_INPUTS + (i * JOY_MAX_INPUTS)))
-			return (char*)joysticks[i].KeyName[keycode - (JOY_LIST_FIRST + (i * JOY_MAX_INPUTS))];
-	}
-	if(keycode > SDLK_FIRST && keycode < SDLK_LAST)
-		return JOY_GetKeyName(keycode);
-	else
-		return "...";
-}
-
 
 void control_update(s_playercontrols ** playercontrols, int numplayers)
 {

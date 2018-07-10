@@ -5347,7 +5347,7 @@ int nextcolourmapn(s_model *model, int c, int p)
     if ( colourselect && (set->nosame & 2) )
     {
         int i = 0, j = 0;
-        int maps_count = model->maps_loaded;
+        int maps_count = model->maps_loaded + 1;
         int used_colors_map[maps_count];
         int used_color_count = 0;
 
@@ -5409,7 +5409,7 @@ int prevcolourmapn(s_model *model, int c, int p)
     if ( colourselect && (set->nosame & 2) )
     {
         int i = 0, j = 0;
-        int maps_count = model->maps_loaded;
+        int maps_count = model->maps_loaded + 1;
         int used_colors_map[maps_count];
         int used_color_count = 0;
 
@@ -27329,7 +27329,7 @@ int arrow_move()
 // wall is found.
 int check_block_wall(entity *entity)
 {
-    int wall;
+    int wall = -1;
 
     // Target entity affected by walls?
     if(entity->modeldata.subject_to_wall)
@@ -27352,7 +27352,7 @@ int check_block_wall(entity *entity)
     }
 
     // Got this far? Then there's no wall blocking our way.
-    return 0;
+    return wall;
 }
 
 // Caskey, Damon V.
@@ -36618,7 +36618,7 @@ void keyboard_setup(int player)
     char *buf,
          *command,
          *filename = "data/menu.txt",
-         buttonnames[btnnum][16];
+         buttonnames[btnnum][32];
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
@@ -36630,19 +36630,19 @@ void keyboard_setup(int player)
 
     printf("Loading control settings.......\t");
 
-    strncpy(buttonnames[SDID_MOVEUP], "Move Up", 16);
-    strncpy(buttonnames[SDID_MOVEDOWN], "Move Down", 16);
-    strncpy(buttonnames[SDID_MOVELEFT], "Move Left", 16);
-    strncpy(buttonnames[SDID_MOVERIGHT], "Move Right", 16);
-    strncpy(buttonnames[SDID_ATTACK], "Attack 1", 16);
-    strncpy(buttonnames[SDID_ATTACK2], "Attack 2", 16);
-    strncpy(buttonnames[SDID_ATTACK3], "Attack 3", 16);
-    strncpy(buttonnames[SDID_ATTACK4], "Attack 4", 16);
-    strncpy(buttonnames[SDID_JUMP], "Jump", 16);
-    strncpy(buttonnames[SDID_SPECIAL], "Special", 16);
-    strncpy(buttonnames[SDID_START], "Start", 16);
-    strncpy(buttonnames[SDID_SCREENSHOT], "Screenshot", 16);
-    strncpy(buttonnames[SDID_ESC], "Exit", 16);
+    strcpy(buttonnames[SDID_MOVEUP], "Move Up");
+    strcpy(buttonnames[SDID_MOVEDOWN], "Move Down");
+    strcpy(buttonnames[SDID_MOVELEFT], "Move Left");
+    strcpy(buttonnames[SDID_MOVERIGHT], "Move Right");
+    strcpy(buttonnames[SDID_ATTACK], "Attack 1");
+    strcpy(buttonnames[SDID_ATTACK2], "Attack 2");
+    strcpy(buttonnames[SDID_ATTACK3], "Attack 3");
+    strcpy(buttonnames[SDID_ATTACK4], "Attack 4");
+    strcpy(buttonnames[SDID_JUMP], "Jump");
+    strcpy(buttonnames[SDID_SPECIAL], "Special");
+    strcpy(buttonnames[SDID_START], "Start");
+    strcpy(buttonnames[SDID_SCREENSHOT], "Screenshot");
+    strcpy(buttonnames[SDID_ESC], "Exit");
 
     savesettings();
     bothnewkeys = 0;
@@ -36671,7 +36671,7 @@ void keyboard_setup(int player)
                     sdid = translate_SDID(GET_ARG(1));
                     if(sdid >= 0)
                     {
-                        strncpy(buttonnames[sdid], GET_ARG(2), 16);
+                        strcpy(buttonnames[sdid], GET_ARG(2));
                     }
                 }
 
