@@ -410,7 +410,8 @@ void open_joystick(int i)
     joysticks[i].Type = JOY_TYPE_GAMEPARK;
     for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
     {
-        joysticks[i].KeyName[j] = GameparkKeyName[j + i * JOY_MAX_INPUTS];
+        if(j) joysticks[i].KeyName[j] = GameparkKeyName[j + i * JOY_MAX_INPUTS];
+        else joysticks[i].KeyName[j] = GameparkKeyName[j];
     }
     #else
     //SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
