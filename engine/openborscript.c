@@ -2337,6 +2337,7 @@ enum aiflag_enum
     _ep_aiflag_jumpid,
     _ep_aiflag_jumping,
     _ep_aiflag_projectile,
+    _ep_aiflag_rising,
     _ep_aiflag_running,
     _ep_aiflag_toexplode,
     _ep_aiflag_turning,
@@ -2367,6 +2368,7 @@ static const char *eplist_aiflag[] =
     "jumpid",
     "jumping",
     "projectile",
+    "rising",
     "running",
     "toexplode",
     "turning",
@@ -3266,6 +3268,9 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         case _ep_aiflag_inpain:
             (*pretvar)->lVal = (LONG)ent->inpain;
+            break;
+        case _ep_aiflag_rising:
+            (*pretvar)->lVal = (LONG)ent->rising;
             break;
         case _ep_aiflag_inbackpain:
             (*pretvar)->lVal = (LONG)ent->inbackpain;
@@ -5411,6 +5416,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 break;
             case _ep_aiflag_inpain:
                 ent->inpain = (int)ltemp;
+                break;
+            case _ep_aiflag_rising:
+                ent->rising = (int)ltemp;
                 break;
             case _ep_aiflag_inbackpain:
                 ent->inbackpain = (int)ltemp;

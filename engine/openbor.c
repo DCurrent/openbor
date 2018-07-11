@@ -22386,6 +22386,7 @@ int set_idle(entity *ent)
     ent->idling = 1;
     ent->attacking = ATTACKING_INACTIVE;
     ent->inpain = 0;
+    ent->rising = 0;
     ent->inbackpain = 0;
     ent->falling = 0;
     ent->jumping = 0;
@@ -22492,6 +22493,7 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 
     ent->drop = 1;
     ent->inpain = 0;
+    ent->rising = 0;
     ent->idling = 0;
     ent->falling = 1;
     ent->jumping = 0;
@@ -22528,6 +22530,7 @@ int set_rise(entity *iRise, int type, int reset)
     // Get up again
     iRise->drop = 0;
     iRise->falling = 0;
+    iRise->rising = 1;
     iRise->inbackpain = 0;
     iRise->projectile = 0;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
@@ -22554,6 +22557,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->takeaction = common_attack_proc;
     self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
     set_attacking(iRiseattack);
+    iRiseattack->rising = 0;
     iRiseattack->drop = 0;
     iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
     iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
@@ -22678,6 +22682,7 @@ int set_pain(entity *iPain, int type, int reset)
     if(pain == ANI_GRABBED)
     {
         iPain->inpain = 0;
+        iPain->rising = 0;
         if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
     }
@@ -23598,6 +23603,7 @@ void common_pain()
     }
 
     self->inpain = 0;
+    self->rising = 0;
     self->inbackpain = 0;
     if(self->link)
     {
@@ -23813,6 +23819,7 @@ void common_block()
     if(self->inpain && (self->modeldata.holdblock & 2) && !self->animating && validanim(self, ANI_BLOCK))
     {
         self->inpain = 0;
+        self->rising = 0;
         self->inbackpain = 0;
         ent_set_anim(self, ANI_BLOCK, 0);
     }
@@ -29941,6 +29948,7 @@ void player_pain_check()
     if(player_check_special())
     {
         self->inpain = 0;
+        self->rising = 0;
         self->inbackpain = 0;
     }
 }
@@ -30009,6 +30017,7 @@ int check_costmove(int s, int fs, int jumphack)
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = 0;
+        self->rising = 0;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_unlink(self);

@@ -2271,7 +2271,8 @@ typedef struct entity
     int running; // Flag to determine if a player is running
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
-    int inbackpain; // playing pain/fall/die animation
+    int inbackpain; // playing back pain/fall/rise/riseattack/die animation
+    int rising; // playing rising animation
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
     bool blink;
