@@ -22592,6 +22592,10 @@ int set_death(entity *iDie, int type, int reset)
         iDie->charging = 0;
         iDie->attacking = ATTACKING_INACTIVE;
         iDie->blocking = 0;
+        iDie->inpain = 0;
+        iDie->falling = 0;
+        iDie->rising = 0;
+        iDie->riseattacking = 0;
         return 1;
     }
 
@@ -22634,6 +22638,10 @@ int set_death(entity *iDie, int type, int reset)
     iDie->charging = 0;
     iDie->attacking = ATTACKING_INACTIVE;
     iDie->blocking = 0;
+    iDie->inpain = 0;
+    iDie->falling = 0;
+    iDie->rising = 0;
+    iDie->riseattacking = 0;
     if(iDie->frozen)
     {
         unfrozen(iDie);
