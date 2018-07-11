@@ -318,7 +318,9 @@ int                *animbackdies        = NULL;
 int                *animfalls           = NULL;
 int                *animbackfalls       = NULL;
 int                *animrises           = NULL;
+int                *animbackrises       = NULL;
 int                *animriseattacks     = NULL;
+int                *animbackriseattacks = NULL;
 int                *animblkpains        = NULL;
 int                *animattacks         = NULL;
 int                *animfollows         = NULL;
@@ -343,7 +345,7 @@ int                 falls[MAX_ATKS] =
 int                 backfalls[MAX_ATKS] =
 {
     ANI_BACKFALL,  ANI_BACKFALL2, ANI_BACKFALL3, ANI_BACKFALL4,
-    ANI_BACKFALL,  ANI_BURN,  ANI_BACKFALL,  ANI_SHOCK,
+    ANI_BACKFALL,  ANI_BACKBURN,  ANI_BACKFALL,  ANI_BACKSHOCK,
     ANI_BACKFALL,  ANI_BACKFALL5, ANI_BACKFALL6, ANI_BACKFALL7,
     ANI_BACKFALL8, ANI_BACKFALL9, ANI_BACKFALL10, ANI_BACKFALL,
     ANI_BACKFALL, ANI_BACKFALL, ANI_BACKFALL, ANI_BACKFALL,
@@ -358,6 +360,15 @@ int                 rises[MAX_ATKS] =
     ANI_RISE, ANI_RISE, ANI_RISE, ANI_RISE,
 };
 
+int                 backrises[MAX_ATKS] =
+{
+    ANI_BACKRISE,  ANI_BACKRISE2, ANI_BACKRISE3, ANI_BACKRISE4,
+    ANI_BACKRISE,  ANI_BACKRISEB,  ANI_BACKRISE,  ANI_BACKRISES,
+    ANI_BACKRISE,  ANI_BACKRISE5, ANI_BACKRISE6, ANI_BACKRISE7,
+    ANI_BACKRISE8, ANI_BACKRISE9, ANI_BACKRISE10, ANI_BACKRISE,
+    ANI_BACKRISE, ANI_BACKRISE, ANI_BACKRISE, ANI_BACKRISE,
+};
+
 int                 riseattacks[MAX_ATKS] =
 {
     ANI_RISEATTACK,  ANI_RISEATTACK2, ANI_RISEATTACK3, ANI_RISEATTACK4,
@@ -365,6 +376,15 @@ int                 riseattacks[MAX_ATKS] =
     ANI_RISEATTACK,  ANI_RISEATTACK5, ANI_RISEATTACK6, ANI_RISEATTACK7,
     ANI_RISEATTACK8, ANI_RISEATTACK9, ANI_RISEATTACK10, ANI_RISEATTACK,
     ANI_RISEATTACK, ANI_RISEATTACK, ANI_RISEATTACK, ANI_RISEATTACK,
+};
+
+int                 backriseattacks[MAX_ATKS] =
+{
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK2, ANI_BACKRISEATTACK3, ANI_BACKRISEATTACK4,
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACKB,  ANI_BACKRISEATTACK,  ANI_BACKRISEATTACKS,
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK5, ANI_BACKRISEATTACK6, ANI_BACKRISEATTACK7,
+    ANI_BACKRISEATTACK8, ANI_BACKRISEATTACK9, ANI_BACKRISEATTACK10, ANI_BACKRISEATTACK,
+    ANI_BACKRISEATTACK, ANI_BACKRISEATTACK, ANI_BACKRISEATTACK, ANI_BACKRISEATTACK,
 };
 
 int                 pains[MAX_ATKS] =
@@ -379,7 +399,7 @@ int                 pains[MAX_ATKS] =
 int                 backpains[MAX_ATKS] =
 {
     ANI_BACKPAIN,  ANI_BACKPAIN2,    ANI_BACKPAIN3, ANI_BACKPAIN4,
-    ANI_BACKPAIN,  ANI_BURNPAIN, ANI_BACKPAIN,  ANI_SHOCKPAIN,
+    ANI_BACKPAIN,  ANI_BACKBURNPAIN, ANI_BACKPAIN,  ANI_BACKSHOCKPAIN,
     ANI_BACKPAIN,  ANI_BACKPAIN5,    ANI_BACKPAIN6, ANI_BACKPAIN7,
     ANI_BACKPAIN8, ANI_BACKPAIN9,    ANI_BACKPAIN10, ANI_BACKPAIN,
     ANI_BACKPAIN, ANI_BACKPAIN, ANI_BACKPAIN, ANI_BACKPAIN,
@@ -6182,10 +6202,20 @@ void free_models()
         free(animrises);
         animrises          = NULL;
     }
+    if(animbackrises)
+    {
+        free(animbackrises);
+        animbackrises          = NULL;
+    }
     if(animriseattacks)
     {
         free(animriseattacks);
         animriseattacks    = NULL;
+    }
+    if(animbackriseattacks)
+    {
+        free(animbackriseattacks);
+        animbackriseattacks    = NULL;
     }
     if(animblkpains)
     {
@@ -7103,9 +7133,19 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_SHOCK;
         newanim->bounce = 4;
     }
+    else if(stricmp(value, "backshock") == 0)   // If shock attacks do knock opponent down, play this
+    {
+        ani_id = ANI_BACKSHOCK;
+        newanim->bounce = 4;
+    }
     else if(stricmp(value, "burn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BURN;
+        newanim->bounce = 4;
+    }
+    else if(stricmp(value, "backburn") == 0)   // If burn attacks do knock opponent down, play this
+    {
+        ani_id = ANI_BACKBURN;
         newanim->bounce = 4;
     }
     else if(starts_with_num(value, "death"))
@@ -7232,9 +7272,17 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_RISEB;
     }
+    else if(stricmp(value, "backriseb") == 0)
+    {
+        ani_id = ANI_BACKRISEB;
+    }
     else if(stricmp(value, "rises") == 0)
     {
         ani_id = ANI_RISES;
+    }
+    else if(stricmp(value, "backrises") == 0)
+    {
+        ani_id = ANI_BACKRISES;
     }
     else if(starts_with_num(value, "rise"))
     {
@@ -7288,13 +7336,73 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             ani_id = animrises[tempInt + STA_ATKS - 1];
         }
     }
+    else if(starts_with_num(value, "backrise"))
+    {
+        get_tail_number(tempInt, value, "backrise");
+        if(tempInt == 1)
+        {
+            ani_id = ANI_BACKRISE;
+        }
+        else if(tempInt == 2)
+        {
+            ani_id = ANI_BACKRISE2;
+        }
+        else if(tempInt == 3)
+        {
+            ani_id = ANI_BACKRISE3;
+        }
+        else if(tempInt == 4)
+        {
+            ani_id = ANI_BACKRISE4;
+        }
+        else if(tempInt == 5)
+        {
+            ani_id = ANI_BACKRISE5;
+        }
+        else if(tempInt == 6)
+        {
+            ani_id = ANI_BACKRISE6;
+        }
+        else if(tempInt == 7)
+        {
+            ani_id = ANI_BACKRISE7;
+        }
+        else if(tempInt == 8)
+        {
+            ani_id = ANI_BACKRISE8;
+        }
+        else if(tempInt == 9)
+        {
+            ani_id = ANI_BACKRISE9;
+        }
+        else if(tempInt == 10)
+        {
+            ani_id = ANI_BACKRISE10;
+        }
+        else
+        {
+            if(tempInt < MAX_ATKS - STA_ATKS + 1)
+            {
+                tempInt = MAX_ATKS - STA_ATKS + 1;
+            }
+            ani_id = animbackrises[tempInt + STA_ATKS - 1];
+        }
+    }
     else if(stricmp(value, "riseattackb") == 0)
     {
         ani_id = ANI_RISEATTACKB;
     }
+    else if(stricmp(value, "backriseattackb") == 0)
+    {
+        ani_id = ANI_BACKRISEATTACKB;
+    }
     else if(stricmp(value, "riseattacks") == 0)
     {
         ani_id = ANI_RISEATTACKS;
+    }
+    else if(stricmp(value, "backriseattacks") == 0)
+    {
+        ani_id = ANI_BACKRISEATTACKS;
     }
     else if(starts_with_num(value, "riseattack"))
     {
@@ -7346,6 +7454,58 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
                 tempInt = MAX_ATKS - STA_ATKS + 1;
             }
             ani_id = animriseattacks[tempInt + STA_ATKS - 1];
+        }
+    }
+    else if(starts_with_num(value, "backriseattack"))
+    {
+        get_tail_number(tempInt, value, "backriseattack");
+        if(tempInt == 1)
+        {
+            ani_id = ANI_BACKRISEATTACK;
+        }
+        else if(tempInt == 2)
+        {
+            ani_id = ANI_BACKRISEATTACK2;
+        }
+        else if(tempInt == 3)
+        {
+            ani_id = ANI_BACKRISEATTACK3;
+        }
+        else if(tempInt == 4)
+        {
+            ani_id = ANI_BACKRISEATTACK4;
+        }
+        else if(tempInt == 6)
+        {
+            ani_id = ANI_BACKRISEATTACK5;
+        }
+        else if(tempInt == 6)
+        {
+            ani_id = ANI_BACKRISEATTACK6;
+        }
+        else if(tempInt == 7)
+        {
+            ani_id = ANI_BACKRISEATTACK7;
+        }
+        else if(tempInt == 8)
+        {
+            ani_id = ANI_BACKRISEATTACK8;
+        }
+        else if(tempInt == 9)
+        {
+            ani_id = ANI_BACKRISEATTACK9;
+        }
+        else if(tempInt == 10)
+        {
+            ani_id = ANI_BACKRISEATTACK10;
+        }
+        else
+        {
+            if(tempInt < MAX_ATKS - STA_ATKS + 1)
+            {
+                tempInt = MAX_ATKS - STA_ATKS + 1;
+            }
+            ani_id = animbackriseattacks[tempInt + STA_ATKS - 1];
         }
     }
     else if(stricmp(value, "select") == 0)
@@ -12313,10 +12473,20 @@ void load_model_constants()
         free(animrises);
         animrises = NULL;
     }
+    if(animbackrises)
+    {
+        free(animbackrises);
+        animbackrises = NULL;
+    }
     if(animriseattacks)
     {
         free(animriseattacks);
         animriseattacks = NULL;
+    }
+    if(animbackriseattacks)
+    {
+        free(animbackriseattacks);
+        animbackriseattacks = NULL;
     }
     if(animblkpains)
     {
@@ -12467,7 +12637,7 @@ void load_model_constants()
     }
 
     // calculate max animations
-    max_animations += (max_attack_types - MAX_ATKS) * 9 +// multply by 9: fall/die/pain/backpain/backfalls/backdies/rise/blockpain/riseattack
+    max_animations += (max_attack_types - MAX_ATKS) * 11 +// multply by 11: fall/die/pain/backpain/backfalls/backdies/rise/backrise/blockpain/riseattack/backriseattck
                       (max_follows - MAX_FOLLOWS) +
                       (max_freespecials - MAX_SPECIALS) +
                       (max_attacks - MAX_ATTACKS) +
@@ -12490,7 +12660,9 @@ void load_model_constants()
     animfalls = malloc(sizeof(*animfalls) * max_attack_types);
     animbackfalls = malloc(sizeof(*animbackfalls) * max_attack_types);
     animrises = malloc(sizeof(*animrises) * max_attack_types);
+    animbackrises = malloc(sizeof(*animbackrises) * max_attack_types);
     animriseattacks = malloc(sizeof(*animriseattacks) * max_attack_types);
+    animbackriseattacks = malloc(sizeof(*animbackriseattacks) * max_attack_types);
     animblkpains = malloc(sizeof(*animblkpains) * max_attack_types);
     animattacks = malloc(sizeof(*animattacks) * max_attacks);
     animfollows = malloc(sizeof(*animfollows) * max_follows);
@@ -12562,10 +12734,20 @@ void load_model_constants()
     {
         animrises[i] = maxanim++;
     }
+    memcpy(animbackrises,    backrises,          sizeof(*animbackrises)*MAX_ATKS);
+    for(i = MAX_ATKS; i < max_attack_types; i++)
+    {
+        animbackrises[i] = maxanim++;
+    }
     memcpy(animriseattacks,    riseattacks,          sizeof(*animriseattacks)*MAX_ATKS);
     for(i = MAX_ATKS; i < max_attack_types; i++)
     {
         animriseattacks[i] = maxanim++;
+    }
+    memcpy(animbackriseattacks,    backriseattacks,          sizeof(*animbackriseattacks)*MAX_ATKS);
+    for(i = MAX_ATKS; i < max_attack_types; i++)
+    {
+        animbackriseattacks[i] = maxanim++;
     }
     memcpy(animblkpains,    blkpains,    sizeof(*animblkpains)*MAX_ATKS);
     for(i = MAX_ATKS; i < max_attack_types; i++)
