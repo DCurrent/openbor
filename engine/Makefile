@@ -303,7 +303,6 @@ GAME	        = source/gamelib/draw.o                                            
                   source/gamelib/sprite.o                                                          \
                   source/gamelib/spritex8p16.o                                                      \
                   source/gamelib/spritex8p32.o                                                      \
-                  source/gamelib/commands.o                                                         \
                   source/gamelib/models.o                                                           \
                   source/gamelib/transform.o
 SCRIPT          = source/scriptlib/StackedSymbolTable.o                                             \
@@ -320,7 +319,8 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_lexer.o                                                 \
                   source/preprocessorlib/pp_parser.o                                                \
                   source/preprocessorlib/pp_expr.o
-SCRIPT_BUILTINS = source/openborscript/animation.o                                                  \
+SCRIPT_BUILTINS = source/openborscript/commands.o                                                   \
+				  source/openborscript/animation.o                                                  \
 				  source/openborscript/axis.o                                           			\
 				  source/openborscript/binding.o                                           			\
                   source/openborscript/collision_attack.o                                           \
