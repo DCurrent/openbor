@@ -12467,7 +12467,7 @@ void load_model_constants()
     }
 
     // calculate max animations
-    max_animations += (max_attack_types - MAX_ATKS) * 9 +// multply by 5, for fall/die/pain/backpain/backfalls/backdies/rise/blockpain/riseattack
+    max_animations += (max_attack_types - MAX_ATKS) * 9 +// multply by 9: fall/die/pain/backpain/backfalls/backdies/rise/blockpain/riseattack
                       (max_follows - MAX_FOLLOWS) +
                       (max_freespecials - MAX_SPECIALS) +
                       (max_attacks - MAX_ATTACKS) +
@@ -22387,6 +22387,7 @@ int set_idle(entity *ent)
     ent->attacking = ATTACKING_INACTIVE;
     ent->inpain = 0;
     ent->rising = 0;
+    ent->riseattacking = 0;
     ent->inbackpain = 0;
     ent->falling = 0;
     ent->jumping = 0;
@@ -22494,6 +22495,7 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
     ent->drop = 1;
     ent->inpain = 0;
     ent->rising = 0;
+    ent->riseattacking = 0;
     ent->idling = 0;
     ent->falling = 1;
     ent->jumping = 0;
@@ -22531,6 +22533,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->drop = 0;
     iRise->falling = 0;
     iRise->rising = 1;
+    iRise->riseattacking = 0;
     iRise->inbackpain = 0;
     iRise->projectile = 0;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
@@ -22558,6 +22561,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
     set_attacking(iRiseattack);
     iRiseattack->rising = 0;
+    iRiseattack->riseattacking = 1;
     iRiseattack->drop = 0;
     iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
     iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
@@ -22568,6 +22572,8 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 #define painflags(iPain) \
 	iPain->idling = 0;\
 	iPain->falling = 0;\
+	iPain->rising = 0;\
+	iPain->riseattacking = 0;\
 	iPain->projectile = 0;\
 	iPain->drop = 0;\
 	iPain->attacking = ATTACKING_INACTIVE;\
@@ -22683,6 +22689,7 @@ int set_pain(entity *iPain, int type, int reset)
     {
         iPain->inpain = 0;
         iPain->rising = 0;
+        iPain->riseattacking = 0;
         if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
     }
@@ -23604,6 +23611,7 @@ void common_pain()
 
     self->inpain = 0;
     self->rising = 0;
+    self->riseattacking = 0;
     self->inbackpain = 0;
     if(self->link)
     {
@@ -23820,6 +23828,7 @@ void common_block()
     {
         self->inpain = 0;
         self->rising = 0;
+        self->riseattacking = 0;
         self->inbackpain = 0;
         ent_set_anim(self, ANI_BLOCK, 0);
     }
@@ -29949,6 +29958,7 @@ void player_pain_check()
     {
         self->inpain = 0;
         self->rising = 0;
+        self->riseattacking = 0;
         self->inbackpain = 0;
     }
 }
@@ -30018,6 +30028,7 @@ int check_costmove(int s, int fs, int jumphack)
         set_attacking(self);
         self->inpain = 0;
         self->rising = 0;
+        self->riseattacking = 0;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_unlink(self);

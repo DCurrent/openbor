@@ -1262,7 +1262,7 @@ if(n<1) n = 1;
 
 #define ABS(x) ((x)>0?(x):(-(x)))
 
-#define set_attacking(e) e->attacking = 1;\
+#define set_attacking(e) e->attacking = ATTACKING_PREPARED;\
 						 e->idling = 0;
 
 #define set_jumping(e)   e->jumping = 1;\
@@ -2272,7 +2272,8 @@ typedef struct entity
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation
-    int rising; // playing rising animation
+    int rising; // playing rise animation
+    int riseattacking; // playing rise attack animation
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
     bool blink;
