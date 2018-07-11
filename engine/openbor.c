@@ -22706,18 +22706,41 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 
 int set_rise(entity *iRise, int type, int reset)
 {
-    if(type < 0 || type >= max_attack_types || !validanim(iRise, animrises[type]))
+    int rise = 0;
+
+    if(type < 0 || type >= max_attack_types)
     {
         type = 0;
     }
-    if(validanim(iRise, animrises[type]))
+
+    if ( iRise->inbackpain ) rise = animbackrises[type];
+    else rise = animrises[type];
+
+    if(validanim(iRise, rise))
     {
+        ent_set_anim(iRise, rise, reset);
+    }
+    else if( iRise->inbackpain && validanim(iRise, animbackrises[0]) )
+    {
+        ent_set_anim(iRise, animbackrises[0], reset);
+    }
+    else if( validanim(iRise, animrises[type]) )
+    {
+        if ( iRise->inbackpain ) reset_backpain(iRise);
+        iRise->inbackpain = 0;
         ent_set_anim(iRise, animrises[type], reset);
+    }
+    else if(validanim(iRise, animrises[0]))
+    {
+        if ( iRise->inbackpain ) reset_backpain(iRise);
+        iRise->inbackpain = 0;
+        ent_set_anim(iRise, animrises[0], reset);
     }
     else
     {
         return 0;
     }
+
     iRise->takeaction = common_rise;
     // Get up again
     iRise->drop = 0;
@@ -22734,7 +22757,11 @@ int set_rise(entity *iRise, int type, int reset)
 
 int set_riseattack(entity *iRiseattack, int type, int reset)
 {
-    if(!validanim(iRiseattack, animriseattacks[type]) && iRiseattack->modeldata.riseattacktype == 1)
+    int riseattack = 0;
+
+    if( (!validanim(iRiseattack, animriseattacks[type]) ||
+        (iRiseattack->inbackpain && !validanim(iRiseattack, animbackriseattacks[type]) && !validanim(iRiseattack, animriseattacks[type]))) &&
+       iRiseattack->modeldata.riseattacktype == 1 )
     {
         type = 0;
     }
@@ -22742,7 +22769,31 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     {
         type = 0;
     }
-    if(!validanim(iRiseattack, animriseattacks[type]))
+
+    if ( iRiseattack->inbackpain ) riseattack = animbackriseattacks[type];
+    else riseattack = animriseattacks[type];
+
+    if(validanim(iRiseattack, riseattack))
+    {
+        ent_set_anim(iRiseattack, riseattack, reset);
+    }
+    else if( iRiseattack->inbackpain && validanim(iRiseattack, animbackriseattacks[0]) )
+    {
+        ent_set_anim(iRiseattack, animbackriseattacks[0], reset);
+    }
+    else if( validanim(iRiseattack, animriseattacks[type]) )
+    {
+        if ( iRiseattack->inbackpain ) reset_backpain(iRiseattack);
+        iRiseattack->inbackpain = 0;
+        ent_set_anim(iRiseattack, animriseattacks[type], reset);
+    }
+    else if(validanim(iRiseattack, animriseattacks[0]))
+    {
+        if ( iRiseattack->inbackpain ) reset_backpain(iRiseattack);
+        iRiseattack->inbackpain = 0;
+        ent_set_anim(iRiseattack, animriseattacks[0], reset);
+    }
+    else
     {
         return 0;
     }
@@ -22755,7 +22806,6 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->drop = 0;
     iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
     iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
-    ent_set_anim(iRiseattack, animriseattacks[type], 0);
     return 1;
 }
 
