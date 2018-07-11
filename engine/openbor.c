@@ -22818,21 +22818,6 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     return 1;
 }
 
-#define painflags(iPain) \
-	iPain->idling = 0;\
-	iPain->falling = 0;\
-	iPain->rising = 0;\
-	iPain->riseattacking = 0;\
-	iPain->projectile = 0;\
-	iPain->drop = 0;\
-	iPain->attacking = ATTACKING_INACTIVE;\
-	iPain->getting = 0;\
-	iPain->charging = 0;\
-	iPain->jumping = 0;\
-	iPain->blocking = 0;\
-	iPain->inpain = 1;\
-	if(iPain->frozen) unfrozen(iPain);
-
 int set_blockpain(entity *iBlkpain, int type, int reset)
 {
     if(type < 0 || type >= max_attack_types || !validanim(iBlkpain, animblkpains[type]))
@@ -22932,7 +22917,19 @@ int set_pain(entity *iPain, int type, int reset)
         return 0;
     }
 
-    painflags(iPain);
+	iPain->idling = 0;
+	iPain->falling = 0;
+	iPain->rising = 0;
+	iPain->riseattacking = 0;
+	iPain->projectile = 0;
+	iPain->drop = 0;
+	iPain->attacking = ATTACKING_INACTIVE;
+	iPain->getting = 0;
+	iPain->charging = 0;
+	iPain->jumping = 0;
+	iPain->blocking = 0;
+	iPain->inpain = 1;
+	if(iPain->frozen) unfrozen(iPain);
 
     if(pain == ANI_GRABBED)
     {
@@ -25538,6 +25535,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         target->attacking = ATTACKING_INACTIVE;
         attacker->idling = 0;
         attacker->running = 0;
+        attacker->inbackpain = 0;
 
         /* Stop all movement. */
         attacker->velocity.x = 0;
