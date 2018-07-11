@@ -22747,7 +22747,6 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->falling = 0;
     iRise->rising = 1;
     iRise->riseattacking = 0;
-    iRise->inbackpain = 0;
     iRise->projectile = 0;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
@@ -22801,6 +22800,8 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->takeaction = common_attack_proc;
     self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
     set_attacking(iRiseattack);
+    iRiseattack->inpain = 0;
+    iRiseattack->falling = 0;
     iRiseattack->rising = 0;
     iRiseattack->riseattacking = 1;
     iRiseattack->drop = 0;
