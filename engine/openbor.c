@@ -7022,6 +7022,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_BURNPAIN;
     }
+    else if(stricmp(value, "backspain") == 0)   // If shock attacks don't knock opponent down, play this
+    {
+        ani_id = ANI_BACKSHOCKPAIN;
+    }
+    else if(stricmp(value, "backbpain") == 0)   // If burn attacks don't knock opponent down, play this
+    {
+        ani_id = ANI_BACKBURNPAIN;
+    }
     else if(starts_with_num(value, "fall"))
     {
         get_tail_number(tempInt, value, "fall");
