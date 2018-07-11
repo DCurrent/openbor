@@ -2319,6 +2319,7 @@ typedef struct entity
     int numwaypoints;
     unsigned int animpos; // Current animation frame.
     unsigned int animnum; // animation id.
+    unsigned int prevanimnum; // previous animation id.
     s_anim *animation;
     float knockdowncount;
     s_damage_on_landing damage_on_landing;
@@ -2770,6 +2771,7 @@ void addscore(int playerindex, int add);
 void free_ent(entity *e);
 void free_ents();
 int alloc_ents();
+int is_walking(int iAni);
 entity *smartspawn(s_spawn_entry *p);
 void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry);
 int adjust_grabposition(entity *ent, entity *other, float dist, int grabin);

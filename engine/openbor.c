@@ -17478,7 +17478,6 @@ entity *alloc_ent()
     return ent;
 }
 
-
 int alloc_ents()
 {
     int i;
@@ -17503,6 +17502,29 @@ int alloc_ents()
     return 1;
 }
 
+int is_walking(int iAni)
+{
+    int i;
+
+    for(i = 0; i < max_downs; i++)
+    {
+        if (iAni == animdowns[i]) return 1;
+    }
+    for(i = 0; i < max_ups; i++)
+    {
+        if (iAni == animups[i]) return 1;
+    }
+    for(i = 0; i < max_walks; i++)
+    {
+        if (iAni == animwalks[i]) return 1;
+    }
+    for(i = 0; i < max_backwalks; i++)
+    {
+        if (iAni == animbackwalks[i]) return 1;
+    }
+
+    return 0;
+}
 
 //UT: merged DC's common walk/idle functions
 static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode, int defaulta)
@@ -17522,7 +17544,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
             if (forcemode || normal_find_target(iAni, 0))                           //Opponent in range of current animation?
             {
                 ent_set_anim(ent, iAni, 0);                                         //Set animation.
-                if ( iAni == ANI_WALK || iAni == ANI_UP || iAni == ANI_DOWN ) ent->walking = 1; // set walking prop
+                if (is_walking(iAni)) ent->walking = 1; // set walking prop
 
                 return 1;                                                           //Return 1 and exit.
             }
@@ -17532,7 +17554,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
     if (validanim(ent, defaulta))
     {
         ent_set_anim(ent, defaulta, 0);                                             //No alternates were set. Set default..
-        if ( defaulta == ANI_WALK || defaulta == ANI_UP || defaulta == ANI_DOWN ) ent->walking = 1; // set walking prop
+        if (is_walking(defaulta)) ent->walking = 1; // set walking prop
 
         return 1;                                                                   //Return 1 and exit.
     }
@@ -18382,6 +18404,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         {
             animpos = 0;
         }
+        ent->prevanimnum = ent->animnum;
         ent->animnum = aninum;
         ent->animation = ani;
         ent->animpos = animpos;
@@ -18389,8 +18412,9 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
     }
     else
     {
-        ent->animation = ani;
+        ent->prevanimnum = ent->animnum;
         ent->animnum = aninum;    // Stored for nocost usage
+        ent->animation = ani;
         ent->animation->animhits = 0;
 
         ent->animating = 1;

@@ -2059,6 +2059,7 @@ enum entityproperty_enum
     _ep_pathfindstep,
     _ep_playerindex,
     _ep_position,
+    _ep_prevanimationid,
     _ep_projectile,
     _ep_projectilehit,
     _ep_range,
@@ -2256,6 +2257,7 @@ static const char *eplist[] =
     "pathfindstep",
     "playerindex",
     "position",
+    "prevanimationid",
     "projectile",
     "projectilehit",
     "range",
@@ -3391,6 +3393,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->animnum;
+        break;
+    }
+    case _ep_prevanimationid:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->prevanimnum;
         break;
     }
     case _ep_animpos:
