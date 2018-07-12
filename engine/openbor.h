@@ -198,6 +198,35 @@ typedef enum
     // Next should be 4, 8, ... for bitwise evaluations.
 } e_attacking_state;
 
+// State of idle
+typedef enum
+{
+    IDLING_INACTIVE,
+    IDLING_PREPARED,
+    IDLING_ACTIVE
+} e_idling_state;
+
+// State of edge.
+typedef enum
+{
+    EDGE_NO,
+    EDGE_LEFT,
+    EDGE_RIGHT
+} e_edge_state;
+
+// Platform props
+typedef enum
+{
+    PLATFORM_X,
+    PLATFORM_Z,
+    PLATFORM_UPPERLEFT,
+    PLATFORM_LOWERLEFT,
+    PLATFORM_UPPERRIGHT,
+    PLATFORM_LOWERRIGHT,
+    PLATFORM_DEPTH,
+    PLATFORM_HEIGHT
+} e_platform;
+
 typedef enum
 {
     PORTING_ANDROID,
@@ -656,6 +685,8 @@ typedef enum //Animations
     ANI_BACKRISEATTACK10,
     ANI_GETBOOMERANG,
     ANI_GETBOOMERANGINAIR,
+    ANI_EDGE,
+    ANI_BACKEDGE,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -2302,6 +2333,7 @@ typedef struct entity
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation
     int rising; // playing rise animation
     int riseattacking; // playing rise attack animation
+    int edge; // in edge (unbalanced)
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
     bool blink;
@@ -2837,7 +2869,7 @@ int testwall(int, float, float);
 int checkwalls(float x, float z, float a1, float a2);
 int checkholes(float, float);
 int checkwall_below(float x, float z, float a);
-int checkwall(float x, float z);
+int checkwall_index(float x, float z);
 float check_basemap(int x, int z);
 int check_basemap_index(int x, int z);
 entity *check_block_obstacle(entity *entity);
@@ -2868,6 +2900,7 @@ void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 bool check_jumpframe(entity *ent, unsigned int frame);
 bool check_landframe(entity *ent);
+int check_edge(entity *ent, float t_edge);
 void update_ents();
 entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
 void display_ents();

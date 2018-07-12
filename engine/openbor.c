@@ -248,6 +248,7 @@ float               scrollmaxz;
 float               blockade;                    // Limit x scroll back
 float				scrollminx;
 float				scrollmaxx;
+float				t_edge = 8.0;
 
 s_lasthit           lasthit;  //Last collision variables. 2013-12-15, moved to struct.
 
@@ -7890,6 +7891,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "walkoff") == 0)
     {
         ani_id = ANI_WALKOFF;
+    }
+    else if(stricmp(value, "edge") == 0)
+    {
+        ani_id = ANI_EDGE;
+    }
+    else if(stricmp(value, "backedge") == 0)
+    {
+        ani_id = ANI_BACKEDGE;
     }
 
     return ani_id;
@@ -17577,7 +17586,7 @@ int common_idle_anim(entity *ent)
 
     if(self->idling)
     {
-        self->idling |= 2;
+        self->idling |= IDLING_ACTIVE;
     }
 
     if (ent->model->subtype != SUBTYPE_BIKER && ent->model->type != TYPE_NONE) // biker fix by Plombo // type none being "idle" prevented contra locked and loaded from working correctly. fixed by anallyst
@@ -17593,6 +17602,16 @@ int common_idle_anim(entity *ent)
     else if(validanim(ent, ANI_SLEEP) && _time > ent->sleeptime)    //ANI_SLEEP, sleeptime up
     {
         ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
+        goto found;                                                                     //Return 1 and exit.
+    }
+    else if(validanim(ent, ANI_EDGE) && ent->edge)
+    {
+        if (ent->edge & EDGE_RIGHT) ent_set_anim(ent, ANI_EDGE, 0);
+        else if (ent->edge & EDGE_LEFT)
+        {
+            if(validanim(ent, ANI_BACKEDGE)) ent_set_anim(ent, ANI_BACKEDGE, 0);
+            else ent_set_anim(ent, ANI_EDGE, 0);
+        }
         goto found;                                                                     //Return 1 and exit.
     }
     else if(common_anim_series(ent, animidles, max_idles, ent->idlemode, ANI_IDLE))
@@ -17940,7 +17959,7 @@ void ent_default_init(entity *e)
 
     if(e->modeldata.subject_to_platform > 0 && (other = check_platform_below(e->position.x, e->position.z, e->position.y, e)))
     {
-        e->base = other->position.y + other->animation->platform[other->animpos][7];
+        e->base = other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
     }
     else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->position.x, e->position.z, 9999999)) >= 0)
     {
@@ -19378,7 +19397,7 @@ int checkwall_below(float x, float z, float a)
 }
 
 // return the 1st wall found here
-int checkwall(float x, float z)
+int checkwall_index(float x, float z)
 {
     int i;
     if(level == NULL)
@@ -19409,21 +19428,21 @@ int testplatform(entity *plat, float x, float z, entity *exclude)
     {
         return 0;
     }
-    if(!plat->animation || !plat->animation->platform || !plat->animation->platform[plat->animpos][7])
+    if(!plat->animation || !plat->animation->platform || !plat->animation->platform[plat->animpos][PLATFORM_HEIGHT])
     {
         return 0;
     }
-    offz = plat->position.z + plat->animation->platform[plat->animpos][1];
-    offx = plat->position.x + plat->animation->platform[plat->animpos][0];
-    if(z <= offz && z >= offz - plat->animation->platform[plat->animpos][6])
+    offz = plat->position.z + plat->animation->platform[plat->animpos][PLATFORM_Z];
+    offx = plat->position.x + plat->animation->platform[plat->animpos][PLATFORM_X];
+    if(z <= offz && z >= offz - plat->animation->platform[plat->animpos][PLATFORM_DEPTH])
     {
-        coef1 = (offz - z) * ((plat->animation->platform[plat->animpos][2] -
-                               plat->animation->platform[plat->animpos][3]) / plat->animation->platform[plat->animpos][6]);
-        coef2 = (offz - z) * ((plat->animation->platform[plat->animpos][4] -
-                               plat->animation->platform[plat->animpos][5]) / plat->animation->platform[plat->animpos][6]);
+        coef1 = (offz - z) * ((plat->animation->platform[plat->animpos][PLATFORM_UPPERLEFT] -
+                               plat->animation->platform[plat->animpos][PLATFORM_LOWERLEFT]) / plat->animation->platform[plat->animpos][PLATFORM_DEPTH]);
+        coef2 = (offz - z) * ((plat->animation->platform[plat->animpos][PLATFORM_UPPERRIGHT] -
+                               plat->animation->platform[plat->animpos][PLATFORM_LOWERRIGHT]) / plat->animation->platform[plat->animpos][PLATFORM_DEPTH]);
 
-        if(x >= offx + plat->animation->platform[plat->animpos][3] + coef1 &&
-                x <= offx + plat->animation->platform[plat->animpos][5] + coef2)
+        if(x >= offx + plat->animation->platform[plat->animpos][PLATFORM_LOWERLEFT] + coef1 &&
+                x <= offx + plat->animation->platform[plat->animpos][PLATFORM_LOWERRIGHT] + coef2)
         {
             return 1;
         }
@@ -19447,7 +19466,7 @@ entity *check_platform_between(float x, float z, float amin, float amax, entity 
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->position.y <= amax && plat->position.y + plat->animation->platform[plat->animpos][7] > amin)
+            if(plat->position.y <= amax && plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT] > amin)
             {
                 return plat;
             }
@@ -19504,10 +19523,10 @@ entity *check_platform_below(float x, float z, float a, entity *exclude)
         if(ent_list[i]->exists && testplatform(ent_list[i], x, z, exclude) )
         {
             plat = ent_list[i];
-            if(plat->position.y + plat->animation->platform[plat->animpos][7] <= a &&
-                    plat->position.y + plat->animation->platform[plat->animpos][7] > maxa)
+            if(plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT] <= a &&
+                    plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT] > maxa)
             {
-                maxa = plat->position.y + plat->animation->platform[plat->animpos][7];
+                maxa = plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT];
                 ind = i;
             }
         }
@@ -19542,7 +19561,7 @@ entity *check_platform_above_entity(entity *e)
         if(ent_list[i]->exists && testplatform(ent_list[i], e->position.x, e->position.z, e) )
         {
             plat = ent_list[i];
-            if(plat->position.y + plat->animation->platform[plat->animpos][7] > e->position.y + heightvar && plat->position.y < mina)
+            if(plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT] > e->position.y + heightvar && plat->position.y < mina)
             {
                 mina = plat->position.y;
                 ind = i;
@@ -19570,8 +19589,8 @@ entity *check_platform_below_entity(entity *e)
         if(ent_list[i]->exists && testplatform(ent_list[i], e->position.x, e->position.z, e) )
         {
             plat = ent_list[i];
-            a = plat->position.y + plat->animation->platform[plat->animpos][7];
-            if(a < e->position.y + 4 && plat->position.y < e->position.y  && a > maxa)
+            a = plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT];
+            if(a < e->position.y + T_WALKOFF && plat->position.y < e->position.y && a > maxa)
             {
                 maxa = a;
                 ind = i;
@@ -19605,7 +19624,7 @@ float get_platform_base(entity *plat)
     float alt = 0;
 
     alt = plat->position.y;
-    alt += plat->animation->platform[plat->animpos][7];
+    alt += plat->animation->platform[plat->animpos][PLATFORM_HEIGHT];
 
     return alt;
 }
@@ -19686,7 +19705,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-------------hole checking ---------------------
     if(ent->modeldata.subject_to_hole > 0)
     {
-        if(checkhole(x, z) && checkwall(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
+        if(checkhole(x, z) && checkwall_index(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
         {
             return -2;
         }
@@ -19697,7 +19716,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     if(ent->modeldata.subject_to_obstacle > 0)
     {
         if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
-                (!other->animation->platform || !other->animation->platform[other->animpos][7]))
+                (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
         {
             return 0;
         }
@@ -20573,6 +20592,78 @@ bool check_landframe(entity *ent)
     return 1;
 }
 
+int check_edge(entity *ent, float t_edge)
+{
+    float x = ent->position.x;
+    float z = ent->position.z;
+    float y = ent->position.y;
+    float base = ent->base;
+    e_direction dir = ent->direction;
+    float t_alt = 1;
+    int wall = -1, hole = -1;
+    entity *platform = NULL;
+
+    // test hole
+    hole = checkhole_in(x, z, y);
+    if ( !hole ) {
+        int hole_left = checkhole_in(x - t_edge, z, y);
+        int hole_right = checkhole_in(x + t_edge, z, y);
+        int hole_up = checkhole_in(x, z - t_edge / 2, y);
+        int hole_down = checkhole_in(x, z + t_edge / 2, y);
+
+        if (hole_up || hole_down) return EDGE_LEFT + EDGE_RIGHT;
+        else if (dir == DIRECTION_LEFT  && hole_left) return EDGE_LEFT;
+        else if (dir == DIRECTION_RIGHT && hole_right) return EDGE_RIGHT;
+    }
+
+    // test wall
+    wall = checkwall_index(x, z);
+    if ( wall >= 0 && level->walls[wall].height > 0 && base == level->walls[wall].height )
+    {
+        int wall_left = checkwall_index(x - t_edge, z);
+        int wall_right = checkwall_index(x + t_edge, z);
+        int wall_up = checkwall_index(x, z - t_edge / 2);
+        int wall_down = checkwall_index(x, z + t_edge / 2);
+
+        if ( (wall_up   >= 0 && level->walls[wall_up].height   < base) ||
+             (wall_down >= 0 && level->walls[wall_down].height < base)
+            ) return EDGE_LEFT + EDGE_RIGHT;
+        else if (dir == DIRECTION_LEFT  && wall_left >= 0  && level->walls[wall_left].height  < base) return EDGE_LEFT;
+        else if (dir == DIRECTION_RIGHT && wall_right >= 0 && level->walls[wall_right].height < base) return EDGE_RIGHT;
+    }
+
+    // test platform
+    platform = get_platform_on(self);
+    if ( platform != NULL )
+    {
+        entity *platform_right = check_platform(x + t_edge, z, self);
+        entity *platform_left  = check_platform(x - t_edge, z, self);
+        entity *platform_up    = check_platform(x, z - t_edge / 2, self);
+        entity *platform_down  = check_platform(x, z + t_edge / 2, self);
+        float plat_base_right = 0.0f,
+              plat_base_left  = 0.0f,
+              plat_base_up    = 0.0f,
+              plat_base_down  = 0.0f;
+
+        if ( platform_right != NULL ) plat_base_right = get_platform_base(platform_right);
+        if ( platform_left  != NULL ) plat_base_left  = get_platform_base(platform_left);
+        if ( platform_up    != NULL ) plat_base_up    = get_platform_base(platform_up);
+        if ( platform_down  != NULL ) plat_base_down  = get_platform_base(platform_down);
+
+        if ( (platform_down == NULL || platform_up == NULL) ||
+             (platform_up   != NULL && platform != platform_up   && (plat_base_up   < y - t_alt || plat_base_up   > y + t_alt) ) ||
+             (platform_down != NULL && platform != platform_down && (plat_base_down < y - t_alt || plat_base_down > y + t_alt) )
+            ) return EDGE_LEFT + EDGE_RIGHT;
+        else if ( (dir == DIRECTION_LEFT && platform_left == NULL) ||
+                  (dir == DIRECTION_LEFT && platform_left != NULL && platform != platform_left && (plat_base_left < y - t_alt || plat_base_left > y + t_alt) )
+        ) return EDGE_LEFT;
+        else if ( (dir == DIRECTION_RIGHT && platform_right == NULL) ||
+                  (dir == DIRECTION_RIGHT && platform_right != NULL && platform != platform_right && (plat_base_right < y - t_alt || plat_base_right > y + t_alt) )
+        ) return EDGE_RIGHT;
+    }
+
+    return EDGE_NO;
+}
 
 void check_gravity(entity *e)
 {
@@ -20590,6 +20681,9 @@ void check_gravity(entity *e)
     self = e;
 
     adjust_base(self, &plat);
+
+    if (self->position.y <= self->base && self->idling & IDLING_ACTIVE) self->edge = check_edge(self, t_edge);
+    else self->edge = EDGE_NO;
 
     if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
     {
@@ -20685,7 +20779,7 @@ void check_gravity(entity *e)
                 // White Dragon: fix for too low velocityz
                 if ( !cplat || (cplat && diff(get_platform_base(cplat),self->position.y) > T_WALKOFF) )
                 {
-                    self->idling = 0;
+                    self->idling = IDLING_INACTIVE;
                     self->takeaction = common_walkoff;
                     ent_set_anim(self, ANI_WALKOFF, 0);
                     self->landed_on_platform = plat = NULL;
@@ -20749,7 +20843,7 @@ void check_gravity(entity *e)
                     self->velocity.y = 0;
                 }
 
-                if(plat && !self->landed_on_platform && self->position.y <= plat->position.y + plat->animation->platform[plat->animpos][7])
+                if(plat && !self->landed_on_platform && self->position.y <= plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT])
                 {
                     self->landed_on_platform = plat;
                 }
@@ -20998,7 +21092,7 @@ void adjust_base(entity *e, entity **pla)
         *pla = self->landed_on_platform = NULL;
     }
 
-    if(other && !self->landed_on_platform && self->position.y <= other->position.y + other->animation->platform[other->animpos][7])
+    if(other && !self->landed_on_platform && self->position.y <= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])
     {
         self->landed_on_platform = other;
     }
@@ -21009,7 +21103,7 @@ void adjust_base(entity *e, entity **pla)
         {
             check_gravity(plat);
         }
-        self->position.y = self->base = plat->position.y + plat->animation->platform[plat->animpos][7];
+        self->position.y = self->base = plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT];
     }
 
     *pla = other;
@@ -21067,7 +21161,7 @@ void adjust_base(entity *e, entity **pla)
         {
             if(other != NULL && other != self )
             {
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.y + other->animation->platform[other->animpos][7]);
+                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
             }
             else if(wall >= 0)
             {
@@ -21175,7 +21269,7 @@ void update_animation()
         }
     }
 
-    if(!(self->idling & 2) || (self->animnum == ANI_SLEEP && !self->animating))
+    if(!(self->idling & IDLING_ACTIVE) || (self->animnum == ANI_SLEEP && !self->animating))
     {
         self->sleeptime = _time + self->modeldata.sleepwait;
     }
@@ -22013,7 +22107,7 @@ void display_ents()
 
                     if ( anim->platform[e->animpos] )
                     {
-                        if ( anim->platform[e->animpos][7] ) eplatheight += anim->platform[e->animpos][7];
+                        if ( anim->platform[e->animpos][7] ) eplatheight += anim->platform[e->animpos][PLATFORM_HEIGHT];
                     }
                 }
                 if ( e->modeldata.size.y && eplatheight <= 0 ) eheight += e->modeldata.size.y;
@@ -22024,7 +22118,7 @@ void display_ents()
 
                 //other = check_platform(e->position.x, e->position.z, e);
                 other = check_platform_below(e->position.x, e->position.z, e->position.y+eheight, e);
-                wall = checkwall(e->position.x, e->position.z);
+                wall = checkwall_index(e->position.x, e->position.z);
 
                 if(e->modeldata.subject_to_basemap > 0) basemap = check_basemap(e->position.x, e->position.z);
 
@@ -22056,8 +22150,12 @@ void display_ents()
                     						else                             z++;
                     					}
                     */
-                    if(other && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !other->modeldata.setlayer)
+                    if(other && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !other->modeldata.setlayer)
                     {
+                        float zdepth = (float)( (float)e->position.z - (float)other->position.z +
+                                                (float)other->animation->platform[other->animpos][PLATFORM_DEPTH] -
+                                                (float)other->animation->platform[other->animpos][PLATFORM_Z] );
+
                         if(
                             e->link &&
                             ((e->modeldata.grabback &&
@@ -22067,7 +22165,6 @@ void display_ents()
                              e->grabbing)
                         )
                         {
-                            float zdepth = (float)( (float)e->position.z - (float)other->position.z + (float)other->animation->platform[other->animpos][6] - (float)other->animation->platform[other->animpos][1] );
 
                             // Make sure entities get displayed in front of obstacle and grabbee
                             sortid = other->sortid + zdepth + 2;
@@ -22077,7 +22174,6 @@ void display_ents()
 
                         else
                         {
-                            float zdepth = (float)( (float)e->position.z - (float)other->position.z + (float)other->animation->platform[other->animpos][6] - (float)other->animation->platform[other->animpos][1] );
                             //if ( e->model->type == TYPE_PLAYER ) debug_printf("zdepth: %f",zdepth);
 
                             // Entity should always display in front of the obstacle
@@ -22236,14 +22332,14 @@ void display_ents()
 
                         wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
 
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !(e->modeldata.shadowbase&1) )
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1) )
                         {
-                            alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][7]));
-                            temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][7])) * light.x / 256; // xshift
+                            alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]));
+                            temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])) * light.x / 256; // xshift
                             temp2 = (float)(-e->position.y * light.y / 256);
 
                             qx = (int)( e->position.x - scrx );
-                            qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][7] ); // + (other->animation->platform[other->animpos][6]/2)
+                            qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] ); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
                             //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
                         }
 
@@ -22280,7 +22376,7 @@ void display_ents()
 
                             /*if (other)
                             {
-                                alty += (int)(other->position.y + other->animation->platform[other->animpos][7]);
+                                alty += (int)(other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
                             }*/
 
                             // set 2D-LIKE shadow
@@ -22347,11 +22443,11 @@ void display_ents()
                     }
                     if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                     {
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][7] && !(e->modeldata.shadowbase&1))
+                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1))
                         {
                             qx = (int)(e->position.x - scrx);
-                            qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][7] - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][7] - scry);
+                            qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
+                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
 
                             z = (int)(other->position.z + 1);
                             sz = 2 * PANEL_Z - z;
@@ -22597,11 +22693,12 @@ entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(
 
 int set_idle(entity *ent)
 {
-    ent->idling = 1;
+    ent->idling = IDLING_PREPARED;
     ent->attacking = ATTACKING_INACTIVE;
     ent->inpain = 0;
     ent->rising = 0;
     ent->riseattacking = 0;
+    ent->edge = EDGE_NO;
     ent->inbackpain = 0;
     ent->falling = 0;
     ent->jumping = 0;
@@ -22618,7 +22715,7 @@ int set_death(entity *iDie, int type, int reset)
     if(iDie->blocking && validanim(iDie, ANI_CHIPDEATH))
     {
         ent_set_anim(iDie, ANI_CHIPDEATH, reset);
-        iDie->idling = 0;
+        iDie->idling = IDLING_INACTIVE;
         iDie->getting = 0;
         iDie->jumping = 0;
         iDie->charging = 0;
@@ -22628,6 +22725,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->falling = 0;
         iDie->rising = 0;
         iDie->riseattacking = 0;
+        iDie->edge = EDGE_NO;
         return 1;
     }
 
@@ -22664,7 +22762,7 @@ int set_death(entity *iDie, int type, int reset)
         return 0;
     }
 
-    iDie->idling = 0;
+    iDie->idling = IDLING_INACTIVE;
     iDie->getting = 0;
     iDie->jumping = 0;
     iDie->charging = 0;
@@ -22674,6 +22772,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->falling = 0;
     iDie->rising = 0;
     iDie->riseattacking = 0;
+    iDie->edge = EDGE_NO;
     if(iDie->frozen)
     {
         unfrozen(iDie);
@@ -22718,9 +22817,10 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
     ent->inpain = 0;
     ent->rising = 0;
     ent->riseattacking = 0;
-    ent->idling = 0;
+    ent->idling = IDLING_INACTIVE;
     ent->falling = 1;
     ent->jumping = 0;
+    ent->edge = EDGE_NO;
     ent->getting = 0;
     ent->charging = 0;
     ent->attacking = ATTACKING_INACTIVE;
@@ -22941,10 +23041,11 @@ int set_pain(entity *iPain, int type, int reset)
         return 0;
     }
 
-	iPain->idling = 0;
+	iPain->idling = IDLING_INACTIVE;
 	iPain->falling = 0;
 	iPain->rising = 0;
 	iPain->riseattacking = 0;
+	iPain->edge = EDGE_NO;
 	iPain->projectile = 0;
 	iPain->drop = 0;
 	iPain->attacking = ATTACKING_INACTIVE;
@@ -22960,6 +23061,7 @@ int set_pain(entity *iPain, int type, int reset)
         iPain->inpain = 0;
         iPain->rising = 0;
         iPain->riseattacking = 0;
+        iPain->edge = EDGE_NO;
         if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
     }
@@ -23475,7 +23577,7 @@ void normal_prepare()
 
     if(!target)
     {
-        self->idling = 1;
+        self->idling = IDLING_PREPARED;
         self->takeaction = NULL;
         return;
     }
@@ -23571,7 +23673,7 @@ void normal_prepare()
     }
 
     // No attack to perform, return to A.I. root
-    self->idling = 1;
+    self->idling = IDLING_PREPARED;
     self->takeaction = NULL;
 }
 
@@ -23602,6 +23704,7 @@ void common_jump()
         self->position.y = self->base;
 
         self->jumping = 0;
+        self->edge = EDGE_NO;
         self->attacking = ATTACKING_INACTIVE;
 
         if(!self->modeldata.runhold)
@@ -23655,7 +23758,7 @@ void common_jump()
 //A.I. characters spawn
 void common_spawn()
 {
-    self->idling = 0;
+    self->idling = IDLING_INACTIVE;
     if(self->animating)
     {
         return;
@@ -23671,7 +23774,7 @@ void common_drop()
     {
         return;
     }
-    self->idling = 1;
+    self->idling = IDLING_PREPARED;
     self->takeaction = NULL;
     if(self->energy_status.health_current <= 0)
     {
@@ -23882,6 +23985,7 @@ void common_pain()
     self->inpain = 0;
     self->rising = 0;
     self->riseattacking = 0;
+    self->edge = EDGE_NO;
     self->inbackpain = 0;
     if(self->link)
     {
@@ -24099,6 +24203,7 @@ void common_block()
         self->inpain = 0;
         self->rising = 0;
         self->riseattacking = 0;
+        self->edge = EDGE_NO;
         self->inbackpain = 0;
         ent_set_anim(self, ANI_BLOCK, 0);
     }
@@ -24250,7 +24355,7 @@ void checkdeath()
         addscore(self->opponent->playerindex, self->modeldata.score);    // Add score to the player
     }
     self->nograb = 1;
-    self->idling = 0;
+    self->idling = IDLING_INACTIVE;
 
     if(self->modeldata.diesound >= 0)
     {
@@ -25200,7 +25305,7 @@ int common_try_normalattack(entity *target)
         self->takeaction = normal_prepare;
         self->velocity.z = self->velocity.x = 0;
         set_idle(self);
-        self->idling = 0; // not really idle, in fact it is thinking
+        self->idling = IDLING_INACTIVE; // not really idle, in fact it is thinking
         self->attacking = ATTACKING_PREPARED; // pre-attack, for AI-block check
         return 1;
     }
@@ -25557,8 +25662,9 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         set_opponent(target, attacker);
         ents_link(attacker, target);
         target->attacking = ATTACKING_INACTIVE;
-        attacker->idling = 0;
+        attacker->idling = IDLING_INACTIVE;
         attacker->running = 0;
+        attacker->edge = EDGE_NO;
         attacker->inbackpain = 0;
 
         /* Stop all movement. */
@@ -25728,14 +25834,14 @@ int common_trymove(float xdir, float zdir)
     {
 
         needcheckhole = 1;
-        if(zdir && checkhole(self->position.x, z) && checkwall(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
+        if(zdir && checkhole(self->position.x, z) && checkwall_index(self->position.x, z) < 0 && !check_platform_below(self->position.x, z, self->position.y, self))
         {
             //int holeind = checkholeindex_in(self->position.x, z, self->position.y);
 
             zdir = 0;
             //execute_inhole_script(self, 2, (double)level->holes[holeind].height, holeind);
         }
-        if(xdir && checkhole(x, self->position.z) && checkwall(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
+        if(xdir && checkhole(x, self->position.z) && checkwall_index(x, self->position.z) < 0 && !check_platform_below(x, self->position.z, self->position.y, self))
         {
             //int holeind = checkholeindex_in(x, self->position.z, self->position.y);
 
@@ -25760,7 +25866,7 @@ int common_trymove(float xdir, float zdir)
         //TODO, check once instead of twice
         if((other = find_ent_here(self, x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
                 (xdir > 0 ? other->position.x >= self->position.x : other->position.x <= self->position.x) &&
-                (!other->animation->platform || !other->animation->platform[other->animpos][7]))
+                (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
         {
             xdir    = 0;
             if ( self->falling ) hit |= 1;
@@ -25769,7 +25875,7 @@ int common_trymove(float xdir, float zdir)
         }
         if((other = find_ent_here(self, self->position.x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
                 (zdir > 0 ? other->position.z >= self->position.z : other->position.z <= self->position.z) &&
-                (!other->animation->platform || !other->animation->platform[other->animpos][7]))
+                (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
         {
             zdir    = 0;
             if ( self->falling ) hit |= 1;
@@ -26007,7 +26113,7 @@ void common_attack_finish()
         self->velocity.x = self->position.x > target->position.x ? self->modeldata.speed : -self->modeldata.speed;
         self->velocity.z = 0;
         adjust_walk_animation(target);
-        self->idling = 1;
+        self->idling = IDLING_PREPARED;
     }
     else
     {
@@ -26150,7 +26256,7 @@ int common_try_jump()
             j = 1;
         }
         else if(checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) &&
-                checkwall(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
+                checkwall_index(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
                 check_platform (self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir, self) == NULL &&
                 !checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? rmax : -rmax), zdir))
         {
@@ -26197,7 +26303,7 @@ int common_try_jump()
         }
         //Check for pit in range of RUNJUMP.
         else if(checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) &&
-                checkwall(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
+                checkwall_index(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
                 check_platform (self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir, self) == NULL &&
                 !checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? rmax : -rmax), zdir))
         {
@@ -27622,7 +27728,7 @@ int check_block_wall(entity *entity)
     if(entity->modeldata.subject_to_wall)
     {
         // Get wall number at our X and Z axis (if any).
-        wall = checkwall(entity->position.x, entity->position.z);
+        wall = checkwall_index(entity->position.x, entity->position.z);
 
         // Did we find a wall?
         if (wall >= 0)
@@ -27761,7 +27867,7 @@ int do_catch(entity *ent, entity *target, int animation_catch)
         {
             ent->takeaction = common_animation_normal;
             ent->attacking = ATTACKING_INACTIVE;
-            ent->idling = 0;
+            ent->idling = IDLING_INACTIVE;
             ent_set_anim(ent, animation_catch, 0);
             kill_entity(target);
 
@@ -28350,7 +28456,7 @@ int common_move()
 
         if(self->modeldata.nomove)
         {
-            self->idling = 1;
+            self->idling = IDLING_PREPARED;
             return 1;
         }
 
@@ -29435,7 +29541,7 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
         self->takeaction = common_prejump;
         self->velocity.x = self->velocity.z = 0;
 
-        self->idling = 0;
+        self->idling = IDLING_INACTIVE;
         ent_set_anim(self, ANI_JUMPDELAY, 0);
     }
     else
@@ -30230,6 +30336,7 @@ void player_pain_check()
         self->inpain = 0;
         self->rising = 0;
         self->riseattacking = 0;
+        self->edge = EDGE_NO;
         self->inbackpain = 0;
     }
 }
@@ -30300,6 +30407,7 @@ int check_costmove(int s, int fs, int jumphack)
         self->inpain = 0;
         self->rising = 0;
         self->riseattacking = 0;
+        self->edge = EDGE_NO;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_unlink(self);
@@ -30505,7 +30613,7 @@ void player_think()
     /*if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
-        self->idling = 0;
+        self->idling = IDLING_INACTIVE;
         self->takeaction = common_stuck_underneath;
         ent_set_anim(self, ANI_DUCK, 0);
         goto endthinkcheck;
@@ -30541,7 +30649,7 @@ void player_think()
             pl->playkeys &= ~FLAG_MOVEUP;
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
-            self->idling = 0;
+            self->idling = IDLING_INACTIVE;
             self->velocity.z = -self->modeldata.speed * 1.75;
             self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(self, ANI_DODGE, 0);
@@ -30577,7 +30685,7 @@ void player_think()
             pl->playkeys &= ~FLAG_MOVEDOWN;
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
-            self->idling = 0;
+            self->idling = IDLING_INACTIVE;
             self->velocity.z = self->modeldata.speed * 1.75;
             self->velocity.x = 0;
             ent_set_anim(self, ANI_DODGE, 0);
@@ -31129,7 +31237,7 @@ void player_think()
     if(action)
     {
         self->takeaction = NULL;
-        self->idling = 1;
+        self->idling = IDLING_PREPARED;
     }
     switch(action)
     {
@@ -31245,11 +31353,11 @@ void dropweapon(int flag)
             self->weapent->position.y = self->position.y;
 
             other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
-            wall = checkwall(self->weapent->position.x, self->weapent->position.z);
+            wall = checkwall_index(self->weapent->position.x, self->weapent->position.z);
 
             if(other && other != self->weapent)
             {
-                self->weapent->base += other->position.y + other->animation->platform[other->animpos][7];
+                self->weapent->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
             }
             else if(wall >= 0)
             {
@@ -32521,7 +32629,7 @@ void spawnplayer(int index)
         }
         if(PLAYER_MIN_Z == PLAYER_MAX_Z)
         {
-            wall = checkwall(advancex + p.position.x, p.position.z);
+            wall = checkwall_index(advancex + p.position.x, p.position.z);
             if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
             {
                 break;    //found
@@ -32545,7 +32653,7 @@ void spawnplayer(int index)
                 {
                     p.position.z += PLAYER_MAX_Z - PLAYER_MIN_Z;
                 }
-                wall = checkwall(advancex + p.position.x, p.position.z);
+                wall = checkwall_index(advancex + p.position.x, p.position.z);
                 if(wall >= 0 && level->walls[wall].height < MAX_WALL_HEIGHT)
                 {
                     find = 1;

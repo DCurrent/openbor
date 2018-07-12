@@ -479,6 +479,26 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ATTACKING_INACTIVE)
         ICMPCONST(ATTACKING_PREPARED)
 
+        // Idling state.
+        ICMPCONST(IDLING_INACTIVE)
+        ICMPCONST(IDLING_PREPARED)
+        ICMPCONST(IDLING_ACTIVE)
+
+        // Edge type.
+        ICMPCONST(EDGE_NO)
+        ICMPCONST(EDGE_LEFT)
+        ICMPCONST(EDGE_RIGHT)
+
+        // Platform props.
+        ICMPCONST(PLATFORM_X)
+        ICMPCONST(PLATFORM_Z)
+        ICMPCONST(PLATFORM_UPPERLEFT)
+        ICMPCONST(PLATFORM_LOWERLEFT)
+        ICMPCONST(PLATFORM_UPPERRIGHT)
+        ICMPCONST(PLATFORM_LOWERRIGHT)
+        ICMPCONST(PLATFORM_DEPTH)
+        ICMPCONST(PLATFORM_HEIGHT)
+
         ICMPCONST(PLAYER_MIN_Z)
         ICMPCONST(PLAYER_MAX_Z)
         ICMPCONST(BGHEIGHT)
@@ -628,6 +648,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_HITWALL)
         ICMPCONST(ANI_GETBOOMERANG)
         ICMPCONST(ANI_GETBOOMERANGINAIR)
+        ICMPCONST(ANI_EDGE)
+        ICMPCONST(ANI_BACKEDGE)
 
 
         // for the extra animation ids
