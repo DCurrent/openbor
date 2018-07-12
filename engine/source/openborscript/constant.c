@@ -653,6 +653,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_GETBOOMERANGINAIR)
         ICMPCONST(ANI_EDGE)
         ICMPCONST(ANI_BACKEDGE)
+        ICMPCONST(ANI_DUCKING)
+        ICMPCONST(ANI_DUCKRISE)
 
 
         // for the extra animation ids

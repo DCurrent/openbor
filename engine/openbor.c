@@ -7900,6 +7900,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_BACKEDGE;
     }
+    else if(stricmp(value, "ducking") == 0)
+    {
+        ani_id = ANI_DUCKING;
+    }
+    else if(stricmp(value, "duckrise") == 0)
+    {
+        ani_id = ANI_DUCKRISE;
+    }
 
     return ani_id;
 
@@ -17552,6 +17560,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
         {
             if (forcemode || normal_find_target(iAni, 0))                           //Opponent in range of current animation?
             {
+                ent->ducking = DUCK_INACTIVE;
                 ent_set_anim(ent, iAni, 0);                                         //Set animation.
                 if (is_walking(iAni)) ent->walking = 1; // set walking prop
 
@@ -17562,6 +17571,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
 
     if (validanim(ent, defaulta))
     {
+        ent->ducking = DUCK_INACTIVE;
         ent_set_anim(ent, defaulta, 0);                                             //No alternates were set. Set default..
         if (is_walking(defaulta)) ent->walking = 1; // set walking prop
 
@@ -26068,7 +26078,7 @@ void common_runoff()
 }
 
 
-void common_stuck_underneath()
+/*void common_stuck_underneath()
 {
     int heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y;
     if(!check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self) )
@@ -26107,7 +26117,7 @@ void common_stuck_underneath()
         ent_set_anim(self, ANI_SLIDE, 0);
         return;
     }
-}
+}*/
 
 
 // finish attacking, do something
@@ -26120,8 +26130,15 @@ void common_attack_finish()
 
     if(self->modeldata.type & TYPE_PLAYER)
     {
-        self->takeaction = NULL;
-        set_idle(self);
+        if (self->ducking & DUCK_ACTIVE)
+        {
+            doduck(self);
+        }
+        else
+        {
+            self->takeaction = NULL;
+            set_idle(self);
+        }
         return;
     }
 
@@ -26139,8 +26156,15 @@ void common_attack_finish()
     }
     else
     {
-        self->takeaction = NULL;
-        set_idle(self);
+        if (self->ducking & DUCK_ACTIVE)
+        {
+            doduck(self);
+        }
+        else
+        {
+            self->takeaction = NULL;
+            set_idle(self);
+        }
     }
 
     stall = GAME_SPEED - self->modeldata.aggression;
@@ -29543,6 +29567,78 @@ void common_dodge()    // New function so players can dodge with up up or down d
 }
 
 
+void common_preduck()
+{
+    if(self->animating)
+    {
+        return;
+    }
+    doduck(self);
+}
+
+
+void common_postduck()
+{
+    if(self->animating)
+    {
+        return;
+    }
+    self->takeaction = NULL;
+    self->idling = IDLING_PREPARED;
+    common_idle_anim(self);
+}
+
+
+void tryduck(entity *ent)
+{
+    ent->edge = EDGE_NO;
+    ent->running = 0;
+    if(validanim(ent, ANI_DUCKING))
+    {
+        ent->takeaction = common_preduck;
+        ent->velocity.x = ent->velocity.z = 0;
+        ent->ducking = DUCK_PREPARED;
+        ent->idling = IDLING_INACTIVE;
+        ent_set_anim(ent, ANI_DUCKING, 0);
+    }
+    else
+    {
+        doduck(ent);
+    }
+}
+
+
+void tryduckrise(entity *ent)
+{
+    ent->edge = EDGE_NO;
+    ent->running = 0;
+    if(validanim(ent, ANI_DUCKRISE))
+    {
+        ent->takeaction = common_postduck;
+        ent->velocity.x = ent->velocity.z = 0;
+        ent->ducking = DUCK_RISE;
+        ent->idling = IDLING_INACTIVE;
+        ent_set_anim(ent, ANI_DUCKRISE, 0);
+    }
+    else
+    {
+        ent->takeaction = NULL;
+        ent->idling = IDLING_PREPARED;
+        common_idle_anim(self);
+    }
+}
+
+
+void doduck(entity *ent)
+{
+    ent->takeaction = NULL;
+    ent->velocity.x = ent->velocity.z = 0;
+    ent->ducking = DUCK_ACTIVE;
+    ent->idling |= IDLING_PREPARED;
+    ent_set_anim(ent, ANI_DUCK, 0);
+}
+
+
 void common_prejump()
 {
     if(self->animating)
@@ -29559,14 +29655,15 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
     self->jump.velocity.x = jumpx;
     self->jump.velocity.z = jumpz;
     self->jump.animation_id = animation_id;
+
+    self->edge = EDGE_NO;
+    self->ducking = DUCK_INACTIVE;
     if(validanim(self, ANI_JUMPDELAY))
     {
         self->takeaction = common_prejump;
         self->velocity.x = self->velocity.z = 0;
 
         self->idling = IDLING_INACTIVE;
-        self->edge = EDGE_NO;
-        self->ducking = DUCK_INACTIVE;
         ent_set_anim(self, ANI_JUMPDELAY, 0);
     }
     else
@@ -30783,7 +30880,7 @@ void player_think()
         }
     }
 
-    if(pl->playkeys & FLAG_SPECIAL )    //    The special button can now be used for freespecials
+    if(pl->playkeys & FLAG_SPECIAL)    //    The special button can now be used for freespecials
     {
         if( validanim(self, ANI_SPECIAL2) && notinair &&
                 (self->direction == DIRECTION_LEFT ?
@@ -30846,12 +30943,12 @@ void player_think()
         self->stalltime = 0;
     }
 
-    if((pl->playkeys & FLAG_ATTACK)  && notinair)
+    if((pl->playkeys & FLAG_ATTACK) && notinair)
     {
         pl->playkeys &= ~FLAG_ATTACK;
         self->stalltime = 0;    // Disable the attack3 stalltime
 
-        if(pl->keys & FLAG_MOVEDOWN && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z)
+        if((self->ducking & DUCK_ACTIVE) && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z) //pl->keys & FLAG_MOVEDOWN
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
@@ -30935,7 +31032,7 @@ void player_think()
     }
     // 7-1-2005 spawn projectile end
 
-    if(pl->playkeys & FLAG_JUMP  && notinair)
+    if(pl->playkeys & FLAG_JUMP && notinair)
     {
         // Added !inair(self) so players can't jump when falling into holes
         pl->playkeys &= ~FLAG_JUMP;
@@ -31082,7 +31179,7 @@ void player_think()
 
     }
 
-    if(PLAYER_MIN_Z != PLAYER_MAX_Z)
+    if(PLAYER_MIN_Z != PLAYER_MAX_Z && self->ducking == DUCK_INACTIVE)
     {
         // More of a platform feel
         if(pl->keys & FLAG_MOVEUP)
@@ -31130,15 +31227,13 @@ void player_think()
             self->velocity.z = 0;
         }
     }
-    else if(validanim(self, ANI_DUCK) && pl->keys & FLAG_MOVEDOWN  && notinair)
+    else if(self->ducking == DUCK_INACTIVE && validanim(self, ANI_DUCK) && pl->keys & FLAG_MOVEDOWN && notinair)
     {
-        ent_set_anim(self, ANI_DUCK, 0);
-        self->velocity.x = self->velocity.z = 0;
-        self->ducking = DUCK_ACTIVE;
+        tryduck(self);
         goto endthinkcheck;
     }
 
-    if(pl->keys & FLAG_MOVELEFT)
+    if(pl->keys & FLAG_MOVELEFT && self->ducking == DUCK_INACTIVE)
     {
         if(self->direction == DIRECTION_RIGHT)
         {
@@ -31193,7 +31288,7 @@ void player_think()
             self->velocity.x = -self->modeldata.speed;
         }
     }
-    else if(pl->keys & FLAG_MOVERIGHT)
+    else if(pl->keys & FLAG_MOVERIGHT && self->ducking == DUCK_INACTIVE)
     {
         if(self->direction == DIRECTION_LEFT)
         {
@@ -31262,11 +31357,41 @@ void player_think()
         didfind_item(other);    // Added function to clean code up a bit
     }
 
+    if (self->ducking & DUCK_ACTIVE)
+    {
+        if (!(pl->keys & FLAG_MOVEDOWN))
+        {
+            tryduckrise(self);
+            goto endthinkcheck;
+        }
+        if(pl->keys & FLAG_MOVELEFT)
+        {
+            if(self->direction == DIRECTION_RIGHT)
+            {
+                self->direction = DIRECTION_LEFT;
+            }
+        }
+        else if(pl->keys & FLAG_MOVERIGHT)
+        {
+            if(self->direction == DIRECTION_LEFT)
+            {
+                self->direction = DIRECTION_RIGHT;
+            }
+        }
+    }
+    if (self->ducking)
+    {
+        goto endthinkcheck;
+    }
+
+
+    //White Dragon: prepare for idling animations...
     if(action)
     {
         self->takeaction = NULL;
         self->idling = IDLING_PREPARED;
     }
+
     switch(action)
     {
     case 1:

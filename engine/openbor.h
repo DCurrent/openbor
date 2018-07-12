@@ -696,6 +696,8 @@ typedef enum //Animations
     ANI_GETBOOMERANGINAIR,
     ANI_EDGE,
     ANI_BACKEDGE,
+    ANI_DUCKING,
+    ANI_DUCKRISE,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -1334,19 +1336,23 @@ if(n<1) n = 1;
 						 e->idling = IDLING_INACTIVE;
 
 #define set_jumping(e)   e->jumping = 1;\
-						 e->idling = IDLING_INACTIVE;
+						 e->idling = IDLING_INACTIVE; \
+						 e->ducking = DUCK_INACTIVE;
 
 #define set_charging(e)  e->charging = 1;\
-						 e->idling = IDLING_INACTIVE;
+						 e->idling = IDLING_INACTIVE; \
+						 e->ducking = DUCK_INACTIVE;
 
 #define set_getting(e)   e->getting = 1;\
-						 e->idling = IDLING_INACTIVE;
+						 e->idling = IDLING_INACTIVE; \
+						 e->ducking = DUCK_INACTIVE;
 
 #define set_blocking(e)  e->blocking = 1;\
 						 e->idling = IDLING_INACTIVE;
 
 #define set_turning(e)  e->turning = 1;\
-						e->idling = IDLING_INACTIVE;
+						e->idling = IDLING_INACTIVE; \
+						 e->ducking = DUCK_INACTIVE;
 
 #define expand_time(e)   if(e->stalltime>0) e->stalltime++;\
 						 if(e->releasetime>0)e->releasetime++;\
@@ -2835,9 +2841,14 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
+void common_preduck();
+void common_postduck();
 void damage_recursive(entity *target);
 void tryjump(float, float, float, int);
 void dojump(float, float, float, int);
+void tryduck(entity*);
+void tryduckrise(entity*);
+void doduck(entity*);
 void biker_drive(void);
 void ent_default_init(entity *e);
 void ent_spawn_ent(entity *ent);
@@ -2965,7 +2976,6 @@ void npc_warp();
 int checkpathblocked();
 int common_trymove(float xdir, float zdir);
 void normal_runoff();
-void common_stuck_underneath();
 void common_animation_normal();
 void common_attack_proc();
 void normal_attack_finish();
