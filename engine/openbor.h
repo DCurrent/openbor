@@ -220,7 +220,7 @@ typedef enum
     DUCK_INACTIVE,
     DUCK_PREPARED,
     DUCK_ACTIVE,
-    DUCK_RISE
+    DUCK_RISE = 4
 } e_duck_state;
 
 // Platform props
@@ -3042,6 +3042,7 @@ void fade_out(int type, int speed);
 void apply_controls();
 void plan();
 int is_in_backrun(entity*);
+int ai_check_ducking();
 int ai_check_warp();
 int ai_check_lie();
 int ai_check_grabbed();

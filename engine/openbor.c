@@ -23586,6 +23586,53 @@ int perform_atchain()
     return pickanim;
 }
 
+void upper_prepare()
+{
+    int predir = self->direction;
+
+    entity *target = normal_find_target(ANI_UPPER, 0);
+
+    self->velocity.x = self->velocity.z = 0; //stop
+
+    if(!target)
+    {
+        self->idling = IDLING_PREPARED;
+        self->takeaction = NULL;
+        return;
+    }
+
+    //check if target is behind, so we can perform a turn back animation
+    if(!self->modeldata.noflip)
+    {
+        self->direction = (self->position.x < target->position.x);
+    }
+    if(predir != self->direction && validanim(self, ANI_TURN))
+    {
+        self->takeaction = common_turn;
+        self->direction = predir;
+        set_turning(self);
+        ent_set_anim(self, ANI_TURN, 0);
+        return;
+    }
+
+    // Wait...
+    if(_time < self->stalltime)
+    {
+        return;
+    }
+
+    // Target jumping? Try uppercut!
+    if(target && target->jumping)
+    {
+        self->takeaction = common_attack_proc;
+        set_attacking(self);
+        self->velocity.z = self->velocity.x = 0;
+        // Don't waste any time!
+        ent_set_anim(self, ANI_UPPER, 0);
+        return;
+    }
+}
+
 void normal_prepare()
 {
     int i, j;
@@ -25082,33 +25129,6 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     return 1;
 }
 
-// A.I. try upper cut
-int common_try_upper(entity *target)
-{
-    if(!validanim(self, ANI_UPPER))
-    {
-        return 0;
-    }
-
-
-    if(!target)
-    {
-        target = normal_find_target(ANI_UPPER, 0);
-    }
-
-    // Target jumping? Try uppercut!
-    if(target && target->jumping )
-    {
-        self->takeaction = common_attack_proc;
-        set_attacking(self);
-        self->velocity.z = self->velocity.x = 0;
-        // Don't waste any time!
-        ent_set_anim(self, ANI_UPPER, 0);
-        return 1;
-    }
-    return 0;
-}
-
 int common_try_runattack(entity *target)
 {
     if(!self->running || !validanim(self, ANI_RUNATTACK))
@@ -25333,6 +25353,7 @@ int common_try_normalattack(entity *target)
                 self->stalltime = _time + (int)randf((float)MAX(1, GAME_SPEED * 3 / 4 - self->modeldata.aggression));
             }
         }
+
         self->takeaction = normal_prepare;
         self->velocity.z = self->velocity.x = 0;
         set_idle(self);
@@ -25451,6 +25472,7 @@ int common_try_jumpattack(entity *target)
             return 1;
         }
     }
+
     return 0;
 }
 
@@ -25467,7 +25489,113 @@ int common_try_grab(entity *other)
     {
         return 1;
     }
+
     return 0;
+}
+
+// A.I. try upper cut
+int common_try_upper(entity *target)
+{
+    if(!validanim(self, ANI_UPPER))
+    {
+        return 0;
+    }
+
+    if(!target)
+    {
+        target = normal_find_target(ANI_UPPER, 0);
+    }
+
+    // Target jumping? Try uppercut!
+    if(target && target->jumping)
+    {
+        /*self->takeaction = common_attack_proc;
+        set_attacking(self);
+        self->velocity.z = self->velocity.x = 0;
+        // Don't waste any time!
+        ent_set_anim(self, ANI_UPPER, 0);*/
+
+        if(!check_attack_chance(target, 1.0f - min_noatk_chance, 1.0f - min_noatk_chance))
+        {
+            self->nextattack = _time + randf(self->modeldata.attackthrottletime);
+            return 0;
+        }
+        else
+        {
+            self->stalltime = _time + (int)randf((float)MAX(1, GAME_SPEED * 3 / 4 - self->modeldata.aggression));
+        }
+
+        self->takeaction = upper_prepare;
+        self->velocity.z = self->velocity.x = 0;
+        set_idle(self);
+        self->idling = IDLING_INACTIVE; // not really idle, in fact it is thinking
+        self->attacking = ATTACKING_PREPARED; // pre-attack, for AI-block check
+        return 1;
+    }
+
+    return 0;
+}
+
+int common_try_duckattack(entity *other)
+{
+    int them;
+    entity *target = NULL;
+
+    if(!validanim(self, ANI_DUCKATTACK) || !(self->ducking & DUCK_ACTIVE))
+    {
+        return 0;
+    }
+
+    if(_time / THINK_SPEED % 4 == 0)
+    {
+        return 0;
+    }
+
+    if(self->projectile > 0)
+    {
+        them = self->modeldata.projectilehit;
+    }
+    else
+    {
+        them = self->modeldata.candamage;
+    }
+
+    if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0);
+    else target = self->custom_target;
+
+    if(target && !(target->modeldata.type & them))
+    {
+        return 0;
+    }
+
+    if(recheck_nextattack(target) > _time)
+    {
+        return 0;
+    }
+
+    if(!target || !(target->ducking & DUCK_ACTIVE))
+    {
+        return 0;
+    }
+
+    if(!check_attack_chance(target, 1.0f - min_noatk_chance, 1.0f - min_noatk_chance))
+    {
+        self->nextattack = _time + randf(self->modeldata.attackthrottletime);
+        return 0;
+    }
+    else
+    {
+        self->stalltime = _time + (int)randf((float)MAX(1, GAME_SPEED * 3 / 4 - self->modeldata.aggression));
+    }
+
+    // finally attack!
+    self->takeaction = common_attack_proc;
+    set_attacking(self);
+    self->velocity.z = self->velocity.x = 0;
+    // Don't waste any time!
+    ent_set_anim(self, ANI_DUCKATTACK, 0);
+    //self->nextthink = _time + (int)(GAME_SPEED * 0.8);
+    return 1;
 }
 
 // Normal attack style
@@ -25479,17 +25607,19 @@ int normal_attack()
     //int rnum;
 
     //rnum = rand32()&7;
-    if( common_try_grab(NULL) ||
-            common_try_upper(NULL) ||
-            common_try_block(NULL) ||
-            common_try_runattack(NULL) ||
-            //(rnum < 2 && common_try_freespecial(NULL)) ||
-            common_try_normalattack(NULL) ||
-            common_try_jumpattack(NULL) )
+    if( common_try_duckattack(NULL) ||
+        common_try_grab(NULL) ||
+        common_try_upper(NULL) ||
+        common_try_block(NULL) ||
+        common_try_runattack(NULL) ||
+        //(rnum < 2 && common_try_freespecial(NULL)) ||
+        common_try_normalattack(NULL) ||
+        common_try_jumpattack(NULL) )
     {
         self->running = 0;
         return 1;
     }
+
     return 0;// nothing to do? so go to next think step
 }
 
@@ -26144,7 +26274,7 @@ void common_attack_finish()
 
     target = self->opponent;
 
-    if(target && !self->modeldata.nomove && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
+    if(target && !self->modeldata.nomove && self->ducking == DUCK_INACTIVE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
     {
         self->takeaction = NULL;//common_runoff;
         self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
@@ -26234,7 +26364,7 @@ void common_attack_proc()
 // dispatch A.I. attack
 int common_attack()
 {
-    int aiattack ;
+    int aiattack;
 
     //if(stalker==self) return 0;
 
@@ -28480,7 +28610,7 @@ int common_move()
 
         //turn back if we have a turn animation
         // TODO, make a function for ai script
-        if(self->direction != predir && validanim(self, ANI_TURN))
+        if(self->direction != predir && validanim(self, ANI_TURN) && self->ducking == DUCK_INACTIVE)
         {
             self->takeaction = common_turn;
             self->direction = !self->direction;
@@ -28694,7 +28824,11 @@ int common_move()
 
         // make the entity walks in a straight path instead of flickering here and there
         // acceleration can be added easily based on this logic, if necessary
-        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed, self->position.x, self->position.z, self->destx, self->destz, &self->velocity.x, &self->velocity.z);
+        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed,
+                                                    self->position.x, self->position.z,
+                                                    self->destx, self->destz,
+                                                    &self->velocity.x,
+                                                    &self->velocity.z);
 
         // fix running animation, if the model doesn't allow running updown then set zdir to 0
         if(self->running && !self->modeldata.runupdown)
@@ -28736,7 +28870,7 @@ int common_move()
             }
         }
 
-        // stoped so play idle, preventinng funny stepping bug, but may cause flickering
+        // IMPORTANT: stoped so play idle, preventinng funny stepping bug, but may cause flickering
         if(!self->velocity.x && !self->velocity.z && !self->waypoints)
         {
             set_idle(self);
@@ -28963,6 +29097,7 @@ int ai_check_grab()
     }
     return 0;
 }
+
 int ai_check_escape()
 {
     if((self->escapecount > self->modeldata.escapehits) && !inair(self) && validanim(self, ANI_SPECIAL2))
@@ -28977,6 +29112,89 @@ int ai_check_escape()
 int ai_check_busy()
 {
     return self->link || !self->idling;
+}
+
+int ai_check_ducking()
+{
+    int them;
+    entity *target = NULL;
+    float t_rangex = 60.0f;
+    float t_rangez = 30.0f;
+
+    if ((self->ducking & DUCK_PREPARED) || (self->ducking & DUCK_RISE))
+    {
+        return 1;
+    }
+
+    if(self->link || inair(self))
+    {
+        return 0;
+    }
+
+    if( !validanim(self, ANI_DUCK) || !validanim(self, ANI_DUCKATTACK) )
+    {
+        return 0;
+    }
+
+    if(self->projectile > 0)
+    {
+        them = self->modeldata.projectilehit;
+    }
+    else
+    {
+        them = self->modeldata.candamage;
+    }
+
+    if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0);
+    else target = self->custom_target;
+
+    if(target && !(target->modeldata.type & them))
+    {
+        return 0;
+    }
+
+    if ((self->ducking & DUCK_ACTIVE) && self->animnum == ANI_DUCK)
+    {
+        if ( !target || inair(target) || !(target->ducking & DUCK_ACTIVE) ||
+             (!check_range_target_all(self,target,ANI_DUCK) &&
+                diff(self->position.x, target->position.x) > t_rangex && diff(self->position.z, target->position.z) > t_rangez) )
+        {
+            self->velocity.x = self->velocity.z = 0;
+            tryduckrise(self);
+            return 1;
+        }
+    }
+
+    if(!target || !(target->ducking & DUCK_ACTIVE))
+    {
+        return 0;
+    }
+    else
+    {
+        if (self->ducking & DUCK_ACTIVE)
+        {
+            //self->nextthink = _time + (int)(GAME_SPEED * 1.0);
+            return 1;
+        }
+        else
+        {
+            int range_flag = check_range_target_all(self,target,ANI_DUCK);
+            if (!range_flag)
+            {
+                if ( diff(self->position.x, target->position.x) <= t_rangex &&
+                     diff(self->position.z, target->position.z) <= t_rangez) range_flag = 1;
+            }
+            if (!range_flag) return 0;
+
+            if(self->ducking == DUCK_INACTIVE)
+            {
+                tryduck(self);
+            }
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 
@@ -29033,6 +29251,13 @@ void common_think()
     {
         return;
     }
+
+    // target is ducking? try to ducking..
+    if(ai_check_ducking())
+    {
+        return;
+    }
+
     common_move();
 }
 
