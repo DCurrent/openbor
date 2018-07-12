@@ -214,6 +214,15 @@ typedef enum
     EDGE_RIGHT
 } e_edge_state;
 
+// State of duck.
+typedef enum
+{
+    DUCK_INACTIVE,
+    DUCK_PREPARED,
+    DUCK_ACTIVE,
+    DUCK_RISE
+} e_duck_state;
+
 // Platform props
 typedef enum
 {
@@ -1322,22 +1331,22 @@ if(n<1) n = 1;
 #define ABS(x) ((x)>0?(x):(-(x)))
 
 #define set_attacking(e) e->attacking = ATTACKING_PREPARED;\
-						 e->idling = 0;
+						 e->idling = IDLING_INACTIVE;
 
 #define set_jumping(e)   e->jumping = 1;\
-						 e->idling = 0;
+						 e->idling = IDLING_INACTIVE;
 
 #define set_charging(e)  e->charging = 1;\
-						 e->idling = 0;
+						 e->idling = IDLING_INACTIVE;
 
 #define set_getting(e)   e->getting = 1;\
-						 e->idling = 0;
+						 e->idling = IDLING_INACTIVE;
 
 #define set_blocking(e)  e->blocking = 1;\
-						 e->idling = 0;
+						 e->idling = IDLING_INACTIVE;
 
 #define set_turning(e)  e->turning = 1;\
-						e->idling = 0;
+						e->idling = IDLING_INACTIVE;
 
 #define expand_time(e)   if(e->stalltime>0) e->stalltime++;\
 						 if(e->releasetime>0)e->releasetime++;\
@@ -2328,6 +2337,7 @@ typedef struct entity
     unsigned int blocking;
     int falling;
     int running; // Flag to determine if a player is running
+    int ducking; // in duck stance
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation

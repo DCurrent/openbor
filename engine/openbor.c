@@ -248,7 +248,7 @@ float               scrollmaxz;
 float               blockade;                    // Limit x scroll back
 float				scrollminx;
 float				scrollmaxx;
-float				t_edge = 8.0;
+float				t_edge = 8.0f;
 
 s_lasthit           lasthit;  //Last collision variables. 2013-12-15, moved to struct.
 
@@ -17584,6 +17584,7 @@ int common_idle_anim(entity *ent)
 
     self = ent;
 
+    self->ducking = DUCK_INACTIVE;
     if(self->idling)
     {
         self->idling |= IDLING_ACTIVE;
@@ -20780,6 +20781,8 @@ void check_gravity(entity *e)
                 if ( !cplat || (cplat && diff(get_platform_base(cplat),self->position.y) > T_WALKOFF) )
                 {
                     self->idling = IDLING_INACTIVE;
+                    self->edge = EDGE_NO;
+                    self->ducking = DUCK_INACTIVE;
                     self->takeaction = common_walkoff;
                     ent_set_anim(self, ANI_WALKOFF, 0);
                     self->landed_on_platform = plat = NULL;
@@ -22699,6 +22702,7 @@ int set_idle(entity *ent)
     ent->rising = 0;
     ent->riseattacking = 0;
     ent->edge = EDGE_NO;
+    ent->ducking = DUCK_INACTIVE;
     ent->inbackpain = 0;
     ent->falling = 0;
     ent->jumping = 0;
@@ -22726,6 +22730,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->rising = 0;
         iDie->riseattacking = 0;
         iDie->edge = EDGE_NO;
+        iDie->ducking = DUCK_INACTIVE;
         return 1;
     }
 
@@ -22773,6 +22778,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->rising = 0;
     iDie->riseattacking = 0;
     iDie->edge = EDGE_NO;
+    iDie->ducking = DUCK_INACTIVE;
     if(iDie->frozen)
     {
         unfrozen(iDie);
@@ -22821,6 +22827,7 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
     ent->falling = 1;
     ent->jumping = 0;
     ent->edge = EDGE_NO;
+    ent->ducking = DUCK_INACTIVE;
     ent->getting = 0;
     ent->charging = 0;
     ent->attacking = ATTACKING_INACTIVE;
@@ -22934,6 +22941,8 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     set_attacking(iRiseattack);
     iRiseattack->inpain = 0;
     iRiseattack->falling = 0;
+    iRiseattack->edge = EDGE_NO;
+    iRiseattack->ducking = DUCK_INACTIVE;
     iRiseattack->rising = 0;
     iRiseattack->riseattacking = 1;
     iRiseattack->drop = 0;
@@ -23046,6 +23055,7 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->rising = 0;
 	iPain->riseattacking = 0;
 	iPain->edge = EDGE_NO;
+	iPain->ducking = DUCK_INACTIVE;
 	iPain->projectile = 0;
 	iPain->drop = 0;
 	iPain->attacking = ATTACKING_INACTIVE;
@@ -23062,6 +23072,7 @@ int set_pain(entity *iPain, int type, int reset)
         iPain->rising = 0;
         iPain->riseattacking = 0;
         iPain->edge = EDGE_NO;
+        iPain->ducking = DUCK_INACTIVE;
         if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
     }
@@ -23641,6 +23652,13 @@ void normal_prepare()
             return;
         }
     }
+    else if (self->ducking & DUCK_ACTIVE)
+    {
+        self->takeaction = common_attack_proc;
+        set_attacking(self);
+        ent_set_anim(self, ANI_DUCKATTACK, 0);
+        return;
+    }
     else // dont have a chain so just select an attack randomly
     {
         // Pick an attack
@@ -23662,7 +23680,7 @@ void normal_prepare()
             self->takeaction = common_attack_proc;
             set_attacking(self);
             ent_set_anim(self, atkchoices[special + (rand32() & 0xffff) % (found - special)], 0);
-            return ;
+            return;
         }
     }
 
@@ -23705,6 +23723,7 @@ void common_jump()
 
         self->jumping = 0;
         self->edge = EDGE_NO;
+        self->ducking = DUCK_INACTIVE;
         self->attacking = ATTACKING_INACTIVE;
 
         if(!self->modeldata.runhold)
@@ -23986,6 +24005,7 @@ void common_pain()
     self->rising = 0;
     self->riseattacking = 0;
     self->edge = EDGE_NO;
+    self->ducking = DUCK_INACTIVE;
     self->inbackpain = 0;
     if(self->link)
     {
@@ -24356,6 +24376,7 @@ void checkdeath()
     }
     self->nograb = 1;
     self->idling = IDLING_INACTIVE;
+    self->ducking = DUCK_INACTIVE;
 
     if(self->modeldata.diesound >= 0)
     {
@@ -25665,6 +25686,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         attacker->idling = IDLING_INACTIVE;
         attacker->running = 0;
         attacker->edge = EDGE_NO;
+        attacker->ducking = DUCK_INACTIVE;
         attacker->inbackpain = 0;
 
         /* Stop all movement. */
@@ -27868,6 +27890,7 @@ int do_catch(entity *ent, entity *target, int animation_catch)
             ent->takeaction = common_animation_normal;
             ent->attacking = ATTACKING_INACTIVE;
             ent->idling = IDLING_INACTIVE;
+            ent->ducking = DUCK_INACTIVE;
             ent_set_anim(ent, animation_catch, 0);
             kill_entity(target);
 
@@ -29542,6 +29565,8 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
         self->velocity.x = self->velocity.z = 0;
 
         self->idling = IDLING_INACTIVE;
+        self->edge = EDGE_NO;
+        self->ducking = DUCK_INACTIVE;
         ent_set_anim(self, ANI_JUMPDELAY, 0);
     }
     else
@@ -30337,6 +30362,7 @@ void player_pain_check()
         self->rising = 0;
         self->riseattacking = 0;
         self->edge = EDGE_NO;
+        self->ducking = DUCK_INACTIVE;
         self->inbackpain = 0;
     }
 }
@@ -30614,6 +30640,7 @@ void player_think()
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
         self->idling = IDLING_INACTIVE;
+        self->ducking = DUCK_ACTIVE;
         self->takeaction = common_stuck_underneath;
         ent_set_anim(self, ANI_DUCK, 0);
         goto endthinkcheck;
@@ -31107,6 +31134,7 @@ void player_think()
     {
         ent_set_anim(self, ANI_DUCK, 0);
         self->velocity.x = self->velocity.z = 0;
+        self->ducking = DUCK_ACTIVE;
         goto endthinkcheck;
     }
 

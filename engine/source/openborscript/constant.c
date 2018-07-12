@@ -489,6 +489,12 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(EDGE_LEFT)
         ICMPCONST(EDGE_RIGHT)
 
+        // Duck state.
+        ICMPCONST(DUCK_INACTIVE)
+        ICMPCONST(DUCK_PREPARED)
+        ICMPCONST(DUCK_ACTIVE)
+        ICMPCONST(DUCK_RISE)
+
         // Platform props.
         ICMPCONST(PLATFORM_X)
         ICMPCONST(PLATFORM_Z)

@@ -2330,6 +2330,7 @@ enum aiflag_enum
     _ep_aiflag_charging,
     _ep_aiflag_dead,
     _ep_aiflag_drop,
+    _ep_aiflag_ducking,
     _ep_aiflag_falling,
     _ep_aiflag_frozen,
     _ep_aiflag_getting,
@@ -2362,6 +2363,7 @@ static const char *eplist_aiflag[] =
     "charging",
     "dead",
     "drop",
+    "ducking",
     "falling",
     "frozen",
     "getting",
@@ -3265,6 +3267,9 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         case _ep_aiflag_blocking:
             (*pretvar)->lVal = (LONG)ent->blocking;
+            break;
+        case _ep_aiflag_ducking:
+            (*pretvar)->lVal = (LONG)ent->ducking;
             break;
         case _ep_aiflag_falling:
             (*pretvar)->lVal = (LONG)ent->falling;
@@ -5428,6 +5433,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 break;
             case _ep_aiflag_blocking:
                 ent->blocking = (LONG)ltemp;
+                break;
+            case _ep_aiflag_ducking:
+                ent->ducking = (LONG)ltemp;
                 break;
             case _ep_aiflag_falling:
                 ent->falling = (LONG)ltemp;
@@ -12856,6 +12864,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     e->rising = 0;
     e->riseattacking = 0;
     e->edge = EDGE_NO;
+    e->ducking = DUCK_INACTIVE;
     e->inbackpain = 0;
     e->blocking = 0;
 
@@ -12985,6 +12994,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->rising = 0;
     e->riseattacking = 0;
     e->edge = EDGE_NO;
+    e->ducking = DUCK_INACTIVE;
     e->inbackpain = 0;
     e->blocking = 0;
     e->nograb = e->nograb_default; //e->nograb = 0;
