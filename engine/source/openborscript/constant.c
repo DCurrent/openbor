@@ -671,6 +671,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_DUCKING)
         ICMPCONST(ANI_DUCKRISE)
         ICMPCONST(ANI_VICTORY)
+        ICMPCONST(ANI_FALLLOOSE)
         ICMPCONST(ANI_LOOSE)
 
 

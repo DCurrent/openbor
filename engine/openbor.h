@@ -713,6 +713,7 @@ typedef enum //Animations
     ANI_DUCKING,
     ANI_DUCKRISE,
     ANI_VICTORY,
+    ANI_FALLLOOSE,
     ANI_LOOSE,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;

@@ -338,21 +338,21 @@ int                 idles[MAX_IDLES]        = {ANI_IDLE};
 
 int                 falls[MAX_ATKS] =
 {
-    ANI_FALL,  ANI_FALL2, ANI_FALL3, ANI_FALL4,
-    ANI_FALL,  ANI_BURN,  ANI_FALL,  ANI_SHOCK,
-    ANI_FALL,  ANI_FALL5, ANI_FALL6, ANI_FALL7,
+    ANI_FALL,  ANI_FALL2, ANI_FALL3,  ANI_FALL4,
+    ANI_FALL,  ANI_BURN,  ANI_FALL,   ANI_SHOCK,
+    ANI_FALL,  ANI_FALL5, ANI_FALL6,  ANI_FALL7,
     ANI_FALL8, ANI_FALL9, ANI_FALL10, ANI_FALL,
-    ANI_FALL,  ANI_FALL,  ANI_FALL,   ANI_FALL,
+    ANI_FALL,  ANI_FALL,  ANI_FALL,   ANI_FALLLOOSE,
     ANI_FALL
 };
 
 int                 backfalls[MAX_ATKS] =
 {
-    ANI_BACKFALL,  ANI_BACKFALL2, ANI_BACKFALL3, ANI_BACKFALL4,
-    ANI_BACKFALL,  ANI_BACKBURN,  ANI_BACKFALL,  ANI_BACKSHOCK,
-    ANI_BACKFALL,  ANI_BACKFALL5, ANI_BACKFALL6, ANI_BACKFALL7,
+    ANI_BACKFALL,  ANI_BACKFALL2, ANI_BACKFALL3,  ANI_BACKFALL4,
+    ANI_BACKFALL,  ANI_BACKBURN,  ANI_BACKFALL,   ANI_BACKSHOCK,
+    ANI_BACKFALL,  ANI_BACKFALL5, ANI_BACKFALL6,  ANI_BACKFALL7,
     ANI_BACKFALL8, ANI_BACKFALL9, ANI_BACKFALL10, ANI_BACKFALL,
-    ANI_BACKFALL,  ANI_BACKFALL,  ANI_BACKFALL,   ANI_BACKFALL,
+    ANI_BACKFALL,  ANI_BACKFALL,  ANI_BACKFALL,   ANI_FALLLOOSE,
     ANI_BACKFALL
 };
 
@@ -33320,8 +33320,19 @@ void kill_all_players_by_timeover()
         else if(self)
         {
             endgame = 0;
+
             attack_loose.attack_force = self->energy_status.health_current;
-            self->modeldata.falldie = 1;
+            if (inair(self) && validanim(self, ANI_FALLLOOSE))
+            {
+                attack_loose.dropv.y = default_model_dropv.y;
+                attack_loose.dropv.x = default_model_dropv.x;
+                attack_loose.dropv.z = default_model_dropv.z;
+                self->modeldata.falldie = 2;
+            }
+            else
+            {
+                self->modeldata.falldie = 1;
+            }
             self->takedamage(self, &attack_loose, 0);
         }
         self = tmp;
