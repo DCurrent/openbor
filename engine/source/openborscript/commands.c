@@ -308,6 +308,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_INHOLESCRIPT, "inholescript");
     LIST_ADD(CMD_MODEL_INSTANTITEMDEATH, "instantitemdeath");
     LIST_ADD(CMD_MODEL_ITEMBOX, "itembox");
+    LIST_ADD(CMD_MODEL_LOOSE, "loose");
     LIST_ADD(CMD_MODEL_JUGGLECOST, "jugglecost");
     LIST_ADD(CMD_MODEL_JUGGLEPOINTS, "jugglepoints");
     LIST_ADD(CMD_MODEL_JUMPFRAME, "jumpframe");

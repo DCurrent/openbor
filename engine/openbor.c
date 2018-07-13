@@ -324,6 +324,7 @@ int                *animbackrises       = NULL;
 int                *animriseattacks     = NULL;
 int                *animbackriseattacks = NULL;
 int                *animblkpains        = NULL;
+int                *animbackblkpains    = NULL;
 int                *animattacks         = NULL;
 int                *animfollows         = NULL;
 int                *animspecials        = NULL;
@@ -341,7 +342,8 @@ int                 falls[MAX_ATKS] =
     ANI_FALL,  ANI_BURN,  ANI_FALL,  ANI_SHOCK,
     ANI_FALL,  ANI_FALL5, ANI_FALL6, ANI_FALL7,
     ANI_FALL8, ANI_FALL9, ANI_FALL10, ANI_FALL,
-    ANI_FALL, ANI_FALL, ANI_FALL, ANI_FALL,
+    ANI_FALL,  ANI_FALL,  ANI_FALL,   ANI_FALL,
+    ANI_FALL
 };
 
 int                 backfalls[MAX_ATKS] =
@@ -350,61 +352,68 @@ int                 backfalls[MAX_ATKS] =
     ANI_BACKFALL,  ANI_BACKBURN,  ANI_BACKFALL,  ANI_BACKSHOCK,
     ANI_BACKFALL,  ANI_BACKFALL5, ANI_BACKFALL6, ANI_BACKFALL7,
     ANI_BACKFALL8, ANI_BACKFALL9, ANI_BACKFALL10, ANI_BACKFALL,
-    ANI_BACKFALL, ANI_BACKFALL, ANI_BACKFALL, ANI_BACKFALL,
+    ANI_BACKFALL,  ANI_BACKFALL,  ANI_BACKFALL,   ANI_BACKFALL,
+    ANI_BACKFALL
 };
 
 int                 rises[MAX_ATKS] =
 {
-    ANI_RISE,  ANI_RISE2, ANI_RISE3, ANI_RISE4,
+    ANI_RISE,  ANI_RISE2, ANI_RISE3,  ANI_RISE4,
     ANI_RISE,  ANI_RISEB,  ANI_RISE,  ANI_RISES,
-    ANI_RISE,  ANI_RISE5, ANI_RISE6, ANI_RISE7,
+    ANI_RISE,  ANI_RISE5, ANI_RISE6,  ANI_RISE7,
     ANI_RISE8, ANI_RISE9, ANI_RISE10, ANI_RISE,
-    ANI_RISE, ANI_RISE, ANI_RISE, ANI_RISE,
+    ANI_RISE,  ANI_RISE,  ANI_RISE,   ANI_RISE,
+    ANI_RISE
 };
 
 int                 backrises[MAX_ATKS] =
 {
-    ANI_BACKRISE,  ANI_BACKRISE2, ANI_BACKRISE3, ANI_BACKRISE4,
-    ANI_BACKRISE,  ANI_BACKRISEB,  ANI_BACKRISE,  ANI_BACKRISES,
-    ANI_BACKRISE,  ANI_BACKRISE5, ANI_BACKRISE6, ANI_BACKRISE7,
+    ANI_BACKRISE,  ANI_BACKRISE2, ANI_BACKRISE3,  ANI_BACKRISE4,
+    ANI_BACKRISE,  ANI_BACKRISEB, ANI_BACKRISE,   ANI_BACKRISES,
+    ANI_BACKRISE,  ANI_BACKRISE5, ANI_BACKRISE6,  ANI_BACKRISE7,
     ANI_BACKRISE8, ANI_BACKRISE9, ANI_BACKRISE10, ANI_BACKRISE,
-    ANI_BACKRISE, ANI_BACKRISE, ANI_BACKRISE, ANI_BACKRISE,
+    ANI_BACKRISE,  ANI_BACKRISE,  ANI_BACKRISE,   ANI_BACKRISE,
+    ANI_BACKRISE
 };
 
 int                 riseattacks[MAX_ATKS] =
 {
-    ANI_RISEATTACK,  ANI_RISEATTACK2, ANI_RISEATTACK3, ANI_RISEATTACK4,
-    ANI_RISEATTACK,  ANI_RISEATTACKB,  ANI_RISEATTACK,  ANI_RISEATTACKS,
-    ANI_RISEATTACK,  ANI_RISEATTACK5, ANI_RISEATTACK6, ANI_RISEATTACK7,
+    ANI_RISEATTACK,  ANI_RISEATTACK2, ANI_RISEATTACK3,  ANI_RISEATTACK4,
+    ANI_RISEATTACK,  ANI_RISEATTACKB, ANI_RISEATTACK,   ANI_RISEATTACKS,
+    ANI_RISEATTACK,  ANI_RISEATTACK5, ANI_RISEATTACK6,  ANI_RISEATTACK7,
     ANI_RISEATTACK8, ANI_RISEATTACK9, ANI_RISEATTACK10, ANI_RISEATTACK,
-    ANI_RISEATTACK, ANI_RISEATTACK, ANI_RISEATTACK, ANI_RISEATTACK,
+    ANI_RISEATTACK,  ANI_RISEATTACK,  ANI_RISEATTACK,   ANI_RISEATTACK,
+    ANI_RISEATTACK
 };
 
 int                 backriseattacks[MAX_ATKS] =
 {
-    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK2, ANI_BACKRISEATTACK3, ANI_BACKRISEATTACK4,
-    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACKB,  ANI_BACKRISEATTACK,  ANI_BACKRISEATTACKS,
-    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK5, ANI_BACKRISEATTACK6, ANI_BACKRISEATTACK7,
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK2, ANI_BACKRISEATTACK3,  ANI_BACKRISEATTACK4,
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACKB, ANI_BACKRISEATTACK,   ANI_BACKRISEATTACKS,
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK5, ANI_BACKRISEATTACK6,  ANI_BACKRISEATTACK7,
     ANI_BACKRISEATTACK8, ANI_BACKRISEATTACK9, ANI_BACKRISEATTACK10, ANI_BACKRISEATTACK,
-    ANI_BACKRISEATTACK, ANI_BACKRISEATTACK, ANI_BACKRISEATTACK, ANI_BACKRISEATTACK,
+    ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK,   ANI_BACKRISEATTACK,
+    ANI_BACKRISEATTACK
 };
 
 int                 pains[MAX_ATKS] =
 {
-    ANI_PAIN,  ANI_PAIN2,    ANI_PAIN3, ANI_PAIN4,
-    ANI_PAIN,  ANI_BURNPAIN, ANI_PAIN,  ANI_SHOCKPAIN,
-    ANI_PAIN,  ANI_PAIN5,    ANI_PAIN6, ANI_PAIN7,
+    ANI_PAIN,  ANI_PAIN2,    ANI_PAIN3,  ANI_PAIN4,
+    ANI_PAIN,  ANI_BURNPAIN, ANI_PAIN,   ANI_SHOCKPAIN,
+    ANI_PAIN,  ANI_PAIN5,    ANI_PAIN6,  ANI_PAIN7,
     ANI_PAIN8, ANI_PAIN9,    ANI_PAIN10, ANI_PAIN,
-    ANI_PAIN, ANI_PAIN, ANI_PAIN, ANI_PAIN,
+    ANI_PAIN,  ANI_PAIN,     ANI_PAIN,   ANI_PAIN,
+    ANI_PAIN
 };
 
 int                 backpains[MAX_ATKS] =
 {
-    ANI_BACKPAIN,  ANI_BACKPAIN2,    ANI_BACKPAIN3, ANI_BACKPAIN4,
-    ANI_BACKPAIN,  ANI_BACKBURNPAIN, ANI_BACKPAIN,  ANI_BACKSHOCKPAIN,
-    ANI_BACKPAIN,  ANI_BACKPAIN5,    ANI_BACKPAIN6, ANI_BACKPAIN7,
+    ANI_BACKPAIN,  ANI_BACKPAIN2,    ANI_BACKPAIN3,  ANI_BACKPAIN4,
+    ANI_BACKPAIN,  ANI_BACKBURNPAIN, ANI_BACKPAIN,   ANI_BACKSHOCKPAIN,
+    ANI_BACKPAIN,  ANI_BACKPAIN5,    ANI_BACKPAIN6,  ANI_BACKPAIN7,
     ANI_BACKPAIN8, ANI_BACKPAIN9,    ANI_BACKPAIN10, ANI_BACKPAIN,
-    ANI_BACKPAIN, ANI_BACKPAIN, ANI_BACKPAIN, ANI_BACKPAIN,
+    ANI_BACKPAIN,  ANI_BACKPAIN,     ANI_BACKPAIN,   ANI_BACKPAIN,
+    ANI_BACKPAIN
 };
 
 int                 deaths[MAX_ATKS] =
@@ -413,25 +422,38 @@ int                 deaths[MAX_ATKS] =
     ANI_DIE,   ANI_BURNDIE,  ANI_DIE,   ANI_SHOCKDIE,
     ANI_DIE,   ANI_DIE5,     ANI_DIE6,  ANI_DIE7,
     ANI_DIE8,  ANI_DIE9,     ANI_DIE10, ANI_DIE,
-    ANI_DIE, ANI_DIE, ANI_DIE, ANI_DIE,
+    ANI_DIE,   ANI_DIE,      ANI_DIE,   ANI_LOOSE,
+    ANI_DIE
 };
 
 int                 backdeaths[MAX_ATKS] =
 {
     ANI_BACKDIE,   ANI_BACKDIE2,     ANI_BACKDIE3,  ANI_BACKDIE4,
-    ANI_BACKDIE,   ANI_BURNDIE,  ANI_BACKDIE,   ANI_SHOCKDIE,
+    ANI_BACKDIE,   ANI_BACKBURNDIE,  ANI_BACKDIE,   ANI_BACKSHOCKDIE,
     ANI_BACKDIE,   ANI_BACKDIE5,     ANI_BACKDIE6,  ANI_BACKDIE7,
     ANI_BACKDIE8,  ANI_BACKDIE9,     ANI_BACKDIE10, ANI_BACKDIE,
-    ANI_BACKDIE, ANI_BACKDIE, ANI_BACKDIE, ANI_BACKDIE,
+    ANI_BACKDIE,   ANI_BACKDIE,      ANI_BACKDIE,   ANI_LOOSE,
+    ANI_BACKDIE
 };
 
 int                 blkpains[MAX_ATKS] =
 {
-    ANI_BLOCKPAIN,  ANI_BLOCKPAIN2,    ANI_BLOCKPAIN3, ANI_BLOCKPAIN4,
-    ANI_BLOCKPAIN,  ANI_BLOCKPAINB, ANI_BLOCKPAIN,  ANI_BLOCKPAINS,
-    ANI_BLOCKPAIN,  ANI_BLOCKPAIN5,    ANI_BLOCKPAIN6, ANI_BLOCKPAIN7,
-    ANI_BLOCKPAIN8, ANI_BLOCKPAIN9,    ANI_BLOCKPAIN10, ANI_BLOCKPAIN,
-    ANI_BLOCKPAIN, ANI_BLOCKPAIN, ANI_BLOCKPAIN, ANI_BLOCKPAIN,
+    ANI_BLOCKPAIN,  ANI_BLOCKPAIN2, ANI_BLOCKPAIN3,  ANI_BLOCKPAIN4,
+    ANI_BLOCKPAIN,  ANI_BLOCKPAINB, ANI_BLOCKPAIN,   ANI_BLOCKPAINS,
+    ANI_BLOCKPAIN,  ANI_BLOCKPAIN5, ANI_BLOCKPAIN6,  ANI_BLOCKPAIN7,
+    ANI_BLOCKPAIN8, ANI_BLOCKPAIN9, ANI_BLOCKPAIN10, ANI_BLOCKPAIN,
+    ANI_BLOCKPAIN,  ANI_BLOCKPAIN,  ANI_BLOCKPAIN,   ANI_BLOCKPAIN,
+    ANI_BLOCKPAIN
+};
+
+int                 backblkpains[MAX_ATKS] =
+{
+    ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN2, ANI_BACKBLOCKPAIN3,  ANI_BACKBLOCKPAIN4,
+    ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAINB, ANI_BACKBLOCKPAIN,   ANI_BACKBLOCKPAINS,
+    ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN5, ANI_BACKBLOCKPAIN6,  ANI_BACKBLOCKPAIN7,
+    ANI_BACKBLOCKPAIN8, ANI_BACKBLOCKPAIN9, ANI_BACKBLOCKPAIN10, ANI_BACKBLOCKPAIN,
+    ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN,   ANI_BACKBLOCKPAIN,
+    ANI_BACKBLOCKPAIN
 };
 
 int                 normal_attacks[MAX_ATTACKS] =
@@ -6224,6 +6246,11 @@ void free_models()
         free(animblkpains);
         animblkpains       = NULL;
     }
+    if(animbackblkpains)
+    {
+        free(animbackblkpains);
+        animbackblkpains       = NULL;
+    }
     if(animdies)
     {
         free(animdies);
@@ -6808,8 +6835,11 @@ static int translate_attack_type(char *command)
     case CMD_MODEL_ITEMBOX:
         atk_id  = ATK_ITEM;
         break;
+    case CMD_MODEL_LOOSE:
+        atk_id  = ATK_LOOSE;
+        break;
     case CMD_MODEL_COLLISION_ETC:
-        tempInt = atoi(command + 6);
+        tempInt = atoi(command + 6); // White Dragon: 6 is "ATTACK" string length
         if(tempInt < MAX_ATKS - STA_ATKS + 1)
         {
             tempInt = MAX_ATKS - STA_ATKS + 1;
@@ -7269,6 +7299,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "bdie") == 0)
     {
         ani_id = ANI_BURNDIE;
+    }
+    else if(stricmp(value, "backsdie") == 0)
+    {
+        ani_id = ANI_BACKSHOCKDIE;
+    }
+    else if(stricmp(value, "backbdie") == 0)
+    {
+        ani_id = ANI_BACKBURNDIE;
     }
     else if(stricmp(value, "chipdeath") == 0)
     {
@@ -7883,6 +7921,66 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
                 tempInt = MAX_ATKS - STA_ATKS + 1;
             }
             ani_id = animblkpains[tempInt + STA_ATKS - 1];
+        }
+    }
+    else if(stricmp(value, "backblockpainb") == 0)
+    {
+        ani_id = ANI_BACKBLOCKPAINB;
+    }
+    else if(stricmp(value, "backblockpains") == 0)
+    {
+        ani_id = ANI_BACKBLOCKPAINS;
+    }
+    else if(starts_with_num(value, "backblockpain"))
+    {
+        get_tail_number(tempInt, value, "backblockpain");
+        if(tempInt == 1)
+        {
+            ani_id = ANI_BACKBLOCKPAIN;
+        }
+        else if(tempInt == 2)
+        {
+            ani_id = ANI_BACKBLOCKPAIN2;
+        }
+        else if(tempInt == 3)
+        {
+            ani_id = ANI_BACKBLOCKPAIN3;
+        }
+        else if(tempInt == 4)
+        {
+            ani_id = ANI_BACKBLOCKPAIN4;
+        }
+        else if(tempInt == 5)
+        {
+            ani_id = ANI_BACKBLOCKPAIN5;
+        }
+        else if(tempInt == 6)
+        {
+            ani_id = ANI_BACKBLOCKPAIN6;
+        }
+        else if(tempInt == 7)
+        {
+            ani_id = ANI_BACKBLOCKPAIN7;
+        }
+        else if(tempInt == 8)
+        {
+            ani_id = ANI_BACKBLOCKPAIN8;
+        }
+        else if(tempInt == 9)
+        {
+            ani_id = ANI_BACKBLOCKPAIN9;
+        }
+        else if(tempInt == 10)
+        {
+            ani_id = ANI_BACKBLOCKPAIN10;
+        }
+        else
+        {
+            if(tempInt < MAX_ATKS - STA_ATKS + 1)
+            {
+                tempInt = MAX_ATKS - STA_ATKS + 1;
+            }
+            ani_id = animbackblkpains[tempInt + STA_ATKS - 1];
         }
     }
     else if(stricmp(value, "duckattack") == 0)
@@ -9830,25 +9928,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                 tempdef(else if, LAND)
                                                                                     tempdef(else if, PIT)
                                                                                         tempdef(else if, LIFESPAN)
-                                                                                            tempdef(else if, TIMEOVER)
-                                                                                                else if(starts_with(value, "normal"))
-                                                                                                {
-                                                                                                    get_tail_number(tempInt, value, "normal");
-                                                                                                    newchar->defense[tempInt + STA_ATKS - 1] = defense;
-                                                                                                }
-                                                                                                else if(stricmp(value, "ALL") == 0)
-                                                                                                {
-                                                                                                    for(i = 0; i < max_attack_types; i++)
+                                                                                            tempdef(else if, LOOSE)
+                                                                                                tempdef(else if, TIMEOVER)
+                                                                                                    else if(starts_with(value, "normal"))
                                                                                                     {
-                                                                                                        /*
-                                                                                                        Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
-                                                                                                        */
-                                                                                                        if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN)
+                                                                                                        get_tail_number(tempInt, value, "normal");
+                                                                                                        newchar->defense[tempInt + STA_ATKS - 1] = defense;
+                                                                                                    }
+                                                                                                    else if(stricmp(value, "ALL") == 0)
+                                                                                                    {
+                                                                                                        for(i = 0; i < max_attack_types; i++)
                                                                                                         {
-                                                                                                            newchar->defense[i] = defense;
+                                                                                                            /*
+                                                                                                            Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
+                                                                                                            */
+                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOOSE)
+                                                                                                            {
+                                                                                                                newchar->defense[i] = defense;
+                                                                                                            }
                                                                                                         }
                                                                                                     }
-                                                                                                }
             }
 #undef tempdef
             break;
@@ -9880,24 +9979,25 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                 tempoff(else if,    LAND,		offense_factors)
                                                                                     tempoff(else if,    PIT,		offense_factors)
                                                                                         tempoff(else if,    LIFESPAN,   offense_factors)
-                                                                                            tempoff(else if,    TIMEOVER,   offense_factors)
-                                                                                                else if(starts_with(value, "normal"))
-                                                                                                {
-                                                                                                    get_tail_number(tempInt, value, "normal");
-                                                                                                    newchar->offense_factors[tempInt + STA_ATKS - 1] = GET_FLOAT_ARG(2);
-                                                                                                }
-                                                                                                else if(stricmp(value, "ALL") == 0)
-                                                                                                {
-                                                                                                    tempFloat = GET_FLOAT_ARG(2);
-                                                                                                    for(i = 0; i < max_attack_types; i++)
+                                                                                            tempoff(else if,    LOOSE,   offense_factors)
+                                                                                                tempoff(else if,    TIMEOVER,   offense_factors)
+                                                                                                    else if(starts_with(value, "normal"))
                                                                                                     {
-                                                                                                        //offense hardly need those, just in case
-                                                                                                        if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN)
+                                                                                                        get_tail_number(tempInt, value, "normal");
+                                                                                                        newchar->offense_factors[tempInt + STA_ATKS - 1] = GET_FLOAT_ARG(2);
+                                                                                                    }
+                                                                                                    else if(stricmp(value, "ALL") == 0)
+                                                                                                    {
+                                                                                                        tempFloat = GET_FLOAT_ARG(2);
+                                                                                                        for(i = 0; i < max_attack_types; i++)
                                                                                                         {
-                                                                                                            newchar->offense_factors[i] = tempFloat;
+                                                                                                            //offense hardly need those, just in case
+                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOOSE)
+                                                                                                            {
+                                                                                                                newchar->offense_factors[i] = tempFloat;
+                                                                                                            }
                                                                                                         }
                                                                                                     }
-                                                                                                }
             }
 #undef tempoff
             break;
@@ -11433,6 +11533,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_STEAL:
             case CMD_MODEL_FREEZE:
             case CMD_MODEL_ITEMBOX:
+            case CMD_MODEL_LOOSE:
             case CMD_MODEL_COLLISION_ETC:
                 abox.x = GET_INT_ARG(1);
                 abox.y = GET_INT_ARG(2);
@@ -11502,6 +11603,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     break;
                 case CMD_MODEL_ITEMBOX:
                     attack.attack_type  = ATK_ITEM;
+                    break;
+                case CMD_MODEL_LOOSE:
+                    attack.attack_type  = ATK_LOOSE;
+                    attack.attack_drop = 0;
                     break;
                 default:
                     tempInt = atoi(command + 6);
@@ -12527,6 +12632,11 @@ void load_model_constants()
         free(animblkpains);
         animblkpains = NULL;
     }
+    if(animbackblkpains)
+    {
+        free(animbackblkpains);
+        animbackblkpains = NULL;
+    }
     if(animdies)
     {
         free(animdies);
@@ -12671,7 +12781,7 @@ void load_model_constants()
     }
 
     // calculate max animations
-    max_animations += (max_attack_types - MAX_ATKS) * 11 +// multply by 11: fall/die/pain/backpain/backfalls/backdies/rise/backrise/blockpain/riseattack/backriseattck
+    max_animations += (max_attack_types - MAX_ATKS) * 12 +// multply by 11: fall/die/pain/backpain/backfalls/backdies/rise/backrise/blockpain/backblockpain/riseattack/backriseattck
                       (max_follows - MAX_FOLLOWS) +
                       (max_freespecials - MAX_SPECIALS) +
                       (max_attacks - MAX_ATTACKS) +
@@ -12698,6 +12808,7 @@ void load_model_constants()
     animriseattacks = malloc(sizeof(*animriseattacks) * max_attack_types);
     animbackriseattacks = malloc(sizeof(*animbackriseattacks) * max_attack_types);
     animblkpains = malloc(sizeof(*animblkpains) * max_attack_types);
+    animbackblkpains = malloc(sizeof(*animbackblkpains) * max_attack_types);
     animattacks = malloc(sizeof(*animattacks) * max_attacks);
     animfollows = malloc(sizeof(*animfollows) * max_follows);
     animspecials = malloc(sizeof(*animspecials) * max_freespecials);
@@ -12787,6 +12898,11 @@ void load_model_constants()
     for(i = MAX_ATKS; i < max_attack_types; i++)
     {
         animblkpains[i] = maxanim++;
+    }
+    memcpy(animbackblkpains,    backblkpains,    sizeof(*animbackblkpains)*MAX_ATKS);
+    for(i = MAX_ATKS; i < max_attack_types; i++)
+    {
+        animbackblkpains[i] = maxanim++;
     }
     memcpy(animdies,     deaths,         sizeof(*animdies)*MAX_ATKS);
     for(i = MAX_ATKS; i < max_attack_types; i++)
@@ -17631,7 +17747,7 @@ int common_idle_anim(entity *ent)
         ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
         goto found;                                                                     //Return 1 and exit.
     }
-    else if(validanim(ent, ANI_EDGE) && ent->edge)
+    else if(validanim(ent, ANI_EDGE) && ent->edge && (ent->idling & IDLING_ACTIVE) && ent->ducking == DUCK_INACTIVE)
     {
         if ( (ent->edge & EDGE_RIGHT) && (ent->edge & EDGE_LEFT) )
         {
@@ -20831,7 +20947,6 @@ void check_gravity(entity *e)
                 if ( !cplat || (cplat && diff(get_platform_base(cplat),self->position.y) > T_WALKOFF) )
                 {
                     self->idling = IDLING_INACTIVE;
-                    self->edge = EDGE_NO;
                     self->ducking = DUCK_INACTIVE;
                     self->takeaction = common_walkoff;
                     ent_set_anim(self, ANI_WALKOFF, 0);
@@ -22751,7 +22866,6 @@ int set_idle(entity *ent)
     ent->inpain = 0;
     ent->rising = 0;
     ent->riseattacking = 0;
-    ent->edge = EDGE_NO;
     ent->ducking = DUCK_INACTIVE;
     ent->inbackpain = 0;
     ent->falling = 0;
@@ -22779,7 +22893,6 @@ int set_death(entity *iDie, int type, int reset)
         iDie->falling = 0;
         iDie->rising = 0;
         iDie->riseattacking = 0;
-        iDie->edge = EDGE_NO;
         iDie->ducking = DUCK_INACTIVE;
         return 1;
     }
@@ -22827,7 +22940,6 @@ int set_death(entity *iDie, int type, int reset)
     iDie->falling = 0;
     iDie->rising = 0;
     iDie->riseattacking = 0;
-    iDie->edge = EDGE_NO;
     iDie->ducking = DUCK_INACTIVE;
     if(iDie->frozen)
     {
@@ -22876,7 +22988,6 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
     ent->idling = IDLING_INACTIVE;
     ent->falling = 1;
     ent->jumping = 0;
-    ent->edge = EDGE_NO;
     ent->ducking = DUCK_INACTIVE;
     ent->getting = 0;
     ent->charging = 0;
@@ -22991,7 +23102,6 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     set_attacking(iRiseattack);
     iRiseattack->inpain = 0;
     iRiseattack->falling = 0;
-    iRiseattack->edge = EDGE_NO;
     iRiseattack->ducking = DUCK_INACTIVE;
     iRiseattack->rising = 0;
     iRiseattack->riseattacking = 1;
@@ -23003,18 +23113,50 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 
 int set_blockpain(entity *iBlkpain, int type, int reset)
 {
-    if(type < 0 || type >= max_attack_types || !validanim(iBlkpain, animblkpains[type]))
+    int blockpain = 0;
+
+    if(type < 0 || type >= max_attack_types)
     {
         type = 0;
     }
-    if(validanim(iBlkpain, animblkpains[type]))
+
+    if ( iBlkpain->inbackpain ) blockpain = animbackblkpains[type];
+    else blockpain = animblkpains[type];
+
+    if(validanim(iBlkpain, blockpain))
     {
-        iBlkpain->takeaction = common_block;
-        set_blocking(self);
-        iBlkpain->inpain = 1;
-        ent_set_anim(iBlkpain, animblkpains[type], reset);
-        return 1;
+        ent_set_anim(iBlkpain, blockpain, reset);
     }
+    else if( iBlkpain->inbackpain && validanim(iBlkpain, animbackblkpains[0]) )
+    {
+        ent_set_anim(iBlkpain, animbackblkpains[0], reset);
+    }
+    else if( validanim(iBlkpain, animblkpains[type]) )
+    {
+        if ( iBlkpain->inbackpain ) reset_backpain(iBlkpain);
+        iBlkpain->inbackpain = 0;
+        ent_set_anim(iBlkpain, animblkpains[type], reset);
+    }
+    else if(validanim(iBlkpain, animblkpains[0]))
+    {
+        if ( iBlkpain->inbackpain ) reset_backpain(iBlkpain);
+        iBlkpain->inbackpain = 0;
+        ent_set_anim(iBlkpain, animblkpains[0], reset);
+    }
+    else
+    {
+        return 0;
+    }
+
+    iBlkpain->takeaction = common_block;
+    set_blocking(self);
+    iBlkpain->inpain = 1;
+    iBlkpain->rising = 0;
+    iBlkpain->riseattacking = 0;
+    iBlkpain->ducking = DUCK_INACTIVE;
+    ent_set_anim(iBlkpain, animblkpains[type], reset);
+    return 1;
+
     return 0;
 }
 
@@ -23104,7 +23246,6 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->falling = 0;
 	iPain->rising = 0;
 	iPain->riseattacking = 0;
-	iPain->edge = EDGE_NO;
 	iPain->ducking = DUCK_INACTIVE;
 	iPain->projectile = 0;
 	iPain->drop = 0;
@@ -23121,7 +23262,6 @@ int set_pain(entity *iPain, int type, int reset)
         iPain->inpain = 0;
         iPain->rising = 0;
         iPain->riseattacking = 0;
-        iPain->edge = EDGE_NO;
         iPain->ducking = DUCK_INACTIVE;
         if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
@@ -23819,7 +23959,6 @@ void common_jump()
         self->position.y = self->base;
 
         self->jumping = 0;
-        self->edge = EDGE_NO;
         self->ducking = DUCK_INACTIVE;
         self->attacking = ATTACKING_INACTIVE;
 
@@ -24101,7 +24240,6 @@ void common_pain()
     self->inpain = 0;
     self->rising = 0;
     self->riseattacking = 0;
-    self->edge = EDGE_NO;
     self->ducking = DUCK_INACTIVE;
     self->inbackpain = 0;
     if(self->link)
@@ -24320,7 +24458,6 @@ void common_block()
         self->inpain = 0;
         self->rising = 0;
         self->riseattacking = 0;
-        self->edge = EDGE_NO;
         self->inbackpain = 0;
         ent_set_anim(self, ANI_BLOCK, 0);
     }
@@ -25865,7 +26002,6 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         target->attacking = ATTACKING_INACTIVE;
         attacker->idling = IDLING_INACTIVE;
         attacker->running = 0;
-        attacker->edge = EDGE_NO;
         attacker->ducking = DUCK_INACTIVE;
         attacker->inbackpain = 0;
 
@@ -29342,7 +29478,6 @@ void player_die()
     player[playerindex].spawnhealth = self->modeldata.health;
     player[playerindex].spawnmp = self->modeldata.mp;
 
-
     if(self->modeldata.nodieblink != 3)
     {
         kill_entity(self);
@@ -29856,7 +29991,6 @@ void common_postduck()
 
 void tryduck(entity *ent)
 {
-    ent->edge = EDGE_NO;
     ent->running = 0;
     if(validanim(ent, ANI_DUCKING))
     {
@@ -29875,7 +30009,6 @@ void tryduck(entity *ent)
 
 void tryduckrise(entity *ent)
 {
-    ent->edge = EDGE_NO;
     ent->running = 0;
     if(validanim(ent, ANI_DUCKRISE))
     {
@@ -29921,7 +30054,6 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
     self->jump.velocity.z = jumpz;
     self->jump.animation_id = animation_id;
 
-    self->edge = EDGE_NO;
     self->ducking = DUCK_INACTIVE;
     if(validanim(self, ANI_JUMPDELAY))
     {
@@ -30723,7 +30855,6 @@ void player_pain_check()
         self->inpain = 0;
         self->rising = 0;
         self->riseattacking = 0;
-        self->edge = EDGE_NO;
         self->ducking = DUCK_INACTIVE;
         self->inbackpain = 0;
     }
@@ -30795,7 +30926,6 @@ int check_costmove(int s, int fs, int jumphack)
         self->inpain = 0;
         self->rising = 0;
         self->riseattacking = 0;
-        self->edge = EDGE_NO;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_unlink(self);
@@ -31907,7 +32037,7 @@ void kill_all_enemies()
     entity *tmpself = NULL;
 
     attack = emptyattack;
-	attack.attack_type = ATK_TIMEOVER;
+	attack.attack_type = ATK_NORMAL;
     //attack.attack_type = max_attack_types;
     attack.dropv.y = default_model_dropv.y;
     attack.dropv.x = default_model_dropv.x;
@@ -33180,12 +33310,12 @@ void kill_all_players_by_timeover()
     endgame = 1;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        if(player[i].ent)
+        entity *ent = player[i].ent;
+        if(ent && !validanim(ent, ANI_LOOSE))
         {
             endgame = 0;
-            self = player[i].ent;
-            attack.attack_force = self->energy_status.health_current;
-            self->takedamage(self, &attack, 0);
+            attack.attack_force = ent->energy_status.health_current;
+            ent->takedamage(ent, &attack, 0);
         }
     }
 }
@@ -33196,8 +33326,7 @@ void kill_all_players_by_timeover()
     int i;
 
     //endgame = 0;
-
-    debug_printf("tempo: %d\n",_time);
+    debug_printf("time: %d\n",_time);
 
     for(i = 0; i < MAX_PLAYERS; i++)
     {
