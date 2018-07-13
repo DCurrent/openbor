@@ -237,6 +237,7 @@ float               vbgtravelled;
 int                 traveltime;
 int                 texttime;
 int					timetoshow;
+int                 is_total_timeover = 0;
 int					showgo;
 float               advancex;
 float               advancey;
@@ -7908,6 +7909,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_DUCKRISE;
     }
+    else if(stricmp(value, "victory") == 0)
+    {
+        ani_id = ANI_VICTORY;
+    }
+    else if(stricmp(value, "loose") == 0)
+    {
+        ani_id = ANI_LOOSE;
+    }
 
     return ani_id;
 
@@ -14688,6 +14697,7 @@ void unload_level()
     advancex = 0;
     advancey = 0;
     nojoin = 0;
+    is_total_timeover = 0;
     current_spawn = 0;
     groupmin = 100;
     groupmax = 100;
@@ -16409,6 +16419,7 @@ void updatestatus()
                 player[i].hasplayed = 1;
                 player[i].spawnhealth = model->health;
                 player[i].spawnmp = model->mp;
+                player[i].status = PLAYER_NO_STATUS;
 
                 spawnplayer(i);
 
@@ -16494,7 +16505,6 @@ void updatestatus()
     if(dt >= 99)
     {
         dt      = 99;
-
         oldtime = 99;
     }
     if(dt <= 0)
@@ -16509,9 +16519,10 @@ void updatestatus()
         oldtime = dt;
     }
 
-    timetoshow = dt;
+    if (is_total_timeover) timetoshow = dt;
+    else timetoshow = 0;
 
-    if(dt < 99)
+    if(dt > 0 && !is_total_timeover)
     {
         showtimeover = 0;
     }
@@ -17131,13 +17142,19 @@ void predrawstatus()
         }
         else if(player[i].credits || credits || (!player[i].hasplayed && noshare))
         {
-            if(player[i].credits && (_time / (GAME_SPEED * 2)) & 1)
+            if(player[i].credits && ((_time / (GAME_SPEED * 2)) & 1))
             {
                 font_printf(videomodes.shiftpos[i] + pnameJ[i][4], savedata.windowpos + pnameJ[i][5], pnameJ[i][6], 0, Tr("Credit %i"), player[i].credits);
             }
-            else if(credits && (_time / (GAME_SPEED * 2)) & 1)
+            else if(credits && ((_time / (GAME_SPEED * 2)) & 1))
             {
                 font_printf(videomodes.shiftpos[i] + pnameJ[i][4], savedata.windowpos + pnameJ[i][5], pnameJ[i][6], 0, Tr("Credit %i"), credits);
+            }
+            else if(!player[i].hasplayed  && ((_time / (GAME_SPEED * 2)) & 1))
+            {
+                int showcredits = (!noshare) ? credits : CONTINUES;
+
+                font_printf(videomodes.shiftpos[i] + pnameJ[i][4], savedata.windowpos + pnameJ[i][5], pnameJ[i][6], 0, Tr("Credit %i"), showcredits);
             }
             else if(nojoin)
             {
@@ -17147,7 +17164,6 @@ void predrawstatus()
             {
                 font_printf(videomodes.shiftpos[i] + pnameJ[i][4], savedata.windowpos + pnameJ[i][5], pnameJ[i][6], 0, Tr("Press Start"));
             }
-
         }
         else
         {
@@ -18954,6 +18970,8 @@ void kill_entity(entity *victim)
             }
         }
     }
+
+    victim = NULL;
 
     //free_ent(victim);
     //victim = alloc_ent();
@@ -33129,7 +33147,26 @@ void spawnplayer(int index)
     }
 }
 
-void time_over()
+int no_player_alive_to_join()
+{
+    int no_alive_players = 0;
+    int i;
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if( ((!player[i].ent || player[i].lives <= 0 || (player[i].lives <= 1 && player[i].ent->energy_status.health_current <= 0)) &&
+            ((noshare && player[i].credits <= 0) || (!noshare && credits <= 0))) ||
+            (player[i].ent && (player[i].status & PLAYER_LOOSING))
+        )
+        {
+            ++no_alive_players;
+        }
+    }
+    no_alive_players = (no_alive_players >= MAX_PLAYERS) ? 1 : 0;
+
+    return no_alive_players;
+}
+
+void kill_all_players_by_timeover()
 {
     int i;
     s_collision_attack attack;
@@ -33139,33 +33176,72 @@ void time_over()
     attack.dropv.y = default_model_dropv.y;
     attack.dropv.x = default_model_dropv.x;
     attack.dropv.z = default_model_dropv.z;
+
+    endgame = 1;
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        if(player[i].ent)
+        {
+            endgame = 0;
+            self = player[i].ent;
+            attack.attack_force = self->energy_status.health_current;
+            self->takedamage(self, &attack, 0);
+        }
+    }
+}
+
+/*int check_loose_pose()
+{
+    int use_loose_pose = 0;
+    int i;
+
+    //endgame = 0;
+
+    debug_printf("tempo: %d\n",_time);
+
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        entity *ent = player[i].ent;
+        if(ent)
+        {
+            endgame = 0;
+            if (validanim(ent, ANI_LOOSE)) use_loose_pose = 1;
+            break;
+        }
+    }
+    if (!use_loose_pose) return 0;
+
+    return 1;
+}*/
+
+void time_over()
+{
     if(level->type == 1)
     {
-        level_completed = 1;    //    Feb 25, 2005 - Used for bonus levels so a life isn't taken away if time expires.level->type == 1 means bonus level, else regular
+        level_completed = 1;    // Feb 25, 2005 - Used for bonus levels so a life isn't taken away if time expires.level->type == 1 means bonus level, else regular
     }
     else if(!level_completed)
     {
-        endgame = 1;
-        for(i = 0; i < MAX_PLAYERS; i++)
+        //check_loose_pose();
+        kill_all_players_by_timeover();
+
+        if (!is_total_timeover)
         {
-            if(player[i].ent)
+            if(SAMPLE_TIMEOVER >= 0)
             {
-                endgame = 0;
-                self = player[i].ent;
-                attack.attack_force = self->energy_status.health_current;
-                self->takedamage(self, &attack, 0);
+                sound_play_sample(SAMPLE_TIMEOVER, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
+            if(!endgame)
+            {
+                showtimeover = 1;
             }
         }
-
-        if(SAMPLE_TIMEOVER >= 0)
+        if (!is_total_timeover && no_player_alive_to_join())
         {
-            sound_play_sample(SAMPLE_TIMEOVER, 0, savedata.effectvol, savedata.effectvol, 100);
-        }
-
-        timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
-        if(!endgame)
-        {
-            showtimeover = 1;
+            is_total_timeover = 1;
+            nojoin = 1;
         }
     }
 }
@@ -36259,6 +36335,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 if(defaultselect)
                 {
                     player[i].lives = PLAYER_LIVES;
+                    player[i].status = PLAYER_NO_STATUS;
                     if(!creditscheat)
                     {
                         if(noshare)
@@ -36275,6 +36352,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 {
                     player[i].lives = savelevel[current_set].pLives[i];
                     player[i].score = savelevel[current_set].pScores[i];
+                    player[i].status = PLAYER_NO_STATUS;
                     if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
                     else credits = savelevel[current_set].credits;
                 }
@@ -36330,6 +36408,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
             if(defaultselect)
             {
                 player[i].lives = PLAYER_LIVES;
+                player[i].status = PLAYER_NO_STATUS;
                 if(!creditscheat)
                 {
                     if(noshare)
@@ -36346,6 +36425,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
             {
                 player[i].lives = savelevel[current_set].pLives[i];
                 player[i].score = savelevel[current_set].pScores[i];
+                player[i].status = PLAYER_NO_STATUS;
                 if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
                 else credits = savelevel[current_set].credits;
             }
@@ -36365,6 +36445,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 {
                     players[i] = player[i].hasplayed = 1;
                     //printf("%d %d %d\n", i, player[i].lives, immediate[i]);
+
                     if(noshare)
                     {
                         player[i].credits = CONTINUES;
@@ -36383,6 +36464,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     }
 
                     player[i].lives = PLAYER_LIVES;
+                    player[i].status = PLAYER_NO_STATUS;
                     example[i] = spawnexample(i);
                     player[i].playkeys = 0;
 
@@ -36493,15 +36575,15 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
     magic_type = set->typemp;
     if(PLAYER_LIVES == 0)
     {
-        PLAYER_LIVES = 3;
+        PLAYER_LIVES = 3; // default
     }
     if(CONTINUES == 0)
     {
-        CONTINUES = 5;
+        CONTINUES = 5; // default
     }
     if(fade == 0)
     {
-        fade = 24;
+        fade = 24; // default
     }
     sameplayer = set->nosame;
 
@@ -36526,6 +36608,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 player[i].spawnhealth = save->pSpawnhealth[i];
                 player[i].spawnmp = save->pSpawnmp[i];
                 strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
+                player[i].status = PLAYER_NO_STATUS;
             }
             credits = save->credits;
         }

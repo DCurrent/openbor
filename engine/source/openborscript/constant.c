@@ -495,6 +495,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(DUCK_ACTIVE)
         ICMPCONST(DUCK_RISE)
 
+        // Player status.
+        ICMPCONST(PLAYER_NO_STATUS)
+        ICMPCONST(PLAYER_LOOSING)
+        ICMPCONST(PLAYER_WINNING)
+
         // Platform props.
         ICMPCONST(PLATFORM_X)
         ICMPCONST(PLATFORM_Z)
@@ -655,6 +660,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_BACKEDGE)
         ICMPCONST(ANI_DUCKING)
         ICMPCONST(ANI_DUCKRISE)
+        ICMPCONST(ANI_VICTORY)
+        ICMPCONST(ANI_LOOSE)
 
 
         // for the extra animation ids

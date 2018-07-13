@@ -234,7 +234,15 @@ typedef enum
     PLATFORM_LOWERRIGHT,
     PLATFORM_DEPTH,
     PLATFORM_HEIGHT
-} e_platform;
+} e_platform_props;
+
+// Player status.
+typedef enum
+{
+    PLAYER_NO_STATUS,
+    PLAYER_LOOSING,
+    PLAYER_WINNING
+} e_player_status;
 
 typedef enum
 {
@@ -698,6 +706,8 @@ typedef enum //Animations
     ANI_BACKEDGE,
     ANI_DUCKING,
     ANI_DUCKRISE,
+    ANI_VICTORY,
+    ANI_LOOSE,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -2435,6 +2445,7 @@ typedef struct
     int joining;
     int hasplayed;
     int weapnum;
+    int status;
 } s_player;
 
 typedef struct
