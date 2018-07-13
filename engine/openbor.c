@@ -514,6 +514,7 @@ int                 musicoverlap        = 0;
 int                 colorbars           = 0;
 int                 current_spawn       = 0;
 int                 level_completed     = 0;
+int                 level_completed_defeating_boss     = 0;
 int                 nojoin              = 0;					// dont allow new hero to join in, use "Please Wait" instead of "Select Hero"
 int                 groupmin            = 0;
 int					groupmax            = 0;
@@ -14824,6 +14825,7 @@ void unload_level()
     scrollmaxx = 0;
     blockade = 0;
     level_completed = 0;
+    level_completed_defeating_boss = 0;
     tospeedup = 0;    // Reset so it sets to normal speed for the next level
     for (i = 0; i < MAX_PLAYERS; i++) reached[i] = 0; // TYPE_ENDLEVEL values reset after level completed //4player
     showtimeover = 0;
@@ -24633,6 +24635,7 @@ void checkdeath()
         {
             kill_all_enemies();
             level_completed = 1;
+            level_completed_defeating_boss |= 1;
         }
     }
 }
@@ -29444,6 +29447,7 @@ void suicide()
         return;
     }
     level_completed |= self->boss;
+    level_completed_defeating_boss |= self->boss;
     kill_entity(self);
 }
 
@@ -33427,6 +33431,7 @@ void update_scroller()
         }
     }
 
+    //White Dragon: No more enemies!
     if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) && p_alive)
     /*if(current_spawn >= level->numspawns && !findent(TYPE_ENEMY) &&
             ((player[0].ent && !player[0].ent->dead) || (player[1].ent && !player[1].ent->dead) || (player[2].ent && !player[2].ent->dead) || (player[3].ent && !player[3].ent->dead))
@@ -33434,7 +33439,7 @@ void update_scroller()
     {
         if(!findent(TYPE_ENDLEVEL) && ((!findent(TYPE_ITEM | TYPE_OBSTACLE) && level->type == 1) || level->type == 0)) // Feb 25, 2005 - Added so obstacles
         {
-            level_completed = 1;                                                // can be used for bonus levels
+            level_completed = 1; // can be used for bonus levels
         }
     }
     else if(count_ents(TYPE_ENEMY) < groupmin)
