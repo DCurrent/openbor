@@ -14763,6 +14763,7 @@ void free_level(s_level *lv)
 void unload_level()
 {
     s_model *temp;
+    int i;
 
     kill_all();
     unload_background();
@@ -14824,7 +14825,7 @@ void unload_level()
     blockade = 0;
     level_completed = 0;
     tospeedup = 0;    // Reset so it sets to normal speed for the next level
-    reached[0] = reached[1] = reached[2] = reached[3] = 0;    // TYPE_ENDLEVEL values reset after level completed //4player
+    for (i = 0; i < MAX_PLAYERS; i++) reached[i] = 0; // TYPE_ENDLEVEL values reset after level completed //4player
     showtimeover = 0;
     _pause = 0;
     endgame = 0;
@@ -31041,14 +31042,27 @@ void player_think()
     // check endlevel item
     if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ENDLEVEL, NULL)) && diff(self->position.y, other->position.y) <= 0.1)
     {
-        if(!reached[0] && !reached[1] && !reached[2] && !reached[3])
+        int no_reached_flag = 0, sum_reached = 0;;
+        int i;
+
+        for (i = 0; i < MAX_PLAYERS; i++)
+        {
+            if (!reached[i]) ++no_reached_flag;
+        }
+        no_reached_flag = (no_reached_flag >= MAX_PLAYERS) ? 1 : 0;
+
+        if(no_reached_flag)
         {
             addscore(pli, other->modeldata.score);
         }
         reached[pli] = 1;
 
-        if (!other->modeldata.subtype || (other->modeldata.subtype == SUBTYPE_BOTH &&
-                                          (reached[0] + reached[1] + reached[2] + reached[3]) >= (count_ents(TYPE_PLAYER))))
+        for (i = 0; i < MAX_PLAYERS; i++)
+        {
+            sum_reached += reached[i];
+        }
+
+        if (!other->modeldata.subtype || (other->modeldata.subtype == SUBTYPE_BOTH && sum_reached >= (count_ents(TYPE_PLAYER))))
         {
             level_completed = 1;
 
