@@ -534,14 +534,14 @@ class SDLGenericMotionListener_API12 implements View.OnGenericMotionListener {
                     case MotionEvent.ACTION_SCROLL:
                         x = event.getAxisValue(MotionEvent.AXIS_HSCROLL, 0);
                         y = event.getAxisValue(MotionEvent.AXIS_VSCROLL, 0);
-                        SDLActivity.onNativeMouse(0, action, x, y, false);
+                        SDLActivity.onNativeMouse(0, action, x, y);
                         return true;
 
                     case MotionEvent.ACTION_HOVER_MOVE:
                         x = event.getX(0);
                         y = event.getY(0);
 
-                        SDLActivity.onNativeMouse(0, action, x, y, false);
+                        SDLActivity.onNativeMouse(0, action, x, y);
                         return true;
 
                     default:
@@ -556,30 +556,5 @@ class SDLGenericMotionListener_API12 implements View.OnGenericMotionListener {
         // Event was not managed
         return false;
     }
-
-    public boolean supportsRelativeMouse() {
-        return false;
-    }
-
-    public boolean inRelativeMode() {
-        return false;
-    }
-
-    public boolean setRelativeMouseEnabled(boolean enabled) {
-        return false;
-    }
-
-    public void reclaimRelativeMouseModeIfNeeded()
-    {
-
-    }
-
-    public float getEventX(MotionEvent event) {
-        return event.getX(0);
-    }
-
-    public float getEventY(MotionEvent event) {
-        return event.getY(0);
-    }
-
 }
+

@@ -5,7 +5,7 @@
       android:versionName="1.4.4"
       android:installLocation="preferExternal">
 
-    <!-- Android 4.4.2 / 8.0.0 -->
+    <!-- Android 4.4.2 -->
     <uses-sdk android:minSdkVersion="19" android:targetSdkVersion="19" />
 
     <!-- OpenGL ES 2.0 -->

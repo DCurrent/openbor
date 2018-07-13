@@ -102,7 +102,6 @@ public class SDLActivity extends Activity {
     protected static SDLClipboardHandler mClipboardHandler;
     protected static Hashtable<Integer, Object> mCursors;
     protected static int mLastCursorID;
-    protected static SDLGenericMotionListener_API12 mMotionListener;
 
     //White Dragon: added statics
     protected static WakeLock wakeLock;
@@ -110,14 +109,6 @@ public class SDLActivity extends Activity {
 
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
-
-    protected static SDLGenericMotionListener_API12 getMotionListener() {
-        if (mMotionListener == null) {
-            mMotionListener = new SDLGenericMotionListener_API12();
-        }
-
-        return mMotionListener;
-    }
 
     /**
      * This method returns the name of the shared object with the application entry point
@@ -465,7 +456,6 @@ public class SDLActivity extends Activity {
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
            mNextNativeState = NativeState.RESUMED;
-           SDLActivity.getMotionListener().reclaimRelativeMouseModeIfNeeded();
            hideSystemUI(); //White Dragon: disable navigation bar
         } else {
            mNextNativeState = NativeState.PAUSED;
@@ -609,10 +599,7 @@ public class SDLActivity extends Activity {
     /* The native thread has finished */
     public static void handleNativeExit() {
         SDLActivity.mSDLThread = null;
-
-        // Make sure we currently have a singleton before we try to call it.
-        if (mSingleton != null)
-            mSingleton.finish();
+        mSingleton.finish();
     }
 
 
@@ -662,16 +649,18 @@ public class SDLActivity extends Activity {
                     // This version of Android doesn't support the immersive fullscreen mode
                     break;
                 }
+/* This needs more testing, per bug 4096 - Enabling fullscreen on Android causes the app to toggle fullscreen mode continuously in a loop
+ ***
                 if (context instanceof Activity) {
                     Window window = ((Activity) context).getWindow();
                     if (window != null) {
                         if ((msg.obj instanceof Integer) && (((Integer) msg.obj).intValue() != 0)) {
-                            int flags = View.SYSTEM_UI_FLAG_FULLSCREEN |
-                                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-                                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                            int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
                                         View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-					View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+                                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                        View.SYSTEM_UI_FLAG_FULLSCREEN |
+                                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
                             window.getDecorView().setSystemUiVisibility(flags);
                             window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
                         } else {
@@ -683,6 +672,7 @@ public class SDLActivity extends Activity {
                 } else {
                     Log.e(TAG, "error handling message, getContext() returned no Activity");
                 }
+***/
                 break;
             case COMMAND_TEXTEDIT_HIDE:
                 if (mTextEdit != null) {
@@ -738,11 +728,11 @@ public class SDLActivity extends Activity {
     public static native void nativePause();
     public static native void nativeResume();
     public static native void onNativeDropFile(String filename);
-    public static native void onNativeResize(int surfaceWidth, int surfaceHeight, int deviceWidth, int deviceHeight, int format, float rate);
+    public static native void onNativeResize(int x, int y, int format, float rate);
     public static native void onNativeKeyDown(int keycode);
     public static native void onNativeKeyUp(int keycode);
     public static native void onNativeKeyboardFocusLost();
-    public static native void onNativeMouse(int button, int action, float x, float y, boolean relative);
+    public static native void onNativeMouse(int button, int action, float x, float y);
     public static native void onNativeTouch(int touchDevId, int pointerFingerId,
                                             int action, float x,
                                             float y, float p);
@@ -821,6 +811,7 @@ public class SDLActivity extends Activity {
         }
     }
 
+
     /**
      * This method is called by SDL using JNI.
      */
@@ -837,22 +828,6 @@ public class SDLActivity extends Activity {
         InputMethodManager imm = (InputMethodManager) SDL.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         return imm.isAcceptingText();
 
-    }
-
-    /**
-     * This method is called by SDL using JNI.
-     */
-    public static boolean supportsRelativeMouse()
-    {
-        return SDLActivity.getMotionListener().supportsRelativeMouse();
-    }
-
-    /**
-     * This method is called by SDL using JNI.
-     */
-    public static boolean setRelativeMouseEnabled(boolean enabled)
-    {
-        return SDLActivity.getMotionListener().setRelativeMouseEnabled(enabled);
     }
 
     /**
@@ -878,13 +853,6 @@ public class SDLActivity extends Activity {
     public static boolean isAndroidTV() {
         UiModeManager uiModeManager = (UiModeManager) getContext().getSystemService(UI_MODE_SERVICE);
         return (uiModeManager.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION);
-    }
-
-    /**
-     * This method is called by SDL using JNI.
-     */
-    public static boolean isChromebook() {
-        return getContext().getPackageManager().hasSystemFeature("org.chromium.arc.device_management");
     }
 
     /**
@@ -919,12 +887,6 @@ public class SDLActivity extends Activity {
            Log.v("SDL", "exception " + e.toString());
         }
         return false;
-    }
-
-    // This method is called by SDLControllerManager's API 26 Generic Motion Handler.
-    public static View getContentView()
-    {
-        return mSingleton.mLayout;
     }
 
     static class ShowTextInputTask implements Runnable {
@@ -1458,9 +1420,9 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         mSensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
 
         if (Build.VERSION.SDK_INT >= 12) {
-            setOnGenericMotionListener(SDLActivity.getMotionListener());
+            setOnGenericMotionListener(new SDLGenericMotionListener_API12());
         }
-		
+
         // Some arbitrary defaults to avoid a potential division by zero
         mWidth = 1.0f;
         mHeight = 1.0f;
@@ -1556,23 +1518,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 
         mWidth = width;
         mHeight = height;
-		int nDeviceWidth = width;
-		int nDeviceHeight = height;
-		try
-		{
-			if ( android.os.Build.VERSION.SDK_INT >= 17 )
-			{
-				android.util.DisplayMetrics realMetrics = new android.util.DisplayMetrics();
-				mDisplay.getRealMetrics( realMetrics );
-				nDeviceWidth = realMetrics.widthPixels;
-				nDeviceHeight = realMetrics.heightPixels;
-			}
-		}
-		catch ( java.lang.Throwable throwable ) {}
-
-		Log.v("SDL", "Window size: " + width + "x" + height);
-		Log.v("SDL", "Device size: " + nDeviceWidth + "x" + nDeviceHeight);
-        SDLActivity.onNativeResize(width, height, nDeviceWidth, nDeviceHeight, sdlFormat, mDisplay.getRefreshRate());
+        SDLActivity.onNativeResize(width, height, sdlFormat, mDisplay.getRefreshRate());
+        Log.v("SDL", "Window size: " + width + "x" + height);
 
 
         boolean skip = false;
@@ -1775,14 +1722,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     mouseButton = 1;    // oh well.
                 }
             }
-
-            // We need to check if we're in relative mouse mode and get the axis offset rather than the x/y values
-            // if we are.  We'll leverage our existing mouse motion listener
-            SDLGenericMotionListener_API12 motionListener = SDLActivity.getMotionListener();
-            x = motionListener.getEventX(event);
-            y = motionListener.getEventY(event);
-
-            SDLActivity.onNativeMouse(mouseButton, action, x, y, motionListener.inRelativeMode());
+            SDLActivity.onNativeMouse(mouseButton, action, event.getX(0), event.getY(0));
         } else {
             switch(action) {
                 case MotionEvent.ACTION_MOVE:
