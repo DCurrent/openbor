@@ -107,6 +107,8 @@ extern int            *animdowns;
 extern int            *animbackpains;
 extern int            *animbackfalls;
 extern int            *animbackdies;
+extern int            *animbackrises;
+extern int            *animbackriseattacks;
 
 
 extern int            noshare;
