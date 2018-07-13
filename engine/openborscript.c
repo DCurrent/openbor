@@ -7301,6 +7301,7 @@ enum playerproperty_enum
     _pp_score,
     _pp_spawnhealth,
     _pp_spawnmp,
+    _pp_status,
     _pp_weapnum,
     _pp_weapon,
     _pp_the_end
@@ -7336,6 +7337,7 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
         "score",
         "spawnhealth",
         "spawnmp",
+        "status",
         "weapnum",
         "weapon",
     };
@@ -7628,6 +7630,19 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
 
         (*pretvar)->lVal = (LONG)(model_cache[cacheindex].model->maps_loaded + 1);
+        break;
+    }
+    case _pp_status:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)player[index].status;
+        break;
+    }
+    default:
+    {
+        //printf("Property name '%s' is not supported by function getplayerproperty.\n", propname);
+        *pretvar = NULL;
+        return E_FAIL;
         break;
     }
     //this property is not known
@@ -7963,6 +7978,18 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
                 return E_FAIL;
             }
             player[index].inputtime[ltemp] = (int)value->lVal;
+        }
+        else
+        {
+            goto cpperror;
+        }
+        break;
+    }
+    case _pp_status:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
+        {
+            player[index].status = (LONG)ltemp;
         }
         else
         {

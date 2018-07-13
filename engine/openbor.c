@@ -16513,14 +16513,14 @@ void updatestatus()
         oldtime = 99;
     }
 
-    if(dt < oldtime || oldtime == 0)
-    {
-        execute_timetick_script(dt, go_time);
-        oldtime = dt;
-    }
+    if (is_total_timeover) timetoshow = 0;
+    else timetoshow = dt;
 
-    if (is_total_timeover) timetoshow = dt;
-    else timetoshow = 0;
+    if(timetoshow < oldtime || oldtime == 0)
+    {
+        execute_timetick_script(timetoshow, go_time);
+        oldtime = timetoshow;
+    }
 
     if(dt > 0 && !is_total_timeover)
     {
