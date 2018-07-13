@@ -17617,11 +17617,33 @@ int common_idle_anim(entity *ent)
     }
     else if(validanim(ent, ANI_EDGE) && ent->edge)
     {
-        if (ent->edge & EDGE_RIGHT) ent_set_anim(ent, ANI_EDGE, 0);
+        if ( (ent->edge & EDGE_RIGHT) && (ent->edge & EDGE_LEFT) )
+        {
+            ent_set_anim(ent, ANI_EDGE, 0);
+        }
+        else if (ent->edge & EDGE_RIGHT)
+        {
+            if (ent->direction == DIRECTION_RIGHT)
+            {
+                ent_set_anim(ent, ANI_EDGE, 0);
+            }
+            else
+            {
+                if(validanim(ent, ANI_BACKEDGE)) ent_set_anim(ent, ANI_BACKEDGE, 0);
+                else ent_set_anim(ent, ANI_EDGE, 0);
+            }
+        }
         else if (ent->edge & EDGE_LEFT)
         {
-            if(validanim(ent, ANI_BACKEDGE)) ent_set_anim(ent, ANI_BACKEDGE, 0);
-            else ent_set_anim(ent, ANI_EDGE, 0);
+            if (ent->direction == DIRECTION_LEFT)
+            {
+                ent_set_anim(ent, ANI_EDGE, 0);
+            }
+            else
+            {
+                if(validanim(ent, ANI_BACKEDGE)) ent_set_anim(ent, ANI_BACKEDGE, 0);
+                else ent_set_anim(ent, ANI_EDGE, 0);
+            }
         }
         goto found;                                                                     //Return 1 and exit.
     }
