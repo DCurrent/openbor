@@ -675,6 +675,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPSCONSTA(ANI_BACKPAIN, animbackpains)
         ICMPSCONSTA(ANI_BACKFALL, animbackfalls)
         ICMPSCONSTA(ANI_BACKDIE, animbackdies)
+        ICMPSCONSTA(ANI_BACKRISE, animbackrises)
+        ICMPSCONSTA(ANI_BACKRISEATTACK, animbackriseattacks)
 
         // Animation properties.
         ICMPCONST(ANI_PROP_ANIMHITS)
