@@ -16535,7 +16535,6 @@ void updatestatus()
                 player[i].hasplayed = 1;
                 player[i].spawnhealth = model->health;
                 player[i].spawnmp = model->mp;
-                player[i].status = PLAYER_NO_STATUS;
 
                 spawnplayer(i);
 
@@ -33282,8 +33281,7 @@ int no_player_alive_to_join()
     for(i = 0; i < MAX_PLAYERS; i++)
     {
         if( ((!player[i].ent || player[i].lives <= 0 || (player[i].lives <= 1 && player[i].ent->energy_status.health_current <= 0)) &&
-            ((noshare && player[i].credits <= 0) || (!noshare && credits <= 0))) ||
-            (player[i].ent && (player[i].status & PLAYER_LOOSING))
+            ((noshare && player[i].credits <= 0) || (!noshare && credits <= 0)))
         )
         {
             ++no_alive_players;
@@ -33297,49 +33295,38 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_collision_attack attack;
+    s_collision_attack attack_timeover, attack_loose;
 
-    attack = emptyattack;
-    attack.attack_type = ATK_TIMEOVER;
-    attack.dropv.y = default_model_dropv.y;
-    attack.dropv.x = default_model_dropv.x;
-    attack.dropv.z = default_model_dropv.z;
+    attack_timeover = emptyattack;
+    attack_timeover.attack_type = ATK_TIMEOVER;
+    attack_timeover.dropv.y = default_model_dropv.y;
+    attack_timeover.dropv.x = default_model_dropv.x;
+    attack_timeover.dropv.z = default_model_dropv.z;
+
+    attack_loose = emptyattack;
+    attack_loose.attack_type = ATK_LOOSE;
 
     endgame = 1;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        entity *ent = player[i].ent;
-        if(ent && !validanim(ent, ANI_LOOSE))
+        entity* tmp = self;
+        self = player[i].ent;
+        if(self && !validanim(self, ANI_LOOSE))
         {
             endgame = 0;
-            attack.attack_force = ent->energy_status.health_current;
-            ent->takedamage(ent, &attack, 0);
+            attack_timeover.attack_force = self->energy_status.health_current;
+            self->takedamage(self, &attack_timeover, 0);
         }
+        else if(self)
+        {
+            endgame = 0;
+            attack_loose.attack_force = self->energy_status.health_current;
+            self->modeldata.falldie = 1;
+            self->takedamage(self, &attack_loose, 0);
+        }
+        self = tmp;
     }
 }
-
-/*int check_loose_pose()
-{
-    int use_loose_pose = 0;
-    int i;
-
-    //endgame = 0;
-    debug_printf("time: %d\n",_time);
-
-    for(i = 0; i < MAX_PLAYERS; i++)
-    {
-        entity *ent = player[i].ent;
-        if(ent)
-        {
-            endgame = 0;
-            if (validanim(ent, ANI_LOOSE)) use_loose_pose = 1;
-            break;
-        }
-    }
-    if (!use_loose_pose) return 0;
-
-    return 1;
-}*/
 
 void time_over()
 {
@@ -33349,7 +33336,6 @@ void time_over()
     }
     else if(!level_completed)
     {
-        //check_loose_pose();
         kill_all_players_by_timeover();
 
         if (!is_total_timeover)
@@ -36462,7 +36448,6 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 if(defaultselect)
                 {
                     player[i].lives = PLAYER_LIVES;
-                    player[i].status = PLAYER_NO_STATUS;
                     if(!creditscheat)
                     {
                         if(noshare)
@@ -36479,7 +36464,6 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                 {
                     player[i].lives = savelevel[current_set].pLives[i];
                     player[i].score = savelevel[current_set].pScores[i];
-                    player[i].status = PLAYER_NO_STATUS;
                     if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
                     else credits = savelevel[current_set].credits;
                 }
@@ -36535,7 +36519,6 @@ int selectplayer(int *players, char *filename, int useSavedGame)
             if(defaultselect)
             {
                 player[i].lives = PLAYER_LIVES;
-                player[i].status = PLAYER_NO_STATUS;
                 if(!creditscheat)
                 {
                     if(noshare)
@@ -36552,7 +36535,6 @@ int selectplayer(int *players, char *filename, int useSavedGame)
             {
                 player[i].lives = savelevel[current_set].pLives[i];
                 player[i].score = savelevel[current_set].pScores[i];
-                player[i].status = PLAYER_NO_STATUS;
                 if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
                 else credits = savelevel[current_set].credits;
             }
@@ -36591,7 +36573,6 @@ int selectplayer(int *players, char *filename, int useSavedGame)
                     }
 
                     player[i].lives = PLAYER_LIVES;
-                    player[i].status = PLAYER_NO_STATUS;
                     example[i] = spawnexample(i);
                     player[i].playkeys = 0;
 
@@ -36735,7 +36716,6 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
                 player[i].spawnhealth = save->pSpawnhealth[i];
                 player[i].spawnmp = save->pSpawnmp[i];
                 strncpy(player[i].name, save->pName[i], MAX_NAME_LEN);
-                player[i].status = PLAYER_NO_STATUS;
             }
             credits = save->credits;
         }

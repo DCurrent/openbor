@@ -236,14 +236,6 @@ typedef enum
     PLATFORM_HEIGHT
 } e_platform_props;
 
-// Player status.
-typedef enum
-{
-    PLAYER_NO_STATUS,
-    PLAYER_LOOSING,
-    PLAYER_WINNING
-} e_player_status;
-
 typedef enum
 {
     PORTING_ANDROID,

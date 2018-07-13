@@ -496,11 +496,6 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(DUCK_ACTIVE)
         ICMPCONST(DUCK_RISE)
 
-        // Player status.
-        ICMPCONST(PLAYER_NO_STATUS)
-        ICMPCONST(PLAYER_LOOSING)
-        ICMPCONST(PLAYER_WINNING)
-
         // Platform props.
         ICMPCONST(PLATFORM_X)
         ICMPCONST(PLATFORM_Z)
