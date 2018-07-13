@@ -18441,7 +18441,7 @@ void update_frame(entity *ent, unsigned int f)
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
             attack.attack_force = self->energy_status.health_current;
-            attack.attack_type = max_attack_types;
+            attack.attack_type = max_attack_types - 1;
             if(self->takedamage)
             {
                 self->takedamage(self, &attack, 0);
@@ -18995,7 +18995,7 @@ void kill_entity(entity *victim)
     if(victim->modeldata.summonkill)
     {
         attack = emptyattack;
-        attack.attack_type = max_attack_types;
+        attack.attack_type = max_attack_types - 1;
         attack.dropv.y = default_model_dropv.y;
         attack.dropv.x = default_model_dropv.x;
         attack.dropv.z = default_model_dropv.z;
@@ -23156,8 +23156,6 @@ int set_blockpain(entity *iBlkpain, int type, int reset)
     iBlkpain->ducking = DUCK_INACTIVE;
     ent_set_anim(iBlkpain, animblkpains[type], reset);
     return 1;
-
-    return 0;
 }
 
 int reset_backpain(entity *ent)
@@ -32038,7 +32036,7 @@ void kill_all_enemies()
 
     attack = emptyattack;
 	attack.attack_type = ATK_NORMAL;
-    //attack.attack_type = max_attack_types;
+    //attack.attack_type = max_attack_types - 1;
     attack.dropv.y = default_model_dropv.y;
     attack.dropv.x = default_model_dropv.x;
     attack.dropv.z = default_model_dropv.z;

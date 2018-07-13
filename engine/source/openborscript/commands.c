@@ -308,7 +308,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_INHOLESCRIPT, "inholescript");
     LIST_ADD(CMD_MODEL_INSTANTITEMDEATH, "instantitemdeath");
     LIST_ADD(CMD_MODEL_ITEMBOX, "itembox");
-    LIST_ADD(CMD_MODEL_LOOSE, "loose");
     LIST_ADD(CMD_MODEL_JUGGLECOST, "jugglecost");
     LIST_ADD(CMD_MODEL_JUGGLEPOINTS, "jugglepoints");
     LIST_ADD(CMD_MODEL_JUMPFRAME, "jumpframe");
@@ -326,6 +325,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_LIFESPAN, "lifespan");
     LIST_ADD(CMD_MODEL_LOAD, "load");
     LIST_ADD(CMD_MODEL_LOOP, "loop");
+    LIST_ADD(CMD_MODEL_LOOSE, "loose");
     LIST_ADD(CMD_MODEL_MAKEINV, "makeinv");
     LIST_ADD(CMD_MODEL_MODELFLAG, "modelflag");
     LIST_ADD(CMD_MODEL_MOVE, "move");
