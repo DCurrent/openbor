@@ -1981,6 +1981,7 @@ enum entityproperty_enum
     _ep_dropframe,
     _ep_edelay,
     _ep_edge,
+    _ep_edgerange,
     _ep_energycost,
     _ep_escapecount,
     _ep_escapehits,
@@ -2180,6 +2181,7 @@ static const char *eplist[] =
     "dropframe",
     "edelay",
     "edge",
+    "edgerange",
     "energycost",
     "escapecount",
     "escapehits",
@@ -2382,6 +2384,19 @@ static const char *eplist_aiflag[] =
     "turning",
     "walking",
     "walkmode",
+};
+
+enum edgerange_enum
+{
+    _ep_edgerange_x,
+    _ep_edgerange_z,
+    _ep_edgerange_the_end,
+};
+
+static const char *eplist_edgerange[] =
+{
+    "x",
+    "z",
 };
 
 // ===== changedrawmethod ======
@@ -3024,7 +3039,13 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
-
+    // map subproperties of edgerange property
+    case _ep_edgerange:
+    {
+        MAPSTRINGS(varlist[2], eplist_edgerange, _ep_edgerange_the_end,
+                   _is_not_a_known_subproperty_of_, eps);
+        break;
+    }
     // map subproperties of defense property
     case _ep_defense:
     {
@@ -3855,7 +3876,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         case _ep_edelay_factor:
         {
-            (*pretvar)->dblVal = (float)ent->modeldata.edelay.factor;
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.edelay.factor;
             break;
         }
         case _ep_edelay_cap_min:
@@ -3888,6 +3910,35 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->edge;
+        break;
+    }
+    case _ep_edgerange:
+    {
+        if(paramCount < 3)
+        {
+            break;
+        }
+        arg = varlist[2];
+        if(arg->vt != VT_INTEGER)
+        {
+            printf("You must give a string name for edgerange.\n");
+            return E_FAIL;
+        }
+        ltemp = arg->lVal;
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        switch(ltemp)
+        {
+        case _ep_edgerange_x:
+            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.edgerange.x;
+            break;
+        case _ep_edgerange_z:
+            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.edgerange.z;
+            break;
+        default:
+            ScriptVariant_Clear(*pretvar);
+            return E_FAIL;
+        }
         break;
     }
     case _ep_energycost:
@@ -5885,6 +5936,38 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->edge = (LONG)ltemp;
+        }
+        break;
+    }
+    case _ep_edgerange:
+    {
+        if(varlist[2]->vt != VT_INTEGER)
+        {
+            if(varlist[2]->vt != VT_STR)
+            {
+                printf("You must give a string value for edgerange name.\n");
+            }
+            goto changeentityproperty_error;
+        }
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+        {
+            switch(varlist[2]->lVal)
+            {
+            case _ep_edgerange_x:
+                ent->modeldata.edgerange.x = (DOUBLE)dbltemp;
+                break;
+            case _ep_edgerange_z:
+                ent->modeldata.edgerange.z = (DOUBLE)dbltemp;
+                break;
+            default:
+                printf("Unknown edgerange.\n");
+                goto changeentityproperty_error;
+            }
         }
         break;
     }

@@ -255,6 +255,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_DROPV, "dropv");
     LIST_ADD(CMD_MODEL_DUST, "dust");
     LIST_ADD(CMD_MODEL_EDELAY, "edelay");
+    LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
     LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");

@@ -1485,6 +1485,13 @@ typedef struct
     int                     base;
 } s_move;
 
+// distance x and z for edge animation
+typedef struct
+{
+    float x;
+    float z;
+} s_edge_range;
+
 typedef struct
 {
     /*
@@ -2155,6 +2162,7 @@ typedef struct
     float attackthrottle; // how often the enemy refuse to attack
     float attackthrottletime; // how long does the throttle status last
     s_stealth stealth; // Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
+    s_edge_range edgerange; // Edge range
 
     //---------------new A.I. switches-----------
     int hostile; // specify hostile types
@@ -2941,7 +2949,7 @@ void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 bool check_jumpframe(entity *ent, unsigned int frame);
 bool check_landframe(entity *ent);
-int check_edge(entity *ent, float t_edge);
+int check_edge(entity *ent);
 void update_ents();
 entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
 void display_ents();
