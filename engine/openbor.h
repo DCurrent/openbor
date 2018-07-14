@@ -2835,8 +2835,6 @@ void drawlifebar(int x, int y, int h, int maxh);
 void drawmpbar(int x, int y, int m, int maxm);
 void update_loading(s_loadingbar *s,  int value, int max);
 void spawnplayer(int);
-void drop_all_enemies();
-void kill_all_enemies();
 unsigned getFPS(void);
 unsigned char *model_get_colourmap(s_model *model, unsigned which);
 void ent_set_colourmap(entity *ent, unsigned int which);
