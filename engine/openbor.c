@@ -29979,7 +29979,7 @@ void common_preduck()
 }
 
 
-void common_postduck()
+void common_idle()
 {
     if(self->animating)
     {
@@ -30014,7 +30014,7 @@ void tryduckrise(entity *ent)
     ent->running = 0;
     if(validanim(ent, ANI_DUCKRISE))
     {
-        ent->takeaction = common_postduck;
+        ent->takeaction = common_idle;
         ent->velocity.x = ent->velocity.z = 0;
         ent->ducking = DUCK_RISE;
         ent->idling = IDLING_INACTIVE;
@@ -36136,7 +36136,46 @@ void savelevelinfo()
     for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
 }
 
+void tryvictorypose(entity *ent)
+{
+    if( ent &&
+       !ent->inpain &&
+       !ent->falling &&
+       !ent->dead &&
+       !ent->rising &&
+       (ent->idling & IDLING_ACTIVE) &&
+       ent->position.y <= ent->base )
+    {
+        ent->takeaction = NULL;
+        ent->velocity.x = ent->velocity.z = 0;
+        ent->idling = IDLING_INACTIVE;
+        ent_set_anim(ent, ANI_VICTORY, 0);
+    }
+}
 
+static void check_victory_pose()
+{
+    if ( (endgame & 1) && level_completed_defeating_boss )
+    {
+        int i;
+        for(i = 0; i < MAX_PLAYERS; i++)
+        {
+            entity* tmp = self;
+            self = player[i].ent;
+            if(self && validanim(self, ANI_VICTORY) && self->animnum != ANI_VICTORY)
+            {
+                tryvictorypose(self);
+                endgame = 0;
+            }
+            else if (self && self->animnum == ANI_VICTORY && self->animating)
+            {
+                endgame = 0;
+            }
+
+            self = tmp;
+        }
+    }
+}
 
 int playlevel(char *filename)
 {
@@ -36226,6 +36265,7 @@ int playlevel(char *filename)
         if(level_completed)
         {
             endgame |= (!findent(TYPE_ENEMY) || level->type || findent(TYPE_ENDLEVEL));    // Ends when all enemies die or a bonus level
+            check_victory_pose();
         }
     }
     //execute a script when level finished
