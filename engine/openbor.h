@@ -1485,6 +1485,13 @@ typedef struct
     int                     base;
 } s_move;
 
+// boomerang props
+typedef struct
+{
+    float acceleration;
+    float hdistance;
+} s_boomerang_props;
+
 // distance x and z for edge animation
 typedef struct
 {
@@ -2103,8 +2110,7 @@ typedef struct
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
     int boomerang;
-    float boomerang_acc;
-    float boomerang_distx;
+    s_boomerang_props boomerang_prop;
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.

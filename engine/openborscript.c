@@ -2386,6 +2386,19 @@ static const char *eplist_aiflag[] =
     "walkmode",
 };
 
+enum boomerang_enum
+{
+    _ep_boomerang_acceleration,
+    _ep_boomerang_hdistance,
+    _ep_boomerang_the_end,
+};
+
+static const char *eplist_boomerang[] =
+{
+    "acceleration",
+    "hdistance",
+};
+
 enum edgerange_enum
 {
     _ep_edgerange_x,
@@ -3039,6 +3052,13 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
+    // map subproperties of boomerang property
+    case _ep_boomerang:
+    {
+        MAPSTRINGS(varlist[2], eplist_boomerang, _ep_boomerang_the_end,
+                   _is_not_a_known_subproperty_of_, eps);
+        break;
+    }
     // map subproperties of edgerange property
     case _ep_edgerange:
     {
@@ -3536,26 +3556,30 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_boomerang:
     {
-        if (paramCount < 3)
+        if(paramCount < 3)
         {
-            printf("You must specify a flag value for boomerang property (0 = acceleration, 1 = distance_x).\n");
-            *pretvar = NULL;
+            break;
+        }
+        arg = varlist[2];
+        if(arg->vt != VT_INTEGER)
+        {
+            printf("You must give a string name for boomerang.\n");
             return E_FAIL;
         }
-        else
+        ltemp = arg->lVal;
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        switch(ltemp)
         {
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            if(FAILED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-            {
-                printf("You must specify a flag value for boomerang property (0 = acceleration, 1 = distance_x).\n");
-                *pretvar = NULL;
-                return E_FAIL;
-            }
-            else
-            {
-                if (ltemp == 0) (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_acc;
-                else (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_distx;
-            }
+        case _ep_boomerang_acceleration:
+            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_prop.acceleration;
+            break;
+        case _ep_boomerang_hdistance:
+            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_prop.hdistance;
+            break;
+        default:
+            ScriptVariant_Clear(*pretvar);
+            return E_FAIL;
         }
         break;
     }
@@ -5670,27 +5694,32 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_boomerang:
     {
-        if (paramCount < 4)
+        if(varlist[2]->vt != VT_INTEGER)
         {
-            printf("You must specify 2 float values to change boomerang property (acceleration anddistance_x).\n");
-            *pretvar = NULL;
-            return E_FAIL;
-        }
-        else
-        {
-            DOUBLE dbltemp2;
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            if( FAILED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)) || FAILED(ScriptVariant_DecimalValue(varlist[3], &dbltemp2)) )
+            if(varlist[2]->vt != VT_STR)
             {
-                printf("You must specify 2 float values to change boomerang property (acceleration anddistance_x).\n");
-                *pretvar = NULL;
-                return E_FAIL;
+                printf("You must give a string value for boomerang name.\n");
             }
-            else
+            goto changeentityproperty_error;
+        }
+        if(paramCount < 4)
+        {
+            break;
+        }
+
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+        {
+            switch(varlist[2]->lVal)
             {
-                ent->modeldata.boomerang_acc     = (DOUBLE)dbltemp;
-                ent->modeldata.boomerang_distx   = (DOUBLE)dbltemp2;
+            case _ep_boomerang_acceleration:
+                ent->modeldata.boomerang_prop.acceleration = (DOUBLE)dbltemp;
+                break;
+            case _ep_boomerang_hdistance:
+                ent->modeldata.boomerang_prop.hdistance = (DOUBLE)dbltemp;
+                break;
+            default:
+                printf("Unknown boomerang.\n");
+                goto changeentityproperty_error;
             }
         }
         break;

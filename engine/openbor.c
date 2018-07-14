@@ -9134,6 +9134,8 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
+    newchar->boomerang_prop.acceleration     = 0;
+    newchar->boomerang_prop.hdistance        = 0;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -9148,7 +9150,7 @@ s_model *init_model(int cacheindex, int unload)
     }
     else
     {
-        newchar->mprate                = 2;
+        newchar->mprate                 = 2;
     }
     newchar->chargerate = newchar->guardrate = 2;
     newchar->risetime.rise              = -1;
@@ -9713,8 +9715,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_BOOMERANGVALUES:
-                newchar->boomerang_acc = GET_FLOAT_ARG(1);
-                newchar->boomerang_distx = GET_FLOAT_ARG(2);
+                newchar->boomerang_prop.acceleration = GET_FLOAT_ARG(1);
+                newchar->boomerang_prop.hdistance = GET_FLOAT_ARG(2);
                 break;
             case CMD_MODEL_BOMB:
             case CMD_MODEL_PLAYBOMB:
@@ -28446,9 +28448,9 @@ int boomerang_move()
         else owner = self->parent;
 
         // Acceleration.
-        if(self->modeldata.boomerang_acc != 0)
+        if(self->modeldata.boomerang_prop.acceleration != 0)
         {
-            acceleration = self->modeldata.boomerang_acc;
+            acceleration = self->modeldata.boomerang_prop.acceleration;
         }
         else
         {
@@ -28456,9 +28458,9 @@ int boomerang_move()
         }
 
         // Maximum X distance from owner.
-        if(self->modeldata.boomerang_distx > 0)
+        if(self->modeldata.boomerang_prop.hdistance > 0)
         {
-            distance_x_max = self->modeldata.boomerang_distx;
+            distance_x_max = self->modeldata.boomerang_prop.hdistance;
         }
         else
         {
