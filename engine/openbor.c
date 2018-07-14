@@ -342,7 +342,7 @@ int                 falls[MAX_ATKS] =
     ANI_FALL,  ANI_BURN,  ANI_FALL,   ANI_SHOCK,
     ANI_FALL,  ANI_FALL5, ANI_FALL6,  ANI_FALL7,
     ANI_FALL8, ANI_FALL9, ANI_FALL10, ANI_FALL,
-    ANI_FALL,  ANI_FALL,  ANI_FALL,   ANI_FALLLOOSE,
+    ANI_FALL,  ANI_FALL,  ANI_FALL,   ANI_FALLLOSE,
     ANI_FALL
 };
 
@@ -352,7 +352,7 @@ int                 backfalls[MAX_ATKS] =
     ANI_BACKFALL,  ANI_BACKBURN,  ANI_BACKFALL,   ANI_BACKSHOCK,
     ANI_BACKFALL,  ANI_BACKFALL5, ANI_BACKFALL6,  ANI_BACKFALL7,
     ANI_BACKFALL8, ANI_BACKFALL9, ANI_BACKFALL10, ANI_BACKFALL,
-    ANI_BACKFALL,  ANI_BACKFALL,  ANI_BACKFALL,   ANI_FALLLOOSE,
+    ANI_BACKFALL,  ANI_BACKFALL,  ANI_BACKFALL,   ANI_FALLLOSE,
     ANI_BACKFALL
 };
 
@@ -422,7 +422,7 @@ int                 deaths[MAX_ATKS] =
     ANI_DIE,   ANI_BURNDIE,  ANI_DIE,   ANI_SHOCKDIE,
     ANI_DIE,   ANI_DIE5,     ANI_DIE6,  ANI_DIE7,
     ANI_DIE8,  ANI_DIE9,     ANI_DIE10, ANI_DIE,
-    ANI_DIE,   ANI_DIE,      ANI_DIE,   ANI_LOOSE,
+    ANI_DIE,   ANI_DIE,      ANI_DIE,   ANI_LOSE,
     ANI_DIE
 };
 
@@ -432,7 +432,7 @@ int                 backdeaths[MAX_ATKS] =
     ANI_BACKDIE,   ANI_BACKBURNDIE,  ANI_BACKDIE,   ANI_BACKSHOCKDIE,
     ANI_BACKDIE,   ANI_BACKDIE5,     ANI_BACKDIE6,  ANI_BACKDIE7,
     ANI_BACKDIE8,  ANI_BACKDIE9,     ANI_BACKDIE10, ANI_BACKDIE,
-    ANI_BACKDIE,   ANI_BACKDIE,      ANI_BACKDIE,   ANI_LOOSE,
+    ANI_BACKDIE,   ANI_BACKDIE,      ANI_BACKDIE,   ANI_LOSE,
     ANI_BACKDIE
 };
 
@@ -6836,8 +6836,8 @@ static int translate_attack_type(char *command)
     case CMD_MODEL_ITEMBOX:
         atk_id  = ATK_ITEM;
         break;
-    case CMD_MODEL_LOOSE:
-        atk_id  = ATK_LOOSE;
+    case CMD_MODEL_LOSE:
+        atk_id  = ATK_LOSE;
         break;
     case CMD_MODEL_COLLISION_ETC:
         tempInt = atoi(command + 6); // White Dragon: 6 is "ATTACK" string length
@@ -8012,9 +8012,9 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_VICTORY;
     }
-    else if(stricmp(value, "loose") == 0)
+    else if(stricmp(value, "lose") == 0)
     {
-        ani_id = ANI_LOOSE;
+        ani_id = ANI_LOSE;
     }
 
     return ani_id;
@@ -9929,7 +9929,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                 tempdef(else if, LAND)
                                                                                     tempdef(else if, PIT)
                                                                                         tempdef(else if, LIFESPAN)
-                                                                                            tempdef(else if, LOOSE)
+                                                                                            tempdef(else if, LOSE)
                                                                                                 tempdef(else if, TIMEOVER)
                                                                                                     else if(starts_with(value, "normal"))
                                                                                                     {
@@ -9943,7 +9943,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                                             /*
                                                                                                             Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
                                                                                                             */
-                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOOSE)
+                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOSE)
                                                                                                             {
                                                                                                                 newchar->defense[i] = defense;
                                                                                                             }
@@ -9980,7 +9980,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                 tempoff(else if,    LAND,		offense_factors)
                                                                                     tempoff(else if,    PIT,		offense_factors)
                                                                                         tempoff(else if,    LIFESPAN,   offense_factors)
-                                                                                            tempoff(else if,    LOOSE,   offense_factors)
+                                                                                            tempoff(else if,    LOSE,   offense_factors)
                                                                                                 tempoff(else if,    TIMEOVER,   offense_factors)
                                                                                                     else if(starts_with(value, "normal"))
                                                                                                     {
@@ -9993,7 +9993,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                                                                                         for(i = 0; i < max_attack_types; i++)
                                                                                                         {
                                                                                                             //offense hardly need those, just in case
-                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOOSE)
+                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOSE)
                                                                                                             {
                                                                                                                 newchar->offense_factors[i] = tempFloat;
                                                                                                             }
@@ -11534,7 +11534,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_STEAL:
             case CMD_MODEL_FREEZE:
             case CMD_MODEL_ITEMBOX:
-            case CMD_MODEL_LOOSE:
+            case CMD_MODEL_LOSE:
             case CMD_MODEL_COLLISION_ETC:
                 abox.x = GET_INT_ARG(1);
                 abox.y = GET_INT_ARG(2);
@@ -11605,8 +11605,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 case CMD_MODEL_ITEMBOX:
                     attack.attack_type  = ATK_ITEM;
                     break;
-                case CMD_MODEL_LOOSE:
-                    attack.attack_type  = ATK_LOOSE;
+                case CMD_MODEL_LOSE:
+                    attack.attack_type  = ATK_LOSE;
                     attack.attack_drop = 0;
                     break;
                 default:
@@ -33313,7 +33313,7 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_collision_attack attack_timeover, attack_loose;
+    s_collision_attack attack_timeover, attack_lose;
 
     attack_timeover = emptyattack;
     attack_timeover.attack_type = ATK_TIMEOVER;
@@ -33321,15 +33321,15 @@ void kill_all_players_by_timeover()
     attack_timeover.dropv.x = default_model_dropv.x;
     attack_timeover.dropv.z = default_model_dropv.z;
 
-    attack_loose = emptyattack;
-    attack_loose.attack_type = ATK_LOOSE;
+    attack_lose = emptyattack;
+    attack_lose.attack_type = ATK_LOSE;
 
     endgame = 1;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
         entity* tmp = self;
         self = player[i].ent;
-        if(self && !validanim(self, ANI_LOOSE))
+        if(self && !validanim(self, ANI_LOSE))
         {
             endgame = 0;
             attack_timeover.attack_force = self->energy_status.health_current;
@@ -33339,19 +33339,19 @@ void kill_all_players_by_timeover()
         {
             endgame = 0;
 
-            attack_loose.attack_force = self->energy_status.health_current;
-            if (inair(self) && validanim(self, ANI_FALLLOOSE))
+            attack_lose.attack_force = self->energy_status.health_current;
+            if (inair(self) && validanim(self, ANI_FALLLOSE))
             {
-                attack_loose.dropv.y = default_model_dropv.y;
-                attack_loose.dropv.x = default_model_dropv.x;
-                attack_loose.dropv.z = default_model_dropv.z;
+                attack_lose.dropv.y = default_model_dropv.y;
+                attack_lose.dropv.x = default_model_dropv.x;
+                attack_lose.dropv.z = default_model_dropv.z;
                 self->modeldata.falldie = 2;
             }
             else
             {
                 self->modeldata.falldie = 1;
             }
-            self->takedamage(self, &attack_loose, 0);
+            self->takedamage(self, &attack_lose, 0);
         }
         self = tmp;
     }

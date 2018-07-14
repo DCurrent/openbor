@@ -472,7 +472,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_RUNSLIDE)
         ICMPCONST(ANI_BLOCKPAIN)
         ICMPCONST(ANI_DUCKATTACK)
-        ICMPCONST(ATK_LOOSE)
+        ICMPCONST(ATK_LOSE)
         ICMPCONST(MAX_ANIS)
 
         // Attacking state.
@@ -671,8 +671,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_DUCKING)
         ICMPCONST(ANI_DUCKRISE)
         ICMPCONST(ANI_VICTORY)
-        ICMPCONST(ANI_FALLLOOSE)
-        ICMPCONST(ANI_LOOSE)
+        ICMPCONST(ANI_FALLLOSE)
+        ICMPCONST(ANI_LOSE)
 
 
         // for the extra animation ids

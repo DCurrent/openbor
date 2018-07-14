@@ -713,8 +713,8 @@ typedef enum //Animations
     ANI_DUCKING,
     ANI_DUCKRISE,
     ANI_VICTORY,
-    ANI_FALLLOOSE,
-    ANI_LOOSE,
+    ANI_FALLLOSE,
+    ANI_LOSE,
     MAX_ANIS                // Maximum # of animations. This must always be last.
 } e_animations;
 
@@ -918,7 +918,7 @@ typedef enum
     ATK_LAND,
     ATK_PIT,
     ATK_LIFESPAN,
-    ATK_LOOSE,
+    ATK_LOSE,
     ATK_TIMEOVER,
     MAX_ATKS,                       //Default max attack types (must be below all attack types in enum to get correct value)
     STA_ATKS        = (MAX_ATKS-10)
