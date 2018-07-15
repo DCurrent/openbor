@@ -219,6 +219,7 @@ HRESULT openbor_checkplatformabove(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_checkplatformbetween(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_checkbasemap(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_checkbasemapindex(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_checkbase(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_generatebasemap(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

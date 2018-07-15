@@ -112,6 +112,7 @@ movement restirctions are here!
 #define		GRAB_STALL			(GAME_SPEED * 8 / 10)
 #define		T_WALKOFF 			2.0
 #define		T_MIN_BASEMAP 		-1000
+#define     T_MAX_CHECK_ALTITUDE 9999999
 #define		DEFAULT_ATK_DROPV_Y 3.0
 #define		DEFAULT_ATK_DROPV_X 1.2
 #define		DEFAULT_ATK_DROPV_Z 0
@@ -2925,6 +2926,7 @@ int checkwall_below(float x, float z, float a);
 int checkwall_index(float x, float z);
 float check_basemap(int x, int z);
 int check_basemap_index(int x, int z);
+float checkbase(float x, float z, float y, entity *ent);
 entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);

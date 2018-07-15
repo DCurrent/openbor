@@ -501,6 +501,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "checkbasemapindex";
     }
+    else if (functionRef == ((void *)openbor_checkbase))
+    {
+        return "checkbase";
+    }
     else if (functionRef == ((void *)openbor_generatebasemap))
     {
         return "generatebasemap";
@@ -1249,7 +1253,9 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_checkbasemap, "checkbasemap");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_checkbasemap, "checkbasemapindex");
+                     (void *)openbor_checkbasemapindex, "checkbasemapindex");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_checkbase, "checkbase");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_generatebasemap, "generatebasemap");
     List_InsertAfter(&theFunctionList,

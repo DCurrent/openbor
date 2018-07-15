@@ -18135,7 +18135,7 @@ void ent_default_init(entity *e)
     {
         e->base = other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
     }
-    else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->position.x, e->position.z, 9999999)) >= 0)
+    else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->position.x, e->position.z, T_MAX_CHECK_ALTITUDE)) >= 0)
     {
         if(level->walls[wall].height > MAX_WALL_HEIGHT)
         {
@@ -19730,7 +19730,7 @@ entity *check_platform_above_entity(entity *e)
         heightvar = e->modeldata.size.y;
     }
 
-    mina = 9999999;
+    mina = T_MAX_CHECK_ALTITUDE;
     ind = -1;
     for(i = 0; i < ent_max; i++)
     {
@@ -19774,6 +19774,36 @@ entity *check_platform_below_entity(entity *e)
         }
     }
     return (ind >= 0) ? ent_list[ind] : NULL;
+}
+
+float checkbase(float x, float z, float y, entity *ent)
+{
+    float maxbase = -1.0f, base = -1.0f;
+    int index = -1;
+    entity *platform = NULL;
+
+    base = (checkhole(self->position.x, self->position.z)) ? -1.0f : 0.0f;
+    if (base > maxbase) maxbase = base;
+
+    base = check_basemap(self->position.x, self->position.z);
+    if (base > maxbase) maxbase = base;
+
+    base = -1.0f;
+    if((index = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0)
+    {
+        base = level->walls[index].height;
+        if (base > maxbase) maxbase = base;
+    }
+
+    base = -1.0f;
+    platform = check_platform_below(x, z, y, ent);
+    if (platform != NULL)
+    {
+        base = get_platform_base(platform);
+        if (base > maxbase) maxbase = base;
+    }
+
+    return maxbase;
 }
 
 // find the 1st platform entity here
@@ -19924,7 +19954,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, 999999)) >= 0 && level->walls[wall].height > ent->position.y)
+    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > ent->position.y)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
@@ -20715,7 +20745,7 @@ void do_attack(entity *e)
             int w;
             entity *hito = find_ent_here(ent, ent->position.x+(i*threshold), ent->position.z+(j*threshold), (TYPE_OBSTACLE | TYPE_TRAP), NULL);
             entity *hitp = check_platform_between(ent->position.x+(i*threshold), ent->position.z+(j*threshold), ent->position.y, ent->position.y + heightvar, ent);
-            int     hitw = (int)( (w = checkwall_below(ent->position.x+(i*threshold), ent->position.z+(j*threshold), 999999)) >= 0 && level->walls[w].height > ent->position.y );
+            int     hitw = (int)( (w = checkwall_below(ent->position.x+(i*threshold), ent->position.z+(j*threshold), T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[w].height > ent->position.y );
 
             if ( hito || hitp || hitw ) return 1;
         }
@@ -21299,7 +21329,7 @@ void adjust_base(entity *e, entity **pla)
         //find a wall below us
         if(self->modeldata.subject_to_wall > 0)
         {
-            wall = checkwall_below(self->position.x, self->position.z, 9999999);
+            wall = checkwall_below(self->position.x, self->position.z, T_MAX_CHECK_ALTITUDE);
         }
         else
         {
@@ -26299,13 +26329,13 @@ int common_trymove(float xdir, float zdir)
     {
         int hit = 0;
 
-        if(xdir && (wall = checkwall_below(x, self->position.z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
+        if(xdir && (wall = checkwall_below(x, self->position.z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > self->position.y)
         {
             xdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
             execute_onblockw_script(self, &level->walls[wall], PLANE_X, wall);
         }
-        if(zdir && (wall = checkwall_below(self->position.x, z, 999999)) >= 0 && level->walls[wall].height > self->position.y)
+        if(zdir && (wall = checkwall_below(self->position.x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
@@ -26613,7 +26643,7 @@ int common_try_jump()
             zdir = self->position.z;
         }
 
-        if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
+        if( (wall = checkwall_below(xdir, zdir, T_MAX_CHECK_ALTITUDE)) >= 0 &&
                 level->walls[wall].height <= self->position.y + rmax &&
                 !inair(self) && self->position.y < level->walls[wall].height  )
         {
@@ -26659,7 +26689,7 @@ int common_try_jump()
             zdir = self->position.z;
         }
 
-        if( (wall = checkwall_below(xdir, zdir, 999999)) >= 0 &&
+        if( (wall = checkwall_below(xdir, zdir, T_MAX_CHECK_ALTITUDE)) >= 0 &&
                 level->walls[wall].height <= self->position.y + rmax &&
                 !inair(self) && self->position.y < level->walls[wall].height  )
         {

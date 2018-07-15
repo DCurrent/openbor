@@ -1064,7 +1064,7 @@ changesystemvariant_error:
 HRESULT openbor_drawstring(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int i;
-    char buf[256];
+    char buf[MAX_BUFFER_LEN];
     LONG value[4];
     *pretvar = NULL;
 
@@ -1106,7 +1106,7 @@ HRESULT openbor_drawstringtoscreen(ScriptVariant **varlist , ScriptVariant **pre
 {
     int i;
     s_screen *scr;
-    char buf[256];
+    char buf[MAX_BUFFER_LEN];
     LONG value[3];
     *pretvar = NULL;
 
@@ -1146,7 +1146,7 @@ drawstring_error:
 //log(string);
 HRESULT openbor_log(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    char buf[256];
+    char buf[MAX_BUFFER_LEN];
     *pretvar = NULL;
 
     if(paramCount != 1)
@@ -8188,13 +8188,67 @@ HRESULT openbor_checkholeindex(ScriptVariant **varlist , ScriptVariant **pretvar
     return S_OK;
 }
 
-//checkwall_index(x,z), return wall height, or 0 | accept checkwall_index(x,z,y) too
+//checkbase(x,z,y,entity), return base of terrain. -1 if there is a wall and no platform. entity param is optional.
+HRESULT openbor_checkbase(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    ScriptVariant *arg = NULL;
+    DOUBLE x, z, y;
+    entity *ent = NULL;
+    float base = -1.0f;
+
+    if(paramCount < 3)
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    (*pretvar)->dblVal = (DOUBLE)base;
+
+    arg = varlist[0];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &x)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[1];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &z)))
+    {
+        return S_OK;
+    }
+
+    arg = varlist[2];
+    if(FAILED(ScriptVariant_DecimalValue(arg, &y)))
+    {
+        return S_OK;
+    }
+
+    if (paramCount > 3)
+    {
+        arg = varlist[3];
+        /*if(arg->vt != VT_PTR && arg->vt != VT_EMPTY)
+        {
+            printf("Function checkbase must have a valid entity handle or NULL().\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }*/
+        ent = (entity *)arg->ptrVal; //retrieve the entity
+    }
+
+    if((base = checkbase((float)x, (float)z, (float)y, ent)) >= 0)
+    {
+        (*pretvar)->dblVal = (DOUBLE)base;
+    }
+    return S_OK;
+}
+
+//checkwall(x,z), return wall height, or 0 | accept checkwall_index(x,z,y) too
 HRESULT openbor_checkwall(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     ScriptVariant *arg = NULL;
     DOUBLE x, z, y;
     int wall;
-    float h = 100000;
+    float h = T_MAX_CHECK_ALTITUDE;
 
     if(paramCount < 2)
     {
@@ -8518,8 +8572,8 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     int fsindex;
 
     FILE *handle = NULL;
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
     long size;
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -8941,8 +8995,8 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     ScriptVariant *arg = NULL;
     char *bytearg = NULL, *patharg = NULL;
     FILE *handle = NULL;
-    char path[256] = {""};
-    char tmpname[256] = {""};
+    char path[MAX_BUFFER_LEN] = {""};
+    char tmpname[MAX_BUFFER_LEN] = {""};
 
     *pretvar = NULL;
 
