@@ -41,7 +41,7 @@ char rootDir[MAX_FILENAME_LEN]; // note: this one ends with a slash
  */
 char* getFullPath(char *relPath)
 {
-	static char filename[256];
+	static char filename[MAX_FILENAME_LEN];
 	strcpy(filename, rootDir);
 	strcat(filename, relPath);
 	return filename;
@@ -54,7 +54,7 @@ void borExit(int reset)
 	else if(reset == WII_RESET) SYS_ResetSystem(SYS_HOTRESET, 0, 0);
 	else exit(reset);
 #else
-	SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0); //exit(reset);
+    exit(reset); //SYS_ResetSystem(SYS_RETURNTOMENU, 0, 0);
 #endif
 }
 
