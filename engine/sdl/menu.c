@@ -57,8 +57,6 @@ static s_screen* logscreen;
 #define LOG_SCREEN_TOP 2
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
-#define MAX_MODS_NUM 50
-
 static int bpp = 32;
 static int isWide = 0;
 static int isFull = 0;
@@ -268,11 +266,14 @@ static s_screen *getPreview(char *filename)
 	getBasePath(packfile, filename, 1);
 	// Create & Load & Scale Image
 	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL;
-	scale = allocscreen(160, 120, PIXEL_x8);
+	if((scale = allocscreen(160, 120, title->pixelformat)) == NULL) return NULL;
+
 	scalescreen(scale, title);
 	memcpy(scale->palette, title->palette, PAL_BYTES);
+
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
+
 	freescreen(&title);
 	return scale;
 }

@@ -301,35 +301,36 @@ void sortList()
 	}
 }
 
-int findPaks(void)
+static int findPaks(void)
 {
 	int i = 0;
 	DIR* dp = NULL;
 	struct dirent* ds;
-
 	dp = opendir(paksDir);
-
-	while((ds = readdir(dp)) != NULL)
-	{
-		if(packfile_supported(ds->d_name))
+	if(dp != NULL)
+   	{
+		while((ds = readdir(dp)) != NULL)
 		{
-			fileliststruct *copy = NULL;
-			if(filelist == NULL) filelist = malloc(sizeof(fileliststruct));
-			else
+			if(packfile_supported(ds->d_name))
 			{
-				copy = malloc(i * sizeof(fileliststruct));
-				memcpy(copy, filelist, i * sizeof(fileliststruct));
-				free(filelist);
-				filelist = malloc((i + 1) * sizeof(fileliststruct));
-				memcpy(filelist, copy, i * sizeof(fileliststruct));
-				free(copy); copy = NULL;
+				fileliststruct *copy = NULL;
+				if(filelist == NULL) filelist = malloc(sizeof(fileliststruct));
+				else
+				{
+					copy = malloc(i * sizeof(fileliststruct));
+					memcpy(copy, filelist, i * sizeof(fileliststruct));
+					free(filelist);
+					filelist = malloc((i + 1) * sizeof(fileliststruct));
+					memcpy(filelist, copy, i * sizeof(fileliststruct));
+					free(copy); copy = NULL;
+				}
+				memset(&filelist[i], 0, sizeof(fileliststruct));
+				strcpy(filelist[i].filename, ds->d_name);
+				i++;
 			}
-			memset(&filelist[i], 0, sizeof(fileliststruct));
-			strcpy(filelist[i].filename, ds->d_name);
-			i++;
 		}
-	}
-	closedir(dp);
+		closedir(dp);
+   	}
 	return i;
 }
 
@@ -419,18 +420,17 @@ s_screen *getPreview(char *filename)
 	getBasePath(packfile, filename, 1);
 
 	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title.gif", packfile, NULL, PIXEL_x8, &title)) return NULL;
+	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL;
 	if((scale = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
 
 	scalescreen(scale, title);
 	memcpy(scale->palette, title->palette, PAL_BYTES);
 
+	// ScreenShots within Menu will be saved as "Menu"
+	strncpy(packfile,"Menu.ext",MAX_FILENAME_LEN);
+
 	// Free Images and Terminate FileCaching
 	freescreen(&title);
-
-	// ScreenShots within Menu will be saved as "Menu"
-	strncpy(packfile,"Menu.ext",128);
-
 	return scale;
 }
 
@@ -541,7 +541,7 @@ void drawMenu()
 	if(dListTotal < 1) printText((isWide ? 30 : 8), (isWide ? 33 : 24), RED, 0, 0, "No Mods In Paks Folder!");
 	for(list=0; list<dListTotal; list++)
 	{
-		if(list<18)
+		if(list < MAX_MODS_NUM)
 		{
 			shift = 0;
 			colors = GRAY;

@@ -255,11 +255,11 @@ static s_screen *getPreview(char *filename)
     getBasePath(packfile, filename, 1);
     // Create & Load & Scale Image
     if (!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL;
-    scale = allocscreen(160, 120, PIXEL_x8);
+    if((scale = allocscreen(160, 120, title->pixelformat)) == NULL) return NULL;
     scalescreen(scale, title);
     memcpy(scale->palette, title->palette, PAL_BYTES);
     // ScreenShots within Menu will be saved as "Menu"
-    strncpy(packfile,"Menu.xxx",128);
+    strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
     freescreen(&title);
     return scale;
 }
@@ -363,7 +363,7 @@ static void drawMenu()
     if (dListTotal < 1) printText(30, 33, RED, 0, 0, "No Games In Paks Folder!");
     for (list = 0; list < dListTotal; list++)
     {
-        if (list < 18)
+        if(list<MAX_MODS_NUM)
         {
             shift = 0;
             colors = GRAY;
