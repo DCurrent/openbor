@@ -1,4 +1,4 @@
-if(list<18)/*
+/*
  * OpenBOR - http://www.LavaLit.com
  * -----------------------------------------------------------------------
  * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
