@@ -33,7 +33,7 @@
 #endif
 
 #define PACKFILE_PATH_MAX 512 // Maximum length of file path string.
-#define MAX_TRACKS 512 // Maximum length of file path string.
+#define MAX_TRACKS 256 // Maximum number of BGM Tracks. IMPORTANT: Wii max number is 256 (maybe for low memory??)
 
 //
 // Structure used for handling packfiles

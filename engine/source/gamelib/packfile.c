@@ -1373,7 +1373,7 @@ int packfile_supported(const char *filename)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void packfile_get_titlename(char In[80], char Out[80])
+void packfile_get_titlename(char In[MAX_FILENAME_LEN], char Out[MAX_FILENAME_LEN])
 {
     int i, x = 0, y = 0;
     for(i = 0; i < (int)strlen(In); i++)
