@@ -411,7 +411,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
         case LEVEL_PROP_BOSS_COUNT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->bosses;
+            (*pretvar)->lVal = (LONG)handle->bossescount;
             break;
 
         case LEVEL_PROP_BOSS_MUSIC_NAME:
@@ -667,6 +667,12 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
             (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
+            break;
+
+        case LEVEL_PROP_NUM_BOSSES:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->numbosses;
             break;
 
         case LEVEL_PROP_PALETTE_BLENDING_COLLECTION:
@@ -1005,7 +1011,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 goto error_local;
             }
 
-            handle->bosses = temp_int;
+            handle->bossescount = temp_int;
             break;
 
         case LEVEL_PROP_BOSS_MUSIC_NAME:
@@ -1345,6 +1351,16 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
                 goto error_local;
             }
             strcpy(handle->name, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case LEVEL_PROP_NUM_BOSSES:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+
+            handle->numbosses = temp_int;
             break;
 
         case LEVEL_PROP_PALETTE_BLENDING_COLLECTION:

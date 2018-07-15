@@ -250,7 +250,8 @@ typedef enum
     PORTING_WII,
     PORTING_WINDOWS,
     PORTING_WIZ,
-    PORTING_XBOX
+    PORTING_XBOX,
+    PORTING_VITA
 } e_porting;
 
 typedef enum
@@ -790,7 +791,7 @@ typedef enum
     LEVEL_PROP_AUTO_SCROLL_Y,                   // float vbgspeed;
     LEVEL_PROP_BASEMAP_COLLECTION,              // s_basemap *basemaps;
     LEVEL_PROP_BASEMAP_COUNT,                   // int numbasemaps;
-    LEVEL_PROP_BOSS_COUNT,                      // int bosses;
+    LEVEL_PROP_BOSS_COUNT,                      // int bossescount;
     LEVEL_PROP_BOSS_MUSIC_NAME,                 // char bossmusic[256];
     LEVEL_PROP_BOSS_MUSIC_OFFSET,               // unsigned bossmusic_offset;
     LEVEL_PROP_BOSS_SLOW,                       // int boss_slow;
@@ -825,6 +826,7 @@ typedef enum
     LEVEL_PROP_MAX_TOSS_VELOCITY,               // float maxtossspeed;
     LEVEL_PROP_MIRROR,                          // int mirror;
     LEVEL_PROP_NAME,                            // char *name;
+    LEVEL_PROP_NUM_BOSSES,                      // int numbosses;
     LEVEL_PROP_PALETTE_BLENDING_COLLECTION,     // unsigned char *(*blendings)[MAX_BLENDINGS];
     LEVEL_PROP_PALETTE_COLLECTION,              // unsigned char (*palettes)[1024];
     LEVEL_PROP_PALETTE_COUNT,                   // int numpalettes;
@@ -2666,7 +2668,8 @@ typedef struct
     float scrollspeed; // UT: restore this command  2011/7/8
     int bgdir; // Used to set which direction the backgrounds scroll for autoscrolling backgrounds
     int mirror;
-    int bosses;
+    int bossescount;
+    int numbosses;
     char bossmusic[MAX_BUFFER_LEN];
     unsigned bossmusic_offset;
     int numpalettes;

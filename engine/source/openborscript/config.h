@@ -338,6 +338,7 @@ enum systemvariant_enum
 {
     _sv_background,
     _sv_blockade,
+    _sv_bossescount,
     _sv_branchname,
     _sv_cheats,
     _sv_count_enemies,
@@ -410,6 +411,7 @@ enum systemvariant_enum
     _sv_noscreenshot,
     _sv_noshowcomplete,
     _sv_numbasemaps,
+    _sv_numbosses,
     _sv_numholes,
     _sv_numlayers,
     _sv_numpalettes,
