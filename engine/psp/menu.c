@@ -334,7 +334,7 @@ void drawBGMPlayer()
 	}
 	for(list=0; list<dListTotal; list++)
 	{
-		if(list<18)
+		if(list<MAX_MODS_NUM)
 		{
 			shift = 0;
 			colors = BLACK;

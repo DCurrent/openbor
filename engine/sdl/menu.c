@@ -299,7 +299,7 @@ static int ControlMenu()
 	int status = -1;
 	int dListMaxDisplay = 17;
 	bothnewkeys = 0;
-	inputrefresh();
+	inputrefresh(0);
 	switch(bothnewkeys)
 	{
 		case FLAG_MOVEUP:
@@ -363,7 +363,7 @@ static int ControlBGM()
 	int status = -2;
 	int dListMaxDisplay = 17;
 	bothnewkeys = 0;
-	inputrefresh();
+	inputrefresh(0);
 	switch(bothnewkeys)
 	{
 		case FLAG_MOVEUP:
@@ -527,7 +527,6 @@ static void drawMenu()
 				shift = 2;
 				colors = RED;
 				Image = getPreview(filelist[list+dListScrollPosition].filename);
-
 			}
 			printText((isWide ? 30 : 7) + shift, (isWide ? 33 : 22)+(11*list) , colors, 0, 0, "%s", listing);
 		}
@@ -580,7 +579,7 @@ static void drawBGMPlayer()
 
 	for(list=0; list<dListTotal; list++)
 	{
-		if(list<18)
+		if(list<MAX_MODS_NUM)
 		{
 		    int len = strlen(filelist[list+dListScrollPosition].filename)-4;
 			shift = 0;
@@ -649,7 +648,7 @@ static void drawLogs()
 	{
 		// CRxTRDude - replaced bg with a log screen
 		putscreen(vscreen,logscreen,0,0,NULL);
-	    inputrefresh();
+	    inputrefresh(0);
 	    sound_update_music();
 #if OPENDINGUX
 	    printText(250, 3, RED, 0, 0, "Quit : Select");

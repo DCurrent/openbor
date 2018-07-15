@@ -439,7 +439,7 @@ int ControlMenu()
 	int status = -1;
 	int dListMaxDisplay = 17;
 	//bothnewkeys = 0;
-	//inputrefresh();
+	//inputrefresh(0);
 	refreshInput();
 	switch(buttonsPressed)
 	{
@@ -554,7 +554,7 @@ void drawMenu()
 			{
 				shift = 2;
 				colors = RED;
-				Image = NULL;
+				//Image = getPreview(filelist[list+dListScrollPosition].filename);
 				if(Image)
 				{
 					clipX = factor * (isWide ? 286 : 155);
@@ -601,7 +601,7 @@ void drawLogs()
 	while(!done)
 	{
 	    copyScreens(Viewer);
-	    //inputrefresh();
+	    //inputrefresh(0);
 	    refreshInput();
 	    printText((isWide ? 410 : 250), 3, RED, 0, 0, "Quit : 1/B");
 		if(buttonsPressed & (WIIMOTE_1|CC_B|GC_B)) done = 1;
