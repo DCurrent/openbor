@@ -50,8 +50,6 @@
 #endif
 
 
-#define PACKFILE_PATH_MAX 2048 // Maximum length of file path string.
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // Requirements for Compressed Packfiles.
@@ -1407,7 +1405,7 @@ void packfile_music_read(fileliststruct *filelist, int dListTotal)
         getBasePath(packfile, filelist[i].filename, 1);
         if(stristr(packfile, ".pak"))
         {
-            memset(filelist[i].bgmTracks, 0, PACKFILE_PATH_MAX);
+            memset(filelist[i].bgmTracks, 0, MAX_TRACKS * sizeof(unsigned int));
             filelist[i].nTracks = 0;
             fd = fopen(packfile, "rb");
             if(fd == NULL)
@@ -1439,7 +1437,7 @@ void packfile_music_read(fileliststruct *filelist, int dListTotal)
                     {
                         goto nextpak;
                     }
-                    if(filelist[i].nTracks < PACKFILE_PATH_MAX)
+                    if(filelist[i].nTracks < MAX_TRACKS)
                     {
                         packfile_get_titlename(pn.namebuf, filelist[i].bgmFileName[filelist[i].nTracks]);
                         filelist[i].bgmTracks[filelist[i].nTracks] = off;

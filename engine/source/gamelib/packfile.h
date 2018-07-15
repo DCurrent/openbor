@@ -32,6 +32,9 @@
 #include "types.h"
 #endif
 
+#define PACKFILE_PATH_MAX 512 // Maximum length of file path string.
+#define MAX_TRACKS 512 // Maximum length of file path string.
+
 //
 // Structure used for handling packfiles
 //
@@ -40,16 +43,16 @@ typedef struct pnamestruct
     unsigned int pns_len;	    // Length of the struct in bytes
     unsigned int filestart;	    // Start position of referenced file
     unsigned int filesize;	    // Size of referenced file
-    char		 namebuf[MAX_BUFFER_LEN];	// Buffer to hold the file's name
+    char		 namebuf[MAX_FILENAME_LEN];	// Buffer to hold the file's name
 } pnamestruct;
 
 typedef struct fileliststruct
 {
-    char filename[MAX_BUFFER_LEN];
+    char filename[MAX_FILENAME_LEN];
     int nTracks;
-    char bgmFileName[MAX_BUFFER_LEN][MAX_BUFFER_LEN];
+    char bgmFileName[MAX_TRACKS][MAX_FILENAME_LEN];
     int bgmTrack;
-    unsigned int bgmTracks[MAX_BUFFER_LEN];
+    unsigned int bgmTracks[MAX_TRACKS];
 #ifdef SDL
     SDL_Surface *preview;
 #elif PSP
