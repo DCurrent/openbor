@@ -20803,74 +20803,47 @@ int check_edge(entity *ent)
     float x = ent->position.x;
     float z = ent->position.z;
     float y = ent->position.y;
-    float base = ent->base;
-    //e_direction dir = ent->direction;
+    e_direction dir = ent->direction;
+    float height = 0.0f;
     float t_alt = 1.0f, t_edge_default = 8.0f;
-    float t_edge_x = t_edge_default, t_edge_z = t_edge_default;
-    int wall = -1, hole = -1;
-    entity *platform = NULL;
+    float t_edge_x = t_edge_default, t_edge_z = t_edge_default / 2;
 
     if (ent->modeldata.edgerange.x > t_edge_x) t_edge_x = ent->modeldata.edgerange.x;
     if (ent->modeldata.edgerange.z > t_edge_z) t_edge_z = ent->modeldata.edgerange.z;
 
-    // test hole
-    hole = checkhole_in(x, z, y);
-    if ( !hole ) {
-        int hole_left = checkhole_in(x - t_edge_x, z, y);
-        int hole_right = checkhole_in(x + t_edge_x, z, y);
-        int hole_up = checkhole_in(x, z - t_edge_z / 2, y);
-        int hole_down = checkhole_in(x, z + t_edge_z / 2, y);
+	if(ent->animation->size.y) height = ent->animation->size.y;
+    else height = ent->modeldata.size.y;
 
-        if (hole_left) return EDGE_LEFT;
-        else if (hole_right) return EDGE_RIGHT;
-        else if (hole_up || hole_down) return EDGE_LEFT + EDGE_RIGHT;
-    }
+    //test base
+    float base_left  = checkbase(x - t_edge_x, z, y, ent);
+    float base_right = checkbase(x + t_edge_x, z, y, ent);
+    float base_up    = checkbase(x, z - t_edge_z, y, ent);
+    float base_down  = checkbase(x, z + t_edge_z, y, ent);
 
-    // test wall
-    wall = checkwall_index(x, z);
-    if ( wall >= 0 && level->walls[wall].height > 0 && base == level->walls[wall].height )
+    entity *plat_left  = check_platform_between(x - t_edge_x, z, y + 1.0f, y + height, ent);
+    entity *plat_right = check_platform_between(x + t_edge_x, z, y + 1.0f, y + height, ent);
+    entity *plat_up    = check_platform_between(x, z - t_edge_z, y + 1.0f, y + height, ent);
+    entity *plat_down  = check_platform_between(x, z + t_edge_z, y + 1.0f, y + height, ent);
+
+    if ( (base_left < y - t_alt) && plat_left == NULL ) return EDGE_LEFT;
+    else if ( (base_right < y - t_alt) && plat_right == NULL ) return EDGE_RIGHT;
+
+    // priority based on direction check
+    if (dir == DIRECTION_LEFT)
     {
-        int wall_left = checkwall_index(x - t_edge_x, z);
-        int wall_right = checkwall_index(x + t_edge_x, z);
-        int wall_up = checkwall_index(x, z - t_edge_z / 2);
-        int wall_down = checkwall_index(x, z + t_edge_z / 2);
-
-        if (wall_left >= 0  && level->walls[wall_left].height  < base) return EDGE_LEFT;
-        else if (wall_right >= 0 && level->walls[wall_right].height < base) return EDGE_RIGHT;
-        else if ( (wall_up   >= 0 && level->walls[wall_up].height   < base) ||
-                  (wall_down >= 0 && level->walls[wall_down].height < base)
-        ) return EDGE_LEFT + EDGE_RIGHT;
+        if ( (base_left < y - t_alt) && plat_left == NULL ) return EDGE_LEFT;
+        else if ( (base_right < y - t_alt) && plat_right == NULL ) return EDGE_RIGHT;
     }
-
-    // test platform
-    platform = get_platform_on(self);
-    if ( platform != NULL )
+    else
     {
-        entity *platform_right = check_platform(x + t_edge_x, z, self);
-        entity *platform_left  = check_platform(x - t_edge_x, z, self);
-        entity *platform_up    = check_platform(x, z - t_edge_z / 2, self);
-        entity *platform_down  = check_platform(x, z + t_edge_z / 2, self);
-        float plat_base_right = 0.0f,
-              plat_base_left  = 0.0f,
-              plat_base_up    = 0.0f,
-              plat_base_down  = 0.0f;
-
-        if ( platform_right != NULL ) plat_base_right = get_platform_base(platform_right);
-        if ( platform_left  != NULL ) plat_base_left  = get_platform_base(platform_left);
-        if ( platform_up    != NULL ) plat_base_up    = get_platform_base(platform_up);
-        if ( platform_down  != NULL ) plat_base_down  = get_platform_base(platform_down);
-
-        if ( platform_left == NULL ||
-            (platform_left != NULL && platform != platform_left && (plat_base_left < y - t_alt || plat_base_left > y + t_alt) )
-        ) return EDGE_LEFT;
-        else if ( platform_right == NULL ||
-                 (platform_right != NULL && platform != platform_right && (plat_base_right < y - t_alt || plat_base_right > y + t_alt) )
-        ) return EDGE_RIGHT;
-        else if ( (platform_down == NULL || platform_up == NULL) ||
-             (platform_up   != NULL && platform != platform_up   && (plat_base_up   < y - t_alt || plat_base_up   > y + t_alt) ) ||
-             (platform_down != NULL && platform != platform_down && (plat_base_down < y - t_alt || plat_base_down > y + t_alt) )
-        ) return EDGE_LEFT + EDGE_RIGHT;
+        if ( (base_right < y - t_alt) && plat_right == NULL ) return EDGE_RIGHT;
+        else if ( (base_left < y - t_alt) && plat_left == NULL ) return EDGE_LEFT;
     }
+
+    if (
+         ((base_up   < y - t_alt) && plat_up == NULL) ||
+         ((base_down < y - t_alt) && plat_down == NULL)
+    ) return EDGE_LEFT + EDGE_RIGHT;
 
     return EDGE_NO;
 }
