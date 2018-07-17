@@ -329,6 +329,7 @@ char* get_joystick_name(const char* name)
 {
     char lname[strlen(name)];
 
+    if (strlen(name) <= 0) return JOY_UNKNOWN_NAME;
     strcpy(lname,name);
     for(int i = 0; lname[i]; i++)
     {
@@ -403,7 +404,7 @@ void open_joystick(int i)
     joysticks[i].NumAxes = SDL_JoystickNumAxes(joystick[i]);
     joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
 
-    joysticks[i].Name = SDL_JoystickName(i);
+    strcpy(joysticks[i].Name, SDL_JoystickName(i));
 
     joystick_haptic[i] = SDL_HapticOpenFromJoystick(joystick[i]);
     if (joystick_haptic[i] != NULL)
@@ -426,11 +427,26 @@ void open_joystick(int i)
     //SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
     for(j = 1; j < JOY_MAX_INPUTS + 1; j++)
     {
-        joysticks[i].KeyName[j] = PC_GetJoystickKeyName(i, j);
+        strcpy(joysticks[i].KeyName[j], PC_GetJoystickKeyName(i, j));
     }
     #endif
 
     return;
+}
+
+void reset_joystick_map(int i)
+{
+	memset(joysticks[i].Name,0,sizeof(joysticks[i].Name));
+	memset(joysticks[i].KeyName,0,sizeof(joysticks[i].KeyName));
+	joysticks[i].Type = 0;
+	joysticks[i].NumHats = 0;
+	joysticks[i].NumAxes = 0;
+	joysticks[i].NumButtons = 0;
+	joysticks[i].Hats = 0;
+	joysticks[i].Axes = 0;
+	joysticks[i].Buttons = 0;
+	joysticks[i].Data = 0;
+    set_default_joystick_keynames(i);
 }
 
 /*
@@ -445,7 +461,6 @@ void control_exit()
 		close_joystick(i);
 	}
 	usejoy = 0;
-	//memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
 }
 
 /*
@@ -457,7 +472,7 @@ void close_joystick(int i)
 	if(joystick_haptic[i] != NULL) SDL_HapticClose(joystick_haptic[i]);
 	joystick[i] = NULL;
 	joystick_haptic[i] = NULL;
-	set_default_joystick_keynames(i);
+	reset_joystick_map(i);
 }
 
 /*
@@ -474,12 +489,12 @@ void control_init(int joy_enable)
 	usejoy = joy_enable;
 #endif
 
-	memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
+	//memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
 	for(i = 0; i < JOY_LIST_TOTAL; i++)
 	{
         joystick[i] = NULL;
         joystick_haptic[i] = NULL;
-		set_default_joystick_keynames(i);
+		reset_joystick_map(i);
 	}
 	joystick_scan(usejoy);
 
@@ -496,8 +511,8 @@ void set_default_joystick_keynames(int i)
     int j;
     for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
     {
-        if(j) joysticks[i].KeyName[j] = JoystickKeyName[j + i * JOY_MAX_INPUTS];
-        else  joysticks[i].KeyName[j] = JoystickKeyName[j];
+        if(j) strcpy(joysticks[i].KeyName[j], JoystickKeyName[j + i * JOY_MAX_INPUTS]);
+        else  strcpy(joysticks[i].KeyName[j], JoystickKeyName[j]);
     }
 }
 

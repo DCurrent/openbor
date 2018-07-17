@@ -9,7 +9,7 @@
 #ifndef	JOYSTICKS_H
 #define	JOYSTICKS_H
 
-#define JOY_UNKNOWN_NAME "Unknown"
+#define JOY_UNKNOWN_NAME "UNKNOWN"
 
 #define JOY_TYPE_DEFAULT   0
 #define JOY_TYPE_GAMEPARK  1
@@ -38,8 +38,8 @@
 
 /* Real-Time Joystick Data */
 typedef struct{
-	const char *Name;
-	const char *KeyName[JOY_MAX_INPUTS + 1];
+	char Name[MAX_BUFFER_LEN];
+	char KeyName[JOY_MAX_INPUTS + 1][MAX_BUFFER_LEN];
 	int Type;
 	int NumHats;
 	int NumAxes;

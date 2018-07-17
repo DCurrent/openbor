@@ -150,6 +150,7 @@ void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key);
 int control_scankey();
 
 void set_default_joystick_keynames(int i);
+void reset_joystick_map(int i);
 char* get_joystick_name(const char* name);
 char *control_getkeyname(unsigned int keycode);
 void control_update(s_playercontrols ** playercontrols, int numplayers);
