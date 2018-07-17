@@ -236,11 +236,13 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                 {
                     int i = ev.jdevice.which;
                     char buffer[MAX_BUFFER_LEN];
-
+                    char joy_name[MAX_BUFFER_LEN];
                     open_joystick(i);
                     //get_time_string(buffer, MAX_BUFFER_LEN, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
                     get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
-                    printf("Joystick: \"%s\" connected at port: %d at %s\n",get_joystick_name(joysticks[i].Name),i,buffer);
+                    numjoy = SDL_NumJoysticks();
+                    strcpy(joy_name,get_joystick_name(joysticks[i].Name));
+                    printf("Joystick: \"%s\" connected at port: %d at %s\n",joy_name,i,buffer);
                 }
                 break;
 
@@ -251,10 +253,12 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                     if(joystick[i])
                     {
                         char buffer[MAX_BUFFER_LEN];
-
+                        char joy_name[MAX_BUFFER_LEN];
                         get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
-                        printf("Joystick: \"%s\" disconnected from port: %d at %s\n",get_joystick_name(joysticks[i].Name),i,buffer);
                         close_joystick(i);
+                        numjoy = SDL_NumJoysticks();
+                        strcpy(joy_name,get_joystick_name(joysticks[i].Name));
+                        printf("Joystick: \"%s\" disconnected from port: %d at %s\n",joy_name,i,buffer);
                     }
                 }
                 break;
@@ -269,19 +273,20 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 	{
 		// new PC joystick code - forget about SDL joystick events, just do a state check
 		SDL_JoystickUpdate();
-		for(i=0; i<JOY_LIST_TOTAL; i++)
+		for(i = 0; i < JOY_LIST_TOTAL; i++)
 		{
 			// reset state
 			joysticks[i].Axes = joysticks[i].Hats = joysticks[i].Buttons = 0;
+			if (joystick[i] == NULL) continue;
 
 			// check buttons
-			for(j=0; j<joysticks[i].NumButtons; j++)
+			for(j = 0; j < joysticks[i].NumButtons; j++)
             {
                 joysticks[i].Buttons |= SDL_JoystickGetButton(joystick[i], j) << j;
             }
 
 			// check axes
-			for(j=0; j<joysticks[i].NumAxes; j++)
+			for(j = 0; j < joysticks[i].NumAxes; j++)
 			{
 				axis = SDL_JoystickGetAxis(joystick[i], j);
 				if(axis < -1*T_AXIS)  { joysticks[i].Axes |= 0x01 << (j*2); }
@@ -289,7 +294,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 			}
 
 			// check hats
-			for(j=0; j<joysticks[i].NumHats; j++)
+			for(j = 0; j < joysticks[i].NumHats; j++)
             {
                 //joysticks[i].Hats |= SDL_JoystickGetHat(joystick[i], j) << (j*4);
 
@@ -389,7 +394,11 @@ void open_joystick(int i)
 {
     int j;
 
-    joystick[i] = SDL_JoystickOpen(i);
+    if ( ( joystick[i] = SDL_JoystickOpen(i) ) == NULL )
+    {
+       printf("\nWarning: Unable to initialize joystick in port: %d! SDL Error: %s\n", i, SDL_GetError());
+       return;
+    }
     joysticks[i].NumHats = SDL_JoystickNumHats(joystick[i]);
     joysticks[i].NumAxes = SDL_JoystickNumAxes(joystick[i]);
     joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
@@ -420,6 +429,8 @@ void open_joystick(int i)
         joysticks[i].KeyName[j] = PC_GetJoystickKeyName(i, j);
     }
     #endif
+
+    return;
 }
 
 /*
@@ -434,8 +445,7 @@ void control_exit()
     {
 		close_joystick(i);
 	}
-	memset(joystick, 0, sizeof(joystick));
-	memset(joysticks, 0, sizeof(joysticks));
+	memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
 }
 
 /*
@@ -443,10 +453,11 @@ Reset single joystick
 */
 void close_joystick(int i)
 {
-	if(joystick[i]) SDL_JoystickClose(joystick[i]);
-	if(joystick_haptic[i]) SDL_HapticClose(joystick_haptic[i]);
+	if(joystick[i] != NULL) SDL_JoystickClose(joystick[i]);
+	if(joystick_haptic[i] != NULL) SDL_HapticClose(joystick_haptic[i]);
 	joystick[i] = NULL;
-	memset(&joysticks[i], 0, sizeof(joysticks[i]));
+	joystick_haptic[i] = NULL;
+	set_default_joystick_keynames(i);
 }
 
 /*
@@ -455,26 +466,39 @@ Then scan for joysticks and update their data.
 */
 void control_init(int joy_enable)
 {
-	int i, j;
+	int i;
+
 #ifdef GP2X
 	usejoy = joy_enable ? joy_enable : 1;
 #else
 	usejoy = joy_enable;
 #endif
+
 	memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
 	for(i = 0; i < JOY_LIST_TOTAL; i++)
 	{
-		for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
-		{
-            if(j) joysticks[i].KeyName[j] = JoystickKeyName[j + i * JOY_MAX_INPUTS];
-            else joysticks[i].KeyName[j] = JoystickKeyName[j];
-		}
+        joystick[i] = NULL;
+        joystick_haptic[i] = NULL;
+		set_default_joystick_keynames(i);
 	}
 	joystick_scan(usejoy);
+
 #ifdef ANDROID
 	for(i = 0; i < MAX_POINTERS; i++)
-		touch_info.pstatus[i] = TOUCH_STATUS_UP;
+    {
+        touch_info.pstatus[i] = TOUCH_STATUS_UP;
+    }
 #endif
+}
+
+void set_default_joystick_keynames(int i)
+{
+    int j;
+    for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
+    {
+        if(j) joysticks[i].KeyName[j] = JoystickKeyName[j + i * JOY_MAX_INPUTS];
+        else  joysticks[i].KeyName[j] = JoystickKeyName[j];
+    }
 }
 
 char *control_getkeyname(unsigned int keycode)
@@ -898,8 +922,8 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 void control_rumble(int port, int ratio, int msec)
 {
     #if SDL
-    if (joystick_haptic[port] != NULL) {
-        if( SDL_HapticRumblePlay(joystick_haptic[port], ratio, msec) != 0 )
+    if (joystick[port] != NULL && joystick_haptic[port] != NULL) {
+        if(SDL_HapticRumblePlay(joystick_haptic[port], ratio, msec) != 0)
         {
             //printf( "Warning: Unable to play rumble! %s\n", SDL_GetError() );
         }
