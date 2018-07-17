@@ -440,12 +440,12 @@ destroy all SDL Joystick data.
 void control_exit()
 {
 	int i;
-	usejoy = 0;
 	for(i = 0; i < numjoy; i++)
     {
 		close_joystick(i);
 	}
-	memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
+	usejoy = 0;
+	//memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
 }
 
 /*
