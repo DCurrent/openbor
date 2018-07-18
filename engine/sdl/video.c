@@ -58,7 +58,7 @@ void initSDL()
 		borExit(0);
 	}
 	SDL_ShowCursor(SDL_DISABLE);
-	atexit(SDL_Quit);
+	//atexit(SDL_Quit); //White Dragon: use SDL_Quit() into sdlport.c it's best practice!
 
 #ifdef LOADGL
 	if(SDL_GL_LoadLibrary(NULL) < 0)

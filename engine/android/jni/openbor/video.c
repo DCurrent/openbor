@@ -68,7 +68,7 @@ void initSDL()
     }
     SDL_ShowCursor(SDL_DISABLE);
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
-    atexit(SDL_Quit);
+    //atexit(SDL_Quit); //White Dragon: use SDL_Quit() into sdlport.c it's best practice!
 
     if ( !var )
     {
