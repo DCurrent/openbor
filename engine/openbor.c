@@ -854,7 +854,7 @@ static int buffer_file(char *filename, char **pbuffer, size_t *psize)
     {
         *psize = 0;
         fclose(handle);
-        shutdown(1, "Can't create buffer for file '%s'", filename);
+        borShutdown(1, "Can't create buffer for file '%s'", filename);
         return 0;
     }
     if(fread(*pbuffer, 1, *psize, handle) != *psize)
@@ -866,7 +866,7 @@ static int buffer_file(char *filename, char **pbuffer, size_t *psize)
             *psize = 0;
         }
         fclose(handle);
-        shutdown(1, "Can't read from file '%s'", filename);
+        borShutdown(1, "Can't read from file '%s'", filename);
         return 0;
     }
     (*pbuffer)[*psize] = 0;        // Terminate string (important!)
@@ -907,7 +907,7 @@ int buffer_pakfile(char *filename, char **pbuffer, size_t *psize)
     {
         *psize = 0;
         closepackfile(handle);
-        shutdown(1, "Can't create buffer for packfile '%s'", filename);
+        borShutdown(1, "Can't create buffer for packfile '%s'", filename);
         return 0;
     }
     if(readpackfile(handle, *pbuffer, *psize) != *psize)
@@ -919,7 +919,7 @@ int buffer_pakfile(char *filename, char **pbuffer, size_t *psize)
             *psize = 0;
         }
         closepackfile(handle);
-        shutdown(1, "Can't read from packfile '%s'", filename);
+        borShutdown(1, "Can't read from packfile '%s'", filename);
         return 0;
     }
     (*pbuffer)[*psize] = 0;        // Terminate string (important!)
@@ -940,7 +940,7 @@ int buffer_append(char **buffer, const char *str, size_t n, size_t *bufferlen, s
         *buffer = realloc(*buffer, *bufferlen = appendlen + *len + 1024);
         if(*buffer == NULL)
         {
-            shutdown(1, "Unalbe to resize buffer.\n");
+            borShutdown(1, "Unalbe to resize buffer.\n");
         }
     }
     strncpy(*buffer + *len, str, appendlen);
@@ -962,7 +962,7 @@ int handle_txt_include(char *command, ArgList *arglist, char **fn, char *namebuf
             *buf = realloc(*buf, *len + size + strlen(incfile) + strlen(filename) + 100); //leave enough memory for jump command
             if(*buf == NULL)
             {
-                shutdown(1, "Unalbe to resize buffer. (handle_txt_include)\n");
+                borShutdown(1, "Unalbe to resize buffer. (handle_txt_include)\n");
                 free(buf2);
                 return 0;
             }
@@ -977,7 +977,7 @@ int handle_txt_include(char *command, ArgList *arglist, char **fn, char *namebuf
             //printf(*buf);
             return 1;
         }
-        shutdown(1, "Can't find file '%s' to include.\n", incfile);
+        borShutdown(1, "Can't find file '%s' to include.\n", incfile);
     }
     else if(stricmp(command, "@jump") == 0)
     {
@@ -1020,7 +1020,7 @@ int load_script(Script *script, char *file)
     // text loaded but parsing failed, shutdown
     if(failed)
     {
-        shutdown(1, "Failed to parse script file: '%s'!\n", file);
+        borShutdown(1, "Failed to parse script file: '%s'!\n", file);
     }
     return !failed;
 }
@@ -3346,7 +3346,7 @@ int convert_map_to_palette(s_model *model, unsigned mapflag[])
         }
         if((newmap = malloc(PAL_BYTES)) == NULL)
         {
-            shutdown(1, "Error convert_map_to_palette for model: %s\n", model->name);
+            borShutdown(1, "Error convert_map_to_palette for model: %s\n", model->name);
         }
         // Create new colour map
         memcpy(newmap, model->palette, PAL_BYTES);
@@ -3682,7 +3682,7 @@ void load_background(char *filename, int createtables)
         }
         else
         {
-            shutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
+            borShutdown(1, "Error loading background (PIXEL_x8/PIXEL_32) file '%s'", filename);
         }
     }
 
@@ -3700,7 +3700,7 @@ void load_background(char *filename, int createtables)
         standard_palette(0);
         if(!create_blending_tables(pal, blendings, blendfx))
         {
-            shutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
+            borShutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
         }
     }
 
@@ -3808,7 +3808,7 @@ void load_cached_background(char *filename, int createtables)
 
     if((index == -1) || (bg_cache[index] == NULL))
     {
-        shutdown(1, "Error: can't load cached background '%s'", filename);
+        borShutdown(1, "Error: can't load cached background '%s'", filename);
     }
 
     if(background)
@@ -3834,7 +3834,7 @@ void load_cached_background(char *filename, int createtables)
         standard_palette(0);
         if(!create_blending_tables(pal, blendings, blendfx))
         {
-            shutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
+            borShutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
         }
     }
 
@@ -3873,7 +3873,7 @@ void cache_background(char *filename)
     }
     else
     {
-        shutdown(1, "Error caching background, Unknown Pixel Format!\n");
+        borShutdown(1, "Error caching background, Unknown Pixel Format!\n");
     }
 
     if(strcmp(filename, "data/bgs/logo") == 0)
@@ -3914,7 +3914,7 @@ void cache_background(char *filename)
     }
     else
     {
-        shutdown(1, "Error: unknown cached background '%s'", filename);
+        borShutdown(1, "Error: unknown cached background '%s'", filename);
     }
 
     bg_cache[index] = bg;
@@ -3974,7 +3974,7 @@ void load_layer(char *filename, char *maskfilename, int index)
 
     if(filename && level->layers[index].gfx.handle == NULL)
     {
-        shutdown(1, "Error loading file '%s'", filename);
+        borShutdown(1, "Error loading file '%s'", filename);
     }
     else
     {
@@ -4112,7 +4112,7 @@ void prepare_sprite_map(size_t size)
         sprite_map = realloc(sprite_map, sizeof(*sprite_map) * sprite_map_max_items);
         if(sprite_map == NULL)
         {
-            shutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
+            borShutdown(1, "Out Of Memory!  Failed to create a new sprite_map\n");
         }
     }
 }
@@ -4252,7 +4252,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
     bitmap = loadbitmap(filename, packfile, bmpformat);
     if(bitmap == NULL)
     {
-        shutdown(1, "Unable to load file '%s'\n", filename);
+        borShutdown(1, "Unable to load file '%s'\n", filename);
     }
 
     clipbitmap(bitmap, &clipl, &clipr, &clipt, &clipb);
@@ -4265,7 +4265,7 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
     if(curr == NULL || curr->sprite == NULL || curr->filename == NULL)
     {
         freebitmap(bitmap);
-        shutdown(1, "loadsprite() Out of memory!\n");
+        borShutdown(1, "loadsprite() Out of memory!\n");
     }
     memcpy(curr->filename, filename, len);
     curr->filename[len] = 0;
@@ -4689,7 +4689,7 @@ s_model *nextplayermodel(s_model *current)
             return model_cache[i].model;
         }
     }
-    shutdown(1, "Fatal: can't find any player models!");
+    borShutdown(1, "Fatal: can't find any player models!");
     return NULL;
 }
 
@@ -4772,7 +4772,7 @@ s_model *prevplayermodel(s_model *current)
             return model_cache[i].model;
         }
     }
-    shutdown(1, "Fatal: can't find any player models!");
+    borShutdown(1, "Fatal: can't find any player models!");
     return NULL;
 }
 
@@ -4862,11 +4862,11 @@ static void load_playable_list(char *buf)
     for(i = 1; (value = GET_ARG(i))[0]; i++)
     {
         playermodels = findmodel(value);
-        //if(playermodels == NULL) shutdown(1, "Player model '%s' is not loaded.\n", value);
+        //if(playermodels == NULL) borShutdown(1, "Player model '%s' is not loaded.\n", value);
         index = get_cached_model_index(playermodels->name);
         if(index == -1)
         {
-            shutdown(1, "Player model '%s' is not cached.\n", value);
+            borShutdown(1, "Player model '%s' is not cached.\n", value);
         }
         model_cache[index].selectable = 1;
     }
@@ -5873,7 +5873,7 @@ void prepare_cache_map(size_t size)
         model_cache = realloc(model_cache, sizeof(*model_cache) * cache_map_max_items);
         if(model_cache == NULL)
         {
-            shutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
+            borShutdown(1, "Out Of Memory!  Failed to create a new cache_map\n");
         }
     }
 }
@@ -7193,7 +7193,7 @@ void lcmHandleCommandName(ArgList *arglist, s_model *newchar, int cacheindex)
     s_model *tempmodel;
     if((tempmodel = findmodel(value)) && tempmodel != newchar)
     {
-        shutdown(1, "Duplicate model name '%s'", value);
+        borShutdown(1, "Duplicate model name '%s'", value);
     }
     /*if((tempmodel=find_model(value))) {
     	return tempmodel;
@@ -7372,7 +7372,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     }
     else
     {
-        shutdown(1, "Model '%s' has invalid type: '%s'", filename, value);
+        borShutdown(1, "Model '%s' has invalid type: '%s'", filename, value);
     }
 }
 
@@ -7490,7 +7490,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
     //    end new subtype
     else
     {
-        shutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
+        borShutdown(1, "Model '%s' has invalid subtype: '%s'", filename, value);
     }
 }
 
@@ -7504,7 +7504,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     }
     else
     {
-        shutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
+        borShutdown(1, "Model '%s' has multiple smartbomb commands defined.", filename);
     }
 
     newchar->smartbomb->attack_force = atoi(GET_ARGP(1));			// Special force
@@ -7727,7 +7727,7 @@ void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, 
         }
         else
         {
-            shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+            borShutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
         }
     }
     value = GET_ARGP(2);
@@ -7748,7 +7748,7 @@ void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, 
         }
         else
         {
-            shutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
+            borShutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
         }
     }
 }
@@ -7886,7 +7886,7 @@ size_t lcmHandleCommandScripts(ArgList *arglist, char *buf, Script *script, char
     }
     else
     {
-        shutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
+        borShutdown(1, "Unable to load %s '%s' in file '%s'.\n", scriptname, GET_ARGP(1), filename);
     }
     return pos;
 }
@@ -8258,7 +8258,7 @@ s_model *init_model(int cacheindex, int unload)
     s_model *newchar = calloc(1, sizeof(*newchar));
     if(!newchar)
     {
-        shutdown(1, (char *)E_OUT_OF_MEMORY);
+        borShutdown(1, (char *)E_OUT_OF_MEMORY);
     }
     newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
     newchar->index = cacheindex;
@@ -8359,7 +8359,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->animation = calloc(max_animations, sizeof(*newchar->animation));
     if(!newchar->animation)
     {
-        shutdown(1, (char *)E_OUT_OF_MEMORY);
+        borShutdown(1, (char *)E_OUT_OF_MEMORY);
     }
 
     // default string value, only by reference
@@ -8574,7 +8574,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     cacheindex = get_cached_model_index(name);
     if(cacheindex < 0)
     {
-        shutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
+        borShutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
     }
 
     // Get the text file name of model.
@@ -8583,7 +8583,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        shutdown(1, "Unable to open file '%s'\n\n", filename);
+        borShutdown(1, "Unable to open file '%s'\n\n", filename);
     }
 
     sbsize = size + 1;
@@ -8591,7 +8591,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     if(scriptbuf == NULL)
     {
-        shutdown(1, "Unable to create script buffer for file '%s' (%i bytes)", filename, size * 2);
+        borShutdown(1, "Unable to create script buffer for file '%s' (%i bytes)", filename, size * 2);
     }
     scriptbuf[0] = 0;
 
@@ -11620,7 +11620,7 @@ lCleanup:
         return newchar;
     }
 
-    shutdown(1, "Fatal Error in load_cached_model, file: %s, line %d, message: %s\n", filename, line, shutdownmessage);
+    borShutdown(1, "Fatal Error in load_cached_model, file: %s, line %d, message: %s\n", filename, line, shutdownmessage);
     return NULL;
 
     #undef LOG_CMD_TITLE
@@ -11851,7 +11851,7 @@ void load_model_constants()
     // Read file
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        shutdown(1, "Error loading model list from %s", filename);
+        borShutdown(1, "Error loading model list from %s", filename);
     }
 
     pos = 0;
@@ -12148,7 +12148,7 @@ int load_models()
     // Read file
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        shutdown(1, "Error loading model list from %s", filename);
+        borShutdown(1, "Error loading model list from %s", filename);
     }
 
     pos = 0;
@@ -12667,7 +12667,7 @@ void load_levelorder()
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        shutdown(1, "Error loading level list from %s", filename);
+        borShutdown(1, "Error loading level list from %s", filename);
     }
 
     // Now interpret the contents of buf line by line
@@ -13792,7 +13792,7 @@ lCleanup:
 
     if(errormessage)
     {
-        shutdown(1, "load_levelorder ERROR in %s at %d, msg: %s\n", filename, line, errormessage);
+        borShutdown(1, "load_levelorder ERROR in %s at %d, msg: %s\n", filename, line, errormessage);
     }
 }
 
@@ -15406,7 +15406,7 @@ lCleanup:
 
     if(errormessage)
     {
-        shutdown(1, "ERROR: load_level, file %s, line %d, message: %s", filename, line, errormessage);
+        borShutdown(1, "ERROR: load_level, file %s, line %d, message: %s", filename, line, errormessage);
     }
 }
 
@@ -17923,12 +17923,12 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     s_model oldmodel;
     if(ent == NULL)
     {
-        shutdown(1, "FATAL: tried to change model of invalid object");
+        borShutdown(1, "FATAL: tried to change model of invalid object");
     }
     m = findmodel(modelname);
     if(m == NULL)
     {
-        shutdown(1, "Model not found: '%s'", modelname);
+        borShutdown(1, "Model not found: '%s'", modelname);
     }
     oldmodel = ent->modeldata;
     ent->model = m;
@@ -22499,7 +22499,7 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
     }
     if(!newmodel)
     {
-        shutdown(1, "Can't set model for entity '%s', model not found.\n", ent->name);
+        borShutdown(1, "Can't set model for entity '%s', model not found.\n", ent->name);
     }
     if(newmodel == model)
     {
@@ -32429,7 +32429,7 @@ void spawnplayer(int index)
 
     if(player[index].ent == NULL)
     {
-        shutdown(1, "Fatal: unable to spawn player from '%s'\n", p.name);
+        borShutdown(1, "Fatal: unable to spawn player from '%s'\n", p.name);
     }
 
     player[index].ent->playerindex = index;
@@ -34306,7 +34306,7 @@ void display_credits()
 }
 
 
-void shutdown(int status, char *msg, ...)
+void borShutdown(int status, char *msg, ...)
 {
     char buf[1024] = "";
     va_list arglist;
@@ -34568,15 +34568,15 @@ void guistartup()
 
     if(!font_load(0, "menu/font1", packfile, 0))
     {
-        shutdown(1, "Unable to load font #1!\n");
+        borShutdown(1, "Unable to load font #1!\n");
     }
     if(!font_load(1, "menu/font2", packfile, 0))
     {
-        shutdown(1, "Unable to load font #2!\n");
+        borShutdown(1, "Unable to load font #2!\n");
     }
     if(!font_load(2, "menu/font3", packfile, 0))
     {
-        shutdown(1, "Unable to load font #3!\n");
+        borShutdown(1, "Unable to load font #3!\n");
     }
 
 
@@ -34588,7 +34588,7 @@ void guistartup()
     init_videomodes(0);
     if(!video_set_mode(videomodes))
     {
-        shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
+        borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
     }
 
     for(i = 0; i < 256; i++)
@@ -34642,7 +34642,7 @@ void startup()
     init_videomodes(1);
     if(!video_set_mode(videomodes))
     {
-        shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
+        borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
     }
 
     if(pixelformat == PIXEL_8)
@@ -34682,7 +34682,7 @@ void startup()
     }
     else
     {
-        shutdown(1, "Unable to Initialize Sound.\n");
+        borShutdown(1, "Unable to Initialize Sound.\n");
     }
 
     // init. input recorder
@@ -34714,7 +34714,7 @@ void startup()
     printf("Object engine init...........\t");
     if(!alloc_ents())
     {
-        shutdown(1, "Not enough memory for game objects!\n");
+        borShutdown(1, "Not enough memory for game objects!\n");
     }
     printf("Done!\n");
 
@@ -35610,7 +35610,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
     {
         if(buffer_pakfile(filename, &buf, &size) != 1)
         {
-            shutdown(1, "Failed to load player select file '%s'", filename);
+            borShutdown(1, "Failed to load player select file '%s'", filename);
         }
         while(pos < size)
         {
@@ -35927,7 +35927,7 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
     {
         return;
     }
-    // shutdown(1, "Illegal set chosen: index %i (there are only %i sets)!", which_set, num_difficulties);
+    // borShutdown(1, "Illegal set chosen: index %i (there are only %i sets)!", which_set, num_difficulties);
 
     allow_secret_chars = set->ifcomplete;
     PLAYER_LIVES = set->lives;
@@ -36800,7 +36800,7 @@ VIDEOMODES:
         printf("\nUsing debug video mode: %d x %d\n", videomodes.hRes, videomodes.vRes);
         break;
     default:
-        shutdown(1, "Invalid video mode: %d in 'data/video.txt', supported modes:\n"
+        borShutdown(1, "Invalid video mode: %d in 'data/video.txt', supported modes:\n"
                  "0 - 320x240\n"
                  "1 - 480x272\n"
                  "2 - 640x480\n"
@@ -36817,7 +36817,7 @@ VIDEOMODES:
 
     if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32)) == NULL)
     {
-        shutdown(1, "Not enough memory!\n");
+        borShutdown(1, "Not enough memory!\n");
     }
     videomodes.pixel = pixelbytes[(int)vscreen->pixelformat];
     //video_set_mode(videomodes);
@@ -37463,11 +37463,11 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
             case 1:
                 loadfromdefault();
-                //shutdown(2, "\nSettings Loaded From Default.cfg. Restart Required.\n\n");
+                //borShutdown(2, "\nSettings Loaded From Default.cfg. Restart Required.\n\n");
                 init_videomodes(0);
                 if(!video_set_mode(videomodes))
                 {
-                    shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
+                    borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
                 }
                 SB_setvolume(SB_VOICEVOL, savedata.soundvol);
                 sound_volume_music(savedata.musicvol, savedata.musicvol);
@@ -37475,11 +37475,11 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
                 break;
             case 2:
                 clearsettings();
-                //shutdown(2, "\nSettings Loaded From Default.cfg. Restart Required.\n\n");
+                //borShutdown(2, "\nSettings Loaded From Default.cfg. Restart Required.\n\n");
                 init_videomodes(0);
                 if(!video_set_mode(videomodes))
                 {
-                    shutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
+                    borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
                 }
                 SB_setvolume(SB_VOICEVOL, savedata.soundvol);
                 sound_volume_music(savedata.musicvol, savedata.musicvol);
@@ -38799,7 +38799,7 @@ void openborMain(int argc, char **argv)
         }
         update(0, 0);
     }
-    shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
+    borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
 int is_cheat_actived()

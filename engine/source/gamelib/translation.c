@@ -70,7 +70,7 @@ static char *__consume_str(char *buf, ptrdiff_t *pos, size_t size)
 
     if(stron)
     {
-        shutdown(1, "Unterminated string in translation.txt.");
+        borShutdown(1, "Unterminated string in translation.txt.");
     }
     //TODO: free pointers
     result[len] = 0;

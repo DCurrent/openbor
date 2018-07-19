@@ -326,7 +326,7 @@ void ScriptVariant_Copy(ScriptVariant *svar, ScriptVariant *rightChild )
         break;
     default:
         //should not happen unless the variant is not intialized correctly
-        //shutdown(1, "invalid variant type");
+        //borShutdown(1, "invalid variant type");
         svar->ptrVal = NULL;
         break;
     }

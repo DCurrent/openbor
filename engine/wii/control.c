@@ -81,7 +81,7 @@ void wiimote_poweroff(int playernum)
 // Resetting returns to the Homebrew Channel.
 void respondToPowerReset()
 {
-	shutdown(hwbutton, DEFAULT_SHUTDOWN_MESSAGE);
+	borShutdown(hwbutton, DEFAULT_SHUTDOWN_MESSAGE);
 }
 
 static int flag_to_index(unsigned long flag)

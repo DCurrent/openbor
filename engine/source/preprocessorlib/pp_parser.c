@@ -26,7 +26,7 @@
 #include "pp_expr.h"
 #include "borendian.h"
 
-/*#if PP_TEST // using pp_test.c to test the preprocessor functionality; OpenBOR functionality is not available
+#if PP_TEST // using pp_test.c to test the preprocessor functionality; OpenBOR functionality is not available
 #undef printf
 #define openpackfile(fname, pname)    ((int)fopen(fname, "rb"))
 #define readpackfile(hnd, buf, len)    fread(buf, 1, len, (FILE*)hnd)
@@ -34,18 +34,12 @@
 #define tellpackfile(hnd)            ftell((FILE*)hnd)
 #define closepackfile(hnd)            fclose((FILE*)hnd)
 #define printf(msg, args...)        fprintf(stderr, msg, ##args)
-#define shutdown(ret, msg, args...) { fprintf(stderr, msg, ##args); exit(ret); }
+#define borShutdown(ret, msg, args...) { fprintf(stderr, msg, ##args); exit(ret); }
 extern char *get_full_path(char *filename);
 #else // otherwise, we can use OpenBOR functionality like writeToLogFile
-#include "openbor.h"
-#include "globals.h"
 #include "packfile.h"
 #define tellpackfile(hnd)            seekpackfile(hnd, 0, SEEK_CUR)
-#undef time
-#endif*/
-
-#include "packfile.h"
-#define tellpackfile(hnd)            seekpackfile(hnd, 0, SEEK_CUR)
+#endif
 
 /**
  * Initializes a preprocessor context.  Assumes that this context either hasn't

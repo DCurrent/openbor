@@ -3087,7 +3087,7 @@ int ai_check_grab();
 int ai_check_escape();
 int ai_check_busy();
 void display_credits(void);
-void shutdown(int status, char *msg, ...);
+void borShutdown(int status, char *msg, ...);
 #ifdef DC
 void guistartup(void);
 #endif

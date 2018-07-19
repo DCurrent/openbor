@@ -651,7 +651,7 @@ void Array_Check_Size( const char *f_caller, char **array, int new_size, int *cu
         *array = malloc(*curr_size_allocated );
         if( *array == NULL)
         {
-            shutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
+            borShutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
         }
         memset( *array, 0, *curr_size_allocated );
         return;
@@ -675,7 +675,7 @@ void Array_Check_Size( const char *f_caller, char **array, int new_size, int *cu
     void *copy = malloc(*curr_size_allocated );
     if(copy == NULL)
     {
-        shutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
+        borShutdown(1, "Out Of Memory!  Failed in %s\n", f_caller);
     }
 
     // Copy the previous content of the array

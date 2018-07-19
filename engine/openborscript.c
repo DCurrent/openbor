@@ -477,7 +477,7 @@ static void execute_init_method(Script *pdest, int iscopy, int localclear)
         pdest->pinterpreter->pCurrentInstruction = pdest->pinterpreter->pInitEntry;
         if(FAILED( Interpreter_EvaluateCall(pdest->pinterpreter)))
         {
-            shutdown(1, "Fatal: failed to execute 'init' in script %s %s", pdest->pinterpreter->theSymbolTable.name, pdest->comment ? pdest->comment : "");
+            borShutdown(1, "Fatal: failed to execute 'init' in script %s %s", pdest->pinterpreter->theSymbolTable.name, pdest->comment ? pdest->comment : "");
         }
         pdest->pinterpreter->bReset = FALSE; // not needed, perhaps
         ScriptVariant_Clear(&tempvar);
@@ -525,7 +525,7 @@ void Script_Clear(Script *pscript, int localclear)
         pscript->pinterpreter->pCurrentInstruction = pscript->pinterpreter->pClearEntry;
         if(FAILED( Interpreter_EvaluateCall(pscript->pinterpreter)))
         {
-            shutdown(1, "Fatal: failed to execute 'clear' in script %s %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
+            borShutdown(1, "Fatal: failed to execute 'clear' in script %s %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
         }
         pscript->pinterpreter->bReset = FALSE; // not needed, perhaps
         ScriptVariant_Clear(&tempvar);
@@ -622,7 +622,7 @@ int Script_Compile(Script *pscript)
     result = SUCCEEDED(Interpreter_CompileInstructions(pscript->pinterpreter));
     if(!result)
     {
-        shutdown(1, "Can't compile script '%s' %s\n", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
+        borShutdown(1, "Can't compile script '%s' %s\n", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
     }
 
     pscript->pinterpreter->bReset = FALSE;
@@ -670,7 +670,7 @@ int Script_Execute(Script *pscript)
     pcurrentscript = temp;
     if(!result)
     {
-        shutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
+        borShutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
     }
     return result;
 }
@@ -12627,7 +12627,7 @@ HRESULT openbor_shutdown(ScriptVariant **varlist , ScriptVariant **pretvar, int 
         goto shutdown_error;
     }
 
-    shutdown((LONG)ltemp,  paramCount > 1 ? StrCache_Get(varlist[1]->strVal) : (DEFAULT_SHUTDOWN_MESSAGE));
+    borShutdown((LONG)ltemp,  paramCount > 1 ? StrCache_Get(varlist[1]->strVal) : (DEFAULT_SHUTDOWN_MESSAGE));
 
     return S_OK;
 shutdown_error:

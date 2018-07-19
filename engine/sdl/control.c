@@ -143,7 +143,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				break;
 #endif
 			case SDL_QUIT:
-				shutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
+				borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 				break;
 
 			case SDL_JOYBUTTONUP:
