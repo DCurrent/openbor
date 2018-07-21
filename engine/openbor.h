@@ -89,6 +89,7 @@
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_DOTS            10                  // Max active dot effects.
 #define     MAX_ARG_COUNT       64
+#define     PLATFORM_DEFAULT_X  99999
 
 /*
 Note: the min Z coordinate of the player is important

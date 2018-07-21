@@ -5786,7 +5786,7 @@ int addframe(s_anim             *a,
         memcpy(a->offset[currentframe], offset, sizeof(**a->offset));
     }
 
-    if(platform[7]) //height
+    if(platform[PLATFORM_HEIGHT]) //height
     {
         if(!a->platform)
         {
@@ -10368,7 +10368,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         platform[i + 2] = GET_FLOAT_ARG(i + 1);
                     }
-                    platform[0] = 99999;
+                    platform[PLATFORM_X] = PLATFORM_DEFAULT_X;
                 }
                 else for(i = 0; i < 8; i++)
                     {
@@ -11069,27 +11069,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 //attack.coords.z1 = abox.z1;
-                if(platform[0] == 99999) // old style
+                if(platform[PLATFORM_X] == PLATFORM_DEFAULT_X) // old style
                 {
-                    platform_con[0] = 0;
-                    platform_con[1] = 3;
-                    platform_con[2] = platform[2] - offset.x;
-                    platform_con[3] = platform[3] - offset.x;
-                    platform_con[4] = platform[4] - offset.x;
-                    platform_con[5] = platform[5] - offset.x;
-                    platform_con[6] = platform[6] + 3;
+                    platform_con[PLATFORM_X] = 0;
+                    platform_con[PLATFORM_Z] = 3;
+                    platform_con[PLATFORM_UPPERLEFT] = platform[PLATFORM_UPPERLEFT] - offset.x;
+                    platform_con[PLATFORM_LOWERLEFT] = platform[PLATFORM_LOWERLEFT] - offset.x;
+                    platform_con[PLATFORM_UPPERRIGHT] = platform[PLATFORM_UPPERRIGHT] - offset.x;
+                    platform_con[PLATFORM_LOWERRIGHT] = platform[PLATFORM_LOWERRIGHT] - offset.x;
+                    platform_con[PLATFORM_DEPTH] = platform[PLATFORM_DEPTH] + 3;
                 }
                 else // wall style
                 {
-                    platform_con[0] = platform[0] - offset.x;
-                    platform_con[1] = platform[1] - offset.y;
-                    platform_con[2] = platform[2];
-                    platform_con[3] = platform[3];
-                    platform_con[4] = platform[4];
-                    platform_con[5] = platform[5];
-                    platform_con[6] = platform[6];
+                    platform_con[PLATFORM_X] = platform[PLATFORM_X] - offset.x;
+                    platform_con[PLATFORM_Z] = platform[PLATFORM_Z] - offset.y;
+                    platform_con[PLATFORM_UPPERLEFT] = platform[PLATFORM_UPPERLEFT];
+                    platform_con[PLATFORM_LOWERLEFT] = platform[PLATFORM_LOWERLEFT];
+                    platform_con[PLATFORM_UPPERRIGHT] = platform[PLATFORM_UPPERRIGHT];
+                    platform_con[PLATFORM_LOWERRIGHT] = platform[PLATFORM_LOWERRIGHT];
+                    platform_con[PLATFORM_DEPTH] = platform[PLATFORM_DEPTH];
                 }
-                platform_con[7] = platform[7];
+                platform_con[PLATFORM_HEIGHT] = platform[PLATFORM_HEIGHT];
                 if(shadow_set)
                 {
                     shadow_coords[0] = shadow_xz[0] - offset.x;
@@ -21460,7 +21460,7 @@ void display_ents()
 
                     if ( anim->platform[e->animpos] )
                     {
-                        if ( anim->platform[e->animpos][7] ) eplatheight += anim->platform[e->animpos][PLATFORM_HEIGHT];
+                        if ( anim->platform[e->animpos][PLATFORM_HEIGHT] ) eplatheight += anim->platform[e->animpos][PLATFORM_HEIGHT];
                     }
                 }
                 if ( e->modeldata.size.y && eplatheight <= 0 ) eheight += e->modeldata.size.y;
