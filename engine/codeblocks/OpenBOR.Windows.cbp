@@ -488,6 +488,9 @@
 		<Unit filename="../source/openborscript/collision_coordinates.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="../source/openborscript/collision_entity.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="../source/openborscript/commands.c">
 			<Option compilerVar="CC" />
 		</Unit>
