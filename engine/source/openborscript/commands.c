@@ -254,6 +254,15 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_DROPFRAME, "dropframe");
     LIST_ADD(CMD_MODEL_DROPV, "dropv");
     LIST_ADD(CMD_MODEL_DUST, "dust");
+    LIST_ADD(CMD_MODEL_EBOX, "ebox");
+    LIST_ADD(CMD_MODEL_EBOX_INDEX, "ebox.index");
+    LIST_ADD(CMD_MODEL_EBOX_POSITION_X, "ebox.position.x");
+    LIST_ADD(CMD_MODEL_EBOX_POSITION_Y, "ebox.position.y");
+    LIST_ADD(CMD_MODEL_EBOX_SIZE_X, "ebox.size.x");
+    LIST_ADD(CMD_MODEL_EBOX_SIZE_Y, "ebox.size.y");
+    LIST_ADD(CMD_MODEL_EBOX_SIZE_Z_1, "ebox.size.z.1");
+    LIST_ADD(CMD_MODEL_EBOX_SIZE_Z_2, "ebox.size.z.2");
+    LIST_ADD(CMD_MODEL_EBOXZ, "eboxz");
     LIST_ADD(CMD_MODEL_EDELAY, "edelay");
     LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
     LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");

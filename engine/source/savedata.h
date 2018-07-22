@@ -37,6 +37,7 @@ typedef struct
     int debuginfo; // FPS, Memory, etc...
     int debug_collision_attack;
     int debug_collision_body;
+    int debug_collision_entity;
     int debug_collision_range;
     int debug_position;
     int debug_features;

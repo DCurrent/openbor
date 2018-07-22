@@ -728,6 +728,7 @@ typedef enum
     ANI_PROP_ATTACK,
     ANI_PROP_COLLISIONONE,    // stick on the only one victim
     ANI_PROP_BODY_COLLISION,
+    ANI_PROP_ENTITY_COLLISION,
     ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
     ANI_PROP_CANCEL,       // Cancel anims with freespecial
     ANI_PROP_CHARGETIME,   //INT charge time for an animation
@@ -998,6 +999,13 @@ typedef enum
     COLLISION_COORDINATES_PROP_X,
     COLLISION_COORDINATES_PROP_Y
 } e_collision_coordinates;
+
+// Entity collision (ebox) properties.
+typedef enum
+{
+    ENTITY_COLLISION_PROP_COORDINATES,
+    ENTITY_COLLISION_PROP_TAG
+} e_entity_collision_properties;
 
 typedef enum
 {
@@ -1639,7 +1647,7 @@ typedef struct
 // 2016-10~
 //
 // Collision box for detecting
-// attack boxes.
+// body boxes.
 typedef struct
 {
     s_hitbox    *coords;        // Collision box dimensions.
@@ -1657,6 +1665,22 @@ typedef struct
 {
     s_collision_body **instance;
 } s_collision_body_list;
+
+// Collision box for detecting
+// entity boxes.
+typedef struct
+{
+    s_hitbox    *coords;        // Collision box dimensions.
+    int         index;          // To enable user tracking of this box's index when multiple instances are in use.
+    int         tag;            // User defined tag for scripts. No hard coded purpose.
+} s_collision_entity;
+
+// List of collision body boxes
+// per animation frame.
+typedef struct
+{
+    s_collision_entity **instance;
+} s_collision_entity_list;
 
 // Collision box for active
 // attacks.
@@ -1878,6 +1902,7 @@ typedef struct
     int                     *weaponframe;           // Specify with a frame when to switch to a weapon model
     s_collision_attack_list **collision_attack;
     s_collision_body_list   **collision_body;
+    s_collision_entity_list **collision_entity;
     s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
     s_drawmethod            **drawmethods;
     s_onframe_set           *dropframe;             // if tossv < 0, this frame will be set
@@ -2811,12 +2836,15 @@ s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* pro
 s_collision_attack      **collision_alloc_attack_list();
 s_collision_body        *collision_alloc_body_instance(s_collision_body *properties);
 s_collision_body        **collision_alloc_body_list();
+s_collision_entity      *collision_alloc_entity_instance(s_collision_entity *properties);
+s_collision_entity      **collision_alloc_entity_list();
 s_hitbox                *collision_alloc_coords(s_hitbox *coords);
 int                     addframe(s_anim             *a,
                                 int                 spriteindex,
                                 int                 framecount,
                                 int                 delay,
                                 unsigned            idle,
+                                s_collision_entity  *ebox,
                                 s_collision_body    *bbox,
                                 s_collision_attack  *attack,
                                 s_move              *move,
@@ -2828,7 +2856,8 @@ int                     addframe(s_anim             *a,
                                 s_axis_plane_vertical_int         *offset,
                                 s_damage_recursive  *recursive,
                                 s_hitbox            *attack_coords,
-                                s_hitbox            *body_coords);
+                                s_hitbox            *body_coords,
+                                s_hitbox            *entity_coords);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
@@ -2940,6 +2969,8 @@ int check_range_target_base(entity *ent, entity *target, s_anim *animation);
 int check_range_target_x(entity *ent, entity *target, s_anim *animation);
 int check_range_target_y(entity *ent, entity *target, s_anim *animation);
 int check_range_target_z(entity *ent, entity *target, s_anim *animation);
+void check_entity_collision_for(entity* ent);
+int check_entity_collision(entity *ent, entity *target);
 
 
 void generate_basemap(int map_index, float rx, float rz, float x_size, float z_size, float min_a, float max_a, int x_cont);

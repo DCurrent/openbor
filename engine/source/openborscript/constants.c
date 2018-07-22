@@ -703,6 +703,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_PROP_ATTACK)
         ICMPCONST(ANI_PROP_COLLISIONONE)
         ICMPCONST(ANI_PROP_BODY_COLLISION)
+        ICMPCONST(ANI_PROP_ENTITY_COLLISION)
         ICMPCONST(ANI_PROP_BOUNCE)
         ICMPCONST(ANI_PROP_CANCEL)
         ICMPCONST(ANI_PROP_CHARGETIME)
@@ -783,6 +784,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(BODY_COLLISION_PROP_COORDINATES)
         ICMPCONST(BODY_COLLISION_PROP_DEFENSE)
         ICMPCONST(BODY_COLLISION_PROP_TAG)
+
+        // Entity Collision (ebox) properties.
+        ICMPCONST(ENTITY_COLLISION_PROP_COORDINATES)
+        ICMPCONST(ENTITY_COLLISION_PROP_TAG)
 
         // Collision coordinate properties.
         ICMPCONST(COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND)

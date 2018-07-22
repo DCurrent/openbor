@@ -112,7 +112,7 @@ const s_defense default_defense =
     .blocktype      = BLOCK_TYPE_MP_FIRST
 };
 
-const s_hitbox empty_collision_coords = { .x      = 0,
+const s_hitbox empty_collision_coords = {   .x      = 0,
                                             .y      = 0,
                                             .width  = 0,
                                             .height = 0,
@@ -122,8 +122,11 @@ const s_hitbox empty_collision_coords = { .x      = 0,
 const s_collision_body empty_body =   {     .coords     = NULL,
                                             .index      = 0,
                                             .defense    = NULL,
-                                            .tag        = 0
-                                    };
+                                            .tag        = 0};
+
+const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
+                                                        .index      = 0,
+                                                        .tag        = 0};
 
 // Recursive damage (dot).
 const s_damage_recursive empty_recursive = {    .force  = 0,
@@ -4982,6 +4985,40 @@ void free_frames(s_anim *anim)
         free(anim->collision_body);
         anim->collision_body = NULL;
     }
+    if(anim->collision_entity)
+    {
+        for(i = 0; i < anim->numframes; i++)
+        {
+            if(anim->collision_entity[i])
+            {
+                // Check each instance and free memory as needed.
+                // Momma always said put your toys away when you're done!
+                for(instance = 0; instance < max_collisons; instance++)
+                {
+                    if(anim->collision_entity[i]->instance[instance])
+                    {
+                        // First free any pointers allocated
+                        // for sub structures.
+
+                        // Coords.
+                        if(anim->collision_entity[i]->instance[instance]->coords)
+                        {
+                            free(anim->collision_entity[i]->instance[instance]->coords);
+                            anim->collision_entity[i]->instance[instance]->coords = NULL;
+                        }
+
+                        free(anim->collision_entity[i]->instance[instance]);
+                        anim->collision_entity[i]->instance[instance] = NULL;
+                    }
+                }
+
+                free(anim->collision_entity[i]);
+                anim->collision_entity[i] = NULL;
+            }
+        }
+        free(anim->collision_entity);
+        anim->collision_entity = NULL;
+    }
     if(anim->shadow)
     {
         free(anim->shadow);
@@ -5556,6 +5593,49 @@ s_collision_body **collision_alloc_body_list()
     return result;
 }
 
+// Allocate a collision entity instance, copy
+// property data if present, and return pointer.
+s_collision_entity *collision_alloc_entity_instance(s_collision_entity *properties)
+{
+    s_collision_entity    *result;
+    size_t              alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // If previous data is provided,
+    // copy into new allocation.
+    if(properties)
+    {
+        memcpy(result, properties, alloc_size);
+    }
+
+    // return result.
+    return result;
+}
+
+// Allocate an empty collision entity list.
+s_collision_entity **collision_alloc_entity_list()
+{
+    s_collision_entity **result;
+    size_t             alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the list is blank.
+    memset(result, 0, alloc_size);
+
+    // return result.
+    return result;
+}
+
 // Caskey, Damon V.
 // 2016-11-26
 //
@@ -5588,6 +5668,7 @@ int addframe(s_anim             *a,
              int                framecount,
              int                delay,
              unsigned           idle,
+             s_collision_entity *ebox,
              s_collision_body   *bbox,
              s_collision_attack *attack,
              s_move             *move,
@@ -5599,7 +5680,8 @@ int addframe(s_anim             *a,
              s_axis_plane_vertical_int        *offset,
              s_damage_recursive *recursive,
              s_hitbox           *attack_coords,
-             s_hitbox           *body_coords)
+             s_hitbox           *body_coords,
+             s_hitbox           *entity_coords)
 {
     int     i;
     size_t  size_col_on_frame,
@@ -5607,6 +5689,7 @@ int addframe(s_anim             *a,
 
     s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
+    s_collision_entity  *collision_entity;
 
     ptrdiff_t currentframe;
     if(framecount > 0)
@@ -5678,6 +5761,38 @@ int addframe(s_anim             *a,
             if(!collision_body->coords)
             {
                 collision_body->coords = collision_alloc_coords(body_coords);
+            }
+        }
+    }
+
+    // Allocate entity boxes.
+    if((entity_coords->width - entity_coords->x)
+        && (entity_coords->height - entity_coords->y))
+    {
+        if(!a->collision_entity)
+        {
+            size_col_on_frame = framecount * sizeof(*a->collision_entity);
+
+            a->collision_entity = malloc(size_col_on_frame);
+            memset(a->collision_entity, 0, size_col_on_frame);
+        }
+
+        size_col_on_frame_struct = sizeof(**a->collision_entity);
+        a->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
+
+        a->collision_entity[currentframe]->instance = collision_alloc_entity_list();
+
+        for(i=0; i<max_collisons; i++)
+        {
+            collision_entity = collision_alloc_entity_instance(ebox);
+            a->collision_entity[currentframe]->instance[i] = collision_entity;
+
+            collision_entity->index = i;
+
+            // Coordinates.
+            if(!collision_entity->coords)
+            {
+                collision_entity->coords = collision_alloc_coords(entity_coords);
             }
         }
     }
@@ -8457,6 +8572,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     .z1     = 0,
                                     .z2     = 0};
 
+    s_hitbox            ebox = {    .x      = 0,
+                                    .y      = 0,
+                                    .width  = 0,
+                                    .height = 0,
+                                    .z1     = 0,
+                                    .z2     = 0};
+
     s_hitbox            abox = {    .x = 0,
                                     .y = 0,
                                     .width = 0,
@@ -8464,8 +8586,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     .z1 = 0,
                                     .z2 = 0};
 
-    s_axis_plane_vertical_int         offset = {  .x = 0,
-                                    .y = 0 };
+    s_axis_plane_vertical_int         offset = { .x = 0,
+                                                 .y = 0 };
     int                 shadow_xz[2] = {0, 0};
     int                 shadow_coords[2] = {0, 0};
 
@@ -8483,7 +8605,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_collision_attack  attack;
     s_collision_attack  *pattack = NULL;
     s_collision_body    bbox_con;
+    s_collision_entity  ebox_con;
     s_hitbox            body_coords;
+    s_hitbox            entity_coords;
     s_defense           defense;
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
@@ -8606,6 +8730,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     attack = emptyattack;      // empty attack
     bbox_con = empty_body;
+    ebox_con = empty_entity_collision;
 
     drawmethod = plainmethod;  // better than memset it to 0
 
@@ -9872,6 +9997,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
+                memset(&ebox, 0, sizeof(ebox));
                 memset(&bbox, 0, sizeof(bbox));
                 memset(&abox, 0, sizeof(abox));
                 memset(&offset, 0, sizeof(offset));
@@ -9880,6 +10006,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 memset(platform, 0, sizeof(platform));
                 shadow_set                      = 0;
                 bbox_con                        = empty_body;
+                ebox_con                        = empty_entity_collision;
                 body_coords                     = empty_collision_coords;
                 attack                          = emptyattack;
                 attack_coords                   = empty_collision_coords;
@@ -10357,6 +10484,39 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_BBOXZ:
                 bbox.z1 = GET_INT_ARG(1);
                 bbox.z2 = GET_INT_ARG(2);
+                break;
+            case CMD_MODEL_EBOX:
+                ebox.x = GET_INT_ARG(1);
+                ebox.y = GET_INT_ARG(2);
+                ebox.width = GET_INT_ARG(3);
+                ebox.height = GET_INT_ARG(4);
+                ebox.z1 = GET_INT_ARG(5);
+                ebox.z2 = GET_INT_ARG(6);
+                break;
+            case CMD_MODEL_EBOX_INDEX:
+                // Nothing yet - for future support of multiple boxes.
+                break;
+            case CMD_MODEL_EBOX_POSITION_X:
+                ebox.x = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_EBOX_POSITION_Y:
+                ebox.y = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_EBOX_SIZE_X:
+                ebox.width = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_EBOX_SIZE_Y:
+                ebox.height = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_EBOX_SIZE_Z_1:
+                ebox.z1 = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_EBOX_SIZE_Z_2:
+                ebox.z2 = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_EBOXZ:
+                ebox.z1 = GET_INT_ARG(1);
+                ebox.z2 = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
@@ -11057,6 +11217,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     body_coords.z2 -= offset.y;
                 }
 
+                entity_coords.x      = ebox.x - offset.x;
+                entity_coords.y      = ebox.y - offset.y;
+                entity_coords.width  = ebox.width + entity_coords.x;
+                entity_coords.height = ebox.height + entity_coords.y;
+                entity_coords.z1     = ebox.z1;
+                entity_coords.z2     = ebox.z2;
+
+                if(entity_coords.z2 > entity_coords.z1)
+                {
+                    entity_coords.z1 -= offset.y;
+                    entity_coords.z2 -= offset.y;
+                }
+
                 attack_coords.x      = abox.x - offset.x;
                 attack_coords.y      = abox.y - offset.y;
                 attack_coords.width  = abox.width + attack_coords.x;
@@ -11115,10 +11288,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 curframe = addframe(newanim, index, framecount, delay, idle,
-                                    &bbox_con, &attack, &move, platform_con,
+                                    &ebox_con, &bbox_con, &attack, &move, platform_con,
                                     frameshadow, shadow_coords, soundtoplay,
                                     &dm, &offset, &recursive, &attack_coords,
-                                    &body_coords);
+                                    &body_coords, &entity_coords);
 
                 soundtoplay = -1;
                 frm_id = -1;
@@ -16163,16 +16336,18 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
 
 void draw_visual_debug()
 {
-    #define LOCAL_COLOR_BLUE  _makecolour(0, 0, 255)
-    #define LOCAL_COLOR_GREEN _makecolour(0, 255, 0)
-    #define LOCAL_COLOR_RED   _makecolour(255, 0, 255)
-    #define LOCAL_COLOR_WHITE _makecolour(255, 255, 255)
+    #define LOCAL_COLOR_BLUE        _makecolour(0, 0, 255)
+    #define LOCAL_COLOR_GREEN       _makecolour(0, 255, 0)
+    #define LOCAL_COLOR_ORANGE      _makecolour(255, 100, 0)
+    #define LOCAL_COLOR_MAGENTA     _makecolour(255, 0, 255)
+    #define LOCAL_COLOR_WHITE       _makecolour(255, 255, 255)
 
     int i;
     int instance;
     s_hitbox            *coords;
     s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
+    s_collision_entity  *collision_entity;
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
 
@@ -16238,6 +16413,32 @@ void draw_visual_debug()
             }
         }
 
+        // Collision entity debug requested?
+        if(savedata.debug_collision_entity)
+        {
+            // Animation has collision?
+            if(entity->animation->collision_entity)
+            {
+                // Frame has collision?
+                if(entity->animation->collision_entity[entity->animpos])
+                {
+                    // Loop instances of collision.
+                    for(instance = 0; instance < max_collisons; instance++)
+                    {
+                        // Get collision instance pointer.
+                        collision_entity = entity->animation->collision_entity[entity->animpos]->instance[instance];
+
+                        // Valid collision instance pointer found?
+                        if(collision_entity)
+                        {
+                            coords = collision_entity->coords;
+                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_ORANGE, &drawmethod);
+                        }
+                    }
+                }
+            }
+        }
+
         // Collision attack requested?
         if(savedata.debug_collision_attack)
         {
@@ -16257,7 +16458,7 @@ void draw_visual_debug()
                         if(collision_attack)
                         {
                             coords = collision_attack->coords;
-                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_RED, &drawmethod);
+                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_MAGENTA, &drawmethod);
                         }
                     }
                 }
@@ -16267,7 +16468,8 @@ void draw_visual_debug()
 
     #undef LOCAL_COLOR_BLUE
     #undef LOCAL_COLOR_GREEN
-    #undef LOCAL_COLOR_RED
+    #undef LOCAL_COLOR_ORANGE
+    #undef LOCAL_COLOR_MAGENTA
     #undef LOCAL_COLOR_WHITE
 }
 
@@ -16469,6 +16671,7 @@ void predrawstatus()
        || savedata.debug_features
        || savedata.debug_collision_attack
        || savedata.debug_collision_body
+       || savedata.debug_collision_entity
        || savedata.debug_collision_range)
     {
         // Collision boxes
@@ -21285,6 +21488,7 @@ void check_move(entity *e)
 void ent_post_update(entity *e)
 {
     check_gravity(e);// check gravity
+    check_entity_collision_for(e);
     check_move(e);
 
     adjust_bind(e);
@@ -25261,6 +25465,199 @@ int trygrab(entity *other)
     return result;
 }
 
+int check_entity_collision(entity *ent, entity *target)
+{
+    s_hitbox *coords_col_entity_ent;
+    s_hitbox *coords_col_entity_target;
+    s_collision_entity  *col_entity_ent = NULL;
+    s_collision_entity  *col_entity_target = NULL;
+    float   x1,
+            x2,
+            y1,
+            y2,
+            z1,
+            z2;
+    int col_entity_ent_instance;
+    float   col_entity_ent_pos_x        = 0,
+            col_entity_ent_pos_y        = 0,
+            col_entity_ent_size_x       = 0,
+            col_entity_ent_size_y       = 0,
+            col_entity_target_pos_x     = 0,
+            col_entity_target_pos_y     = 0,
+            col_entity_target_size_x    = 0,
+            col_entity_target_size_y    = 0;
+    float   zdist = 0, zdepth1 = 0, zdepth2 = 0;
+    float   SHIFT_FACTOR = 1.0f;
+
+    if(ent == target
+       || !target->animation->collision_entity
+       || !ent->animation->collision_entity
+       )
+    {
+        return 0;
+    }
+
+    int col_entity_target_instance = 0;
+    int collision_found = 0;
+
+    for(col_entity_ent_instance = 0; col_entity_ent_instance < max_collisons; col_entity_ent_instance++)
+    {
+        col_entity_ent  = ent->animation->collision_entity[ent->animpos]->instance[col_entity_ent_instance];
+        coords_col_entity_ent   = col_entity_ent->coords;
+
+        for(col_entity_target_instance = 0; col_entity_target_instance < max_collisons; col_entity_target_instance++)
+        {
+            col_entity_target          = target->animation->collision_entity[target->animpos]->instance[col_entity_target_instance];
+            coords_col_entity_target   = col_entity_target->coords;
+
+            z1      = ent->position.z;
+            z2      = target->position.z;
+            zdist   = 0;
+
+            if(coords_col_entity_ent->z2 > coords_col_entity_ent->z1)
+            {
+                zdepth1 = (coords_col_entity_ent->z2 - coords_col_entity_ent->z1) / 2;
+                z1 += coords_col_entity_ent->z1 + zdepth1;
+                zdist += zdepth1;
+            }
+            else if(coords_col_entity_ent->z1)
+            {
+                zdepth1 = coords_col_entity_ent->z1;
+                zdist += coords_col_entity_ent->z1;
+            }
+
+            if(coords_col_entity_target->z2 > coords_col_entity_target->z1)
+            {
+                zdepth2 = (coords_col_entity_target->z2 - coords_col_entity_target->z1) / 2;
+                z2 += coords_col_entity_target->z1 + zdepth2;
+                zdist += zdepth2;
+            }
+            else if(coords_col_entity_target->z1)
+            {
+                zdepth2 = coords_col_entity_target->z1;
+                zdist += coords_col_entity_target->z1;
+            }
+
+            zdist++; // pass >= <= check
+
+            if(diff(z1, z2) > zdist)
+            {
+                continue;
+            }
+
+            z1 = ent->position.z;
+            z2 = target->position.z;
+            x1 = ent->position.x;
+            y1 = z1 - ent->position.y;
+            x2 = target->position.x;
+            y2 = z2 - target->position.y;
+
+            if(ent->direction == DIRECTION_LEFT)
+            {
+                col_entity_ent_pos_x   = x1 - coords_col_entity_ent->width;
+                col_entity_ent_size_x  = x1 - coords_col_entity_ent->x;
+            }
+            else
+            {
+                col_entity_ent_pos_x    = x1 + coords_col_entity_ent->x;
+                col_entity_ent_size_x   = x1 + coords_col_entity_ent->width;
+            }
+            col_entity_ent_pos_y    = y1 + coords_col_entity_ent->y;
+            col_entity_ent_size_y   = y1 + coords_col_entity_ent->height;
+
+            if(target->direction == DIRECTION_LEFT)
+            {
+                col_entity_target_pos_x    = x2 - coords_col_entity_target->width;
+                col_entity_target_size_x   = x2 - coords_col_entity_target->x;
+            }
+            else
+            {
+                col_entity_target_pos_x    = x2 + coords_col_entity_target->x;
+                col_entity_target_size_x   = x2 + coords_col_entity_target->width;
+            }
+            col_entity_target_pos_y    = y2 + coords_col_entity_target->y;
+            col_entity_target_size_y   = y2 + coords_col_entity_target->height;
+
+            if(col_entity_ent_pos_x > col_entity_target_size_x)
+            {
+                continue;
+            }
+            if(col_entity_target_pos_x > col_entity_ent_size_x)
+            {
+                continue;
+            }
+            if(col_entity_ent_pos_y > col_entity_target_size_y)
+            {
+                continue;
+            }
+            if(col_entity_target_pos_y > col_entity_ent_size_y)
+            {
+                continue;
+            }
+
+            // If we got this far, set collision flag
+            // and break this loop.
+            collision_found = 1;
+            break;
+        }
+
+        // If a collision was found
+        // break out of loop.
+        if(collision_found)
+        {
+            break;
+        }
+    }
+
+    if(!collision_found)
+    {
+        return 0;
+    }
+
+    // check on axis x
+    if(col_entity_ent_pos_x <= col_entity_target_pos_x)
+    {
+        ent->movex -= SHIFT_FACTOR;
+    }
+    else
+    {
+        ent->movex += SHIFT_FACTOR;
+    }
+
+    // check on axis z
+    if(z1 - zdepth1 <= z2 + zdepth2 &&
+       z1 - zdepth1 >= z2)
+    {
+        ent->movez += SHIFT_FACTOR;
+    }
+    else if(z1 + zdepth1 >= z2 - zdepth2 &&
+            z1 + zdepth1 <= z2)
+    {
+        ent->movez -= SHIFT_FACTOR;
+    }
+
+    ///TODO add event
+
+    return 1;
+}
+
+void check_entity_collision_for(entity* ent)
+{
+    // Animation has collision?
+    if (ent && ent->animation && ent->animation->collision_entity)
+    {
+        int i;
+        for(i = 0; i < ent_max; i++)
+        {
+            //s_anim *a = ent->animation[ent->animnum];
+            entity* target = ent_list[i];
+            if(target->exists && target != ent)// && !target->dead && (target->modeldata.type & TYPE_ENEMY)
+            {
+                check_entity_collision(ent, target);
+            }
+        }
+    }
+}
 
 int common_trymove(float xdir, float zdir)
 {
@@ -25268,7 +25665,7 @@ int common_trymove(float xdir, float zdir)
     int wall, heightvar, t, needcheckhole = 0;
     float x, z, oxdir, ozdir;
 
-    if(!xdir && !zdir)
+    if(xdir == 0 && zdir == 0)
     {
         return 0;
     }
@@ -37521,6 +37918,7 @@ void menu_options_debug()
         ITEM_FEATURES,
         ITEM_COL_ATTACK,
         ITEM_COL_BODY,
+        ITEM_COL_ENTITY,
         ITEM_COL_RANGE,
 
         // This is the "Back"
@@ -37569,6 +37967,10 @@ void menu_options_debug()
 
         _menutext((selector == ITEM_COL_BODY),       COLUMN_1_POS_X, pos_y, Tr("Collision Body:"));
         _menutext((selector == ITEM_COL_BODY),       COLUMN_2_POS_X, pos_y, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
+        pos_y++;
+
+        _menutext((selector == ITEM_COL_ENTITY),       COLUMN_1_POS_X, pos_y, Tr("Collision Entity:"));
+        _menutext((selector == ITEM_COL_ENTITY),       COLUMN_2_POS_X, pos_y, (savedata.debug_collision_entity ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         _menutext((selector == ITEM_COL_RANGE),      COLUMN_1_POS_X, pos_y, Tr("Range:"));
@@ -37654,6 +38056,9 @@ void menu_options_debug()
                     break;
                 case ITEM_COL_BODY:
                     savedata.debug_collision_body = !savedata.debug_collision_body;
+                    break;
+                case ITEM_COL_ENTITY:
+                    savedata.debug_collision_entity = !savedata.debug_collision_entity;
                     break;
                 case ITEM_COL_RANGE:
                     savedata.debug_collision_range = !savedata.debug_collision_range;
