@@ -1971,8 +1971,9 @@ typedef struct
     Script         *key_script;                     //execute when entity's player presses a key
     Script         *didblock_script;                //execute when blocking attack.
     Script         *ondoattack_script;              //execute when attack passes do_attack checks.
-    Script			*onmodelcopy_script;				//execute when set_model_ex is done
+    Script			*onmodelcopy_script;			//execute when set_model_ex is done
     Script			*ondraw_script;					//when update_ents is called
+    Script			*onentitycollision_script;		//execute when entity collides with other entity
 } s_scripts;
 
 typedef struct
@@ -2198,6 +2199,8 @@ typedef struct
     float attackthrottletime; // how long does the throttle status last
     s_stealth stealth; // Invisibility to AI feature added by DC. 2011_04_05, DC: Moved to struct.
     s_edge_range edgerange; // Edge range
+    int entitypushing; // entity pushing active in entity collision
+    float pushingfactor; // pushing factor in entity collision
 
     //---------------new A.I. switches-----------
     int hostile; // specify hostile types

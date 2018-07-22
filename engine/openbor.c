@@ -1627,6 +1627,40 @@ void execute_onblockp_script(entity *ent, int plane, entity *platform)
     }
 }
 
+void execute_onentitycollision_script(entity *ent, entity *target, s_collision_entity *ebox_ent, s_collision_entity *ebox_target)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->onentitycollision_script;
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+        tempvar.ptrVal = (VOID *)ent;
+        Script_Set_Local_Variant(cs, "self", &tempvar);
+
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+        tempvar.ptrVal = (VOID *)target;
+        Script_Set_Local_Variant(cs, "target", &tempvar);
+
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+        tempvar.ptrVal = (VOID *)ebox_ent;
+        Script_Set_Local_Variant(cs, "self_ebox_handler", &tempvar);
+
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+        tempvar.ptrVal = (VOID *)ebox_target;
+        Script_Set_Local_Variant(cs, "target_ebox_handler", &tempvar);
+
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self", &tempvar);
+        Script_Set_Local_Variant(cs, "target", &tempvar);
+        Script_Set_Local_Variant(cs, "self_ebox_handler", &tempvar);
+        Script_Set_Local_Variant(cs, "target_ebox_handler", &tempvar);
+    }
+}
+
 void execute_onblocko_script(entity *ent, int plane, entity *other)
 {
     ScriptVariant tempvar;
@@ -9433,6 +9467,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->edgerange.x = GET_FLOAT_ARG(1);
                 newchar->edgerange.z = GET_FLOAT_ARG(2);
                 break;
+            case CMD_MODEL_ENTITYPUSHING:
+                newchar->entitypushing = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_PUSHINGFACTOR:
+                newchar->pushingfactor = GET_FLOAT_ARG(1);
+                break;
             case CMD_MODEL_GRABWALK:
                 newchar->grabwalkspeed = GET_FLOAT_ARG(1);
                 newchar->grabwalkspeed /= 10;
@@ -9952,6 +9992,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_ONDEATHSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->ondeath_script, "ondeathscript", filename, 1, 0);
+                break;
+            case CMD_MODEL_ONENTITYCOLLISIONSCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onentitycollision_script, "onentitycollisionscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONKILLSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onkill_script, "onkillscript", filename, 1, 0);
@@ -25488,8 +25531,8 @@ int check_entity_collision(entity *ent, entity *target)
             col_entity_target_size_y    = 0;
     int     zdist = 0;
     int     zdepth1 = 0, zdepth2 = 0;
-    int     entity_pushing = 1;
-    float   PUSH_FACTOR = 1.0f;
+    int     entity_pushing = ent->modeldata.entitypushing;
+    float   PUSH_FACTOR = ent->modeldata.pushingfactor;
 
     if(ent == target
        || !target->animation->collision_entity
@@ -25506,6 +25549,8 @@ int check_entity_collision(entity *ent, entity *target)
 
     int col_entity_target_instance = 0;
     int collision_found = 0;
+
+    if (entity_pushing && !PUSH_FACTOR) PUSH_FACTOR = 1.0f;
 
     for(col_entity_ent_instance = 0; col_entity_ent_instance < max_collisons; col_entity_ent_instance++)
     {
@@ -25689,7 +25734,8 @@ int check_entity_collision(entity *ent, entity *target)
         }
     }
 
-    ///TODO add event
+    // execute event
+    execute_onentitycollision_script(ent, target, col_entity_ent, col_entity_target);
 
     return 1;
 }

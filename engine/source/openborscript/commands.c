@@ -266,6 +266,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_EDELAY, "edelay");
     LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
     LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");
+    LIST_ADD(CMD_MODEL_ENTITYPUSHING, "entitypushing");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");
     LIST_ADD(CMD_MODEL_FALLDIE, "falldie");
@@ -375,6 +376,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ONDEATHSCRIPT, "ondeathscript");
     LIST_ADD(CMD_MODEL_ONDOATTACKSCRIPT, "ondoattackscript");
     LIST_ADD(CMD_MODEL_ONDRAWSCRIPT, "ondrawscript");
+    LIST_ADD(CMD_MODEL_ONENTITYCOLLISIONSCRIPT, "onentitycollisionscript");
     LIST_ADD(CMD_MODEL_ONFALLSCRIPT, "onfallscript");
     LIST_ADD(CMD_MODEL_ONKILLSCRIPT, "onkillscript");
     LIST_ADD(CMD_MODEL_ONMODELCOPYSCRIPT, "onmodelcopyscript");
@@ -403,6 +405,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_PSHOTFRAME, "pshotframe");
     LIST_ADD(CMD_MODEL_PSHOTFRAMENO, "pshotframeno");
     LIST_ADD(CMD_MODEL_PSHOTFRAMEW, "pshotframew");
+    LIST_ADD(CMD_MODEL_PUSHINGFACTOR, "pushingfactor");
     LIST_ADD(CMD_MODEL_QUAKEFRAME, "quakeframe");
     LIST_ADD(CMD_MODEL_RANGE, "range");
     LIST_ADD(CMD_MODEL_RANGEA, "rangea");

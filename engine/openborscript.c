@@ -2039,6 +2039,7 @@ enum entityproperty_enum
     _ep_bound,
     _ep_candamage,
     _ep_chargerate,
+    _ep_collidedentity,
     _ep_colourmap,
     _ep_colourtable,
     _ep_combostep,
@@ -2060,6 +2061,7 @@ enum entityproperty_enum
     _ep_edge,
     _ep_edgerange,
     _ep_energycost,
+    _ep_entitypushing,
     _ep_escapecount,
     _ep_escapehits,
     _ep_exists,
@@ -2107,6 +2109,8 @@ enum entityproperty_enum
     _ep_maxjugglepoints,
     _ep_maxmp,
     _ep_model,
+    _ep_movex,
+    _ep_movez,
     _ep_mp,
     _ep_mpdroprate,
     _ep_mprate,
@@ -2141,6 +2145,7 @@ enum entityproperty_enum
     _ep_prevanimationid,
     _ep_projectile,
     _ep_projectilehit,
+    _ep_pushingfactor,
     _ep_range,
     _ep_releasetime,
     _ep_running,
@@ -2239,6 +2244,7 @@ static const char *eplist[] =
     "bound",
     "candamage",
     "chargerate",
+    "collidedentity",
     "colourmap",
     "colourtable",
     "combostep",
@@ -2260,6 +2266,7 @@ static const char *eplist[] =
     "edge",
     "edgerange",
     "energycost",
+    "entitypushing",
     "escapecount",
     "escapehits",
     "exists",
@@ -2307,6 +2314,8 @@ static const char *eplist[] =
     "maxjugglepoints",
     "maxmp",
     "model",
+    "movex",
+    "movez",
     "mp",
     "mpdroprate",
     "mprate",
@@ -2341,6 +2350,7 @@ static const char *eplist[] =
     "prevanimationid",
     "projectile",
     "projectilehit",
+    "pushingfactor",
     "range",
     "releasetime",
     "running",
@@ -3714,6 +3724,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->combotime;
         break;
     }
+    case _ep_collidedentity:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_PTR);
+        (*pretvar)->ptrVal = (VOID *)&ent->collided_entity;
+        break;
+    }
     case _ep_hostile:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -4712,6 +4728,30 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
         (*pretvar)->strVal = StrCache_CreateNewFrom(ent->model->name);
+        break;
+    }
+    case _ep_movex:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)ent->movex;
+        break;
+    }
+    case _ep_movez:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)ent->movex;
+        break;
+    }
+    case _ep_entitypushing:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.entitypushing;
+        break;
+    }
+    case _ep_pushingfactor:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.pushingfactor;
         break;
     }
     case _ep_mp:
@@ -5865,6 +5905,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_collidedentity:
+    {
+        ent->collided_entity = (entity *)varlist[2]->ptrVal;
+        break;
+    }
     case _ep_colourmap:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -6565,6 +6610,38 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             {
                 ent->weapent = ent;
             }
+        }
+        break;
+    }
+    case _ep_movex:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        {
+            ent->movex = (DOUBLE)dbltemp;
+        }
+        break;
+    }
+    case _ep_movez:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        {
+            ent->movez = (DOUBLE)dbltemp;
+        }
+        break;
+    }
+    case _ep_entitypushing:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.entitypushing = (LONG)ltemp;
+        }
+        break;
+    }
+    case _ep_pushingfactor:
+    {
+        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
+        {
+            ent->modeldata.pushingfactor = (DOUBLE)dbltemp;
         }
         break;
     }
