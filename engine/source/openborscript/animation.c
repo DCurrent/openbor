@@ -95,6 +95,17 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
+        case ANI_PROP_ENTITY_COLLISION:
+
+            // Verify animation has any bbox.
+            if(handle->collision_entity)
+            {
+                ScriptVariant_ChangeType(*pretvar, VT_PTR);
+                (*pretvar)->ptrVal = (VOID *)handle->collision_entity;
+            }
+
+            break;
+
         case ANI_PROP_BOUNCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
