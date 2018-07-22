@@ -25471,14 +25471,14 @@ int check_entity_collision(entity *ent, entity *target)
     s_hitbox *coords_col_entity_target;
     s_collision_entity  *col_entity_ent = NULL;
     s_collision_entity  *col_entity_target = NULL;
-    float   x1,
+    int     x1,
             x2,
             y1,
             y2,
             z1,
             z2;
     int col_entity_ent_instance;
-    float   col_entity_ent_pos_x        = 0,
+    int     col_entity_ent_pos_x        = 0,
             col_entity_ent_pos_y        = 0,
             col_entity_ent_size_x       = 0,
             col_entity_ent_size_y       = 0,
@@ -25486,8 +25486,10 @@ int check_entity_collision(entity *ent, entity *target)
             col_entity_target_pos_y     = 0,
             col_entity_target_size_x    = 0,
             col_entity_target_size_y    = 0;
-    float   zdist = 0, zdepth1 = 0, zdepth2 = 0;
-    float   SHIFT_FACTOR = ent->modeldata.speed;
+    int     zdist = 0;
+    int     zdepth1 = 0, zdepth2 = 0;
+    int     entity_pushing = 1;
+    float   PUSH_FACTOR = 1.0f;
 
     if(ent == target
        || !target->animation->collision_entity
@@ -25498,12 +25500,6 @@ int check_entity_collision(entity *ent, entity *target)
     }
 
     if(ent->link || target->link)
-    {
-        return 0;
-    }
-
-    ///TODO: add flag
-    if (!ent->movex && !ent->movez)
     {
         return 0;
     }
@@ -25521,8 +25517,8 @@ int check_entity_collision(entity *ent, entity *target)
             col_entity_target          = target->animation->collision_entity[target->animpos]->instance[col_entity_target_instance];
             coords_col_entity_target   = col_entity_target->coords;
 
-            z1      = ent->position.z;
-            z2      = target->position.z;
+            z1      = ent->position.z + ent->movez;
+            z2      = target->position.z + target->movez;
             zdist   = 0;
 
             if(coords_col_entity_ent->z2 > coords_col_entity_ent->z1)
@@ -25549,19 +25545,17 @@ int check_entity_collision(entity *ent, entity *target)
                 zdist += coords_col_entity_target->z1;
             }
 
-            zdist++; // pass >= <= check
-
             if(diff(z1, z2) > zdist)
             {
                 continue;
             }
 
-            z1 = ent->position.z;
-            z2 = target->position.z;
-            x1 = ent->position.x;
-            y1 = z1 - ent->position.y;
-            x2 = target->position.x;
-            y2 = z2 - target->position.y;
+            x1 = (int)ent->position.x + ent->movex;
+            z1 = (int)ent->position.z + ent->movez;
+            y1 = (int)z1 - ent->position.y;
+            x2 = (int)target->position.x + target->movex;
+            z2 = (int)target->position.z + target->movez;
+            y2 = (int)z2 - target->position.y;
 
             if(ent->direction == DIRECTION_LEFT)
             {
@@ -25628,40 +25622,71 @@ int check_entity_collision(entity *ent, entity *target)
     // check on axis x
     if(col_entity_ent_pos_x <= col_entity_target_pos_x)
     {
-        if (ent->collided_entity && ent->collided_entity == target)
+        if (!entity_pushing)
         {
             if (ent->movex > 0) ent->movex = 0;
         }
-        ent->movex -= SHIFT_FACTOR;
+        else
+        {
+            // let to escape
+            if (ent->collided_entity && ent->collided_entity == target)
+            {
+                if (ent->movex > 0) ent->movex = 0;
+            }
+            if (ent->movex != -1 * target->movex || (!target->movex)) ent->movex -= PUSH_FACTOR;
+        }
     }
     else
     {
-        if (ent->collided_entity && ent->collided_entity == target)
+        if (!entity_pushing)
         {
             if (ent->movex < 0) ent->movex = 0;
         }
-        ent->movex += SHIFT_FACTOR;
+        else
+        {
+            // let to escape
+            if (ent->collided_entity && ent->collided_entity == target)
+            {
+                if (ent->movex < 0) ent->movex = 0;
+            }
+            if (ent->movex != -1 * target->movex || (!target->movex)) ent->movex += PUSH_FACTOR;
+        }
     }
 
     // check on axis z
     if(z1 - zdepth1 <= z2 + zdepth2 &&
        z1 - zdepth1 >= z2)
     {
-        // let to escape
-        if (ent->collided_entity && ent->collided_entity == target)
+        if (!entity_pushing)
         {
             if (ent->movez < 0) ent->movez = 0;
         }
-        ent->movez += SHIFT_FACTOR;
+        else
+        {
+            // let to escape
+            if (ent->collided_entity && ent->collided_entity == target)
+            {
+                if (ent->movez < 0) ent->movez = 0;
+            }
+            if (ent->movez != -1 * target->movez || (!target->movez)) ent->movez += PUSH_FACTOR;
+        }
     }
     else if(z1 + zdepth1 >= z2 - zdepth2 &&
             z1 + zdepth1 <= z2)
     {
-        if (ent->collided_entity && ent->collided_entity == target)
+        if (!entity_pushing)
         {
             if (ent->movez > 0) ent->movez = 0;
         }
-        ent->movez -= SHIFT_FACTOR;
+        else
+        {
+            // let to escape
+            if (ent->collided_entity && ent->collided_entity == target)
+            {
+                if (ent->movez > 0) ent->movez = 0;
+            }
+            if (ent->movez != -1 * target->movez || (!target->movez)) ent->movez -= PUSH_FACTOR;
+        }
     }
 
     ///TODO add event
@@ -25701,7 +25726,7 @@ int common_trymove(float xdir, float zdir)
     int wall, heightvar, t, needcheckhole = 0;
     float x, z, oxdir, ozdir;
 
-    if(xdir == 0 && zdir == 0)
+    if(!xdir && !zdir)
     {
         return 0;
     }
