@@ -25487,12 +25487,23 @@ int check_entity_collision(entity *ent, entity *target)
             col_entity_target_size_x    = 0,
             col_entity_target_size_y    = 0;
     float   zdist = 0, zdepth1 = 0, zdepth2 = 0;
-    float   SHIFT_FACTOR = 1.0f;
+    float   SHIFT_FACTOR = ent->modeldata.speed;
 
     if(ent == target
        || !target->animation->collision_entity
        || !ent->animation->collision_entity
        )
+    {
+        return 0;
+    }
+
+    if(ent->link || target->link)
+    {
+        return 0;
+    }
+
+    ///TODO: add flag
+    if (!ent->movex && !ent->movez)
     {
         return 0;
     }
@@ -25617,10 +25628,18 @@ int check_entity_collision(entity *ent, entity *target)
     // check on axis x
     if(col_entity_ent_pos_x <= col_entity_target_pos_x)
     {
+        if (ent->collided_entity && ent->collided_entity == target)
+        {
+            if (ent->movex > 0) ent->movex = 0;
+        }
         ent->movex -= SHIFT_FACTOR;
     }
     else
     {
+        if (ent->collided_entity && ent->collided_entity == target)
+        {
+            if (ent->movex < 0) ent->movex = 0;
+        }
         ent->movex += SHIFT_FACTOR;
     }
 
@@ -25628,11 +25647,20 @@ int check_entity_collision(entity *ent, entity *target)
     if(z1 - zdepth1 <= z2 + zdepth2 &&
        z1 - zdepth1 >= z2)
     {
+        // let to escape
+        if (ent->collided_entity && ent->collided_entity == target)
+        {
+            if (ent->movez < 0) ent->movez = 0;
+        }
         ent->movez += SHIFT_FACTOR;
     }
     else if(z1 + zdepth1 >= z2 - zdepth2 &&
             z1 + zdepth1 <= z2)
     {
+        if (ent->collided_entity && ent->collided_entity == target)
+        {
+            if (ent->movez > 0) ent->movez = 0;
+        }
         ent->movez -= SHIFT_FACTOR;
     }
 
@@ -25653,10 +25681,18 @@ void check_entity_collision_for(entity* ent)
             entity* target = ent_list[i];
             if(target->exists && target != ent)// && !target->dead && (target->modeldata.type & TYPE_ENEMY)
             {
-                check_entity_collision(ent, target);
+                if (check_entity_collision(ent, target))
+                {
+                    ent->collided_entity = target;
+                    target->collided_entity = ent;
+                    return;
+                }
             }
         }
     }
+
+    ent->collided_entity = NULL;
+    return;
 }
 
 int common_trymove(float xdir, float zdir)
