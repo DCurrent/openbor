@@ -19,40 +19,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Access set property by handle (pointer).
 //
 // set_spawnentry_property(void handle, int property, value)
@@ -124,6 +90,363 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             handle->musicfade = temp_float;
             break;
 
+        case SPAWN_ENTRY_PROP_ALPHA:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->alpha = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_AT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->at = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_BLOCKADE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->blockade = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_BOSS:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->boss = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_COLOURMAP:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->colourmap = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_CREDIT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->credit = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_DYING:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->dying = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_DYING2:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->dying2 = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_ENTITYTYPE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->entitytype = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_FLIP:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->flip = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_GROUPMAX:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->groupmax = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_GROUPMIN:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->groupmin = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_HEALTH:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->health = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_INDEX:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->index = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_ITEM:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->item, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case SPAWN_ENTRY_PROP_LIGHT:
+
+            handle->light = (s_axis_plane_vertical_int *)arg_value->ptrVal;
+            break;
+
+        case SPAWN_ENTRY_PROP_MP:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->mp = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_MULTIPLE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->multiple = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSIC:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->music, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSICOFFSET:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->musicoffset = (DWORD)temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_NAME:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->name, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case SPAWN_ENTRY_PROP_NOJOIN:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->nojoin = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_NOLIFE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->nolife = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_PALETTE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->palette = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_PARENT:
+
+            handle->parent = (entity *)arg_value->ptrVal;
+            break;
+
+        case SPAWN_ENTRY_PROP_PER1:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->per1 = (unsigned)temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_PER2:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->per2 = (unsigned)temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_POSITION:
+
+            handle->position = (s_axis_principal_float *)arg_value->ptrVal;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCORE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->score = (unsigned)temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMAXX:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->scrollmaxx = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMINX:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->scrollminx = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMMAXZ:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->scrollmaxz = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMMINZ:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->scrollminz = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SHADOWALPHA:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->shadowalpha = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SHADOWCOLOR:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->shadowcolor = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SHADOWOPACITY:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->shadowopacity = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SPAWNPLAYER_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->spawnplayer_count = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_SPAWNTYPE:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->spawntype = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_WAIT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->wait = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_WEAPONINDEX:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->weaponindex = temp_int;
+            break;
+
+        case SPAWN_ENTRY_PROP_WEAPON:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->weapon, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
         default:
 
             printf("Unsupported or read only property.\n");
@@ -148,42 +471,6 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // get_spawnentry_property(void handle, int property)
 HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
@@ -377,7 +664,7 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             (*pretvar)->lVal = (LONG)handle->musicoffset;
             break;
 
-        case SPAWN_ENTRY_PROP_MUSICOFFSET:
+        case SPAWN_ENTRY_PROP_NAME:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
             (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
@@ -500,7 +787,7 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
         case SPAWN_ENTRY_PROP_WEAPON:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->alias);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->weapon);
             break;
 
         case SPAWN_ENTRY_PROP_WEAPONMODEL:
