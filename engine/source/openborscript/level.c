@@ -24,70 +24,34 @@
 
 
 
-// get_spawnentry_property(void handle, int property)
-HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
-{
-    #define SELF_NAME       "get_spawnentry_property(void handle, int property)"
-    #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY    1   // Property to access.
 
 
-    int                             result      = S_OK; // Success or error?
-    s_spawn_entry                   *handle     = NULL; // Property handle.
-    e_spawn_entry_properties        property    = 0;    // Property argument.
 
-    // Clear pass by reference argument used to send
-    // property data back to calling script.     .
-    ScriptVariant_Clear(*pretvar);
 
-    // Verify incoming arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property is accessed.
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
-        *pretvar = NULL;
-        goto error_local;
-    }
-    else
-    {
-        handle      = (s_spawn_entry *)varlist[ARG_HANDLE]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
 
-    // Which property to get?
-    switch(property)
-    {
-        case SPAWN_ENTRY_PROP_AGGRESSION:
 
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->aggression;
-            break;
 
-        default:
 
-            printf("Unsupported property.\n");
-            goto error_local;
-            break;
-    }
 
-    return result;
 
-    // Error trapping.
-    error_local:
 
-    printf("You must provide a valid handle and property: " SELF_NAME "\n");
 
-    result = E_FAIL;
-    return result;
 
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_HANDLE
-    #undef ARG_PROPERTY
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Access set property by handle (pointer).
 //
@@ -106,8 +70,8 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
 
     // Value carriers to apply on properties after
     // taken from argument.
-    //LONG     temp_int;
-    //DOUBLE  temp_float;
+    LONG    temp_int;
+    DOUBLE  temp_float;
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer
@@ -130,8 +94,34 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
     {
         case SPAWN_ENTRY_PROP_AGGRESSION:
 
-            handle->aggression = (LONG)varlist[ARG_VALUE]->lVal;
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->aggression = temp_int;
+            break;
 
+        case SPAWN_ENTRY_PROP_ITEM_PROPERTIES:
+
+            handle->item_properties = (s_item_properties *)arg_value->ptrVal;
+            break;
+
+        case SPAWN_ENTRY_PROP_ALIAS:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->alias, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSICFADE:
+
+            if(FAILED(ScriptVariant_DecimalValue(arg_value, &temp_float)))
+            {
+                goto error_local;
+            }
+            handle->musicfade = temp_float;
             break;
 
         default:
@@ -175,6 +165,585 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// get_spawnentry_property(void handle, int property)
+HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "get_spawnentry_property(void handle, int property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+
+    int                             result      = S_OK; // Success or error?
+    s_spawn_entry                   *handle     = NULL; // Property handle.
+    e_spawn_entry_properties        property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_spawn_entry *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to get?
+    switch(property)
+    {
+        case SPAWN_ENTRY_PROP_AGGRESSION:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->aggression;
+            break;
+
+        case SPAWN_ENTRY_PROP_ITEM_PROPERTIES:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)handle->item_properties;
+            break;
+
+        case SPAWN_ENTRY_PROP_ALIAS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->alias);
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSICFADE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->musicfade;
+            break;
+
+        case SPAWN_ENTRY_PROP_ALPHA:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->alpha;
+            break;
+
+        case SPAWN_ENTRY_PROP_AT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->at;
+            break;
+
+        case SPAWN_ENTRY_PROP_BLOCKADE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->blockade;
+            break;
+
+        case SPAWN_ENTRY_PROP_BOSS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->boss;
+            break;
+
+        case SPAWN_ENTRY_PROP_COLOURMAP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->colourmap;
+            break;
+
+        case SPAWN_ENTRY_PROP_CREDIT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->credit;
+            break;
+
+        case SPAWN_ENTRY_PROP_DYING:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->dying;
+            break;
+
+        case SPAWN_ENTRY_PROP_DYING2:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->dying2;
+            break;
+
+        case SPAWN_ENTRY_PROP_ENTITYTYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->entitytype;
+            break;
+
+        case SPAWN_ENTRY_PROP_FLIP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->flip;
+            break;
+
+        case SPAWN_ENTRY_PROP_GROUPMAX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->groupmax;
+            break;
+
+        case SPAWN_ENTRY_PROP_GROUPMIN:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->groupmin;
+            break;
+
+        case SPAWN_ENTRY_PROP_HEALTH:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->health;
+            break;
+
+        case SPAWN_ENTRY_PROP_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->index;
+            break;
+
+        case SPAWN_ENTRY_PROP_ITEM:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->item);
+            break;
+
+        case SPAWN_ENTRY_PROP_ITEMMODEL:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->itemmodel.name);
+            break;
+
+        case SPAWN_ENTRY_PROP_LIGHT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)handle->light;
+            break;
+
+        case SPAWN_ENTRY_PROP_MODEL:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->model.name);
+            break;
+
+        case SPAWN_ENTRY_PROP_MP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->mp;
+            break;
+
+        case SPAWN_ENTRY_PROP_MULTIPLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->multiple;
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSIC:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->music);
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSICOFFSET:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->musicoffset;
+            break;
+
+        case SPAWN_ENTRY_PROP_MUSICOFFSET:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
+            break;
+
+        case SPAWN_ENTRY_PROP_NOJOIN:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nojoin;
+            break;
+
+        case SPAWN_ENTRY_PROP_NOLIFE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nolife;
+            break;
+
+        case SPAWN_ENTRY_PROP_PALETTE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->palette;
+            break;
+
+        case SPAWN_ENTRY_PROP_PARENT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)handle->parent;
+            break;
+
+        case SPAWN_ENTRY_PROP_PER1:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->per1;
+            break;
+
+        case SPAWN_ENTRY_PROP_PER2:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->per2;
+            break;
+
+        case SPAWN_ENTRY_PROP_POSITION:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)handle->position;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCORE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->score;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMAXX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->scrollmaxx;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMINX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->scrollminx;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMMAXZ:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->scrollmaxz;
+            break;
+
+        case SPAWN_ENTRY_PROP_SCROLLMMINZ:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->scrollminz;
+            break;
+
+        case SPAWN_ENTRY_PROP_SHADOWALPHA:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->shadowalpha;
+            break;
+
+        case SPAWN_ENTRY_PROP_SHADOWCOLOR:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->shadowcolor;
+            break;
+
+        case SPAWN_ENTRY_PROP_SHADOWOPACITY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->shadowopacity;
+            break;
+
+        case SPAWN_ENTRY_PROP_SPAWNPLAYER_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->spawnplayer_count;
+            break;
+
+        case SPAWN_ENTRY_PROP_SPAWNTYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->spawntype;
+            break;
+
+        case SPAWN_ENTRY_PROP_WAIT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->wait;
+            break;
+
+        case SPAWN_ENTRY_PROP_WEAPONINDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->weaponindex;
+            break;
+
+        case SPAWN_ENTRY_PROP_WEAPON:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->alias);
+            break;
+
+        case SPAWN_ENTRY_PROP_WEAPONMODEL:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->weaponmodel.name);
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+}
+
+// get_item_property_property(void handle, int property)
+HRESULT openbor_get_item_property_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "get_item_property_property(void handle, int property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+
+    int                             result      = S_OK; // Success or error?
+    s_item_properties               *handle     = NULL; // Property handle.
+    e_item_properties               property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_item_properties *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to get?
+    switch(property)
+    {
+        case ITEM_PROPERTIES_ALPHA:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->alpha;
+            break;
+
+        case ITEM_PROPERTIES_ALIAS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->alias);
+            break;
+
+        case ITEM_PROPERTIES_COLORSET:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->colorset;
+            break;
+
+        case ITEM_PROPERTIES_HEALTH:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->health;
+            break;
+
+        case ITEM_PROPERTIES_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->index;
+            break;
+
+        case ITEM_PROPERTIES_PLAYER_COUNT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->player_count;
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+}
+
+// Access set property by handle (pointer).
+//
+// set_item_property(void handle, int property, value)
+HRESULT openbor_set_item_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "set_item_property(void handle, int property, value)"
+    #define ARG_MINIMUM         3   // Minimum required arguments.
+    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY        1   // Property to access.
+    #define ARG_VALUE           2   // New value to apply.
+
+    int                         result      = S_OK; // Success or error?
+    s_item_properties           *handle     = NULL; // Property handle.
+    e_item_properties           property    = 0;    // Property to access.
+
+    // Value carriers to apply on properties after
+    // taken from argument.
+    LONG    temp_int;
+    //DOUBLE  temp_float;
+
+    // Verify incoming arguments. There must be a
+    // pointer for the animation handle, an integer
+    // property, and a new value to apply.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_item_properties *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to modify?
+    switch(property)
+    {
+        case ITEM_PROPERTIES_ALPHA:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->alpha = temp_int;
+            break;
+
+        case ITEM_PROPERTIES_ALIAS:
+
+            if(arg_value->vt != VT_STR)
+            {
+                goto error_local;
+            }
+            strcpy(handle->alias, (char *)StrCache_Get(arg_value->strVal));
+            break;
+
+        case ITEM_PROPERTIES_COLORSET:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->colorset = temp_int;
+            break;
+
+        case ITEM_PROPERTIES_HEALTH:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->health = temp_int;
+            break;
+
+        case ITEM_PROPERTIES_INDEX:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->index = temp_int;
+            break;
+
+        case ITEM_PROPERTIES_PLAYER_COUNT:
+
+            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+            {
+                goto error_local;
+            }
+            handle->player_count = temp_int;
+            break;
+
+        default:
+
+            printf("Unsupported or read only property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle, property and value: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+    #undef ARG_VALUE
+}
 
 // Set Handle
 // Caskey, Damon V.
@@ -1089,7 +1658,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
     // Value carriers to apply on properties after
     // taken from value argument.
-    LONG             temp_int;   // Integer type argument.
+    LONG            temp_int;   // Integer type argument.
     DOUBLE          temp_float; // Float type argument.
     ScriptVariant   *arg_value; // Argument input carrier.
 

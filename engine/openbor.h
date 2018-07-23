@@ -915,6 +915,16 @@ typedef enum
 
 typedef enum
 {
+    ITEM_PROPERTIES_ALIAS,
+    ITEM_PROPERTIES_ALPHA,
+    ITEM_PROPERTIES_COLORSET,
+    ITEM_PROPERTIES_HEALTH,
+    ITEM_PROPERTIES_INDEX,
+    ITEM_PROPERTIES_PLAYER_COUNT
+} e_item_properties;
+
+typedef enum
+{
     SET_PROP_COMPLETE_FLAG,         // int ifcomplete;
     SET_PROP_COMPLETE_SKIP,         // int noshowcomplete;
     SET_PROP_CONTINUE_SCORE_TYPE,   // int continuescore;
