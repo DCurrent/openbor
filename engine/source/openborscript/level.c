@@ -16,6 +16,166 @@
 
 #define invalid_pointer_input arg_value->vt != VT_PTR && arg_value->vt != VT_EMPTY
 
+
+
+
+
+
+
+
+
+// get_spawnentry_property(void handle, int property)
+HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME       "get_spawnentry_property(void handle, int property)"
+    #define ARG_MINIMUM     2   // Minimum required arguments.
+    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY    1   // Property to access.
+
+
+    int                             result      = S_OK; // Success or error?
+    s_spawn_entry                   *handle     = NULL; // Property handle.
+    e_spawn_entry_properties        property    = 0;    // Property argument.
+
+    // Clear pass by reference argument used to send
+    // property data back to calling script.     .
+    ScriptVariant_Clear(*pretvar);
+
+    // Verify incoming arguments. There should at least
+    // be a pointer for the property handle and an integer
+    // to determine which property is accessed.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_spawn_entry *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to get?
+    switch(property)
+    {
+        case SPAWN_ENTRY_PROP_AGGRESSION:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->aggression;
+            break;
+
+        default:
+
+            printf("Unsupported property.\n");
+            goto error_local;
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+}
+
+// Access set property by handle (pointer).
+//
+// set_spawnentry_property(void handle, int property, value)
+HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+    #define SELF_NAME           "set_spawnentry_property(void handle, int property, value)"
+    #define ARG_MINIMUM         3   // Minimum required arguments.
+    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_PROPERTY        1   // Property to access.
+    #define ARG_VALUE           2   // New value to apply.
+
+    int                         result      = S_OK; // Success or error?
+    s_spawn_entry               *handle     = NULL; // Property handle.
+    e_spawn_entry_properties    property    = 0;    // Property to access.
+
+    // Value carriers to apply on properties after
+    // taken from argument.
+    //LONG     temp_int;
+    //DOUBLE  temp_float;
+
+    // Verify incoming arguments. There must be a
+    // pointer for the animation handle, an integer
+    // property, and a new value to apply.
+    if(paramCount < ARG_MINIMUM
+       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+    {
+        *pretvar = NULL;
+        goto error_local;
+    }
+    else
+    {
+        handle      = (s_spawn_entry *)varlist[ARG_HANDLE]->ptrVal;
+        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    }
+
+    // Which property to modify?
+    switch(property)
+    {
+        case SPAWN_ENTRY_PROP_AGGRESSION:
+
+            handle->aggression = (LONG)varlist[ARG_VALUE]->lVal;
+
+            break;
+
+        default:
+
+            printf("Unsupported or read only property.\n");
+            goto error_local;
+
+            break;
+    }
+
+    return result;
+
+    // Error trapping.
+    error_local:
+
+    printf("You must provide a valid handle, property and value: " SELF_NAME "\n");
+
+    result = E_FAIL;
+    return result;
+
+    #undef SELF_NAME
+    #undef ARG_MINIMUM
+    #undef ARG_HANDLE
+    #undef ARG_PROPERTY
+    #undef ARG_VALUE
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Set Handle
 // Caskey, Damon V.
 // 2017-04-26
@@ -78,7 +238,7 @@ HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar
 //
 // Access set property by handle.
 //
-// get_set_property(void handle, int frame, int property)
+// get_set_property(void handle, int property)
 HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME       "get_set_property(void handle, int property)"
