@@ -6199,6 +6199,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     }
     if(!attack)
     {
+        for(i = 0; i < max_collisions; i++) atk[i] = emptyattack;
         attack = atk;
     }
 
