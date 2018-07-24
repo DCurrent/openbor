@@ -122,11 +122,13 @@ const s_hitbox empty_collision_coords = {   .x      = 0,
 const s_collision_body empty_body =   {     .coords     = NULL,
                                             .index      = 0,
                                             .defense    = NULL,
-                                            .tag        = 0};
+                                            .tag        = 0,
+                                            .index      = 0};
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
                                                         .index      = 0,
-                                                        .tag        = 0};
+                                                        .tag        = 0,
+                                                        .index      = 0};
 
 // Recursive damage (dot).
 const s_damage_recursive empty_recursive = {    .force  = 0,
@@ -176,7 +178,8 @@ const s_collision_attack emptyattack =
                             .riseattack         = 0,
                             .riseattack_stall   = 0},
     .steal              = 0,
-    .tag                = 0
+    .tag                = 0,
+    .index              = 0
 };
 
 s_axis_principal_float default_model_dropv =
@@ -294,7 +297,7 @@ int                 SAMPLE_PAUSE		= -1;
 // building multiple collision box support.
 // Once we get this working, variables should
 // be moved into a structure. Globals BAD!
-int                 max_collisons       = MAX_COLLISIONS;
+int                 max_collisions      = MAX_COLLISIONS;
 int                 *collisions         = NULL;
 
 
@@ -4993,7 +4996,7 @@ void free_frames(s_anim *anim)
             {
                 // Check each instance and free memory as needed.
                 // Momma always said put your toys away when you're done!
-                for(instance = 0; instance < max_collisons; instance++)
+                for(instance = 0; instance < max_collisions; instance++)
                 {
                     if(anim->collision_body[i]->instance[instance])
                     {
@@ -5027,7 +5030,7 @@ void free_frames(s_anim *anim)
             {
                 // Check each instance and free memory as needed.
                 // Momma always said put your toys away when you're done!
-                for(instance = 0; instance < max_collisons; instance++)
+                for(instance = 0; instance < max_collisions; instance++)
                 {
                     if(anim->collision_entity[i]->instance[instance])
                     {
@@ -5053,21 +5056,6 @@ void free_frames(s_anim *anim)
         free(anim->collision_entity);
         anim->collision_entity = NULL;
     }
-    if(anim->shadow)
-    {
-        free(anim->shadow);
-        anim->shadow = NULL;
-    }
-    if(anim->shadow_coords)
-    {
-        free(anim->shadow_coords);
-        anim->shadow_coords = NULL;
-    }
-    if(anim->soundtoplay)
-    {
-        free(anim->soundtoplay);
-        anim->soundtoplay = NULL;
-    }
     if(anim->collision_attack)
     {
         for(i = 0; i < anim->numframes; i++)
@@ -5076,7 +5064,7 @@ void free_frames(s_anim *anim)
             {
                 // Check each attack instance and free memory as needed.
                 // Momma always said put your toys away when you're done!
-                for(instance = 0; instance < max_collisons; instance++)
+                for(instance = 0; instance < max_collisions; instance++)
                 {
                     if(anim->collision_attack[i]->instance[instance])
                     {
@@ -5108,6 +5096,21 @@ void free_frames(s_anim *anim)
         }
         free(anim->collision_attack);
         anim->collision_attack = NULL;
+    }
+    if(anim->shadow)
+    {
+        free(anim->shadow);
+        anim->shadow = NULL;
+    }
+    if(anim->shadow_coords)
+    {
+        free(anim->shadow_coords);
+        anim->shadow_coords = NULL;
+    }
+    if(anim->soundtoplay)
+    {
+        free(anim->soundtoplay);
+        anim->soundtoplay = NULL;
     }
     if(anim->drawmethods)
     {
@@ -5275,7 +5278,7 @@ void cache_model_sprites(s_model *m, int ld)
                 }
                 if(anim->collision_attack && anim->collision_attack[f])
                 {
-                    for(instance = 0; instance < max_collisons; instance++)
+                    for(instance = 0; instance < max_collisions; instance++)
                     {
                         cachesound(anim->collision_attack[f]->instance[instance]->hitsound, ld);
                         cachesound(anim->collision_attack[f]->instance[instance]->blocksound, ld);
@@ -5741,132 +5744,141 @@ int addframe(s_anim             *a,
     a->sprite[currentframe] = spriteindex;
     a->delay[currentframe] = delay * GAME_SPEED / 100;
 
-    // Allocate body boxes.
-    if((body_coords->width - body_coords->x)
-        && (body_coords->height - body_coords->y))
+    // ------------ Allocate body boxes ------------
+    // If there is no previous collision
+    // list on this animation's frames,
+    // we need to allocate space.
+    if(!a->collision_body)
     {
-        // Set vulnerability.
-        a->vulnerable[currentframe] = 1;
+        // Get memory size.
+        size_col_on_frame = framecount * sizeof(*a->collision_body);
 
-        // If there is no previous collision
-        // list on this animation's frames,
-        // we need to allocate space.
-        if(!a->collision_body)
+        // Allocate memory.
+        a->collision_body = malloc(size_col_on_frame);
+        memset(a->collision_body, 0, size_col_on_frame);
+    }
+
+    // Get memory size for the collision
+    // list structure.
+    size_col_on_frame_struct = sizeof(**a->collision_body);
+
+    // Allocate memory for collision list
+    // structure and store resulting pointer
+    // on current frame.
+    a->collision_body[currentframe] = malloc(size_col_on_frame_struct);
+
+    // Allocate memory for a pointer to each instance
+    // and set empty default.
+    a->collision_body[currentframe]->instance = collision_alloc_body_list();
+
+    for(i = 0; i < max_collisions; i++)
+    {
+        if((body_coords[i].width - body_coords[i].x)
+            && (body_coords[i].height - body_coords[i].y))
         {
-            // Get memory size.
-            size_col_on_frame = framecount * sizeof(*a->collision_body);
+            // Set vulnerability.
+            a->vulnerable[currentframe] = 1;
 
-            // Allocate memory.
-            a->collision_body = malloc(size_col_on_frame);
-            memset(a->collision_body, 0, size_col_on_frame);
-        }
-
-        // Get memory size for the collision
-        // list structure.
-        size_col_on_frame_struct = sizeof(**a->collision_body);
-
-        // Allocate memory for collision list
-        // structure and store resulting pointer
-        // on current frame.
-        a->collision_body[currentframe] = malloc(size_col_on_frame_struct);
-
-        // Allocate memory for a pointer to each instance
-        // and set empty default.
-        a->collision_body[currentframe]->instance = collision_alloc_body_list();
-
-        // Loop instances, allocate memory, and assign
-        // user values.
-        for(i=0; i<max_collisons; i++)
-        {
-            // Allocate memory for this instance structure.
-            // We're also using a local pointer for readability.
-            collision_body = collision_alloc_body_instance(bbox);
-            a->collision_body[currentframe]->instance[i] = collision_body;
-
-            // Set index. Engine does not need this,
-            // but will allow scripts to identify
-            // which item instance has been acquired
-            // by handle (pointer).
-            collision_body->index = i;
-
-            // Now let's allocate sub-properties.
-
-            // Coordinates.
-            if(!collision_body->coords)
+            // Loop instances, allocate memory, and assign
+            // user values.
+            for(i=0; i<max_collisions; i++)
             {
-                collision_body->coords = collision_alloc_coords(body_coords);
+                // Allocate memory for this instance structure.
+                // We're also using a local pointer for readability.
+                collision_body = collision_alloc_body_instance(&bbox[i]);
+                a->collision_body[currentframe]->instance[i] = collision_body;
+
+                // Set index. Engine does not need this,
+                // but will allow scripts to identify
+                // which item instance has been acquired
+                // by handle (pointer).
+                collision_body->index = i;
+
+                // Now let's allocate sub-properties.
+
+                // Coordinates.
+                if(!collision_body->coords)
+                {
+                    collision_body->coords = collision_alloc_coords(&body_coords[i]);
+                }
             }
         }
     }
 
-    // Allocate entity boxes.
-    if((entity_coords->width - entity_coords->x)
-        && (entity_coords->height - entity_coords->y))
+    // ------------ Allocate entity boxes ------------
+
+    for(i = 0; i < max_collisions; i++)
     {
-        if(!a->collision_entity)
+        if((entity_coords[i].width - entity_coords[i].x)
+            && (entity_coords[i].height - entity_coords[i].y))
         {
-            size_col_on_frame = framecount * sizeof(*a->collision_entity);
-
-            a->collision_entity = malloc(size_col_on_frame);
-            memset(a->collision_entity, 0, size_col_on_frame);
-        }
-
-        size_col_on_frame_struct = sizeof(**a->collision_entity);
-        a->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
-
-        a->collision_entity[currentframe]->instance = collision_alloc_entity_list();
-
-        for(i=0; i<max_collisons; i++)
-        {
-            collision_entity = collision_alloc_entity_instance(ebox);
-            a->collision_entity[currentframe]->instance[i] = collision_entity;
-
-            collision_entity->index = i;
-
-            // Coordinates.
-            if(!collision_entity->coords)
+            if(!a->collision_entity)
             {
-                collision_entity->coords = collision_alloc_coords(entity_coords);
+                size_col_on_frame = framecount * sizeof(*a->collision_entity);
+
+                a->collision_entity = malloc(size_col_on_frame);
+                memset(a->collision_entity, 0, size_col_on_frame);
+            }
+
+            size_col_on_frame_struct = sizeof(**a->collision_entity);
+            a->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
+
+            a->collision_entity[currentframe]->instance = collision_alloc_entity_list();
+
+            for(i=0; i<max_collisions; i++)
+            {
+                collision_entity = collision_alloc_entity_instance(&ebox[i]);
+                a->collision_entity[currentframe]->instance[i] = collision_entity;
+
+                collision_entity->index = i;
+
+                // Coordinates.
+                if(!collision_entity->coords)
+                {
+                    collision_entity->coords = collision_alloc_coords(&entity_coords[i]);
+                }
             }
         }
     }
 
-    // Allocate attack boxes. See body box
-    // for notes.
-    if((attack_coords->width - attack_coords->x) &&
-            (attack_coords->height - attack_coords->y))
+    // ------------ Allocate attack boxes ------------
+    for(i = 0; i < max_collisions; i++)
     {
-        if(!a->collision_attack)
+        if((attack_coords[i].width - attack_coords[i].x)
+            && (attack_coords[i].height - attack_coords[i].y))
         {
-            size_col_on_frame = framecount * sizeof(*a->collision_attack);
-
-            a->collision_attack = malloc(size_col_on_frame);
-            memset(a->collision_attack, 0, size_col_on_frame);
-        }
-
-        size_col_on_frame_struct = sizeof(**a->collision_attack);
-        a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
-
-        a->collision_attack[currentframe]->instance = collision_alloc_attack_list();
-
-        for(i=0; i<max_collisons; i++)
-        {
-            collision_attack = collision_alloc_attack_instance(attack);
-            a->collision_attack[currentframe]->instance[i] = collision_attack;
-
-            collision_attack->index = i;
-
-            // Coordinates.
-            if(!collision_attack->coords)
+            if(!a->collision_attack)
             {
-                collision_attack->coords = collision_alloc_coords(attack_coords);
+                size_col_on_frame = framecount * sizeof(*a->collision_attack);
+
+                a->collision_attack = malloc(size_col_on_frame);
+                memset(a->collision_attack, 0, size_col_on_frame);
             }
 
-            // Recursive damage.
-            if(!collision_attack->recursive && recursive->mode)
+            size_col_on_frame_struct = sizeof(**a->collision_attack);
+            a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
+
+            a->collision_attack[currentframe]->instance = collision_alloc_attack_list();
+
+            for(i=0; i<max_collisions; i++)
             {
-                collision_attack->recursive = malloc(sizeof(*recursive));
-                memcpy(collision_attack->recursive, recursive, sizeof(*recursive));
+                collision_attack = collision_alloc_attack_instance(&attack[i]);
+                a->collision_attack[currentframe]->instance[i] = collision_attack;
+
+                collision_attack->index = i;
+
+                // Coordinates.
+                if(!collision_attack->coords)
+                {
+                    collision_attack->coords = collision_alloc_coords(&attack_coords[i]);
+                }
+
+                // Recursive damage.
+                if(!collision_attack->recursive && recursive->mode)
+                {
+                    collision_attack->recursive = malloc(sizeof(*recursive));
+                    memcpy(collision_attack->recursive, recursive, sizeof(*recursive));
+                }
             }
         }
     }
@@ -6172,11 +6184,11 @@ static int translate_attack_type(char *command)
 //move here to ease animation name to id logic
 static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_collision_attack *attack)
 {
-    int ani_id = -1, tempInt;
+    int ani_id = -1, tempInt, i;
     //those are dummy values to simplify code
     static s_model mdl;
     static s_anim ani;
-    static s_collision_attack atk;
+    s_collision_attack *atk = calloc(1,sizeof(s_collision_attack)*max_collisions);
     if(!newchar)
     {
         newchar = &mdl;
@@ -6187,7 +6199,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     }
     if(!attack)
     {
-        attack = &atk;
+        attack = atk;
     }
 
     if(starts_with_num(value, "idle"))
@@ -6888,7 +6900,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "upper") == 0)
     {
         ani_id = ANI_UPPER;
-        attack->counterattack = 100; //default to 100
+        for(i = 0; i < max_collisions; i++) attack[i].counterattack = 100; //default to 100
         newanim->range.x.min = -10;
         newanim->range.x.max = 120;
     }
@@ -8599,27 +8611,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     ptrdiff_t pos = 0,
               index = 0;
 
-    s_hitbox            bbox = {    .x      = 0,
-                                    .y      = 0,
-                                    .width  = 0,
-                                    .height = 0,
-                                    .z1     = 0,
-                                    .z2     = 0};
-
-    s_hitbox            ebox = {    .x      = 0,
-                                    .y      = 0,
-                                    .width  = 0,
-                                    .height = 0,
-                                    .z1     = 0,
-                                    .z2     = 0};
-
-    s_hitbox            abox = {    .x = 0,
-                                    .y = 0,
-                                    .width = 0,
-                                    .height = 0,
-                                    .z1 = 0,
-                                    .z2 = 0};
-
     s_axis_plane_vertical_int         offset = { .x = 0,
                                                  .y = 0 };
     int                 shadow_xz[2] = {0, 0};
@@ -8636,12 +8627,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_damage_recursive  recursive;
     s_collision_attack  *pattack = NULL;
-    s_collision_attack  attack;
-    s_collision_body    bbox_con;
-    s_collision_entity  ebox_con;
-    s_hitbox            attack_coords;
-    s_hitbox            body_coords;
-    s_hitbox            entity_coords;
+    s_hitbox            bbox[max_collisions];
+    s_hitbox            ebox[max_collisions];
+    s_hitbox            abox[max_collisions];
+    s_hitbox            attack_coords[max_collisions];
+    s_hitbox            body_coords[max_collisions];
+    s_hitbox            entity_coords[max_collisions];
+    s_collision_attack  attack[max_collisions];
+    s_collision_body    bbox_con[max_collisions];
+    s_collision_entity  ebox_con[max_collisions];
     s_defense           defense;
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
@@ -8762,9 +8756,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     models_loaded++;
     addModel(newchar);
 
-    attack = emptyattack;      // empty attack
-    bbox_con = empty_body;
-    ebox_con = empty_entity_collision;
+    //init collision coords
+    for(i = 0; i < max_collisions; i++) abox[i] = empty_collision_coords;
+    for(i = 0; i < max_collisions; i++) bbox[i] = empty_collision_coords;
+    for(i = 0; i < max_collisions; i++) ebox[i] = empty_collision_coords;
+
+    //init empty collision collections
+    for(i = 0; i < max_collisions; i++) attack[i] = emptyattack;
+    for(i = 0; i < max_collisions; i++) bbox_con[i] = empty_body;
+    for(i = 0; i < max_collisions; i++) ebox_con[i] = empty_entity_collision;
 
     drawmethod = plainmethod;  // better than memset it to 0
 
@@ -10040,25 +10040,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
-                memset(&ebox, 0, sizeof(ebox));
-                memset(&bbox, 0, sizeof(bbox));
-                memset(&abox, 0, sizeof(abox));
                 memset(&offset, 0, sizeof(offset));
                 memset(shadow_coords, 0, sizeof(shadow_coords));
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
                 shadow_set                      = 0;
-                attack                          = emptyattack;
-                bbox_con                        = empty_body;
-                ebox_con                        = empty_entity_collision;
-                body_coords                     = empty_collision_coords;
-                attack_coords                   = empty_collision_coords;
-                entity_coords                   = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) abox[i] = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) bbox[i] = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) ebox[i] = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) attack_coords[i] = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) body_coords[i] = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) entity_coords[i] = empty_collision_coords;
+                for(i = 0; i < max_collisions; i++) attack[i] = emptyattack;
+                for(i = 0; i < max_collisions; i++) bbox_con[i] = empty_body;
+                for(i = 0; i < max_collisions; i++) ebox_con[i] = empty_entity_collision;
                 recursive                       = empty_recursive;
-                attack.hitsound                 = SAMPLE_BEAT;
-                attack.hitflash                 = -1;
-                attack.blockflash               = -1;
-                attack.blocksound               = -1;
+                for(i = 0; i < max_collisions; i++)
+                {
+                    attack[i].hitsound      = SAMPLE_BEAT;
+                    attack[i].hitflash      = -1;
+                    attack[i].blockflash    = -1;
+                    attack[i].blocksound    = -1;
+                }
                 drawmethod                      = plainmethod;
                 idle                            = 0;
                 move.base                       = -1;
@@ -10101,7 +10104,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = -1;
 
-                if((ani_id = translate_ani_id(value, newchar, newanim, &attack)) < 0)
+                if((ani_id = translate_ani_id(value, newchar, newanim, attack)) < 0)
                 {
                     shutdownmessage = "Invalid animation name!";
                     goto lCleanup;
@@ -10168,7 +10171,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->attackone = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERATTACK:
-                attack.counterattack = GET_INT_ARG(1);
+                attack[0].counterattack = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_THROWFRAME:
             case CMD_MODEL_PSHOTFRAME:
@@ -10452,115 +10455,115 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_HITFX:
                 if(stricmp(GET_ARG(1), "none") == 0)
                 {
-                    attack.hitsound = -1;
+                    attack[0].hitsound = -1;
                 }
                 else
                 {
-                    attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 1);
+                    attack[0].hitsound = sound_load_sample(GET_ARG(1), packfile, 1);
                 }
                 break;
             case CMD_MODEL_HITFLASH:
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    attack.hitflash = -1;
+                    attack[0].hitflash = -1;
                 }
                 else
                 {
-                    attack.hitflash = get_cached_model_index(value);
+                    attack[0].hitflash = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_BLOCKFLASH:
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    attack.blockflash = -1;
+                    attack[0].blockflash = -1;
                 }
                 else
                 {
-                    attack.blockflash = get_cached_model_index(value);
+                    attack[0].blockflash = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_BLOCKFX:
-                attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 1);
+                attack[0].blocksound = sound_load_sample(GET_ARG(1), packfile, 1);
                 break;
             case CMD_MODEL_FASTATTACK:
                 if(GET_INT_ARG(1))
                 {
-                    attack.pain_time = GAME_SPEED / 20;
+                    attack[0].pain_time = GAME_SPEED / 20;
                 }
                 break;
             case CMD_MODEL_IGNOREATTACKID:
                 if(GET_INT_ARG(1))
                 {
-                    attack.ignore_attack_id = 1;
+                    attack[0].ignore_attack_id = 1;
                 }
                 break;
             case CMD_MODEL_BBOX:
-                bbox.x = GET_INT_ARG(1);
-                bbox.y = GET_INT_ARG(2);
-                bbox.width = GET_INT_ARG(3);
-                bbox.height = GET_INT_ARG(4);
-                bbox.z1 = GET_INT_ARG(5);
-                bbox.z2 = GET_INT_ARG(6);
+                bbox[0].x = GET_INT_ARG(1);
+                bbox[0].y = GET_INT_ARG(2);
+                bbox[0].width = GET_INT_ARG(3);
+                bbox[0].height = GET_INT_ARG(4);
+                bbox[0].z1 = GET_INT_ARG(5);
+                bbox[0].z2 = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_BBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
                 break;
             case CMD_MODEL_BBOX_POSITION_X:
-                bbox.x = GET_INT_ARG(1);
+                bbox[0].x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_Y:
-                bbox.y = GET_INT_ARG(1);
+                bbox[0].y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_X:
-                bbox.width = GET_INT_ARG(1);
+                bbox[0].width = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Y:
-                bbox.height = GET_INT_ARG(1);
+                bbox[0].height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_1:
-                bbox.z1 = GET_INT_ARG(1);
+                bbox[0].z1 = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_2:
-                bbox.z2 = GET_INT_ARG(1);
+                bbox[0].z2 = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOXZ:
-                bbox.z1 = GET_INT_ARG(1);
-                bbox.z2 = GET_INT_ARG(2);
+                bbox[0].z1 = GET_INT_ARG(1);
+                bbox[0].z2 = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_EBOX:
-                ebox.x = GET_INT_ARG(1);
-                ebox.y = GET_INT_ARG(2);
-                ebox.width = GET_INT_ARG(3);
-                ebox.height = GET_INT_ARG(4);
-                ebox.z1 = GET_INT_ARG(5);
-                ebox.z2 = GET_INT_ARG(6);
+                ebox[0].x = GET_INT_ARG(1);
+                ebox[0].y = GET_INT_ARG(2);
+                ebox[0].width = GET_INT_ARG(3);
+                ebox[0].height = GET_INT_ARG(4);
+                ebox[0].z1 = GET_INT_ARG(5);
+                ebox[0].z2 = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_EBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
                 break;
             case CMD_MODEL_EBOX_POSITION_X:
-                ebox.x = GET_INT_ARG(1);
+                ebox[0].x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_POSITION_Y:
-                ebox.y = GET_INT_ARG(1);
+                ebox[0].y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_X:
-                ebox.width = GET_INT_ARG(1);
+                ebox[0].width = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Y:
-                ebox.height = GET_INT_ARG(1);
+                ebox[0].height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Z_1:
-                ebox.z1 = GET_INT_ARG(1);
+                ebox[0].z1 = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Z_2:
-                ebox.z2 = GET_INT_ARG(1);
+                ebox[0].z2 = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOXZ:
-                ebox.z1 = GET_INT_ARG(1);
-                ebox.z2 = GET_INT_ARG(2);
+                ebox[0].z1 = GET_INT_ARG(1);
+                ebox[0].z2 = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
@@ -10721,31 +10724,31 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             // Caskey, Damon
             // Broken down attack commands.
             case CMD_MODEL_COLLISION_BLOCK_COST:
-                attack.guardcost = GET_INT_ARG(1);
+                attack[0].guardcost = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_BLOCK_PENETRATE:
-                attack.no_block = GET_INT_ARG(1);
+                attack[0].no_block = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_COUNTER:
-                attack.counterattack = GET_INT_ARG(1);
+                attack[0].counterattack = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_FORCE:
-                attack.attack_force = GET_INT_ARG(1);
+                attack[0].attack_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE:
-                attack.damage_on_landing.attack_force = GET_INT_ARG(1);
+                attack[0].damage_on_landing.attack_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LAND_MODE:
-                attack.blast = GET_INT_ARG(1);
+                attack[0].blast = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_LETHAL_DISABLE:
-                attack.no_kill = GET_INT_ARG(1);
+                attack[0].no_kill = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_STEAL:
-                attack.steal = GET_INT_ARG(1);
+                attack[0].steal = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_TYPE:
-                attack.attack_type = GET_INT_ARG(1);
+                attack[0].attack_type = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
                 recursive.force = GET_INT_ARG(1);
@@ -10763,16 +10766,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 recursive.time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_FORCE:
-                attack.attack_drop = GET_INT_ARG(1);
+                attack[0].attack_drop = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_X:
-                attack.dropv.x = GET_FLOAT_ARG(1);
+                attack[0].dropv.x = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Y:
-                attack.dropv.y = GET_FLOAT_ARG(1);
+                attack[0].dropv.y = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z:
-                attack.dropv.z = GET_FLOAT_ARG(1);
+                attack[0].dropv.z = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_EFFECT_BLOCK_FLASH:
 
@@ -10794,11 +10797,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    attack.blocksound = -1;
+                    attack[0].blocksound = -1;
                 }
                 else
                 {
-                    attack.blocksound = sound_load_sample(value, packfile, 1);
+                    attack[0].blocksound = sound_load_sample(value, packfile, 1);
                 }
                 break;
 
@@ -10817,7 +10820,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE:
-                attack.no_flash = GET_INT_ARG(1);
+                attack[0].no_flash = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_SOUND:
@@ -10826,75 +10829,75 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    attack.hitsound = -1;
+                    attack[0].hitsound = -1;
                 }
                 else
                 {
-                    attack.hitsound = sound_load_sample(value, packfile, 1);
+                    attack[0].hitsound = sound_load_sample(value, packfile, 1);
                 }
                 break;
             case CMD_MODEL_COLLISION_GROUND:
-                attack.otg = GET_INT_ARG(1);
+                attack[0].otg = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_MAP_INDEX:
-                attack.forcemap = GET_INT_ARG(1);
+                attack[0].forcemap = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_MAP_TIME:
-                attack.maptime = GET_INT_ARG(1);
+                attack[0].maptime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_POSITION_X:
-                abox.x = GET_INT_ARG(1);
+                abox[0].x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_POSITION_Y:
-                abox.y = GET_INT_ARG(1);
+                abox[0].y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FREEZE_MODE:
-                attack.freeze = GET_INT_ARG(1);
+                attack[0].freeze = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FREEZE_TIME:
-                attack.freezetime = GET_INT_ARG(1);
+                attack[0].freezetime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME:
-                attack.pain_time = GET_INT_ARG(1);
+                attack[0].pain_time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE:
-                attack.grab_distance = GET_INT_ARG(1);
+                attack[0].grab_distance = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_MODE:
-                attack.grab = GET_INT_ARG(1);
+                attack[0].grab = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_PAIN_SKIP:
-                attack.no_pain = GET_INT_ARG(1);
+                attack[0].no_pain = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_PAUSE_TIME:
-                attack.pause_add = GET_INT_ARG(1);
+                attack[0].pause_add = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SEAL_COST:
-                attack.seal = GET_INT_ARG(1);
+                attack[0].seal = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SEAL_TIME:
-                attack.sealtime = GET_INT_ARG(1);
+                attack[0].sealtime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SIZE_X:
-                abox.width = GET_INT_ARG(1);
+                abox[0].width = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SIZE_Y:
-                abox.height = GET_INT_ARG(1);
+                abox[0].height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SIZE_Z_1:
-                attack_coords.z1 = GET_INT_ARG(1);
+                attack_coords[0].z1 = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SIZE_Z_2:
-                attack_coords.z2 = GET_INT_ARG(1);
+                attack_coords[0].z2 = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_STAYDOWN_RISE:
-                attack.staydown.rise = GET_INT_ARG(1);
+                attack[0].staydown.rise = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK:
-                attack.staydown.riseattack = GET_INT_ARG(1);
+                attack[0].staydown.riseattack = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_TAG:
-                attack.tag = GET_INT_ARG(1);
+                attack[0].tag = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION:
             case CMD_MODEL_COLLISION1:
@@ -10914,78 +10917,76 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ITEMBOX:
             case CMD_MODEL_LOSE:
             case CMD_MODEL_COLLISION_ETC:
-                abox.x = GET_INT_ARG(1);
-                abox.y = GET_INT_ARG(2);
-                abox.width = GET_INT_ARG(3);
-                abox.height = GET_INT_ARG(4);
-                attack.dropv.y = default_model_dropv.y;
-                attack.dropv.x = default_model_dropv.x;
-                attack.dropv.z = default_model_dropv.z;
-                attack.attack_force = GET_INT_ARG(5);
-
-                attack.attack_drop = GET_INT_ARG(6);
-
-                attack.no_block = GET_INT_ARG(7);
-                attack.no_flash = GET_INT_ARG(8);
-                attack.pause_add = GET_INT_ARG(9);
-                attack_coords.z1 = GET_INT_ARG(10); // depth or z
+                abox[0].x = GET_INT_ARG(1);
+                abox[0].y = GET_INT_ARG(2);
+                abox[0].width = GET_INT_ARG(3);
+                abox[0].height = GET_INT_ARG(4);
+                attack[0].dropv.y = default_model_dropv.y;
+                attack[0].dropv.x = default_model_dropv.x;
+                attack[0].dropv.z = default_model_dropv.z;
+                attack[0].attack_force = GET_INT_ARG(5);
+                attack[0].attack_drop = GET_INT_ARG(6);
+                attack[0].no_block = GET_INT_ARG(7);
+                attack[0].no_flash = GET_INT_ARG(8);
+                attack[0].pause_add = GET_INT_ARG(9);
+                attack_coords[0].z1 = GET_INT_ARG(10); // depth or z
 
                 switch(cmd)
                 {
                 case CMD_MODEL_COLLISION:
                 case CMD_MODEL_COLLISION1:
-                    attack.attack_type = ATK_NORMAL;
+                    attack[0].attack_type = ATK_NORMAL;
                     break;
                 case CMD_MODEL_COLLISION2:
-                    attack.attack_type  = ATK_NORMAL2;
+                    attack[0].attack_type  = ATK_NORMAL2;
                     break;
                 case CMD_MODEL_COLLISION3:
-                    attack.attack_type  = ATK_NORMAL3;
+                    attack[0].attack_type  = ATK_NORMAL3;
                     break;
                 case CMD_MODEL_COLLISION4:
-                    attack.attack_type  = ATK_NORMAL4;
+                    attack[0].attack_type  = ATK_NORMAL4;
                     break;
                 case CMD_MODEL_COLLISION5:
-                    attack.attack_type  = ATK_NORMAL5;
+                    attack[0].attack_type  = ATK_NORMAL5;
                     break;
                 case CMD_MODEL_COLLISION6:
-                    attack.attack_type  = ATK_NORMAL6;
+                    attack[0].attack_type  = ATK_NORMAL6;
                     break;
                 case CMD_MODEL_COLLISION7:
-                    attack.attack_type  = ATK_NORMAL7;
+                    attack[0].attack_type  = ATK_NORMAL7;
                     break;
                 case CMD_MODEL_COLLISION8:
-                    attack.attack_type  = ATK_NORMAL8;
+                    attack[0].attack_type  = ATK_NORMAL8;
                     break;
                 case CMD_MODEL_COLLISION9:
-                    attack.attack_type  = ATK_NORMAL9;
+                    attack[0].attack_type  = ATK_NORMAL9;
                     break;
                 case CMD_MODEL_COLLISION10:
-                    attack.attack_type  = ATK_NORMAL10;
+                    attack[0].attack_type  = ATK_NORMAL10;
                     break;
                 case CMD_MODEL_SHOCK:
-                    attack.attack_type  = ATK_SHOCK;
+                    attack[0].attack_type  = ATK_SHOCK;
                     break;
                 case CMD_MODEL_BURN:
-                    attack.attack_type  = ATK_BURN;
+                    attack[0].attack_type  = ATK_BURN;
                     break;
                 case CMD_MODEL_STEAL:
-                    attack.steal = 1;
-                    attack.attack_type  = ATK_STEAL;
+                    attack[0].steal = 1;
+                    attack[0].attack_type  = ATK_STEAL;
                     break;
                 case CMD_MODEL_FREEZE:
-                    attack.attack_type  = ATK_FREEZE;
-                    attack.freeze = 1;
-                    attack.freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
-                    attack.forcemap = -1;
-                    attack.attack_drop = 0;
+                    attack[0].attack_type  = ATK_FREEZE;
+                    attack[0].freeze = 1;
+                    attack[0].freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
+                    attack[0].forcemap = -1;
+                    attack[0].attack_drop = 0;
                     break;
                 case CMD_MODEL_ITEMBOX:
-                    attack.attack_type  = ATK_ITEM;
+                    attack[0].attack_type  = ATK_ITEM;
                     break;
                 case CMD_MODEL_LOSE:
-                    attack.attack_type  = ATK_LOSE;
-                    attack.attack_drop = 0;
+                    attack[0].attack_type  = ATK_LOSE;
+                    attack[0].attack_drop = 0;
                     break;
                 default:
                     tempInt = atoi(command + 6);
@@ -10993,7 +10994,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         tempInt = MAX_ATKS - STA_ATKS + 1;
                     }
-                    attack.attack_type = tempInt + STA_ATKS - 1;
+                    attack[0].attack_type = tempInt + STA_ATKS - 1;
                 }
                 break;
             case CMD_MODEL_HITWALLTYPE:
@@ -11002,89 +11003,89 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
-                attack_coords.z1 = GET_INT_ARG(1);
-                attack_coords.z2 = GET_INT_ARG(2);
+                attack_coords[0].z1 = GET_INT_ARG(1);
+                attack_coords[0].z2 = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_BLAST:
-                abox.x = GET_INT_ARG(1);
-                abox.y = GET_INT_ARG(2);
-                abox.width = GET_INT_ARG(3);
-                abox.height = GET_INT_ARG(4);
-                attack.dropv.y = default_model_dropv.y;
-                attack.dropv.x = default_model_dropv.x * 2.083f;
-                attack.dropv.z = 0;
-                attack.attack_force = GET_INT_ARG(5);
-                attack.no_block = GET_INT_ARG(6);
-                attack.no_flash = GET_INT_ARG(7);
-                attack.pause_add = GET_INT_ARG(8);
-                attack.attack_drop = 1;
-                attack.attack_type = ATK_BLAST;
-                attack_coords.z1 = GET_INT_ARG(9); // depth or z
-                attack.blast = 1;
+                abox[0].x = GET_INT_ARG(1);
+                abox[0].y = GET_INT_ARG(2);
+                abox[0].width = GET_INT_ARG(3);
+                abox[0].height = GET_INT_ARG(4);
+                attack[0].dropv.y = default_model_dropv.y;
+                attack[0].dropv.x = default_model_dropv.x * 2.083f;
+                attack[0].dropv.z = 0;
+                attack[0].attack_force = GET_INT_ARG(5);
+                attack[0].no_block = GET_INT_ARG(6);
+                attack[0].no_flash = GET_INT_ARG(7);
+                attack[0].pause_add = GET_INT_ARG(8);
+                attack[0].attack_drop = 1;
+                attack[0].attack_type = ATK_BLAST;
+                attack_coords[0].z1 = GET_INT_ARG(9); // depth or z
+                attack[0].blast = 1;
                 break;
             case CMD_MODEL_DROPV:
                 // drop velocity add if the target is knocked down
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->dropv.y = GET_FLOAT_ARG(1); // height add
                 pattack->dropv.x = GET_FLOAT_ARG(2); // xdir add
                 pattack->dropv.z = GET_FLOAT_ARG(3); // zdir add
                 break;
             case CMD_MODEL_OTG:
                 // Over The Ground hit.
-                attack.otg = GET_INT_ARG(1);
+                attack[0].otg = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_JUGGLECOST:
                 // if cost >= opponents jugglepoints , we can juggle
-                attack.jugglecost = GET_INT_ARG(1);
+                attack[0].jugglecost = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_GUARDCOST:
                 // if cost >= opponents guardpoints , opponent will play guardcrush anim
-                attack.guardcost = GET_INT_ARG(1);
+                attack[0].guardcost = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_STUN:
                 //Like Freeze, but no auto remap.
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->freeze = 1;
                 pattack->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
                 pattack->attack_drop = 0;
                 break;
             case CMD_MODEL_GRABIN:
                 // fake grab distanse efffect, not link
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->grab =  GET_INT_ARG(1);
                 pattack->grab_distance = GET_FLOAT_ARG(2);
                 break;
             case CMD_MODEL_NOREFLECT:
                 // only cost target's hp, don't knock down or cause pain, unless the target is killed
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->no_pain = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NOKILL:
                 // don't kill the target, leave 1 hp
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->no_kill = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_FORCEDIRECTION:
                 // the attack direction
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->force_direction = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_DAMAGEONLANDING:
                 // fake throw damage on landing
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->damage_on_landing.attack_force = GET_INT_ARG(1);
                 pattack->blast = GET_INT_ARG(2);
                 pattack->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
                 break;
             case CMD_MODEL_SEAL:
                 // Disable special moves for specified time.
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->sealtime = GET_INT_ARG(1) * GAME_SPEED;
                 pattack->seal = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_STAYDOWN:
                 // Disable special moves for specified time.
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->staydown.rise          = GET_INT_ARG(1); //Risetime modifier.
                 pattack->staydown.riseattack    = GET_INT_ARG(2); //Riseattack time addition and toggle.
                 break;
@@ -11099,7 +11100,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_FORCEMAP:
                 // force color map change for specified time
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
+                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack[0];
                 pattack->forcemap = GET_INT_ARG(1);
                 pattack->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
                 break;
@@ -11248,41 +11249,41 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                 }
                 // Adjust coords: add offsets and change size to coords
-                body_coords.x      = bbox.x - offset.x;
-                body_coords.y      = bbox.y - offset.y;
-                body_coords.width  = bbox.width + body_coords.x;
-                body_coords.height = bbox.height + body_coords.y;
-                body_coords.z1     = bbox.z1;
-                body_coords.z2     = bbox.z2;
+                body_coords[0].x      = bbox[0].x - offset.x;
+                body_coords[0].y      = bbox[0].y - offset.y;
+                body_coords[0].width  = bbox[0].width + body_coords[0].x;
+                body_coords[0].height = bbox[0].height + body_coords[0].y;
+                body_coords[0].z1     = bbox[0].z1;
+                body_coords[0].z2     = bbox[0].z2;
 
-                if(body_coords.z2 > body_coords.z1)
+                if(body_coords[0].z2 > body_coords[0].z1)
                 {
-                    body_coords.z1 -= offset.y;
-                    body_coords.z2 -= offset.y;
+                    body_coords[0].z1 -= offset.y;
+                    body_coords[0].z2 -= offset.y;
                 }
 
-                entity_coords.x      = ebox.x - offset.x;
-                entity_coords.y      = ebox.y - offset.y;
-                entity_coords.width  = ebox.width + entity_coords.x;
-                entity_coords.height = ebox.height + entity_coords.y;
-                entity_coords.z1     = ebox.z1;
-                entity_coords.z2     = ebox.z2;
+                entity_coords[0].x      = ebox[0].x - offset.x;
+                entity_coords[0].y      = ebox[0].y - offset.y;
+                entity_coords[0].width  = ebox[0].width + entity_coords[0].x;
+                entity_coords[0].height = ebox[0].height + entity_coords[0].y;
+                entity_coords[0].z1     = ebox[0].z1;
+                entity_coords[0].z2     = ebox[0].z2;
 
-                if(entity_coords.z2 > entity_coords.z1)
+                if(entity_coords[0].z2 > entity_coords[0].z1)
                 {
-                    entity_coords.z1 -= offset.y;
-                    entity_coords.z2 -= offset.y;
+                    entity_coords[0].z1 -= offset.y;
+                    entity_coords[0].z2 -= offset.y;
                 }
 
-                attack_coords.x      = abox.x - offset.x;
-                attack_coords.y      = abox.y - offset.y;
-                attack_coords.width  = abox.width + attack_coords.x;
-                attack_coords.height = abox.height + attack_coords.y;
+                attack_coords[0].x      = abox[0].x - offset.x;
+                attack_coords[0].y      = abox[0].y - offset.y;
+                attack_coords[0].width  = abox[0].width + attack_coords[0].x;
+                attack_coords[0].height = abox[0].height + attack_coords[0].y;
 
-                if(attack_coords.z2 > attack_coords.z1)
+                if(attack_coords[0].z2 > attack_coords[0].z1)
                 {
-                    attack_coords.z1 -= offset.y;
-                    attack_coords.z2 -= offset.y;
+                    attack_coords[0].z1 -= offset.y;
+                    attack_coords[0].z2 -= offset.y;
                 }
 
                 //attack.coords.z1 = abox.z1;
@@ -11332,10 +11333,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 curframe = addframe(newanim, index, framecount, delay, idle,
-                                    &ebox_con, &bbox_con, &attack, &move, platform_con,
+                                    ebox_con, bbox_con, attack,
+                                    &move, platform_con,
                                     frameshadow, shadow_coords, soundtoplay,
-                                    &dm, &offset, &recursive, &attack_coords,
-                                    &body_coords, &entity_coords);
+                                    &dm, &offset, &recursive,
+                                    attack_coords, body_coords, entity_coords);
 
                 soundtoplay = -1;
                 frm_id = -1;
@@ -11961,7 +11963,7 @@ void load_model_constants()
     max_attacks      = MAX_ATTACKS;
     max_animations   = MAX_ANIS;
 
-    max_collisons    = MAX_COLLISIONS;
+    max_collisions    = MAX_COLLISIONS;
 
     // free old values
     if(animspecials)
@@ -12083,10 +12085,10 @@ void load_model_constants()
             {
             case CMD_MODELSTXT_MAX_COLLISIONS:
                 // max collision_attack boxes.
-                max_collisons = GET_INT_ARG(1);
-                if(max_collisons < MAX_COLLISIONS)
+                max_collisions = GET_INT_ARG(1);
+                if(max_collisions < MAX_COLLISIONS)
                 {
-                    max_collisons = MAX_COLLISIONS;
+                    max_collisions = MAX_COLLISIONS;
                 }
                 break;
             case CMD_MODELSTXT_MAXIDLES:
@@ -16441,7 +16443,7 @@ void draw_visual_debug()
                 if(entity->animation->collision_body[entity->animpos])
                 {
                     // Loop instances of collision.
-                    for(instance = 0; instance < max_collisons; instance++)
+                    for(instance = 0; instance < max_collisions; instance++)
                     {
                         // Get collision instance pointer.
                         collision_body = entity->animation->collision_body[entity->animpos]->instance[instance];
@@ -16467,7 +16469,7 @@ void draw_visual_debug()
                 if(entity->animation->collision_entity[entity->animpos])
                 {
                     // Loop instances of collision.
-                    for(instance = 0; instance < max_collisons; instance++)
+                    for(instance = 0; instance < max_collisions; instance++)
                     {
                         // Get collision instance pointer.
                         collision_entity = entity->animation->collision_entity[entity->animpos]->instance[instance];
@@ -16493,7 +16495,7 @@ void draw_visual_debug()
                 if(entity->animation->collision_attack[entity->animpos])
                 {
                     // Loop instances of collision.
-                    for(instance = 0; instance < max_collisons; instance++)
+                    for(instance = 0; instance < max_collisions; instance++)
                     {
                         // Get collision instance pointer.
                         collision_attack = entity->animation->collision_attack[entity->animpos]->instance[instance];
@@ -18593,12 +18595,12 @@ int checkhit(entity *attacker, entity *target)
     int detect_instance = 0;
     int collision_found = 0;
 
-    for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
+    for(attack_instance = 0; attack_instance < max_collisions; attack_instance++)
     {
         attack          = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
         coords_attack   = attack->coords;
 
-        for(detect_instance = 0; detect_instance < max_collisons; detect_instance++)
+        for(detect_instance = 0; detect_instance < max_collisions; detect_instance++)
         {
             // Z calculations use increments in,
             // each loop, so we need to reset them here.
@@ -22953,7 +22955,7 @@ entity *block_find_target(int anim, int detect_adj)
     {
         attacker = ent_list[i];
 
-        for(instance = 0; instance < max_collisons; instance++)
+        for(instance = 0; instance < max_collisions; instance++)
         {
             if( attacker && attacker->exists && attacker != self //cant target self
                 && (attacker->modeldata.candamage & self->modeldata.type)
@@ -25553,12 +25555,12 @@ int check_entity_collision(entity *ent, entity *target)
 
     if (entity_pushing && !PUSH_FACTOR) PUSH_FACTOR = 1.0f;
 
-    for(col_entity_ent_instance = 0; col_entity_ent_instance < max_collisons; col_entity_ent_instance++)
+    for(col_entity_ent_instance = 0; col_entity_ent_instance < max_collisions; col_entity_ent_instance++)
     {
         col_entity_ent  = ent->animation->collision_entity[ent->animpos]->instance[col_entity_ent_instance];
         coords_col_entity_ent   = col_entity_ent->coords;
 
-        for(col_entity_target_instance = 0; col_entity_target_instance < max_collisons; col_entity_target_instance++)
+        for(col_entity_target_instance = 0; col_entity_target_instance < max_collisions; col_entity_target_instance++)
         {
             col_entity_target          = target->animation->collision_entity[target->animpos]->instance[col_entity_target_instance];
             coords_col_entity_target   = col_entity_target->coords;

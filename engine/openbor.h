@@ -1071,6 +1071,12 @@ typedef enum
     ENTITY_COLLISION_PROP_INDEX
 } e_entity_collision_properties;
 
+//Generic collision properties.
+typedef enum
+{
+    COLLISIONS_MAX_COLLISIONS = MAX_COLLISIONS
+} e_collision_properties;
+
 typedef enum
 {
     /*
