@@ -8635,11 +8635,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     };
 
     s_damage_recursive  recursive;
-    s_hitbox            attack_coords;
-    s_collision_attack  attack;
     s_collision_attack  *pattack = NULL;
+    s_collision_attack  attack;
     s_collision_body    bbox_con;
     s_collision_entity  ebox_con;
+    s_hitbox            attack_coords;
     s_hitbox            body_coords;
     s_hitbox            entity_coords;
     s_defense           defense;
@@ -10048,11 +10048,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
                 shadow_set                      = 0;
+                attack                          = emptyattack;
                 bbox_con                        = empty_body;
                 ebox_con                        = empty_entity_collision;
                 body_coords                     = empty_collision_coords;
-                attack                          = emptyattack;
                 attack_coords                   = empty_collision_coords;
+                entity_coords                   = empty_collision_coords;
                 recursive                       = empty_recursive;
                 attack.hitsound                 = SAMPLE_BEAT;
                 attack.hitflash                 = -1;
