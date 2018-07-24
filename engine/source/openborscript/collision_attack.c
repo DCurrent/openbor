@@ -404,6 +404,12 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             (*pretvar)->lVal = (LONG)handle->tag;
             break;
 
+        case ATTACK_PROP_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->index;
+            break;
+
         default:
 
             printf("Unsupported property.\n");
@@ -757,6 +763,14 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->tag = temp_int;
+            }
+            break;
+
+        case ATTACK_PROP_INDEX:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->index = temp_int;
             }
             break;
 

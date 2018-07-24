@@ -38,6 +38,7 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
     // taken from argument.
     LONG    temp_int;
     DOUBLE  temp_float;
+    ScriptVariant   *arg_value; // Argument input carrier.
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer
@@ -53,6 +54,7 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
     {
         handle      = (s_spawn_entry *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+        arg_value   = varlist[ARG_VALUE];
     }
 
     // Which property to modify?
@@ -69,7 +71,11 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
 
         case SPAWN_ENTRY_PROP_ITEM_PROPERTIES:
 
-            handle->item_properties = (s_item_properties *)arg_value->ptrVal;
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+            memcpy(&handle->item_properties, (s_item_properties *)arg_value->ptrVal, sizeof(s_item_properties));
             break;
 
         case SPAWN_ENTRY_PROP_ALIAS:
@@ -199,14 +205,23 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             break;
 
         case SPAWN_ENTRY_PROP_HEALTH:
-
-            if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
+        {
+            int ltemp;
+            if(paramCount > 3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
             {
-                goto error_local;
+                if(varlist[2]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an integer value for subproperty.\n");
+                    goto error_local;
+                }
+                if(FAILED(ScriptVariant_IntegerValue(varlist[3], &temp_int)))
+                {
+                    goto error_local;
+                }
             }
-            handle->health = temp_int;
+            handle->health[ltemp] = temp_int;
             break;
-
+        }
         case SPAWN_ENTRY_PROP_INDEX:
 
             if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
@@ -227,7 +242,11 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
 
         case SPAWN_ENTRY_PROP_LIGHT:
 
-            handle->light = (s_axis_plane_vertical_int *)arg_value->ptrVal;
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+            memcpy(&handle->light, (s_axis_plane_vertical_int *)arg_value->ptrVal, sizeof(s_axis_plane_vertical_int));
             break;
 
         case SPAWN_ENTRY_PROP_MP:
@@ -304,6 +323,10 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
 
         case SPAWN_ENTRY_PROP_PARENT:
 
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
             handle->parent = (entity *)arg_value->ptrVal;
             break;
 
@@ -327,7 +350,11 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
 
         case SPAWN_ENTRY_PROP_POSITION:
 
-            handle->position = (s_axis_principal_float *)arg_value->ptrVal;
+            if(invalid_pointer_input)
+            {
+                goto error_local;
+            }
+            memcpy(&handle->position, (s_axis_principal_float *)arg_value->ptrVal, sizeof(s_axis_principal_float));
             break;
 
         case SPAWN_ENTRY_PROP_SCORE:
@@ -357,7 +384,7 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             handle->scrollminx = temp_int;
             break;
 
-        case SPAWN_ENTRY_PROP_SCROLLMMAXZ:
+        case SPAWN_ENTRY_PROP_SCROLLMAXZ:
 
             if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
             {
@@ -366,7 +393,7 @@ HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             handle->scrollmaxz = temp_int;
             break;
 
-        case SPAWN_ENTRY_PROP_SCROLLMMINZ:
+        case SPAWN_ENTRY_PROP_SCROLLMINZ:
 
             if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
             {
@@ -517,7 +544,7 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
         case SPAWN_ENTRY_PROP_ITEM_PROPERTIES:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)handle->item_properties;
+            (*pretvar)->ptrVal = (VOID *)&handle->item_properties;
             break;
 
         case SPAWN_ENTRY_PROP_ALIAS:
@@ -605,11 +632,20 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             break;
 
         case SPAWN_ENTRY_PROP_HEALTH:
-
+        {
+            int ltemp;
+            if(paramCount > 2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+            {
+                if(varlist[2]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an integer value for subproperty.\n");
+                    goto error_local;
+                }
+            }
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->health;
+            (*pretvar)->lVal = (LONG)handle->health[ltemp];
             break;
-
+        }
         case SPAWN_ENTRY_PROP_INDEX:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -625,19 +661,19 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
         case SPAWN_ENTRY_PROP_ITEMMODEL:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->itemmodel.name);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->itemmodel->name);
             break;
 
         case SPAWN_ENTRY_PROP_LIGHT:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)handle->light;
+            (*pretvar)->ptrVal = (VOID *)&handle->light;
             break;
 
         case SPAWN_ENTRY_PROP_MODEL:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->model.name);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->model->name);
             break;
 
         case SPAWN_ENTRY_PROP_MP:
@@ -709,7 +745,7 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
         case SPAWN_ENTRY_PROP_POSITION:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)handle->position;
+            (*pretvar)->ptrVal = (VOID *)&handle->position;
             break;
 
         case SPAWN_ENTRY_PROP_SCORE:
@@ -730,13 +766,13 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
             (*pretvar)->lVal = (LONG)handle->scrollminx;
             break;
 
-        case SPAWN_ENTRY_PROP_SCROLLMMAXZ:
+        case SPAWN_ENTRY_PROP_SCROLLMAXZ:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->scrollmaxz;
             break;
 
-        case SPAWN_ENTRY_PROP_SCROLLMMINZ:
+        case SPAWN_ENTRY_PROP_SCROLLMINZ:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->scrollminz;
@@ -793,7 +829,7 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
         case SPAWN_ENTRY_PROP_WEAPONMODEL:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
-            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->weaponmodel.name);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->weaponmodel->name);
             break;
 
         default:
@@ -819,10 +855,10 @@ HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant *
     #undef ARG_PROPERTY
 }
 
-// get_item_property_property(void handle, int property)
-HRESULT openbor_get_item_property_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+// get_item_property(void handle, int property)
+HRESULT openbor_get_item_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "get_item_property_property(void handle, int property)"
+    #define SELF_NAME       "get_item_property(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
@@ -933,6 +969,7 @@ HRESULT openbor_set_item_property(ScriptVariant **varlist, ScriptVariant **pretv
     // taken from argument.
     LONG    temp_int;
     //DOUBLE  temp_float;
+    ScriptVariant   *arg_value; // Argument input carrier.
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer
@@ -948,6 +985,7 @@ HRESULT openbor_set_item_property(ScriptVariant **varlist, ScriptVariant **pretv
     {
         handle      = (s_item_properties *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+        arg_value   = varlist[ARG_VALUE];
     }
 
     // Which property to modify?
@@ -1799,21 +1837,30 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->width;
             break;
 
-        case LEVEL_PROP_SPAWN_COLLECTION:
-
+        case LEVEL_PROP_SPAWN_ENTRY:
+        {
+            int ltemp;
+            if(paramCount > 2 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+            {
+                if(varlist[2]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an integer value for subproperty.\n");
+                    goto error_local;
+                }
+            }
             if(handle->spawnpoints)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->spawnpoints;
+                (*pretvar)->ptrVal = (VOID *)&handle->spawnpoints[ltemp];
             }
-
+        }
         case LEVEL_PROP_SPAWN_COUNT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->numspawns;
             break;
 
-        case LEVEL_PROP_SPAWN_PLAYER_COLLECTION:
+        case LEVEL_PROP_SPAWN_PLAYER_POSITION:
 
             //if(&handle->spawn)
             //{
@@ -2524,16 +2571,24 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
             handle->width = temp_int;
             break;
 
-        case LEVEL_PROP_SPAWN_COLLECTION:
-
-            if(invalid_pointer_input)
+        case LEVEL_PROP_SPAWN_ENTRY:
+        {
+            int ltemp;
+            if(varlist[3]->vt != VT_PTR && varlist[3]->vt != VT_EMPTY)
             {
                 goto error_local;
             }
-
-            handle->spawnpoints = (s_spawn_entry *)arg_value->ptrVal;
+            if(paramCount > 3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+            {
+                if(varlist[2]->vt != VT_INTEGER)
+                {
+                    printf("You must provide an integer value for subproperty.\n");
+                    goto error_local;
+                }
+            }
+            memcpy(&handle->spawnpoints[ltemp], (s_spawn_entry *)varlist[3]->ptrVal, sizeof(s_spawn_entry));
             break;
-
+        }
         case LEVEL_PROP_SPAWN_COUNT:
 
             if(FAILED(ScriptVariant_IntegerValue(arg_value, &temp_int)))
@@ -2544,7 +2599,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
             handle->numspawns = temp_int;
             break;
 
-        case LEVEL_PROP_SPAWN_PLAYER_COLLECTION:
+        case LEVEL_PROP_SPAWN_PLAYER_POSITION:
 
             if(invalid_pointer_input)
             {

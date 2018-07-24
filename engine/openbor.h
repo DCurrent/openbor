@@ -844,9 +844,9 @@ typedef enum
     LEVEL_PROP_SCROLL_DIRECTION,                // int scrolldir;
     LEVEL_PROP_SCROLL_VELOCITY,                 // float scrollspeed;
     LEVEL_PROP_SIZE_X,                          // int width;
-    LEVEL_PROP_SPAWN_COLLECTION,                // s_spawn_entry *spawnpoints;
+    LEVEL_PROP_SPAWN_ENTRY,                     // s_spawn_entry *spawnentry;
     LEVEL_PROP_SPAWN_COUNT,                     // int numspawns;
-    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_principal_float spawn[MAX_PLAYERS];
+    LEVEL_PROP_SPAWN_PLAYER_POSITION,           // s_axis_principal_float spawn[MAX_PLAYERS];
     LEVEL_PROP_SPECIAL_DISABLE,                 // int nospecial;
     LEVEL_PROP_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
     LEVEL_PROP_TEXT_OBJECT_COUNT,               // int numtextobjs;
@@ -1044,7 +1044,8 @@ typedef enum
 {
     BODY_COLLISION_PROP_COORDINATES,
     BODY_COLLISION_PROP_DEFENSE,
-    BODY_COLLISION_PROP_TAG
+    BODY_COLLISION_PROP_TAG,
+    BODY_COLLISION_PROP_INDEX
 } e_body_collision_properties;
 
 // Caskey, Damon V.
@@ -1066,7 +1067,8 @@ typedef enum
 typedef enum
 {
     ENTITY_COLLISION_PROP_COORDINATES,
-    ENTITY_COLLISION_PROP_TAG
+    ENTITY_COLLISION_PROP_TAG,
+    ENTITY_COLLISION_PROP_INDEX
 } e_entity_collision_properties;
 
 typedef enum
