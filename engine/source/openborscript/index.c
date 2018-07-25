@@ -475,6 +475,22 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "get_set_handle";
     }
+    else if (functionRef == ((void *)openbor_set_item_property))
+    {
+        return "set_item_property";
+    }
+    else if (functionRef == ((void *)openbor_get_item_property))
+    {
+        return "get_item_property";
+    }
+    else if (functionRef == ((void *)openbor_get_spawnentry_property))
+    {
+        return "get_spawnentry_property";
+    }
+    else if (functionRef == ((void *)openbor_set_spawnentry_property))
+    {
+        return "set_spawnentry_property";
+    }
     else if (functionRef == ((void *)openbor_get_layer_handle))
     {
         return "get_layer_handle";
@@ -1255,6 +1271,15 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_set_set_property, "set_set_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_get_set_handle, "get_set_handle");
+
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_item_property, "set_item_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_item_property, "get_item_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_spawnentry_property, "get_spawnentry_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_spawnentry_property, "set_spawnentry_property");
 
     // 2017-04-27, DC, Layers
     List_InsertAfter(&theFunctionList,

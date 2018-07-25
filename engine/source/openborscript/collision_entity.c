@@ -174,6 +174,12 @@ HRESULT openbor_get_entity_collision_property(ScriptVariant **varlist, ScriptVar
             (*pretvar)->lVal = (LONG)handle->tag;
             break;
 
+        case ENTITY_COLLISION_PROP_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->index;
+            break;
+
         default:
 
             printf("Unsupported property.\n");
@@ -243,6 +249,14 @@ HRESULT openbor_set_entity_collision_property(ScriptVariant **varlist, ScriptVar
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->tag = temp_int;
+            }
+            break;
+
+        case ENTITY_COLLISION_PROP_INDEX:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->index = temp_int;
             }
             break;
 
