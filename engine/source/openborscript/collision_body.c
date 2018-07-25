@@ -190,6 +190,12 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
             (*pretvar)->lVal = (LONG)handle->tag;
             break;
 
+        case BODY_COLLISION_PROP_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->index;
+            break;
+
         default:
 
             printf("Unsupported property.\n");
@@ -265,6 +271,14 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->tag = temp_int;
+            }
+            break;
+
+        case BODY_COLLISION_PROP_INDEX:
+
+            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->index = temp_int;
             }
             break;
 

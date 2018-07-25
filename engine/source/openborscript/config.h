@@ -210,6 +210,10 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_get_set_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_set_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_get_set_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_item_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_item_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_spawnentry_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 
 // 2017-04-27, DC - bglayer,fglayer, etc.
 HRESULT openbor_get_layer_handle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
