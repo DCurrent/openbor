@@ -19590,8 +19590,8 @@ void do_attack(entity *e)
             }
         }
 
-        // If falling, then check the juggle cost.
-        if(target->falling == 1)
+        // If in the air, then check the juggle cost.
+        if(inair(target))
         {
             if(attack->jugglecost > target->modeldata.jugglepoints.current)
             {
