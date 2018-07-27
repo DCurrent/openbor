@@ -15,6 +15,12 @@
 #define			SFX_BLEND		2
 #define			SFX_SPECIAL		3
 
+// Max layer values, used at debug performance menu
+#define			LAYER_Z_LIMIT_MAX		1410065407
+#define			LAYER_Z_LIMIT_BOX_MAX		0x540BE3FF
+
+
+
 extern int  pixelformat;
 // Sprite queueing and sorting
 void spriteq_add_sprite(int x, int y, int z, int id, s_drawmethod *pdrawmethod, int sortid);
@@ -37,4 +43,3 @@ void spriteq_clear(void);
 
 
 #endif
-
