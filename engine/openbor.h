@@ -1492,13 +1492,6 @@ typedef struct
     int                     base;
 } s_move;
 
-// boomerang props
-typedef struct
-{
-    float acceleration;
-    float hdistance;
-} s_boomerang_props;
-
 // distance x and z for edge animation
 typedef struct
 {
