@@ -17857,7 +17857,6 @@ void update_frame(entity *ent, unsigned int f)
 
         #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
         #define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
-        #define __tryboomerang boomerang_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0)
 
         if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
         {
@@ -17867,26 +17866,16 @@ void update_frame(entity *ent, unsigned int f)
         {
             __trystar;
         }
-        else if(anim->projectile.boomerang >= 0)
-        {
-            __tryboomerang;
-        }
         else if(self->jumping)
         {
             if(!__trystar)
             {
-                if(!__tryknife)
-                {
-                    __tryboomerang;
-                }
+                __tryknife;
             }
         }
         else if(!__tryknife)
         {
-            if(!__trystar)
-            {
-                __tryboomerang;
-            }
+            __trystar;
         }
         self->deduct_ammo = 1;
     }
@@ -17910,7 +17899,6 @@ uf_interrupted:
 
     #undef __trystar
     #undef __tryknife
-    #undef __tryboomerang
 }
 
 
