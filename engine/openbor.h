@@ -2324,7 +2324,6 @@ typedef struct entity
     unsigned int dying2;  // Corresponds with which remap is to be used for the dying flash for per2
     unsigned int per1;    // Used to store at what health value the entity begins to flash
     unsigned int per2;    // Used to store at what health value the entity flashes more rapidly
-    unsigned int boomerang_loop;  // Count of boomerang passes.
     e_direction direction;
     int nograb; // Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
     int nograb_default; // equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
