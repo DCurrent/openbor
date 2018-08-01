@@ -8992,21 +8992,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->star = get_cached_model_index(value);
                 }
                 break;
-            case CMD_MODEL_BOOMERANG:
-                value = GET_ARG(1);
-                if(stricmp(value, "none") == 0)
-                {
-                    newchar->boomerang = -1;
-                }
-                else
-                {
-                    newchar->boomerang = get_cached_model_index(value);
-                }
-                break;
-            case CMD_MODEL_BOOMERANGVALUES:
-                newchar->boomerang_prop.acceleration = GET_FLOAT_ARG(1);
-                newchar->boomerang_prop.hdistance = GET_FLOAT_ARG(2);
-                break;
             case CMD_MODEL_BOMB:
             case CMD_MODEL_PLAYBOMB:
                 value = GET_ARG(1);
@@ -10058,8 +10043,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife =
-                                                  newanim->projectile.star = newanim->projectile.boomerang =
-                                                  newanim->projectile.flash = -1;
+                                                  newanim->projectile.star = newanim->projectile.flash = -1;
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = -1;
 
@@ -10168,9 +10152,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CUSTPSHOT:
             case CMD_MODEL_CUSTPSHOTW:
                 newanim->projectile.knife = get_cached_model_index(GET_ARG(1));
-                break;
-            case CMD_MODEL_CUSTBOOMERANG:
-                newanim->projectile.boomerang = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTPSHOTNO:
                 newanim->projectile.flash = get_cached_model_index(GET_ARG(1));
@@ -11696,7 +11677,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             break;
         case TYPE_ENEMY:
             newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
-            if(newchar->subtype == SUBTYPE_ARROW || newchar->subtype == SUBTYPE_BOOMERANG)
+            if(newchar->subtype == SUBTYPE_ARROW)
             {
                 newchar->candamage |= TYPE_OBSTACLE;
             }
