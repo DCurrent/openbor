@@ -3124,13 +3124,6 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
-    // map subproperties of boomerang property
-    case _ep_boomerang:
-    {
-        MAPSTRINGS(varlist[2], eplist_boomerang, _ep_boomerang_the_end,
-                   _is_not_a_known_subproperty_of_, eps);
-        break;
-    }
     // map subproperties of edgerange property
     case _ep_edgerange:
     {
