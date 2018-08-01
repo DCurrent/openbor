@@ -2471,19 +2471,6 @@ static const char *eplist_aiflag[] =
     "walkmode",
 };
 
-enum boomerang_enum
-{
-    _ep_boomerang_acceleration,
-    _ep_boomerang_hdistance,
-    _ep_boomerang_the_end,
-};
-
-static const char *eplist_boomerang[] =
-{
-    "acceleration",
-    "hdistance",
-};
-
 enum edgerange_enum
 {
     _ep_edgerange_x,
