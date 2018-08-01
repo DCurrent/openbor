@@ -20364,11 +20364,6 @@ void check_gravity(entity *e)
                         if (savedata.joyrumble[i]) control_rumble(i, 1, 75 * (int)self->velocity.y / 2);
                     }
                 }
-                else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
-                        (!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y <= 0))
-                {
-                    if( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) ) self->velocity.x = self->velocity.z = self->velocity.y = 0;
-                }
                 else
                 {
                     self->velocity.y = 0;
