@@ -34,7 +34,6 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "binding",
         "blink",
         "blocking",
-        "boomerang_loop",
         "boss",
         "charging",
         "colorset_default",
@@ -222,13 +221,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->blocking;
-
-            break;
-
-        case _ENTITY_BOOMERANG_LOOP:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->boomerang_loop;
 
             break;
 
@@ -552,15 +544,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->blocking = temp_int;
-            }
-
-            break;
-
-        case _ENTITY_BOOMERANG_LOOP:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->boomerang_loop = temp_int;
             }
 
             break;
