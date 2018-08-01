@@ -414,7 +414,6 @@ typedef enum
     AIMOVE1_STAR        = 0x00000200,   // fly like a star, subject to ground
     AIMOVE1_BOMB        = 0x00000400,   // fly like a bomb, subject to ground/wall etc
     AIMOVE1_NOMOVE      = 0x00000800,   // don't move at all
-    AIMOVE1_BOOMERANG   = 0x00001000,   // boomerang
     MASK_AIMOVE1        = 0x0000FFFF
 } e_aimove_1;
 
