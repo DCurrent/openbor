@@ -17542,7 +17542,7 @@ void ent_spawn_ent(entity *ent)
         {
             s_ent->playerindex = ent->playerindex;
         }
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW || s_ent->modeldata.subtype == SUBTYPE_BOOMERANG)
+        if(s_ent->modeldata.subtype == SUBTYPE_ARROW)
         {
             s_ent->owner = ent;
         }
@@ -17591,7 +17591,7 @@ void ent_summon_ent(entity *ent)
         {
             s_ent->playerindex = ent->playerindex;
         }
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW || s_ent->modeldata.subtype == SUBTYPE_BOOMERANG)
+        if(s_ent->modeldata.subtype == SUBTYPE_ARROW)
         {
             s_ent->owner = ent;
         }
