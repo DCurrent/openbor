@@ -22734,10 +22734,6 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         {
             newmodel->star          = model->star;
         }
-        if(newmodel->boomerang      <   0)
-        {
-            newmodel->boomerang     = model->boomerang;
-        }
         if(newmodel->flash          <   0)
         {
             newmodel->flash         = model->flash;
