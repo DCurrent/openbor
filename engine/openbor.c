@@ -6218,14 +6218,6 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_BACKRUN;
     }
-    else if(stricmp(value, "getboomerang") == 0)
-    {
-        ani_id = ANI_GETBOOMERANG;
-    }
-    else if(stricmp(value, "getboomeranginair") == 0)
-    {
-        ani_id = ANI_GETBOOMERANGINAIR;
-    }
     else if(starts_with_num(value, "up"))
     {
         get_tail_number(tempInt, value, "up");
