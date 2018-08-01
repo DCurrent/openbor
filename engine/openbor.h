@@ -3086,7 +3086,6 @@ void kill_all_enemies();
 void smart_bomb(entity *e, s_collision_attack *attack);
 void anything_walk(void);
 entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
-entity *boomerang_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 void bomb_explode(void);
 int star_spawn(float x, float z, float a, int direction);
