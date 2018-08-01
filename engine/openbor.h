@@ -2988,7 +2988,6 @@ int is_on_platform(entity *);
 entity *get_platform_on(entity *);
 void do_item_script(entity *ent, entity *item);
 void do_attack(entity *e);
-int do_catch(entity *ent, entity *target, int animation_catch);
 int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);

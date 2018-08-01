@@ -27814,41 +27814,6 @@ int projectile_wall_deflect(entity *ent)
 }
 
 // Caskey, Damon V.
-// 2018-04-08
-//
-// Destroy target and while ent plays catch animation
-// if ent has the catch animation and target is in range.
-// Mainly for boomerang projectiles but useful for any
-// time one entity should "catch" another out of the air.
-//
-// Returns true on successful catch, false otherwise.
-int do_catch(entity *ent, entity *target, int animation_catch)
-{
-    // Valid catch animation?
-    if(validanim(ent, animation_catch))
-    {
-        // If target is in range, then destroy it
-        // while we play the catch animation,
-        // and return true.
-        if(check_range_target_all(ent, target, animation_catch))
-        {
-            ent->takeaction = common_animation_normal;
-            ent->attacking = ATTACKING_INACTIVE;
-            ent->idling = IDLING_INACTIVE;
-            ent->ducking = DUCK_INACTIVE;
-            ent_set_anim(ent, animation_catch, 0);
-            kill_entity(target);
-
-            return 1;
-        }
-    }
-
-    // Did not catch anything.
-    return 0;
-}
-
-
-// Caskey, Damon V.
 // 2-18-04-06
 //
 // Invert current sorting position vs. parent.
