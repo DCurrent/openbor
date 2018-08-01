@@ -2033,7 +2033,6 @@ enum entityproperty_enum
     _ep_blockback,
     _ep_blockodds,
     _ep_blockpain,
-    _ep_boomerang,
     _ep_boss,
     _ep_bounce,
     _ep_bound,
@@ -2238,7 +2237,6 @@ static const char *eplist[] =
     "blockback",
     "blockodds",
     "blockpain",
-    "boomerang",
     "boss",
     "bounce",
     "bound",
@@ -2471,19 +2469,6 @@ static const char *eplist_aiflag[] =
     "turning",
     "walking",
     "walkmode",
-};
-
-enum boomerang_enum
-{
-    _ep_boomerang_acceleration,
-    _ep_boomerang_hdistance,
-    _ep_boomerang_the_end,
-};
-
-static const char *eplist_boomerang[] =
-{
-    "acceleration",
-    "hdistance",
 };
 
 enum edgerange_enum
@@ -3139,13 +3124,6 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
-    // map subproperties of boomerang property
-    case _ep_boomerang:
-    {
-        MAPSTRINGS(varlist[2], eplist_boomerang, _ep_boomerang_the_end,
-                   _is_not_a_known_subproperty_of_, eps);
-        break;
-    }
     // map subproperties of edgerange property
     case _ep_edgerange:
     {
@@ -3639,35 +3617,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.blockpain;
-        break;
-    }
-    case _ep_boomerang:
-    {
-        if(paramCount < 3)
-        {
-            break;
-        }
-        arg = varlist[2];
-        if(arg->vt != VT_INTEGER)
-        {
-            printf("You must give a string name for boomerang.\n");
-            return E_FAIL;
-        }
-        ltemp = arg->lVal;
-
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        switch(ltemp)
-        {
-        case _ep_boomerang_acceleration:
-            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_prop.acceleration;
-            break;
-        case _ep_boomerang_hdistance:
-            (*pretvar)->dblVal = (DOUBLE)ent->modeldata.boomerang_prop.hdistance;
-            break;
-        default:
-            ScriptVariant_Clear(*pretvar);
-            return E_FAIL;
-        }
         break;
     }
     case _ep_boss:
@@ -5806,38 +5755,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->modeldata.blockpain = (LONG)ltemp;
-        }
-        break;
-    }
-    case _ep_boomerang:
-    {
-        if(varlist[2]->vt != VT_INTEGER)
-        {
-            if(varlist[2]->vt != VT_STR)
-            {
-                printf("You must give a string value for boomerang name.\n");
-            }
-            goto changeentityproperty_error;
-        }
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-        {
-            switch(varlist[2]->lVal)
-            {
-            case _ep_boomerang_acceleration:
-                ent->modeldata.boomerang_prop.acceleration = (DOUBLE)dbltemp;
-                break;
-            case _ep_boomerang_hdistance:
-                ent->modeldata.boomerang_prop.hdistance = (DOUBLE)dbltemp;
-                break;
-            default:
-                printf("Unknown boomerang.\n");
-                goto changeentityproperty_error;
-            }
         }
         break;
     }
