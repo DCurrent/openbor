@@ -1852,7 +1852,6 @@ typedef struct
     int                     knife;      // custknife;
     s_axis_principal_int  position;   // Location at which projectiles are spawned
     int                     star;       // custstar;
-    int                     boomerang;       // custboomerang;
 } s_projectile;
 
 typedef struct
