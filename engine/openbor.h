@@ -2935,7 +2935,6 @@ void kill_all();
 
 int projectile_wall_deflect(entity *ent);
 
-void boomerang_initialize(entity *ent);
 int boomerang_move();
 void sort_invert_by_parent(entity *ent, entity* parent);
 
