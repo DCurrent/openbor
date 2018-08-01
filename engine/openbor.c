@@ -21711,12 +21711,16 @@ void display_ents()
 
                     }
 
+                    // In most cases we want any spawned entity to
+                    // default in front of owner.
                     if(e->owner)
                     {
-                        // WD: This is for projectile or entity spawned by owner: general rule: Always in front
-                        if ( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) &&
-                             !(self->modeldata.aimove & AIMOVE1_STAR)
-                             ) sortid = e->owner->sortid + 1;
+                        // If this entity is not an exception to the rule,
+                        // move its display order in front of owner.
+                        if (!(self->modeldata.aimove & AIMOVE1_STAR))
+                        {
+                            sortid = e->owner->sortid + 1;
+                        }
                     }
 
                     if(e->modeldata.setlayer)
