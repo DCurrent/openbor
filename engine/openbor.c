@@ -27814,7 +27814,7 @@ int projectile_wall_deflect(entity *ent)
 }
 
 // Caskey, Damon V.
-// 2-18-04-06
+// 2018-04-06
 //
 // Invert current sorting position vs. parent.
 void sort_invert_by_parent(entity *ent, entity *parent)
@@ -27827,193 +27827,6 @@ void sort_invert_by_parent(entity *ent, entity *parent)
     {
         ent->sortid = parent->sortid - 1;
     }
-}
-
-// for common boomerang types
-int boomerang_move()
-{
-    float acceleration;             // Rate of velocity difference per update.
-    float distance_x_current;       // Current X axis distance from owner.
-    float distance_x_max;           // Maximum X axis distance allowed from owner.
-    float velocity_x_accelerated;   // X velocity after acceleration applied as an addition vs. current velocity.
-    float velocity_x_decelerated;   // X velocity after acceleration applied as a reduction vs. current velocity.
-
-    if(!self->modeldata.nomove)
-    {
-        // Populate local vars with acceleration and
-        // maximum horizontal distance from modeldata.
-        // If there is no model data defined then we'll
-        // need to use some default values instead.
-        entity* owner = NULL;
-
-        if (self->owner) owner = self->owner;
-        else owner = self->parent;
-
-        // Acceleration.
-        if(self->modeldata.boomerang_prop.acceleration != 0)
-        {
-            acceleration = self->modeldata.boomerang_prop.acceleration;
-        }
-        else
-        {
-            acceleration = self->modeldata.speed/(GAME_SPEED/20);
-        }
-
-        // Maximum X distance from owner.
-        if(self->modeldata.boomerang_prop.hdistance > 0)
-        {
-            distance_x_max = self->modeldata.boomerang_prop.hdistance;
-        }
-        else
-        {
-            distance_x_max = videomodes.hRes/(3);
-        }
-
-        // If not moving on X axis and loop count
-        // is 0, then this must be a new boomerang.
-        // Run the initialize function to set up
-        // all of the attributes we'll need.
-        if(self->velocity.x == 0)
-        {
-            if(!self->boomerang_loop)
-            {
-               boomerang_initialize(self);
-            }
-        }
-
-        // No lateral movement.
-        if(self->velocity.z != 0) self->velocity.z = 0;
-
-        // If our boomerang has no owner and gets
-        // too far off the screen, then we will
-        // destroy it and exit the function.
-        if(!owner)
-        {
-            // Did check_lost() kill us?
-            if (check_lost())
-            {
-               return 0;
-            }
-        }
-
-        if(owner)
-        {
-            distance_x_current = diff(self->position.x,owner->position.x);
-            self->position.z = owner->position.z;
-            self->position.y = owner->position.y;
-
-            // Movement.
-
-            // Right of owner on X axis?
-            if (self->position.x >= owner->position.x)
-            {
-                // Get a possible X velocity to apply that
-                // will slightly decelerate us.
-                velocity_x_decelerated = self->velocity.x - acceleration;
-
-                // Exceeded maximum distance from owner?
-                if (distance_x_current >= distance_x_max)
-                {
-                    // Have we stopped accelerating?
-                    if(velocity_x_decelerated <= 0)
-                    {
-                        // Moving right along X axis?
-                        if(self->velocity.x > 0)
-                        {
-                            // Increment tracking loop
-                            ++self->boomerang_loop;
-
-                            // Reverse sorting in relation to owner.
-                            sort_invert_by_parent(self,owner);
-                        }
-                    }
-
-                    // This is where we reverse our X velocity and
-                    // return to thrower.
-                    //
-                    // If we're already reversed, then we just make sure
-                    // our X axis velocity is equal to our model
-                    // speed (inverted).
-                    //
-                    // If we're still moving forward (away from owner)
-                    // then apply the next velocity. This will
-                    // have the effect of reducing the X velocity
-                    // until it falls below inverted model speed, at
-                    // which point our reversed condition will be true.
-                    if(velocity_x_decelerated < -self->modeldata.speed)
-                    {
-                        self->velocity.x = -self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_decelerated;
-                    }
-                }
-                else if (self->velocity.x <= 0)
-                {
-                    if(velocity_x_decelerated < -self->modeldata.speed)
-                    {
-                        self->velocity.x = -self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_decelerated;
-                    }
-                }
-            }
-            else if (self->position.x <= owner->position.x)
-            {
-                // Calculate an X velocity with acceleration added.
-                velocity_x_accelerated = self->velocity.x + acceleration;
-
-                if(distance_x_current >= distance_x_max)
-                {
-                    if(velocity_x_accelerated >= 0 && self->velocity.x < 0)
-                    {
-                        ++self->boomerang_loop;
-
-                        // Reverse sorting in relation to owner.
-                        sort_invert_by_parent(self,owner);
-                    }
-
-                    // Make sure X velocity is no greater than
-                    // the model speed setting.
-                    if(velocity_x_accelerated > self->modeldata.speed)
-                    {
-                        self->velocity.x = self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_accelerated;
-                    }
-                }
-                else if (self->velocity.x >= 0)
-                {
-                    if(velocity_x_accelerated > self->modeldata.speed)
-                    {
-                        self->velocity.x = self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_accelerated;
-                    }
-                }
-            }
-
-            // Catch the boomerang.
-            boomerang_catch(self, distance_x_current);
-
-            //debug_printf("cur_distx:%f velx:%f",distance_x_current,self->velocity.x);
-            //debug_printf("acceleration:%f speed:%f",acceleration,self->modeldata.speed);
-            //debug_printf("boomerang_loop:%d",self->boomerang_loop);
-            //debug_printf("sortid:%d",self->sortid);
-        }
-    }
-
-    // Bounce off walls or platforms.
-    projectile_wall_deflect(self);
-
-    return 1;
 }
 
 // for common bomb types
@@ -28134,11 +27947,6 @@ int common_move()
     {
         // for a bomb, travel in a arc
         return bomb_move();
-    }
-    else if(aimove & AIMOVE1_BOOMERANG)
-    {
-        // for a boomerang, boomerang move
-        return boomerang_move();
     }
     else if(aimove & AIMOVE1_NOMOVE)
     {
