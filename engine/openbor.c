@@ -7569,28 +7569,6 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         newchar->subject_to_maxz        = 1;
         newchar->no_adjust_base         = 1;
     }
-    else if(stricmp(value, "boomerang") == 0) // 16-12-2016 Boomrang type
-    {
-        newchar->subtype = SUBTYPE_BOOMERANG;   // 16-12-2016 Boomrang type
-        if(newchar->aimove == -1)
-        {
-            newchar->aimove = 0;
-        }
-        newchar->aimove |= AIMOVE1_BOOMERANG;
-        if(!newchar->offscreenkill)
-        {
-            newchar->offscreenkill = 200;
-        }
-        newchar->subject_to_hole        = 0;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_basemap     = 0;
-        newchar->subject_to_wall        = 0;
-        newchar->subject_to_platform    = 0;
-        newchar->subject_to_screen      = 0;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 1;
-    }
     else if(stricmp(value, "notgrab") == 0)
     {
         newchar->subtype = SUBTYPE_NOTGRAB;
