@@ -8416,8 +8416,6 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
-    newchar->boomerang_prop.acceleration     = 0;
-    newchar->boomerang_prop.hdistance        = 0;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -8465,7 +8463,6 @@ s_model *init_model(int cacheindex, int unload)
     newchar->bomb                       = -1;
     newchar->star                       = -1;
     newchar->knife                      = -1;
-    newchar->boomerang                  = -1;
     newchar->stealth.hide               = 0;
     newchar->stealth.detect             = 0;
     newchar->attackthrottle				= 0.0f;
