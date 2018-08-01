@@ -376,7 +376,6 @@ typedef enum
     SUBTYPE_BIKER,
     SUBTYPE_NOTGRAB,
     SUBTYPE_ARROW,		//7-1-2005  subtype for an "enemy" that flies across the screen and dies
-    SUBTYPE_BOOMERANG,
     SUBTYPE_TOUCH,		// ltb 1-18-05  new Item subtype for a more platformer feel.
     SUBTYPE_WEAPON,
     SUBTYPE_NOSKIP,		// Text type that can't be skipped
@@ -1402,7 +1401,7 @@ if(n<1) n = 1;
 
 #define freezeall        (smartbomber || textbox)
 
-#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->model->subtype == SUBTYPE_BOOMERANG || e->owner)
+#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->owner)
 
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
