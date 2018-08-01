@@ -17316,7 +17316,7 @@ void ent_default_init(entity *e)
             break;
         }
         // define new subtypes
-        else if(e->modeldata.subtype == SUBTYPE_ARROW || e->modeldata.subtype == SUBTYPE_BOOMERANG)
+        else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
             e->energy_status.health_current = 1;
             if(!e->modeldata.speed && !e->modeldata.nomove)
@@ -17373,7 +17373,7 @@ void ent_default_init(entity *e)
         }
         else
         {
-            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && e->modeldata.subtype != SUBTYPE_BOOMERANG && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
+            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
 
             if(!nodropspawn && (dodrop || (e->position.x > advancex - 30 && e->position.x < advancex + videomodes.hRes + 30 && e->position.y == 0)) )
             {
