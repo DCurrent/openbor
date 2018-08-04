@@ -6218,14 +6218,6 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_BACKRUN;
     }
-    else if(stricmp(value, "getboomerang") == 0)
-    {
-        ani_id = ANI_GETBOOMERANG;
-    }
-    else if(stricmp(value, "getboomeranginair") == 0)
-    {
-        ani_id = ANI_GETBOOMERANGINAIR;
-    }
     else if(starts_with_num(value, "up"))
     {
         get_tail_number(tempInt, value, "up");
@@ -7577,28 +7569,6 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         newchar->subject_to_maxz        = 1;
         newchar->no_adjust_base         = 1;
     }
-    else if(stricmp(value, "boomerang") == 0) // 16-12-2016 Boomrang type
-    {
-        newchar->subtype = SUBTYPE_BOOMERANG;   // 16-12-2016 Boomrang type
-        if(newchar->aimove == -1)
-        {
-            newchar->aimove = 0;
-        }
-        newchar->aimove |= AIMOVE1_BOOMERANG;
-        if(!newchar->offscreenkill)
-        {
-            newchar->offscreenkill = 200;
-        }
-        newchar->subject_to_hole        = 0;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_basemap     = 0;
-        newchar->subject_to_wall        = 0;
-        newchar->subject_to_platform    = 0;
-        newchar->subject_to_screen      = 0;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 1;
-    }
     else if(stricmp(value, "notgrab") == 0)
     {
         newchar->subtype = SUBTYPE_NOTGRAB;
@@ -7869,10 +7839,6 @@ void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, 
         else if(stricmp(value, "nomove") == 0)
         {
             newchar->aimove |= AIMOVE1_NOMOVE;
-        }
-        else if(stricmp(value, "boomerang") == 0)
-        {
-            newchar->aimove |= AIMOVE1_BOOMERANG;
         }
         else
         {
@@ -8450,8 +8416,6 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
-    newchar->boomerang_prop.acceleration     = 0;
-    newchar->boomerang_prop.hdistance        = 0;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -8499,7 +8463,6 @@ s_model *init_model(int cacheindex, int unload)
     newchar->bomb                       = -1;
     newchar->star                       = -1;
     newchar->knife                      = -1;
-    newchar->boomerang                  = -1;
     newchar->stealth.hide               = 0;
     newchar->stealth.detect             = 0;
     newchar->attackthrottle				= 0.0f;
@@ -9028,21 +8991,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     newchar->star = get_cached_model_index(value);
                 }
-                break;
-            case CMD_MODEL_BOOMERANG:
-                value = GET_ARG(1);
-                if(stricmp(value, "none") == 0)
-                {
-                    newchar->boomerang = -1;
-                }
-                else
-                {
-                    newchar->boomerang = get_cached_model_index(value);
-                }
-                break;
-            case CMD_MODEL_BOOMERANGVALUES:
-                newchar->boomerang_prop.acceleration = GET_FLOAT_ARG(1);
-                newchar->boomerang_prop.hdistance = GET_FLOAT_ARG(2);
                 break;
             case CMD_MODEL_BOMB:
             case CMD_MODEL_PLAYBOMB:
@@ -10095,8 +10043,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife =
-                                                  newanim->projectile.star = newanim->projectile.boomerang =
-                                                  newanim->projectile.flash = -1;
+                                                  newanim->projectile.star = newanim->projectile.flash = -1;
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = -1;
 
@@ -10205,9 +10152,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CUSTPSHOT:
             case CMD_MODEL_CUSTPSHOTW:
                 newanim->projectile.knife = get_cached_model_index(GET_ARG(1));
-                break;
-            case CMD_MODEL_CUSTBOOMERANG:
-                newanim->projectile.boomerang = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTPSHOTNO:
                 newanim->projectile.flash = get_cached_model_index(GET_ARG(1));
@@ -11733,7 +11677,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             break;
         case TYPE_ENEMY:
             newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
-            if(newchar->subtype == SUBTYPE_ARROW || newchar->subtype == SUBTYPE_BOOMERANG)
+            if(newchar->subtype == SUBTYPE_ARROW)
             {
                 newchar->candamage |= TYPE_OBSTACLE;
             }
@@ -16759,11 +16703,11 @@ void predrawstatus()
     // Performance info.
     if(savedata.debuginfo)
     {
-        spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, 0x0FFFFFFE, 0, NULL);
-        font_printf(2,                   videomodes.dOffset - 10, 0, 0, Tr("FPS: %03d"), getFPS());
-        font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, 0, Tr("Free Ram: %s KB"), commaprint(freeram / KBYTES));
-        font_printf(2,                   videomodes.dOffset,    0, 0, Tr("Sprites: %d / %d"), spriteq_get_sprite_count(), spriteq_get_sprite_max());
-        font_printf(videomodes.hRes / 2, videomodes.dOffset,    0, 0, Tr("Used Ram: %s KB"), commaprint(usedram / KBYTES));
+        spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, LAYER_Z_LIMIT_BOX_MAX, 0, NULL);
+        font_printf(2, videomodes.dOffset - 10, 0, LAYER_Z_LIMIT_MAX, Tr("FPS: %03d"), getFPS());
+        font_printf(videomodes.hRes / 2, videomodes.dOffset - 10, 0, LAYER_Z_LIMIT_MAX, Tr("Free Ram: %s KB"), commaprint(freeram / KBYTES));
+        font_printf(2, videomodes.dOffset, 0, LAYER_Z_LIMIT_MAX, Tr("Sprites: %d / %d"), spriteq_get_sprite_count(), spriteq_get_sprite_max());
+        font_printf(videomodes.hRes / 2, videomodes.dOffset, 0, LAYER_Z_LIMIT_MAX, Tr("Used Ram: %s KB"), commaprint(usedram / KBYTES));
     }
 }
 
@@ -17372,7 +17316,7 @@ void ent_default_init(entity *e)
             break;
         }
         // define new subtypes
-        else if(e->modeldata.subtype == SUBTYPE_ARROW || e->modeldata.subtype == SUBTYPE_BOOMERANG)
+        else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
             e->energy_status.health_current = 1;
             if(!e->modeldata.speed && !e->modeldata.nomove)
@@ -17429,7 +17373,7 @@ void ent_default_init(entity *e)
         }
         else
         {
-            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && e->modeldata.subtype != SUBTYPE_BOOMERANG && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
+            dodrop = (e->modeldata.subtype != SUBTYPE_ARROW && level && (level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN));
 
             if(!nodropspawn && (dodrop || (e->position.x > advancex - 30 && e->position.x < advancex + videomodes.hRes + 30 && e->position.y == 0)) )
             {
@@ -17598,7 +17542,7 @@ void ent_spawn_ent(entity *ent)
         {
             s_ent->playerindex = ent->playerindex;
         }
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW || s_ent->modeldata.subtype == SUBTYPE_BOOMERANG)
+        if(s_ent->modeldata.subtype == SUBTYPE_ARROW)
         {
             s_ent->owner = ent;
         }
@@ -17647,7 +17591,7 @@ void ent_summon_ent(entity *ent)
         {
             s_ent->playerindex = ent->playerindex;
         }
-        if(s_ent->modeldata.subtype == SUBTYPE_ARROW || s_ent->modeldata.subtype == SUBTYPE_BOOMERANG)
+        if(s_ent->modeldata.subtype == SUBTYPE_ARROW)
         {
             s_ent->owner = ent;
         }
@@ -17913,7 +17857,6 @@ void update_frame(entity *ent, unsigned int f)
 
         #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
         #define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
-        #define __tryboomerang boomerang_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0)
 
         if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
         {
@@ -17923,26 +17866,16 @@ void update_frame(entity *ent, unsigned int f)
         {
             __trystar;
         }
-        else if(anim->projectile.boomerang >= 0)
-        {
-            __tryboomerang;
-        }
         else if(self->jumping)
         {
             if(!__trystar)
             {
-                if(!__tryknife)
-                {
-                    __tryboomerang;
-                }
+                __tryknife;
             }
         }
         else if(!__tryknife)
         {
-            if(!__trystar)
-            {
-                __tryboomerang;
-            }
+            __trystar;
         }
         self->deduct_ammo = 1;
     }
@@ -17966,7 +17899,6 @@ uf_interrupted:
 
     #undef __trystar
     #undef __tryknife
-    #undef __tryboomerang
 }
 
 
@@ -20432,11 +20364,6 @@ void check_gravity(entity *e)
                         if (savedata.joyrumble[i]) control_rumble(i, 1, 75 * (int)self->velocity.y / 2);
                     }
                 }
-                else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
-                        (!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y <= 0))
-                {
-                    if( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) ) self->velocity.x = self->velocity.z = self->velocity.y = 0;
-                }
                 else
                 {
                     self->velocity.y = 0;
@@ -21784,12 +21711,16 @@ void display_ents()
 
                     }
 
+                    // In most cases we want any spawned entity to
+                    // default in front of owner.
                     if(e->owner)
                     {
-                        // WD: This is for projectile or entity spawned by owner: general rule: Always in front
-                        if ( !(self->modeldata.aimove & AIMOVE1_BOOMERANG) &&
-                             !(self->modeldata.aimove & AIMOVE1_STAR)
-                             ) sortid = e->owner->sortid + 1;
+                        // If this entity is not an exception to the rule,
+                        // move its display order in front of owner.
+                        if (!(self->modeldata.aimove & AIMOVE1_STAR))
+                        {
+                            sortid = e->owner->sortid + 1;
+                        }
                     }
 
                     if(e->modeldata.setlayer)
@@ -22802,10 +22733,6 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         if(newmodel->star           <   0)
         {
             newmodel->star          = model->star;
-        }
-        if(newmodel->boomerang      <   0)
-        {
-            newmodel->boomerang     = model->boomerang;
         }
         if(newmodel->flash          <   0)
         {
@@ -27887,42 +27814,7 @@ int projectile_wall_deflect(entity *ent)
 }
 
 // Caskey, Damon V.
-// 2018-04-08
-//
-// Destroy target and while ent plays catch animation
-// if ent has the catch animation and target is in range.
-// Mainly for boomerang projectiles but useful for any
-// time one entity should "catch" another out of the air.
-//
-// Returns true on successful catch, false otherwise.
-int do_catch(entity *ent, entity *target, int animation_catch)
-{
-    // Valid catch animation?
-    if(validanim(ent, animation_catch))
-    {
-        // If target is in range, then destroy it
-        // while we play the catch animation,
-        // and return true.
-        if(check_range_target_all(ent, target, animation_catch))
-        {
-            ent->takeaction = common_animation_normal;
-            ent->attacking = ATTACKING_INACTIVE;
-            ent->idling = IDLING_INACTIVE;
-            ent->ducking = DUCK_INACTIVE;
-            ent_set_anim(ent, animation_catch, 0);
-            kill_entity(target);
-
-            return 1;
-        }
-    }
-
-    // Did not catch anything.
-    return 0;
-}
-
-
-// Caskey, Damon V.
-// 2-18-04-06
+// 2018-04-06
 //
 // Invert current sorting position vs. parent.
 void sort_invert_by_parent(entity *ent, entity *parent)
@@ -27935,359 +27827,6 @@ void sort_invert_by_parent(entity *ent, entity *parent)
     {
         ent->sortid = parent->sortid - 1;
     }
-}
-
-// Caskey, Damon V.
-// 2018-04-06
-//
-// Broken off from White Dragon's boomerang_move() function.
-// Verify boomerang is in catchable state and attempt
-// catch action.
-int boomerang_catch(entity *ent, float distance_x_current)
-{
-    int animation_catch; // Animation for owner catching boomerang.
-    entity* owner = NULL;
-
-    if (ent->owner) owner = ent->owner;
-    else owner = ent->parent;
-
-    // Only catch if in front of owner and traveling
-    // back toward them. Otherwise exit function since
-    // any further checks are pointless.
-    if(owner->direction == DIRECTION_RIGHT)
-    {
-        // Traveling right?
-        if(ent->velocity.x >= 0)
-        {
-            return 0;
-        }
-
-        // At or to left of owner?
-        if(ent->position.x <= owner->position.x)
-        {
-            return 0;
-        }
-    }
-    else if(owner->direction == DIRECTION_LEFT)
-    {
-        // Traveling left?
-        if(ent->velocity.x <= 0)
-        {
-            return 0;
-        }
-
-        // At or to right of owner?
-        if(ent->position.x >= owner->position.x)
-        {
-            return 0;
-        }
-    }
-
-    // Can't catch if owner is under any sort of duress.
-
-    // Pain?
-    if(owner->inpain)
-    {
-        return 0;
-    }
-
-    // Knocked down?
-    if(owner->falling)
-    {
-        return 0;
-    }
-
-    // Dead?
-    if(owner->dead)
-    {
-        return 0;
-    }
-
-    // Have to be beyond first cycle of
-    // boomerang logic.
-    if(ent->boomerang_loop <= 1)
-    {
-        return 0;
-    }
-
-    // In air? Then use air catch. Otherwise use ground catch.
-    if(inair(owner))
-    {
-        animation_catch = ANI_GETBOOMERANGINAIR;
-    }
-    else
-    {
-        animation_catch = ANI_GETBOOMERANG;
-    }
-
-    // Verify owner has catch animation and that we
-    // are in catch animation range, attempt to
-    // perform catch, and return result.
-    return do_catch(owner, ent, animation_catch);
-}
-
-// Caskey, Damon V.
-// 2018-04-06
-//
-// Offloaded from boomerang_move().
-// Gets a boomerang type projectile set up when
-// first thrown.
-void boomerang_initialize(entity *ent)
-{
-    #define GRABFORCE           -99999
-    #define OFF_SCREEN_LIMIT    80
-
-    entity* owner = NULL;
-
-    if (ent->owner) owner = ent->owner;
-    else owner = ent->parent;
-
-    // We don't want our directional facing
-    // changing automatically.
-    ent->modeldata.noflip = 1;
-
-    // Populate offscreenkill in case our
-    // boomerang gets out of bounds.
-    ent->modeldata.offscreenkill = OFF_SCREEN_LIMIT;
-
-    // If we have a owner entity, then we need
-    // should set up to match the owner's attributes.
-    if(owner)
-    {
-        // Make sure we're not hostile to our owner
-        // model type.
-        ent->modeldata.hostile &= ~(owner->modeldata.type);
-
-        // If we were thrown by an enemy or player faction
-        // then make sure we're hostile to the opposite
-        // faction.
-        if (owner->modeldata.type == TYPE_PLAYER
-            || owner->modeldata.type == TYPE_NPC)
-        {
-            ent->modeldata.hostile |= TYPE_ENEMY;
-        }
-        else if(owner->modeldata.type == TYPE_ENEMY)
-        {
-            ent->modeldata.hostile |= (TYPE_PLAYER | TYPE_NPC);
-        }
-
-        // Match the owner's direction and drawing order
-        // layer position in the sprite que.
-        ent->direction = owner->direction;
-        ent->sortid = owner->sortid + 1;
-    }
-
-    // Move along X axis according to the direction
-    // we're facing.
-    if(ent->direction == DIRECTION_LEFT)
-    {
-        ent->velocity.x = -ent->modeldata.speed;
-    }
-    else if(ent->direction == DIRECTION_RIGHT)
-    {
-        ent->velocity.x = ent->modeldata.speed;
-    }
-
-    // Synchronize with owner's vertical
-    // and lateral position.
-    ent->position.z = owner->position.z;
-    ent->position.y = owner->position.y;
-
-    // Make sure that we can't grab or be grabbed.
-    ent->modeldata.antigrab = 1;
-    ent->modeldata.grabforce = GRABFORCE;
-
-    ++ent->boomerang_loop;
-
-    #undef GRABFORCE
-    #undef OFF_SCREEN_LIMIT
-}
-
-// for common boomerang types
-int boomerang_move()
-{
-    float acceleration;             // Rate of velocity difference per update.
-    float distance_x_current;       // Current X axis distance from owner.
-    float distance_x_max;           // Maximum X axis distance allowed from owner.
-    float velocity_x_accelerated;   // X velocity after acceleration applied as an addition vs. current velocity.
-    float velocity_x_decelerated;   // X velocity after acceleration applied as a reduction vs. current velocity.
-
-    if(!self->modeldata.nomove)
-    {
-        // Populate local vars with acceleration and
-        // maximum horizontal distance from modeldata.
-        // If there is no model data defined then we'll
-        // need to use some default values instead.
-        entity* owner = NULL;
-
-        if (self->owner) owner = self->owner;
-        else owner = self->parent;
-
-        // Acceleration.
-        if(self->modeldata.boomerang_prop.acceleration != 0)
-        {
-            acceleration = self->modeldata.boomerang_prop.acceleration;
-        }
-        else
-        {
-            acceleration = self->modeldata.speed/(GAME_SPEED/20);
-        }
-
-        // Maximum X distance from owner.
-        if(self->modeldata.boomerang_prop.hdistance > 0)
-        {
-            distance_x_max = self->modeldata.boomerang_prop.hdistance;
-        }
-        else
-        {
-            distance_x_max = videomodes.hRes/(3);
-        }
-
-        // If not moving on X axis and loop count
-        // is 0, then this must be a new boomerang.
-        // Run the initialize function to set up
-        // all of the attributes we'll need.
-        if(self->velocity.x == 0)
-        {
-            if(!self->boomerang_loop)
-            {
-               boomerang_initialize(self);
-            }
-        }
-
-        // No lateral movement.
-        if(self->velocity.z != 0) self->velocity.z = 0;
-
-        // If our boomerang has no owner and gets
-        // too far off the screen, then we will
-        // destroy it and exit the function.
-        if(!owner)
-        {
-            // Did check_lost() kill us?
-            if (check_lost())
-            {
-               return 0;
-            }
-        }
-
-        if(owner)
-        {
-            distance_x_current = diff(self->position.x,owner->position.x);
-            self->position.z = owner->position.z;
-            self->position.y = owner->position.y;
-
-            // Movement.
-
-            // Right of owner on X axis?
-            if (self->position.x >= owner->position.x)
-            {
-                // Get a possible X velocity to apply that
-                // will slightly decelerate us.
-                velocity_x_decelerated = self->velocity.x - acceleration;
-
-                // Exceeded maximum distance from owner?
-                if (distance_x_current >= distance_x_max)
-                {
-                    // Have we stopped accelerating?
-                    if(velocity_x_decelerated <= 0)
-                    {
-                        // Moving right along X axis?
-                        if(self->velocity.x > 0)
-                        {
-                            // Increment tracking loop
-                            ++self->boomerang_loop;
-
-                            // Reverse sorting in relation to owner.
-                            sort_invert_by_parent(self,owner);
-                        }
-                    }
-
-                    // This is where we reverse our X velocity and
-                    // return to thrower.
-                    //
-                    // If we're already reversed, then we just make sure
-                    // our X axis velocity is equal to our model
-                    // speed (inverted).
-                    //
-                    // If we're still moving forward (away from owner)
-                    // then apply the next velocity. This will
-                    // have the effect of reducing the X velocity
-                    // until it falls below inverted model speed, at
-                    // which point our reversed condition will be true.
-                    if(velocity_x_decelerated < -self->modeldata.speed)
-                    {
-                        self->velocity.x = -self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_decelerated;
-                    }
-                }
-                else if (self->velocity.x <= 0)
-                {
-                    if(velocity_x_decelerated < -self->modeldata.speed)
-                    {
-                        self->velocity.x = -self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_decelerated;
-                    }
-                }
-            }
-            else if (self->position.x <= owner->position.x)
-            {
-                // Calculate an X velocity with acceleration added.
-                velocity_x_accelerated = self->velocity.x + acceleration;
-
-                if(distance_x_current >= distance_x_max)
-                {
-                    if(velocity_x_accelerated >= 0 && self->velocity.x < 0)
-                    {
-                        ++self->boomerang_loop;
-
-                        // Reverse sorting in relation to owner.
-                        sort_invert_by_parent(self,owner);
-                    }
-
-                    // Make sure X velocity is no greater than
-                    // the model speed setting.
-                    if(velocity_x_accelerated > self->modeldata.speed)
-                    {
-                        self->velocity.x = self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_accelerated;
-                    }
-                }
-                else if (self->velocity.x >= 0)
-                {
-                    if(velocity_x_accelerated > self->modeldata.speed)
-                    {
-                        self->velocity.x = self->modeldata.speed;
-                    }
-                    else
-                    {
-                        self->velocity.x = velocity_x_accelerated;
-                    }
-                }
-            }
-
-            // Catch the boomerang.
-            boomerang_catch(self, distance_x_current);
-
-            //debug_printf("cur_distx:%f velx:%f",distance_x_current,self->velocity.x);
-            //debug_printf("acceleration:%f speed:%f",acceleration,self->modeldata.speed);
-            //debug_printf("boomerang_loop:%d",self->boomerang_loop);
-            //debug_printf("sortid:%d",self->sortid);
-        }
-    }
-
-    // Bounce off walls or platforms.
-    projectile_wall_deflect(self);
-
-    return 1;
 }
 
 // for common bomb types
@@ -28408,11 +27947,6 @@ int common_move()
     {
         // for a bomb, travel in a arc
         return bomb_move();
-    }
-    else if(aimove & AIMOVE1_BOOMERANG)
-    {
-        // for a boomerang, boomerang move
-        return boomerang_move();
     }
     else if(aimove & AIMOVE1_NOMOVE)
     {
@@ -32041,114 +31575,6 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
     e->modeldata.no_adjust_base  = 1;
     return e;
 }
-
-
-entity *boomerang_spawn(char *name, int index, float x, float z, float a, int direction, int map)
-{
-    entity *e = NULL;
-
-    if(index >= 0 || name)
-    {
-        e = spawn(x, z, a, direction, name, index, NULL);
-    }
-    else if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
-    }
-    else if(self->animation->projectile.boomerang >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile.boomerang, NULL);
-    }
-    else if(self->modeldata.boomerang >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->modeldata.boomerang, NULL);
-    }
-
-    if(e == NULL)
-    {
-        return NULL;
-    }
-    else if(self->modeldata.type & TYPE_PLAYER)
-    {
-        e->modeldata.type = TYPE_NPC;
-    }
-    else if(self->modeldata.type & TYPE_ENEMY)
-    {
-        e->modeldata.type = TYPE_ENEMY;
-    }
-    else
-    {
-        e->modeldata.type = self->modeldata.type;
-    }
-
-    if(!e->model->speed && !e->modeldata.nomove)
-    {
-        e->modeldata.speed = 2;
-    }
-    else if(e->modeldata.nomove)
-    {
-        e->modeldata.speed = 0;
-    }
-
-    e->spawntype = SPAWN_TYPE_PROJECTILE_BOOMERANG;
-    e->owner = self;                                                     // Added so projectiles don't hit the owner
-    e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->attacking = ATTACKING_ACTIVE;
-    //e->direction = direction;
-    e->think = common_think;
-    e->nextthink = _time + 1;
-    e->trymove = NULL;
-    e->takedamage = common_takedamage;
-    e->takeaction = NULL;
-    e->modeldata.aimove = AIMOVE1_BOOMERANG;
-    if(!e->modeldata.offscreenkill)
-    {
-        e->modeldata.offscreenkill = 200;    //default value
-    }
-    e->modeldata.aiattack = AIATTACK1_NOATTACK;
-    e->remove_on_attack = e->modeldata.remove;
-    e->autokill = e->modeldata.nomove;
-    e->speedmul = 2;
-
-    ent_set_colourmap(e, map);
-
-    if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
-    {
-        e->base = 0;
-    }
-    else
-    {
-        e->base = a;
-    }
-
-    if(e->modeldata.hostile < 0)
-    {
-        e->modeldata.hostile = self->modeldata.hostile;
-    }
-    if(e->modeldata.candamage < 0)
-    {
-        e->modeldata.candamage = self->modeldata.candamage;
-    }
-    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
-    {
-        e->modeldata.hostile &= ~TYPE_PLAYER;
-        e->modeldata.candamage &= ~TYPE_PLAYER;
-    }
-
-    e->modeldata.subject_to_hole        = 0;
-    e->modeldata.subject_to_gravity     = 1;
-    e->modeldata.subject_to_basemap     = 0;
-    e->modeldata.subject_to_wall        = 0;
-    e->modeldata.subject_to_platform    = 0;
-    e->modeldata.subject_to_screen      = 0;
-    e->modeldata.subject_to_minz        = 1;
-    e->modeldata.subject_to_maxz        = 1;
-    e->modeldata.no_adjust_base         = 1;
-
-    return e;
-}
-
-
 
 void bomb_explode()
 {

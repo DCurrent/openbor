@@ -1818,13 +1818,13 @@ HRESULT openbor_getlevelproperty(ScriptVariant **varlist , ScriptVariant **pretv
     case _lp_bgspeed:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->lVal = (DOUBLE)level->bgspeed;
+        (*pretvar)->dblVal = (DOUBLE)level->bgspeed;
         break;
     }
     case _lp_vbgspeed:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->lVal = (DOUBLE)level->vbgspeed;
+        (*pretvar)->dblVal = (DOUBLE)level->vbgspeed;
         break;
     }
     case _lp_cameraxoffset:

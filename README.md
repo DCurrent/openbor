@@ -40,44 +40,45 @@ The following platforms are still available as legacy binaries, but are no longe
 ### Current Members
 
 #### [Damon Caskey](https://github.com/DCurrent) (2007-)
-OpenBOR project manager and site owner of the OpenBOR community. Primary
-contributions are core engine and scripting development, code cleanup, and organization. Main focus is keeping OpenBOR future proof and modular by replacing specialized hardcoding and overlap with generalized features that allow for more author creativity.
+OpenBOR project manager and site owner of the OpenBOR community. Primary contributions are core engine and scripting development, code cleanup, and organization. Main focus is keeping OpenBOR future proof and modular by replacing specialized hardcoding and overlap with generalized features that allow for more author creativity.
 
 #### [Plombo](https://github.com/plombo) (2009-)
-A developer who prefers to work on OpenBOR's supporting libraries and
-platform-specific backends.  Known for maintaining the Wii port, writing the
-GPU-accelerated video code for Wii and OpenGL, and a few engine features.
+A developer who prefers to work on OpenBOR's supporting libraries and platform-specific backends.  Known for maintaining the Wii port, writing the GPU-accelerated video code for Wii and OpenGL, and a few engine features.
 
-#### [White Dragon](https://github.com/whitedragon0000) (2016-)
-A long time module author and extremely knowledgeable coder who joined the development team in 2016 and immediately began making an impact. White Dragon generally focuses on level and menu properties, but has branched out into various other facets of the engine over time.
+#### [Douglas Baldan](https://github.com/dbaldan) (2018-)
+Known as O'Ilusionista, Douglas is a highly respected administrator of the OpenBOR community and also a prolific member of the Mugen scene. Douglas is new to coding but brings a plethoera of graphic and game design experience to the team. We look for exciting things from Mr. Baldan soon!
+
+#### [Malik](https://github.com/msmalik681) (2018-)
+Malik comes to the team with a good scripting background. He is still learning his way around application development, but shows a lot of promise and a great willingness to learn. As his skills progress, he will no doubt be a an invaluable asset to the team!
 
 ### Former members and contributors
 
+#### [White Dragon](https://github.com/whitedragon0000) (2016-2018)
+A long time module author and extremely knowledgeable coder who joined the development team in 2016. White Dragon generally focused on level and menu properties, but branched out into other facets of the engine over time.
+
 #### uTunnels (2007-2014)
-Among many other powerful additions, contributed the original scripting engine to OpenBOR, single handedly
-breaking nearly every limitation module authors faced. While not officially retired, uTunnels' presence became gradually more infrequent before stopping altogether in early 2014.
+Among many other powerful additions, contributed the original scripting engine to OpenBOR, single handedly breaking nearly every limitation module authors faced. While not officially retired, uTunnels' presence became gradually more infrequent before stopping altogether in early 2014.
 
 #### Anallyst (2011)
 This developer's work centered mainly around trimming the fat and optimizing the codebase.
 
 #### SumolX (2006-2011)
-Former project manager and lead programmer, retired from the scene in 2011. Known for porting PSP,
-PS3, Linux, Wii, GP2X and maintaining all other platforms and code base.
+Former project manager and lead programmer, retired from the scene in 2011. Known for porting PSP, PS3, Linux, Wii, GP2X and maintaining all other platforms and code base.
 
 #### KBbandressen (2007-2011)
 Contributed a plethora of features, including the powerful text object and filestream capabilities.
 
 #### CGRemakes (2005-2006)
-Main developer after Kirby2K.  Introduced many exicting features to engine.
+Main developer after Kirby2K. Introduced many exicting features to engine.
 
 #### LordBall (2006)
-Developed offshoot engine based on OpenBOR.  Shared features with both engines.
+Developed offshoot engine based on OpenBOR. Shared features with both engines.
 
 #### Tails (2006)
-Developed offshoot engine based on OpenBOR.  Shared features with both engines.
+Developed offshoot engine based on OpenBOR. Shared features with both engines.
 
 #### Fugue (2006)
-Developed offshoot engine based on OpenBOR.  Shared features with both engines.
+Developed offshoot engine based on OpenBOR. Shared features with both engines.
 
 #### Kirby2K (2004-2005)
 The original developer of OpenBOR who asked Senile Team for permission to open
