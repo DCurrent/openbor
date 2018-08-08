@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <ogcsys.h>
 #include <wiiuse/wpad.h>
+#include "wupc/wupc.h"
 #include "wiiport.h"
 #include "video.h"
 #include "control.h"
@@ -137,12 +138,16 @@ void refreshInput()
 	unsigned long btns = 0;
 	unsigned short gcbtns;
 	WPADData *wpad;
+	struct WUPCData *wupc;
 
 	PAD_Init();
+	WUPC_Init();
 	PAD_ScanPads();
 	gcbtns = PAD_ButtonsDown(0) | PAD_ButtonsHeld(0);
+	WUPC_UpdateButtonStats();
 	WPAD_ScanPads();
 	wpad = WPAD_Data(0);
+	wupc = WUPC_Data(0);
 
 	if(wpad->exp.type == WPAD_EXP_CLASSIC)
 	{
@@ -159,6 +164,31 @@ void refreshInput()
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_DOWN)       btns |= DIR_DOWN;
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_LEFT)       btns |= DIR_LEFT;
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_RIGHT)      btns |= DIR_RIGHT;
+	}
+	else if (wupc != NULL) // Pro Controller
+	{
+		if(wupc->button & WPAD_CLASSIC_BUTTON_UP)		  btns |= DIR_UP;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_DOWN) 	  btns |= DIR_DOWN;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_LEFT) 	  btns |= DIR_LEFT;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_RIGHT) 	  btns |= DIR_RIGHT;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_PLUS) 	  btns |= CC_PLUS;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_MINUS)	  btns |= CC_MINUS;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_HOME)       btns |= CC_HOME;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_A) 		  btns |= CC_A;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_B)		  btns |= CC_B;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_Y)          btns |= CC_Y;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_X)          btns |= CC_X;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_FULL_R)     btns |= CC_R;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_FULL_L)     btns |= CC_L;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_ZL)         btns |= CC_ZL;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_ZR)         btns |= CC_ZR;
+		
+		//analog stick  
+		if(wupc->yAxisL > 200)							  btns |= DIR_UP;
+		if(wupc->yAxisL < -200)							  btns |= DIR_DOWN;
+		if(wupc->xAxisL > 200)							  btns |= DIR_RIGHT;
+		if(wupc->xAxisL < -200)							  btns |= DIR_LEFT;
+			
 	}
 	else if(wpad->exp.type == WPAD_EXP_NUNCHUK) // Wiimote + Nunchuk
 	{

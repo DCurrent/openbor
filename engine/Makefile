@@ -487,10 +487,7 @@ endif
 
 
 ifdef BUILD_WII
-CFLAGS 	       += -DCACHE_BACKGROUNDS -DREVERSE_COLOR -D__ppc__ $(MACHDEP) -Wl,-Map,$(TARGET_MAP)
-ifdef BUILD_ELM
-CFLAGS         += -DUSE_LIBELM
-endif
+CFLAGS 	       += -DCACHE_BACKGROUNDS -DREVERSE_COLOR -D__ppc__ $(MACHDEP) -Wl,-Map,$(TARGET_MAP),-wrap,wiiuse_register
 endif
 
 
@@ -585,11 +582,7 @@ endif
 
 
 ifdef BUILD_WII
-ifdef BUILD_ELM
-LIBS           += -lelm -lwiiuse -lbte -lasnd -logc
-else
-LIBS           += -lwiiuse -lbte -lfat -lasnd -logc
-endif
+LIBS           += -lwupc -lwiiuse -lbte -lfat -lasnd -logc
 endif
 
 

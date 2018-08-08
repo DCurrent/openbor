@@ -11,6 +11,7 @@
 #include <ogc/pad.h>
 #include <ogc/system.h>
 #include <stdio.h>
+#include "wupc/wupc.h"
 #include "wiiport.h"
 #include "version.h"
 #include "control.h"
@@ -115,6 +116,7 @@ void control_init(int joy_enable)
 	usejoy = joy_enable;
 	hwbutton = 0;
 	PAD_Init();
+	WUPC_Init();
 	WPAD_Init();
 
 	// set callbacks for power/reset buttons
@@ -207,6 +209,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 			{
 				rumbling[i] = 0;
 				WPAD_Rumble(i, 0);
+				WUPC_Rumble(i, false);
 				PAD_ControlMotor(i, 0);
 			}
 		}
@@ -239,13 +242,16 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 void control_rumble(int port, int ratio, int msec)
 {
 	WPADData *wpad;
+	struct WUPCData *wupc;
 	wpad = WPAD_Data(port);
+	wupc = WUPC_Data(port);
 
 	rumbling[port] = 1;
 	rumble_msec[port] = msec * 3;
 	time2rumble[port] = ticks_to_millisecs(gettime());
 
 	if (using_gc[port])                             PAD_ControlMotor(port, 1);
+	else if(wupc != NULL)							WUPC_Rumble(port, true);
 	else if (wpad->exp.type != WPAD_EXP_CLASSIC)    WPAD_Rumble(port, 1);
 }
 
@@ -254,14 +260,17 @@ unsigned long getPad(int port)
 	unsigned long btns = 0;
 	unsigned short gcbtns;
 	WPADData *wpad;
-
+	struct WUPCData *wupc;
+	
 	// necessary to detect GC controllers plugged in while OpenBOR is running
 	PAD_Init();
 
 	PAD_ScanPads();
 	gcbtns = PAD_ButtonsDown(port) | PAD_ButtonsHeld(port);
+	WUPC_UpdateButtonStats();
 	WPAD_ScanPads();
 	wpad = WPAD_Data(port);
+	wupc = WUPC_Data(port);
 
 	if (gcbtns)       using_gc[port] = 1;
 	else if (wpad->btns_h) using_gc[port] = 0;
@@ -300,6 +309,37 @@ unsigned long getPad(int port)
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_DOWN)       btns |= WII_DOWN;
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_LEFT)       btns |= WII_LEFT;
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_RIGHT)      btns |= WII_RIGHT;
+	}
+	else if (wupc != NULL) // Pro Controller
+	{
+		if(wupc->button & WPAD_CLASSIC_BUTTON_UP)		  btns |= WII_UP;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_DOWN) 	  btns |= WII_DOWN;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_LEFT) 	  btns |= WII_LEFT;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_RIGHT) 	  btns |= WII_RIGHT;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_PLUS) 	  btns |= WII_PLUS_START;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_MINUS)	  btns |= WII_MINUS;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_HOME)       btns |= WII_HOME;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_A) 		  btns |= WII_1_A;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_B)		  btns |= WII_2_B;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_Y)          btns |= WII_A_Y_X;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_X)          btns |= WII_B_X_Y;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_FULL_R)     btns |= WII_C_R;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_FULL_L)     btns |= WII_Z_L;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_ZL)         btns |= WII_ZL;
+		if(wupc->button & WPAD_CLASSIC_BUTTON_ZR)         btns |= WII_ZR;
+		
+		//analog sticks  
+		if(wupc->yAxisL > 200)							  btns |= WII_UP;
+		if(wupc->yAxisL < -200)							  btns |= WII_DOWN;
+		if(wupc->xAxisL > 200)							  btns |= WII_RIGHT;
+		if(wupc->xAxisL < -200)							  btns |= WII_LEFT;
+		
+		if(wupc->yAxisR > 200)							  btns |= WII_SUB_UP;
+		if(wupc->yAxisR < -200)							  btns |= WII_SUB_DOWN;
+		if(wupc->xAxisR > 200)							  btns |= WII_SUB_RIGHT;
+		if(wupc->xAxisR < -200)							  btns |= WII_SUB_LEFT;
+		
+			
 	}
 	else if((wpad->exp.type == WPAD_EXP_NUNCHUK) && usejoy) // Nunchuck
 	{
@@ -347,6 +387,7 @@ unsigned long getPad(int port)
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_FULL_L)     btns |= WII_Z_L;
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_ZL)         btns |= WII_ZL;
 		if(wpad->btns_h & WPAD_CLASSIC_BUTTON_ZR)         btns |= WII_ZR;
+		
 	}
 	else // Wiimote or Wiimote + Nunchuk
 	{
