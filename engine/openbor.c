@@ -2446,7 +2446,12 @@ void clearsettings()
     savedata.uselog = 1;
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
+	
+	#if WII
     savedata.stretch = 1;
+	#else
+    savedata.stretch = 0;
+	#endif
 
     savedata.swfilter = 0;
 
