@@ -185,11 +185,11 @@ static int findPaks(void)
 				if(filelist == NULL) filelist = malloc(sizeof(fileliststruct));
 				else
 				{
-					copy = malloc((i + 1) * sizeof(fileliststruct));
-					memcpy(copy, filelist, (i + 1) * sizeof(fileliststruct));
+					copy = malloc(i * sizeof(fileliststruct));
+					memcpy(copy, filelist, i * sizeof(fileliststruct));
 					free(filelist);
 					filelist = malloc((i + 1) * sizeof(fileliststruct));
-					memcpy(filelist, copy, (i + 1) * sizeof(fileliststruct));
+					memcpy(filelist, copy, i * sizeof(fileliststruct));
 					free(copy); copy = NULL;
 				}
 				memset(&filelist[i], 0, sizeof(fileliststruct));
