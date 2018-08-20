@@ -376,7 +376,12 @@ void writeToScreen(s_screen* src)
 
 void drawScreens(s_screen *Image, int x, int y)
 {
-	if(Image) copyscreen_o(Scaler, Image, x, y);
+	if(Image)
+	{
+		putscreen(Scaler, Image, x, y, NULL);
+		freescreen(&Image);
+		Image = NULL;
+	}
 	writeToScreen(Scaler);
 	video_copy_screen(Screen);
 }
@@ -439,27 +444,36 @@ void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 
 s_screen *getPreview(char *filename)
 {
-	int width = factor == 4 ? 640 : (factor == 2 ? 320 : 160);
-	int height = factor == 4 ? 480 : (factor == 2 ? 240 : 120);
+	int width = 160; //preview width
+	int height = 120; //preview height
 	s_screen *title = NULL;
 	s_screen *scale = NULL;
-
-	// Grab current path and filename
-	getBasePath(packfile, filename, 1);
-
-	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL;
-	if((scale = allocscreen(width, height, title->pixelformat)) == NULL) return NULL;
-
-	scalescreen(scale, title);
-	memcpy(scale->palette, title->palette, PAL_BYTES);
-
+	FILE *preview = NULL;
+	
+	char ssPath[MAX_FILENAME_LEN] = "";
+	getBasePath(ssPath,"ScreenShots/",0); //get screenshots directory from base path
+	strncat(ssPath, filename, strrchr(filename, '.') - filename); //remove extension from pak filename
+	strcat(ssPath, " - 0000.png"); //add to end of pak filename
+	preview = fopen(ssPath, "r"); //open preview image
+	
+	if(preview) //if preview image found
+	{
+		fclose(preview); //close preview image
+		strcpy(packfile,"null.file"); //dummy pak file since we are loading outside a pak file
+		
+		//Create & Load & Scale Image
+		if(!loadscreen32(ssPath, packfile, &title)) return NULL; //exit if image screen not loaded
+		if((scale = allocscreen(width, height, title->pixelformat)) == NULL) return NULL; //exit if scaled screen not 
+		scalescreen32(scale, title); //copy image to scaled down screen 
+		
+	} else { return NULL; }
+	
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.ext",MAX_FILENAME_LEN);
-
+	
 	// Free Images and Terminate FileCaching
-	freescreen(&title);
-	return scale;
+	if(title) freescreen(&title); //free image screen
+	return scale; // return scaled down screen
 }
 
 int ControlMenu()
@@ -582,7 +596,7 @@ void drawMenu()
 			{
 				shift = 2;
 				colors = RED;
-				//Image = getPreview(filelist[list+dListScrollPosition].filename);
+				Image = getPreview(filelist[list+dListScrollPosition].filename);
 				if(Image)
 				{
 					clipX = factor * (isWide ? 286 : 155);
@@ -607,12 +621,15 @@ void drawMenu()
 	printText((isWide ? 324 : 192),(isWide ? 191 : 176), DARK_RED, 0, 0, "SecurePAK Edition");
 #endif
 
-	drawScreens(Image, clipX, clipY);
-
 	if(Image)
 	{
-		freescreen(&Image);
-		Image = NULL;
+	//draw screen with the preview image
+	drawScreens(Image, clipX, clipY);
+	}
+	else
+	{
+	//draw screen without preview
+	drawScreens(NULL, 0, 0);
 	}
 }
 
