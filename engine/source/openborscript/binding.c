@@ -113,24 +113,10 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
             break;
 
-        case _BINDING_BIND_X:
+        case _BINDING_BIND:
 
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->bind_toggle.x;
-
-            break;
-
-        case _BINDING_BIND_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->bind_toggle.y;
-
-            break;
-
-        case _BINDING_BIND_Z:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->bind_toggle.z;
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->bind_toggle;
 
             break;
 
@@ -141,24 +127,10 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
             break;
 
-        case _BINDING_OFFSET_X:
+        case _BINDING_OFFSET:
 
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offset.x;
-
-            break;
-
-        case _BINDING_OFFSET_Y:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offset.y;
-
-            break;
-
-        case _BINDING_OFFSET_Z:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offset.z;
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->offset;
 
             break;
 
@@ -219,142 +191,99 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
-    int                     result      = S_OK; // Success or error?
-    s_bind                  *handle     = NULL; // Property handle.
-    e_binding_properties    property    = 0;    // Property to access.
+	int                     result = S_OK; // Success or error?
+	s_bind                  *handle = NULL; // Property handle.
+	e_binding_properties    property = 0;    // Property to access.
 
-    // Value carriers to apply on properties after
-    // taken from argument.
-    LONG         temp_int;
+	// Value carriers to apply on properties after
+	// taken from argument.
+	LONG         temp_int;
 
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_binding(varlist, paramCount);
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_binding(varlist, paramCount);
 
-    // Verify incoming arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property is accessed.
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
-        *pretvar = NULL;
-        goto error_local;
-    }
+	// Verify incoming arguments. There should at least
+	// be a pointer for the property handle and an integer
+	// to determine which property is accessed.
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+	{
+		*pretvar = NULL;
+		goto error_local;
+	}
 
-    // Populate local handle and property vars.
-    handle      = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
-    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+	// Populate local handle and property vars.
+	handle = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
+	property = (LONG)varlist[ARG_PROPERTY]->lVal;
 
-    // Which property to modify?
-    switch(property)
-    {
+	// Which property to modify?
+	switch (property)
+	{
 
-        case _BINDING_ANIMATION:
+	case _BINDING_ANIMATION:
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->ani_bind = temp_int;
-            }
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->ani_bind = temp_int;
+		}
 
-            break;
+		break;
 
-        case _BINDING_BIND_X:
+	case _BINDING_BIND:
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->bind_toggle.x = temp_int;
+		// Read only.
 
-            }
+		break;
 
-            break;
+	case _BINDING_DIRECTION:
 
-        case _BINDING_BIND_Y:
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->direction = temp_int;
+		}
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->bind_toggle.y = temp_int;
-            }
+		break;
 
-            break;
+	case _BINDING_OFFSET:
 
-        case _BINDING_BIND_Z:
+		// Read only.
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->bind_toggle.z = temp_int;
-            }
+		break;
 
-            break;
+	case _BINDING_SORT_ID:
 
-        case _BINDING_DIRECTION:
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->sortid = temp_int;
+		}
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->direction = temp_int;
-            }
+		break;
 
-            break;
+	case _BINDING_TARGET:
 
-        case _BINDING_OFFSET_X:
+		handle->ent = (entity *)varlist[ARG_VALUE]->ptrVal;
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offset.x = temp_int;
-            }
+		break;
 
-            break;
+	default:
 
-        case _BINDING_OFFSET_Y:
+		printf("Unsupported property.\n");
+		goto error_local;
 
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offset.y = temp_int;
-            }
+		break;
+	}
 
-            break;
+	return result;
 
-        case _BINDING_OFFSET_Z:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offset.z = temp_int;
-            }
-
-            break;
-
-        case _BINDING_SORT_ID:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->sortid = temp_int;
-            }
-
-            break;
-
-        case _BINDING_TARGET:
-
-            handle->ent = (entity *)varlist[ARG_VALUE]->ptrVal;
-
-            break;
-
-        default:
-
-            printf("Unsupported property.\n");
-            goto error_local;
-
-            break;
-    }
-
-    return result;
-
-    // Error trapping.
+	// Error trapping.
     error_local:
 
-    printf("You must provide a valid binding handle, property, and new value: " SELF_NAME "\n");
+	printf("You must provide a valid binding handle, property, and new value: " SELF_NAME "\n");
 
-    result = E_FAIL;
-    return result;
+	result = E_FAIL;
+	return result;
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
