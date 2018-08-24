@@ -26,13 +26,9 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
     static const char *proplist[] =
     {
         "animation",
-        "bind_x",
-        "bind_y",
-        "bind_z",
         "direction",
-        "offset_x",
-        "offset_y",
-        "offset_z",
+        "enable",
+        "offset",
         "sort_id",
         "target"
     };
@@ -113,17 +109,17 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
             break;
 
-        case _BINDING_BIND:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&handle->bind_toggle;
-
-            break;
-
         case _BINDING_DIRECTION:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->direction;
+
+            break;
+
+        case _BINDING_ENABLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)&handle->enable;
 
             break;
 
@@ -231,18 +227,18 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		break;
 
-	case _BINDING_BIND:
-
-		// Read only.
-
-		break;
-
 	case _BINDING_DIRECTION:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->direction = temp_int;
 		}
+
+		break;
+
+	case _BINDING_ENABLE:
+
+		// Read only.
 
 		break;
 
