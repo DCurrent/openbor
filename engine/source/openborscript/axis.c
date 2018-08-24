@@ -881,7 +881,7 @@ HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist, ScriptV
 
         case _AXIS_PRINCIPAL_Y:
 
-            handle->x = temp_int;
+            handle->y = temp_int;
 
             break;
 
