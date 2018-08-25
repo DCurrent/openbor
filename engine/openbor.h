@@ -1127,6 +1127,15 @@ typedef enum
 
 typedef enum
 {
+    BINDING_ANI_NONE            = 0,
+    BINDING_ANI_ANIMATION_MATCH = 1,
+    BINDING_ANI_FRAME_MATCH     = 2,
+    BINDING_ANI_ANIMATION_KILL  = 4,
+    BINDING_ANI_FRAME_KILL      = 6
+} e_binding_animation;
+
+typedef enum
+{
     /*
     Direction adjustment enum. Used for binding and changing direction of defender when hit.
     Damon V. Caskey
