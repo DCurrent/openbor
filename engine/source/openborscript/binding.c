@@ -97,9 +97,6 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
-    printf("\n\n Size entity: %d", sizeof(entity));
-    printf("\n Size bind: %d", sizeof(s_bind));
-
     switch(property)
     {
         case _BINDING_ANIMATION:
@@ -144,7 +141,7 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
             if(handle->ent)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->ent;
+                (*pretvar)->ptrVal = (entity *)handle->ent;
             }
 
             break;
