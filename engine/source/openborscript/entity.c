@@ -48,6 +48,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "damage_on_landing",
         "deduct_ammo",
         "energy_status",
+        "opponent",
+        "owner",
         "player_index",
         "position_base_alternate",
         "position_base_default",
