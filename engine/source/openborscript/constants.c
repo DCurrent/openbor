@@ -61,7 +61,17 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ScriptVariant_ChangeType(&v, VT_INTEGER);
         constname = (char *)StrCache_Get(varlist[0]->strVal);
 
+        //printf("\nm Mapping Openborconstant: %s", constname);
+
         IICMPCONST(COMPATIBLEVERSION)
+
+        // Binding animation flag
+        ICMPCONST(BINDING_ANI_NONE)
+        ICMPCONST(BINDING_ANI_ANIMATION_MATCH)
+        ICMPCONST(BINDING_ANI_FRAME_MATCH)
+        ICMPCONST(BINDING_ANI_ANIMATION_KILL)
+        ICMPCONST(BINDING_ANI_FRAME_KILL)
+
         ICMPCONST(DIRECTION_LEFT)
         ICMPCONST(DIRECTION_RIGHT)
         ICMPCONST(DIRECTION_ADJUST_LEFT)
