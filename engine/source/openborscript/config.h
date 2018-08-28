@@ -279,6 +279,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
 HRESULT openbor_getentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_loadmodel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_unloadmodel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_loadsprite(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_hallfame(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_menu_options(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

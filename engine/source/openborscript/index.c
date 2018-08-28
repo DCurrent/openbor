@@ -711,6 +711,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "loadmodel";
     }
+	else if (functionRef == ((void *)openbor_unloadmodel))
+    {
+        return "unloadmodel";
+    }
     else if (functionRef == ((void *)openbor_loadsprite))
     {
         return "loadsprite";
@@ -1376,6 +1380,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_getentity, "getentity");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_loadmodel, "loadmodel");
+	List_InsertAfter(&theFunctionList,
+                     (void *)openbor_unloadmodel, "unloadmodel");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_loadsprite, "loadsprite");
     List_InsertAfter(&theFunctionList,
