@@ -322,6 +322,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+        case _ENTITY_OWNER:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (entity *)handle->owner;
+
+            break;
+
         case _ENTITY_PLAYER_INDEX:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -659,6 +666,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
         case _ENTITY_ENERGY_STATUS:
 
             // Read only.
+
+            break;
+
+        case _ENTITY_OWNER:
+
+            handle->owner = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
