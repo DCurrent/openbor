@@ -21305,95 +21305,98 @@ void damage_recursive(entity *target)
 
 void adjust_bind(entity *e)
 {
+    // If there is no binding
+    // target, just get out.
     if(e->binding.ent)
     {
+        return;
+    }
 
-        if(e->binding.animation_match)
+    if(e->binding.animation_match)
+    {
+        if(e->animnum != e->binding.ent->animnum)
         {
-            if(e->animnum != e->binding.ent->animnum)
+            if(!validanim(e, e->binding.ent->animnum))
             {
-                if(!validanim(e, e->binding.ent->animnum))
+                // Don't have the animation? Kill ourself.
+                if(e->binding.animation_match & BINDING_ANI_ANIMATION_KILL)
                 {
-                    // Don't have the animation? Kill ourself.
-                    if(e->binding.animation_match & BINDING_ANI_ANIMATION_KILL)
-                    {
-                        kill_entity(e);
-                    }
+                    kill_entity(e);
+                }
+                e->binding.ent = NULL;
+                return;
+            }
+            ent_set_anim(e, e->binding.ent->animnum, 1);
+        }
+
+        if(e->animpos != e->binding.ent->animpos && e->binding.animation_match & BINDING_ANI_FRAME_MATCH)
+        {
+            // If we don't have the frame and frame kill flag is set, kill ourself.
+            if(e->animation[e->animnum].numframes < e->binding.ent->animation[e->binding.ent->animnum].numframes)
+            {
+                if(e->binding.animation_match & BINDING_ANI_FRAME_KILL)
+                {
+                    kill_entity(e);
                     e->binding.ent = NULL;
                     return;
                 }
-                ent_set_anim(e, e->binding.ent->animnum, 1);
             }
 
-            if(e->animpos != e->binding.ent->animpos && e->binding.animation_match & BINDING_ANI_FRAME_MATCH)
-            {
-                // If we don't have the frame and frame kill flag is set, kill ourself.
-                if(e->animation[e->animnum].numframes < e->binding.ent->animation[e->binding.ent->animnum].numframes)
-                {
-                    if(e->binding.animation_match & BINDING_ANI_FRAME_KILL)
-                    {
-                        kill_entity(e);
-                        e->binding.ent = NULL;
-                        return;
-                    }
-                }
-
-                update_frame(e, e->binding.ent->animpos);
-            }
+            update_frame(e, e->binding.ent->animpos);
         }
+    }
 
 
-        if (e->binding.enable.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-        if (e->binding.enable.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
-        e->sortid = e->binding.ent->sortid + e->binding.sortid;
+    if (e->binding.enable.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
+    if (e->binding.enable.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
+    e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
-        switch(e->binding.direction)
+    switch(e->binding.direction)
+    {
+    case DIRECTION_ADJUST_NONE:
+        if(e->binding.ent->direction == DIRECTION_RIGHT)
         {
-        case DIRECTION_ADJUST_NONE:
-            if(e->binding.ent->direction == DIRECTION_RIGHT)
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            }
-            else
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-            }
-            break;
-        case DIRECTION_ADJUST_SAME:
-            e->direction = e->binding.ent->direction;
-            if(e->binding.ent->direction == DIRECTION_RIGHT)
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            }
-            else
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-            }
-            break;
-        case DIRECTION_ADJUST_OPPOSITE:
-            e->direction = !e->binding.ent->direction;
-            if(e->binding.ent->direction == DIRECTION_RIGHT)
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            }
-            else
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-            }
-            break;
-        case DIRECTION_ADJUST_RIGHT:
-            e->direction = DIRECTION_RIGHT;
             if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            break;
-        case DIRECTION_ADJUST_LEFT:
-            e->direction = DIRECTION_LEFT;
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            break;
-        default:
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            break;
-            // the default is no change :), just give a value of 12345 or so
         }
+        else
+        {
+            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+        }
+        break;
+    case DIRECTION_ADJUST_SAME:
+        e->direction = e->binding.ent->direction;
+        if(e->binding.ent->direction == DIRECTION_RIGHT)
+        {
+            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        }
+        else
+        {
+            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+        }
+        break;
+    case DIRECTION_ADJUST_OPPOSITE:
+        e->direction = !e->binding.ent->direction;
+        if(e->binding.ent->direction == DIRECTION_RIGHT)
+        {
+            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        }
+        else
+        {
+            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+        }
+        break;
+    case DIRECTION_ADJUST_RIGHT:
+        e->direction = DIRECTION_RIGHT;
+        if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        break;
+    case DIRECTION_ADJUST_LEFT:
+        e->direction = DIRECTION_LEFT;
+        if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        break;
+    default:
+        if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+        break;
+        // the default is no change :), just give a value of 12345 or so
     }
 }
 
