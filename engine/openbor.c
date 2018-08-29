@@ -21308,14 +21308,14 @@ void adjust_bind(entity *e)
     if(e->binding.ent)
     {
 
-        if(e->binding.ani_bind)
+        if(e->binding.match_type)
         {
             if(e->animnum != e->binding.ent->animnum)
             {
                 if(!validanim(e, e->binding.ent->animnum))
                 {
                     // Don't have the animation? Kill ourself.
-                    if(e->binding.ani_bind & BINDING_ANI_ANIMATION_KILL)
+                    if(e->binding.match_type & BINDING_ANI_ANIMATION_KILL)
                     {
                         kill_entity(e);
                     }
@@ -21325,12 +21325,12 @@ void adjust_bind(entity *e)
                 ent_set_anim(e, e->binding.ent->animnum, 1);
             }
 
-            if(e->animpos != e->binding.ent->animpos && e->binding.ani_bind & BINDING_ANI_FRAME_MATCH)
+            if(e->animpos != e->binding.ent->animpos && e->binding.match_type & BINDING_ANI_FRAME_MATCH)
             {
                 // If we don't have the frame and frame kill flag is set, kill ourself.
                 if(e->animation[e->animnum].numframes < e->binding.ent->animation[e->binding.ent->animnum].numframes)
                 {
-                    if(e->binding.ani_bind & BINDING_ANI_FRAME_KILL)
+                    if(e->binding.match_type & BINDING_ANI_FRAME_KILL)
                     {
                         kill_entity(e);
                         e->binding.ent = NULL;

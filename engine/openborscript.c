@@ -12665,7 +12665,7 @@ jumptobranch_error:
     return E_FAIL;
 }
 
-//bindentity(entity, target, x, z, a, direction, binding.ani_bind);
+//bindentity(entity, target, x, z, a, direction, binding.match_type);
 //bindentity(entity, NULL()); // unbind
 HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -12772,7 +12772,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->binding.ani_bind = (int)anim;
+        ent->binding.match_type = (int)anim;
     }
     if(paramCount < 8)
     {

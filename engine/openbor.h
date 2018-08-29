@@ -2271,12 +2271,12 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int      ani_bind;       // Animation binding type.
-    int               sortid;         // Relative binding sortid. Default = -1
-    s_axis_principal_int enable;    // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int  offset;         // x,y,z offset.
-    e_direction_adjust      direction;      // Direction force
-    struct entity *ent;                     // Entity to bind.
+    unsigned int            match_type;   // Animation binding type.
+    int                     sortid;     // Relative binding sortid. Default = -1
+    s_axis_principal_int    enable;     // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int    offset;     // x,y,z offset.
+    e_direction_adjust      direction;  // Direction force
+    struct entity *ent;                 // Entity to bind.
 } s_bind;
 
 typedef struct
