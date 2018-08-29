@@ -14205,6 +14205,40 @@ loadmodel_error:
     return E_FAIL;
 }
 
+//unload_model("name");
+HRESULT openbor_unload_model(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG unload = 0;
+    s_model *model;
+    if(paramCount < 1)
+    {
+        goto unload_model_error;
+    }
+    if(varlist[0]->vt != VT_STR)
+    {
+        goto unload_model_error;
+    }
+
+    model = load_cached_model(StrCache_Get(varlist[0]->strVal), "openbor_loadmodel", (char)unload);
+
+    if(paramCount >= 1 && model)
+    {
+		cache_model_sprites(model,0);
+		free_model(model);
+    }
+
+    //(*pretvar)->ptrVal = (VOID *)model;
+
+    //else, it should return an empty value
+	return S_OK;
+	
+	unload_model_error:
+    printf("Function needs a string parameter: unload_model(name)\n");
+    ScriptVariant_Clear(*pretvar);
+    *pretvar = NULL;
+    return E_FAIL;
+}
+
 // load a sprite which doesn't belong to the sprite_cache
 // loadsprite(path, maskpath)
 HRESULT openbor_loadsprite(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)

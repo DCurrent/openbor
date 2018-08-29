@@ -2828,6 +2828,8 @@ s_model *nextplayermodel(s_model *current);
 s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
+int free_model();
+void cache_model_sprites();
 s_anim                  *alloc_anim();
 s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack      **collision_alloc_attack_list();
