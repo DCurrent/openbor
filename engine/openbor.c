@@ -21307,7 +21307,7 @@ void adjust_bind(entity *e)
 {
     // If there is no binding
     // target, just get out.
-    if(e->binding.ent)
+    if(!e->binding.ent)
     {
         return;
     }
@@ -21346,57 +21346,84 @@ void adjust_bind(entity *e)
         }
     }
 
-
-    if (e->binding.enable.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-    if (e->binding.enable.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
     e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
-    switch(e->binding.direction)
+    // If binding is enabled on a given axis, then set
+    // position accordingly.
+    if (e->binding.enable.z){ e->position.z = e->binding.ent->position.z + e->binding.offset.z; }
+    if (e->binding.enable.y){ e->position.y = e->binding.ent->position.y + e->binding.offset.y; }
+
+    if(e->binding.enable.x)
     {
-    case DIRECTION_ADJUST_NONE:
-        if(e->binding.ent->direction == DIRECTION_RIGHT)
+        // For X axis, we'll need to adjust differently based
+        // on the binding direction flag and relationship
+        // with binding target.
+        //
+        // Note the logic is mostly the same for each, but
+        // in each case we adjust our own current direction
+        // to affect how the logic will be evaluated.
+        switch(e->binding.direction)
         {
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            default:
+            case DIRECTION_ADJUST_NONE:
+
+                if(e->binding.ent->direction == DIRECTION_RIGHT)
+                {
+                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                }
+                else
+                {
+                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                }
+
+                break;
+
+            case DIRECTION_ADJUST_SAME:
+
+                e->direction = e->binding.ent->direction;
+
+                if(e->binding.ent->direction == DIRECTION_RIGHT)
+                {
+                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                }
+                else
+                {
+                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                }
+
+                break;
+
+            case DIRECTION_ADJUST_OPPOSITE:
+
+                e->direction = !e->binding.ent->direction;
+
+                if(e->binding.ent->direction == DIRECTION_RIGHT)
+                {
+                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                }
+                else
+                {
+                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                }
+
+                break;
+
+            case DIRECTION_ADJUST_RIGHT:
+
+                e->direction = DIRECTION_RIGHT;
+
+                e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+
+                break;
+
+            case DIRECTION_ADJUST_LEFT:
+
+                e->direction = DIRECTION_LEFT;
+
+                e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+
+                break;
         }
-        else
-        {
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-        }
-        break;
-    case DIRECTION_ADJUST_SAME:
-        e->direction = e->binding.ent->direction;
-        if(e->binding.ent->direction == DIRECTION_RIGHT)
-        {
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        }
-        else
-        {
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-        }
-        break;
-    case DIRECTION_ADJUST_OPPOSITE:
-        e->direction = !e->binding.ent->direction;
-        if(e->binding.ent->direction == DIRECTION_RIGHT)
-        {
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        }
-        else
-        {
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-        }
-        break;
-    case DIRECTION_ADJUST_RIGHT:
-        e->direction = DIRECTION_RIGHT;
-        if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        break;
-    case DIRECTION_ADJUST_LEFT:
-        e->direction = DIRECTION_LEFT;
-        if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        break;
-    default:
-        if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-        break;
-        // the default is no change :), just give a value of 12345 or so
     }
 }
 
