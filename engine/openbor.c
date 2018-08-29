@@ -21307,7 +21307,8 @@ void adjust_bind(entity *e)
 {
     #define ADJUST_BIND_SET_ANIM_RESETABLE 1
 
-    e_animations target_animation;
+    e_animations    target_animation;
+    int             target_frame;
 
     // If there is no binding
     // target, just get out.
@@ -21324,12 +21325,12 @@ void adjust_bind(entity *e)
         // animation.
         target_animation = e->binding.animation_id;
 
-        if(target_animation != ANI_NONE)
+        if(target_animation == ANI_NONE)
         {
             target_animation = e->binding.ent->animnum;
         }
 
-        // Are we using the target animation?
+        // Are we NOT currently playing the target animation?
         if(e->animnum != target_animation)
         {
             // If we don't have the target animation
@@ -21351,27 +21352,46 @@ void adjust_bind(entity *e)
             ent_set_anim(e, target_animation, ADJUST_BIND_SET_ANIM_RESETABLE);
         }
 
-        if(e->animpos != e->binding.ent->animpos && e->binding.animation_match & BINDING_ANI_FRAME_MATCH)
+        // Frame match flag set?
+        if(e->binding.animation_match & BINDING_ANI_FRAME_MATCH)
         {
-            // If we don't have the frame and frame kill flag is set, kill ourself.
-            if(e->animation[e->animnum].numframes < e->binding.ent->animation[e->binding.ent->animnum].numframes)
+            // Did user select a bind frame? If
+            // not we use the bind target's current
+            // frame.
+            target_frame = e->binding.animation_frame;
+
+            if(target_frame == ANI_NONE)
             {
-                if(e->binding.animation_match & BINDING_ANI_FRAME_KILL)
-                {
-                    kill_entity(e);
-                    e->binding.ent = NULL;
-                    return;
-                }
+                target_frame = e->binding.ent->animpos;
             }
 
-            update_frame(e, e->binding.ent->animpos);
+            // Are we NOT currently playing the target frame?
+            if(e->animpos != target_frame)
+            {
+                // If we don't have the frame and frame kill flag is
+                // set, kill ourselves.
+                if(e->animation[e->animnum].numframes < target_frame)
+                {
+                    if(e->binding.animation_match & BINDING_ANI_FRAME_KILL)
+                    {
+                        kill_entity(e);
+                        e->binding.ent = NULL;
+                        return;
+                    }
+                }
+
+                // Made it this far, we must have the target
+                // frame, so let's apply it.
+                update_frame(e, target_frame);
+            }
         }
     }
 
+    // Apply sort ID adjustment.
     e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
-    // If binding is enabled on a given axis, then set
-    // position accordingly.
+    // If binding is enabled on a given axis, then
+    // apply offset and set position accordingly.
     if (e->binding.enable.z){ e->position.z = e->binding.ent->position.z + e->binding.offset.z; }
     if (e->binding.enable.y){ e->position.y = e->binding.ent->position.y + e->binding.offset.y; }
 
@@ -21447,6 +21467,8 @@ void adjust_bind(entity *e)
                 break;
         }
     }
+
+    #undef ADJUST_BIND_SET_ANIM_RESETABLE
 }
 
 
