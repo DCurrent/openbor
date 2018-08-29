@@ -14205,18 +14205,18 @@ loadmodel_error:
     return E_FAIL;
 }
 
-//unloadmodel("name");
-HRESULT openbor_unloadmodel(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+//unload_model("name");
+HRESULT openbor_unload_model(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG unload = 0;
     s_model *model;
     if(paramCount < 1)
     {
-        goto unloadmodel_error;
+        goto unload_model_error;
     }
     if(varlist[0]->vt != VT_STR)
     {
-        goto unloadmodel_error;
+        goto unload_model_error;
     }
 
     model = load_cached_model(StrCache_Get(varlist[0]->strVal), "openbor_loadmodel", (char)unload);
@@ -14232,8 +14232,8 @@ HRESULT openbor_unloadmodel(ScriptVariant **varlist , ScriptVariant **pretvar, i
     //else, it should return an empty value
 	return S_OK;
 	
-	unloadmodel_error:
-    printf("Function needs a string parameter: unloadmodel(name)\n");
+	unload_model_error:
+    printf("Function needs a string parameter: unload_model(name)\n");
     ScriptVariant_Clear(*pretvar);
     *pretvar = NULL;
     return E_FAIL;
