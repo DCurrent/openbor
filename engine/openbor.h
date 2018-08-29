@@ -469,6 +469,7 @@ typedef enum //Animations
     2013-12-27
     */
 
+    ANI_NONE    = -1,       // To indicate a blank or no animation at all.
     ANI_IDLE,
     ANI_WALK,
     ANI_JUMP,
