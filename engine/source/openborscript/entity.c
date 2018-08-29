@@ -48,6 +48,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "damage_on_landing",
         "deduct_ammo",
         "energy_status",
+        "opponent",
+        "owner",
         "player_index",
         "position_base_alternate",
         "position_base_default",
@@ -319,6 +321,20 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)&handle->energy_status;
+
+            break;
+
+        case _ENTITY_OPPONENT:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (entity *)handle->opponent;
+
+            break;
+
+        case _ENTITY_OWNER:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (entity *)handle->owner;
 
             break;
 
@@ -659,6 +675,18 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
         case _ENTITY_ENERGY_STATUS:
 
             // Read only.
+
+            break;
+
+        case _ENTITY_OPPONENT:
+
+            handle->opponent = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+            break;
+
+        case _ENTITY_OWNER:
+
+            handle->owner = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
