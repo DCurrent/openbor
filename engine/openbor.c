@@ -21305,6 +21305,10 @@ void damage_recursive(entity *target)
 
 void adjust_bind(entity *e)
 {
+    #define ADJUST_BIND_SET_ANIM_RESETABLE 1
+
+    e_animations target_animation;
+
     // If there is no binding
     // target, just get out.
     if(!e->binding.ent)
@@ -21312,11 +21316,26 @@ void adjust_bind(entity *e)
         return;
     }
 
+    // Animation match flag in use?
     if(e->binding.animation_match)
     {
-        if(e->animnum != e->binding.ent->animnum)
+        // Did user select a bind animation? If
+        // not we use the bind target's current
+        // animation.
+        target_animation = e->binding.animation_id;
+
+        if(target_animation != ANI_NONE)
         {
-            if(!validanim(e, e->binding.ent->animnum))
+            target_animation = e->binding.ent->animnum;
+        }
+
+        // Are we using the target animation?
+        if(e->animnum != target_animation)
+        {
+            // If we don't have the target animation
+            // and animation kill flag is set, then
+            // we kill ourselves and exit the function.
+            if(!validanim(e, target_animation))
             {
                 // Don't have the animation? Kill ourself.
                 if(e->binding.animation_match & BINDING_ANI_ANIMATION_KILL)
@@ -21326,7 +21345,10 @@ void adjust_bind(entity *e)
                 e->binding.ent = NULL;
                 return;
             }
-            ent_set_anim(e, e->binding.ent->animnum, 1);
+
+            // Made it this far, we must have the target
+            // animation, so let's apply it.
+            ent_set_anim(e, target_animation, ADJUST_BIND_SET_ANIM_RESETABLE);
         }
 
         if(e->animpos != e->binding.ent->animpos && e->binding.animation_match & BINDING_ANI_FRAME_MATCH)
