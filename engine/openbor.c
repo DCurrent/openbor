@@ -9907,6 +9907,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_TAKEDAMAGESCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->takedamage_script, "takedamagescript", filename, 1, 0);
                 break;
+            case CMD_MODEL_ON_BIND_UPDATE_OTHER_TO_SELF_SCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->on_bind_update_other_to_self_script, "on_bind_update_other_to_self_script", filename, 1, 0);
+                break;
+            case CMD_MODEL_ON_BIND_UPDATE_SELF_TO_OTHER_SCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->on_bind_update_other_to_self_script, "on_bind_update_self_to_other_script", filename, 1, 0);
+                break;
             case CMD_MODEL_ONFALLSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onfall_script, "onfallscript", filename, 1, 0);
                 break;
