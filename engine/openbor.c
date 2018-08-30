@@ -1424,6 +1424,64 @@ void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *a
     }
 }
 
+// Caskey, Damon V.
+// 2018-08-30
+//
+// Run on the bind target when updating a bind.
+void execute_on_bind_update_other_to_self(entity *ent, s_bind *binding)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->on_bind_update_other_to_self_script;
+
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
+        tempvar.ptrVal = (entity *)ent;
+        Script_Set_Local_Variant(cs, "self",    &tempvar);
+
+        tempvar.ptrVal = (s_bind *)binding;
+        Script_Set_Local_Variant(cs, "binding", &tempvar);
+
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "binding",     &tempvar);
+    }
+}
+
+// Caskey, Damon V.
+// 2018-08-30
+//
+// Run on bound entity when updating bind.
+void execute_on_bind_update_self_to_other(entity *ent, s_bind *binding)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->on_bind_update_self_to_other_script;
+
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
+        tempvar.ptrVal = (entity *)ent;
+        Script_Set_Local_Variant(cs, "self",    &tempvar);
+
+        tempvar.ptrVal = (s_bind *)binding;
+        Script_Set_Local_Variant(cs, "binding", &tempvar);
+
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "binding",     &tempvar);
+    }
+}
+
 void execute_onpain_script(entity *ent, int iType, int iReset)
 {
     ScriptVariant tempvar;
