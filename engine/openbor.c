@@ -21379,10 +21379,10 @@ void adjust_bind(entity *e)
     }
 
     // Run bind update script on the bind target.
-    execute_on_bind_update_other_to_self(e->binding.ent, e->binding);
+    execute_on_bind_update_other_to_self(e->binding.ent, &e->binding);
 
     // Run bind update script on *e (entity performing bind).
-    execute_on_bind_update_self_to_other(e, e->binding);
+    execute_on_bind_update_self_to_other(e, &e->binding);
 
     // Animation match flag in use?
     if(e->binding.animation)
