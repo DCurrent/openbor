@@ -1949,6 +1949,8 @@ typedef struct
     Script         *update_script;                  //execute when update_ents
     Script         *think_script;                   //execute when entity thinks.
     Script         *takedamage_script;              //execute when taking damage.
+    Script         *on_bind_update_other_to_self_script;   //execute when adjust_bind runs, for the bind target entity.
+    Script         *on_bind_update_self_to_other_script;   //execute when adjust_bind runs, for the bound entity.
     Script         *ondeath_script;                 //execute when killed in game.
     Script         *onkill_script;                  //execute when removed from play.
     Script         *onpain_script;                  //Execute when put in pain animation.
