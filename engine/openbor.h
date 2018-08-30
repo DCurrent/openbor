@@ -2264,20 +2264,6 @@ typedef struct
     s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
-typedef enum
-{
-    BINDING_MATCH_NONE,
-    BINDING_MATCH_DEFINED,
-    BINDING_MATCH_TARGET
-} e_binding_match;
-
-typedef enum
-{
-    BINDING_MISMATCH_NONE,
-    BINDING_MISMATCH_DIE,
-    BINDING_MISMATCH_REMOVE
-} e_binding_mismatch;
-
 // Caskey, Damon V.
 // 2013-12-17
 //
@@ -2285,12 +2271,8 @@ typedef enum
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int            animation_match;    // Animation binding type.
-    int                     animation_id;       // Animation to bind (-1 = target's current animation).
-    int                     animation_frame;    // Frame to bind (-1 = target's current frame).
+    unsigned int            animation;          // Animation binding type.
     int                     sortid;             // Relative binding sortid. Default = -1
-
-
     s_axis_principal_int    enable;             // Toggle binding on X, Y and Z axis.
     s_axis_principal_int    offset;             // x,y,z offset.
     e_direction_adjust      direction;          // Direction force.
