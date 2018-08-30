@@ -1428,7 +1428,7 @@ void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *a
 // 2018-08-30
 //
 // Run on the bind target when updating a bind.
-void execute_on_bind_update_other_to_self(entity *ent, s_bind *binding)
+void execute_on_bind_update_other_to_self(entity *ent, entity *other, s_bind *binding)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->on_bind_update_other_to_self_script;
@@ -1441,6 +1441,9 @@ void execute_on_bind_update_other_to_self(entity *ent, s_bind *binding)
         tempvar.ptrVal = (entity *)ent;
         Script_Set_Local_Variant(cs, "self",    &tempvar);
 
+        tempvar.ptrVal = (entity *)other;
+        Script_Set_Local_Variant(cs, "other",   &tempvar);
+
         tempvar.ptrVal = (s_bind *)binding;
         Script_Set_Local_Variant(cs, "binding", &tempvar);
 
@@ -1449,6 +1452,7 @@ void execute_on_bind_update_other_to_self(entity *ent, s_bind *binding)
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "other",       &tempvar);
         Script_Set_Local_Variant(cs, "binding",     &tempvar);
     }
 }
@@ -1457,7 +1461,7 @@ void execute_on_bind_update_other_to_self(entity *ent, s_bind *binding)
 // 2018-08-30
 //
 // Run on bound entity when updating bind.
-void execute_on_bind_update_self_to_other(entity *ent, s_bind *binding)
+void execute_on_bind_update_self_to_other(entity *ent, entity *other, s_bind *binding)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->on_bind_update_self_to_other_script;
@@ -1470,6 +1474,9 @@ void execute_on_bind_update_self_to_other(entity *ent, s_bind *binding)
         tempvar.ptrVal = (entity *)ent;
         Script_Set_Local_Variant(cs, "self",    &tempvar);
 
+        tempvar.ptrVal = (entity *)other;
+        Script_Set_Local_Variant(cs, "other",   &tempvar);
+
         tempvar.ptrVal = (s_bind *)binding;
         Script_Set_Local_Variant(cs, "binding", &tempvar);
 
@@ -1478,6 +1485,7 @@ void execute_on_bind_update_self_to_other(entity *ent, s_bind *binding)
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "other",       &tempvar);
         Script_Set_Local_Variant(cs, "binding",     &tempvar);
     }
 }
@@ -21379,10 +21387,10 @@ void adjust_bind(entity *e)
     }
 
     // Run bind update script on the bind target.
-    execute_on_bind_update_other_to_self(e->binding.ent, &e->binding);
+    execute_on_bind_update_other_to_self(e->binding.ent, e, &e->binding);
 
     // Run bind update script on *e (entity performing bind).
-    execute_on_bind_update_self_to_other(e, &e->binding);
+    execute_on_bind_update_self_to_other(e, e->binding.ent, &e->binding);
 
     // Animation match flag in use?
     if(e->binding.animation)
