@@ -21307,9 +21307,6 @@ void adjust_bind(entity *e)
 {
     #define ADJUST_BIND_SET_ANIM_RESETABLE 1
 
-    e_animations    target_animation;
-    int             target_frame;
-
     // If there is no binding
     // target, just get out.
     if(!e->binding.ent)
@@ -21318,71 +21315,55 @@ void adjust_bind(entity *e)
     }
 
     // Animation match flag in use?
-    if(e->binding.animation_match)
+    if(e->binding.animation)
     {
-        // Did user select a bind animation? If
-        // not we use the bind target's current
-        // animation.
-        target_animation = e->binding.animation_id;
-
-        if(target_animation == ANI_NONE)
-        {
-            target_animation = e->binding.ent->animnum;
-        }
-
         // Are we NOT currently playing the target animation?
-        if(e->animnum != target_animation)
+        if(e->animnum != e->binding.ent->animnum)
         {
             // If we don't have the target animation
             // and animation kill flag is set, then
             // we kill ourselves and exit the function.
-            if(!validanim(e, target_animation))
+            if(!validanim(e, e->binding.ent->animnum))
             {
                 // Don't have the animation? Kill ourself.
-                if(e->binding.animation_match & BINDING_ANI_ANIMATION_KILL)
+                if(e->binding.animation & BINDING_ANI_ANIMATION_KILL)
                 {
                     kill_entity(e);
                 }
+
+                // Cancel the bind and exit.
                 e->binding.ent = NULL;
                 return;
             }
 
             // Made it this far, we must have the target
             // animation, so let's apply it.
-            ent_set_anim(e, target_animation, ADJUST_BIND_SET_ANIM_RESETABLE);
+            ent_set_anim(e, e->binding.ent->animnum, ADJUST_BIND_SET_ANIM_RESETABLE);
         }
 
         // Frame match flag set?
-        if(e->binding.animation_match & BINDING_ANI_FRAME_MATCH)
+        if(e->binding.animation & BINDING_ANI_FRAME_MATCH)
         {
-            // Did user select a bind frame? If
-            // not we use the bind target's current
-            // frame.
-            target_frame = e->binding.animation_frame;
-
-            if(target_frame == ANI_NONE)
-            {
-                target_frame = e->binding.ent->animpos;
-            }
-
             // Are we NOT currently playing the target frame?
-            if(e->animpos != target_frame)
+            if(e->animpos != e->binding.ent->animpos)
             {
                 // If we don't have the frame and frame kill flag is
                 // set, kill ourselves.
-                if(e->animation[e->animnum].numframes < target_frame)
+                if(e->animation[e->animnum].numframes < e->binding.ent->animpos)
                 {
-                    if(e->binding.animation_match & BINDING_ANI_FRAME_KILL)
+                    if(e->binding.animation & BINDING_ANI_FRAME_KILL)
                     {
                         kill_entity(e);
-                        e->binding.ent = NULL;
-                        return;
                     }
+
+                    // Cancel the bind and exit.
+                    e->binding.ent = NULL;
+                    return;
                 }
 
                 // Made it this far, we must have the target
                 // frame, so let's apply it.
-                update_frame(e, target_frame);
+                update_frame(e, e->binding.ent->animpos);
             }
         }
     }
