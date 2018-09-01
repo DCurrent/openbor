@@ -25,7 +25,7 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
-        "animation_matching",
+        "matching",
         "direction",
         "enable",
         "offset",
@@ -103,7 +103,7 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
         case _BINDING_MATCHING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->animation_matching;
+            (*pretvar)->lVal = (LONG)handle->matching;
 
             break;
 
@@ -227,7 +227,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
-			handle->animation_matching = temp_int;
+			handle->matching = temp_int;
 		}
 
 		break;
