@@ -100,7 +100,7 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
     switch(property)
     {
-        case _BINDING_ANIMATION_MATCHING:
+        case _BINDING_MATCHING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->animation_matching;
@@ -223,7 +223,7 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 	switch (property)
 	{
 
-	case _BINDING_ANIMATION_MATCHING:
+	case _BINDING_MATCHING:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
