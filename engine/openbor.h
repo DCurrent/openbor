@@ -2273,7 +2273,7 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int            animation;          // Animation binding type.
+    unsigned int            animation_matching; // Animation binding type.
     int                     tag;                // User data.
     int                     sortid;             // Relative binding sortid. Default = -1
     s_axis_principal_int    enable;             // Toggle binding on X, Y and Z axis.

@@ -21393,7 +21393,7 @@ void adjust_bind(entity *e)
     execute_on_bind_update_self_to_other(e, e->binding.ent, &e->binding);
 
     // Animation match flag in use?
-    if(e->binding.animation)
+    if(e->binding.animation_matching)
     {
         // Are we NOT currently playing the target animation?
         if(e->animnum != e->binding.ent->animnum)
@@ -21404,7 +21404,7 @@ void adjust_bind(entity *e)
             if(!validanim(e, e->binding.ent->animnum))
             {
                 // Don't have the animation? Kill ourself.
-                if(e->binding.animation & BINDING_ANI_ANIMATION_KILL)
+                if(e->binding.animation_matching & BINDING_ANI_ANIMATION_KILL)
                 {
                     kill_entity(e);
                 }
@@ -21420,7 +21420,7 @@ void adjust_bind(entity *e)
         }
 
         // Frame match flag set?
-        if(e->binding.animation & BINDING_ANI_FRAME_MATCH)
+        if(e->binding.animation_matching & BINDING_ANI_FRAME_MATCH)
         {
             // Are we NOT currently playing the target frame?
             if(e->animpos != e->binding.ent->animpos)
@@ -21429,7 +21429,7 @@ void adjust_bind(entity *e)
                 // set, kill ourselves.
                 if(e->animation[e->animnum].numframes < e->binding.ent->animpos)
                 {
-                    if(e->binding.animation & BINDING_ANI_FRAME_KILL)
+                    if(e->binding.animation_matching & BINDING_ANI_FRAME_KILL)
                     {
                         kill_entity(e);
                     }
