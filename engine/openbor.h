@@ -915,6 +915,7 @@ typedef enum
     ATK_NORMAL8,
     ATK_NORMAL9,
     ATK_NORMAL10,
+    ATK_BIND,
     ATK_ITEM,
     ATK_LAND,
     ATK_PIT,
@@ -1128,11 +1129,11 @@ typedef enum
 
 typedef enum
 {
-    BINDING_ANI_NONE            = 0,
-    BINDING_ANI_ANIMATION_MATCH = 1,
-    BINDING_ANI_FRAME_MATCH     = 2,
-    BINDING_ANI_ANIMATION_KILL  = 4,
-    BINDING_ANI_FRAME_KILL      = 6
+    BINDING_MATCHING_NONE            = 0,
+    BINDING_MATCHING_ANIMATION_MATCH = 1,
+    BINDING_MATCHING_FRAME_MATCH     = 2,
+    BINDING_MATCHING_ANIMATION_KILL  = 4,
+    BINDING_MATCHING_FRAME_KILL      = 6
 } e_binding_animation;
 
 typedef enum
@@ -2273,13 +2274,13 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int            animation;          // Animation binding type.
-    int                     tag;                // User data.
-    int                     sortid;             // Relative binding sortid. Default = -1
-    s_axis_principal_int    enable;             // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int    offset;             // x,y,z offset.
-    e_direction_adjust      direction;          // Direction force.
-    struct entity *ent;                         // Entity subject will bind itself to.
+    unsigned int            matching;   // Animation binding type.
+    int                     tag;        // User data.
+    int                     sortid;     // Relative binding sortid. Default = -1
+    s_axis_principal_int    enable;     // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int    offset;     // x,y,z offset.
+    e_direction_adjust      direction;  // Direction force.
+    struct entity           *ent;       // Entity subject will bind itself to.
 } s_bind;
 
 typedef struct
