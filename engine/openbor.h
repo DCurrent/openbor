@@ -2274,6 +2274,7 @@ typedef struct
 typedef struct
 {
     unsigned int            animation;          // Animation binding type.
+    int                     tag;                // User data.
     int                     sortid;             // Relative binding sortid. Default = -1
     s_axis_principal_int    enable;             // Toggle binding on X, Y and Z axis.
     s_axis_principal_int    offset;             // x,y,z offset.
