@@ -30,6 +30,7 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
         "enable",
         "offset",
         "sort_id",
+        "tag",
         "target"
     };
 
@@ -131,6 +132,13 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->sortid;
+
+            break;
+
+        case _BINDING_TAG:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->tag;
 
             break;
 
@@ -250,6 +258,15 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->sortid = temp_int;
+		}
+
+		break;
+
+    case _BINDING_TAG:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->tag = temp_int;
 		}
 
 		break;
