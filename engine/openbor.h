@@ -469,6 +469,7 @@ typedef enum //Animations
     2013-12-27
     */
 
+    ANI_NONE,               // To indicate a blank or no animation at all.
     ANI_IDLE,
     ANI_WALK,
     ANI_JUMP,
@@ -1948,6 +1949,8 @@ typedef struct
     Script         *update_script;                  //execute when update_ents
     Script         *think_script;                   //execute when entity thinks.
     Script         *takedamage_script;              //execute when taking damage.
+    Script         *on_bind_update_other_to_self_script;   //execute when adjust_bind runs, for the bind target entity.
+    Script         *on_bind_update_self_to_other_script;   //execute when adjust_bind runs, for the bound entity.
     Script         *ondeath_script;                 //execute when killed in game.
     Script         *onkill_script;                  //execute when removed from play.
     Script         *onpain_script;                  //Execute when put in pain animation.
@@ -2263,7 +2266,6 @@ typedef struct
     s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
-
 // Caskey, Damon V.
 // 2013-12-17
 //
@@ -2271,12 +2273,13 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int      ani_bind;       // Animation binding type.
-    int               sortid;         // Relative binding sortid. Default = -1
-    s_axis_principal_int enable;    // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int  offset;         // x,y,z offset.
-    e_direction_adjust      direction;      // Direction force
-    struct entity *ent;                     // Entity to bind.
+    unsigned int            animation;          // Animation binding type.
+    int                     tag;                // User data.
+    int                     sortid;             // Relative binding sortid. Default = -1
+    s_axis_principal_int    enable;             // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int    offset;             // x,y,z offset.
+    e_direction_adjust      direction;          // Direction force.
+    struct entity *ent;                         // Entity subject will bind itself to.
 } s_bind;
 
 typedef struct
@@ -2759,28 +2762,30 @@ int     changesyspropertybyindex(int index, ScriptVariant *value);
 int     load_script(Script *script, char *path);
 void    init_scripts();
 void    load_scripts();
-void    execute_animation_script    (entity *ent);
-void    execute_takedamage_script   (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_ondeath_script      (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_onkill_script       (entity *ent);
-void    execute_onpain_script       (entity *ent, int iType, int iReset);
-void    execute_onfall_script       (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_inhole_script       (entity *ent, s_terrain *hole, int index);
-void    execute_onblocks_script     (entity *ent);
-void    execute_onblockw_script     (entity *ent, s_terrain *wall, int index, e_plane plane);
-void    execute_onblockp_script     (entity *ent, int plane, entity *platform);
-void    execute_onblocko_script     (entity *ent, int plane, entity *other);
-void    execute_onblockz_script     (entity *ent);
-void    execute_onblocka_script     (entity *ent, entity *other);
-void    execute_onmovex_script      (entity *ent);
-void    execute_onmovez_script      (entity *ent);
-void    execute_onmovea_script      (entity *ent);
-void    execute_didblock_script     (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_ondoattack_script   (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
-void    execute_updateentity_script (entity *ent);
-void    execute_think_script        (entity *ent);
-void    execute_didhit_script       (entity *ent, entity *other, s_collision_attack *attack, int blocked);
-void    execute_onspawn_script      (entity *ent);
+void    execute_animation_script                (entity *ent);
+void    execute_takedamage_script               (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_on_bind_update_other_to_self    (entity *ent, entity *other, s_bind *binding);
+void    execute_on_bind_update_self_to_other    (entity *ent, entity *other, s_bind *binding);
+void    execute_ondeath_script                  (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_onkill_script                   (entity *ent);
+void    execute_onpain_script                   (entity *ent, int iType, int iReset);
+void    execute_onfall_script                   (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_inhole_script                   (entity *ent, s_terrain *hole, int index);
+void    execute_onblocks_script                 (entity *ent);
+void    execute_onblockw_script                 (entity *ent, s_terrain *wall, int index, e_plane plane);
+void    execute_onblockp_script                 (entity *ent, int plane, entity *platform);
+void    execute_onblocko_script                 (entity *ent, int plane, entity *other);
+void    execute_onblockz_script                 (entity *ent);
+void    execute_onblocka_script                 (entity *ent, entity *other);
+void    execute_onmovex_script                  (entity *ent);
+void    execute_onmovez_script                  (entity *ent);
+void    execute_onmovea_script                  (entity *ent);
+void    execute_didblock_script                 (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_ondoattack_script               (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
+void    execute_updateentity_script             (entity *ent);
+void    execute_think_script                    (entity *ent);
+void    execute_didhit_script                   (entity *ent, entity *other, s_collision_attack *attack, int blocked);
+void    execute_onspawn_script                  (entity *ent);
 void    clearbuttonss(int player);
 void    clearsettings(void);
 void    savesettings(void);

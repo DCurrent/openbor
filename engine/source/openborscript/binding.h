@@ -6,6 +6,7 @@ typedef enum
 	_BINDING_ENABLE,
 	_BINDING_OFFSET,
 	_BINDING_SORT_ID,
+	_BINDING_TAG,
 	_BINDING_TARGET,
 	_BINDING_END,
 } e_binding_properties;

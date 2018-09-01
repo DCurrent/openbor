@@ -364,6 +364,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
     LIST_ADD(CMD_MODEL_ONAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODEL_OFFSET, "offset");
+    LIST_ADD(CMD_MODEL_ON_BIND_UPDATE_OTHER_TO_SELF_SCRIPT, "on_bind_update_other_to_self_script");
+    LIST_ADD(CMD_MODEL_ON_BIND_UPDATE_SELF_TO_OTHER_SCRIPT, "on_bind_update_self_to_other_script");
     LIST_ADD(CMD_MODEL_ONBLOCKASCRIPT, "onblockascript");
     LIST_ADD(CMD_MODEL_ONBLOCKOSCRIPT, "onblockoscript");
     LIST_ADD(CMD_MODEL_ONBLOCKPSCRIPT, "onblockpscript");

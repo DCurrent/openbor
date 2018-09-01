@@ -1424,6 +1424,72 @@ void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *a
     }
 }
 
+// Caskey, Damon V.
+// 2018-08-30
+//
+// Run on the bind target when updating a bind.
+void execute_on_bind_update_other_to_self(entity *ent, entity *other, s_bind *binding)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->on_bind_update_other_to_self_script;
+
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
+        tempvar.ptrVal = (entity *)ent;
+        Script_Set_Local_Variant(cs, "self",    &tempvar);
+
+        tempvar.ptrVal = (entity *)other;
+        Script_Set_Local_Variant(cs, "other",   &tempvar);
+
+        tempvar.ptrVal = (s_bind *)binding;
+        Script_Set_Local_Variant(cs, "binding", &tempvar);
+
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "other",       &tempvar);
+        Script_Set_Local_Variant(cs, "binding",     &tempvar);
+    }
+}
+
+// Caskey, Damon V.
+// 2018-08-30
+//
+// Run on bound entity when updating bind.
+void execute_on_bind_update_self_to_other(entity *ent, entity *other, s_bind *binding)
+{
+    ScriptVariant tempvar;
+    Script *cs = ent->scripts->on_bind_update_self_to_other_script;
+
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
+        tempvar.ptrVal = (entity *)ent;
+        Script_Set_Local_Variant(cs, "self",    &tempvar);
+
+        tempvar.ptrVal = (entity *)other;
+        Script_Set_Local_Variant(cs, "other",   &tempvar);
+
+        tempvar.ptrVal = (s_bind *)binding;
+        Script_Set_Local_Variant(cs, "binding", &tempvar);
+
+        Script_Execute(cs);
+
+        //clear to save variant space
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "self",        &tempvar);
+        Script_Set_Local_Variant(cs, "other",       &tempvar);
+        Script_Set_Local_Variant(cs, "binding",     &tempvar);
+    }
+}
+
 void execute_onpain_script(entity *ent, int iType, int iReset)
 {
     ScriptVariant tempvar;
@@ -9906,6 +9972,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_TAKEDAMAGESCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->takedamage_script, "takedamagescript", filename, 1, 0);
+                break;
+            case CMD_MODEL_ON_BIND_UPDATE_OTHER_TO_SELF_SCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->on_bind_update_other_to_self_script, "on_bind_update_other_to_self_script", filename, 1, 0);
+                break;
+            case CMD_MODEL_ON_BIND_UPDATE_SELF_TO_OTHER_SCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->on_bind_update_self_to_other_script, "on_bind_update_self_to_other_script", filename, 1, 0);
                 break;
             case CMD_MODEL_ONFALLSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onfall_script, "onfallscript", filename, 1, 0);
@@ -21305,96 +21377,157 @@ void damage_recursive(entity *target)
 
 void adjust_bind(entity *e)
 {
-    if(e->binding.ent)
-    {
+    #define ADJUST_BIND_SET_ANIM_RESETABLE 1
 
-        if(e->binding.ani_bind)
+    // If there is no binding
+    // target, just get out.
+    if(!e->binding.ent)
+    {
+        return;
+    }
+
+    // Run bind update script on the bind target.
+    execute_on_bind_update_other_to_self(e->binding.ent, e, &e->binding);
+
+    // Run bind update script on *e (entity performing bind).
+    execute_on_bind_update_self_to_other(e, e->binding.ent, &e->binding);
+
+    // Animation match flag in use?
+    if(e->binding.animation)
+    {
+        // Are we NOT currently playing the target animation?
+        if(e->animnum != e->binding.ent->animnum)
         {
-            if(e->animnum != e->binding.ent->animnum)
+            // If we don't have the target animation
+            // and animation kill flag is set, then
+            // we kill ourselves and exit the function.
+            if(!validanim(e, e->binding.ent->animnum))
             {
-                if(!validanim(e, e->binding.ent->animnum))
+                // Don't have the animation? Kill ourself.
+                if(e->binding.animation & BINDING_ANI_ANIMATION_KILL)
                 {
-                    // Don't have the animation? Kill ourself.
-                    if(e->binding.ani_bind & BINDING_ANI_ANIMATION_KILL)
+                    kill_entity(e);
+                }
+
+                // Cancel the bind and exit.
+                e->binding.ent = NULL;
+                return;
+            }
+
+            // Made it this far, we must have the target
+            // animation, so let's apply it.
+            ent_set_anim(e, e->binding.ent->animnum, ADJUST_BIND_SET_ANIM_RESETABLE);
+        }
+
+        // Frame match flag set?
+        if(e->binding.animation & BINDING_ANI_FRAME_MATCH)
+        {
+            // Are we NOT currently playing the target frame?
+            if(e->animpos != e->binding.ent->animpos)
+            {
+                // If we don't have the frame and frame kill flag is
+                // set, kill ourselves.
+                if(e->animation[e->animnum].numframes < e->binding.ent->animpos)
+                {
+                    if(e->binding.animation & BINDING_ANI_FRAME_KILL)
                     {
                         kill_entity(e);
                     }
+
+                    // Cancel the bind and exit.
                     e->binding.ent = NULL;
                     return;
                 }
-                ent_set_anim(e, e->binding.ent->animnum, 1);
-            }
 
-            if(e->animpos != e->binding.ent->animpos && e->binding.ani_bind & BINDING_ANI_FRAME_MATCH)
-            {
-                // If we don't have the frame and frame kill flag is set, kill ourself.
-                if(e->animation[e->animnum].numframes < e->binding.ent->animation[e->binding.ent->animnum].numframes)
-                {
-                    if(e->binding.ani_bind & BINDING_ANI_FRAME_KILL)
-                    {
-                        kill_entity(e);
-                        e->binding.ent = NULL;
-                        return;
-                    }
-                }
-
+                // Made it this far, we must have the target
+                // frame, so let's apply it.
                 update_frame(e, e->binding.ent->animpos);
             }
         }
+    }
 
+    // Apply sort ID adjustment.
+    e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
-        if (e->binding.enable.z) e->position.z = e->binding.ent->position.z + e->binding.offset.z;
-        if (e->binding.enable.y) e->position.y = e->binding.ent->position.y + e->binding.offset.y;
-        e->sortid = e->binding.ent->sortid + e->binding.sortid;
+    // If binding is enabled on a given axis, then
+    // apply offset and set position accordingly.
+    if (e->binding.enable.z){ e->position.z = e->binding.ent->position.z + e->binding.offset.z; }
+    if (e->binding.enable.y){ e->position.y = e->binding.ent->position.y + e->binding.offset.y; }
 
+    if(e->binding.enable.x)
+    {
+        // For X axis, we'll need to adjust differently based
+        // on the binding direction flag and relationship
+        // with binding target.
+        //
+        // Note the logic is mostly the same for each, but
+        // in each case we adjust our own current direction
+        // to affect how the logic will be evaluated.
         switch(e->binding.direction)
         {
-        case DIRECTION_ADJUST_NONE:
-            if(e->binding.ent->direction == DIRECTION_RIGHT)
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            }
-            else
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-            }
-            break;
-        case DIRECTION_ADJUST_SAME:
-            e->direction = e->binding.ent->direction;
-            if(e->binding.ent->direction == DIRECTION_RIGHT)
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            }
-            else
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-            }
-            break;
-        case DIRECTION_ADJUST_OPPOSITE:
-            e->direction = !e->binding.ent->direction;
-            if(e->binding.ent->direction == DIRECTION_RIGHT)
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            }
-            else
-            {
-                if (e->binding.enable.x) e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-            }
-            break;
-        case DIRECTION_ADJUST_RIGHT:
-            e->direction = DIRECTION_RIGHT;
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            break;
-        case DIRECTION_ADJUST_LEFT:
-            e->direction = DIRECTION_LEFT;
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            break;
-        default:
-            if (e->binding.enable.x) e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-            break;
-            // the default is no change :), just give a value of 12345 or so
+            default:
+            case DIRECTION_ADJUST_NONE:
+
+                if(e->binding.ent->direction == DIRECTION_RIGHT)
+                {
+                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                }
+                else
+                {
+                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                }
+
+                break;
+
+            case DIRECTION_ADJUST_SAME:
+
+                e->direction = e->binding.ent->direction;
+
+                if(e->binding.ent->direction == DIRECTION_RIGHT)
+                {
+                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                }
+                else
+                {
+                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                }
+
+                break;
+
+            case DIRECTION_ADJUST_OPPOSITE:
+
+                e->direction = !e->binding.ent->direction;
+
+                if(e->binding.ent->direction == DIRECTION_RIGHT)
+                {
+                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+                }
+                else
+                {
+                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+                }
+
+                break;
+
+            case DIRECTION_ADJUST_RIGHT:
+
+                e->direction = DIRECTION_RIGHT;
+
+                e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+
+                break;
+
+            case DIRECTION_ADJUST_LEFT:
+
+                e->direction = DIRECTION_LEFT;
+
+                e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+
+                break;
         }
     }
+
+    #undef ADJUST_BIND_SET_ANIM_RESETABLE
 }
 
 
