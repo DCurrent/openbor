@@ -915,6 +915,7 @@ typedef enum
     ATK_NORMAL8,
     ATK_NORMAL9,
     ATK_NORMAL10,
+    ATK_BIND,
     ATK_ITEM,
     ATK_LAND,
     ATK_PIT,
