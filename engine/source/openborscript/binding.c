@@ -25,9 +25,9 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
-        "matching",
         "direction",
         "enable",
+        "matching",
         "offset",
         "sort_id",
         "tag",
