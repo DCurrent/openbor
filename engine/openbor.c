@@ -21379,8 +21379,6 @@ void adjust_bind(entity *e)
 {
     #define ADJUST_BIND_SET_ANIM_RESETABLE 1
 
-    s_collision_attack attack;
-
     // If there is no binding
     // target, just get out.
     if(!e->binding.ent)
@@ -21397,6 +21395,12 @@ void adjust_bind(entity *e)
     // Animation match flag in use?
     if(e->binding.matching)
     {
+        // Initialize and populate an attack struct variable.
+        // We may need this if a ..._DIE flag is used.
+        s_collision_attack attack = emptyattack;
+        attack.attack_force = e->energy_status.health_current;
+        attack.attack_type = ATK_BIND;
+
         // Are we NOT currently playing the target animation?
         if(e->animnum != e->binding.ent->animnum)
         {
@@ -21416,10 +21420,6 @@ void adjust_bind(entity *e)
                     // Otherwise remove from play instantly.
                     if(e->takedamage)
                     {
-                        attack = emptyattack;
-                        attack.attack_force = e->energy_status.health_current;
-                        attack.attack_type = ATK_BIND;
-
                         e->takedamage(e, &attack, 0);
                     }
                     else
@@ -21458,10 +21458,6 @@ void adjust_bind(entity *e)
                         // Otherwise remove from play instantly.
                         if(e->takedamage)
                         {
-                            attack = emptyattack;
-                            attack.attack_force = e->energy_status.health_current;
-                            attack.attack_type = ATK_BIND;
-
                             e->takedamage(e, &attack, 0);
                         }
                         else
