@@ -21379,6 +21379,8 @@ void adjust_bind(entity *e)
 {
     #define ADJUST_BIND_SET_ANIM_RESETABLE 1
 
+    s_collision_attack attack;
+
     // If there is no binding
     // target, just get out.
     if(!e->binding.ent)
@@ -21408,6 +21410,23 @@ void adjust_bind(entity *e)
                 {
                     kill_entity(e);
                 }
+                else if(e->binding.matching & BINDING_MATCHING_ANIMATION_DIE)
+                {
+                    // If able to take normal damage we KO ourselves.
+                    // Otherwise remove from play instantly.
+                    if(e->takedamage)
+                    {
+                        attack = emptyattack;
+                        attack.attack_force = e->energy_status.health_current;
+                        attack.attack_type = ATK_BIND;
+
+                        e->takedamage(e, &attack, 0);
+                    }
+                    else
+                    {
+                        kill_entity(e);
+                    }
+                }
 
                 // Cancel the bind and exit.
                 e->binding.ent = NULL;
@@ -21432,6 +21451,23 @@ void adjust_bind(entity *e)
                     if(e->binding.matching & BINDING_MATCHING_FRAME_REMOVE)
                     {
                         kill_entity(e);
+                    }
+                    else if(e->binding.matching & BINDING_MATCHING_FRAME_DIE)
+                    {
+                        // If able to take normal damage we KO ourselves.
+                        // Otherwise remove from play instantly.
+                        if(e->takedamage)
+                        {
+                            attack = emptyattack;
+                            attack.attack_force = e->energy_status.health_current;
+                            attack.attack_type = ATK_BIND;
+
+                            e->takedamage(e, &attack, 0);
+                        }
+                        else
+                        {
+                            kill_entity(e);
+                        }
                     }
 
                     // Cancel the bind and exit.
