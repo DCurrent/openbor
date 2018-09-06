@@ -57,10 +57,16 @@ void initDirPath(char* dest, char* relPath)
 
 int main(int argc, char * argv[])
 {
+    int retry = 0;
+
 	video_init();
 
 // use libfat for FAT filesystem access
-	fatInitDefault();
+	while (!fatInitDefault() && retry < 12)
+	{
+	    usleep(250000);
+	    retry++;
+	}
 
 	setSystemRam();
 	packfile_mode(0);
