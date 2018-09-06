@@ -21395,14 +21395,6 @@ void adjust_bind(entity *e)
     // Animation match flag in use?
     if(e->binding.matching)
     {
-        printf("\n match %d", e->binding.matching);
-
-        // Initialize and populate an attack struct variable.
-        // We may need this if a ..._DIE flag is used.
-        s_collision_attack attack = emptyattack;
-        attack.attack_force = e->energy_status.health_current;
-        attack.attack_type = ATK_BIND;
-
         // Are we NOT currently playing the target animation?
         if(e->animnum != e->binding.ent->animnum)
         {
@@ -21414,24 +21406,7 @@ void adjust_bind(entity *e)
                 // Don't have the animation? Kill ourself.
                 if(e->binding.matching & BINDING_MATCHING_ANIMATION_REMOVE)
                 {
-                    printf("\n anim kill");
-
                     kill_entity(e);
-                }
-                else if(e->binding.matching & BINDING_MATCHING_ANIMATION_DIE)
-                {
-                    printf("\n anim die");
-
-                    // If able to take normal damage we KO ourselves.
-                    // Otherwise remove from play instantly.
-                    if(e->takedamage)
-                    {
-                        e->takedamage(e, &attack, 0);
-                    }
-                    else
-                    {
-                        kill_entity(e);
-                    }
                 }
 
                 // Cancel the bind and exit.
@@ -21447,8 +21422,6 @@ void adjust_bind(entity *e)
         // Frame match flag set?
         if(e->binding.matching & BINDING_MATCHING_FRAME_TARGET)
         {
-            printf("\n frame match set");
-
             // Are we NOT currently playing the target frame?
             if(e->animpos != e->binding.ent->animpos)
             {
@@ -21458,25 +21431,7 @@ void adjust_bind(entity *e)
                 {
                     if(e->binding.matching & BINDING_MATCHING_FRAME_REMOVE)
                     {
-                        printf("\n frame kill");
-
                         kill_entity(e);
-                    }
-                    else if(e->binding.matching & BINDING_MATCHING_FRAME_DIE)
-                    {
-
-                        printf("\n frame die");
-
-                        // If able to take normal damage we KO ourselves.
-                        // Otherwise remove from play instantly.
-                        if(e->takedamage)
-                        {
-                            e->takedamage(e, &attack, 0);
-                        }
-                        else
-                        {
-                            kill_entity(e);
-                        }
                     }
 
                     // Cancel the bind and exit.
