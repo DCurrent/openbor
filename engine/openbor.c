@@ -21378,6 +21378,7 @@ void damage_recursive(entity *target)
 void adjust_bind(entity *e)
 {
     #define ADJUST_BIND_SET_ANIM_RESETABLE 1
+    #define ADJUST_BIND_NO_FRAME_MATCH -1
 
     // If there is no binding
     // target, just get out.
@@ -21395,13 +21396,28 @@ void adjust_bind(entity *e)
     // Animation match flag in use?
     if(e->binding.matching)
     {
+        e_animations    animation;
+        int             frame;
+
+        // If a defined value is requested,
+        // use the binding member value.
+        // Otherwise use target's current value.
+        if(e->binding.matching & BINDING_MATCHING_ANIMATION_DEFINED)
+        {
+            animation = e->binding.animation;
+        }
+        else
+        {
+            animation = e->binding.ent->animnum;
+        }
+
         // Are we NOT currently playing the target animation?
-        if(e->animnum != e->binding.ent->animnum)
+        if(e->animnum != animation)
         {
             // If we don't have the target animation
             // and animation kill flag is set, then
             // we kill ourselves and exit the function.
-            if(!validanim(e, e->binding.ent->animnum))
+            if(!validanim(e, animation))
             {
                 // Don't have the animation? Kill ourself.
                 if(e->binding.matching & BINDING_MATCHING_ANIMATION_REMOVE)
@@ -21416,18 +21432,38 @@ void adjust_bind(entity *e)
 
             // Made it this far, we must have the target
             // animation, so let's apply it.
-            ent_set_anim(e, e->binding.ent->animnum, ADJUST_BIND_SET_ANIM_RESETABLE);
+            ent_set_anim(e, animation, ADJUST_BIND_SET_ANIM_RESETABLE);
         }
 
-        // Frame match flag set?
-        if(e->binding.matching & BINDING_MATCHING_FRAME_TARGET)
+        // If a defined value is requested,
+        // use the binding member value.
+        // If target value is requested use
+        // target's current value (duh).
+        // if no frame match at all requested
+        // then set ADJUST_BIND_NO_FRAME_MATCH
+        // so frame matching logic is skipped.
+        if(e->binding.matching & BINDING_MATCHING_FRAME_DEFINED)
+        {
+            frame = e->binding.animation;
+        }
+        else if(e->binding.matching & BINDING_MATCHING_FRAME_TARGET)
+        {
+            frame = e->binding.ent->animpos;
+        }
+        else
+        {
+            frame = ADJUST_BIND_NO_FRAME_MATCH;
+        }
+
+        // Any frame match flag set?
+        if(frame != ADJUST_BIND_NO_FRAME_MATCH)
         {
             // Are we NOT currently playing the target frame?
-            if(e->animpos != e->binding.ent->animpos)
+            if(e->animpos != frame)
             {
                 // If we don't have the frame and frame kill flag is
                 // set, kill ourselves.
-                if(e->animation[e->animnum].numframes < e->binding.ent->animpos)
+                if(e->animation[e->animnum].numframes < frame)
                 {
                     if(e->binding.matching & BINDING_MATCHING_FRAME_REMOVE)
                     {
@@ -21441,7 +21477,7 @@ void adjust_bind(entity *e)
 
                 // Made it this far, we must have the target
                 // frame, so let's apply it.
-                update_frame(e, e->binding.ent->animpos);
+                update_frame(e, frame);
             }
         }
     }
@@ -21528,6 +21564,7 @@ void adjust_bind(entity *e)
     }
 
     #undef ADJUST_BIND_SET_ANIM_RESETABLE
+    #undef ADJUST_BIND_NO_FRAME_MATCH
 }
 
 
