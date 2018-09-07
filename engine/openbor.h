@@ -1165,7 +1165,7 @@ typedef enum
     BINDING_POSITIONING_NONE,
     BINDING_POSITIONING_TARGET,
     BINDING_POSITIONING_LEVEL
-} e_binding_animation;
+} e_binding_positioning;
 
 typedef enum
 {
