@@ -12691,9 +12691,9 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     if(!other)
     {
         ent->binding.ent = NULL;
-        ent->binding.enable.x = 0;
-        ent->binding.enable.z = 0;
-        ent->binding.enable.y = 0;
+        ent->binding.positioning.x = 0;
+        ent->binding.positioning.z = 0;
+        ent->binding.positioning.y = 0;
         return S_OK;
     }
 
@@ -12714,8 +12714,8 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         }
 
         ent->binding.offset.x = (int)x;
-        ent->binding.enable.x = 1;
-    } else ent->binding.enable.x = 0;
+        ent->binding.positioning.x = 1;
+    } else ent->binding.positioning.x = 0;
     if(paramCount < 4)
     {
         goto BIND;
@@ -12729,8 +12729,8 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.z = (int)z;
-        ent->binding.enable.z = 1;
-    } else ent->binding.enable.z = 0;
+        ent->binding.positioning.z = 1;
+    } else ent->binding.positioning.z = 0;
     if(paramCount < 5)
     {
         goto BIND;
@@ -12744,8 +12744,8 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.y = (int)a;
-        ent->binding.enable.y = 1;
-    } else ent->binding.enable.y = 0;
+        ent->binding.positioning.y = 1;
+    } else ent->binding.positioning.y = 0;
     if(paramCount < 6)
     {
         goto BIND;
@@ -14231,7 +14231,7 @@ HRESULT openbor_unload_model(ScriptVariant **varlist , ScriptVariant **pretvar, 
 
     //else, it should return an empty value
 	return S_OK;
-	
+
 	unload_model_error:
     printf("Function needs a string parameter: unload_model(name)\n");
     ScriptVariant_Clear(*pretvar);

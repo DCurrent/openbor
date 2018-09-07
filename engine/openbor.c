@@ -21404,6 +21404,7 @@ void damage_recursive(entity *target)
 void adjust_bind(entity *e)
 {
     #define ADJUST_BIND_SET_ANIM_RESETABLE 1
+    #define ADJUST_BIND_NO_FRAME_MATCH -1
 
     // If there is no binding
     // target, just get out.
@@ -21421,13 +21422,28 @@ void adjust_bind(entity *e)
     // Animation match flag in use?
     if(e->binding.matching)
     {
+        e_animations    animation;
+        int             frame;
+
+        // If a defined value is requested,
+        // use the binding member value.
+        // Otherwise use target's current value.
+        if(e->binding.matching & BINDING_MATCHING_ANIMATION_DEFINED)
+        {
+            animation = e->binding.animation;
+        }
+        else
+        {
+            animation = e->binding.ent->animnum;
+        }
+
         // Are we NOT currently playing the target animation?
-        if(e->animnum != e->binding.ent->animnum)
+        if(e->animnum != animation)
         {
             // If we don't have the target animation
             // and animation kill flag is set, then
             // we kill ourselves and exit the function.
-            if(!validanim(e, e->binding.ent->animnum))
+            if(!validanim(e, animation))
             {
                 // Don't have the animation? Kill ourself.
                 if(e->binding.matching & BINDING_MATCHING_ANIMATION_REMOVE)
@@ -21442,18 +21458,38 @@ void adjust_bind(entity *e)
 
             // Made it this far, we must have the target
             // animation, so let's apply it.
-            ent_set_anim(e, e->binding.ent->animnum, ADJUST_BIND_SET_ANIM_RESETABLE);
+            ent_set_anim(e, animation, ADJUST_BIND_SET_ANIM_RESETABLE);
         }
 
-        // Frame match flag set?
-        if(e->binding.matching & BINDING_MATCHING_FRAME_TARGET)
+        // If a defined value is requested,
+        // use the binding member value.
+        // If target value is requested use
+        // target's current value (duh).
+        // if no frame match at all requested
+        // then set ADJUST_BIND_NO_FRAME_MATCH
+        // so frame matching logic is skipped.
+        if(e->binding.matching & BINDING_MATCHING_FRAME_DEFINED)
+        {
+            frame = e->binding.animation;
+        }
+        else if(e->binding.matching & BINDING_MATCHING_FRAME_TARGET)
+        {
+            frame = e->binding.ent->animpos;
+        }
+        else
+        {
+            frame = ADJUST_BIND_NO_FRAME_MATCH;
+        }
+
+        // Any frame match flag set?
+        if(frame != ADJUST_BIND_NO_FRAME_MATCH)
         {
             // Are we NOT currently playing the target frame?
-            if(e->animpos != e->binding.ent->animpos)
+            if(e->animpos != frame)
             {
                 // If we don't have the frame and frame kill flag is
                 // set, kill ourselves.
-                if(e->animation[e->animnum].numframes < e->binding.ent->animpos)
+                if(e->animation[e->animnum].numframes < frame)
                 {
                     if(e->binding.matching & BINDING_MATCHING_FRAME_REMOVE)
                     {
@@ -21467,7 +21503,7 @@ void adjust_bind(entity *e)
 
                 // Made it this far, we must have the target
                 // frame, so let's apply it.
-                update_frame(e, e->binding.ent->animpos);
+                update_frame(e, frame);
             }
         }
     }
@@ -21475,85 +21511,118 @@ void adjust_bind(entity *e)
     // Apply sort ID adjustment.
     e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
+    // Apply direction adjustment.
+    switch(e->binding.direction)
+    {
+        default:
+        case DIRECTION_ADJUST_NONE:
+
+            break;
+
+        case DIRECTION_ADJUST_SAME:
+
+            e->direction = e->binding.ent->direction;
+
+            break;
+
+        case DIRECTION_ADJUST_OPPOSITE:
+
+            e->direction = !e->binding.ent->direction;
+
+            break;
+
+        case DIRECTION_ADJUST_RIGHT:
+
+            e->direction = DIRECTION_RIGHT;
+
+            break;
+
+        case DIRECTION_ADJUST_LEFT:
+
+            e->direction = DIRECTION_LEFT;
+
+            break;
+    }
+
+
     // If binding is enabled on a given axis, then
     // apply offset and set position accordingly.
-    if (e->binding.enable.z){ e->position.z = e->binding.ent->position.z + e->binding.offset.z; }
-    if (e->binding.enable.y){ e->position.y = e->binding.ent->position.y + e->binding.offset.y; }
 
-    if(e->binding.enable.x)
+    switch(e->binding.positioning.z)
     {
-        // For X axis, we'll need to adjust differently based
-        // on the binding direction flag and relationship
-        // with binding target.
-        //
-        // Note the logic is mostly the same for each, but
-        // in each case we adjust our own current direction
-        // to affect how the logic will be evaluated.
-        switch(e->binding.direction)
-        {
-            default:
-            case DIRECTION_ADJUST_NONE:
+        case BINDING_POSITIONING_TARGET:
 
-                if(e->binding.ent->direction == DIRECTION_RIGHT)
-                {
-                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-                }
-                else
-                {
-                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-                }
+            e->position.z = e->binding.ent->position.z + e->binding.offset.z;
 
-                break;
+            break;
 
-            case DIRECTION_ADJUST_SAME:
+        case BINDING_POSITIONING_LEVEL:
 
-                e->direction = e->binding.ent->direction;
+            e->position.z = e->binding.offset.z;
 
-                if(e->binding.ent->direction == DIRECTION_RIGHT)
-                {
-                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-                }
-                else
-                {
-                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-                }
+            break;
 
-                break;
+        case BINDING_POSITIONING_NONE:
+        default:
 
-            case DIRECTION_ADJUST_OPPOSITE:
+            // Leave position as-is.
+            break;
+    }
 
-                e->direction = !e->binding.ent->direction;
+    switch(e->binding.positioning.y)
+    {
+        case BINDING_POSITIONING_TARGET:
 
-                if(e->binding.ent->direction == DIRECTION_RIGHT)
-                {
-                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-                }
-                else
-                {
-                    e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-                }
+            e->position.y = e->binding.ent->position.y + e->binding.offset.y;
 
-                break;
+            break;
 
-            case DIRECTION_ADJUST_RIGHT:
+        case BINDING_POSITIONING_LEVEL:
 
-                e->direction = DIRECTION_RIGHT;
+            e->position.y = e->binding.offset.y;
 
+            break;
+
+        case BINDING_POSITIONING_NONE:
+        default:
+
+            // Leave position as-is.
+            break;
+    }
+
+    switch(e->binding.positioning.x)
+    {
+        case BINDING_POSITIONING_TARGET:
+
+            // For X axis, we'll need to adjust differently based
+            // on the position relationship with binding target.
+
+            if(e->binding.ent->direction == DIRECTION_RIGHT)
+            {
                 e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            }
+            else
+            {
+                e->position.x = e->binding.ent->position.x - e->binding.offset.x;
+            }
 
-                break;
+            break;
 
-            case DIRECTION_ADJUST_LEFT:
+        case BINDING_POSITIONING_LEVEL:
 
-                e->direction = DIRECTION_LEFT;
+            e->position.x = e->binding.offset.x;
 
-                e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            break;
 
-                break;
-        }
+        case BINDING_POSITIONING_NONE:
+        default:
+
+            // Leave position as-is.
+            break;
     }
 
     #undef ADJUST_BIND_SET_ANIM_RESETABLE
+    #undef ADJUST_BIND_NO_FRAME_MATCH
 }
 
 

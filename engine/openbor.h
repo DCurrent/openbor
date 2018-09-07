@@ -1140,12 +1140,32 @@ typedef enum
 
 typedef enum
 {
-    BINDING_MATCHING_NONE            = 0,
-    BINDING_MATCHING_ANIMATION_TARGET = 1,
-    BINDING_MATCHING_FRAME_TARGET     = 2,
-    BINDING_MATCHING_ANIMATION_REMOVE  = 4,
-    BINDING_MATCHING_FRAME_REMOVE      = 6
+    // These must be kept in the current order
+    // to ensure backward compatibility with
+    // modules that used magic numbers before
+    // constants were available.
+
+    BINDING_MATCHING_NONE               = 0,
+    BINDING_MATCHING_ANIMATION_TARGET   = 1,
+    BINDING_MATCHING_FRAME_TARGET       = 2,
+    BINDING_MATCHING_ANIMATION_REMOVE   = 4,
+    BINDING_MATCHING_FRAME_REMOVE       = 6,
+
+    BINDING_MATCHING_ANIMATION_DEFINED  = 8,
+    BINDING_MATCHING_FRAME_DEFINED      = 10
 } e_binding_animation;
+
+typedef enum
+{
+    // These must be kept in the current order
+    // to ensure backward compatibility with
+    // modules that used magic numbers before
+    // constants were available.
+
+    BINDING_POSITIONING_NONE,
+    BINDING_POSITIONING_TARGET,
+    BINDING_POSITIONING_LEVEL
+} e_binding_positioning;
 
 typedef enum
 {
@@ -2285,13 +2305,15 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int            matching;   // Animation binding type.
-    int                     tag;        // User data.
-    int                     sortid;     // Relative binding sortid. Default = -1
-    s_axis_principal_int    enable;     // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int    offset;     // x,y,z offset.
-    e_direction_adjust      direction;  // Direction force.
-    struct entity           *ent;       // Entity subject will bind itself to.
+    unsigned int            matching;       // Animation binding type.
+    int                     tag;            // User data.
+    int                     sortid;         // Relative binding sortid. Default = -1
+    int                     frame;          // Frame to match (only if requested in matching).
+    e_animations            animation;      // Animation to match (only if requested in matching).
+    s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int    offset;         // x,y,z offset.
+    e_direction_adjust      direction;      // Direction force.
+    struct entity           *ent;           // Entity subject will bind itself to.
 } s_bind;
 
 typedef struct
