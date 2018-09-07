@@ -21511,6 +21511,40 @@ void adjust_bind(entity *e)
     // Apply sort ID adjustment.
     e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
+    // Apply direction adjustment.
+    switch(e->binding.direction)
+    {
+        default:
+        case DIRECTION_ADJUST_NONE:
+
+            break;
+
+        case DIRECTION_ADJUST_SAME:
+
+            e->direction = e->binding.ent->direction;
+
+            break;
+
+        case DIRECTION_ADJUST_OPPOSITE:
+
+            e->direction = !e->binding.ent->direction;
+
+            break;
+
+        case DIRECTION_ADJUST_RIGHT:
+
+            e->direction = DIRECTION_RIGHT;
+
+            break;
+
+        case DIRECTION_ADJUST_LEFT:
+
+            e->direction = DIRECTION_LEFT;
+
+            break;
+    }
+
+
     // If binding is enabled on a given axis, then
     // apply offset and set position accordingly.
 
@@ -21561,73 +21595,15 @@ void adjust_bind(entity *e)
         case BINDING_POSITIONING_TARGET:
 
             // For X axis, we'll need to adjust differently based
-            // on the binding direction flag and relationship
-            // with binding target.
-            //
-            // Note the logic is mostly the same for each, but
-            // in each case we adjust our own current direction
-            // to affect how the logic will be evaluated.
-            switch(e->binding.direction)
+            // on the position relationship with binding target.
+
+            if(e->binding.ent->direction == DIRECTION_RIGHT)
             {
-                default:
-                case DIRECTION_ADJUST_NONE:
-
-                    if(e->binding.ent->direction == DIRECTION_RIGHT)
-                    {
-                        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-                    }
-                    else
-                    {
-                        e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-                    }
-
-                    break;
-
-                case DIRECTION_ADJUST_SAME:
-
-                    e->direction = e->binding.ent->direction;
-
-                    if(e->binding.ent->direction == DIRECTION_RIGHT)
-                    {
-                        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-                    }
-                    else
-                    {
-                        e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-                    }
-
-                    break;
-
-                case DIRECTION_ADJUST_OPPOSITE:
-
-                    e->direction = !e->binding.ent->direction;
-
-                    if(e->binding.ent->direction == DIRECTION_RIGHT)
-                    {
-                        e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-                    }
-                    else
-                    {
-                        e->position.x = e->binding.ent->position.x - e->binding.offset.x;
-                    }
-
-                    break;
-
-                case DIRECTION_ADJUST_RIGHT:
-
-                    e->direction = DIRECTION_RIGHT;
-
-                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-
-                    break;
-
-                case DIRECTION_ADJUST_LEFT:
-
-                    e->direction = DIRECTION_LEFT;
-
-                    e->position.x = e->binding.ent->position.x + e->binding.offset.x;
-
-                    break;
+                e->position.x = e->binding.ent->position.x + e->binding.offset.x;
+            }
+            else
+            {
+                e->position.x = e->binding.ent->position.x - e->binding.offset.x;
             }
 
             break;
