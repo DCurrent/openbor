@@ -21513,10 +21513,10 @@ void adjust_bind(entity *e)
 
     // If binding is enabled on a given axis, then
     // apply offset and set position accordingly.
-    if (e->binding.enable.z){ e->position.z = e->binding.ent->position.z + e->binding.offset.z; }
-    if (e->binding.enable.y){ e->position.y = e->binding.ent->position.y + e->binding.offset.y; }
+    if (e->binding.positioning.z){ e->position.z = e->binding.ent->position.z + e->binding.offset.z; }
+    if (e->binding.positioning.y){ e->position.y = e->binding.ent->position.y + e->binding.offset.y; }
 
-    if(e->binding.enable.x)
+    if(e->binding.positioning.x)
     {
         // For X axis, we'll need to adjust differently based
         // on the binding direction flag and relationship

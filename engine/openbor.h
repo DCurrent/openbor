@@ -2292,15 +2292,15 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int            matching;   // Animation binding type.
-    int                     tag;        // User data.
-    int                     sortid;     // Relative binding sortid. Default = -1
-    int                     frame;      // Frame to match (only if requested in matching).
-    e_animations            animation;  // Animation to match (only if requested in matching).
-    s_axis_principal_int    enable;     // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int    offset;     // x,y,z offset.
-    e_direction_adjust      direction;  // Direction force.
-    struct entity           *ent;       // Entity subject will bind itself to.
+    unsigned int            matching;       // Animation binding type.
+    int                     tag;            // User data.
+    int                     sortid;         // Relative binding sortid. Default = -1
+    int                     frame;          // Frame to match (only if requested in matching).
+    e_animations            animation;      // Animation to match (only if requested in matching).
+    s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
+    s_axis_principal_int    offset;         // x,y,z offset.
+    e_direction_adjust      direction;      // Direction force.
+    struct entity           *ent;           // Entity subject will bind itself to.
 } s_bind;
 
 typedef struct
