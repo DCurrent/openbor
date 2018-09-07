@@ -1144,6 +1144,7 @@ typedef enum
     // to ensure backward compatibility with
     // modules that used magic numbers before
     // constants were available.
+
     BINDING_MATCHING_NONE               = 0,
     BINDING_MATCHING_ANIMATION_TARGET   = 1,
     BINDING_MATCHING_FRAME_TARGET       = 2,
@@ -1152,6 +1153,18 @@ typedef enum
 
     BINDING_MATCHING_ANIMATION_DEFINED  = 8,
     BINDING_MATCHING_FRAME_DEFINED      = 10
+} e_binding_animation;
+
+typedef enum
+{
+    // These must be kept in the current order
+    // to ensure backward compatibility with
+    // modules that used magic numbers before
+    // constants were available.
+
+    BINDING_POSITIONING_NONE,
+    BINDING_POSITIONING_TARGET,
+    BINDING_POSITIONING_LEVEL
 } e_binding_animation;
 
 typedef enum
