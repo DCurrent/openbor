@@ -891,13 +891,16 @@ typedef enum
     ARG_INT
 } e_arg_types;
 
+
+// Caskey, Damon V.
+// 2013-12-27
+//
+// Attack types. If more types are added,
+// don't forget to add them to script
+// access and account for them in the
+// model load logic.
 typedef enum
 {
-    /*
-    Attack type enum
-    Damon V. Caskey
-    2013-12-27
-    */
     ATK_NONE            = -1,   // When we want no attack at all, such as damage_on_landing's default.
     ATK_NORMAL,
     ATK_NORMAL1			= ATK_NORMAL,
@@ -915,14 +918,22 @@ typedef enum
     ATK_NORMAL8,
     ATK_NORMAL9,
     ATK_NORMAL10,
-    ATK_BIND,
-    ATK_ITEM,
-    ATK_LAND,
-    ATK_PIT,
-    ATK_LIFESPAN,
-    ATK_LOSE,
-    ATK_TIMEOVER,
-    MAX_ATKS,                       //Default max attack types (must be below all attack types in enum to get correct value)
+
+    // For engine and script use. These are
+    // applied automatically by various
+    // conditions or intended for script logic.
+    ATK_BOSS,       // KO leftover enemies when boss is defeated.
+    ATK_ITEM,       // Scripting item logic. Item "attacks" entity that collects it.
+    ATK_LAND,       // Touching ground during a damage on landing fall.
+    ATK_LIFESPAN,   // Entity's lifespan timer expires.
+    ATK_LOSE,       // Players (with lose animation) when level time expires.
+    ATK_PIT,        // Entity falls into a pit and reaches specified depth.
+    ATK_TIMEOVER,   // Players (without lose animation) when level time expires.
+
+    // Default max attack types (must
+    // be below all attack types in enum
+    // to get correct value)
+    MAX_ATKS,
     STA_ATKS        = (MAX_ATKS-10)
 } e_attack_types;
 
