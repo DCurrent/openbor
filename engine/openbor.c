@@ -9295,7 +9295,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-                        if(i == ATK_BOSS
+                        if(i == ATK_BOSS_DEATH
                            || i == ATK_ITEM
                            || i == ATK_LIFESPAN
                            || i == ATK_LOSE
@@ -9360,7 +9360,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-                        if(i == ATK_BOSS
+                        if(i == ATK_BOSS_DEATH
                            || i == ATK_ITEM
                            || i == ATK_LIFESPAN
                            || i == ATK_LOSE

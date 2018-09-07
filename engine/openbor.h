@@ -922,7 +922,7 @@ typedef enum
     // For engine and script use. These are
     // applied automatically by various
     // conditions or intended for script logic.
-    ATK_BOSS,       // KO leftover enemies when boss is defeated.
+    ATK_BOSS_DEATH, // KO leftover enemies when boss is defeated.
     ATK_ITEM,       // Scripting item logic. Item "attacks" entity that collects it.
     ATK_LAND,       // Touching ground during a damage on landing fall.
     ATK_LIFESPAN,   // Entity's lifespan timer expires.
