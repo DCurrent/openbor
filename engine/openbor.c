@@ -9259,44 +9259,56 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 tempdef(if, NORMAL)
-                    tempdef(else if, NORMAL2)
-                        tempdef(else if, NORMAL3)
-                            tempdef(else if, NORMAL4)
-                                tempdef(else if, NORMAL5)
-                                    tempdef(else if, NORMAL6)
-                                        tempdef(else if, NORMAL7)
-                                            tempdef(else if, NORMAL8)
-                                                tempdef(else if, NORMAL9)
-                                                    tempdef(else if, NORMAL10)
-                                                        tempdef(else if, BLAST)
-                                                            tempdef(else if, STEAL)
-                                                                tempdef(else if, BURN)
-                                                                    tempdef(else if, SHOCK)
-                                                                        tempdef(else if, FREEZE)
-                                                                            tempdef(else if, ITEM)
-                                                                                tempdef(else if, LAND)
-                                                                                    tempdef(else if, PIT)
-                                                                                        tempdef(else if, LIFESPAN)
-                                                                                            tempdef(else if, LOSE)
-                                                                                                tempdef(else if, TIMEOVER)
-                                                                                                    else if(starts_with(value, "normal"))
-                                                                                                    {
-                                                                                                        get_tail_number(tempInt, value, "normal");
-                                                                                                        newchar->defense[tempInt + STA_ATKS - 1] = defense;
-                                                                                                    }
-                                                                                                    else if(stricmp(value, "ALL") == 0)
-                                                                                                    {
-                                                                                                        for(i = 0; i < max_attack_types; i++)
-                                                                                                        {
-                                                                                                            /*
-                                                                                                            Skip the pit, lifespan, and time over attack types as these are for engine use. Nothing stops an author from defining defense settings for them individually.
-                                                                                                            */
-                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOSE)
-                                                                                                            {
-                                                                                                                newchar->defense[i] = defense;
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
+                tempdef(else if, NORMAL2)
+                tempdef(else if, NORMAL3)
+                tempdef(else if, NORMAL4)
+                tempdef(else if, NORMAL5)
+                tempdef(else if, NORMAL6)
+                tempdef(else if, NORMAL7)
+                tempdef(else if, NORMAL8)
+                tempdef(else if, NORMAL9)
+                tempdef(else if, NORMAL10)
+                tempdef(else if, BLAST)
+                tempdef(else if, STEAL)
+                tempdef(else if, BURN)
+                tempdef(else if, SHOCK)
+                tempdef(else if, FREEZE)
+
+                tempdef(else if, BOSS)
+                tempdef(else if, ITEM)
+                tempdef(else if, LAND)
+                tempdef(else if, LIFESPAN)
+                tempdef(else if, LOSE)
+                tempdef(else if, PIT)
+                tempdef(else if, TIMEOVER)
+
+                else if(starts_with(value, "normal"))
+                {
+                    get_tail_number(tempInt, value, "normal");
+                    newchar->defense[tempInt + STA_ATKS - 1] = defense;
+                }
+                else if(stricmp(value, "ALL") == 0)
+                {
+                    // Loop over all attack types and apply
+                    // the value setting.
+                    for(i = 0; i < max_attack_types; i++)
+                    {
+                        // Skip types that we only intend for
+                        // engine or script logic use.
+                        if(i == ATK_BOSS
+                           || i == ATK_ITEM
+                           || i == ATK_LIFESPAN
+                           || i == ATK_LOSE
+                           || i == ATK_TIMEOVER
+                           || i == ATK_PIT)
+                        {
+                            continue;
+                        }
+
+                        newchar->defense[i] = defense;
+
+                    }
+                }
             }
 #undef tempdef
             break;
@@ -9310,43 +9322,57 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             {
                 value = GET_ARG(1);
                 tempoff(if,         NORMAL,     offense_factors)
-                    tempoff(else if,    NORMAL2,    offense_factors)
-                        tempoff(else if,    NORMAL3,    offense_factors)
-                            tempoff(else if,    NORMAL4,    offense_factors)
-                                tempoff(else if,    NORMAL5,    offense_factors)
-                                    tempoff(else if,    NORMAL6,    offense_factors)
-                                        tempoff(else if,    NORMAL7,    offense_factors)
-                                            tempoff(else if,    NORMAL8,    offense_factors)
-                                                tempoff(else if,    NORMAL9,    offense_factors)
-                                                    tempoff(else if,    NORMAL10,   offense_factors)
-                                                        tempoff(else if,    BLAST,      offense_factors)
-                                                            tempoff(else if,    STEAL,      offense_factors)
-                                                                tempoff(else if,    BURN,       offense_factors)
-                                                                    tempoff(else if,    SHOCK,      offense_factors)
-                                                                        tempoff(else if,    FREEZE,     offense_factors)
-                                                                            tempoff(else if,    ITEM,		offense_factors)
-                                                                                tempoff(else if,    LAND,		offense_factors)
-                                                                                    tempoff(else if,    PIT,		offense_factors)
-                                                                                        tempoff(else if,    LIFESPAN,   offense_factors)
-                                                                                            tempoff(else if,    LOSE,   offense_factors)
-                                                                                                tempoff(else if,    TIMEOVER,   offense_factors)
-                                                                                                    else if(starts_with(value, "normal"))
-                                                                                                    {
-                                                                                                        get_tail_number(tempInt, value, "normal");
-                                                                                                        newchar->offense_factors[tempInt + STA_ATKS - 1] = GET_FLOAT_ARG(2);
-                                                                                                    }
-                                                                                                    else if(stricmp(value, "ALL") == 0)
-                                                                                                    {
-                                                                                                        tempFloat = GET_FLOAT_ARG(2);
-                                                                                                        for(i = 0; i < max_attack_types; i++)
-                                                                                                        {
-                                                                                                            //offense hardly need those, just in case
-                                                                                                            if(i != ATK_PIT && i != ATK_TIMEOVER && i != ATK_LIFESPAN && i != ATK_LOSE)
-                                                                                                            {
-                                                                                                                newchar->offense_factors[i] = tempFloat;
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
+                tempoff(else if,    NORMAL2,    offense_factors)
+                tempoff(else if,    NORMAL3,    offense_factors)
+                tempoff(else if,    NORMAL4,    offense_factors)
+                tempoff(else if,    NORMAL5,    offense_factors)
+                tempoff(else if,    NORMAL6,    offense_factors)
+                tempoff(else if,    NORMAL7,    offense_factors)
+                tempoff(else if,    NORMAL8,    offense_factors)
+                tempoff(else if,    NORMAL9,    offense_factors)
+                tempoff(else if,    NORMAL10,   offense_factors)
+                tempoff(else if,    BLAST,      offense_factors)
+                tempoff(else if,    STEAL,      offense_factors)
+                tempoff(else if,    BURN,       offense_factors)
+                tempoff(else if,    SHOCK,      offense_factors)
+                tempoff(else if,    FREEZE,     offense_factors)
+
+                tempoff(else if,    BOSS,       offense_factors)
+                tempoff(else if,    ITEM,       offense_factors)
+                tempoff(else if,    LAND,       offense_factors)
+                tempoff(else if,    LIFESPAN,   offense_factors)
+                tempoff(else if,    LOSE,       offense_factors)
+                tempoff(else if,    PIT,        offense_factors)
+                tempoff(else if,    TIMEOVER,   offense_factors)
+
+                else if(starts_with(value, "normal"))
+                {
+                    get_tail_number(tempInt, value, "normal");
+                    newchar->offense_factors[tempInt + STA_ATKS - 1] = GET_FLOAT_ARG(2);
+                }
+                else if(stricmp(value, "ALL") == 0)
+                {
+                    tempFloat = GET_FLOAT_ARG(2);
+
+                    // Loop over all attack types and apply
+                    // the value setting.
+                    for(i = 0; i < max_attack_types; i++)
+                    {
+                        // Skip types that we only intend for
+                        // engine or script logic use.
+                        if(i == ATK_BOSS
+                           || i == ATK_ITEM
+                           || i == ATK_LIFESPAN
+                           || i == ATK_LOSE
+                           || i == ATK_TIMEOVER
+                           || i == ATK_PIT)
+                        {
+                            continue;
+                        }
+
+                        newchar->offense_factors[i] = tempFloat;
+                    }
+                }
             }
 #undef tempoff
             break;
