@@ -31461,7 +31461,7 @@ void kill_all_enemies()
     entity *tmpself = NULL;
 
     attack = emptyattack;
-	attack.attack_type = ATK_NORMAL;
+	attack.attack_type = ATK_BOSS_DEATH;
     //attack.attack_type = max_attack_types - 1;
     attack.dropv.y = default_model_dropv.y;
     attack.dropv.x = default_model_dropv.x;
