@@ -1172,10 +1172,11 @@ typedef enum
     // Double each value so we can use
     // bitwise logic (0, 1, 2, 4, 8...).
 
-    BINDING_OVERRIDING_NONE         = 0,
-    BINDING_OVERRIDING_FALL_LAND    = 1,
-    BINDING_OVERRIDING_SPECIAL      = 2,
-    BINDING_OVERRIDING_LANDFRAME    = 4
+    BINDING_OVERRIDING_NONE             = 0,
+    BINDING_OVERRIDING_FALL_LAND        = 1,
+    BINDING_OVERRIDING_LANDFRAME        = 2,
+    BINDING_OVERRIDING_SPECIAL_AI       = 4,
+    BINDING_OVERRIDING_SPECIAL_PLAYER   = 8
 } e_binding_overriding;
 
 typedef enum
@@ -2320,7 +2321,7 @@ typedef struct
     int                     tag;            // User data.
     int                     sortid;         // Relative binding sortid. Default = -1
     int                     frame;          // Frame to match (only if requested in matching).
-    int                     overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
+    e_binding_overriding    overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
     e_animations            animation;      // Animation to match (only if requested in matching).
     s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
     s_axis_principal_int    offset;         // x,y,z offset.
