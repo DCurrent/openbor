@@ -1169,6 +1169,17 @@ typedef enum
 
 typedef enum
 {
+    // Double each value so we can use
+    // bitwise logic (0, 1, 2, 4, 8...).
+
+    BINDING_OVERRIDING_NONE         = 0,
+    BINDING_OVERRIDING_FALL_LAND    = 1,
+    BINDING_OVERRIDING_SPECIAL      = 2,
+    BINDING_OVERRIDING_LANDFRAME    = 4
+} e_binding_overriding;
+
+typedef enum
+{
     /*
     Direction adjustment enum. Used for binding and changing direction of defender when hit.
     Damon V. Caskey
@@ -2309,6 +2320,7 @@ typedef struct
     int                     tag;            // User data.
     int                     sortid;         // Relative binding sortid. Default = -1
     int                     frame;          // Frame to match (only if requested in matching).
+    int                     overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
     e_animations            animation;      // Animation to match (only if requested in matching).
     s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
     s_axis_principal_int    offset;         // x,y,z offset.
@@ -2789,6 +2801,8 @@ typedef struct ArgList
 
 int is_frozen(entity *e);
 void unfrozen(entity *e);
+void    adjust_bind(entity *e);
+int     check_bind_override(entity *ent, e_binding_overriding overriding);
 int     buffer_pakfile(char *filename, char **pbuffer, size_t *psize);
 size_t  ParseArgs(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex(ScriptVariant *var, int index);
