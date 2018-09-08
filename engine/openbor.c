@@ -29084,13 +29084,28 @@ int check_energy(e_cost_check which, int ani)
         energycost = *self->modeldata.animation[ani]->energycost;
     }
 
-    //if (!self->modeldata.animation[ani]->energycost) return TRUE;
+    // Get entity type.
+    type	   = self->modeldata.type;
+
+    // If we're bind and special is overridden, then
+    // return false.
+    if(type & (TYPE_ENEMY  | TYPE_NPC))
+    {
+        if(check_bind_override(self, BINDING_OVERRIDING_SPECIAL_AI))
+        {
+            return FALSE;
+        }
+    }
+    else if(type & TYPE_PLAYER)
+    {
+        if(check_bind_override(self, BINDING_OVERRIDING_SPECIAL_PLAYER))
+        {
+            return FALSE;
+        }
+    }
 
     if(self->modeldata.animation[ani])
     {
-        // Get entity type.
-        type	   = self->modeldata.type;
-
         // Caskey, Damon V.
         // 2010-05-08
         //
