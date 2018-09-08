@@ -20217,6 +20217,13 @@ bool check_landframe(entity *ent)
     {
         return 0;
     }
+
+    // Can't be bound with a landframe override.
+    if(check_bind_override(ent, BINDING_OVERRIDING_LANDFRAME))
+    {
+        return 0;
+    }
+
     // Can't be passed over current animation's frame count.
     if(ent->animation->landframe->frame > ent->animation->numframes)
     {
@@ -20422,76 +20429,84 @@ void check_gravity(entity *e)
 
             // UTunnels: tossv <= 0 means land, while >0 means still rising, so
             // you wont be stopped if you are passing the edge of a wall
-            if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0 )
+            if( self->position.y <= self->base || !inair(self))
             {
-                self->position.y = self->base;
-                self->falling = 0;
-
-                if ( self->hitwall ) self->hitwall = 0;
-
-                //self->projectile = 0;
-                // cust dust entity
-                if(self->modeldata.dust.fall_land >= 0 && self->velocity.y < -1 && self->drop)
+                // 0+ means still rising. We need to be falling.
+                if(self->velocity.y <=0)
                 {
-                    dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.fall_land, NULL);
-                    if(dust)
+                    // No bind target, or binding set to ignore fall lands.
+                    if(!check_bind_override(self, BINDING_OVERRIDING_FALL_LAND))
                     {
-                        dust->spawntype = SPAWN_TYPE_DUST_FALL;
-                        dust->base = self->position.y;
-                        dust->autokill = 2;
-                        execute_onspawn_script(dust);
+                        self->position.y = self->base;
+                        self->falling = 0;
+
+                        if ( self->hitwall ) self->hitwall = 0;
+
+                        //self->projectile = 0;
+                        // cust dust entity
+                        if(self->modeldata.dust.fall_land >= 0 && self->velocity.y < -1 && self->drop)
+                        {
+                            dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.fall_land, NULL);
+                            if(dust)
+                            {
+                                dust->spawntype = SPAWN_TYPE_DUST_FALL;
+                                dust->base = self->position.y;
+                                dust->autokill = 2;
+                                execute_onspawn_script(dust);
+                            }
+                        }
+
+                        // bounce/quake
+                        if(tobounce(self) && self->modeldata.bounce)
+                        {
+                            int i;
+                            self->velocity.x /= self->animation->bounce;
+                            self->velocity.z /= self->animation->bounce;
+                            toss(self, (-self->velocity.y) / self->animation->bounce);
+                            if(level && !(self->modeldata.noquake & NO_QUAKE))
+                            {
+                                level->quake = 4;    // Don't shake if specified
+                            }
+                            if(SAMPLE_FALL >= 0)
+                            {
+                                sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol, savedata.effectvol, 100);
+                            }
+                            if(self->modeldata.type & TYPE_PLAYER)
+                            {
+                                if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, 100 * (int)self->velocity.y / 2);
+                            }
+                            for(i = 0; i < MAX_PLAYERS; i++)
+                            {
+                                if (savedata.joyrumble[i]) control_rumble(i, 1, 75 * (int)self->velocity.y / 2);
+                            }
+                        }
+                        else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
+                                (!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y <= 0))
+                        {
+                            self->velocity.x = 0;
+                            self->velocity.z = 0;
+                            self->velocity.y = 0;
+                        }
+                        else
+                        {
+                            self->velocity.y = 0;
+                        }
+
+                        if(plat && !self->landed_on_platform && self->position.y <= plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT])
+                        {
+                            self->landed_on_platform = plat;
+                        }
+
+                        // Set landing frame if we have one.
+                        check_landframe(self);
+
+                        // Taking damage on a landing?
+                        checkdamageonlanding();
+
+                        // in case landing, set hithead to NULL
+                        self->hithead = NULL;
                     }
                 }
-
-                // bounce/quake
-                if(tobounce(self) && self->modeldata.bounce)
-                {
-                    int i;
-                    self->velocity.x /= self->animation->bounce;
-                    self->velocity.z /= self->animation->bounce;
-                    toss(self, (-self->velocity.y) / self->animation->bounce);
-                    if(level && !(self->modeldata.noquake & NO_QUAKE))
-                    {
-                        level->quake = 4;    // Don't shake if specified
-                    }
-                    if(SAMPLE_FALL >= 0)
-                    {
-                        sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                    if(self->modeldata.type & TYPE_PLAYER)
-                    {
-                        if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, 100 * (int)self->velocity.y / 2);
-                    }
-                    for(i = 0; i < MAX_PLAYERS; i++)
-                    {
-                        if (savedata.joyrumble[i]) control_rumble(i, 1, 75 * (int)self->velocity.y / 2);
-                    }
-                }
-                else if((!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
-                        (!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y <= 0))
-                {
-                    self->velocity.x = 0;
-                    self->velocity.z = 0;
-                    self->velocity.y = 0;
-                }
-                else
-                {
-                    self->velocity.y = 0;
-                }
-
-                if(plat && !self->landed_on_platform && self->position.y <= plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT])
-                {
-                    self->landed_on_platform = plat;
-                }
-
-                // Set landing frame if we have one.
-                check_landframe(self);
-
-                // Taking damage on a landing?
-                checkdamageonlanding();
-
-                // in case landing, set hithead to NULL
-                self->hithead = NULL;
             }// end of if - land checking
         }// end of if  - in-air checking
         if(self->toss_time <= _time)
@@ -21625,6 +21640,23 @@ void adjust_bind(entity *e)
     #undef ADJUST_BIND_NO_FRAME_MATCH
 }
 
+// Caskey, Damon V.
+// 2018-09-08
+//
+// Return true if the target entity has a valid
+// bind target and match for the override argument.
+int check_bind_override(entity *ent, e_binding_overriding overriding)
+{
+    if(ent->binding.ent)
+    {
+        if(ent->binding.overriding & overriding)
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
 
 void check_move(entity *e)
 {
