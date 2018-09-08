@@ -28,6 +28,7 @@ int mapstrings_binding(ScriptVariant **varlist, int paramCount)
         "direction",
         "matching",
         "offset",
+        "overriding",
         "positioning",
         "sort_id",
         "tag",
@@ -118,6 +119,13 @@ HRESULT openbor_get_binding_property(ScriptVariant **varlist , ScriptVariant **p
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)&handle->offset;
+
+            break;
+
+        case _BINDING_OVERRIDING:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->overriding;
 
             break;
 
@@ -244,6 +252,15 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
 	case _BINDING_OFFSET:
 
 		// Read only.
+
+		break;
+
+    case _BINDING_OVERRIDING:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->overriding = temp_int;
+		}
 
 		break;
 
