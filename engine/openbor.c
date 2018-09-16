@@ -19453,6 +19453,104 @@ void set_opponent(entity *ent, entity *other)
 
 }
 
+// Caskey, Damon V.
+// 2018-09-16
+//
+// Run a series of verifications to find out if entity can
+// block attack. Return true of block is possible.
+int check_can_block(entity *ent, entity *attacker, s_collision_attack *attack)
+{
+    // No blocking animation?
+    if(!validanim(e, ANI_BLOCK))
+    {
+        return 0;
+    }
+
+    // Passive blocking disabled?
+    if(ent->modeldata.nopassiveblock)
+    {
+        return 0;
+    }
+
+    // Have to be idle.
+    if(!self->idling)
+    {
+        return 0;
+    }
+
+    // AI can't be preparing to attack.
+    if(self->attacking != ATTACKING_INACTIVE)
+    {
+        return 0;
+    }
+
+    // If guardpoints are set, then find out if they've been depleted.
+    if(!ent->modeldata.guardpoints.max)
+    {
+        if(ent->modeldata.guardpoints.current <= 0)
+        {
+            return 0;
+        }
+    }
+
+    // Grappling?
+    if(ent->link)
+    {
+        return 0
+    }
+
+    //  Airborne?
+    if(inair(ent))
+    {
+        return 0;
+    }
+
+    // Frozen?
+    if(ent->frozen)
+    {
+        return 0;
+    }
+
+    // Attack block breaking exceeds block power?
+    if(attack->no_block => self->defense[attack->attack_type].blockpower)
+    {
+        return 0;
+    }
+
+    // Attack from behind? Can't block that if
+    // we don't have blockback flag enabled.
+    if(ent->direction == attacker->direction)
+    {
+        if(!ent->modeldata.blockback)
+        {
+            return 0
+        }
+    }
+
+    // if there is a blocking threshold? Verify it vs. attack force.
+    if(ent->modeldata.thold)
+    {
+        // Threshold value vs. attack.
+        if(attack->attack_force >= ent->modeldata.thold)
+        {
+            return 0;
+        }
+    }
+
+    // is there a blocking threshhold for the attack type?
+    // Verify it vs. attack force.
+    if(ent->defense[attack->attack_type].blockthreshold)
+    {
+        if(aent->defense[attack->attack_type].blockthreshold > attack->attack_force)
+        {
+            return 0;
+        }
+    }
+
+    // If we made it through all that, then entity can block. Return true.
+    return 1;
+}
+
 
 void do_attack(entity *e)
 {
@@ -19709,7 +19807,22 @@ void do_attack(entity *e)
                 self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
             }
 
-            //if #053
+            // Blocking condiitons.
+
+            // Attempt a block?
+            if(rand32()&self->modeldata.blockodds) == 1))
+            {
+                //  Block is possible?
+                if(check_can_block(self, e, attack))
+                {
+
+                }
+
+            }
+
+
+
+
             if( !self->modeldata.nopassiveblock && // cant block by itself
                     validanim(self, ANI_BLOCK) && // of course, move it here to avoid some useless checking
                     ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
