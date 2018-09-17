@@ -19457,33 +19457,9 @@ void set_opponent(entity *ent, entity *other)
 // 2018-09-16
 //
 // Run a series of verifications to find out if entity can
-// block attack. Return true of block is possible.
-int check_can_block(entity *ent, entity *attacker, s_collision_attack *attack)
+// block attack. Return true of block is possible eligible.
+int check_blocking_eligible(entity *ent, entity *attacker, s_collision_attack *attack)
 {
-    // No blocking animation?
-    if(!validanim(e, ANI_BLOCK))
-    {
-        return 0;
-    }
-
-    // Passive blocking disabled?
-    if(ent->modeldata.nopassiveblock)
-    {
-        return 0;
-    }
-
-    // Have to be idle.
-    if(!self->idling)
-    {
-        return 0;
-    }
-
-    // AI can't be preparing to attack.
-    if(self->attacking != ATTACKING_INACTIVE)
-    {
-        return 0;
-    }
-
     // If guardpoints are set, then find out if they've been depleted.
     if(!ent->modeldata.guardpoints.max)
     {
@@ -19551,6 +19527,140 @@ int check_can_block(entity *ent, entity *attacker, s_collision_attack *attack)
     return 1;
 }
 
+// Caskey, Damon V.
+// 2018-09-17
+//
+// AI blocking decision. If AI chooses to
+// block, return true.
+int check_blocking_chance(entity *ent)
+{
+    // If we have nopassiveblock enabled and we're
+    // already blocking, then we want the AI to
+    // keep blocking (like most players would).
+    if(ent->modeldata.nopassiveblock)
+    {
+        if(ent->blocking)
+        {
+           return 1;
+        }
+    }
+
+    // Run random chance against blockodds.
+    if((rand32()&ent->modeldata.blockodds) == 1)
+    {
+        return 1;
+    }
+
+    // If we got this far, we never decided to
+    // block, so return false.
+    return 0;
+}
+
+// Caskey, Damon V.
+// 2018-09-17
+//
+// Decide if entity should perform blocking action.
+int check_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
+{
+    e_entity_type entity_type;
+
+    entity_type = ent->modeldata.type;
+
+    // 2018-09-17, we only distinguish between
+    // players and everything else, but let's use
+    // a Switch instead of an IF in case we ever
+    // need to be more nuanced.
+    switch(entity_type)
+    {
+        case TYPE_PLAYER:
+
+            // For players, all we need to know is if they
+            // are in a blocking state. If not we exit.
+            if(!self->blocking)
+            {
+                return 0;
+            }
+
+            // Verify we can block the attack. If so, we can
+            // return true.
+            if(check_blocking_eligible(ent, other, attack))
+            {
+                return 1;
+            }
+
+            break;
+
+        default:
+
+            // No blocking animation?
+            if(!validanim(ent, ANI_BLOCK))
+            {
+                return 0;
+            }
+
+            // Have to be idle.
+            if(!ent->idling)
+            {
+                return 0;
+            }
+
+            // AI can't be preparing to attack.
+            if(ent->attacking != ATTACKING_INACTIVE)
+            {
+                return 0;
+            }
+
+            // AI must decide to block.
+            if(!check_blocking_chance(ent))
+            {
+                return 0;
+            }
+
+            // Verify we can block the attack. If so, we can
+            // return true.
+            if(check_blocking_eligible(ent, other, attack))
+            {
+                return 1;
+            }
+
+            break;
+    }
+
+
+    !self->modeldata.nopassiveblock && validanim(self, ANI_BLOCK) &&
+
+    ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
+
+    !(self->link ||
+      inair(self) ||
+      self->frozen ||
+      (self->direction == e->direction && self->modeldata.blockback < 1) ||
+      (!self->idling && self->attacking != ATTACKING_INACTIVE)) &&
+
+    attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
+
+    (rand32()&self->modeldata.blockodds) == 1 && // Randomly blocks depending on blockodds (1 : blockodds ratio)
+
+    (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
+
+    (!fdefense_blockthreshold || (fdefense_blockthreshold > force))
+
+    // Attempt a block?
+    if((rand32()&self->modeldata.blockodds) == 1))
+    {
+        //  Block is possible?
+        if(check_can_block(self, e, attack))
+        {
+
+        }
+    }
+}
+
+// Perform blocking action
+void do_blocking()
+{
+
+}
 
 void do_attack(entity *e)
 {
@@ -19809,16 +19919,7 @@ void do_attack(entity *e)
 
             // Blocking condiitons.
 
-            // Attempt a block?
-            if(rand32()&self->modeldata.blockodds) == 1))
-            {
-                //  Block is possible?
-                if(check_can_block(self, e, attack))
-                {
 
-                }
-
-            }
 
 
 
