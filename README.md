@@ -14,6 +14,8 @@ To find out more, stop into the OpenBOR community at [ChronoCrash.com](chronocra
 
 [![Streets of Rage2X](http://img.youtube.com/vi/TbZD1pWsJeI/0.jpg)](https://www.youtube.com/watch?v=TbZD1pWsJeI "Streets of Rage2X Preview")
 
+[![Mortal Kombat Outworld Assassins](http://img.youtube.com/vi/FTkayebZK9w/0.jpg)](https://www.youtube.com/watch?v=FTkayebZK9w&t=1m27s "Mortal Kombat Outworld Assassins")
+
 ## History
 In 2004, [Senile Team](http://www.senileteam.com) released Beats of Rage, a free beat-'em-up for DOS inspired
 by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of
