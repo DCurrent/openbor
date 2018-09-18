@@ -19663,7 +19663,8 @@ int check_blockpain(entity *ent, s_collision_attack *attack)
 // Caskey, Damon V.
 // 2018-09-18
 //
-// Perform blocking action.
+// Apply primary block settings, animations,
+// actions, and scripts.
 void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 {
     entity *flash = NULL;
@@ -20021,124 +20022,16 @@ void do_attack(entity *e)
                 self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
             }
 
-            // Blocking condiitons.
-
-
-
-
-
-
-            if( !self->modeldata.nopassiveblock && // cant block by itself
-                    validanim(self, ANI_BLOCK) && // of course, move it here to avoid some useless checking
-                    ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
-                    !(self->link ||
-                      inair(self) ||
-                      self->frozen ||
-                      (self->direction == e->direction && self->modeldata.blockback < 1) ||                       // Can't block an attack that is from behind unless blockback flag is enabled
-                      (!self->idling && self->attacking != ATTACKING_INACTIVE)) &&                                                 // Can't block if busy, attack <0 means the character is preparing to attack, he can block during this time
-                    attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
-                    (rand32()&self->modeldata.blockodds) == 1 && // Randomly blocks depending on blockodds (1 : blockodds ratio)
-                    (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
-                    (!fdefense_blockthreshold ||                                                                //Specific attack type threshold.
-                     (fdefense_blockthreshold > force)))
+            // Blocking the attack?
+            if(check_blocking_conditions())
             {
-                //execute the didhit script
-                execute_didhit_script(e, self, attack, 1);
-                self->takeaction = common_block;
-                set_blocking(self);
-                self->velocity.x = self->velocity.z = 0;
-                ent_set_anim(self, ANI_BLOCK, 0);
+                set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
 
-                execute_didblock_script(self, e, attack);
-
-                if(self->modeldata.guardpoints.max > 0)
-                {
-                    self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
-                }
-                ++current_anim->animhits;
-                didblock = 1;    // Used for when playing the block.wav sound
-                // Spawn a flash
-                //if #0531
-                if(!attack->no_flash)
-                {
-                    if(!self->modeldata.noatflash)
-                    {
-                        if(attack->blockflash >= 0)
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                        }
-                    }
-                    else
-                    {
-                        flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                    }
-                    //ent_default_init(flash); // initiliaze this because there're no default values now
-
-                    if(flash)
-                    {
-                        flash->spawntype = SPAWN_TYPE_FLASH;
-                        execute_onspawn_script(flash);
-                    }
-                }
-                //end of if #0531
+                // We'll need to know if we blocked or not
+                // for some other logic blocks below.
+                didblock = 1;
             }
-            else if((self->modeldata.nopassiveblock || self->modeldata.type == TYPE_PLAYER) &&  // can block by itself
-                    self->blocking &&  // of course he must be blocking
-                    ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
-                    !((self->direction == e->direction && self->modeldata.blockback < 1) || self->frozen) &&   // Can't block if facing the wrong direction (unless blockback flag is enabled) or frozen in the block animation or opponent is a projectile
-                    attack->no_block <= self->defense[attack->attack_type].blockpower &&    // Make sure you are actually blocking and that the attack is blockable
-                    (!self->modeldata.thold ||
-                     (self->modeldata.thold > 0 &&
-                      self->modeldata.thold > force)) &&
-                    (!self->defense[attack->attack_type].blockthreshold ||                   //Specific attack type threshold.
-                     (self->defense[attack->attack_type].blockthreshold > force)))
-            {
-                // Only block if the attack is less than the players threshold
-                //execute the didhit script
-                execute_didhit_script(e, self, attack, 1);
-                if(self->modeldata.guardpoints.max > 0)
-                {
-                    self->modeldata.guardpoints.current = self->modeldata.guardpoints.current - attack->guardcost;
-                }
-                ++current_anim->animhits;
-                didblock = 1;    // Used for when playing the block.wav sound
-
-                if(self->modeldata.blockpain && self->modeldata.blockpain <= force && self->animation == self->modeldata.animation[ANI_BLOCK]) //Blockpain 1 and in block animation?
-                {
-                    set_blockpain(self, attack->attack_type, 0);
-                }
-                execute_didblock_script(self, e, attack);
-
-                // Spawn a flash
-                if(!attack->no_flash)
-                {
-                    if(!self->modeldata.noatflash)
-                    {
-                        if(attack->blockflash >= 0)
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                        }
-                    }
-                    else
-                    {
-                        flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                    }
-                    //ent_default_init(flash); // initiliaze this because there're no default values now
-                    if(flash)
-                    {
-                        flash->spawntype = SPAWN_TYPE_FLASH;
-                        execute_onspawn_script(flash);
-                    }
-                }
-            }
+            // Counter the attack?
             else if(self->animation->counterrange &&	// Has counter range?
                     (self->animpos >= self->animation->counterrange->frame.min && self->animpos <= self->animation->counterrange->frame.max) &&  // Current frame within counter range frames?
                     !self->frozen &&
@@ -20219,7 +20112,12 @@ void do_attack(entity *e)
             }
             else if(self->takedamage(e, attack, 0))
             {
-                // Didn't block so go ahead and take the damage
+                // This is the block for normal hits. The
+                // hit was not blocked, countered, or
+                // otherwise nullified, and this entity
+                // has takedamage() function. Let's
+                // process the hit.
+
                 execute_didhit_script(e, self, attack, 0);
                 ++e->animation->animhits;
 
@@ -20269,6 +20167,12 @@ void do_attack(entity *e)
             }
             else
             {
+                // If we made it to this block the hit was
+                // not countered or blocked, but the entity
+                // does not have a takedamage() function. It
+                // therefore must be a type that is meant
+                // to ignore hits.
+
                 didhit = 0;
                 continue;
             }
@@ -20362,7 +20266,7 @@ void do_attack(entity *e)
         }
 
         // New blocking checks
-        //04/27/2008 Damon Caskey: Added checks for defense property specfic blockratio and type. Could probably use some cleaning.
+        //04/27/2008 Damon Caskey: Added checks for defense property specific blockratio and type. Could probably use some cleaning.
         if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON)
         {
             if(blockratio || def->defense[attack->attack_type].blockratio) // Is damage reduced?
