@@ -20027,9 +20027,9 @@ void do_attack(entity *e)
             }
 
             // Blocking the attack?
-            if(check_blocking_conditions())
+            if(check_blocking_conditions(self, e, attack)))
             {
-                set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
+                set_blocking_action(self, e, attack);
 
                 // We'll need to know if we blocked or not
                 // for some other logic blocks below.
