@@ -19523,7 +19523,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
     // Verify it vs. attack force.
     if(ent->defense[attack->attack_type].blockthreshold)
     {
-        if(aent->defense[attack->attack_type].blockthreshold > attack->attack_force)
+        if(ent->defense[attack->attack_type].blockthreshold > attack->attack_force)
         {
             return 0;
         }
