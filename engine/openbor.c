@@ -18271,7 +18271,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
 }
 
 
-entity *spawn(float x, float z, float a, int direction, char *name, int index, s_model *model)
+entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model)
 {
     entity *e = NULL;
     int i, id;
@@ -19560,7 +19560,7 @@ int check_blocking_chance(entity *ent)
 // 2018-09-17
 //
 // Decide if entity should perform blocking action.
-int check_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
+int check_blocking_conditions(entity *ent, entity *other, s_collision_attack *attack)
 {
     e_entity_type entity_type;
 
@@ -19630,12 +19630,12 @@ int check_blocking_action(entity *ent, entity *other, s_collision_attack *attack
 // Caskey, Damon V.
 // 2018-09-18
 //
-// Check for and apply blockpain if necessary.
-// returns true if blockpain is applied.
+// Verify entity has blockpain and that attack
+// should trigger it.
 int check_blockpain(entity *ent, s_collision_attack *attack)
 {
     // If we don't have blockpain,
-    // nothign else to do!
+    // nothing else to do!
     if(self->modeldata.blockpain)
     {
         return 0;
@@ -19649,25 +19649,22 @@ int check_blockpain(entity *ent, s_collision_attack *attack)
     }
 
     // If we are in blocking animation or pain
-    // flag is true, then run the set_blockpain()
-    // function. That function will verify if there
-    // is an appropriate blockpain and apply it.
-    // It will also set the pain flag TRUE for
-    // next blocking check.
-    //
-    // We also return true.
+    // flag is true, then we're elgible for blockpain.
+    // Return true.
     if(self->animation == self->modeldata.animation[ANI_BLOCK]
        || self->inpain)
     {
-        set_blockpain(self, attack->attack_type, 0);
         return 1;
     }
 
     return 0;
 }
 
-// Perform blocking action
-void do_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
+// Caskey, Damon V.
+// 2018-09-18
+//
+// Perform blocking action.
+void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 {
     entity *flash = NULL;
 
@@ -19695,14 +19692,79 @@ void do_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 
     // If we have an appropriate blockpain, lets
     // apply it here.
-    check_blockpain(ent, attack);
+    if(check_blockpain(ent, attack))
+    {
+        set_blockpain(self, attack->attack_type, 0);
+    }
 
     // Blocked hit is still a hit, so
     // increment the attacker's hit counter.
     ++other->animation->animhits;
+
+    // Spawn the blocking flash.
+    spawn_attack_flash(attack, attack->blockflash, ent->modeldata.bflash);
 }
 
+// Caskey, Damon V.
+//
+// Spawn an appropriate attack effect flash
+// if conditions are met.
+entity *spawn_attack_flash(entity * ent, s_collision_attack *attack, int attack_flash, int model_flash)
+{
+    int to_spawn;
+    entity *flash;
 
+    // Flash disabled by attack?
+    // We're done. Do nothing and exit.
+    if(!attack->no_flash)
+    {
+       return NULL;
+    }
+
+    // If the model has custom flash disabled,
+    // then default to the model's global flash.
+    //
+    // Otherwise we need to see if the custom
+    // attack flash index is valid. If it is, then
+    // we will use it to spawn a flash effect.
+    if(!ent->modeldata.noatflash)
+    {
+        // Valid custom flash index?
+        if(attack->blockflash >= 0)
+        {
+            to_spawn = attack_flash;
+        }
+        else
+        {
+            to_spawn = model_flash;
+        }
+    }
+    else
+    {
+        to_spawn = model_flash;
+    }
+
+    // Do we have an entity index to spawn?
+    if(to_spawn)
+    {
+        // Spawn the flash at last hit position.
+        flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, DIRECTION_LEFT, NULL, to_spawn, NULL);
+
+        // One last check to make sure we
+        // were able to spawn to flash entity.
+        if(flash)
+        {
+            // Set the spawn method and execute flash
+            // entity's spawn script.
+            flash->spawntype = SPAWN_TYPE_FLASH;
+            execute_onspawn_script(flash);
+
+            return flash;
+        }
+    }
+
+    return NULL;
+}
 
 void do_attack(entity *e)
 {
