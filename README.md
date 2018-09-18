@@ -2,6 +2,10 @@
 OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
 created by the wonderful folks over at [Senile Team](http://www.senileteam.com). 
 
+
+
+[![Streets of Rage2X](http://img.youtube.com/vi/TbZD1pWsJeI/0.jpg)](https://www.youtube.com/watch?v=TbZD1pWsJeI "Streets of Rage2X Preview")
+
 ## History
 In 2004, [Senile Team](http://www.senileteam.com) released Beats of Rage, a free beat-'em-up for DOS inspired
 by SEGA's Streets of Rage series and using sprites from SNK Playmore's King of
