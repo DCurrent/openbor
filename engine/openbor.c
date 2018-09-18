@@ -19651,7 +19651,7 @@ int check_blockpain(entity *ent, s_collision_attack *attack)
     // force, we don't apply it.
     if(self->modeldata.blockpain > attack->attack_force)
     {
-        return 0
+        return 0;
     }
 
     // If we are in blocking animation or pain
