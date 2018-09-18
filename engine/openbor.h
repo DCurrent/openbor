@@ -2975,7 +2975,7 @@ void ent_summon_ent(entity *ent);
 void ent_set_anim(entity *ent, int aninum, int resetable);
 void ent_set_colourmap(entity *ent, unsigned int which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
-entity *spawn_attack_flash(entity *ent, int attack_flash, int model_flash);
+entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash);
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model);
 void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);

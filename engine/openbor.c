@@ -19707,14 +19707,14 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
     ++other->animation->animhits;
 
     // Spawn the blocking flash.
-    spawn_attack_flash(attack, attack->blockflash, ent->modeldata.bflash);
+    spawn_attack_flash(ent, attack, attack->blockflash, ent->modeldata.bflash);
 }
 
 // Caskey, Damon V.
 //
 // Spawn an appropriate attack effect flash
 // if conditions are met.
-entity *spawn_attack_flash(entity * ent, s_collision_attack *attack, int attack_flash, int model_flash)
+entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash)
 {
     int to_spawn;
     entity *flash;
