@@ -19673,8 +19673,6 @@ int check_blockpain(entity *ent, s_collision_attack *attack)
 // actions, and scripts.
 void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 {
-    entity *flash = NULL;
-
     // Execute the attacker's didhit script with blocked flag.
     execute_didhit_script(other, ent, attack, 1);
 
