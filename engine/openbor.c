@@ -19625,41 +19625,79 @@ int check_blocking_action(entity *ent, entity *other, s_collision_attack *attack
 
             break;
     }
-
-
-    !self->modeldata.nopassiveblock && validanim(self, ANI_BLOCK) &&
-
-    ((self->modeldata.guardpoints.max == 0) || (self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current > 0)) &&
-
-    !(self->link ||
-      inair(self) ||
-      self->frozen ||
-      (self->direction == e->direction && self->modeldata.blockback < 1) ||
-      (!self->idling && self->attacking != ATTACKING_INACTIVE)) &&
-
-    attack->no_block <= self->defense[attack->attack_type].blockpower &&       // If unblockable, will automatically hit
-
-    (rand32()&self->modeldata.blockodds) == 1 && // Randomly blocks depending on blockodds (1 : blockodds ratio)
-
-    (!self->modeldata.thold || (self->modeldata.thold > 0 && self->modeldata.thold > force)) &&
-
-    (!fdefense_blockthreshold || (fdefense_blockthreshold > force))
-
-    // Attempt a block?
-    if((rand32()&self->modeldata.blockodds) == 1))
-    {
-        //  Block is possible?
-        if(check_can_block(self, e, attack))
-        {
-
-        }
-    }
 }
 
 // Perform blocking action
-void do_blocking()
+void do_blocking(entity *ent, entity *other, s_collision_attack *attack)
 {
+    entity *flash = NULL;
 
+    // Execute the attacker's didhit script with blocked flag.
+    execute_didhit_script(other, ent, attack, 1);
+
+    // Set up blocking action and flag.
+    ent->takeaction = common_block;
+    set_blocking(ent);
+
+    // Stop movement.
+    ent->velocity.x = ent->velocity.z = 0;
+
+    // Enter block animation.
+    ent_set_anim(ent, ANI_BLOCK, 0);
+
+    // Execute our block script.
+    execute_didblock_script(ent, other, attack);
+
+    // If we have guardpoints, then reduce them here.
+    if(ent->modeldata.guardpoints.max > 0)
+    {
+        ent->modeldata.guardpoints.current -= attack->guardcost;
+    }
+
+    // If we have an appropriate blockpain, lets
+    // apply it here.
+    if(self->modeldata.blockpain)
+    {
+        if(self->modeldata.blockpain <= force)
+        {
+            if(self->animation == self->modeldata.animation[ANI_BLOCK])
+            {
+                set_blockpain(self, attack->attack_type, 0);
+            }
+        }
+    }
+
+    // Blocked hit is still a hit, so
+    // increment the attacker's hit counter.
+    ++other->animation->animhits;
+
+    // Spawn a block flash.
+    if(!attack->no_flash)
+    {
+        if(!ent->modeldata.noatflash)
+        {
+            if(attack->blockflash >= 0)
+            {
+                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
+            }
+            else
+            {
+                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
+            }
+        }
+        else
+        {
+            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
+        }
+        //ent_default_init(flash); // initiliaze this because there're no default values now
+
+        if(flash)
+        {
+            flash->spawntype = SPAWN_TYPE_FLASH;
+            execute_onspawn_script(flash);
+        }
+    }
+    //end of if #0531
 }
 
 void do_attack(entity *e)
