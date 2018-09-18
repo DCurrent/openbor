@@ -2,7 +2,7 @@
 OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
 created by the wonderful folks over at [Senile Team](http://www.senileteam.com). 
 
-
+[![Masters of The Universe](http://img.youtube.com/vi/GOsYJkdqbOk/0.jpg)](https://www.youtube.com/watch?v=GOsYJkdqbOk&t=2m41s "Masters of The Universe")
 
 [![Streets of Rage2X](http://img.youtube.com/vi/TbZD1pWsJeI/0.jpg)](https://www.youtube.com/watch?v=TbZD1pWsJeI "Streets of Rage2X Preview")
 
