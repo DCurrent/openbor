@@ -1,6 +1,6 @@
  # Overview
  
-OpenBOR is a royalty free sprite based side scrolling gaming engine. From humble beginnings in 2004, it has since grown into the most versatile, easy to use and powerful engine of its type you will find anywhere. OpenBOR is optimized for side scrolling beat em’ up style games (Double Dragon, Streets of Rage, Final Fight), but easily accommodates any sort of gameplay style and feature set you can imagine. 
+OpenBOR is a royalty free sprite based side scrolling gaming engine. From humble beginnings in 2004, it has since grown into the most versatile, easy to use, and powerful engine of its type you will find anywhere. OpenBOR is optimized for side scrolling beat em’ up style games (Double Dragon, Streets of Rage, Final Fight), but easily accommodates any sort of gameplay style and feature set you can imagine. 
 
 Want to try your hand at game making? Open up one of the already existing modules and tinker around – the community is right here to help you along.
 
