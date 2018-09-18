@@ -19631,6 +19631,8 @@ int check_blocking_conditions(entity *ent, entity *other, s_collision_attack *at
 
             break;
     }
+
+    return 0;
 }
 
 // Caskey, Damon V.
@@ -19794,7 +19796,6 @@ void do_attack(entity *e)
 
 #define followed (current_anim!=e->animation)
     static unsigned int new_attack_id = 1;
-    int fdefense_blockthreshold; //max damage that can be blocked for attack type.
 
     // Can't get hit after this
     if(level_completed)
@@ -19854,7 +19855,6 @@ void do_attack(entity *e)
         }
 
         attack = lasthit.attack;
-        fdefense_blockthreshold = (int)self->defense[attack->attack_type].blockthreshold; //max damage that can be blocked for attack type.
         force = attack->attack_force;
 
         // Verify target is alive.
@@ -20027,7 +20027,7 @@ void do_attack(entity *e)
             }
 
             // Blocking the attack?
-            if(check_blocking_conditions(self, e, attack)))
+            if(check_blocking_conditions(self, e, attack))
             {
                 set_blocking_action(self, e, attack);
 
