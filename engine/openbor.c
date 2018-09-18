@@ -19627,8 +19627,47 @@ int check_blocking_action(entity *ent, entity *other, s_collision_attack *attack
     }
 }
 
+// Caskey, Damon V.
+// 2018-09-18
+//
+// Check for and apply blockpain if necessary.
+// returns true if blockpain is applied.
+int check_blockpain(entity *ent, s_collision_attack *attack)
+{
+    // If we don't have blockpain,
+    // nothign else to do!
+    if(self->modeldata.blockpain)
+    {
+        return 0;
+    }
+
+    // If blockpain is greater than attack
+    // force, we don't apply it.
+    if(self->modeldata.blockpain > attack->attack_force)
+    {
+        return 0
+    }
+
+    // If we are in blocking animation or pain
+    // flag is true, then run the set_blockpain()
+    // function. That function will verify if there
+    // is an appropriate blockpain and apply it.
+    // It will also set the pain flag TRUE for
+    // next blocking check.
+    //
+    // We also return true.
+    if(self->animation == self->modeldata.animation[ANI_BLOCK]
+       || self->inpain)
+    {
+        set_blockpain(self, attack->attack_type, 0);
+        return 1;
+    }
+
+    return 0;
+}
+
 // Perform blocking action
-void do_blocking(entity *ent, entity *other, s_collision_attack *attack)
+void do_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 {
     entity *flash = NULL;
 
@@ -19656,49 +19695,14 @@ void do_blocking(entity *ent, entity *other, s_collision_attack *attack)
 
     // If we have an appropriate blockpain, lets
     // apply it here.
-    if(self->modeldata.blockpain)
-    {
-        if(self->modeldata.blockpain <= force)
-        {
-            if(self->animation == self->modeldata.animation[ANI_BLOCK])
-            {
-                set_blockpain(self, attack->attack_type, 0);
-            }
-        }
-    }
+    check_blockpain(ent, attack);
 
     // Blocked hit is still a hit, so
     // increment the attacker's hit counter.
     ++other->animation->animhits;
-
-    // Spawn a block flash.
-    if(!attack->no_flash)
-    {
-        if(!ent->modeldata.noatflash)
-        {
-            if(attack->blockflash >= 0)
-            {
-                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-            }
-            else
-            {
-                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-            }
-        }
-        else
-        {
-            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-        }
-        //ent_default_init(flash); // initiliaze this because there're no default values now
-
-        if(flash)
-        {
-            flash->spawntype = SPAWN_TYPE_FLASH;
-            execute_onspawn_script(flash);
-        }
-    }
-    //end of if #0531
 }
+
+
 
 void do_attack(entity *e)
 {
@@ -23014,50 +23018,67 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     return 1;
 }
 
-int set_blockpain(entity *iBlkpain, int type, int reset)
+int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
 {
-    int blockpain = 0;
+    e_animations animation;
 
-    if(type < 0 || type >= max_attack_types)
+    // If attack type is out of bounds we
+    // just use normal.
+    if(attack_type < ATK_NORMAL || attack_type >= max_attack_types)
     {
-        type = 0;
+        attack_type = ATK_NORMAL;
     }
 
-    if ( iBlkpain->inbackpain ) blockpain = animbackblkpains[type];
-    else blockpain = animblkpains[type];
+    // In front or back?
+    if (ent->inbackpain)
+    {
+        animation = animbackblkpains[attack_type];
+    }
+    else
+    {
+        animation = animblkpains[attack_type];
+    }
 
-    if(validanim(iBlkpain, blockpain))
+    if(validanim(ent, animation))
     {
-        ent_set_anim(iBlkpain, blockpain, reset);
+        ent_set_anim(ent, animation, reset);
     }
-    else if( iBlkpain->inbackpain && validanim(iBlkpain, animbackblkpains[0]) )
+    else if( ent->inbackpain && validanim(ent, animbackblkpains[ATK_NORMAL]) )
     {
-        ent_set_anim(iBlkpain, animbackblkpains[0], reset);
+        ent_set_anim(ent, animbackblkpains[ATK_NORMAL], reset);
     }
-    else if( validanim(iBlkpain, animblkpains[type]) )
+    else if(validanim(ent, animblkpains[attack_type]))
     {
-        if ( iBlkpain->inbackpain ) reset_backpain(iBlkpain);
-        iBlkpain->inbackpain = 0;
-        ent_set_anim(iBlkpain, animblkpains[type], reset);
+        if (ent->inbackpain)
+        {
+            reset_backpain(ent);
+        }
+
+        ent->inbackpain = 0;
+        ent_set_anim(ent, animblkpains[attack_type], reset);
     }
-    else if(validanim(iBlkpain, animblkpains[0]))
+    else if(validanim(ent, animblkpains[ATK_NORMAL]))
     {
-        if ( iBlkpain->inbackpain ) reset_backpain(iBlkpain);
-        iBlkpain->inbackpain = 0;
-        ent_set_anim(iBlkpain, animblkpains[0], reset);
+        if (ent->inbackpain)
+        {
+            reset_backpain(ent);
+        }
+
+        ent->inbackpain = 0;
+        ent_set_anim(ent, animblkpains[ATK_NORMAL], reset);
     }
     else
     {
         return 0;
     }
 
-    iBlkpain->takeaction = common_block;
+    ent->takeaction = common_block;
     set_blocking(self);
-    iBlkpain->inpain = 1;
-    iBlkpain->rising = 0;
-    iBlkpain->riseattacking = 0;
-    iBlkpain->ducking = DUCK_INACTIVE;
-    ent_set_anim(iBlkpain, animblkpains[type], reset);
+    ent->inpain = 1;
+    ent->rising = 0;
+    ent->riseattacking = 0;
+    ent->ducking = DUCK_INACTIVE;
+    ent_set_anim(ent, animblkpains[attack_type], reset);
     return 1;
 }
 
