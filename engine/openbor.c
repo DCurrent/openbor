@@ -19472,7 +19472,7 @@ int check_blocking_eligible(entity *ent, entity *attacker, s_collision_attack *a
     // Grappling?
     if(ent->link)
     {
-        return 0
+        return 0;
     }
 
     //  Airborne?
@@ -19483,6 +19483,12 @@ int check_blocking_eligible(entity *ent, entity *attacker, s_collision_attack *a
 
     // Frozen?
     if(ent->frozen)
+    {
+        return 0;
+    }
+
+    // Falling?
+    if(ent->falling)
     {
         return 0;
     }
