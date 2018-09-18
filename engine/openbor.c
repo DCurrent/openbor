@@ -19458,7 +19458,7 @@ void set_opponent(entity *ent, entity *other)
 //
 // Run a series of verifications to find out if entity can
 // block attack. Return true of block is possible eligible.
-int check_blocking_eligible(entity *ent, entity *attacker, s_collision_attack *attack)
+int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
     // If guardpoints are set, then find out if they've been depleted.
     if(!ent->modeldata.guardpoints.max)
@@ -19494,14 +19494,14 @@ int check_blocking_eligible(entity *ent, entity *attacker, s_collision_attack *a
     }
 
     // Attack block breaking exceeds block power?
-    if(attack->no_block => self->defense[attack->attack_type].blockpower)
+    if(attack->no_block => ent->defense[attack->attack_type].blockpower)
     {
         return 0;
     }
 
     // Attack from behind? Can't block that if
     // we don't have blockback flag enabled.
-    if(ent->direction == attacker->direction)
+    if(ent->direction == other->direction)
     {
         if(!ent->modeldata.blockback)
         {
