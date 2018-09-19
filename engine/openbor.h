@@ -2805,6 +2805,7 @@ void unfrozen(entity *e);
 void    adjust_bind(entity *e);
 int     check_bind_override(entity *ent, e_binding_overriding overriding);
 int     check_blocking_conditions(entity *ent, entity *other, s_collision_attack *attack);
+int     check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack);
 int     buffer_pakfile(char *filename, char **pbuffer, size_t *psize);
 size_t  ParseArgs(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex(ScriptVariant *var, int index);
