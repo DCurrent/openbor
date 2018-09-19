@@ -19769,13 +19769,21 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
     {
         // Set the spawn method and execute flash
         // entity's spawn script.
-        flash->spawntype = SPAWN_TYPE_FLASH;
-        flash->autokill = 1;
+        flash->spawntype    = SPAWN_TYPE_FLASH;
+        flash->base         = lasthit.position.y;
+        flash->autokill     = 1;
+
+        // If flipping enabled, flip the flash based on which
+        // side of entity the hit came from.
+        if(flash->modeldata.toflip)
+        {
+            flash->direction = (lasthit.position.x > ent->position.x);
+        }
+
         execute_onspawn_script(flash);
 
         return flash;
     }
-
 
     return NULL;
 }
@@ -19787,7 +19795,6 @@ void do_attack(entity *e)
     int force = 0;
     e_blocktype blocktype;
     entity *temp            = NULL;
-    entity *flash           = NULL;    // Used so new flashes can be used
     entity *def             = NULL;
     entity *topowner        = NULL;
     entity *otherowner      = NULL;
@@ -20096,30 +20103,8 @@ void do_attack(entity *e)
                         self->attack_id_incoming = current_attack_id;
                     }
 
-                    if(!attack->no_flash)
-                    {
-                        if(!self->modeldata.noatflash)
-                        {
-                            if(attack->blockflash >= 0)
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->blockflash, NULL);    // custom bflash
-                            }
-                            else
-                            {
-                                flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, ent_list[i]->modeldata.bflash, NULL);    // New block flash that can be smaller
-                            }
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.bflash, NULL);
-                        }
-                        //ent_default_init(flash); // initiliaze this because there're no default values now
-                        if(flash)
-                        {
-                            flash->spawntype = SPAWN_TYPE_FLASH;
-                            execute_onspawn_script(flash);
-                        }
-                    }
+                    // Flash spawn.
+                    spawn_attack_flash(self, attack, attack->blockflash, self->modeldata.bflash);
             }
             else if(self->takedamage(e, attack, 0))
             {
@@ -20134,30 +20119,10 @@ void do_attack(entity *e)
 
                 e->lasthit = self;
 
-                // Spawn a flash
-                if(!attack->no_flash)
-                {
-                    if(!self->modeldata.noatflash)
-                    {
-                        if(attack->hitflash >= 0)
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, attack->hitflash, NULL);
-                        }
-                        else
-                        {
-                            flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, e->modeldata.flash, NULL);
-                        }
-                    }
-                    else
-                    {
-                        flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, 0, NULL, self->modeldata.flash, NULL);
-                    }
-                    if(flash)
-                    {
-                        flash->spawntype = SPAWN_TYPE_FLASH;
-                        execute_onspawn_script(flash);
-                    }
-                }
+                // Flash spawn.
+                spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
+
+
                 topowner->combotime = _time + combodelay; // well, add to its owner's combo
 
                 if(e->pausetime < _time || (inair(e) && !equalairpause))        // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
@@ -20188,18 +20153,6 @@ void do_attack(entity *e)
                 continue;
             }
             // end of if #053
-
-            // if #054
-            if(flash)
-            {
-                if(flash->modeldata.toflip)
-                {
-                    flash->direction = (e->position.x > self->position.x);    // Now the flash will flip depending on which side the attacker is on
-                }
-
-                flash->base = lasthit.position.y;
-                flash->autokill = 2;
-            }//end of if #054
 
             // 2007 3 24, hmm, def should be like this
             if(didblock && !def)
