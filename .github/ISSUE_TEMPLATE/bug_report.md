@@ -14,7 +14,7 @@ Provide a clear and concise description of what the bug is here.
 ## Debugging
 
 ### Reproduce
-Provide step by step instructions to reproduce the behavior. Include any text files, scripts, etc. In some cases, we may need a download link to your entire module:
+Provide step by step instructions to reproduce the behavior. Include any text files, scripts, etc., along with the engine log. In some cases, we may need a download link to your entire module:
 1. Load stage '...'
 2. Entity in  '....' positon.
 3. Use  '....' move while '....'.
