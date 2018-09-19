@@ -27,7 +27,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 ### Version
-Please provide the SPECIFIC version the issue first appeared. This is very important, it is nearly impossible for us to pour through the entire codebase to find singular issues without a starting point.
+Please provide the SPECIFIC version the issue first appeared. This is very important, it is nearly impossible for us to pour through the entire code base to find singular issues without a starting point.
 
 - Platform
 - Engine Build
