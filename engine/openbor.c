@@ -19730,7 +19730,7 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 
     // Flash disabled by attack?
     // We're done. Do nothing and exit.
-    if(!attack->no_flash)
+    if(attack->no_flash)
     {
        return NULL;
     }
