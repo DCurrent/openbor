@@ -19461,7 +19461,7 @@ void set_opponent(entity *ent, entity *other)
 int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
     // If guardpoints are set, then find out if they've been depleted.
-    if(!ent->modeldata.guardpoints.max)
+    if(ent->modeldata.guardpoints.max)
     {
         if(ent->modeldata.guardpoints.current <= 0)
         {
