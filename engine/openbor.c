@@ -19469,30 +19469,6 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
         }
     }
 
-    // Grappling?
-    if(ent->link)
-    {
-        return 0;
-    }
-
-    //  Airborne?
-    if(inair(ent))
-    {
-        return 0;
-    }
-
-    // Frozen?
-    if(ent->frozen)
-    {
-        return 0;
-    }
-
-    // Falling?
-    if(ent->falling)
-    {
-        return 0;
-    }
-
     // Attack block breaking exceeds block power?
     if(ent->defense[attack->attack_type].blockpower)
     {
@@ -19543,6 +19519,48 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 // block, return true.
 int check_blocking_chance(entity *ent)
 {
+    // No blocking animation?
+    if(!validanim(ent, ANI_BLOCK))
+    {
+        return 0;
+    }
+
+    // Have to be idle.
+    if(!ent->idling)
+    {
+        return 0;
+    }
+
+    // AI can't be preparing to attack.
+    if(ent->attacking != ATTACKING_INACTIVE)
+    {
+        return 0;
+    }
+
+    // Grappling?
+    if(ent->link)
+    {
+        return 0;
+    }
+
+    //  Airborne?
+    if(inair(ent))
+    {
+        return 0;
+    }
+
+    // Frozen?
+    if(ent->frozen)
+    {
+        return 0;
+    }
+
+    // Falling?
+    if(ent->falling)
+    {
+        return 0;
+    }
+
     // If we have nopassiveblock enabled and we're
     // already blocking, then we want the AI to
     // keep blocking (like most players would).
@@ -19600,24 +19618,6 @@ int check_blocking_conditions(entity *ent, entity *other, s_collision_attack *at
             break;
 
         default:
-
-            // No blocking animation?
-            if(!validanim(ent, ANI_BLOCK))
-            {
-                return 0;
-            }
-
-            // Have to be idle.
-            if(!ent->idling)
-            {
-                return 0;
-            }
-
-            // AI can't be preparing to attack.
-            if(ent->attacking != ATTACKING_INACTIVE)
-            {
-                return 0;
-            }
 
             // AI must decide to block.
             if(!check_blocking_chance(ent))
@@ -19689,6 +19689,14 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
     ent->velocity.x = ent->velocity.z = 0;
 
     // Enter block animation.
+    //
+    // AI controlled characters don't enter block
+    // animation unless they actually block
+    // an attack, so we set it here. Players
+    // will already be in block.
+    //
+    // Note this may be overridden by downstream
+    // logic if the entity has and uses a blockpain.
     ent_set_anim(ent, ANI_BLOCK, 0);
 
     // Execute our block script.
@@ -19704,7 +19712,7 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
     // apply it here.
     if(check_blockpain(ent, attack))
     {
-        set_blockpain(self, attack->attack_type, 0);
+        set_blockpain(self, attack->attack_type, 1);
     }
 
     // Blocked hit is still a hit, so
