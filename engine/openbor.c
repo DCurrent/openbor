@@ -19513,11 +19513,11 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 }
 
 // Caskey, Damon V.
-// 2018-09-17
+// 2018-09-19
 //
-// AI blocking decision. If AI chooses to
-// block, return true.
-int check_blocking_chance(entity *ent)
+// Mandatory conditions the AI must pass before it
+// can decide to block.
+int check_blocking_conditions(entity *ent)
 {
     // No blocking animation?
     if(!validanim(ent, ANI_BLOCK))
@@ -19561,6 +19561,16 @@ int check_blocking_chance(entity *ent)
         return 0;
     }
 
+    return 1;
+}
+
+// Caskey, Damon V.
+// 2018-09-17
+//
+// AI blocking decision. If AI chooses to
+// block, return true.
+int check_blocking_chance(entity *ent)
+{
     // If we have nopassiveblock enabled and we're
     // already blocking, then we want the AI to
     // keep blocking (like most players would).
@@ -19587,7 +19597,7 @@ int check_blocking_chance(entity *ent)
 // 2018-09-17
 //
 // Decide if entity should perform blocking action.
-int check_blocking_conditions(entity *ent, entity *other, s_collision_attack *attack)
+int common_check_blocking(entity *ent, entity *other, s_collision_attack *attack)
 {
     e_entity_type entity_type;
 
@@ -19618,6 +19628,13 @@ int check_blocking_conditions(entity *ent, entity *other, s_collision_attack *at
             break;
 
         default:
+
+            // AI must pass some mandatory conditions
+            // before it can attempt a block.
+            if(!check_blocking_conditions(ent))
+            {
+                return 0;
+            }
 
             // AI must decide to block.
             if(!check_blocking_chance(ent))
@@ -20044,7 +20061,7 @@ void do_attack(entity *e)
             }
 
             // Blocking the attack?
-            if(check_blocking_conditions(self, e, attack))
+            if(common_check_blocking(self, e, attack))
             {
                 set_blocking_action(self, e, attack);
 
