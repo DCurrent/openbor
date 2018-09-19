@@ -19460,6 +19460,7 @@ void set_opponent(entity *ent, entity *other)
 // block attack. Return true of block is possible eligible.
 int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
+    printf("\n\n debug_trace: check_blocking_eligible");
     // If guardpoints are set, then find out if they've been depleted.
     if(ent->modeldata.guardpoints.max)
     {
@@ -19468,37 +19469,41 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
-
+    printf("\n\n debug_trace: guardpoints pass");
     // Grappling?
     if(ent->link)
     {
         return 0;
     }
-
+    printf("\n\n debug_trace: link pass");
     //  Airborne?
     if(inair(ent))
     {
         return 0;
     }
-
+    printf("\n\n debug_trace: inair pass");
     // Frozen?
     if(ent->frozen)
     {
         return 0;
     }
-
+    printf("\n\n debug_trace: frozen pass");
     // Falling?
     if(ent->falling)
     {
         return 0;
     }
-
+    printf("\n\n debug_trace: falling pass");
     // Attack block breaking exceeds block power?
-    if(attack->no_block >= ent->defense[attack->attack_type].blockpower)
+    if(ent->defense[attack->attack_type].blockpower)
     {
-        return 0;
+        if(attack->no_block >= ent->defense[attack->attack_type].blockpower)
+        {
+            return 0;
+        }
     }
 
+    printf("\n\n debug_trace: defense pass");
     // Attack from behind? Can't block that if
     // we don't have blockback flag enabled.
     if(ent->direction == other->direction)
@@ -19508,7 +19513,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
-
+    printf("\n\n debug_trace: direction pass");
     // if there is a blocking threshold? Verify it vs. attack force.
     if(ent->modeldata.thold)
     {
@@ -19518,6 +19523,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
+    printf("\n\n debug_trace: model thold pass");
 
     // is there a blocking threshhold for the attack type?
     // Verify it vs. attack force.
@@ -19528,6 +19534,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
+    printf("\n\n debug_trace: defense thold pass");
 
     // If we made it through all that, then entity can block. Return true.
     return 1;
