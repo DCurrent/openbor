@@ -19460,7 +19460,6 @@ void set_opponent(entity *ent, entity *other)
 // block attack. Return true of block is possible eligible.
 int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
-    printf("\n\n debug_trace: check_blocking_eligible");
     // If guardpoints are set, then find out if they've been depleted.
     if(ent->modeldata.guardpoints.max)
     {
@@ -19469,31 +19468,31 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
-    printf("\n debug_trace: guardpoints pass");
+
     // Grappling?
     if(ent->link)
     {
         return 0;
     }
-    printf("\n debug_trace: link pass");
+
     //  Airborne?
     if(inair(ent))
     {
         return 0;
     }
-    printf("\n debug_trace: inair pass");
+
     // Frozen?
     if(ent->frozen)
     {
         return 0;
     }
-    printf("\n debug_trace: frozen pass");
+
     // Falling?
     if(ent->falling)
     {
         return 0;
     }
-    printf("\n debug_trace: falling pass");
+
     // Attack block breaking exceeds block power?
     if(ent->defense[attack->attack_type].blockpower)
     {
@@ -19503,7 +19502,6 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
         }
     }
 
-    printf("\n debug_trace: defense pass");
     // Attack from behind? Can't block that if
     // we don't have blockback flag enabled.
     if(ent->direction == other->direction)
@@ -19513,7 +19511,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
-    printf("\n debug_trace: direction pass");
+
     // if there is a blocking threshold? Verify it vs. attack force.
     if(ent->modeldata.thold)
     {
@@ -19523,7 +19521,6 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
-    printf("\n debug_trace: model thold pass");
 
     // is there a blocking threshhold for the attack type?
     // Verify it vs. attack force.
@@ -19534,7 +19531,6 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
             return 0;
         }
     }
-    printf("\n debug_trace: defense thold pass");
 
     // If we made it through all that, then entity can block. Return true.
     return 1;
@@ -19720,12 +19716,12 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 }
 
 // Caskey, Damon V.
+// 2018-09-18
 //
-// Spawn an appropriate attack effect flash
-// if conditions are met.
+// Handle flash spawning for hits. Will spawn and prepare an appropriate
+// flash effect entity if conditions are met.
 entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash)
 {
-    printf("\n\n debug_trace: spawn_attack_flash");
     int to_spawn;
     entity *flash;
 
@@ -19735,7 +19731,7 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
     {
        return NULL;
     }
-    printf("\n debug_trace: no_flash pass");
+
     // If the model has custom flash disabled,
     // then default to the model's global flash.
     //
@@ -19758,7 +19754,6 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
     {
         to_spawn = model_flash;
     }
-    printf("\n debug_trace: attack_flash: %d, model_flash: %d, to_spawn %d", attack_flash, model_flash, to_spawn);
 
     // Spawn the flash at last hit position.
     flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, DIRECTION_LEFT, NULL, to_spawn, NULL);
@@ -19767,8 +19762,7 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
     // were able to spawn to flash entity.
     if(flash)
     {
-        // Set the spawn method and execute flash
-        // entity's spawn script.
+        // Set up basic properties.
         flash->spawntype    = SPAWN_TYPE_FLASH;
         flash->base         = lasthit.position.y;
         flash->autokill     = 1;
@@ -19780,6 +19774,7 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
             flash->direction = (lasthit.position.x > ent->position.x);
         }
 
+        // Run flash's spawn script.
         execute_onspawn_script(flash);
 
         return flash;
