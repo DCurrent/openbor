@@ -19519,6 +19519,41 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 // can decide to block.
 int check_blocking_conditions(entity *ent)
 {
+    // If the blocking flag is already set,
+    // either we were previously blocking
+    // an attack, OR the author has manually
+    // set the block flag to give some other
+    // animation a blocking property.
+    //
+    // It's important to know the difference.
+    // If it is the case of a manual block flag
+    // set then we want to skip the rest of this
+    // logic and just apply the blocking effects
+    // without verifying AI conditions or setting
+    // a block/blockpain animation.
+    //
+    // But if the blocking flag is set because
+    // the AI was performing a normal block, we
+    // need to allow the logic to continue.
+    if(ent->blocking)
+    {
+        // OK, we're not blocking, but we could
+        // be in blockpain. Blockpain uses the
+        // normal pain flag, so we can look for
+        // it to confirm.
+        if(!ent->animation != ANI_BLOCK)
+        {
+            // If we're not in pain, then
+            // at this point we know the block
+            // flag was NOT set by engine logic.
+            // Author must have done so manually.
+            // We'll just return true here. No
+            // blocking animation set and no
+            // further conditionals.
+            return 1;
+        }
+    }
+
     // No blocking animation?
     if(!validanim(ent, ANI_BLOCK))
     {
