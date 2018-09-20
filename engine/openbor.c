@@ -19456,8 +19456,11 @@ void set_opponent(entity *ent, entity *other)
 // Caskey, Damon V.
 // 2018-09-16
 //
-// Run a series of verifications to find out if entity can
-// block attack. Return true of block is possible eligible.
+// Find out if attack can be blocked by entity.
+// This function is concerned with the attack
+// vs. entity in terms of game mechanics like
+// guard break, attack type vs. defense, and
+// so on. It does not handle rules for AI blocking.
 int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
     // If guardpoints are set, then find out if they've been depleted.
@@ -19498,7 +19501,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
         }
     }
 
-    // is there a blocking threshhold for the attack type?
+    // Is there a blocking threshhold for the attack type?
     // Verify it vs. attack force.
     if(ent->defense[attack->attack_type].blockthreshold)
     {
@@ -19508,7 +19511,8 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
         }
     }
 
-    // If we made it through all that, then entity can block. Return true.
+    // If we made it through all that, then
+    // attack can be blocked. Return true.
     return 1;
 }
 
@@ -19516,9 +19520,18 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 // 2018-09-19
 //
 // Mandatory conditions the AI must pass before it
-// can decide to block.
-int check_blocking_conditions(entity *ent)
+// can decide to block. These are not rules for
+// blocking in general.
+int check_blocking_rules(entity *ent)
 {
+    // If already blocking we can
+    // forget the rest and return
+    // true right away.
+    if(ent->blocking)
+    {
+        return 1;
+    }
+
     // No blocking animation?
     if(!validanim(ent, ANI_BLOCK))
     {
@@ -19567,9 +19580,10 @@ int check_blocking_conditions(entity *ent)
 // Caskey, Damon V.
 // 2018-09-17
 //
-// AI blocking decision. If AI chooses to
-// block, return true.
-int check_blocking_chance(entity *ent)
+// AI blocking decision. Handles AI's chances
+// to block assuming it is allowed. Returns true
+// if AI chooses to attempt a block.
+int check_blocking_decision(entity *ent)
 {
     // If we have nopassiveblock enabled and we're
     // already blocking, then we want the AI to
@@ -19582,7 +19596,8 @@ int check_blocking_chance(entity *ent)
         }
     }
 
-    // Run random chance against blockodds.
+    // Run random chance against blockodds. If it
+    // passes, AI will block.
     if((rand32()&ent->modeldata.blockodds) == 1)
     {
         return 1;
@@ -19593,35 +19608,16 @@ int check_blocking_chance(entity *ent)
     return 0;
 }
 
-// If the blocking flag is already set,
-// either we were previously blocking
-// an attack, OR the author has manually
-// set the block flag to give some other
-// animation a blocking property.
-int check_blocking_manual(entity *ent)
-{
-    // No blocking flag set?
-    // We're dine here.
-    if(!ent->blocking)
-    {
-        return 0;
-    }
-
-
-}
-
 // Caskey, Damon V.
 // 2018-09-17
 //
-// Decide if entity should perform blocking action.
-int common_check_blocking(entity *ent, entity *other, s_collision_attack *attack)
+// Runs all blocking conditions and returns true
+// if the attack is to be blocked.
+int try_blocking(entity *ent, entity *other, s_collision_attack *attack)
 {
     e_entity_type entity_type;
 
     entity_type = ent->modeldata.type;
-
-    // Blocking flag set outside of engine logic?
-
 
     // 2018-09-17, we only distinguish between
     // players and everything else, but let's use
@@ -19633,46 +19629,48 @@ int common_check_blocking(entity *ent, entity *other, s_collision_attack *attack
 
             // For players, all we need to know is if they
             // are in a blocking state. If not we exit.
-            if(!self->blocking)
+            if(!ent->blocking)
             {
                 return 0;
             }
 
-            // Verify we can block the attack. If so, we can
-            // return true.
-            if(check_blocking_eligible(ent, other, attack))
+            // Verify we can block the attack.
+            if(!check_blocking_eligible(ent, other, attack))
             {
-                return 1;
+                return 0;
             }
 
             break;
 
         default:
 
-            // AI must pass some mandatory conditions
-            // before it can attempt a block.
-            if(!check_blocking_conditions(ent))
+            // AI must pass a series of conditions
+            // before it may block attacks.
+            if(!check_blocking_rules(ent))
             {
                 return 0;
             }
 
-            // AI must decide to block.
+            // Now that we know AI is allowed
+            // to block let's find out if it
+            // wants to.
             if(!check_blocking_chance(ent))
             {
                 return 0;
             }
 
-            // Verify we can block the attack. If so, we can
-            // return true.
-            if(check_blocking_eligible(ent, other, attack))
+            // Verify the attack can be blocked.
+            if(!check_blocking_eligible(ent, other, attack))
             {
-                return 1;
+                return 0;
             }
 
             break;
     }
 
-    return 0;
+    // Looks like we made it through
+    // all the verifications. Return true.
+    return 1;
 }
 
 // Caskey, Damon V.
@@ -19680,7 +19678,7 @@ int common_check_blocking(entity *ent, entity *other, s_collision_attack *attack
 //
 // Verify entity has blockpain and that attack
 // should trigger it.
-int check_blockpain(entity *ent, s_collision_attack *attack)
+int check_blocking_pain(entity *ent, s_collision_attack *attack)
 {
     // If we don't have blockpain,
     // nothing else to do!
@@ -19696,16 +19694,7 @@ int check_blockpain(entity *ent, s_collision_attack *attack)
         return 0;
     }
 
-    // If we are in blocking animation or pain
-    // flag is true, then we're eligible for blockpain.
-    // Return true.
-    if(self->animation == self->modeldata.animation[ANI_BLOCK]
-       || self->inpain)
-    {
-        return 1;
-    }
-
-    return 0;
+    return 1;
 }
 
 // Caskey, Damon V.
@@ -19725,17 +19714,6 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
     // Stop movement.
     ent->velocity.x = ent->velocity.z = 0;
 
-    // Enter block animation.
-    //
-    // AI controlled characters don't enter block
-    // animation unless they actually block
-    // an attack, so we set it here. Players
-    // will already be in block.
-    //
-    // Note this may be overridden by downstream
-    // logic if the entity has and uses a blockpain.
-    ent_set_anim(ent, ANI_BLOCK, 0);
-
     // Execute our block script.
     execute_didblock_script(ent, other, attack);
 
@@ -19745,19 +19723,26 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
         ent->modeldata.guardpoints.current -= attack->guardcost;
     }
 
-    // If we have an appropriate blockpain, lets
-    // apply it here.
-    if(check_blockpain(ent, attack))
-    {
-        set_blockpain(self, attack->attack_type, 1);
-    }
-
     // Blocked hit is still a hit, so
     // increment the attacker's hit counter.
     ++other->animation->animhits;
 
     // Spawn the blocking flash.
     spawn_attack_flash(ent, attack, attack->blockflash, ent->modeldata.bflash);
+}
+
+void set_blocking_animation(entity *ent, s_collision_attack *attack)
+{
+    // If we have an appropriate blockpain, lets
+    // apply it here.
+    if(check_blockpain(ent, attack))
+    {
+        set_blockpain(self, attack->attack_type, 1);
+    }
+    else
+    {
+        ent_set_anim(ent, ANI_BLOCK, 0);
+    }
 }
 
 // Caskey, Damon V.
