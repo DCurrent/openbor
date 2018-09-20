@@ -19519,41 +19519,6 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 // can decide to block.
 int check_blocking_conditions(entity *ent)
 {
-    // If the blocking flag is already set,
-    // either we were previously blocking
-    // an attack, OR the author has manually
-    // set the block flag to give some other
-    // animation a blocking property.
-    //
-    // It's important to know the difference.
-    // If it is the case of a manual block flag
-    // set then we want to skip the rest of this
-    // logic and just apply the blocking effects
-    // without verifying AI conditions or setting
-    // a block/blockpain animation.
-    //
-    // But if the blocking flag is set because
-    // the AI was performing a normal block, we
-    // need to allow the logic to continue.
-    if(ent->blocking)
-    {
-        // OK, we're not blocking, but we could
-        // be in blockpain. Blockpain uses the
-        // normal pain flag, so we can look for
-        // it to confirm.
-        if(!ent->animation != ANI_BLOCK)
-        {
-            // If we're not in pain, then
-            // at this point we know the block
-            // flag was NOT set by engine logic.
-            // Author must have done so manually.
-            // We'll just return true here. No
-            // blocking animation set and no
-            // further conditionals.
-            return 1;
-        }
-    }
-
     // No blocking animation?
     if(!validanim(ent, ANI_BLOCK))
     {
@@ -19628,6 +19593,23 @@ int check_blocking_chance(entity *ent)
     return 0;
 }
 
+// If the blocking flag is already set,
+// either we were previously blocking
+// an attack, OR the author has manually
+// set the block flag to give some other
+// animation a blocking property.
+int check_blocking_manual(entity *ent)
+{
+    // No blocking flag set?
+    // We're dine here.
+    if(!ent->blocking)
+    {
+        return 0;
+    }
+
+
+}
+
 // Caskey, Damon V.
 // 2018-09-17
 //
@@ -19637,6 +19619,9 @@ int common_check_blocking(entity *ent, entity *other, s_collision_attack *attack
     e_entity_type entity_type;
 
     entity_type = ent->modeldata.type;
+
+    // Blocking flag set outside of engine logic?
+
 
     // 2018-09-17, we only distinguish between
     // players and everything else, but let's use
@@ -19712,7 +19697,7 @@ int check_blockpain(entity *ent, s_collision_attack *attack)
     }
 
     // If we are in blocking animation or pain
-    // flag is true, then we're elgible for blockpain.
+    // flag is true, then we're eligible for blockpain.
     // Return true.
     if(self->animation == self->modeldata.animation[ANI_BLOCK]
        || self->inpain)
@@ -22763,6 +22748,7 @@ int set_idle(entity *ent)
     ent->falling = 0;
     ent->jumping = 0;
     ent->blocking = 0;
+    ent->blocking_pain = 0;
     common_idle_anim(ent);
     return 1;
 }
@@ -22781,6 +22767,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->charging = 0;
         iDie->attacking = ATTACKING_INACTIVE;
         iDie->blocking = 0;
+        iDie->blocking_pain = 0;
         iDie->inpain = 0;
         iDie->falling = 0;
         iDie->rising = 0;
@@ -22828,6 +22815,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->charging = 0;
     iDie->attacking = ATTACKING_INACTIVE;
     iDie->blocking = 0;
+    iDie->blocking_pain = 0;
     iDie->inpain = 0;
     iDie->falling = 0;
     iDie->rising = 0;
@@ -22885,6 +22873,7 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
     ent->charging = 0;
     ent->attacking = ATTACKING_INACTIVE;
     ent->blocking = 0;
+    ent->blocking_pain = 0;
     ent->nograb = 1;
 
     if(ent->frozen)
@@ -23059,7 +23048,7 @@ int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
 
     ent->takeaction = common_block;
     set_blocking(self);
-    ent->inpain = 1;
+    ent->blocking_pain = 1;
     ent->rising = 0;
     ent->riseattacking = 0;
     ent->ducking = DUCK_INACTIVE;
@@ -23161,6 +23150,7 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->charging = 0;
 	iPain->jumping = 0;
 	iPain->blocking = 0;
+	iPain->blocking_pain = 0;
 	iPain->inpain = 1;
 	if(iPain->frozen) unfrozen(iPain);
 
@@ -35814,6 +35804,7 @@ void savelevelinfo()
 void tryvictorypose(entity *ent)
 {
     if( ent &&
+       !ent->blockpain &&
        !ent->inpain &&
        !ent->falling &&
        !ent->dead &&
