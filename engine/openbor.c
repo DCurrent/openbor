@@ -19524,6 +19524,9 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 // blocking in general.
 int check_blocking_rules(entity *ent)
 {
+
+    printf("\n\n debug_trace - check_blocking_rules");
+
     // If already blocking we can
     // forget the rest and return
     // true right away.
@@ -19532,11 +19535,15 @@ int check_blocking_rules(entity *ent)
         return 1;
     }
 
+    printf("\n debug_trace - ent->blocking passed");
+
     // No blocking animation?
     if(!validanim(ent, ANI_BLOCK))
     {
         return 0;
     }
+
+    printf("\n debug_trace - validanim(ent, ANI_BLOCK) passed");
 
     // Have to be idle.
     if(!ent->idling)
@@ -19544,11 +19551,15 @@ int check_blocking_rules(entity *ent)
         return 0;
     }
 
-    // AI can't be preparing to attack.
-    if(ent->attacking != ATTACKING_INACTIVE)
+    printf("\n debug_trace - ent->idling passed");
+
+    // AI can't be attacking.
+    if(ent->attacking == ATTACKING_ACTIVE)
     {
         return 0;
     }
+
+    printf("\n debug_trace - ent->attacking passed");
 
     // Grappling?
     if(ent->link)
@@ -19556,11 +19567,15 @@ int check_blocking_rules(entity *ent)
         return 0;
     }
 
+    printf("\n debug_trace - ent->link passed");
+
     //  Airborne?
     if(inair(ent))
     {
         return 0;
     }
+
+    printf("\n debug_trace - inair(ent) passed");
 
     // Frozen?
     if(ent->frozen)
@@ -19568,11 +19583,15 @@ int check_blocking_rules(entity *ent)
         return 0;
     }
 
+    printf("\n debug_trace - ent->frozen passed");
+
     // Falling?
     if(ent->falling)
     {
         return 0;
     }
+
+    printf("\n debug_trace - ent->falling passed");
 
     return 1;
 }
@@ -19613,11 +19632,13 @@ int check_blocking_decision(entity *ent)
 //
 // Runs all blocking conditions and returns true
 // if the attack is to be blocked.
-int try_blocking(entity *ent, entity *other, s_collision_attack *attack)
+int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack)
 {
     e_entity_type entity_type;
 
     entity_type = ent->modeldata.type;
+
+    printf("\n\n check_blocking_master");
 
     // 2018-09-17, we only distinguish between
     // players and everything else, but let's use
@@ -19651,13 +19672,17 @@ int try_blocking(entity *ent, entity *other, s_collision_attack *attack)
                 return 0;
             }
 
+            printf("\n check_blocking_rules passed");
+
             // Now that we know AI is allowed
             // to block let's find out if it
             // wants to.
-            if(!check_blocking_chance(ent))
+            if(!check_blocking_decision(ent))
             {
                 return 0;
             }
+
+            printf("\n check_blocking_decision passed");
 
             // Verify the attack can be blocked.
             if(!check_blocking_eligible(ent, other, attack))
@@ -19665,35 +19690,13 @@ int try_blocking(entity *ent, entity *other, s_collision_attack *attack)
                 return 0;
             }
 
+            printf("\n check_blocking_eligible passed");
+
             break;
     }
 
     // Looks like we made it through
     // all the verifications. Return true.
-    return 1;
-}
-
-// Caskey, Damon V.
-// 2018-09-18
-//
-// Verify entity has blockpain and that attack
-// should trigger it.
-int check_blocking_pain(entity *ent, s_collision_attack *attack)
-{
-    // If we don't have blockpain,
-    // nothing else to do!
-    if(!self->modeldata.blockpain)
-    {
-        return 0;
-    }
-
-    // If blockpain is greater than attack
-    // force, we don't apply it.
-    if(self->modeldata.blockpain > attack->attack_force)
-    {
-        return 0;
-    }
-
     return 1;
 }
 
@@ -19726,16 +19729,41 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
     // Blocked hit is still a hit, so
     // increment the attacker's hit counter.
     ++other->animation->animhits;
-
-    // Spawn the blocking flash.
-    spawn_attack_flash(ent, attack, attack->blockflash, ent->modeldata.bflash);
 }
 
+// Caskey, Damon V.
+// 2018-09-18
+//
+// Verify entity has blockpain and that attack
+// should trigger it.
+int check_blocking_pain(entity *ent, s_collision_attack *attack)
+{
+    // If we don't have blockpain,
+    // nothing else to do!
+    if(!self->modeldata.blockpain)
+    {
+        return 0;
+    }
+
+    // If blockpain is greater than attack
+    // force, we don't apply it.
+    if(self->modeldata.blockpain > attack->attack_force)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+// Caskey, Damon V.
+// 2018-09-21
+//
+// Place entity into appropriate blocking animation.
 void set_blocking_animation(entity *ent, s_collision_attack *attack)
 {
     // If we have an appropriate blockpain, lets
     // apply it here.
-    if(check_blockpain(ent, attack))
+    if(check_blocking_pain(ent, attack))
     {
         set_blockpain(self, attack->attack_type, 1);
     }
@@ -19743,6 +19771,22 @@ void set_blocking_animation(entity *ent, s_collision_attack *attack)
     {
         ent_set_anim(ent, ANI_BLOCK, 0);
     }
+}
+
+// Caskey, Damon V.
+// 2018-09-21
+//
+// Perform a block.
+void do_blocking(entity *ent, entity *other, s_collision_attack *attack)
+{
+    // Place entity in blocking animation.
+    set_blocking_animation(ent, attack);
+
+    // Run blocking actions and scripts.
+    set_blocking_action(ent, other, attack);
+
+    // Spawn the blocking flash.
+    spawn_attack_flash(ent, attack, attack->blockflash, ent->modeldata.bflash);
 }
 
 // Caskey, Damon V.
@@ -20065,14 +20109,13 @@ void do_attack(entity *e)
                 self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
             }
 
-            // Blocking the attack?
-            if(common_check_blocking(self, e, attack))
-            {
-                set_blocking_action(self, e, attack);
+            didblock = check_blocking_master(self, e, attack);
 
-                // We'll need to know if we blocked or not
-                // for some other logic blocks below.
-                didblock = 1;
+            // Blocking the attack?
+            if(didblock)
+            {
+                // Perform the blocking actions.
+                do_blocking(self, e, attack);
             }
             // Counter the attack?
             else if(self->animation->counterrange &&	// Has counter range?
@@ -35789,7 +35832,7 @@ void savelevelinfo()
 void tryvictorypose(entity *ent)
 {
     if( ent &&
-       !ent->blockpain &&
+       !ent->blocking_pain &&
        !ent->inpain &&
        !ent->falling &&
        !ent->dead &&
