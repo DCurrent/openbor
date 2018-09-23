@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{17BFF8D3-49BA-41F7-AB5C-88D0B1364396}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakePreprocessorDefinitions>WIN32;_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakePreprocessorDefinitions>WIN32;NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\android\jni\openbor\jniutils.cpp" />
+    <ClCompile Include="..\..\android\jni\openbor\SDL_android_main.cpp" />
+    <ClCompile Include="..\..\android\jni\openbor\video.c" />
+    <ClCompile Include="..\..\dc\control.c" />
+    <ClCompile Include="..\..\dc\dcport.c" />
+    <ClCompile Include="..\..\dc\gdrom.c" />
+    <ClCompile Include="..\..\dc\sblaster.c" />
+    <ClCompile Include="..\..\dc\timer.c" />
+    <ClCompile Include="..\..\dc\video.c" />
+    <ClCompile Include="..\..\openbor.c" />
+    <ClCompile Include="..\..\openborscript.c" />
+    <ClCompile Include="..\..\psp\audiodrv.c" />
+    <ClCompile Include="..\..\psp\control.c" />
+    <ClCompile Include="..\..\psp\control\main.c" />
+    <ClCompile Include="..\..\psp\exception\main.c" />
+    <ClCompile Include="..\..\psp\graphics.c" />
+    <ClCompile Include="..\..\psp\hankaku.c" />
+    <ClCompile Include="..\..\psp\image.c" />
+    <ClCompile Include="..\..\psp\kernel\main.c" />
+    <ClCompile Include="..\..\psp\menu.c" />
+    <ClCompile Include="..\..\psp\netcomm.c" />
+    <ClCompile Include="..\..\psp\pspport.c" />
+    <ClCompile Include="..\..\psp\sblaster.c" />
+    <ClCompile Include="..\..\psp\timer.c" />
+    <ClCompile Include="..\..\psp\vertex.c" />
+    <ClCompile Include="..\..\psp\video.c" />
+    <ClCompile Include="..\..\sdl\control.c" />
+    <ClCompile Include="..\..\sdl\gp2x\gp2xport.c" />
+    <ClCompile Include="..\..\sdl\joysticks.c" />
+    <ClCompile Include="..\..\sdl\loadgl.c" />
+    <ClCompile Include="..\..\sdl\menu.c" />
+    <ClCompile Include="..\..\sdl\opengl.c" />
+    <ClCompile Include="..\..\sdl\sblaster.c" />
+    <ClCompile Include="..\..\sdl\sdlport.c" />
+    <ClCompile Include="..\..\sdl\threads.c" />
+    <ClCompile Include="..\..\sdl\timer.c" />
+    <ClCompile Include="..\..\sdl\video.c" />
+    <ClCompile Include="..\..\sdl\videocommon.c" />
+    <ClCompile Include="..\..\source\adpcmlib\adpcm.c" />
+    <ClCompile Include="..\..\source\gamelib\anigif.c" />
+    <ClCompile Include="..\..\source\gamelib\bitmap.c" />
+    <ClCompile Include="..\..\source\gamelib\draw.c" />
+    <ClCompile Include="..\..\source\gamelib\draw16.c" />
+    <ClCompile Include="..\..\source\gamelib\draw32.c" />
+    <ClCompile Include="..\..\source\gamelib\filecache.c" />
+    <ClCompile Include="..\..\source\gamelib\filters.c" />
+    <ClCompile Include="..\..\source\gamelib\font.c" />
+    <ClCompile Include="..\..\source\gamelib\loadimg.c" />
+    <ClCompile Include="..\..\source\gamelib\models.c" />
+    <ClCompile Include="..\..\source\gamelib\packfile.c" />
+    <ClCompile Include="..\..\source\gamelib\palette.c" />
+    <ClCompile Include="..\..\source\gamelib\pixelformat.c" />
+    <ClCompile Include="..\..\source\gamelib\screen.c" />
+    <ClCompile Include="..\..\source\gamelib\screen16.c" />
+    <ClCompile Include="..\..\source\gamelib\screen32.c" />
+    <ClCompile Include="..\..\source\gamelib\soundmix.c" />
+    <ClCompile Include="..\..\source\gamelib\sprite.c" />
+    <ClCompile Include="..\..\source\gamelib\spriteq.c" />
+    <ClCompile Include="..\..\source\gamelib\spritex8p16.c" />
+    <ClCompile Include="..\..\source\gamelib\spritex8p32.c" />
+    <ClCompile Include="..\..\source\gamelib\transform.c" />
+    <ClCompile Include="..\..\source\gamelib\translation.c" />
+    <ClCompile Include="..\..\source\gfxlib\2xSaI.c" />
+    <ClCompile Include="..\..\source\gfxlib\bilinear.c" />
+    <ClCompile Include="..\..\source\gfxlib\dotmatrix.c" />
+    <ClCompile Include="..\..\source\gfxlib\gfx.c" />
+    <ClCompile Include="..\..\source\gfxlib\hq2x.c" />
+    <ClCompile Include="..\..\source\gfxlib\scale2x.c" />
+    <ClCompile Include="..\..\source\gfxlib\scanline.c" />
+    <ClCompile Include="..\..\source\gfxlib\simple2x.c" />
+    <ClCompile Include="..\..\source\gfxlib\tv2x.c" />
+    <ClCompile Include="..\..\source\omath.c" />
+    <ClCompile Include="..\..\source\openborscript\animation.c" />
+    <ClCompile Include="..\..\source\openborscript\axis.c" />
+    <ClCompile Include="..\..\source\openborscript\binding.c" />
+    <ClCompile Include="..\..\source\openborscript\collision_attack.c" />
+    <ClCompile Include="..\..\source\openborscript\collision_body.c" />
+    <ClCompile Include="..\..\source\openborscript\collision_coordinates.c" />
+    <ClCompile Include="..\..\source\openborscript\collision_entity.c" />
+    <ClCompile Include="..\..\source\openborscript\commands.c" />
+    <ClCompile Include="..\..\source\openborscript\constants.c" />
+    <ClCompile Include="..\..\source\openborscript\energy_status.c" />
+    <ClCompile Include="..\..\source\openborscript\entity.c" />
+    <ClCompile Include="..\..\source\openborscript\index.c" />
+    <ClCompile Include="..\..\source\openborscript\layer.c" />
+    <ClCompile Include="..\..\source\openborscript\level.c" />
+    <ClCompile Include="..\..\source\openborscript\math.c" />
+    <ClCompile Include="..\..\source\openborscript\string.c" />
+    <ClCompile Include="..\..\source\pnglib\pngdec.c" />
+    <ClCompile Include="..\..\source\pnglib\savepng.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\pp_expr.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\pp_lexer.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\pp_parser.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\test\calculator.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\test\infixparser.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\test\pp_test.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\test\tmp.c" />
+    <ClCompile Include="..\..\source\preprocessorlib\test\tokendiff.c" />
+    <ClCompile Include="..\..\source\ramlib\ram.c" />
+    <ClCompile Include="..\..\source\randlib\rand32.c" />
+    <ClCompile Include="..\..\source\scriptlib\ImportCache.c" />
+    <ClCompile Include="..\..\source\scriptlib\Instruction.c" />
+    <ClCompile Include="..\..\source\scriptlib\Interpreter.c" />
+    <ClCompile Include="..\..\source\scriptlib\Lexer.c" />
+    <ClCompile Include="..\..\source\scriptlib\List.c" />
+    <ClCompile Include="..\..\source\scriptlib\List_unittest.c" />
+    <ClCompile Include="..\..\source\scriptlib\Parser.c" />
+    <ClCompile Include="..\..\source\scriptlib\ParserSet.c" />
+    <ClCompile Include="..\..\source\scriptlib\ScriptVariant.c" />
+    <ClCompile Include="..\..\source\scriptlib\Stack.c" />
+    <ClCompile Include="..\..\source\scriptlib\StackedSymbolTable.c" />
+    <ClCompile Include="..\..\source\scriptlib\SymbolTable.c" />
+    <ClCompile Include="..\..\source\stringptr.c" />
+    <ClCompile Include="..\..\source\stristr.c" />
+    <ClCompile Include="..\..\source\tracelib2\tracelib2.c" />
+    <ClCompile Include="..\..\source\tracelib2\tracelib2_test.c" />
+    <ClCompile Include="..\..\source\utils.c" />
+    <ClCompile Include="..\..\source\webmlib\halloc\halloc.c" />
+    <ClCompile Include="..\..\source\webmlib\nestegg\nestegg.c" />
+    <ClCompile Include="..\..\source\webmlib\samplecvt.c" />
+    <ClCompile Include="..\..\source\webmlib\vidplay.c" />
+    <ClCompile Include="..\..\source\webmlib\vorbis.c" />
+    <ClCompile Include="..\..\source\webmlib\yuv.c" />
+    <ClCompile Include="..\..\symbian\symbian.cpp" />
+    <ClCompile Include="..\..\vita\control.c" />
+    <ClCompile Include="..\..\vita\menu.c" />
+    <ClCompile Include="..\..\vita\sblaster.c" />
+    <ClCompile Include="..\..\vita\timer.c" />
+    <ClCompile Include="..\..\vita\video.c" />
+    <ClCompile Include="..\..\vita\vitaport.c" />
+    <ClCompile Include="..\..\wii\control.c" />
+    <ClCompile Include="..\..\wii\menu.c" />
+    <ClCompile Include="..\..\wii\sblaster.c" />
+    <ClCompile Include="..\..\wii\threads.c" />
+    <ClCompile Include="..\..\wii\timer.c" />
+    <ClCompile Include="..\..\wii\video.c" />
+    <ClCompile Include="..\..\wii\wiiport.c" />
+    <ClCompile Include="..\..\xbox\common\src\xbapp.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbfont.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbhelp.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbinput.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbmesh.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbresource.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbsound.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbstopwatch.cpp" />
+    <ClCompile Include="..\..\xbox\common\src\xbutil.cpp" />
+    <ClCompile Include="..\..\xbox\control.c" />
+    <ClCompile Include="..\..\xbox\generic\2xsaiwin.c" />
+    <ClCompile Include="..\..\xbox\generic\custom_launch_params.cpp" />
+    <ClCompile Include="..\..\xbox\generic\graphicscontext.cpp" />
+    <ClCompile Include="..\..\xbox\generic\iosupport.cpp" />
+    <ClCompile Include="..\..\xbox\generic\panel.cpp" />
+    <ClCompile Include="..\..\xbox\generic\scale2x.cpp" />
+    <ClCompile Include="..\..\xbox\generic\simple2x.cpp" />
+    <ClCompile Include="..\..\xbox\generic\skin.cpp" />
+    <ClCompile Include="..\..\xbox\generic\SndXBOX.cxx" />
+    <ClCompile Include="..\..\xbox\generic\xboxport.cpp" />
+    <ClCompile Include="..\..\xbox\generic\xmldocument.cpp" />
+    <ClCompile Include="..\..\xbox\sblaster.c" />
+    <ClCompile Include="..\..\xbox\timer.c" />
+    <ClCompile Include="..\..\xbox\video.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\build.sh" />
+    <None Include="..\..\darwin.sh" />
+    <None Include="..\..\environ.sh" />
+    <None Include="..\..\fixindentation.sh" />
+    <None Include="..\..\fixtrailingwhitespace.sh" />
+    <None Include="..\..\source\gfxlib\2xSaImmx.asm" />
+    <None Include="..\..\source\gfxlib\bilinearmmx.asm" />
+    <None Include="..\..\source\gfxlib\hq2x16mmx.asm" />
+    <None Include="..\..\source\preprocessorlib\test\build.sh" />
+    <None Include="..\..\source\preprocessorlib\test\tokendiff.sh" />
+    <None Include="..\..\version.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\android\jni\openbor\button_png_800x480.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\ogg\config_types.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\ogg\ogg.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\ogg\os_types.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\png\png.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\png\pngconf.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\png\pnglibconf.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\begin_code.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\close_code.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_assert.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_atomic.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_audio.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_bits.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_blendmode.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_clipboard.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_android.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_iphoneos.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_macosx.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_minimal.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_pandora.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_psp.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_windows.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_winrt.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_config_wiz.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_copying.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_cpuinfo.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_egl.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_endian.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_error.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_events.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_filesystem.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_gamecontroller.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_gesture.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_haptic.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_hints.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_joystick.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_keyboard.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_keycode.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_loadso.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_log.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_main.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_messagebox.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_mouse.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_mutex.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_name.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengl.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengles.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengles2.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengles2_gl2.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengles2_gl2ext.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengles2_gl2platform.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengles2_khrplatform.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_opengl_glext.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_pixels.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_platform.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_power.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_quit.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_rect.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_render.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_revision.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_rwops.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_scancode.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_shape.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_stdinc.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_surface.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_system.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_syswm.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_assert.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_common.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_compare.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_crc32.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_font.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_fuzzer.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_harness.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_images.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_log.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_md5.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_memory.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_test_random.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_thread.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_timer.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_touch.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_types.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_version.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_video.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\sdl\SDL_vulkan.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\tremor\ivorbiscodec.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\tremor\ivorbisfile.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\svc_context.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vp8.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vp8cx.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vp8dx.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vpx_codec.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vpx_decoder.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vpx_encoder.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vpx_frame_buffer.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vpx_image.h" />
+    <ClInclude Include="..\..\android\jni\openbor\include\vpx\vpx_integer.h" />
+    <ClInclude Include="..\..\dc\bios.h" />
+    <ClInclude Include="..\..\dc\control.h" />
+    <ClInclude Include="..\..\dc\dcport.h" />
+    <ClInclude Include="..\..\dc\gdrom.h" />
+    <ClInclude Include="..\..\dc\sblaster.h" />
+    <ClInclude Include="..\..\dc\video.h" />
+    <ClInclude Include="..\..\openbor.h" />
+    <ClInclude Include="..\..\psp\audiodrv.h" />
+    <ClInclude Include="..\..\psp\control.h" />
+    <ClInclude Include="..\..\psp\control\control.h" />
+    <ClInclude Include="..\..\psp\dvemgr\dvemgr.h" />
+    <ClInclude Include="..\..\psp\graphics.h" />
+    <ClInclude Include="..\..\psp\image.h" />
+    <ClInclude Include="..\..\psp\kernel\kernel.h" />
+    <ClInclude Include="..\..\psp\menu.h" />
+    <ClInclude Include="..\..\psp\netcomm.h" />
+    <ClInclude Include="..\..\psp\pspport.h" />
+    <ClInclude Include="..\..\psp\sblaster.h" />
+    <ClInclude Include="..\..\psp\vertex.h" />
+    <ClInclude Include="..\..\psp\video.h" />
+    <ClInclude Include="..\..\resources\logviewer_320x240_png.h" />
+    <ClInclude Include="..\..\resources\logviewer_480x272_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Icon_128x128.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Icon_128x128_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Icon_128x48_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Icon_144x80_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Icon_32x32.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Icon_32x32_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_320x240.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_320x240_Link.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_320x240_Link_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_320x240_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_480x272.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_480x272_Link.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_480x272_Link_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Logo_480x272_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_320x240.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_320x240_Consoles_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_320x240_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_320x240_Sony_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_480x272.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_480x272_Consoles_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_480x272_png.h" />
+    <ClInclude Include="..\..\resources\OpenBOR_Menu_480x272_Sony_png.h" />
+    <ClInclude Include="..\..\sdl\control.h" />
+    <ClInclude Include="..\..\sdl\gp2x\gp2xport.h" />
+    <ClInclude Include="..\..\sdl\hankaku.h" />
+    <ClInclude Include="..\..\sdl\joysticks.h" />
+    <ClInclude Include="..\..\sdl\loadgl.h" />
+    <ClInclude Include="..\..\sdl\menu.h" />
+    <ClInclude Include="..\..\sdl\opengl.h" />
+    <ClInclude Include="..\..\sdl\sblaster.h" />
+    <ClInclude Include="..\..\sdl\sdlport.h" />
+    <ClInclude Include="..\..\sdl\video.h" />
+    <ClInclude Include="..\..\sdl\videocommon.h" />
+    <ClInclude Include="..\..\source\adpcmlib\adpcm.h" />
+    <ClInclude Include="..\..\source\gamelib\anigif.h" />
+    <ClInclude Include="..\..\source\gamelib\bitmap.h" />
+    <ClInclude Include="..\..\source\gamelib\borendian.h" />
+    <ClInclude Include="..\..\source\gamelib\draw.h" />
+    <ClInclude Include="..\..\source\gamelib\filecache.h" />
+    <ClInclude Include="..\..\source\gamelib\filters.h" />
+    <ClInclude Include="..\..\source\gamelib\font.h" />
+    <ClInclude Include="..\..\source\gamelib\loadimg.h" />
+    <ClInclude Include="..\..\source\gamelib\models.h" />
+    <ClInclude Include="..\..\source\gamelib\packfile.h" />
+    <ClInclude Include="..\..\source\gamelib\palette.h" />
+    <ClInclude Include="..\..\source\gamelib\screen.h" />
+    <ClInclude Include="..\..\source\gamelib\soundmix.h" />
+    <ClInclude Include="..\..\source\gamelib\sprite.h" />
+    <ClInclude Include="..\..\source\gamelib\spriteq.h" />
+    <ClInclude Include="..\..\source\gamelib\threads.h" />
+    <ClInclude Include="..\..\source\gamelib\timer.h" />
+    <ClInclude Include="..\..\source\gamelib\transform.h" />
+    <ClInclude Include="..\..\source\gamelib\translation.h" />
+    <ClInclude Include="..\..\source\gamelib\types.h" />
+    <ClInclude Include="..\..\source\gamelib\vga.h" />
+    <ClInclude Include="..\..\source\gamelib\writepixel.h" />
+    <ClInclude Include="..\..\source\gfxlib\gfx.h" />
+    <ClInclude Include="..\..\source\gfxlib\gfxtypes.h" />
+    <ClInclude Include="..\..\source\gfxlib\hq2x.h" />
+    <ClInclude Include="..\..\source\gfxlib\interp.h" />
+    <ClInclude Include="..\..\source\gfxlib\lq2x.h" />
+    <ClInclude Include="..\..\source\globals.h" />
+    <ClInclude Include="..\..\source\omath.h" />
+    <ClInclude Include="..\..\source\openborscript\axis.h" />
+    <ClInclude Include="..\..\source\openborscript\binding.h" />
+    <ClInclude Include="..\..\source\openborscript\commands.h" />
+    <ClInclude Include="..\..\source\openborscript\config.h" />
+    <ClInclude Include="..\..\source\openborscript\energy_status.h" />
+    <ClInclude Include="..\..\source\openborscript\entity.h" />
+    <ClInclude Include="..\..\source\openborscript\scriptcommon.h" />
+    <ClInclude Include="..\..\source\pnglib\pngdec.h" />
+    <ClInclude Include="..\..\source\pnglib\savepng.h" />
+    <ClInclude Include="..\..\source\preprocessorlib\pp_expr.h" />
+    <ClInclude Include="..\..\source\preprocessorlib\pp_lexer.h" />
+    <ClInclude Include="..\..\source\preprocessorlib\pp_parser.h" />
+    <ClInclude Include="..\..\source\ramlib\ram.h" />
+    <ClInclude Include="..\..\source\randlib\rand32.h" />
+    <ClInclude Include="..\..\source\safealloc.h" />
+    <ClInclude Include="..\..\source\savedata.h" />
+    <ClInclude Include="..\..\source\scriptlib\depends.h" />
+    <ClInclude Include="..\..\source\scriptlib\FirstFollow.h" />
+    <ClInclude Include="..\..\source\scriptlib\ImportCache.h" />
+    <ClInclude Include="..\..\source\scriptlib\Instruction.h" />
+    <ClInclude Include="..\..\source\scriptlib\Interpreter.h" />
+    <ClInclude Include="..\..\source\scriptlib\Lexer.h" />
+    <ClInclude Include="..\..\source\scriptlib\List.h" />
+    <ClInclude Include="..\..\source\scriptlib\Parser.h" />
+    <ClInclude Include="..\..\source\scriptlib\ParserSet.h" />
+    <ClInclude Include="..\..\source\scriptlib\Productions.h" />
+    <ClInclude Include="..\..\source\scriptlib\ScriptVariant.h" />
+    <ClInclude Include="..\..\source\scriptlib\Stack.h" />
+    <ClInclude Include="..\..\source\scriptlib\StackedSymbolTable.h" />
+    <ClInclude Include="..\..\source\scriptlib\SymbolTable.h" />
+    <ClInclude Include="..\..\source\stringptr.h" />
+    <ClInclude Include="..\..\source\stristr.h" />
+    <ClInclude Include="..\..\source\tracelib2\tracelib2.h" />
+    <ClInclude Include="..\..\source\utils.h" />
+    <ClInclude Include="..\..\source\webmlib\halloc\align.h" />
+    <ClInclude Include="..\..\source\webmlib\halloc\halloc.h" />
+    <ClInclude Include="..\..\source\webmlib\halloc\hlist.h" />
+    <ClInclude Include="..\..\source\webmlib\halloc\macros.h" />
+    <ClInclude Include="..\..\source\webmlib\nestegg\nestegg.h" />
+    <ClInclude Include="..\..\source\webmlib\samplecvt.h" />
+    <ClInclude Include="..\..\source\webmlib\vidplay.h" />
+    <ClInclude Include="..\..\source\webmlib\vorbis.h" />
+    <ClInclude Include="..\..\source\webmlib\vorbisfpu.h" />
+    <ClInclude Include="..\..\source\webmlib\yuv.h" />
+    <ClInclude Include="..\..\symbian\vsnprintf.h" />
+    <ClInclude Include="..\..\version.h" />
+    <ClInclude Include="..\..\vita\control.h" />
+    <ClInclude Include="..\..\vita\hankaku.h" />
+    <ClInclude Include="..\..\vita\menu.h" />
+    <ClInclude Include="..\..\vita\sblaster.h" />
+    <ClInclude Include="..\..\vita\video.h" />
+    <ClInclude Include="..\..\vita\vitaport.h" />
+    <ClInclude Include="..\..\wii\control.h" />
+    <ClInclude Include="..\..\wii\hankaku.h" />
+    <ClInclude Include="..\..\wii\menu.h" />
+    <ClInclude Include="..\..\wii\sblaster.h" />
+    <ClInclude Include="..\..\wii\video.h" />
+    <ClInclude Include="..\..\wii\wiiport.h" />
+    <ClInclude Include="..\..\xbox\common\include\png.h" />
+    <ClInclude Include="..\..\xbox\common\include\pngconf.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbapp.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbfont.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbhelp.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbinput.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbmesh.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbresource.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbsound.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbstopwatch.h" />
+    <ClInclude Include="..\..\xbox\common\include\xbutil.h" />
+    <ClInclude Include="..\..\xbox\common\include\zconf.h" />
+    <ClInclude Include="..\..\xbox\common\include\zlib.h" />
+    <ClInclude Include="..\..\xbox\control.h" />
+    <ClInclude Include="..\..\xbox\generic\2xsaiwin.h" />
+    <ClInclude Include="..\..\xbox\generic\configuration.h" />
+    <ClInclude Include="..\..\xbox\generic\custom_launch_params.h" />
+    <ClInclude Include="..\..\xbox\generic\gamescreen.h" />
+    <ClInclude Include="..\..\xbox\generic\graphicscontext.h" />
+    <ClInclude Include="..\..\xbox\generic\iosupport.h" />
+    <ClInclude Include="..\..\xbox\generic\keyboard_api.h" />
+    <ClInclude Include="..\..\xbox\generic\panel.h" />
+    <ClInclude Include="..\..\xbox\generic\skin.h" />
+    <ClInclude Include="..\..\xbox\generic\SndXBOX.hxx" />
+    <ClInclude Include="..\..\xbox\generic\undocumented.h" />
+    <ClInclude Include="..\..\xbox\generic\wnaspi32.h" />
+    <ClInclude Include="..\..\xbox\generic\xboxport.h" />
+    <ClInclude Include="..\..\xbox\generic\xmldocument.h" />
+    <ClInclude Include="..\..\xbox\sblaster.h" />
+    <ClInclude Include="..\..\xbox\vga.h" />
+    <ClInclude Include="..\..\xbox\video.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\android\res\drawable-hdpi\icon.png" />
+    <Image Include="..\..\android\res\drawable-ldpi\icon.png" />
+    <Image Include="..\..\android\res\drawable-mdpi\icon.png" />
+    <Image Include="..\..\resources\BOR_Menu_Font_1.gif" />
+    <Image Include="..\..\resources\BOR_Menu_Font_2.gif" />
+    <Image Include="..\..\resources\BOR_Menu_Font_3.gif" />
+    <Image Include="..\..\resources\OpenBOR_Icon_128x128.png" />
+    <Image Include="..\..\resources\OpenBOR_Icon_128x48.png" />
+    <Image Include="..\..\resources\OpenBOR_Icon_144x80.png" />
+    <Image Include="..\..\resources\OpenBOR_Logo_320x240.png" />
+    <Image Include="..\..\resources\OpenBOR_Logo_320x240_Link.png" />
+    <Image Include="..\..\resources\OpenBOR_Logo_480x272.png" />
+    <Image Include="..\..\resources\OpenBOR_Logo_480x272_Link.png" />
+    <Image Include="..\..\resources\OpenBOR_Menu_320x240.png" />
+    <Image Include="..\..\resources\OpenBOR_Menu_320x240_Consoles.png" />
+    <Image Include="..\..\resources\OpenBOR_Menu_320x240_Sony.png" />
+    <Image Include="..\..\resources\OpenBOR_Menu_480x272.png" />
+    <Image Include="..\..\resources\OpenBOR_Menu_480x272_Consoles.png" />
+    <Image Include="..\..\resources\OpenBOR_Menu_480x272_Sony.png" />
+    <Image Include="..\..\resources\vita_icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\android\jni\openbor\Development.txt" />
+    <Text Include="..\..\android\proguard-project.txt" />
+    <Text Include="..\..\android\Readthis.txt" />
+    <Text Include="..\..\releases\COMPILING.txt" />
+    <Text Include="..\..\releases\LICENSE.txt" />
+    <Text Include="..\..\releases\README.txt" />
+    <Text Include="..\..\releases\translation.txt" />
+    <Text Include="..\..\resources\PSP Readme.txt" />
+    <Text Include="..\..\translation.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
