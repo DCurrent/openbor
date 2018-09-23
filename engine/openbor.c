@@ -19525,8 +19525,6 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 int check_blocking_rules(entity *ent)
 {
 
-    printf("\n\n debug_trace - check_blocking_rules");
-
     // If already blocking we can
     // forget the rest and return
     // true right away.
@@ -19535,15 +19533,11 @@ int check_blocking_rules(entity *ent)
         return 1;
     }
 
-    printf("\n debug_trace - ent->blocking passed");
-
     // No blocking animation?
     if(!validanim(ent, ANI_BLOCK))
     {
         return 0;
     }
-
-    printf("\n debug_trace - validanim(ent, ANI_BLOCK) passed");
 
     // Have to be idle.
     if(!ent->idling)
@@ -19551,15 +19545,11 @@ int check_blocking_rules(entity *ent)
         return 0;
     }
 
-    printf("\n debug_trace - ent->idling passed");
-
     // AI can't be attacking.
     if(ent->attacking == ATTACKING_ACTIVE)
     {
         return 0;
     }
-
-    printf("\n debug_trace - ent->attacking passed");
 
     // Grappling?
     if(ent->link)
@@ -19567,15 +19557,11 @@ int check_blocking_rules(entity *ent)
         return 0;
     }
 
-    printf("\n debug_trace - ent->link passed");
-
     //  Airborne?
     if(inair(ent))
     {
         return 0;
     }
-
-    printf("\n debug_trace - inair(ent) passed");
 
     // Frozen?
     if(ent->frozen)
@@ -19583,15 +19569,11 @@ int check_blocking_rules(entity *ent)
         return 0;
     }
 
-    printf("\n debug_trace - ent->frozen passed");
-
     // Falling?
     if(ent->falling)
     {
         return 0;
     }
-
-    printf("\n debug_trace - ent->falling passed");
 
     return 1;
 }
@@ -19638,8 +19620,6 @@ int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack
 
     entity_type = ent->modeldata.type;
 
-    printf("\n\n check_blocking_master");
-
     // 2018-09-17, we only distinguish between
     // players and everything else, but let's use
     // a Switch instead of an IF in case we ever
@@ -19672,8 +19652,6 @@ int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack
                 return 0;
             }
 
-            printf("\n check_blocking_rules passed");
-
             // Now that we know AI is allowed
             // to block let's find out if it
             // wants to.
@@ -19682,15 +19660,11 @@ int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack
                 return 0;
             }
 
-            printf("\n check_blocking_decision passed");
-
             // Verify the attack can be blocked.
             if(!check_blocking_eligible(ent, other, attack))
             {
                 return 0;
             }
-
-            printf("\n check_blocking_eligible passed");
 
             break;
     }
