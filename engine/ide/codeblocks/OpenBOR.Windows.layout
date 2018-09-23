@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<FileVersion major="1" minor="0" />
+	<ActiveTarget name="Release" />
+	<File name="..\source\gamelib\transform.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="23820" topLine="869" />
+		</Cursor>
+	</File>
+	<File name="..\openborscript.c" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="279901" topLine="11034" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\SDL_android_main.cpp" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\constants.c" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2279" topLine="57" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\anigif.c" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10710" topLine="377" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\pixelformat.c" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="18975" topLine="291" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\math.c" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4615" topLine="77" />
+		</Cursor>
+	</File>
+	<File name="..\openbor.h" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="72793" topLine="2141" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_config_android.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2836" topLine="26" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\index.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="23028" topLine="840" />
+		</Cursor>
+	</File>
+	<File name="..\source\randlib\rand32.c" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="273" topLine="8" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\spriteq.c" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4723" topLine="157" />
+		</Cursor>
+	</File>
+	<File name="..\source\randlib\rand32.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="275" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\sprite.c" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="531" topLine="238" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_opengles2_gl2.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="12288" topLine="233" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\axis.c" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="25958" topLine="849" />
+		</Cursor>
+	</File>
+	<File name="..\openbor.c" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="-1" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="644072" topLine="19591" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\draw16.c" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="628" topLine="18" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\scriptcommon.h" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2236" topLine="9" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\binding.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="79" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\entity.h" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2016" topLine="1" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\screen.c" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10234" topLine="489" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\png\png.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="18651" topLine="358" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\sprite.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2711" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_gamecontroller.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3071" topLine="74" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\binding.c" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="7252" topLine="221" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_opengl.h" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="24221" topLine="723" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\collision_coordinates.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="0" topLine="11" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\commands.c" open="0" top="0" tabpos="10" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="18533" topLine="350" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\ogg\ogg.h" open="0" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="568" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\draw.c" open="0" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="7515" topLine="168" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_haptic.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="21582" topLine="624" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\spritex8p32.c" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4875" topLine="125" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\entity.c" open="0" top="0" tabpos="11" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="9185" topLine="303" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\soundmix.c" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="18976" topLine="1666" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_render.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="32440" topLine="762" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\transform.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="299" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\config.h" open="0" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="340" topLine="2" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_hints.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="20157" topLine="440" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\draw.h" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="237" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\types.h" open="0" top="0" tabpos="8" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="5787" topLine="231" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\draw32.c" open="0" top="0" tabpos="7" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="889" topLine="29" />
+		</Cursor>
+	</File>
+	<File name="..\android\jni\openbor\include\sdl\SDL_opengl_glext.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="149848" topLine="2007" />
+		</Cursor>
+	</File>
+	<File name="..\xbox\generic\panel.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="58892" topLine="1405" />
+		</Cursor>
+	</File>
+	<File name="..\source\openborscript\commands.h" open="0" top="0" tabpos="9" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="14142" topLine="480" />
+		</Cursor>
+	</File>
+	<File name="..\xbox\generic\panel.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="4097" topLine="38" />
+		</Cursor>
+	</File>
+	<File name="..\source\gamelib\font.c" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="10691" topLine="496" />
+		</Cursor>
+	</File>
+</CodeBlocks_layout_file>
