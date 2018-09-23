@@ -1,6 +1,20 @@
- # OpenBOR
-OpenBOR is a continuation of the Beats Of Rage 2D game engine, which was originally
-created by the wonderful folks over at [Senile Team](http://www.senileteam.com). 
+ # Overview
+ 
+OpenBOR is a royalty free sprite based side scrolling gaming engine. From humble beginnings in 2004, it has since grown into the most versatile, easy to use, and powerful engine of its type you will find anywhere. OpenBOR is optimized for side scrolling beat em’ up style games (Double Dragon, Streets of Rage, Final Fight), but easily accommodates any sort of gameplay style and feature set you can imagine. 
+
+Want to try your hand at game making? Open up one of the already existing modules and tinker around – the community is right here to help you along.
+
+Ready to make something of your own? Get some images together and away you go! 
+
+Feeling ambitious? Delve into the built in script engine and graphical suite to build a masterpiece rivaling the most outlandish professional game productions. Sell it if you if can!
+
+To find out more, stop into the OpenBOR community at [ChronoCrash.com](chronocrash.com). You will also find dozens of game modules already finished to download and play.
+
+[![Masters of The Universe](http://img.youtube.com/vi/GOsYJkdqbOk/0.jpg)](https://www.youtube.com/watch?v=GOsYJkdqbOk&t=2m41s "Masters of The Universe")
+
+[![Streets of Rage2X](http://img.youtube.com/vi/TbZD1pWsJeI/0.jpg)](https://www.youtube.com/watch?v=TbZD1pWsJeI "Streets of Rage2X Preview")
+
+[![Mortal Kombat Outworld Assassins](http://img.youtube.com/vi/FTkayebZK9w/0.jpg)](https://www.youtube.com/watch?v=FTkayebZK9w&t=1m27s "Mortal Kombat Outworld Assassins")
 
 ## History
 In 2004, [Senile Team](http://www.senileteam.com) released Beats of Rage, a free beat-'em-up for DOS inspired
