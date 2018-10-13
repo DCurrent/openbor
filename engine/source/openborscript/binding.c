@@ -318,3 +318,44 @@ HRESULT openbor_set_binding_property(ScriptVariant **varlist, ScriptVariant **pr
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
+
+// Caskey, Damon  V.
+// 2018-10-11
+//
+// Run engine's internal bind update function.
+HRESULT openbor_update_binding(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+{
+#define SELF_NAME           "update_binding(void entity)"
+#define ARG_MINIMUM         1   // Minimum required arguments.
+#define ARG_ENTITY          0   // Target entity.
+
+	int		result	= S_OK;	// Success or error?
+	entity	*ent	= NULL; // Target entity.
+
+	// Verify incoming arguments.
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_ENTITY]->vt != VT_PTR)
+	{
+		*pretvar = NULL;
+		goto error_local;
+	}
+
+	// Populate local handle and property vars.
+	ent = (entity *)varlist[ARG_ENTITY]->ptrVal;
+
+	adjust_bind(ent);
+
+	return result;
+
+	// Error trapping.
+error_local:
+
+	printf("You must provide a valid entity: " SELF_NAME "\n");
+
+	result = E_FAIL;
+	return result;
+
+#undef SELF_NAME
+#undef ARG_MINIMUM
+#undef ARG_ENTITY
+}
