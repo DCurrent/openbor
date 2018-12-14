@@ -10122,36 +10122,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     newanim->range.x.min = -10;
                 }
-                newanim->range.x.max            = (int)newchar->jumpheight * 20;       //30-12-2004 default range affected by jump height
-                newanim->range.z.min            = (int) - newchar->grabdistance / 3;   //zmin
-                newanim->range.z.max            = (int)newchar->grabdistance / 3;      //zmax
-                newanim->range.y.min            = T_MIN_BASEMAP;                               //amin
-                
-				// Vertical range default.
-				// If we have a model height, then double it.
-				// Otherwise use half the vertical screen size.
-				if (newchar->size.y)
-				{
-					newanim->range.y.max = newchar->size.y * 2;
-				}
-				else
-				{
-					newanim->range.y.max = videomodes.vRes / 2;
-				}
-				
-                newanim->range.base.min         = T_MIN_BASEMAP;                            //Base min.
-				
-				// Base range default.
-				// Same logic as veritcal range default.
-				if (newchar->size.y)
-				{
-					newanim->range.base.max = newchar->size.y * 2;
-				}
-				else
-				{
-					newanim->range.base.max = videomodes.vRes / 2;
-				}
-
+                newanim->range.x.max            = (int)newchar->jumpheight * 20;		// 30-12-2004 default range affected by jump height
+                newanim->range.z.min            = (int) - newchar->grabdistance / 3;	//zmin
+                newanim->range.z.max            = (int)newchar->grabdistance / 3;		//zmax
+                newanim->range.y.min            = T_MIN_BASEMAP;						//amin
+				newanim->range.y.max			= (int)newchar->jumpheight * 20;		// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
+                newanim->range.base.min         = T_MIN_BASEMAP;						// Base min.				
+				newanim->range.base.max			= (int)newchar->jumpheight * 20;		// Just use same logic as range Y.
                 newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
