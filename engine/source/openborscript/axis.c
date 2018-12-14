@@ -786,7 +786,7 @@ HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist, Scrip
 
         case _AXIS_PRINCIPAL_Y:
 
-            handle->x = temp_double;
+            handle->y = temp_double;
 
             break;
 
