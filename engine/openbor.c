@@ -4984,8 +4984,8 @@ static void load_playable_list(char *buf)
 
 void alloc_specials(s_model *newchar)
 {
-    newchar->special = realloc(newchar->special, sizeof(*newchar->special) * (newchar->specials_loaded + 1));
-    memset(newchar->special + newchar->specials_loaded, 0, sizeof(*newchar->special));
+    newchar->special = realloc(newchar->special, sizeof(s_com) * (newchar->specials_loaded + 1));
+    memset(newchar->special + newchar->specials_loaded, 0, sizeof(s_com));
 }
 
 void alloc_frames(s_anim *anim, int fcount)
@@ -8456,7 +8456,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->defense		        = calloc(max_attack_types + 1, sizeof(*newchar->defense));
     newchar->offense_factors        = calloc(max_attack_types + 1, sizeof(*newchar->offense_factors));
 
-    newchar->special                = calloc(1, sizeof(*newchar->special));
+    newchar->special                = calloc(1, sizeof(s_com));
 
     alloc_all_scripts(&newchar->scripts);
 
