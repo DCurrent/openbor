@@ -171,11 +171,11 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				break;
 
 			case SDL_JOYBUTTONDOWN:
-				// FIXME: restore GP2X controls
 				for(i=0; i<JOY_LIST_TOTAL; i++)
 				{
-					if(ev.jbutton.which == i)
+					if (SDL_JoystickInstanceID(joystick[i]) == ev.jbutton.which)
 					{
+						//printf("Button down: controller %i, button %i\n", i, ev.jbutton.button);
 						lastjoy = 1 + i * JOY_MAX_INPUTS + ev.jbutton.button;
 
 						// add key flag from event
@@ -189,7 +189,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 			case SDL_JOYHATMOTION:
 				for(i=0; i<JOY_LIST_TOTAL; i++)
 				{
-					if(ev.jhat.which == i)
+					if (SDL_JoystickInstanceID(joystick[i]) == ev.jhat.which)
 					{
 						int hatfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*joysticks[i].NumAxes + 4*ev.jhat.hat;
 						x = (joysticks[i].Hats >> (4*ev.jhat.hat)) & 0x0F; // hat's previous state
@@ -213,7 +213,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 			case SDL_JOYAXISMOTION:
 				for(i=0; i<JOY_LIST_TOTAL; i++)
 				{
-					if(ev.jaxis.which == i)
+					if (SDL_JoystickInstanceID(joystick[i]) == ev.jaxis.which)
 					{
 						int axisfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*ev.jaxis.axis;
 						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 0x03; // previous state of axis
