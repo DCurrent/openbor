@@ -30735,6 +30735,7 @@ int check_costmove(int s, int fs, int jumphack)
             }
         }
 
+		self->running = 0;
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = 0;
