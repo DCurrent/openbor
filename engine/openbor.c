@@ -10854,11 +10854,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    newchar->flash = -1;
+                    attack.hitflash = -1;
                 }
                 else
                 {
-                    newchar->flash = get_cached_model_index(value);
+                    attack.hitflash = get_cached_model_index(value);
                 }
                 break;
 
