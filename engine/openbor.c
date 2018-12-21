@@ -19902,7 +19902,7 @@ void do_attack(entity *e)
         }
 
         // Check collision. If a collision
-        // is found, lasthit the impacting
+        // is found, the impacting
         // collision pointers are also
         // populated into lasthit, which
         // we will use below.
@@ -19922,7 +19922,7 @@ void do_attack(entity *e)
 
         // Verify target is invincible,
         // or attack type is an item.
-        // This is too allow item collection
+        // This is to allow item collection
         // even while invincible.
         if(target->invincible)
         {
@@ -19933,7 +19933,7 @@ void do_attack(entity *e)
         }
 
         // If attack is set to only hit
-        // one entity at a _time (attackone),
+        // one entity at a time (attackone),
         // we verify last hit (lasthit) is
         // set. If last hit is set and
         // differs from current target,
@@ -19957,7 +19957,7 @@ void do_attack(entity *e)
             continue;
         }
 
-        // Pain _time must have expired.
+        // Pain time must have expired.
         // This is to allow reasonable delay
         // between hits so engine will not
         // run hit on every update.
@@ -29242,46 +29242,93 @@ void player_die()
 
     if(player[playerindex].lives <= 0)
     {
-        int all_p_alive = 0;
+        int all_p_ko = 0;
 
+		// Count number of KO'd (dead) players, by looping player
+		// indexes and incrementing when player does not have
+		// an entity.
         for(i = 0; i < MAX_PLAYERS; i++)
         {
-            if (!player[i].ent) ++all_p_alive;
+			if (!player[i].ent)
+			{
+				++all_p_ko;
+			}
         }
-        all_p_alive = (all_p_alive >= MAX_PLAYERS) ? 1 : 0;
+        
+		// If all players are KO'd, then KO count = 1.
+		// Otherwise, set it to 0.
+		all_p_ko = (all_p_ko >= MAX_PLAYERS) ? 1 : 0;
 
-        //if(!player[0].ent && !player[1].ent && !player[2].ent && !player[3].ent)
-        if(all_p_alive)
+		// All players KO'd?
+        if(all_p_ko)
         {
-            int all_p_nojoin = 0, all_p_nocredits = 0;
+			int all_p_nojoin = 0;
+			int all_p_nocredits = 0;
 
+			// All players NOT joining?
+			// Same logic as all player KO. 
             for(i = 0; i < MAX_PLAYERS; i++)
             {
-                if (!player[i].joining) ++all_p_nojoin;
+				if (!player[i].joining)
+				{
+					++all_p_nojoin;
+				}
             }
+
             all_p_nojoin = (all_p_nojoin >= MAX_PLAYERS) ? 1 : 0;
 
+			// All players out of credits?
+			// Same logic as all player KO.
             for(i = 0; i < MAX_PLAYERS; i++)
             {
-                if (player[i].credits < 1) ++all_p_nocredits;
-            }
+				if (player[i].credits < 1)
+				{
+					++all_p_nocredits;
+				}
+            }			
+
             all_p_nocredits = (all_p_nocredits >= MAX_PLAYERS) ? 1 : 0;
 
+			// Set the timer to a 10 second count down.
             timeleft = 10 * COUNTER_SPEED;
-            if(all_p_nojoin && ((!noshare && credits < 1) || all_p_nocredits) )
+
+			// No one joining in?
+            if(all_p_nojoin)
             {
-                timeleft = COUNTER_SPEED / 2;
+				// If the player can't continue, let's set the time over
+				// to end almost instantly so they won't have to wait.
+
+				// If noshare is enabled, credit shares are not allowed. Verify all 
+				// player individual credit supplies are empty. Otherwise credit
+				// shares are allowed, so verify pool of credits is empty.
+				if (noshare)
+				{
+					if (all_p_nocredits)
+					{
+						timeleft = COUNTER_SPEED / 2;
+					}					
+				}
+				else
+				{
+					if (credits < 1)
+					{
+						timeleft = COUNTER_SPEED / 2;
+					}
+				}
             }
         }
+
         if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_CHANGE)
         {
             player[playerindex].weapnum = level->setweap;
         }
+
         if(nomaxrushreset[4] != 2)
         {
             nomaxrushreset[playerindex] = 0;
         }
-        return;
+        
+		return;
     }
     else
     {
@@ -35960,8 +36007,8 @@ int playlevel(char *filename)
 
     unload_level();
 
-    //|| (player[0].lives > 0 || player[1].lives > 0 || player[2].lives > 0 || player[3].lives > 0)
-    for(i = 0; i < MAX_PLAYERS; i++)
+    // Are any players alive?
+	for(i = 0; i < MAX_PLAYERS; i++)
     {
         if (player[i].lives > 0)
         {
@@ -35970,7 +36017,7 @@ int playlevel(char *filename)
         }
     }
 
-    return ( (type == 2 && endgame != 2) || p_alive );
+    return ((type == 2 && endgame != 2) || p_alive);
 }
 
 
