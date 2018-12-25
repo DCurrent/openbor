@@ -10794,19 +10794,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.attack_type = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
-                recursive.force = GET_INT_ARG(1);
+				recursive.force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX:
-                recursive.index = GET_INT_ARG(1);
+				recursive.index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
-                recursive.mode = GET_INT_ARG(1);
+				recursive.mode = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
-                recursive.rate = GET_INT_ARG(1);
+				recursive.rate = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE:
-                recursive.time = GET_INT_ARG(1);
+				recursive.time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_FORCE:
                 attack.attack_drop = GET_INT_ARG(1);
@@ -22292,15 +22292,23 @@ void display_ents()
                             }
                         }
                     }
-                    if(e->dying)    // Code for doing dying flash
+
+					// If we have a dying remap, let's check for the dying flash effect.
+                    if(e->dying)
                     {
+						// This checks against both drying percentage thresholds and their assciated 
+						// timing. If any pass, then we can move on and apply a flash.
                         if((e->energy_status.health_current <= e->per1 && e->energy_status.health_current > e->per2 && (_time % (GAME_SPEED / 5)) < (GAME_SPEED / 10)) ||
                                 (e->energy_status.health_current <= e->per2 && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
                         {
+							// Have any HP left?
                             if(e->energy_status.health_current > 0 )
                             {
+								// Do we have a second dying map? If not, we just use map 1.
                                 if(e->dying2 > 0)
                                 {
+									// If health is between percentage 1 and 2, use map 1. Otherwise
+									// use map 2.
                                     if(e->energy_status.health_current <= e->per1 && e->energy_status.health_current > e->per2)
                                     {
                                         drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
@@ -22310,21 +22318,30 @@ void display_ents()
                                         drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying2);
                                     }
                                 }
-                                else drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
+								else
+								{
+									drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
+								}
                             }
                         }
                     }
 
+					// Draw the entity according to its facing.
                     if(e->direction == DIRECTION_LEFT)
                     {
+						// Reverse the drawmethod flipx.
                         drawmethod->flipx = !drawmethod->flipx;
-                        if(drawmethod->fliprotate && drawmethod->rotate)
+                        
+						// If the flip rotate is enabled, reverse the
+						// rotation setting.
+						if(drawmethod->fliprotate && drawmethod->rotate)
                         {
                             drawmethod->rotate = 360 - drawmethod->rotate;
                         }
                     }
 
-                    if(!use_mirror || z > MIRROR_Z) // don't display if behind the mirror
+					// don't display if behind the mirror
+                    if(!use_mirror || z > MIRROR_Z) 
                     {
                         //just a simple check, doesn't work with mirror nor gfxshadow
                         if(drawmethod->clipw)
