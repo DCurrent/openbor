@@ -22234,12 +22234,9 @@ void display_ents()
                         z = HOLE_Z + e->modeldata.setlayer;    // Setlayer takes precedence
                     }
 
-                    //UT: commented this out, it seems to be some legacy code, ==2 doesn't make sense anymore
-                    //if(checkhole(e->position.x, e->position.z)==2) z = PANEL_Z-1;        // place behind panels
-
                     drawmethod = e->animation->drawmethods ? getDrawMethod(e->animation, e->animpos) : NULL;
-                    //drawmethod = e->animation->drawmethods?e->animation->drawmethods[e->animpos]:NULL;
-                    if(e->drawmethod.flag)
+                    
+					if(e->drawmethod.flag)
                     {
                         drawmethod = &(e->drawmethod);
                     }
@@ -22261,27 +22258,51 @@ void display_ents()
                         }
                     }
 
+					// Color selection. If drawmethod does not yet have a color table pointer, then
+					// we need to find one here.
                     if(!drawmethod->table)
                     {
-
-                        if(drawmethod->remap >= 1 && drawmethod->remap <= e->modeldata.maps_loaded)
+						// Drawmethod remap by index. Is there a value?
+                        if(drawmethod->remap >= 1)
                         {
-                            drawmethod->table = model_get_colourmap(&(e->modeldata), drawmethod->remap);
+							// Does the value fall within range of tables loaded? If so, use 
+							// value to locate the color table by index, and then populate
+							// drawmethod table value with the color table pointer.
+							if (drawmethod->remap <= e->modeldata.maps_loaded)
+							{
+								drawmethod->table = model_get_colourmap(&(e->modeldata), drawmethod->remap);
+							}                            
                         }
 
+						// Color selection by entity property. Does it have a value? Note that script functions
+						// and most text values in OpenBOR give the appearance this property is an integer index. 
+						// In actuality those functions accept an index, but immediately use it to locate a color 
+						// table pointer to populate this property. See ent_set_colourmap.
                         if(e->colourmap)
                         {
+							// We don't want to override drawmethods, so first check drawmethod 
+							// remap to make sure it is disabled (0 = force default, 1+ force alternates).
+							// If it is (dsiabled) then use property value to populate drawmethod table.
                             if(drawmethod->remap < 0)
                             {
                                 drawmethod->table = e->colourmap;
                             }
                         }
+
+						// If we haven't populated the drawmethod table yet, use
+						// model's default color table.
                         if(!drawmethod->table)
                         {
                             drawmethod->table = e->modeldata.palette;
                         }
+
+						// If globalmap is true, then author wants entity to use the current
+						// global color table.
                         if(e->modeldata.globalmap)
                         {
+							// If we are in a level and the level has a palette index specified,
+							// then use that index to find the color table pointer and populate
+							// drawmethod table. Otherwise, just get the global color table pointer.
                             if(level && current_palette)
                             {
                                 drawmethod->table = level->palettes[current_palette - 1];
@@ -22296,7 +22317,7 @@ void display_ents()
 					// If we have a dying remap, let's check for the dying flash effect.
                     if(e->dying)
                     {
-						// This checks against both drying percentage thresholds and their assciated 
+						// This checks against both dying percentage thresholds and their associated 
 						// timing. If any pass, then we can move on and apply a flash.
                         if((e->energy_status.health_current <= e->per1 && e->energy_status.health_current > e->per2 && (_time % (GAME_SPEED / 5)) < (GAME_SPEED / 10)) ||
                                 (e->energy_status.health_current <= e->per2 && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
