@@ -19979,8 +19979,10 @@ void do_attack(entity *e)
             continue;
         }
 
-        // Target laying down? Exit if
+		// Target laying down? Exit if
         // attack only hits standing targets.
+		// Otherwise exit if attack only hits 
+		// grounded targets.
         if(target->takeaction == common_lie)
         {
             if(attack->otg == OTG_NONE)
@@ -19988,11 +19990,8 @@ void do_attack(entity *e)
                 continue;
             }
         }
-
-        // Target NOT laying down? Exit if
-        // attack only hits grounded targets.
-        if(target->takeaction != common_lie)
-        {
+		else
+		{
             if(attack->otg == OTG_GROUND_ONLY)
             {
                 continue;
