@@ -24355,9 +24355,10 @@ void common_block()
 		|| (!self->animating && (!hb1 || !hb2)))
     {
 		// Can't release block until pain flag
-		// disables. This forces blockpain animations
-		// to finish.
-		if (!self->inpain)
+		// disables or the animation is complete. This 
+		// forces blockpain animations to finish before
+		// entity can act again.
+		if (!self->inpain || !self->animating)
 		{
 			self->blocking = 0;
 			self->takeaction = NULL;
