@@ -36,6 +36,7 @@ These platforms are actively supported and may be compiled with the latest OpenB
 * Android
 * Windows
 * Linux
+* Mac OS X
 * Wii
 * PSP
 
@@ -46,7 +47,6 @@ The following platforms are still available as legacy binaries, but are no longe
 * Dreamcast
 * GP2X
 * GP2X Wiz
-* Mac OS X
 * OpenDingux (Dingoo A320 & GCW-Zero)
 
 ## OpenBOR Team
