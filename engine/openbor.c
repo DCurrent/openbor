@@ -24392,9 +24392,10 @@ void common_block()
 		|| (!self->animating && (!hb1 || !hb2)))
     {
 		// Can't release block until pain flag
-		// disables. This forces blockpain animations
-		// to finish.
-		if (!self->inpain)
+		// disables or the animation is complete. This 
+		// forces blockpain animations to finish before
+		// entity can act again.
+		if (!self->inpain || !self->animating)
 		{
 			self->blocking = 0;
 			self->takeaction = NULL;
@@ -25266,22 +25267,37 @@ int common_try_runattack(entity *target)
     return 0;
 }
 
+// Passive blocking (AI takes block position before attack 
+// hits like a player would).
 int common_try_block(entity *target)
 {
-    if(self->modeldata.nopassiveblock == 0 ||
-            (rand32()&self->modeldata.blockodds) != 1 ||
-            !validanim(self, ANI_BLOCK))
-    {
-        return 0;
-    }
+	// Must have block animation.
+	if (!validanim(self, ANI_BLOCK))
+	{
+		return 0;
+	}
 
+	// Exit if we choose not to block. This function includes 
+	// the check for passive blocking flag.
+	if (!check_blocking_decision(self))
+	{	
+		return 0;
+	}
+
+	// If no current target, use block range.
     if(!target)
     {
-        target = block_find_target(ANI_BLOCK, 0);    // temporary fix, other wise ranges never work
+        target = block_find_target(ANI_BLOCK, 0);
     }
 
-    // no passive block, so block by himself :)
-    if(target && target->attacking != ATTACKING_INACTIVE)
+	// Still no target? Nothing to do, so exit.
+	if (!target)
+	{
+		return 0;
+	}
+
+    // If target is attacking, let's block and return true.
+    if(target->attacking != ATTACKING_INACTIVE)
     {
         self->takeaction = common_block;
         set_blocking(self);
@@ -25289,6 +25305,7 @@ int common_try_block(entity *target)
         ent_set_anim(self, ANI_BLOCK, 0);
         return 1;
     }
+
     return 0;
 }
 
