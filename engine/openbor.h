@@ -2447,8 +2447,7 @@ typedef struct entity
     int getting;
     int turning;
     bool charging;
-    unsigned int blocking;
-    int blocking_pain;
+    int blocking;
     int falling;
     int running; // Flag to determine if a player is running
     int ducking; // in duck stance
