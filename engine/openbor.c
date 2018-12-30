@@ -7193,6 +7193,10 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         newanim->range.x.min = 1;
         newanim->range.x.max = 100;
     }
+	else if (stricmp(value, "blockstart") == 0)   // Now enemies can block attacks on occasion
+	{
+		ani_id = ANI_BLOCKSTART;
+	}
     else if(starts_with_num(value, "follow"))
     {
         get_tail_number(tempInt, value, "follow");
@@ -31102,8 +31106,31 @@ void player_think()
             self->velocity.x = self->velocity.z = 0;
             set_blocking(self);
             self->combostep[0] = 0;
-            ent_set_anim(self, ANI_BLOCK, 0);
-            goto endthinkcheck;
+
+			// If finished with block transition animation
+			// then go to block.
+			if(self->animnum == ANI_BLOCKSTART) 
+			{
+				if (!self->animating)
+				{
+					ent_set_anim(self, ANI_BLOCK, 0);
+				}
+			}
+			else
+			{
+				// If we have a block tranisiton animation, use it. Otherwise
+				// go right to block.
+				if (validanim(self, ANI_BLOCKSTART))
+				{
+					ent_set_anim(self, ANI_BLOCKSTART, 0);
+				}
+				else
+				{
+					ent_set_anim(self, ANI_BLOCK, 0);
+				}
+			}
+        		
+			goto endthinkcheck;
         }
     }
 
