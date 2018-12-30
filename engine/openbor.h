@@ -484,6 +484,8 @@ typedef enum //Animations
     ANI_ATTACK4,			// Very important
     ANI_UPPER,
     ANI_BLOCK,				// New block animation
+	ANI_BLOCKRELEASE,		// Transition out of block.
+	ANI_BLOCKSTART,			// Transition to block.
     ANI_JUMPATTACK,
     ANI_JUMPATTACK2,
     ANI_GET,
