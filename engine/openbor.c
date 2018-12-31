@@ -24335,12 +24335,19 @@ void common_block()
 	// Controlling player is holding special key.
 	int hb2 = ((player + self->playerindex)->keys & FLAG_SPECIAL);
 
+	// If we are in a block transition, let's see if it is finished.
+	// If it is, apply block animation.
+	if (self->animnum == ANI_BLOCKSTART && !self->animating)
+	{
+		ent_set_anim(self, ANI_BLOCK, 0);
+	}
+	
 	// In "Blockstun", at last frame of animation, and have holdblock
 	// after blockpain ability? Then we return to block.
 	//
 	// Otherwise, entity is a player with various other flags (see bh1) but
 	// not holding special key, or the entity has finihsed animation and 
-	// doesn't match any of the playeer/holdblock criteria (could be another 
+	// doesn't match any of the player/holdblock criteria (could be another 
 	// entity type, doesn't have holdblock ability, or controlling 
 	// player isn't holding special key). In any of those cases, we disable
 	// blocking flag and return to idle.
@@ -24353,7 +24360,7 @@ void common_block()
 		self->rising = 0;
 		self->riseattacking = 0;
 		self->inbackpain = 0;
-		ent_set_anim(self, ANI_BLOCK, 0);				
+		ent_set_anim(self, ANI_BLOCK, 0);
     }
     else if((hb1 && !hb2) 
 		|| (!self->animating && (!hb1 || !hb2)))
@@ -24367,7 +24374,7 @@ void common_block()
 			self->blocking = 0;
 			self->takeaction = NULL;
 			set_idle(self);
-		}        
+		}
     }
 }
 
@@ -31107,27 +31114,15 @@ void player_think()
             set_blocking(self);
             self->combostep[0] = 0;
 
-			// If finished with block transition animation
-			// then go to block.
-			if(self->animnum == ANI_BLOCKSTART) 
-			{
-				if (!self->animating)
-				{
-					ent_set_anim(self, ANI_BLOCK, 0);
-				}
+			// If we have a block tranisiton animation, use it. Otherwise
+			// go right to block.
+			if (validanim(self, ANI_BLOCKSTART))
+			{	
+				ent_set_anim(self, ANI_BLOCKSTART, 0);
 			}
 			else
 			{
-				// If we have a block tranisiton animation, use it. Otherwise
-				// go right to block.
-				if (validanim(self, ANI_BLOCKSTART))
-				{
-					ent_set_anim(self, ANI_BLOCKSTART, 0);
-				}
-				else
-				{
-					ent_set_anim(self, ANI_BLOCK, 0);
-				}
+				ent_set_anim(self, ANI_BLOCK, 0);
 			}
         		
 			goto endthinkcheck;
