@@ -25275,8 +25275,19 @@ int common_try_runattack(entity *target)
     return 0;
 }
 
-// Active blocking (AI takes block position before attack 
-// hits like a player would).
+// Active blocking (nopassiveblock enabled). 
+//
+// AI can behave more like players when blocking. Normally AI
+// blocking is passive. IOW, it can only choose to block attacks
+// as they hit. This function allows the AI to initiate blocking 
+// preemptively the way players have to.
+// 
+// AI blocks if following conditions are met:
+//
+// 1. Entity has nopassiveblock enabled.
+// 2. Target is within range of BLOCK animation.
+// 3. Target is actively attacking.
+// 4. Blocking chance passes (same rules as passive blocking).
 int common_try_block(entity *target)
 {
 	// Must have block animation.
