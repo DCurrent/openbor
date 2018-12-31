@@ -2806,9 +2806,10 @@ int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);
 float	binding_position(float position_default, float position_target, int offset, e_binding_positioning positioning);
+int     check_bind_override(entity *ent, e_binding_overriding overriding);
 
 // Blocking logic.
-int     check_bind_override(entity *ent, e_binding_overriding overriding);
+void	do_active_block(entity *ent);
 int     check_blocking_decision(entity *ent);
 int     check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack);
 int     check_blocking_master(entity *ent, entity *other, s_collision_attack *attack);
