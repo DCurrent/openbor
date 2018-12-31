@@ -7193,7 +7193,11 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         newanim->range.x.min = 1;
         newanim->range.x.max = 100;
     }
-	else if (stricmp(value, "blockstart") == 0)   // Now enemies can block attacks on occasion
+	else if (stricmp(value, "blockrelease") == 0) 
+	{
+		ani_id = ANI_BLOCKRELEASE;
+	}
+	else if (stricmp(value, "blockstart") == 0)
 	{
 		ani_id = ANI_BLOCKSTART;
 	}
