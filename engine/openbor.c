@@ -24409,9 +24409,25 @@ void common_block()
 		// entity can act again.
 		if (!self->inpain || !self->animating)
 		{
-			self->blocking = 0;
-			self->takeaction = NULL;
-			set_idle(self);
+			if (self->animnum == ANI_BLOCKRELEASE && !self->animating)
+			{
+				self->blocking = 0;
+				self->takeaction = NULL;
+				set_idle(self);
+			}
+			else
+			{
+				if (validanim(self, ANI_BLOCKRELEASE))
+				{
+					ent_set_anim(self, ANI_BLOCKRELEASE, 0);
+				}
+				else
+				{
+					self->blocking = 0;
+					self->takeaction = NULL;
+					set_idle(self);
+				}				
+			}			
 		}
     }
 }
