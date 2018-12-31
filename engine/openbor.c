@@ -19458,6 +19458,40 @@ void set_opponent(entity *ent, entity *other)
 }
 
 // Caskey, Damon V.
+// 2018-12-31
+// 
+// Initialize appropriate block animation and flags. Called when 
+// entity blocks actively (blocking before attack hits). Used 
+// by all player controlled entities or AI controlled entities 
+// with nopassiveblock enabled. 
+void do_active_block(entity *ent)
+{
+	// Run blocking action.
+	ent->takeaction = common_block;
+
+	// Stop movement.
+	ent->velocity.x = 0;
+	ent->velocity.z = 0;
+
+	// Set flags.
+	set_blocking(self);
+
+	// End combo.
+	self->combostep[0] = 0;
+
+	// If we have a block tranisiton animation, use it. Otherwise
+	// go right to block.
+	if (validanim(self, ANI_BLOCKSTART))
+	{
+		ent_set_anim(self, ANI_BLOCKSTART, 0);
+	}
+	else
+	{
+		ent_set_anim(self, ANI_BLOCK, 0);
+	}
+}
+
+// Caskey, Damon V.
 // 2018-09-16
 //
 // Find out if attack can be blocked by entity.
@@ -25241,7 +25275,7 @@ int common_try_runattack(entity *target)
     return 0;
 }
 
-// Passive blocking (AI takes block position before attack 
+// Active blocking (AI takes block position before attack 
 // hits like a player would).
 int common_try_block(entity *target)
 {
@@ -25273,10 +25307,9 @@ int common_try_block(entity *target)
     // If target is attacking, let's block and return true.
     if(target->attacking != ATTACKING_INACTIVE)
     {
-        self->takeaction = common_block;
-        set_blocking(self);
-        self->velocity.z = self->velocity.x = 0;
-        ent_set_anim(self, ANI_BLOCK, 0);
+		// Set up flags, action, and blocking animations.
+		do_active_block(self);
+
         return 1;
     }
 
@@ -31106,25 +31139,14 @@ void player_think()
             }
         }
 
-        if(validanim(self, ANI_BLOCK) && notinair)   // New block code for players
+		// Blocking.
+        if(validanim(self, ANI_BLOCK) && notinair)
         {
             pl->playkeys &= ~FLAG_SPECIAL;
-            self->takeaction = common_block;
-            self->velocity.x = self->velocity.z = 0;
-            set_blocking(self);
-            self->combostep[0] = 0;
 
-			// If we have a block tranisiton animation, use it. Otherwise
-			// go right to block.
-			if (validanim(self, ANI_BLOCKSTART))
-			{	
-				ent_set_anim(self, ANI_BLOCKSTART, 0);
-			}
-			else
-			{
-				ent_set_anim(self, ANI_BLOCK, 0);
-			}
-        		
+			// Set up flags, action, and block animations.
+			do_active_block(self);
+
 			goto endthinkcheck;
         }
     }
