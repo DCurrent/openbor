@@ -19783,7 +19783,7 @@ void set_blocking_animation(entity *ent, s_collision_attack *attack)
 // 2018-09-21
 //
 // Perform a block.
-void do_blocking(entity *ent, entity *other, s_collision_attack *attack)
+void do_passive_block(entity *ent, entity *other, s_collision_attack *attack)
 {	
 	// Place entity in blocking animation.
 	set_blocking_animation(ent, attack);
@@ -20120,7 +20120,7 @@ void do_attack(entity *e)
             if(didblock)
             {
                 // Perform the blocking actions.
-                do_blocking(self, e, attack);
+                do_passive_block(self, e, attack);
             }
             // Counter the attack?
             else if(self->animation->counterrange &&	// Has counter range?
