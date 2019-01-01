@@ -7193,6 +7193,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         newanim->range.x.min = 1;
         newanim->range.x.max = 100;
     }
+	else if (stricmp(value, "blockrelease") == 0) 
+	{
+		ani_id = ANI_BLOCKRELEASE;
+	}
+	else if (stricmp(value, "blockstart") == 0)
+	{
+		ani_id = ANI_BLOCKSTART;
+	}
     else if(starts_with_num(value, "follow"))
     {
         get_tail_number(tempInt, value, "follow");
@@ -19454,6 +19462,40 @@ void set_opponent(entity *ent, entity *other)
 }
 
 // Caskey, Damon V.
+// 2018-12-31
+// 
+// Initialize appropriate block animation and flags. Called when 
+// entity blocks actively (blocking before attack hits). Used 
+// by all player controlled entities or AI controlled entities 
+// with nopassiveblock enabled. 
+void do_active_block(entity *ent)
+{
+	// Run blocking action.
+	ent->takeaction = common_block;
+
+	// Stop movement.
+	ent->velocity.x = 0;
+	ent->velocity.z = 0;
+
+	// Set flags.
+	set_blocking(self);
+
+	// End combo.
+	self->combostep[0] = 0;
+
+	// If we have a block tranisiton animation, use it. Otherwise
+	// go right to block.
+	if (validanim(self, ANI_BLOCKSTART))
+	{
+		ent_set_anim(self, ANI_BLOCKSTART, 0);
+	}
+	else
+	{
+		ent_set_anim(self, ANI_BLOCK, 0);
+	}
+}
+
+// Caskey, Damon V.
 // 2018-09-16
 //
 // Find out if attack can be blocked by entity.
@@ -24368,12 +24410,19 @@ void common_block()
 	// Controlling player is holding special key.
 	int hb2 = ((player + self->playerindex)->keys & FLAG_SPECIAL);
 
+	// If we are in a block transition, let's see if it is finished.
+	// If it is, apply block animation.
+	if (self->animnum == ANI_BLOCKSTART && !self->animating)
+	{
+		ent_set_anim(self, ANI_BLOCK, 0);
+	}
+	
 	// In "Blockstun", at last frame of animation, and have holdblock
 	// after blockpain ability? Then we return to block.
 	//
 	// Otherwise, entity is a player with various other flags (see bh1) but
 	// not holding special key, or the entity has finihsed animation and 
-	// doesn't match any of the playeer/holdblock criteria (could be another 
+	// doesn't match any of the player/holdblock criteria (could be another 
 	// entity type, doesn't have holdblock ability, or controlling 
 	// player isn't holding special key). In any of those cases, we disable
 	// blocking flag and return to idle.
@@ -24386,7 +24435,7 @@ void common_block()
 		self->rising = 0;
 		self->riseattacking = 0;
 		self->inbackpain = 0;
-		ent_set_anim(self, ANI_BLOCK, 0);				
+		ent_set_anim(self, ANI_BLOCK, 0);
     }
     else if((hb1 && !hb2) 
 		|| (!self->animating && (!hb1 || !hb2)))
@@ -24397,10 +24446,26 @@ void common_block()
 		// entity can act again.
 		if (!self->inpain || !self->animating)
 		{
-			self->blocking = 0;
-			self->takeaction = NULL;
-			set_idle(self);
-		}        
+			if (self->animnum == ANI_BLOCKRELEASE && !self->animating)
+			{
+				self->blocking = 0;
+				self->takeaction = NULL;
+				set_idle(self);
+			}
+			else
+			{
+				if (validanim(self, ANI_BLOCKRELEASE))
+				{
+					ent_set_anim(self, ANI_BLOCKRELEASE, 0);
+				}
+				else
+				{
+					self->blocking = 0;
+					self->takeaction = NULL;
+					set_idle(self);
+				}				
+			}			
+		}
     }
 }
 
@@ -25267,8 +25332,19 @@ int common_try_runattack(entity *target)
     return 0;
 }
 
-// Passive blocking (AI takes block position before attack 
-// hits like a player would).
+// Active blocking (nopassiveblock enabled). 
+//
+// AI can behave more like players when blocking. Normally AI
+// blocking is passive. IOW, it can only choose to block attacks
+// as they hit. This function allows the AI to initiate blocking 
+// preemptively the way players have to.
+// 
+// AI blocks if following conditions are met:
+//
+// 1. Entity has nopassiveblock enabled.
+// 2. Target is within range of BLOCK animation.
+// 3. Target is actively attacking.
+// 4. Blocking chance passes (same rules as passive blocking).
 int common_try_block(entity *target)
 {
 	// Must have block animation.
@@ -25299,10 +25375,9 @@ int common_try_block(entity *target)
     // If target is attacking, let's block and return true.
     if(target->attacking != ATTACKING_INACTIVE)
     {
-        self->takeaction = common_block;
-        set_blocking(self);
-        self->velocity.z = self->velocity.x = 0;
-        ent_set_anim(self, ANI_BLOCK, 0);
+		// Set up flags, action, and blocking animations.
+		do_active_block(self);
+
         return 1;
     }
 
@@ -31180,15 +31255,15 @@ void player_think()
             }
         }
 
-        if(validanim(self, ANI_BLOCK) && notinair)   // New block code for players
+		// Blocking.
+        if(validanim(self, ANI_BLOCK) && notinair)
         {
             pl->playkeys &= ~FLAG_SPECIAL;
-            self->takeaction = common_block;
-            self->velocity.x = self->velocity.z = 0;
-            set_blocking(self);
-            self->combostep[0] = 0;
-            ent_set_anim(self, ANI_BLOCK, 0);
-            goto endthinkcheck;
+
+			// Set up flags, action, and block animations.
+			do_active_block(self);
+
+			goto endthinkcheck;
         }
     }
 
