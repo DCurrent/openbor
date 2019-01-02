@@ -4640,22 +4640,70 @@ int load_special_sounds()
     return 1;
 }
 
-int nextcolourmap(s_model *model, int c)
+// Caskey, Damon V.
+// 2019-01-02
+//
+// Return true if map_index matches a special purpose
+// map or falls within author defined hidden map range, 
+// unless any of the above are same as default map (0).
+int is_map_hidden(s_model *model, int map_index)
 {
+	// Have frozen map and it isn't same as default?
+	// If we do and it matches, return true.
+	if (model->maps.frozen > 0)
+	{
+		if (map_index == model->maps.frozen)
+		{
+			return 1;
+		}
+	}
+
+	// Check KO map. Same logic as frozen.
+	if (model->maps.ko > 0)
+	{
+		if (map_index == model->maps.ko)
+		{
+			return 1;
+		}
+	}
+
+	// Hidden map range. Both should be
+	// something other than default. If 
+	// they are and map index is in range
+	// we return true.
+	if (model->maps.hide_start > 0 
+		&& model->maps.hide_end > 0)
+	{
+		if (map_index >= model->maps.hide_start
+			&& map_index <= model->maps.hide_end)
+		{
+			return 1;
+		}
+	}
+
+	// If we got this far, there's no match. 
+	return 0;
+}
+
+// Return model's next selectable map index in line.
+int nextcolourmap(s_model *model, int map_index)
+{
+	// Increment to next color set, or return to 0 
+	// if we go past number of available sets. 
+	// Continue until we find an index that
+	// isn't hidden.
     do
     {
-        c++;
-        if(c > model->maps_loaded)
+		map_index++;
+
+        if(map_index > model->maps_loaded)
         {
-            c = 0;
+			map_index = 0;
         }
     }
-    while(    // Keep looping until a non frozen map is found
-        (model->maps.frozen > 0 && c == model->maps.frozen) ||
-        (model->maps.hide_start > 0 && c >= model->maps.hide_start && c <= model->maps.hide_end)
-    );
+    while(is_map_hidden(model, map_index));
 
-    return c;
+    return map_index;
 }
 
 int nextcolourmapn(s_model *model, int c, int p)
@@ -4702,22 +4750,23 @@ int nextcolourmapn(s_model *model, int c, int p)
     return color_index;
 }
 
-int prevcolourmap(s_model *model, int c)
+// Return model's previous selectable map index in line.
+int prevcolourmap(s_model *model, int map_index)
 {
+	// Decrement to previous color set, or return 
+	// to last set if we go below 0. Continue until
+	// we find an index that isn't hidden.
     do
     {
-        c--;
-        if(c < 0)
+		map_index--;
+        if(map_index < 0)
         {
-            c = model->maps_loaded;
+			map_index = model->maps_loaded;
         }
     }
-    while(    // Keep looping until a non frozen map is found
-        (model->maps.frozen > 0 && c == model->maps.frozen) ||
-        (model->maps.hide_start > 0 && c >= model->maps.hide_start && c <= model->maps.hide_end)
-    );
+    while(is_map_hidden(model, map_index));
 
-    return c;
+    return map_index;
 }
 
 int prevcolourmapn(s_model *model, int c, int p)
