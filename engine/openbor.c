@@ -36211,362 +36211,438 @@ static void load_select_screen_info(s_savelevel *save)
 
 int selectplayer(int *players, char *filename, int useSavedGame)
 {
-    s_model *tempmodel;
-    entity *example[4] = {NULL, NULL, NULL, NULL};
-    int i;
-    int exit = 0;
-    int ready[MAX_PLAYERS] = {0, 0, 0, 0};
-    int escape = 0;
-    int defaultselect = 0;
-    unsigned exitdelay = 0;
-    int players_busy = 0;
-    int players_ready = 0;
-    char string[MAX_BUFFER_LEN] = {""};
-    char *buf, *command;
-    size_t size = 0;
-    ptrdiff_t pos = 0;
-    ArgList arglist;
-    char argbuf[MAX_ARG_LEN + 1] = "";
-    s_set_entry *set = levelsets + current_set;
-    s_savelevel *save = savelevel + current_set;
-    int load_count = 0, saved_select_screen = 0;
-    int is_first_select = 1;
+	s_model *tempmodel;
+	entity *example[4] = { NULL, NULL, NULL, NULL };
+	int i;
+	int exit = 0;
+	int ready[MAX_PLAYERS] = { 0, 0, 0, 0 };
+	int escape = 0;
+	int defaultselect = 0;
+	unsigned exitdelay = 0;
+	int players_busy = 0;
+	int players_ready = 0;
+	char string[MAX_BUFFER_LEN] = { "" };
+	char *buf, *command;
+	size_t size = 0;
+	ptrdiff_t pos = 0;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN + 1] = "";
+	s_set_entry *set = levelsets + current_set;
+	s_savelevel *save = savelevel + current_set;
+	int load_count = 0, saved_select_screen = 0;
+	int is_first_select = 1;
 
-    savelevelinfo();
+	savelevelinfo();
 
-    selectScreen = 1;
-    kill_all();
-    if( allowselect_args[0] != 'a' && allowselect_args[0] != 'A' ) reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
-    memset(player, 0, sizeof(*player) * 4);
+	selectScreen = 1;
+	kill_all();
 
-    if(useSavedGame && save)
-    {
-        if (save->selectFlag)
-        {
-            load_select_screen_info(save);
-            load_playable_list(save->allowSelectArgs);
-            saved_select_screen = 1;
-        }
-    }
+	// Allow select? 'a' is the first char of allowselect,
+	// if there's 'a' then there is allowselect.
+	if (allowselect_args[0] != 'a'
+		&& allowselect_args[0] != 'A')
+	{
+		reset_playable_list(1);
+	}
 
-    //loadGameFile();
+	// Reset memory for player array.
+	memset(player, 0, sizeof(*player) * 4);
 
-    for(i = 0; i < set->maxplayers; i++)
-    {
-        player[i].hasplayed = players[i];
-    }
+	// Load game selected and a save game available?
+	if (useSavedGame && save)
+	{
+		if (save->selectFlag)
+		{
+			load_select_screen_info(save);
+			load_playable_list(save->allowSelectArgs);
+			saved_select_screen = 1;
+		}
+	}
 
-    for(i = 0; i < set->maxplayers; i++)
-    {
-        if (savelevel[current_set].pLives[i] > 0)
-        {
-            is_first_select = 0;
-            break;
-        }
-    }
+	// Mark "hasplayed" for all players.
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		player[i].hasplayed = players[i];
+	}
 
-    if(filename && filename[0])
-    {
-        if(buffer_pakfile(filename, &buf, &size) != 1)
-        {
-            borShutdown(1, "Failed to load player select file '%s'", filename);
-        }
-        while(pos < size)
-        {
-            ParseArgs(&arglist, buf + pos, argbuf);
-            command = GET_ARG(0);
-            if(command && command[0])
-            {
-                if(stricmp(command, "music") == 0)
-                {
-                    music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
-                    // SAVE
-                    multistrcatsp(save->selectMusic, command,GET_ARG(1),GET_ARG(2),GET_ARG(3),NULL);
-                }
-                else if(stricmp(command, "allowselect") == 0)
-                {
-                    load_playable_list(buf + pos);
-                    memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
-                }
-                else if(stricmp(command, "background") == 0)
-                {
-                    load_background(GET_ARG(1), 1);
-                    // SAVE
-                    multistrcatsp(save->selectBackground, command,GET_ARG(1),NULL);
-                }
-                else if(stricmp(command, "load") == 0)
-                {
-                    tempmodel = findmodel(GET_ARG(1));
-                    if (!tempmodel)
-                    {
-                        load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
-                    }
-                    else
-                    {
-                        update_model_loadflag(tempmodel, GET_INT_ARG(2));
-                    }
-                    // SAVE
-                    if(load_count < MAX_SELECT_LOADS)
-                    {
-                        multistrcatsp(save->selectLoad[load_count], command,GET_ARG(1),GET_ARG(2),NULL);
-                        load_count++;
-                    }
-                }
-                else if(command && command[0])
-                {
-                    printf("Command '%s' is not understood in file '%s'\n", command, filename);
-                }
-            }
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		if (savelevel[current_set].pLives[i] > 0)
+		{
+			is_first_select = 0;
+			break;
+		}
+	}
 
-            pos += getNewLineStart(buf + pos);
-        }
-        save->selectLoadCount = load_count; // SAVE number of LOAD command
-        save->selectFlag = 1;
+	// Load and apply selection text file.
+	if (filename && filename[0])
+	{
+		if (buffer_pakfile(filename, &buf, &size) != 1)
+		{
+			borShutdown(1, "Failed to load player select file '%s'", filename);
+		}
+		while (pos < size)
+		{
+			ParseArgs(&arglist, buf + pos, argbuf);
+			command = GET_ARG(0);
+			if (command && command[0])
+			{
+				if (stricmp(command, "music") == 0)
+				{
+					music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
+					// SAVE
+					multistrcatsp(save->selectMusic, command, GET_ARG(1), GET_ARG(2), GET_ARG(3), NULL);
+				}
+				else if (stricmp(command, "allowselect") == 0)
+				{
+					load_playable_list(buf + pos);
+					memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
+				}
+				else if (stricmp(command, "background") == 0)
+				{
+					load_background(GET_ARG(1), 1);
+					// SAVE
+					multistrcatsp(save->selectBackground, command, GET_ARG(1), NULL);
+				}
+				else if (stricmp(command, "load") == 0)
+				{
+					tempmodel = findmodel(GET_ARG(1));
+					if (!tempmodel)
+					{
+						load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
+					}
+					else
+					{
+						update_model_loadflag(tempmodel, GET_INT_ARG(2));
+					}
+					// SAVE
+					if (load_count < MAX_SELECT_LOADS)
+					{
+						multistrcatsp(save->selectLoad[load_count], command, GET_ARG(1), GET_ARG(2), NULL);
+						load_count++;
+					}
+				}
+				else if (command && command[0])
+				{
+					printf("Command '%s' is not understood in file '%s'\n", command, filename);
+				}
+			}
 
-        if(buf != NULL)
-        {
-            free(buf);
-            buf = NULL;
-        }
-    }
-    else // without select.txt
-    {
-        if(is_first_select || (!skipselect[0][0] && !set->noselect)) // no select is skipselect without names
-        {
-            defaultselect = 1; // normal select or skipselect/noselect? 1 == normal select
-        }
+			pos += getNewLineStart(buf + pos);
+		}
+		save->selectLoadCount = load_count; // SAVE number of LOAD command
+		save->selectFlag = 1;
 
-        if(!noshare)
-        {
-            credits = CONTINUES;
-        }
-        else for(i = 0; i < set->maxplayers; i++)
-        {
-            if(players[i])
-            {
-                player[i].credits = CONTINUES;
-            }
-        }
+		if (buf != NULL)
+		{
+			free(buf);
+			buf = NULL;
+		}
+	}
+	else // without select.txt
+	{
+		if (is_first_select || (!skipselect[0][0] && !set->noselect)) // no select is skipselect without names
+		{
+			defaultselect = 1; // normal select or skipselect/noselect? 1 == normal select
+		}
 
-        if(skipselect[0][0] || set->noselect)
-        {
-            for(i = 0; i < set->maxplayers; i++)
-            {
-                if(!players[i])
-                {
-                    continue;
-                }
-                strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
+		if (!noshare)
+		{
+			credits = CONTINUES;
+		}
+		else for (i = 0; i < set->maxplayers; i++)
+		{
+			if (players[i])
+			{
+				player[i].credits = CONTINUES;
+			}
+		}
 
-                if(defaultselect)
-                {
-                    player[i].lives = PLAYER_LIVES;
-                    if(!creditscheat)
-                    {
-                        if(noshare)
-                        {
-                            --player[i].credits;
-                        }
-                        else
-                        {
-                            --credits;
-                        }
-                    }
-                }
-                else
-                {
-                    player[i].lives = savelevel[current_set].pLives[i];
-                    player[i].score = savelevel[current_set].pScores[i];
-                    if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
-                    else credits = savelevel[current_set].credits;
-                }
-            }
-            selectScreen = 0;
+		if (skipselect[0][0] || set->noselect)
+		{
+			for (i = 0; i < set->maxplayers; i++)
+			{
+				if (!players[i])
+				{
+					continue;
+				}
+				strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
 
-            return 1;
-        }
+				if (defaultselect)
+				{
+					player[i].lives = PLAYER_LIVES;
+					if (!creditscheat)
+					{
+						if (noshare)
+						{
+							--player[i].credits;
+						}
+						else
+						{
+							--credits;
+						}
+					}
+				}
+				else
+				{
+					player[i].lives = savelevel[current_set].pLives[i];
+					player[i].score = savelevel[current_set].pScores[i];
+					if (noshare) player[i].credits = savelevel[current_set].pCredits[i];
+					else credits = savelevel[current_set].credits;
+				}
+			}
+			selectScreen = 0;
 
-        if (!saved_select_screen)
-        {
-            if(unlockbg && bonus)
-            {
-                // New alternative background path for PSP
-                if(custBkgrds != NULL)
-                {
-                    strcpy(string, custBkgrds);
-                    strcat(string, "unlockbg");
-                    load_background(string, 1);
-                }
-                else
-                {
-                    load_cached_background("data/bgs/unlockbg", 1);
-                }
-            }
-            else
-            {
-                // New alternative background path for PSP
-                if(custBkgrds != NULL)
-                {
-                    strcpy(string, custBkgrds);
-                    strcat(string, "select");
-                    load_background(string, 1);
-                }
-                else
-                {
-                    load_cached_background("data/bgs/select", 1);
-                }
-            }
-            if(!music("data/music/menu", 1, 0))
-            {
-                music("data/music/remix", 1, 0);
-            }
-        }
-    }
+			return 1;
+		}
 
-    for(i = 0; i < set->maxplayers; i++)
-    {
-        if(players[i])
-        {
-            example[i] = spawnexample(i);
-            player[i].playkeys = 0;
-            if(defaultselect)
-            {
-                player[i].lives = PLAYER_LIVES;
-                if(!creditscheat)
-                {
-                    if(noshare)
-                    {
-                        --player[i].credits;
-                    }
-                    else
-                    {
-                        --credits;
-                    }
-                }
-            }
-            else
-            {
-                player[i].lives = savelevel[current_set].pLives[i];
-                player[i].score = savelevel[current_set].pScores[i];
-                if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
-                else credits = savelevel[current_set].credits;
-            }
-        }
-    }
+		if (!saved_select_screen)
+		{
+			if (unlockbg && bonus)
+			{
+				// New alternative background path for PSP
+				if (custBkgrds != NULL)
+				{
+					strcpy(string, custBkgrds);
+					strcat(string, "unlockbg");
+					load_background(string, 1);
+				}
+				else
+				{
+					load_cached_background("data/bgs/unlockbg", 1);
+				}
+			}
+			else
+			{
+				// New alternative background path for PSP
+				if (custBkgrds != NULL)
+				{
+					strcpy(string, custBkgrds);
+					strcat(string, "select");
+					load_background(string, 1);
+				}
+				else
+				{
+					load_cached_background("data/bgs/select", 1);
+				}
+			}
+			if (!music("data/music/menu", 1, 0))
+			{
+				music("data/music/remix", 1, 0);
+			}
+		}
+	}
 
-    _time = 0;
-    while(!(exit || escape))
-    {
-        players_busy = 0;
-        players_ready = 0;
-        for(i = 0; i < set->maxplayers; i++)
-        {
-            if(!ready[i])
-            {
-                if(!player[i].hasplayed && (noshare || credits > 0) && (player[i].newkeys & FLAG_ANYBUTTON))
-                {
-                    players[i] = player[i].hasplayed = 1;
-                    //printf("%d %d %d\n", i, player[i].lives, immediate[i]);
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		if (players[i])
+		{
+			example[i] = spawnexample(i);
+			player[i].playkeys = 0;
+			if (defaultselect)
+			{
+				player[i].lives = PLAYER_LIVES;
+				if (!creditscheat)
+				{
+					if (noshare)
+					{
+						--player[i].credits;
+					}
+					else
+					{
+						--credits;
+					}
+				}
+			}
+			else
+			{
+				player[i].lives = savelevel[current_set].pLives[i];
+				player[i].score = savelevel[current_set].pScores[i];
+				if (noshare) player[i].credits = savelevel[current_set].pCredits[i];
+				else credits = savelevel[current_set].credits;
+			}
+		}
+	}
 
-                    if(noshare)
-                    {
-                        player[i].credits = CONTINUES;
-                    }
+	_time = 0;
 
-                    if(!creditscheat)
-                    {
-                        if(noshare)
-                        {
-                            --player[i].credits;
-                        }
-                        else
-                        {
-                            --credits;
-                        }
-                    }
+	// Stay in selection until escape or exit.
+	// 
+	// exit = all players ready (selected) and exit delay expired.
+	// escape = Escape key pressed.
+	while (!(exit || escape))
+	{
+		players_busy = 0;
+		players_ready = 0;
 
-                    player[i].lives = PLAYER_LIVES;
-                    example[i] = spawnexample(i);
-                    player[i].playkeys = 0;
+		// Loop through players.
+		for (i = 0; i < set->maxplayers; i++)
+		{
+			// Current player index not yet selected?
+			if (!ready[i])
+			{
+				// This is where we present player selections. Depending
+				// on player action we can take several sets of actions
+				// here.
+				//
+				// 1. If player hasn't played yet, has some credits or 
+				// can draw from credit pool and pressed any action button,
+				// then we'll deal witht heir credit pool and spawn the
+				// first example (selectable model preview). Having an 
+				// example spawned also tells us the player has completed 
+				// this step, and so it's OK to run actions from any of 
+				// the others.
+				//
+				// 2. If the player pressed Left or Right instead and there's
+				// already an example spawned, then we cycle to the previous/next 
+				// character in line.
+				//
+				// 3. If the player presses Up or Down, we have an example 
+				// spawned and colourselect is enabled, then cycle to the
+				// model's previous/next color set choice.
+				//
+				// 4. If the player presses any action button and we have
+				// an example spawned, then we mark the player's ready delay 
+				// flag, and stalltime. See the parent logic block for 
+				// selection delay & exit details. This is the player
+				// making their selection choice.
+				if (!player[i].hasplayed
+					&& (noshare || credits > 0)
+					&& (player[i].newkeys & FLAG_ANYBUTTON))
+				{
 
-                    if(SAMPLE_BEEP >= 0)
-                    {
-                        sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                }
-                else if(player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
-                {
-                    if(SAMPLE_BEEP >= 0)
-                    {
-                        sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                    ent_set_model(example[i], ((player[i].newkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(example[i]->model, i)->name, 0);
-                    strcpy(player[i].name, example[i]->model->name);
-                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(example[i]->model, -1, i) : 0;
-                    ent_set_colourmap(example[i], player[i].colourmap);
-                }
-                // oooh pretty colors! - selectable color scheme for player characters
-                else if(player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
-                {
-                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapn : prevcolourmapn)(example[i]->model, player[i].colourmap, i);
-                    ent_set_colourmap(example[i], player[i].colourmap);
-                }
-                else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
-                {
-                    if(SAMPLE_BEEP2 >= 0)
-                    {
-                        sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                    // yay you picked me!
-                    if(validanim(example[i], ANI_PICK))
-                    {
-                        ent_set_anim(example[i], ANI_PICK, 0);
-                    }
-                    example[i]->stalltime = _time + GAME_SPEED * 2;
-                    ready[i] = 1;
-                }
-            }
-            else if(ready[i] == 1)
-            {
-                if(((!validanim(example[i], ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && _time > example[i]->stalltime) || !example[i]->animating)
-                {
-                    ready[i] = 2;
-                    exitdelay = _time + GAME_SPEED;
-                }
-            }
-            else if(ready[i] == 2)
-            {
-                font_printf(psmenu[i][2], psmenu[i][3], 0, 0, Tr("Ready!"));
-            }
+					//  Now this player has played.
+					players[i] = player[i].hasplayed = 1;
+					//printf("%d %d %d\n", i, player[i].lives, immediate[i]);
 
-            if(example[i] != NULL)
-            {
-                players_busy++;
-            }
-            if(ready[i] == 2)
-            {
-                players_ready++;
-            }
-        }
+					// Noshare means each player has their own credit pool.
+					if (noshare)
+					{
+						player[i].credits = CONTINUES;
+					}
 
-        if(players_busy && players_busy == players_ready && exitdelay && _time > exitdelay)
-        {
-            exit = 1;
-        }
-        update(0, 0);
+					// Credits cheat = infinite credits. If that's not enabled,
+					// then deduct a credit.
+					if (!creditscheat)
+					{
+						if (noshare)
+						{
+							--player[i].credits;
+						}
+						else
+						{
+							--credits;
+						}
+					}
 
-        if(bothnewkeys & FLAG_ESC)
-        {
-            escape = 1;
-        }
-    }
+					// Give player default number of lives, spawn
+					// example model and cancel the key flag.
+					player[i].lives = PLAYER_LIVES;
+					example[i] = spawnexample(i);
+					player[i].playkeys = 0;
 
-    // No longer at the select screen
-    kill_all();
-    sound_close_music();
-    selectScreen = 0;
+					// Play sound effect.
+					if (SAMPLE_BEEP >= 0)
+					{
+						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+					}
+				}
+				else if (player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
+				{
+					if (SAMPLE_BEEP >= 0)
+					{
+						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+					}
 
-    return (!escape);
+					// Left key = previous model in cycle, right key = next.
+					if ((player[i].newkeys & FLAG_MOVELEFT))
+					{
+						ent_set_model(example[i], prevplayermodeln(example[i]->model, i)->name, 0);
+					}
+					else
+					{
+						ent_set_model(example[i], nextplayermodeln(example[i]->model, i)->name, 0);
+					}
+
+					// Copy example model name to player name variable.
+					strcpy(player[i].name, example[i]->model->name);
+					
+					// If colorselect is enabled and nosame 2 is enabled, skip to
+					// start at next avaialble color cycle. Otherwise just start 
+					// with default color set (0).
+					if (colourselect && (set->nosame & 2))
+					{
+						player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+					}
+					else
+					{
+						player[i].colourmap = 0;
+					}					
+					
+					//  Apply color set.
+					ent_set_colourmap(example[i], player[i].colourmap);
+				}
+				else if (player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
+				{
+					player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapn : prevcolourmapn)(example[i]->model, player[i].colourmap, i);
+					ent_set_colourmap(example[i], player[i].colourmap);
+				}
+				else if ((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
+				{
+					if (SAMPLE_BEEP2 >= 0)
+					{
+						sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+					}
+					// yay you picked me!
+					if (validanim(example[i], ANI_PICK))
+					{
+						ent_set_anim(example[i], ANI_PICK, 0);
+					}
+					example[i]->stalltime = _time + GAME_SPEED * 2;
+					ready[i] = 1;
+				}
+			}
+			else if (ready[i] == 1)
+			{
+				if (((!validanim(example[i], ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && _time > example[i]->stalltime) || !example[i]->animating)
+				{
+					ready[i] = 2;
+					exitdelay = _time + GAME_SPEED;
+				}
+			}
+			else if (ready[i] == 2)
+			{
+				font_printf(psmenu[i][2], psmenu[i][3], 0, 0, Tr("Ready!"));
+			}
+
+			if (example[i] != NULL)
+			{
+				players_busy++;
+			}
+			if (ready[i] == 2)
+			{
+				players_ready++;
+			}
+		}
+
+		if (players_busy && players_busy == players_ready && exitdelay && _time > exitdelay)
+		{
+			exit = 1;
+		}
+		update(0, 0);
+
+		if (bothnewkeys & FLAG_ESC)
+		{
+			escape = 1;
+		}
+	}
+
+	// No longer at the select screen
+	kill_all();
+	sound_close_music();
+	selectScreen = 0;
+
+	return (!escape);
 }
 
 void playgame(int *players,  unsigned which_set, int useSavedGame)
