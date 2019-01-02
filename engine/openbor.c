@@ -4706,9 +4706,10 @@ int nextcolourmap(s_model *model, int map_index)
     return map_index;
 }
 
-int nextcolourmapn(s_model *model, int c, int p)
+int nextcolourmapn(s_model *model, int map_index, int player_index)
 {
-    int color_index = nextcolourmap(model, c);
+	map_index = nextcolourmap(model, map_index);
+
     s_set_entry *set = levelsets + current_set;
 
     if ( colourselect && (set->nosame & 2) )
@@ -4718,36 +4719,82 @@ int nextcolourmapn(s_model *model, int c, int p)
         int used_colors_map[maps_count];
         int used_color_count = 0;
 
-        // reset color map
-        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
-        // check max color map count
-        if (model->maps.frozen > 0) --maps_count;
-        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+        // Reset local used map array elements to 0.
+		for (i = 0; i < maps_count; i++)
+		{
+			used_colors_map[i] = 0;
+		}
 
-        // map all used colors
+        // Deduct hidden maps from map count.
+		if (model->maps.frozen > 0)
+		{
+			--maps_count;
+		}
+
+		if (model->maps.ko > 0)
+		{
+			--maps_count;
+		}
+
+		if (model->maps.hide_start > 0)
+		{
+			maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+		}
+
+        // This logic attempts to populate used_colors_map array with
+		// every color in use by other players who picking same
+		// character. If there are aren't enough unused map indexes to
+		// go around (i.e. three players select a character that only
+		// has two maps), then we return initial map selection.
+
         for(i = 0; i < MAX_PLAYERS; i++)
-        {
-            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
+        {			
+			// Compare every player index to player_index argument. If
+			// it's a different index but that index's model matches
+			// player_index's model, then it's another player choosing 
+			// (or about to choose) the same character.
+
+            if (player_index != i 
+				&& 
+				stricmp(player[player_index].name, player[i].name) == 0)
             {
+				// Use the map index as an array element index, and mark it true.
+				// Now we now this map index is in use.
                 used_colors_map[player[i].colourmap] = 1;
-                ++used_color_count;
-                // all busy colors? return the next natural
-                if (used_color_count >= maps_count) return color_index;
+                
+				// Increment number of used map indexes.
+				++used_color_count;
+                
+				// If all the map indexes are used, we'll just
+				// have to settle for one we already picked.
+				if (used_color_count >= maps_count)
+				{
+					return map_index;
+				}
             }
         }
 
-        // search the first free color
-        for(i = color_index, j = 0; j < maps_count; j++)
+		// Now that we have a list of used maps, let's employ it to
+		// find the first free map.
+		//
+        // Loop to number of maps for the model. If our used_colors_map
+		// array element matching the map index doesn't have a true
+		// value, we can return the index.
+
+        for(i = map_index, j = 0; j < maps_count; j++)
         {
-            if ( !used_colors_map[i] )
+            if (!used_colors_map[i])
             {
                 return i;
             }
+
             i = nextcolourmap(model, i);
         }
     }
 
-    return color_index;
+	// If we got here, then we couldn't find a free map index,
+	// so just return initial selection.
+    return map_index;
 }
 
 // Return model's previous selectable map index in line.
