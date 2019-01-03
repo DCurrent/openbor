@@ -2837,7 +2837,7 @@ int		prevcolourmap							(s_model *model, int map_index);
 int		prevcolourmapn							(s_model *model, int map_index, int player_index);	
 
 // Transition animation vs. default.
-int		transition_to_anim						(entity ent, e_animations transition, e_animations default);
+int		transition_to_animation					(entity ent, e_animations transition, e_animations default);
 
 int     buffer_pakfile							(char *filename, char **pbuffer, size_t *psize);
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
