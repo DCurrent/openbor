@@ -36399,8 +36399,11 @@ int playlevel(char *filename)
     return ((type == 2 && endgame != 2) || p_alive);
 }
 
-// Spawn sample entity for select screen.
-static entity *spawnexample(int i)
+// Caskey, Damon V (retool, OA unknown)
+// 2019-01-03
+//
+// For select screen. Spawn sample entity for player_index.
+static entity *spawnexample(int player_index)
 {
 	#define SPAWN_MODEL_NAME	NULL
 	#define SPAWN_MODEL_INDEX	-1
@@ -36417,19 +36420,19 @@ static entity *spawnexample(int i)
 	set = levelsets + current_set;
 
 	// Get spawn attributes and spawn entity.
-	pos_x = (float)psmenu[i][0];
+	pos_x = (float)psmenu[player_index][0];
 	pos_y = 0;
-	pos_z = (float)psmenu[i][1];
-	direction = spdirection[i];
+	pos_z = (float)psmenu[player_index][1];
+	direction = spdirection[player_index];
 
 	// Next selectable model in cycle. We'll use this
 	// to decide what we spawn.
-	model = nextplayermodeln(NULL, i);
+	model = nextplayermodeln(NULL, player_index);
 
 	example = spawn(pos_x, pos_z, pos_y, direction, SPAWN_MODEL_NAME, SPAWN_MODEL_INDEX, model);
     
 	// Copy model's name to player property.
-	strcpy(player[i].name, model->name);
+	strcpy(player[player_index].name, model->name);
 
 	// If color selection is allowed and we want
 	// players with same models to use different
@@ -36437,15 +36440,15 @@ static entity *spawnexample(int i)
 	// just go with default map.
 	if (colourselect && (set->nosame & 2))
 	{
-		player[i].colourmap = nextcolourmapn(model, -1, i);
+		player[player_index].colourmap = nextcolourmapn(model, -1, player_index);
 	}
 	else
 	{
-		player[i].colourmap = 0;
+		player[player_index].colourmap = 0;
 	}
 
 	// Apply map to spawned entity.
-    ent_set_colourmap(example, player[i].colourmap);
+    ent_set_colourmap(example, player[player_index].colourmap);
     
 	// So the entity knows how it came to be.
 	example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
