@@ -6511,6 +6511,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_SELECT;
     }
+	else if (stricmp(value, "selectin") == 0)
+	{
+		ani_id = ANI_SELECTIN;
+	}
+	else if (stricmp(value, "selectout") == 0)
+	{
+		ani_id = ANI_SELECTOUT;
+	}
     else if(starts_with_num(value, "walk"))
     {
         get_tail_number(tempInt, value, "walk");
