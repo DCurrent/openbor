@@ -36495,10 +36495,8 @@ static void load_select_screen_info(s_savelevel *save)
 int selectplayer(int *players, char *filename, int useSavedGame)
 {
 	s_model *tempmodel;
-	entity *example[4] = { NULL, NULL, NULL, NULL };
 	int i;
 	int exit = 0;
-	int ready[MAX_PLAYERS] = { 0, 0, 0, 0 };
 	int escape = 0;
 	int defaultselect = 0;
 	unsigned exitdelay = 0;
@@ -36512,13 +36510,25 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 	char argbuf[MAX_ARG_LEN + 1] = "";
 	s_set_entry *set = levelsets + current_set;
 	s_savelevel *save = savelevel + current_set;
-	int load_count = 0, saved_select_screen = 0;
+	int load_count = 0;
+	int saved_select_screen = 0;
 	int is_first_select = 1;
 
 	savelevelinfo();
 
 	selectScreen = 1;
 	kill_all();
+
+	// Initialize player sized arrays.
+	entity *example[set->maxplayers];
+	int ready[set->maxplayers];
+
+	// Initialize 
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		example[i] = NULL;
+		ready[i] = 0;
+	}
 
 	// Allow select? 'a' is the first char of allowselect,
 	// if there's 'a' then there is allowselect.
@@ -36529,7 +36539,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 	}
 
 	// Reset memory for player array.
-	memset(player, 0, sizeof(*player) * 4);
+	memset(player, 0, sizeof(*player) * MAX_PLAYERS);
 
 	// Load game selected and a save game available?
 	if (useSavedGame && save)
