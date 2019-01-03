@@ -2818,10 +2818,16 @@ int     check_blocking_pain(entity *ent, s_collision_attack *attack);
 void    set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
 void    set_blocking_animation(entity *ent, s_collision_attack *attack);
 
-// Select player model & colors
-int		find_selectable_model_count();
+// Select player models.
+int		find_selectable_model_count				();
 int		is_model_cache_index_selectable			(int cache_index);
 int		is_model_selectable						(s_model *model);
+s_model *nextplayermodel						(s_model *current);
+s_model *nextplayermodeln						(s_model *current, int player_index);
+s_model *prevplayermodel						(s_model *current);
+s_model *prevplayermodeln						(s_model *current, int player_index);
+
+// Select player maps (colors).
 int		is_map_hidden							(s_model *model, int map_index);
 int		nextcolourmap							(s_model *model, int map_index);
 int		nextcolourmapn							(s_model *model, int map_index, int player_index);
