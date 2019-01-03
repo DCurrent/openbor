@@ -4825,48 +4825,104 @@ int prevcolourmap(s_model *model, int map_index)
     return map_index;
 }
 
-int prevcolourmapn(s_model *model, int c, int p)
+// Decrement to previous map in player's (player_index) model
+// while avoiding the map another player with same 
+// is using.
+int prevcolourmapn(s_model *model, int map_index, int player_index)
 {
-    int color_index = prevcolourmap(model, c);
-    s_set_entry *set = levelsets + current_set;
+	// Decrement to previous index.
+	map_index = prevcolourmap(model, map_index);
 
-    if ( colourselect && (set->nosame & 2) )
-    {
-        int i = 0, j = 0;
-        int maps_count = model->maps_loaded + 1;
-        int used_colors_map[maps_count];
-        int used_color_count = 0;
+	s_set_entry *set = levelsets + current_set;
 
-        // reset color map
-        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
-        // check max color map count
-        if (model->maps.frozen > 0) --maps_count;
-        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+	// If color selection is allowed but identical map is 
+	// not (nosame 2), then let's make sure anohter player 
+	// with same model isn't already using this map.
+	// If they are we'll find the next map available.
+	if (colourselect && (set->nosame & 2))
+	{
+		int i = 0;
+		int j = 0;
+		int maps_count = model->maps_loaded + 1;
+		int used_colors_map[maps_count];
+		int used_color_count = 0;
 
-        // map all used colors
-        for(i = 0; i < MAX_PLAYERS; i++)
-        {
-            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
-            {
-                used_colors_map[player[i].colourmap] = 1;
-                ++used_color_count;
-                // all busy colors? return the next natural
-                if (used_color_count >= maps_count) return color_index;
-            }
-        }
+		// Reset local used map array elements to 0.
+		for (i = 0; i < maps_count; i++)
+		{
+			used_colors_map[i] = 0;
+		}
 
-        // search the first free color
-        for(i = color_index, j = 0; j < maps_count; j++)
-        {
-            if ( !used_colors_map[i] )
-            {
-                return i;
-            }
-            i = prevcolourmap(model, i);
-        }
-    }
+		// Deduct hidden maps from map count.
+		if (model->maps.frozen > 0)
+		{
+			--maps_count;
+		}
 
-    return color_index;
+		if (model->maps.ko > 0)
+		{
+			--maps_count;
+		}
+
+		if (model->maps.hide_start > 0)
+		{
+			maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+		}
+
+		// This logic attempts to populate used_colors_map array with
+		// every color in use by other players who picking same
+		// character. If there are aren't enough unused map indexes to
+		// go around (i.e. three players select a character that only
+		// has two maps), then we return initial map selection.
+
+		for (i = 0; i < MAX_PLAYERS; i++)
+		{
+			// Compare every player index to player_index argument. If
+			// it's a different index but that index's model matches
+			// player_index's model, then it's another player choosing 
+			// (or about to choose) the same character.
+
+			if (player_index != i
+				&&
+				stricmp(player[player_index].name, player[i].name) == 0)
+			{
+				// Use the map index as an array element index, and mark it true.
+				// Now we now this map index is in use.
+				used_colors_map[player[i].colourmap] = 1;
+
+				// Increment number of used map indexes.
+				++used_color_count;
+
+				// If all the map indexes are used, we'll just
+				// have to settle for one we already picked.
+				if (used_color_count >= maps_count)
+				{
+					return map_index;
+				}
+			}
+		}
+
+		// Now that we have a list of used maps, let's employ it to
+		// find the first free map.
+		//
+		// Loop to number of maps for the model. If our used_colors_map
+		// array element matching the map index doesn't have a true
+		// value, we can return the index.
+
+		for (i = map_index, j = 0; j < maps_count; j++)
+		{
+			if (!used_colors_map[i])
+			{
+				return i;
+			}
+
+			i = prevcolourmap(model, i);
+		}
+	}
+
+	// If we got here, then we couldn't find a free map index,
+	// so just return initial selection.
+	return map_index;
 }
 
 // Use by player select menus
