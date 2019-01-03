@@ -2818,8 +2818,12 @@ int     check_blocking_pain(entity *ent, s_collision_attack *attack);
 void    set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
 void    set_blocking_animation(entity *ent, s_collision_attack *attack);
 
-// Select player & colors
-int		is_map_hidden(s_model *model, int map_index);
+// Select player model & colors
+int		is_map_hidden							(s_model *model, int map_index);
+int		nextcolourmap							(s_model *model, int map_index);
+int		nextcolourmapn							(s_model *model, int map_index, int player_index);
+int		prevcolourmap							(s_model *model, int map_index);
+int		prevcolourmapn							(s_model *model, int map_index, int player_index);	
 
 int     buffer_pakfile							(char *filename, char **pbuffer, size_t *psize);
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
