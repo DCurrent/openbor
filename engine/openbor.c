@@ -5052,7 +5052,7 @@ s_model *nextplayermodel(s_model *current)
     return NULL;
 }
 
-s_model *nextplayermodeln(s_model *current, int p)
+s_model *nextplayermodeln(s_model *current, int player_index)
 {
     int i;
     s_set_entry *set = levelsets + current_set;
@@ -5069,18 +5069,22 @@ s_model *nextplayermodeln(s_model *current, int p)
         // count all used player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            if(i != player_index 
+				&& stricmp(player[player_index].name, player[i].name) == 0)
             {
                 ++used_player_count;
                 // all busy players? return the next natural
-                if (used_player_count >= player_count) return model;
+				if (used_player_count >= player_count)
+				{
+					return model;
+				}
             }
         }
 
         // search the first free player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(model->name, player[i].name) == 0)
+            if(i != player_index && stricmp(model->name, player[i].name) == 0)
             {
                 i = -1;
                 model = nextplayermodel(model);
@@ -5128,7 +5132,7 @@ s_model *prevplayermodel(s_model *current)
     return NULL;
 }
 
-s_model *prevplayermodeln(s_model *current, int p)
+s_model *prevplayermodeln(s_model *current, int player_index)
 {
     int i;
     s_set_entry *set = levelsets + current_set;
@@ -5145,7 +5149,7 @@ s_model *prevplayermodeln(s_model *current, int p)
         // count all used player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            if(i != player_index && stricmp(player[player_index].name, player[i].name) == 0)
             {
                 ++used_player_count;
                 // all busy players? return the prev natural
@@ -5156,7 +5160,7 @@ s_model *prevplayermodeln(s_model *current, int p)
         // search the first free player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(model->name, player[i].name) == 0)
+            if(i != player_index && stricmp(model->name, player[i].name) == 0)
             {
                 i = -1;
                 model = prevplayermodel(model);
