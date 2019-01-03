@@ -17562,7 +17562,7 @@ static float find_nearest_wall_x(int wall, float x, float z)
 // the transition doesn't exisit at all.
 //
 // Returns the resulting animation.
-int transition_to_animation(entity *ent, e_animations transition, e_animations default)
+int transition_to_animation(entity *ent, e_animations transition, e_animations primary)
 {
 	
 	#define ANIMATION_RESETABLE_FLAG 0
@@ -17571,18 +17571,18 @@ int transition_to_animation(entity *ent, e_animations transition, e_animations d
 	// just set default and exit.
 	if (!validanim(ent, transition))
 	{
-		ent_set_anim(ent, default, ANIMATION_RESETABLE_FLAG);
+		ent_set_anim(ent, primary, ANIMATION_RESETABLE_FLAG);
 
-		return default;
+		return primary;
 	}
 
 	// If in transition and finished, go back to
 	// default animation.
 	if (ent->animnum == transition && !ent->animating)
 	{
-		ent_set_anim(ent, default, ANIMATION_RESETABLE_FLAG);
+		ent_set_anim(ent, primary, ANIMATION_RESETABLE_FLAG);
 
-		return default;
+		return primary;
 	}
 	
 	// If we got this far, we have the transition and haven't 
