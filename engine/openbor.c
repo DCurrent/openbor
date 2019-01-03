@@ -4706,15 +4706,24 @@ int nextcolourmap(s_model *model, int map_index)
     return map_index;
 }
 
+// Increment to next map in player's (player_index) model
+// while avoiding the map another player with same 
+// is using.
 int nextcolourmapn(s_model *model, int map_index, int player_index)
 {
+	// Increment to next index.
 	map_index = nextcolourmap(model, map_index);
 
     s_set_entry *set = levelsets + current_set;
 
-    if ( colourselect && (set->nosame & 2) )
+	// If color selection is allowed but identical map is 
+	// not (nosame 2), then let's make sure anohter player 
+	// with same model isn't already using this map.
+	// If they are we'll find the next map available.
+    if (colourselect && (set->nosame & 2))
     {
-        int i = 0, j = 0;
+		int i = 0;
+		int j = 0;
         int maps_count = model->maps_loaded + 1;
         int used_colors_map[maps_count];
         int used_color_count = 0;
@@ -4785,7 +4794,7 @@ int nextcolourmapn(s_model *model, int map_index, int player_index)
         {
             if (!used_colors_map[i])
             {
-                return i;
+				return i;
             }
 
             i = nextcolourmap(model, i);
