@@ -531,7 +531,9 @@ typedef enum //Animations
     ANI_GRABDOWN2,			// Attack when a player has grabbed an opponent and presses down/attack
     ANI_GRABUP,				// Attack when a player has grabbed an opponent and presses up/attack
     ANI_GRABUP2,			// Attack when a player has grabbed an opponent and presses up/attack
-    ANI_SELECT,				// Animation that is displayed at the select screen
+    ANI_SELECT,				// Animation that is displayed at the select screen in place of idle.
+	ANI_SELECTIN,			// Animation that is displayed at the select screen, when first highlighted.
+	ANI_SELECTOUT,			// Animation that is displayed at the select screen, when moving to another character.
     ANI_DUCK,				// Animation that is played when pressing down in "platform" type levels
     ANI_FAINT,  			// Faint animations for players/enemys by tails
     ANI_CANT,  				// Can't animation for players(animation when mp is less than mpcost) by tails.
