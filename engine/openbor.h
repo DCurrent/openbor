@@ -2819,6 +2819,8 @@ void    set_blocking_action(entity *ent, entity *other, s_collision_attack *atta
 void    set_blocking_animation(entity *ent, s_collision_attack *attack);
 
 // Select player model & colors
+int		is_model_cache_index_selectable			(int cache_index);
+int		is_model_selectable						(s_model *model);
 int		is_map_hidden							(s_model *model, int map_index);
 int		nextcolourmap							(s_model *model, int map_index);
 int		nextcolourmapn							(s_model *model, int map_index, int player_index);

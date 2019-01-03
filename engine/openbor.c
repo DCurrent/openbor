@@ -4925,13 +4925,76 @@ int prevcolourmapn(s_model *model, int map_index, int player_index)
 	return map_index;
 }
 
+// Caskey, Damon V.
+// 2019-01-02
+//
+// Return true if a model cache element is selectable by player.
+int is_model_cache_index_selectable(int cache_index)
+{
+	// Must have selectable flag.
+	if (!model_cache[cache_index].selectable)
+	{
+		return 0;
+	}
+
+	// Element must contain a valid model.
+	if (!model_cache[cache_index].model)
+	{
+		return 0;
+	}
+	
+	// Element's model must be selectable.
+	if (!is_model_selectable(model_cache[cache_index].model))
+	{
+		return 0;
+	}
+
+	// All checks passed. Return true.
+	return 1;
+}
+
+// Caskey, Damon V.
+// 2019-01-02
+//
+// Return true if a model is selectable by player.
+int is_model_selectable(s_model *model)
+{
+	// Must be a player type.
+	if (model->type != TYPE_PLAYER)
+	{
+		return 0;
+	}
+
+	// If model is marked secret, then secret
+	// characters must be allowed.
+	if (model->secret)
+	{
+		if (!allow_secret_chars)
+		{
+			return 0;
+		}
+	}
+
+	// 2019-01-02 DC: Not sure what this is. 
+	// TO DO - Document clearcount vs. bonus.
+	if (model->clearcount > bonus)
+	{
+		return 0;
+	}
+
+	// Got this far, we can return true.
+	return 1;
+}
+
 // Use by player select menus
 s_model *nextplayermodel(s_model *current)
 {
     int i;
     int curindex = -1;
     int loops;
-    if(current)
+    
+	// Do we have a model?
+	if(current)
     {
         // Find index of current player model
         for(i = 0; i < models_cached; i++)
@@ -4943,19 +5006,21 @@ s_model *nextplayermodel(s_model *current)
             }
         }
     }
+
     // Find next player model (first one after current index)
     for(i = curindex + 1, loops = 0; loops < models_cached; i++, loops++)
     {
+		// Return to 0 if we've gone past the last model.
         if(i >= models_cached)
         {
             i = 0;
         }
-        if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                (allow_secret_chars || !model_cache[i].model->secret) &&
-                model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+
+		// If valid and selectable, return the model.
+        if(is_model_cache_index_selectable(i))
         {
-            //printf("next %s\n", model_cache[i].model->name);
-            return model_cache[i].model;
+			//printf("next %s\n", model_cache[i].model->name);
+			return model_cache[i].model;            
         }
     }
     borShutdown(1, "Fatal: can't find any player models!");
@@ -5033,9 +5098,9 @@ s_model *prevplayermodel(s_model *current)
         {
             i = models_cached - 1;
         }
-        if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                (allow_secret_chars || !model_cache[i].model->secret) &&
-                model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+
+		// If valid and selectable, return the model.
+        if(is_model_cache_index_selectable(i))
         {
             //printf("prev %s\n", model_cache[i].model->name);
             return model_cache[i].model;
