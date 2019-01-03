@@ -17552,6 +17552,48 @@ static float find_nearest_wall_x(int wall, float x, float z)
     }
 }
 
+// Caskey, Damon V.
+// 2019-01-03
+//
+// Play a transition animation if it is available and
+// isn't already finished. Used when we have a 
+// transition animation and a default we want to roll
+// over to once the transition is complete or if
+// the transition doesn't exisit at all.
+//
+// Returns the resulting animation.
+int transition_to_animation(entity *ent, e_animations transition, e_animations default)
+{
+	
+	#define ANIMATION_RESETABLE_FLAG 0
+	
+	// If we don't have the transition animation at all, 
+	// just set default and exit.
+	if (!validanim(ent, transition))
+	{
+		ent_set_anim(ent, default, ANIMATION_RESETABLE_FLAG);
+
+		return default;
+	}
+
+	// If in transition and finished, go back to
+	// default animation.
+	if (ent->animnum == transition && !ent->animating)
+	{
+		ent_set_anim(ent, default, ANIMATION_RESETABLE_FLAG);
+
+		return default;
+	}
+	
+	// If we got this far, we have the transition and haven't 
+	// already finished playing it, so fire it up!
+	ent_set_anim(ent, transition, ANIMATION_RESETABLE_FLAG);
+	
+	return transition;
+
+	#undef ANIMATION_RESETABLE_FLAG
+}
+
 // this method initialize an entity's A.I. behaviors
 void ent_default_init(entity *e)
 {
@@ -17590,8 +17632,8 @@ void ent_default_init(entity *e)
     }
     else if(selectScreen && validanim(e, ANI_SELECT))
     {
-        ent_set_anim(e, ANI_SELECT, 0);
-    }
+		transition_to_animation(e, ANI_SELECTIN, ANI_SELECT);		
+	}
     //else set_idle(e);
 
     if(!level)
