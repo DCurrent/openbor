@@ -4986,6 +4986,31 @@ int is_model_selectable(s_model *model)
 	return 1;
 }
 
+// Caskey, Damon V.
+// 2019-01-03
+//
+// Return current number of player selectable models.
+int find_selectable_model_count()
+{
+	int result;
+	int i;
+
+	result = 0;
+
+	// Loop over model cache and increment
+	// count each time we find a selectable
+	// model.
+	for (i = 0; i < models_cached; i++)
+	{
+		if (is_model_cache_index_selectable(i))
+		{
+			++result;
+		}
+	}
+
+	return result;
+}
+
 // Use by player select menus
 s_model *nextplayermodel(s_model *current)
 {
@@ -5035,18 +5060,11 @@ s_model *nextplayermodeln(s_model *current, int p)
 
     if(set->nosame & 1)
     {
-        int used_player_count = 0, player_count = 0;
+		int used_player_count = 0;
+		int player_count = 0;
 
-        // check count of selectable players
-        for(i = 0; i < models_cached; i++)
-        {
-            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                    (allow_secret_chars || !model_cache[i].model->secret) &&
-                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
-            {
-                ++player_count;
-            }
-        }
+		// Get number of selectable models.
+		player_count = find_selectable_model_count();
 
         // count all used player
         for(i = 0; model && i < MAX_PLAYERS; i++)
@@ -5118,18 +5136,11 @@ s_model *prevplayermodeln(s_model *current, int p)
 
     if(set->nosame & 1)
     {
-        int used_player_count = 0, player_count = 0;
+		int used_player_count = 0; 
+		int player_count = 0;
 
-        // check count of selectable players
-        for(i = 0; i < models_cached; i++)
-        {
-            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                    (allow_secret_chars || !model_cache[i].model->secret) &&
-                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
-            {
-                ++player_count;
-            }
-        }
+		// Get number of selectable models.
+		player_count = find_selectable_model_count();
 
         // count all used player
         for(i = 0; model && i < MAX_PLAYERS; i++)
