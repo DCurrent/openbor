@@ -16142,6 +16142,8 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
         KEY_X,
         KEY_Y,
         KEY_Z,
+		KEY_HP,
+		KEY_MP,
         POS_ARRAY_SIZE
     };
 
@@ -16175,13 +16177,16 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     pos_label[KEY_X]             = "X: %d";
     pos_label[KEY_Y]             = "Y: %d";
     pos_label[KEY_Z]             = "Z: %d";
+	pos_label[KEY_HP]             = "HP: %d";
+	pos_label[KEY_MP]             = "MP: %d";
 
     // Populate position values - truncated to int.
     pos_value[KEY_BASE]         = (int)entity->base;
     pos_value[KEY_X]            = (int)entity->position.x;
     pos_value[KEY_Y]            = (int)entity->position.y;
     pos_value[KEY_Z]            = (int)entity->position.z;
-
+	pos_value[KEY_HP]			= (int)entity->energy_status.health_current;
+	pos_value[KEY_MP]           = (int)entity->energy_status.mp_current;
     // Allocate memory and create finished strings.
     for(i = 0; i < POS_ARRAY_SIZE; i++)
     {
@@ -16271,7 +16276,6 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
     enum
     {
         KEY_MODELNAME,
-		KEY_HEALTH,
         CHAR_ARRAY_SIZE
     };
 
@@ -16302,11 +16306,10 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     // Populate position labels.
     char_label[KEY_MODELNAME]    = "%s";
-	char_label[KEY_HEALTH]    = "HP: %d";
+	char_label[KEY_HP]    = "HP: %d";
 
     // Populate position values - truncated to int.
     char_value[KEY_MODELNAME] = malloc( sizeof(char) * (strlen(entity->model->name)+1) );
-	char_value[KEY_HEALTH] = (int)entity->energy_status.health_current;
     memcpy( char_value[KEY_MODELNAME], entity->model->name, (strlen(entity->model->name)+1) );
 
     // Allocate memory and create finished strings.
