@@ -6512,7 +6512,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_SELECT;
     }
 	else if (stricmp(value, "selectin") == 0)
-	{
+	{		
 		ani_id = ANI_SELECTIN;
 	}
 	else if (stricmp(value, "selectout") == 0)
@@ -17552,48 +17552,6 @@ static float find_nearest_wall_x(int wall, float x, float z)
     }
 }
 
-// Caskey, Damon V.
-// 2019-01-03
-//
-// Play a transition animation if it is available and
-// isn't already finished. Used when we have a 
-// transition animation and a default we want to roll
-// over to once the transition is complete or if
-// the transition doesn't exisit at all.
-//
-// Returns the resulting animation.
-int transition_to_animation(entity *ent, e_animations transition, e_animations primary)
-{
-	
-	#define ANIMATION_RESETABLE_FLAG 0
-	
-	// If we don't have the transition animation at all, 
-	// just set default and exit.
-	if (!validanim(ent, transition))
-	{
-		ent_set_anim(ent, primary, ANIMATION_RESETABLE_FLAG);
-
-		return primary;
-	}
-
-	// If in transition and finished, go back to
-	// default animation.
-	if (ent->animnum == transition && !ent->animating)
-	{
-		ent_set_anim(ent, primary, ANIMATION_RESETABLE_FLAG);
-
-		return primary;
-	}
-	
-	// If we got this far, we have the transition and haven't 
-	// already finished playing it, so fire it up!
-	ent_set_anim(ent, transition, ANIMATION_RESETABLE_FLAG);
-	
-	return transition;
-
-	#undef ANIMATION_RESETABLE_FLAG
-}
-
 // this method initialize an entity's A.I. behaviors
 void ent_default_init(entity *e)
 {
@@ -17632,7 +17590,15 @@ void ent_default_init(entity *e)
     }
     else if(selectScreen && validanim(e, ANI_SELECT))
     {
-		transition_to_animation(e, ANI_SELECTIN, ANI_SELECT);		
+		// Play transition if we have one. Default Select otherwise.
+		if (validanim(e, ANI_SELECTIN))
+		{
+			ent_set_anim(e, ANI_SELECTIN, 0);
+		}
+		else
+		{	
+			ent_set_anim(e, ANI_SELECT, 0);
+		}
 	}
     //else set_idle(e);
 
@@ -18560,7 +18526,15 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
         }
         else if(selectScreen && validanim(ent, ANI_SELECT))
         {
-            ent_set_anim(ent, ANI_SELECT, 0);
+			// Play transition if we have one. Default Select otherwise.
+			if (validanim(ent, ANI_SELECTIN))
+			{
+				ent_set_anim(ent, ANI_SELECTIN, 0);
+			}
+			else
+			{
+				ent_set_anim(ent, ANI_SELECT, 0);
+			}
         }
         else
         {
@@ -32100,6 +32074,7 @@ void player_think()
 
         break;
     default:
+
         if(self->idling)
         {
             common_idle_anim(self);
@@ -36827,13 +36802,23 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 			// Current player index not yet selected?
 			if (!ready[i])
 			{
+				// If an example is already on screen playing it's transiton to 
+				// select (waiting) and is finished, switch to select.
+				if (example[i])
+				{
+					if (example[i]->animnum == ANI_SELECTIN && !example[i]->animating)
+					{
+						ent_set_anim(example[i], ANI_SELECT, 0);
+					}
+				}
+
 				// This is where we present player selections. Depending
 				// on player action we can take several sets of actions
 				// here.
 				//
 				// 1. If player hasn't played yet, has some credits or 
 				// can draw from credit pool and pressed any action button,
-				// then we'll deal witht heir credit pool and spawn the
+				// then we'll deal with their credit pool and spawn the
 				// first example (selectable model preview). Having an 
 				// example spawned also tells us the player has completed 
 				// this step, and so it's OK to run actions from any of 
@@ -36947,6 +36932,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					example[i]->stalltime = _time + GAME_SPEED * 2;
 					ready[i] = 1;
 				}
+		
 			}
 			else if (ready[i] == 1)
 			{
