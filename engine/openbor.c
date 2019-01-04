@@ -16271,6 +16271,7 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
     enum
     {
         KEY_MODELNAME,
+		KEY_HEALTH,
         CHAR_ARRAY_SIZE
     };
 
@@ -16301,9 +16302,11 @@ void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     // Populate position labels.
     char_label[KEY_MODELNAME]    = "%s";
+	char_label[KEY_HEALTH]    = "HP: %d";
 
     // Populate position values - truncated to int.
     char_value[KEY_MODELNAME] = malloc( sizeof(char) * (strlen(entity->model->name)+1) );
+	char_value[KEY_HEALTH] = (int)entity->energy_status.health_current;
     memcpy( char_value[KEY_MODELNAME], entity->model->name, (strlen(entity->model->name)+1) );
 
     // Allocate memory and create finished strings.
