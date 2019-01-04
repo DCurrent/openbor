@@ -36523,6 +36523,8 @@ static void load_select_screen_info(s_savelevel *save)
 int selectplayer(int *players, char *filename, int useSavedGame)
 {
 	s_model *tempmodel;
+	s_model *model_old;
+	s_model *model_new;
 	int i;
 	int exit = 0;
 	int escape = 0;
@@ -36885,15 +36887,20 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 
+					// Get model in use right now.
+					model_old = example[i]->model;
+
 					// Left key = previous model in cycle, right key = next.
 					if ((player[i].newkeys & FLAG_MOVELEFT))
 					{
-						ent_set_model(example[i], prevplayermodeln(example[i]->model, i)->name, 0);
+						model_new = prevplayermodeln(model_old, i);
 					}
 					else
 					{
-						ent_set_model(example[i], nextplayermodeln(example[i]->model, i)->name, 0);
+						model_new = nextplayermodeln(model_old, i);
 					}
+
+					ent_set_model(example[i], model_new->name, 0);
 
 					// Copy example model name to player name variable.
 					strcpy(player[i].name, example[i]->model->name);
