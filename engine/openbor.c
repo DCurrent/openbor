@@ -36523,8 +36523,8 @@ static void load_select_screen_info(s_savelevel *save)
 int selectplayer(int *players, char *filename, int useSavedGame)
 {
 	s_model *tempmodel;
-	s_model *model_old;
-	s_model *model_new;
+	s_model *model_old = NULL;
+	s_model *model_new = NULL;
 	int i;
 	int exit = 0;
 	int escape = 0;
@@ -36804,15 +36804,42 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 			// Current player index not yet selected?
 			if (!ready[i])
 			{
-				// If an example is already on screen playing it's transiton to 
-				// select (waiting) and is finished, switch to select.
-				if (example[i])
+				// Is an example is already on screen and fished with current animation?
+				if (example[i] && !example[i]->animating)
 				{
-					if (example[i]->animnum == ANI_SELECTIN && !example[i]->animating)
+					// Transition to select animation.
+					if (example[i]->animnum == ANI_SELECTIN)
 					{
 						ent_set_anim(example[i], ANI_SELECT, 0);
 					}
-				}
+				
+					// Transition from select (player selected another model, and the
+					// select out transition is now finished). Repeat of left/right key 
+					// logic below and probably needs consolidation.
+					if (example[i]->animnum == ANI_SELECTOUT && model_new)
+					{
+						// Apply new model.
+						ent_set_model(example[i], model_new->name, 0);
+
+						// Copy example model name to player name variable.
+						strcpy(player[i].name, example[i]->model->name);
+
+						// If colorselect is enabled and nosame 2 is enabled, skip to
+						// start at next avaialble color cycle. Otherwise just start 
+						// with default color set (0).
+						if (colourselect && (set->nosame & 2))
+						{
+							player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+						}
+						else
+						{
+							player[i].colourmap = 0;
+						}
+
+						//  Apply color set.
+						ent_set_colourmap(example[i], player[i].colourmap);
+					}				
+				}				
 
 				// This is where we present player selections. Depending
 				// on player action we can take several sets of actions
@@ -36882,6 +36909,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				}
 				else if (player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
 				{
+					// Give player a feedback sound.
 					if (SAMPLE_BEEP >= 0)
 					{
 						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
@@ -36890,7 +36918,8 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					// Get model in use right now.
 					model_old = example[i]->model;
 
-					// Left key = previous model in cycle, right key = next.
+					// Let's get the new model. Left key = previous model 
+					// in cycle. Right key = next.
 					if ((player[i].newkeys & FLAG_MOVELEFT))
 					{
 						model_new = prevplayermodeln(model_old, i);
@@ -36900,25 +36929,35 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 						model_new = nextplayermodeln(model_old, i);
 					}
 
-					ent_set_model(example[i], model_new->name, 0);
-
-					// Copy example model name to player name variable.
-					strcpy(player[i].name, example[i]->model->name);
-					
-					// If colorselect is enabled and nosame 2 is enabled, skip to
-					// start at next avaialble color cycle. Otherwise just start 
-					// with default color set (0).
-					if (colourselect && (set->nosame & 2))
-					{
-						player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+					// Do we have a select out transition? If so play it here. 
+					// Otherwise switch to new model. 
+					if (validanim(example[i], ANI_SELECTOUT))
+					{						
+						ent_set_anim(example[i], ANI_SELECTOUT, 0);				
 					}
 					else
 					{
-						player[i].colourmap = 0;
+						// Apply new model.
+						ent_set_model(example[i], model_new->name, 0);
+
+						// Copy example model name to player name variable.
+						strcpy(player[i].name, example[i]->model->name);
+
+						// If colorselect is enabled and nosame 2 is enabled, skip to
+						// start at next avaialble color cycle. Otherwise just start 
+						// with default color set (0).
+						if (colourselect && (set->nosame & 2))
+						{
+							player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+						}
+						else
+						{
+							player[i].colourmap = 0;
+						}
+
+						//  Apply color set.
+						ent_set_colourmap(example[i], player[i].colourmap);
 					}					
-					
-					//  Apply color set.
-					ent_set_colourmap(example[i], player[i].colourmap);
 				}
 				else if (player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
 				{
