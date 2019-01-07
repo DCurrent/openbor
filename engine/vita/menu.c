@@ -175,7 +175,7 @@ static void sortList()
 static int findPaks(void)
 {
     int i = 0;
-    SceUID dp = NULL;
+    SceUID dp = 0;
     SceIoDirent ds;
 
     dp = sceIoDopen(paksDir);
@@ -368,7 +368,7 @@ static void drawMenu()
             shift = 0;
             colors = GRAY;
             listing[0] = '\0';
-            strncat(listing, filelist[list+dListScrollPosition].filename, sizeof(listing));
+            strncat(listing, filelist[list+dListScrollPosition].filename, sizeof(listing)-1);
             extension = strrchr(listing, '.');
             if (extension) *extension = '\0';
 

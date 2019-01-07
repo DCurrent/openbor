@@ -587,7 +587,7 @@ endif
 
 
 ifdef BUILD_VITA
-LIBS           += -lvita2d -lSceKernel_stub -lSceDisplay_stub -lSceGxm_stub \
+LIBS           += -lvita2d -lSceLibKernel_stub -lSceDisplay_stub -lSceGxm_stub \
 	              -lSceSysmodule_stub -lSceCtrl_stub -lScePgf_stub \
 	              -lSceCommonDialog_stub -lSceAudio_stub -lfreetype -ljpeg
 endif

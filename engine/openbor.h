@@ -3100,7 +3100,7 @@ int set_death(entity *iDie, int type, int reset);
 int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset);
 int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
-int set_blockpain(entity *iBlkpain, int type, int reset);
+int set_blockpain(entity *iBlkpain, e_attack_types type, int reset);
 int set_pain(entity *iPain, int type, int reset);
 int reset_backpain(entity *ent);
 int check_backpain(entity* attacker, entity* defender);
