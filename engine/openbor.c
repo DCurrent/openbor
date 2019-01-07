@@ -36804,48 +36804,27 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 			// Current player index not yet selected?
 			if (!ready[i])
 			{
-				// Is an example is already on screen and fished with current animation?
-				if (example[i] && !example[i]->animating)
-				{
-					// Transition to select animation.
-					if (example[i]->animnum == ANI_SELECTIN)
-					{
-						ent_set_anim(example[i], ANI_SELECT, 0);
-					}
 				
-					// Transition from select (player selected another model, and the
-					// select out transition is now finished). Repeat of left/right key 
-					// logic below and probably needs consolidation.
-					if (example[i]->animnum == ANI_SELECTOUT && model_new)
-					{
-						// Apply new model.
-						ent_set_model(example[i], model_new->name, 0);
-
-						// Copy example model name to player name variable.
-						strcpy(player[i].name, example[i]->model->name);
-
-						// If colorselect is enabled and nosame 2 is enabled, skip to
-						// start at next avaialble color cycle. Otherwise just start 
-						// with default color set (0).
-						if (colourselect && (set->nosame & 2))
-						{
-							player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
-						}
-						else
-						{
-							player[i].colourmap = 0;
-						}
-
-						//  Apply color set.
-						ent_set_colourmap(example[i], player[i].colourmap);
-					}				
-				}				
-
-				// This is where we present player selections. Depending
-				// on player action we can take several sets of actions
-				// here.
+				// This is where we present player selections. The logic is long
+				// and a little messy, so buckle up! Basically, we want to spawn
+				// an example entity to get started, and that example entity
+				// is what player sees on the selection screen. Then we switch
+				// its model/color/animation based on the situation and player
+				// input.
 				//
-				// 1. If player hasn't played yet, has some credits or 
+				// 1. If an example entity exists and is playing a transition 
+				//  then we...
+				//
+				// a) do nothing if the animation isn't finished.
+				//
+				// b) If it IS finished...
+				//
+				// -- 1. If the animation is ANI_SELECTIN, then play ANI_SELECT.
+				// 
+				// -- 2. If aniamton is ANI_SELECTOUT, then we switch to new 
+				// model (if available).
+				//
+				// 2. If player hasn't played yet, has some credits or 
 				// can draw from credit pool and pressed any action button,
 				// then we'll deal with their credit pool and spawn the
 				// first example (selectable model preview). Having an 
@@ -36853,20 +36832,67 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				// this step, and so it's OK to run actions from any of 
 				// the others.
 				//
-				// 2. If the player pressed Left or Right instead and there's
-				// already an example spawned, then we cycle to the previous/next 
-				// character in line.
+				// 3. If the player pressed Left or Right instead and there's
+				// an example spawned, then we find the previous/next 
+				// character in line, and record it to a variable. Then we
+				// see if example has ANI_SELECTIN. if it doesn't we switch
+				// to new model. If it does, play ANI_SELECT.
 				//
-				// 3. If the player presses Up or Down, we have an example 
+				// 4. If the player presses Up or Down, we have an example 
 				// spawned and colourselect is enabled, then cycle to the
 				// model's previous/next color set choice.
 				//
-				// 4. If the player presses any action button and we have
+				// 5. If the player presses any action button and we have
 				// an example spawned, then we mark the player's ready delay 
 				// flag, and stalltime. See the parent logic block for 
 				// selection delay & exit details. This is the player
 				// making their selection choice.
-				if (!player[i].hasplayed
+
+				// Example exists and select transition animation?
+				if (example[i] 
+					&& (example[i]->animnum == ANI_SELECTIN || example[i]->animnum == ANI_SELECTOUT))
+				{
+					// If still animating than do nothing. Let the transition finish.
+					if (example[i]->animating)
+					{
+					}
+					else
+					{
+						// Transition to select animation.
+						if (example[i]->animnum == ANI_SELECTIN)
+						{
+							ent_set_anim(example[i], ANI_SELECT, 0);
+						}
+
+						// Transition from select (player selected another model, and the
+						// select out transition is now finished). Repeat of left/right key 
+						// logic below and probably needs consolidation.
+						if (example[i]->animnum == ANI_SELECTOUT && model_new)
+						{
+							// Apply new model.
+							ent_set_model(example[i], model_new->name, 0);
+
+							// Copy example model name to player name variable.
+							strcpy(player[i].name, example[i]->model->name);
+
+							// If colorselect is enabled and nosame 2 is enabled, skip to
+							// start at next avaialble color cycle. Otherwise just start 
+							// with default color set (0).
+							if (colourselect && (set->nosame & 2))
+							{
+								player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+							}
+							else
+							{
+								player[i].colourmap = 0;
+							}
+
+							//  Apply color set.
+							ent_set_colourmap(example[i], player[i].colourmap);
+						}
+					}
+				}
+				else if (!player[i].hasplayed
 					&& (noshare || credits > 0)
 					&& (player[i].newkeys & FLAG_ANYBUTTON))
 				{
