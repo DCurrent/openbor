@@ -531,7 +531,9 @@ typedef enum //Animations
     ANI_GRABDOWN2,			// Attack when a player has grabbed an opponent and presses down/attack
     ANI_GRABUP,				// Attack when a player has grabbed an opponent and presses up/attack
     ANI_GRABUP2,			// Attack when a player has grabbed an opponent and presses up/attack
-    ANI_SELECT,				// Animation that is displayed at the select screen
+    ANI_SELECT,				// Animation that is displayed at the select screen in place of idle.
+	ANI_SELECTIN,			// Animation that is displayed at the select screen, when first highlighted.
+	ANI_SELECTOUT,			// Animation that is displayed at the select screen, when moving to another character.
     ANI_DUCK,				// Animation that is played when pressing down in "platform" type levels
     ANI_FAINT,  			// Faint animations for players/enemys by tails
     ANI_CANT,  				// Can't animation for players(animation when mp is less than mpcost) by tails.
@@ -2817,6 +2819,22 @@ int     check_blocking_rules(entity *ent);
 int     check_blocking_pain(entity *ent, s_collision_attack *attack);
 void    set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
 void    set_blocking_animation(entity *ent, s_collision_attack *attack);
+
+// Select player models.
+int		find_selectable_model_count				();
+int		is_model_cache_index_selectable			(int cache_index);
+int		is_model_selectable						(s_model *model);
+s_model *nextplayermodel						(s_model *current);
+s_model *nextplayermodeln						(s_model *current, int player_index);
+s_model *prevplayermodel						(s_model *current);
+s_model *prevplayermodeln						(s_model *current, int player_index);
+
+// Select player maps (colors).
+int		is_map_hidden							(s_model *model, int map_index);
+int		nextcolourmap							(s_model *model, int map_index);
+int		nextcolourmapn							(s_model *model, int map_index, int player_index);
+int		prevcolourmap							(s_model *model, int map_index);
+int		prevcolourmapn							(s_model *model, int map_index, int player_index);	
 
 int     buffer_pakfile							(char *filename, char **pbuffer, size_t *psize);
 size_t  ParseArgs								(ArgList *list, char *input, char *output);

@@ -4640,128 +4640,375 @@ int load_special_sounds()
     return 1;
 }
 
-int nextcolourmap(s_model *model, int c)
+// Caskey, Damon V.
+// 2019-01-02
+//
+// Return true if map_index matches a special purpose
+// map or falls within author defined hidden map range, 
+// unless any of the above are same as default map (0).
+int is_map_hidden(s_model *model, int map_index)
 {
-    do
-    {
-        c++;
-        if(c > model->maps_loaded)
-        {
-            c = 0;
-        }
-    }
-    while(    // Keep looping until a non frozen map is found
-        (model->maps.frozen > 0 && c == model->maps.frozen) ||
-        (model->maps.hide_start > 0 && c >= model->maps.hide_start && c <= model->maps.hide_end)
-    );
+	// Have frozen map and it isn't same as default?
+	// If we do and it matches, return true.
+	if (model->maps.frozen > 0)
+	{
+		if (map_index == model->maps.frozen)
+		{
+			return 1;
+		}
+	}
 
-    return c;
+	// Check KO map. Same logic as frozen.
+	if (model->maps.ko > 0)
+	{
+		if (map_index == model->maps.ko)
+		{
+			return 1;
+		}
+	}
+
+	// Hidden map range. Both should be
+	// something other than default. If 
+	// they are and map index is in range
+	// we return true.
+	if (model->maps.hide_start > 0 
+		&& model->maps.hide_end > 0)
+	{
+		if (map_index >= model->maps.hide_start
+			&& map_index <= model->maps.hide_end)
+		{
+			return 1;
+		}
+	}
+
+	// If we got this far, there's no match. 
+	return 0;
 }
 
-int nextcolourmapn(s_model *model, int c, int p)
+// Return model's next selectable map index in line.
+int nextcolourmap(s_model *model, int map_index)
 {
-    int color_index = nextcolourmap(model, c);
+	// Increment to next color set, or return to 0 
+	// if we go past number of available sets. 
+	// Continue until we find an index that
+	// isn't hidden.
+    do
+    {
+		map_index++;
+
+        if(map_index > model->maps_loaded)
+        {
+			map_index = 0;
+        }
+    }
+    while(is_map_hidden(model, map_index));
+
+    return map_index;
+}
+
+// Increment to next map in player's (player_index) model
+// while avoiding the map another player with same 
+// is using.
+int nextcolourmapn(s_model *model, int map_index, int player_index)
+{
+	// Increment to next index.
+	map_index = nextcolourmap(model, map_index);
+
     s_set_entry *set = levelsets + current_set;
 
-    if ( colourselect && (set->nosame & 2) )
+	// If color selection is allowed but identical map is 
+	// not (nosame 2), then let's make sure anohter player 
+	// with same model isn't already using this map.
+	// If they are we'll find the next map available.
+    if (colourselect && (set->nosame & 2))
     {
-        int i = 0, j = 0;
+		int i = 0;
+		int j = 0;
         int maps_count = model->maps_loaded + 1;
         int used_colors_map[maps_count];
         int used_color_count = 0;
 
-        // reset color map
-        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
-        // check max color map count
-        if (model->maps.frozen > 0) --maps_count;
-        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+        // Reset local used map array elements to 0.
+		for (i = 0; i < maps_count; i++)
+		{
+			used_colors_map[i] = 0;
+		}
 
-        // map all used colors
+        // Deduct hidden maps from map count.
+		if (model->maps.frozen > 0)
+		{
+			--maps_count;
+		}
+
+		if (model->maps.ko > 0)
+		{
+			--maps_count;
+		}
+
+		if (model->maps.hide_start > 0)
+		{
+			maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+		}
+
+        // This logic attempts to populate used_colors_map array with
+		// every color in use by other players who picking same
+		// character. If there are aren't enough unused map indexes to
+		// go around (i.e. three players select a character that only
+		// has two maps), then we return initial map selection.
+
         for(i = 0; i < MAX_PLAYERS; i++)
-        {
-            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
+        {			
+			// Compare every player index to player_index argument. If
+			// it's a different index but that index's model matches
+			// player_index's model, then it's another player choosing 
+			// (or about to choose) the same character.
+
+            if (player_index != i 
+				&& 
+				stricmp(player[player_index].name, player[i].name) == 0)
             {
+				// Use the map index as an array element index, and mark it true.
+				// Now we now this map index is in use.
                 used_colors_map[player[i].colourmap] = 1;
-                ++used_color_count;
-                // all busy colors? return the next natural
-                if (used_color_count >= maps_count) return color_index;
+                
+				// Increment number of used map indexes.
+				++used_color_count;
+                
+				// If all the map indexes are used, we'll just
+				// have to settle for one we already picked.
+				if (used_color_count >= maps_count)
+				{
+					return map_index;
+				}
             }
         }
 
-        // search the first free color
-        for(i = color_index, j = 0; j < maps_count; j++)
+		// Now that we have a list of used maps, let's employ it to
+		// find the first free map.
+		//
+        // Loop to number of maps for the model. If our used_colors_map
+		// array element matching the map index doesn't have a true
+		// value, we can return the index.
+
+        for(i = map_index, j = 0; j < maps_count; j++)
         {
-            if ( !used_colors_map[i] )
+            if (!used_colors_map[i])
             {
-                return i;
+				return i;
             }
+
             i = nextcolourmap(model, i);
         }
     }
 
-    return color_index;
+	// If we got here, then we couldn't find a free map index,
+	// so just return initial selection.
+    return map_index;
 }
 
-int prevcolourmap(s_model *model, int c)
+// Return model's previous selectable map index in line.
+int prevcolourmap(s_model *model, int map_index)
 {
+	// Decrement to previous color set, or return 
+	// to last set if we go below 0. Continue until
+	// we find an index that isn't hidden.
     do
     {
-        c--;
-        if(c < 0)
+		map_index--;
+        if(map_index < 0)
         {
-            c = model->maps_loaded;
+			map_index = model->maps_loaded;
         }
     }
-    while(    // Keep looping until a non frozen map is found
-        (model->maps.frozen > 0 && c == model->maps.frozen) ||
-        (model->maps.hide_start > 0 && c >= model->maps.hide_start && c <= model->maps.hide_end)
-    );
+    while(is_map_hidden(model, map_index));
 
-    return c;
+    return map_index;
 }
 
-int prevcolourmapn(s_model *model, int c, int p)
+// Decrement to previous map in player's (player_index) model
+// while avoiding the map another player with same 
+// is using.
+int prevcolourmapn(s_model *model, int map_index, int player_index)
 {
-    int color_index = prevcolourmap(model, c);
-    s_set_entry *set = levelsets + current_set;
+	// Decrement to previous index.
+	map_index = prevcolourmap(model, map_index);
 
-    if ( colourselect && (set->nosame & 2) )
-    {
-        int i = 0, j = 0;
-        int maps_count = model->maps_loaded + 1;
-        int used_colors_map[maps_count];
-        int used_color_count = 0;
+	s_set_entry *set = levelsets + current_set;
 
-        // reset color map
-        for(i = 0; i < maps_count; i++) used_colors_map[i] = 0;
-        // check max color map count
-        if (model->maps.frozen > 0) --maps_count;
-        if (model->maps.hide_start > 0) maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+	// If color selection is allowed but identical map is 
+	// not (nosame 2), then let's make sure anohter player 
+	// with same model isn't already using this map.
+	// If they are we'll find the next map available.
+	if (colourselect && (set->nosame & 2))
+	{
+		int i = 0;
+		int j = 0;
+		int maps_count = model->maps_loaded + 1;
+		int used_colors_map[maps_count];
+		int used_color_count = 0;
 
-        // map all used colors
-        for(i = 0; i < MAX_PLAYERS; i++)
-        {
-            if ( p != i && stricmp(player[p].name, player[i].name) == 0 )
-            {
-                used_colors_map[player[i].colourmap] = 1;
-                ++used_color_count;
-                // all busy colors? return the next natural
-                if (used_color_count >= maps_count) return color_index;
-            }
-        }
+		// Reset local used map array elements to 0.
+		for (i = 0; i < maps_count; i++)
+		{
+			used_colors_map[i] = 0;
+		}
 
-        // search the first free color
-        for(i = color_index, j = 0; j < maps_count; j++)
-        {
-            if ( !used_colors_map[i] )
-            {
-                return i;
-            }
-            i = prevcolourmap(model, i);
-        }
-    }
+		// Deduct hidden maps from map count.
+		if (model->maps.frozen > 0)
+		{
+			--maps_count;
+		}
 
-    return color_index;
+		if (model->maps.ko > 0)
+		{
+			--maps_count;
+		}
+
+		if (model->maps.hide_start > 0)
+		{
+			maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+		}
+
+		// This logic attempts to populate used_colors_map array with
+		// every color in use by other players who picking same
+		// character. If there are aren't enough unused map indexes to
+		// go around (i.e. three players select a character that only
+		// has two maps), then we return initial map selection.
+
+		for (i = 0; i < MAX_PLAYERS; i++)
+		{
+			// Compare every player index to player_index argument. If
+			// it's a different index but that index's model matches
+			// player_index's model, then it's another player choosing 
+			// (or about to choose) the same character.
+
+			if (player_index != i
+				&&
+				stricmp(player[player_index].name, player[i].name) == 0)
+			{
+				// Use the map index as an array element index, and mark it true.
+				// Now we now this map index is in use.
+				used_colors_map[player[i].colourmap] = 1;
+
+				// Increment number of used map indexes.
+				++used_color_count;
+
+				// If all the map indexes are used, we'll just
+				// have to settle for one we already picked.
+				if (used_color_count >= maps_count)
+				{
+					return map_index;
+				}
+			}
+		}
+
+		// Now that we have a list of used maps, let's employ it to
+		// find the first free map.
+		//
+		// Loop to number of maps for the model. If our used_colors_map
+		// array element matching the map index doesn't have a true
+		// value, we can return the index.
+
+		for (i = map_index, j = 0; j < maps_count; j++)
+		{
+			if (!used_colors_map[i])
+			{
+				return i;
+			}
+
+			i = prevcolourmap(model, i);
+		}
+	}
+
+	// If we got here, then we couldn't find a free map index,
+	// so just return initial selection.
+	return map_index;
+}
+
+// Caskey, Damon V.
+// 2019-01-02
+//
+// Return true if a model cache element is selectable by player.
+int is_model_cache_index_selectable(int cache_index)
+{
+	// Must have selectable flag.
+	if (!model_cache[cache_index].selectable)
+	{
+		return 0;
+	}
+
+	// Element must contain a valid model.
+	if (!model_cache[cache_index].model)
+	{
+		return 0;
+	}
+	
+	// Element's model must be selectable.
+	if (!is_model_selectable(model_cache[cache_index].model))
+	{
+		return 0;
+	}
+
+	// All checks passed. Return true.
+	return 1;
+}
+
+// Caskey, Damon V.
+// 2019-01-02
+//
+// Return true if a model is selectable by player.
+int is_model_selectable(s_model *model)
+{
+	// Must be a player type.
+	if (model->type != TYPE_PLAYER)
+	{
+		return 0;
+	}
+
+	// If model is marked secret, then secret
+	// characters must be allowed.
+	if (model->secret)
+	{
+		if (!allow_secret_chars)
+		{
+			return 0;
+		}
+	}
+
+	// 2019-01-02 DC: Not sure what this is. 
+	// TO DO - Document clearcount vs. bonus.
+	if (model->clearcount > bonus)
+	{
+		return 0;
+	}
+
+	// Got this far, we can return true.
+	return 1;
+}
+
+// Caskey, Damon V.
+// 2019-01-03
+//
+// Return current number of player selectable models.
+int find_selectable_model_count()
+{
+	int result;
+	int i;
+
+	result = 0;
+
+	// Loop over model cache and increment
+	// count each time we find a selectable
+	// model.
+	for (i = 0; i < models_cached; i++)
+	{
+		if (is_model_cache_index_selectable(i))
+		{
+			++result;
+		}
+	}
+
+	return result;
 }
 
 // Use by player select menus
@@ -4770,7 +5017,9 @@ s_model *nextplayermodel(s_model *current)
     int i;
     int curindex = -1;
     int loops;
-    if(current)
+    
+	// Do we have a model?
+	if(current)
     {
         // Find index of current player model
         for(i = 0; i < models_cached; i++)
@@ -4782,26 +5031,28 @@ s_model *nextplayermodel(s_model *current)
             }
         }
     }
+
     // Find next player model (first one after current index)
     for(i = curindex + 1, loops = 0; loops < models_cached; i++, loops++)
     {
+		// Return to 0 if we've gone past the last model.
         if(i >= models_cached)
         {
             i = 0;
         }
-        if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                (allow_secret_chars || !model_cache[i].model->secret) &&
-                model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+
+		// If valid and selectable, return the model.
+        if(is_model_cache_index_selectable(i))
         {
-            //printf("next %s\n", model_cache[i].model->name);
-            return model_cache[i].model;
+			//printf("next %s\n", model_cache[i].model->name);
+			return model_cache[i].model;            
         }
     }
     borShutdown(1, "Fatal: can't find any player models!");
     return NULL;
 }
 
-s_model *nextplayermodeln(s_model *current, int p)
+s_model *nextplayermodeln(s_model *current, int player_index)
 {
     int i;
     s_set_entry *set = levelsets + current_set;
@@ -4809,34 +5060,31 @@ s_model *nextplayermodeln(s_model *current, int p)
 
     if(set->nosame & 1)
     {
-        int used_player_count = 0, player_count = 0;
+		int used_player_count = 0;
+		int player_count = 0;
 
-        // check count of selectable players
-        for(i = 0; i < models_cached; i++)
-        {
-            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                    (allow_secret_chars || !model_cache[i].model->secret) &&
-                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
-            {
-                ++player_count;
-            }
-        }
+		// Get number of selectable models.
+		player_count = find_selectable_model_count();
 
         // count all used player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            if(i != player_index 
+				&& stricmp(player[player_index].name, player[i].name) == 0)
             {
                 ++used_player_count;
                 // all busy players? return the next natural
-                if (used_player_count >= player_count) return model;
+				if (used_player_count >= player_count)
+				{
+					return model;
+				}
             }
         }
 
         // search the first free player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(model->name, player[i].name) == 0)
+            if(i != player_index && stricmp(model->name, player[i].name) == 0)
             {
                 i = -1;
                 model = nextplayermodel(model);
@@ -4872,9 +5120,9 @@ s_model *prevplayermodel(s_model *current)
         {
             i = models_cached - 1;
         }
-        if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                (allow_secret_chars || !model_cache[i].model->secret) &&
-                model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
+
+		// If valid and selectable, return the model.
+        if(is_model_cache_index_selectable(i))
         {
             //printf("prev %s\n", model_cache[i].model->name);
             return model_cache[i].model;
@@ -4884,7 +5132,7 @@ s_model *prevplayermodel(s_model *current)
     return NULL;
 }
 
-s_model *prevplayermodeln(s_model *current, int p)
+s_model *prevplayermodeln(s_model *current, int player_index)
 {
     int i;
     s_set_entry *set = levelsets + current_set;
@@ -4892,23 +5140,16 @@ s_model *prevplayermodeln(s_model *current, int p)
 
     if(set->nosame & 1)
     {
-        int used_player_count = 0, player_count = 0;
+		int used_player_count = 0; 
+		int player_count = 0;
 
-        // check count of selectable players
-        for(i = 0; i < models_cached; i++)
-        {
-            if(model_cache[i].model && model_cache[i].model->type == TYPE_PLAYER &&
-                    (allow_secret_chars || !model_cache[i].model->secret) &&
-                    model_cache[i].model->clearcount <= bonus && model_cache[i].selectable)
-            {
-                ++player_count;
-            }
-        }
+		// Get number of selectable models.
+		player_count = find_selectable_model_count();
 
         // count all used player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(player[p].name, player[i].name) == 0)
+            if(i != player_index && stricmp(player[player_index].name, player[i].name) == 0)
             {
                 ++used_player_count;
                 // all busy players? return the prev natural
@@ -4919,7 +5160,7 @@ s_model *prevplayermodeln(s_model *current, int p)
         // search the first free player
         for(i = 0; model && i < MAX_PLAYERS; i++)
         {
-            if(i != p && stricmp(model->name, player[i].name) == 0)
+            if(i != player_index && stricmp(model->name, player[i].name) == 0)
             {
                 i = -1;
                 model = prevplayermodel(model);
@@ -6270,6 +6511,14 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_SELECT;
     }
+	else if (stricmp(value, "selectin") == 0)
+	{		
+		ani_id = ANI_SELECTIN;
+	}
+	else if (stricmp(value, "selectout") == 0)
+	{
+		ani_id = ANI_SELECTOUT;
+	}
     else if(starts_with_num(value, "walk"))
     {
         get_tail_number(tempInt, value, "walk");
@@ -17341,8 +17590,16 @@ void ent_default_init(entity *e)
     }
     else if(selectScreen && validanim(e, ANI_SELECT))
     {
-        ent_set_anim(e, ANI_SELECT, 0);
-    }
+		// Play transition if we have one. Default Select otherwise.
+		if (validanim(e, ANI_SELECTIN))
+		{
+			ent_set_anim(e, ANI_SELECTIN, 0);
+		}
+		else
+		{	
+			ent_set_anim(e, ANI_SELECT, 0);
+		}
+	}
     //else set_idle(e);
 
     if(!level)
@@ -18269,7 +18526,15 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
         }
         else if(selectScreen && validanim(ent, ANI_SELECT))
         {
-            ent_set_anim(ent, ANI_SELECT, 0);
+			// Play transition if we have one. Default Select otherwise.
+			if (validanim(ent, ANI_SELECTIN))
+			{
+				ent_set_anim(ent, ANI_SELECTIN, 0);
+			}
+			else
+			{
+				ent_set_anim(ent, ANI_SELECT, 0);
+			}
         }
         else
         {
@@ -31809,6 +32074,7 @@ void player_think()
 
         break;
     default:
+
         if(self->idling)
         {
             common_idle_anim(self);
@@ -36158,19 +36424,64 @@ int playlevel(char *filename)
     return ((type == 2 && endgame != 2) || p_alive);
 }
 
-
-static entity *spawnexample(int i)
+// Caskey, Damon V (retool, OA unknown)
+// 2019-01-03
+//
+// For select screen. Spawn sample entity for player_index.
+static entity *spawnexample(int player_index)
 {
-    entity *example;
-    s_set_entry *set = levelsets + current_set;
-    example = spawn((float)psmenu[i][0], (float)psmenu[i][1], 0, spdirection[i], NULL, -1, nextplayermodeln(NULL, i));
-    strcpy(player[i].name, example->model->name);
+	#define SPAWN_MODEL_NAME	NULL
+	#define SPAWN_MODEL_INDEX	-1
 
-    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(example->model, -1, i) : 0;
+    entity	*example;
+	s_model *model;
+	s_set_entry *set;
 
-    ent_set_colourmap(example, player[i].colourmap);
-    example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
-    return example;
+	float pos_x;
+	float pos_y;
+	float pos_z;
+	int direction;
+		
+	set = levelsets + current_set;
+
+	// Get spawn attributes and spawn entity.
+	pos_x = (float)psmenu[player_index][0];
+	pos_y = 0;
+	pos_z = (float)psmenu[player_index][1];
+	direction = spdirection[player_index];
+
+	// Next selectable model in cycle. We'll use this
+	// to decide what we spawn.
+	model = nextplayermodeln(NULL, player_index);
+
+	example = spawn(pos_x, pos_z, pos_y, direction, SPAWN_MODEL_NAME, SPAWN_MODEL_INDEX, model);
+    
+	// Copy model's name to player property.
+	strcpy(player[player_index].name, model->name);
+
+	// If color selection is allowed and we want
+	// players with same models to use different
+	// maps, then use next map in cycle. Otherwise
+	// just go with default map.
+	if (colourselect && (set->nosame & 2))
+	{
+		player[player_index].colourmap = nextcolourmapn(model, -1, player_index);
+	}
+	else
+	{
+		player[player_index].colourmap = 0;
+	}
+
+	// Apply map to spawned entity.
+    ent_set_colourmap(example, player[player_index].colourmap);
+    
+	// So the entity knows how it came to be.
+	example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
+    
+	return example;
+
+	#undef SPAWN_MODEL_NAME
+	#undef SPAWN_MODEL_INDEX
 }
 
 // load saved select screen
@@ -36211,362 +36522,531 @@ static void load_select_screen_info(s_savelevel *save)
 
 int selectplayer(int *players, char *filename, int useSavedGame)
 {
-    s_model *tempmodel;
-    entity *example[4] = {NULL, NULL, NULL, NULL};
-    int i;
-    int exit = 0;
-    int ready[MAX_PLAYERS] = {0, 0, 0, 0};
-    int escape = 0;
-    int defaultselect = 0;
-    unsigned exitdelay = 0;
-    int players_busy = 0;
-    int players_ready = 0;
-    char string[MAX_BUFFER_LEN] = {""};
-    char *buf, *command;
-    size_t size = 0;
-    ptrdiff_t pos = 0;
-    ArgList arglist;
-    char argbuf[MAX_ARG_LEN + 1] = "";
-    s_set_entry *set = levelsets + current_set;
-    s_savelevel *save = savelevel + current_set;
-    int load_count = 0, saved_select_screen = 0;
-    int is_first_select = 1;
+	s_model *tempmodel;
+	s_model *model_old = NULL;
+	s_model *model_new = NULL;
+	int i;
+	int exit = 0;
+	int escape = 0;
+	int defaultselect = 0;
+	unsigned exitdelay = 0;
+	int players_busy = 0;
+	int players_ready = 0;
+	char string[MAX_BUFFER_LEN] = { "" };
+	char *buf, *command;
+	size_t size = 0;
+	ptrdiff_t pos = 0;
+	ArgList arglist;
+	char argbuf[MAX_ARG_LEN + 1] = "";
+	s_set_entry *set = levelsets + current_set;
+	s_savelevel *save = savelevel + current_set;
+	int load_count = 0;
+	int saved_select_screen = 0;
+	int is_first_select = 1;
 
-    savelevelinfo();
+	savelevelinfo();
 
-    selectScreen = 1;
-    kill_all();
-    if( allowselect_args[0] != 'a' && allowselect_args[0] != 'A' ) reset_playable_list(1); // 'a' is the first char of allowselect, if there's 'a' then there is allowselect
-    memset(player, 0, sizeof(*player) * 4);
+	selectScreen = 1;
+	kill_all();
 
-    if(useSavedGame && save)
-    {
-        if (save->selectFlag)
-        {
-            load_select_screen_info(save);
-            load_playable_list(save->allowSelectArgs);
-            saved_select_screen = 1;
-        }
-    }
+	// Initialize player sized arrays.
+	entity *example[set->maxplayers];
+	int ready[set->maxplayers];
 
-    //loadGameFile();
+	// Initialize 
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		example[i] = NULL;
+		ready[i] = 0;
+	}
 
-    for(i = 0; i < set->maxplayers; i++)
-    {
-        player[i].hasplayed = players[i];
-    }
+	// Allow select? 'a' is the first char of allowselect,
+	// if there's 'a' then there is allowselect.
+	if (allowselect_args[0] != 'a'
+		&& allowselect_args[0] != 'A')
+	{
+		reset_playable_list(1);
+	}
 
-    for(i = 0; i < set->maxplayers; i++)
-    {
-        if (savelevel[current_set].pLives[i] > 0)
-        {
-            is_first_select = 0;
-            break;
-        }
-    }
+	// Reset memory for player array.
+	memset(player, 0, sizeof(*player) * MAX_PLAYERS);
 
-    if(filename && filename[0])
-    {
-        if(buffer_pakfile(filename, &buf, &size) != 1)
-        {
-            borShutdown(1, "Failed to load player select file '%s'", filename);
-        }
-        while(pos < size)
-        {
-            ParseArgs(&arglist, buf + pos, argbuf);
-            command = GET_ARG(0);
-            if(command && command[0])
-            {
-                if(stricmp(command, "music") == 0)
-                {
-                    music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
-                    // SAVE
-                    multistrcatsp(save->selectMusic, command,GET_ARG(1),GET_ARG(2),GET_ARG(3),NULL);
-                }
-                else if(stricmp(command, "allowselect") == 0)
-                {
-                    load_playable_list(buf + pos);
-                    memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
-                }
-                else if(stricmp(command, "background") == 0)
-                {
-                    load_background(GET_ARG(1), 1);
-                    // SAVE
-                    multistrcatsp(save->selectBackground, command,GET_ARG(1),NULL);
-                }
-                else if(stricmp(command, "load") == 0)
-                {
-                    tempmodel = findmodel(GET_ARG(1));
-                    if (!tempmodel)
-                    {
-                        load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
-                    }
-                    else
-                    {
-                        update_model_loadflag(tempmodel, GET_INT_ARG(2));
-                    }
-                    // SAVE
-                    if(load_count < MAX_SELECT_LOADS)
-                    {
-                        multistrcatsp(save->selectLoad[load_count], command,GET_ARG(1),GET_ARG(2),NULL);
-                        load_count++;
-                    }
-                }
-                else if(command && command[0])
-                {
-                    printf("Command '%s' is not understood in file '%s'\n", command, filename);
-                }
-            }
+	// Load game selected and a save game available?
+	if (useSavedGame && save)
+	{
+		if (save->selectFlag)
+		{
+			load_select_screen_info(save);
+			load_playable_list(save->allowSelectArgs);
+			saved_select_screen = 1;
+		}
+	}
 
-            pos += getNewLineStart(buf + pos);
-        }
-        save->selectLoadCount = load_count; // SAVE number of LOAD command
-        save->selectFlag = 1;
+	// Mark "hasplayed" for all players.
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		player[i].hasplayed = players[i];
+	}
 
-        if(buf != NULL)
-        {
-            free(buf);
-            buf = NULL;
-        }
-    }
-    else // without select.txt
-    {
-        if(is_first_select || (!skipselect[0][0] && !set->noselect)) // no select is skipselect without names
-        {
-            defaultselect = 1; // normal select or skipselect/noselect? 1 == normal select
-        }
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		if (savelevel[current_set].pLives[i] > 0)
+		{
+			is_first_select = 0;
+			break;
+		}
+	}
 
-        if(!noshare)
-        {
-            credits = CONTINUES;
-        }
-        else for(i = 0; i < set->maxplayers; i++)
-        {
-            if(players[i])
-            {
-                player[i].credits = CONTINUES;
-            }
-        }
+	// Load and apply selection text file.
+	if (filename && filename[0])
+	{
+		if (buffer_pakfile(filename, &buf, &size) != 1)
+		{
+			borShutdown(1, "Failed to load player select file '%s'", filename);
+		}
+		while (pos < size)
+		{
+			ParseArgs(&arglist, buf + pos, argbuf);
+			command = GET_ARG(0);
+			if (command && command[0])
+			{
+				if (stricmp(command, "music") == 0)
+				{
+					music(GET_ARG(1), GET_INT_ARG(2), atol(GET_ARG(3)));
+					// SAVE
+					multistrcatsp(save->selectMusic, command, GET_ARG(1), GET_ARG(2), GET_ARG(3), NULL);
+				}
+				else if (stricmp(command, "allowselect") == 0)
+				{
+					load_playable_list(buf + pos);
+					memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
+				}
+				else if (stricmp(command, "background") == 0)
+				{
+					load_background(GET_ARG(1), 1);
+					// SAVE
+					multistrcatsp(save->selectBackground, command, GET_ARG(1), NULL);
+				}
+				else if (stricmp(command, "load") == 0)
+				{
+					tempmodel = findmodel(GET_ARG(1));
+					if (!tempmodel)
+					{
+						load_cached_model(GET_ARG(1), filename, GET_INT_ARG(2));
+					}
+					else
+					{
+						update_model_loadflag(tempmodel, GET_INT_ARG(2));
+					}
+					// SAVE
+					if (load_count < MAX_SELECT_LOADS)
+					{
+						multistrcatsp(save->selectLoad[load_count], command, GET_ARG(1), GET_ARG(2), NULL);
+						load_count++;
+					}
+				}
+				else if (command && command[0])
+				{
+					printf("Command '%s' is not understood in file '%s'\n", command, filename);
+				}
+			}
 
-        if(skipselect[0][0] || set->noselect)
-        {
-            for(i = 0; i < set->maxplayers; i++)
-            {
-                if(!players[i])
-                {
-                    continue;
-                }
-                strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
+			pos += getNewLineStart(buf + pos);
+		}
+		save->selectLoadCount = load_count; // SAVE number of LOAD command
+		save->selectFlag = 1;
 
-                if(defaultselect)
-                {
-                    player[i].lives = PLAYER_LIVES;
-                    if(!creditscheat)
-                    {
-                        if(noshare)
-                        {
-                            --player[i].credits;
-                        }
-                        else
-                        {
-                            --credits;
-                        }
-                    }
-                }
-                else
-                {
-                    player[i].lives = savelevel[current_set].pLives[i];
-                    player[i].score = savelevel[current_set].pScores[i];
-                    if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
-                    else credits = savelevel[current_set].credits;
-                }
-            }
-            selectScreen = 0;
+		if (buf != NULL)
+		{
+			free(buf);
+			buf = NULL;
+		}
+	}
+	else // without select.txt
+	{
+		if (is_first_select || (!skipselect[0][0] && !set->noselect)) // no select is skipselect without names
+		{
+			defaultselect = 1; // normal select or skipselect/noselect? 1 == normal select
+		}
 
-            return 1;
-        }
+		if (!noshare)
+		{
+			credits = CONTINUES;
+		}
+		else for (i = 0; i < set->maxplayers; i++)
+		{
+			if (players[i])
+			{
+				player[i].credits = CONTINUES;
+			}
+		}
 
-        if (!saved_select_screen)
-        {
-            if(unlockbg && bonus)
-            {
-                // New alternative background path for PSP
-                if(custBkgrds != NULL)
-                {
-                    strcpy(string, custBkgrds);
-                    strcat(string, "unlockbg");
-                    load_background(string, 1);
-                }
-                else
-                {
-                    load_cached_background("data/bgs/unlockbg", 1);
-                }
-            }
-            else
-            {
-                // New alternative background path for PSP
-                if(custBkgrds != NULL)
-                {
-                    strcpy(string, custBkgrds);
-                    strcat(string, "select");
-                    load_background(string, 1);
-                }
-                else
-                {
-                    load_cached_background("data/bgs/select", 1);
-                }
-            }
-            if(!music("data/music/menu", 1, 0))
-            {
-                music("data/music/remix", 1, 0);
-            }
-        }
-    }
+		if (skipselect[0][0] || set->noselect)
+		{
+			for (i = 0; i < set->maxplayers; i++)
+			{
+				if (!players[i])
+				{
+					continue;
+				}
+				strncpy(player[i].name, skipselect[i], MAX_NAME_LEN);
 
-    for(i = 0; i < set->maxplayers; i++)
-    {
-        if(players[i])
-        {
-            example[i] = spawnexample(i);
-            player[i].playkeys = 0;
-            if(defaultselect)
-            {
-                player[i].lives = PLAYER_LIVES;
-                if(!creditscheat)
-                {
-                    if(noshare)
-                    {
-                        --player[i].credits;
-                    }
-                    else
-                    {
-                        --credits;
-                    }
-                }
-            }
-            else
-            {
-                player[i].lives = savelevel[current_set].pLives[i];
-                player[i].score = savelevel[current_set].pScores[i];
-                if(noshare) player[i].credits = savelevel[current_set].pCredits[i];
-                else credits = savelevel[current_set].credits;
-            }
-        }
-    }
+				if (defaultselect)
+				{
+					player[i].lives = PLAYER_LIVES;
+					if (!creditscheat)
+					{
+						if (noshare)
+						{
+							--player[i].credits;
+						}
+						else
+						{
+							--credits;
+						}
+					}
+				}
+				else
+				{
+					player[i].lives = savelevel[current_set].pLives[i];
+					player[i].score = savelevel[current_set].pScores[i];
+					if (noshare) player[i].credits = savelevel[current_set].pCredits[i];
+					else credits = savelevel[current_set].credits;
+				}
+			}
+			selectScreen = 0;
 
-    _time = 0;
-    while(!(exit || escape))
-    {
-        players_busy = 0;
-        players_ready = 0;
-        for(i = 0; i < set->maxplayers; i++)
-        {
-            if(!ready[i])
-            {
-                if(!player[i].hasplayed && (noshare || credits > 0) && (player[i].newkeys & FLAG_ANYBUTTON))
-                {
-                    players[i] = player[i].hasplayed = 1;
-                    //printf("%d %d %d\n", i, player[i].lives, immediate[i]);
+			return 1;
+		}
 
-                    if(noshare)
-                    {
-                        player[i].credits = CONTINUES;
-                    }
+		if (!saved_select_screen)
+		{
+			if (unlockbg && bonus)
+			{
+				// New alternative background path for PSP
+				if (custBkgrds != NULL)
+				{
+					strcpy(string, custBkgrds);
+					strcat(string, "unlockbg");
+					load_background(string, 1);
+				}
+				else
+				{
+					load_cached_background("data/bgs/unlockbg", 1);
+				}
+			}
+			else
+			{
+				// New alternative background path for PSP
+				if (custBkgrds != NULL)
+				{
+					strcpy(string, custBkgrds);
+					strcat(string, "select");
+					load_background(string, 1);
+				}
+				else
+				{
+					load_cached_background("data/bgs/select", 1);
+				}
+			}
+			if (!music("data/music/menu", 1, 0))
+			{
+				music("data/music/remix", 1, 0);
+			}
+		}
+	}
 
-                    if(!creditscheat)
-                    {
-                        if(noshare)
-                        {
-                            --player[i].credits;
-                        }
-                        else
-                        {
-                            --credits;
-                        }
-                    }
+	for (i = 0; i < set->maxplayers; i++)
+	{
+		if (players[i])
+		{
+			example[i] = spawnexample(i);
+			player[i].playkeys = 0;
+			if (defaultselect)
+			{
+				player[i].lives = PLAYER_LIVES;
+				if (!creditscheat)
+				{
+					if (noshare)
+					{
+						--player[i].credits;
+					}
+					else
+					{
+						--credits;
+					}
+				}
+			}
+			else
+			{
+				player[i].lives = savelevel[current_set].pLives[i];
+				player[i].score = savelevel[current_set].pScores[i];
+				if (noshare) player[i].credits = savelevel[current_set].pCredits[i];
+				else credits = savelevel[current_set].credits;
+			}
+		}
+	}
 
-                    player[i].lives = PLAYER_LIVES;
-                    example[i] = spawnexample(i);
-                    player[i].playkeys = 0;
+	_time = 0;
 
-                    if(SAMPLE_BEEP >= 0)
-                    {
-                        sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                }
-                else if(player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
-                {
-                    if(SAMPLE_BEEP >= 0)
-                    {
-                        sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                    ent_set_model(example[i], ((player[i].newkeys & FLAG_MOVELEFT) ? prevplayermodeln : nextplayermodeln)(example[i]->model, i)->name, 0);
-                    strcpy(player[i].name, example[i]->model->name);
-                    player[i].colourmap = (colourselect && (set->nosame & 2)) ? nextcolourmapn(example[i]->model, -1, i) : 0;
-                    ent_set_colourmap(example[i], player[i].colourmap);
-                }
-                // oooh pretty colors! - selectable color scheme for player characters
-                else if(player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
-                {
-                    player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapn : prevcolourmapn)(example[i]->model, player[i].colourmap, i);
-                    ent_set_colourmap(example[i], player[i].colourmap);
-                }
-                else if((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
-                {
-                    if(SAMPLE_BEEP2 >= 0)
-                    {
-                        sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-                    }
-                    // yay you picked me!
-                    if(validanim(example[i], ANI_PICK))
-                    {
-                        ent_set_anim(example[i], ANI_PICK, 0);
-                    }
-                    example[i]->stalltime = _time + GAME_SPEED * 2;
-                    ready[i] = 1;
-                }
-            }
-            else if(ready[i] == 1)
-            {
-                if(((!validanim(example[i], ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && _time > example[i]->stalltime) || !example[i]->animating)
-                {
-                    ready[i] = 2;
-                    exitdelay = _time + GAME_SPEED;
-                }
-            }
-            else if(ready[i] == 2)
-            {
-                font_printf(psmenu[i][2], psmenu[i][3], 0, 0, Tr("Ready!"));
-            }
+	// Stay in selection until escape or exit.
+	// 
+	// exit = all players ready (selected) and exit delay expired.
+	// escape = Escape key pressed.
+	while (!(exit || escape))
+	{
+		players_busy = 0;
+		players_ready = 0;
 
-            if(example[i] != NULL)
-            {
-                players_busy++;
-            }
-            if(ready[i] == 2)
-            {
-                players_ready++;
-            }
-        }
+		// Loop through players.
+		for (i = 0; i < set->maxplayers; i++)
+		{
+			// Current player index not yet selected?
+			if (!ready[i])
+			{
+				
+				// This is where we present player selections. The logic is long
+				// and a little messy, so buckle up! Basically, we want to spawn
+				// an example entity to get started, and that example entity
+				// is what player sees on the selection screen. Then we switch
+				// its model/color/animation based on the situation and player
+				// input.
+				//
+				// 1. If an example entity exists and is playing a transition 
+				//  then we...
+				//
+				// a) do nothing if the animation isn't finished.
+				//
+				// b) If it IS finished...
+				//
+				// -- 1. If the animation is ANI_SELECTIN, then play ANI_SELECT.
+				// 
+				// -- 2. If aniamton is ANI_SELECTOUT, then we switch to new 
+				// model (if available).
+				//
+				// 2. If player hasn't played yet, has some credits or 
+				// can draw from credit pool and pressed any action button,
+				// then we'll deal with their credit pool and spawn the
+				// first example (selectable model preview). Having an 
+				// example spawned also tells us the player has completed 
+				// this step, and so it's OK to run actions from any of 
+				// the others.
+				//
+				// 3. If the player pressed Left or Right instead and there's
+				// an example spawned, then we find the previous/next 
+				// character in line, and record it to a variable. Then we
+				// see if example has ANI_SELECTIN. if it doesn't we switch
+				// to new model. If it does, play ANI_SELECT.
+				//
+				// 4. If the player presses Up or Down, we have an example 
+				// spawned and colourselect is enabled, then cycle to the
+				// model's previous/next color set choice.
+				//
+				// 5. If the player presses any action button and we have
+				// an example spawned, then we mark the player's ready delay 
+				// flag, and stalltime. See the parent logic block for 
+				// selection delay & exit details. This is the player
+				// making their selection choice.
 
-        if(players_busy && players_busy == players_ready && exitdelay && _time > exitdelay)
-        {
-            exit = 1;
-        }
-        update(0, 0);
+				// Example exists and select transition animation?
+				if (example[i] 
+					&& (example[i]->animnum == ANI_SELECTIN || example[i]->animnum == ANI_SELECTOUT))
+				{
+					// If still animating than do nothing. Let the transition finish.
+					if (example[i]->animating)
+					{
+					}
+					else
+					{
+						// Transition to select animation.
+						if (example[i]->animnum == ANI_SELECTIN)
+						{
+							ent_set_anim(example[i], ANI_SELECT, 0);
+						}
 
-        if(bothnewkeys & FLAG_ESC)
-        {
-            escape = 1;
-        }
-    }
+						// Transition from select (player selected another model, and the
+						// select out transition is now finished). Repeat of left/right key 
+						// logic below and probably needs consolidation.
+						if (example[i]->animnum == ANI_SELECTOUT && model_new)
+						{
+							// Apply new model.
+							ent_set_model(example[i], model_new->name, 0);
 
-    // No longer at the select screen
-    kill_all();
-    sound_close_music();
-    selectScreen = 0;
+							// Copy example model name to player name variable.
+							strcpy(player[i].name, example[i]->model->name);
 
-    return (!escape);
+							// If colorselect is enabled and nosame 2 is enabled, skip to
+							// start at next avaialble color cycle. Otherwise just start 
+							// with default color set (0).
+							if (colourselect && (set->nosame & 2))
+							{
+								player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+							}
+							else
+							{
+								player[i].colourmap = 0;
+							}
+
+							//  Apply color set.
+							ent_set_colourmap(example[i], player[i].colourmap);
+						}
+					}
+				}
+				else if (!player[i].hasplayed
+					&& (noshare || credits > 0)
+					&& (player[i].newkeys & FLAG_ANYBUTTON))
+				{
+
+					//  Now this player has played.
+					players[i] = player[i].hasplayed = 1;
+					//printf("%d %d %d\n", i, player[i].lives, immediate[i]);
+
+					// Noshare means each player has their own credit pool.
+					if (noshare)
+					{
+						player[i].credits = CONTINUES;
+					}
+
+					// Credits cheat = infinite credits. If that's not enabled,
+					// then deduct a credit.
+					if (!creditscheat)
+					{
+						if (noshare)
+						{
+							--player[i].credits;
+						}
+						else
+						{
+							--credits;
+						}
+					}
+
+					// Give player default number of lives, spawn
+					// example model and cancel the key flag.
+					player[i].lives = PLAYER_LIVES;
+					example[i] = spawnexample(i);
+					player[i].playkeys = 0;
+
+					// Play sound effect.
+					if (SAMPLE_BEEP >= 0)
+					{
+						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+					}
+				}
+				else if (player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
+				{
+					// Give player a feedback sound.
+					if (SAMPLE_BEEP >= 0)
+					{
+						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+					}
+
+					// Get model in use right now.
+					model_old = example[i]->model;
+
+					// Let's get the new model. Left key = previous model 
+					// in cycle. Right key = next.
+					if ((player[i].newkeys & FLAG_MOVELEFT))
+					{
+						model_new = prevplayermodeln(model_old, i);
+					}
+					else
+					{
+						model_new = nextplayermodeln(model_old, i);
+					}
+
+					// Do we have a select out transition? If so play it here. 
+					// Otherwise switch to new model. 
+					if (validanim(example[i], ANI_SELECTOUT))
+					{						
+						ent_set_anim(example[i], ANI_SELECTOUT, 0);				
+					}
+					else
+					{
+						// Apply new model.
+						ent_set_model(example[i], model_new->name, 0);
+
+						// Copy example model name to player name variable.
+						strcpy(player[i].name, example[i]->model->name);
+
+						// If colorselect is enabled and nosame 2 is enabled, skip to
+						// start at next avaialble color cycle. Otherwise just start 
+						// with default color set (0).
+						if (colourselect && (set->nosame & 2))
+						{
+							player[i].colourmap = nextcolourmapn(example[i]->model, -1, i);
+						}
+						else
+						{
+							player[i].colourmap = 0;
+						}
+
+						//  Apply color set.
+						ent_set_colourmap(example[i], player[i].colourmap);
+					}					
+				}
+				else if (player[i].newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN) && colourselect && example[i])
+				{
+					player[i].colourmap = ((player[i].newkeys & FLAG_MOVEUP) ? nextcolourmapn : prevcolourmapn)(example[i]->model, player[i].colourmap, i);
+					ent_set_colourmap(example[i], player[i].colourmap);
+				}
+				else if ((player[i].newkeys & FLAG_ANYBUTTON) && example[i])
+				{
+					if (SAMPLE_BEEP2 >= 0)
+					{
+						sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+					}
+					// yay you picked me!
+					if (validanim(example[i], ANI_PICK))
+					{
+						ent_set_anim(example[i], ANI_PICK, 0);
+					}
+					example[i]->stalltime = _time + GAME_SPEED * 2;
+					ready[i] = 1;
+				}
+		
+			}
+			else if (ready[i] == 1)
+			{
+				if (((!validanim(example[i], ANI_PICK) || example[i]->modeldata.animation[ANI_PICK]->loop.mode) && _time > example[i]->stalltime) || !example[i]->animating)
+				{
+					ready[i] = 2;
+					exitdelay = _time + GAME_SPEED;
+				}
+			}
+			else if (ready[i] == 2)
+			{
+				font_printf(psmenu[i][2], psmenu[i][3], 0, 0, Tr("Ready!"));
+			}
+
+			if (example[i] != NULL)
+			{
+				players_busy++;
+			}
+			if (ready[i] == 2)
+			{
+				players_ready++;
+			}
+		}
+
+		if (players_busy && players_busy == players_ready && exitdelay && _time > exitdelay)
+		{
+			exit = 1;
+		}
+		update(0, 0);
+
+		if (bothnewkeys & FLAG_ESC)
+		{
+			escape = 1;
+		}
+	}
+
+	// No longer at the select screen
+	kill_all();
+	sound_close_music();
+	selectScreen = 0;
+
+	return (!escape);
 }
 
 void playgame(int *players,  unsigned which_set, int useSavedGame)
