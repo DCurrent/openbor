@@ -17,8 +17,8 @@
 #include "utils.h"
 #include "ram.h"
 
-// set the heap size so that we can use up to 240 MB of RAM instead of 32 MB
-unsigned int _newlib_heap_size_user = 240 * 1024 * 1024;
+// set the heap size so that we can use up to 230 MB of RAM instead of 32 MB
+unsigned int _newlib_heap_size_user = 230 * 1024 * 1024;
 
 void Menu(); // defined in menu.c
 
