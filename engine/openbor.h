@@ -2811,12 +2811,13 @@ float	binding_position(float position_default, float position_target, int offset
 int     check_bind_override(entity *ent, e_binding_overriding overriding);
 
 // Blocking logic.
-void	do_active_block(entity *ent);
 int     check_blocking_decision(entity *ent);
 int     check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack);
 int     check_blocking_master(entity *ent, entity *other, s_collision_attack *attack);
 int     check_blocking_rules(entity *ent);
 int     check_blocking_pain(entity *ent, s_collision_attack *attack);
+void	do_active_block(entity *ent);
+void	do_passive_block(entity *ent, entity *other, s_collision_attack *attack);
 void    set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
 void    set_blocking_animation(entity *ent, s_collision_attack *attack);
 
