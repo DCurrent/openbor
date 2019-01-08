@@ -16460,9 +16460,9 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 	// XYZ
 	output_label[DRAW_PROPERTIES_KEY_POS] = "X,Y,Z: ";
 	output_value[DRAW_PROPERTIES_KEY_POS] = NULL;
-	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_POS], 0, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
+	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_POS], 0, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
 	output_value[DRAW_PROPERTIES_KEY_POS] = malloc(str_size);
-	snprintf(output_value[DRAW_PROPERTIES_KEY_POS], str_size, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
+	snprintf(output_value[DRAW_PROPERTIES_KEY_POS], str_size, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
 
 	// HP & MP
 	output_label[DRAW_PROPERTIES_KEY_STATUS] = "HP, MP: ";
