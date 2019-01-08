@@ -3157,7 +3157,7 @@ int common_try_wandercompletely(int dox, int doz);
 int common_try_wander(entity *target, int dox, int doz);
 void common_pickupitem(entity *other);
 int common_backwalk_anim(entity *ent);
-void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
+void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
 int bomb_move(void);

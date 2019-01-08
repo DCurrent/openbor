@@ -16377,7 +16377,7 @@ void updatestatus()
 //
 // Draw dot onto screen to indicate actual entity position,
 // with text readout of Base, X, Y, and Z coordinates directly below.
-void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
+void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
 {
     #define FONT_LABEL          1
 	#define FONT_VALUE          0
@@ -16627,7 +16627,7 @@ void draw_visual_debug()
         // Basic properties (Name, position, HP, etc.).
         if(savedata.debuginfo & DEBUG_DISPLAY_PROPERTIES)
         {
-            draw_position_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
+            draw_properties_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
         }
 
         // Range debug requested?
@@ -38565,7 +38565,7 @@ void menu_options_debug()
         _menutext((selector == ITEM_PERFORMANCE),    COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_PERFORMANCE ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
-        _menutext((selector == ITEM_POSITION),       COLUMN_1_POS_X, pos_y, Tr("Position:"));
+        _menutext((selector == ITEM_POSITION),       COLUMN_1_POS_X, pos_y, Tr("Basic Properties:"));
         _menutext((selector == ITEM_POSITION),       COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_PROPERTIES ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
