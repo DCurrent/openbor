@@ -16383,15 +16383,15 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     #define TEXT_MARGIN_Y       1
     #define OFFSET_LAYER       -2
 
-    // Position array keys
-    // and size constants.
+    // Array keys for the list of items 
+	// we want to display
     enum
     {
-        KEY_BASE,
-        KEY_X,
-        KEY_Y,
-        KEY_Z,
-        POS_ARRAY_SIZE
+		KEY_NAME,
+		KEY_BASE,
+        KEY_POS,
+		KEY_STATUS,
+        POS_ARRAY_SIZE	// Array size, so always last.
     };
 
     typedef struct
@@ -16404,53 +16404,58 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     s_axis_plane_vertical_int   base_pos;       // Entity position with screen offsets applied.
     draw_coords                 box;            // On screen coords for display elements.
 
-    int pos_value[POS_ARRAY_SIZE];      // Entity position for display - truncated to int.
     int i;                              // Counter.
     int str_offset_x;                   // Calculated offset of text for centering.
     int str_width_max;                  // largest string width.
     int str_height_max;                 // Largest string height.
     size_t str_size;                    // Memory size of string.
 
-    const char  *pos_label[POS_ARRAY_SIZE];  // Labels for string position values.
-    char        *pos_final[POS_ARRAY_SIZE];  // Final string to display position.
+    const char  *output_format[POS_ARRAY_SIZE]; // Label and format ("Label: %d, %s ..").
+    char        *output_final[POS_ARRAY_SIZE];  // Final string to display position.
+	
+    // Let's build the label and format for information
+	// we want to display.
+	output_format[KEY_NAME]		= "%s";
+	output_format[KEY_BASE]		= "Base: %d";
+	output_format[KEY_POS]		= "X,Y,Z: %d, %d, %d";
+	output_format[KEY_STATUS]	= "HP, MP: %d, %d";
 
-    // Initialize box.
-    box.position.x = 0;
-    box.position.y = 0;
-    box.position.z = 0;
+	// Double pass method for unknown string size. 
+	//
+	// 1. Attempt to copy 0 chars to unallocated 
+	// buffer and record how many characters
+	// would be needed, plus 1 for the NULL terminator
+	// and record as a string_size.
+	// 
+	// 2. Allocate memory using the string size.
+	//
+	// 3. Copy formatted string to allocated buffer
+	// for real.
+	//
+	// Repeat for each line item we want to display.
 
-    // Populate position labels.
-    pos_label[KEY_BASE]          = "B: %d";
-    pos_label[KEY_X]             = "X: %d";
-    pos_label[KEY_Y]             = "Y: %d";
-    pos_label[KEY_Z]             = "Z: %d";
+	output_final[KEY_NAME] = NULL;
+	str_size = snprintf(output_final[KEY_NAME], 0, output_format[KEY_NAME], entity->model->name) + 1;
+	output_final[KEY_NAME] = malloc(str_size);
+	snprintf(output_final[KEY_NAME], str_size, output_format[KEY_NAME], entity->model->name);
 
-    // Populate position values - truncated to int.
-    pos_value[KEY_BASE]         = (int)entity->base;
-    pos_value[KEY_X]            = (int)entity->position.x;
-    pos_value[KEY_Y]            = (int)entity->position.y;
-    pos_value[KEY_Z]            = (int)entity->position.z;
+	output_final[KEY_BASE] = NULL;
+	str_size = snprintf(output_final[KEY_BASE], 0, output_format[KEY_BASE], (int)entity->base) + 1;
+	output_final[KEY_BASE] = malloc(str_size);
+	snprintf(output_final[KEY_BASE], str_size, output_format[KEY_BASE], (int)entity->base);
 
-    // Allocate memory and create finished strings.
-    for(i = 0; i < POS_ARRAY_SIZE; i++)
-    {
-        // Get the total memory size we will need.
-        str_size  = sizeof(char) * (strlen(pos_label[i]) + 1);
-        str_size += sizeof(char) * (sizeof(pos_value[i]) + 1);
+	output_final[KEY_POS] = NULL;
+	str_size = snprintf(output_final[KEY_POS], 0, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
+	output_final[KEY_POS] = malloc(str_size);
+	snprintf(output_final[KEY_POS], str_size, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
 
-        // Allocate memory.
-        pos_final[i] = malloc(str_size);
-
-        // If allocation was successful, concatenate
-        // position label and position value.
-        if(pos_final[i])
-        {
-            sprintf(pos_final[i], pos_label[i], pos_value[i]);
-        }
-    }
+	output_final[KEY_STATUS] = NULL;
+	str_size = snprintf(output_final[KEY_STATUS], 0, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
+	output_final[KEY_STATUS] = malloc(str_size);
+	snprintf(output_final[KEY_STATUS], str_size, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
 
     // Get the largest string X and Y space.
-    str_width_max   = font_string_width_max(*pos_final, FONT);
+    str_width_max   = font_string_width_max(*output_final, FONT);
     str_height_max  = fontheight(FONT);
 
     // Get our base offsets from screen vs. location.
@@ -16478,149 +16483,22 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     // instead of just adjusting Z.
     spriteq_add_dot(base_pos.x, base_pos.y, box.position.z+1, color, drawmethod);
 
-    // Print each position text.
+    // Print each item text.
     for(i = 0; i < POS_ARRAY_SIZE; i++)
     {
-        // If the position string exists then
+        // If the item string exists then
         // we can find a position, print it to
         // the screen, and free up allocated memory.
-        if(pos_final[i])
+        if(output_final[i])
         {
            // Add font height and margin to Y position.
             base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
-            // Print position text.
-            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, pos_final[i]);
+            // Print the text to screen.
+            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, output_final[i]);
 
             // Release memory allocated for the string.
-            free(pos_final[i]);
-        }
-    }
-
-    return;
-
-    // Remove local constants.
-    #undef FONT
-    #undef TEXT_MARGIN_Y
-    #undef OFFSET_LAYER
-}
-
-// White Dragon
-// 2016-11-28
-//
-// Draw entity features
-void draw_features_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
-{
-    #define FONT                0
-    #define TEXT_MARGIN_Y       1
-    #define OFFSET_LAYER       -2
-
-    // Features array keys
-    // and size constants.
-    enum
-    {
-        KEY_MODELNAME,
-        CHAR_ARRAY_SIZE
-    };
-
-    typedef struct
-    {
-        s_axis_principal_int        position;
-        s_axis_plane_vertical_int   size;
-    } draw_coords;
-
-    s_axis_plane_vertical_int   screen_offset;  // Base location calculated from screen offsets.
-    s_axis_plane_vertical_int   base_pos;       // Entity position with screen offsets applied.
-    draw_coords                 box;            // On screen coords for display elements.
-
-    char *char_value[CHAR_ARRAY_SIZE];  // Entity features for display
-    int i;                              // Counter.
-    int str_offset_x;                   // Calculated offset of text for centering.
-    int str_width_max;                  // largest string width.
-    int str_height_max;                 // Largest string height.
-    size_t str_size;                    // Memory size of string.
-
-    const char  *char_label[CHAR_ARRAY_SIZE];  // Labels for string features
-    char        *char_final[CHAR_ARRAY_SIZE];  // Final string to display.
-
-    // Initialize box.
-    box.position.x = 0;
-    box.position.y = 0;
-    box.position.z = 0;
-
-    // Populate position labels.
-    char_label[KEY_MODELNAME]    = "%s";
-
-    // Populate position values - truncated to int.
-    char_value[KEY_MODELNAME] = malloc( sizeof(char) * (strlen(entity->model->name)+1) );
-    memcpy( char_value[KEY_MODELNAME], entity->model->name, (strlen(entity->model->name)+1) );
-
-    // Allocate memory and create finished strings.
-    for(i = 0; i < CHAR_ARRAY_SIZE; i++)
-    {
-        // Get the total memory size we will need.
-        str_size  = sizeof(char) * (strlen(char_label[i]) + 1);
-        str_size += sizeof(char) * (strlen(char_value[i]) + 1);
-
-        // Allocate memory.
-        char_final[i] = malloc(str_size);
-
-        // If allocation was successful, concatenate
-        // position label and position value.
-        if(char_final[i])
-        {
-            sprintf(char_final[i], char_label[i], char_value[i]);
-        }
-
-        free(char_value[i]);
-    }
-
-    // Get the largest string X and Y space.
-    str_width_max   = font_string_width_max(*char_final, FONT);
-    str_height_max  = fontheight(FONT);
-
-    // Get our base offsets from screen vs. location.
-    screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
-    screen_offset.y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
-
-    // Get entity position with screen offsets.
-    base_pos.x = entity->position.x - screen_offset.x;
-    base_pos.y = (entity->position.z - offset_z) - entity->position.y - screen_offset.y;
-
-    // Get a value of half the text width.
-    // We can use this to center our text
-    // on the entity.
-    str_offset_x = (str_width_max - font_string_width(FONT, "0")) / 2;
-
-    // Apply text offset.
-    box.position.x = base_pos.x - str_offset_x;
-
-    box.position.y = base_pos.y;
-    box.position.z = entity->position.z + offset_z;
-
-    // Draw position dot.
-    // The +1 to Z is a quick fix - offset_z
-    // distorts the dot's vertical position
-    // instead of just adjusting Z.
-    if (!savedata.debug_position) spriteq_add_dot(base_pos.x, base_pos.y, box.position.z+1, color, drawmethod);
-
-    // Print each feature text.
-    if (savedata.debug_position) base_pos.y += (str_height_max + TEXT_MARGIN_Y)*(3+1);
-    for(i = 0; i < CHAR_ARRAY_SIZE; i++)
-    {
-        // If the position string exists then
-        // we can find a position, print it to
-        // the screen, and free up allocated memory.
-        if(char_final[i])
-        {
-           // Add font height and margin to Y position.
-            base_pos.y += (str_height_max + TEXT_MARGIN_Y);
-
-            // Print position text.
-            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, char_final[i]);
-
-            // Release memory allocated for the string.
-            free(char_final[i]);
+            free(output_final[i]);
         }
     }
 
@@ -16722,13 +16600,7 @@ void draw_visual_debug()
             draw_position_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
         }
 
-        // Show features.
-        if(savedata.debug_features)
-        {
-            draw_features_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
-        }
-
-        // Collision body debug requested?
+        // Collision range debug requested?
         if(savedata.debug_collision_range)
         {
             draw_box_on_entity(entity, entity->animation->range.x.min, entity->animation->range.y.min, entity->position.z+1, entity->animation->range.x.max, entity->animation->range.y.max, -1, LOCAL_COLOR_GREEN, &drawmethod);
