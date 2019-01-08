@@ -16603,7 +16603,6 @@ void draw_visual_debug()
     s_hitbox            *coords;
     s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
-    s_collision_entity  *collision_entity;
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
 
@@ -16625,20 +16624,20 @@ void draw_visual_debug()
             continue;
         }
 
-        // Show offset and position.
-        if(savedata.debug_position)
+        // Basic properties (Name, position, HP, etc.).
+        if(savedata.debuginfo & DEBUG_DISPLAY_PROPERTIES)
         {
             draw_position_entity(entity, 0, LOCAL_COLOR_WHITE, NULL);
         }
 
-        // Collision range debug requested?
-        if(savedata.debug_collision_range)
+        // Range debug requested?
+        if(savedata.debuginfo & DEBUG_DISPLAY_RANGE)
         {
             draw_box_on_entity(entity, entity->animation->range.x.min, entity->animation->range.y.min, entity->position.z+1, entity->animation->range.x.max, entity->animation->range.y.max, -1, LOCAL_COLOR_GREEN, &drawmethod);
         }
 
         // Collision body debug requested?
-        if(savedata.debug_collision_body)
+        if(savedata.debuginfo & DEBUG_DISPLAY_COLLISION_BODY)
         {
             // Animation has collision?
             if(entity->animation->collision_body)
@@ -16663,34 +16662,8 @@ void draw_visual_debug()
             }
         }
 
-        // Collision entity debug requested?
-        if(savedata.debug_collision_entity)
-        {
-            // Animation has collision?
-            if(entity->animation->collision_entity)
-            {
-                // Frame has collision?
-                if(entity->animation->collision_entity[entity->animpos])
-                {
-                    // Loop instances of collision.
-                    for(instance = 0; instance < max_collisons; instance++)
-                    {
-                        // Get collision instance pointer.
-                        collision_entity = entity->animation->collision_entity[entity->animpos]->instance[instance];
-
-                        // Valid collision instance pointer found?
-                        if(collision_entity)
-                        {
-                            coords = collision_entity->coords;
-                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_ORANGE, &drawmethod);
-                        }
-                    }
-                }
-            }
-        }
-
         // Collision attack requested?
-        if(savedata.debug_collision_attack)
+        if(savedata.debuginfo & DEBUG_DISPLAY_COLLISION_ATTACK)
         {
             // Animation has collision?
             if(entity->animation->collision_attack)
@@ -16917,14 +16890,10 @@ void predrawstatus()
         }
     }// end of for
 
-    if(savedata.debug_position
-       || savedata.debug_features
-       || savedata.debug_collision_attack
-       || savedata.debug_collision_body
-       || savedata.debug_collision_entity
-       || savedata.debug_collision_range)
-    {
-        // Collision boxes
+	// If any of the debug flags are enabled, let's
+	// output debug data to end user.
+    if(savedata.debuginfo)
+    {		
         draw_visual_debug();
     }
 
@@ -16964,7 +16933,7 @@ void predrawstatus()
     }
 
     // Performance info.
-    if(savedata.debuginfo)
+    if(savedata.debuginfo & DEBUG_DISPLAY_PERFORMANCE)
     {
         spriteq_add_box(0, videomodes.dOffset - 12, videomodes.hRes, videomodes.dOffset + 12, LAYER_Z_LIMIT_BOX_MAX, 0, NULL);
         font_printf(2, videomodes.dOffset - 10, 0, LAYER_Z_LIMIT_MAX, Tr("FPS: %03d"), getFPS());
@@ -38560,10 +38529,8 @@ void menu_options_debug()
         // and last can go in any
         // order.
         ITEM_POSITION,
-        ITEM_FEATURES,
         ITEM_COL_ATTACK,
         ITEM_COL_BODY,
-        ITEM_COL_ENTITY,
         ITEM_COL_RANGE,
 
         // This is the "Back"
@@ -38595,31 +38562,23 @@ void menu_options_debug()
         pos_y = MENU_POS_Y + MENU_ITEMS_MARGIN_Y;
 
         _menutext((selector == ITEM_PERFORMANCE),    COLUMN_1_POS_X, pos_y, Tr("Performance:"));
-        _menutext((selector == ITEM_PERFORMANCE),    COLUMN_2_POS_X, pos_y, (savedata.debuginfo ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_PERFORMANCE),    COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_PERFORMANCE ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         _menutext((selector == ITEM_POSITION),       COLUMN_1_POS_X, pos_y, Tr("Position:"));
-        _menutext((selector == ITEM_POSITION),       COLUMN_2_POS_X, pos_y, (savedata.debug_position ? Tr("Enabled") : Tr("Disabled")));
-        pos_y++;
-
-        _menutext((selector == ITEM_FEATURES),       COLUMN_1_POS_X, pos_y, Tr("Features:"));
-        _menutext((selector == ITEM_FEATURES),       COLUMN_2_POS_X, pos_y, (savedata.debug_features ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_POSITION),       COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_PROPERTIES ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         _menutext((selector == ITEM_COL_ATTACK),     COLUMN_1_POS_X, pos_y, Tr("Collision Attack:"));
-        _menutext((selector == ITEM_COL_ATTACK),     COLUMN_2_POS_X, pos_y, (savedata.debug_collision_attack ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_COL_ATTACK),     COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_COLLISION_ATTACK ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         _menutext((selector == ITEM_COL_BODY),       COLUMN_1_POS_X, pos_y, Tr("Collision Body:"));
-        _menutext((selector == ITEM_COL_BODY),       COLUMN_2_POS_X, pos_y, (savedata.debug_collision_body ? Tr("Enabled") : Tr("Disabled")));
-        pos_y++;
-
-        _menutext((selector == ITEM_COL_ENTITY),       COLUMN_1_POS_X, pos_y, Tr("Collision Entity:"));
-        _menutext((selector == ITEM_COL_ENTITY),       COLUMN_2_POS_X, pos_y, (savedata.debug_collision_entity ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_COL_BODY),       COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_COLLISION_BODY ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         _menutext((selector == ITEM_COL_RANGE),      COLUMN_1_POS_X, pos_y, Tr("Range:"));
-        _menutext((selector == ITEM_COL_RANGE),      COLUMN_2_POS_X, pos_y, (savedata.debug_collision_range ? Tr("Enabled") : Tr("Disabled")));
+        _menutext((selector == ITEM_COL_RANGE),      COLUMN_2_POS_X, pos_y, (savedata.debuginfo & DEBUG_DISPLAY_RANGE ? Tr("Enabled") : Tr("Disabled")));
         pos_y++;
 
         // Display exit title
@@ -38688,25 +38647,19 @@ void menu_options_debug()
             switch(selector)
             {
                 case ITEM_PERFORMANCE:
-                    savedata.debuginfo = !savedata.debuginfo;
+                    savedata.debuginfo ^= DEBUG_DISPLAY_PERFORMANCE;
                     break;
                 case ITEM_POSITION:
-                    savedata.debug_position = !savedata.debug_position;
-                    break;
-                case ITEM_FEATURES:
-                    savedata.debug_features = !savedata.debug_features;
-                    break;
+                    savedata.debuginfo ^= DEBUG_DISPLAY_PROPERTIES;
+                    break;                
                 case ITEM_COL_ATTACK:
-                    savedata.debug_collision_attack = !savedata.debug_collision_attack;
+                    savedata.debuginfo ^= DEBUG_DISPLAY_COLLISION_ATTACK;
                     break;
                 case ITEM_COL_BODY:
-                    savedata.debug_collision_body = !savedata.debug_collision_body;
-                    break;
-                case ITEM_COL_ENTITY:
-                    savedata.debug_collision_entity = !savedata.debug_collision_entity;
+                    savedata.debuginfo ^= DEBUG_DISPLAY_COLLISION_BODY;
                     break;
                 case ITEM_COL_RANGE:
-                    savedata.debug_collision_range = !savedata.debug_collision_range;
+                    savedata.debuginfo ^= DEBUG_DISPLAY_RANGE;
                     break;
                 case ITEM_EXIT:
                     quit = 1;
