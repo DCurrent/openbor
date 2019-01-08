@@ -16379,8 +16379,9 @@ void updatestatus()
 // with text readout of Base, X, Y, and Z coordinates directly below.
 void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod)
 {
-    #define FONT                0
-    #define TEXT_MARGIN_Y       1
+    #define FONT_LABEL          1
+	#define FONT_VALUE          0
+	#define TEXT_MARGIN_Y       1
     #define OFFSET_LAYER       -2
 
     // Array keys for the list of items 
@@ -16406,58 +16407,84 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 
     int i;                              // Counter.
     int str_offset_x;                   // Calculated offset of text for centering.
-    int str_width_max;                  // largest string width.
+	int label_width_max;
+	int str_width_max;                  // largest string width.
     int str_height_max;                 // Largest string height.
     size_t str_size;                    // Memory size of string.
 
-	const char	*output_label[DRAW_PROPERTIES_ARRAY_SIZE];
+	char		*output_label[DRAW_PROPERTIES_ARRAY_SIZE];
 	const char  *output_format[DRAW_PROPERTIES_ARRAY_SIZE]; // Format ("%d, %s ..").
     char        *output_value[DRAW_PROPERTIES_ARRAY_SIZE];  // Final string to display position.
 	
-    // Let's build the label and format for information
+    // Let's build the format for information
 	// we want to display.
 	output_format[DRAW_PROPERTIES_KEY_NAME]		= "%s";
-	output_format[DRAW_PROPERTIES_KEY_BASE]		= "Base: %d";
-	output_format[DRAW_PROPERTIES_KEY_POS]		= "X,Y,Z: %d, %d, %d";
-	output_format[DRAW_PROPERTIES_KEY_STATUS]	= "HP, MP: %d, %d";
+	output_format[DRAW_PROPERTIES_KEY_BASE]		= "%d";
+	output_format[DRAW_PROPERTIES_KEY_POS]		= "%d, %d, %d";
+	output_format[DRAW_PROPERTIES_KEY_STATUS]	= "%d, %d";
 
 	// Double pass method for unknown string size. 
 	//
-	// 1. Attempt to copy 0 chars to unallocated 
+	// 1. Build the label.
+	//
+	// 2. Attempt to copy 0 chars to unallocated 
 	// buffer and record how many characters
 	// would be needed, plus 1 for the NULL terminator
 	// and record as a string_size.
 	// 
-	// 2. Allocate memory using the string size.
+	// 3. Allocate memory using the string size.
 	//
-	// 3. Copy formatted string to allocated buffer
+	// 4. Copy formatted string to allocated buffer
 	// for real.
 	//
 	// Repeat for each line item we want to display.
+	//
+	// TO: Work this into a loop. Main obstacle is
+	// the number of format string inputs vary depending
+	// on type of property.
 
+	// Name
+	output_label[DRAW_PROPERTIES_KEY_NAME] = "Name: ";
 	output_value[DRAW_PROPERTIES_KEY_NAME] = NULL;
 	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_NAME], 0, output_format[DRAW_PROPERTIES_KEY_NAME], entity->model->name) + 1;
 	output_value[DRAW_PROPERTIES_KEY_NAME] = malloc(str_size);
 	snprintf(output_value[DRAW_PROPERTIES_KEY_NAME], str_size, output_format[DRAW_PROPERTIES_KEY_NAME], entity->model->name);
 
+	// Base
+	output_label[DRAW_PROPERTIES_KEY_BASE] = "Base: ";
 	output_value[DRAW_PROPERTIES_KEY_BASE] = NULL;
 	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_BASE], 0, output_format[DRAW_PROPERTIES_KEY_BASE], (int)entity->base) + 1;
 	output_value[DRAW_PROPERTIES_KEY_BASE] = malloc(str_size);
 	snprintf(output_value[DRAW_PROPERTIES_KEY_BASE], str_size, output_format[DRAW_PROPERTIES_KEY_BASE], (int)entity->base);
 
+	// XYZ
+	output_label[DRAW_PROPERTIES_KEY_POS] = "X,Y,Z: ";
 	output_value[DRAW_PROPERTIES_KEY_POS] = NULL;
 	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_POS], 0, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
 	output_value[DRAW_PROPERTIES_KEY_POS] = malloc(str_size);
 	snprintf(output_value[DRAW_PROPERTIES_KEY_POS], str_size, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
 
+	// HP & MP
+	output_label[DRAW_PROPERTIES_KEY_STATUS] = "HP, MP: ";
 	output_value[DRAW_PROPERTIES_KEY_STATUS] = NULL;
 	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], 0, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
 	output_value[DRAW_PROPERTIES_KEY_STATUS] = malloc(str_size);
 	snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], str_size, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
 
-    // Get the largest string X and Y space.
-    str_width_max   = font_string_width_max(*output_value, FONT);
-    str_height_max  = fontheight(FONT);
+    // Get the largest string X and Y space. For X find the largest
+	// label and value, then add them. For Y, just get height of 
+	// largest font.
+    label_width_max = font_string_width_max(*output_label, FONT_LABEL);
+	str_width_max = label_width_max + font_string_width_max(*output_value, FONT_VALUE);
+
+	if (fontheight(FONT_LABEL) > fontheight(FONT_VALUE))
+	{
+		str_height_max = fontheight(FONT_LABEL);
+	}
+	else
+	{
+		str_height_max = fontheight(FONT_VALUE);
+	}
 
     // Get our base offsets from screen vs. location.
     screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
@@ -16495,10 +16522,13 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
            // Add font height and margin to Y position.
             base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
-            // Print the text to screen.
-            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, output_value[i]);
+            // Print label to the screen. The value X
+			// position adds maximum label width, plus
+			// the width a single value character.
+            font_printf(box.position.x, base_pos.y, FONT_LABEL, OFFSET_LAYER, output_label[i]);
+			font_printf(box.position.x + label_width_max + fontmonowidth(FONT_VALUE), base_pos.y, FONT_VALUE, OFFSET_LAYER, output_value[i]);
 
-            // Release memory allocated for the string.
+            // Release memory allocated for the value strings.
             free(output_value[i]);
         }
     }
