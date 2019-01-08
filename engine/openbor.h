@@ -255,6 +255,19 @@ typedef enum
     PORTING_VITA
 } e_porting;
 
+// Caskey, Damon V.
+// 2019-01-08
+//
+// Debugging display options for end user.
+typedef enum
+{
+	DEBUG_DISPLAY_NONE,
+	DEBUG_DISPLAY_COLLISION_ATTACK	= 0x00000001,
+	DEBUG_DISPLAY_COLLISION_BODY	= 0x00000002,
+	DEBUG_DISPLAY_PROPERTIES		= 0x00000004,
+	DEBUG_DISPLAY_RANGE				= 0x00000008
+} e_debug_display;
+
 typedef enum
 {
     SPAWN_TYPE_UNDEFINED,
