@@ -16410,8 +16410,8 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     int str_height_max;                 // Largest string height.
     size_t str_size;                    // Memory size of string.
 
-    const char  *output_format[POS_ARRAY_SIZE]; // Label and format ("Label: %d, %s ..").
-    char        *output_final[POS_ARRAY_SIZE];  // Final string to display position.
+	const char  *output_format[POS_ARRAY_SIZE]; // Format ("%d, %s ..").
+    char        *output_value[POS_ARRAY_SIZE];  // Final string to display position.
 	
     // Let's build the label and format for information
 	// we want to display.
@@ -16434,28 +16434,28 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 	//
 	// Repeat for each line item we want to display.
 
-	output_final[KEY_NAME] = NULL;
-	str_size = snprintf(output_final[KEY_NAME], 0, output_format[KEY_NAME], entity->model->name) + 1;
-	output_final[KEY_NAME] = malloc(str_size);
-	snprintf(output_final[KEY_NAME], str_size, output_format[KEY_NAME], entity->model->name);
+	output_value[KEY_NAME] = NULL;
+	str_size = snprintf(output_value[KEY_NAME], 0, output_format[KEY_NAME], entity->model->name) + 1;
+	output_value[KEY_NAME] = malloc(str_size);
+	snprintf(output_value[KEY_NAME], str_size, output_format[KEY_NAME], entity->model->name);
 
-	output_final[KEY_BASE] = NULL;
-	str_size = snprintf(output_final[KEY_BASE], 0, output_format[KEY_BASE], (int)entity->base) + 1;
-	output_final[KEY_BASE] = malloc(str_size);
-	snprintf(output_final[KEY_BASE], str_size, output_format[KEY_BASE], (int)entity->base);
+	output_value[KEY_BASE] = NULL;
+	str_size = snprintf(output_value[KEY_BASE], 0, output_format[KEY_BASE], (int)entity->base) + 1;
+	output_value[KEY_BASE] = malloc(str_size);
+	snprintf(output_value[KEY_BASE], str_size, output_format[KEY_BASE], (int)entity->base);
 
-	output_final[KEY_POS] = NULL;
-	str_size = snprintf(output_final[KEY_POS], 0, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
-	output_final[KEY_POS] = malloc(str_size);
-	snprintf(output_final[KEY_POS], str_size, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
+	output_value[KEY_POS] = NULL;
+	str_size = snprintf(output_value[KEY_POS], 0, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
+	output_value[KEY_POS] = malloc(str_size);
+	snprintf(output_value[KEY_POS], str_size, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
 
-	output_final[KEY_STATUS] = NULL;
-	str_size = snprintf(output_final[KEY_STATUS], 0, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
-	output_final[KEY_STATUS] = malloc(str_size);
-	snprintf(output_final[KEY_STATUS], str_size, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
+	output_value[KEY_STATUS] = NULL;
+	str_size = snprintf(output_value[KEY_STATUS], 0, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
+	output_value[KEY_STATUS] = malloc(str_size);
+	snprintf(output_value[KEY_STATUS], str_size, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
 
     // Get the largest string X and Y space.
-    str_width_max   = font_string_width_max(*output_final, FONT);
+    str_width_max   = font_string_width_max(*output_value, FONT);
     str_height_max  = fontheight(FONT);
 
     // Get our base offsets from screen vs. location.
@@ -16489,16 +16489,16 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
         // If the item string exists then
         // we can find a position, print it to
         // the screen, and free up allocated memory.
-        if(output_final[i])
+        if(output_value[i])
         {
            // Add font height and margin to Y position.
             base_pos.y += (str_height_max + TEXT_MARGIN_Y);
 
             // Print the text to screen.
-            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, output_final[i]);
+            font_printf(box.position.x, base_pos.y, FONT, OFFSET_LAYER, output_value[i]);
 
             // Release memory allocated for the string.
-            free(output_final[i]);
+            free(output_value[i]);
         }
     }
 
