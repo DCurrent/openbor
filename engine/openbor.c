@@ -16387,11 +16387,11 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 	// we want to display
     enum
     {
-		KEY_NAME,
-		KEY_BASE,
-        KEY_POS,
-		KEY_STATUS,
-        POS_ARRAY_SIZE	// Array size, so always last.
+		DRAW_PROPERTIES_KEY_NAME,
+		DRAW_PROPERTIES_KEY_BASE,
+		DRAW_PROPERTIES_KEY_POS,
+		DRAW_PROPERTIES_KEY_STATUS,
+		DRAW_PROPERTIES_ARRAY_SIZE	// Array size, so always last.
     };
 
     typedef struct
@@ -16410,15 +16410,16 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     int str_height_max;                 // Largest string height.
     size_t str_size;                    // Memory size of string.
 
-	const char  *output_format[POS_ARRAY_SIZE]; // Format ("%d, %s ..").
-    char        *output_value[POS_ARRAY_SIZE];  // Final string to display position.
+	const char	*output_label[DRAW_PROPERTIES_ARRAY_SIZE];
+	const char  *output_format[DRAW_PROPERTIES_ARRAY_SIZE]; // Format ("%d, %s ..").
+    char        *output_value[DRAW_PROPERTIES_ARRAY_SIZE];  // Final string to display position.
 	
     // Let's build the label and format for information
 	// we want to display.
-	output_format[KEY_NAME]		= "%s";
-	output_format[KEY_BASE]		= "Base: %d";
-	output_format[KEY_POS]		= "X,Y,Z: %d, %d, %d";
-	output_format[KEY_STATUS]	= "HP, MP: %d, %d";
+	output_format[DRAW_PROPERTIES_KEY_NAME]		= "%s";
+	output_format[DRAW_PROPERTIES_KEY_BASE]		= "Base: %d";
+	output_format[DRAW_PROPERTIES_KEY_POS]		= "X,Y,Z: %d, %d, %d";
+	output_format[DRAW_PROPERTIES_KEY_STATUS]	= "HP, MP: %d, %d";
 
 	// Double pass method for unknown string size. 
 	//
@@ -16434,25 +16435,25 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
 	//
 	// Repeat for each line item we want to display.
 
-	output_value[KEY_NAME] = NULL;
-	str_size = snprintf(output_value[KEY_NAME], 0, output_format[KEY_NAME], entity->model->name) + 1;
-	output_value[KEY_NAME] = malloc(str_size);
-	snprintf(output_value[KEY_NAME], str_size, output_format[KEY_NAME], entity->model->name);
+	output_value[DRAW_PROPERTIES_KEY_NAME] = NULL;
+	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_NAME], 0, output_format[DRAW_PROPERTIES_KEY_NAME], entity->model->name) + 1;
+	output_value[DRAW_PROPERTIES_KEY_NAME] = malloc(str_size);
+	snprintf(output_value[DRAW_PROPERTIES_KEY_NAME], str_size, output_format[DRAW_PROPERTIES_KEY_NAME], entity->model->name);
 
-	output_value[KEY_BASE] = NULL;
-	str_size = snprintf(output_value[KEY_BASE], 0, output_format[KEY_BASE], (int)entity->base) + 1;
-	output_value[KEY_BASE] = malloc(str_size);
-	snprintf(output_value[KEY_BASE], str_size, output_format[KEY_BASE], (int)entity->base);
+	output_value[DRAW_PROPERTIES_KEY_BASE] = NULL;
+	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_BASE], 0, output_format[DRAW_PROPERTIES_KEY_BASE], (int)entity->base) + 1;
+	output_value[DRAW_PROPERTIES_KEY_BASE] = malloc(str_size);
+	snprintf(output_value[DRAW_PROPERTIES_KEY_BASE], str_size, output_format[DRAW_PROPERTIES_KEY_BASE], (int)entity->base);
 
-	output_value[KEY_POS] = NULL;
-	str_size = snprintf(output_value[KEY_POS], 0, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
-	output_value[KEY_POS] = malloc(str_size);
-	snprintf(output_value[KEY_POS], str_size, output_format[KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
+	output_value[DRAW_PROPERTIES_KEY_POS] = NULL;
+	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_POS], 0, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z) + 1;
+	output_value[DRAW_PROPERTIES_KEY_POS] = malloc(str_size);
+	snprintf(output_value[DRAW_PROPERTIES_KEY_POS], str_size, output_format[DRAW_PROPERTIES_KEY_POS], (int)entity->base, (int)entity->position.x, (int)entity->position.y, (int)entity->position.z);
 
-	output_value[KEY_STATUS] = NULL;
-	str_size = snprintf(output_value[KEY_STATUS], 0, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
-	output_value[KEY_STATUS] = malloc(str_size);
-	snprintf(output_value[KEY_STATUS], str_size, output_format[KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
+	output_value[DRAW_PROPERTIES_KEY_STATUS] = NULL;
+	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], 0, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
+	output_value[DRAW_PROPERTIES_KEY_STATUS] = malloc(str_size);
+	snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], str_size, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
 
     // Get the largest string X and Y space.
     str_width_max   = font_string_width_max(*output_value, FONT);
@@ -16484,7 +16485,7 @@ void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod 
     spriteq_add_dot(base_pos.x, base_pos.y, box.position.z+1, color, drawmethod);
 
     // Print each item text.
-    for(i = 0; i < POS_ARRAY_SIZE; i++)
+    for(i = 0; i < DRAW_PROPERTIES_ARRAY_SIZE; i++)
     {
         // If the item string exists then
         // we can find a position, print it to
