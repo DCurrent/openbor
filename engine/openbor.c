@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2013 OpenBOR Team
+ * Copyright (c) OpenBOR Team
  */
 
 /////////////////////////////////////////////////////////////////////////////
@@ -16422,7 +16422,7 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 	output_format[DRAW_PROPERTIES_KEY_BASE]		= "%d";
 	output_format[DRAW_PROPERTIES_KEY_POS]		= "%d, %d, %d";
 	output_format[DRAW_PROPERTIES_KEY_STATUS]	= "%d, %d";
-
+	
 	// Double pass method for unknown string size. 
 	//
 	// 1. Build the label.
@@ -16471,11 +16471,12 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 	output_value[DRAW_PROPERTIES_KEY_STATUS] = malloc(str_size);
 	snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], str_size, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
 
-    // Get the largest string X and Y space. For X find the largest
+
+	// Get the largest string X and Y space. For X find the largest
 	// label and value, then add them. For Y, just get height of 
 	// largest font.
-    label_width_max = font_string_width_max(*output_label, FONT_LABEL);
-	str_width_max = label_width_max + font_string_width_max(*output_value, FONT_VALUE);
+    label_width_max = font_string_width_max(output_label, DRAW_PROPERTIES_ARRAY_SIZE, FONT_LABEL);
+	str_width_max = label_width_max + font_string_width_max(output_value, DRAW_PROPERTIES_ARRAY_SIZE, FONT_VALUE);
 
 	if (fontheight(FONT_LABEL) > fontheight(FONT_VALUE))
 	{
@@ -16524,9 +16525,9 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 
             // Print label to the screen. The value X
 			// position adds maximum label width, plus
-			// the width a single value character.
+			// 25% the width a single value character.
             font_printf(box.position.x, base_pos.y, FONT_LABEL, OFFSET_LAYER, output_label[i]);
-			font_printf(box.position.x + label_width_max + fontmonowidth(FONT_VALUE), base_pos.y, FONT_VALUE, OFFSET_LAYER, output_value[i]);
+			font_printf(box.position.x + label_width_max + (fontmonowidth(FONT_VALUE) * 0.25), base_pos.y, FONT_VALUE, OFFSET_LAYER, output_value[i]);
 
             // Release memory allocated for the value strings.
             free(output_value[i]);
@@ -16594,7 +16595,6 @@ void draw_visual_debug()
 {
     #define LOCAL_COLOR_BLUE        _makecolour(0, 0, 255)
     #define LOCAL_COLOR_GREEN       _makecolour(0, 255, 0)
-    #define LOCAL_COLOR_ORANGE      _makecolour(255, 100, 0)
     #define LOCAL_COLOR_MAGENTA     _makecolour(255, 0, 255)
     #define LOCAL_COLOR_WHITE       _makecolour(255, 255, 255)
 
@@ -16691,7 +16691,6 @@ void draw_visual_debug()
 
     #undef LOCAL_COLOR_BLUE
     #undef LOCAL_COLOR_GREEN
-    #undef LOCAL_COLOR_ORANGE
     #undef LOCAL_COLOR_MAGENTA
     #undef LOCAL_COLOR_WHITE
 }
