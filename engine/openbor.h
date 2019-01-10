@@ -2378,8 +2378,8 @@ typedef struct entity
     int                 playerindex;            // Player controlling the entity.**
     s_energy_status     energy_status;          // Health and MP.**
     char                name[MAX_NAME_LEN];		// this is display name.**
-    s_model             *defaultmodel;          // this is the default model
-    s_model             *model;                 // current model
+    s_model             *defaultmodel;          // this is the default model**
+    s_model             *model;                 // current model**
     s_model             modeldata;              // model data copied here
     s_item_properties   *item_properties;       // Properties copied to an item entity when it is dropped.
     bool boss;

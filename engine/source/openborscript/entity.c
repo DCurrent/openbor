@@ -49,6 +49,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "deduct_ammo",
         "energy_status",
 		"exists",
+		"model",
+		"model_default",
 		"name",
         "opponent",
         "owner",
@@ -332,6 +334,20 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->exists;
+
+			break;
+
+		case _ENTITY_MODEL:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID *)(handle->model);
+
+			break;
+
+		case _ENTITY_MODEL_DEFAULT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID *)(handle->defaultmodel);
 
 			break;
 
@@ -723,7 +739,19 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (varlist[ARG_VALUE]->vt == VT_STR)
 			{
 				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
-			}			
+			}		
+
+		case _ENTITY_MODEL:
+
+			handle->model = (s_model *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ENTITY_MODEL_DEFAULT:
+
+			handle->defaultmodel = (s_model *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
 
         case _ENTITY_OPPONENT:
 
