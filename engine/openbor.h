@@ -2371,7 +2371,7 @@ typedef struct
 
 typedef struct entity
 {
-    e_spawn_type        spawntype;              // Type of spawn (level spawn, script spawn, ...)
+    e_spawn_type        spawntype;              // Type of spawn (level spawn, script spawn, ...)*
     bool                exists;                 // flag to determine if it is a valid entity.
     bool                deduct_ammo;            // Check for ammo count?
     e_projectile_prime  projectile_prime;       // If this entity is a projectile, several priming values go here to set up its behavior.

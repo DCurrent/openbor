@@ -11,7 +11,7 @@
 // Use string property argument to find an
 // integer property constant and populate
 // varlist->lval.
-int mapstrings_energy_status_property(ScriptVariant **varlist, int paramCount)
+int mapstrings_energy_property(ScriptVariant **varlist, int paramCount)
 {
     #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
     #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
@@ -38,7 +38,7 @@ int mapstrings_energy_status_property(ScriptVariant **varlist, int paramCount)
     }
 
     // See macro - will return 0 on fail.
-    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ENERGY_STATUS_END,
+    MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ENERGY_END,
                "\n\n Error: '%s' is not a known energy status property.\n");
 
 
@@ -56,15 +56,15 @@ int mapstrings_energy_status_property(ScriptVariant **varlist, int paramCount)
 // Return an energy status property. Requires
 // a handle and property name to
 // access.
-HRESULT openbor_get_energy_status_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_get_energy_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "openbor_get_energy_status_property(void handle, char property)"
+    #define SELF_NAME       "openbor_get_energy_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_energy_status             *handle     = NULL; // Property handle.
-    e_energy_status_properties  property    = 0;    // Property argument.
+    e_energy_properties  property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
@@ -93,28 +93,28 @@ HRESULT openbor_get_energy_status_property(ScriptVariant **varlist , ScriptVaria
 
     switch(property)
     {
-        case _ENERGY_STATUS_HEALTH_CURRENT:
+        case _ENERGY_HEALTH_CURRENT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->health_current;
 
             break;
 
-        case _ENERGY_STATUS_HEALTH_OLD:
+        case _ENERGY_HEALTH_OLD:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->health_old;
 
             break;
 
-        case _ENERGY_STATUS_MP_CURRENT:
+        case _ENERGY_MP_CURRENT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->mp_current;
 
             break;
 
-        case _ENERGY_STATUS_MP_OLD:
+        case _ENERGY_MP_OLD:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->mp_old;
@@ -150,9 +150,9 @@ HRESULT openbor_get_energy_status_property(ScriptVariant **varlist , ScriptVaria
 // Mutate an energy status property. Requires
 // the handle, a string property
 // name, and new value.
-HRESULT openbor_set_energy_status_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_set_energy_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME           "openbor_set_energy_status_property(void handle, char property, value)"
+    #define SELF_NAME           "openbor_set_energy_property(void handle, char property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
     #define ARG_HANDLE          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
@@ -160,7 +160,7 @@ HRESULT openbor_set_energy_status_property(ScriptVariant **varlist, ScriptVarian
 
     int                         result      = S_OK; // Success or error?
     s_energy_status             *handle     = NULL; // Property handle.
-    e_energy_status_properties  property    = 0;    // Property to access.
+    e_energy_properties  property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
     // taken from argument.
@@ -188,7 +188,7 @@ HRESULT openbor_set_energy_status_property(ScriptVariant **varlist, ScriptVarian
     // Which property to modify?
     switch(property)
     {
-        case _ENERGY_STATUS_HEALTH_CURRENT:
+        case _ENERGY_HEALTH_CURRENT:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -197,7 +197,7 @@ HRESULT openbor_set_energy_status_property(ScriptVariant **varlist, ScriptVarian
 
             break;
 
-        case _ENERGY_STATUS_HEALTH_OLD:
+        case _ENERGY_HEALTH_OLD:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -206,7 +206,7 @@ HRESULT openbor_set_energy_status_property(ScriptVariant **varlist, ScriptVarian
 
             break;
 
-        case _ENERGY_STATUS_MP_CURRENT:
+        case _ENERGY_MP_CURRENT:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -215,7 +215,7 @@ HRESULT openbor_set_energy_status_property(ScriptVariant **varlist, ScriptVarian
 
             break;
 
-        case _ENERGY_STATUS_MP_OLD:
+        case _ENERGY_MP_OLD:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {

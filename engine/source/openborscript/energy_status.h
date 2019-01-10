@@ -12,14 +12,14 @@
 
 typedef enum
 {
-    _ENERGY_STATUS_HEALTH_CURRENT,
-    _ENERGY_STATUS_HEALTH_OLD,
-    _ENERGY_STATUS_MP_CURRENT,
-    _ENERGY_STATUS_MP_OLD,
-    _ENERGY_STATUS_END,
-} e_energy_status_properties;
+    _ENERGY_HEALTH_CURRENT,
+    _ENERGY_HEALTH_OLD,
+    _ENERGY_MP_CURRENT,
+    _ENERGY_MP_OLD,
+    _ENERGY_END,
+} e_energy_properties;
 
-HRESULT openbor_get_energy_status_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_energy_status_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_energy_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_set_energy_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
-int mapstrings_energy_status_property(ScriptVariant **varlist, int paramCount);
+int mapstrings_energy_property(ScriptVariant **varlist, int paramCount);

@@ -241,13 +241,13 @@ const char *Script_GetFunctionName(void *functionRef)
         return "getentityproperty";
     }
 
-    else if (functionRef == ((void *)openbor_get_energy_status_property))
+    else if (functionRef == ((void *)openbor_get_energy_property))
     {
-        return "get_energy_status_property";
+        return "get_energy_property";
     }
-    else if (functionRef == ((void *)openbor_set_energy_status_property))
+    else if (functionRef == ((void *)openbor_set_energy_property))
     {
-        return "set_energy_status_property";
+        return "set_energy_property";
     }
 
     else if (functionRef == ((void *)openbor_get_entity_property))
@@ -884,13 +884,13 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_entityproperty;
     }
-    else if (functionRef == ((void *)openbor_get_energy_status_property))
+    else if (functionRef == ((void *)openbor_get_energy_property))
     {
-        return (void *)mapstrings_energy_status_property;
+        return (void *)mapstrings_energy_property;
     }
-    else if (functionRef == ((void *)openbor_set_energy_status_property))
+    else if (functionRef == ((void *)openbor_set_energy_property))
     {
-        return (void *)mapstrings_energy_status_property;
+        return (void *)mapstrings_energy_property;
     }
     else if (functionRef == ((void *)openbor_get_entity_property))
     {
@@ -1169,9 +1169,9 @@ void Script_LoadSystemFunctions()
 
     // Energy status properties.
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_energy_status_property, "get_energy_status_property");
+                     (void *)openbor_get_energy_property, "get_energy_property");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_energy_status_property, "set_energy_status_property");
+                     (void *)openbor_get_energy_property, "set_energy_property");
 
     // Entity properties.
     List_InsertAfter(&theFunctionList,
