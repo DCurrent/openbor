@@ -2380,7 +2380,7 @@ typedef struct entity
     char                name[MAX_NAME_LEN];		// this is display name.**
     s_model             *defaultmodel;          // this is the default model**
     s_model             *model;                 // current model**
-    s_model             modeldata;              // model data copied here
+    s_model             modeldata;              // model data copied here**
     s_item_properties   *item_properties;       // Properties copied to an item entity when it is dropped.
     bool boss;
     unsigned int dying;   // Corresponds with which remap is to be used for the dying flash
