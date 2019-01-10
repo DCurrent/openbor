@@ -471,15 +471,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_ANIMATION_ANIMATION:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->animnum = temp_int;
-            }
-
-            break;
-
         case _ENTITY_ANIMATION_COLLECTION:
 
             //handle->animation = (s_anim **)varlist[ARG_VALUE]->ptrVal;
@@ -494,6 +485,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_ANIMATION_ID:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->animnum = temp_int;
+			}
+
+			break;
 
         case _ENTITY_ARROW_ON:
 
