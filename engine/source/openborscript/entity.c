@@ -49,6 +49,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "deduct_ammo",
         "energy_status",
 		"exists",
+		"name",
         "opponent",
         "owner",
         "player_index",
@@ -332,6 +333,12 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->exists;
 
+			break;
+
+		case _ENTITY_NAME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_STR);
+			(*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
 			break;
 
         case _ENTITY_OPPONENT:
@@ -710,6 +717,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			}
 
 			break;
+
+		case _ENTITY_NAME:
+
+			if (varlist[ARG_VALUE]->vt == VT_STR)
+			{
+				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
+			}			
 
         case _ENTITY_OPPONENT:
 
