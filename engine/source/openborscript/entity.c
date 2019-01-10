@@ -55,8 +55,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "opponent",
         "owner",
         "player_index",
+		"position_base",
         "position_base_alternate",
-        "position_base_default",
         "position_direction",
 		"position_x",
 		"position_y",
@@ -378,19 +378,19 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+		case _ENTITY_POSITION_BASE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->base;
+
+			break;
+
         case _ENTITY_POSITION_BASE_ALTERNATE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->altbase;
 
-            break;
-
-        case _ENTITY_POSITION_BASE_DEFAULT:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->base;
-
-            break;
+			break;
 
         case _ENTITY_POSITION_DIRECTION:
 
@@ -774,20 +774,20 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+		case _ENTITY_POSITION_BASE:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->base = temp_float;
+			}
+
+			break;
+
         case _ENTITY_POSITION_BASE_ALTERNATE:
 
             if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->altbase = temp_float;
-            }
-
-            break;
-
-        case _ENTITY_POSITION_BASE_DEFAULT:
-
-            if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->base = temp_float;
             }
 
             break;        
