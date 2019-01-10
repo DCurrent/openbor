@@ -23,9 +23,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     {
         "ai_target_entity",
         "animation_animating",
-        "animation_animation",
         "animation_collection",
         "animation_frame",
+		"animation_id",
         "arrow_on",
         "attacking",
         "attack_id_incoming",
@@ -142,13 +142,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_ANIMATION_ANIMATION:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->animnum;
-
-            break;
-
         case _ENTITY_ANIMATION_COLLECTION:
 
             // Verify entity has an animation collection
@@ -169,6 +162,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->animpos;
 
             break;
+
+		case _ENTITY_ANIMATION_ID:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->animnum;
+
+			break;
 
         case _ENTITY_ARROW_ON:
 
