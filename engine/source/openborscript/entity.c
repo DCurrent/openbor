@@ -53,8 +53,10 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "player_index",
         "position_base_alternate",
         "position_base_default",
-        "position_coordinates",
         "position_direction",
+		"position_x",
+		"position_y",
+		"position_z",
         "projectile_prime",
         "spawn_type",
     };
@@ -359,19 +361,33 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_POSITION_COORDINATES:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&handle->position;
-
-            break;
-
         case _ENTITY_POSITION_DIRECTION:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->direction;
 
             break;
+
+		case _ENTITY_POSITION_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->position.x;
+
+			break;
+
+		case _ENTITY_POSITION_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->position.y;
+
+			break;
+
+		case _ENTITY_POSITION_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->position.z;
+
+			break;
 
         case _ENTITY_PROJECTILE_PRIME:
 
@@ -715,13 +731,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
                 handle->base = temp_float;
             }
 
-            break;
-
-        case _ENTITY_POSITION_COORDINATES:
-
-            // Read only.
-
-            break;
+            break;        
 
         case _ENTITY_POSITION_DIRECTION:
 
@@ -731,6 +741,33 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_POSITION_X:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->position.x = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_POSITION_Y:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->position.y = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_POSITION_Z:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->position.z = temp_float;
+			}
+
+			break;
 
         case _ENTITY_PROJECTILE_PRIME:
 
