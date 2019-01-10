@@ -2371,13 +2371,13 @@ typedef struct
 
 typedef struct entity
 {
-    e_spawn_type        spawntype;              // Type of spawn (level spawn, script spawn, ...)*
-    bool                exists;                 // flag to determine if it is a valid entity.
-    bool                deduct_ammo;            // Check for ammo count?
-    e_projectile_prime  projectile_prime;       // If this entity is a projectile, several priming values go here to set up its behavior.
-    int                 playerindex;            // Player controlling the entity.
-    s_energy_status     energy_status;          // Health and MP.
-    char                name[MAX_NAME_LEN]; // this is display name
+    e_spawn_type        spawntype;              // Type of spawn (level spawn, script spawn, ...)**
+    bool                exists;                 // flag to determine if it is a valid entity.**
+    bool                deduct_ammo;            // Check for ammo count?**
+    e_projectile_prime  projectile_prime;       // If this entity is a projectile, several priming values go here to set up its behavior.**
+    int                 playerindex;            // Player controlling the entity.**
+    s_energy_status     energy_status;          // Health and MP.**
+    char                name[MAX_NAME_LEN];		// this is display name.**
     s_model             *defaultmodel;          // this is the default model
     s_model             *model;                 // current model
     s_model             modeldata;              // model data copied here
