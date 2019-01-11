@@ -2394,8 +2394,8 @@ typedef struct entity
     s_axis_principal_float velocity;			// x,y,z movement speed. ~~
     float destx;								// temporary values for ai functions
     float destz;
-    float movex;
-    float movez;
+    float movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
+    float movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
     float speedmul;
     float base;									// Default altitude. ~~
     float altbase;								// Altitude affected by movea. ~~
