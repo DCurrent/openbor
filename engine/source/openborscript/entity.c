@@ -53,6 +53,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"model",
 		"model_data",
 		"model_default",
+		"mp",
+		"mp_old",
 		"name",
         "opponent",
         "owner",
@@ -362,6 +364,16 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 			(*pretvar)->ptrVal = (VOID *)(handle->defaultmodel);
 
 			break;
+
+		case _ENTITY_MP:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->energy_status.mp_current;
+
+		case _ENTITY_MP_OLD:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->energy_status.mp_old;
 
 		case _ENTITY_NAME:
 
@@ -771,6 +783,24 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_MODEL_DEFAULT:
 
 			handle->defaultmodel = (s_model *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ENTITY_MP:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->energy_status.mp_current = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_MP_OLD:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->energy_status.mp_old = temp_int;
+			}
 
 			break;
 
