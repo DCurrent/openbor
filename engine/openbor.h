@@ -2390,7 +2390,6 @@ typedef struct entity
     e_direction direction;						//  ~~
     int nograb;									// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
     int nograb_default;							// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
-    int movestep;
     s_axis_principal_float position;			// x,y,z location. ~~
     s_axis_principal_float velocity;			// x,y,z movement speed. ~~
     float destx;								// temporary values for ai functions
