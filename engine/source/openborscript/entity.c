@@ -74,6 +74,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"position_z",
         "projectile_prime",
         "spawn_type",
+		"speed_multiplier"
     };
 
     // If the minimum argument count
@@ -521,6 +522,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->spawntype;
 
             break;
+
+		case _ENTITY_SPEED_MULTIPLIER:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->speedmul;
+
+			break;
 
         default:
 
@@ -1029,6 +1037,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_SPEED_MULTIPLIER:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->speedmul = temp_float;
+			}
+
+			break;
 
         default:
 

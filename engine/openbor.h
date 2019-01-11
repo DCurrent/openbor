@@ -2396,7 +2396,7 @@ typedef struct entity
     float destz;								// ~~
     float movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
     float movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
-    float speedmul;
+    float speedmul;								// Final multiplier for movement/velocity. ~~
     float base;									// Default altitude. ~~
     float altbase;								// Altitude affected by movea. ~~
     s_jump jump;								// Jumping velocity and id.

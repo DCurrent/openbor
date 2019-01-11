@@ -65,6 +65,7 @@ typedef enum
 	_ENTITY_POSITION_Z,
     _ENTITY_PROJECTILE_PRIME,
     _ENTITY_SPAWN_TYPE,
+	_ENTITY_SPEED_MULTIPLIER,
     _ENTITY_END,
 } e_entity_properties;
 
