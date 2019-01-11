@@ -57,6 +57,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"mp",
 		"mp_old",
 		"name",
+		"nograb",
+		"nograb_default",
         "opponent",
         "owner",
         "player_index",
@@ -387,6 +389,20 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_STR);
 			(*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
+			break;
+
+		case _ENTITY_NOGRAB:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->nograb;
+
+			break;
+
+		case _ENTITY_NOGRAB_DEFAULT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->nograb_default;
+
 			break;
 
         case _ENTITY_OPPONENT:
@@ -824,6 +840,24 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
 			}
+
+		case _ENTITY_NOGRAB:
+		
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->nograb = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_NOGRAB_DEFAULT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->nograb_default = temp_int;
+			}
+
+			break;
 
         case _ENTITY_OPPONENT:
 

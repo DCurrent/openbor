@@ -2388,8 +2388,8 @@ typedef struct entity
     unsigned int per1;							// Used to store at what health value the entity begins to flash ~~
     unsigned int per2;							// Used to store at what health value the entity flashes more rapidly ~~
     e_direction direction;						//  ~~
-    int nograb;									// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well
-    int nograb_default;							// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon)
+    int nograb;									// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
+    int nograb_default;							// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
     int movestep;
     s_axis_principal_float position;			// x,y,z location. ~~
     s_axis_principal_float velocity;			// x,y,z movement speed. ~~
