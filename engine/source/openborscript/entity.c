@@ -47,8 +47,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "combo_time",
         "damage_on_landing",
         "deduct_ammo",
-        "energy_status",
 		"exists",
+		"hp",
+		"hp_old",
 		"model",
 		"model_data",
 		"model_default",
@@ -324,19 +325,22 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_ENERGY:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&handle->energy_status;
-
-            break;
-
 		case _ENTITY_EXISTS:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->exists;
 
 			break;
+
+		case _ENTITY_HP:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->energy_status.health_current;
+
+		case _ENTITY_HP_OLD:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->energy_status.health_old;
 
 		case _ENTITY_MODEL:
 
@@ -727,12 +731,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_ENERGY:
-
-            // Read only.
-
-            break;
-
 		case _ENTITY_EXISTS:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -742,12 +740,23 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-		case _ENTITY_NAME:
+		case _ENTITY_HP:
 
-			if (varlist[ARG_VALUE]->vt == VT_STR)
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
-			}		
+				handle->energy_status.health_current = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_HP_OLD:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->energy_status.health_old = temp_int;
+			}
+
+			break;		
 
 		case _ENTITY_MODEL:
 
@@ -764,6 +773,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			handle->defaultmodel = (s_model *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
+
+		case _ENTITY_NAME:
+
+			if (varlist[ARG_VALUE]->vt == VT_STR)
+			{
+				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
+			}
 
         case _ENTITY_OPPONENT:
 
