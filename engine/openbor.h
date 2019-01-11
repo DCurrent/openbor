@@ -2381,7 +2381,7 @@ typedef struct entity
     s_model             *defaultmodel;          // this is the default model ~~
     s_model             *model;                 // current model ~~
     s_model             modeldata;              // model data copied here ~~
-    s_item_properties   *item_properties;       // Properties copied to an item entity when it is dropped.
+    s_item_properties   *item_properties;       // Properties copied to an item entity when it is dropped. ~~
     bool boss;									// I'm the BOSS playa, I'm the reason that you lost! ~~
     unsigned int dying;							// Corresponds with which remap is to be used for the dying flash ~~
     unsigned int dying2;						// Corresponds with which remap is to be used for the dying flash for per2 ~~

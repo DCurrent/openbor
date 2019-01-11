@@ -10,11 +10,6 @@
 // 2018-04-02
 // Caskey, Damon V.
 
-HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_entity_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
-int mapstrings_entity_property(ScriptVariant **varlist, int paramCount);
-
 typedef enum
 {
     _ENTITY_AI_TARGET_ENTITY,
@@ -46,6 +41,7 @@ typedef enum
 	_ENTITY_EXISTS,
 	_ENTITY_HP,
 	_ENTITY_HP_OLD,
+	_ENTITY_ITEM_DATA,
 	_ENTITY_MODEL,
 	_ENTITY_MODEL_DATA,
 	_ENTITY_MODEL_DEFAULT,

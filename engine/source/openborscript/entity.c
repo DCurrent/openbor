@@ -50,6 +50,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"exists",
 		"hp",
 		"hp_old",
+		"item_data",
 		"model",
 		"model_data",
 		"model_default",
@@ -343,6 +344,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->energy_status.health_old;
+
+		case _ENTITY_ITEM_DATA:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID *)&handle->item_properties;
+
+			break;
 
 		case _ENTITY_MODEL:
 
@@ -768,7 +776,13 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 				handle->energy_status.health_old = temp_int;
 			}
 
-			break;		
+			break;	
+
+		case _ENTITY_ITEM_DATA:
+
+			// Read only.
+
+			break;
 
 		case _ENTITY_MODEL:
 
