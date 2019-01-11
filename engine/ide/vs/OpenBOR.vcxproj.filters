@@ -267,9 +267,6 @@
     <ClCompile Include="..\..\source\openborscript\constants.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\source\openborscript\energy_status.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\source\openborscript\entity.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -517,6 +514,7 @@
     <None Include="..\..\version.sh" />
     <None Include="..\..\source\preprocessorlib\test\build.sh" />
     <None Include="..\..\source\preprocessorlib\test\tokendiff.sh" />
+    <None Include="..\..\Makefile" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\openbor.h">
@@ -1105,9 +1103,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\source\openborscript\config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\source\openborscript\energy_status.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\source\openborscript\entity.h">
