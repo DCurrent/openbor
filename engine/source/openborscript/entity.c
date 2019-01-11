@@ -47,6 +47,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "combo_time",
         "damage_on_landing",
         "deduct_ammo",
+		"destination_x",
+		"destination_z",
 		"exists",
 		"hp",
 		"hp_old",
@@ -332,6 +334,20 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
+		case _ENTITY_DESTINATION_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->destx;
+
+			break;
+
+		case _ENTITY_DESTINATION_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->destz;
+
+			break;
+
 		case _ENTITY_EXISTS:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -344,10 +360,14 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->energy_status.health_current;
 
+			break;
+
 		case _ENTITY_HP_OLD:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->energy_status.health_old;
+
+			break;
 
 		case _ENTITY_ITEM_DATA:
 
@@ -396,10 +416,14 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->energy_status.mp_current;
 
+			break;
+
 		case _ENTITY_MP_OLD:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->energy_status.mp_old;
+
+			break;
 
 		case _ENTITY_NAME:
 
@@ -783,6 +807,24 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+		case _ENTITY_DESTINATION_X:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->destx = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_DESTINATION_Z:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->destz = temp_float;
+			}
+
+			break;
+
 		case _ENTITY_EXISTS:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -874,6 +916,8 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
 			}
+
+			break;
 
 		case _ENTITY_NOGRAB:
 		

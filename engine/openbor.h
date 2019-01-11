@@ -2392,8 +2392,8 @@ typedef struct entity
     int nograb_default;							// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
     s_axis_principal_float position;			// x,y,z location. ~~
     s_axis_principal_float velocity;			// x,y,z movement speed. ~~
-    float destx;								// temporary values for ai functions
-    float destz;
+    float destx;								// temporary values for ai functions ~~
+    float destz;								// ~~
     float movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
     float movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
     float speedmul;
@@ -2488,8 +2488,8 @@ typedef struct entity
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
-    unsigned int attack_id_incoming;
-    unsigned int attack_id_outgoing;
+    unsigned int attack_id_incoming;		// ~~
+    unsigned int attack_id_outgoing;		// ~~
     int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
     unsigned char *colourmap;				// Colortable in use. ~~
     //struct entity   *thrower;
