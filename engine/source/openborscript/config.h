@@ -14,7 +14,6 @@
 
 #include "axis.h"
 #include "binding.h"
-#include "energy_status.h"
 #include "entity.h"
 
 #define MAX_GLOBAL_VAR 2048

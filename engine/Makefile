@@ -327,7 +327,6 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/collision_body.o                                             \
 				  source/openborscript/collision_entity.o                                           \
                   source/openborscript/constants.o                                                  \
-                  source/openborscript/energy_status.o                                             	\
                   source/openborscript/entity.o                                                   	\
                   source/openborscript/index.o                                                      \
                   source/openborscript/layer.o                                                      \
