@@ -70,6 +70,7 @@ typedef enum
     _ENTITY_PROJECTILE_PRIME,
     _ENTITY_SPAWN_TYPE,
 	_ENTITY_SPEED_MULTIPLIER,
+	_ENTITY_TIMESTAMP,
     _ENTITY_END,
 } e_entity_properties;
 

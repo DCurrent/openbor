@@ -2403,7 +2403,7 @@ typedef struct entity
     unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 
     // ---------------------- action times -------------------------------
-    u32 timestamp;
+    u32						timestamp;							// Elasped time assigned when spawned. ~~
     u32 releasetime;
     u32 toss_time; // Used by gravity code
     u32 nextmove;
