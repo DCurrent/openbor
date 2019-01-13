@@ -2398,8 +2398,8 @@ typedef struct entity
     float					movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
     float					speedmul;							// Final multiplier for movement/velocity. ~~
     float					base;								// Default altitude. ~~
-    float					altbase;							// Altitude affected by movea.
-    s_jump					jump;								// Jumping velocity and animationnid. ~~
+    float					altbase;							// Altitude affected by movea. ~~
+    s_jump					jump;								// Jumping velocity and animationnid.
     unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 
     // ---------------------- action times -------------------------------
@@ -2410,10 +2410,10 @@ typedef struct entity
     u32 toss_time; // Used by gravity code
     u32 nextmove;
     u32 stalltime;
-    u32 combotime;								// If not expired, continue to next attack in series combo. ~~
+    u32						combotime;							// If not expired, continue to next attack in series combo. ~~
     u32 movetime; // For special move
     u32 freezetime; // Used to store at what point the a frozen entity becomes unfrozen
-    u32 maptime;								// used by forcemap. ~~
+	u32						maptime;							// used by forcemap. ~~
     u32 sealtime; // used by seal (stops special moves).
     u32 dot_time[MAX_DOTS]; //Dot time to expire.
     int dot[MAX_DOTS]; //Dot mode.
@@ -2449,7 +2449,7 @@ typedef struct entity
     e_attacking_state attacking;
     int getting;
     int turning;
-    bool charging;							// Charing MP. Gain according to chargerate. ~~
+    bool					charging;							// Charing MP. Gain according to chargerate. ~~
     int blocking;
     int falling;
     int running; // Flag to determine if a player is running
@@ -2488,10 +2488,10 @@ typedef struct entity
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
-    unsigned int attack_id_incoming;		// ~~
-    unsigned int attack_id_outgoing;		// ~~
+    unsigned int			attack_id_incoming;					// ~~
+    unsigned int			attack_id_outgoing;					// ~~
     int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
-    unsigned char *colourmap;				// Colortable in use. ~~
+    unsigned char			*colourmap;							// Colortable in use. ~~
     //struct entity   *thrower;
     struct entity *link; // Used to link 2 entities together.
     struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
@@ -2499,13 +2499,13 @@ typedef struct entity
     struct entity *weapent;
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
-    struct entity *opponent;				// Last entity interacted with. ~~
+    struct entity			*opponent;				// Last entity interacted with. ~~
     struct entity *collided_entity;
-    struct entity *custom_target;			// Target forced by modder via script ~~
+    struct entity			*custom_target;			// Target forced by modder via script ~~
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
-    s_bind binding;							// Binding self to another entity. ~~
+    s_bind					binding;				// Binding self to another entity. ~~
     int escapecount; // For escapehits
     s_rush rush;    //Rush combo display.
     int lifespancountdown; // life span count down
