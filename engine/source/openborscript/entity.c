@@ -54,6 +54,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"hp_old",
 		"item_data",
 		"jump_animation_id",
+		"jump_velocity_x",
+		"jump_velocity_y",
+		"jump_velocity_z",
 		"model",
 		"model_data",
 		"model_default",
@@ -382,6 +385,27 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->jump.animation_id;
+
+			break;
+
+		case _ENTITY_JUMP_VELOCITY_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->jump.velocity.x;
+
+			break;
+
+		case _ENTITY_JUMP_VELOCITY_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->jump.velocity.y;
+
+			break;
+
+		case _ENTITY_JUMP_VELOCITY_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->jump.velocity.z;
 
 			break;
 
@@ -883,6 +907,33 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
+		case _ENTITY_JUMP_VELOCITY_X:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->jump.velocity.x = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_JUMP_VELOCITY_Y:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->jump.velocity.y = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_JUMP_VELOCITY_Z:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->jump.velocity.z = temp_float;
+			}
+
+			break;
+
 		case _ENTITY_MODEL:
 
 			handle->model = (s_model *)varlist[ARG_VALUE]->ptrVal;
@@ -892,6 +943,8 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_MODEL_DATA:
 
 			// Read only.
+
+			break;
 
 		case _ENTITY_MODEL_DEFAULT:
 

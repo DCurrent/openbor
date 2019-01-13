@@ -2399,7 +2399,7 @@ typedef struct entity
     float					speedmul;							// Final multiplier for movement/velocity. ~~
     float					base;								// Default altitude. ~~
     float					altbase;							// Altitude affected by movea. ~~
-    s_jump					jump;								// Jumping velocity and animationnid.
+    s_jump					jump;								// Jumping velocity and animationnid. ~~
     unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 
     // ---------------------- action times -------------------------------
