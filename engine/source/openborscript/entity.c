@@ -53,6 +53,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"hp",
 		"hp_old",
 		"item_data",
+		"jump_animation_id",
 		"model",
 		"model_data",
 		"model_default",
@@ -374,6 +375,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			(*pretvar)->ptrVal = (VOID *)&handle->item_properties;
+
+			break;
+
+		case _ENTITY_JUMP_ANIMATION_ID:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->jump.animation_id;
 
 			break;
 
@@ -863,6 +871,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_ITEM_DATA:
 
 			// Read only.
+
+			break;
+
+		case _ENTITY_JUMP_ANIMATION_ID:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->jump.animation_id = temp_int;
+			}
 
 			break;
 
