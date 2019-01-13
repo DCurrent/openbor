@@ -2403,7 +2403,6 @@ typedef struct entity
     unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 
     // ---------------------- action times -------------------------------
-    u32	lastmove;
     u32 lastdir;
     u32 timestamp;
     u32 releasetime;
