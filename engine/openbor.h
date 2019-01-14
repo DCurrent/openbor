@@ -2406,10 +2406,10 @@ typedef struct entity
     u32						timestamp;							// Elasped time assigned when spawned. ~~
     u32						releasetime;						// Delay letting go of grab when holding away command. ~~
     u32						toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
-    u32						nextmove;							// Same as tosstime, but for X, Z movement. ~~ move_time
-    u32						stalltime;							// AI waits to perform actions. ~~stall_time
+    u32						nextmove;							// Same as tosstime, but for X, Z movement. ~~
+    u32						stalltime;							// AI waits to perform actions. ~~
     u32						combotime;							// If not expired, continue to next attack in series combo. ~~
-    u32 movetime; // For special move
+    u32						movetime;							// For special moves. Grace time between player inputs. ~~
     u32 freezetime; // Used to store at what point the a frozen entity becomes unfrozen
 	u32						maptime;							// used by forcemap. ~~
     u32 sealtime; // used by seal (stops special moves).

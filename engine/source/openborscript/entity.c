@@ -45,6 +45,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "colorset_time",
         "combo_step",
         "combo_time",
+		"command_time",
         "damage_on_landing",
         "deduct_ammo",
 		"destination_x",
@@ -329,6 +330,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->combotime;
 
             break;
+
+		case _ENTITY_COMMAND_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->movetime;
+
+			break;
 
         case _ENTITY_DAMAGE_ON_LANDING:
 
@@ -871,6 +879,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_COMMAND_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->movetime = temp_int;
+			}
+
+			break;
 
         case _ENTITY_DAMAGE_ON_LANDING:
 
