@@ -72,6 +72,7 @@ typedef enum
     _ENTITY_SPAWN_TYPE,
 	_ENTITY_SPEED_MULTIPLIER,
 	_ENTITY_TIMESTAMP,
+	_ENTITY_TOSS_TIME,
     _ENTITY_END,
 } e_entity_properties;
 

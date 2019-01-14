@@ -79,8 +79,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "projectile_prime",
 		"release_time",
         "spawn_type",
+		"speed_multiplier",
 		"timestamp",
-		"speed_multiplier"
+		"toss_time",
     };
 
     // If the minimum argument count
@@ -575,6 +576,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->timestamp;
+
+			break;
+
+		case _ENTITY_TOSS_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->toss_time;
 
 			break;
 
@@ -1147,6 +1155,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->timestamp = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_TOSS_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->toss_time = temp_int;
 			}
 
 			break;

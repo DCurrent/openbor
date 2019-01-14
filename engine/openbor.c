@@ -21036,7 +21036,8 @@ void check_gravity(entity *e)
                 }
             }// end of if - land checking
         }// end of if  - in-air checking
-        if(self->toss_time <= _time)
+        
+		if(self->toss_time <= _time)
         {
             self->toss_time = _time + 1;
         }
