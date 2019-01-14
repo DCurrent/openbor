@@ -30567,9 +30567,9 @@ void player_grab_check()
 
     self->attacking = ATTACKING_INACTIVE; //for checking
     self->grabwalking = 0;
-    if(self->direction == DIRECTION_RIGHT ?
-            (player[self->playerindex].keys & FLAG_MOVELEFT) :
-            (player[self->playerindex].keys & FLAG_MOVERIGHT))
+
+	// Move key opposite vs. dicretion?
+    if(self->direction == DIRECTION_RIGHT ? (player[self->playerindex].keys & FLAG_MOVELEFT) : (player[self->playerindex].keys & FLAG_MOVERIGHT))
     {
         // initiating grabturn
         if(self->modeldata.grabturn)

@@ -77,6 +77,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"position_y",
 		"position_z",
         "projectile_prime",
+		"release_time",
         "spawn_type",
 		"timestamp",
 		"speed_multiplier"
@@ -548,6 +549,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->projectile_prime;
 
             break;
+
+		case _ENTITY_RELEASE_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->releasetime;
+
+			break;
 
         case _ENTITY_SPAWN_TYPE:
 
@@ -1106,6 +1114,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_RELEASE_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->releasetime = temp_int;
+			}
+
+			break;
 
         case _ENTITY_SPAWN_TYPE:
 

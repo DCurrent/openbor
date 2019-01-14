@@ -2404,7 +2404,7 @@ typedef struct entity
 
     // ---------------------- action times -------------------------------
     u32						timestamp;							// Elasped time assigned when spawned. ~~
-    u32 releasetime;
+    u32						releasetime;						// Delay letting go of grab when holding away command. ~~
     u32 toss_time; // Used by gravity code
     u32 nextmove;
     u32 stalltime;
