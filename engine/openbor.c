@@ -4158,8 +4158,8 @@ s_sprite *loadsprite2(char *filename, int *width, int *height)
     encodesprite(-clip_left, -clip_top, bitmap, sprite);
     sprite->offsetx = clip_left;
     sprite->offsety = clip_top;
-    sprite->srcwidth = bitmap->width;
-    sprite->srcheight = bitmap->height;
+    sprite->srcwidth = bitmap->clipped_width;
+    sprite->srcheight = bitmap->clipped_height;
 
     // Delete the raw bitmap, we don't need it
     // any more.
@@ -4395,8 +4395,8 @@ int loadsprite(char *filename, int ofsx, int ofsy, int bmpformat)
     sprite_map[sprites_loaded].centery = ofsy - clipt;
     sprite_list->sprite->offsetx = clipl;
     sprite_list->sprite->offsety = clipt;
-    sprite_list->sprite->srcwidth = bitmap->width;
-    sprite_list->sprite->srcheight = bitmap->height;
+    sprite_list->sprite->srcwidth = bitmap->clipped_width;
+    sprite_list->sprite->srcheight = bitmap->clipped_height;
     freebitmap(bitmap);
     ++sprites_loaded;
     return sprites_loaded - 1;
