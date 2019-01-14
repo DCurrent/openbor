@@ -60,6 +60,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"model",
 		"model_data",
 		"model_default",
+		"move_time",
 		"move_x",
 		"move_z",
 		"mp",
@@ -430,6 +431,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			(*pretvar)->ptrVal = (VOID *)(handle->defaultmodel);
+
+			break;
+
+		case _ENTITY_MOVE_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->nextmove;
 
 			break;
 
@@ -973,6 +981,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_MODEL_DEFAULT:
 
 			handle->defaultmodel = (s_model *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ENTITY_MOVE_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->nextmove = temp_int;
+			}
 
 			break;
 

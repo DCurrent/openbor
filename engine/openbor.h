@@ -2406,7 +2406,7 @@ typedef struct entity
     u32						timestamp;							// Elasped time assigned when spawned. ~~
     u32						releasetime;						// Delay letting go of grab when holding away command. ~~
     u32						toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
-    u32 nextmove;
+    u32						nextmove;							// Same as tosstime, but for X, Z movement. ~~
     u32 stalltime;
     u32						combotime;							// If not expired, continue to next attack in series combo. ~~
     u32 movetime; // For special move
