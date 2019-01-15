@@ -2413,7 +2413,8 @@ typedef struct entity
     u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
 	u32						maptime;							// When forcemap expires. ~~
     u32						sealtime;							// When seal expires. ~~    
-	s_damage_recursive		*recursive_damage					// Recursive damage.
+	int						recursive_damage_count;				// Number of recursive damage effects active.
+	s_damage_recursive		**recursive_damage;					// Recursive damage array.
 	u32 dot_time[MAX_DOTS]; //Dot time to expire.
     int dot[MAX_DOTS]; //Dot mode.
     int dot_atk[MAX_DOTS]; //Dot attack type.
@@ -3021,6 +3022,7 @@ void sort_invert_by_parent(entity *ent, entity* parent);
 
 int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
+void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *attack);
 void checkdamagedrop(s_collision_attack *attack);
 void checkmpadd();
 void checkhitscore(entity *other, s_collision_attack *attack);
