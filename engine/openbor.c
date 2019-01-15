@@ -25132,7 +25132,7 @@ void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *
 			ent->recursive_damage_count++;
 
 			// Add an element to array.
-			ent->recursive_damage = (s_damage_recursive *)realloc(ent->recursive_damage, sizeof(*ent->recursive_damage) * ent->recursive_damage_count);
+			ent->recursive_damage = (ent->recursive_damage **)realloc(ent->recursive_damage, sizeof(ent->recursive_damage *) * ent->recursive_damage_count);
 		
 			// Allocate memory for the element data.
 			ent->recursive_damage[ent->recursive_damage_count - 1] = (ent->recursive_damage *)malloc(sizeof(ent->recursive_damage));
