@@ -2411,8 +2411,8 @@ typedef struct entity
     u32						combotime;							// If not expired, continue to next attack in series combo. ~~
     u32						movetime;							// For special moves. Grace time between player inputs. ~~
     u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
-	u32						maptime;							// used by forcemap. ~~
-    u32 sealtime; // used by seal (stops special moves).
+	u32						maptime;							// When forcemap expires. ~~
+    u32						sealtime;							// When seal expires. ~~
     u32 dot_time[MAX_DOTS]; //Dot time to expire.
     int dot[MAX_DOTS]; //Dot mode.
     int dot_atk[MAX_DOTS]; //Dot attack type.
