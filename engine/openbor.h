@@ -2438,7 +2438,7 @@ typedef struct entity
 
     //------------------------- a lot of flags ---------------------------
 
-    int seal; //1 = No specials.
+    int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
     int dead;
     int jumping; // Stuff useful for AI
     int idling;

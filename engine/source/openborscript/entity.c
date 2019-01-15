@@ -81,6 +81,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"position_z",
         "projectile_prime",
 		"release_time",
+		"seal_energy",
 		"seal_time",
         "spawn_type",
 		"speed_multiplier",
@@ -581,6 +582,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->releasetime;
+
+			break;
+
+		case _ENTITY_SEAL_ENERGY:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->seal;
 
 			break;
 
@@ -1195,6 +1203,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->releasetime = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_SEAL_ENERGY:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->seal = temp_int;
 			}
 
 			break;
