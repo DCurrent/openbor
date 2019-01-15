@@ -25031,6 +25031,9 @@ void checkdamageeffects(s_collision_attack *attack)
         self->seal      = _seal;                                                    //Set seal. Any animation with energycost > seal is disabled.
     }
 
+	// Apply any recursive (damage over time) effects.
+	check_damage_recursive(self, opp, attack);
+
     if(attack->recursive)
     {
         if(_dot)                                                                        //dot: Damage over time effect.
@@ -25084,6 +25087,73 @@ void checkdamageeffects(s_collision_attack *attack)
 #undef _dot_rate
 #undef _staydown0
 #undef _staydown1
+}
+
+// Caskey, Damon V.
+// 2019-01-15
+//
+// If attack has any recursive effects, apply
+// them to entity accordingly.
+void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *attack)
+{
+	int i; // Cursor.
+	s_damage_recursive *target_element;
+
+	// If there's no mode, there's no recursive, so exit.
+	if (!attack->recursive->mode)
+	{
+		return;
+	}
+
+	// Default target NULL.
+	target_element = NULL;
+
+	// Let's see if we have a allocated any elements
+	// for ecursive damage already.
+	if (ent->recursive_damage)
+	{
+		// Now let's loop through the existing recursive collection
+		// and see if one matches our index. If so, we want to
+		// to target that element and replace it's values
+		// with those from attack. Otherwise 
+		for (i = 0; i < ent->recursive_damage_count; i++)
+		{
+			if (ent->recursive_damage[i]->index == attack->recursive->index)
+			{
+				target_element = ent->recursive_damage[i];
+				break;
+			}
+		}
+
+		// None of the existing elements had an index that matched
+		// the one from attack. Let's add an element.
+		if (!target_element)
+		{
+			ent->recursive_damage_count++;
+
+			// Add an element to array.
+			ent->recursive_damage = (s_damage_recursive *)realloc(ent->recursive_damage, sizeof(*ent->recursive_damage) * ent->recursive_damage_count);
+		
+			// Allocate memory for the element data.
+			ent->recursive_damage[ent->recursive_damage_count - 1] = (ent->recursive_damage *)malloc(sizeof(ent->recursive_damage));
+
+			// Target element is the last element in array.
+			target_element = ent->recursive_damage[ent->recursive_damage_count - 1];
+		}
+	}
+	else
+	{
+		// Initial allocation here.		
+
+	}
+
+	// Now we have a target recursive element to populate with
+	// attack's recursive values.
+	target_element->mode = attack->recursive->mode;
+	target_element->index = attack->recursive->index;
+	target_element->time = attack->recursive->time;
+	target_element->force = attack->recursive->force;
+	target_element->rate = attack->recursive->rate;
 }
 
 void checkdamagedrop(s_collision_attack *attack)
