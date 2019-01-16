@@ -1647,14 +1647,17 @@ typedef struct
 // 2016-10-31
 //
 // Recursive damage structure
-// for attack boxes only.
+// for attack boxes and damage 
+// recipient.
 typedef struct
 {
-    int             force;  // Damage force per tick.
-    int             index;  // Index.
-    e_dot_mode      mode;   // Mode.
-    int             rate;   // Tick delay.
-    unsigned int    time;   // Time to expire.
+    int					force;  // Damage force per tick.
+    int					index;  // Index.
+    e_dot_mode			mode;   // Mode.
+    int					rate;   // Tick delay.
+    unsigned int		time;   // Time to expire.
+	entity				*owner;	// Entity that caused the recursive damage.
+	s_damage_recursive	*next;	// Next node of linked list.
 } s_damage_recursive;
 
 typedef struct
@@ -2413,8 +2416,7 @@ typedef struct entity
     u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
 	u32						maptime;							// When forcemap expires. ~~
     u32						sealtime;							// When seal expires. ~~    
-	int						recursive_damage_count;				// Number of recursive damage effects active.
-	s_damage_recursive		**recursive_damage;					// Recursive damage array.
+	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head.
 	u32 dot_time[MAX_DOTS]; //Dot time to expire.
     int dot[MAX_DOTS]; //Dot mode.
     int dot_atk[MAX_DOTS]; //Dot attack type.
