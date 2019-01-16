@@ -1656,6 +1656,7 @@ typedef struct s_damage_recursive
     int							rate;   // Tick delay.
 	unsigned int				tick;   // Time of next tick.
     unsigned int				time;   // Time to expire.
+	int							type;	// Attack type.
 	struct entity				*owner;	// Entity that caused the recursive damage.
 	struct s_damage_recursive	*next;	// Next node of linked list.
 } s_damage_recursive;
