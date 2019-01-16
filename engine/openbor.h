@@ -3017,7 +3017,7 @@ void sort_invert_by_parent(entity *ent, entity* parent);
 
 int checkgrab(entity *other, s_collision_attack *attack);
 void checkdamageeffects(s_collision_attack *attack);
-void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *attack);
+void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack);
 void checkdamagedrop(s_collision_attack *attack);
 void checkmpadd();
 void checkhitscore(entity *other, s_collision_attack *attack);

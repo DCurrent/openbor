@@ -25078,7 +25078,7 @@ void checkdamageeffects(s_collision_attack *attack)
 //
 // If attack has any recursive effects, apply
 // them to entity accordingly.
-void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *attack)
+void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack)
 {
 	int i; // Cursor.
 	s_damage_recursive *previous;
