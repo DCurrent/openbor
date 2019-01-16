@@ -87,7 +87,6 @@
 #define		MAX_SELECT_LOADS   	512
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
-#define     MAX_DOTS            10                  // Max active dot effects.
 #define     MAX_ARG_COUNT       64
 #define     PLATFORM_DEFAULT_X  99999
 
