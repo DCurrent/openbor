@@ -25160,7 +25160,7 @@ void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *
 	// attack's recursive values.
 	cursor->mode = attack->recursive->mode;
 	cursor->index = attack->recursive->index;
-	cursor->time = attack->recursive->time;
+	cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
 	cursor->force = attack->recursive->force;
 	cursor->rate = attack->recursive->rate;
 	cursor->owner = attack->recursive->owner;
