@@ -133,7 +133,10 @@ const s_damage_recursive empty_recursive = {    .force  = 0,
                                                 .index  = 0,
                                                 .mode   = 0,
                                                 .rate   = 0,
-                                                .time   = 0};
+                                                .tick	= 0,
+												.time   = 0,
+												.owner	= NULL,
+												.next	= NULL};
 
 // unknockdown attack
 const s_collision_attack emptyattack =
