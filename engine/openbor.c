@@ -25105,10 +25105,7 @@ void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *
 	{
 		return;
 	}
-
-	// Default target NULL.
-	target_element = NULL;
-
+	
 	// Let's see if we have a allocated any elements
 	// for ecursive damage already.
 	if (ent->recursive_damage)
