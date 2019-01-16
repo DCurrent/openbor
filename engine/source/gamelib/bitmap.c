@@ -41,6 +41,10 @@ s_bitmap *allocbitmap(int width, int height, int format)
         b->height = height;
         b->pixelformat = format;
         b->magic = bitmap_magic;
+        b->clipped_x_offset = 0;
+        b->clipped_y_offset = 0;
+        b->clipped_width = width;
+        b->clipped_height = height;
         if(format == PIXEL_x8)
         {
             b->palette = ((unsigned char *)b->data) + psize + extrab;
@@ -96,8 +100,10 @@ void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *
         return;
     }
 
-    bitmap->width = width;
-    bitmap->height = height;
+    bitmap->width = bitmap->clipped_width = width;
+    bitmap->height = bitmap->clipped_height = height;
+    bitmap->clipped_x_offset = 0;
+    bitmap->clipped_y_offset = 0;
 
     d = 0;
     for(j = 0; j < height; j++)
@@ -201,7 +207,7 @@ void flipbitmap(s_bitmap *bitmap)
 void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top, int *clip_bottom)
 {
 
-    int x, y, i;
+    int x, y;
     int clip, clear;
     int xsize = bitmap->width;
     int ysize = bitmap->height;
@@ -236,7 +242,7 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
 
     if(clip)
     {
-        // Cut off empty top
+        // "Cut off" empty top
         ysize -= clip;
         if(ysize < 1)
         {
@@ -257,15 +263,11 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
             {
                 *clip_bottom = 0;
             }
-            bitmap->width = 0;
-            bitmap->height = 0;
+            bitmap->clipped_width = 0;
+            bitmap->clipped_height = 0;
             return;
         }
-        bitmap->height = ysize;
-        for(i = 0; i < xsize * ysize; i++)
-        {
-            bitmap->data[i] = bitmap->data[i + (clip * xsize)];
-        }
+        bitmap->clipped_y_offset = clip;
         top_clipmove = clip;
     }
 
@@ -273,7 +275,7 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
 
     // Determine size of empty bottom
     clip = 0;
-    for(y = ysize - 1; y >= 0; y--)
+    for(y = bitmap->height - 1; y >= top_clipmove; y--)
     {
         clear = 1;
         for(x = 0; x < xsize && clear; x++)
@@ -293,15 +295,15 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
         }
     }
 
-    // Cut off empty bottom
+    // "Cut off" empty bottom
     ysize -= clip;
-    bitmap->height = ysize;
+    bitmap->clipped_height = ysize;
     bottom_clipmove = clip;
 
 
     // Determine size of empty left side
     clip = 2000000000;
-    for(y = 0; y < ysize; y++)
+    for(y = top_clipmove; y < ysize + top_clipmove; y++)
     {
         clear = 0;
         for(x = 0; x < xsize; x++)
@@ -318,27 +320,21 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
         }
     }
 
-    // Cut off empty pixels on the left side
+    // "Cut off" empty pixels on the left side
     if(clip)
     {
         xsize -= clip;
-        bitmap->width = xsize;
-        for(y = 0; y < ysize; y++)
-        {
-            for(x = 0; x < xsize; x++)
-            {
-                bitmap->data[y * xsize + x] = bitmap->data[y * xsize + x + (clip * (y + 1))];
-            }
-        }
+        bitmap->clipped_width = xsize;
+        bitmap->clipped_x_offset = clip;
         left_clipmove = clip;
     }
 
     // Determine size of empty right side
     clip = 2000000000;
-    for(y = 0; y < ysize; y++)
+    for(y = top_clipmove; y < ysize + top_clipmove; y++)
     {
         clear = 0;
-        for(x = xsize - 1; x >= 0; x--)
+        for(x = bitmap->width - 1; x >= left_clipmove; x--)
         {
             if(bitmap->data[y * xsize + x] != TRANS_INDEX)
             {
@@ -352,18 +348,11 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
         }
     }
 
-    // Cut off empty pixels on the right side
+    // "Cut off" empty pixels on the right side
     if(clip)
     {
         xsize -= clip;
-        bitmap->width = xsize;
-        for(y = 0; y < ysize; y++)
-        {
-            for(x = 0; x < xsize; x++)
-            {
-                bitmap->data[y * xsize + x] = bitmap->data[y * xsize + x + (clip * y)];
-            }
-        }
+        bitmap->clipped_width = xsize;
         right_clipmove = clip;
     }
 

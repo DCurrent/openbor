@@ -127,6 +127,10 @@ typedef struct
     int	width;
     int	height;
     int pixelformat;
+    int clipped_x_offset;
+    int clipped_y_offset;
+    int clipped_width;
+    int clipped_height;
 #if PSP
     int dummy[3]; //temporary debug values
 #endif
