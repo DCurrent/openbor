@@ -21866,7 +21866,7 @@ void damage_recursive(entity *ent)
 							// Populate attack structure with
 							// our recursive damage values.
 							attack = emptyattack;
-							attack.attack_type = cursor->type
+							attack.attack_type = cursor->type;
 							attack.attack_force = force_final;
 							attack.dropv.y = default_model_dropv.y;
 							attack.dropv.x = default_model_dropv.x;
@@ -25147,7 +25147,8 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
 	cursor->force = attack->recursive->force;
 	cursor->rate = attack->recursive->rate;
-	cursor->owner = attack->recursive->owner;
+	cursor->type = attack->attack_type;
+	cursor->owner = owner;
 }
 
 void checkdamagedrop(s_collision_attack *attack)
