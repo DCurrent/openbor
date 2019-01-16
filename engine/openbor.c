@@ -25111,7 +25111,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		cursor = malloc(sizeof(*cursor));
 
 		// Assign to entity.
-		ent->recursive_damage;
+		ent->recursive_damage = cursor;
 	}
 
 	// Now we have a target recursive element to populate with
