@@ -25097,7 +25097,8 @@ void checkdamageeffects(s_collision_attack *attack)
 void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *attack)
 {
 	int i; // Cursor.
-	s_damage_recursive *target_element;
+	s_damage_recursive *previous;
+	s_damage_recursive *cursor;
 
 	// If there's no mode, there's no recursive, so exit.
 	if (!attack->recursive->mode)
@@ -25112,48 +25113,57 @@ void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *
 	// for ecursive damage already.
 	if (ent->recursive_damage)
 	{
-		// Now let's loop through the existing recursive collection
-		// and see if one matches our index. If so, we want to
-		// to target that element and replace it's values
-		// with those from attack. Otherwise 
-		for (i = 0; i < ent->recursive_damage_count; i++)
+		// Iterate over linked list and try to find an index
+		// member matching index member from attack. If we
+		// find one, exit loop - we can use the target pointer.
+		//
+		// If we don't find a match, we'll need to create a new
+		// node in the list and its pointer instead.
+
+		cursor = ent->recursive_damage;
+
+		while (cursor != NULL)
 		{
-			if (ent->recursive_damage[i]->index == attack->recursive->index)
+			previous = cursor;
+
+			if (cursor->index == attack->index)
 			{
-				target_element = ent->recursive_damage[i];
 				break;
 			}
+			
+			cursor = target_element->next;
 		}
-
-		// None of the existing elements had an index that matched
-		// the one from attack. Let's add an element.
-		if (!target_element)
-		{
-			ent->recursive_damage_count++;
-
-			// Add an element to array.
-			ent->recursive_damage = (ent->recursive_damage **)realloc(ent->recursive_damage, sizeof(ent->recursive_damage *) * ent->recursive_damage_count);
 		
-			// Allocate memory for the element data.
-			ent->recursive_damage[ent->recursive_damage_count - 1] = (ent->recursive_damage *)malloc(sizeof(ent->recursive_damage));
-
-			// Target element is the last element in array.
-			target_element = ent->recursive_damage[ent->recursive_damage_count - 1];
+		// Add new node to list.
+		if (!cursor)
+		{
+			// Allocate the memory and get pointer.
+			cursor = (cursor *)malloc(sizeof(cursor *));
+			
+			// Link previous node's next to our new node.
+			previous->next = cursor;
 		}
 	}
 	else
 	{
-		// Initial allocation here.		
+		// Entity didn't have recursive damage at all.
+		// Let's allocate a head node.
 
+		// Allocate the memory and get pointer.
+		cursor = (cursor *)malloc(sizeof(cursor *));
+
+		// Assign to entity.
+		ent->recursive_damage;
 	}
 
 	// Now we have a target recursive element to populate with
 	// attack's recursive values.
-	target_element->mode = attack->recursive->mode;
-	target_element->index = attack->recursive->index;
-	target_element->time = attack->recursive->time;
-	target_element->force = attack->recursive->force;
-	target_element->rate = attack->recursive->rate;
+	cursor->mode = attack->recursive->mode;
+	cursor->index = attack->recursive->index;
+	cursor->time = attack->recursive->time;
+	cursor->force = attack->recursive->force;
+	cursor->rate = attack->recursive->rate;
+	cursor->owner = attack->recursive->owner;
 }
 
 void checkdamagedrop(s_collision_attack *attack)
