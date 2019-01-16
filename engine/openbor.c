@@ -21756,7 +21756,7 @@ void damage_recursive(entity *ent)
 	s_damage_recursive *cursor;
 
 	// Iterate target's recursive damage nodes.
-	for(cursor == ent->recursive_damage; cursor != NULL; cursor = cursor->next)
+	for(cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
 	{
 		// Is there a recursive damage expire time? If so we
 		// know there is a recursive damage active on this index.
