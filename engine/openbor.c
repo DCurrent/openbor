@@ -21753,7 +21753,7 @@ void damage_recursive(entity *ent)
     float       offense;        // Owner's offense.
     float       defense;        // target defense.
     s_collision_attack attack;  // Attack structure.
-	s_damage_recursive cursor;
+	s_damage_recursive *cursor;
 
 	// Iterate target's recursive damage nodes.
 	for(cursor == ent->recursive_damage; cursor != NULL; cursor = cursor->next)
