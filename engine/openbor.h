@@ -1655,6 +1655,7 @@ typedef struct
     int					index;  // Index.
     e_dot_mode			mode;   // Mode.
     int					rate;   // Tick delay.
+	unsigned int		tick;   // Time of next tick.
     unsigned int		time;   // Time to expire.
 	entity				*owner;	// Entity that caused the recursive damage.
 	s_damage_recursive	*next;	// Next node of linked list.
