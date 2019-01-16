@@ -25055,7 +25055,6 @@ void checkdamageeffects(s_collision_attack *attack)
 // them to entity accordingly.
 void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack)
 {
-	int i; // Cursor.
 	s_damage_recursive *previous;
 	s_damage_recursive *cursor;
 
@@ -25090,14 +25089,14 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 			}
 			
 			// Move to next node in list (if any).
-			cursor = target_element->next;
+			cursor = cursor->next;
 		}
 		
 		// Add new node to list.
 		if (!cursor)
 		{
 			// Allocate the memory and get pointer.
-			cursor = (cursor *)malloc(sizeof(cursor *));
+			cursor = malloc(sizeof(*cursor));
 			
 			// Link previous node's next to our new node.
 			previous->next = cursor;
@@ -25109,7 +25108,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		// Let's allocate a head node.
 
 		// Allocate the memory and get pointer.
-		cursor = (cursor *)malloc(sizeof(cursor *));
+		cursor = malloc(sizeof(*cursor));
 
 		// Assign to entity.
 		ent->recursive_damage;
