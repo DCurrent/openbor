@@ -25126,11 +25126,14 @@ void check_damage_recursive(s_entity *ent, s_entity *other, s_collision_attack *
 		{
 			previous = cursor;
 
+			// Found index match, so we can use the cursor
+			// as is. Get out now.
 			if (cursor->index == attack->index)
 			{
 				break;
 			}
 			
+			// Move to next node in list (if any).
 			cursor = target_element->next;
 		}
 		
