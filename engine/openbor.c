@@ -21793,7 +21793,7 @@ void damage_recursive(entity *ent)
 			}
 
 			// If target is not alive, exit this iteration of loop.
-			if (target->energy_status.health_current <= 0)
+			if (ent->energy_status.health_current <= 0)
 			{
 				continue;
 			}
