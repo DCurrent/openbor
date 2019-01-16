@@ -1650,14 +1650,14 @@ typedef struct
 // recipient.
 typedef struct
 {
-    int					force;  // Damage force per tick.
-    int					index;  // Index.
-    e_dot_mode			mode;   // Mode.
-    int					rate;   // Tick delay.
-	unsigned int		tick;   // Time of next tick.
-    unsigned int		time;   // Time to expire.
-	struct entity		*owner;	// Entity that caused the recursive damage.
-	s_damage_recursive	*next;	// Next node of linked list.
+    int							force;  // Damage force per tick.
+    int							index;  // Index.
+    e_dot_mode					mode;   // Mode.
+    int							rate;   // Tick delay.
+	unsigned int				tick;   // Time of next tick.
+    unsigned int				time;   // Time to expire.
+	struct entity				*owner;	// Entity that caused the recursive damage.
+	struct s_damage_recursive	*next;	// Next node of linked list.
 } s_damage_recursive;
 
 typedef struct
