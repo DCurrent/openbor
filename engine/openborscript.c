@@ -2054,7 +2054,6 @@ enum entityproperty_enum
     _ep_detect,
     _ep_die_on_landing,
     _ep_direction,
-    _ep_dot,
     _ep_dropframe,
     _ep_edelay,
     _ep_edge,
@@ -2258,7 +2257,6 @@ static const char *eplist[] =
     "detect",
     "die_on_landing",
     "direction",
-    "dot",
     "dropframe",
     "edelay",
     "edge",
@@ -2712,17 +2710,6 @@ enum _ep_defense_enum
     _ep_defense_the_end,
 };
 
-enum gep_dot_enum
-{
-    _ep_dot_force,
-    _ep_dot_mode,
-    _ep_dot_owner,
-    _ep_dot_rate,
-    _ep_dot_time,
-    _ep_dot_type,
-    _ep_dot_the_end,
-};
-
 enum gep_edelay_enum
 {
     _ep_edelay_cap_max,
@@ -2930,16 +2917,6 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
         "pain",
     };
 
-    static const char *proplist_dot[] =
-    {
-        "force",
-        "mode",
-        "owner",
-        "rate",
-        "time",
-        "type",
-    };
-
     static const char *proplist_edelay[] =
     {
         "cap_max",
@@ -3139,13 +3116,6 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
             MAPSTRINGS(varlist[3], proplist_defense, _ep_defense_the_end,
                        _is_not_a_known_subproperty_of_, eps);
         }
-        break;
-    }
-    // map subproperties of DOT
-    case _ep_dot:
-    {
-        MAPSTRINGS(varlist[2], proplist_dot, _ep_dot_the_end,
-                   _is_not_a_known_subproperty_of_, eps);
         break;
     }
     // map subproperties of Edelay property
@@ -3826,73 +3796,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->direction;
         break;
-    }
-    case _ep_dot:
-    {
-        if(paramCount < 4)
-        {
-            break;
-        }
-
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            i = (LONG)ltemp;
-        }
-
-        arg = varlist[3];
-        if(arg->vt != VT_INTEGER)
-        {
-            printf("You must provide a string name for dot subproperty.\n\
-	~'time'\n\
-	~'mode'\n\
-	~'force'\n\
-	~'rate'\n\
-	~'type'\n\
-	~'owner'\n");
-            *pretvar = NULL;
-            return E_FAIL;
-        }
-        switch(arg->lVal)
-        {
-        case _ep_dot_time:
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->dot_time[i];
-            break;
-        }
-        case _ep_dot_mode:
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->dot[i];
-            break;
-        }
-        case _ep_dot_force:
-
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->dot_force[i];
-            break;
-        }
-        case _ep_dot_rate:
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->dot_rate[i];
-            break;
-        }
-        case _ep_dot_type:
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->dot_atk[i];
-            break;
-        }
-        case _ep_dot_owner:
-        {
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)ent->dot_owner[i];
-            break;
-        }
-        break;
-        }
     }
     case _ep_dropframe:
     {
@@ -5935,38 +5838,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->direction = (LONG)ltemp;
-        }
-        break;
-    }
-    case _ep_dot:
-    {
-        if((SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp))))
-        {
-            i = (LONG)ltemp;
-            if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
-            {
-                ent->dot_time[i] = (int)dbltemp;
-            }
-            if(paramCount >= 5 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[4], &dbltemp)))
-            {
-                ent->dot[i] = (int)dbltemp;
-            }
-            if(paramCount >= 6 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-            {
-                ent->dot_force[i] = (int)dbltemp;
-            }
-            if(paramCount >= 7 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
-            {
-                ent->dot_rate[i] = (int)dbltemp;
-            }
-            if(paramCount >= 8 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[7], &dbltemp)))
-            {
-                ent->dot_atk[i] = (int)dbltemp;
-            }
-            if(paramCount >= 9)
-            {
-                ent->dot_owner[i] = (entity *)varlist[8]->ptrVal;
-            }
         }
         break;
     }
