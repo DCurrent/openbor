@@ -24958,11 +24958,6 @@ void checkdamageeffects(s_collision_attack *attack)
 #define _steal          attack->steal
 #define _seal           attack->seal
 #define _sealtime       attack->sealtime
-#define _dot            attack->recursive->mode
-#define _dot_index      attack->recursive->index
-#define _dot_time       attack->recursive->time
-#define _dot_force      attack->recursive->force
-#define _dot_rate       attack->recursive->rate
 #define _staydown0      attack->staydown.rise
 #define _staydown1		attack->staydown.riseattack
 
@@ -25018,21 +25013,6 @@ void checkdamageeffects(s_collision_attack *attack)
 	// Apply any recursive (damage over time) effects.
 	check_damage_recursive(self, opp, attack);
 
-    if(attack->recursive)
-    {
-        if(_dot)                                                                        //dot: Damage over time effect.
-        {
-            self->dot_owner[_dot_index] = opp ? opp : self;			                    //dot owner.
-            self->dot[_dot_index]       = _dot;                                         //Mode: 1. HP (non lethal), 2. MP, 3. HP (non lethal) & MP, 4. HP, 5. HP & MP.
-            self->dot_time[_dot_index]  = _time + (_dot_time * GAME_SPEED / 100);        //Gametime dot will expire.
-            self->dot_force[_dot_index] = _dot_force;                                   //How much to dot each tick.
-            self->dot_rate[_dot_index]  = _dot_rate;                                    //Delay between dot ticks.
-            self->dot_atk[_dot_index]   = attack->attack_type;                          //dot attack type.
-        }
-    }
-
-
-
     if(self->modeldata.nodrop)
     {
         self->drop = 0;    // Static enemies/nodrop enemies cannot be knocked down
@@ -25064,11 +25044,6 @@ void checkdamageeffects(s_collision_attack *attack)
 #undef _steal
 #undef _seal
 #undef _sealtime
-#undef _dot
-#undef _dot_index
-#undef _dot_time
-#undef _dot_force
-#undef _dot_rate
 #undef _staydown0
 #undef _staydown1
 }
