@@ -2418,13 +2418,6 @@ typedef struct entity
 	u32						maptime;							// When forcemap expires. ~~
     u32						sealtime;							// When seal expires. ~~    
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head.
-	u32 dot_time[MAX_DOTS]; //Dot time to expire.
-    int dot[MAX_DOTS]; //Dot mode.
-    int dot_atk[MAX_DOTS]; //Dot attack type.
-    int dot_force[MAX_DOTS]; //Dot amount.
-    int dot_rate[MAX_DOTS]; //Dot delay per tick.
-    int dot_cnt[MAX_DOTS]; //Dot time of next tick.
-    struct entity *dot_owner[MAX_DOTS]; //Dot owner.
     u32 magictime;
     u32 guardtime;
     u32 nextanim;
