@@ -21802,10 +21802,10 @@ void damage_recursive(entity *ent)
 			cursor->tick = _time + (cursor->rate * GAME_SPEED / 100);
 
 			// Does this recursive damage affect HP?
-			if (mode == DOT_MODE_HP
-				|| mode == DOT_MODE_HP_MP
-				|| mode == DOT_MODE_NON_LETHAL_HP
-				|| mode == DOT_MODE_NON_LETHAL_HP_MP)
+			if (cursor->mode == DOT_MODE_HP
+				|| cursor->mode == DOT_MODE_HP_MP
+				|| cursor->mode == DOT_MODE_NON_LETHAL_HP
+				|| cursor->mode == DOT_MODE_NON_LETHAL_HP_MP)
 			{
 				// Recursive HP Damage Logic:
 				//
