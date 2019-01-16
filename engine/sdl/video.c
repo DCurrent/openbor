@@ -143,7 +143,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 
 	if(!gl)
 	{
-		renderer = SDL_CreateRenderer(window, -1, 0);
+		renderer = SDL_CreateRenderer(window, -1, savedata.vsync ? SDL_RENDERER_PRESENTVSYNC : 0);
 		if(!renderer)
 		{
 			printf("Error: failed to create renderer: %s\n", SDL_GetError());
