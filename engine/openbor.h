@@ -1648,7 +1648,7 @@ typedef struct
 // Recursive damage structure
 // for attack boxes and damage 
 // recipient.
-typedef struct
+typedef struct s_damage_recursive
 {
     int							force;  // Damage force per tick.
     int							index;  // Index.
