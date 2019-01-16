@@ -2512,6 +2512,7 @@ void clearsettings()
     savedata.uselog = 1;
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
+    savedata.vsync = 1;
 
 	#if WII
     savedata.stretch = 1;
@@ -38986,22 +38987,25 @@ void menu_options_video()
         _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
         _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
+        _menutext((selector == 8), col1, 5, Tr("VSync:"));
+        _menutext((selector == 8), col2, 5, savedata.vsync ? "Enabled" : "Disabled");
+
         if(savedata.fullscreen)
         {
-            _menutext((selector == 8), col1, 5, Tr("Fullscreen Type:"));
-            _menutext((selector == 8), col2, 5, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+            _menutext((selector == 9), col1, 6, Tr("Fullscreen Type:"));
+            _menutext((selector == 9), col2, 6, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
         }
-        else if(selector == 8)
+        else if(selector == 9)
         {
-            selector = (bothnewkeys & FLAG_MOVEUP) ? 7 : 9;
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
         }
 
-        _menutextm((selector == 9), 7, 0, Tr("Back"));
+        _menutextm((selector == 10), 8, 0, Tr("Back"));
         if(selector < 0)
         {
-            selector = 9;
+            selector = 10;
         }
-        if(selector > 9)
+        if(selector > 10)
         {
             selector = 0;
         }
@@ -39281,6 +39285,10 @@ void menu_options_video()
 				video_set_mode(videomodes);
                 break;
             case 8:
+                savedata.vsync = !savedata.vsync;
+                video_set_mode(videomodes);
+                break;
+            case 9:
                 video_stretch((savedata.stretch ^= 1));
                 break;
 #endif

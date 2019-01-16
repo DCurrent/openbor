@@ -254,7 +254,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 
 	// try to disable vertical retrace syncing (VSync)
-	if(SDL_GL_SetSwapInterval(0) < 0)
+	if(SDL_GL_SetSwapInterval(!!savedata.vsync) < 0)
 	{
 		printf("Warning: can't disable vertical retrace sync (%s)...\n", SDL_GetError());
 	}
