@@ -25122,7 +25122,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	cursor->force = attack->recursive->force;
 	cursor->rate = attack->recursive->rate;
 	cursor->type = attack->attack_type;
-	cursor->owner = owner;
+	cursor->owner = other;
 }
 
 void checkdamagedrop(s_collision_attack *attack)
