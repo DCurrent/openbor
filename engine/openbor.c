@@ -16202,7 +16202,8 @@ unsigned getFPS(void)
     lasttick = curtick;
     if(!framerate)
     {
-        return 0;
+        // if the frame took 0 ms, act like it was 1 ms instead
+        return 1000;
     }
 #ifdef PSP
     return ((10000000 / framerate) + 9) / 10;
