@@ -211,6 +211,7 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
     int clip, clear;
     int xsize = bitmap->width;
     int ysize = bitmap->height;
+    int fullwidth = bitmap->width;
     int top_clipmove = 0;
     int left_clipmove = 0;
     int bottom_clipmove = 0;
@@ -334,9 +335,9 @@ void clipbitmap(s_bitmap *bitmap, int *clip_left, int *clip_right, int *clip_top
     for(y = top_clipmove; y < ysize + top_clipmove; y++)
     {
         clear = 0;
-        for(x = bitmap->width - 1; x >= left_clipmove; x--)
+        for(x = fullwidth - 1; x >= left_clipmove; x--)
         {
-            if(bitmap->data[y * xsize + x] != TRANS_INDEX)
+            if(bitmap->data[y * fullwidth + x] != TRANS_INDEX)
             {
                 break;
             }
