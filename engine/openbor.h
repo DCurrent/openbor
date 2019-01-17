@@ -254,6 +254,20 @@ typedef enum
     PORTING_VITA
 } e_porting;
 
+// Caskey, Damon V.
+// 2019-01-08
+//
+// Debugging display options for end user.
+typedef enum
+{
+	DEBUG_DISPLAY_NONE				= (1 << 0),
+	DEBUG_DISPLAY_COLLISION_ATTACK	= (1 << 1),
+	DEBUG_DISPLAY_COLLISION_BODY	= (1 << 2),
+	DEBUG_DISPLAY_PERFORMANCE		= (1 << 3),
+	DEBUG_DISPLAY_PROPERTIES		= (1 << 4),
+	DEBUG_DISPLAY_RANGE				= (1 << 5)
+} e_debug_display;
+
 typedef enum
 {
     SPAWN_TYPE_UNDEFINED,
@@ -3139,7 +3153,7 @@ int common_try_wandercompletely(int dox, int doz);
 int common_try_wander(entity *target, int dox, int doz);
 void common_pickupitem(entity *other);
 int common_backwalk_anim(entity *ent);
-void draw_position_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
+void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
 int bomb_move(void);

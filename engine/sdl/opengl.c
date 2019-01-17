@@ -19,7 +19,6 @@
 #include "opengl.h"
 #include "video.h"
 #include "loadgl.h"
-#include "SDL2_framerate.h"
 #include <math.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
@@ -39,7 +38,6 @@ static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point for
 static GLuint shaderProgram; // fragment shader program
 
 // use some variables declared in video.c that are common to both backends
-extern FPSmanager framerate_manager;
 extern int stretch;
 extern int nativeWidth, nativeHeight;
 extern SDL_Window* window;
@@ -254,7 +252,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 
 	// try to disable vertical retrace syncing (VSync)
-	if(SDL_GL_SetSwapInterval(0) < 0)
+	if(SDL_GL_SetSwapInterval(!!savedata.vsync) < 0)
 	{
 		printf("Warning: can't disable vertical retrace sync (%s)...\n", SDL_GetError());
 	}
@@ -393,11 +391,6 @@ int video_gl_copy_screen(s_videosurface* surface)
 
 	// display the rendered frame on the screen
 	SDL_GL_SwapWindow(window);
-
-#if WIN || LINUX
-	// limit framerate to 200 fps
-	SDL_framerateDelay(&framerate_manager);
-#endif
 
 	return 1;
 }

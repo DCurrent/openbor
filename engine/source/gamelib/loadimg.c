@@ -215,15 +215,9 @@ static void png_read_destroy_all()
 
 static void closepng()
 {
-    int y;
     png_read_destroy_all();
     if(row_pointers)
     {
-        for (y = 0; y < png_height; y++)
-        {
-            free(row_pointers[y]);
-            row_pointers[y] = NULL;
-        }
         free(row_pointers);
         row_pointers = NULL;
     }
@@ -238,7 +232,6 @@ static void closepng()
 static int openpng(char *filename, char *packfilename)
 {
     unsigned char header[8];    // 8 is the maximum size that can be checked
-    int y;
 
     if((handle = openpackfile(filename, packfilename)) == -1)
     {
@@ -285,13 +278,6 @@ static int openpng(char *filename, char *packfilename)
 
     png_read_update_info(png_ptr, info_ptr);
 
-    row_pointers = (png_bytep *) malloc(sizeof(png_bytep) * png_height);
-    for (y = 0; y < png_height; y++)
-    {
-        row_pointers[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
-    }
-
-    png_read_image(png_ptr, row_pointers);
     return 1;
 openpng_abort:
     closepng();
@@ -300,20 +286,22 @@ openpng_abort:
 
 static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int maxheight)
 {
-    int i, j, cw, ch;
+    int i, j, y;
     png_colorp png_pal_ptr = 0;
     int png_pal_num = 0;
     int pb = PAL_BYTES;
 
-    cw = res[0] > maxwidth ? maxwidth : res[0];
-    ch = res[1] > maxheight ? maxheight : res[1];
-    if(buf)
+    if (buf)
     {
-        for(i = 0; i < ch; i++)
+        row_pointers = (png_bytep *) malloc(sizeof(png_bytep) * png_height);
+        for (y = 0; y < png_height; y++)
         {
-            memcpy(buf + (maxwidth * i), row_pointers[i], cw);
+            row_pointers[y] = (png_byte *)(buf + (maxwidth * y));
         }
+
+        png_read_image(png_ptr, row_pointers);
     }
+
     if(pal)
     {
         if(png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_GRAY)

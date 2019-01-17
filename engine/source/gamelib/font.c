@@ -421,38 +421,40 @@ int font_string_width(int which, char *format, ...)
 // Caskey, Damon V.
 // 2016-11-21
 //
-// Accepts pointer to an array of
-// strings, and font. Returns the width of
-// largest string.
-int font_string_width_max(char *strings, int font)
+// Works as a wrapper for font_string_width.
+// Accepts pointer to an array of strings, 
+// number of elements, and font. Returns 
+// the width of largest string.
+//
+// Note this function is unessesary when
+// the number of string elements is small 
+// or known in feeeder function as  
+// font_string_width() is variadic.
+int font_string_width_max(char **strings, int elements, int font)
 {
-    char *instance; // Pointer to array element in current loop instance.
-    int width_temp; // String width in loop instance.
+	int i;			// Cursor.
+	int width_temp; // String width in loop instance.
     int result;     // Final result.
 
     // Initialize variables.
     width_temp  = 0;
     result      = 0;
 
-    // Loop through string array by
-    // iterating to next memory address
-    // until the pointer is null.
-    for (instance = strings; *instance; instance++)
-    {
-        // Get width of current string in loop.
-        width_temp = font_string_width(font, instance);
+	// Loop each string element, get its font
+	// width and keep if the result is larger
+	// than previous. When finished result will
+	// be the width of longest string.
+	for (i = 0; i < elements; i++)
+	{
+		width_temp = font_string_width(font, strings[i]);
 
-        // If current width is greater
-        // than result, set result to
-        // current width.
-        if(width_temp > result)
-        {
-            result = width_temp;
-        }
-    }
+		if (width_temp > result)
+		{
+			result = width_temp;
+		}
+	}
 
-    // Return final results.
-    return result;
+	return result;
 }
 
 void font_printf(int x, int y, int which, int layeroffset, char *format, ...)

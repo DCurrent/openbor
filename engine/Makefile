@@ -563,9 +563,9 @@ endif
 
 ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
-LIBS           += -lSDL -lSDL_gfx -lts
+LIBS           += -lSDL -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL2 -lSDL2_gfx
+LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL2
 endif
 endif
 

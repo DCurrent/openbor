@@ -35,15 +35,10 @@ typedef struct
     int logo;
     int uselog;
     int debuginfo; // FPS, Memory, etc...
-    int debug_collision_attack;
-    int debug_collision_body;
-    int debug_collision_entity;
-    int debug_collision_range;
-    int debug_position;
-    int debug_features;
     int fullscreen; // Window or Full Screen Mode
     int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
     int screen[1][2];
+    int vsync; // Sync to monitor refresh (1) or don't (0)
 #if SDL
     int usegl; // 1 if OpenGL is preferred over SDL software blitting
     float hwscale; // Scale factor for OpenGL
