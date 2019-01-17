@@ -13,7 +13,6 @@
 #else
 
 #include "sdlport.h"
-#include "SDL2_framerate.h"
 
 #include <math.h>
 #include "types.h"
@@ -31,8 +30,6 @@
 SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
-
-FPSmanager framerate_manager;
 
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
@@ -71,9 +68,6 @@ void initSDL()
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
 	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
-
-	SDL_initFramerate(&framerate_manager);
-	SDL_setFramerate(&framerate_manager, 200);
 }
 
 void video_set_window_title(const char* title)
@@ -143,7 +137,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 
 	if(!gl)
 	{
-		renderer = SDL_CreateRenderer(window, -1, 0);
+		renderer = SDL_CreateRenderer(window, -1, savedata.vsync ? SDL_RENDERER_PRESENTVSYNC : 0);
 		if(!renderer)
 		{
 			printf("Error: failed to create renderer: %s\n", SDL_GetError());
@@ -231,10 +225,6 @@ int video_copy_screen(s_screen* src)
 
 	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
 	blit();
-
-#if WIN || LINUX
-	SDL_framerateDelay(&framerate_manager);
-#endif
 
 	return 1;
 }
