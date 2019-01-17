@@ -38258,8 +38258,7 @@ void menu_options_sound()
         _menutext((selector == 3), col2, 1, (savedata.usemusic ? Tr("Enabled") : Tr("Disabled")));
         _menutext((selector == 4), col1, 2, Tr("Show Titles:"));
         _menutext((selector == 4), col2, 2, (savedata.showtitles ? Tr("Yes") : Tr("No")));
-        _menutext((selector == 5), col1, 3, Tr("Advanced Options..."));
-        _menutextm((selector == 6), 6, 0, Tr("Back"));
+        _menutextm((selector == 5), 5, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -38287,9 +38286,9 @@ void menu_options_sound()
         }
         if(selector < 0)
         {
-            selector = 6;
+            selector = 5;
         }
-        if(selector > 6)
+        if(selector > 5)
         {
             selector = 0;
         }
@@ -38367,9 +38366,6 @@ void menu_options_sound()
                 break;
             case 4:
                 savedata.showtitles = !savedata.showtitles;
-                break;
-            case 5:
-                menu_options_soundcard();
                 break;
             default:
                 quit = 1;
@@ -39439,108 +39435,6 @@ void menu_options()
     #undef OPT_Y_POS
     #undef OPT_X_POS
     #undef CHEAT_PAUSE_POSY
-}
-
-void menu_options_soundcard()
-{
-    int quit = 0;
-    int selector = 0;
-    int col1 = -8, col2 = 6;
-
-    savesettings();
-
-    bothnewkeys = 0;
-
-    while(!quit)
-    {
-        _menutextm(2, -5, 0, Tr("Advanced Sound Options"));
-        _menutext((selector == 0), col1, -2, Tr("Frequency:"));
-        _menutext((selector == 0), col2, -2, "%i", savedata.soundrate);
-        _menutext((selector == 1), col1, -1, Tr("Bits:"));
-        _menutext((selector == 1), col2, -1, "%i", savedata.soundbits);
-        _menutextm((selector == 2), 1, 0, Tr("Apply"));
-        _menutextm((selector == 3), 2, 0, Tr("Discard"));
-        _menutextm((selector == 4), 7, 0, Tr("Back"));
-        update((level != NULL), 0);
-
-        if(bothnewkeys & FLAG_ESC)
-        {
-            quit = 1;
-        }
-        if(bothnewkeys & FLAG_MOVEUP)
-        {
-            --selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-        }
-        if(bothnewkeys & FLAG_MOVEDOWN)
-        {
-            ++selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-        }
-        if(selector < 0)
-        {
-            selector = 4;
-        }
-        selector %= 5;
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
-        {
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-            switch(selector)
-            {
-            case 0:
-                if(bothnewkeys & FLAG_MOVELEFT)
-                {
-                    savedata.soundrate >>= 1;
-                }
-                if(bothnewkeys & FLAG_MOVERIGHT)
-                {
-                    savedata.soundrate <<= 1;
-                }
-                if(savedata.soundrate < 11025)
-                {
-                    savedata.soundrate = 44100;
-                }
-                if(savedata.soundrate > 44100)
-                {
-                    savedata.soundrate = 11025;
-                }
-                break;
-            case 1:
-                savedata.soundbits = (savedata.soundbits ^ (8 + 16));
-                if(savedata.soundbits != 8 && savedata.soundbits != 16)
-                {
-                    savedata.soundbits = 8;
-                }
-                break;
-            case 2:
-                if(!(bothnewkeys & FLAG_ANYBUTTON))
-                {
-                    break;
-                }
-                // Apply new hardware settings
-                sound_stop_playback();
-                if(!sound_start_playback(savedata.soundbits, savedata.soundrate))
-                {
-                    savedata.soundbits = 8;
-                    savedata.soundrate = 11025;
-                    sound_start_playback(savedata.soundbits, savedata.soundrate);
-                }
-                music("data/music/remix", 1, 0);
-                savesettings();
-                break;
-            case 3:
-                if(bothnewkeys & FLAG_ANYBUTTON)
-                {
-                    loadsettings();
-                }
-                break;
-            default:
-                quit = (bothnewkeys & FLAG_ANYBUTTON);
-            }
-        }
-    }
-    loadsettings();
-    bothnewkeys = 0;
 }
 
 // ----------------------------------------------------------------------------
