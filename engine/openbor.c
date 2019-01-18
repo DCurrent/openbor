@@ -17172,6 +17172,13 @@ void free_ent(entity *e)
         e->item_properties = NULL;
     }
 
+	// Recursive damage (damage over time).
+	if (e->recursive_damage)
+	{
+		free_recursive_list(e->recursive_damage);
+		e->recursive_damage = NULL;
+	}
+
     if(e->waypoints)
     {
         free(e->waypoints);
@@ -21611,6 +21618,22 @@ void update_health()
     {
         self->energy_status.mp_old--;
     }
+}
+
+// Caskey, Damon V.
+// 2019-01-18
+//
+// Free all members of a recursive damage list.
+void free_recursive_list(s_damage_recursive * head)
+{
+	s_damage_recursive * cursor;
+
+	while (head != NULL)
+	{
+		cursor = head;
+		head = head->next;
+		free(cursor);
+	}
 }
 
 // damage_recursive
