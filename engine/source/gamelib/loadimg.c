@@ -14,13 +14,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <zlib.h>
 #include "utils.h"
 #include "types.h"
 #include "borendian.h"
 #include "bitmap.h"
 #include "screen.h"
 #include "packfile.h"
-#include "png.h"
 #include "pngdec.h"
 
 #ifndef DC
@@ -192,160 +192,398 @@ static int readbmp(unsigned char *buf, unsigned char *pal, int maxwidth, int max
 //	handle = -1;
 //}
 
-//============================ PNG, use libpng =============================
-static int png_height = 0;
-static png_structp png_ptr = NULL;
-static png_infop info_ptr = NULL;
-static png_bytep *row_pointers = NULL;
+// ============================== PNG loading ===============================
+// New PNG decoder by Plombo (2019-1-18) -- faster than the old libpng-based one
 
-static void png_read_fn(png_structp pngp, png_bytep outp, png_size_t size)
-{
-    readpackfile(*(int *)(png_get_io_ptr(pngp)), outp, size);
-}
+#define PNG_MAGIC        0x89504e470d0a1a0aLL
+#define PNG_CHUNK_IHDR   0x49484452
+#define PNG_CHUNK_PLTE   0x504c5445
+#define PNG_CHUNK_IDAT   0x49444154
 
-static void png_read_destroy_all()
-{
-    if(png_ptr)
-    {
-        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-    }
-    info_ptr = NULL;
-    png_ptr = NULL;
-}
+static int png_is_interlaced = 0;
+
+struct png_chunk_header {
+    uint32_t chunk_size;
+    uint32_t chunk_name;
+};
 
 static void closepng()
 {
-    png_read_destroy_all();
-    if(row_pointers)
-    {
-        free(row_pointers);
-        row_pointers = NULL;
-    }
-    png_height = 0;
-    if(handle >= 0)
+    if (handle >= 0)
     {
         closepackfile(handle);
     }
     handle = -1;
 }
 
-static int openpng(char *filename, char *packfilename)
+// return 1 on success, 0 on error
+static int openpng(const char *filename, const char *packfilename)
 {
-    unsigned char header[8];    // 8 is the maximum size that can be checked
+    static int warned_about_interlacing = 0;
 
-    if((handle = openpackfile(filename, packfilename)) == -1)
+    if ((handle = openpackfile(filename, packfilename)) == -1)
     {
         goto openpng_abort;
     }
 
-    if(readpackfile(handle, header, 8) != 8)
+    uint64_t magic;
+    if (readpackfile(handle, &magic, 8) != 8)
     {
         goto openpng_abort;
     }
 
-    if (png_sig_cmp(header, 0, 8))
+    if (magic != SwapMSB64(PNG_MAGIC))
     {
         goto openpng_abort;
     }
 
-    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-    if (!png_ptr)
+    struct png_chunk_header chunk_header;
+    if (readpackfile(handle, &chunk_header, sizeof(chunk_header)) != sizeof(chunk_header))
+    {
+        goto openpng_abort;
+    }
+    if (SwapMSB32(chunk_header.chunk_size) != 13 || chunk_header.chunk_name != SwapMSB32(PNG_CHUNK_IHDR))
     {
         goto openpng_abort;
     }
 
-    //UT: use customized file read function here, because we use pak file methods instead of stdio
-    png_set_read_fn(png_ptr, &handle, png_read_fn);
+    char ihdr_data[13];
+    uint32_t *ihdr_data32 = (uint32_t *)ihdr_data;
+    if (readpackfile(handle, &ihdr_data, sizeof(ihdr_data)) != sizeof(ihdr_data))
+    {
+        goto openpng_abort;
+    }
+    uint32_t width = SwapMSB32(ihdr_data32[0]);
+    uint32_t height = SwapMSB32(ihdr_data32[1]);
+    res[0] = width;
+    res[1] = height;
 
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr)
+    // Bit depth must be 8 for our purposes. Compression and filter method must be 0 in all PNGs.
+    if (ihdr_data[8] != 8 || ihdr_data[10] != 0 || ihdr_data[11] != 0)
     {
         goto openpng_abort;
     }
 
-    png_set_sig_bytes(png_ptr, 8);
-    png_read_info(png_ptr, info_ptr);
-
-    //UT: not formal here, but just read what we need since we use only 8bit png for now
-    res[0] = png_get_image_width(png_ptr, info_ptr);
-    png_height = res[1] = png_get_image_height(png_ptr, info_ptr);
-    // should only be a 8bit image by now
-    if (png_get_bit_depth(png_ptr, info_ptr) != 8)
+    if (ihdr_data[12] == 1)
+    {
+        if (!warned_about_interlacing)
+        {
+            // Only print this warning once
+            printf("Warning: The image %s is interlaced. For faster load times, use non-interlaced images.\n", filename);
+            warned_about_interlacing = 1;
+        }
+    }
+    // Interlacing mode must be either 0 (disabled) or 1 (Adam7).
+    else if (ihdr_data[12] != 0)
     {
         goto openpng_abort;
     }
 
-    png_read_update_info(png_ptr, info_ptr);
+    png_is_interlaced = ihdr_data[12];
 
     return 1;
+
 openpng_abort:
-    closepng();
+    closepackfile(handle);
+    handle = -1;
     return 0;
 }
 
-static int readpng(unsigned char *buf, unsigned char *pal, int maxwidth, int maxheight)
+// Based on the PaethPredictor pseudocode in the PNG specification.
+// a = pixel to the left, b = above, c = upper left
+static inline unsigned char png_paeth_predictor(unsigned char a, unsigned char b, unsigned char c)
 {
-    int i, j, y;
-    png_colorp png_pal_ptr = 0;
-    int png_pal_num = 0;
-    int pb = PAL_BYTES;
+    // initial estimate
+    int p = a + b - c;
 
-    if (buf)
+    // distances to a, b, c
+    int pa = abs(p - a);
+    int pb = abs(p - b);
+    int pc = abs(p - c);
+    
+    // return nearest of a,b,c, breaking ties in the order a,b,c
+    if (pa <= pb && pa <= pc) return a;
+    else if (pb <= pc) return b;
+    else return c;
+}
+
+// Decodes the image from a decompressed, non-interlaced IDAT stream.
+static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data, int width, int height)
+{
+    unsigned int y, x;
+    for (y = 0; y < height; y++)
     {
-        row_pointers = (png_bytep *) malloc(sizeof(png_bytep) * png_height);
-        for (y = 0; y < png_height; y++)
+        switch (inflated_data[y * (width + 1)])
         {
-            row_pointers[y] = (png_byte *)(buf + (maxwidth * y));
+            case 0: // no filter, the easiest case
+            {
+                memcpy(buf + (y * width), inflated_data + (y * (width + 1)) + 1, width);
+                break;
+            }
+            case 1: // Sub filter: Raw(x) = Sub(x) + Raw(pixel to the left of x)
+            {
+                unsigned char last = 0;
+                for (x = 0; x < width; x++)
+                {
+                    last = buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + last;
+                }
+                break;
+            }
+            case 2: // Up filter: Raw(x) = Up(x) + Raw(pixel above x)
+            {
+                if (y == 0)
+                {
+                    memcpy(buf + (y * width), inflated_data + (y * (width + 1)) + 1, width);
+                }
+                else
+                {
+                    unsigned int lastline = y - 1;
+                    for (x = 0; x < width; x++)
+                    {
+                        buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + buf[lastline * width + x];
+                    }
+                }
+                break;
+            }
+            case 3: // Average filter: Raw(x) = Average(x) + floor((Raw(pixel above x) + Raw(pixel left of x))/2)
+            {
+                unsigned char last = 0;
+                unsigned int lastline = y - 1;
+                for (x = 0; x < width; x++)
+                {
+                    unsigned char a = last;
+                    unsigned char b = (y == 0) ? 0 : buf[lastline * width + x];
+                    last = buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + ((a + b) / 2);
+                }
+                break;
+            }
+            case 4: // Paeth filter: the complicated one
+            {
+                unsigned char last = 0;
+                unsigned int lastline = y - 1;
+                for (x = 0; x < width; x++)
+                {
+                    unsigned char a = last;
+                    unsigned char b = (y == 0) ? 0 : buf[lastline * width + x];
+                    unsigned char c = (y == 0 || x == 0) ? 0 : buf[lastline * width + x - 1];
+                    last = buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + png_paeth_predictor(a, b, c);
+                }
+                break;
+            }
+            default:
+            {
+                __builtin_unreachable();
+            }
+        }
+    }
+}
+
+// Decodes the image from a decompressed, interlaced IDAT stream.
+static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_data, int width, int height)
+{
+    const int start_y[7] =  {0, 0, 4, 0, 2, 0, 1};
+    const int start_x[7] =  {0, 4, 0, 2, 0, 1, 0};
+    const int y_increment[7] = {8, 8, 8, 4, 4, 2, 2};
+    const int x_increment[7] = {8, 8, 4, 4, 2, 2, 1};
+    int pass;
+
+    for (pass = 0; pass < 7; pass++)
+    {
+        unsigned int yin, yout, xin, xout;
+        int line_width = width / x_increment[pass];
+        for (yin = 0, yout = start_y[pass]; yout < height; yin++, yout += y_increment[pass])
+        {
+            switch (inflated_data[yin * (line_width + 1)])
+            {
+                case 0: // no filter, the easiest case
+                {
+                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    {
+                        buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin];
+                    }
+                    break;
+                }
+                case 1: // Sub filter: Raw(x) = Sub(x) + Raw(pixel to the left of x)
+                {
+                    unsigned char last = 0;
+                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    {
+                        last = buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + last;
+                    }
+                    break;
+                }
+                case 2: // Up filter: Raw(x) = Up(x) + Raw(pixel above x)
+                {
+                    if (yin == 0)
+                    {
+                        for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                        {
+                            buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin];
+                        }
+                    }
+                    else
+                    {
+                        unsigned int lastline = yout - y_increment[pass];
+                        for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                        {
+                            buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + buf[lastline * width + xout];
+                        }
+                    }
+                    break;
+                }
+                case 3: // Average filter: Raw(x) = Average(x) + floor((Raw(pixel above x) + Raw(pixel left of x))/2)
+                {
+                    unsigned char last = 0;
+                    unsigned int lastline = yout - y_increment[pass];
+                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    {
+                        unsigned char a = last;
+                        unsigned char b = (yin == 0) ? 0 : buf[lastline * width + xout];
+                        last = buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + ((a + b) / 2);
+                    }
+                    break;
+                }
+                case 4: // Paeth filter: the complicated one
+                {
+                    unsigned char last = 0;
+                    unsigned int lastline = yout - y_increment[pass];
+                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    {
+                        unsigned char a = last;
+                        unsigned char b = (yin == 0) ? 0 : buf[lastline * width + xout];
+                        unsigned char c = (yin == 0 || xin == 0) ? 0 : buf[lastline * width + xout - x_increment[pass]];
+                        last = buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + png_paeth_predictor(a, b, c);
+                    }
+                    break;
+                }
+                default:
+                {
+                    __builtin_unreachable();
+                }
+            }
         }
 
-        png_read_image(png_ptr, row_pointers);
+        inflated_data += (line_width + 1) * (height / y_increment[pass]);
+    }
+}
+
+static int readpng(unsigned char *buf, unsigned char *pal, int width, int height)
+{
+    unsigned char *png_data = NULL, *png_data_ptr;
+    unsigned char *inflated_data = NULL;
+    z_stream zlib_stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL, .avail_in = 0, .next_in = Z_NULL};
+
+    // Read the rest of the file into a single chunk of memory to save on expensive I/O operations.
+    int data_start_pos = seekpackfile(handle, 0, SEEK_CUR) + 4; // +4 bytes to skip the CRC at the end of IHDR chunk
+    int data_size = seekpackfile(handle, 0, SEEK_END) - data_start_pos;
+    seekpackfile(handle, data_start_pos, SEEK_SET);
+    png_data = malloc(data_size);
+
+    if (!png_data)
+    {
+        goto readpng_abort;
+    }
+    else if (readpackfile(handle, png_data, data_size) != data_size)
+    {
+        goto readpng_abort;
+    }
+    png_data_ptr = png_data;
+
+    // the "+1"s are because each scanline has an extra byte denoting the filter type
+    size_t inflated_size;
+    if (png_is_interlaced)
+    {
+        inflated_size = (width/8 + 1) * (height/8) * 2 +
+                        (width/4 + 1) * (height/8) +
+                        (width/4 + 1) * (height/4) +
+                        (width/2 + 1) * (height/4) +
+                        (width/2 + 1) * (height/2) +
+                        (width + 1) * (height/2);
+    }
+    else
+    {
+        inflated_size = (width + 1) * height;
+    }
+    inflated_data = malloc(inflated_size);
+
+    if (inflateInit(&zlib_stream) != Z_OK)
+    {
+        goto readpng_abort;
+    }
+    zlib_stream.avail_out = inflated_size;
+    zlib_stream.next_out = inflated_data;
+
+    // Now read the remaining chunks of the file
+    while (png_data_ptr < (png_data + data_size))
+    {
+        struct png_chunk_header *p_chunk_header = (struct png_chunk_header *) png_data_ptr;
+        uint32_t chunk_size = SwapMSB32(p_chunk_header->chunk_size);
+        png_data_ptr += sizeof(*p_chunk_header);
+
+        // PLTE chunk: contains the palette
+        if (pal && p_chunk_header->chunk_name == SwapMSB32(PNG_CHUNK_PLTE))
+        {
+            unsigned int ncolors = chunk_size / 3, i;
+            int *pal32 = (int*) pal;
+            if (chunk_size % 3 != 0)
+            {
+                goto readpng_abort;
+            }
+            for (i = 0; i < ncolors; i++)
+            {
+                pal32[i] = colour32(png_data_ptr[0], png_data_ptr[1], png_data_ptr[2]);
+                png_data_ptr += 3;
+            }
+            png_data_ptr += 4;
+        }
+        /* IDAT chunks contain the actual image data, compressed with DEFLATE in the zlib format. There can be
+           multiple IDAT chunks, but their data together forms a single compressed stream. */
+        else if (buf && p_chunk_header->chunk_name == SwapMSB32(PNG_CHUNK_IDAT))
+        {
+            zlib_stream.avail_in = chunk_size;
+            zlib_stream.next_in = png_data_ptr;
+            int zret;
+            zret = inflate(&zlib_stream, Z_SYNC_FLUSH);
+            if (zret == Z_STREAM_END)
+            {
+                inflateEnd(&zlib_stream);
+                if (zlib_stream.avail_out != 0)
+                {
+                    goto readpng_abort;
+                }
+                break;
+            }
+            else if (zret != Z_OK)
+            {
+                printf("inflate failed: %i\n", zret);
+                inflateEnd(&zlib_stream);
+                goto readpng_abort;
+            }
+            png_data_ptr += chunk_size + 4;
+        }
+        else
+        {
+            png_data_ptr += chunk_size + 4;
+        }
     }
 
-    if(pal)
+    if (png_is_interlaced)
     {
-        if(png_get_color_type(png_ptr, info_ptr) == PNG_COLOR_TYPE_GRAY)
-        {
-            // set palette for grayscale images
-            for(i = 0; i < 256; i++)
-            {
-                pal[i * 3] = pal[i * 3 + 1] = pal[i * 3 + 2] = i;
-            }
-            return 1;
-        }
-        else if(png_get_PLTE(png_ptr, info_ptr, &png_pal_ptr, &png_pal_num) != PNG_INFO_PLTE ||
-                png_pal_ptr == NULL)
-        {
-            return 0;
-        }
-
-        png_pal_ptr[0].red = png_pal_ptr[0].green = png_pal_ptr[0].blue = 0;
-        if(pb == 512) // 16bit 565
-        {
-            for(i = 0, j = 0; i < 512 && j < png_pal_num; i += 2, j++)
-            {
-                *(unsigned short *)(pal + i) = colour16(png_pal_ptr[j].red, png_pal_ptr[j].green, png_pal_ptr[j].blue);
-            }
-        }
-        else if(pb == 768) // 24bit
-        {
-            for(i = 0; i < png_pal_num; i++)
-            {
-                pal[i * 3] = png_pal_ptr[i].red;
-                pal[i * 3 + 1] = png_pal_ptr[i].green;
-                pal[i * 3 + 2] = png_pal_ptr[i].blue;
-            }
-        }
-        else if(pb == 1024) // 32bit
-        {
-
-            for(i = 0, j = 0; i < 1024 && j < png_pal_num; i += 4, j++)
-            {
-                *(unsigned *)(pal + i) = colour32(png_pal_ptr[j].red, png_pal_ptr[j].green, png_pal_ptr[j].blue);
-            }
-        }
+        png_decode_interlaced(buf, inflated_data, width, height);
     }
+    else
+    {
+        png_decode_regular(buf, inflated_data, width, height);
+    }
+
+    free(inflated_data);
+    free(png_data);
     return 1;
+
+readpng_abort:
+    free(inflated_data);
+    free(png_data);
+    return 0;
 }
 
 
