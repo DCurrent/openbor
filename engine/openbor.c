@@ -24931,14 +24931,15 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	s_damage_recursive *previous;
 	s_damage_recursive *cursor;
 
-	// If there's no mode, there's no recursive, so exit.
-	if (!attack->recursive->mode)
+	// If the recursive head pointer is 
+	// null, there's no recursive, so exit.
+	if (!attack->recursive)
 	{
 		return;
 	}
-	
+
 	// Let's see if we have a allocated any elements
-	// for ecursive damage already.
+	// for recursive damage already.
 	if (ent->recursive_damage)
 	{
 		// Iterate over linked list and try to find an index
@@ -24953,16 +24954,18 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		while (cursor != NULL)
 		{
 			previous = cursor;
-
+			
 			// Found index match, so we can use the cursor
 			// as is. Get out now.
-			if (cursor->index == attack->index)
+			if (cursor->index == attack->recursive->index)
 			{
 				break;
 			}
-			
+						
 			// Move to next node in list (if any).
 			cursor = cursor->next;
+
+				printf("\n cursor: %p", cursor);
 		}
 		
 		// Add new node to list.
@@ -24970,6 +24973,9 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		{
 			// Allocate the memory and get pointer.
 			cursor = malloc(sizeof(*cursor));
+
+			// Make sure there's no random garbage in our next pointer.
+			cursor->next = NULL;
 			
 			// Link previous node's next to our new node.
 			previous->next = cursor;
@@ -24983,9 +24989,12 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		// Allocate the memory and get pointer.
 		cursor = malloc(sizeof(*cursor));
 
+		// Make sure there's no random garbage in our next pointer.
+		cursor->next = NULL;
+
 		// Assign to entity.
 		ent->recursive_damage = cursor;
-	}
+	}		
 
 	// Now we have a target recursive element to populate with
 	// attack's recursive values.
