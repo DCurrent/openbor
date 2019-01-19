@@ -21759,7 +21759,7 @@ void damage_recursive(entity *ent)
 				// force (takedamage() automatically calculates offense
 				// and defense). This way the engine will treat KO tick as
 				// if it were a direct hit with all appropriate reactions
-				// and credit. Otherwise, we'll just subject the calculated
+				// and credit. Otherwise, we'll just subtract the calculated
 				// force directly from target's HP for a 'silent' damage effect.
 
 				// Populate remaining local vars we'll need
@@ -21819,8 +21819,8 @@ void damage_recursive(entity *ent)
 					}
 					else
 					{
-						// Recursive damage is not allowed to KO
-						// just set target's HP to minimum value.
+						// Recursive damage is not allowed to KO.
+						// Just set target's HP to minimum value.
 						ent->energy_status.health_current = 1;
 
 						// Execute the target's takedamage script.
@@ -21841,7 +21841,7 @@ void damage_recursive(entity *ent)
 			// Does this recursive damage affect MP?
 			if (cursor->mode & DAMAGE_RECURSIVE_MP)
 			{
-				// Recursive HP Damage Logic:
+				// Recursive MP Damage Logic:
 
 				// Could not be more simple. Subtract
 				// recursive force from MP. If MP would
