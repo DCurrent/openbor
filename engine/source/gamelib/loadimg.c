@@ -263,6 +263,11 @@ static int openpng(const char *filename, const char *packfilename)
     {
         goto openpng_abort;
     }
+    // Color type must be grayscale or indexed.
+    else if (ihdr_data[9] != 0 && ihdr_data[9] != 3)
+    {
+        goto openpng_abort;
+    }
 
     if (ihdr_data[12] == 1)
     {
