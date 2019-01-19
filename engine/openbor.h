@@ -351,6 +351,8 @@ typedef enum
     SDID_ESC
 } e_key_id;
 
+// Caskey, Damon V.
+// 2013
 typedef enum
 {
     /*
@@ -359,20 +361,20 @@ typedef enum
     2013-12-27
     */
 
-    TYPE_NONE,
-    TYPE_PLAYER,
-    TYPE_ENEMY,
-    TYPE_ITEM      = 4,
-    TYPE_OBSTACLE  = 8,
-    TYPE_STEAMER	= 16,
-    TYPE_SHOT		= 32,			// 7-1-2005 type to use for player projectiles
-    TYPE_TRAP		= 64,			// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
-    TYPE_TEXTBOX   = 128,			// New textbox type for displaying messages
-    TYPE_ENDLEVEL  = 256,			// New endlevel type that ends the level when touched
-    TYPE_NPC       = 512,          // A character can be an ally or enemy.
-    TYPE_PANEL     = 1024,         // Fake panel, scroll with screen using model speed
+    TYPE_NONE		= (1 << 0),
+    TYPE_PLAYER		= (1 << 1),
+    TYPE_ENEMY		= (1 << 2),
+    TYPE_ITEM		= (1 << 3),
+    TYPE_OBSTACLE	= (1 << 4),
+    TYPE_STEAMER	= (1 << 5),
+    TYPE_SHOT		= (1 << 6),		// 7-1-2005 type to use for player projectiles
+    TYPE_TRAP		= (1 << 7),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
+    TYPE_TEXTBOX	= (1 << 8),		// New textbox type for displaying messages
+    TYPE_ENDLEVEL	= (1 << 9),		// New endlevel type that ends the level when touched
+    TYPE_NPC		= (1 << 10),	// A character can be an ally or enemy.
+    TYPE_PANEL		= (1 << 11),	// Fake panel, scroll with screen using model speed
     TYPE_MAX		= TYPE_PANEL,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
-    TYPE_RESERVED  = 0x40000000    // should not use as a type
+    TYPE_RESERVED	= 0x40000000    // should not use as a type
 } e_entity_type;
 
 typedef enum
