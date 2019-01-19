@@ -473,6 +473,11 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
     unsigned char *inflated_data = NULL;
     z_stream zlib_stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL, .avail_in = 0, .next_in = Z_NULL};
 
+    if (inflateInit(&zlib_stream) != Z_OK)
+    {
+        goto readpng_abort;
+    }
+
     // Read the rest of the file into a single chunk of memory to save on expensive I/O operations.
     int data_start_pos = seekpackfile(handle, 0, SEEK_CUR) + 4; // +4 bytes to skip the CRC at the end of IHDR chunk
     int data_size = seekpackfile(handle, 0, SEEK_END) - data_start_pos;
@@ -504,12 +509,8 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
     {
         inflated_size = (width + 1) * height;
     }
-    inflated_data = malloc(inflated_size);
 
-    if (inflateInit(&zlib_stream) != Z_OK)
-    {
-        goto readpng_abort;
-    }
+    inflated_data = malloc(inflated_size);
     zlib_stream.avail_out = inflated_size;
     zlib_stream.next_out = inflated_data;
 
@@ -546,17 +547,11 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
             zret = inflate(&zlib_stream, Z_SYNC_FLUSH);
             if (zret == Z_STREAM_END)
             {
-                inflateEnd(&zlib_stream);
-                if (zlib_stream.avail_out != 0)
-                {
-                    goto readpng_abort;
-                }
                 break;
             }
             else if (zret != Z_OK)
             {
                 printf("inflate failed: %i\n", zret);
-                inflateEnd(&zlib_stream);
                 goto readpng_abort;
             }
             png_data_ptr += chunk_size + 4;
@@ -565,6 +560,12 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
         {
             png_data_ptr += chunk_size + 4;
         }
+    }
+
+    if (zlib_stream.avail_out != 0)
+    {
+        printf("error: incomplete compressed stream\n");
+        goto readpng_abort;
     }
 
     if (png_is_interlaced)
@@ -576,11 +577,13 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
         png_decode_regular(buf, inflated_data, width, height);
     }
 
+    inflateEnd(&zlib_stream);
     free(inflated_data);
     free(png_data);
     return 1;
 
 readpng_abort:
+    inflateEnd(&zlib_stream);
     free(inflated_data);
     free(png_data);
     return 0;
