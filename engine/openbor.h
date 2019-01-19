@@ -352,15 +352,11 @@ typedef enum
 } e_key_id;
 
 // Caskey, Damon V.
-// 2013
+// 2013-12-27
+//
+// Entity types.
 typedef enum
 {
-    /*
-    Entity type enumerator.
-    Damon V. Caskey
-    2013-12-27
-    */
-
     TYPE_NONE		= (1 << 0),
     TYPE_PLAYER		= (1 << 1),
     TYPE_ENEMY		= (1 << 2),
@@ -377,26 +373,24 @@ typedef enum
     TYPE_RESERVED	= 0x40000000    // should not use as a type
 } e_entity_type;
 
+// Caskey, Damon V.
+// 2013-12-27
+//
+// Entity sub-types.
 typedef enum
 {
-    /*
-    Entity subtype enumerator.
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    SUBTYPE_NONE,
-    SUBTYPE_BIKER,
-    SUBTYPE_NOTGRAB,
-    SUBTYPE_ARROW,		//7-1-2005  subtype for an "enemy" that flies across the screen and dies
-    SUBTYPE_TOUCH,		// ltb 1-18-05  new Item subtype for a more platformer feel.
-    SUBTYPE_WEAPON,
-    SUBTYPE_NOSKIP,		// Text type that can't be skipped
-    SUBTYPE_FLYDIE,		// Now obstacles can be hit and fly like on Simpsons/TMNT
-    SUBTYPE_BOTH,		// Used with TYPE_ENDLEVEL to force both players to reach the point before ending level
-    SUBTYPE_PROJECTILE, // New weapon projectile type that can be picked up by players/enemies
-    SUBTYPE_FOLLOW,     // Used by NPC character, if set, they will try to follow players
-    SUBTYPE_CHASE       // Used by enemy always chasing you
+    SUBTYPE_NONE		= (1 << 0),
+    SUBTYPE_BIKER		= (1 << 1),
+    SUBTYPE_NOTGRAB		= (1 << 2),
+    SUBTYPE_ARROW		= (1 << 3),		// 7-1-2005  subtype for an "enemy" that flies across the screen and dies
+    SUBTYPE_TOUCH		= (1 << 4),		// ltb 1-18-05  new Item subtype for a more platformer feel.
+    SUBTYPE_WEAPON		= (1 << 5),
+    SUBTYPE_NOSKIP		= (1 << 6),		// Text type that can't be skipped
+    SUBTYPE_FLYDIE		= (1 << 7),		// Now obstacles can be hit and fly like on Simpsons/TMNT
+    SUBTYPE_BOTH		= (1 << 8),		// Used with TYPE_ENDLEVEL to force both players to reach the point before ending level
+    SUBTYPE_PROJECTILE	= (1 << 9),		// New weapon projectile type that can be picked up by players/enemies
+    SUBTYPE_FOLLOW		= (1 << 10),	// Used by NPC character, if set, they will try to follow players
+    SUBTYPE_CHASE		= (1 << 11)		// Used by enemy always chasing you
 } e_entity_type_sub;
 
 typedef enum
