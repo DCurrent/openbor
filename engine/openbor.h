@@ -303,31 +303,29 @@ typedef struct
     int font_index;
 } s_debug_xy_msg;
 
+// Caskey, Damon V
+// 2013-12-27
+//
+// Key definitions.
 typedef enum
 {
-    /*
-    Key def enum.
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    FLAG_ESC			= 0x00000001,
-    FLAG_START			= 0x00000002,
-    FLAG_MOVELEFT		= 0x00000004,
-    FLAG_MOVERIGHT		= 0x00000008,
-    FLAG_MOVEUP		    = 0x00000010,
-    FLAG_MOVEDOWN		= 0x00000020,
-    FLAG_ATTACK		    = 0x00000040,
-    FLAG_JUMP			= 0x00000080,
-    FLAG_SPECIAL		= 0x00000100,
-    FLAG_SCREENSHOT	    = 0x00000200,
-    FLAG_ATTACK2		= 0x00000400,
-    FLAG_ATTACK3		= 0x00000800,
-    FLAG_ATTACK4		= 0x00001000,
+    FLAG_ESC			= (1 << 0),
+    FLAG_START			= (1 << 1),
+    FLAG_MOVELEFT		= (1 << 2),
+    FLAG_MOVERIGHT		= (1 << 3),
+    FLAG_MOVEUP		    = (1 << 4),
+    FLAG_MOVEDOWN		= (1 << 5),
+    FLAG_ATTACK		    = (1 << 6),
+    FLAG_JUMP			= (1 << 7),
+    FLAG_SPECIAL		= (1 << 8),
+    FLAG_SCREENSHOT	    = (1 << 9),
+    FLAG_ATTACK2		= (1 << 10),
+    FLAG_ATTACK3		= (1 << 11),
+    FLAG_ATTACK4		= (1 << 12),
     FLAG_ANYBUTTON		= (FLAG_START|FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP),
     FLAG_CONTROLKEYS    = (FLAG_SPECIAL|FLAG_ATTACK|FLAG_ATTACK2|FLAG_ATTACK3|FLAG_ATTACK4|FLAG_JUMP|FLAG_MOVEUP|FLAG_MOVEDOWN|FLAG_MOVELEFT|FLAG_MOVERIGHT),
-    FLAG_FORWARD		= 0x40000000,
-    FLAG_BACKWARD		= 0x80000000
+    FLAG_FORWARD		= (1 << 13),
+    FLAG_BACKWARD		= (1 << 14)
 } e_key_def;
 
 typedef enum
