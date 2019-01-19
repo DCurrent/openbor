@@ -11061,7 +11061,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				recursive.index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
-				recursive.mode = GET_INT_ARG(1);
+
+				tempInt = GET_INT_ARG(1);
+
+				switch (tempInt)
+				{
+					case 1:
+						recursive.mode = DAMAGE_RECURSIVE_HP;
+						break;
+					case 2:
+						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP;
+						break;
+					case 3:
+						recursive.mode = DAMAGE_RECURSIVE_MP;
+						break;
+					case 4:
+						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_NON_LETHAL;
+						break;
+					case 5:
+						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP + DAMAGE_RECURSIVE_NON_LETHAL;
+						break;
+				}
+
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
 				recursive.rate = GET_INT_ARG(1);
@@ -11399,9 +11420,29 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 recursive.index  = GET_INT_ARG(1);  //Index.
                 recursive.time   = GET_INT_ARG(2);  //Time to expiration.
-                recursive.mode   = GET_INT_ARG(3);  //Mode, see damage_recursive.
+                tempInt			 = GET_INT_ARG(3);  //Mode, see damage_recursive.
                 recursive.force  = GET_INT_ARG(4);  //Amount per tick.
                 recursive.rate   = GET_INT_ARG(5);  //Tick delay.
+
+				switch (tempInt)
+				{				
+					case 1:
+						recursive.mode = DAMAGE_RECURSIVE_HP;
+						break;
+					case 2:
+						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP;
+						break;
+					case 3:
+						recursive.mode = DAMAGE_RECURSIVE_MP;
+						break;
+					case 4:
+						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_NON_LETHAL;
+						break;
+					case 5:
+						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP + DAMAGE_RECURSIVE_NON_LETHAL;
+						break;
+				}
+
                 break;
 
             case CMD_MODEL_FORCEMAP:
@@ -21698,10 +21739,7 @@ void damage_recursive(entity *ent)
 			cursor->tick = _time + (cursor->rate * GAME_SPEED / 100);
 
 			// Does this recursive damage affect HP?
-			if (cursor->mode == DOT_MODE_HP
-				|| cursor->mode == DOT_MODE_HP_MP
-				|| cursor->mode == DOT_MODE_NON_LETHAL_HP
-				|| cursor->mode == DOT_MODE_NON_LETHAL_HP_MP)
+			if (cursor->mode & DAMAGE_RECURSIVE_HP)
 			{
 				// Recursive HP Damage Logic:
 				//
@@ -21750,7 +21788,7 @@ void damage_recursive(entity *ent)
 				if (force_final >= ent->energy_status.health_current)
 				{
 					// Is this recursive damage allowed to KO?
-					if (cursor->mode == DOT_MODE_HP || cursor->mode == DOT_MODE_HP_MP)
+					if (!(cursor->mode & DAMAGE_RECURSIVE_NON_LETHAL))
 					{
 						// Does target have a takedamage structure? If so
 						// we can use takedamage() for the finishing damage.
@@ -21801,9 +21839,7 @@ void damage_recursive(entity *ent)
 			}
 
 			// Does this recursive damage affect MP?
-			if (cursor->mode == DOT_MODE_MP
-				|| cursor->mode == DOT_MODE_HP_MP
-				|| cursor->mode == DOT_MODE_NON_LETHAL_HP_MP)
+			if (cursor->mode & DAMAGE_RECURSIVE_MP)
 			{
 				// Recursive HP Damage Logic:
 
