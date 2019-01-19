@@ -1225,19 +1225,11 @@ typedef enum
 
 typedef enum
 {
-    /*
-    Damage over time mode enum.
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    DOT_MODE_OFF,              //Disable.
-    DOT_MODE_HP,               //Drain HP.
-    DOT_MODE_HP_MP,            //Drain HP and MP.
-    DOT_MODE_MP,               //Drain mp.
-    DOT_MODE_NON_LETHAL_HP,    //Drain HP, but do not kill entity.
-    DOT_MODE_NON_LETHAL_HP_MP  //Drain HP and MP, but do not kill entity.
-} e_dot_mode;
+	DAMAGE_RECURSIVE_NONE		= (1 << 0),
+	DAMAGE_RECURSIVE_HP			= (1 << 1),
+	DAMAGE_RECURSIVE_MP			= (1 << 2),
+	DAMAGE_RECURSIVE_NON_LETHAL = (1 << 3)
+} e_damage_recursive;
 
 typedef enum
 {
@@ -1666,7 +1658,7 @@ typedef struct s_damage_recursive
 {
     int							force;  // Damage force per tick.
     int							index;  // Index.
-    e_dot_mode					mode;   // Mode.
+	e_damage_recursive			mode;   // Mode.
     int							rate;   // Tick delay.
 	unsigned int				tick;   // Time of next tick.
     unsigned int				time;   // Time to expire.
