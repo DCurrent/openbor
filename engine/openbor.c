@@ -25023,8 +25023,6 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 						
 			// Move to next node in list (if any).
 			cursor = cursor->next;
-
-				printf("\n cursor: %p", cursor);
 		}
 		
 		// Add new node to list.
