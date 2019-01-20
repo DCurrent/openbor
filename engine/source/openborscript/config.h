@@ -14,6 +14,7 @@
 
 #include "axis.h"
 #include "binding.h"
+#include "recursive_damage.h"
 #include "entity.h"
 
 #define MAX_GLOBAL_VAR 2048
