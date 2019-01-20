@@ -521,6 +521,7 @@
     <ClInclude Include="..\..\xbox\sblaster.h" />
     <ClInclude Include="..\..\xbox\vga.h" />
     <ClInclude Include="..\..\xbox\video.h" />
+    <ClInclude Include="recursive_damage.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\android\res\drawable-hdpi\icon.png" />

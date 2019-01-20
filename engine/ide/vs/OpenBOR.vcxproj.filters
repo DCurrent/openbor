@@ -1339,6 +1339,9 @@
     <ClInclude Include="..\..\xbox\generic\SndXBOX.hxx">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="recursive_damage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\resources\BOR_Menu_Font_1.gif">
