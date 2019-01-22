@@ -1219,10 +1219,10 @@ typedef enum
 
 typedef enum
 {
-	DAMAGE_RECURSIVE_NONE		= (1 << 0),
-	DAMAGE_RECURSIVE_HP			= (1 << 1),
-	DAMAGE_RECURSIVE_MP			= (1 << 2),
-	DAMAGE_RECURSIVE_NON_LETHAL = (1 << 3)
+	DAMAGE_RECURSIVE_NONE		= 0,
+	DAMAGE_RECURSIVE_HP			= (1 << 0),
+	DAMAGE_RECURSIVE_MP			= (1 << 1),
+	DAMAGE_RECURSIVE_NON_LETHAL = (1 << 2)
 } e_damage_recursive;
 
 typedef enum
