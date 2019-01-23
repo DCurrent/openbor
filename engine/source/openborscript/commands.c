@@ -138,6 +138,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE,           "attack.damage.recursive.force");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX,           "attack.damage.recursive.index");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE,            "attack.damage.recursive.mode");
+	LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG,			   "attack.damage.recursive.tag");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE,     "attack.damage.recursive.time");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE,       "attack.damage.recursive.rate");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_STEAL,                     "attack.damage.steal");
