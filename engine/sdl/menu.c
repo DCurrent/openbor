@@ -265,10 +265,21 @@ static s_screen *getPreview(char *filename)
 	// Grab current path and filename
 	getBasePath(packfile, filename, 1);
 	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)) return NULL;
+	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title) &&
+	   !loadscreen32("data/bgs/title", packfile, &title))
+	{
+		return NULL;
+	}
 	if((scale = allocscreen(160, 120, title->pixelformat)) == NULL) return NULL;
 
-	scalescreen(scale, title);
+	if (title->pixelformat == PIXEL_32)
+	{
+		scalescreen32(scale, title);
+	}
+	else
+	{
+		scalescreen(scale, title);
+	}
 	memcpy(scale->palette, title->palette, PAL_BYTES);
 
 	// ScreenShots within Menu will be saved as "Menu"
