@@ -489,7 +489,7 @@ static void initMenu(int type)
 	control_init(2);
 	apply_controls();
 	sound_init(12);
-	sound_start_playback(savedata.soundbits,savedata.soundrate);
+	sound_start_playback();
 }
 
 static void termMenu()
