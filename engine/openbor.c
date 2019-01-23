@@ -4407,35 +4407,43 @@ void load_special_sprites()
 {
     memset(shadowsprites, -1, sizeof(*shadowsprites) * 6);
     golsprite = gosprite = -1;
-    if(testpackfile("data/sprites/shadow1.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/shadow1.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/shadow1.png", packfile) >= 0)
     {
         shadowsprites[0] = loadsprite("data/sprites/shadow1", 9, 3, pixelformat);
     }
-    if(testpackfile("data/sprites/shadow2.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/shadow2.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/shadow2.png", packfile) >= 0)
     {
         shadowsprites[1] = loadsprite("data/sprites/shadow2", 14, 5, pixelformat);
     }
-    if(testpackfile("data/sprites/shadow3.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/shadow3.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/shadow3.png", packfile) >= 0)
     {
         shadowsprites[2] = loadsprite("data/sprites/shadow3", 19, 6, pixelformat);
     }
-    if(testpackfile("data/sprites/shadow4.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/shadow4.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/shadow4.png", packfile) >= 0)
     {
         shadowsprites[3] = loadsprite("data/sprites/shadow4", 24, 8, pixelformat);
     }
-    if(testpackfile("data/sprites/shadow5.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/shadow5.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/shadow5.png", packfile) >= 0)
     {
         shadowsprites[4] = loadsprite("data/sprites/shadow5", 29, 9, pixelformat);
     }
-    if(testpackfile("data/sprites/shadow6.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/shadow6.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/shadow6.png", packfile) >= 0)
     {
         shadowsprites[5] = loadsprite("data/sprites/shadow6", 34, 11, pixelformat);
     }
-    if(testpackfile("data/sprites/arrow.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/arrow.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/arrow.png", packfile) >= 0)
     {
         gosprite  = loadsprite("data/sprites/arrow", 35, 23, pixelformat);
     }
-    if(testpackfile("data/sprites/arrowl.gif", packfile) >= 0)
+    if (testpackfile("data/sprites/arrowl.gif", packfile) >= 0 ||
+        testpackfile("data/sprites/arrowl.png", packfile) >= 0)
     {
         golsprite = loadsprite("data/sprites/arrowl", 35, 23, pixelformat);
     }
