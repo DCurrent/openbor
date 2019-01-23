@@ -11063,6 +11063,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
 				recursive.mode = GET_INT_ARG(1);
                 break;
+			case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG:
+				recursive.tag = GET_INT_ARG(1);
+				break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
 				recursive.rate = GET_INT_ARG(1);
                 break;
@@ -21733,7 +21736,7 @@ void damage_recursive(entity *ent)
 		cursor->tick = _time + (cursor->rate * GAME_SPEED / 100);
 
 		// Does this recursive damage affect HP?
-		if (cursor->mode & DAMAGE_RECURSIVE_HP)
+		if (cursor->mode & DAMAGE_RECURSIVE_MODE_HP)
 		{
 			// Recursive HP Damage Logic:
 			//
@@ -21782,7 +21785,7 @@ void damage_recursive(entity *ent)
 			if (force_final >= ent->energy_status.health_current)
 			{
 				// Is this recursive damage allowed to KO?
-				if (!(cursor->mode & DAMAGE_RECURSIVE_NON_LETHAL))
+				if (!(cursor->mode & DAMAGE_RECURSIVE_MODE_NON_LETHAL))
 				{
 					// Does target have a takedamage structure? If so
 					// we can use takedamage() for the finishing damage.
@@ -21833,7 +21836,7 @@ void damage_recursive(entity *ent)
 		}
 
 		// Does this recursive damage affect MP?
-		if (cursor->mode & DAMAGE_RECURSIVE_MP)
+		if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
 		{
 			// Recursive MP Damage Logic:
 
@@ -25048,6 +25051,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 
 	// Now we have a target recursive element to populate with
 	// attack's recursive values.
+	cursor->tag = attack->recursive->tag;
 	cursor->mode = attack->recursive->mode;
 	cursor->index = attack->recursive->index;
 	cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
