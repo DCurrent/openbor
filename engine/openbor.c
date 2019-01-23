@@ -11061,28 +11061,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				recursive.index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
-
-				tempInt = GET_INT_ARG(1);
-
-				switch (tempInt)
-				{
-					case 1:
-						recursive.mode = DAMAGE_RECURSIVE_HP;
-						break;
-					case 2:
-						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP;
-						break;
-					case 3:
-						recursive.mode = DAMAGE_RECURSIVE_MP;
-						break;
-					case 4:
-						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_NON_LETHAL;
-						break;
-					case 5:
-						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP + DAMAGE_RECURSIVE_NON_LETHAL;
-						break;
-				}
-
+				recursive.mode = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
 				recursive.rate = GET_INT_ARG(1);
@@ -11420,28 +11399,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 recursive.index  = GET_INT_ARG(1);  //Index.
                 recursive.time   = GET_INT_ARG(2);  //Time to expiration.
-                tempInt			 = GET_INT_ARG(3);  //Mode, see damage_recursive.
+                recursive.mode	 = GET_INT_ARG(3);  //Mode, see damage_recursive.
                 recursive.force  = GET_INT_ARG(4);  //Amount per tick.
                 recursive.rate   = GET_INT_ARG(5);  //Tick delay.
-
-				switch (tempInt)
-				{				
-					case 1:
-						recursive.mode = DAMAGE_RECURSIVE_HP;
-						break;
-					case 2:
-						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP;
-						break;
-					case 3:
-						recursive.mode = DAMAGE_RECURSIVE_MP;
-						break;
-					case 4:
-						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_NON_LETHAL;
-						break;
-					case 5:
-						recursive.mode = DAMAGE_RECURSIVE_HP + DAMAGE_RECURSIVE_MP + DAMAGE_RECURSIVE_NON_LETHAL;
-						break;
-				}
 
                 break;
 
@@ -21731,11 +21691,6 @@ void damage_recursive(entity *ent)
     float       defense;        // target defense.
     s_collision_attack attack;  // Attack structure.
 	s_damage_recursive *cursor;
-
-	if (ent->modeldata.health != 101)
-	{
-		return;
-	}
 
 	// Iterate target's recursive damage nodes.
 	for(cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
