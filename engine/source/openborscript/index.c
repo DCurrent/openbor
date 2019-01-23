@@ -273,6 +273,16 @@ const char *Script_GetFunctionName(void *functionRef)
         return "set_attack_property";
     }
 
+	// Recursive damage.
+	else if (functionRef == ((void *)openbor_get_recursive_damage_property))
+	{
+	return "get_recursive_damage_property";
+	}
+	else if (functionRef == ((void *)openbor_set_recursive_damage_property))
+	{
+	return "set_recursive_damage_property";
+	}
+
     // Body collision (bbox)
     else if (functionRef == ((void *)openbor_get_body_collision_collection))
     {
@@ -890,6 +900,14 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_playerproperty;
     }
+	else if (functionRef == ((void *)openbor_get_recursive_damage_property))
+	{
+		return (void *)mapstrings_recursive_damage_property;
+	}
+	else if (functionRef == ((void *)openbor_set_recursive_damage_property))
+	{
+		return (void *)mapstrings_recursive_damage_property;
+	}
 
     // Axis
     else if (functionRef == ((void *)openbor_get_axis_plane_lateral_float_property))
@@ -1128,6 +1146,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_attack_property, "get_attack_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_attack_property, "set_attack_property");
+
+	// Recursive damage properties.
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_get_recursive_damage_property, "get_recursive_damage_property");
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_set_recursive_damage_property, "set_recursive_damage_property");
 
     // Body collision (bbox) properties.
     List_InsertAfter(&theFunctionList,

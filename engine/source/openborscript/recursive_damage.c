@@ -192,7 +192,7 @@ error_local:
 // Mutate a entity property. Requires
 // the pointer, a string property
 // name, and new value.
-HRESULT openbor_set_recursieve_damage_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_set_recursive_damage_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
 #define SELF_NAME           "openbor_set_recursive_damage_property(void handle, char property, value)"
 #define ARG_MINIMUM         3   // Minimum required arguments.
