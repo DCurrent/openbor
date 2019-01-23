@@ -476,7 +476,8 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
 {
     unsigned char *png_data = NULL, *png_data_ptr;
     unsigned char *inflated_data = NULL;
-    z_stream zlib_stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL, .avail_in = 0, .next_in = Z_NULL};
+    z_stream zlib_stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL, .avail_in = 0, .next_in = Z_NULL,
+                            .avail_out = 0, .next_out = Z_NULL};
 
     if (inflateInit(&zlib_stream) != Z_OK)
     {
@@ -499,25 +500,28 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
     }
     png_data_ptr = png_data;
 
-    // the "+1"s are because each scanline has an extra byte denoting the filter type
-    size_t inflated_size;
-    if (png_is_interlaced)
+    if (buf)
     {
-        inflated_size = (width/8 + 1) * (height/8) * 2 +
-                        (width/4 + 1) * (height/8) +
-                        (width/4 + 1) * (height/4) +
-                        (width/2 + 1) * (height/4) +
-                        (width/2 + 1) * (height/2) +
-                        (width + 1) * (height/2);
-    }
-    else
-    {
-        inflated_size = (width + 1) * height;
-    }
+        // the "+1"s are because each scanline has an extra byte denoting the filter type
+        size_t inflated_size;
+        if (png_is_interlaced)
+        {
+            inflated_size = (width/8 + 1) * (height/8) * 2 +
+                            (width/4 + 1) * (height/8) +
+                            (width/4 + 1) * (height/4) +
+                            (width/2 + 1) * (height/4) +
+                            (width/2 + 1) * (height/2) +
+                            (width + 1) * (height/2);
+        }
+        else
+        {
+            inflated_size = (width + 1) * height;
+        }
 
-    inflated_data = malloc(inflated_size);
-    zlib_stream.avail_out = inflated_size;
-    zlib_stream.next_out = inflated_data;
+        inflated_data = malloc(inflated_size);
+        zlib_stream.avail_out = inflated_size;
+        zlib_stream.next_out = inflated_data;
+    }
 
     // Now read the remaining chunks of the file
     while (png_data_ptr < (png_data + data_size))
@@ -567,19 +571,22 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
         }
     }
 
-    if (zlib_stream.avail_out != 0)
+    if (buf)
     {
-        printf("error: incomplete compressed stream\n");
-        goto readpng_abort;
-    }
+        if (zlib_stream.avail_out != 0)
+        {
+            printf("error: incomplete compressed stream\n");
+            goto readpng_abort;
+        }
 
-    if (png_is_interlaced)
-    {
-        png_decode_interlaced(buf, inflated_data, width, height);
-    }
-    else
-    {
-        png_decode_regular(buf, inflated_data, width, height);
+        if (png_is_interlaced)
+        {
+            png_decode_interlaced(buf, inflated_data, width, height);
+        }
+        else
+        {
+            png_decode_regular(buf, inflated_data, width, height);
+        }
     }
 
     inflateEnd(&zlib_stream);
