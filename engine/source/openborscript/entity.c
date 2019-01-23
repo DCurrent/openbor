@@ -80,6 +80,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"position_y",
 		"position_z",
         "projectile_prime",
+		"recursive_damage",
 		"release_time",
 		"seal_energy",
 		"seal_time",
@@ -577,6 +578,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->projectile_prime;
 
             break;
+
+		case _ENTITY_RECURSIVE_DAMAGE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_damage_recursive *)handle->recursive_damage;
+
+			break;
 
 		case _ENTITY_RELEASE_TIME:
 
@@ -1197,6 +1205,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_RECURSIVE_DAMAGE:
+
+			handle->recursive_damage = (s_damage_recursive *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
 
 		case _ENTITY_RELEASE_TIME:
 
