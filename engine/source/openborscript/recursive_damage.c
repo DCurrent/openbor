@@ -27,6 +27,7 @@ int mapstrings_recursive_damage_property(ScriptVariant **varlist, int paramCount
 		"next",
 		"owner",
 		"rate",
+		"tag",
 		"tick",
 		"time",
 		"type",
@@ -43,7 +44,7 @@ int mapstrings_recursive_damage_property(ScriptVariant **varlist, int paramCount
 	}
 
 	// See macro - will return 0 on fail.
-	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ENTITY_END,
+	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _RECURSIVE_DAMAGE_END,
 		"\n\n Error: '%s' is not a known recursive damage property.\n");
 
 
@@ -139,6 +140,13 @@ HRESULT openbor_get_recursive_damage_property(ScriptVariant **varlist, ScriptVar
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->rate;
+
+		break;
+
+	case _RECURSIVE_DAMAGE_TAG:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)handle->tag;
 
 		break;
 
@@ -271,6 +279,15 @@ HRESULT openbor_set_recursive_damage_property(ScriptVariant **varlist, ScriptVar
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->rate = temp_int;
+		}
+
+		break;
+
+	case _RECURSIVE_DAMAGE_TAG:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->tag = temp_int;
 		}
 
 		break;
