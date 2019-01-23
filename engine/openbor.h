@@ -1219,10 +1219,10 @@ typedef enum
 
 typedef enum
 {
-	DAMAGE_RECURSIVE_NONE		= 0,
-	DAMAGE_RECURSIVE_HP			= (1 << 0),
-	DAMAGE_RECURSIVE_MP			= (1 << 1),
-	DAMAGE_RECURSIVE_NON_LETHAL = (1 << 2)
+	DAMAGE_RECURSIVE_MODE_NONE			= 0,
+	DAMAGE_RECURSIVE_MODE_HP			= (1 << 0),
+	DAMAGE_RECURSIVE_MODE_MP			= (1 << 1),
+	DAMAGE_RECURSIVE_MODE_NON_LETHAL	= (1 << 2)
 } e_damage_recursive;
 
 typedef enum
@@ -1654,6 +1654,7 @@ typedef struct s_damage_recursive
     int							index;  // Index.
 	e_damage_recursive			mode;   // Mode.
     int							rate;   // Tick delay.
+	int							tag;	// User defined value.
 	unsigned int				tick;   // Time of next tick.
     unsigned int				time;   // Time to expire.
 	int							type;	// Attack type.
