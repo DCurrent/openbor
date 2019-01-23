@@ -131,9 +131,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(DAMAGE_FROM_PLAYER_ON)
 
 		// Recursive damage mode flags.
-		ICMPCONST(DAMAGE_RECURSIVE_HP)
-		ICMPCONST(DAMAGE_RECURSIVE_MP)
-		ICMPCONST(DAMAGE_RECURSIVE_NON_LETHAL)
+		ICMPCONST(DAMAGE_RECURSIVE_MODE_HP)
+		ICMPCONST(DAMAGE_RECURSIVE_MODE_MP)
+		ICMPCONST(DAMAGE_RECURSIVE_MODE_NON_LETHAL)
 
 
         // Exchange Flags. Indicate taking or delivering and attack.
