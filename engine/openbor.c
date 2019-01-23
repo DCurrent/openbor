@@ -2497,9 +2497,6 @@ void clearsettings()
     savedata.compatibleversion = COMPATIBLEVERSION;
     savedata.gamma = 0;
     savedata.brightness = 0;
-    savedata.usesound = 1;
-    savedata.soundrate = 44100;
-    savedata.soundbits = 16;
     savedata.soundvol = 15;
     savedata.usemusic = 1;
     savedata.musicvol = 100;
@@ -35469,7 +35466,7 @@ void startup()
     printf("Done!\n");
 
     printf("Initialize Sound..............\t");
-    if(savedata.usesound && sound_init(12))
+    if(sound_init(12))
     {
         if(load_special_sounds())
         {
@@ -35479,9 +35476,9 @@ void startup()
         {
             printf("\n");
         }
-        if(!sound_start_playback(savedata.soundbits, savedata.soundrate))
+        if(!sound_start_playback())
         {
-            printf("Warning: can't play sound at %u Hz!\n", savedata.soundrate);
+            printf("Warning: can't play sound!\n");
         }
         SB_setvolume(SB_MASTERVOL, 15);
         SB_setvolume(SB_VOICEVOL, savedata.soundvol);
