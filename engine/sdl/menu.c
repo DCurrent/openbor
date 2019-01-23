@@ -512,7 +512,7 @@ static void drawMenu()
 	if(dListTotal < 1) printText((isWide ? 30 : 8), (isWide ? 33 : 24), RED, 0, 0, "No Mods In Paks Folder!");
 	for(list = 0; list < dListTotal; list++)
 	{
-		if(list < MAX_MODS_NUM)
+		if(list < 18)
 		{
 		    int len = strlen(filelist[list+dListScrollPosition].filename)-4;
 			shift = 0;
@@ -579,7 +579,7 @@ static void drawBGMPlayer()
 
 	for(list=0; list<dListTotal; list++)
 	{
-		if(list<MAX_MODS_NUM)
+		if(list < 18)
 		{
 		    int len = strlen(filelist[list+dListScrollPosition].filename)-4;
 			shift = 0;
