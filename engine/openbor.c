@@ -16192,8 +16192,8 @@ void pausemenu()
 
 unsigned getFPS(void)
 {
-    static unsigned lasttick = 0, framerate = 0;
-    unsigned curtick = timer_gettick();
+    static u64 lasttick = 0, framerate = 0;
+    u64 curtick = timer_uticks();
     if(lasttick > curtick)
     {
         lasttick = curtick;
@@ -16208,7 +16208,7 @@ unsigned getFPS(void)
 #ifdef PSP
     return ((10000000 / framerate) + 9) / 10;
 #else
-    return ((10000000 / framerate) + 9) / 10000;
+    return round(1.0e6 / framerate);
 #endif
 }
 
