@@ -52,6 +52,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"destination_z",
 		"exists",
 		"freeze_time",
+		"guard_time",
 		"hp",
 		"hp_old",
 		"item_data",
