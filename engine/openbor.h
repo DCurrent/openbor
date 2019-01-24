@@ -2418,8 +2418,8 @@ typedef struct entity
     u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
 	u32						maptime;							// When forcemap expires. ~~
     u32						sealtime;							// When seal expires. ~~    
-	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head.
-    u32 magictime;
+	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
+    u32						magictime;							// Next time to auto adjust MP. ~~
     u32 guardtime;
     u32 nextanim;
     u32 nextthink;
