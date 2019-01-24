@@ -36,7 +36,7 @@ static GXTlutObj tlut;
 static unsigned short palette[256] ATTRIBUTE_ALIGN(32);
 
 static int inited = 0;
-static int stretch = 1;
+static int stretch = 0;
 
 static int brightness = 0;
 static int brightness_update = 0;
@@ -67,17 +67,17 @@ void video_gx_init()
 	GX_SetCopyClear(background, 0x00ffffff);
 
 	// set up viewport
-	GX_SetViewport (0, 0, vmode->fbWidth+0.05, vmode->efbHeight+0.05, 0, 1);
+	GX_SetViewport(0, 0, vmode->fbWidth, vmode->efbHeight, 0, 1);
 	GX_SetScissor(0, 0, vmode->fbWidth, vmode->efbHeight);
 
 	// other GX setup
 	GX_SetDispCopySrc(0, 0, vmode->fbWidth, vmode->efbHeight);
 	GX_SetDispCopyDst(vmode->fbWidth, vmode->xfbHeight);
-	GX_SetDispCopyYScale ((f32) vmode->xfbHeight / (f32) vmode->efbHeight);
+	GX_SetDispCopyYScale(GX_GetYScaleFactor(vmode->efbHeight, vmode->xfbHeight));
 	GX_SetCopyFilter(vmode->aa, vmode->sample_pattern, GX_TRUE, vmode->vfilter);
 	GX_SetPixelFmt(vmode->aa ? GX_PF_RGB565_Z16 : GX_PF_RGB8_Z24, GX_ZC_LINEAR);
 	GX_SetCullMode(GX_CULL_NONE);
-	GX_SetFieldMode(vmode->field_rendering, ((vmode->viHeight == 2 * vmode->xfbHeight) ? GX_ENABLE : GX_DISABLE));
+	GX_SetFieldMode(vmode->field_rendering, ((vmode->viHeight == 2*vmode->xfbHeight) ? GX_ENABLE : GX_DISABLE));
 	GX_SetColorUpdate(GX_TRUE);
 	GX_SetZMode(GX_DISABLE, GX_ALWAYS, GX_DISABLE);
 
@@ -128,29 +128,12 @@ void video_init()
 	viewportHeight = vmode->xfbHeight;
 	viewportWidth = vmode->fbWidth;
 	if(CONF_GetAspectRatio() == CONF_ASPECT_16_9)
-	{//16:9
-		scaledWidth = 620; //16:9 widescreen
-	}
-	else
-	{//4:3
-		scaledWidth = 620;
-	}
-	
-	vmode->viWidth = 670;
-	
-	if (vmode == &TVPal576IntDfScale || vmode == &TVPal576ProgScale)
 	{
-		vmode->viXOrigin = (VI_MAX_WIDTH_PAL - vmode->viWidth) / 2;
-		vmode->viYOrigin = (VI_MAX_HEIGHT_PAL - vmode->viHeight) / 2;
-		scaledHeight = 524; //PAL
-	} 
-	else 
-	{
-		vmode->viXOrigin = (VI_MAX_WIDTH_NTSC - vmode->viWidth) / 2;
-		vmode->viYOrigin = (VI_MAX_HEIGHT_NTSC - vmode->viHeight) / 2;
-		scaledHeight = 440; //NTSC
+		viewportWidth = viewportHeight * 16 / 9;
+		vmode->viXOrigin = 5;
+		vmode->viWidth = VI_MAX_WIDTH_NTSC - 10;
 	}
-	
+
 	VIDEO_Configure(vmode);
 
 	// allocate 2 video buffers for double buffering
@@ -194,7 +177,7 @@ void video_exit()
  */
 int video_set_mode(s_videomodes videomodes)
 {
-	//float texscale;
+	float texscale;
 	static const int texture_formats[4] = {GX_TF_CI8, GX_TF_RGB565, GX_TF_RGBA8, GX_TF_RGBA8};
 
 	bytes_per_pixel = videomodes.pixel;
@@ -216,9 +199,9 @@ int video_set_mode(s_videomodes videomodes)
 	texturemem[1] = memalign(32, texturemem_size);
 
 	// determine scale factor and on-screen dimensions
-	//texscale = MIN((float)viewportWidth/(float)textureWidth, (float)viewportHeight/(float)textureHeight);
-	//scaledWidth = 640;
-	//scaledHeight = 480;
+	texscale = MIN((float)viewportWidth/(float)textureWidth, (float)viewportHeight/(float)textureHeight);
+	scaledWidth = (int)(textureWidth * texscale);
+	scaledHeight = (int)(textureHeight * texscale);
 
 	// determine offsets
 	xoffset = (viewportWidth - scaledWidth) / 2;
@@ -288,15 +271,11 @@ int video_copy_screen(s_screen* src)
 	GX_LoadTexObj(&texture[whichbuffer], GX_TEXMAP0);
 
 	// draw the screen texture onto the EFB as a textured quad
-	if(!stretch)
-		{
-		video_draw_quad((viewportWidth - (scaledWidth * 0.80)) / 2, yoffset, (scaledWidth * 0.80), scaledHeight);
-		}
-		else
-		{			
+	if(stretch)
+		video_draw_quad(0, 0, viewportWidth, viewportHeight);
+	else
 		video_draw_quad(xoffset, yoffset, scaledWidth, scaledHeight);
-		}
-		
+
 	// blit the contents of the EFB to the XFB, and swap video buffers
 	GX_CopyDisp(xfb[whichbuffer], GX_FALSE);
 	GX_Flush();

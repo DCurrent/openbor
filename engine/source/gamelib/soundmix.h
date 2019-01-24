@@ -48,7 +48,7 @@ extern musicchannelstruct musicchannel;
 extern int playfrequency;
 
 void sound_stop_playback();
-int sound_start_playback(int bits, int frequency);
+int sound_start_playback();
 void sound_exit();
 int sound_init(int channels);
 

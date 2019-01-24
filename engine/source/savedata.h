@@ -17,13 +17,10 @@ typedef struct
     unsigned compatibleversion;
     int gamma;
     int brightness;
-    int usesound; // Use SB
-    unsigned soundrate; // SB freq
     int soundvol; // SB volume
     int usemusic; // Play music
     int musicvol; // Music volume
     int effectvol; // Sound fx volume
-    int soundbits; // SB bits
     int usejoy;
     int mode; // Mode now saves
     int windowpos;
