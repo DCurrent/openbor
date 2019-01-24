@@ -21542,10 +21542,10 @@ void update_health()
             // 1 Only recover MP > mpstableval.
             // 2 No recover. Drop MP if MP < mpstableval.
             // 3 Both: recover if MP if MP < mpstableval and drop if MP > mpstableval.
-            // 0 Default. Recover MP at all times.
+            // 4 Gain until stable, then fall to stable.
+			// 0 Default. Recover MP at all times.
 
-
-            if (self->modeldata.mpstable == 1)
+			if (self->modeldata.mpstable == 1)
             {
                 if (self->energy_status.mp_current < self->modeldata.mpstableval)
                 {
