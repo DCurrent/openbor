@@ -2420,7 +2420,7 @@ typedef struct entity
     u32						sealtime;							// When seal expires. ~~    
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
     u32						magictime;							// Next time to auto adjust MP. ~~
-    u32 guardtime;
+    u32						guardtime;							// Next time to auto adjust guardpoints. ~~
     u32 nextanim;
     u32 nextthink;
     u32 nextattack;
