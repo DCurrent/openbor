@@ -21427,7 +21427,7 @@ void update_animation()
         if(self->animating)
         {
             //self->nextanim = _time + (self->animation->delay[f]);
-            self->update_mark |= 1; // frame updated, mark it
+            self->update_mark |= UPDATE_MARK_UPDATE_ANIMATION; // frame updated, mark it
             // just switch frame to f, if frozen, expand_time will deal with it well
             update_frame(self, f);
         }
