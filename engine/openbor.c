@@ -22204,7 +22204,7 @@ void update_ents()
         if(ent_list[i]->exists && _time != ent_list[i]->timestamp)// dont update fresh entity
         {
             self = ent_list[i];
-            self->update_mark = 0;
+            self->update_mark = UPDATE_MARK_NONE;
             if(level)
             {
                 check_lost();    // check lost caused by level scrolling or lifespan
