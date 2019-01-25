@@ -20717,7 +20717,7 @@ void check_gravity(entity *e)
     float gravity;
     float fmin, fmax;
 
-    if(e->update_mark & 8)
+    if(e->update_mark & UPDATE_MARK_CHECK_GRAVITY)
     {
         return;
     }
@@ -20921,7 +20921,7 @@ void check_gravity(entity *e)
 
     }//end of if
 
-    self->update_mark |= 8;
+    self->update_mark |= UPDATE_MARK_CHECK_GRAVITY;
 
     self = tempself;
 }
@@ -21137,7 +21137,7 @@ void adjust_base(entity *e, entity **pla)
         *pla = other = self->landed_on_platform = NULL;
     }
 
-    if(other && !(other->update_mark & 8))
+    if(other && !(other->update_mark & UPDATE_MARK_CHECK_GRAVITY))
     {
         check_gravity(other);
     }
@@ -21155,7 +21155,7 @@ void adjust_base(entity *e, entity **pla)
 
     if( (plat = self->landed_on_platform) )
     {
-        if(!(plat->update_mark & 8))
+        if(!(plat->update_mark & UPDATE_MARK_CHECK_GRAVITY))
         {
             check_gravity(plat);
         }
