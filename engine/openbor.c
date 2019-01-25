@@ -21026,7 +21026,7 @@ void check_ai()
 {
     if(self->nextthink <= _time && !endgame)
     {
-        self->update_mark |= 2; //mark it
+        self->update_mark |= UPDATE_MARK_CHECK_AI; //mark it
         // take actions
         if(self->takeaction)
         {
