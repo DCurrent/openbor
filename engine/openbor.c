@@ -22058,7 +22058,7 @@ void check_move(entity *e)
     float x, z;
     entity *plat, *tempself;
 
-    if((e->update_mark & 4))
+    if((e->update_mark & UPDATE_MARK_CHECK_MOVE))
     {
         return;
     }
@@ -22072,7 +22072,7 @@ void check_move(entity *e)
     if((plat = self->landed_on_platform) ) // on the platform?
     {
         //update platform first to get actual movex and movez
-        if(!(plat->update_mark & 4))
+        if(!(plat->update_mark & UPDATE_MARK_CHECK_MOVE))
         {
             check_move(plat);
         }
@@ -22134,7 +22134,7 @@ void check_move(entity *e)
     }
     self->movex = self->position.x - x;
     self->movez = self->position.z - z;
-    self->update_mark |= 4;
+    self->update_mark |= UPDATE_MARK_CHECK_MOVE;
     self = tempself;
 }
 
