@@ -124,11 +124,11 @@ movement restirctions are here!
 // Flags for flags used to time update functions.
 typedef enum
 {
-	UPDATE_MARK_NONE = 0,
-	UPDATE_MARK_UPDATE_ANIMATION = 1,
-	UPDATE_MARK_CHECK_AI = 2,
-	UPDATE_MARK_CHECK_MOVE = 4,
-	UPDATE_MARK_CHECK_GRAVITY = 8
+	UPDATE_MARK_NONE				= 0,
+	UPDATE_MARK_CHECK_AI			= (1 << 0),
+	UPDATE_MARK_CHECK_GRAVITY		= (1 << 1),
+	UPDATE_MARK_CHECK_MOVE			= (1 << 2),
+	UPDATE_MARK_UPDATE_ANIMATION	= (1 << 3)	
 } e_update_mark;
 
 // PLAY/REC INPUT vars
