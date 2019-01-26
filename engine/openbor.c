@@ -20717,7 +20717,7 @@ void check_gravity(entity *e)
     float gravity;
     float fmin, fmax;
 
-    if(e->update_mark & 8)
+    if(e->update_mark & UPDATE_MARK_CHECK_GRAVITY)
     {
         return;
     }
@@ -20921,7 +20921,7 @@ void check_gravity(entity *e)
 
     }//end of if
 
-    self->update_mark |= 8;
+    self->update_mark |= UPDATE_MARK_CHECK_GRAVITY;
 
     self = tempself;
 }
@@ -21026,7 +21026,7 @@ void check_ai()
 {
     if(self->nextthink <= _time && !endgame)
     {
-        self->update_mark |= 2; //mark it
+        self->update_mark |= UPDATE_MARK_CHECK_AI; //mark it
         // take actions
         if(self->takeaction)
         {
@@ -21137,7 +21137,7 @@ void adjust_base(entity *e, entity **pla)
         *pla = other = self->landed_on_platform = NULL;
     }
 
-    if(other && !(other->update_mark & 8))
+    if(other && !(other->update_mark & UPDATE_MARK_CHECK_GRAVITY))
     {
         check_gravity(other);
     }
@@ -21155,7 +21155,7 @@ void adjust_base(entity *e, entity **pla)
 
     if( (plat = self->landed_on_platform) )
     {
-        if(!(plat->update_mark & 8))
+        if(!(plat->update_mark & UPDATE_MARK_CHECK_GRAVITY))
         {
             check_gravity(plat);
         }
@@ -21427,7 +21427,7 @@ void update_animation()
         if(self->animating)
         {
             //self->nextanim = _time + (self->animation->delay[f]);
-            self->update_mark |= 1; // frame updated, mark it
+            self->update_mark |= UPDATE_MARK_UPDATE_ANIMATION; // frame updated, mark it
             // just switch frame to f, if frozen, expand_time will deal with it well
             update_frame(self, f);
         }
@@ -22058,7 +22058,7 @@ void check_move(entity *e)
     float x, z;
     entity *plat, *tempself;
 
-    if((e->update_mark & 4))
+    if((e->update_mark & UPDATE_MARK_CHECK_MOVE))
     {
         return;
     }
@@ -22072,7 +22072,7 @@ void check_move(entity *e)
     if((plat = self->landed_on_platform) ) // on the platform?
     {
         //update platform first to get actual movex and movez
-        if(!(plat->update_mark & 4))
+        if(!(plat->update_mark & UPDATE_MARK_CHECK_MOVE))
         {
             check_move(plat);
         }
@@ -22134,7 +22134,7 @@ void check_move(entity *e)
     }
     self->movex = self->position.x - x;
     self->movez = self->position.z - z;
-    self->update_mark |= 4;
+    self->update_mark |= UPDATE_MARK_CHECK_MOVE;
     self = tempself;
 }
 
@@ -22204,7 +22204,7 @@ void update_ents()
         if(ent_list[i]->exists && _time != ent_list[i]->timestamp)// dont update fresh entity
         {
             self = ent_list[i];
-            self->update_mark = 0;
+            self->update_mark = UPDATE_MARK_NONE;
             if(level)
             {
                 check_lost();    // check lost caused by level scrolling or lifespan
