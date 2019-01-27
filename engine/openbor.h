@@ -118,6 +118,17 @@ movement restirctions are here!
 #define		DEFAULT_ATK_DROPV_Z 0
 
 // Caskey, Damon V.
+// 2019-01-27
+// 
+// Flags for animation status.
+typedef enum
+{
+	ANIMATING_REVERSE = -1,
+	ANIMATING_NONE = 0,
+	ANIMATING_FORWARD = 1
+} e_animating;
+
+// Caskey, Damon V.
 // 2019-01-25
 // 
 // Flags for flags used to time update functions.
