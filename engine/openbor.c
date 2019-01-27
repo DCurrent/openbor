@@ -21400,7 +21400,7 @@ void update_animation()
             }
             else if((unsigned)f >= (unsigned)self->animation->numframes)
             {
-                self->animating = 0;
+                self->animating = ANIMATING_NONE;
 
                 if(self->autokill)
                 {
@@ -21422,7 +21422,7 @@ void update_animation()
 
             if(!self->animation->loop.mode)
             {
-                self->animating = 0;
+                self->animating = ANIMATING_NONE;
 
                 if(self->autokill)
                 {
@@ -28809,7 +28809,7 @@ int star_move()
         self->energy_status.health_current = 0;
         if(self->modeldata.nodieblink == 2)
         {
-            self->animating = 0;
+            self->animating = ANIMATING_NONE;
         }
     }
 
