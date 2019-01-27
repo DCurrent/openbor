@@ -26,6 +26,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "animation_collection",
         "animation_frame",
 		"animation_id",
+		"animation_time",
         "arrow_on",
         "attacking",
         "attack_id_incoming",
