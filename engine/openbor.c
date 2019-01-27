@@ -18217,7 +18217,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         ent->animation = ani;
         ent->animation->animhits = 0;
 
-        ent->animating = 1;
+        ent->animating = ANIMATING_FORWARD;
         ent->lasthit = ent->grabbing;
         ent->altbase = 0;
         ent->walking = 0;
@@ -27298,7 +27298,7 @@ void adjust_walk_animation(entity *other)
     }
     else
     {
-        self->animating = 1;
+        self->animating = ANIMATING_FORWARD;
     }
 }
 
