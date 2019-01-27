@@ -27294,7 +27294,7 @@ void adjust_walk_animation(entity *other)
     if(((self->direction == DIRECTION_RIGHT ? self->velocity.x < 0 : self->velocity.x > 0) && dir == 1) ||
             (dir == 2 && self->velocity.z > 0) || (dir == 3 && self->velocity.z < 0) )
     {
-        self->animating = -1;
+        self->animating = ANIMATING_REVERSE;
     }
     else
     {
