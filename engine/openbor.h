@@ -2434,7 +2434,7 @@ typedef struct entity
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
     u32						magictime;							// Next time to auto adjust MP. ~~
     u32						guardtime;							// Next time to auto adjust guardpoints. ~~
-    u32 nextanim;
+    u32						nextanim;
     u32 nextthink;
     u32 nextattack;
     u32 pain_time;
