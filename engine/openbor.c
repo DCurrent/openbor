@@ -26041,7 +26041,7 @@ int common_try_duckattack(entity *other)
     self->velocity.z = self->velocity.x = 0;
     // Don't waste any time!
     ent_set_anim(self, ANI_DUCKATTACK, 0);
-    //self->nextthink = _time + (int)(GAME_SPEED * 0.8);
+   
     return 1;
 }
 
@@ -29483,7 +29483,6 @@ int ai_check_ducking()
     {
         if (self->ducking & DUCK_ACTIVE)
         {
-            //self->nextthink = _time + (int)(GAME_SPEED * 1.0);
             return 1;
         }
         else
