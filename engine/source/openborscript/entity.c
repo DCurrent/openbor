@@ -90,6 +90,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "spawn_type",
 		"speed_multiplier",
 		"stall_time",
+		"think_time",
 		"timestamp",
 		"toss_time",
     };
@@ -649,6 +650,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->stalltime;
+
+			break;
+
+		case _ENTITY_THINK_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->nextthink;
 
 			break;
 
@@ -1313,6 +1321,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->stalltime = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_THINK_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->nextthink = temp_int;
 			}
 
 			break;
