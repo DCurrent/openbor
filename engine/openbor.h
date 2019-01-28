@@ -2451,7 +2451,7 @@ typedef struct entity
     u32						next_hit_time;						// When temporary invincibility after getting hit expires. ~~
     u32						pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
     u32						mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
-    u32 sleeptime; // For the SLEEP animation
+    u32						sleeptime;							// When to start the SLEEP animation. ~~
     u32 knockdowntime; // count knock down hit
     u32 invinctime; // Used to set time for invincibility to expire
     u32 turntime;
