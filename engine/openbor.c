@@ -21498,7 +21498,6 @@ int do_energy_charge(entity *ent)
 		return 0;
 	}
 
-
 	// Add charge rate to current mp.
 	ent->energy_status.mp_current += ent->modeldata.chargerate;
 
