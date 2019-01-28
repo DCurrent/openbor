@@ -1788,7 +1788,7 @@ typedef struct
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     unsigned int        maptime;            // Time for forcemap to remain in effect.
-    unsigned int        pain_time;          // pain invincible time
+    unsigned int        next_hit_time;          // pain invincible time
     unsigned int        sealtime;           // Time for seal to remain in effect.
     int                 tag;                // User defined tag for scripts. No hard coded purpose.
     int                 grab_distance;      // Distance used by "grab".
@@ -2448,7 +2448,7 @@ typedef struct entity
     u32						nextanim;							// Time for next frame (or to mark animation finished). ~~
     u32						nextthink;							// Time for next main AI update. ~~
     u32						nextattack;							// Time for next chance to attack. ~~
-    u32 pain_time;
+    u32 next_hit_time;
     u32 pausetime; // 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
     u32 mpchargetime; // For the CHARGE animation
     u32 sleeptime; // For the SLEEP animation

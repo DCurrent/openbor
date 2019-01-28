@@ -170,7 +170,7 @@ const s_collision_attack emptyattack =
     .no_kill            = 0,
     .no_pain            = 0,
     .otg                = OTG_NONE,
-    .pain_time          = 0,
+    .next_hit_time          = 0,
     .pause_add          = 0,
     .recursive          = NULL,
     .seal               = 0,
@@ -10799,7 +10799,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FASTATTACK:
                 if(GET_INT_ARG(1))
                 {
-                    attack.pain_time = GAME_SPEED / 20;
+                    attack.next_hit_time = GAME_SPEED / 20;
                 }
                 break;
             case CMD_MODEL_IGNOREATTACKID:
@@ -11170,7 +11170,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.freezetime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME:
-                attack.pain_time = GET_INT_ARG(1);
+                attack.next_hit_time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE:
                 attack.grab_distance = GET_INT_ARG(1);
@@ -20150,7 +20150,7 @@ void do_attack(entity *e)
         // This is to allow reasonable delay
         // between hits so engine will not
         // run hit on every update.
-        if(target->pain_time >= _time)
+        if(target->next_hit_time >= _time)
         {
             continue;
         }
@@ -20419,9 +20419,9 @@ void do_attack(entity *e)
                 self->blocking = didblock;   
             }
 
-            //2011/11/24 UT: move the pain_time logic here,
+            //2011/11/24 UT: move the next_hit_time logic here,
             // because block needs this as well otherwise blockratio causes instant death
-            self->pain_time = _time + (attack->pain_time ? attack->pain_time : (GAME_SPEED / 5));
+            self->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (GAME_SPEED / 5));
             self->nextattack = 0; // reset this, make it easier to fight back
         }//end of if #05
         self = temp;
@@ -25374,9 +25374,9 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         return 0;    // try to grab but failed, so return 0 means attack missed
     }
 
-    // set pain_time so it wont get hit too often
+    // set next_hit_time so it wont get hit too often
     // 2011/11/24 UT: move this to do_attack to merge with block code
-    //self->pain_time = _time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
+    //self->next_hit_time = _time + (attack->next_hit_time?attack->next_hit_time:(GAME_SPEED / 5));
     // set oppoent
     if(self != other)
     {
@@ -32938,7 +32938,7 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag
         return 0;
     }
 
-    //self->pain_time = _time + (attack->pain_time?attack->pain_time:(GAME_SPEED / 5));
+    //self->next_hit_time = _time + (attack->next_hit_time?attack->next_hit_time:(GAME_SPEED / 5));
     set_opponent(other, self);
     if(self->opponent && (self->opponent->modeldata.type & TYPE_PLAYER))
     {

@@ -341,7 +341,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
         case ATTACK_PROP_REACTION_INVINCIBLE_TIME:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->pain_time;
+            (*pretvar)->lVal = (LONG)handle->next_hit_time;
             break;
 
         case ATTACK_PROP_REACTION_PAIN_SKIP:
@@ -676,7 +676,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->pain_time = temp_int;
+                handle->next_hit_time = temp_int;
             }
             break;
 

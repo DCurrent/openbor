@@ -72,11 +72,12 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"mp_time",
 		"name",
 		"next_attack_time",
+		"next_hit_time",
 		"nograb",
 		"nograb_default",
         "opponent",
         "owner",
-        "player_index",
+		"player_index",
 		"position_base",
         "position_base_alternate",
         "position_direction",
@@ -525,6 +526,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->nextattack;
+
+			break;
+
+		case _ENTITY_NEXT_HIT_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->next_hit_time;
 
 			break;
 
@@ -1176,6 +1184,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->nextattack = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_NEXT_HIT_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->next_hit_time = temp_int;
 			}
 
 			break;

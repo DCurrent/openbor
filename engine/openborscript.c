@@ -4036,7 +4036,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_pain_time:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->pain_time;
+        (*pretvar)->lVal = (LONG)ent->next_hit_time;
         break;
     }
     case _ep_freezetime:
@@ -6024,7 +6024,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->pain_time = (LONG)ltemp;
+            ent->next_hit_time = (LONG)ltemp;
         }
         break;
     }
