@@ -61,6 +61,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"jump_velocity_x",
 		"jump_velocity_y",
 		"jump_velocity_z",
+		"knockdown_count",
 		"knockdown_time",
 		"model",
 		"model_data",
@@ -454,6 +455,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 			(*pretvar)->dblVal = (DOUBLE)handle->jump.velocity.z;
+
+			break;
+
+		case _ENTITY_KNOCKDOWN_COUNT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->knockdowncount;
 
 			break;
 
@@ -1126,6 +1134,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
 			{
 				handle->jump.velocity.z = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_KNOCKDOWN_COUNT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->knockdowncount = temp_int;
 			}
 
 			break;

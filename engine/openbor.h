@@ -2500,11 +2500,11 @@ typedef struct entity
     unsigned int			animnum;							// Current animation id. ~~ animation_id
     unsigned int prevanimnum;		// previous animation id.
     s_anim					*animation;							// Pointer to animation collection. ~~ animation_collection
-    float knockdowncount;
+    float					knockdowncount;						// Attack knockdown force reduces this. Only fall when at 0. ~~
     s_damage_on_landing		damage_on_landing;					// ~~
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int last_damage_type; // used for set death animation or pain animation
-    int map;								// Stores the colourmap for restoring purposes. ~~
+    int						map;								// Stores the colourmap for restoring purposes. ~~
     void (*think)();
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
