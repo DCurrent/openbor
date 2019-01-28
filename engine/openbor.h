@@ -2449,7 +2449,7 @@ typedef struct entity
     u32						nextthink;							// Time for next main AI update. ~~
     u32						nextattack;							// Time for next chance to attack. ~~
     u32						next_hit_time;						// When temporary invincibility after getting hit expires. ~~
-    u32 pausetime; // 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
+    u32						pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
     u32 mpchargetime; // For the CHARGE animation
     u32 sleeptime; // For the SLEEP animation
     u32 knockdowntime; // count knock down hit
