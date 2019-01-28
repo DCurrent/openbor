@@ -71,6 +71,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"mp_old",
 		"mp_time",
 		"name",
+		"next_attack_time",
 		"nograb",
 		"nograb_default",
         "opponent",
@@ -518,6 +519,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_STR);
 			(*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
+			break;
+
+		case _ENTITY_NEXT_ATTACK_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->nextattack;
+
 			break;
 
 		case _ENTITY_NOGRAB:
@@ -1159,6 +1167,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (varlist[ARG_VALUE]->vt == VT_STR)
 			{
 				strcpy(handle->name, (char *)StrCache_Get(varlist[ARG_VALUE]->strVal));
+			}
+
+			break;
+
+		case _ENTITY_NEXT_ATTACK_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->nextattack = temp_int;
 			}
 
 			break;
