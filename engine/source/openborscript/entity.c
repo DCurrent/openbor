@@ -77,6 +77,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"nograb_default",
         "opponent",
         "owner",
+		"pause_time",
 		"player_index",
 		"position_base",
         "position_base_alternate",
@@ -563,6 +564,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->ptrVal = (entity *)handle->owner;
 
             break;
+
+		case _ENTITY_PAUSE_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->pausetime;
+
+			break;
 
         case _ENTITY_PLAYER_INDEX:
 
@@ -1226,6 +1234,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             handle->owner = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
+
+		case _ENTITY_PAUSE_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->pausetime = temp_int;
+			}
+
+			break;
 
         case _ENTITY_PLAYER_INDEX:
 
