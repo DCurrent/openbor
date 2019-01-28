@@ -68,6 +68,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"move_x",
 		"move_z",
 		"mp",
+		"mp_charge_time",
 		"mp_old",
 		"mp_time",
 		"name",
@@ -500,6 +501,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->energy_status.mp_current;
+
+			break;
+
+		case _ENTITY_MP_CHARGE_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->mpchargetime;
 
 			break;
 
@@ -1165,6 +1173,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->energy_status.mp_old = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_MP_CHARGE_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->mpchargetime = temp_int;
 			}
 
 			break;
