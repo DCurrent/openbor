@@ -29379,7 +29379,13 @@ int ai_check_warp()
 
 int ai_check_lie()
 {
-    if(self->drop && self->position.y == self->base && !self->velocity.y && validanim(self, ANI_RISEATTACK) && ((rand32() % (self->stalltime - _time + 1)) < 3) && (self->energy_status.health_current > 0 && _time > self->staydown.riseattack_stall))
+    if(self->drop 
+		&& self->position.y == self->base 
+		&& !self->velocity.y 
+		&& validanim(self, ANI_RISEATTACK) 
+		&& ((rand32() % (self->stalltime - _time + 1)) < 3) 
+		&& (self->energy_status.health_current > 0 
+		&& _time > self->staydown.riseattack_stall))
     {
         common_try_riseattack();
         return 1;
