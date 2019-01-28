@@ -2447,7 +2447,7 @@ typedef struct entity
     u32						guardtime;							// Next time to auto adjust guardpoints. ~~
     u32						nextanim;							// Time for next frame (or to mark animation finished). ~~
     u32						nextthink;							// Time for next main AI update. ~~
-    u32 nextattack;
+    u32						nextattack;							// Time for next chance to attack. ~~
     u32 pain_time;
     u32 pausetime; // 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box.
     u32 mpchargetime; // For the CHARGE animation
