@@ -2454,7 +2454,7 @@ typedef struct entity
     u32						sleeptime;							// When to start the SLEEP animation. ~~
     u32						knockdowntime;						// When knockdown count is expired. ~~
     u32						invinctime;							// Used to set time for invincibility to expire. ~~
-    u32 turntime;
+    u32						turntime;							// Time when entity can switch direction. ~~
     s_staydown staydown; //Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct.
     // -------------------------end of times ------------------------------
     int update_mark;

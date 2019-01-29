@@ -101,6 +101,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"think_time",
 		"timestamp",
 		"toss_time",
+		"turn_time"
     };
 
     // If the minimum argument count
@@ -735,6 +736,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->toss_time;
+
+			break;
+
+		case _ENTITY_TURN_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->turntime;
 
 			break;
 
@@ -1484,6 +1492,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->toss_time = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_TURN_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->turntime = temp_int;
 			}
 
 			break;
