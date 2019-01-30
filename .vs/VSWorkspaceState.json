@@ -5,6 +5,6 @@
     "\\engine\\source",
     "\\engine\\source\\openborscript"
   ],
-  "SelectedNode": "\\engine\\openbor.c",
+  "SelectedNode": "\\engine\\source\\openborscript\\entity.h",
   "PreviewInSolutionExplorer": false
 }
