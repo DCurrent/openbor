@@ -96,6 +96,7 @@ typedef enum
 	_ENTITY_TIMESTAMP,
 	_ENTITY_TOSS_TIME,
 	_ENTITY_TURN_TIME,
+	_ENTITY_UPDATE_MARK,
     _ENTITY_END,
 } e_entity_properties;
 
