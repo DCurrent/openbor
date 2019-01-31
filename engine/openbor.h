@@ -2411,7 +2411,8 @@ typedef struct entity
     s_model					*model;								// current model ~~
     s_model					modeldata;							// model data copied here ~~
     s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~
-    bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
+	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
     unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
     unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
     unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
@@ -2442,8 +2443,7 @@ typedef struct entity
     u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
 	u32						maptime;							// When forcemap expires. ~~
     u32						sealtime;							// When seal expires. ~~    
-	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-    u32						magictime;							// Next time to auto adjust MP. ~~
+	u32						magictime;							// Next time to auto adjust MP. ~~
     u32						guardtime;							// Next time to auto adjust guardpoints. ~~
     u32						nextanim;							// Time for next frame (or to mark animation finished). ~~
     u32						nextthink;							// Time for next main AI update. ~~
