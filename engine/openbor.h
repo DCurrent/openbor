@@ -2457,12 +2457,13 @@ typedef struct entity
     u32						turntime;							// Time when entity can switch direction. ~~
     s_staydown				staydown;							// Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct. ~~
     // -------------------------end of times ------------------------------
-    int						update_mark;						// Which updates are completed. ~~
+   
+	int						update_mark;						// Which updates are completed. ~~
 
     //------------------------- a lot of flags ---------------------------
 
     int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-    int dead;
+    int						dead;								// He's dead Jim. ~~
     int jumping; // Stuff useful for AI
     int idling;
     int walking;
