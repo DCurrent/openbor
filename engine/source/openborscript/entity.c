@@ -92,9 +92,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "projectile_prime",
 		"recursive_damage",
 		"release_time",
-		"rise_attack_stall_time",
+		"rise_attack_delay",
 		"rise_attack_time",
-		"rise_time",
+		"rise_delay",
 		"seal_energy",
 		"seal_time",
 		"sleep_time",
@@ -679,21 +679,21 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-		case _ENTITY_RISE_ATTACK_STALL_TIME:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->staydown.riseattack_stall;
-
-			break;
-
-		case _ENTITY_RISE_ATTACK_TIME:
+		case _ENTITY_RISE_ATTACK_DELAY:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->staydown.riseattack;
 
 			break;
 
-		case _ENTITY_RISE_TIME:
+		case _ENTITY_RISE_ATTACK_TIME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->staydown.riseattack_stall;
+
+			break;
+
+		case _ENTITY_RISE_DELAY:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->staydown.rise;
@@ -1439,16 +1439,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-		case _ENTITY_RISE_ATTACK_STALL_TIME:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->staydown.riseattack_stall = temp_int;
-			}
-
-			break;
-
-		case _ENTITY_RISE_ATTACK_TIME:
+		case _ENTITY_RISE_ATTACK_DELAY:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
@@ -1457,7 +1448,16 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-		case _ENTITY_RISE_TIME:
+		case _ENTITY_RISE_ATTACK_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->staydown.riseattack_stall = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_RISE_DELAY:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
