@@ -2512,7 +2512,7 @@ typedef struct entity
     int (*trymove)(float, float);
     unsigned int			attack_id_incoming;					// ~~
     unsigned int			attack_id_outgoing;					// ~~
-    int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
+    void					*hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
     unsigned char			*colourmap;							// Colortable in use. ~~
     //struct entity   *thrower;
     struct entity *link; // Used to link 2 entities together.

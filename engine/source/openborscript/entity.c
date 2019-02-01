@@ -108,7 +108,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"timestamp",
 		"toss_time",
 		"turn_time",
-		"update_mark"
+		"update_mark",
+		"walking"
     };
 
     // If the minimum argument count
@@ -799,6 +800,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->update_mark;
+
+			break;
+
+		case _ENTITY_WALKING:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->walking;
 
 			break;
 
@@ -1620,6 +1628,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->update_mark = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_WALKING:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->walking = temp_int;
 			}
 
 			break;
