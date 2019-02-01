@@ -2401,9 +2401,7 @@ typedef struct
 typedef struct entity
 {
     e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
-    bool					exists;								// flag to determine if it is a valid entity. ~~
-    bool					deduct_ammo;						// Check for ammo count? ~~
-    e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
+	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
     int						playerindex;						// Player controlling the entity. ~~
     s_energy_status			energy_status;						// Health and MP. ~~
     char					name[MAX_NAME_LEN];					// this is display name. ~~
@@ -2412,8 +2410,7 @@ typedef struct entity
     s_model					modeldata;							// model data copied here ~~
     s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
-    unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
+	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
     unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
     unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
     unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
@@ -2463,10 +2460,14 @@ typedef struct entity
     //------------------------- a lot of flags ---------------------------
 
     int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-    int						dead;								// He's dead Jim. ~~
-    int						jumping;							// ~~
-    int						idling;								// ~~
-    int						walking;							// ~~
+	bool					arrowon;							// Display arrow icon (parrow<player>)
+	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+	bool					dead;								// He's dead Jim. ~~
+	bool					deduct_ammo;						// Check for ammo count? ~~
+	bool					exists;								// flag to determine if it is a valid entity. ~~
+	bool					jumping;							// ~~
+    bool					idling;								// ~~
+    bool					walking;							// ~~
     int drop;
     e_attacking_state attacking;
     int getting;
@@ -2493,7 +2494,7 @@ typedef struct entity
     int projectile;
     int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
     e_animating				animating;							// Animation status (none, forward, reverse). ~~
-    bool arrowon; // Flag to display parrow/parrow2 or not
+    
     unsigned pathblocked;
     s_axis_principal_float *waypoints;
     int numwaypoints;
