@@ -52,6 +52,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "deduct_ammo",
 		"destination_x",
 		"destination_z",
+		"drop",
 		"exists",
 		"freeze_time",
 		"guard_time",
@@ -402,6 +403,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
 			(*pretvar)->dblVal = (DOUBLE)handle->destz;
+
+			break;
+
+		case _ENTITY_DROP:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->drop;
 
 			break;
 
@@ -1136,6 +1144,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
 			{
 				handle->destz = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_DROP:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->drop = temp_int;
 			}
 
 			break;

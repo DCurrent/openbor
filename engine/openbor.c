@@ -24340,13 +24340,6 @@ void common_lie()
         return;
     }
 
-    //self->takeaction = common_rise;
-    // Get up again
-    //self->drop = 0;
-    //self->falling = 0;
-    //self->projectile = 0;
-    //self->velocity.x = self->velocity.z = self->velocity.y = 0;
-
     set_rise(self, self->last_damage_type, 0);
 }
 

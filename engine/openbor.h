@@ -2456,25 +2456,28 @@ typedef struct entity
     // -------------------------end of times ------------------------------
    
 	int						update_mark;						// Which updates are completed. ~~
-
+	
     //------------------------- a lot of flags ---------------------------
 
-    int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	bool					arrowon;							// Display arrow icon (parrow<player>)
+	bool					arrowon;							// Display arrow icon (parrow<player>) ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+	bool					charging;							// Charging MP. Gain according to chargerate. ~~
 	bool					dead;								// He's dead Jim. ~~
 	bool					deduct_ammo;						// Check for ammo count? ~~
+	bool					drop;								// Knocked down. Remains true until rising. ~~
 	bool					exists;								// flag to determine if it is a valid entity. ~~
+	bool					idling;								// ~~
 	bool					jumping;							// ~~
-    bool					idling;								// ~~
-    bool					walking;							// ~~
-    int drop;
-    e_attacking_state attacking;
+	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
+	bool					walking;							// ~~
+   
+	
+	e_attacking_state		attacking;
 	bool					hitwall;							// == 1 in the instant that hit the wall/platform/obstacle, else == 0
 
 	int getting;
     int turning;
-    bool					charging;							// Charging MP. Gain according to chargerate. ~~
+    
     int blocking;
     int falling;
     int running; // Flag to determine if a player is running
