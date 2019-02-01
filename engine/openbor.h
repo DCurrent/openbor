@@ -532,7 +532,8 @@ typedef enum
     SDID_SPECIAL,
     SDID_START,
     SDID_SCREENSHOT,
-    SDID_ESC
+    SDID_ESC,
+    SDID_COUNT,
 } e_key_id;
 
 
