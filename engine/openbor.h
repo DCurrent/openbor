@@ -2465,7 +2465,7 @@ typedef struct entity
     int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
     int						dead;								// He's dead Jim. ~~
     int						jumping;							// In jumping state. ~~
-    int						idling;								// Idle state. 
+    int						idling;								// Idle state. ~~
     int walking;
     int drop;
     e_attacking_state attacking;
