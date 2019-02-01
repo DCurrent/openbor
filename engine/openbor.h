@@ -2466,7 +2466,7 @@ typedef struct entity
     int						dead;								// He's dead Jim. ~~
     int						jumping;							// In jumping state. ~~
     int						idling;								// Idle state. ~~
-    int walking;
+    int						walking;
     int drop;
     e_attacking_state attacking;
     int getting;
@@ -2492,7 +2492,7 @@ typedef struct entity
     int noaicontrol; // pause A.I. control
     int projectile;
     int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
-    int animating; // Set by animation code can be -1, 0 or 1 (used for reverse animation)
+    int						animating;							// Animation status (none, forward, reverse). ~~
     bool arrowon; // Flag to display parrow/parrow2 or not
     unsigned pathblocked;
     s_axis_principal_float *waypoints;
