@@ -2464,14 +2464,14 @@ typedef struct entity
 
     int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
     int						dead;								// He's dead Jim. ~~
-    int jumping; // Stuff useful for AI
+    int						jumping;							// In jumping state. ~~
     int idling;
     int walking;
     int drop;
     e_attacking_state attacking;
     int getting;
     int turning;
-    bool					charging;							// Charing MP. Gain according to chargerate. ~~
+    bool					charging;							// Charging MP. Gain according to chargerate. ~~
     int blocking;
     int falling;
     int running; // Flag to determine if a player is running
