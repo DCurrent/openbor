@@ -2470,7 +2470,9 @@ typedef struct entity
     bool					walking;							// ~~
     int drop;
     e_attacking_state attacking;
-    int getting;
+	bool					hitwall;							// == 1 in the instant that hit the wall/platform/obstacle, else == 0
+
+	int getting;
     int turning;
     bool					charging;							// Charging MP. Gain according to chargerate. ~~
     int blocking;
@@ -2513,7 +2515,6 @@ typedef struct entity
     int (*trymove)(float, float);
     unsigned int			attack_id_incoming;					// ~~
     unsigned int			attack_id_outgoing;					// ~~
-    void					*hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
     unsigned char			*colourmap;							// Colortable in use. ~~
     //struct entity   *thrower;
     struct entity *link; // Used to link 2 entities together.
