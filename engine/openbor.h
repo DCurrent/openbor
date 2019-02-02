@@ -1085,6 +1085,23 @@ typedef enum
     BGT_GENERIC
 } e_bgloldtype;
 
+// Caskey, Damon V
+// 2019-02-02
+//
+// Types of terrian in a level that can
+// affect movement.
+typedef enum
+{
+	TERRAIN_TYPE_NONE			= 0,
+	TERRAIN_TYPE_OBSTACLE		= (1 << 0),
+	TERRAIN_TYPE_SCREEN_LEFT	= (1 << 1),
+	TERRAIN_TYPE_SCREEN_RIGHT	= (1 << 2),
+	TERRAIN_TYPE_HOLE			= (1 << 3),
+	TERRAIN_TYPE_WALL			= (1 << 4),
+	TERRAIN_TYPE_Z_BACKGROUND	= (1 << 5),
+	TERRAIN_TYPE_Z_FOREGROUND	= (1 << 6)
+} e_terrain_type;
+
 typedef enum
 {
     /*
