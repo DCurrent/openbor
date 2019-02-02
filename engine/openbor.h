@@ -2473,7 +2473,7 @@ typedef struct entity
    
 	
 	e_attacking_state		attacking;							// ~~
-	bool					hitwall;							// == 1 in the instant that hit the wall/platform/obstacle, else == 0
+	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 
 	int getting;
     int turning;
