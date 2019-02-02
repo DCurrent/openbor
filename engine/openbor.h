@@ -2472,7 +2472,7 @@ typedef struct entity
 	bool					walking;							// ~~
    
 	
-	e_attacking_state		attacking;
+	e_attacking_state		attacking;							// ~~
 	bool					hitwall;							// == 1 in the instant that hit the wall/platform/obstacle, else == 0
 
 	int getting;
