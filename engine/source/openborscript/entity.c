@@ -111,6 +111,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"timestamp",
 		"toss_time",
 		"turn_time",
+		"turn_turning",
 		"update_mark",
 		"walking"
     };
@@ -817,6 +818,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->turntime;
+
+			break;
+
+		case _ENTITY_TURN_TURNING:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->turning;
 
 			break;
 
@@ -1670,6 +1678,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->turntime = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_TURN_TURNING:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->turning = temp_int;
 			}
 
 			break;

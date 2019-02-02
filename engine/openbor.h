@@ -2473,7 +2473,7 @@ typedef struct entity
 	e_attacking_state		attacking;							// ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					getting;							// Picking up item. ~~
-    int turning;
+    bool					turning;							// Turning around. ~~
     
     int blocking;
     int falling;
