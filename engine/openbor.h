@@ -2469,13 +2469,10 @@ typedef struct entity
 	bool					idling;								// ~~
 	bool					jumping;							// ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	bool					walking;							// ~~
-   
-	
+	bool					walking;							// ~~	
 	e_attacking_state		attacking;							// ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
-
-	int getting;
+	bool					getting;							// Picking up item. ~~
     int turning;
     
     int blocking;
