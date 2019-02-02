@@ -7,3 +7,4 @@ engine/releases/
 /engine/ide/vs/.vs/
 /engine/ide/vs/Debug/
 /tools
+/.vs
