@@ -2430,29 +2430,29 @@ typedef struct entity
     unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 
     // ---------------------- action times -------------------------------
-    u32						timestamp;							// Elasped time assigned when spawned. ~~
-    u32						releasetime;						// Delay letting go of grab when holding away command. ~~
-    u32						toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
-    u32						nextmove;							// Same as tosstime, but for X, Z movement. ~~
-    u32						stalltime;							// AI waits to perform actions. ~~
-    u32						combotime;							// If not expired, continue to next attack in series combo. ~~
-    u32						movetime;							// For special moves. Grace time between player inputs. ~~
-    u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
-	u32						maptime;							// When forcemap expires. ~~
-    u32						sealtime;							// When seal expires. ~~    
+	u32						combotime;							// If not expired, continue to next attack in series combo. ~~
+	u32						guardtime;							// Next time to auto adjust guardpoints. ~~
+	u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
+	u32						invinctime;							// Used to set time for invincibility to expire. ~~
+	u32						knockdowntime;						// When knockdown count is expired. ~~
 	u32						magictime;							// Next time to auto adjust MP. ~~
-    u32						guardtime;							// Next time to auto adjust guardpoints. ~~
-    u32						nextanim;							// Time for next frame (or to mark animation finished). ~~
-    u32						nextthink;							// Time for next main AI update. ~~
-    u32						nextattack;							// Time for next chance to attack. ~~
-    u32						next_hit_time;						// When temporary invincibility after getting hit expires. ~~
-    u32						pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
-    u32						mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
-    u32						sleeptime;							// When to start the SLEEP animation. ~~
-    u32						knockdowntime;						// When knockdown count is expired. ~~
-    u32						invinctime;							// Used to set time for invincibility to expire. ~~
+	u32						maptime;							// When forcemap expires. ~~
+	u32						movetime;							// For special moves. Grace time between player inputs. ~~
+	u32						mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
+	u32						next_hit_time;						// When temporary invincibility after getting hit expires. ~~
+	u32						nextanim;							// Time for next frame (or to mark animation finished). ~~
+	u32						nextattack;							// Time for next chance to attack. ~~
+	u32						nextmove;							// Same as tosstime, but for X, Z movement. ~~
+	u32						nextthink;							// Time for next main AI update. ~~
+	u32						pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
+	u32						releasetime;						// Delay letting go of grab when holding away command. ~~
+	u32						sealtime;							// When seal expires. ~~    
+	u32						sleeptime;							// When to start the SLEEP animation. ~~
+	u32						stalltime;							// AI waits to perform actions. ~~
+	s_staydown				staydown;							// Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct. ~~
+	u32						timestamp;							// Elasped time assigned when spawned. ~~
+    u32						toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
     u32						turntime;							// Time when entity can switch direction. ~~
-    s_staydown				staydown;							// Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct. ~~
     // -------------------------end of times ------------------------------
    
     //------------------------- a lot of flags ---------------------------
