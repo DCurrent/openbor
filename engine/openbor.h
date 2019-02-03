@@ -242,10 +242,10 @@ typedef enum
 // State of duck.
 typedef enum
 {
-    DUCK_INACTIVE,
-    DUCK_PREPARED,
-    DUCK_ACTIVE,
-    DUCK_RISE = 4
+    DUCK_INACTIVE	= 0,
+    DUCK_PREPARED	= (1 << 0),
+    DUCK_ACTIVE		= (1 << 1),
+    DUCK_RISE		= (1 << 2)
 } e_duck_state;
 
 // Platform props
@@ -2476,10 +2476,10 @@ typedef struct entity
 	bool					walking;							// ~~	
 	
 	e_attacking_state		attacking;							// ~~
+	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	int						update_mark;						// Which updates are completed. ~~
 
-    int ducking; // in duck stance
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation
