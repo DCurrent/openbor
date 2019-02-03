@@ -2471,6 +2471,7 @@ typedef struct entity
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					idling;								// ~~
 	bool					jumping;							// ~~
+	bool					running;							// ~~
 	bool					turning;							// Turning around. ~~
 	bool					walking;							// ~~	
 	
@@ -2478,8 +2479,6 @@ typedef struct entity
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	int						update_mark;						// Which updates are completed. ~~
 
-	
-	int running; // Flag to determine if a player is running
     int ducking; // in duck stance
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
