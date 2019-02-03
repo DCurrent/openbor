@@ -2458,6 +2458,7 @@ typedef struct entity
     //------------------------- a lot of flags ---------------------------
 	
 	bool					arrowon;							// Display arrow icon (parrow<player>) ~~
+	bool					blink;								// Toggle flash effect. ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
 	bool					blocking;							// In blocking state. ~~
 	bool					charging;							// Charging MP. Gain according to chargerate. ~~
@@ -2488,7 +2489,6 @@ typedef struct entity
     int edge; // in edge (unbalanced)
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
-    bool blink;
     int invincible; // Flag used to determine if player is currently invincible
     int autokill; // Kill on end animation
     int remove_on_attack;
