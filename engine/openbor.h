@@ -2468,6 +2468,7 @@ typedef struct entity
 	bool					exists;								// flag to determine if it is a valid entity. ~~
 	bool					falling;							// Knocked down and haven't landed. ~~
 	bool					getting;							// Picking up item. ~~
+	bool					grabwalking;						// Walking while grappling. ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					idling;								// ~~
 	bool					jumping;							// ~~
@@ -2480,7 +2481,7 @@ typedef struct entity
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	int						update_mark;						// Which updates are completed. ~~
 
-    int grabwalking; // a flag for grabwalk check
+    
     int inpain; // playing pain animation
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation
     int rising; // playing rise animation
