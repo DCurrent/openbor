@@ -2474,8 +2474,7 @@ typedef struct entity
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					getting;							// Picking up item. ~~
     bool					turning;							// Turning around. ~~
-    
-    int blocking;
+    bool					blocking;							// In blocking state. ~~
     int falling;
     int running; // Flag to determine if a player is running
     int ducking; // in duck stance
