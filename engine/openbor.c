@@ -22266,6 +22266,7 @@ void update_ents()
             }
             else
             {
+
                 execute_updateentity_script(self);// execute a script
                 if(!self->exists)
                 {

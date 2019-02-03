@@ -2455,28 +2455,30 @@ typedef struct entity
     s_staydown				staydown;							// Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct. ~~
     // -------------------------end of times ------------------------------
    
-	int						update_mark;						// Which updates are completed. ~~
-	
     //------------------------- a lot of flags ---------------------------
-
+	
 	bool					arrowon;							// Display arrow icon (parrow<player>) ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+	bool					blocking;							// In blocking state. ~~
 	bool					charging;							// Charging MP. Gain according to chargerate. ~~
 	bool					dead;								// He's dead Jim. ~~
 	bool					deduct_ammo;						// Check for ammo count? ~~
 	bool					drop;								// Knocked down. Remains true until rising. ~~
 	bool					exists;								// flag to determine if it is a valid entity. ~~
+	bool					falling;							// Knocked down and haven't landed. ~~
+	bool					getting;							// Picking up item. ~~
+	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					idling;								// ~~
 	bool					jumping;							// ~~
-	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
+	bool					turning;							// Turning around. ~~
 	bool					walking;							// ~~	
+	
 	e_attacking_state		attacking;							// ~~
-	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
-	bool					getting;							// Picking up item. ~~
-    bool					turning;							// Turning around. ~~
-    bool					blocking;							// In blocking state. ~~
-    int falling;
-    int running; // Flag to determine if a player is running
+	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
+	int						update_mark;						// Which updates are completed. ~~
+
+	
+	int running; // Flag to determine if a player is running
     int ducking; // in duck stance
     int grabwalking; // a flag for grabwalk check
     int inpain; // playing pain animation
