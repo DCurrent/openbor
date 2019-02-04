@@ -147,9 +147,9 @@ typedef enum
 // Flags for legacy bomb projectiles.
 typedef enum
 {
-	EXPLODE_NONE,
-	EXPLODE_PREPARE,
-	EXPLODE_DETONATE
+	EXPLODE_NONE		= 0,
+	EXPLODE_PREPARED	= (1 << 0),
+	EXPLODE_DETONATE	= (1 << 1)
 } e_explode_status;
 
 // PLAY/REC INPUT vars
