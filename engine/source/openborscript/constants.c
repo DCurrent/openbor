@@ -520,6 +520,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(DUCK_ACTIVE)
         ICMPCONST(DUCK_RISE)
 
+		// Explode status (legacy bomb projectiles).
+		ICMPCONST(EXPLODE_INACTIVE)
+		ICMPCONST(EXPLODE_PREPARED)
+		ICMPCONST(EXPLODE_DETONATE)
+
         // Platform props.
         ICMPCONST(PLATFORM_X)
         ICMPCONST(PLATFORM_Z)
