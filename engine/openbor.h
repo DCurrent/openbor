@@ -2503,7 +2503,7 @@ typedef struct entity
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
 	e_attacking_state		attacking;							// ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
-	e_rising_status			rising;								// Rise/Rise attacking.
+	e_rising_status			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_status		toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
