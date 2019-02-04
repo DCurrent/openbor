@@ -2479,6 +2479,7 @@ typedef struct entity
     //------------------------- a lot of flags ---------------------------
 	
 	bool					arrowon;							// Display arrow icon (parrow<player>) ~~
+	bool					autokill;							// Kill on end animation. ~~
 	bool					blink;								// Toggle flash effect. ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
 	bool					blocking;							// In blocking state. ~~
@@ -2512,7 +2513,6 @@ typedef struct entity
     
 	int frozen; // Flag to determine if an entity is frozen
     int invincible; // Flag used to determine if player is currently invincible
-    int autokill; // Kill on end animation
     int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
