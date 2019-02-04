@@ -22997,7 +22997,7 @@ int set_idle(entity *ent)
     ent->idling = IDLING_PREPARED;
     ent->attacking = ATTACKING_INACTIVE;
     ent->inpain = 0;
-    ent->rising = 0;
+    ent->rising = RISING_INACTIVE;
     ent->riseattacking = 0;
     ent->ducking = DUCK_INACTIVE;
     ent->inbackpain = 0;
@@ -23024,7 +23024,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->blocking = 0;
         iDie->inpain = 0;
         iDie->falling = 0;
-        iDie->rising = 0;
+        iDie->rising = RISING_INACTIVE;
         iDie->riseattacking = 0;
         iDie->ducking = DUCK_INACTIVE;
         return 1;
@@ -23071,7 +23071,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->blocking = 0;
     iDie->inpain = 0;
     iDie->falling = 0;
-    iDie->rising = 0;
+    iDie->rising = RISING_INACTIVE;
     iDie->riseattacking = 0;
     iDie->ducking = DUCK_INACTIVE;
     if(iDie->frozen)
@@ -23116,7 +23116,7 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 
     ent->drop = 1;
     ent->inpain = 0;
-    ent->rising = 0;
+    ent->rising = RISING_INACTIVE;
     ent->riseattacking = 0;
     ent->idling = IDLING_INACTIVE;
     ent->falling = 1;
@@ -23178,7 +23178,7 @@ int set_rise(entity *iRise, int type, int reset)
     // Get up again
     iRise->drop = 0;
     iRise->falling = 0;
-    iRise->rising = 1;
+    iRise->rising |= RISING_RISE;
     iRise->riseattacking = 0;
     iRise->projectile = 0;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
@@ -23236,7 +23236,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->inpain = 0;
     iRiseattack->falling = 0;
     iRiseattack->ducking = DUCK_INACTIVE;
-    iRiseattack->rising = 0;
+    iRiseattack->rising &= ~RISING_RISE;
     iRiseattack->riseattacking = 1;
     iRiseattack->drop = 0;
     iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
@@ -23301,7 +23301,7 @@ int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
     ent->takeaction = common_block;
     set_blocking(self);
     ent->inpain = 1;
-    ent->rising = 0;
+    ent->rising = RISING_INACTIVE;
     ent->riseattacking = 0;
     ent->ducking = DUCK_INACTIVE;
     ent_set_anim(ent, animblkpains[attack_type], reset);
@@ -23392,7 +23392,7 @@ int set_pain(entity *iPain, int type, int reset)
 
 	iPain->idling = IDLING_INACTIVE;
 	iPain->falling = 0;
-	iPain->rising = 0;
+	iPain->rising = RISING_INACTIVE;
 	iPain->riseattacking = 0;
 	iPain->ducking = DUCK_INACTIVE;
 	iPain->projectile = 0;
@@ -23408,7 +23408,7 @@ int set_pain(entity *iPain, int type, int reset)
     if(pain == ANI_GRABBED)
     {
         iPain->inpain = 0;
-        iPain->rising = 0;
+        iPain->rising = RISING_INACTIVE;
         iPain->riseattacking = 0;
         iPain->ducking = DUCK_INACTIVE;
         if ( iPain->inbackpain ) reset_backpain(iPain);
@@ -24375,7 +24375,7 @@ void common_pain()
     }
 
     self->inpain = 0;
-    self->rising = 0;
+    self->rising = RISING_INACTIVE;
     self->riseattacking = 0;
     self->ducking = DUCK_INACTIVE;
     self->inbackpain = 0;
@@ -24617,7 +24617,7 @@ void common_block()
 		&& validanim(self, ANI_BLOCK))
     {
 		self->inpain = 0;
-		self->rising = 0;
+		self->rising = RISING_INACTIVE;
 		self->riseattacking = 0;
 		self->inbackpain = 0;
 		ent_set_anim(self, ANI_BLOCK, 0);
@@ -31058,7 +31058,7 @@ void player_pain_check()
     if(player_check_special())
     {
         self->inpain = 0;
-        self->rising = 0;
+        self->rising = RISING_INACTIVE;
         self->riseattacking = 0;
         self->ducking = DUCK_INACTIVE;
         self->inbackpain = 0;
@@ -31130,7 +31130,7 @@ int check_costmove(int s, int fs, int jumphack)
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = 0;
-        self->rising = 0;
+        self->rising = RISING_INACTIVE;
         self->riseattacking = 0;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
