@@ -2471,6 +2471,7 @@ typedef struct entity
 	bool					grabwalking;						// Walking while grappling. ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					idling;								// ~~
+	bool					inpain;								// Hitand block stun. ~~
 	bool					jumping;							// ~~
 	bool					running;							// ~~
 	bool					turning;							// Turning around. ~~
@@ -2481,8 +2482,6 @@ typedef struct entity
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	int						update_mark;						// Which updates are completed. ~~
 
-    
-    int inpain; // playing pain animation
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation
     int rising; // playing rise animation
     int riseattacking; // playing rise attack animation
