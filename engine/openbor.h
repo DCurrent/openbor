@@ -2503,14 +2503,14 @@ typedef struct entity
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
 	e_attacking_state		attacking;							// ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
+	e_edge_state			edge;								// At an edge (unbalanced).
 	e_rising_status			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_status		toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
     
-    int edge; // in edge (unbalanced)
-    int normaldamageflipdir; // used to reset backpain direction
+	int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
     int invincible; // Flag used to determine if player is currently invincible
     int autokill; // Kill on end animation
