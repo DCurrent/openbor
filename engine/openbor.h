@@ -141,6 +141,17 @@ typedef enum
 	UPDATE_MARK_UPDATE_ANIMATION	= (1 << 3)	
 } e_update_mark;
 
+// Caskey, Damon V.
+// 2019-01-25
+//
+// Flags for legacy bomb projectiles.
+typedef enum
+{
+	EXPLODE_NONE,
+	EXPLODE_PREPARE,
+	EXPLODE_DETONATE
+} e_explode_status;
+
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
