@@ -2498,7 +2498,7 @@ typedef struct entity
 	bool					jumping;							// ~~
 	bool					running;							// ~~
 	bool					turning;							// Turning around. ~~
-	bool					walking;							// ~~	
+	bool					walking;							// ~~
 	
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
 	e_attacking_state		attacking;							// ~~
@@ -2509,7 +2509,6 @@ typedef struct entity
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
     
-    int riseattacking; // playing rise attack animation
     int edge; // in edge (unbalanced)
     int normaldamageflipdir; // used to reset backpain direction
     int frozen; // Flag to determine if an entity is frozen
