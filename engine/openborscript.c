@@ -2427,7 +2427,6 @@ enum aiflag_enum
     _ep_aiflag_jumpid,
     _ep_aiflag_jumping,
     _ep_aiflag_projectile,
-    _ep_aiflag_riseattacking,
     _ep_aiflag_rising,
     _ep_aiflag_running,
     _ep_aiflag_toexplode,
@@ -2460,7 +2459,6 @@ static const char *eplist_aiflag[] =
     "jumpid",
     "jumping",
     "projectile",
-    "riseattacking",
     "rising",
     "running",
     "toexplode",
@@ -3358,9 +3356,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         case _ep_aiflag_rising:
             (*pretvar)->lVal = (LONG)ent->rising;
-            break;
-        case _ep_aiflag_riseattacking:
-            (*pretvar)->lVal = (LONG)ent->riseattacking;
             break;
         case _ep_aiflag_inbackpain:
             (*pretvar)->lVal = (LONG)ent->inbackpain;
@@ -5492,9 +5487,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 break;
             case _ep_aiflag_rising:
                 ent->rising = (LONG)ltemp;
-                break;
-            case _ep_aiflag_riseattacking:
-                ent->riseattacking = (LONG)ltemp;
                 break;
             case _ep_aiflag_inbackpain:
                 ent->inbackpain = (LONG)ltemp;
@@ -13840,8 +13832,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
-    e->rising = 0;
-    e->riseattacking = 0;
+    e->rising = RISING_INACTIVE;
     e->edge = EDGE_NO;
     e->ducking = DUCK_INACTIVE;
     e->inbackpain = 0;
@@ -13905,8 +13896,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
-    e->rising = 0;
-    e->riseattacking = 0;
+    e->rising = RISING_INACTIVE;
     e->edge = EDGE_NO;
     e->inbackpain = 0;
     e->blocking = 0;
@@ -13970,8 +13960,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
-    e->rising = 0;
-    e->riseattacking = 0;
+    e->rising = RISING_INACTIVE;
     e->edge = EDGE_NO;
     e->ducking = DUCK_INACTIVE;
     e->inbackpain = 0;
