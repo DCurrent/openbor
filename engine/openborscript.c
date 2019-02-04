@@ -4088,7 +4088,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_health:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->energy_status.health_current;
+        (*pretvar)->lVal = (LONG)ent->energy_state.health_current;
         break;
     }
     case _ep_height:
@@ -4604,7 +4604,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_mp:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->energy_status.mp_current;
+        (*pretvar)->lVal = (LONG)ent->energy_state.mp_current;
         break;
     }
     case _ep_mpdroprate:
@@ -6080,14 +6080,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->energy_status.health_current = (LONG)ltemp;
-            if(ent->energy_status.health_current > ent->modeldata.health)
+            ent->energy_state.health_current = (LONG)ltemp;
+            if(ent->energy_state.health_current > ent->modeldata.health)
             {
-                ent->energy_status.health_current = ent->modeldata.health;
+                ent->energy_state.health_current = ent->modeldata.health;
             }
-            else if(ent->energy_status.health_current < 0)
+            else if(ent->energy_state.health_current < 0)
             {
-                ent->energy_status.health_current = 0;
+                ent->energy_state.health_current = 0;
             }
         }
         break;
@@ -6429,14 +6429,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->energy_status.mp_current = (LONG)ltemp;
-            if(ent->energy_status.mp_current > ent->modeldata.mp)
+            ent->energy_state.mp_current = (LONG)ltemp;
+            if(ent->energy_state.mp_current > ent->modeldata.mp)
             {
-                ent->energy_status.mp_current = ent->modeldata.mp;
+                ent->energy_state.mp_current = ent->modeldata.mp;
             }
-            else if(ent->energy_status.mp_current < 0)
+            else if(ent->energy_state.mp_current < 0)
             {
-                ent->energy_status.mp_current = 0;
+                ent->energy_state.mp_current = 0;
             }
         }
         break;
@@ -9980,8 +9980,8 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
 
     if(!ent->takedamage)
     {
-        ent->energy_status.health_current -= atk.attack_force;
-        if(ent->energy_status.health_current <= 0)
+        ent->energy_state.health_current -= atk.attack_force;
+        if(ent->energy_state.health_current <= 0)
         {
             kill_entity(ent);
         }

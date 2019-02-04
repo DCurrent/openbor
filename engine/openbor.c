@@ -16481,9 +16481,9 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 	// HP & MP
 	output_label[DRAW_PROPERTIES_KEY_STATUS] = "HP, MP: ";
 	output_value[DRAW_PROPERTIES_KEY_STATUS] = NULL;
-	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], 0, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current) + 1;
+	str_size = snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], 0, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_state.health_current, (int)entity->energy_state.mp_current) + 1;
 	output_value[DRAW_PROPERTIES_KEY_STATUS] = malloc(str_size);
-	snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], str_size, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_status.health_current, (int)entity->energy_status.mp_current);
+	snprintf(output_value[DRAW_PROPERTIES_KEY_STATUS], str_size, output_format[DRAW_PROPERTIES_KEY_STATUS], (int)entity->energy_state.health_current, (int)entity->energy_state.mp_current);
 
 
 	// Get the largest string X and Y space. For X find the largest
@@ -16745,7 +16745,7 @@ void predrawstatus()
                 font_printf(videomodes.shiftpos[i] + pscore[i][4], savedata.windowpos + pscore[i][5], pscore[i][6], 0, (scoreformat ? "%09lu" : "%lu"), tmp);
             }
 
-            if(player[i].ent->energy_status.health_current <= 0)
+            if(player[i].ent->energy_state.health_current <= 0)
             {
                 icon = player[i].ent->modeldata.icon.die;
             }
@@ -16785,15 +16785,15 @@ void predrawstatus()
             if(player[i].ent->modeldata.mp)
             {
                 drawmethod.table = player[i].ent->modeldata.icon.usemap ? player[i].ent->colourmap : NULL;
-                if(player[i].ent->modeldata.icon.mphigh > 0 && (player[i].ent->energy_status.mp_old >= (player[i].ent->modeldata.mp * .66)))
+                if(player[i].ent->modeldata.icon.mphigh > 0 && (player[i].ent->energy_state.mp_old >= (player[i].ent->modeldata.mp * .66)))
                 {
                     spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
                 }
-                else if(player[i].ent->modeldata.icon.mpmed > 0 && (player[i].ent->energy_status.mp_old >= (player[i].ent->modeldata.mp * .33) && player[i].ent->energy_status.mp_old < (player[i].ent->modeldata.mp * .66)))
+                else if(player[i].ent->modeldata.icon.mpmed > 0 && (player[i].ent->energy_state.mp_old >= (player[i].ent->modeldata.mp * .33) && player[i].ent->energy_state.mp_old < (player[i].ent->modeldata.mp * .66)))
                 {
                     spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mpmed, &drawmethod, 0);
                 }
-                else if(player[i].ent->modeldata.icon.mplow > 0 && (player[i].ent->energy_status.mp_old >= 0 && player[i].ent->energy_status.mp_old < (player[i].ent->modeldata.mp * .33)))
+                else if(player[i].ent->modeldata.icon.mplow > 0 && (player[i].ent->energy_state.mp_old >= 0 && player[i].ent->energy_state.mp_old < (player[i].ent->modeldata.mp * .33)))
                 {
                     spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mplow, &drawmethod, 0);
                 }
@@ -16828,7 +16828,7 @@ void predrawstatus()
             {
                 // Displays life unless overridden by flag
                 font_printf(videomodes.shiftpos[i] + ename[i][0], savedata.windowpos + ename[i][1], ename[i][2], 0, player[i].ent->opponent->name);
-                if(player[i].ent->opponent->energy_status.health_current <= 0)
+                if(player[i].ent->opponent->energy_state.health_current <= 0)
                 {
                     icon = player[i].ent->opponent->modeldata.icon.die;
                 }
@@ -16969,7 +16969,7 @@ void drawenemystatus(entity *ent)
 
     if(ent->modeldata.icon.position.x > -1000 &&  ent->modeldata.icon.position.y > -1000)
     {
-        if(ent->energy_status.health_current <= 0)
+        if(ent->energy_state.health_current <= 0)
         {
             icon = ent->modeldata.icon.die;
         }
@@ -16996,7 +16996,7 @@ void drawenemystatus(entity *ent)
 
     if(ent->modeldata.health && ent->modeldata.hpx > -1000 && ent->modeldata.hpy > -1000)
     {
-        bar(ent->modeldata.hpx, ent->modeldata.hpy, ent->energy_status.health_old, ent->modeldata.health, &(ent->modeldata.hpbarstatus));
+        bar(ent->modeldata.hpx, ent->modeldata.hpy, ent->energy_state.health_old, ent->modeldata.health, &(ent->modeldata.hpbarstatus));
     }
 }
 
@@ -17010,15 +17010,15 @@ void drawstatus()
         if(player[i].ent)
         {
             // Health bars
-            bar(videomodes.shiftpos[i] + plife[i][0], savedata.windowpos + plife[i][1], player[i].ent->energy_status.health_old, player[i].ent->modeldata.health, &lbarstatus);
+            bar(videomodes.shiftpos[i] + plife[i][0], savedata.windowpos + plife[i][1], player[i].ent->energy_state.health_old, player[i].ent->modeldata.health, &lbarstatus);
             if(player[i].ent->opponent && !player[i].ent->opponent->modeldata.nolife && player[i].ent->opponent->modeldata.health)
             {
-                bar(videomodes.shiftpos[i] + elife[i][0], savedata.windowpos + elife[i][1], player[i].ent->opponent->energy_status.health_old, player[i].ent->opponent->modeldata.health, &olbarstatus);    // Tied in with the nolife flag
+                bar(videomodes.shiftpos[i] + elife[i][0], savedata.windowpos + elife[i][1], player[i].ent->opponent->energy_state.health_old, player[i].ent->opponent->modeldata.health, &olbarstatus);    // Tied in with the nolife flag
             }
             // Draw mpbar
             if(player[i].ent->modeldata.mp)
             {
-                bar(videomodes.shiftpos[i] + pmp[i][0], savedata.windowpos + pmp[i][1], player[i].ent->energy_status.mp_old, player[i].ent->modeldata.mp, &mpbarstatus);
+                bar(videomodes.shiftpos[i] + pmp[i][0], savedata.windowpos + pmp[i][1], player[i].ent->energy_state.mp_old, player[i].ent->modeldata.mp, &mpbarstatus);
             }
         }
     }
@@ -17357,7 +17357,7 @@ int common_idle_anim(entity *ent)
         ent->velocity.x = ent->velocity.z = 0;    //Stop movement.
     }
 
-    if(validanim(ent, ANI_FAINT) && ent->energy_status.health_current <= ent->modeldata.health / 4)           //ANI_FAINT and health at/below 25%?
+    if(validanim(ent, ANI_FAINT) && ent->energy_state.health_current <= ent->modeldata.health / 4)           //ANI_FAINT and health at/below 25%?
     {
         ent_set_anim(ent, ANI_FAINT, 0);                                                //Set ANI_FAINT.
         goto found;                                                                      //Return 1 and exit.
@@ -17578,7 +17578,7 @@ void ent_default_init(entity *e)
         // define new subtypes
         else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
-            e->energy_status.health_current = 1;
+            e->energy_state.health_current = 1;
             if(!e->modeldata.speed && !e->modeldata.nomove)
             {
                 e->modeldata.speed = 2;    // Set default speed to 2 for arrows
@@ -17658,7 +17658,7 @@ void ent_default_init(entity *e)
     case TYPE_OBSTACLE:
         e->nograb = 1;
         e->nograb_default = e->nograb;
-        if(e->energy_status.health_current <= 0)
+        if(e->energy_state.health_current <= 0)
         {
             e->dead = 1;    // so it won't get hit
         }
@@ -17676,7 +17676,7 @@ void ent_default_init(entity *e)
         e->think = text_think;
         break;
     case TYPE_SHOT:
-        e->energy_status.health_current = 1;
+        e->energy_state.health_current = 1;
         e->nograb = 1;
         e->nograb_default = e->nograb;
         e->think = common_think;
@@ -18068,7 +18068,7 @@ void update_frame(entity *ent, unsigned int f)
             attack.dropv.y = default_model_dropv.y;
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
-            attack.attack_force = self->energy_status.health_current;
+            attack.attack_force = self->energy_state.health_current;
             attack.attack_type = max_attack_types - 1;
             if(self->takedamage)
             {
@@ -18343,13 +18343,13 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     if(!ent->modeldata.paingrab)
     	ent->modeldata.paingrab             = oldmodel->paingrab;*/
 
-    if(ent->energy_status.health_current > ent->modeldata.health)
+    if(ent->energy_state.health_current > ent->modeldata.health)
     {
-        ent->energy_status.health_current = ent->modeldata.health;
+        ent->energy_state.health_current = ent->modeldata.health;
     }
-    if(ent->energy_status.mp_current > ent->modeldata.mp)
+    if(ent->energy_state.mp_current > ent->modeldata.mp)
     {
-        ent->energy_status.mp_current = ent->modeldata.mp;
+        ent->energy_state.mp_current = ent->modeldata.mp;
     }
 }
 
@@ -18521,8 +18521,8 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             }
             e->timestamp = _time; // log time so update function will ignore it if it is new
 
-            e->energy_status.health_current = e->modeldata.health;
-            e->energy_status.mp_current = e->modeldata.mp;
+            e->energy_state.health_current = e->modeldata.health;
+            e->energy_state.mp_current = e->modeldata.mp;
             e->knockdowncount = e->modeldata.knockdowncount;
             e->position.x = x;
             e->position.z = z;
@@ -18604,7 +18604,7 @@ void kill_entity(entity *victim)
 
     ent_unlink(victim);
     victim->weapent = NULL;
-    victim->energy_status.health_current = 0;
+    victim->energy_state.health_current = 0;
     victim->exists = 0;
     ent_count--;
 
@@ -18630,7 +18630,7 @@ void kill_entity(entity *victim)
         // kill only summoned one
         victim->subentity->parent = NULL;
         self = victim->subentity;
-        attack.attack_force = self->energy_status.health_current;
+        attack.attack_force = self->energy_state.health_current;
         if(self->takedamage && !level_completed)
         {
             self->takedamage(self, &attack, 0);
@@ -18669,7 +18669,7 @@ void kill_entity(entity *victim)
                 self->parent = NULL;
                 if(victim->modeldata.summonkill == 2)
                 {
-                    attack.attack_force = self->energy_status.health_current;
+                    attack.attack_force = self->energy_state.health_current;
                     if(self->takedamage && !level_completed)
                     {
                         self->takedamage(self, &attack, 0);
@@ -20285,7 +20285,7 @@ void do_attack(entity *e)
             else if(self->animation->counterrange &&	// Has counter range?
                     (self->animpos >= self->animation->counterrange->frame.min && self->animpos <= self->animation->counterrange->frame.max) &&  // Current frame within counter range frames?
                     !self->frozen &&
-                    (self->energy_status.health_current > force || (self->energy_status.health_current-force <= 0 && (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
+                    (self->energy_state.health_current > force || (self->energy_state.health_current-force <= 0 && (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
                     // counterrange conditions
                     ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
                     (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
@@ -20296,7 +20296,7 @@ void do_attack(entity *e)
                     // Take damage from attack?
                     if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)
                     {
-                        if (self->energy_status.health_current-force <= 0)
+                        if (self->energy_state.health_current-force <= 0)
                         {
                             // White Dragon: commented the alternative method
                             /*s_collision_attack atk;
@@ -20316,11 +20316,11 @@ void do_attack(entity *e)
                             self = temp;
                             return;*/
 
-                            self->energy_status.health_current = 1; // rage
+                            self->energy_state.health_current = 1; // rage
                         }
                         else
                         {
-                            self->energy_status.health_current -= force;
+                            self->energy_state.health_current -= force;
                         }
                     }
 
@@ -20396,9 +20396,9 @@ void do_attack(entity *e)
             if((e->animation->followup.animation) && // follow up?
                     (!e->animation->counterrange) && // This isn't suppossed to be a counter, right?
                     ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE) || (self->modeldata.type & e->modeldata.hostile)) &&                                // Does type matter?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->energy_status.health_current > 0) && !didblock)) &&                             // check if health or not blocking matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || ((self->energy_status.health_current > 0) && !didblock && cangrab(e, self)) ) && // check if nograb matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK) || ((self->energy_status.health_current > 0) && didblock))                                   // check if health or blocking matters
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->energy_state.health_current > 0) && !didblock)) &&                             // check if health or not blocking matters
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || ((self->energy_state.health_current > 0) && !didblock && cangrab(e, self)) ) && // check if nograb matters
+                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK) || ((self->energy_state.health_current > 0) && didblock))                                   // check if health or blocking matters
               )
             {
                 current_follow_id = animfollows[e->animation->followup.animation - 1];
@@ -20443,20 +20443,20 @@ void do_attack(entity *e)
             }
             else if(e != topowner && current_anim->energycost->cost > 0 && nocost && !healthcheat && !e->tocost) // if it is not top, then must be a shot
             {
-                if(current_anim->energycost->mponly != COST_TYPE_MP_THEN_HP && topowner->energy_status.mp_current > 0)
+                if(current_anim->energycost->mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
                 {
-                    topowner->energy_status.mp_current -= current_anim->energycost->cost;
-                    if(topowner->energy_status.mp_current < 0)
+                    topowner->energy_state.mp_current -= current_anim->energycost->cost;
+                    if(topowner->energy_state.mp_current < 0)
                     {
-                        topowner->energy_status.mp_current = 0;
+                        topowner->energy_state.mp_current = 0;
                     }
                 }
                 else
                 {
-                    topowner->energy_status.health_current -= current_anim->energycost->cost;
-                    if(topowner->energy_status.health_current <= 0)
+                    topowner->energy_state.health_current -= current_anim->energycost->cost;
+                    if(topowner->energy_state.health_current <= 0)
                     {
-                        topowner->energy_status.health_current = 1;
+                        topowner->energy_state.health_current = 1;
                     }
                 }
 
@@ -20495,23 +20495,23 @@ void do_attack(entity *e)
 
                     case BLOCK_TYPE_MP_ONLY:
 
-                        def->energy_status.mp_current -= force;
+                        def->energy_state.mp_current -= force;
                         force = 0;
 
-                        if(def->energy_status.mp_current < 0)
+                        if(def->energy_state.mp_current < 0)
                         {
-                            def->energy_status.mp_current = 0;
+                            def->energy_state.mp_current = 0;
                         }
 
                     case BLOCK_TYPE_MP_FIRST:
 
-                        def->energy_status.mp_current -= force;
+                        def->energy_state.mp_current -= force;
 
                         /* If there isn't enough MP to cover force, subtract remaining MP from force and set MP to 0 */
-                        if(def->energy_status.mp_current < 0)
+                        if(def->energy_state.mp_current < 0)
                         {
-                            force = -def->energy_status.mp_current;
-                            def->energy_status.mp_current = 0;
+                            force = -def->energy_state.mp_current;
+                            def->energy_state.mp_current = 0;
                         }
                         else
                         {
@@ -20520,21 +20520,21 @@ void do_attack(entity *e)
 
                     case BLOCK_TYPE_BOTH:
 
-                        def->energy_status.mp_current -= force;
+                        def->energy_state.mp_current -= force;
 
-                        if(def->energy_status.mp_current < 0)
+                        if(def->energy_state.mp_current < 0)
                         {
-                            def->energy_status.mp_current = 0;
+                            def->energy_state.mp_current = 0;
                         }
                 }
 
-                if(force < def->energy_status.health_current)                    // If an attack won't deal damage, this line won't do anything anyway.
+                if(force < def->energy_state.health_current)                    // If an attack won't deal damage, this line won't do anything anyway.
                 {
-                    def->energy_status.health_current -= force;
+                    def->energy_state.health_current -= force;
                 }
                 else if(nochipdeath)                       // No chip deaths?
                 {
-                    def->energy_status.health_current = 1;
+                    def->energy_state.health_current = 1;
                 }
                 else
                 {
@@ -20977,7 +20977,7 @@ int check_lost()
             attack.dropv.y = default_model_dropv.y;
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
-            attack.attack_force = self->energy_status.health_current;
+            attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_PIT;
             self->takedamage(self, &attack, 0);
         }
@@ -20995,7 +20995,7 @@ int check_lost()
             attack.dropv.y = default_model_dropv.y;
             attack.dropv.x = default_model_dropv.x;
             attack.dropv.z = default_model_dropv.z;
-            attack.attack_force = self->energy_status.health_current;
+            attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_LIFESPAN;
             self->takedamage(self, &attack, 0);
         }
@@ -21501,7 +21501,7 @@ int do_energy_charge(entity *ent)
 	}
 
 	// Add charge rate to current mp.
-	ent->energy_status.mp_current += ent->modeldata.chargerate;
+	ent->energy_state.mp_current += ent->modeldata.chargerate;
 
 	// Time for next charge tick.
 	ent->mpchargetime = _time + (GAME_SPEED * ENERGY_CHARGE_RATE);
@@ -21555,55 +21555,55 @@ void update_health()
 
 			if (self->modeldata.mpstable == 1)
             {
-                if (self->energy_status.mp_current < self->modeldata.mpstableval)
+                if (self->energy_state.mp_current < self->modeldata.mpstableval)
                 {
-                    self->energy_status.mp_current += self->modeldata.mprate;
+                    self->energy_state.mp_current += self->modeldata.mprate;
                 }
             }
             else if(self->modeldata.mpstable == 2)
             {
-                if (self->energy_status.mp_current > self->modeldata.mpstableval)
+                if (self->energy_state.mp_current > self->modeldata.mpstableval)
                 {
-                    self->energy_status.mp_current -= self->modeldata.mpdroprate;
+                    self->energy_state.mp_current -= self->modeldata.mpdroprate;
                 }
             }
             else if (self->modeldata.mpstable == 3)
             {
-                if (self->energy_status.mp_current < self->modeldata.mpstableval)
+                if (self->energy_state.mp_current < self->modeldata.mpstableval)
                 {
 
-                    self->energy_status.mp_current += self->modeldata.mprate;
+                    self->energy_state.mp_current += self->modeldata.mprate;
                 }
-                else if (self->energy_status.mp_current > self->modeldata.mpstableval)
+                else if (self->energy_state.mp_current > self->modeldata.mpstableval)
                 {
-                    self->energy_status.mp_current -= self->modeldata.mpdroprate;
+                    self->energy_state.mp_current -= self->modeldata.mpdroprate;
                 }
             }
 
             // OX. Stabletype 4. Gain mp until it reaches max. Then it drops down to mpstableval.
             else if (self->modeldata.mpstable == 4)
             {
-                if(self->energy_status.mp_current <= self->modeldata.mpstableval)
+                if(self->energy_state.mp_current <= self->modeldata.mpstableval)
                 {
                     self->modeldata.mpswitch = 0;
                 }
-                else if(self->energy_status.mp_current == self->modeldata.mp)
+                else if(self->energy_state.mp_current == self->modeldata.mp)
                 {
                     self->modeldata.mpswitch = 1;
                 }
 
                 if(self->modeldata.mpswitch == 1)
                 {
-                    self->energy_status.mp_current -= self->modeldata.mpdroprate;
+                    self->energy_state.mp_current -= self->modeldata.mpdroprate;
                 }
                 else if(self->modeldata.mpswitch == 0)
                 {
-                    self->energy_status.mp_current += self->modeldata.mprate;
+                    self->energy_state.mp_current += self->modeldata.mprate;
                 }
             }
             else
             {
-                self->energy_status.mp_current += self->modeldata.mprate;
+                self->energy_state.mp_current += self->modeldata.mprate;
             }
 
             self->magictime = _time + GAME_SPEED;    //Reset magictime.
@@ -21613,27 +21613,27 @@ void update_health()
     // Active MP charging?
     do_energy_charge(self);
 
-    if(self->energy_status.mp_current > self->modeldata.mp)
+    if(self->energy_state.mp_current > self->modeldata.mp)
     {
-        self->energy_status.mp_current = self->modeldata.mp;    // Don't want to add more than the max
+        self->energy_state.mp_current = self->modeldata.mp;    // Don't want to add more than the max
     }
 
-    if(self->energy_status.health_old < self->energy_status.health_current)
+    if(self->energy_state.health_old < self->energy_state.health_current)
     {
-        self->energy_status.health_old++;
+        self->energy_state.health_old++;
     }
-    else if(self->energy_status.health_old > self->energy_status.health_current)
+    else if(self->energy_state.health_old > self->energy_state.health_current)
     {
-        self->energy_status.health_old--;
+        self->energy_state.health_old--;
     }
 
-    if(self->energy_status.mp_old < self->energy_status.mp_current)
+    if(self->energy_state.mp_old < self->energy_state.mp_current)
     {
-        self->energy_status.mp_old++;
+        self->energy_state.mp_old++;
     }
-    else if(self->energy_status.mp_old > self->energy_status.mp_current)
+    else if(self->energy_state.mp_old > self->energy_state.mp_current)
     {
-        self->energy_status.mp_old--;
+        self->energy_state.mp_old--;
     }
 }
 
@@ -21740,7 +21740,7 @@ void damage_recursive(entity *ent)
 		}
 
 		// If target is not alive, exit this iteration of loop.
-		if (ent->energy_status.health_current <= 0)
+		if (ent->energy_state.health_current <= 0)
 		{
 			continue;
 		}
@@ -21795,7 +21795,7 @@ void damage_recursive(entity *ent)
 
 			// Is calculated force enough to KO target?
 			// Is this recursive damage allowed to KO?
-			if (force_final >= ent->energy_status.health_current)
+			if (force_final >= ent->energy_state.health_current)
 			{
 				// Is this recursive damage allowed to KO?
 				if (!(cursor->mode & DAMAGE_RECURSIVE_MODE_NON_LETHAL))
@@ -21831,7 +21831,7 @@ void damage_recursive(entity *ent)
 				{
 					// Recursive damage is not allowed to KO.
 					// Just set target's HP to minimum value.
-					ent->energy_status.health_current = 1;
+					ent->energy_state.health_current = 1;
 
 					// Execute the target's takedamage script.
 					execute_takedamage_script(ent, cursor->owner, &attack);
@@ -21841,7 +21841,7 @@ void damage_recursive(entity *ent)
 			{
 				// Calculated damage is insufficient to KO.
 				// Subtract directly from target's HP.
-				ent->energy_status.health_current -= force_final;
+				ent->energy_state.health_current -= force_final;
 
 				// Execute the target's takedamage script.
 				execute_takedamage_script(ent, cursor->owner, &attack);
@@ -21858,12 +21858,12 @@ void damage_recursive(entity *ent)
 			// end with negative value, set 0.
 
 			// Subtract force from MP.
-			ent->energy_status.mp_current -= cursor->force;
+			ent->energy_state.mp_current -= cursor->force;
 
 			// Stabilize MP at 0.
-			if (ent->energy_status.mp_current < 0)
+			if (ent->energy_state.mp_current < 0)
 			{
-				ent->energy_status.mp_current = 0;
+				ent->energy_state.mp_current = 0;
 			}
 		}		
 	}    
@@ -22545,22 +22545,22 @@ void display_ents()
                     {
 						// This checks against both dying percentage thresholds and their associated 
 						// timing. If any pass, then we can move on and apply a flash.
-                        if((e->energy_status.health_current <= e->per1 && e->energy_status.health_current > e->per2 && (_time % (GAME_SPEED / 5)) < (GAME_SPEED / 10)) ||
-                                (e->energy_status.health_current <= e->per2 && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
+                        if((e->energy_state.health_current <= e->per1 && e->energy_state.health_current > e->per2 && (_time % (GAME_SPEED / 5)) < (GAME_SPEED / 10)) ||
+                                (e->energy_state.health_current <= e->per2 && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
                         {
 							// Have any HP left?
-                            if(e->energy_status.health_current > 0 )
+                            if(e->energy_state.health_current > 0 )
                             {
 								// Do we have a second dying map? If not, we just use map 1.
                                 if(e->dying2 > 0)
                                 {
 									// If health is between percentage 1 and 2, use map 1. Otherwise
 									// use map 2.
-                                    if(e->energy_status.health_current <= e->per1 && e->energy_status.health_current > e->per2)
+                                    if(e->energy_state.health_current <= e->per1 && e->energy_state.health_current > e->per2)
                                     {
                                         drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying);
                                     }
-                                    else if(e->energy_status.health_current <= e->per2)
+                                    else if(e->energy_state.health_current <= e->per2)
                                     {
                                         drawmethod->table = model_get_colourmap(&(e->modeldata), e->dying2);
                                     }
@@ -22908,7 +22908,7 @@ int normal_test_item(entity *ent, entity *item)
                    (isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon &&
                     ent->modeldata.numweapons >= item->modeldata.weapnum && ent->modeldata.weapon[item->modeldata.weapnum - 1] >= 0)
                    || (isSubtypeProjectile(item) && !ent->weapent)
-                   || (item->energy_status.health_current && (ent->energy_status.health_current < ent->modeldata.health) && ! isSubtypeProjectile(item) && ! isSubtypeWeapon(item))
+                   || (item->energy_state.health_current && (ent->energy_state.health_current < ent->modeldata.health) && ! isSubtypeProjectile(item) && ! isSubtypeWeapon(item))
                )
            );
 }
@@ -24168,7 +24168,7 @@ void common_drop()
     }
     self->idling = IDLING_PREPARED;
     self->takeaction = NULL;
-    if(self->energy_status.health_current <= 0)
+    if(self->energy_state.health_current <= 0)
     {
         kill_entity(self);
     }
@@ -24288,7 +24288,7 @@ void common_try_riseattack()
 void common_lie()
 {
     // Died?
-    if(self->energy_status.health_current <= 0)
+    if(self->energy_state.health_current <= 0)
     {
         if(self->modeldata.falldie == 2)
         {
@@ -24771,7 +24771,7 @@ entity *drop_driver(entity *e)
 
 void checkdeath()
 {
-    if(self->energy_status.health_current > 0)
+    if(self->energy_state.health_current > 0)
     {
         return;
     }
@@ -24891,17 +24891,17 @@ void checkdamageeffects(s_collision_attack *attack)
 
     if(_steal && opp && opp != self)
     {
-        if(self->energy_status.health_current >= attack->attack_force)
+        if(self->energy_state.health_current >= attack->attack_force)
         {
-            opp->energy_status.health_current += attack->attack_force;
+            opp->energy_state.health_current += attack->attack_force;
         }
         else
         {
-            opp->energy_status.health_current += self->energy_status.health_current;
+            opp->energy_state.health_current += self->energy_state.health_current;
         }
-        if(opp->energy_status.health_current > opp->modeldata.health)
+        if(opp->energy_state.health_current > opp->modeldata.health)
         {
-            opp->energy_status.health_current = opp->modeldata.health;
+            opp->energy_state.health_current = opp->modeldata.health;
         }
     }
     if(_freeze && !self->frozen)// && !self->owner && !self->modeldata.nomove)
@@ -25096,15 +25096,15 @@ void checkmpadd()
 
     if(magic_type == 1 )
     {
-        other->energy_status.mp_current += other->modeldata.mprate;
+        other->energy_state.mp_current += other->modeldata.mprate;
 
-        if(other->energy_status.mp_current > other->modeldata.mp)
+        if(other->energy_state.mp_current > other->modeldata.mp)
         {
-            other->energy_status.mp_current = other->modeldata.mp;
+            other->energy_state.mp_current = other->modeldata.mp;
         }
-        else if(other->energy_status.mp_current < 0)
+        else if(other->energy_state.mp_current < 0)
         {
-            other->energy_status.mp_current = 0;
+            other->energy_state.mp_current = 0;
         }
     }
 }
@@ -25151,7 +25151,7 @@ int calculate_force_damage(entity *other, s_collision_attack *attack)
 
 void checkdamageonlanding()
 {
-    if (self->energy_status.health_current <= 0) return;
+    if (self->energy_state.health_current <= 0) return;
 
     if( (self->damage_on_landing.attack_force > 0 && !self->dead) )
     {
@@ -25166,7 +25166,7 @@ void checkdamageonlanding()
         if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = self->damage_on_landing.attack_type;
         else attack.attack_type  = ATK_LAND;
 
-        if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->energy_status.health_current > 0) other = self->opponent;
+        if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->energy_state.health_current > 0) other = self->opponent;
         else other = self;
 
         lasthit.confirm = 1;
@@ -25233,7 +25233,7 @@ void checkdamageonlanding()
             execute_didhit_script(other, self, &attack, 0);
         }
 
-        if (self->energy_status.health_current <= 0)
+        if (self->energy_state.health_current <= 0)
         {
             self->die_on_landing = 1;
         }
@@ -25259,7 +25259,7 @@ void checkdamageonlanding()
             if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = self->damage_on_landing.attack_type;
             else attack.attack_type  = ATK_LAND;
 
-            if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->energy_status.health_current > 0) other = self->opponent;
+            if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->energy_state.health_current > 0) other = self->opponent;
             else other = self;
             //##################
 
@@ -25286,32 +25286,32 @@ void checkdamage(entity *other, s_collision_attack *attack)
 
     force = calculate_force_damage(other, attack);
 
-    self->energy_status.health_current -= force; //Apply damage.
+    self->energy_state.health_current -= force; //Apply damage.
 
-    if (self->energy_status.health_current > self->modeldata.health)
+    if (self->energy_state.health_current > self->modeldata.health)
     {
-        self->energy_status.health_current = self->modeldata.health;    //Cap negative damage to max health.
+        self->energy_state.health_current = self->modeldata.health;    //Cap negative damage to max health.
     }
 
-    if(attack->no_kill && self->energy_status.health_current <= 0)
+    if(attack->no_kill && self->energy_state.health_current <= 0)
     {
-        self->energy_status.health_current = 1;
+        self->energy_state.health_current = 1;
     }
 
     // Execute the take damage script.
     execute_takedamage_script(self, other, attack);
 
-    if (self->energy_status.health_current <= 0)                                      //Health at 0?
+    if (self->energy_state.health_current <= 0)                                      //Health at 0?
     {
         if(!(self->position.y < PIT_DEPTH || self->lifespancountdown < 0)) //Not a pit death or countdown?
         {
             if (self->invincible == 2)                          //Invincible type 2?
             {
-                self->energy_status.health_current = 1;                               //Stop at 1hp.
+                self->energy_state.health_current = 1;                               //Stop at 1hp.
             }
             else if(self->invincible == 3)                      //Invincible type 3?
             {
-                self->energy_status.health_current = self->modeldata.health;          //Reset to max health.
+                self->energy_state.health_current = self->modeldata.health;          //Reset to max health.
             }
         }
 
@@ -25447,7 +25447,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     self->damage_on_landing.attack_type = ATK_NONE;
 
 	// White Dragon: fix damage_on_landing bug
-	if(self->die_on_landing && self->energy_status.health_current <= 0)
+	if(self->die_on_landing && self->energy_state.health_current <= 0)
 	{
 		self->modeldata.falldie = 1;
 	}
@@ -25472,11 +25472,11 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     }
 
     // New pain, fall, and death animations. Also, the nopain flag.
-    if(self->drop || self->energy_status.health_current <= 0)
+    if(self->drop || self->energy_state.health_current <= 0)
     {
         self->takeaction = common_fall;
         // Drop Weapon due to death.
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_DEATH && self->energy_status.health_current <= 0)
+        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_DEATH && self->energy_state.health_current <= 0)
         {
             dropweapon(1);
         }
@@ -25485,7 +25485,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
             dropweapon(1);
         }
 
-        if(self->energy_status.health_current <= 0 && self->modeldata.falldie == 1)
+        if(self->energy_state.health_current <= 0 && self->modeldata.falldie == 1)
         {
             self->velocity.x = self->velocity.z = self->velocity.y = 0;
             set_death(self, attack->attack_type, 0);
@@ -27030,11 +27030,11 @@ void common_attack_proc()
             // Enemy was hit with a special so go ahead and subtract life
             if(check_energy(COST_CHECK_MP, self->animnum))
             {
-                self->energy_status.mp_current -= self->animation->energycost->cost;
+                self->energy_state.mp_current -= self->animation->energycost->cost;
             }
             else
             {
-                self->energy_status.health_current -= self->animation->energycost->cost;
+                self->energy_state.health_current -= self->animation->energycost->cost;
             }
         }
         self->tocost = 0;    // Life is subtracted, so go ahead and reset the flag
@@ -28273,7 +28273,7 @@ int common_try_wander(entity *target, int dox, int doz)
     }
     mindz = grabd / 4;
 
-    mod = ((int)(_time / (videomodes.hRes / self->modeldata.speed)) + 1000 + self->energy_status.health_current / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
+    mod = ((int)(_time / (videomodes.hRes / self->modeldata.speed)) + 1000 + self->energy_state.health_current / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
     if(mod < 0)
     {
         mod = -mod;
@@ -28315,10 +28315,10 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destx = target->position.x - grabd;
                 break;
             case 1:
-                self->destx = target->position.x + videomodes.hRes * 0.4 + (self->energy_status.health_current / 3 % 20);
+                self->destx = target->position.x + videomodes.hRes * 0.4 + (self->energy_state.health_current / 3 % 20);
                 break;
             case 3:
-                self->destx = target->position.x - videomodes.hRes * 0.4 - (self->energy_status.health_current / 3 % 20);
+                self->destx = target->position.x - videomodes.hRes * 0.4 - (self->energy_state.health_current / 3 % 20);
                 break;
             }
             self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
@@ -28358,10 +28358,10 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destz = target->position.z - grabd / 2;
                 break;
             case 2:
-                self->destz = target->position.z + MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 + (self->energy_status.health_current / 3 % 5);
+                self->destz = target->position.z + MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 + (self->energy_state.health_current / 3 % 5);
                 break;
             case 0:
-                self->destz = target->position.z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->energy_status.health_current / 3 % 5);
+                self->destz = target->position.z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->energy_state.health_current / 3 % 5);
                 break;
             }
             self->velocity.z = self->position.z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
@@ -28432,14 +28432,14 @@ void common_pickupitem(entity *other)
             self->velocity.x = self->velocity.z = 0; //stop moving
             ent_set_anim(self, ANI_GET, 0);
         }
-        if(other->energy_status.health_current)
+        if(other->energy_state.health_current)
         {
-            self->energy_status.health_current += other->energy_status.health_current;
-            if(self->energy_status.health_current > self->modeldata.health)
+            self->energy_state.health_current += other->energy_state.health_current;
+            if(self->energy_state.health_current > self->modeldata.health)
             {
-                self->energy_status.health_current = self->modeldata.health;
+                self->energy_state.health_current = self->modeldata.health;
             }
-            other->energy_status.health_current = 0;
+            other->energy_state.health_current = 0;
             //if(SAMPLE_GET >= 0) sound_play_sample(SAMPLE_GET, 0, savedata.effectvol,savedata.effectvol, 100);
         }
         // else if, TODO: other effects
@@ -28688,7 +28688,7 @@ int projectile_wall_deflect(entity *ent)
 
             ent->takeaction = common_fall;
             ent->attacking = ATTACKING_INACTIVE;
-            ent->energy_status.health_current = 0;
+            ent->energy_state.health_current = 0;
             ent->projectile = 0;
             ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
             ent->damage_on_landing.attack_force = 0;
@@ -28799,7 +28799,7 @@ int star_move()
     if(self->landed_on_platform || self->position.y <= self->base)
     {
         self->takeaction = common_lie;
-        self->energy_status.health_current = 0;
+        self->energy_state.health_current = 0;
         if(self->modeldata.nodieblink == 2)
         {
             self->animating = ANIMATING_NONE;
@@ -28877,7 +28877,7 @@ int common_move()
         if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0); // confirm the target again
         else target = self->custom_target;
 
-        other = ( (_time / GAME_SPEED + self->energy_status.health_current / 3 + 1000) % 15 < 10) ? normal_find_item() : NULL; // find an item
+        other = ( (_time / GAME_SPEED + self->energy_state.health_current / 3 + 1000) % 15 < 10) ? normal_find_item() : NULL; // find an item
         owner = self->parent;
 
         // temporary solution to turn off running if xdir is not set
@@ -29377,7 +29377,7 @@ int ai_check_lie()
 		&& !self->velocity.y 
 		&& validanim(self, ANI_RISEATTACK) 
 		&& ((rand32() % (self->stalltime - _time + 1)) < 3) 
-		&& (self->energy_status.health_current > 0 
+		&& (self->energy_state.health_current > 0 
 		&& _time > self->staydown.riseattack_stall))
     {
         common_try_riseattack();
@@ -29794,10 +29794,10 @@ int check_energy(e_cost_check which, int ani)
                 if(validanim(self, ani) &&										    //Validate the animation one more time.
                         ((which == COST_CHECK_MP &&			                    //Check magic validity
                           (energycost.mponly != COST_TYPE_HP_ONLY) &&
-                          (self->energy_status.mp_current >= energycost.cost)) ||
+                          (self->energy_state.mp_current >= energycost.cost)) ||
                          (which == COST_CHECK_HP &&			                    //Check health validity
                           (energycost.mponly != COST_TYPE_MP_ONLY) &&
-                          (self->energy_status.health_current > energycost.cost))))
+                          (self->energy_state.health_current > energycost.cost))))
                 {
                     result = TRUE;
                 }
@@ -30019,11 +30019,11 @@ int check_special()
             {
                 if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
                 {
-                    self->energy_status.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                    self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
                 }
                 else
                 {
-                    self->energy_status.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                    self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
                 }
             }
         }
@@ -30344,16 +30344,16 @@ void didfind_item(entity *other)
             sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
-    else if(other->energy_status.health_current)
+    else if(other->energy_state.health_current)
     {
-        self->energy_status.health_current += other->energy_status.health_current;
+        self->energy_state.health_current += other->energy_state.health_current;
 
-        if(self->energy_status.health_current > self->modeldata.health)
+        if(self->energy_state.health_current > self->modeldata.health)
         {
-            self->energy_status.health_current = self->modeldata.health;
+            self->energy_state.health_current = self->modeldata.health;
         }
 
-        other->energy_status.health_current = 0;
+        other->energy_state.health_current = 0;
 
         if(SAMPLE_GET >= 0)
         {
@@ -30362,14 +30362,14 @@ void didfind_item(entity *other)
     }
     else if(other->modeldata.mp)
     {
-        self->energy_status.mp_current += other->modeldata.mp;
+        self->energy_state.mp_current += other->modeldata.mp;
 
-        if(self->energy_status.mp_current > self->modeldata.mp)
+        if(self->energy_state.mp_current > self->modeldata.mp)
         {
-            self->energy_status.mp_current = self->modeldata.mp;
+            self->energy_state.mp_current = self->modeldata.mp;
         }
 
-        other->energy_status.mp_current = 0;
+        other->energy_state.mp_current = 0;
         sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
     }
     else if(stricmp(other->modeldata.name, "Time") == 0)
@@ -30913,7 +30913,7 @@ void player_jump_check()
                 {
                     if(!healthcheat)
                     {
-                        self->energy_status.mp_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        self->energy_state.mp_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
                     }
                     candospecial = 1;
                 }
@@ -30921,7 +30921,7 @@ void player_jump_check()
                 {
                     if(!healthcheat)
                     {
-                        self->energy_status.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
                     }
                     candospecial = 1;
                 }
@@ -31061,7 +31061,7 @@ void player_lie_check()
     if(validanim(self, ANI_RISEATTACK) &&
             (player[self->playerindex].playkeys & FLAG_ATTACK) &&
             (player[self->playerindex].keys & FLAG_MOVEUP) &&
-            (self->energy_status.health_current > 0 && _time > self->staydown.riseattack_stall))
+            (self->energy_state.health_current > 0 && _time > self->staydown.riseattack_stall))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
@@ -31107,11 +31107,11 @@ int check_costmove(int s, int fs, int jumphack)
             {
                 if(check_energy(COST_CHECK_MP, s))
                 {
-                    self->energy_status.mp_current -= self->modeldata.animation[s]->energycost->cost;
+                    self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
                 }
                 else
                 {
-                    self->energy_status.health_current -= self->modeldata.animation[s]->energycost->cost;
+                    self->energy_state.health_current -= self->modeldata.animation[s]->energycost->cost;
                 }
             }
         }
@@ -32203,7 +32203,7 @@ void drop_all_enemies()
     for(i = 0; i < ent_max; i++)
     {
         if(ent_list[i]->exists &&
-                ent_list[i]->energy_status.health_current > 0 &&
+                ent_list[i]->energy_state.health_current > 0 &&
                 (ent_list[i]->modeldata.type & TYPE_ENEMY) &&
                 !ent_list[i]->owner &&    // Don't want to knock down a projectile
                 !ent_list[i]->frozen &&    // Don't want to unfreeze a frozen enemy
@@ -32256,12 +32256,12 @@ void kill_all_enemies()
     for(i = 0; i < ent_max; i++)
     {
         if(  ent_list[i]->exists
-                && ent_list[i]->energy_status.health_current > 0
+                && ent_list[i]->energy_state.health_current > 0
                 && (ent_list[i]->modeldata.type & TYPE_ENEMY)
                 && ent_list[i]->takedamage)
         {
             self = ent_list[i];
-            attack.attack_force = self->energy_status.health_current;
+            attack.attack_force = self->energy_state.health_current;
             self->takedamage(tmpself, &attack, 0);
             self->dead = 1;
         }
@@ -32287,7 +32287,7 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
     {
         if( ent_list[i]->exists
                 && ent_list[i] != e
-                && ent_list[i]->energy_status.health_current > 0
+                && ent_list[i]->energy_state.health_current > 0
                 && (ent_list[i]->modeldata.type & (e->modeldata.hostile)))
         {
             self = ent_list[i];
@@ -32299,8 +32299,8 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
             }
             else
             {
-                self->energy_status.health_current -= attack->attack_force;
-                if(self->energy_status.health_current <= 0)
+                self->energy_state.health_current -= attack->attack_force;
+                if(self->energy_state.health_current <= 0)
                 {
                     kill_entity(self);
                 }
@@ -32316,11 +32316,11 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
         {
             if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
             {
-                self->energy_status.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
             }
             else
             {
-                self->energy_status.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
             }
         }
     }
@@ -32854,7 +32854,7 @@ int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     if(attack->no_pain) // don't drop driver until it is dead, because the attack has no pain effect
     {
         checkdamage(other, attack);
-        if(self->energy_status.health_current > 0)
+        if(self->energy_state.health_current > 0)
         {
             return 1;    // not dead yet
         }
@@ -32882,12 +32882,12 @@ int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
         }
         else
         {
-            self->energy_status.health_current -= attack->attack_force;
+            self->energy_state.health_current -= attack->attack_force;
         }
         self = tempself;
 
     }
-    self->energy_status.health_current = 0;
+    self->energy_state.health_current = 0;
     checkdeath();
     return 1;
 }
@@ -32939,7 +32939,7 @@ int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag
     self->playerindex = other->playerindex;    // Added so points go to the correct player
     addscore(other->playerindex, attack->attack_force * self->modeldata.multiple);  // Points can now be given for hitting an obstacle
 
-    if(self->energy_status.health_current <= 0)
+    if(self->energy_state.health_current <= 0)
     {
 
         checkdeath();
@@ -33092,12 +33092,12 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
 
     if(props->health[playercount - 1] != 0)
     {
-        e->energy_status.health_current = e->modeldata.health = props->health[playercount - 1];
+        e->energy_state.health_current = e->modeldata.health = props->health[playercount - 1];
     }
 
     if(props->mp != 0)
     {
-        e->energy_status.mp_current = e->modeldata.mp = props->mp;
+        e->energy_state.mp_current = e->modeldata.mp = props->mp;
     }
 
     if(props->score != 0)
@@ -33351,21 +33351,21 @@ void spawnplayer(int index)
 
     if(player[index].spawnhealth)
     {
-        player[index].ent->energy_status.health_current = player[index].spawnhealth + 5;
+        player[index].ent->energy_state.health_current = player[index].spawnhealth + 5;
     }
-    if(player[index].ent->energy_status.health_current > player[index].ent->modeldata.health)
+    if(player[index].ent->energy_state.health_current > player[index].ent->modeldata.health)
     {
-        player[index].ent->energy_status.health_current = player[index].ent->modeldata.health;
+        player[index].ent->energy_state.health_current = player[index].ent->modeldata.health;
     }
 
     //mp little recorver after a level by tails
     if(player[index].spawnmp)
     {
-        player[index].ent->energy_status.mp_current = player[index].spawnmp + 2;
+        player[index].ent->energy_state.mp_current = player[index].spawnmp + 2;
     }
-    if(player[index].ent->energy_status.mp_current > player[index].ent->modeldata.mp)
+    if(player[index].ent->energy_state.mp_current > player[index].ent->modeldata.mp)
     {
-        player[index].ent->energy_status.mp_current = player[index].ent->modeldata.mp;
+        player[index].ent->energy_state.mp_current = player[index].ent->modeldata.mp;
     }
 
     if(player[index].weapnum)
@@ -33384,7 +33384,7 @@ int no_player_alive_to_join()
     int i;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        if( ((!player[i].ent || player[i].lives <= 0 || (player[i].lives <= 1 && player[i].ent->energy_status.health_current <= 0)) &&
+        if( ((!player[i].ent || player[i].lives <= 0 || (player[i].lives <= 1 && player[i].ent->energy_state.health_current <= 0)) &&
             ((noshare && player[i].credits <= 0) || (!noshare && credits <= 0)))
         )
         {
@@ -33418,14 +33418,14 @@ void kill_all_players_by_timeover()
         if(self && !validanim(self, ANI_LOSE))
         {
             endgame = 0;
-            attack_timeover.attack_force = self->energy_status.health_current;
+            attack_timeover.attack_force = self->energy_state.health_current;
             self->takedamage(self, &attack_timeover, 0);
         }
         else if(self)
         {
             endgame = 0;
 
-            attack_lose.attack_force = self->energy_status.health_current;
+            attack_lose.attack_force = self->energy_state.health_current;
             if (inair(self) && validanim(self, ANI_FALLLOSE))
             {
                 attack_lose.dropv.y = default_model_dropv.y;
@@ -36373,8 +36373,8 @@ int playlevel(char *filename)
         if(player[i].ent)
         {
             nomaxrushreset[i] = player[i].ent->rush.count.max;
-            player[i].spawnhealth = player[i].ent->energy_status.health_current;
-            player[i].spawnmp = player[i].ent->energy_status.mp_current;
+            player[i].spawnhealth = player[i].ent->energy_state.health_current;
+            player[i].spawnmp = player[i].ent->energy_state.mp_current;
         }
         // reset
         player[i].weapnum = 0;

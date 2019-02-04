@@ -150,7 +150,7 @@ typedef enum
 	EXPLODE_INACTIVE		= 0,
 	EXPLODE_PREPARED	= (1 << 0),
 	EXPLODE_DETONATE	= (1 << 1)
-} e_explode_status;
+} e_explode_state;
 
 // Caskey, Damon V.
 // 2019-01-25
@@ -161,7 +161,7 @@ typedef enum
 	RISING_INACTIVE	= 0,
 	RISING_RISE		= (1 << 0),
 	RISING_ATTACK	= (1 << 1)
-} e_rising_status;
+} e_rising_state;
 
 // PLAY/REC INPUT vars
 typedef struct InputKeys
@@ -2402,7 +2402,7 @@ typedef struct
     int health_old;
     int mp_current;
     int mp_old;
-} s_energy_status;
+} s_energy_state;
 
 // Caskey, Damon V.
 // 2018-04-25
@@ -2425,7 +2425,7 @@ typedef struct entity
     e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
     int						playerindex;						// Player controlling the entity. ~~
-    s_energy_status			energy_status;						// Health and MP. ~~
+    s_energy_state			energy_state;						// Health and MP. ~~
     char					name[MAX_NAME_LEN];					// this is display name. ~~
     s_model					*defaultmodel;						// this is the default model ~~
     s_model					*model;								// current model ~~
@@ -2504,9 +2504,9 @@ typedef struct entity
 	e_attacking_state		attacking;							// ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	e_edge_state			edge;								// At an edge (unbalanced).
-	e_rising_status			rising;								// Rise/Rise attacking. ~~
+	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	e_explode_status		toexplode;							// Bomb projectiles prepared or time to detonate. ~~
+	e_explode_state		toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
     

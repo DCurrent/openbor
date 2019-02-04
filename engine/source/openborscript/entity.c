@@ -490,14 +490,14 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_HP:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->energy_status.health_current;
+			(*pretvar)->lVal = (LONG)handle->energy_state.health_current;
 
 			break;
 
 		case _ENTITY_HP_OLD:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->energy_status.health_old;
+			(*pretvar)->lVal = (LONG)handle->energy_state.health_old;
 
 			break;
 
@@ -630,7 +630,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_MP:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->energy_status.mp_current;
+			(*pretvar)->lVal = (LONG)handle->energy_state.mp_current;
 
 			break;
 
@@ -644,7 +644,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_MP_OLD:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->energy_status.mp_old;
+			(*pretvar)->lVal = (LONG)handle->energy_state.mp_old;
 
 			break;
 
@@ -1330,7 +1330,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->energy_status.health_current = temp_int;
+				handle->energy_state.health_current = temp_int;
 			}
 
 			break;
@@ -1339,7 +1339,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->energy_status.health_old = temp_int;
+				handle->energy_state.health_old = temp_int;
 			}
 
 			break;	
@@ -1498,7 +1498,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->energy_status.mp_current = temp_int;
+				handle->energy_state.mp_current = temp_int;
 			}
 
 			break;
@@ -1507,7 +1507,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->energy_status.mp_old = temp_int;
+				handle->energy_state.mp_old = temp_int;
 			}
 
 			break;
