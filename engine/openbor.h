@@ -1183,14 +1183,13 @@ typedef enum
     COUNTERACTION_DAMAGE_NORMAL //Normal damage.
 } e_counteraction_damage;
 
+// Caskey, Damon V.
+// 2013-12-16
+//
+// Direction (facing) enum.
 typedef enum
 {
-    /*
-    Direction (facing) enum.
-    Damon V. Caskey
-    2013-12-16
-    */
-
+	DIRECTION_NONE	= -1,	// Only to indicate a temporary direction flag isn't set or in use.
     DIRECTION_LEFT,
     DIRECTION_RIGHT
 } e_direction;
@@ -2504,14 +2503,14 @@ typedef struct entity
 	e_attacking_state		attacking;							// ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	e_edge_state			edge;								// At an edge (unbalanced).
+	e_direction				normaldamageflipdir;				// used to reset backpain direction
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
     
-	int normaldamageflipdir; // used to reset backpain direction
-    int frozen; // Flag to determine if an entity is frozen
+	int frozen; // Flag to determine if an entity is frozen
     int invincible; // Flag used to determine if player is currently invincible
     int autokill; // Kill on end animation
     int remove_on_attack;
