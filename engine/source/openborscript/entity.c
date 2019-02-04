@@ -32,6 +32,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "attack_id_incoming",
         "attack_id_outgoing",
         "autokill",
+		"back_hit_direction",
         "binding",
         "blink",
 		"blocked",
@@ -276,6 +277,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->autokill;
 
             break;
+
+		case _ENTITY_BACK_HIT_DIRECTION:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->normaldamageflipdir;
+
+			break;
 
         case _ENTITY_BINDING:
 
@@ -1067,6 +1075,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_BACK_HIT_DIRECTION:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->normaldamageflipdir = temp_int;
+			}
+
+			break;
 
         case _ENTITY_BINDING:
 

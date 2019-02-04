@@ -2503,7 +2503,7 @@ typedef struct entity
 	e_attacking_state		attacking;							// ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	e_edge_state			edge;								// At an edge (unbalanced).
-	e_direction				normaldamageflipdir;				// used to reset backpain direction
+	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
