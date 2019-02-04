@@ -2488,9 +2488,11 @@ typedef struct entity
 	bool					turning;							// Turning around. ~~
 	bool					walking;							// ~~	
 	
+	e_animating				animating;							// Animation status (none, forward, reverse). ~~
 	e_attacking_state		attacking;							// ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
+	e_explode_status		toexplode;							// Bomb projectiles prepared or time to detonate.
 	int						update_mark;						// Which updates are completed. ~~
 
     int inbackpain; // playing back pain/fall/rise/riseattack/die animation
@@ -2505,8 +2507,7 @@ typedef struct entity
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;
-    int toexplode; // Needed to determine if the projectile is a type that will explode (bombs, dynamite, etc)
-    e_animating				animating;							// Animation status (none, forward, reverse). ~~
+   
     
     unsigned pathblocked;
     s_axis_principal_float *waypoints;
