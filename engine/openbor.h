@@ -2506,7 +2506,7 @@ typedef struct entity
 	e_edge_state			edge;								// At an edge (unbalanced).
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	e_explode_state		toexplode;							// Bomb projectiles prepared or time to detonate. ~~
+	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
     
