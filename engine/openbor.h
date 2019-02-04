@@ -152,6 +152,17 @@ typedef enum
 	EXPLODE_DETONATE	= (1 << 1)
 } e_explode_status;
 
+// Caskey, Damon V.
+// 2019-01-25
+//
+// Flags for legacy bomb projectiles.
+typedef enum
+{
+	RISING_INACTIVE	= 0,
+	RISING_RISE		= (1 << 0),
+	RISING_ATTACK	= (1 << 1)
+} e_rising_status;
+
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
