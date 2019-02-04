@@ -2482,7 +2482,8 @@ typedef struct entity
 	bool					grabwalking;						// Walking while grappling. ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	bool					idling;								// ~~
-	bool					inpain;								// Hitand block stun. ~~
+	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
+	bool					inpain;								// Hit and block stun. ~~
 	bool					jumping;							// ~~
 	bool					running;							// ~~
 	bool					turning;							// Turning around. ~~
@@ -2495,7 +2496,7 @@ typedef struct entity
 	e_explode_status		toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
-    int inbackpain; // playing back pain/fall/rise/riseattack/die animation
+    
     int rising; // playing rise animation
     int riseattacking; // playing rise attack animation
     int edge; // in edge (unbalanced)
