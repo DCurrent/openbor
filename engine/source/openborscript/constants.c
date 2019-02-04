@@ -510,7 +510,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(IDLING_ACTIVE)
 
         // Edge type.
-        ICMPCONST(EDGE_NO)
+        ICMPCONST(EDGE_NONE)
         ICMPCONST(EDGE_LEFT)
         ICMPCONST(EDGE_RIGHT)
 

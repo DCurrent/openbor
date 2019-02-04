@@ -256,7 +256,7 @@ typedef enum
 // State of edge.
 typedef enum
 {
-    EDGE_NO,
+    EDGE_NONE,
     EDGE_LEFT,
     EDGE_RIGHT
 } e_edge_state;

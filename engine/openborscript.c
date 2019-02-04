@@ -13833,7 +13833,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     e->falling = 0;
     e->inpain = 0;
     e->rising = RISING_INACTIVE;
-    e->edge = EDGE_NO;
+    e->edge = EDGE_NONE;
     e->ducking = DUCK_INACTIVE;
     e->inbackpain = 0;
     e->blocking = 0;
@@ -13897,7 +13897,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     e->falling = 0;
     e->inpain = 0;
     e->rising = RISING_INACTIVE;
-    e->edge = EDGE_NO;
+    e->edge = EDGE_NONE;
     e->inbackpain = 0;
     e->blocking = 0;
 
@@ -13961,7 +13961,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->falling = 0;
     e->inpain = 0;
     e->rising = RISING_INACTIVE;
-    e->edge = EDGE_NO;
+    e->edge = EDGE_NONE;
     e->ducking = DUCK_INACTIVE;
     e->inbackpain = 0;
     e->blocking = 0;

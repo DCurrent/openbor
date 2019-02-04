@@ -20723,7 +20723,7 @@ int check_edge(entity *ent)
          ((base_down < y - t_alt) && plat_down == NULL)
     ) return EDGE_LEFT + EDGE_RIGHT;
 
-    return EDGE_NO;
+    return EDGE_NONE;
 }
 
 void check_gravity(entity *e)
@@ -20744,7 +20744,7 @@ void check_gravity(entity *e)
     adjust_base(self, &plat);
 
     if (self->position.y <= self->base) self->edge = check_edge(self); // && self->idling & IDLING_ACTIVE
-    else self->edge = EDGE_NO;
+    else self->edge = EDGE_NONE;
 
     if(!is_frozen(self) )// Incase an entity is in the air, don't update animations
     {
