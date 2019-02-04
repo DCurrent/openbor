@@ -20255,15 +20255,17 @@ void do_attack(entity *e)
                 didfind_item(e);
                 return;
             }
-            //if #051
-            if(self->toexplode == 1)
+            
+			// Set bomb projectile to detonate status if it 
+			// hits or takes a hit.
+            if(self->toexplode & EXPLODE_PREPARED)
             {
-                self->toexplode = 2;    // Used so the bomb type entity explodes when hit
+                self->toexplode |= EXPLODE_DETONATE;
             }
-            //if #052
-            if(e->toexplode == 1)
+           
+            if(e->toexplode & EXPLODE_PREPARED)
             {
-                e->toexplode = 2;    // Used so the bomb type entity explodes when hitting
+                e->toexplode |= EXPLODE_DETONATE;
             }
 
             if(inair(self))
@@ -25196,7 +25198,7 @@ void checkdamageonlanding()
         {
             return;
         }
-        if(self->toexplode == 2)
+        if(self->toexplode & EXPLODE_DETONATE)
         {
             return;
         }
@@ -25364,7 +25366,7 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     {
         return 0;
     }
-    if(self->toexplode == 2)
+    if(self->toexplode & EXPLODE_DETONATE)
     {
         return 0;
     }
@@ -28744,7 +28746,7 @@ void sort_invert_by_parent(entity *ent, entity *parent)
 // for common bomb types
 int bomb_move()
 {
-    if(inair(self) && self->toexplode == 1)
+    if(inair(self) && self->toexplode & EXPLODE_PREPARED)
     {
         if(self->direction == DIRECTION_LEFT)
         {
@@ -28777,7 +28779,7 @@ int bomb_move()
             sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
-        if(self->toexplode == 2 && validanim(self, ANI_ATTACK2))
+        if(self->toexplode & EXPLODE_DETONATE && validanim(self, ANI_ATTACK2))
         {
             ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
         }
@@ -32608,7 +32610,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     e->attacking = ATTACKING_ACTIVE;
     e->owner = self;                                                     // Added so projectiles don't hit the owner
     e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->toexplode = 1;                                                    // Set to distinguish exploding projectiles and also so stops falling when hitting an opponent
+    e->toexplode |= EXPLODE_PREPARED;                                    // Set to distinguish exploding projectiles and also so stops falling when hitting an opponent
     ent_set_colourmap(e, map);
     //e->direction = direction;
     toss(e, e->modeldata.jumpheight);
