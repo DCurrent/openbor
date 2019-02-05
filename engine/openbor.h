@@ -138,6 +138,17 @@ typedef enum
 } e_autokill_state;
 
 // Caskey, Damon V.
+// 2019-02-05
+typedef enum
+{
+	INVINCIBLE_NONE			= 0,
+	INVINCIBLE_INTANGIBLE	= (1 << 0),
+	INVINCIBLE_HP_MINIMUM	= (1 << 1),
+	INVINCIBLE_HP_NULLIFY	= (1 << 2),
+	INVINCIBLE_HP_RESET		= (1 << 3)
+} e_invincible_state;
+
+// Caskey, Damon V.
 // 2019-01-25
 // 
 // Flags for flags used to time update functions.
@@ -1523,7 +1534,7 @@ if(n<1) n = 1;
 		(other->animation->vulnerable[other->animpos] && \
 		 (!self->animation->move || self->animation->move[self->animpos]->axis.x == 0) && \
 		 (!self->animation->move || self->animation->move[self->animpos]->axis.z == 0 ) && \
-		 !(other->nograb || other->invincible || other->link || \
+		 !(other->nograb || other->invincible & INVINCIBLE_INTANGIBLE || other->link || \
 		   other->model->animal || inair(other) || \
 		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
 
@@ -2504,7 +2515,6 @@ typedef struct entity
 	bool					idling;								// ~~
 	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
 	bool					inpain;								// Hit and block stun. ~~
-	bool					invincible;							// Can't be hit with attacks. ~~
 	bool					jumping;							// ~~
 	bool					running;							// ~~
 	bool					turning;							// Turning around. ~~
@@ -2515,6 +2525,7 @@ typedef struct entity
 	e_autokill_state		autokill;							// Kill entity on condition. ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	e_edge_state			edge;								// At an edge (unbalanced).
+	e_invincible_state		invincible;							// Attack invulnerability. ~~
 	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
