@@ -59,6 +59,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"exists",
 		"explode",
 		"falling",
+		"freeze_state",
 		"freeze_time",
 		"getting",
 		"grab_walking",
@@ -464,6 +465,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->falling;
+
+			break;
+
+		case _ENTITY_FREEZE_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->frozen;
 
 			break;
 
@@ -1303,6 +1311,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->falling = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_FREEZE_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->frozen = temp_int;
 			}
 
 			break;

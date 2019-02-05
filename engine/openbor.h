@@ -2489,6 +2489,7 @@ typedef struct entity
 	bool					drop;								// Knocked down. Remains true until rising. ~~
 	bool					exists;								// flag to determine if it is a valid entity. ~~
 	bool					falling;							// Knocked down and haven't landed. ~~
+	bool					frozen;								// Frozen in place. ~~
 	bool					getting;							// Picking up item. ~~
 	bool					grabwalking;						// Walking while grappling. ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
@@ -2508,10 +2509,8 @@ typedef struct entity
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
-	e_update_mark			update_mark;						// Which updates are completed. ~~
-
-    
-	int frozen; // Flag to determine if an entity is frozen
+	e_update_mark			update_mark;						// Which updates are completed. ~~ 
+	
     int invincible; // Flag used to determine if player is currently invincible
     int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
