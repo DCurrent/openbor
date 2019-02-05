@@ -2532,7 +2532,6 @@ typedef struct entity
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~ 
 	
-    int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;

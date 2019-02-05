@@ -20585,7 +20585,7 @@ void do_attack(entity *e)
             sound_play_sample(attack->hitsound, 0, savedata.effectvol, savedata.effectvol, t);
         }
 
-        if(e->remove_on_attack)
+        if(e->autokill & AUTOKILL_ATTACK_HIT)
         {
             kill_entity(e);
         }
@@ -32540,8 +32540,14 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.offscreenkill = 200;    //default value
     }
     e->modeldata.aiattack = AIATTACK1_NOATTACK;
-    e->remove_on_attack = e->modeldata.remove;
     
+	// Kill self when we hit.
+	if (e->modeldata.remove)
+	{
+		e->autokill |= AUTOKILL_ATTACK_HIT;
+	}
+	
+    // Kill self when we finish animation.
 	if (e->modeldata.nomove)
 	{
 		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
@@ -32641,8 +32647,8 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     e->modeldata.aimove = AIMOVE1_BOMB;
     e->modeldata.aiattack = AIATTACK1_NOATTACK;                                    // Well, bomb's attack animation is passive, dont use any A.I. code.
     e->takedamage = common_takedamage;
-    e->remove_on_attack = 0;
-    
+	e->autokill &= ~AUTOKILL_ATTACK_HIT;
+
 	if (e->modeldata.nomove)
 	{
 		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
@@ -32721,8 +32727,13 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         e->takeaction = NULL;
         e->modeldata.aimove = AIMOVE1_STAR;
         e->modeldata.aiattack = AIATTACK1_NOATTACK;
-        e->remove_on_attack = e->modeldata.remove;
-        e->position.y = e->base = a;
+        
+		if (e->modeldata.remove)
+		{
+			e->autokill |= AUTOKILL_ATTACK_HIT;
+		}
+				
+		e->position.y = e->base = a;
         e->speedmul = 2;
         //e->direction = direction;
 
