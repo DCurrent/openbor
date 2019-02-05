@@ -141,10 +141,16 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		ICMPCONST(DAMAGE_RECURSIVE_MODE_MP)
 		ICMPCONST(DAMAGE_RECURSIVE_MODE_NON_LETHAL)
 
-
         // Exchange Flags. Indicate taking or delivering and attack.
         ICMPCONST(EXCHANGE_CONFERRER)
         ICMPCONST(EXCHANGE_RECIPIANT)
+
+		// Invincibility state flags.
+		ICMPCONST(INVINCIBLE_INTANGIBLE)
+		ICMPCONST(INVINCIBLE_HP_MINIMUM)
+		ICMPCONST(INVINCIBLE_NONE)
+		ICMPCONST(INVINCIBLE_HP_NULLIFY)
+		ICMPCONST(INVINCIBLE_HP_RESET)
 
         // Level properties
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_DIRECTION)
