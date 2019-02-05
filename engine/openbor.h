@@ -129,6 +129,15 @@ typedef enum
 } e_animating;
 
 // Caskey, Damon V.
+// 2019-02-05
+typedef enum
+{
+	AUTOKILL_NONE				= 0,
+	AUTOKILL_ANIMATION_COMPLETE	= (1 << 0),
+	AUTOKILL_ATTACK_HIT			= (1 << 1)
+} e_autokill_state;
+
+// Caskey, Damon V.
 // 2019-01-25
 // 
 // Flags for flags used to time update functions.
@@ -142,7 +151,7 @@ typedef enum
 } e_update_mark;
 
 // Caskey, Damon V.
-// 2019-01-25
+// 2019-02-04
 //
 // Flags for legacy bomb projectiles.
 typedef enum
@@ -2479,7 +2488,6 @@ typedef struct entity
     //------------------------- a lot of flags ---------------------------
 	
 	bool					arrowon;							// Display arrow icon (parrow<player>) ~~
-	bool					autokill;							// Kill on end animation. ~~
 	bool					blink;								// Toggle flash effect. ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
 	bool					blocking;							// In blocking state. ~~
@@ -2504,6 +2512,7 @@ typedef struct entity
 	
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
 	e_attacking_state		attacking;							// ~~
+	e_autokill_state		autokill;							// Kill entity on condition. ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	e_edge_state			edge;								// At an edge (unbalanced).
 	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
