@@ -17543,7 +17543,7 @@ void ent_default_init(entity *e)
         if(_time && e->modeldata.makeinv)
         {
             // Spawn invincible code
-            e->invincible = 1;
+            e->invincible |= INVINCIBLE_INTANGIBLE;
             e->blink = (e->modeldata.makeinv > 0);
             e->invinctime = _time + ABS(e->modeldata.makeinv);
             e->arrowon = 1;    // Display the image above the player
@@ -17950,7 +17950,7 @@ bool check_jumpframe(entity *ent, unsigned int frame)
         {
             effect->spawntype = SPAWN_TYPE_DUST_JUMP;
             effect->base = ent->position.y;
-            effect->autokill = 2;
+            effect->autokill |= AUTOKILL_ANIMATION_COMPLETE;
             execute_onspawn_script(effect);
         }
     }
@@ -20002,7 +20002,7 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 		// Set up basic properties.
 		flash->spawntype = SPAWN_TYPE_FLASH;
 		flash->base = lasthit.position.y;
-		flash->autokill = 1;
+		flash->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 
 		// If flipping enabled, flip the flash based on which
 		// side of entity the hit came from.
@@ -20113,7 +20113,7 @@ void do_attack(entity *e)
         // or attack type is an item.
         // This is to allow item collection
         // even while invincible.
-        if(target->invincible)
+        if(target->invincible & INVINCIBLE_INTANGIBLE)
         {
             if(attack->attack_type != ATK_ITEM)
             {
@@ -20666,7 +20666,7 @@ bool check_landframe(entity *ent)
         {
             effect->spawntype = SPAWN_TYPE_DUST_LAND;
             effect->base = ent->position.y;
-            effect->autokill = 2;
+            effect->autokill |= AUTOKILL_ANIMATION_COMPLETE;
             execute_onspawn_script(effect);
         }
     }
@@ -20872,7 +20872,7 @@ void check_gravity(entity *e)
                             {
                                 dust->spawntype = SPAWN_TYPE_DUST_FALL;
                                 dust->base = self->position.y;
-                                dust->autokill = 2;
+                                dust->autokill |= AUTOKILL_ANIMATION_COMPLETE;
                                 execute_onspawn_script(dust);
                             }
                         }
@@ -21347,9 +21347,10 @@ void update_animation()
         self->sleeptime = _time + self->modeldata.sleepwait;
     }
 
-    if(self->invincible && _time >= self->invinctime)    // Invincible time has run out, turn off
+	// Invincible time has run out, turn off.
+    if(self->invincible != INVINCIBLE_NONE && _time >= self->invinctime)
     {
-        self->invincible    = 0;
+        self->invincible    = INVINCIBLE_NONE;
         self->blink         = 0;
         self->invinctime    = 0;
         self->arrowon       = 0;
@@ -21404,7 +21405,7 @@ void update_animation()
             {
                 self->animating = ANIMATING_NONE;
 
-                if(self->autokill)
+                if(self->autokill & AUTOKILL_ANIMATION_COMPLETE)
                 {
                     kill_entity(self);
                     return;
@@ -21426,7 +21427,7 @@ void update_animation()
             {
                 self->animating = ANIMATING_NONE;
 
-                if(self->autokill)
+                if(self->autokill & AUTOKILL_ANIMATION_COMPLETE)
                 {
                     kill_entity(self);
                     return;
@@ -22806,7 +22807,7 @@ void display_ents()
 
             if(e->arrowon)    // Display the players image while invincible to indicate player number
             {
-                if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible == 1)
+                if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible & INVINCIBLE_INTANGIBLE)
                 {
                     spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.y - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
                 }
@@ -23775,7 +23776,7 @@ entity *normal_find_target(int anim, int detect_adj)
 
 
         if(index < 0
-           || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible == 1))
+           || (index >= 0 && (!ent_list[index]->animation->vulnerable[ent_list[index]->animpos] || ent_list[index]->invincible & INVINCIBLE_INTANGIBLE))
            // don't turn to the one on the back
            || ((self->position.x < ent_list[i]->position.x) == (self->direction == DIRECTION_RIGHT) && diffd < diffo)
           )
@@ -24118,7 +24119,7 @@ void common_jump()
                 {
                     dust->spawntype = SPAWN_TYPE_DUST_LAND;
                     dust->base = self->position.y;
-                    dust->autokill = 2;
+                    dust->autokill |= AUTOKILL_ANIMATION_COMPLETE;
                     execute_onspawn_script(dust);
                 }
             }
@@ -24132,7 +24133,7 @@ void common_jump()
                 {
                     dust->spawntype = SPAWN_TYPE_DUST_LAND;
                     dust->base = self->position.y;
-                    dust->autokill = 2;
+                    dust->autokill |= AUTOKILL_ANIMATION_COMPLETE;
                     execute_onspawn_script(dust);
                 }
             }
@@ -24352,7 +24353,7 @@ void common_rise()
     {
         self->blink = self->modeldata.riseinv > 0;
         self->invinctime = _time + ABS(self->modeldata.riseinv);
-        self->invincible = 1;
+        self->invincible |= INVINCIBLE_INTANGIBLE;
     }
     set_idle(self);
 }
@@ -25282,12 +25283,32 @@ void checkdamageonlanding()
 
 void checkdamage(entity *other, s_collision_attack *attack)
 {
-    int force = attack->attack_force;
+	int		force;
+	bool	normal_damage;
 
+	// Get attack damage force after defense is applied.
     force = calculate_force_damage(other, attack);
 
-    self->energy_state.health_current -= force; //Apply damage.
+	// Damage does not return HP and comes from
+	// a normal source?
+	normal_damage = (attack->attack_type != ATK_BOSS_DEATH
+		&& attack->attack_type != ATK_ITEM
+		&& attack->attack_type != ATK_LIFESPAN
+		&& attack->attack_type != ATK_LOSE
+		&& attack->attack_type != ATK_TIMEOVER
+		&& attack->attack_type != ATK_PIT
+		&& force >= 0);
 
+	// If we're invincible to normal damage sources, laugh it off.
+	if (self->invincible & INVINCIBLE_HP_NULLIFY && normal_damage)
+	{
+		force = 0;
+	}
+	
+	// Apply damage.
+    self->energy_state.health_current -= force;
+
+	// Cap negative damage (giving back HP) to maximum health.
     if (self->energy_state.health_current > self->modeldata.health)
     {
         self->energy_state.health_current = self->modeldata.health;    //Cap negative damage to max health.
@@ -25301,17 +25322,22 @@ void checkdamage(entity *other, s_collision_attack *attack)
     // Execute the take damage script.
     execute_takedamage_script(self, other, attack);
 
-    if (self->energy_state.health_current <= 0)                                      //Health at 0?
+	// Attack meant to put health at 0?
+    if (self->energy_state.health_current <= 0)                                      
     {
-        if(!(self->position.y < PIT_DEPTH || self->lifespancountdown < 0)) //Not a pit death or countdown?
+		// Normal attack source?
+        if(normal_damage)
         {
-            if (self->invincible == 2)                          //Invincible type 2?
+			// Stop at minium HP?
+            if (self->invincible & INVINCIBLE_HP_MINIMUM)
             {
-                self->energy_state.health_current = 1;                               //Stop at 1hp.
+                self->energy_state.health_current = 1;
             }
-            else if(self->invincible == 3)                      //Invincible type 3?
+            
+			// Reset to maximum HP?
+			if(self->invincible & INVINCIBLE_HP_RESET)                      
             {
-                self->energy_state.health_current = self->modeldata.health;          //Reset to max health.
+                self->energy_state.health_current = self->modeldata.health;
             }
         }
 
@@ -25902,7 +25928,7 @@ int common_try_jumpattack(entity *target)
                 {
                     dust->spawntype = SPAWN_TYPE_DUST_JUMP;
                     dust->base = self->position.y;
-                    dust->autokill = 2;
+                    dust->autokill |= AUTOKILL_ANIMATION_COMPLETE;
                     execute_onspawn_script(dust);
                 }
             }
@@ -28580,7 +28606,7 @@ int arrow_move()
 
     if(self->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
-        self->autokill = 2;
+        self->autokill |= AUTOKILL_ANIMATION_COMPLETE;
     }
 
     return 1;
@@ -30285,7 +30311,7 @@ void dojump(float jumpv, float jumpx, float jumpz, int animation_id)
         {
             dust->spawntype = SPAWN_TYPE_DUST_JUMP;
             dust->base = self->position.y;
-            dust->autokill = 2;
+            dust->autokill |= AUTOKILL_ANIMATION_COMPLETE;
             execute_onspawn_script(dust);
         }
     }
@@ -30384,7 +30410,7 @@ void didfind_item(entity *other)
     else if(other->modeldata.makeinv)
     {
         // Mar 2, 2005 - New item makes player invincible
-        self->invincible = 1;
+        self->invincible |= INVINCIBLE_INTANGIBLE;
         self->invinctime = _time + ABS(other->modeldata.makeinv);
         self->blink = (other->modeldata.makeinv > 0);
 
@@ -32515,7 +32541,12 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
     }
     e->modeldata.aiattack = AIATTACK1_NOATTACK;
     e->remove_on_attack = e->modeldata.remove;
-    e->autokill = e->modeldata.nomove;
+    
+	if (e->modeldata.nomove)
+	{
+		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+	}
+	
     e->speedmul = 2;
 
     ent_set_colourmap(e, map);
@@ -32611,7 +32642,12 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     e->modeldata.aiattack = AIATTACK1_NOATTACK;                                    // Well, bomb's attack animation is passive, dont use any A.I. code.
     e->takedamage = common_takedamage;
     e->remove_on_attack = 0;
-    e->autokill = e->modeldata.nomove;
+    
+	if (e->modeldata.nomove)
+	{
+		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+	}
+	
     e->speedmul = 2;
 
 
