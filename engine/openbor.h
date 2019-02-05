@@ -2496,6 +2496,7 @@ typedef struct entity
 	bool					idling;								// ~~
 	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
 	bool					inpain;								// Hit and block stun. ~~
+	bool					invincible;							// Can't be hit with attacks. ~~
 	bool					jumping;							// ~~
 	bool					running;							// ~~
 	bool					turning;							// Turning around. ~~
@@ -2511,7 +2512,6 @@ typedef struct entity
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~ 
 	
-    int invincible; // Flag used to determine if player is currently invincible
     int remove_on_attack;
     int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control

@@ -69,6 +69,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"idling",
 		"in_pain",
 		"in_pain_back",
+		"invincible_state",
 		"invincible_time",
 		"item_data",
 		"jump_animation_id",
@@ -535,6 +536,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->inbackpain;
+
+			break;
+
+		case _ENTITY_INVINCIBLE_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->invincible;
 
 			break;
 
@@ -1401,6 +1409,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->inbackpain = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_INVINCIBLE_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->invincible = temp_int;
 			}
 
 			break;
