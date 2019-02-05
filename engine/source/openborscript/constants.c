@@ -114,6 +114,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(FLAG_FORWARD)
         ICMPCONST(FLAG_BACKWARD)
 
+		// Autokill state.
+		ICMPCONST(AUTOKILL_NONE)
+		ICMPCONST(AUTOKILL_ANIMATION_COMPLETE)
+		ICMPCONST(AUTOKILL_ATTACK_HIT)
+
         // Boss no slow flags.
         ICMPCONST(BOSS_SLOW_OFF)
         ICMPCONST(BOSS_SLOW_ON)
