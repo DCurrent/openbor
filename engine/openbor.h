@@ -155,7 +155,7 @@ typedef enum
 // Caskey, Damon V.
 // 2019-01-25
 //
-// Flags for legacy bomb projectiles.
+// Flags for rising state.
 typedef enum
 {
 	RISING_INACTIVE	= 0,
