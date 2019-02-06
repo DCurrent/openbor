@@ -36,7 +36,6 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"back_hit_direction",
         "bind",
         "blink",
-		"blocked",
         "blocking",
         "boss",
         "charging",
@@ -95,6 +94,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"next_hit_time",
 		"nograb",
 		"nograb_default",
+		"obstructed",
         "opponent",
         "owner",
 		"pause_time",
@@ -309,13 +309,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->blink;
 
             break;
-
-		case _ENTITY_BLOCKED:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->hitwall;
-
-			break;
 
         case _ENTITY_BLOCKING:
 
@@ -719,6 +712,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->nograb_default;
+
+			break;
+
+		case _ENTITY_OBSTRUCTED:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->hitwall;
 
 			break;
 
@@ -1140,15 +1140,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
-
-		case _ENTITY_BLOCKED:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->hitwall = temp_int;
-			}
-
-			break;
 
         case _ENTITY_BLOCKING:
 
@@ -1647,6 +1638,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->nograb_default = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_OBSTRUCTED:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->hitwall = temp_int;
 			}
 
 			break;
