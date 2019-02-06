@@ -114,6 +114,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(FLAG_FORWARD)
         ICMPCONST(FLAG_BACKWARD)
 
+		// Special attack force values.
+		ICMPCONST(ATTACK_FORCE_LAND_AUTO)
+		ICMPCONST(ATTACK_FORCE_LAND_COMMAND)
+
 		// Autokill state.
 		ICMPCONST(AUTOKILL_ANIMATION_COMPLETE)
 		ICMPCONST(AUTOKILL_ATTACK_HIT)
@@ -122,6 +126,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         // Boss no slow flags.
         ICMPCONST(BOSS_SLOW_OFF)
         ICMPCONST(BOSS_SLOW_ON)
+
+		// Blasted states.
+		ICMPCONST(BLAST_ATTACK)
+		ICMPCONST(BLAST_NONE)
+		ICMPCONST(BLAST_TOSS)
 
 		// Direction adjustment.
 		ICMPCONST(DIRECTION_ADJUST_LEFT)
