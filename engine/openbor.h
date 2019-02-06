@@ -2464,34 +2464,24 @@ typedef struct
 
 typedef struct entity
 {
-    e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
-	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
-    int						playerindex;						// Player controlling the entity. ~~
-    s_energy_state			energy_state;						// Health and MP. ~~
-    char					name[MAX_NAME_LEN];					// this is display name. ~~
-    s_model					*defaultmodel;						// this is the default model ~~
-    s_model					*model;								// current model ~~
-    s_model					modeldata;							// model data copied here ~~
-    s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~
+	
+	s_axis_principal_float	position;							// x,y,z location. ~~
+	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
-    unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
-    unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
-    unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
-    e_direction				direction;							//  ~~
-    int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
-    int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
-    s_axis_principal_float	position;							// x,y,z location. ~~
-    s_axis_principal_float	velocity;							// x,y,z movement speed. ~~
-    float					destx;								// temporary values for ai functions ~~
-    float					destz;								// ~~
-    float					movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
-    float					movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
-    float					speedmul;							// Final multiplier for movement/velocity. ~~
-    float					base;								// Default altitude. ~~
-    float					altbase;							// Altitude affected by movea. ~~
-    s_jump					jump;								// Jumping velocity and animationnid. ~~
-    unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
+	s_energy_state			energy_state;						// Health and MP. ~~
+	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
+	s_model					*defaultmodel;						// this is the default model ~~
+	s_model					*model;								// current model ~~
+	s_model					modeldata;							// model data copied here ~~
+	s_jump					jump;								// Jumping velocity and animationnid. ~~
+    
+	float					destx;								// temporary values for ai functions ~~
+	float					destz;								// ~~
+	float					movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
+	float					movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
+	float					speedmul;							// Final multiplier for movement/velocity. ~~
+	float					base;								// Default altitude. ~~
+	float					altbase;							// Altitude affected by movea. ~~
 
     // ---------------------- action times -------------------------------
 	u32						combotime;							// If not expired, continue to next attack in series combo. ~~
@@ -2518,10 +2508,35 @@ typedef struct entity
     u32						toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
     u32						turntime;							// Time when entity can switch direction. ~~
     // -------------------------end of times ------------------------------
-   
-    //------------------------- a lot of flags ---------------------------
 	
-	bool					arrowon;							// Display arrow icon (parrow<player>) ~~
+	unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
+	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
+	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
+	unsigned int			pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
+	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
+	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
+
+	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
+	int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
+	int						playerindex;						// Player controlling the entity. ~~
+	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
+	
+	e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
+	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
+	e_animating				animating;							// Animation status (none, forward, reverse). ~~
+	e_attacking_state		attacking;							// ~~
+	e_autokill_state		autokill;							// Kill entity on condition. ~~
+	e_direction				direction;							//  ~~
+	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
+	e_edge_state			edge;								// At an edge (unbalanced).
+	e_invincible_state		invincible;							// Attack invulnerability. ~~
+	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
+	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
+	e_rising_state			rising;								// Rise/Rise attacking. ~~
+	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
+	e_update_mark			update_mark;						// Which updates are completed. ~~
+
+    bool					arrowon;							// Display arrow icon (parrow<player>) ~~
 	bool					blink;								// Toggle flash effect. ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
 	bool					blocking;							// In blocking state. ~~
@@ -2545,20 +2560,11 @@ typedef struct entity
 	bool					turning;							// Turning around. ~~
 	bool					walking;							// ~~
 	
-	e_animating				animating;							// Animation status (none, forward, reverse). ~~
-	e_attacking_state		attacking;							// ~~
-	e_autokill_state		autokill;							// Kill entity on condition. ~~
-	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
-	e_edge_state			edge;								// At an edge (unbalanced).
-	e_invincible_state		invincible;							// Attack invulnerability. ~~
-	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
-	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
-	e_rising_state			rising;								// Rise/Rise attacking. ~~
-	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
-	e_update_mark			update_mark;						// Which updates are completed. ~~ 
-	    
-    unsigned pathblocked;
+	char					name[MAX_NAME_LEN];					// this is display name. ~~
+
+	
+	
+   
     s_axis_principal_float *waypoints;
     int numwaypoints;
     unsigned int			animpos;							// Current animation frame. ~~ animation_frame
