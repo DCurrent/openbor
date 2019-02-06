@@ -13827,14 +13827,14 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     }
 
     e->takeaction = common_animation_normal;
-    e->attacking = ATTACKING_INACTIVE;
-    e->idling = IDLING_INACTIVE;
+    e->attacking = ATTACKING_NONE;
+    e->idling = IDLING_NONE;
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
-    e->rising = RISING_INACTIVE;
+    e->rising = RISING_NONE;
     e->edge = EDGE_NONE;
-    e->ducking = DUCK_INACTIVE;
+    e->ducking = DUCK_NONE;
     e->inbackpain = 0;
     e->blocking = 0;
 
@@ -13892,11 +13892,11 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
 
     e->takeaction = common_attack_proc;
     e->attacking = ATTACKING_ACTIVE;
-    e->idling = IDLING_INACTIVE;
+    e->idling = IDLING_NONE;
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
-    e->rising = RISING_INACTIVE;
+    e->rising = RISING_NONE;
     e->edge = EDGE_NONE;
     e->inbackpain = 0;
     e->blocking = 0;
@@ -13955,14 +13955,14 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     }
 
     e->takeaction = NULL;
-    e->attacking = ATTACKING_INACTIVE;
+    e->attacking = ATTACKING_NONE;
     e->idling = 1;
     e->drop = 0;
     e->falling = 0;
     e->inpain = 0;
-    e->rising = RISING_INACTIVE;
+    e->rising = RISING_NONE;
     e->edge = EDGE_NONE;
-    e->ducking = DUCK_INACTIVE;
+    e->ducking = DUCK_NONE;
     e->inbackpain = 0;
     e->blocking = 0;
     e->nograb = e->nograb_default; //e->nograb = 0;

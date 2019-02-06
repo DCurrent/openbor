@@ -17312,7 +17312,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
         {
             if (forcemode || normal_find_target(iAni, 0))                           //Opponent in range of current animation?
             {
-                ent->ducking = DUCK_INACTIVE;
+                ent->ducking = DUCK_NONE;
                 ent_set_anim(ent, iAni, 0);                                         //Set animation.
                 if (is_walking(iAni)) ent->walking = 1; // set walking prop
 
@@ -17323,7 +17323,7 @@ static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode
 
     if (validanim(ent, defaulta))
     {
-        ent->ducking = DUCK_INACTIVE;
+        ent->ducking = DUCK_NONE;
         ent_set_anim(ent, defaulta, 0);                                             //No alternates were set. Set default..
         if (is_walking(defaulta)) ent->walking = 1; // set walking prop
 
@@ -17346,7 +17346,7 @@ int common_idle_anim(entity *ent)
 
     self = ent;
 
-    self->ducking = DUCK_INACTIVE;
+    self->ducking = DUCK_NONE;
     if(self->idling)
     {
         self->idling |= IDLING_ACTIVE;
@@ -17367,7 +17367,7 @@ int common_idle_anim(entity *ent)
         ent_set_anim(ent, ANI_SLEEP, 0);                                                //Set sleep anim.
         goto found;                                                                     //Return 1 and exit.
     }
-    else if(validanim(ent, ANI_EDGE) && ent->edge && (ent->idling & IDLING_ACTIVE) && ent->ducking == DUCK_INACTIVE)
+    else if(validanim(ent, ANI_EDGE) && ent->edge && (ent->idling & IDLING_ACTIVE) && ent->ducking == DUCK_NONE)
     {
         if ( (ent->edge & EDGE_RIGHT) && (ent->edge & EDGE_LEFT) )
         {
@@ -18386,7 +18386,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     }
     else
     {
-        ent->attacking = ATTACKING_INACTIVE;
+        ent->attacking = ATTACKING_NONE;
 
         if((!selectScreen && !_time) || !(ent->modeldata.type & TYPE_PLAYER))
         {
@@ -20841,8 +20841,8 @@ void check_gravity(entity *e)
                 // White Dragon: fix for too low velocityz
                 if ( !cplat || (cplat && diff(get_platform_base(cplat),self->position.y) > T_WALKOFF) )
                 {
-                    self->idling = IDLING_INACTIVE;
-                    self->ducking = DUCK_INACTIVE;
+                    self->idling = IDLING_NONE;
+                    self->ducking = DUCK_NONE;
                     self->takeaction = common_walkoff;
                     ent_set_anim(self, ANI_WALKOFF, 0);
                     self->landed_on_platform = plat = NULL;
@@ -22996,10 +22996,10 @@ entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(
 int set_idle(entity *ent)
 {
     ent->idling = IDLING_PREPARED;
-    ent->attacking = ATTACKING_INACTIVE;
+    ent->attacking = ATTACKING_NONE;
     ent->inpain = 0;
-    ent->rising = RISING_INACTIVE;
-    ent->ducking = DUCK_INACTIVE;
+    ent->rising = RISING_NONE;
+    ent->ducking = DUCK_NONE;
     ent->inbackpain = 0;
     ent->falling = 0;
     ent->jumping = 0;
@@ -23016,16 +23016,16 @@ int set_death(entity *iDie, int type, int reset)
     if(iDie->blocking && validanim(iDie, ANI_CHIPDEATH))
     {
         ent_set_anim(iDie, ANI_CHIPDEATH, reset);
-        iDie->idling = IDLING_INACTIVE;
+        iDie->idling = IDLING_NONE;
         iDie->getting = 0;
         iDie->jumping = 0;
         iDie->charging = 0;
-        iDie->attacking = ATTACKING_INACTIVE;
+        iDie->attacking = ATTACKING_NONE;
         iDie->blocking = 0;
         iDie->inpain = 0;
         iDie->falling = 0;
-        iDie->rising = RISING_INACTIVE;
-        iDie->ducking = DUCK_INACTIVE;
+        iDie->rising = RISING_NONE;
+        iDie->ducking = DUCK_NONE;
         return 1;
     }
 
@@ -23062,16 +23062,16 @@ int set_death(entity *iDie, int type, int reset)
         return 0;
     }
 
-    iDie->idling = IDLING_INACTIVE;
+    iDie->idling = IDLING_NONE;
     iDie->getting = 0;
     iDie->jumping = 0;
     iDie->charging = 0;
-    iDie->attacking = ATTACKING_INACTIVE;
+    iDie->attacking = ATTACKING_NONE;
     iDie->blocking = 0;
     iDie->inpain = 0;
     iDie->falling = 0;
-    iDie->rising = RISING_INACTIVE;
-    iDie->ducking = DUCK_INACTIVE;
+    iDie->rising = RISING_NONE;
+    iDie->ducking = DUCK_NONE;
     if(iDie->frozen)
     {
         unfrozen(iDie);
@@ -23114,14 +23114,14 @@ int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 
     ent->drop = 1;
     ent->inpain = 0;
-    ent->rising = RISING_INACTIVE;
-    ent->idling = IDLING_INACTIVE;
+    ent->rising = RISING_NONE;
+    ent->idling = IDLING_NONE;
     ent->falling = 1;
     ent->jumping = 0;
-    ent->ducking = DUCK_INACTIVE;
+    ent->ducking = DUCK_NONE;
     ent->getting = 0;
     ent->charging = 0;
-    ent->attacking = ATTACKING_INACTIVE;
+    ent->attacking = ATTACKING_NONE;
     ent->blocking = 0;
     ent->nograb = 1;
 
@@ -23232,7 +23232,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     set_attacking(iRiseattack);
     iRiseattack->inpain = 0;
     iRiseattack->falling = 0;
-    iRiseattack->ducking = DUCK_INACTIVE;
+    iRiseattack->ducking = DUCK_NONE;
     iRiseattack->rising &= ~RISING_RISE;
     iRiseattack->rising |= RISING_ATTACK;
     iRiseattack->drop = 0;
@@ -23298,8 +23298,8 @@ int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
     ent->takeaction = common_block;
     set_blocking(self);
     ent->inpain = 1;
-    ent->rising = RISING_INACTIVE;
-    ent->ducking = DUCK_INACTIVE;
+    ent->rising = RISING_NONE;
+    ent->ducking = DUCK_NONE;
     ent_set_anim(ent, animblkpains[attack_type], reset);
     return 1;
 }
@@ -23386,13 +23386,13 @@ int set_pain(entity *iPain, int type, int reset)
         return 0;
     }
 
-	iPain->idling = IDLING_INACTIVE;
+	iPain->idling = IDLING_NONE;
 	iPain->falling = 0;
-	iPain->rising = RISING_INACTIVE;
-	iPain->ducking = DUCK_INACTIVE;
+	iPain->rising = RISING_NONE;
+	iPain->ducking = DUCK_NONE;
 	iPain->projectile = BLAST_NONE;
 	iPain->drop = 0;
-	iPain->attacking = ATTACKING_INACTIVE;
+	iPain->attacking = ATTACKING_NONE;
 	iPain->getting = 0;
 	iPain->charging = 0;
 	iPain->jumping = 0;
@@ -23403,8 +23403,8 @@ int set_pain(entity *iPain, int type, int reset)
     if(pain == ANI_GRABBED)
     {
         iPain->inpain = 0;
-        iPain->rising = RISING_INACTIVE;
-        iPain->ducking = DUCK_INACTIVE;
+        iPain->rising = RISING_NONE;
+        iPain->ducking = DUCK_NONE;
         if ( iPain->inbackpain ) reset_backpain(iPain);
         iPain->inbackpain = 0;
     }
@@ -23666,7 +23666,7 @@ entity *block_find_target(int anim, int detect_adj)
                 && (attacker->modeldata.candamage & self->modeldata.type)
                 && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim)))
                 && !attacker->dead //must be alive
-                && attacker->attacking != ATTACKING_INACTIVE
+                && attacker->attacking != ATTACKING_NONE
                 && attacker->animation->collision_attack && attacker->animation->collision_attack[attacker->animpos] && attacker->animation->collision_attack[attacker->animpos]->instance
                 && ( !attacker->animation->collision_attack[attacker->animpos]->instance[instance] || (attacker->animation->collision_attack[attacker->animpos]->instance[instance] && attacker->animation->collision_attack[attacker->animpos]->instance[instance]->no_block == 0) )
                 && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
@@ -24097,8 +24097,8 @@ void common_jump()
         self->position.y = self->base;
 
         self->jumping = 0;
-        self->ducking = DUCK_INACTIVE;
-        self->attacking = ATTACKING_INACTIVE;
+        self->ducking = DUCK_NONE;
+        self->attacking = ATTACKING_NONE;
 
         if(!self->modeldata.runhold)
         {
@@ -24151,7 +24151,7 @@ void common_jump()
 //A.I. characters spawn
 void common_spawn()
 {
-    self->idling = IDLING_INACTIVE;
+    self->idling = IDLING_NONE;
     if(self->animating)
     {
         return;
@@ -24367,8 +24367,8 @@ void common_pain()
     }
 
     self->inpain = 0;
-    self->rising = RISING_INACTIVE;
-    self->ducking = DUCK_INACTIVE;
+    self->rising = RISING_NONE;
+    self->ducking = DUCK_NONE;
     self->inbackpain = 0;
     if(self->link)
     {
@@ -24485,7 +24485,7 @@ void common_grab_check()
         dropweapon(1);
     }
 
-    self->attacking = ATTACKING_INACTIVE; //for checking
+    self->attacking = ATTACKING_NONE; //for checking
 
     rnum = rand32() & 31;
 
@@ -24542,7 +24542,7 @@ void common_grab()
     }
 
     self->takeaction = NULL;
-    self->attacking = ATTACKING_INACTIVE;
+    self->attacking = ATTACKING_NONE;
     memset(self->combostep, 0, sizeof(*self->combostep) * 5);
     set_idle(self);
 }
@@ -24608,7 +24608,7 @@ void common_block()
 		&& validanim(self, ANI_BLOCK))
     {
 		self->inpain = 0;
-		self->rising = RISING_INACTIVE;
+		self->rising = RISING_NONE;
 		self->inbackpain = 0;
 		ent_set_anim(self, ANI_BLOCK, 0);
     }
@@ -24781,8 +24781,8 @@ void checkdeath()
         addscore(self->opponent->playerindex, self->modeldata.score);    // Add score to the player
     }
     self->nograb = 1;
-    self->idling = IDLING_INACTIVE;
-    self->ducking = DUCK_INACTIVE;
+    self->idling = IDLING_NONE;
+    self->ducking = DUCK_NONE;
 
     if(self->modeldata.diesound >= 0)
     {
@@ -25582,7 +25582,7 @@ int common_try_runattack(entity *target)
 
     if(target)
     {
-        if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE))
+        if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_NONE))
         {
             return 0;
         }
@@ -25636,7 +25636,7 @@ int common_try_block(entity *target)
 	}
 
     // If target is attacking, let's block and return true.
-    if(target->attacking != ATTACKING_INACTIVE)
+    if(target->attacking != ATTACKING_NONE)
     {
 		// Set up flags, action, and blocking animations.
 		do_active_block(self);
@@ -25766,7 +25766,7 @@ u32 recheck_nextattack(entity *target)
     {
         self->nextattack = 0;
     }
-    else if(target->attacking != ATTACKING_INACTIVE && self->nextattack > 4)
+    else if(target->attacking != ATTACKING_NONE && self->nextattack > 4)
     {
         self->nextattack -= 4;
     }
@@ -25794,7 +25794,7 @@ int common_try_normalattack(entity *target)
         return 0;
     }
 
-    if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE || target->takeaction == common_rise))
+    if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_NONE || target->takeaction == common_rise))
     {
         return 0;
     }
@@ -25821,7 +25821,7 @@ int common_try_normalattack(entity *target)
         self->takeaction = normal_prepare;
         self->velocity.z = self->velocity.x = 0;
         set_idle(self);
-        self->idling = IDLING_INACTIVE; // not really idle, in fact it is thinking
+        self->idling = IDLING_NONE; // not really idle, in fact it is thinking
         self->attacking = ATTACKING_PREPARED; // pre-attack, for AI-block check
         return 1;
     }
@@ -25857,7 +25857,7 @@ int common_try_jumpattack(entity *target)
                 return 0;
             }
 
-            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE))
+            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_NONE))
             {
                 rnum = -1;
             }
@@ -25890,7 +25890,7 @@ int common_try_jumpattack(entity *target)
                 return 0;
             }
 
-            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_INACTIVE))
+            if(!target->animation->vulnerable[target->animpos] && (target->drop || target->attacking != ATTACKING_NONE))
             {
                 rnum = -1;
             }
@@ -25992,7 +25992,7 @@ int common_try_upper(entity *target)
         self->takeaction = upper_prepare;
         self->velocity.z = self->velocity.x = 0;
         set_idle(self);
-        self->idling = IDLING_INACTIVE; // not really idle, in fact it is thinking
+        self->idling = IDLING_NONE; // not really idle, in fact it is thinking
         self->attacking = ATTACKING_PREPARED; // pre-attack, for AI-block check
         return 1;
     }
@@ -26286,10 +26286,10 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         /* Set flags. */
         set_opponent(target, attacker);
         ents_link(attacker, target);
-        target->attacking = ATTACKING_INACTIVE;
-        attacker->idling = IDLING_INACTIVE;
+        target->attacking = ATTACKING_NONE;
+        attacker->idling = IDLING_NONE;
         attacker->running = 0;
-        attacker->ducking = DUCK_INACTIVE;
+        attacker->ducking = DUCK_NONE;
         attacker->inbackpain = 0;
 
         /* Stop all movement. */
@@ -26305,7 +26305,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
             {
                 target->direction = !attacker->direction;
             }
-            attacker->attacking = ATTACKING_INACTIVE;
+            attacker->attacking = ATTACKING_NONE;
             memset(attacker->combostep, 0, 5 * sizeof(*attacker->combostep));
             target->stalltime = _time + GRAB_STALL;
             attacker->releasetime = _time + (GAME_SPEED / 2);
@@ -26994,7 +26994,7 @@ void common_attack_finish()
 
     target = self->opponent;
 
-    if(target && !self->modeldata.nomove && self->ducking == DUCK_INACTIVE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
+    if(target && !self->modeldata.nomove && self->ducking == DUCK_NONE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
     {
         self->takeaction = NULL;//common_runoff;
         self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
@@ -27075,7 +27075,7 @@ void common_attack_proc()
         subtract_shot();
         self->deduct_ammo = 0;
     }
-    self->attacking = ATTACKING_INACTIVE;
+    self->attacking = ATTACKING_NONE;
     // end of attack proc
     common_attack_finish();
 }
@@ -28254,7 +28254,7 @@ int common_try_wander(entity *target, int dox, int doz)
         t = 2;
     }
 
-    if(behind && target->attacking != ATTACKING_INACTIVE)
+    if(behind && target->attacking != ATTACKING_NONE)
     {
         t += 5;
     }
@@ -28293,7 +28293,7 @@ int common_try_wander(entity *target, int dox, int doz)
     }
     else
     {
-        mindx = (!behind && target->attacking != ATTACKING_INACTIVE) ? grabd * 3 : grabd * 1.2;
+        mindx = (!behind && target->attacking != ATTACKING_NONE) ? grabd * 3 : grabd * 1.2;
     }
     mindz = grabd / 4;
 
@@ -28711,7 +28711,7 @@ int projectile_wall_deflect(entity *ent)
             richochet_velocity_x = ent->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
 
             ent->takeaction = common_fall;
-            ent->attacking = ATTACKING_INACTIVE;
+            ent->attacking = ATTACKING_NONE;
             ent->energy_state.health_current = 0;
             ent->projectile = BLAST_NONE;
             ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
@@ -28937,7 +28937,7 @@ int common_move()
 
         //turn back if we have a turn animation
         // TODO, make a function for ai script
-        if(self->direction != predir && validanim(self, ANI_TURN) && self->ducking == DUCK_INACTIVE)
+        if(self->direction != predir && validanim(self, ANI_TURN) && self->ducking == DUCK_NONE)
         {
             self->takeaction = common_turn;
             self->direction = !self->direction;
@@ -29423,7 +29423,7 @@ int ai_check_grabbed()
 
 int ai_check_grab()
 {
-    if(self->grabbing && self->attacking == ATTACKING_INACTIVE)
+    if(self->grabbing && self->attacking == ATTACKING_NONE)
     {
         common_grab_check();
         return 1;
@@ -29518,7 +29518,7 @@ int ai_check_ducking()
             }
             if (!range_flag) return 0;
 
-            if(self->ducking == DUCK_INACTIVE)
+            if(self->ducking == DUCK_NONE)
             {
                 tryduck(self);
             }
@@ -30143,7 +30143,7 @@ void common_grabattack()
         return;
     }
 
-    self->attacking = ATTACKING_INACTIVE;
+    self->attacking = ATTACKING_NONE;
 
     if(!(self->combostep[0] || self->combostep[1] ||
             self->combostep[2] || self->combostep[3] ||
@@ -30156,7 +30156,7 @@ void common_grabattack()
     {
         self->takeaction = common_grab;
         self->link->takeaction = common_grabbed;
-        self->attacking = ATTACKING_INACTIVE;
+        self->attacking = ATTACKING_NONE;
         ent_set_anim(self, ANI_GRAB, 0);
         set_pain(self->link, -1, 0);
         update_frame(self, self->animation->numframes - 1);
@@ -30203,7 +30203,7 @@ void common_idle()
         return;
     }
     self->takeaction = NULL;
-    self->attacking = ATTACKING_INACTIVE;
+    self->attacking = ATTACKING_NONE;
     self->idling = IDLING_PREPARED;
     common_idle_anim(self);
 }
@@ -30217,7 +30217,7 @@ void tryduck(entity *ent)
         ent->takeaction = common_preduck;
         ent->velocity.x = ent->velocity.z = 0;
         ent->ducking = DUCK_PREPARED;
-        ent->idling = IDLING_INACTIVE;
+        ent->idling = IDLING_NONE;
         ent_set_anim(ent, ANI_DUCKING, 0);
     }
     else
@@ -30235,7 +30235,7 @@ void tryduckrise(entity *ent)
         ent->takeaction = common_idle;
         ent->velocity.x = ent->velocity.z = 0;
         ent->ducking = DUCK_RISE;
-        ent->idling = IDLING_INACTIVE;
+        ent->idling = IDLING_NONE;
         ent_set_anim(ent, ANI_DUCKRISE, 0);
     }
     else
@@ -30274,13 +30274,13 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
     self->jump.velocity.z = jumpz;
     self->jump.animation_id = animation_id;
 
-    self->ducking = DUCK_INACTIVE;
+    self->ducking = DUCK_NONE;
     if(validanim(self, ANI_JUMPDELAY))
     {
         self->takeaction = common_prejump;
         self->velocity.x = self->velocity.z = 0;
 
-        self->idling = IDLING_INACTIVE;
+        self->idling = IDLING_NONE;
         ent_set_anim(self, ANI_JUMPDELAY, 0);
     }
     else
@@ -30569,7 +30569,7 @@ void player_grab_check()
         }
     }
 
-    self->attacking = ATTACKING_INACTIVE; //for checking
+    self->attacking = ATTACKING_NONE; //for checking
     self->grabwalking = 0;
 
 	// Move key opposite vs. dicretion?
@@ -30840,7 +30840,7 @@ void player_grab_check()
         self->grabwalking = 1;
     }
 
-    if(self->attacking != ATTACKING_INACTIVE)
+    if(self->attacking != ATTACKING_NONE)
     {
         self->releasetime = _time + (GAME_SPEED / 2);    // reset releasetime when do collision
     }
@@ -31074,8 +31074,8 @@ void player_pain_check()
     if(player_check_special())
     {
         self->inpain = 0;
-        self->rising = RISING_INACTIVE;
-        self->ducking = DUCK_INACTIVE;
+        self->rising = RISING_NONE;
+        self->ducking = DUCK_NONE;
         self->inbackpain = 0;
     }
 }
@@ -31145,7 +31145,7 @@ int check_costmove(int s, int fs, int jumphack)
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = 0;
-        self->rising = RISING_INACTIVE;
+        self->rising = RISING_NONE;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_unlink(self);
@@ -31327,7 +31327,7 @@ void player_think()
     }
 
     // grab section, dont move if still animating
-    if(self->grabbing && self->attacking == ATTACKING_INACTIVE && self->takeaction != common_throw_wait)
+    if(self->grabbing && self->attacking == ATTACKING_NONE && self->takeaction != common_throw_wait)
     {
         player_grab_check();
         goto endthinkcheck;
@@ -31364,7 +31364,7 @@ void player_think()
     /*if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
-        self->idling = IDLING_INACTIVE;
+        self->idling = IDLING_NONE;
         self->ducking = DUCK_ACTIVE;
         self->takeaction = common_stuck_underneath;
         ent_set_anim(self, ANI_DUCK, 0);
@@ -31401,7 +31401,7 @@ void player_think()
             pl->playkeys &= ~FLAG_MOVEUP;
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
-            self->idling = IDLING_INACTIVE;
+            self->idling = IDLING_NONE;
             self->velocity.z = -self->modeldata.speed * 1.75;
             self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(self, ANI_DODGE, 0);
@@ -31437,7 +31437,7 @@ void player_think()
             pl->playkeys &= ~FLAG_MOVEDOWN;
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
-            self->idling = IDLING_INACTIVE;
+            self->idling = IDLING_NONE;
             self->velocity.z = self->modeldata.speed * 1.75;
             self->velocity.x = 0;
             ent_set_anim(self, ANI_DODGE, 0);
@@ -31650,7 +31650,7 @@ void player_think()
         }
         else if(perform_atchain())
         {
-            if(SAMPLE_PUNCH >= 0 && self->attacking != ATTACKING_INACTIVE)
+            if(SAMPLE_PUNCH >= 0 && self->attacking != ATTACKING_NONE)
             {
                 sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol, savedata.effectvol, 100);
             }
@@ -31807,7 +31807,7 @@ void player_think()
 
     }
 
-    if(PLAYER_MIN_Z != PLAYER_MAX_Z && self->ducking == DUCK_INACTIVE)
+    if(PLAYER_MIN_Z != PLAYER_MAX_Z && self->ducking == DUCK_NONE)
     {
         // More of a platform feel
         if(pl->keys & FLAG_MOVEUP)
@@ -31855,13 +31855,13 @@ void player_think()
             self->velocity.z = 0;
         }
     }
-    else if(self->ducking == DUCK_INACTIVE && validanim(self, ANI_DUCK) && pl->keys & FLAG_MOVEDOWN && notinair)
+    else if(self->ducking == DUCK_NONE && validanim(self, ANI_DUCK) && pl->keys & FLAG_MOVEDOWN && notinair)
     {
         tryduck(self);
         goto endthinkcheck;
     }
 
-    if(pl->keys & FLAG_MOVELEFT && self->ducking == DUCK_INACTIVE)
+    if(pl->keys & FLAG_MOVELEFT && self->ducking == DUCK_NONE)
     {
         if(self->direction == DIRECTION_RIGHT)
         {
@@ -31916,7 +31916,7 @@ void player_think()
             self->velocity.x = -self->modeldata.speed;
         }
     }
-    else if(pl->keys & FLAG_MOVERIGHT && self->ducking == DUCK_INACTIVE)
+    else if(pl->keys & FLAG_MOVERIGHT && self->ducking == DUCK_NONE)
     {
         if(self->direction == DIRECTION_LEFT)
         {
@@ -32236,7 +32236,7 @@ void drop_all_enemies()
                 !ent_list[i]->modeldata.nodrop &&
                 validanim(ent_list[i], ANI_FALL) )
         {
-            ent_list[i]->attacking = ATTACKING_INACTIVE;
+            ent_list[i]->attacking = ATTACKING_NONE;
             ent_list[i]->projectile = BLAST_NONE;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
             ent_list[i]->damage_on_landing.attack_force = 0;
@@ -32707,7 +32707,7 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
             return 0;
         }
 
-        self->attacking = ATTACKING_INACTIVE;
+        self->attacking = ATTACKING_NONE;
 
         if (i <= 0) first_sortid = e->sortid;
         e->sortid = first_sortid - i;
@@ -36280,7 +36280,7 @@ void tryvictorypose(entity *ent)
     {
         ent->takeaction = NULL;
         ent->velocity.x = ent->velocity.z = 0;
-        ent->idling = IDLING_INACTIVE;
+        ent->idling = IDLING_NONE;
         ent_set_anim(ent, ANI_VICTORY, 0);
     }
 }

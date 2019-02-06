@@ -177,7 +177,7 @@ typedef enum
 // Flags for legacy bomb projectiles.
 typedef enum
 {
-	EXPLODE_INACTIVE		= 0,
+	EXPLODE_NONE		= 0,
 	EXPLODE_PREPARED	= (1 << 0),
 	EXPLODE_DETONATE	= (1 << 1)
 } e_explode_state;
@@ -188,7 +188,7 @@ typedef enum
 // Flags for rising state.
 typedef enum
 {
-	RISING_INACTIVE	= 0,
+	RISING_NONE	= 0,
 	RISING_RISE		= (1 << 0),
 	RISING_ATTACK	= (1 << 1)
 } e_rising_state;
@@ -271,7 +271,7 @@ typedef enum
 // State of attack boxes.
 typedef enum
 {
-    ATTACKING_INACTIVE,
+    ATTACKING_NONE,
     ATTACKING_PREPARED,
     ATTACKING_ACTIVE
     // Next should be 4, 8, ... for bitwise evaluations.
@@ -291,7 +291,7 @@ typedef enum
 // State of idle
 typedef enum
 {
-    IDLING_INACTIVE,
+    IDLING_NONE,
     IDLING_PREPARED,
     IDLING_ACTIVE
 } e_idling_state;
@@ -307,7 +307,7 @@ typedef enum
 // State of duck.
 typedef enum
 {
-    DUCK_INACTIVE	= 0,
+    DUCK_NONE	= 0,
     DUCK_PREPARED	= (1 << 0),
     DUCK_ACTIVE		= (1 << 1),
     DUCK_RISE		= (1 << 2)
@@ -1503,26 +1503,26 @@ if(n<1) n = 1;
 #define ABS(x) ((x)>0?(x):(-(x)))
 
 #define set_attacking(e) e->attacking = ATTACKING_PREPARED;\
-						 e->idling = IDLING_INACTIVE;
+						 e->idling = IDLING_NONE;
 
 #define set_jumping(e)   e->jumping = 1;\
-						 e->idling = IDLING_INACTIVE; \
-						 e->ducking = DUCK_INACTIVE;
+						 e->idling = IDLING_NONE; \
+						 e->ducking = DUCK_NONE;
 
 #define set_charging(e)  e->charging = 1;\
-						 e->idling = IDLING_INACTIVE; \
-						 e->ducking = DUCK_INACTIVE;
+						 e->idling = IDLING_NONE; \
+						 e->ducking = DUCK_NONE;
 
 #define set_getting(e)   e->getting = 1;\
-						 e->idling = IDLING_INACTIVE; \
-						 e->ducking = DUCK_INACTIVE;
+						 e->idling = IDLING_NONE; \
+						 e->ducking = DUCK_NONE;
 
 #define set_blocking(e)  e->blocking = 1;\
-						 e->idling = IDLING_INACTIVE;
+						 e->idling = IDLING_NONE;
 
 #define set_turning(e)  e->turning = 1;\
-						e->idling = IDLING_INACTIVE; \
-						 e->ducking = DUCK_INACTIVE;
+						e->idling = IDLING_NONE; \
+						 e->ducking = DUCK_NONE;
 
 #define expand_time(e)   if(e->stalltime>0) e->stalltime++;\
 						 if(e->releasetime>0)e->releasetime++;\
