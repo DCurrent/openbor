@@ -2517,6 +2517,7 @@ typedef struct entity
 	bool					inpain;								// Hit and block stun. ~~
 	bool					jumping;							// ~~
 	bool					running;							// ~~
+	bool					tocost;								// Cost life on hit with special. ~~
 	bool					turning;							// Turning around. ~~
 	bool					walking;							// ~~
 	
@@ -2532,7 +2533,6 @@ typedef struct entity
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~ 
 	
-    int tocost; // Flag to determine if special costs life if doesn't hit an enemy
     int noaicontrol; // pause A.I. control
     int projectile;
    

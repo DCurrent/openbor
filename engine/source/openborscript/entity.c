@@ -120,6 +120,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"stall_time",
 		"think_time",
 		"timestamp",
+		"to_cost",
 		"toss_time",
 		"turn_time",
 		"turn_turning",
@@ -892,6 +893,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->timestamp;
+
+			break;
+
+		case _ENTITY_TO_COST:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->tocost;
 
 			break;
 
@@ -1847,6 +1855,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->timestamp = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_TO_COST:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->tocost = temp_int;
 			}
 
 			break;
