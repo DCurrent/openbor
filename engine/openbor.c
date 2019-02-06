@@ -20056,7 +20056,7 @@ void do_attack(entity *e)
     }
 
 	// If any blast active, use projectile hit property.
-    if(e->projectile != BLAST_NONE)
+    if(e->projectile & BLAST_ATTACK)
     {
         them = e->modeldata.projectilehit;
     }
@@ -20568,7 +20568,7 @@ void do_attack(entity *e)
                 sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);    // Default block sound effect
             }
         }
-        else if(e->projectile != BLAST_NONE && SAMPLE_INDIRECT >= 0)
+        else if(e->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
         {
             sound_play_sample(SAMPLE_INDIRECT, 0, savedata.effectvol, savedata.effectvol, 100);
         }
@@ -24230,19 +24230,19 @@ void common_fall()
     // Landed. Let's see if we could land
 	// safely.
     if(self->projectile != BLAST_NONE)
-    {
-        if(self->projectile & BLAST_TOSS)
-        {
-            // damage_on_landing.attack_force==-2 means a player has pressed up+jump and has a land animation
-            if((autoland == 1 && self->damage_on_landing.attack_force == -1) || self->damage_on_landing.attack_force == -2)
-            {
-                // Added autoland option for landing
-                doland();
-                return;
-            }
-        }
- 
-        self->falling = 0;
+	{ 
+		if (self->projectile & BLAST_TOSS)
+		{
+			// damage_on_landing.attack_force==-2 means a player has pressed up+jump and has a land animation
+			if ((autoland == 1 && self->damage_on_landing.attack_force == -1) || self->damage_on_landing.attack_force == -2)
+			{
+				// Added autoland option for landing
+				doland();
+				return;
+			}
+
+			self->falling = 0;
+		}
     }
 
     // Drop Weapon due to Enemy Falling.
@@ -29469,7 +29469,7 @@ int ai_check_ducking()
         return 0;
     }
 
-    if(self->projectile != BLAST_NONE)
+    if(self->projectile & BLAST_ATTACK)
     {
         them = self->modeldata.projectilehit;
     }
