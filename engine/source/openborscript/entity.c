@@ -28,7 +28,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"animation_id",
 		"animation_state",
 		"animation_time",
-        "arrow_on",
+        "arrow_state",
         "attack_id_incoming",
         "attack_id_outgoing",
 		"attack_state",
@@ -254,7 +254,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-        case _ENTITY_ARROW_ON:
+        case _ENTITY_ARROW_STATE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->arrowon;
@@ -1072,7 +1072,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-        case _ENTITY_ARROW_ON:
+        case _ENTITY_ARROW_STATE:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
