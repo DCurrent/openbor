@@ -1631,17 +1631,6 @@ typedef struct
     int z;
 } s_axis_principal_int;
 
-// Caskey, Damon V.
-// 2019-02-06
-//
-// Waypoints for pathfinding.
-typedef struct s_waypoint
-{
-	s_waypoint *next;
-	float x;
-	float z;
-} s_waypoint;
-
 typedef struct
 {
     s_axis_principal_int    axis;
@@ -2576,7 +2565,7 @@ typedef struct entity
 	
 	
    
-    s_axis_principal_float *waypoints;
+	s_axis_plane_lateral_float *waypoints;
     int numwaypoints;
     unsigned int			animpos;							// Current animation frame. ~~ animation_frame
     unsigned int			animnum;							// Current animation id. ~~ animation_id
