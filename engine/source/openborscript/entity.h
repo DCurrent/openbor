@@ -117,7 +117,7 @@ typedef enum
 	_ENTITY_TURN_STATE,
 	_ENTITY_TURN_TIME,
 	_ENTITY_UPDATE_MARK,
-	_ENTITY_WALKING,
+	_ENTITY_WALK_STATE,
     _ENTITY_END,
 } e_entity_properties;
 
