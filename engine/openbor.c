@@ -24234,7 +24234,7 @@ void common_fall()
 		if (self->projectile & BLAST_TOSS)
 		{
 			// damage_on_landing.attack_force==-2 means a player has pressed up+jump and has a land animation
-			if ((autoland == 1 && self->damage_on_landing.attack_force == -1) || self->damage_on_landing.attack_force == -2)
+			if ((autoland == 1 && self->damage_on_landing.attack_force == ATTACK_FORCE_LAND_AUTO) || self->damage_on_landing.attack_force == ATTACK_FORCE_LAND_COMMAND)
 			{
 				// Added autoland option for landing
 				doland();
@@ -26130,7 +26130,7 @@ void dothrow()
 
     if(autoland == 1 && validanim(other, ANI_LAND))
     {
-        other->damage_on_landing.attack_force = -1;
+        other->damage_on_landing.attack_force = ATTACK_FORCE_LAND_AUTO;
     }
     else
     {
@@ -30506,7 +30506,8 @@ void player_fall_check()
 {
     if(autoland != 2 && (player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP)) == (FLAG_MOVEUP | FLAG_JUMP))
     {
-        self->damage_on_landing.attack_force = -2; // mark it, so we will play land animation when hit the ground
+		// mark it, so we will play land animation when hit the ground.
+        self->damage_on_landing.attack_force = ATTACK_FORCE_LAND_COMMAND; 
     }
 }
 

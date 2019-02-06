@@ -129,6 +129,16 @@ typedef enum
 } e_animating;
 
 // Caskey, Damon V.
+// 2019-02-04
+//
+// Flags for special attack force values.
+typedef enum
+{
+	ATTACK_FORCE_LAND_AUTO		= -1,
+	ATTACK_FORCE_LAND_COMMAND	= -2
+} e_attack_force;
+
+// Caskey, Damon V.
 // 2019-02-05
 typedef enum
 {
