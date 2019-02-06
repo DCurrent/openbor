@@ -29,9 +29,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"animation_state",
 		"animation_time",
         "arrow_on",
-        "attacking",
         "attack_id_incoming",
         "attack_id_outgoing",
+		"attack_state",
         "autokill",
 		"back_hit_direction",
         "binding",
@@ -261,13 +261,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_ATTACKING:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->attacking;
-
-            break;
-
         case _ENTITY_ATTACK_ID_INCOMING:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -281,6 +274,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->attack_id_outgoing;
 
             break;
+
+		case _ENTITY_ATTACK_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->attacking;
+
+			break;
 
         case _ENTITY_AUTOKILL:
 
@@ -1081,15 +1081,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_ATTACKING:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->attacking = temp_int;
-            }
-
-            break;
-
         case _ENTITY_ATTACK_ID_INCOMING:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -1107,6 +1098,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_ATTACK_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->attacking = temp_int;
+			}
+
+			break;
 
         case _ENTITY_AUTOKILL:
 
