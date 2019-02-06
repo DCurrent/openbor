@@ -2516,6 +2516,7 @@ typedef struct entity
 	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
 	bool					inpain;								// Hit and block stun. ~~
 	bool					jumping;							// ~~
+	bool					noaicontrol;						// No AI or automated control. ~~
 	bool					running;							// ~~
 	bool					tocost;								// Cost life on hit with special. ~~
 	bool					turning;							// Turning around. ~~
@@ -2533,7 +2534,7 @@ typedef struct entity
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~ 
 	
-    int noaicontrol; // pause A.I. control
+    
     int projectile;
    
     

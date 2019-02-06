@@ -21,6 +21,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+		"ai_disable",
         "ai_target_entity",
         "animation_animating",
         "animation_collection",
@@ -194,6 +195,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
     switch(property)
     {
+		case _ENTITY_AI_DISABLE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->noaicontrol;
+
+			break;
+
         case _ENTITY_AI_TARGET_ENTITY:
 
             if(handle->custom_target)
@@ -1006,6 +1014,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     // Which property to modify?
     switch(property)
     {
+
+		case _ENTITY_AI_DISABLE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->noaicontrol = temp_int;
+			}
+
+			break;
 
         case _ENTITY_AI_TARGET_ENTITY:
 
