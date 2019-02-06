@@ -240,30 +240,32 @@ typedef enum
     // Use bitwise ready values here so we can cram
     // different types of data into one value.
 
+	PROJECTILE_PRIME_NONE				= 0,
+
     // Source for projectiles base.
-    PROJECTILE_PRIME_BASE_FLOOR         = 0x00000001,
-    PROJECTILE_PRIME_BASE_Y             = 0x00000002,
+    PROJECTILE_PRIME_BASE_FLOOR         = (1 << 0),
+    PROJECTILE_PRIME_BASE_Y             = (1 << 1),
 
     // Movement behavior on launch.
-    PROJECTILE_PRIME_LAUNCH_MOVING      = 0x00000004,
-    PROJECTILE_PRIME_LAUNCH_STATIONARY  = 0x00000008,
+    PROJECTILE_PRIME_LAUNCH_MOVING      = (1 << 2),
+    PROJECTILE_PRIME_LAUNCH_STATIONARY  = (1 << 3),
 
     // Type of projectile as determined by launch method.
-    PROJECTILE_PRIME_REQUEST_FLASH      = 0x00000010,
-    PROJECTILE_PRIME_REQUEST_KNIFE      = 0x00000020,
-    PROJECTILE_PRIME_REQUEST_PROJECTILE = 0x00000040,
-    PROJECTILE_PRIME_REQUEST_PSHOTNO    = 0x00000080,
-    PROJECTILE_PRIME_REQUEST_SHOT       = 0x00000100,
-    PROJECTILE_PRIME_REQUEST_UNDEFINED  = 0x00000200,   // Probably by a script.
+    PROJECTILE_PRIME_REQUEST_FLASH      = (1 << 4),
+    PROJECTILE_PRIME_REQUEST_KNIFE      = (1 << 5),
+    PROJECTILE_PRIME_REQUEST_PROJECTILE = (1 << 6),
+    PROJECTILE_PRIME_REQUEST_PSHOTNO    = (1 << 7),
+    PROJECTILE_PRIME_REQUEST_SHOT       = (1 << 8),
+    PROJECTILE_PRIME_REQUEST_UNDEFINED  = (1 << 9),		// Probably by a script.
 
 
     // How was projectile model determined?
-    PROJECTILE_PRIME_SOURCE_ANIMATION   = 0x00000400,   //  Animation setting.
-    PROJECTILE_PRIME_SOURCE_GLOBAL      = 0x00000800,   //  Global "knife" or global "shot".
-    PROJECTILE_PRIME_SOURCE_INDEX       = 0x00001000,   //  By projectile's model index.
-    PROJECTILE_PRIME_SOURCE_HEADER      = 0x00002000,   //  Model header setting.
-    PROJECTILE_PRIME_SOURCE_NAME        = 0x00004000,   //  By projectile's model name.
-    PROJECTILE_PRIME_SOURCE_WEAPON      = 0x00008000    //  From a SUBTYPE_PROJECTLE weapon pickup.
+    PROJECTILE_PRIME_SOURCE_ANIMATION   = (1 << 10),	//  Animation setting.
+    PROJECTILE_PRIME_SOURCE_GLOBAL      = (1 << 11),	//  Global "knife" or global "shot".
+    PROJECTILE_PRIME_SOURCE_INDEX       = (1 << 12),	//  By projectile's model index.
+    PROJECTILE_PRIME_SOURCE_HEADER      = (1 << 13),	//  Model header setting.
+    PROJECTILE_PRIME_SOURCE_NAME        = (1 << 14),	//  By projectile's model name.
+    PROJECTILE_PRIME_SOURCE_WEAPON      = (1 << 15)		//  From a SUBTYPE_PROJECTLE weapon pickup.
 } e_projectile_prime;
 
 // State of attack boxes.
