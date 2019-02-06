@@ -34,7 +34,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"attack_state",
         "autokill",
 		"back_hit_direction",
-        "binding",
+        "bind",
         "blink",
 		"blocked",
         "blocking",
@@ -296,7 +296,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-        case _ENTITY_BINDING:
+        case _ENTITY_BIND:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (VOID *)&handle->binding;
@@ -1126,7 +1126,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-        case _ENTITY_BINDING:
+        case _ENTITY_BIND:
 
             // Read only.
 
