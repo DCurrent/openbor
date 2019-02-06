@@ -66,7 +66,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"guard_time",
 		"hp",
 		"hp_old",
-		"idling",
+		"idle_state",
 		"in_pain",
 		"in_pain_back",
 		"invincible_state",
@@ -520,7 +520,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-		case _ENTITY_IDLING:
+		case _ENTITY_IDLE_STATE:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->idling;
@@ -1402,7 +1402,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;	
 
-		case _ENTITY_IDLING:
+		case _ENTITY_IDLE_STATE:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
