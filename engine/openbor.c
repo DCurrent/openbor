@@ -27371,7 +27371,7 @@ int common_try_pick(entity *other)
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
 // requires jump.
-int astar(entity *ent, float destx, float destz, float step, s_axis_principal_float **wp)
+int astar(entity *ent, float destx, float destz, float step, s_axis_plane_lateral_float **wp)
 {
     int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
     unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
@@ -27670,7 +27670,7 @@ int checkpathblocked()
     float x, z, r;
     int aitype, wpc;
     entity *target;
-    s_axis_principal_float *wp;
+	s_axis_plane_lateral_float *wp;
     if(self->modeldata.nomove)
     {
         return 0;
