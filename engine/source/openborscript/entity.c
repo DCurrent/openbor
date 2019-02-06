@@ -38,7 +38,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "blink",
         "block_state",
         "boss",
-        "charging",
+        "charge_state",
         "colorset_default",
         "colorset_dying_health_1",
         "colorset_dying_health_2",
@@ -324,7 +324,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_CHARGING:
+        case _ENTITY_CHARGE_STATE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->charging;
@@ -1159,7 +1159,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_CHARGING:
+        case _ENTITY_CHARGE_STATE:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
