@@ -111,7 +111,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"rise_attack_delay",
 		"rise_attack_time",
 		"rise_delay",
-		"rise_rising",
+		"rise_state",
 		"running",
 		"seal_energy",
 		"seal_time",
@@ -834,7 +834,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-		case _ENTITY_RISE_RISING:
+		case _ENTITY_RISE_STATE:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->rising;
@@ -1786,7 +1786,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-		case _ENTITY_RISE_RISING:
+		case _ENTITY_RISE_STATE:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
