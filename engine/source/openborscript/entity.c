@@ -62,7 +62,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"freeze_state",
 		"freeze_time",
 		"get_state",
-		"grab_walking",
+		"grab_walk_state",
 		"guard_time",
 		"hp",
 		"hp_old",
@@ -492,7 +492,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-		case _ENTITY_GRAB_WALKING:
+		case _ENTITY_GRAB_WALK_STATE:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->grabwalking;
@@ -1366,7 +1366,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-		case _ENTITY_GRAB_WALKING:
+		case _ENTITY_GRAB_WALK_STATE:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
