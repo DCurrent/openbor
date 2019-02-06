@@ -2552,7 +2552,7 @@ typedef struct entity
 	e_edge_state			edge;								// At an edge (unbalanced).
 	e_invincible_state		invincible;							// Attack invulnerability. ~~
 	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
-	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall).
+	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
