@@ -20055,7 +20055,8 @@ void do_attack(entity *e)
         topowner = topowner->owner;
     }
 
-    if(e->projectile > 0)
+	// If any blast active, use projectile hit property.
+    if(e->projectile != BLAST_NONE)
     {
         them = e->modeldata.projectilehit;
     }
@@ -20567,7 +20568,7 @@ void do_attack(entity *e)
                 sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);    // Default block sound effect
             }
         }
-        else if(e->projectile > 0 && SAMPLE_INDIRECT >= 0)
+        else if(e->projectile != BLAST_NONE && SAMPLE_INDIRECT >= 0)
         {
             sound_play_sample(SAMPLE_INDIRECT, 0, savedata.effectvol, savedata.effectvol, 100);
         }
@@ -20863,7 +20864,6 @@ void check_gravity(entity *e)
 
                         if ( self->hitwall ) self->hitwall = 0;
 
-                        //self->projectile = 0;
                         // cust dust entity
                         if(self->modeldata.dust.fall_land >= 0 && self->velocity.y < -1 && self->drop)
                         {
@@ -21456,7 +21456,7 @@ void update_animation()
 void check_attack()
 {
     // a normal fall
-    if(self->falling && !self->projectile)
+    if(self->falling && self->projectile == BLAST_NONE)
     {
         self->attack_id_outgoing = 0;
         return;
@@ -23177,7 +23177,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->falling = 0;
     iRise->rising |= RISING_RISE;
     iRise->rising &= ~RISING_ATTACK;
-    iRise->projectile = 0;
+    iRise->projectile = BLAST_NONE;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
     iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.max; //reset jugglepoints
@@ -23390,7 +23390,7 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->falling = 0;
 	iPain->rising = RISING_INACTIVE;
 	iPain->ducking = DUCK_INACTIVE;
-	iPain->projectile = 0;
+	iPain->projectile = BLAST_NONE;
 	iPain->drop = 0;
 	iPain->attacking = ATTACKING_INACTIVE;
 	iPain->getting = 0;
@@ -24203,7 +24203,7 @@ void doland()
 {
     self->velocity.x = self->velocity.z = 0;
     self->drop = 0;
-    self->projectile = 0;
+    self->projectile = BLAST_NONE;
     self->damage_on_landing.attack_force = 0;
     self->damage_on_landing.attack_type = ATK_NONE;
     if(validanim(self, ANI_LAND))
@@ -24226,14 +24226,12 @@ void common_fall()
     {
         return;
     }
-
-
-    //self->velocity.x = self->velocity.z;
-
-    // Landed
-    if(self->projectile > 0)
+   
+    // Landed. Let's see if we could land
+	// safely.
+    if(self->projectile != BLAST_NONE)
     {
-        if(self->projectile == 2)
+        if(self->projectile & BLAST_TOSS)
         {
             // damage_on_landing.attack_force==-2 means a player has pressed up+jump and has a land animation
             if((autoland == 1 && self->damage_on_landing.attack_force == -1) || self->damage_on_landing.attack_force == -2)
@@ -24243,7 +24241,7 @@ void common_fall()
                 return;
             }
         }
-        //self->projectile = 0;
+ 
         self->falling = 0;
     }
 
@@ -26017,7 +26015,7 @@ int common_try_duckattack(entity *other)
         return 0;
     }
 
-    if(self->projectile > 0)
+    if(self->projectile != BLAST_NONE)
     {
         them = self->modeldata.projectilehit;
     }
@@ -26127,7 +26125,7 @@ void dothrow()
     }
 
     other->direction = self->direction;
-    other->projectile = 2;
+    other->projectile |= BLAST_TOSS;
     other->velocity.x = (other->direction == DIRECTION_RIGHT) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
 
     if(autoland == 1 && validanim(other, ANI_LAND))
@@ -28715,7 +28713,7 @@ int projectile_wall_deflect(entity *ent)
             ent->takeaction = common_fall;
             ent->attacking = ATTACKING_INACTIVE;
             ent->energy_state.health_current = 0;
-            ent->projectile = 0;
+            ent->projectile = BLAST_NONE;
             ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
             ent->damage_on_landing.attack_force = 0;
             ent->damage_on_landing.attack_type = ATK_NONE;
@@ -29471,7 +29469,7 @@ int ai_check_ducking()
         return 0;
     }
 
-    if(self->projectile > 0)
+    if(self->projectile != BLAST_NONE)
     {
         them = self->modeldata.projectilehit;
     }
@@ -31321,7 +31319,7 @@ void player_think()
     }
 
     // falling? check for landing
-    if(self->projectile == 2)
+    if(self->projectile & BLAST_TOSS)
     {
         player_fall_check();
         goto endthinkcheck;
@@ -32238,7 +32236,7 @@ void drop_all_enemies()
                 validanim(ent_list[i], ANI_FALL) )
         {
             ent_list[i]->attacking = ATTACKING_INACTIVE;
-            ent_list[i]->projectile = 0;
+            ent_list[i]->projectile = BLAST_NONE;
             ent_list[i]->takeaction = common_fall;//enemy_fall;
             ent_list[i]->damage_on_landing.attack_force = 0;
             ent_list[i]->damage_on_landing.attack_type = ATK_NONE;
