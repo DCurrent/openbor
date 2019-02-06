@@ -23,7 +23,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     {
 		"ai_disable",
         "ai_target_entity",
-        "animation_collection",
+        "animation",
         "animation_frame",
 		"animation_id",
 		"animation_state",
@@ -212,17 +212,10 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_ANIMATION_COLLECTION:
-
-            // Verify entity has an animation collection
-            // before getting the pointer. All entities
-            // should, but there might be rare special
-            // cases depending on future development.
-            if(handle->animation)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->animation;
-            }
+        case _ENTITY_ANIMATION:
+            
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (VOID *)handle->animation;           
 
             break;
 
@@ -1030,9 +1023,9 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_ANIMATION_COLLECTION:
+        case _ENTITY_ANIMATION:
 
-            //handle->animation = (s_anim **)varlist[ARG_VALUE]->ptrVal;
+            handle->animation = (s_anim *)varlist[ARG_VALUE]->ptrVal;
 
             break;
 
