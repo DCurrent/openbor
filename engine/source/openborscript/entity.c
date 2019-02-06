@@ -36,7 +36,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"back_hit_direction",
         "bind",
         "blink",
-        "blocking",
+        "block_state",
         "boss",
         "charging",
         "colorset_default",
@@ -310,7 +310,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_BLOCKING:
+        case _ENTITY_BLOCK_STATE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->blocking;
@@ -1141,7 +1141,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_BLOCKING:
+        case _ENTITY_BLOCK_STATE:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
