@@ -265,6 +265,17 @@ typedef enum
     // Next should be 4, 8, ... for bitwise evaluations.
 } e_attacking_state;
 
+// Caskey, Damon V.
+// 2019-02-06
+//
+// State of blasted (thrown or hit withblasting attack).
+typedef enum
+{
+	BLAST_NONE,
+	BLAST_ATTACK,
+	BLAST_TOSS
+} e_blasted_state;
+
 // State of idle
 typedef enum
 {
@@ -2529,15 +2540,12 @@ typedef struct entity
 	e_edge_state			edge;								// At an edge (unbalanced).
 	e_invincible_state		invincible;							// Attack invulnerability. ~~
 	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
+	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall).
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~ 
-	
-    
-    int projectile;
-   
-    
+	    
     unsigned pathblocked;
     s_axis_principal_float *waypoints;
     int numwaypoints;
