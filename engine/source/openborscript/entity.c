@@ -23,10 +23,10 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     {
 		"ai_disable",
         "ai_target_entity",
-        "animation_animating",
         "animation_collection",
         "animation_frame",
 		"animation_id",
+		"animation_state",
 		"animation_time",
         "arrow_on",
         "attacking",
@@ -212,13 +212,6 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-        case _ENTITY_ANIMATION_ANIMATING:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->animating;
-
-            break;
-
         case _ENTITY_ANIMATION_COLLECTION:
 
             // Verify entity has an animation collection
@@ -244,6 +237,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->animnum;
+
+			break;
+
+		case _ENTITY_ANIMATION_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->animating;
 
 			break;
 
@@ -1030,15 +1030,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-        case _ENTITY_ANIMATION_ANIMATING:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->animating = temp_int;
-            }
-
-            break;
-
         case _ENTITY_ANIMATION_COLLECTION:
 
             //handle->animation = (s_anim **)varlist[ARG_VALUE]->ptrVal;
@@ -1059,6 +1050,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->animnum = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_ANIMATION_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->animating = temp_int;
 			}
 
 			break;
