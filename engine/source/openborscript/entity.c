@@ -35,6 +35,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "autokill",
 		"back_hit_direction",
         "bind",
+		"blast_state",
         "blink",
         "block_state",
         "boss",
@@ -295,6 +296,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->ptrVal = (VOID *)&handle->binding;
 
             break;
+
+		case _ENTITY_BLAST_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->projectile;
+
+			break;
 
         case _ENTITY_BLINK:
 
@@ -1125,6 +1133,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
+		case _ENTITY_BLAST_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->projectile = temp_int;
+			}
+
+			break;
+
         case _ENTITY_BLINK:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -1859,7 +1876,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			}
 
 			break;
-
+			
 		case _ENTITY_TIMESTAMP:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
