@@ -27367,11 +27367,235 @@ int common_try_pick(entity *other)
 #define astarh 360
 #define starts (astarw*astarh)
 
+// Caskey, Damon V.
+// 2019-02-07
+//
+// Derived from Utunnels original function. Now returns the head 
+// of waypoint linked list (as opposed to number of elements in 
+// waypoint array).
+//
 // not so completed pathfinding logic based on a*
 // it should be fairly slow due to the complicacy of terrain checking
 // and it doesn't always work since walking from wall to wall
 // requires jump.
-int astar(entity *ent, float destx, float destz, float step, s_axis_plane_lateral_float **wp)
+s_waypoint * astar_wp(entity *ent, float destx, float destz, float step)
+{
+	s_waypoint *waypoints_head		= NULL;
+	s_waypoint *waypoints_cursor	= NULL;
+	s_waypoint *waypoints_next		= NULL;
+
+	int(*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
+	unsigned char(*closed)[astarw][astarh] = malloc(sizeof(*closed));
+	int(*openset)[starts][2] = malloc(sizeof(*openset));
+	float(*gscore)[astarw][astarh] = malloc(sizeof(*gscore));
+	float(*hscore)[astarw][astarh] = malloc(sizeof(*hscore));
+	float(*fscore)[astarw][astarh] = malloc(sizeof(*fscore));
+	int opensize = 0;
+	int mi = 0;
+	float tg;
+	float minf;
+	int x;
+	int z; 
+	int i; 
+	int j; 
+	int tx; 
+	int tz;
+	int better;
+	static int vx[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+	static int vz[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
+	static float score[8] = { 1.0, 1.4, 1.0, 1.4, 1.0, 1.4, 1.0, 1.4 };
+
+	int sx = astarw / 2, sz = astarh / 2;
+	int dx = sx + (destx - ent->position.x) / step, dz = sz + (destz - ent->position.z) / step;
+
+	if (dx < 0 || dx >= astarw || dz < 0 || dz >= astarh)
+	{
+		goto pfclearup;
+	}
+
+	memset(closed, 0, sizeof(*closed));
+	(*openset)[opensize][0] = sx;
+	(*openset)[opensize][1] = sz;
+	opensize++;
+	memset(came_from, 0, sizeof(*came_from));
+
+	(*gscore)[sx][sz] = 0;
+	(*hscore)[sx][sz] = diff(dx, sx) + diff(dz, sz);
+	(*fscore)[sx][sz] = (*gscore)[sx][sz] + (*hscore)[sx][sz];
+	(*came_from)[sx][sz][0] = -1;
+
+	while (opensize > 0)
+	{
+		minf = 9999999;
+		for (j = 0; j < opensize; j++)
+		{
+			x = (*openset)[j][0];
+			z = (*openset)[j][1];
+			if ((*fscore)[x][z] < minf)
+			{
+				minf = (*fscore)[x][z];
+				mi = j;
+			}
+		}
+
+		x = (*openset)[mi][0];
+		z = (*openset)[mi][1];
+		if (x == dx && z == dz)
+		{
+			do
+			{
+				tx = (*came_from)[x][z][0];
+				tz = (*came_from)[x][z][1];
+				
+				x = tx;
+				z = tz;
+			} while (x >= 0);
+
+			tx = (*came_from)[dx][dz][0];
+			tz = (*came_from)[dx][dz][1];
+			j = 0;
+
+			while (tx >= 0)
+			{
+				// Allocate memory and get pointer for a new node in waypoints list.
+				waypoints_cursor = malloc(sizeof(*waypoints_cursor));
+
+				// Populate head pointer if it isn't present.
+				if (!waypoints_head)
+				{
+					waypoints_head = waypoints_cursor;
+				}
+
+				// Populate position data.
+				waypoints_cursor->x = (tx - sx) * step + ent->position.x;
+				waypoints_cursor->x = (tx - sx) * step + ent->position.x;
+
+				// If temporary next value is present, us it to
+				// populate member next value.
+				if (waypoints_next)
+				{
+					waypoints_cursor->next = waypoints_next;
+				}
+				else
+				{
+					waypoints_cursor->next = NULL;
+				}
+
+				// Populate temporary next for the next pass.
+				waypoints_next = waypoints_cursor;
+
+				x = (*came_from)[tx][tz][0];
+				z = (*came_from)[tx][tz][1];
+				tx = x;
+				tz = z;
+				j++;
+			}
+			goto pfclearup;
+		}
+
+		(*openset)[mi][0] = (*openset)[opensize - 1][0];
+		(*openset)[mi][1] = (*openset)[opensize - 1][1];
+
+		opensize--;
+		(*closed)[x][z] = 1;
+
+		for (i = 0; i < 8; i++)
+		{
+			tx = x + vx[i];
+			tz = z + vz[i];
+
+			if (tx < 0 || tx >= astarw || tz < 0 || tz >= astarh)
+			{
+				continue;
+			}
+			if ((*closed)[tx][tz])
+			{
+				continue;
+			}
+
+			if (!testmove(ent, (x - sx)*step + ent->position.x, (z - sz)*step + ent->position.z, (tx - sx)*step + ent->position.x, (tz - sz)*step + ent->position.z))
+			{
+				// (*closed)[tx][tz] = 1; // don't add that to close list just in case the entity can jump
+				continue;
+			}
+
+			tg = (*gscore)[x][z] + score[i];
+
+			for (j = 0; j < opensize; j++)
+			{
+				if ((*openset)[j][0] == tx && (*openset)[j][1] == tz)
+				{
+					break;
+				}
+			}
+
+			if (j == opensize)
+			{
+				(*openset)[opensize][0] = tx;
+				(*openset)[opensize][1] = tz;
+				opensize++;
+				better = 1;
+			}
+			else if (tg < (*gscore)[tx][tz])
+			{
+				better = 1;
+			}
+			else
+			{
+				better = 0;
+			}
+
+			if (better)
+			{
+				(*came_from)[tx][tz][0] = x;
+				(*came_from)[tx][tz][1] = z;
+				(*gscore)[tx][tz] = tg;
+				(*hscore)[tx][tz] = diff(tx, dx) + diff(tz, dz);
+				(*fscore)[tx][tz] = (*gscore)[tx][tz] + (*hscore)[tx][tz];
+			}
+		}
+	}
+
+pfclearup:
+	if (came_from)
+	{
+		free(came_from);
+	}
+	came_from = NULL;
+	if (closed)
+	{
+		free(closed);
+	}
+	closed = NULL;
+	if (openset)
+	{
+		free(openset);
+	}
+	openset = NULL;
+	if (gscore)
+	{
+		free(gscore);
+	}
+	gscore = NULL;
+	if (hscore)
+	{
+		free(hscore);
+	}
+	hscore = NULL;
+	if (fscore)
+	{
+		free(fscore);
+	}
+	fscore = NULL;
+
+	return waypoints_head;
+}
+
+// not so completed pathfinding logic based on a*
+// it should be fairly slow due to the complicacy of terrain checking
+// and it doesn't always work since walking from wall to wall
+// requires jump.
+int astar(entity *ent, float destx, float destz, float step, s_axis_plane_lateral_float **waypoints)
 {
     int (*came_from)[astarw][astarh][2] = malloc(sizeof(*came_from));
     unsigned char (*closed)[astarw][astarh] = malloc(sizeof(*closed));
@@ -27389,7 +27613,7 @@ int astar(entity *ent, float destx, float destz, float step, s_axis_plane_latera
     int sx = astarw / 2, sz = astarh / 2;
     int dx = sx + (destx - ent->position.x) / step, dz = sz + (destz - ent->position.z) / step;
 
-    *wp = NULL;
+    *waypoints = NULL;
     if(dx < 0 || dx >= astarw || dz < 0 || dz >= astarh)
     {
         goto pfclearup;
@@ -27432,14 +27656,18 @@ int astar(entity *ent, float destx, float destz, float step, s_axis_plane_latera
                 z = tz;
             }
             while(x >= 0);
-            *wp = malloc(sizeof(*wp) * result);
+
+            *waypoints = malloc(sizeof(*waypoints) * result);
             tx = (*came_from)[dx][dz][0];
             tz = (*came_from)[dx][dz][1];
             j = 0;
-            while(tx >= 0)
+            
+			while(tx >= 0)
             {
-                (*wp)[j].x = (tx - sx) * step + ent->position.x;
-                (*wp)[j].z = (tz - sz) * step + ent->position.z;
+				
+
+                (*waypoints)[j].x = (tx - sx) * step + ent->position.x;
+                (*waypoints)[j].z = (tz - sz) * step + ent->position.z;
                 x = (*came_from)[tx][tz][0];
                 z = (*came_from)[tx][tz][1];
                 tx = x;
@@ -27665,10 +27893,49 @@ void adjustspeed(float speed, float x, float z, float tx, float tz, float *xdir,
 
 }
 
+// Caskey, Damon V.
+// 2019-02-07
+//
+// Reverse order (1-2-3 to 3-2-1) of waypoints linked list.
+s_waypoint *reverse_waypoints(s_waypoint *waypoints_head)
+{
+	s_waypoint *working_list;
+	s_waypoint *reversed_list;
+	s_waypoint *temp;
+
+	// If head is null or there's no next, just get out.
+	if (waypoints_head == NULL 
+		||	waypoints_head->next == NULL) 
+	{
+		return waypoints_head;
+	}
+
+	// Prepare for first pass. Working list is the
+	// head, and reversed list is head's next.
+	working_list = waypoints_head->next;
+	reversed_list = waypoints_head;
+	
+	// Delete the next for reversed list.
+	reversed_list->next = NULL;
+
+	while (working_list != NULL)
+	{
+		temp = working_list;
+		working_list = working_list->next;
+
+		temp->next = reversed_list;
+		reversed_list = temp;
+	}
+
+	return reversed_list;
+}
+
+
 int checkpathblocked()
 {
     float x, z, r;
-    int aitype, wpc;
+	int aitype;
+	int waypoint_count;
     entity *target;
 	s_axis_plane_lateral_float *wp;
     if(self->modeldata.nomove)
@@ -27703,20 +27970,22 @@ int checkpathblocked()
                 if(target)
                 {
                     //printf("pathfind: (%f %f)-(%f %f) %d steps\n", self->position.x, self->position.z, self->destx, self->destz, pathfind(self, self->destx, self->destz));
-                    if((wpc = astar(self, target->position.x, target->position.z, self->modeldata.pathfindstep, &wp)) > 0)
+                    if((waypoint_count = astar(self, target->position.x, target->position.z, self->modeldata.pathfindstep, &wp)) > 0)
                     {
                         //printf("wp %d\n", wp);
-                        self->numwaypoints = wpc;
+                        self->numwaypoints = waypoint_count;
                         if(self->waypoints)
                         {
                             free(self->waypoints);
                         }
+
                         self->waypoints = wp;
                         self->destx = self->waypoints[self->numwaypoints - 1].x;
                         self->destz = self->waypoints[self->numwaypoints - 1].z;
                         self->numwaypoints--;
                         self->pathblocked = 0;
-                        return 1;
+                        
+						return 1;
                     }
                 }
             }

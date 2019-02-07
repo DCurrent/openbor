@@ -1669,6 +1669,17 @@ typedef struct
     int min;    //min value.
 } s_metric_range_current;
 
+// Caskey, Damon V.
+// 2019-02-07
+//
+// Waypoint structure.
+typedef struct s_waypoint
+{
+	struct s_waypoint *next;
+	float x;
+	float z;
+} s_waypoint;
+
 typedef struct
 {
     unsigned compatibleversion;
