@@ -129,7 +129,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"turn_time",
 		"update_mark",
 		"walk_state",
-		"waypoint_collection"
+		"waypoint_collection",
+		"waypoint_count"
     };
 
     // If the minimum argument count
@@ -960,6 +961,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			(*pretvar)->ptrVal = (s_axis_plane_lateral_float *)handle->waypoints;
+
+			break;
+
+		case _ENTITY_WAYPOINT_COUNT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->numwaypoints;
 
 			break;
 
@@ -1968,6 +1976,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_WAYPOINT_COLLECTION:
 
 			// Read only.
+
+			break;
+
+		case _ENTITY_WAYPOINT_COUNT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->numwaypoints = temp_int;
+			}
 
 			break;
 
