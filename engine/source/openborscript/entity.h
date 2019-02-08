@@ -120,6 +120,7 @@ typedef enum
 	_ENTITY_TURN_TIME,
 	_ENTITY_UPDATE_MARK,
 	_ENTITY_WALK_STATE,
+	_ENTITY_WAYPOINT_COLLECTION,
     _ENTITY_END,
 } e_entity_properties;
 

@@ -2464,17 +2464,18 @@ typedef struct
 
 typedef struct entity
 {
-	
-	s_axis_principal_float	position;							// x,y,z location. ~~
-	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
-	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-	s_energy_state			energy_state;						// Health and MP. ~~
 	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
 	s_model					*defaultmodel;						// this is the default model ~~
 	s_model					*model;								// current model ~~
+	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
+	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
+
+	s_axis_principal_float	position;							// x,y,z location. ~~
+	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
+	s_energy_state			energy_state;						// Health and MP. ~~	
 	s_model					modeldata;							// model data copied here ~~
-	s_jump					jump;								// Jumping velocity and animationnid. ~~
-    
+	s_jump					jump;								// Jumping velocity and animationnid. ~~	
+
 	float					destx;								// temporary values for ai functions ~~
 	float					destz;								// ~~
 	float					movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
@@ -2565,8 +2566,8 @@ typedef struct entity
 	
 	
    
-	s_axis_plane_lateral_float *waypoints;
-    int numwaypoints;
+	
+    unsigned int			numwaypoints;
     unsigned int			animpos;							// Current animation frame. ~~ animation_frame
     unsigned int			animnum;							// Current animation id. ~~ animation_id
     unsigned int prevanimnum;		// previous animation id.
