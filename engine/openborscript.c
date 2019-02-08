@@ -3476,7 +3476,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_prevanimationid:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->prevanimnum;
+        (*pretvar)->lVal = (LONG)ent->animnum_previous;
         break;
     }
     case _ep_animpos:

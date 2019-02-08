@@ -18204,7 +18204,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         {
             animpos = 0;
         }
-        ent->prevanimnum = ent->animnum;
+        ent->animnum_previous = ent->animnum;
         ent->animnum = aninum;
         ent->animation = ani;
         ent->animpos = animpos;
@@ -18212,7 +18212,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
     }
     else
     {
-        ent->prevanimnum = ent->animnum;
+        ent->animnum_previous = ent->animnum;
         ent->animnum = aninum;    // Stored for nocost usage
         ent->animation = ani;
         ent->animation->animhits = 0;

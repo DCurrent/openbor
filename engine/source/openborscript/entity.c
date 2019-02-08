@@ -26,6 +26,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "animation",
         "animation_frame",
 		"animation_id",
+		"animation_id_previous",
 		"animation_state",
 		"animation_time",
         "arrow_state",
@@ -234,6 +235,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->animnum;
+
+			break;
+
+		case _ENTITY_ANIMATION_ID_PREVIOUS:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->animnum_previous;
 
 			break;
 
@@ -1075,6 +1083,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->animnum = temp_int;
+			}
+
+			break; 
+
+		case _ENTITY_ANIMATION_ID_PREVIOUS:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->animnum_previous = temp_int;
 			}
 
 			break;

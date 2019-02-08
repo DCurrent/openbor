@@ -2528,6 +2528,7 @@ typedef struct entity
 	unsigned int			attack_id_incoming;					// ~~
 	unsigned int			attack_id_outgoing;					// ~~
 	unsigned int			animnum;							// Current animation id. ~~
+	unsigned int			animnum_previous;					// Previous animation id. ~~
 	unsigned int			combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
 	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
@@ -2588,7 +2589,7 @@ typedef struct entity
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
    
     
-    unsigned int prevanimnum;		// previous animation id.
+    
     
     
     
