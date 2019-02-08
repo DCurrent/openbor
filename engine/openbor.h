@@ -2464,27 +2464,40 @@ typedef struct
 
 typedef struct entity
 {
-	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
-	s_model					*defaultmodel;						// this is the default model ~~
-	s_model					*model;								// current model ~~
-	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
-
+	// Sub structures.
+	s_damage_on_landing		damage_on_landing;					// ~~
+	s_bind					binding;							// Binding self to another entity. ~~
 	s_axis_principal_float	position;							// x,y,z location. ~~
 	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
 	s_energy_state			energy_state;						// Health and MP. ~~	
 	s_model					modeldata;							// model data copied here ~~
 	s_jump					jump;								// Jumping velocity and animationnid. ~~	
 
+	// Structured pointers.
+	s_anim					*animation;							// Pointer to animation collection. ~~
+	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
+	s_model					*defaultmodel;						// this is the default model ~~
+	s_model					*model;								// current model ~~
+	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
+	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
+
+	struct entity			*custom_target;						// Target forced by modder via script ~~
+	struct entity			*opponent;							// Last entity interacted with. ~~	
+	
+	// Pointers
+	unsigned char			*colourmap;							// Colortable in use. ~~
+
+	// Floating decimals.
+	float					altbase;							// Altitude affected by movea. ~~
+	float					base;								// Default altitude. ~~
 	float					destx;								// temporary values for ai functions ~~
 	float					destz;								// ~~
+	float					knockdowncount;						// Attack knockdown force reduces this. Only fall when at 0. ~~
 	float					movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
 	float					movez;								// Reposition this many pixels per frame. Used by animation movez command. ~~
 	float					speedmul;							// Final multiplier for movement/velocity. ~~
-	float					base;								// Default altitude. ~~
-	float					altbase;							// Altitude affected by movea. ~~
 
-    // ---------------------- action times -------------------------------
+    // Size defined ints (for time).
 	u32						combotime;							// If not expired, continue to next attack in series combo. ~~
 	u32						guardtime;							// Next time to auto adjust guardpoints. ~~
 	u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
@@ -2510,18 +2523,27 @@ typedef struct entity
     u32						turntime;							// Time when entity can switch direction. ~~
     // -------------------------end of times ------------------------------
 	
-	unsigned				combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
+	// Unsigned integers
+	unsigned int			animpos;							// Current animation frame. ~~
+	unsigned int			attack_id_incoming;					// ~~
+	unsigned int			attack_id_outgoing;					// ~~
+	unsigned int			animnum;							// Current animation id. ~~
+	unsigned int			combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
 	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
 	unsigned int			pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
 	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
 	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
+	unsigned int			numwaypoints;						// Count of waypoints in use. ~~
 
+	// Signed integers
+	int						map;								// Stores the colourmap for restoring purposes. ~~
 	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
 	int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
 	int						playerindex;						// Player controlling the entity. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
 	
+	// Enumerated integers.
 	e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
@@ -2537,6 +2559,7 @@ typedef struct entity
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
+	// Boolean flags.
     bool					arrowon;							// Display arrow icon (parrow<player>) ~~
 	bool					blink;								// Toggle flash effect. ~~
 	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
@@ -2561,43 +2584,34 @@ typedef struct entity
 	bool					turning;							// Turning around. ~~
 	bool					walking;							// ~~
 	
-	char					name[MAX_NAME_LEN];					// this is display name. ~~
-
-	
-	
+	// Signed char.
+	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
    
-	
-    unsigned int			numwaypoints;
-    unsigned int			animpos;							// Current animation frame. ~~ animation_frame
-    unsigned int			animnum;							// Current animation id. ~~ animation_id
+    
     unsigned int prevanimnum;		// previous animation id.
-    s_anim					*animation;							// Pointer to animation collection. ~~ animation_collection
-    float					knockdowncount;						// Attack knockdown force reduces this. Only fall when at 0. ~~
-    s_damage_on_landing		damage_on_landing;					// ~~
+    
+    
+    
     int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
     int last_damage_type; // used for set death animation or pain animation
-    int						map;								// Stores the colourmap for restoring purposes. ~~
     void (*think)();
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
-    unsigned int			attack_id_incoming;					// ~~
-    unsigned int			attack_id_outgoing;					// ~~
-    unsigned char			*colourmap;							// Colortable in use. ~~
-    //struct entity   *thrower;
-    struct entity *link; // Used to link 2 entities together.
+    
+	struct entity *link; // Used to link 2 entities together.
     struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
     struct entity *grabbing; // Added for "platform level" layering
     struct entity *weapent;
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
-    struct entity			*opponent;				// Last entity interacted with. ~~
+    
     struct entity *collided_entity;
-    struct entity			*custom_target;			// Target forced by modder via script ~~
+    
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
-    s_bind					binding;				// Binding self to another entity. ~~
+   
     int escapecount; // For escapehits
     s_rush rush;    //Rush combo display.
     int lifespancountdown; // life span count down
