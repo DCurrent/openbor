@@ -2478,6 +2478,7 @@ typedef struct entity
 	s_anim					*animation;							// Pointer to animation collection. ~~
 	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
 	s_model					*defaultmodel;						// this is the default model ~~
+	s_defense				*defense;							// Resistance or vulnerability to certain attack types. ~~
 	s_model					*model;								// current model ~~
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
 	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
@@ -2612,11 +2613,6 @@ typedef struct entity
       
    
     
-    
-    
-
-    //------------- copy them from model to avoid global effect -------------
-    s_defense *defense;
     float *offense_factors;
 
     int idlemode;

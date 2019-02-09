@@ -55,6 +55,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "damage_on_landing",
 		"dead",
         "deduct_ammo",
+		"defense_collection",
 		"destination_x",
 		"destination_z",
 		"die_on_landing",
@@ -458,6 +459,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->deduct_ammo;
 
             break;
+
+		case _ENTITY_DEFENSE_COLLECTION:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_defense *)handle->defense;
+
+			break;
 
 		case _ENTITY_DESTINATION_X:
 
@@ -1479,6 +1487,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_DEFENSE_COLLECTION:
+
+			handle->subentity = (s_defense *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
 
 		case _ENTITY_DESTINATION_X:
 
