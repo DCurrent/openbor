@@ -131,6 +131,7 @@ typedef enum
 	_ENTITY_WALK_STATE,
 	_ENTITY_WAYPOINT_COLLECTION,
 	_ENTITY_WAYPOINT_COUNT,
+	_ENTITY_WEAPON,
     _ENTITY_END,
 } e_entity_properties;
 

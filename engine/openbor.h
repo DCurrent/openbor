@@ -2486,6 +2486,7 @@ typedef struct entity
 	struct entity			*link;								// Used to link 2 entities together. ~~
 	struct entity			*opponent;							// Last entity interacted with. ~~	
 	struct entity			*owner;								// Projectile knows its owner. ~~
+	struct entity			*weapent;							// Item entity that was picked up as a weapon. ~~
 
 	// Pointers
 	unsigned char			*colourmap;							// Colortable in use. ~~
@@ -2600,7 +2601,7 @@ typedef struct entity
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
     
-    struct entity *weapent;
+    
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity
     

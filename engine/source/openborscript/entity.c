@@ -139,7 +139,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"update_mark",
 		"walk_state",
 		"waypoint_collection",
-		"waypoint_count"
+		"waypoint_count",
+		"weapon"
     };
 
     // If the minimum argument count
@@ -1043,6 +1044,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->numwaypoints;
+
+			break;
+
+		case _ENTITY_WEAPON:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (entity *)handle->weapent;
 
 			break;
 
@@ -2123,6 +2131,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->numwaypoints = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_WEAPON:
+
+			handle->weapent = (entity *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
