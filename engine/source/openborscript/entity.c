@@ -1490,7 +1490,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 		case _ENTITY_DEFENSE_COLLECTION:
 
-			handle->subentity = (s_defense *)varlist[ARG_VALUE]->ptrVal;
+			handle->defense = (s_defense *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
