@@ -2551,6 +2551,7 @@ typedef struct entity
 
 	// Signed integers
 	int						last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
+	int						lifespancountdown;					// Life span count down. ~~
 	int						map;								// Stores the colourmap for restoring purposes. ~~
 	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
 	int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
@@ -2612,7 +2613,7 @@ typedef struct entity
    
     
     
-    int lifespancountdown; // life span count down
+    
 
     //------------- copy them from model to avoid global effect -------------
     s_defense *defense;

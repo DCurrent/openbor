@@ -91,6 +91,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"knockdown_time",
 		"last_damage_type",
 		"last_hit",
+		"lifespan",
 		"link",
 		"model",
 		"model_data",
@@ -710,6 +711,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			(*pretvar)->ptrVal = (entity *)handle->lasthit;
+
+			break;
+
+		case _ENTITY_LIFESPAN:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->lifespancountdown;
 
 			break;
 
@@ -1772,6 +1780,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_LAST_HIT:
 
 			handle->lasthit = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ENTITY_LIFESPAN:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->lifespancountdown = temp_int;
+			}
 
 			break;
 
