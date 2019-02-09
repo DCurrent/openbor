@@ -2542,6 +2542,7 @@ typedef struct entity
 	unsigned int			combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
 	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
+	unsigned int			escapecount;						// hit count for escapehits. ~~
 	unsigned int			pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
 	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
 	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
@@ -2608,7 +2609,7 @@ typedef struct entity
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
       
    
-    int escapecount; // For escapehits
+    
     s_rush rush;    //Rush combo display.
     int lifespancountdown; // life span count down
 
