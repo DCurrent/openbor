@@ -87,6 +87,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"knockdown_count",
 		"knockdown_time",
 		"last_damage_type",
+		"link"
 		"model",
 		"model_data",
 		"model_default",
@@ -218,7 +219,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             if(handle->custom_target)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->custom_target;
+                (*pretvar)->ptrVal = (entity *)handle->custom_target;
             }
 
             break;
@@ -226,7 +227,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
         case _ENTITY_ANIMATION:
             
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)handle->animation;           
+            (*pretvar)->ptrVal = (s_anim *)handle->animation;           
 
             break;
 
@@ -310,7 +311,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
         case _ENTITY_BIND:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&handle->binding;
+            (*pretvar)->ptrVal = (s_bind *)&handle->binding;
 
             break;
 
@@ -422,7 +423,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
         case _ENTITY_DAMAGE_ON_LANDING:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (VOID *)&handle->damage_on_landing;
+            (*pretvar)->ptrVal = (s_damage_on_landing *)&handle->damage_on_landing;
 
             break;
 
@@ -611,7 +612,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_ITEM_DATA:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID *)&handle->item_properties;
+			(*pretvar)->ptrVal = (s_item_properties *)&handle->item_properties;
 
 			break;
 
@@ -671,24 +672,31 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
+		case _ENTITY_LINK:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (entity *)handle->link;
+
+			break;
+
 		case _ENTITY_MODEL:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID *)(handle->model);
+			(*pretvar)->ptrVal = (s_model *)(handle->model);
 
 			break;
 
 		case _ENTITY_MODEL_DATA:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID *)&handle->modeldata;
+			(*pretvar)->ptrVal = (s_model *)&handle->modeldata;
 
 			break;
 
 		case _ENTITY_MODEL_DEFAULT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (VOID *)(handle->defaultmodel);
+			(*pretvar)->ptrVal = (s_model *)(handle->defaultmodel);
 
 			break;
 
@@ -1654,6 +1662,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->last_damage_type = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_LINK:
+
+			handle->link = (entity *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
