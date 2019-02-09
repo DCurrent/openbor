@@ -69,6 +69,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"function_think",
 		"function_try_move",
 		"get_state",
+		"grab_target",
 		"grab_walk_state",
 		"guard_time",
 		"hp",
@@ -543,6 +544,16 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->getting;
+
+			break;
+
+		case _ENTITY_GRAB_TARGET:
+
+			if (handle->custom_target)
+			{
+				ScriptVariant_ChangeType(*pretvar, VT_PTR);
+				(*pretvar)->ptrVal = (entity *)handle->grabbing;
+			}
 
 			break;
 
@@ -1503,6 +1514,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->getting = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_GRAB_TARGET:
+
+			handle->grabbing = (entity *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 

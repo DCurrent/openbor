@@ -2482,6 +2482,7 @@ typedef struct entity
 	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
 
 	struct entity			*custom_target;						// Target forced by modder via script ~~
+	struct entity			*grabbing;							// Added for "platform level" layering. ~~
 	struct entity			*link;								// Used to link 2 entities together. ~~
 	struct entity			*opponent;							// Last entity interacted with. ~~	
 	struct entity			*owner;								// Projectile knows its owner. ~~
@@ -2599,7 +2600,6 @@ typedef struct entity
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
     
-    struct entity *grabbing; // Added for "platform level" layering
     struct entity *weapent;
     struct entity *parent; //Its spawner
     struct entity *subentity; //store the sub entity

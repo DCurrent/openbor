@@ -22443,12 +22443,10 @@ void display_ents()
                                                 (float)other->animation->platform[other->animpos][PLATFORM_Z] );
 
                         if(
-                            e->link &&
-                            ((e->modeldata.grabback &&
-                              !e->grabbing) ||
-                             (e->link->modeldata.grabback &&
-                              e->link->grabbing) ||
-                             e->grabbing)
+                            e->link														// Linked to entity.
+							&& ((e->modeldata.grabback && !e->grabbing)						// Have grab back AND not grabbing.
+								|| (e->link->modeldata.grabback && e->link->grabbing)		// Linked has grab back and is grabbing.
+								|| e->grabbing)												// Grabbing.
                         )
                         {
 
@@ -25503,8 +25501,10 @@ int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 	}
 
     // unlink due to being hit
-    if((self->opponent && self->opponent->grabbing != self) ||
-            self->dead || self->frozen || self->drop)
+    if((self->opponent && self->opponent->grabbing != self) // Have an opponent, but opponent is not grabbing me. 
+		|| self->dead										// Dead.
+		|| self->frozen										// Frozen. 
+		|| self->drop)										// Knocked down.
     {
         ent_unlink(self);
     }
