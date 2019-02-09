@@ -551,6 +551,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		ICMPCONST(EXPLODE_PREPARED)
 		ICMPCONST(EXPLODE_DETONATE)
 
+		// Starting entity lifespan.
+		ICMPCONST(LIFESPAN_DEFAULT)
+
         // Platform props.
         ICMPCONST(PLATFORM_X)
         ICMPCONST(PLATFORM_Z)
