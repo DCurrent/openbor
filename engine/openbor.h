@@ -2568,6 +2568,7 @@ typedef struct entity
 	bool					charging;							// Charging MP. Gain according to chargerate. ~~
 	bool					dead;								// He's dead Jim. ~~
 	bool					deduct_ammo;						// Check for ammo count? ~~
+	bool					die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
 	bool					drop;								// Knocked down. Remains true until rising. ~~
 	bool					exists;								// flag to determine if it is a valid entity. ~~
 	bool					falling;							// Knocked down and haven't landed. ~~
@@ -2587,13 +2588,7 @@ typedef struct entity
 	
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
-   
-    
-    
-    
-    
-    
-    int die_on_landing; // flag for damageonlanding (active if self->health <= 0)
+       
     int last_damage_type; // used for set death animation or pain animation
     void (*think)();
     void (*takeaction)();
