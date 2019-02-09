@@ -2484,7 +2484,8 @@ typedef struct entity
 	struct entity			*custom_target;						// Target forced by modder via script ~~
 	struct entity			*link;								// Used to link 2 entities together. ~~
 	struct entity			*opponent;							// Last entity interacted with. ~~	
-	
+	struct entity			*owner;								// Projectile knows its owner. ~~
+
 	// Pointers
 	unsigned char			*colourmap;							// Colortable in use. ~~
 
@@ -2598,7 +2599,6 @@ typedef struct entity
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
     
-	struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
     struct entity *grabbing; // Added for "platform level" layering
     struct entity *weapent;
     struct entity *parent; //Its spawner
