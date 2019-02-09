@@ -89,7 +89,7 @@
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_ARG_COUNT       64
 #define     PLATFORM_DEFAULT_X  99999
-
+#define     LIFESPAN_DEFAULT	0x7fffffff
 /*
 Note: the min Z coordinate of the player is important
 for several other drawing operations.

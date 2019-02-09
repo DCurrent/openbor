@@ -8777,7 +8777,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
     newchar->weaploss[0]                = WEAPLOSS_TYPE_ANY;
     newchar->weaploss[1]                = -1;
-    newchar->lifespan                   = 0x7fffffff;
+    newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
     newchar->candamage                  = -1;
     newchar->hostile                    = -1;
@@ -21029,7 +21029,7 @@ int check_lost()
     }//else
 
     // Doom count down
-    if(!is_frozen(self) && self->lifespancountdown != 0x7fffffff)
+    if(!is_frozen(self) && self->lifespancountdown != LIFESPAN_DEFAULT)
     {
         self->lifespancountdown--;
     }
