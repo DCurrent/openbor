@@ -2591,9 +2591,10 @@ typedef struct entity
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
        
     // Function pointers.
-    void					(*think)();							// Entity thinks. ~~
+	void					(*think)();							// Entity thinks. ~~
     void (*takeaction)();
-    int (*takedamage)(struct entity *, s_collision_attack *, int);
+	
+	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int (*trymove)(float, float);
     
 	struct entity *link; // Used to link 2 entities together.
