@@ -82,6 +82,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"jump_velocity_z",
 		"knockdown_count",
 		"knockdown_time",
+		"last_damage_type",
 		"model",
 		"model_data",
 		"model_default",
@@ -628,6 +629,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->knockdowntime;
+
+			break;
+
+		case _ENTITY_LAST_DAMAGE_TYPE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->last_damage_type;
 
 			break;
 
@@ -1580,6 +1588,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->knockdowntime = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_LAST_DAMAGE_TYPE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->last_damage_type = temp_int;
 			}
 
 			break;

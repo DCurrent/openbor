@@ -2538,6 +2538,7 @@ typedef struct entity
 	unsigned int			numwaypoints;						// Count of waypoints in use. ~~
 
 	// Signed integers
+	int						last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
 	int						map;								// Stores the colourmap for restoring purposes. ~~
 	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
 	int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
@@ -2589,7 +2590,7 @@ typedef struct entity
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
        
-    int last_damage_type; // used for set death animation or pain animation
+    
     void (*think)();
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
