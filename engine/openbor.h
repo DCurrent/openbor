@@ -2486,6 +2486,7 @@ typedef struct entity
 	struct entity			*link;								// Used to link 2 entities together. ~~
 	struct entity			*opponent;							// Last entity interacted with. ~~	
 	struct entity			*owner;								// Projectile knows its owner. ~~
+	struct entity			*parent;							// Its spawner (when a sub entity). ~~
 	struct entity			*weapent;							// Item entity that was picked up as a weapon. ~~
 
 	// Pointers
@@ -2602,7 +2603,7 @@ typedef struct entity
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
     
     
-    struct entity *parent; //Its spawner
+    
     struct entity *subentity; //store the sub entity
     
     struct entity *collided_entity;

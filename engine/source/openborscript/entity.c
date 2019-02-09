@@ -107,6 +107,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"obstructed",
         "opponent",
         "owner",
+		"parent",
 		"path_obstructed_wait",
 		"pause_time",
 		"player_index",
@@ -815,6 +816,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->ptrVal = (entity *)handle->owner;
 
             break;
+
+		case _ENTITY_PARENT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (entity *)handle->parent;
+
+			break;
 
 		case _ENTITY_PATH_OBSTRUCTED_WAIT:
 
@@ -1842,6 +1850,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             handle->owner = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
+
+		case _ENTITY_PARENT:
+
+			handle->parent = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
 
 		case _ENTITY_PATH_OBSTRUCTED_WAIT:
 
