@@ -64,6 +64,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"fall_state",
 		"freeze_state",
 		"freeze_time",
+		"function_take_action",
 		"function_take_damage",
 		"function_think",
 		"get_state",
@@ -505,6 +506,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->freezetime;
+
+			break;
+
+		case _ENTITY_FUNCTION_TAKE_ACTION:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (VOID *)handle->takeaction;
 
 			break;
 
@@ -1446,6 +1454,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->freezetime = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_FUNCTION_TAKE_ACTION:
+
+			handle->takeaction = (VOID *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
