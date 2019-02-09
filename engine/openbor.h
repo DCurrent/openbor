@@ -2487,6 +2487,7 @@ typedef struct entity
 	struct entity			*opponent;							// Last entity interacted with. ~~	
 	struct entity			*owner;								// Projectile knows its owner. ~~
 	struct entity			*parent;							// Its spawner (when a sub entity). ~~
+	struct entity			*subentity;							// Summoned sub entity. ~~
 	struct entity			*weapent;							// Item entity that was picked up as a weapon. ~~
 
 	// Pointers
@@ -2604,7 +2605,7 @@ typedef struct entity
     
     
     
-    struct entity *subentity; //store the sub entity
+    
     
     struct entity *collided_entity;
     

@@ -41,6 +41,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
         "block_state",
         "boss",
         "charge_state",
+		"child",
         "colorset_default",
         "colorset_dying_health_1",
         "colorset_dying_health_2",
@@ -352,6 +353,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             (*pretvar)->lVal = (LONG)handle->charging;
 
             break;
+
+		case _ENTITY_CHILD:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (entity *)handle->subentity;
+
+			break;
 
         case _ENTITY_COLORSET_DEFAULT:
 
@@ -1301,6 +1309,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             }
 
             break;
+
+		case _ENTITY_CHILD:
+
+			handle->subentity = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
 
         case _ENTITY_COLORSET_DEFAULT:
 
