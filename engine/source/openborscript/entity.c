@@ -113,6 +113,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"parent",
 		"path_obstructed_wait",
 		"pause_time",
+		"platform_land",
 		"player_index",
 		"position_base",
         "position_base_alternate",
@@ -860,6 +861,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->pausetime;
+
+			break;
+
+		case _ENTITY_PLATFORM_LAND:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (entity *)handle->landed_on_platform;
 
 			break;
 
@@ -1922,6 +1930,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->pausetime = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_PLATFORM_LAND:
+
+			handle->parent = (entity *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 

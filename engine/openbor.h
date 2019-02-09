@@ -2485,6 +2485,7 @@ typedef struct entity
 	struct entity			*custom_target;						// Target forced by modder via script ~~
 	struct entity			*grabbing;							// Added for "platform level" layering. ~~
 	struct entity			*hithead;							// Platform entity when jumping and hitting head on the bottom. ~~
+	struct entity			*landed_on_platform;				// Platform entity this entity landed on. ~~
 	struct entity			*lasthit;							// Last entity this one hit. ~~
 	struct entity			*link;								// Used to link 2 entities together. ~~
 	struct entity			*opponent;							// Last entity interacted with. ~~	
@@ -2606,12 +2607,6 @@ typedef struct entity
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
       
-    
-    
-    
-    
-    
-    struct entity *landed_on_platform;
    
     int escapecount; // For escapehits
     s_rush rush;    //Rush combo display.
