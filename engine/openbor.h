@@ -2484,6 +2484,7 @@ typedef struct entity
 	struct entity			*collided_entity;					// Opposing entity when entities occupy same space. ~~
 	struct entity			*custom_target;						// Target forced by modder via script ~~
 	struct entity			*grabbing;							// Added for "platform level" layering. ~~
+	struct entity			*lasthit;							// Last entity this one hit. ~~
 	struct entity			*link;								// Used to link 2 entities together. ~~
 	struct entity			*opponent;							// Last entity interacted with. ~~	
 	struct entity			*owner;								// Projectile knows its owner. ~~
@@ -2607,7 +2608,7 @@ typedef struct entity
     
     
     
-    struct entity *lasthit;
+    
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
     struct entity *landed_on_platform;
    
