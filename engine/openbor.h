@@ -2472,6 +2472,7 @@ typedef struct entity
 	s_energy_state			energy_state;						// Health and MP. ~~	
 	s_model					modeldata;							// model data copied here ~~
 	s_jump					jump;								// Jumping velocity and animationnid. ~~	
+	s_rush					rush;								// Rush combo display. ~~
 
 	// Structured pointers.
 	s_anim					*animation;							// Pointer to animation collection. ~~
@@ -2610,7 +2611,7 @@ typedef struct entity
       
    
     
-    s_rush rush;    //Rush combo display.
+    
     int lifespancountdown; // life span count down
 
     //------------- copy them from model to avoid global effect -------------

@@ -130,6 +130,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"rise_delay",
 		"rise_state",
 		"run_state",
+		"rush",
 		"seal_energy",
 		"seal_time",
 		"sleep_time",
@@ -981,6 +982,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->running;
+
+			break;
+
+		case _ENTITY_RUSH:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_rush *)&handle->rush;
 
 			break;
 
@@ -2085,6 +2093,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->running = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_RUSH:
+
+			//  Read only.
 
 			break;
 
