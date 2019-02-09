@@ -129,6 +129,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"seal_energy",
 		"seal_time",
 		"sleep_time",
+		"space_other",
         "spawn_type",
 		"speed_multiplier",
 		"stall_time",
@@ -969,6 +970,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->sleeptime;
+
+			break;
+
+		case _ENTITY_SPACE_OTHER:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (entity *)handle->collided_entity;
 
 			break;
 
@@ -2045,6 +2053,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->sleeptime = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_SPACE_OTHER:
+
+			handle->collided_entity = (entity *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 

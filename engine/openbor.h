@@ -2481,6 +2481,7 @@ typedef struct entity
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
 	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
 
+	struct entity			*collided_entity;					// Opposing entity when entities occupy same space. ~~
 	struct entity			*custom_target;						// Target forced by modder via script ~~
 	struct entity			*grabbing;							// Added for "platform level" layering. ~~
 	struct entity			*link;								// Used to link 2 entities together. ~~
@@ -2602,12 +2603,9 @@ typedef struct entity
     
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
+      
     
     
-    
-    
-    
-    struct entity *collided_entity;
     
     struct entity *lasthit;
     struct entity *hithead; // when a player jumps and hits head on the bottom of a platform
