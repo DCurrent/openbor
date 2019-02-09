@@ -2590,8 +2590,8 @@ typedef struct entity
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
        
-    
-    void (*think)();
+    // Function pointers.
+    void					(*think)();							// Entity thinks. ~~
     void (*takeaction)();
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
