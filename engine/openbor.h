@@ -2591,11 +2591,11 @@ typedef struct entity
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
        
     // Function pointers.
+	void					(*takeaction)();					// Take an action (lie, attack, etc.). ~~
 	void					(*think)();							// Entity thinks. ~~
-    void					(*takeaction)();					// Take an action (lie, attack, etc.). ~~
-	
+    
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
-    int						(*trymove)(float, float);
+    int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
     
 	struct entity *link; // Used to link 2 entities together.
     struct entity *owner; // Added for "hitenemy" flag so projectile recognizes its owner
