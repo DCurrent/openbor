@@ -313,26 +313,26 @@ int                 max_attacks         = MAX_ATTACKS;
 int                 max_animations      = MAX_ANIS;
 
 // -------dynamic animation indexes-------
-int                *animdowns           = NULL;
-int                *animups             = NULL;
-int                *animbackwalks       = NULL;
-int                *animwalks           = NULL;
-int                *animidles           = NULL;
-int                *animpains           = NULL;
-int                *animbackpains       = NULL;
-int                *animdies            = NULL;
-int                *animbackdies        = NULL;
-int                *animfalls           = NULL;
-int                *animbackfalls       = NULL;
-int                *animrises           = NULL;
-int                *animbackrises       = NULL;
-int                *animriseattacks     = NULL;
-int                *animbackriseattacks = NULL;
-int                *animblkpains        = NULL;
-int                *animbackblkpains    = NULL;
-int                *animattacks         = NULL;
-int                *animfollows         = NULL;
-int                *animspecials        = NULL;
+e_animations	*animdowns           = NULL;
+e_animations    *animups             = NULL;
+e_animations    *animbackwalks       = NULL;
+e_animations	*animwalks           = NULL;
+e_animations    *animidles           = NULL;
+e_animations    *animpains           = NULL;
+e_animations    *animbackpains       = NULL;
+e_animations    *animdies            = NULL;
+e_animations    *animbackdies        = NULL;
+e_animations    *animfalls           = NULL;
+e_animations    *animbackfalls       = NULL;
+e_animations    *animrises           = NULL;
+e_animations    *animbackrises       = NULL;
+e_animations    *animriseattacks     = NULL;
+e_animations    *animbackriseattacks = NULL;
+e_animations    *animblkpains        = NULL;
+e_animations    *animbackblkpains    = NULL;
+e_animations    *animattacks         = NULL;
+e_animations    *animfollows         = NULL;
+e_animations    *animspecials        = NULL;
 
 // system default values
 int                 downs[MAX_DOWNS]        = {ANI_DOWN};
@@ -17295,39 +17295,65 @@ int is_walking(int iAni)
     return 0;
 }
 
-//UT: merged DC's common walk/idle functions
-static int common_anim_series(entity *ent, int arraya[], int maxa, int forcemode, int defaulta)
+// UT: merged DC's common walk/idle functions
+//
+// Caskey, Damon V.
+// 2019-02-09
+//
+// Rewritten for greater readability.
+static bool common_anim_series(entity *ent, e_animations *alterates, int max_alternates, int force_mode, e_animations default_animation)
 {
-    int i, b, e;                                                                    //Loop counter.
-    int iAni;                                                                       //Animation.
+	int i;						// Loop cursor.
+	int loop_min;							
+	int loop_max;							
+	e_animations animation_id;	// Animation to apply.
+	
+	// If we have a forced mode, we'll use it to constrict
+	// loop options to just the forced mode.
+	loop_min = force_mode ? force_mode - 1 : 0;
+	loop_max = force_mode ? force_mode : max_alternates;
 
-    b = forcemode ? forcemode - 1 : 0;
-    e = forcemode ? forcemode : maxa;
-
-    for (i = b; i < e; i++)															//Loop through all relevant animations.
+	// Loop through available types of series animations (max idles/walks/etc.).
+    for (i = loop_min; i < loop_max; i++)
     {
-        iAni = arraya[i];															//Get current animation.
+		// Get animation from array of alternates.
+		animation_id = alterates[i];
 
-        if (validanim(ent, iAni) && iAni != defaulta)                               //Valid and not Default animation??
-        {
-            if (forcemode || normal_find_target(iAni, 0))                           //Opponent in range of current animation?
-            {
-                ent->ducking = DUCK_NONE;
-                ent_set_anim(ent, iAni, 0);                                         //Set animation.
-                if (is_walking(iAni)) ent->walking = 1; // set walking prop
+		// If we don't have the selected animation, just
+		// get out of this loop iteration.
+		if (!validanim(ent, animation_id))
+		{
+			continue;
+		}
 
-                return 1;                                                           //Return 1 and exit.
-            }
-        }
+		// Can't be the default animation.
+		if (animation_id == default_animation)
+		{
+			continue;
+		}
+
+		// If there's a target in range of this alternate animation, or 
+		// we're forced to use it, switch animations.
+		if (force_mode || normal_find_target(animation_id, 0))
+		{
+			ent->ducking = DUCK_NONE;
+			ent_set_anim(ent, animation_id, 0);
+			if (is_walking(animation_id)) ent->walking = 1;
+
+			// Return true.
+			return 1;
+		}
     }
 
-    if (validanim(ent, defaulta))
+	// No alternates were set. Use default if we have it.
+    if (validanim(ent, default_animation))
     {
-        ent->ducking = DUCK_NONE;
-        ent_set_anim(ent, defaulta, 0);                                             //No alternates were set. Set default..
-        if (is_walking(defaulta)) ent->walking = 1; // set walking prop
+		ent->ducking = DUCK_NONE;
+		ent_set_anim(ent, default_animation, 0);
+		if (is_walking(default_animation)) ent->walking = 1;
 
-        return 1;                                                                   //Return 1 and exit.
+		// Return true.
+		return 1;
     }
 
     return 0;
