@@ -4,7 +4,7 @@
 OpenBOR.elf
 meta.xml
 engine/releases/
-/tools/win-sdk
 /engine/ide/vs/.vs/
 /engine/ide/vs/Debug/
 /tools
+/.vs
