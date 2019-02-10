@@ -2469,6 +2469,7 @@ typedef struct entity
 	s_bind					binding;							// Binding self to another entity. ~~
 	s_axis_principal_float	position;							// x,y,z location. ~~
 	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
+	s_drawmethod			drawmethod;							// Graphic settings. ~~
 	s_energy_state			energy_state;						// Health and MP. ~~	
 	s_model					modeldata;							// model data copied here ~~
 	s_jump					jump;								// Jumping velocity and animationnid. ~~	
@@ -2619,7 +2620,7 @@ typedef struct entity
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 
     
-    s_drawmethod drawmethod;
+    
     s_scripts *scripts;
 } entity;
 
