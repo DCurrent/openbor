@@ -2501,6 +2501,8 @@ typedef struct entity
 
 	unsigned char			*colourmap;							// Colortable in use. ~~
 
+	Varlist					*varlist;							// Entity var collection. ~~
+
 	// Floating decimals.
 	float					altbase;							// Altitude affected by movea. ~~
 	float					base;								// Default altitude. ~~
@@ -2617,10 +2619,6 @@ typedef struct entity
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 
     
-    
-
-    
-    Varlist *varlist;
     s_drawmethod drawmethod;
     s_scripts *scripts;
 } entity;

@@ -62,6 +62,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"die_on_landing",
 		"drop",
 		"duck_state",
+		"entvar_collection",
 		"escape_count",
 		"exists",
 		"explode",
@@ -516,6 +517,16 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->ducking;
+
+			break;
+
+		case _ENTITY_ENTVAR_COLLECTION:
+
+			if (handle->varlist)
+			{
+				ScriptVariant_ChangeType(*pretvar, VT_PTR);
+				(*pretvar)->ptrVal = (Varlist *)handle->varlist;
+			}
 
 			break;
 
@@ -1585,6 +1596,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			{
 				handle->ducking = temp_int;
 			}
+
+			break;
+
+		case _ENTITY_ENTVAR_COLLECTION:
+
+			handle->varlist = (Varlist *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
