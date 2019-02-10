@@ -2552,6 +2552,7 @@ typedef struct entity
 	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
 	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
 	unsigned int			numwaypoints;						// Count of waypoints in use. ~~
+	unsigned int			walkmode;							// Force a specfic alternate walk. ~~
 
 	// Signed integers
 	int						last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
@@ -2615,7 +2616,7 @@ typedef struct entity
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 
     
-    int walkmode;
+    
 
     int sortid; // id for sprite queue sort
     Varlist *varlist;
