@@ -2562,7 +2562,8 @@ typedef struct entity
 	int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
 	int						playerindex;						// Player controlling the entity. ~~
 	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	
+	int						sortid;								// Drawing order (sprite queue sort id). ~~
+
 	// Enumerated integers.
 	e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
@@ -2618,7 +2619,7 @@ typedef struct entity
     
     
 
-    int sortid; // id for sprite queue sort
+    
     Varlist *varlist;
     s_drawmethod drawmethod;
     s_scripts *scripts;
