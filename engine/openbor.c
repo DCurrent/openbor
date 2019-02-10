@@ -24856,8 +24856,8 @@ void checkdamageeffects(s_collision_attack *attack)
 #define _dot_time       attack->recursive->time
 #define _dot_force      attack->recursive->force
 #define _dot_rate       attack->recursive->rate
-#define _staydown0      attack->staydown.rise
-#define _staydown1		attack->staydown.riseattack
+#define _staydown_rise			attack->staydown.rise
+#define _staydown_rise_attack	attack->staydown.riseattack
 
     entity *opp = self->opponent;
 
@@ -24938,12 +24938,13 @@ void checkdamageeffects(s_collision_attack *attack)
         self->drop = 0;
     }
 
-    self->projectile = _blast;
-
     if(self->drop)
     {
-        self->staydown.rise	= _staydown0;                                            //Staydown: Add to risetime until next rise.
-        self->staydown.riseattack   = _staydown1;
+		self->projectile = _blast;
+
+		// Staydown: Add to risetime until next rise.
+        self->staydown.rise	= _staydown_rise;                                            
+        self->staydown.riseattack   = _staydown_rise_attack;
     }
 
 #undef _freeze
@@ -24959,8 +24960,8 @@ void checkdamageeffects(s_collision_attack *attack)
 #undef _dot_time
 #undef _dot_force
 #undef _dot_rate
-#undef _staydown0
-#undef _staydown1
+#undef _staydown_rise
+#undef _staydown_rise_attack
 }
 
 void checkdamagedrop(s_collision_attack *attack)
