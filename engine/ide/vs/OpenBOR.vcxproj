@@ -152,7 +152,6 @@
     <ClCompile Include="..\..\source\openborscript\collision_entity.c" />
     <ClCompile Include="..\..\source\openborscript\commands.c" />
     <ClCompile Include="..\..\source\openborscript\constants.c" />
-    <ClCompile Include="..\..\source\openborscript\energy_status.c" />
     <ClCompile Include="..\..\source\openborscript\entity.c" />
     <ClCompile Include="..\..\source\openborscript\index.c" />
     <ClCompile Include="..\..\source\openborscript\layer.c" />
@@ -239,6 +238,7 @@
     <None Include="..\..\environ.sh" />
     <None Include="..\..\fixindentation.sh" />
     <None Include="..\..\fixtrailingwhitespace.sh" />
+    <None Include="..\..\Makefile" />
     <None Include="..\..\source\gfxlib\2xSaImmx.asm" />
     <None Include="..\..\source\gfxlib\bilinearmmx.asm" />
     <None Include="..\..\source\gfxlib\hq2x16mmx.asm" />
@@ -437,7 +437,6 @@
     <ClInclude Include="..\..\source\openborscript\binding.h" />
     <ClInclude Include="..\..\source\openborscript\commands.h" />
     <ClInclude Include="..\..\source\openborscript\config.h" />
-    <ClInclude Include="..\..\source\openborscript\energy_status.h" />
     <ClInclude Include="..\..\source\openborscript\entity.h" />
     <ClInclude Include="..\..\source\openborscript\scriptcommon.h" />
     <ClInclude Include="..\..\source\pnglib\pngdec.h" />
@@ -522,6 +521,7 @@
     <ClInclude Include="..\..\xbox\sblaster.h" />
     <ClInclude Include="..\..\xbox\vga.h" />
     <ClInclude Include="..\..\xbox\video.h" />
+    <ClInclude Include="recursive_damage.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\android\res\drawable-hdpi\icon.png" />
