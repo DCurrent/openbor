@@ -2497,6 +2497,8 @@ typedef struct entity
 	struct entity			*weapent;							// Item entity that was picked up as a weapon. ~~
 
 	// Pointers
+	float					*offense_factors;					// Augment or reduce damage output for some attack types. ~~
+
 	unsigned char			*colourmap;							// Colortable in use. ~~
 
 	// Floating decimals.
@@ -2610,10 +2612,6 @@ typedef struct entity
     
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
-      
-   
-    
-    float *offense_factors;
 
     int idlemode;
     int walkmode;

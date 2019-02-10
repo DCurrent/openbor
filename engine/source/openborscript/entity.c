@@ -111,6 +111,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"nograb_default",
 		"obstructed",
 		"obstruction_overhead",
+		"offense_collection",
         "opponent",
         "owner",
 		"parent",
@@ -851,6 +852,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			(*pretvar)->ptrVal = (entity *)handle->hithead;
+
+			break;
+
+		case _ENTITY_OFFENSE_COLLECTION:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (float *)handle->offense_factors;
 
 			break;
 
@@ -1950,6 +1958,12 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_OBSTRUCTION_OVERHEAD:
 
 			handle->hithead = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ENTITY_OFFENSE_COLLECTION:
+
+			handle->offense_factors = (float *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
