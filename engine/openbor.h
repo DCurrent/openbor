@@ -2483,6 +2483,7 @@ typedef struct entity
 	s_model					*model;								// current model ~~
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
 	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
+	s_scripts				*scripts;							// Loaded scripts. ~~
 
 	struct entity			*collided_entity;					// Opposing entity when entities occupy same space. ~~
 	struct entity			*custom_target;						// Target forced by modder via script ~~
@@ -2618,10 +2619,6 @@ typedef struct entity
     
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
-
-    
-    
-    s_scripts *scripts;
 } entity;
 
 
