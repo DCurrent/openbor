@@ -23,6 +23,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
     {
 		"ai_disable",
         "ai_target_entity",
+		"alternate_idle",
         "animation",
         "animation_frame",
 		"animation_id",
@@ -236,6 +237,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
             }
 
             break;
+
+		case _ENTITY_ALTERNATE_IDLE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->idlemode;
+
+			break;
 
         case _ENTITY_ANIMATION:
             
@@ -1225,6 +1233,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
             handle->custom_target = (entity *)varlist[ARG_VALUE]->ptrVal;
 
             break;
+
+		case _ENTITY_ALTERNATE_IDLE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->idlemode = temp_int;
+			}
+
+			break;
 
         case _ENTITY_ANIMATION:
 

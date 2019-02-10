@@ -2547,6 +2547,7 @@ typedef struct entity
 	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
 	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
 	unsigned int			escapecount;						// hit count for escapehits. ~~
+	unsigned int			idlemode;							// Force a specfic alternate idle. ~~
 	unsigned int			pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
 	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
 	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
@@ -2613,7 +2614,7 @@ typedef struct entity
 	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 
-    int idlemode;
+    
     int walkmode;
 
     int sortid; // id for sprite queue sort
