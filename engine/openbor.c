@@ -24907,14 +24907,18 @@ void checkdamageeffects(s_collision_attack *attack)
 #define _steal          attack->steal
 #define _seal           attack->seal
 #define _sealtime       attack->sealtime
-#define _staydown0      attack->staydown.rise
-#define _staydown1		attack->staydown.riseattack
+#define _staydown_rise			attack->staydown.rise
+#define _staydown_rise_attack	attack->staydown.riseattack
 
     entity *opp = self->opponent;
 
+	// Steal. Take HP from the entity and add it to attacker.
     if(_steal && opp && opp != self)
     {
-        if(self->energy_state.health_current >= attack->attack_force)
+		// If we have enough HP to withstand the attack, give attacker
+		// the same amount as attack force. Otherwise just give them 
+		// whatever HP we have left.
+		if(self->energy_state.health_current >= attack->attack_force)
         {
             opp->energy_state.health_current += attack->attack_force;
         }
@@ -24922,23 +24926,38 @@ void checkdamageeffects(s_collision_attack *attack)
         {
             opp->energy_state.health_current += self->energy_state.health_current;
         }
+
+		// Cap the effect so attacker doesn't go over their maximum HP.
         if(opp->energy_state.health_current > opp->modeldata.health)
         {
             opp->energy_state.health_current = opp->modeldata.health;
         }
     }
-    if(_freeze && !self->frozen)// && !self->owner && !self->modeldata.nomove)
+
+	// Freeze effect. If this is a freeze attack and we're
+	// not already frozen, apply a freeze effect and possibly 
+	// remap to freeze palette. If we ARE frozen, then
+	// unfreeze and knock down instead.
+    if(_freeze && !self->frozen)
     {
-        // New freeze attack - If not frozen, freeze entity
+        
+		// Set freeze status and expire time.
         self->frozen = 1;
         if(self->freezetime == 0)
         {
             self->freezetime = _time + _freezetime;
         }
+
+		// 2007-12-14 
+		// Caskey, Damon V.
+		//
+		// If opponents frozen map = -1 or only stun, then don't change the color map.
+
         if(_remap == -1 && self->modeldata.maps.frozen != -1)
         {
-            self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.frozen);    //12/14/2007 Damon Caskey: If opponents frozen map = -1 or only stun, then don't change the color map.
+            self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.frozen);    
         }
+
         self->drop = 0;
     }
     else if(self->frozen)
@@ -24947,42 +24966,51 @@ void checkdamageeffects(s_collision_attack *attack)
         self->drop = 1;
     }
 
+	// If we want to apply a remap without freezing (forcemap attack command) then
+	// set the map and expire time here.
     if(_remap > 0 && !_freeze)
     {
         self->maptime = _time + _maptime;
         self->colourmap = model_get_colourmap(&(self->modeldata), _remap);
     }
 
-    if(_seal)                                                                       //Sealed: Disable special moves.
+	// Disable specials. Apply seal (Any animation with 
+	// energycost > seal) is disabled and time to expire.
+    if(_seal)                                                                       
     {
-        self->sealtime  = _time + _sealtime;                                         //Set time to apply seal. No specials for you!
-        self->seal      = _seal;                                                    //Set seal. Any animation with energycost > seal is disabled.
+        self->sealtime  = _time + _sealtime;
+        self->seal      = _seal;
     }
 
 	// Apply any recursive (damage over time) effects.
 	check_damage_recursive(self, opp, attack);
 
+	// Static enemies/nodrop enemies cannot be knocked down
     if(self->modeldata.nodrop)
     {
-        self->drop = 0;    // Static enemies/nodrop enemies cannot be knocked down
+        self->drop = 0;    
     }
 
+	// Always knock airborne entities down unless we're freezeing them
+	// or they are specfically immune to in air knockdowns.
     if(inair(self) && !self->frozen && self->modeldata.nodrop < 2)
     {
         self->drop = 1;
     }
 
+	// Immune to hit stun? No knockdown either.
     if(attack->no_pain)
     {
         self->drop = 0;
     }
 
-    self->projectile = _blast;
-
+	// If entity will be knocked down, let's apply knockdown specific effects here.
     if(self->drop)
     {
-        self->staydown.rise	= _staydown0;                                            //Staydown: Add to risetime until next rise.
-        self->staydown.riseattack   = _staydown1;
+		self->projectile = _blast;
+
+        self->staydown.rise	= _staydown_rise;                                            //Staydown: Add to risetime until next rise.
+        self->staydown.riseattack   = _staydown_rise_attack;
     }
 
 #undef _freeze
@@ -24993,8 +25021,8 @@ void checkdamageeffects(s_collision_attack *attack)
 #undef _steal
 #undef _seal
 #undef _sealtime
-#undef _staydown0
-#undef _staydown1
+#undef _staydown_rise
+#undef _staydown_rise_attack
 }
 
 // Caskey, Damon V.
