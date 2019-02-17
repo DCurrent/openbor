@@ -215,17 +215,17 @@ const char *Script_GetFunctionName(void *functionRef)
     }
 
     // Binding
-    else if (functionRef == ((void *)openbor_get_binding_property))
+    else if (functionRef == ((void *)openbor_get_bind_property))
     {
-        return "get_binding_property";
+        return "get_bind_property";
     }
-    else if (functionRef == ((void *)openbor_set_binding_property))
+    else if (functionRef == ((void *)openbor_set_bind_property))
     {
-        return "set_binding_property";
+        return "set_bind_property";
     }
-	else if (functionRef == ((void *)openbor_update_binding))
+	else if (functionRef == ((void *)openbor_update_bind))
 	{
-		return "update_binding";
+		return "update_bind";
 	}
 
     else if (functionRef == ((void *)openbor_getplayerproperty))
@@ -952,13 +952,13 @@ void *Script_GetStringMapFunction(void *functionRef)
     }
 
     // Binding
-    else if (functionRef == ((void *)openbor_get_binding_property))
+    else if (functionRef == ((void *)openbor_get_bind_property))
     {
-        return (void *)mapstrings_binding;
+        return (void *)mapstrings_bind;
     }
-    else if (functionRef == ((void *)openbor_set_binding_property))
+    else if (functionRef == ((void *)openbor_set_bind_property))
     {
-        return (void *)mapstrings_binding;
+        return (void *)mapstrings_bind;
     }
 	
     else if (functionRef == ((void *)openbor_setspawnentry))
@@ -1124,11 +1124,11 @@ void Script_LoadSystemFunctions()
 
     // Binding
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_binding_property, "get_binding_property");
+                     (void *)openbor_get_bind_property, "get_bind_property");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_set_binding_property, "set_binding_property");
+                     (void *)openbor_set_bind_property, "set_bind_property");
 	List_InsertAfter(&theFunctionList,
-					(void *)openbor_update_binding, "update_binding");
+					(void *)openbor_update_bind, "update_bind");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");

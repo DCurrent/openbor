@@ -20667,7 +20667,7 @@ bool check_landframe(entity *ent)
     }
 
     // Can't be bound with a landframe override.
-    if(check_bind_override(ent, BINDING_OVERRIDING_LANDFRAME))
+    if(check_bind_override(ent, BIND_OVERRIDE_LANDFRAME))
     {
         return 0;
     }
@@ -20883,7 +20883,7 @@ void check_gravity(entity *e)
                 if(self->velocity.y <=0)
                 {
                     // No bind target, or binding set to ignore fall lands.
-                    if(!check_bind_override(self, BINDING_OVERRIDING_FALL_LAND))
+                    if(!check_bind_override(self, BIND_OVERRIDE_FALL_LAND))
                     {
                         self->position.y = self->base;
                         self->falling = 0;
@@ -21913,7 +21913,7 @@ void adjust_bind(entity *e)
 	// Run bind update script on *e (entity performing bind).
 	execute_on_bind_update_self_to_other(e, e->binding.ent, &e->binding);
 
-	if (e->binding.matching)
+	if (e->binding.match)
 	{
 		int				frame;
 		e_animations	animation;
@@ -21921,7 +21921,7 @@ void adjust_bind(entity *e)
 		// If a defined value is requested,
 		// use the binding member value.
 		// Otherwise use target's current value.
-		if (e->binding.matching & BINDING_MATCHING_ANIMATION_DEFINED)
+		if (e->binding.match & BIND_ANIMATION_DEFINED)
 		{
 			animation = e->binding.animation;
 		}
@@ -21939,7 +21939,7 @@ void adjust_bind(entity *e)
 			if (!validanim(e, animation))
 			{
 				// Don't have the animation? Kill ourself.
-				if (e->binding.matching & BINDING_MATCHING_ANIMATION_REMOVE)
+				if (e->binding.match & BIND_ANIMATION_REMOVE)
 				{
 					kill_entity(e);
 				}
@@ -21963,11 +21963,11 @@ void adjust_bind(entity *e)
 		// then set ADJUST_BIND_NO_FRAME_MATCH
 		// so frame matching logic is skipped.		
 		
-		if (e->binding.matching & BINDING_MATCHING_FRAME_DEFINED)
+		if (e->binding.match & BIND_ANIMATION_FRAME_DEFINED)
 		{
 			frame = e->binding.frame;
 		}
-		else if (e->binding.matching & BINDING_MATCHING_FRAME_TARGET)
+		else if (e->binding.match & BIND_ANIMATION_FRAME_TARGET)
 		{
 			frame = e->binding.ent->animpos;
 		}
@@ -21987,7 +21987,7 @@ void adjust_bind(entity *e)
 				if (e->animation[e->animnum].numframes < frame)
 				{
 
-					if (e->binding.matching & BINDING_MATCHING_FRAME_REMOVE)
+					if (e->binding.match & BIND_ANIMATION_FRAME_REMOVE)
 					{
 						kill_entity(e);
 
@@ -22037,21 +22037,21 @@ void adjust_bind(entity *e)
 //
 // Return an adjusted position for binding based
 // on positioning settings, offset, and current position.
-float binding_position(float position_default, float position_target, int offset, e_binding_positioning positioning)
+float binding_position(float position_default, float position_target, int offset, e_bind_mode positioning)
 {
 	switch (positioning)
 	{
-		case BINDING_POSITIONING_TARGET:
+		case BIND_MODE_TARGET:
 
 			return position_target + offset;
 			break;
 
-		case BINDING_POSITIONING_LEVEL:
+		case BIND_MODE_LEVEL:
 
 			return offset;
 			break;
 
-		case BINDING_POSITIONING_NONE:
+		case BIND_MODE_NONE:
 		default:
 
 			// Leave position as-is.
@@ -22115,7 +22115,7 @@ e_direction direction_adjustment(e_direction direction_default, e_direction dire
 //
 // Return true if the target entity has a valid
 // bind target and match for the override argument.
-int check_bind_override(entity *ent, e_binding_overriding overriding)
+int check_bind_override(entity *ent, e_bind_override overriding)
 {
     if(ent->binding.ent)
     {
@@ -29838,14 +29838,14 @@ int check_energy(e_cost_check which, int ani)
     // return false.
     if(type & (TYPE_ENEMY  | TYPE_NPC))
     {
-        if(check_bind_override(self, BINDING_OVERRIDING_SPECIAL_AI))
+        if(check_bind_override(self, BIND_OVERRIDE_SPECIAL_AI))
         {
             return FALSE;
         }
     }
     else if(type & TYPE_PLAYER)
     {
-        if(check_bind_override(self, BINDING_OVERRIDING_SPECIAL_PLAYER))
+        if(check_bind_override(self, BIND_OVERRIDE_SPECIAL_PLAYER))
         {
             return FALSE;
         }
@@ -34305,7 +34305,8 @@ void draw_scrolled_bg()
 
         //printf("layer %d, handle:%u, z:%d\n", index, layer->gfx.handle, layer->position.z);
 
-        if(!layer->drawmethod.xrepeat || !layer->drawmethod.yrepeat || !layer->enabled)
+		// Layer must be enabled and have at least one instace, or we don't draw it.
+        if(!screenmethod.xrepeat || !screenmethod.yrepeat || !layer->enabled)
         {
             continue;
         }
@@ -34364,7 +34365,8 @@ void draw_scrolled_bg()
         {
             j = 0;
         }
-        if(layer->neon)
+        
+		if(layer->neon)
         {
             screenmethod.table = neontable;
         }
@@ -34379,6 +34381,7 @@ void draw_scrolled_bg()
                 screenmethod.table = NULL;
             }
         }
+
         screenmethod.water.wavetime =  (int)(timevar * screenmethod.water.wavespeed);
         screenmethod.xrepeat = screenmethod.yrepeat = 0;
         for(m = z; j < layer->drawmethod.yrepeat && m < vph; m += height, j++, screenmethod.yrepeat++);

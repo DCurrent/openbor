@@ -2028,7 +2028,7 @@ enum entityproperty_enum
     _ep_autokill,
     _ep_base,
     _ep_bbox,
-    _ep_binding,
+    _ep_bind,
     _ep_blink,
     _ep_blockback,
     _ep_blockodds,
@@ -3602,7 +3602,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->ptrVal = (VOID *)ent->binding.ent;
         break;
     }
-    case _ep_binding:
+    case _ep_bind:
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
         (*pretvar)->ptrVal = (VOID *)&ent->binding;
@@ -12644,7 +12644,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->binding.matching = (int)anim;
+        ent->binding.match = (int)anim;
     }
     if(paramCount < 8)
     {

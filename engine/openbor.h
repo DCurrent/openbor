@@ -1226,65 +1226,64 @@ typedef enum
     COUNTERACTION_DAMAGE_NORMAL //Normal damage.
 } e_counteraction_damage;
 
+typedef enum
+{
+    // These must be kept in the current order
+    // to ensure backward compatibility with
+    // modules that used magic numbers before
+    // constants were available.
+	BIND_ANIMATION_NONE				= 0,
+    BIND_ANIMATION_TARGET			= (1 << 0),
+    BIND_ANIMATION_FRAME_TARGET		= (1 << 1),
+    BIND_ANIMATION_REMOVE			= (1 << 2),
+    BIND_ANIMATION_FRAME_REMOVE		= (1 << 3),
+
+	// Following were added post constant availablity, so
+	// order does not matter.
+
+    BIND_ANIMATION_DEFINED			= (1 << 4),
+    BIND_ANIMATION_FRAME_DEFINED	= (1 << 5)
+} e_bind_animation_match;
+
+typedef enum
+{
+    // These must be kept in the current order
+    // to ensure backward compatibility with
+    // modules that used magic numbers before
+    // constants were available.
+
+    BIND_MODE_NONE		= 0,
+    BIND_MODE_TARGET	= (1 << 0),
+    BIND_MODE_LEVEL		= (1 << 1)
+} e_bind_mode;
+
+typedef enum
+{
+    BIND_OVERRIDE_NONE             = 0,
+    BIND_OVERRIDE_FALL_LAND        = (1 << 0),
+    BIND_OVERRIDE_LANDFRAME        = (1 << 1),
+    BIND_OVERRIDE_SPECIAL_AI       = (1 << 2),
+    BIND_OVERRIDE_SPECIAL_PLAYER   = (1 << 3)
+} e_bind_override;
+
 // Caskey, Damon V.
 // 2013-12-16
 //
 // Direction (facing) enum.
 typedef enum
 {
-	DIRECTION_NONE	= -1,	// Only to indicate a temporary direction flag isn't set or in use.
-    DIRECTION_LEFT,
-    DIRECTION_RIGHT
+	DIRECTION_NONE = -1,	// Only to indicate a temporary direction flag isn't set or in use.
+	DIRECTION_LEFT,
+	DIRECTION_RIGHT
 } e_direction;
 
+// Caskey, Damon V.
+// 2013-12-28
+//
+// Direction adjustment enum. Used for binding and changing direction of defender when hit.
 typedef enum
 {
-    // These must be kept in the current order
-    // to ensure backward compatibility with
-    // modules that used magic numbers before
-    // constants were available.
-
-    BINDING_MATCHING_NONE               = 0,
-    BINDING_MATCHING_ANIMATION_TARGET   = 1,
-    BINDING_MATCHING_FRAME_TARGET       = 2,
-    BINDING_MATCHING_ANIMATION_REMOVE   = 4,
-    BINDING_MATCHING_FRAME_REMOVE       = 8,
-
-    BINDING_MATCHING_ANIMATION_DEFINED  = 16,
-    BINDING_MATCHING_FRAME_DEFINED      = 32
-} e_binding_animation;
-
-typedef enum
-{
-    // These must be kept in the current order
-    // to ensure backward compatibility with
-    // modules that used magic numbers before
-    // constants were available.
-
-    BINDING_POSITIONING_NONE,
-    BINDING_POSITIONING_TARGET,
-    BINDING_POSITIONING_LEVEL
-} e_binding_positioning;
-
-typedef enum
-{
-    // Double each value so we can use
-    // bitwise logic (0, 1, 2, 4, 8...).
-
-    BINDING_OVERRIDING_NONE             = 0,
-    BINDING_OVERRIDING_FALL_LAND        = 1,
-    BINDING_OVERRIDING_LANDFRAME        = 2,
-    BINDING_OVERRIDING_SPECIAL_AI       = 4,
-    BINDING_OVERRIDING_SPECIAL_PLAYER   = 8
-} e_binding_overriding;
-
-typedef enum
-{
-    /*
-    Direction adjustment enum. Used for binding and changing direction of defender when hit.
-    Damon V. Caskey
-    2013-12-28
-    */
+    
 
     DIRECTION_ADJUST_NONE,             //Leave as is.
     DIRECTION_ADJUST_SAME,             //Same as attacker/bind/etc.
@@ -2414,11 +2413,11 @@ typedef struct
 // of entity to a target entity.
 typedef struct
 {
-    unsigned int            matching;       // Animation binding type.
+    unsigned int            match;			// Animation binding type. ~~
     int                     tag;            // User data.
     int                     sortid;         // Relative binding sortid. Default = -1
     int                     frame;          // Frame to match (only if requested in matching).
-    e_binding_overriding    overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
+    e_bind_override			overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
     e_animations            animation;      // Animation to match (only if requested in matching).
     s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
     s_axis_principal_int    offset;         // x,y,z offset.
@@ -2904,8 +2903,8 @@ typedef struct ArgList
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);
-float	binding_position(float position_default, float position_target, int offset, e_binding_positioning positioning);
-int     check_bind_override(entity *ent, e_binding_overriding overriding);
+float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
+int     check_bind_override(entity *ent, e_bind_override overriding);
 
 // Linked lists
 void	free_recursive_list(s_damage_recursive * head);

@@ -24,6 +24,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"ai_disable",
         "ai_target_entity",
 		"alternate_idle",
+		"alternate_walk",
         "animation",
         "animation_frame",
 		"animation_id",
@@ -199,12 +200,8 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
     e_entity_properties    property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
-    // property data back to calling script.     .
+    // property data back to calling script.
     ScriptVariant_Clear(*pretvar);
-
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_binding(varlist, paramCount);
 
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
@@ -1237,11 +1234,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     // taken from argument.
     LONG    temp_int;
     DOUBLE  temp_float;
-
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_binding(varlist, paramCount);
-
+	
     // Verify incoming arguments. There should at least
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
