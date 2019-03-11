@@ -9063,6 +9063,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     addModel(newchar);
 
     attack = emptyattack;      // empty attack
+
+	attack.dropv = default_model_dropv;
+
     bbox_con = empty_body;
     ebox_con = empty_entity_collision;
 
@@ -10369,6 +10372,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 ebox_con                        = empty_entity_collision;
                 body_coords                     = empty_collision_coords;
                 attack                          = emptyattack;
+				attack.dropv					= default_model_dropv;
                 attack_coords                   = empty_collision_coords;
                 recursive                       = empty_recursive;
                 attack.hitsound                 = SAMPLE_BEAT;
@@ -11233,9 +11237,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox.y = GET_INT_ARG(2);
                 abox.width = GET_INT_ARG(3);
                 abox.height = GET_INT_ARG(4);
-                attack.dropv.y = default_model_dropv.y;
-                attack.dropv.x = default_model_dropv.x;
-                attack.dropv.z = default_model_dropv.z;
                 attack.attack_force = GET_INT_ARG(5);
 
                 attack.attack_drop = GET_INT_ARG(6);
@@ -18091,9 +18092,7 @@ void update_frame(entity *ent, unsigned int f)
         {
             self = self->subentity;
             attack = emptyattack;
-            attack.dropv.y = default_model_dropv.y;
-            attack.dropv.x = default_model_dropv.x;
-            attack.dropv.z = default_model_dropv.z;
+            attack.dropv = default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type = max_attack_types - 1;
             if(self->takedamage)
@@ -18646,9 +18645,7 @@ void kill_entity(entity *victim)
     {
         attack = emptyattack;
         attack.attack_type = max_attack_types - 1;
-        attack.dropv.y = default_model_dropv.y;
-        attack.dropv.x = default_model_dropv.x;
-        attack.dropv.z = default_model_dropv.z;
+        attack.dropv = default_model_dropv;
     }
     // kill minions
     if(victim->modeldata.summonkill == 1 && victim->subentity)
@@ -21000,9 +20997,7 @@ int check_lost()
         else
         {
             attack          = emptyattack;
-            attack.dropv.y = default_model_dropv.y;
-            attack.dropv.x = default_model_dropv.x;
-            attack.dropv.z = default_model_dropv.z;
+            attack.dropv	= default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_PIT;
             self->takedamage(self, &attack, 0);
@@ -21018,9 +21013,7 @@ int check_lost()
         else
         {
             attack          = emptyattack;
-            attack.dropv.y = default_model_dropv.y;
-            attack.dropv.x = default_model_dropv.x;
-            attack.dropv.z = default_model_dropv.z;
+			attack.dropv	= default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_LIFESPAN;
             self->takedamage(self, &attack, 0);
@@ -21839,9 +21832,7 @@ void damage_recursive(entity *ent)
 						attack = emptyattack;
 						attack.attack_type = cursor->type;
 						attack.attack_force = force_final;
-						attack.dropv.y = default_model_dropv.y;
-						attack.dropv.x = default_model_dropv.x;
-						attack.dropv.z = default_model_dropv.z;
+						attack.dropv = default_model_dropv;
 
 						// Apply takedamage(). The engine will
 						// take care of everything else damage
@@ -32326,10 +32317,7 @@ void kill_all_enemies()
 
     attack = emptyattack;
 	attack.attack_type = ATK_BOSS_DEATH;
-    //attack.attack_type = max_attack_types - 1;
-    attack.dropv.y = default_model_dropv.y;
-    attack.dropv.x = default_model_dropv.x;
-    attack.dropv.z = default_model_dropv.z;
+	attack.dropv = default_model_dropv;
 
     tmpself = self;
     for(i = 0; i < ent_max; i++)
