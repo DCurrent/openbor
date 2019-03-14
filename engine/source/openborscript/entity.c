@@ -154,6 +154,9 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"turn_state",
 		"turn_time",
 		"update_mark",
+		"velocity_x",
+		"velocity_y",
+		"velocity_z",
 		"walk_state",
 		"waypoint_collection",
 		"waypoint_count",
@@ -1158,6 +1161,27 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->update_mark;
+
+			break;
+
+		case _ENTITY_VELOCITY_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->velocity.x;
+
+			break;
+
+		case _ENTITY_VELOCITY_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->velocity.y;
+
+			break;
+
+		case _ENTITY_VELOCITY_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->velocity.z;
 
 			break;
 
@@ -2354,6 +2378,33 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->update_mark = temp_int;
+			}
+
+			break;
+
+		case _ENTITY_VELOCITY_X:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->velocity.x = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_VELOCITY_Y:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->velocity.x = temp_float;
+			}
+
+			break;
+
+		case _ENTITY_VELOCITY_Z:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->velocity.x = temp_float;
 			}
 
 			break;

@@ -10771,7 +10771,8 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         name = StrCache_Get(varlist[0]->strVal);
     }
 
-    if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
+    // X offset.
+	if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
     {
         x = (float)temp;
     }
@@ -10783,6 +10784,8 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         x = self->position.x;
     }
+
+	// Z offset.
     if(paramCount >= 3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &temp)))
     {
         z = (float)temp;
@@ -10795,6 +10798,8 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         z = self->position.z;
     }
+
+	// Y offset.
     if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &temp)))
     {
         a = (float)temp;
@@ -10807,6 +10812,8 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         a = self->position.y + self->animation->projectile.position.y;
     }
+
+	// Direction.
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
         direction = (LONG)ltemp;
@@ -10819,6 +10826,8 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         direction = self->direction;
     }
+
+	// PType
     if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
     {
 
@@ -10836,15 +10845,20 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
             projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
         }
     }
+
+	// Type (Spawn as knife or bomb).
     if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
     {
         type = (LONG)ltemp;
     }
-    if(paramCount >= 8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
+    
+	// Map
+	if(paramCount >= 8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
     {
         map = (LONG)ltemp;
     }
 
+	// Reverse X if using relative offset.
     if(relative)
     {
         if(self->direction == DIRECTION_RIGHT)
