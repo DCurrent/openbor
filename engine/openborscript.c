@@ -10827,13 +10827,13 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         // behavior to both be tied to a single 0 or 1 value.
         if((LONG)ltemp)
         {
-            projectile_prime = PROJECTILE_PRIME_BASE_FLOOR;
-            projectile_prime += PROJECTILE_PRIME_LAUNCH_STATIONARY;
+            projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+            projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
         }
         else
         {
-            projectile_prime = PROJECTILE_PRIME_BASE_Y;
-            projectile_prime += PROJECTILE_PRIME_LAUNCH_MOVING;
+            projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+            projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
         }
     }
     if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
