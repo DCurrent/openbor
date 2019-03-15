@@ -11082,9 +11082,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				}
 				else
 				{
-					attack.attack_type = (int)value;
+					attack.attack_type = GET_INT_ARG(1);
 				}
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
 				recursive.force = GET_INT_ARG(1);
                 break;
