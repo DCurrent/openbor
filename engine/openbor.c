@@ -11061,7 +11061,29 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.steal = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_TYPE:
-                attack.attack_type = GET_INT_ARG(1);
+
+				value = GET_ARG(1);
+
+				if (stricmp(value, "burn") == 0)
+				{
+					attack.attack_type = ATK_BURN;
+				}
+				else if(stricmp(value, "freeze") == 0)
+				{
+					attack.attack_type = ATK_FREEZE;
+				}
+				else if (stricmp(value, "shock") == 0)
+				{
+					attack.attack_type = ATK_SHOCK;
+				}
+				else if (stricmp(value, "steal") == 0)
+				{
+					attack.attack_type = ATK_STEAL;
+				}
+				else
+				{
+					attack.attack_type = (int)value;
+				}
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
 				recursive.force = GET_INT_ARG(1);
