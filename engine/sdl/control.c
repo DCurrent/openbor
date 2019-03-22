@@ -14,6 +14,7 @@
 #include "globals.h"
 #include "control.h"
 #include "openbor.h"
+#include "List.h"
 
 #define AXIS_THRESHOLD 7000
 
@@ -45,6 +46,10 @@ static bool altEnterPressed = false;
 static InputDevice *remapDevice = NULL;
 static int remapKeycode = -1;
 
+// each list member is an array of SDID_COUNT ints, dynamically allocated
+static List savedMappings;
+static bool savedMappingsInited = false;
+
 #ifdef ANDROID
 #define MAX_POINTERS 30
 typedef enum
@@ -67,6 +72,58 @@ static TouchStatus touch_info;
 static void control_update_android_touch(TouchStatus *touch_info, int maxp);
 static int is_touch_area(float x, float y);
 #endif
+
+// update the mappings for a device in the save data
+static void update_saved_mapping(int deviceID)
+{
+    InputDevice *device = &devices[deviceID];
+    if (device->deviceType == DEVICE_TYPE_NONE) return;
+
+    if (List_FindByName(&savedMappings, device->name))
+    {
+        memcpy(List_Retrieve(&savedMappings), device->mappings, SDID_COUNT * sizeof(int));
+    }
+    else
+    {
+        int *mappings = malloc(SDID_COUNT * sizeof(int));
+        memcpy(mappings, device->mappings, SDID_COUNT * sizeof(int));
+        List_InsertAfter(&savedMappings, mappings, device->name);
+    }
+}
+
+// set the mappings for a device to the saved settings
+static void load_from_saved_mapping(int deviceID)
+{
+    InputDevice *device = &devices[deviceID];
+    if (device->deviceType == DEVICE_TYPE_NONE) return;
+
+    if (List_FindByName(&savedMappings, device->name))
+    {
+        memcpy(device->mappings, List_Retrieve(&savedMappings), SDID_COUNT * sizeof(int));
+    }
+    else
+    {
+        control_resetmappings(deviceID);
+    }
+}
+
+static void clear_saved_mappings()
+{
+    if (!savedMappingsInited)
+    {
+        List_Init(&savedMappings);
+        savedMappingsInited = true;
+    }
+
+    int numMappings = List_GetSize(&savedMappings);
+	List_Reset(&savedMappings);
+	for (int i = 0; i < numMappings; i++)
+	{
+	    free(List_Retrieve(&savedMappings));
+        List_GotoNext(&savedMappings);
+    }
+    List_Clear(&savedMappings);
+}
 
 /* If 2 or more of the same type of controller are plugged in, we need to disambiguate them so that a player assigning
    devices in the options menu can tell them apart. Do this by appending "#2", "#3", etc. to the names. */
@@ -122,7 +179,7 @@ static void setup_joystick(int deviceID, int sdlDeviceID)
         }
         //snprintf(devices[deviceID].name, sizeof(devices[deviceID].name), "%s", name);
         set_device_name(deviceID, name);
-        control_resetmappings(deviceID);
+        load_from_saved_mapping(deviceID);
         printf("%s (device #%i, SDL ID %i) is a game controller.\n", devices[deviceID].name, deviceID, sdlDeviceID);
     }
     else
@@ -136,7 +193,7 @@ static void setup_joystick(int deviceID, int sdlDeviceID)
         }
         //snprintf(devices[deviceID].name, sizeof(devices[deviceID].name), "%s", name);
         set_device_name(deviceID, name);
-        control_resetmappings(deviceID);
+        load_from_saved_mapping(deviceID);
         printf("%s (device #%i, SDL ID %i) is not a game controller.\n", devices[deviceID].name, deviceID, sdlDeviceID);
     }
 
@@ -154,6 +211,12 @@ static void setup_joystick(int deviceID, int sdlDeviceID)
 void control_init()
 {
     if (controlInited) return;
+
+    if (!savedMappingsInited)
+    {
+        List_Init(&savedMappings);
+        savedMappingsInited = true;
+    }
 
     // initialize all devices to DEVICE_TYPE_NONE
     memset(devices, 0, sizeof(devices));
@@ -178,7 +241,7 @@ void control_init()
 #else
     snprintf(devices[numJoysticks].name, sizeof(devices[numJoysticks].name), "%s", "Keyboard");
 #endif
-    control_resetmappings(numJoysticks);
+    load_from_saved_mapping(numJoysticks);
 
 #ifdef ANDROID
     for (int i = 0; i < MAX_POINTERS; i++)
@@ -193,6 +256,8 @@ void control_init()
 void control_exit()
 {
     if (!controlInited) return;
+
+    clear_saved_mappings();
 
     for (int i = 0; i < MAX_DEVICES; i++)
     {
@@ -1052,4 +1117,107 @@ static int is_touch_area(float x, float y)
     return 0;
 }
 #endif
+
+#define MAPPINGS_FILE_SENTINEL 0x9cf232d4
+
+bool control_loadmappings(const char *filename)
+{
+    FILE *fp = fopen(filename, "rb");
+    if (!fp)
+    {
+        return false;
+    }
+
+    clear_saved_mappings();
+
+    while (!feof(fp) && !ferror(fp))
+    {
+        char name[CONTROL_DEVICE_NAME_SIZE];
+		int *mapping = malloc(SDID_COUNT * sizeof(int));
+		int sentinel;
+        if (fread(name, 1, sizeof(name), fp) != sizeof(name) ||
+            fread(mapping, sizeof(int), SDID_COUNT, fp) != SDID_COUNT ||
+            fread(&sentinel, sizeof(int), 1, fp) != 1)
+        {
+            free(mapping);
+            break;
+        }
+        else if (sentinel != MAPPINGS_FILE_SENTINEL)
+        {
+            free(mapping);
+            fclose(fp);
+            return false;
+        }
+
+        name[sizeof(name)-1] = '\0'; // just in case
+        printf("Loaded mapping for %s\n", name);
+        List_InsertAfter(&savedMappings, mapping, name);
+    }
+
+    fclose(fp);
+
+    // update all current device mappings with the newly loaded mappings
+    for (int i = 0; i < MAX_DEVICES; i++)
+    {
+        if (devices[i].deviceType != DEVICE_TYPE_NONE)
+        {
+            load_from_saved_mapping(i);
+        }
+    }
+
+    return true;
+}
+
+bool control_savemappings(const char *filename)
+{
+    // update savedMappings with all current device mappings
+    for (int i = 0; i < MAX_DEVICES; i++)
+    {
+        if (devices[i].deviceType != DEVICE_TYPE_NONE)
+        {
+            update_saved_mapping(i);
+        }
+    }
+
+    FILE *fp = fopen(filename, "wb");
+    if (!fp)
+    {
+        return false;
+    }
+
+    int numMappings = List_GetSize(&savedMappings);
+	List_Reset(&savedMappings);
+	for (int i = 0; i < numMappings; i++)
+	{
+		char name[CONTROL_DEVICE_NAME_SIZE];
+		snprintf(name, sizeof(name), "%s", List_GetName(&savedMappings));
+		int *mapping = List_Retrieve(&savedMappings);
+		const int sentinel = MAPPINGS_FILE_SENTINEL;
+        if (fwrite(name, 1, sizeof(name), fp) != sizeof(name) ||
+            fwrite(mapping, sizeof(int), SDID_COUNT, fp) != SDID_COUNT ||
+            fwrite(&sentinel, sizeof(int), 1, fp) != 1)
+        {
+            fclose(fp);
+            return false;
+        }
+
+        List_GotoNext(&savedMappings);
+    }
+
+    fclose(fp);
+    return true;
+}
+
+void control_clearmappings()
+{
+    clear_saved_mappings();
+
+    for (int i = 0; i < MAX_DEVICES; i++)
+    {
+        if (devices[i].deviceType != DEVICE_TYPE_NONE)
+        {
+            control_resetmappings(i);
+        }
+    }
+}
 

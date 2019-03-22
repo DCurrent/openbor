@@ -44,6 +44,13 @@ bool control_isvaliddevice(int deviceID);
 const char *control_getdevicename(int deviceID);
 void control_rumble(int deviceID, int ratio, int msec);
 
+bool control_loadmappings(const char *filename);
+bool control_savemappings(const char *filename);
+
+// clears saved mappings and resets every device's mappings to defaults
+void control_clearmappings();
+
+
 #define control_getmappedkeyname(deviceID, key) control_getkeyname(deviceID, control_getmappings(deviceID)[key])
 
 #ifdef ANDROID
