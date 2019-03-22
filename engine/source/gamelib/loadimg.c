@@ -377,7 +377,7 @@ static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data,
             }
             default:
             {
-                __builtin_unreachable();
+                assert(!"invalid PNG filter");
             }
         }
     }
@@ -463,7 +463,7 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
                 }
                 default:
                 {
-                    __builtin_unreachable();
+                    assert(!"invalid PNG filter");
                 }
             }
         }
