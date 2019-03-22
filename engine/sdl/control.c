@@ -248,7 +248,7 @@ void control_init()
 #else
     snprintf(devices[joystickCount].name, sizeof(devices[joystickCount].name), "%s", "Keyboard");
 #endif
-    load_from_saved_mapping(joystickCount);
+    load_from_saved_mapping(numJoysticks);
 
 #ifdef ANDROID
     for (int i = 0; i < MAX_POINTERS; i++)
