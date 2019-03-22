@@ -55,7 +55,6 @@ void control_clearmappings();
 
 #ifdef ANDROID
 bool is_touchpad_vibration_enabled();
-int is_touch_area(float x, float y);
 #endif /* defined(ANDROID) */
 
 #endif /* defined(CONTROL_H) */

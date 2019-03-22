@@ -2495,115 +2495,6 @@ void execute_pdie_script(int index)
 
 // ------------------------ Save/load -----------------------------
 
-void clearbuttons(int player)
-{
-#if 0 // TODO
-    savedata.joyrumble[player] = 0;
-
-    if (player == 0)
-    {
-        savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules like PSP will not work with CONTROL_NONE
-        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
-        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-        #ifdef SDL
-            //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
-        #endif
-
-        /* *************** SET DEFAULT KEYS *************** */
-        // White Dragon: These are default keys: for Android is the touchpad and for Win/Linux etc. is the keyboard
-        default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-        default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
-        default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-
-        control_setkey(&default_control, FLAG_ESC,        CONTROL_ESC);
-        control_setkey(&default_control, FLAG_MOVEUP,     default_keys[SDID_MOVEUP]);
-        control_setkey(&default_control, FLAG_MOVEDOWN,   default_keys[SDID_MOVEDOWN]);
-        control_setkey(&default_control, FLAG_MOVELEFT,   default_keys[SDID_MOVELEFT]);
-        control_setkey(&default_control, FLAG_MOVERIGHT,  default_keys[SDID_MOVERIGHT]);
-        control_setkey(&default_control, FLAG_ATTACK,     default_keys[SDID_ATTACK]);
-        control_setkey(&default_control, FLAG_ATTACK2,    default_keys[SDID_ATTACK2]);
-        control_setkey(&default_control, FLAG_ATTACK3,    default_keys[SDID_ATTACK3]);
-        control_setkey(&default_control, FLAG_ATTACK4,    default_keys[SDID_ATTACK4]);
-        control_setkey(&default_control, FLAG_JUMP,       default_keys[SDID_JUMP]);
-        control_setkey(&default_control, FLAG_SPECIAL,    default_keys[SDID_SPECIAL]);
-        control_setkey(&default_control, FLAG_START,      default_keys[SDID_START]);
-        control_setkey(&default_control, FLAG_SCREENSHOT, default_keys[SDID_SCREENSHOT]);
-    }
-    else if (player == 1)
-    {
-        savedata.keys[1][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[1][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[1][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[1][SDID_START]     = CONTROL_NONE;
-        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
-        #endif
-    }
-    else if (player == 2)
-    {
-        savedata.keys[2][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[2][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[2][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[2][SDID_START]     = CONTROL_NONE;
-        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
-        #endif
-    }
-    else if (player == 3)
-    {
-        savedata.keys[3][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[3][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[3][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[3][SDID_START]     = CONTROL_NONE;
-        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
-        #endif
-    }
-#endif
-}
-
 void clearsettings()
 {
     int i = 0;
@@ -2650,8 +2541,10 @@ void clearsettings()
 
     for (i = 0; i < MAX_PLAYERS; i++)
     {
-        clearbuttons(i);
+        savedata.joyrumble[i] = 0;
     }
+
+    control_clearmappings();
 }
 
 
@@ -2663,6 +2556,7 @@ void savesettings()
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 4);
     strcat(path, tmpname);
+    printf("save settings to %s\n", path);
     handle = fopen(path, "wb");
     if(handle == NULL)
     {
@@ -2670,6 +2564,15 @@ void savesettings()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
+
+    // save controls
+    getBasePath(path, "Saves", 0);
+    getPakName(tmpname, 5);
+    strcat(path, tmpname);
+    if (!control_savemappings(path))
+    {
+        printf("Failed to save controls to %s\n", path);
+    }
 }
 
 void saveasdefault()
@@ -2685,6 +2588,14 @@ void saveasdefault()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
+
+    // save controls
+    getBasePath(path, "Saves", 0);
+    strcat(path, "default.controls");
+    if (!control_savemappings(path))
+    {
+        printf("Failed to save controls to %s\n", path);
+    }
 }
 
 
@@ -2713,6 +2624,15 @@ void loadsettings()
     {
         clearsettings();
     }
+
+    // load controls
+    getBasePath(path, "Saves", 0);
+    getPakName(tmpname, 5);
+    strcat(path, tmpname);
+    if (!control_loadmappings(path))
+    {
+        printf("Failed to load controls from %s\n", path);
+    }
 }
 
 void loadfromdefault()
@@ -2732,6 +2652,14 @@ void loadfromdefault()
     if(savedata.compatibleversion != COMPATIBLEVERSION)
     {
         clearsettings();
+    }
+
+    // load controls
+    getBasePath(path, "Saves", 0);
+    strcat(path, "default.controls");
+    if (!control_loadmappings(path))
+    {
+        printf("Failed to load controls from %s\n", path);
     }
 }
 
@@ -49065,7 +48993,8 @@ finish:
                 }
                 else if(selector == OPTIONS_NUM) // default
                 {
-                    clearbuttons(player);
+                    control_resetmappings(deviceID);
+                    savedata.joyrumble[player] = 0;
                 }
                 else
                 {

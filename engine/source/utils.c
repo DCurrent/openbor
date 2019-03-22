@@ -318,6 +318,9 @@ void getPakName(char *name, int type)
     case 4:
         strcat(mod, ".cfg");
         break;
+    case 5:
+        strcat(mod, ".controls");
+        break;
     default:
         // Loose extension!
         break;
