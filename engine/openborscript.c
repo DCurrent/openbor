@@ -9276,7 +9276,7 @@ HRESULT openbor_checkbasemap(ScriptVariant **varlist , ScriptVariant **pretvar, 
         return S_OK;
     }
 
-    (*pretvar)->dblVal = (DOUBLE)check_basemap((float)x, (float)z);
+    (*pretvar)->dblVal = (DOUBLE)check_basemap(x, z);
 
     return S_OK;
 }
@@ -10868,7 +10868,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         else
         {
             x = self->position.x - x;
-            direction = !direction;
+            direction = DIRECTION_LEFT;
         }
         z += self->position.z;
         a += self->position.y;

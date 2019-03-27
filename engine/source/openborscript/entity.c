@@ -1520,9 +1520,9 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
         case _ENTITY_COLORSET_TABLE:
 
-            // Read only.
+			handle->colourmap = (VOID *)varlist[ARG_VALUE]->ptrVal;
 
-            break;
+	        break;
 
         case _ENTITY_COLORSET_TIME:
 
