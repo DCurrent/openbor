@@ -48917,23 +48917,24 @@ finish:
 
         if(setting > -1)
         {
-            if(bothnewkeys & FLAG_ESC)
+            k = control_getremappedkey();
+            if (k >= 0)
+            {
+                safe_set(mapping, setting, k, ok);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
+
+                // Prevent the newly configured button from counting as "pressed" and starting config again
+                playercontrolpointers[player]->keyflags |= (1 << setting);
+
+                setting = -1;
+                control_remapdevice(-1);
+                // Prevent accidental screenshot
+                bothnewkeys = 0;
+            }
+            else if (bothnewkeys & FLAG_ESC)
             {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 50);
                 setting = -1;
-            }
-            if(setting > -1)
-            {
-                k = control_getremappedkey();
-                if (k >= 0)
-                {
-                    safe_set(mapping, setting, k, ok);
-                    sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
-                    setting = -1;
-                    control_remapdevice(-1);
-                    // Prevent accidental screenshot
-                    bothnewkeys = 0;
-                }
             }
         }
         else
