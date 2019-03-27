@@ -21999,7 +21999,7 @@ void adjust_bind(entity *e)
 			{
 				// If we don't have the frame and frame kill flag is
 				// set, kill ourselves.
-				if (e->animation[e->animnum].numframes < frame)
+				if (e->animation->numframes < frame)
 				{
 
 					if (e->binding.match & BIND_ANIMATION_FRAME_REMOVE)
