@@ -17228,6 +17228,13 @@ void free_ent(entity *e)
         free(e->offense_factors);
         e->offense_factors = NULL;
     }
+
+	if (e->drawmethod)
+	{
+		free(e->drawmethod);
+		e->drawmethod = NULL;
+	}
+
     if(e->varlist)
     {
         // Although free_ent will be only called once when the engine is shutting down,
@@ -18484,6 +18491,18 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     }
 }
 
+s_drawmethod *allocate_drawmethod()
+{
+	s_drawmethod *result;
+
+	// Allocate memory for new drawmethod structure and get pointer.
+	result = malloc(sizeof(*result));
+
+	// Copy default values into new drawmethod.
+	memcpy(result, &plainmethod, sizeof(*result));
+
+	return result;
+}
 
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model)
 {
@@ -18548,8 +18567,11 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
 
             scripts = e->scripts;
             memset(e, 0, sizeof(*e));
-            e->drawmethod = plainmethod;
-            e->drawmethod.flag = 0;
+            
+			// e->drawmethod = plainmethod;
+			e->drawmethod = allocate_drawmethod();
+
+            e->drawmethod->flag = 0;
 
             // add to list and count current entities
             e->exists = 1;
@@ -22502,9 +22524,9 @@ void display_ents()
 
                     drawmethod = e->animation->drawmethods ? getDrawMethod(e->animation, e->animpos) : NULL;
                     
-					if(e->drawmethod.flag)
+					if(e->drawmethod->flag)
                     {
-                        drawmethod = &(e->drawmethod);
+                        drawmethod = (e->drawmethod);
                     }
                     if(!drawmethod)
                     {

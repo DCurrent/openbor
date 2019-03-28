@@ -2468,7 +2468,6 @@ typedef struct entity
 	s_bind					binding;							// Binding self to another entity. ~~
 	s_axis_principal_float	position;							// x,y,z location. ~~
 	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
-	s_drawmethod			drawmethod;							// Graphic settings. ~~
 	s_energy_state			energy_state;						// Health and MP. ~~	
 	s_model					modeldata;							// model data copied here ~~
 	s_jump					jump;								// Jumping velocity and animationnid. ~~	
@@ -2476,6 +2475,7 @@ typedef struct entity
 
 	// Structured pointers.
 	s_anim					*animation;							// Pointer to animation collection. ~~
+	s_drawmethod			*drawmethod;						// Graphic settings. ~~
 	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
 	s_model					*defaultmodel;						// this is the default model ~~
 	s_defense				*defense;							// Resistance or vulnerability to certain attack types. ~~

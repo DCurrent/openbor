@@ -13193,7 +13193,7 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
 
     if(e)
     {
-        pmethod = &(e->drawmethod);
+        pmethod = (e->drawmethod);
     }
     else
     {
@@ -13540,7 +13540,7 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
 
     if(e)
     {
-        pmethod = &(e->drawmethod);
+        pmethod = (e->drawmethod);
     }
     else
     {
@@ -13706,7 +13706,7 @@ HRESULT openbor_setdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
 
     if(e)
     {
-        pmethod = &(e->drawmethod);
+        pmethod = (e->drawmethod);
     }
     else
     {
