@@ -228,6 +228,28 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "update_bind";
 	}
 
+	// Drawmethod
+	else if (functionRef == ((void *)openbor_allocate_drawmethod))
+	{
+		return "allocate_drawmethod";
+	}
+	else if (functionRef == ((void *)openbor_copy_drawmethod))
+	{
+		return "copy_drawmethod";
+	}
+	else if (functionRef == ((void *)openbor_free_drawmethod))
+	{
+	return "free_drawmethod";
+	}
+	else if (functionRef == ((void *)openbor_get_drawmethod_property))
+	{
+		return "get_drawmethod_property";
+	}
+	else if (functionRef == ((void *)openbor_set_drawmethod_property))
+	{
+		return "set_drawmethod_property";
+	}
+
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -960,6 +982,16 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_bind;
     }
+
+	// Drawmethod
+	else if (functionRef == ((void *)openbor_get_drawmethod_property))
+	{
+		return (void *)mapstrings_drawmethod;
+	}
+	else if (functionRef == ((void *)openbor_set_drawmethod_property))
+	{
+		return (void *)mapstrings_drawmethod;
+	}
 	
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
@@ -1129,6 +1161,18 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_set_bind_property, "set_bind_property");
 	List_InsertAfter(&theFunctionList,
 					(void *)openbor_update_bind, "update_bind");
+
+	// Drawmethod
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_allocate_drawmethod, "allocate_drawmethod");
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_copy_drawmethod, "copy_drawmethod");
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_free_drawmethod, "free_drawmethod");
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_get_drawmethod_property, "get_drawmethod_property");
+	List_InsertAfter(&theFunctionList,
+		(void *)openbor_set_drawmethod_property, "set_drawmethod_property");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");

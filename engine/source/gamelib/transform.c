@@ -1651,23 +1651,28 @@ void gfx_draw_plane(s_screen *dest, gfx_entry *src, int x, int y, int centerx, i
         {
             sy += trans_sh;
         }
+
         sxstep = 1 / size;
-        switch(drawmethod->water.perspective)
+        
+		switch(drawmethod->water.perspective)
         {
-        case 1: // tile
+        case WATER_PERSPECTIVE_TILE:
             systep = sxstep;
             break;
-        case 2: //stretch
+        case WATER_PERSPECTIVE_STRETCH:
             systep = sxstep * trans_sh / (float)trans_sw;
             break;
-        default:
+		case WATER_PERSPECTIVE_NONE:
+		default:
             systep = 1.0;
         }
-        if(dy < 0)
+        
+		if(dy < 0)
         {
             continue;
         }
-        sxpos = osxpos - cx * sxstep;
+        
+		sxpos = osxpos - cx * sxstep;
 
         //dest_seek(dx, dy);
         for(j = 0; j < width; j++, sxpos += sxstep)

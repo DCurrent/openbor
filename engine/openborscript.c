@@ -937,6 +937,7 @@ static const char *svlist[] =
     "current_scene",
     "current_set",
     "current_stage",
+	"drawmethod_default",
     "effectvol",
     "elapsed_time",
     "ent_max",
@@ -966,7 +967,8 @@ static const char *svlist[] =
     "in_system_options",
     "in_titlescreen",
     "in_video_options",
-    "lasthita",
+	"lasthit_attack",
+	"lasthita",
     "lasthitc",
     "lasthitt",
     "lasthitx",
@@ -8063,6 +8065,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = ent_count;
         break;
+	case _sv_drawmethod_default:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = (void *)&plainmethod;
+		break;
     case _sv_ent_max:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = ent_max;
@@ -8240,6 +8246,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = selectScreen;
         break;
+	case _sv_lasthit_attack:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = lasthit.attack;
+		break;
     case _sv_lasthita:
     case _sv_lasthity:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
@@ -8746,6 +8756,10 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             slowmotion.duration = (unsigned)ltemp;
         }
         break;
+	case _sv_lasthit_attack:
+		// read only
+		break;
+
     case _sv_lasthita:
     case _sv_lasthity:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))

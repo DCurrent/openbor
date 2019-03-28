@@ -232,6 +232,22 @@ typedef struct PlayRecStatus {
 extern a_playrecstatus *playrecstatus;
 
 // Caskey, Damon V.
+// 2019-03-29
+//
+// Blending options.
+typedef enum
+{
+	BLEND_MODE_MODEL = -1,
+	BLEND_MODE_NONE,
+	BLEND_MODE_ALPHA,
+	BLEND_MODE_ALPHA_NEGATIVE,
+	BLEND_MODE_OVERLAY,
+	BLEND_MODE_HARDLIGHT,
+	BLEND_MODE_DODGE,
+	BLEND_MODE_AVERAGE
+} e_blend_mode;
+
+// Caskey, Damon V.
 // 2018-04-23
 //
 // Initial values for projectile spawns.
