@@ -61,7 +61,7 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"destination_x",
 		"destination_z",
 		"die_on_landing",
-		"draw_method",
+		"drawmethod",
 		"drop",
 		"duck_state",
 		"entvar_collection",
@@ -508,7 +508,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
-		case _ENTITY_DRAW_METHOD:
+		case _ENTITY_DRAWMETHOD:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
 			(*pretvar)->ptrVal = (s_drawmethod *)&handle->drawmethod;
@@ -1614,7 +1614,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
-		case _ENTITY_DRAW_METHOD:
+		case _ENTITY_DRAWMETHOD:
 
 			// Read only.
 
