@@ -70,7 +70,6 @@ extern int nativeHeight;
 static TouchStatus touch_info;
 
 static void control_update_android_touch(TouchStatus *touch_info, int maxp);
-static int is_touch_area(float x, float y);
 #endif
 
 // update the mappings for a device in the save data
@@ -877,7 +876,7 @@ extern float bx[MAXTOUCHB];
 extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
 extern unsigned touchstates[MAXTOUCHB];
-static int hide_t = 5000;
+int hide_t = 5000;
 
 static void control_update_android_touch(TouchStatus *touch_info, int maxp)
 {
@@ -885,7 +884,7 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
     float tx, ty, tr;
     float r[MAXTOUCHB];
     float dirx, diry, circlea, circleb, tan;
-    Uint8* keystate = (Uint8*) SDL_GetKeyState(NULL);
+    Uint8* keystate = (Uint8*) SDL_GetKeyboardState(NULL);
 
     memset(touchstates, 0, sizeof(touchstates));
 
@@ -1005,14 +1004,14 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
     keystate[pc(SDID_SPECIAL)] = touchstates[SDID_SPECIAL];
     keystate[pc(SDID_START)] = touchstates[SDID_START];
     keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
+    keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
+    keystate[pc(SDID_ESC)] = touchstates[SDID_ESC];
     #undef pc
-
-    keystate[CONTROL_ESC] = touchstates[SDID_ESC];
 
     return;
 }
 
-static int is_touch_area(float x, float y)
+int is_touch_area(float x, float y)
 {
     int j;
     float tx, ty, tr;
