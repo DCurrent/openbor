@@ -261,6 +261,7 @@ typedef struct
     int clipw;
     int cliph;
     water_transform water;
+	int tag;
 } s_drawmethod;
 extern const s_drawmethod plainmethod;
 void drawmethod_global_init(s_drawmethod *drawmethod);
