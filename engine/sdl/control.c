@@ -228,19 +228,27 @@ void control_init()
         numJoysticks = MAX_DEVICES - 1;
     }
 
+    int joystickCount = 0;
     for (int i = 0; i < numJoysticks; i++)
     {
-        setup_joystick(i, i);
+        // blacklist the Android accelerometer that SDL counts as a "joystick"
+        if (0 == stricmp("Android Accelerometer", SDL_JoystickNameForIndex(i)))
+        {
+            continue;
+        }
+
+        setup_joystick(joystickCount, i);
+        joystickCount++;
     }
 
-    keyboardDeviceID = numJoysticks;
-    devices[numJoysticks].deviceType = DEVICE_TYPE_KEYBOARD;
+    keyboardDeviceID = joystickCount;
+    devices[joystickCount].deviceType = DEVICE_TYPE_KEYBOARD;
 #ifdef ANDROID
-    snprintf(devices[numJoysticks].name, sizeof(devices[numJoysticks].name), "%s", "On-Screen Controller");
+    snprintf(devices[joystickCount].name, sizeof(devices[joystickCount].name), "%s", "On-Screen Controller");
 #else
-    snprintf(devices[numJoysticks].name, sizeof(devices[numJoysticks].name), "%s", "Keyboard");
+    snprintf(devices[joystickCount].name, sizeof(devices[joystickCount].name), "%s", "Keyboard");
 #endif
-    load_from_saved_mapping(numJoysticks);
+    load_from_saved_mapping(joystickCount);
 
 #ifdef ANDROID
     for (int i = 0; i < MAX_POINTERS; i++)
