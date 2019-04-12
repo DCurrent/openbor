@@ -21491,6 +21491,7 @@ void update_animation()
             self->update_mark |= UPDATE_MARK_UPDATE_ANIMATION; // frame updated, mark it
             // just switch frame to f, if frozen, expand_time will deal with it well
             update_frame(self, f);
+			bothnewkeys = 0; //stop mutiple skips.
         }
     }
 
@@ -39698,6 +39699,7 @@ void openborMain(int argc, char **argv)
     printf("Game Selected: %s\n\n", packfile);
     loadsettings();
     startup();
+	bothnewkeys = 0;
 
     if(skiptoset < 0)
     {

@@ -543,7 +543,7 @@ static void mixaudio(unsigned int todo)
                 sptr16 = soundcache[snum].sample.sampleptr;
                 for(i = 0; i < (int)todo;)
                 {
-                    lmusic = rmusic = sptr16[FIX_TO_INT(fp_pos)];
+                    lmusic = rmusic = (int)(short)SwapLSB16(sptr16[FIX_TO_INT(fp_pos)]);
                     mixbuf[i++] += (lmusic * lvolume / MAXVOLUME);
                     if(vchannel[chan].channels == SOUND_MONO)
                     {
