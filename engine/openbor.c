@@ -70,10 +70,9 @@ int atkchoices[MAX_ANIS]; //tempory values for ai functions, should be well enou
 const s_drawmethod plainmethod =
 {
     .table      = NULL,
-    .fp         = NULL,
     .fillcolor  = 0,
     .flag       = 1,
-    .alpha      = -1,
+    .alpha      = BLEND_MODE_MODEL,
     .remap      = -1,
     .flipx      = 0,
     .flipy      = 0,
@@ -7680,7 +7679,7 @@ void lcmHandleCommandName(ArgList *arglist, s_model *newchar, int cacheindex)
     newchar->name = model_cache[cacheindex].name;
     if(stricmp(newchar->name, "steam") == 0)
     {
-        newchar->alpha = 1;
+        newchar->alpha = BLEND_MODE_ALPHA;
     }
 }
 
@@ -14967,11 +14966,11 @@ void load_level(char *filename)
             dm->transbg = GET_INT_ARG(i + 10); // transparency
             dm->alpha = GET_INT_ARG(i + 11); // alpha
             dm->water.watermode = GET_INT_ARG(i + 12); // water
-            if(dm->water.watermode == 3)
+            if(dm->water.watermode == WATER_MODE_SHEAR)
             {
                 dm->water.beginsize = GET_FLOAT_ARG(i + 13); // beginsize
                 dm->water.endsize = GET_FLOAT_ARG(i + 14); // endsize
-                dm->water.perspective = GET_INT_ARG(i + 15); // amplitude
+                dm->water.perspective = GET_INT_ARG(i + 15); // perspective
             }
             else
             {
@@ -15035,8 +15034,8 @@ void load_level(char *filename)
             dm->xrepeat = -1; // x repeat
             dm->yrepeat = 1; // z repeat
             dm->transbg = 0; // transparency
-            dm->alpha = 0; // alpha
-            dm->water.watermode = 2; // amplitude
+            dm->alpha = BLEND_MODE_NONE; // alpha
+            dm->water.watermode = WATER_MODE_SINE;
             dm->water.amplitude = GET_INT_ARG(2); // amplitude
             dm->water.wavelength = 40; // wavelength
             dm->water.wavespeed = 1.0; // waterspeed
@@ -15304,7 +15303,7 @@ void load_level(char *filename)
 
                 bgl->z = SCREENPANEL_Z;
                 bgl->neon = 0;
-                dm->alpha = 1;
+                dm->alpha = BLEND_MODE_ALPHA;
                 bgl->gfx.handle = NULL;
                 load_layer(GET_ARG(3), maskPath, level->numlayers);
                 level->numlayers++;
@@ -15773,10 +15772,10 @@ void load_level(char *filename)
                 dm = &(bgl->drawmethod);
                 if(level->rocking)
                 {
-                    dm->water.watermode = 3;
+                    dm->water.watermode = WATER_MODE_SHEAR;
                     dm->water.beginsize = 1.0;
                     dm->water.endsize = 1 + bgl->size.y / 11.0;
-                    dm->water.perspective = 0;
+                    dm->water.perspective = WATER_PERSPECTIVE_NONE;
                     bgl->bgspeedratio = 2;
                 }
                 break;
@@ -16645,7 +16644,7 @@ void draw_visual_debug()
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
 
-    drawmethod.alpha = 1;
+    drawmethod.alpha = BLEND_MODE_ALPHA;
 
     for(i=0; i<ent_max; i++)
     {
@@ -17228,6 +17227,13 @@ void free_ent(entity *e)
         free(e->offense_factors);
         e->offense_factors = NULL;
     }
+
+	if (e->drawmethod)
+	{
+		free(e->drawmethod);
+		e->drawmethod = NULL;
+	}
+
     if(e->varlist)
     {
         // Although free_ent will be only called once when the engine is shutting down,
@@ -18484,6 +18490,18 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     }
 }
 
+s_drawmethod *allocate_drawmethod()
+{
+	s_drawmethod *result;
+
+	// Allocate memory for new drawmethod structure and get pointer.
+	result = malloc(sizeof(*result));
+
+	// Copy default values into new drawmethod.
+	memcpy(result, &plainmethod, sizeof(*result));
+
+	return result;
+}
 
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model)
 {
@@ -18548,8 +18566,11 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
 
             scripts = e->scripts;
             memset(e, 0, sizeof(*e));
-            e->drawmethod = plainmethod;
-            e->drawmethod.flag = 0;
+            
+			// e->drawmethod = plainmethod;
+			e->drawmethod = allocate_drawmethod();
+
+            e->drawmethod->flag = 0;
 
             // add to list and count current entities
             e->exists = 1;
@@ -20016,8 +20037,8 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 		return NULL;
 	}
 
-	// If the model has custom flash disabled,
-	// then default to the model's global flash.
+	// If the model doesn't allow incoming custom 
+	// flash  effects, default to the model's global flash.
 	//
 	// Otherwise we need to see if the custom
 	// attack flash index is valid. If it is, then
@@ -20025,7 +20046,7 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 	if (!ent->modeldata.noatflash)
 	{
 		// Valid custom flash index?
-		if (attack->blockflash >= 0)
+		if (attack_flash >= 0)
 		{
 			to_spawn = attack_flash;
 		}
@@ -22503,9 +22524,9 @@ void display_ents()
 
                     drawmethod = e->animation->drawmethods ? getDrawMethod(e->animation, e->animpos) : NULL;
                     
-					if(e->drawmethod.flag)
+					if(e->drawmethod->flag)
                     {
-                        drawmethod = &(e->drawmethod);
+                        drawmethod = (e->drawmethod);
                     }
                     if(!drawmethod)
                     {
@@ -22519,7 +22540,7 @@ void display_ents()
 
                     if(e->modeldata.alpha >= 1 && e->modeldata.alpha <= MAX_BLENDINGS)
                     {
-                        if(drawmethod->alpha < 0)
+                        if(drawmethod->alpha == BLEND_MODE_MODEL)
                         {
                             drawmethod->alpha = e->modeldata.alpha;
                         }
@@ -34363,7 +34384,7 @@ void draw_scrolled_bg()
             i = 0;
         }
 
-        if(i > 0 && screenmethod.water.watermode != 3  && screenmethod.water.amplitude)
+        if(i > 0 && screenmethod.water.watermode != WATER_MODE_SHEAR && screenmethod.water.amplitude)
         {
             i--;
             x -= width;
@@ -34398,7 +34419,7 @@ void draw_scrolled_bg()
         screenmethod.water.wavetime =  (int)(timevar * screenmethod.water.wavespeed);
         screenmethod.xrepeat = screenmethod.yrepeat = 0;
         for(m = z; j < layer->drawmethod.yrepeat && m < vph; m += height, j++, screenmethod.yrepeat++);
-        for(l = x; i < layer->drawmethod.xrepeat && l < vpw + (screenmethod.water.watermode == 3 ? 0 : screenmethod.water.amplitude * 2); l += width, i++, screenmethod.xrepeat++);
+        for(l = x; i < layer->drawmethod.xrepeat && l < vpw + (screenmethod.water.watermode == WATER_MODE_SHEAR ? 0 : screenmethod.water.amplitude * 2); l += width, i++, screenmethod.xrepeat++);
 
         if(layer->gfx.screen->magic == screen_magic)
         {
@@ -35142,7 +35163,7 @@ void fade_out(int type, int speed)
     int current = speed ? speed : fade;
     s_screen *fbuffer = NULL;
     s_drawmethod dm = plainmethod;
-    dm.alpha = 6;
+    dm.alpha = BLEND_MODE_AVERAGE;
 
     for(i = 0, j = 0; j < 64; )
     {
@@ -35160,7 +35181,7 @@ void fade_out(int type, int speed)
                         fbuffer = allocscreen(vscreen->width, vscreen->height, vscreen->pixelformat);
                         copyscreen(fbuffer, vscreen);
                     }
-                    //255 + alpha 6 is actually half blend, so use 254 instead
+                    //255 + alpha BLEND_MODE_AVERAGE is actually half blend, so use 254 instead
                     dm.channelr = dm.channelg = dm.channelb = 254 * (64 - j) / 64;
                     clearscreen(vscreen);
                     putscreen(vscreen, fbuffer, 0, 0, &dm);
@@ -37379,7 +37400,7 @@ int menu_difficulty()
     //float slider = 0;
     int barx, bary, barw, barh;
     s_drawmethod drawmethod = plainmethod;
-    drawmethod.alpha = 1;
+    drawmethod.alpha = BLEND_MODE_ALPHA;
 
     barx = videomodes.hRes / 5;
     bary = _liney(0, 0) - 2;

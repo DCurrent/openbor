@@ -323,6 +323,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
 				  source/openborscript/animation.o                                                  \
 				  source/openborscript/axis.o                                           			\
 				  source/openborscript/binding.o                                           			\
+				  source/openborscript/drawmethod.o                                           		\
                   source/openborscript/collision_attack.o                                           \
                   source/openborscript/collision_body.o                                             \
 				  source/openborscript/collision_entity.o                                           \

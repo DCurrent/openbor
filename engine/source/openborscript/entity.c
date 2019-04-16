@@ -511,7 +511,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_DRAWMETHOD:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (s_drawmethod *)&handle->drawmethod;
+			(*pretvar)->ptrVal = (s_drawmethod *)handle->drawmethod;
 
 			break;
 
@@ -1616,7 +1616,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 		case _ENTITY_DRAWMETHOD:
 
-			// Read only.
+			handle->drawmethod = (s_drawmethod *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 

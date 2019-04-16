@@ -207,6 +207,21 @@ void u32revpcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsign
 void u32pcpy(unsigned *pdest, const unsigned char *psrc, unsigned *pp, unsigned len);
 #endif
 
+typedef enum
+{
+	WATER_MODE_NONE,
+	WATER_MODE_SINE = 1,
+	WATER_MODE_SHEAR = 3
+} e_water_mode;
+
+
+typedef enum
+{
+	WATER_PERSPECTIVE_NONE,
+	WATER_PERSPECTIVE_TILE,
+	WATER_PERSPECTIVE_STRETCH
+} e_water_perspective;
+
 typedef struct
 {
     union
@@ -223,45 +238,44 @@ typedef struct
     union
     {
         float wavespeed;
-        int	perspective;
+		e_water_perspective	perspective;
     };
-    int watermode;
+    e_water_mode watermode;
 } water_transform;
 
 typedef struct
 {
-    unsigned char *table;
-    void *fp;
-    unsigned fillcolor;
-    int flag;
-    int alpha;
-    int remap;
-    int flipx;
-    int flipy;
-    int transbg;
-    int fliprotate; // entity only, whether the flip is affected by the entity's facing(not the sprite's flip )
-    float rotate; // 360 degrees
-    int scalex;
-    int scaley;
-    int shiftx;
-    int centerx;   // shift centerx
-    int centery;   //shift centery
-    int xrepeat;
-    int yrepeat;
-    int xspan;
-    int yspan;
-    unsigned channelr;
-    unsigned channelg;
-    unsigned channelb;
-    unsigned tintmode; //tint the sprite with color
-    unsigned tintcolor;
-    //unsigned clipmode; //0 sprite clip, 1 center,  2 screen clip
-    int clipx;
-    int clipy;
-    int clipw;
-    int cliph;
-    water_transform water;
-	int tag;
+    unsigned char *table;	// ~~
+    //void *fp;
+    unsigned fillcolor;		// ~~
+    int flag;				// When 0, the global plainmethod is used. ~~
+    int alpha;				// ~~				
+    int remap;				// ~~
+    int flipx;				// ~~
+    int flipy;				// ~~
+    int transbg;			// ~~
+    int fliprotate;			// entity only, whether the flip is affected by the entity's facing(not the sprite's flip ) ~~
+    float rotate;			// 360 degrees ~~
+    int scalex;				// ~~
+    int scaley;				// ~~
+    int shiftx;				// ~~
+    int centerx;			// shift centerx ~~
+    int centery;			// shift centery ~~
+    int xrepeat;			// ~~
+    int yrepeat;			// ~~
+    int xspan;				// ~~
+    int yspan;				// ~~
+    unsigned char channelr;	// ~~
+    unsigned char channelg; // ~~
+    unsigned char channelb;	// ~~
+    unsigned tintmode;		// tint the sprite with color ~~
+    unsigned tintcolor;		// ~~
+    int clipx;				// ~~
+    int clipy;				// ~~
+    int clipw;				// ~~
+    int cliph;				// ~~
+    water_transform water;	
+	int tag;				// ~~
 } s_drawmethod;
 extern const s_drawmethod plainmethod;
 void drawmethod_global_init(s_drawmethod *drawmethod);

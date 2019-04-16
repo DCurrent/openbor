@@ -14,6 +14,7 @@
 
 #include "axis.h"
 #include "binding.h"
+#include "drawmethod.h"
 #include "recursive_damage.h"
 #include "entity.h"
 
@@ -358,6 +359,7 @@ enum systemvariant_enum
     _sv_current_scene,
     _sv_current_set,
     _sv_current_stage,
+	_sv_drawmethod_default,
     _sv_effectvol,
     _sv_elapsed_time,
     _sv_ent_max,
@@ -387,7 +389,8 @@ enum systemvariant_enum
     _sv_in_system_options,
     _sv_in_titlescreen,
     _sv_in_video_options,
-    _sv_lasthita,
+	_sv_lasthit_attack,
+	_sv_lasthita,
     _sv_lasthitc,
     _sv_lasthitt,
     _sv_lasthitx,
