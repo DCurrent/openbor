@@ -2395,7 +2395,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
 			{
-				handle->velocity.x = temp_float;
+				handle->velocity.y = temp_float;
 			}
 
 			break;
@@ -2404,7 +2404,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
 			{
-				handle->velocity.x = temp_float;
+				handle->velocity.z = temp_float;
 			}
 
 			break;
