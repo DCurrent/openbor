@@ -757,13 +757,14 @@ s_playercontrols    default_control;
 int default_keys[MAX_BTN_NUM];
 
 //global script
-Script level_script;    //execute when level start
-Script endlevel_script; //execute when level finished
-Script update_script;   //execute when ingame update
-Script updated_script;  //execute when ingame update finished
-Script loading_script;	// in loading screen
-Script key_script_all;  //keyscript for all players
-Script timetick_script; //time tick script.
+Script level_script;		//execute when level start
+Script endlevel_script;		//execute when level finished
+Script update_script;		//execute when ingame update
+Script updated_script;		//execute when ingame update finished
+Script loading_script;		// in loading screen
+Script input_script_all;  //keyscript for all players
+Script key_script_all;		//keyscript for all players
+Script timetick_script;		//time tick script.
 
 //player script
 Script score_script[MAX_PLAYERS];     //execute when add score, 4 players
@@ -1039,6 +1040,7 @@ void init_scripts()
     Script_Init(&updated_script,    "updated",  NULL, 1);
     Script_Init(&level_script,      "level",    NULL,  1);
     Script_Init(&endlevel_script,   "endlevel",  NULL, 1);
+	Script_Init(&input_script_all, "inputall", NULL, 1);
     Script_Init(&key_script_all,    "keyall",   NULL,  1);
     Script_Init(&timetick_script,   "timetick",  NULL, 1);
     Script_Init(&loading_script,    "loading",   NULL, 1);
@@ -1088,6 +1090,10 @@ void load_scripts()
     {
         Script_Clear(&endlevel_script,      2);
     }
+	if (!load_script(&input_script_all, "data/scripts/inputall.c"))
+	{
+		Script_Clear(&input_script_all, 2);
+	}
     if(!load_script(&key_script_all,    "data/scripts/keyall.c"))
     {
         Script_Clear(&key_script_all,       2);
@@ -1184,6 +1190,7 @@ void load_scripts()
     Script_Compile(&updated_script);
     Script_Compile(&level_script);
     Script_Compile(&endlevel_script);
+	Script_Compile(&input_script_all);
     Script_Compile(&key_script_all);
     Script_Compile(&timetick_script);
     Script_Compile(&loading_script);
@@ -1232,6 +1239,7 @@ void clear_scripts()
     Script_Clear(&updated_script,   2);
     Script_Clear(&level_script,     2);
     Script_Clear(&endlevel_script,  2);
+	Script_Clear(&input_script_all, 2);
     Script_Clear(&key_script_all,   2);
     Script_Clear(&timetick_script,  2);
     Script_Clear(&loading_script,   2);
@@ -2293,6 +2301,34 @@ void execute_level_key_script(int player)
         Script_Set_Local_Variant(cs, "player", &tempvar);
     }
 }
+
+void execute_input_script_all(int player)
+{
+	ScriptVariant tempvar;
+	Script *cs = &input_script_all;
+	if (Script_IsInitialized(cs))
+	{
+		ScriptVariant_Init(&tempvar);
+
+		//ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
+		//tempvar.ptrVal = (VOID *)player_object;
+		//Script_Set_Local_Variant(cs, "player_object", &tempvar);
+
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)player;
+		
+		Script_Set_Local_Variant(cs, "player", &tempvar);
+		
+		Script_Execute(cs);
+		
+		//clear to save variant space
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant(cs, "player", &tempvar);
+		//Script_Set_Local_Variant(cs, "player_object", &tempvar);
+	}
+}
+
 
 void execute_key_script_all(int player)
 {
@@ -34464,6 +34500,37 @@ u32 getinterval()
     return interval;
 }
 
+// Caskey, Damon V.
+// 2019-04-22
+// 
+// Run input scripts. Similar to keys, but
+// execute before processing any command functions.
+void execute_input_scripts(int player_index)
+{
+	s_player *player_obj = NULL;
+		
+	player_obj = player + player_index;
+
+	if (!player_obj)
+	{
+		return;
+	}
+	
+	if (player_obj->newkeys || (keyscriptrate && player->keys) || player->releasekeys)
+	{
+		// 2019-04-22 Don't exist yet
+		//if (level)
+		//{
+
+			//execute_level_key_script(player_index, player);
+			//execute_entity_key_script(player.ent);
+		//}
+		//execute_key_script(player_index, player);
+
+		execute_input_script_all(player_index);
+	}
+}
+
 void inputrefresh(int playrecmode)
 {
     int p;
@@ -34501,6 +34568,8 @@ void inputrefresh(int playrecmode)
             pl->playkeys &= pl->keys;
             pl->playkeys &= ~pl->disablekeys;
         }
+				
+		execute_input_scripts(p);		
 
         if(pl->ent && pl->ent->movetime < _time)
         {
@@ -34509,7 +34578,7 @@ void inputrefresh(int playrecmode)
             pl->combostep = 0;
         }
         if(pl->newkeys)
-        {
+        {			
             k = pl->newkeys;
             if(pl->ent)
             {
