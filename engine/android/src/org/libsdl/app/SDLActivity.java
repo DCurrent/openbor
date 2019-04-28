@@ -349,37 +349,48 @@ public class SDLActivity extends Activity {
         try {
             Context ctx = getContext();
             Context appCtx = getApplicationContext();
-            String version = null;
             String toast = null;
 
-            version = appCtx.getPackageManager().getPackageInfo(appCtx.getPackageName(),0).versionName; //get version number as string
-
-            //Toast.makeText(appCtx,appCtx.getPackageName().toString(), Toast.LENGTH_LONG).show();
-            File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); //set local output folder
-			File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");  //Default ouput folder
-            File outFile = new File(outFolder, version + ".pak"); //set local output fileame as version number
-
+            // if package name is literally "org.openbor.engine"
+            // then it acts as a kinda emulator allowing users to choose game to play
             if(appCtx.getPackageName().equals("org.openbor.engine")) {
-                if (!outFolderDefault.isDirectory()) {
-                    outFolderDefault.mkdirs();
-                    toast = "Folder: ("+outFolderDefault+") is empty!";
-                    Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
-                } else {
-                    String[] files = outFolderDefault.list();
-                    if (files.length == 0) {
-                        toast = "Paks Folder: ("+outFolderDefault+") is empty!";
-                        Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
-                        //directory is empty
-                    }
-                }
-            } else {
-                if (outFolder.isDirectory() & !outFile.exists()) { //if local folder true and file does not match version empty folder
+              //Default ouput folder
+			        File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");
+
+              if (!outFolderDefault.isDirectory()) {
+                  outFolderDefault.mkdirs();
+                  toast = "Folder: ("+outFolderDefault+") is empty!";
+                  Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
+              } else {
+                  String[] files = outFolderDefault.list();
+                  if (files.length == 0) {
+                      //directory is empty
+                      toast = "Paks Folder: ("+outFolderDefault+") is empty!";
+                      Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
+                  }
+              }
+            }
+            // otherwise it acts like a dedicated app (commercial title, standalone app)
+            // work with a single .pak file
+            else {
+                String version = null;
+                // versionName is "android:versionName" in AndroidManifest.xml
+                version = appCtx.getPackageManager().getPackageInfo(appCtx.getPackageName(),0).versionName; //get version number as string
+                // set local output folder (primary shared/external storage)
+                File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); 
+                //set local output fileame as version number
+                File outFile = new File(outFolder, version + ".pak"); 
+
+                // check if existing pak directory is actually directory, and pak file with latest version for this build
+                // is there, if not then delete all files residing in such directory (old pak files) preparing for updating new one
+                if (outFolder.isDirectory() && !outFile.exists()) { //if local folder true and file does not match version empty folder
                     toast = "Updating please wait!";
                     String[] children = outFolder.list();
                     for (int i = 0; i < children.length; i++) {
                         new File(outFolder, children[i]).delete();
                     }
-                } else {
+                }
+                else {
                     toast = "First time setup please wait!";
                 }
 
@@ -387,6 +398,7 @@ public class SDLActivity extends Activity {
                     Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
                     outFolder.mkdirs();
 
+                    // TODO: should not hardcoded to 'bor' file name, give more flexible to users for their .pak filename
                     int resId = appCtx.getResources().getIdentifier("raw/bor", null, appCtx.getPackageName());
                     InputStream in = getResources().openRawResource(resId);
                     FileOutputStream out = new FileOutputStream(outFile);
