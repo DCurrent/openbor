@@ -1,1 +1,0 @@
-zipalign -v 4 bin\OpenBOR-release-unsigned.apk bin\OpenBOR-release-aligned.apk

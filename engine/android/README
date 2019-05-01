@@ -1,0 +1,51 @@
+# Android gradle build
+
+Based on setup done in ant build (see android/) directory. Now you can use gradle to build OpenBOR as well.
+
+This gradle build system provides with you ability to build OpenBOR then install it on your Android device.
+
+There are 2 approaches when building for Android
+
+1. build OpenBOR as an app that allows you to add more mods and you can choose from the list to play
+2. build commercial title, or standalone game with a dedicated .pak file to work with
+
+For 1, you have to make sure your package name as configured in `app/build.gradle` and `app/src/main/AndroidManifest.xml` in total of 3 places as seen in source file are literally and exactly "org.openbor.engine". By default, Android build system is configured to be like this.
+
+For 2, you can name your package name freely. Normally will be your domain name + app name ie. "com.mycompany.gamename". This is an approach you should use if you aim to publish your game in the market so OpenBOR will strictly work with your .pak file only.
+
+# Sideload more mods
+
+In case you want to install mods in order to play the game, you have to sideload by putting your `.pak` files on to external storage `OpenBOR/Paks/` locating on Anroid device. This will work with OpenBOR built as general purpose (see 1. above)
+
+# Android development with OpenBOR
+
+There are a couple of things to note when develop your game with OpenBOR on Android.
+
+* put your .pak file at `app/src/main/res/raw`, and rename your .pak file as `bor.png`. This has to do with compression which will be done by Android's tools behind the scene. We use .png extension to avoid further compression again. See http://ponystyle.com/blog/2010/03/26/dealing-with-asset-compression-in-android-apps/ for more related information.
+* .apk file size limit. For Android's Play Store, it limits to 100 MB but allows up to 4 GB via expansion files (obb). See below.
+
+## 100 MB assets limitation
+
+Android limits the maximum size of assets that can be embeded into a single .apk file at 100 MB.
+Most likely if your game's assets are quite big, it will get pass through such limit i.e. World Heroes Timeless (https://github.com/DCurrent/World-Heroes-Timeless) .pak file is at 72 MB mark.
+
+During development, you have no worry about this file size limit. It will only be imposed when you planned to publish on Play Store, so you will have to spend some effort following their policy which will affect end-users downloading your app. See expansion files (obb) https://developer.android.com/google/play/expansion-files.html for further instruction on how to do this.
+
+Anyway for debugging and development, you can
+
+* normally put .pak file into `app/src/main/res/raw` directory (remember to rename it to bor.png). But you might have to increase gradle's heap memory to accomodate processing the file. Configure gradle's heap memory at `gradle.properties` at line `org.gradle.jvmargs=-Xmx1536m` (for example, change to 4GB, change it to `org.gradle.jvmargs=-Xmx4096m`)
+* build OpenBOR and install on device normally without .pak file. Manually place such file to device via any possible means at `Paks/` of your application. You might need to root your device doing this as it's visible to application not end-users. Also name your .pak file as <versionName>.pak in which <versionName> is `android:versionName` value as seen in `AndroidManifest.xml` located at `app/src/main/`.
+
+# Build instruction
+
+* Download relevant Android SDK and NDK then and set up `ANDROID_HOME`, and `ANDROID_NDK_HOME` environment variables properly.
+* Execute `./gradlew installDebug` it will build and `.apk` then intall it on your connected Android device.
+
+# Note
+
+You can see some common source/header files in `android-gradle/` are sym-link files to original files in `android/`.
+
+# Development Notes
+
+* Minimum SDK (API Level) is 19 at the moment, we possibly lower this down to 14 for both ant and gradle build. Marked to check this back later.
+* Currently focus to build only for `armeabi-v7a`, we should also build for others i.e. `arm64-v8a`, `x86` and `x86_64` but that means we need to bundle pre-built dependencies (libraries) as well i.e. SDL2, etc.

@@ -56,41 +56,41 @@ LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/include/ \
 	$(LOCAL_PATH)/include/png \
 	$(LOCAL_PATH)/include/sdl \
-	$(LOCAL_PATH)/../../.. \
-	$(LOCAL_PATH)/../../../sdl \
-	$(LOCAL_PATH)/../../../resources \
-	$(LOCAL_PATH)/../../../source \
-	$(LOCAL_PATH)/../../../source/adpcmlib \
-	$(LOCAL_PATH)/../../../source/gamelib \
-	$(LOCAL_PATH)/../../../source/gfxlib \
-	$(LOCAL_PATH)/../../../source/pnglib \
-	$(LOCAL_PATH)/../../../source/preprocessorlib \
-	$(LOCAL_PATH)/../../../source/ramlib \
-	$(LOCAL_PATH)/../../../source/randlib \
-	$(LOCAL_PATH)/../../../source/scriptlib \
-	$(LOCAL_PATH)/../../../source/openborscript \
-	$(LOCAL_PATH)/../../../source/tracelib2 \
-	$(LOCAL_PATH)/../../../source/webmlib \
-	$(LOCAL_PATH)/../../../source/webmlib/halloc \
-	$(LOCAL_PATH)/../../../source/webmlib/nestegg
+	$(LOCAL_PATH)/../../../.. \
+	$(LOCAL_PATH)/../../../../sdl \
+	$(LOCAL_PATH)/../../../../resources \
+	$(LOCAL_PATH)/../../../../source \
+	$(LOCAL_PATH)/../../../../source/adpcmlib \
+	$(LOCAL_PATH)/../../../../source/gamelib \
+	$(LOCAL_PATH)/../../../../source/gfxlib \
+	$(LOCAL_PATH)/../../../../source/pnglib \
+	$(LOCAL_PATH)/../../../../source/preprocessorlib \
+	$(LOCAL_PATH)/../../../../source/ramlib \
+	$(LOCAL_PATH)/../../../../source/randlib \
+	$(LOCAL_PATH)/../../../../source/scriptlib \
+	$(LOCAL_PATH)/../../../../source/openborscript \
+	$(LOCAL_PATH)/../../../../source/tracelib2 \
+	$(LOCAL_PATH)/../../../../source/webmlib \
+	$(LOCAL_PATH)/../../../../source/webmlib/halloc \
+	$(LOCAL_PATH)/../../../../source/webmlib/nestegg
 
 
 LOCAL_SRC_FILES := \
 	$(subst $(LOCAL_PATH)/,, \
-	$(wildcard $(LOCAL_PATH)/../../../sdl/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/adpcmlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/gamelib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/gfxlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/pnglib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/preprocessorlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/ramlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/randlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/scriptlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/openborscript/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../source/webmlib/*/*.c)) \
+	$(wildcard $(LOCAL_PATH)/../../../../sdl/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/adpcmlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/gamelib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/gfxlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/pnglib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/preprocessorlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/ramlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/randlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/scriptlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/openborscript/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/webmlib/*.c) \
+	$(wildcard $(LOCAL_PATH)/../../../../source/webmlib/*/*.c)) \
 	jniutils.cpp
 
 LOCAL_SRC_FILES += SDL_android_main.cpp
