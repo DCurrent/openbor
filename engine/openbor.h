@@ -1894,10 +1894,12 @@ typedef struct
 // Last hit structure. Populated each time a collision is detected.
 typedef struct
 {
-    int                 confirm;    // Will engine's default hit handling be used?
-    s_axis_principal_float            position;   // X,Y,Z of last hit.
-    s_collision_attack  *attack;    // Collision attacking box.
-    s_collision_body    *body;      // Collision detect box.
+    int						confirm;    // Will engine's default hit handling be used?
+    s_axis_principal_float	position;   // X,Y,Z of last hit.
+    s_collision_attack		*attack;    // Collision attacking box.
+    s_collision_body		*body;      // Collision detect box.
+	struct entity			*target;	// Entity taking the hit.
+	struct entity			*attacker;	// Entity dishing out the hit.
 } s_lasthit;
 
 typedef struct

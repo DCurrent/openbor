@@ -19073,6 +19073,8 @@ int checkhit(entity *attacker, entity *target)
     lasthit.attack      = attack;
     lasthit.body        = detect;
     lasthit.position.y  = lasthit.position.z - medy;
+	lasthit.target = target;
+	lasthit.attacker = attacker;
     lasthit.confirm     = 1;
 
     return 1;
