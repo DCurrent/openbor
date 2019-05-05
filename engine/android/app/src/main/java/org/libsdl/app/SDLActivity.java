@@ -52,7 +52,7 @@ import android.Manifest;
 //msmalik681 added imports for new pak copy!
 import android.os.Environment;
 import android.widget.Toast;
-//msmalik681 added import for premission check
+//msmalik681 added import for permission check
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 
@@ -60,6 +60,9 @@ import android.support.v4.app.ActivityCompat;
     SDL Activity
 */
 public class SDLActivity extends Activity {
+	
+	public static final int STORAGE_PERMISSION_CODE = 23; //needed for permission check
+	
     private static final String TAG = "SDL";
 
     public static boolean mIsResumedCalled, mIsSurfaceReady, mHasFocus;
@@ -263,9 +266,9 @@ public class SDLActivity extends Activity {
         setContentView(mLayout);
 
         setWindowStyle(false);
-
-        //msmalik681 copy pak
-        CopyPak();
+		
+		//msmalik681 setup storage access
+		CheckPermission();
 
         //White Dragon: hide navigation bar programmatically
         SDLActivity.decorView = getWindow().getDecorView();
@@ -346,34 +349,47 @@ public class SDLActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
                 | View.SYSTEM_UI_FLAG_IMMERSIVE);
     }
+	
+	//msmalik681 added permission check for API 23+
+	private void CheckPermission(){
+		if (Build.VERSION.SDK_INT >= 23 && getApplicationContext().getPackageName().equals("org.openbor.engine"))
+		{
+			if (ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+			&&  ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+			{
+			Toast.makeText(this, "Needed permissions not granted!" , Toast.LENGTH_LONG).show();
+			ActivityCompat.requestPermissions(SDLActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
+			} else { CopyPak();	}
+		} else { CopyPak();	}
+	}
+	
+@Override
+public void onRequestPermissionsResult(int requestCode,
+        String[] permissions, int[] grantResults) {
+    switch (requestCode) {
+        case STORAGE_PERMISSION_CODE: {
+            // If request is cancelled, the result arrays are empty.
+            if (grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // permission was granted continue!
+				CopyPak();
+            } else {
+                // needed permission denied end application!
+				finish();
+            }
+            return;
+        }
+    }
+}
 
-    //msmalik681 new method to copy pak file from res/raw/ folder
-    private void CopyPak(){
-
-		
+    //msmalik681 method used to copy bor.pak file from res/raw/ folder
+    public void CopyPak(){
         try {
             Context ctx = getContext();
             Context appCtx = getApplicationContext();
             String toast = null;
-
-					//msmalik681 request user premission if not already granted.
-					
-					/*if (ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        != PackageManager.PERMISSION_GRANTED) {Toast.makeText(this, "Needed premissions not granted!" , Toast.LENGTH_LONG).show();
-	ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, 0);
-	}
-	*/
-	if (Build.VERSION.SDK_INT >= 23) {
-		if (ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-            && ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-		{
-			Toast.makeText(this, "Needed premissions not granted!" , Toast.LENGTH_LONG).show();
-			ActivityCompat.requestPermissions(SDLActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);  
-		}
-	}
 			
-            // if package name is literally "org.openbor.engine"
-            // then it acts as a kinda emulator allowing users to choose game to play
+            // if package name is literally "org.openbor.engine" then default behaviour
             if(appCtx.getPackageName().equals("org.openbor.engine")) {
               //Default ouput folder
 			        File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");
@@ -391,8 +407,7 @@ public class SDLActivity extends Activity {
                   }
               }
             }
-            // otherwise it acts like a dedicated app (commercial title, standalone app)
-            // work with a single .pak file
+            // otherwise it acts like a dedicated app (commercial title, standalone app) works with a single .pak file
             else {
                 String version = null;
                 // versionName is "android:versionName" in AndroidManifest.xml
@@ -402,7 +417,7 @@ public class SDLActivity extends Activity {
                 //set local output fileame as version number
                 File outFile = new File(outFolder, version + ".pak"); 
 
-                // check if existing pak directory is actually directory, and pak file with latest version for this build
+                // check if existing pak directory is actually directory, and pak file with matching version for this build
                 // is there, if not then delete all files residing in such directory (old pak files) preparing for updating new one
                 if (outFolder.isDirectory() && !outFile.exists()) { //if local folder true and file does not match version empty folder
                     toast = "Updating please wait!";
@@ -410,8 +425,7 @@ public class SDLActivity extends Activity {
                     for (int i = 0; i < children.length; i++) {
                         new File(outFolder, children[i]).delete();
                     }
-                }
-                else {
+                } else {
                     toast = "First time setup please wait!";
                 }
 
