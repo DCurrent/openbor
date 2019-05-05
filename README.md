@@ -63,7 +63,7 @@ A developer who prefers to work on OpenBOR's supporting libraries and platform-s
 Known as O'Ilusionista, Douglas is a highly respected administrator of the OpenBOR community and also a prolific member of the Mugen scene. Douglas is new to coding but brings a plethoera of graphic and game design experience to the team. We look for exciting things from Mr. Baldan soon!
 
 #### [Malik](https://github.com/msmalik681) (2018-)
-Malik comes to the team with a good scripting background. He is still learning his way around application development, but shows a lot of promise and a great willingness to learn. As his skills progress, he will no doubt be a an invaluable asset to the team!
+Malik came to the team with a strong OpenBOR scripting background, and quickly established himself as a resident go-to for the Android Port. Malik dedicates himself to keeping the Android port of OpenBOR a commercialy viable platform for authors who wish to sell their orginal IP projects.
 
 ### Former members and contributors
 
