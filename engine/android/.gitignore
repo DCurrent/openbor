@@ -4,3 +4,5 @@
 /app/build
 /app/.externalNativeBuild
 /build
+/keystore.properties
+/my-key.jks
