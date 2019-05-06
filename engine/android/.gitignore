@@ -3,3 +3,4 @@
 .DS_Store
 /app/build
 /app/.externalNativeBuild
+/build
