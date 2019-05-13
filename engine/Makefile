@@ -489,6 +489,8 @@ endif
 
 ifdef BUILD_WII
 CFLAGS 	       += -DCACHE_BACKGROUNDS -DREVERSE_COLOR -D__ppc__ $(MACHDEP) -Wl,-Map,$(TARGET_MAP),-wrap,wiiuse_register
+# This allows to compile with DevkitPPC r29 and above.
+CFLAGS 	       += -U__INT32_TYPE__ -U __UINT32_TYPE__ -D__INT32_TYPE__=int
 endif
 
 
