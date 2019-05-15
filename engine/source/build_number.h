@@ -1,3 +1,3 @@
-#define BUILD_NUMBER 7018
-#define BUILD_STRING "7018"
+#define BUILD_NUMBER 7019
+#define BUILD_STRING "7019"
 
