@@ -5,6 +5,6 @@ countB=$(($(git rev-list master.. --count) + 2)) #branch ahead of master commit 
 total=$(($countM + $countB))
 echo "#define BUILD_NUMBER $total
 #define BUILD_STRING \"$total\"
-" > source/build_number.h
-git add source/build_number.h
+" > engine/source/build_number.h
+git add engine/source/build_number.h
 exit 0
