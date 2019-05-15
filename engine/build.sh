@@ -211,7 +211,12 @@ function windows {
   export PATH=$OLD_PATH
   . ./environ.sh 5
   if test $WINDEV; then
-    make clean BUILD_WIN=1
+		#first remove old resource file and update with new that should have the current build number.
+		if test -e "resources/OpenBOR.res"; then
+		rm "resources/OpenBOR.res";
+		fi
+	make clean BUILD_WIN=1
+	windres.exe resources/OpenBOR.rc -o resources/OpenBOR.res -O coff
     make BUILD_WIN=1
     if test -f "./OpenBOR.exe"; then
       if test ! -e "./releases/WINDOWS" ; then

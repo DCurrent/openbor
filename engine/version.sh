@@ -7,52 +7,17 @@
 #
 
 #!/bin/bash
-# Script acquires the verison number from SVN Repository and creates
+# Script acquires the version number from SVN Repository and creates
 # a version.h as well as the environment variable to be used.
 
-function check_svn_bin {
-HOST_PLATFORM=$(uname -s)
-if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
-  if [ ! -d "../tools/svn/bin" ]; then
-    echo "-------------------------------------------------------"
-    echo "           SVN - Not Found, Installing SVN!"
-    echo "-------------------------------------------------------"
-    7za x -y ../tools/svn/svn-win32-1.7.0.7z -o../tools/svn/
-    echo
-    echo "-------------------------------------------------------"
-    echo "           SVN - Installation Has Completed!"
-    echo "-------------------------------------------------------"
-  fi
-fi
-}
-
-# Support the Bazaar VCS as an alternative to SVN through the bzr-svn plugin
-function get_revnum {
-  if test -d "../.svn" || test -d "./.svn"; then
-    VERSION_BUILD=`svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d ".bzr"; then
-    VERSION_BUILD=`bzr version-info | grep "svn-revno" | sed 's/svn-revno: //g'`
-    if [ ! $VERSION_BUILD ]; then # use non-SVN revision number if "svn-revno" property not available
-      REVNO=`bzr version-info | grep "revno:" | sed 's/revno: //g'`
-      BRANCH=`bzr version-info | grep "branch-nick:" | sed 's/branch-nick: //g'`
-      VERSION_BUILD=$REVNO-bzr-$BRANCH
-    fi
-  elif git svn info >/dev/null 2>&1; then
-    VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d "../.git" || test -d ".git"; then
-    VERSION_BUILD=`git rev-list --count HEAD`
-  elif test -d "../.hg" || test -d ".hg"; then
-    VERSION_BUILD=$((`hg id -n` + 1))
-  fi
-}
-
 function read_version {
-check_svn_bin
-get_revnum
+BUILD_NUMBER=$(grep 'BUILD_NUMBER' source/build_number.h | sed 's/^.*BUILD_NUMBER //')
+VERSION_BUILD=$BUILD_NUMBER
 VERSION_NAME="OpenBOR"
 VERSION_MAJOR=3
 VERSION_MINOR=0
 VERSION_DATE=`date '+%Y%m%d%H%M%S'`
+
 export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
 }
 
