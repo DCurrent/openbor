@@ -41,6 +41,8 @@ function get_revnum {
     VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
   elif test -d "../.git" || test -d ".git"; then
     VERSION_BUILD=`git rev-list --count HEAD`
+    # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
+    VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
   elif test -d "../.hg" || test -d ".hg"; then
     VERSION_BUILD=$((`hg id -n` + 1))
   fi
@@ -53,7 +55,14 @@ VERSION_NAME="OpenBOR"
 VERSION_MAJOR=3
 VERSION_MINOR=0
 VERSION_DATE=`date '+%Y%m%d%H%M%S'`
-export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
+
+# if there's no commit hash then set string as usual way
+# otherwise include it in the version string
+if [ -z "${VERSION_COMMIT}" ]; then
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
+else
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash: ${VERSION_COMMIT})"
+fi
 }
 
 function write_version {
@@ -72,10 +81,18 @@ echo "/*
 #define VERSION_NAME \"$VERSION_NAME\"
 #define VERSION_MAJOR \"$VERSION_MAJOR\"
 #define VERSION_MINOR \"$VERSION_MINOR\"
-#define VERSION_BUILD \"$VERSION_BUILD\"
-#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
+#define VERSION_BUILD \"$VERSION_BUILD\"" >> version.h
+
+if [ -z "${VERSION_COMMIT}" ]; then
+  echo "#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
 
 #endif" >> version.h
+else
+  echo "#define VERSION_COMMIT \"${VERSION_COMMIT}\"
+#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD\" (commit hash: \"VERSION_COMMIT\")\"
+
+#endif" >> version.h
+fi
 
 rm -rf resources/meta.xml
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
