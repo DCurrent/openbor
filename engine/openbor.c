@@ -15974,7 +15974,13 @@ void load_level(char *filename)
     totalram = getSystemRam(BYTES);
     freeram = getFreeRam(BYTES);
     usedram = getUsedRam(BYTES);
-    printf("Total Ram: %11"PRIu64" Bytes\n Free Ram: %11"PRIu64" Bytes\n Used Ram: %11"PRIu64" Bytes\n", totalram, freeram, usedram);
+    printf("Total Ram: %11"PRIu64" Bytes ( %5"PRIu64" MB )\n Free Ram: %11"PRIu64" Bytes ( %5"PRIu64" iB )\n Used Ram: %11"PRIu64" Bytes ( %5"PRIu64" MB )\n",
+        totalram,
+        totalram >> 20,
+        freeram,
+        freeram >> 20,
+        usedram,
+        usedram >> 20);
     printf("Total sprites mapped: %d\n\n", sprites_loaded);
 
 lCleanup:
