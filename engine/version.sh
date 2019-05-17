@@ -26,25 +26,11 @@ if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
 fi
 }
 
-# Support the Bazaar VCS as an alternative to SVN through the bzr-svn plugin
 function get_revnum {
-  if test -d "../.svn" || test -d "./.svn"; then
-    VERSION_BUILD=`svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d ".bzr"; then
-    VERSION_BUILD=`bzr version-info | grep "svn-revno" | sed 's/svn-revno: //g'`
-    if [ ! $VERSION_BUILD ]; then # use non-SVN revision number if "svn-revno" property not available
-      REVNO=`bzr version-info | grep "revno:" | sed 's/revno: //g'`
-      BRANCH=`bzr version-info | grep "branch-nick:" | sed 's/branch-nick: //g'`
-      VERSION_BUILD=$REVNO-bzr-$BRANCH
-    fi
-  elif git svn info >/dev/null 2>&1; then
-    VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d "../.git" || test -d ".git"; then
+  if test -d "../.git" || test -d ".git"; then
     VERSION_BUILD=`git rev-list --count HEAD`
     # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
     VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
-  elif test -d "../.hg" || test -d ".hg"; then
-    VERSION_BUILD=$((`hg id -n` + 1))
   fi
 }
 
