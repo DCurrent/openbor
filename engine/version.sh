@@ -7,20 +7,20 @@
 #
 
 #!/bin/bash
-# Script acquires the verison number from SVN Repository and creates
+# Script acquires the verison number from GIT Repository and creates
 # a version.h as well as the environment variable to be used.
 
-function check_svn_bin {
+function check_git {
 HOST_PLATFORM=$(uname -s)
 if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
-  if [ ! -d "../tools/svn/bin" ]; then
+  if [ ! -d "../tools/mingit/mingw32" ]; then
     echo "-------------------------------------------------------"
-    echo "           SVN - Not Found, Installing SVN!"
+    echo "           GIT - Not Found, Installing GIT!"
     echo "-------------------------------------------------------"
-    7za x -y ../tools/svn/svn-win32-1.7.0.7z -o../tools/svn/
+    7za x -y ../tools/mingit/MinGit-2.21.0-32-bit.7z -o../tools/mingit/
     echo
     echo "-------------------------------------------------------"
-    echo "           SVN - Installation Has Completed!"
+    echo "           GIT - Installation Has Completed!"
     echo "-------------------------------------------------------"
   fi
 fi
@@ -35,7 +35,7 @@ function get_revnum {
 }
 
 function read_version {
-check_svn_bin
+check_git
 get_revnum
 VERSION_NAME="OpenBOR"
 VERSION_MAJOR=3
