@@ -212,6 +212,13 @@ function windows {
   . ./environ.sh 5
   if test $WINDEV; then
     make clean BUILD_WIN=1
+		#first remove old resource file and update with build number from build_number.h.
+		if test -e "resources/OpenBOR.res"; then
+		rm "resources/OpenBOR.res";
+		windres.exe resources/OpenBOR.rc -o resources/OpenBOR.res -O coff
+		else
+		windres.exe resources/OpenBOR.rc -o resources/OpenBOR.res -O coff
+		fi
     make BUILD_WIN=1
     if test -f "./OpenBOR.exe"; then
       if test ! -e "./releases/WINDOWS" ; then
@@ -283,12 +290,12 @@ function darwin {
 # Android Compile
 function android {
   export PATH=$OLD_PATH
-    if test -f "./android/bin/OpenBOR-debug.apk"; then
+    if test -f "./android/app/build/outputs/apk/debug/OpenBOR.apk"; then
       if test ! -e "./releases/Android/"; then
 		rm -rf ./releases/ANDROID
         mkdir ./releases/ANDROID
       fi
-      cp ./android/bin/OpenBOR-debug.apk ./releases/ANDROID
+      cp ./android/app/build/outputs/apk/debug/OpenBOR.apk ./releases/ANDROID
 		echo "Android Build Copied!"
     fi
 }

@@ -3,6 +3,8 @@
 *.Td
 OpenBOR.elf
 meta.xml
+/engine/version.h
+/engine/resources/Info.plist
 engine/releases/
 /engine/ide/vs/.vs/
 /engine/ide/vs/Debug/
