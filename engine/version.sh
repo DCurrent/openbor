@@ -26,23 +26,11 @@ if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
 fi
 }
 
-# Support the Bazaar VCS as an alternative to SVN through the bzr-svn plugin
 function get_revnum {
-  if test -d "../.svn" || test -d "./.svn"; then
-    VERSION_BUILD=`svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d ".bzr"; then
-    VERSION_BUILD=`bzr version-info | grep "svn-revno" | sed 's/svn-revno: //g'`
-    if [ ! $VERSION_BUILD ]; then # use non-SVN revision number if "svn-revno" property not available
-      REVNO=`bzr version-info | grep "revno:" | sed 's/revno: //g'`
-      BRANCH=`bzr version-info | grep "branch-nick:" | sed 's/branch-nick: //g'`
-      VERSION_BUILD=$REVNO-bzr-$BRANCH
-    fi
-  elif git svn info >/dev/null 2>&1; then
-    VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d "../.git" || test -d ".git"; then
+  if test -d "../.git" || test -d ".git"; then
     VERSION_BUILD=`git rev-list --count HEAD`
-  elif test -d "../.hg" || test -d ".hg"; then
-    VERSION_BUILD=$((`hg id -n` + 1))
+    # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
+    VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
   fi
 }
 
@@ -53,7 +41,14 @@ VERSION_NAME="OpenBOR"
 VERSION_MAJOR=3
 VERSION_MINOR=0
 VERSION_DATE=`date '+%Y%m%d%H%M%S'`
-export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
+
+# if there's no commit hash then set string as usual way
+# otherwise include it in the version string
+if [ -z "${VERSION_COMMIT}" ]; then
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
+else
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash: ${VERSION_COMMIT})"
+fi
 }
 
 function write_version {
@@ -72,10 +67,18 @@ echo "/*
 #define VERSION_NAME \"$VERSION_NAME\"
 #define VERSION_MAJOR \"$VERSION_MAJOR\"
 #define VERSION_MINOR \"$VERSION_MINOR\"
-#define VERSION_BUILD \"$VERSION_BUILD\"
-#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
+#define VERSION_BUILD \"$VERSION_BUILD\"" >> version.h
+
+if [ -z "${VERSION_COMMIT}" ]; then
+  echo "#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
 
 #endif" >> version.h
+else
+  echo "#define VERSION_COMMIT \"${VERSION_COMMIT}\"
+#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD\" (commit hash: \"VERSION_COMMIT\")\"
+
+#endif" >> version.h
+fi
 
 rm -rf resources/meta.xml
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
