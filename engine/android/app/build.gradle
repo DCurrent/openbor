@@ -41,6 +41,15 @@ android {
   }
 
   buildTypes {
+  
+  android.applicationVariants.all { variant ->
+	if(applicationId == "org.openbor.engine"){
+    variant.outputs.all {
+        outputFileName = "OpenBOR.apk";
+			}
+		}
+	}
+  
     release {
       minifyEnabled false
         proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
