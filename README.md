@@ -8,7 +8,7 @@ Ready to make something of your own? Get some images together and away you go!
 
 Feeling ambitious? Delve into the built in script engine and graphical suite to build a masterpiece rivaling the most outlandish Triple-A productions. Sell it if you if can!
 
-To find out more, stop into the OpenBOR community at [ChronoCrash.com](chronocrash.com). You will also find dozens of game modules already finished to download and play.
+To find out more, stop into the OpenBOR community at [ChronoCrash.com](https://www.chronocrash.com/). You will also find dozens of game modules already finished to download and play.
 
 [![Masters of The Universe](http://img.youtube.com/vi/GOsYJkdqbOk/0.jpg)](https://www.youtube.com/watch?v=GOsYJkdqbOk&t=2m41s "Masters of The Universe")
 
