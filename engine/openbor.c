@@ -465,13 +465,13 @@ int                 normal_attacks[MAX_ATTACKS] =
     ANI_ATTACK1, ANI_ATTACK2, ANI_ATTACK3, ANI_ATTACK4
 };
 
-int                 grab_attacks[5][2] =
+int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
 {
-    {ANI_GRABATTACK, ANI_GRABATTACK2},
-    {ANI_GRABFORWARD, ANI_GRABFORWARD2},
-    {ANI_GRABUP, ANI_GRABUP2},
-    {ANI_GRABDOWN, ANI_GRABDOWN2},
-    {ANI_GRABBACKWARD, ANI_GRABBACKWARD2}
+    [GRAB_ACTION_SELECT_ATTACK] = {ANI_GRABATTACK, ANI_GRABATTACK2},
+	[GRAB_ACTION_SELECT_BACKWARD] = {ANI_GRABBACKWARD, ANI_GRABBACKWARD2},
+	[GRAB_ACTION_SELECT_FORWARD] = {ANI_GRABFORWARD, ANI_GRABFORWARD2},
+    [GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
+	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}    
 };
 
 int                 freespecials[MAX_SPECIALS] =
@@ -24503,28 +24503,43 @@ void doprethrow()
 
 // 1 grabattack 2 grabforward 3 grabup 4 grabdown 5 grabbackward
 // other means grab finisher at once
+
+// Unknown author (utunnels?). 
+//
+// Retooled by Caskey, Damon V. to use named constants
+// for selecting which grab attack.
+// 2019-05-31
+//
+// Perform a grab attack action depending on request and
+// current number already performed for of a given
+// grab attack.
 void dograbattack(int which)
 {
     entity *other = self->link;
     self->takeaction = common_grabattack;
     self->attacking = ATTACKING_ACTIVE;
     other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
-    if(which < 5 && which >= 0)
-    {
-        ++self->combostep[which];
-        if(self->combostep[which] < 3 && validanim(self, grab_attacks[which][0]))
-        {
-            ent_set_anim(self, grab_attacks[which][0], 0);
-        }
-        else
-        {
-            do_grab_attack_finish(self, which);
-        }
-    }
-    else
-    {
-        do_grab_attack_finish(self, 0);
-    }
+    
+	// If we requested finish attack, do it now. Otherwise
+	// we'll look at current combostep for the selected grab
+	// attack. If we're at the combo limit, then we finish.
+	// If not, do the requested attack.
+	if (which == GRAB_ACTION_SELECT_FINISH)
+	{
+		do_grab_attack_finish(self, 0);
+	}
+	else
+	{
+		++self->combostep[which];
+		if (self->combostep[which] < 3 && validanim(self, grab_attacks[which][0]))
+		{
+			ent_set_anim(self, grab_attacks[which][0], 0);
+		}
+		else
+		{
+			do_grab_attack_finish(self, which);
+		}
+	}
 }
 
 // Caskey, Damon V.
@@ -24625,10 +24640,10 @@ void common_grab_check()
     //grab finisher
     if(rnum < 4)
     {
-        dograbattack(-1);
+        dograbattack(GRAB_ACTION_SELECT_FINISH);
         return;
     }
-    which = rnum % 5;
+    which = rnum % GRAB_ACTION_SELECT_MAX;
     // grab attacks
     if(rnum > 12 && validanim(self, grab_attacks[which][0]))
     {
@@ -30777,7 +30792,7 @@ void player_grab_check()
         player[self->playerindex].playkeys -= FLAG_ATTACK;
         if(validanim(self, ANI_GRABBACKWARD))
         {
-            dograbattack(4);
+            dograbattack(GRAB_ACTION_SELECT_BACKWARD);
         }
         else if(validanim(self, ANI_THROW))
         {
@@ -30792,7 +30807,7 @@ void player_grab_check()
         }
         else
         {
-            dograbattack(0);
+            dograbattack(GRAB_ACTION_SELECT_ATTACK);
         }
     }
     // grab forward
@@ -30803,27 +30818,27 @@ void player_grab_check()
              (player[self->playerindex].keys & FLAG_MOVERIGHT)))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(1);
+        dograbattack(GRAB_ACTION_SELECT_FORWARD);
     }
     // grab up
     else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
             validanim(self, ANI_GRABUP) && (player[self->playerindex].keys & FLAG_MOVEUP))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(2);
+        dograbattack(GRAB_ACTION_SELECT_UP);
     }
     // grab down
     else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
             validanim(self, ANI_GRABDOWN) && (player[self->playerindex].keys & FLAG_MOVEDOWN))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(3);
+        dograbattack(GRAB_ACTION_SELECT_DOWN);
     }
     // normal grab attack
     else if((player[self->playerindex].playkeys & FLAG_ATTACK) && validanim(self, ANI_GRABATTACK))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(0);
+        dograbattack(GRAB_ACTION_SELECT_ATTACK);
     }
     // grab attack finisher
     else if(player[self->playerindex].playkeys & (FLAG_JUMP | FLAG_ATTACK))
@@ -30833,7 +30848,7 @@ void player_grab_check()
         // Perform final blow
         if(validanim(self, ANI_GRABATTACK2) || validanim(self, ANI_ATTACK3))
         {
-            dograbattack(-1);
+            dograbattack(GRAB_ACTION_SELECT_FINISH);
         }
         else
         {

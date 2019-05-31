@@ -1369,6 +1369,35 @@ typedef enum
     FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
 } e_follow_condition;
 
+// Caskey, Damon V.
+// 2019-05-31
+// Grab attack selection.
+typedef enum
+{
+	// Note these action constants are used as element IDs for
+	// an array of grab attack options.
+	//
+	// GRAB_ACTION_SELECT_FINISH is a special action not included 
+	// in the array of grab attacks, and GRAB_ACTION_SELECT_MAX
+	// is used as the array size. 
+	
+	// Also note that AI selects which grab attack to perform 
+	// by randomly generating a number from 0 to GRAB_ACTION_SELECT_MAX. 
+	// This means GRAB_ACTION_SELECT_MAX should reflect number 
+	// of options with exception of GRAB_ACTION_SELECT_FINISH, 
+	// and that the value GRAB_ACTION_SELECT_FINISH should always 
+	// fall outside of the 0 to GRAB_ACTION_SELECT_MAX range. Order
+	// of the options does not matter otherwise.
+
+	GRAB_ACTION_SELECT_ATTACK,	
+	GRAB_ACTION_SELECT_BACKWARD,
+	GRAB_ACTION_SELECT_FORWARD,
+	GRAB_ACTION_SELECT_DOWN,
+	GRAB_ACTION_SELECT_UP,
+	GRAB_ACTION_SELECT_MAX,
+	GRAB_ACTION_SELECT_FINISH
+} e_grab_action_select;
+
 typedef enum
 {
     /*
