@@ -31,6 +31,9 @@ function get_revnum {
     VERSION_BUILD=`git rev-list --count HEAD`
     # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
     VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
+  else
+	VERSION_BUILD=0000
+	VERSION_COMMIT=0000000
   fi
 }
 
