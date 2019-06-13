@@ -313,24 +313,26 @@ static inline unsigned char png_paeth_predictor(unsigned char a, unsigned char b
 }
 
 // Decodes the image from a decompressed, non-interlaced IDAT stream.
-static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data, int width, int height)
+static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data, int max_width, int max_height)
 {
+    int width = res[0];
     unsigned int y, x;
-    for (y = 0; y < height; y++)
+
+    for (y = 0; y < max_height; y++)
     {
         switch (inflated_data[y * (width + 1)])
         {
             case 0: // no filter, the easiest case
             {
-                memcpy(buf + (y * width), inflated_data + (y * (width + 1)) + 1, width);
+                memcpy(buf + (y * max_width), inflated_data + (y * (width + 1)) + 1, max_width);
                 break;
             }
             case 1: // Sub filter: Raw(x) = Sub(x) + Raw(pixel to the left of x)
             {
                 unsigned char last = 0;
-                for (x = 0; x < width; x++)
+                for (x = 0; x < max_width; x++)
                 {
-                    last = buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + last;
+                    last = buf[y * max_width + x] = inflated_data[y * (width + 1) + 1 + x] + last;
                 }
                 break;
             }
@@ -338,14 +340,14 @@ static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data,
             {
                 if (y == 0)
                 {
-                    memcpy(buf + (y * width), inflated_data + (y * (width + 1)) + 1, width);
+                    memcpy(buf + (y * max_width), inflated_data + (y * (width + 1)) + 1, max_width);
                 }
                 else
                 {
                     unsigned int lastline = y - 1;
-                    for (x = 0; x < width; x++)
+                    for (x = 0; x < max_width; x++)
                     {
-                        buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + buf[lastline * width + x];
+                        buf[y * max_width + x] = inflated_data[y * (width + 1) + 1 + x] + buf[lastline * max_width + x];
                     }
                 }
                 break;
@@ -354,11 +356,11 @@ static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data,
             {
                 unsigned char last = 0;
                 unsigned int lastline = y - 1;
-                for (x = 0; x < width; x++)
+                for (x = 0; x < max_width; x++)
                 {
                     unsigned char a = last;
-                    unsigned char b = (y == 0) ? 0 : buf[lastline * width + x];
-                    last = buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + ((a + b) / 2);
+                    unsigned char b = (y == 0) ? 0 : buf[lastline * max_width + x];
+                    last = buf[y * max_width + x] = inflated_data[y * (width + 1) + 1 + x] + ((a + b) / 2);
                 }
                 break;
             }
@@ -366,17 +368,18 @@ static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data,
             {
                 unsigned char last = 0;
                 unsigned int lastline = y - 1;
-                for (x = 0; x < width; x++)
+                for (x = 0; x < max_width; x++)
                 {
                     unsigned char a = last;
-                    unsigned char b = (y == 0) ? 0 : buf[lastline * width + x];
-                    unsigned char c = (y == 0 || x == 0) ? 0 : buf[lastline * width + x - 1];
-                    last = buf[y * width + x] = inflated_data[y * (width + 1) + 1 + x] + png_paeth_predictor(a, b, c);
+                    unsigned char b = (y == 0) ? 0 : buf[lastline * max_width + x];
+                    unsigned char c = (y == 0 || x == 0) ? 0 : buf[lastline * max_width + x - 1];
+                    last = buf[y * max_width + x] = inflated_data[y * (width + 1) + 1 + x] + png_paeth_predictor(a, b, c);
                 }
                 break;
             }
             default:
             {
+                printf("invalid PNG filter %i for line %u\n", inflated_data[y * (width + 1)], y);
                 assert(!"invalid PNG filter");
             }
         }
@@ -384,8 +387,9 @@ static void png_decode_regular(unsigned char *buf, unsigned char *inflated_data,
 }
 
 // Decodes the image from a decompressed, interlaced IDAT stream.
-static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_data, int width, int height)
+static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_data, int max_width, int max_height)
 {
+    int width = res[0], height = res[1];
     const int start_y[7] =  {0, 0, 4, 0, 2, 0, 1};
     const int start_x[7] =  {0, 4, 0, 2, 0, 1, 0};
     const int y_increment[7] = {8, 8, 8, 4, 4, 2, 2};
@@ -472,12 +476,13 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
     }
 }
 
-static int readpng(unsigned char *buf, unsigned char *pal, int width, int height)
+static int readpng(unsigned char *buf, unsigned char *pal, int max_width, int max_height)
 {
     unsigned char *png_data = NULL, *png_data_ptr;
     unsigned char *inflated_data = NULL;
     z_stream zlib_stream = {.zalloc = Z_NULL, .zfree = Z_NULL, .opaque = Z_NULL, .avail_in = 0, .next_in = Z_NULL,
                             .avail_out = 0, .next_out = Z_NULL};
+    int width = res[0], height = res[1];
 
     if (inflateInit(&zlib_stream) != Z_OK)
     {
@@ -581,11 +586,11 @@ static int readpng(unsigned char *buf, unsigned char *pal, int width, int height
 
         if (png_is_interlaced)
         {
-            png_decode_interlaced(buf, inflated_data, width, height);
+            png_decode_interlaced(buf, inflated_data, max_width, max_height);
         }
         else
         {
-            png_decode_regular(buf, inflated_data, width, height);
+            png_decode_regular(buf, inflated_data, max_width, max_height);
         }
     }
 
