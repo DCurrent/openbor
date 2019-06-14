@@ -16,10 +16,9 @@ android {
         externalNativeBuild {
           ndkBuild {
             arguments "APP_PLATFORM=android-19"
-              // for now focus on armeabi-v7a
-              // for other abis, we need to also pre-compile and build other libraries
-              //abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-              abiFilters 'armeabi-v7a'
+              // currently supports with pre-built libraries for following
+              // two target abis
+              abiFilters 'arm64-v8a', 'armeabi-v7a'
           }
         }
     }

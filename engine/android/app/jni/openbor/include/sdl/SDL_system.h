@@ -126,6 +126,21 @@ extern DECLSPEC void * SDLCALL SDL_AndroidGetActivity(void);
 extern DECLSPEC SDL_bool SDLCALL SDL_IsAndroidTV(void);
 
 /**
+   \brief Return true if the application is running on a Chromebook
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_IsChromebook(void);
+
+/**
+  \brief Return true is the application is running on a Samsung DeX docking station
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_IsDeXMode(void);
+
+/**
+ \brief Trigger the Android system back button behavior.
+ */
+extern DECLSPEC void SDLCALL SDL_AndroidBackButton(void);
+
+/**
    See the official Android developer guide for more information:
    http://developer.android.com/guide/topics/data/data-storage.html
 */
