@@ -12,5 +12,6 @@ engine/releases/
 /.vs
 engine/resources/OpenBOR.res
 tools/bin/.wget-hsts
-
-
+tools/win-sdk/*
+tools/psp-sdk/*
+tools/devkitpro/*
