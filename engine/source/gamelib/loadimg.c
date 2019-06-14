@@ -399,7 +399,13 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
     for (pass = 0; pass < 7; pass++)
     {
         unsigned int yin, yout, xin, xout;
+
         int line_width = (width + x_increment[pass] - start_x[pass] - 1) / x_increment[pass];
+        if (line_width == 0)
+        {
+            continue;
+        }
+
         for (yin = 0, yout = start_y[pass]; yout < max_height; yin++, yout += y_increment[pass])
         {
             switch (inflated_data[yin * (line_width + 1)])
@@ -581,8 +587,14 @@ static int readpng(unsigned char *buf, unsigned char *pal, int max_width, int ma
     {
         if (zlib_stream.avail_out != 0)
         {
-            printf("error: incomplete compressed stream\n");
-            goto readpng_abort;
+            // For very small interlaced images, we may overestimate the inflated size by a few bytes, because the
+            // size calculation includes filter bytes for lines of width 0. That's harmless, but if the inflated
+            // data for any other kind of image doesn't fill the buffer, then the image data is incomplete.
+            if (!(png_is_interlaced && width < 8))
+            {
+                printf("error: incomplete compressed stream\n");
+                goto readpng_abort;
+            }
         }
 
         if (png_is_interlaced)
