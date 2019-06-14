@@ -399,25 +399,25 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
     for (pass = 0; pass < 7; pass++)
     {
         unsigned int yin, yout, xin, xout;
-        int line_width = width / x_increment[pass];
-        for (yin = 0, yout = start_y[pass]; yout < height; yin++, yout += y_increment[pass])
+        int line_width = (width + x_increment[pass] - start_x[pass] - 1) / x_increment[pass];
+        for (yin = 0, yout = start_y[pass]; yout < max_height; yin++, yout += y_increment[pass])
         {
             switch (inflated_data[yin * (line_width + 1)])
             {
                 case 0: // no filter, the easiest case
                 {
-                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    for (xin = 0, xout = start_x[pass]; xout < max_width; xin++, xout += x_increment[pass])
                     {
-                        buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin];
+                        buf[yout * max_width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin];
                     }
                     break;
                 }
                 case 1: // Sub filter: Raw(x) = Sub(x) + Raw(pixel to the left of x)
                 {
                     unsigned char last = 0;
-                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    for (xin = 0, xout = start_x[pass]; xout < max_width; xin++, xout += x_increment[pass])
                     {
-                        last = buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + last;
+                        last = buf[yout * max_width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + last;
                     }
                     break;
                 }
@@ -425,17 +425,17 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
                 {
                     if (yin == 0)
                     {
-                        for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                        for (xin = 0, xout = start_x[pass]; xout < max_width; xin++, xout += x_increment[pass])
                         {
-                            buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin];
+                            buf[yout * max_width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin];
                         }
                     }
                     else
                     {
                         unsigned int lastline = yout - y_increment[pass];
-                        for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                        for (xin = 0, xout = start_x[pass]; xout < max_width; xin++, xout += x_increment[pass])
                         {
-                            buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + buf[lastline * width + xout];
+                            buf[yout * max_width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + buf[lastline * max_width + xout];
                         }
                     }
                     break;
@@ -444,11 +444,11 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
                 {
                     unsigned char last = 0;
                     unsigned int lastline = yout - y_increment[pass];
-                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    for (xin = 0, xout = start_x[pass]; xout < max_width; xin++, xout += x_increment[pass])
                     {
                         unsigned char a = last;
-                        unsigned char b = (yin == 0) ? 0 : buf[lastline * width + xout];
-                        last = buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + ((a + b) / 2);
+                        unsigned char b = (yin == 0) ? 0 : buf[lastline * max_width + xout];
+                        last = buf[yout * max_width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + ((a + b) / 2);
                     }
                     break;
                 }
@@ -456,12 +456,12 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
                 {
                     unsigned char last = 0;
                     unsigned int lastline = yout - y_increment[pass];
-                    for (xin = 0, xout = start_x[pass]; xout < width; xin++, xout += x_increment[pass])
+                    for (xin = 0, xout = start_x[pass]; xout < max_width; xin++, xout += x_increment[pass])
                     {
                         unsigned char a = last;
-                        unsigned char b = (yin == 0) ? 0 : buf[lastline * width + xout];
-                        unsigned char c = (yin == 0 || xin == 0) ? 0 : buf[lastline * width + xout - x_increment[pass]];
-                        last = buf[yout * width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + png_paeth_predictor(a, b, c);
+                        unsigned char b = (yin == 0) ? 0 : buf[lastline * max_width + xout];
+                        unsigned char c = (yin == 0 || xin == 0) ? 0 : buf[lastline * max_width + xout - x_increment[pass]];
+                        last = buf[yout * max_width + xout] = inflated_data[yin * (line_width + 1) + 1 + xin] + png_paeth_predictor(a, b, c);
                     }
                     break;
                 }
@@ -472,7 +472,7 @@ static void png_decode_interlaced(unsigned char *buf, unsigned char *inflated_da
             }
         }
 
-        inflated_data += (line_width + 1) * (height / y_increment[pass]);
+        inflated_data += (line_width + 1) * ((height + y_increment[pass] - start_y[pass] - 1) / y_increment[pass]);
     }
 }
 
@@ -511,12 +511,13 @@ static int readpng(unsigned char *buf, unsigned char *pal, int max_width, int ma
         size_t inflated_size;
         if (png_is_interlaced)
         {
-            inflated_size = (width/8 + 1) * (height/8) * 2 +
-                            (width/4 + 1) * (height/8) +
-                            (width/4 + 1) * (height/4) +
-                            (width/2 + 1) * (height/4) +
-                            (width/2 + 1) * (height/2) +
-                            (width + 1) * (height/2);
+            inflated_size = ((width + 7) / 8 + 1) * ((height + 7) / 8) +
+                            ((width + 3) / 8 + 1) * ((height + 7) / 8) +
+                            ((width + 3) / 4 + 1) * ((height + 3) / 8) +
+                            ((width + 1) / 4 + 1) * ((height + 3) / 4) +
+                            ((width + 1) / 2 + 1) * ((height + 1) / 4) +
+                            (width / 2 + 1) * ((height + 1) / 2) +
+                            (width + 1) * (height / 2);
         }
         else
         {
