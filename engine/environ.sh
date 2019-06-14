@@ -35,7 +35,7 @@ case $1 in
 #                                                                          #
 ############################################################################
 1) 
-     if [ ! -d "../tools/psp-sdk/psp-sdk.7z" ]; then
+     if [ ! -f "../tools/psp-sdk/psp-sdk.7z" ]; then
 		echo "-------------------------------------------------------"
 		echo "        PSP SDK File - Not Found, Downloading SDK!"
 		echo "-------------------------------------------------------"
@@ -222,7 +222,7 @@ case $1 in
      export PATH=$TOOLS:$WINDEV:$PATH
    elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
    
-     if [ ! -d "../tools/win-sdk/win-sdk.7z" ]; then
+     if [ ! -f "../tools/win-sdk/win-sdk.7z" ]; then
 		echo "-------------------------------------------------------"
 		echo "      Windows SDK File - Not Found, Downloading SDK!"
 		echo "-------------------------------------------------------"
@@ -314,7 +314,7 @@ case $1 in
      export PATH=$PATH:$DEVKITPPC/bin
    elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
    
-     if [ ! -d "../tools/devkitpro/devkitpro.7z" ]; then
+     if [ ! -f "../tools/devkitpro/devkitpro.7z" ]; then
         echo "-------------------------------------------------------"
         echo "         WII SDK File - Not Found, Downloading SDK!"
         echo "-------------------------------------------------------"
