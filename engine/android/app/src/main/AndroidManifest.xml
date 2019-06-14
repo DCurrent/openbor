@@ -38,7 +38,7 @@
                  android:allowBackup="true"
 				 android:hardwareAccelerated="true"
                  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
-        <activity android:name="org.libsdl.app.SDLActivity"
+        <activity android:name="org.openbor.engine.GameActivity"
                   android:label="@string/app_name"
                   android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
                   android:screenOrientation="landscape"

@@ -1,15 +1,3 @@
-/*
- * OpenBOR - http://www.chronocrash.com
- * -----------------------------------------------------------------------
- * All rights reserved, see LICENSE in OpenBOR root for details.
- *
- * Copyright (c) 2004 - 2014 OpenBOR Team
- *
- * SDLActivity.java - Main code for Android build.
- * Original by UTunnels (utunnels@hotmail.com).
- * Modifications by CRxTRDude, White Dragon and msmalik681.
- */
-
 package org.libsdl.app;
 
 import java.io.IOException;
@@ -42,27 +30,10 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 
-//Added imports
-import java.io.OutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import android.os.PowerManager.*;
-import android.content.res.*;
-import android.Manifest;
-//msmalik681 added imports for new pak copy!
-import android.os.Environment;
-import android.widget.Toast;
-//msmalik681 added import for permission check
-import android.support.v4.content.ContextCompat;
-import android.support.v4.app.ActivityCompat;
-
 /**
     SDL Activity
 */
-public class SDLActivity extends Activity {
-	
-	public static final int STORAGE_PERMISSION_CODE = 23; //needed for permission check
-	
+public class SDLActivity extends Activity implements View.OnSystemUiVisibilityChangeListener {
     private static final String TAG = "SDL";
 
     public static boolean mIsResumedCalled, mIsSurfaceReady, mHasFocus;
@@ -108,13 +79,26 @@ public class SDLActivity extends Activity {
     protected static SDLClipboardHandler mClipboardHandler;
     protected static Hashtable<Integer, Object> mCursors;
     protected static int mLastCursorID;
+    protected static SDLGenericMotionListener_API12 mMotionListener;
 
-    //White Dragon: added statics
-    protected static WakeLock wakeLock;
-    protected static View decorView;
 
     // This is what SDL runs in. It invokes SDL_main(), eventually
     protected static Thread mSDLThread;
+
+    protected static SDLGenericMotionListener_API12 getMotionListener() {
+        if (mMotionListener == null) {
+            if (Build.VERSION.SDK_INT >= 26) {
+                mMotionListener = new SDLGenericMotionListener_API26();
+            } else 
+            if (Build.VERSION.SDK_INT >= 24) {
+                mMotionListener = new SDLGenericMotionListener_API24();
+            } else {
+                mMotionListener = new SDLGenericMotionListener_API12();
+            }
+        }
+
+        return mMotionListener;
+    }
 
     /**
      * This method returns the name of the shared object with the application entry point
@@ -154,7 +138,7 @@ public class SDLActivity extends Activity {
             // "SDL2_mixer",
             // "SDL2_net",
             // "SDL2_ttf",
-            "openbor"
+            "main"
         };
     }
 
@@ -266,32 +250,8 @@ public class SDLActivity extends Activity {
         setContentView(mLayout);
 
         setWindowStyle(false);
-		
-		//msmalik681 setup storage access
-		CheckPermission();
 
-        //White Dragon: hide navigation bar programmatically
-        SDLActivity.decorView = getWindow().getDecorView();
-        hideSystemUI();
-
-        //White Dragon: disable navigation bar
-        SDLActivity.decorView.setOnSystemUiVisibilityChangeListener
-                (new View.OnSystemUiVisibilityChangeListener() {
-            @Override
-            public void onSystemUiVisibilityChange(int visibility) {
-                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-                    hideSystemUI();
-                }
-            }
-        });
-
-        //CRxTRDude - Added FLAG_KEEP_SCREEN_ON to prevent screen timeout.
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        //CRxTRDude - Created a wakelock to prevent the app from being shut down upon screen lock.
-        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-        SDLActivity.wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
-        if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
+        getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(this);
 
         // Get filename from "Open with" of another application
         Intent intent = getIntent();
@@ -301,163 +261,6 @@ public class SDLActivity extends Activity {
                 Log.v(TAG, "Got filename: " + filename);
                 SDLActivity.onNativeDropFile(filename);
             }
-        }
-    }
-
-    //public static native void setRootDir(String dir); msmalik681: left commented as it may be useful in future.
-
-    //White Dragon: vibrator
-    public static native int isNativeVibrationEnabled();
-    public static native int isTouchArea(float x, float y);
-
-    //White Dragon: vibrator
-    public static boolean isVibrationEnabled() {
-        if (isNativeVibrationEnabled() != 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    //White Dragon: vibrator
-    public static boolean isTouchArea(int action, float x, float y) {
-        int isTouchAreaFlag;
-
-        if (action != MotionEvent.ACTION_DOWN &&
-            action != MotionEvent.ACTION_POINTER_DOWN) return false;
-
-        isTouchAreaFlag = isTouchArea(x, y);
-
-        //Toast.makeText(getContext().getApplicationContext(), "TEST: "+isTouchAreaFlag, Toast.LENGTH_LONG).show();
-        if (isTouchAreaFlag != 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    //White Dragon: disable navigation bar
-    private void hideSystemUI() {
-        // Set the IMMERSIVE flag.
-        // Set the content to appear under the system bars so that the content
-        // doesn't resize when the system bars hide and show.
-        getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
-                | View.SYSTEM_UI_FLAG_IMMERSIVE);
-    }
-	
-	//msmalik681 added permission check for API 23+
-	private void CheckPermission(){
-		if (Build.VERSION.SDK_INT >= 23 && getApplicationContext().getPackageName().equals("org.openbor.engine"))
-		{
-			if (ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-			&&  ContextCompat.checkSelfPermission(SDLActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-			{
-			Toast.makeText(this, "Needed permissions not granted!" , Toast.LENGTH_LONG).show();
-			ActivityCompat.requestPermissions(SDLActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
-			} else { CopyPak();	}
-		} else { CopyPak();	}
-	}
-	
-@Override
-public void onRequestPermissionsResult(int requestCode,
-        String[] permissions, int[] grantResults) {
-    switch (requestCode) {
-        case STORAGE_PERMISSION_CODE: {
-            // If request is cancelled, the result arrays are empty.
-            if (grantResults.length > 0
-                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // permission was granted continue!
-				CopyPak();
-            } else {
-                // needed permission denied end application!
-				finish();
-            }
-            return;
-        }
-    }
-}
-
-    //msmalik681 method used to copy bor.pak file from res/raw/ folder
-    public void CopyPak(){
-        try {
-            Context ctx = getContext();
-            Context appCtx = getApplicationContext();
-            String toast = null;
-			
-            // if package name is literally "org.openbor.engine" then default behaviour
-            if(appCtx.getPackageName().equals("org.openbor.engine")) {
-              //Default ouput folder
-			        File outFolderDefault = new File(Environment.getExternalStorageDirectory() + "/OpenBOR/Paks");
-
-              if (!outFolderDefault.isDirectory()) {
-                  outFolderDefault.mkdirs();
-                  toast = "Folder: ("+outFolderDefault+") is empty!";
-                  Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
-              } else {
-                  String[] files = outFolderDefault.list();
-                  if (files.length == 0) {
-                      //directory is empty
-                      toast = "Paks Folder: ("+outFolderDefault+") is empty!";
-                      Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
-                  }
-              }
-            }
-            // otherwise it acts like a dedicated app (commercial title, standalone app) works with a single .pak file
-            else {
-                String version = null;
-                // versionName is "android:versionName" in AndroidManifest.xml
-                version = appCtx.getPackageManager().getPackageInfo(appCtx.getPackageName(),0).versionName; //get version number as string
-                // set local output folder (primary shared/external storage)
-                File outFolder = new File(ctx.getExternalFilesDir(null) + "/Paks"); 
-                //set local output fileame as version number
-                File outFile = new File(outFolder, version + ".pak"); 
-
-                // check if existing pak directory is actually directory, and pak file with matching version for this build
-                // is there, if not then delete all files residing in such directory (old pak files) preparing for updating new one
-                if (outFolder.isDirectory() && !outFile.exists()) { //if local folder true and file does not match version empty folder
-                    toast = "Updating please wait!";
-                    String[] children = outFolder.list();
-                    for (int i = 0; i < children.length; i++) {
-                        new File(outFolder, children[i]).delete();
-                    }
-                } else {
-                    toast = "First time setup please wait!";
-                }
-
-                if(!outFile.exists()) {
-                    Toast.makeText(appCtx,toast, Toast.LENGTH_LONG).show();
-                    outFolder.mkdirs();
-
-                    // TODO: should not hardcoded to 'bor' file name, give more flexible to users for their .pak filename
-                    int resId = appCtx.getResources().getIdentifier("raw/bor", null, appCtx.getPackageName());
-                    InputStream in = getResources().openRawResource(resId);
-                    FileOutputStream out = new FileOutputStream(outFile);
-
-                    copyFile(in, out);
-                    in.close();
-                    in = null;
-                    out.flush();
-                    out.close();
-                    out = null;
-                }
-            }
-        } catch (IOException e) {
-            // not handled
-        } catch (Exception e) {
-            // not handled
-        }
-    }
-
-    private void copyFile(InputStream in, OutputStream out) throws IOException {
-        byte[] buffer = new byte[1024];
-        int read;
-        while ((read = in.read(buffer)) != -1) {
-            out.write(buffer, 0, read);
         }
     }
 
@@ -503,25 +306,12 @@ public void onRequestPermissionsResult(int requestCode,
         SDLActivity.mHasFocus = hasFocus;
         if (hasFocus) {
            mNextNativeState = NativeState.RESUMED;
-           hideSystemUI(); //White Dragon: disable navigation bar
+           SDLActivity.getMotionListener().reclaimRelativeMouseModeIfNeeded();
         } else {
            mNextNativeState = NativeState.PAUSED;
         }
 
         SDLActivity.handleNativeState();
-    }
-
-    //White Dragon: for future...
-	public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        //int orientation = this.getResources().getConfiguration().orientation;
-
-        /*if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            setContentView(R.layout.settings);
-        } else if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            setContentView(R.layout.settings);
-        }*/
     }
 
     @Override
@@ -547,9 +337,6 @@ public void onRequestPermissionsResult(int requestCode,
            return;
         }
 
-        //CRxTRDude - Release wakelock first before destroying.
-        if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
-
         mNextNativeState = NativeState.PAUSED;
         SDLActivity.handleNativeState();
 
@@ -573,6 +360,43 @@ public void onRequestPermissionsResult(int requestCode,
 
         // Reset everything in case the user re opens the app
         SDLActivity.initialize();
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Check if we want to block the back button in case of mouse right click.
+        //
+        // If we do, the normal hardware back button will no longer work and people have to use home,
+        // but the mouse right click will work.
+        //
+        String trapBack = SDLActivity.nativeGetHint("SDL_ANDROID_TRAP_BACK_BUTTON");
+        if ((trapBack != null) && trapBack.equals("1")) {
+            // Exit and let the mouse handler handle this button (if appropriate)
+            return;
+        }
+
+        // Default system back button behavior.
+        super.onBackPressed();
+    }
+
+    // Called by JNI from SDL.
+    public static void manualBackButton() {
+        mSingleton.pressBackButton();
+    }
+
+    // Used to get us onto the activity's main thread
+    public void pressBackButton() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                SDLActivity.this.superOnBackPressed();
+            }
+        });
+    }
+
+    // Used to access the system back behavior.
+    public void superOnBackPressed() {
+        super.onBackPressed();
     }
 
     @Override
@@ -612,8 +436,6 @@ public void onRequestPermissionsResult(int requestCode,
 
         // Try a transition to paused state
         if (mNextNativeState == NativeState.PAUSED) {
-            //White Dragon: wakelock release!
-            if (SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.release();
             nativePause();
             if (mSurface != null)
                 mSurface.handlePause();
@@ -624,15 +446,13 @@ public void onRequestPermissionsResult(int requestCode,
         // Try a transition to resumed state
         if (mNextNativeState == NativeState.RESUMED) {
             if (mIsSurfaceReady && mHasFocus && mIsResumedCalled) {
-                //White Dragon: wakelock acquire!
-                if (!SDLActivity.wakeLock.isHeld()) SDLActivity.wakeLock.acquire();
                 if (mSDLThread == null) {
                     // This is the entry point to the C app.
                     // Start up the C app thread and enable sensor input for the first time
                     // FIXME: Why aren't we enabling sensor input at start?
 
                     mSDLThread = new Thread(new SDLMain(), "SDLThread");
-                    mSurface.enableSensor(Sensor.TYPE_ACCELEROMETER, false); // DEFAULT: true
+                    mSurface.enableSensor(Sensor.TYPE_ACCELEROMETER, true);
                     mSDLThread.start();
                 }
 
@@ -646,7 +466,10 @@ public void onRequestPermissionsResult(int requestCode,
     /* The native thread has finished */
     public static void handleNativeExit() {
         SDLActivity.mSDLThread = null;
-        mSingleton.finish();
+
+        // Make sure we currently have a singleton before we try to call it.
+        if (mSingleton != null)
+            mSingleton.finish();
     }
 
 
@@ -657,6 +480,8 @@ public void onRequestPermissionsResult(int requestCode,
     static final int COMMAND_SET_KEEP_SCREEN_ON = 5;
 
     protected static final int COMMAND_USER = 0x8000;
+
+    protected static boolean mFullscreenModeActive;
 
     /**
      * This method is called by SDL if SDL did not handle a message itself.
@@ -696,30 +521,31 @@ public void onRequestPermissionsResult(int requestCode,
                     // This version of Android doesn't support the immersive fullscreen mode
                     break;
                 }
-/* This needs more testing, per bug 4096 - Enabling fullscreen on Android causes the app to toggle fullscreen mode continuously in a loop
- ***
                 if (context instanceof Activity) {
                     Window window = ((Activity) context).getWindow();
                     if (window != null) {
                         if ((msg.obj instanceof Integer) && (((Integer) msg.obj).intValue() != 0)) {
-                            int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                            int flags = View.SYSTEM_UI_FLAG_FULLSCREEN |
                                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                                        View.SYSTEM_UI_FLAG_FULLSCREEN |
-                                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-                            window.getDecorView().setSystemUiVisibility(flags);
+                                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                    					View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.INVISIBLE;
+                            window.getDecorView().setSystemUiVisibility(flags);        
                             window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+                            SDLActivity.mFullscreenModeActive = true;
                         } else {
-                            int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+                            int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_VISIBLE;
                             window.getDecorView().setSystemUiVisibility(flags);
+                            window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
                             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                            SDLActivity.mFullscreenModeActive = false;
                         }
                     }
                 } else {
                     Log.e(TAG, "error handling message, getContext() returned no Activity");
                 }
-***/
                 break;
             case COMMAND_TEXTEDIT_HIDE:
                 if (mTextEdit != null) {
@@ -730,7 +556,7 @@ public void onRequestPermissionsResult(int requestCode,
 
                     InputMethodManager imm = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(mTextEdit.getWindowToken(), 0);
-
+                    
                     mScreenKeyboardShown = false;
                 }
                 break;
@@ -775,11 +601,11 @@ public void onRequestPermissionsResult(int requestCode,
     public static native void nativePause();
     public static native void nativeResume();
     public static native void onNativeDropFile(String filename);
-    public static native void onNativeResize(int x, int y, int format, float rate);
+    public static native void onNativeResize(int surfaceWidth, int surfaceHeight, int deviceWidth, int deviceHeight, int format, float rate);
     public static native void onNativeKeyDown(int keycode);
     public static native void onNativeKeyUp(int keycode);
     public static native void onNativeKeyboardFocusLost();
-    public static native void onNativeMouse(int button, int action, float x, float y);
+    public static native void onNativeMouse(int button, int action, float x, float y, boolean relative);
     public static native void onNativeTouch(int touchDevId, int pointerFingerId,
                                             int action, float x,
                                             float y, float p);
@@ -809,7 +635,7 @@ public void onRequestPermissionsResult(int requestCode,
     /**
      * This method is called by SDL using JNI.
      * This is a static method for JNI convenience, it calls a non-static method
-     * so that is can be overridden
+     * so that is can be overridden  
      */
     public static void setOrientation(int w, int h, boolean resizable, String hint)
     {
@@ -817,11 +643,11 @@ public void onRequestPermissionsResult(int requestCode,
             mSingleton.setOrientationBis(w, h, resizable, hint);
         }
     }
-
+   
     /**
      * This can be overridden
      */
-    public void setOrientationBis(int w, int h, boolean resizable, String hint)
+    public void setOrientationBis(int w, int h, boolean resizable, String hint) 
     {
         int orientation = -1;
 
@@ -858,11 +684,10 @@ public void onRequestPermissionsResult(int requestCode,
         }
     }
 
-
     /**
      * This method is called by SDL using JNI.
      */
-    public static boolean isScreenKeyboardShown()
+    public static boolean isScreenKeyboardShown() 
     {
         if (mTextEdit == null) {
             return false;
@@ -875,6 +700,37 @@ public void onRequestPermissionsResult(int requestCode,
         InputMethodManager imm = (InputMethodManager) SDL.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         return imm.isAcceptingText();
 
+    }
+
+    /**
+     * This method is called by SDL using JNI.
+     */
+    public static boolean supportsRelativeMouse()
+    {
+        // ChromeOS doesn't provide relative mouse motion via the Android 7 APIs
+        if (isChromebook()) {
+            return false;
+        }
+
+        // Samsung DeX mode doesn't support relative mice properly under Android 7 APIs,
+        // and simply returns no data under Android 8 APIs.
+        if (isDeXMode()) {
+            return false;
+        }
+
+        return SDLActivity.getMotionListener().supportsRelativeMouse();
+    }
+
+    /**
+     * This method is called by SDL using JNI.
+     */
+    public static boolean setRelativeMouseEnabled(boolean enabled)
+    {
+        if (enabled && !supportsRelativeMouse()) {
+            return false;
+        }
+
+        return SDLActivity.getMotionListener().setRelativeMouseEnabled(enabled);
     }
 
     /**
@@ -905,6 +761,30 @@ public void onRequestPermissionsResult(int requestCode,
     /**
      * This method is called by SDL using JNI.
      */
+    public static boolean isChromebook() {
+        return getContext().getPackageManager().hasSystemFeature("org.chromium.arc.device_management");
+    }    
+
+    /**
+     * This method is called by SDL using JNI.
+     */
+    public static boolean isDeXMode() {
+        if (Build.VERSION.SDK_INT < 24) {
+            return false;
+        }
+        try {
+            final Configuration config = getContext().getResources().getConfiguration();
+            final Class configClass = config.getClass();
+            return configClass.getField("SEM_DESKTOP_MODE_ENABLED").getInt(configClass)
+                    == configClass.getField("semDesktopModeEnabled").getInt(config);
+        } catch(Exception ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * This method is called by SDL using JNI.
+     */
     public static DisplayMetrics getDisplayDPI() {
         return getContext().getResources().getDisplayMetrics();
     }
@@ -929,11 +809,17 @@ public void onRequestPermissionsResult(int requestCode,
                 }
             }
             /* environment variables set! */
-            return true;
+            return true; 
         } catch (Exception e) {
            Log.v("SDL", "exception " + e.toString());
         }
         return false;
+    }
+
+    // This method is called by SDLControllerManager's API 26 Generic Motion Handler.
+    public static View getContentView() 
+    {
+        return mSingleton.mLayout;
     }
 
     static class ShowTextInputTask implements Runnable {
@@ -986,12 +872,12 @@ public void onRequestPermissionsResult(int requestCode,
     }
 
     public static boolean isTextInputEvent(KeyEvent event) {
-
+      
         // Key pressed with Ctrl should be sent as SDL_KEYDOWN/SDL_KEYUP and not SDL_TEXTINPUT
         if (Build.VERSION.SDK_INT >= 11) {
             if (event.isCtrlPressed()) {
                 return false;
-            }
+            }  
         }
 
         return event.isPrintingKey() || event.getKeyCode() == KeyEvent.KEYCODE_SPACE;
@@ -1301,6 +1187,32 @@ public void onRequestPermissionsResult(int requestCode,
         return dialog;
     }
 
+    private final Runnable rehideSystemUi = new Runnable() {
+        @Override
+        public void run() {
+            int flags = View.SYSTEM_UI_FLAG_FULLSCREEN |
+                        View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                        View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                        View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                        View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.INVISIBLE;
+
+            SDLActivity.this.getWindow().getDecorView().setSystemUiVisibility(flags);
+        }
+    };
+
+    public void onSystemUiVisibilityChange(int visibility) {
+        if (SDLActivity.mFullscreenModeActive && (visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 || (visibility & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
+
+            Handler handler = getWindow().getDecorView().getHandler();
+            if (handler != null) {
+                handler.removeCallbacks(rehideSystemUi); // Prevent a hide loop.
+                handler.postDelayed(rehideSystemUi, 2000);
+            }
+
+        }
+    }    
+
     /**
      * This method is called by SDL using JNI.
      */
@@ -1467,7 +1379,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         mSensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
 
         if (Build.VERSION.SDK_INT >= 12) {
-            setOnGenericMotionListener(new SDLGenericMotionListener_API12());
+            setOnGenericMotionListener(SDLActivity.getMotionListener());
         }
 
         // Some arbitrary defaults to avoid a potential division by zero
@@ -1485,7 +1397,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         requestFocus();
         setOnKeyListener(this);
         setOnTouchListener(this);
-        enableSensor(Sensor.TYPE_ACCELEROMETER, false); // DEFAULT: true
+        enableSensor(Sensor.TYPE_ACCELEROMETER, true);
     }
 
     public Surface getNativeSurface() {
@@ -1565,8 +1477,23 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 
         mWidth = width;
         mHeight = height;
-        SDLActivity.onNativeResize(width, height, sdlFormat, mDisplay.getRefreshRate());
-        Log.v("SDL", "Window size: " + width + "x" + height);
+		int nDeviceWidth = width;
+		int nDeviceHeight = height;
+		try
+		{
+			if ( android.os.Build.VERSION.SDK_INT >= 17 )
+			{
+				android.util.DisplayMetrics realMetrics = new android.util.DisplayMetrics();
+				mDisplay.getRealMetrics( realMetrics );
+				nDeviceWidth = realMetrics.widthPixels;
+				nDeviceHeight = realMetrics.heightPixels;
+			}
+		}
+		catch ( java.lang.Throwable throwable ) {}
+
+		Log.v("SDL", "Window size: " + width + "x" + height);
+		Log.v("SDL", "Device size: " + nDeviceWidth + "x" + nDeviceHeight);
+        SDLActivity.onNativeResize(width, height, nDeviceWidth, nDeviceHeight, sdlFormat, mDisplay.getRefreshRate());
 
 
         boolean skip = false;
@@ -1616,83 +1543,6 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     // Key events
     @Override
     public boolean onKey(View  v, int keyCode, KeyEvent event) {
-        //uTunnels: remap keys, for sdl doesn't support them
-        /*switch(keyCode)
-        {
-            case KeyEvent.KEYCODE_BUTTON_1://	Key code constant: Generic Game Pad Button #1.
-                keyCode=KeyEvent.KEYCODE_1; break;
-            case KeyEvent.KEYCODE_BUTTON_10: //key code constant: Generic Game Pad Button #10.
-                keyCode=KeyEvent.KEYCODE_2; break;
-            case KeyEvent.KEYCODE_BUTTON_11: //key code constant: Generic Game Pad Button #11.
-                keyCode=KeyEvent.KEYCODE_3; break;
-            case KeyEvent.KEYCODE_BUTTON_12: //key code constant: Generic Game Pad Button #12.
-                keyCode=KeyEvent.KEYCODE_4; break;
-            case KeyEvent.KEYCODE_BUTTON_13: //key code constant: Generic Game Pad Button #13.
-                keyCode=KeyEvent.KEYCODE_5; break;
-            case KeyEvent.KEYCODE_BUTTON_14: //key code constant: Generic Game Pad Button #14.
-                keyCode=KeyEvent.KEYCODE_6; break;
-            case KeyEvent.KEYCODE_BUTTON_15: //key code constant: Generic Game Pad Button #15.
-                keyCode=KeyEvent.KEYCODE_7; break;
-            case KeyEvent.KEYCODE_BUTTON_16: //key code constant: Generic Game Pad Button #16.
-                keyCode=KeyEvent.KEYCODE_8; break;
-            case KeyEvent.KEYCODE_BUTTON_2: //key code constant: Generic Game Pad Button #2.
-                keyCode=KeyEvent.KEYCODE_9; break;
-            case KeyEvent.KEYCODE_BUTTON_3: //key code constant: Generic Game Pad Button #3.
-                keyCode=KeyEvent.KEYCODE_0; break;
-            case KeyEvent.KEYCODE_BUTTON_4: //key code constant: Generic Game Pad Button #4.
-                keyCode=KeyEvent.KEYCODE_A; break;
-            case KeyEvent.KEYCODE_BUTTON_5: //key code constant: Generic Game Pad Button #5.
-                keyCode=KeyEvent.KEYCODE_B; break;
-            case KeyEvent.KEYCODE_BUTTON_6: //key code constant: Generic Game Pad Button #6.
-                keyCode=KeyEvent.KEYCODE_C; break;
-            case KeyEvent.KEYCODE_BUTTON_7: //key code constant: Generic Game Pad Button #7.
-                keyCode=KeyEvent.KEYCODE_D; break;
-            case KeyEvent.KEYCODE_BUTTON_8: //key code constant: Generic Game Pad Button #8.
-                keyCode=KeyEvent.KEYCODE_E; break;
-            case KeyEvent.KEYCODE_BUTTON_9: //key code constant: Generic Game Pad Button #9.
-                keyCode=KeyEvent.KEYCODE_F; break;
-
-            case KeyEvent.KEYCODE_BUTTON_A: //key code constant: A Button key.
-                keyCode=KeyEvent.KEYCODE_G; break;
-            case KeyEvent.KEYCODE_BUTTON_B: //key code constant: B Button key.
-                keyCode=KeyEvent.KEYCODE_H; break;
-            case KeyEvent.KEYCODE_BUTTON_C: //key code constant: C Button key.
-                keyCode=KeyEvent.KEYCODE_I; break;
-            case KeyEvent.KEYCODE_BUTTON_L1: //key code constant: L1 Button key.
-                keyCode=KeyEvent.KEYCODE_J; break;
-            case KeyEvent.KEYCODE_BUTTON_L2: //key code constant: L2 Button key.
-                keyCode=KeyEvent.KEYCODE_K; break;
-            case KeyEvent.KEYCODE_BUTTON_MODE: //key code constant: Mode Button key.
-                keyCode=KeyEvent.KEYCODE_L; break;
-            case KeyEvent.KEYCODE_BUTTON_R1: //key code constant: R1 Button key.
-                keyCode=KeyEvent.KEYCODE_M; break;
-            case KeyEvent.KEYCODE_BUTTON_R2: //key code constant: R2 Button key.
-                keyCode=KeyEvent.KEYCODE_N; break;
-            case KeyEvent.KEYCODE_BUTTON_SELECT: //key code constant: Select Button key.
-                keyCode=KeyEvent.KEYCODE_O; break;
-            case KeyEvent.KEYCODE_BUTTON_START: //key code constant: Start Button key.
-                keyCode=KeyEvent.KEYCODE_P; break;
-            case KeyEvent.KEYCODE_BUTTON_THUMBL: //key code constant: Left Thumb Button key.
-                keyCode=KeyEvent.KEYCODE_Q; break;
-            case KeyEvent.KEYCODE_BUTTON_THUMBR: //key code constant: Right Thumb Button key.
-                keyCode=KeyEvent.KEYCODE_R; break;
-            case KeyEvent.KEYCODE_BUTTON_X: //key code constant: X Button key.
-                keyCode=KeyEvent.KEYCODE_S; break;
-            case KeyEvent.KEYCODE_BUTTON_Y: //key code constant: Y Button key.
-                keyCode=KeyEvent.KEYCODE_T; break;
-            case KeyEvent.KEYCODE_BUTTON_Z: //key code constant: Z Button key.
-                keyCode=KeyEvent.KEYCODE_U; break;
-
-            case KeyEvent.KEYCODE_DPAD_UP: //key code constant: D-Pad Up key.
-                keyCode=KeyEvent.KEYCODE_V; break;
-            case KeyEvent.KEYCODE_DPAD_RIGHT: //key code constant: D-Pad Right key.
-                keyCode=KeyEvent.KEYCODE_X; break;
-            case KeyEvent.KEYCODE_DPAD_DOWN: //key code constant: D-Pad Down key.
-                keyCode=KeyEvent.KEYCODE_Y; break;
-            case KeyEvent.KEYCODE_DPAD_LEFT: //key code constant: D-Pad Left key.
-                keyCode=KeyEvent.KEYCODE_W; break;
-        }*/
-
         // Dispatch the different events depending on where they come from
         // Some SOURCE_JOYSTICK, SOURCE_DPAD or SOURCE_GAMEPAD are also SOURCE_KEYBOARD
         // So, we try to process them as JOYSTICK/DPAD/GAMEPAD events first, if that fails we try them as KEYBOARD
@@ -1759,7 +1609,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         float x,y,p;
 
         // !!! FIXME: dump this SDK check after 2.0.4 ships and require API14.
-        if (event.getSource() == InputDevice.SOURCE_MOUSE && SDLActivity.mSeparateMouseAndTouch) {
+        // 12290 = Samsung DeX mode desktop mouse
+        if ((event.getSource() == InputDevice.SOURCE_MOUSE || event.getSource() == 12290) && SDLActivity.mSeparateMouseAndTouch) {
             if (Build.VERSION.SDK_INT < 14) {
                 mouseButton = 1; // all mouse buttons are the left button
             } else {
@@ -1769,7 +1620,14 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                     mouseButton = 1;    // oh well.
                 }
             }
-            SDLActivity.onNativeMouse(mouseButton, action, event.getX(0), event.getY(0));
+
+            // We need to check if we're in relative mouse mode and get the axis offset rather than the x/y values
+            // if we are.  We'll leverage our existing mouse motion listener
+            SDLGenericMotionListener_API12 motionListener = SDLActivity.getMotionListener();
+            x = motionListener.getEventX(event);
+            y = motionListener.getEventY(event);
+
+            SDLActivity.onNativeMouse(mouseButton, action, x, y, motionListener.inRelativeMode());
         } else {
             switch(action) {
                 case MotionEvent.ACTION_MOVE:
@@ -1808,25 +1666,6 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                         p = 1.0f;
                     }
                     SDLActivity.onNativeTouch(touchDevId, pointerFingerId, action, x, y, p);
-
-                    //White Dragon: vibrator
-                    if ( SDLActivity.isVibrationEnabled() && SDLActivity.isTouchArea(action, x, y) ) {
-                        int vibrationTime = 3;
-						Vibrator vibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
-
-						if (vibrator.hasVibrator()) {
-							// Start without a delay
-							// Vibrate for 3 milliseconds
-							// Sleep for 1000 milliseconds
-							long[] pattern = {0, vibrationTime, 1000};
-							// The '0' here means to repeat indefinitely
-							// '0' is actually the index at which the pattern keeps repeating from (the start)
-							// To repeat the pattern from any other point, you could increase the index, e.g. '1'
-							// The '-1' here means to vibrate once, as '-1' is out of bounds in the pattern array
-							vibrator.vibrate(pattern, -1);
-						}
-                    }
-
                     break;
 
                 case MotionEvent.ACTION_CANCEL:
@@ -1897,6 +1736,49 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
                                       event.values[2] / SensorManager.GRAVITY_EARTH);
         }
     }
+
+    // Captured pointer events for API 26.
+    public boolean onCapturedPointerEvent(MotionEvent event)
+    {
+        int action = event.getActionMasked();
+
+        float x, y;
+        switch (action) {
+            case MotionEvent.ACTION_SCROLL:
+                x = event.getAxisValue(MotionEvent.AXIS_HSCROLL, 0);
+                y = event.getAxisValue(MotionEvent.AXIS_VSCROLL, 0);
+                SDLActivity.onNativeMouse(0, action, x, y, false);
+                return true;
+
+            case MotionEvent.ACTION_HOVER_MOVE:
+            case MotionEvent.ACTION_MOVE:
+                x = event.getX(0);
+                y = event.getY(0);
+                SDLActivity.onNativeMouse(0, action, x, y, true);
+                return true;
+
+            case MotionEvent.ACTION_BUTTON_PRESS:
+            case MotionEvent.ACTION_BUTTON_RELEASE:
+
+                // Change our action value to what SDL's code expects.
+                if (action == MotionEvent.ACTION_BUTTON_PRESS) {
+                    action = MotionEvent.ACTION_DOWN;
+                }
+                else if (action == MotionEvent.ACTION_BUTTON_RELEASE) {
+                    action = MotionEvent.ACTION_UP;
+                }
+
+                x = event.getX(0);
+                y = event.getY(0);
+                int button = event.getButtonState();
+
+                SDLActivity.onNativeMouse(button, action, x, y, true);
+                return true;
+        }
+
+        return false;
+    }
+
 }
 
 /* This is a fake invisible editor view that receives the input and defines the
@@ -1919,7 +1801,7 @@ class DummyEdit extends View implements View.OnKeyListener {
 
     @Override
     public boolean onKey(View v, int keyCode, KeyEvent event) {
-        /*
+        /* 
          * This handles the hardware keyboard input
          */
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
@@ -2039,7 +1921,7 @@ class SDLInputConnection extends BaseInputConnection {
             while (beforeLength-- > 0) {
                boolean ret_key = sendKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                               && sendKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
-               ret = ret && ret_key;
+               ret = ret && ret_key; 
             }
             return ret;
         }
@@ -2058,7 +1940,7 @@ interface SDLClipboardHandler {
 
 
 class SDLClipboardHandler_API11 implements
-    SDLClipboardHandler,
+    SDLClipboardHandler, 
     android.content.ClipboardManager.OnPrimaryClipChangedListener {
 
     protected android.content.ClipboardManager mClipMgr;
@@ -2089,7 +1971,7 @@ class SDLClipboardHandler_API11 implements
        mClipMgr.setText(string);
        mClipMgr.addPrimaryClipChangedListener(this);
     }
-
+    
     @Override
     public void onPrimaryClipChanged() {
         SDLActivity.onNativeClipboardChanged();
@@ -2099,9 +1981,9 @@ class SDLClipboardHandler_API11 implements
 
 class SDLClipboardHandler_Old implements
     SDLClipboardHandler {
-
+   
     protected android.text.ClipboardManager mClipMgrOld;
-
+  
     SDLClipboardHandler_Old() {
        mClipMgrOld = (android.text.ClipboardManager) SDL.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
     }
