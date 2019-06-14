@@ -749,7 +749,7 @@ ifndef BUILD_PSP
 clean-all: clean-releases clean
 
 clean-releases:
-	@rm -rf releases/*
+	@if [ -d ./releases ]; then rm -rf ./releases; fi
 
 clean:
 	@echo

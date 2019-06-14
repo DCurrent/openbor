@@ -35,6 +35,17 @@ case $1 in
 #                                                                          #
 ############################################################################
 1) 
+     if [ ! -f "../tools/psp-sdk/psp-sdk.7z" ]; then
+		echo "-------------------------------------------------------"
+		echo "        PSP SDK File - Not Found, Downloading SDK!"
+		echo "-------------------------------------------------------"
+		wget https://github.com/DCurrent/openbor/raw/ecce29b95700468aa3401915625dac2d56e4ca60/tools/psp-sdk/psp-sdk.7z -O ../tools/psp-sdk/psp-sdk.7z
+		echo
+		echo "-------------------------------------------------------"
+		echo "        PSP SDK File - Download Has Completed!"
+		echo "-------------------------------------------------------"
+     fi
+
    if test -e "C:/pspsdk"; then
      export PSPDEV=C:/pspsdk
      export PATH=$PATH:$PSPDEV/bin
@@ -210,6 +221,18 @@ case $1 in
      export EXTENSION=.exe
      export PATH=$TOOLS:$WINDEV:$PATH
    elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
+   
+     if [ ! -f "../tools/win-sdk/win-sdk.7z" ]; then
+		echo "-------------------------------------------------------"
+		echo "      Windows SDK File - Not Found, Downloading SDK!"
+		echo "-------------------------------------------------------"
+		wget https://github.com/DCurrent/openbor/raw/ecce29b95700468aa3401915625dac2d56e4ca60/tools/win-sdk/win-sdk.7z -O ../tools/win-sdk/win-sdk.7z
+		echo
+		echo "-------------------------------------------------------"
+		echo "      Windows SDK File - Downloading Has Completed!"
+		echo "-------------------------------------------------------"
+     fi
+   
      if [ ! -d "../tools/win-sdk/bin" ]; then
        echo "-------------------------------------------------------"
        echo "      Windows SDK - Not Found, Installing SDK!"
@@ -290,6 +313,18 @@ case $1 in
      export DEVKITPPC=$DEVKITPRO/devkitPPC
      export PATH=$PATH:$DEVKITPPC/bin
    elif [ `echo $HOST_PLATFORM | grep -E "windows|CYGWIN"` ]; then
+   
+     if [ ! -f "../tools/devkitpro/devkitpro.7z" ]; then
+        echo "-------------------------------------------------------"
+        echo "         WII SDK File - Not Found, Downloading SDK!"
+        echo "-------------------------------------------------------"
+        wget https://github.com/DCurrent/openbor/raw/ecce29b95700468aa3401915625dac2d56e4ca60/tools/devkitpro/devkitPro.7z -O ../tools/devkitpro/devkitpro.7z
+        echo
+        echo "-------------------------------------------------------"
+        echo "         WII SDK File - Download Has Completed!"
+        echo "-------------------------------------------------------"
+     fi
+   
      if [ ! -d "../tools/devkitpro/devkitPPC" ]; then
         echo "-------------------------------------------------------"
         echo "         WII SDK - Not Found, Installing SDK!"
