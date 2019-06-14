@@ -9,6 +9,8 @@
  * IMPORTANT: DON'T EDIT SDLActivity.java anymore, but this file!
  *
  * The following from SDLActivity.java migration, and kept intact for respect to authors
+ * as well as specific lines inside this source file is kept intact although moved or rearranged or
+ * removed as part from migration process.
  * --------------------------------------------------------
  * SDLActivity.java - Main code for Android build.
  * Original by UTunnels (utunnels@hotmail.com).
@@ -19,6 +21,7 @@
 package org.openbor.engine;
 
 import org.libsdl.app.SDLActivity;
+import android.util.Log;
 import android.os.Bundle;
 import android.content.Context;
 import android.os.Build;
@@ -29,7 +32,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import android.os.PowerManager;
 import android.os.PowerManager.*;
+import android.view.View;
+import android.view.WindowManager;
 import android.content.res.*;
 import android.Manifest;
 //msmalik681 added imports for new pak copy!
@@ -49,6 +55,10 @@ public class GameActivity extends SDLActivity {
    * Needed for permission check
    */
   public static final int STORAGE_PERMISSION_CODE = 23;
+  
+  //White Dragon: added statics
+  protected static WakeLock wakeLock;
+  protected static View decorView;
 
   /**
    * Also load "openbor" as shared library to run the game in which
@@ -69,6 +79,17 @@ public class GameActivity extends SDLActivity {
 
     //msmalik681 setup storage access
     CheckPermissionForMovingPaks();
+
+    //CRxTRDude - Added FLAG_KEEP_SCREEN_ON to prevent screen timeout.
+    getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+    //CRxTRDude - Created a wakelock to prevent the app from being shut down upon screen lock.
+    PowerManager pm = (PowerManager)getSystemService(POWER_SERVICE);
+    GameActivity.wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "BOR");
+    if (!GameActivity.wakeLock.isHeld())
+    {
+      GameActivity.wakeLock.acquire();
+    }
   }
 
   //msmalik681 added permission check for API 23+ for moving .paks
@@ -213,5 +234,45 @@ public class GameActivity extends SDLActivity {
     {
       out.write(buffer, 0, read);
     }
+  }
+
+  @Override
+  public void onLowMemory() {
+    super.onLowMemory();
+    Log.v("OpenBOR", "onLowMemory");
+
+    //CRxTRDude - Release wakelock first before destroying.
+    if (GameActivity.wakeLock.isHeld())
+      GameActivity.wakeLock.release();
+  }
+
+  @Override
+  protected void onPause() {
+    super.onPause();
+    Log.v("OpenBOR", "onPause");
+
+    //White Dragon: wakelock release!
+    if (GameActivity.wakeLock.isHeld())
+      GameActivity.wakeLock.release();
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    Log.v("OpenBOR", "onResume");
+
+    //White Dragon: wakelock acquire!
+    if (!GameActivity.wakeLock.isHeld())
+      GameActivity.wakeLock.acquire();
+  }
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    Log.v("OpenBOR", "onDestroy");
+
+    //CRxTRDude - Release wakelock first before destroying.
+    if (GameActivity.wakeLock.isHeld())
+      GameActivity.wakeLock.release();
   }
 }
