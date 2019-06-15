@@ -1,38 +1,28 @@
-#include <string.h>
+#include "jniutils.h"
 #include <jni.h>
-
 #include "SDL.h"
-#include "globals.h"
-#include "borendian.h"
-#include "sdlport.h"
-extern "C"
+
+#define ACTIVITY_CLS_NAME "GameActivity"
+
+void jniutils_vibrate_device()
 {
-    #include "control.h"
+  // retrieve the JNI environment
+  JNIEnv  *env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+
+  // retrieve the Java instance of the GameActivity
+  jobject activity = (jobject)SDL_AndroidGetActivity();
+
+  // find the Java class of the activity. It should be GameActivity.
+  jclass cls = env->GetObjectClass(activity);
+
+  // find the identifier of the method to call
+  jmethodID method_id = env->GetStaticMethodID(cls, "jni_vibrate", "()V");
+
+  // effectively call the Java method
+  env->CallStaticVoidMethod(cls, method_id);
+
+  // clean up the local references
+  env->DeleteLocalRef(cls);
+  env->DeleteLocalRef(activity);
 }
-
-extern float bx[MAXTOUCHB];
-extern float by[MAXTOUCHB];
-extern float br[MAXTOUCHB];
-extern int nativeWidth;
-extern int nativeHeight;
-
-extern "C" JNIEXPORT jint JNICALL Java_org_libsdl_app_SDLActivity_isNativeVibrationEnabled(JNIEnv* env, jobject obj)
-{
-    return is_touchpad_vibration_enabled();
-}
-
-
-extern "C" JNIEXPORT jint JNICALL Java_org_libsdl_app_SDLActivity_isTouchArea(JNIEnv* env, jobject obj, jfloat x, jfloat y)
-{
-    return is_touch_area(x*nativeWidth, y*nativeHeight);
-}
-
-/*extern "C" void Java_org_libsdl_app_SDLActivity_setRootDir(JNIEnv* env, jclass cls, jstring dir)
-{
-    const char *rootdir = env->GetStringUTFChars(dir, 0);
-    extern char rootDir[MAX_BUFFER_LEN];
-    strcpy(rootDir, rootdir);
-
-    env->ReleaseStringUTFChars(dir, rootdir);
-}*/
 

@@ -9,8 +9,8 @@
  * IMPORTANT: DON'T EDIT SDLActivity.java anymore, but this file!
  *
  * The following from SDLActivity.java migration, and kept intact for respect to authors
- * as well as specific lines inside this source file is kept intact although moved or rearranged or
- * removed as part from migration process.
+ * as well as specific lines inside this source file is kept intact although moved / rearranged /
+ * removed / modified as part from migration process.
  * --------------------------------------------------------
  * SDLActivity.java - Main code for Android build.
  * Original by UTunnels (utunnels@hotmail.com).
@@ -21,17 +21,19 @@
 package org.openbor.engine;
 
 import org.libsdl.app.SDLActivity;
+
+import java.io.InputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+
 import android.util.Log;
 import android.os.Bundle;
 import android.content.Context;
 import android.os.Build;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import android.os.PowerManager;
 import android.os.PowerManager.*;
 import android.view.View;
@@ -44,6 +46,9 @@ import android.widget.Toast;
 //msmalik681 added import for permission check
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
+import android.os.Vibrator;
+import android.os.VibrationEffect;
+import android.view.*;
 
 /**
  * Extended functionality from SDLActivity.
@@ -59,6 +64,48 @@ public class GameActivity extends SDLActivity {
   //White Dragon: added statics
   protected static WakeLock wakeLock;
   protected static View decorView;
+
+  //note: White Dragon's vibrator is moved into C code for 2 reasons
+  // - avoid modifying SDLActivity.java as it's platform support
+  // - reduce round-trip cost/time in call C-function to check for touch-area and whether
+  //   vibration is enabled or not
+  //   (for reference: SDL finally registers event/action/x/y/etc into its C-code from Java code
+  //   in onTouch() call, thus we do this logic in C code for efficient then provide vibration code
+  //   in Java when we really need to vibrate the device)
+  
+  // -- section of Java native solutions provided to be called from C code -- //
+  /**
+   * This will vibrate device if there's vibrator service.
+   * Otherwise it will do nothing.
+   *
+   * Modified version from original by White Dragon
+   */
+  public static void jni_vibrate() {
+    Vibrator vibrator = (Vibrator)getContext().getSystemService(Context.VIBRATOR_SERVICE);
+
+    if (vibrator.hasVibrator())
+    {
+
+      // wait for 3 ms, vibrate for 250 ms, then off for 1000 ms
+      // note: consult api at two links below, it has two different meanings but in this case,
+      // use case is the same
+      long[] pattern = {16, 250};
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+      {
+        // API 26 and above
+        // look for its api at https://developer.android.com/reference/android/os/VibrationEffect.html
+        vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1));
+      }
+      else
+      {
+        // below API 26
+        // look for its api at https://developer.android.com/reference/android/os/Vibrator.html#vibrate(long%5B%5D,%2520int)
+        vibrator.vibrate(pattern, -1);
+      }
+    }
+  } 
+  // ------------------------------------------------------------------------ //
 
   /**
    * Also load "openbor" as shared library to run the game in which
@@ -76,6 +123,7 @@ public class GameActivity extends SDLActivity {
   protected void onCreate(Bundle savedInstanceState) {
     // call parent's implementation
     super.onCreate(savedInstanceState);
+    Log.v("OpenBOR", "onCreate called");
 
     //msmalik681 setup storage access
     CheckPermissionForMovingPaks();

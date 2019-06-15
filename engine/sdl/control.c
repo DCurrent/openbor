@@ -18,6 +18,10 @@
 
 #define T_AXIS 7000
 
+#ifdef ANDROID
+#include "jniutils.h"
+#endif
+
 SDL_Joystick *joystick[JOY_LIST_TOTAL];         // SDL struct for joysticks
 SDL_Haptic *joystick_haptic[JOY_LIST_TOTAL];   // SDL haptic for joysticks
 static int usejoy;						        // To be or Not to be used?
@@ -78,6 +82,14 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 						touch_info.px[i] = ev.tfinger.x*nativeWidth;
 						touch_info.py[i] = ev.tfinger.y*nativeHeight;
 						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
+
+            // migration for White Dragon's vibration logic from SDLActivity.java
+            if (is_touchpad_vibration_enabled() &&
+                is_touch_area(touch_info.px[i], touch_info.py[i]))
+            {
+              jniutils_vibrate_device();
+            }
+
 						break;
 					}
 				}
