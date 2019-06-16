@@ -1,4 +1,5 @@
 # built versions
+# these libraries are release build + debug-info
 # IMPORTANT: keep track of following info if updated
 * libvpx - 1.8.0
 * libogg - 1.3.3
