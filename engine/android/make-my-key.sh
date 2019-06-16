@@ -3,10 +3,11 @@
 # Make keystore and create keystore.properties file for gradle build.
 #
 # Execute the script with
-# ./make-my-key.sh password [alias-name] 
+# ./make-my-key.sh [alias-name] 
 #
-# - password - password to be used for both store and key password
 # - alias-name - (optional) if not set, alias name will be default to "alias_name"
+#
+# after execute the script, it will ask for password
 
 KEYNAME="my-key.jks"
 
