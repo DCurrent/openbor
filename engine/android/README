@@ -87,5 +87,5 @@ Anyway for debugging and development, you can
 # Development Notes
 ###################
 
-* Minimum SDK (API Level) is 19 at the moment, we possibly lower this down to 14 for both ant and gradle build. Marked to check this back later.
-* Currently focus to build only for `armeabi-v7a`, we should also build for others i.e. `arm64-v8a`, `x86` and `x86_64` but that means we need to bundle pre-built dependencies (libraries) as well i.e. SDL2, etc.
+* Minimum SDK (API Level) is 19 at the moment
+* Support building for two architectures (with included pre-built libraries) arm64-v8a, and armeabi-v7a.

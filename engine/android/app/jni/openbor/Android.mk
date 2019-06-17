@@ -17,29 +17,29 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := SDL2
-LOCAL_SRC_FILES := lib/armeabi-v7a/libSDL2.so
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libSDL2.so
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := png
-LOCAL_SRC_FILES := lib/armeabi-v7a/libpng.a
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libpng.a
 LOCAL_EXPORT_LDLIBS := -lz
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := ogg
-LOCAL_SRC_FILES := lib/armeabi-v7a/libogg.a
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libogg.a
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := vorbisidec
-LOCAL_SRC_FILES := lib/armeabi-v7a/libvorbisidec.a
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libvorbisidec.a
 LOCAL_STATIC_LIBRARIES := ogg
 include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := vpx
-LOCAL_SRC_FILES := lib/armeabi-v7a/libvpx.a
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libvpx.a
 LOCAL_STATIC_LIBRARIES := cpufeatures
 include $(PREBUILT_STATIC_LIBRARY)
 

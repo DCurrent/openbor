@@ -38498,11 +38498,11 @@ void menu_options_input()
         #if ANDROID
         if(savedata.is_touchpad_vibration_enabled)
         {
-            _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Enabled"));
+            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Enabled"));
         }
         else
         {
-            _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Disabled"));
+            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Disabled"));
         }
         _menutextm((selector == 6), 6, 0, Tr("Back"));
         #else
