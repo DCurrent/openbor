@@ -22100,7 +22100,7 @@ void adjust_bind(entity *e)
 	e->position.z = binding_position(e->position.z, e->binding.ent->position.z, e->binding.offset.z, e->binding.positioning.z);
 	e->position.y = binding_position(e->position.y, e->binding.ent->position.y, e->binding.offset.y, e->binding.positioning.y);
 
-	if (e->binding.ent->direction == DIRECTION_LEFT)
+	if (e->binding.positioning.x == BIND_MODE_TARGET && e->binding.ent->direction == DIRECTION_LEFT)
 	{
 		e->position.x = binding_position(e->position.x, e->binding.ent->position.x, -e->binding.offset.x, e->binding.positioning.x);
 	}
