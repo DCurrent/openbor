@@ -65,6 +65,9 @@ Known as O'Ilusionista, Douglas is a highly respected administrator of the OpenB
 #### [Malik](https://github.com/msmalik681) (2018-)
 Malik came to the team with a strong OpenBOR scripting background, and quickly established himself as a resident go-to for the Android Port. Malik dedicates himself to keeping the Android port of OpenBOR a commercialy viable platform for authors who wish to sell their orginal IP projects.
 
+#### [Wasin Thonkaew](https://github.com/haxpor) (2019-)
+Haxpor in the forums, a Linux centric developer who works hard to ensure our penguin crowd has the proper tools for development and underlying libraries of OpenBOR remain compatible to compile for mobile platforms.
+
 ### Former members and contributors
 
 #### [White Dragon](https://github.com/whitedragon0000) (2016-2018)
