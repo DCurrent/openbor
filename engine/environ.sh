@@ -195,7 +195,13 @@ case $1 in
 #                                                                          #
 ############################################################################
 5)
-   if test -e "/usr/i586-mingw32msvc"; then
+   if test -e "/usr/bin/i686-w64-mingw32-gcc"; then
+     export WINDEV=/usr/bin
+     export SDKPATH=/usr/lib/gcc/i686-w64-mingw32
+     export PREFIX=i686-w64-mingw32-
+     export PATH=$WINDEV:$PATH
+     export CROSSCOMPILE_LINUX_WIN=1
+   elif test -e "/usr/i586-mingw32msvc"; then
      export WINDEV=/usr/bin
      export SDKPATH=/usr/i586-mingw32msvc
      export PREFIX=i586-mingw32msvc-

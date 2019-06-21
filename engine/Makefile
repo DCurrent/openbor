@@ -55,8 +55,10 @@ BUILDING        = 1
 YASM 	        = yasm$(EXTENSION)
 CC              = $(WINDEV)/$(PREFIX)gcc$(EXTENSION)
 INCLUDES        = $(SDKPATH)/include \
-                  $(SDKPATH)/include/SDL2
-LIBRARIES       = $(SDKPATH)/lib
+                  $(SDKPATH)/include/SDL2 \
+		  $(EXTRA_INCLUDES)
+LIBRARIES       = $(SDKPATH)/lib \
+		  $(EXTRA_LIBRARIES)
 ARCHFLAGS       = -m32
 ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
 BUILD_MMX       = 1
@@ -572,6 +574,11 @@ else
 COMMA		=,
 RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
 LIBS	       += $(RPATH_LIBS) -lSDL2
+
+ifdef CROSSCOMPILE_LINUX_WIN
+LIBS	       += -lsetupapi
+endif
+
 endif
 endif
 
@@ -615,6 +622,9 @@ endif
 
 ifdef BUILD_WEBM
 LIBS           += -lvpx
+ifdef CROSSCOMPILE_LINUX_WIN
+LIBS	       += -lpthread
+endif
 endif
 
 
