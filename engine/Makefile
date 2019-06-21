@@ -569,7 +569,9 @@ ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
 LIBS           += -lSDL -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL2
+COMMA		=,
+RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
+LIBS	       += $(RPATH_LIBS) -lSDL2
 endif
 endif
 
