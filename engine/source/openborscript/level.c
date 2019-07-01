@@ -677,11 +677,8 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case LEVEL_PROP_PALETTE_BLENDING_COLLECTION:
 
-            if(handle->blendings)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->blendings;
-            }
+            printf("LEVEL_PROP_PALETTE_BLENDING_COLLECTION no longer supported");
+            ScriptVariant_Clear(*pretvar);
 
             break;
 

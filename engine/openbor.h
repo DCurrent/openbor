@@ -1536,14 +1536,6 @@ typedef enum
 n = atoi(a+strclen(b)); \
 if(n<1) n = 1;
 
-#define lut_mul ((level && current_palette)?(level->blendings[current_palette-1][BLEND_MULTIPLY]):(blendings[BLEND_MULTIPLY]))
-#define lut_screen ((level && current_palette)?(level->blendings[current_palette-1][BLEND_SCREEN]):(blendings[BLEND_SCREEN]))
-#define lut_overlay ((level && current_palette)?(level->blendings[current_palette-1][BLEND_OVERLAY]):(blendings[BLEND_OVERLAY]))
-#define lut_hl ((level && current_palette)?(level->blendings[current_palette-1][BLEND_HARDLIGHT]):(blendings[BLEND_HARDLIGHT]))
-#define lut_dodge ((level && current_palette)?(level->blendings[current_palette-1][BLEND_DODGE]):(blendings[BLEND_DODGE]))
-#define lut_half ((level && current_palette)?(level->blendings[current_palette-1][BLEND_HALF]):(blendings[BLEND_HALF]))
-#define lut ((level && current_palette)?(level->blendings[current_palette-1]):(blendings))
-
 #define ABS(x) ((x)>0?(x):(-(x)))
 
 #define set_attacking(e) e->attacking = ATTACKING_PREPARED;\
@@ -2894,7 +2886,6 @@ typedef struct
     unsigned bossmusic_offset;
     int numpalettes;
     unsigned char (*palettes)[1024];//dynamic palettes
-    unsigned char *(*blendings)[MAX_BLENDINGS];//blending tables
     int settime; // Set time limit per level
     int notime; // Used to specify if the time is displayed 1 = no, else yes
     int noreset; // If set, clock will not reset when players spawn/die
@@ -3044,7 +3035,7 @@ void standard_palette();
 void change_system_palette(int palindex);
 void unload_background();
 void lifebar_colors();
-void load_background(char *filename, int createtables);
+void load_background(char *filename);
 void unload_texture();
 void load_texture(char *filename);
 void freepanels();

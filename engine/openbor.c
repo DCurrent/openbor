@@ -225,11 +225,7 @@ char                blendfx_is_set = 0;
 int                 fontmonospace[MAX_FONTS] = {0, 0, 0, 0, 0, 0, 0, 0};
 int                 fontmbs[MAX_FONTS] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-// move all blending effects here
-unsigned char      *blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL} ;
-// function pointers to create the tables
-palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay, palette_table_hardlight, palette_table_dodge, palette_table_half};
-blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl, create_multiply16_tbl, create_overlay16_tbl, create_hardlight16_tbl, create_dodge16_tbl, create_half16_tbl};
+// function pointers to create the blending tables
 blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl, create_multiply32_tbl, create_overlay32_tbl, create_hardlight32_tbl, create_dodge32_tbl, create_half32_tbl};
 
 int                 current_set = 0;
@@ -3546,35 +3542,6 @@ int load_palette(unsigned char *palette, char *filename)
     return _load_palette32(palette, filename);
 }
 
-// create blending tables for the palette
-int create_blending_tables(unsigned char *palette, unsigned char *tables[], int usemap[])
-{
-    int i;
-    if(pixelformat != PIXEL_8)
-    {
-        return 1;
-    }
-    if(!palette || !tables)
-    {
-        return 0;
-    }
-
-    memset(tables, 0, MAX_BLENDINGS * sizeof(*tables));
-    for(i = 0; i < MAX_BLENDINGS; i++)
-    {
-        if(!usemap || usemap[i])
-        {
-            tables[i] = (blending_table_functions[i])(palette);
-            if(!tables[i])
-            {
-                return 0;
-            }
-        }
-    }
-
-    return 1;
-}
-
 void create_blend_tables_x8(unsigned char *tables[])
 {
     int i;
@@ -3623,18 +3590,9 @@ void standard_palette(int immediate)
 
 void unload_background()
 {
-    int i;
     if (background)
     {
         clearscreen(background);
-    }
-    for(i = 0; i < MAX_BLENDINGS; i++)
-    {
-        if(blendings[i])
-        {
-            free(blendings[i]);
-        }
-        blendings[i] = NULL;
     }
 }
 
@@ -3809,7 +3767,7 @@ void init_colourtable()
     memcpy(ldcolourtable, hpcolourtable, 11 * sizeof(*hpcolourtable));
 }
 
-void load_background(char *filename, int createtables)
+void load_background(char *filename)
 {
     // Clean up any previous background.
     unload_background();
@@ -3836,16 +3794,6 @@ void load_background(char *filename, int createtables)
     {
         memcpy(pal, background->palette, PAL_BYTES);
         memcpy(neontable, pal, PAL_BYTES);
-    }
-
-
-    if(createtables)
-    {
-        standard_palette(0);
-        if(!create_blending_tables(pal, blendings, blendfx))
-        {
-            borShutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
-        }
     }
 
     lifebar_colors();
@@ -3905,10 +3853,10 @@ void load_background(char *filename, int createtables)
     change_system_palette(0);
 }
 
-void load_cached_background(char *filename, int createtables)
+void load_cached_background(char *filename)
 {
 #ifndef CACHE_BACKGROUNDS
-    load_background(filename, createtables);
+    load_background(filename);
 #else
     int index = -1;
     unload_background();
@@ -3970,16 +3918,6 @@ void load_cached_background(char *filename, int createtables)
     {
         memcpy(background->palette, bg_cache[index]->palette, PAL_BYTES);
         memcpy(pal, background->palette, PAL_BYTES);
-    }
-
-
-    if(createtables)
-    {
-        standard_palette(0);
-        if(!create_blending_tables(pal, blendings, blendfx))
-        {
-            borShutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
-        }
     }
 
     video_clearscreen();
@@ -12716,11 +12654,11 @@ int load_models()
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "loading");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_background("data/bgs/loading", 0);
+            load_background("data/bgs/loading");
         }
         standard_palette(1);
     }
@@ -14392,24 +14330,11 @@ lCleanup:
 
 void free_level(s_level *lv)
 {
-    int i, j;
+    int i;
 
     if(!lv)
     {
         return;
-    }
-
-    //offload blending tables
-    for(i = 0; i < lv->numpalettes; i++)
-    {
-        for(j = 0; j < MAX_BLENDINGS; j++)
-        {
-            if(lv->blendings[i][j])
-            {
-                free(lv->blendings[i][j]);
-            }
-            lv->blendings[i][j] = NULL;
-        }
     }
 
     //offload layers
@@ -14517,10 +14442,6 @@ void free_level(s_level *lv)
     if(lv->palettes)
     {
         free(lv->palettes);
-    }
-    if(lv->blendings)
-    {
-        free(lv->blendings);
     }
 
     free(lv);
@@ -14732,7 +14653,6 @@ void load_level(char *filename)
 
     int i = 0, j = 0, crlf = 0;
     int player_max = MAX_PLAYERS;
-    int usemap[MAX_BLENDINGS];
     char bgPath[MAX_BUFFER_LEN] = {""}, fnbuf[MAX_BUFFER_LEN];
     s_loadingbar bgPosi = {0, 0, {0,0}, {0,0}, 0, 0};
     char musicPath[MAX_BUFFER_LEN] = {""};
@@ -14772,11 +14692,11 @@ void load_level(char *filename)
         {
             strcpy(string, custBkgrds);
             strcat(string, "loading2");
-            load_background(string, 0);
+            load_background(string);
         }
         else
         {
-            load_cached_background("data/bgs/loading2", 0);
+            load_cached_background("data/bgs/loading2");
         }
         clearscreen(vscreen);
         spriteq_clear();
@@ -14864,7 +14784,7 @@ void load_level(char *filename)
         switch(cmd)
         {
         case CMD_LEVEL_LOADINGBG:
-            load_background(GET_ARG(1), 0);
+            load_background(GET_ARG(1));
             errormessage = fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8), GET_INT_ARG(9));
             if (errormessage)
             {
@@ -15401,13 +15321,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_PALETTE:
             __realloc(level->palettes, level->numpalettes);
-            __realloc(level->blendings, level->numpalettes);
-            for(i = 0; i < MAX_BLENDINGS; i++)
-            {
-                usemap[i] = GET_INT_ARG(i + 2);
-            }
-            if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
-                    !create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
+            if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)))
             {
                 errormessage = "Failed to create colour conversion tables for level! (Out of memory?)";
                 goto lCleanup;
@@ -15788,7 +15702,7 @@ void load_level(char *filename)
     {
         clearscreen(vscreen);
         spriteq_clear();
-        load_background(bgPath, 1);
+        load_background(bgPath);
     }
     else if(background)
     {
@@ -35791,11 +35705,6 @@ void startup()
         borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
     }
 
-    if(pixelformat == PIXEL_8)
-    {
-        standard_palette(1);
-    }
-
     printf("Loading menu.txt.............\t");
     load_menu_txt();
     printf("Done!\n");
@@ -36217,11 +36126,11 @@ void hallfame(int addtoscore)
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "hiscore");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_cached_background("data/bgs/hiscore", 0);
+            load_cached_background("data/bgs/hiscore");
         }
     }
 
@@ -36301,11 +36210,11 @@ void showcomplete(int num)
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "complete");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_cached_background("data/bgs/complete", 0);
+            load_cached_background("data/bgs/complete");
         }
     }
 
@@ -36736,7 +36645,7 @@ static void load_select_screen_info(s_savelevel *save)
 
     ParseArgs(&arglist, save->selectBackground, argbuf);
     command = GET_ARG(0);
-    if(command && command[0]) load_background(GET_ARG(1), 1);
+    if(command && command[0]) load_background(GET_ARG(1));
 
     return;
 }
@@ -36844,7 +36753,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				}
 				else if (stricmp(command, "background") == 0)
 				{
-					load_background(GET_ARG(1), 1);
+					load_background(GET_ARG(1));
 					// SAVE
 					multistrcatsp(save->selectBackground, command, GET_ARG(1), NULL);
 				}
@@ -36949,11 +36858,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				{
 					strcpy(string, custBkgrds);
 					strcat(string, "unlockbg");
-					load_background(string, 1);
+					load_background(string);
 				}
 				else
 				{
-					load_cached_background("data/bgs/unlockbg", 1);
+					load_cached_background("data/bgs/unlockbg");
 				}
 			}
 			else
@@ -36963,11 +36872,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				{
 					strcpy(string, custBkgrds);
 					strcat(string, "select");
-					load_background(string, 1);
+					load_background(string);
 				}
 				else
 				{
-					load_cached_background("data/bgs/select", 1);
+					load_cached_background("data/bgs/select");
 				}
 			}
 			if (!music("data/music/menu", 1, 0))
@@ -39837,11 +39746,11 @@ void openborMain(int argc, char **argv)
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "logo");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_cached_background("data/bgs/logo", 0);
+            load_cached_background("data/bgs/logo");
         }
 
         while(_time < GAME_SPEED * 6 && !(bothnewkeys & (FLAG_ANYBUTTON | FLAG_ESC)))
@@ -40022,11 +39931,11 @@ void openborMain(int argc, char **argv)
                 {
                     strcpy(tmpBuff, custBkgrds);
                     strcat(tmpBuff, "titleb");
-                    load_background(tmpBuff, 0);
+                    load_background(tmpBuff);
                 }
                 else
                 {
-                    load_cached_background("data/bgs/titleb", 0);
+                    load_cached_background("data/bgs/titleb");
                 }
             }
             else
@@ -40037,11 +39946,11 @@ void openborMain(int argc, char **argv)
                 {
                     strcpy(tmpBuff, custBkgrds);
                     strcat(tmpBuff, "title");
-                    load_background(tmpBuff, 0);
+                    load_background(tmpBuff);
                 }
                 else
                 {
-                    load_cached_background("data/bgs/title", 0);
+                    load_cached_background("data/bgs/title");
                 }
             }
 
