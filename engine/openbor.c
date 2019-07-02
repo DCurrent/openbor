@@ -3508,38 +3508,45 @@ int convert_map_to_palette(s_model *model, unsigned mapflag[])
     return 1;
 }
 
-static int _load_palette32(unsigned char *palette, char *filename)
-{
-    int handle, i;
-    unsigned *dp;
-    unsigned char tpal[3];
-    handle = openpackfile(filename, packfile);
-    if(handle < 0)
-    {
-        return 0;
-    }
-    memset(palette, 0, MAX_PAL_SIZE);
-    dp = (unsigned *)palette;
-    for(i = 0; i < MAX_PAL_SIZE / 4; i++)
-    {
-        if(readpackfile(handle, tpal, 3) != 3)
-        {
-            closepackfile(handle);
-            return 0;
-        }
-        dp[i] = colour32(tpal[0], tpal[1], tpal[2]);
-
-    }
-    closepackfile(handle);
-    dp[0] = 0;
-
-    return 1;
-}
-
 //load a 256 colors' palette
 int load_palette(unsigned char *palette, char *filename)
 {
-    return _load_palette32(palette, filename);
+    char *fileext;
+    int handle, i;
+    unsigned *dp;
+    unsigned char tpal[3];
+
+    // Determine whether the author is using an .act or image file, and
+    // verify the file content is valid to load a color table from.
+    fileext = strrchr(filename, '.');
+    if(fileext != NULL && stricmp(fileext, ".act") == 0)
+    {
+        handle = openpackfile(filename, packfile);
+        if(handle < 0)
+        {
+            return 0;
+        }
+        memset(palette, 0, MAX_PAL_SIZE);
+        dp = (unsigned *)palette;
+        for(i = 0; i < MAX_PAL_SIZE / 4; i++)
+        {
+            if(readpackfile(handle, tpal, 3) != 3)
+            {
+                closepackfile(handle);
+                return 0;
+            }
+            dp[i] = colour32(tpal[0], tpal[1], tpal[2]);
+
+        }
+        closepackfile(handle);
+        dp[0] = 0;
+
+        return 1;
+    }
+    else
+    {
+        return loadimagepalette(filename, packfile, palette);
+    }
 }
 
 void create_blend_tables_x8(unsigned char *tables[])
@@ -8822,7 +8829,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_anim *newanim = NULL;
 
     char *filename      = NULL,
-         *fileext       = NULL,
          *buf           = NULL,
          *animscriptbuf = NULL,
          *scriptbuf     = NULL,
@@ -8839,8 +8845,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     float tempFloat;
 
-    int length = 0,     // For string length.
-        ani_id = -1,
+    int ani_id = -1,
         script_id = -1,
         frm_id = -1,
         i = 0,
@@ -10143,30 +10148,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         // Allocate space for the color table.
                         newchar->palette = malloc(PAL_BYTES);
 
-                        // Extract the file extension so we can
-                        // use stricmp on it.
-                        length = strlen(value);
-                        fileext = value + length - 4;
-
-                        // Determine whether the author is using
-                        // an .act or image file, and verify the
-                        // file content is valid to load a color
-                        // table from.
-                        if(stricmp(fileext, ".act") == 0)
+                        if(load_palette(newchar->palette, value) == 0)
                         {
-                            if(load_palette(newchar->palette, value) == 0)
-                            {
-                                //printf("%s%s\n", "Failed to load color table from .act file: ", value);
-                                goto lCleanup;
-                            }
-                        }
-                        else
-                        {
-                            if(loadimagepalette(value, packfile, newchar->palette) == 0)
-                            {
-                                //printf("%s%s\n", "Failed to load color table from image: ", value);
-                                goto lCleanup;
-                            }
+                            //printf("%s%s\n", "Failed to load color table from file: ", value);
+                            goto lCleanup;
                         }
 
                         //printf("%s%s\n", "Loaded color selection 0: ", value);
@@ -10185,28 +10170,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 newchar->colourmap[newchar->maps_loaded] = malloc(PAL_BYTES);
 
-                // Extract the file extension so we can
-                // use stricmp on it.
-                length = strlen(value);
-                fileext = value + length - 4;
-
-                // Load color table directly if .act path given,
-                // else read in palette from an image.
-                if(stricmp(fileext, ".act") == 0)
+                if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                 {
-                    if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
-                    {
-                        //printf("%s%s", "Failed to load color table from .act file: ", value);
-                        goto lCleanup;
-                    }
-                }
-                else
-                {
-                    if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
-                    {
-                        //printf("%s%s", "Failed to load color table from image: ", value);
-                        goto lCleanup;
-                    }
+                    //printf("%s%s", "Failed to load color table from file: ", value);
+                    goto lCleanup;
                 }
 
                 newchar->maps_loaded++;
