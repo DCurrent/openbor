@@ -34,14 +34,22 @@
 
 #define dest32 ((unsigned*)cur_dest)
 #define table32 ((unsigned*)table)
-#define wp_32_x8_0_0_0() *dest32=table32[*cur_src];
-#define wp_32_x8_0_0_1() *dest32=pfp32(table32[*cur_src],*dest32);
-#define wp_32_x8_0_1_0() *dest32=fillcolor;
-#define wp_32_x8_0_1_1() *dest32=pfp32(fillcolor,*dest32);
-#define wp_32_x8_1_0_0() if(*cur_src)*dest32=table32[*cur_src];
-#define wp_32_x8_1_0_1() if(*cur_src)*dest32=pfp32(table32[*cur_src],*dest32);
-#define wp_32_x8_1_1_0() if(*cur_src)*dest32=fillcolor;
-#define wp_32_x8_1_1_1() if(*cur_src)*dest32=pfp32(fillcolor,*dest32);
+#define wp_32_x8_0_0_0_0() *dest32=table32[*cur_src];
+#define wp_32_x8_0_0_0_1() *dest32=blend_channel32(table32[*cur_src],*dest32,*cur_src_mask);
+#define wp_32_x8_0_0_1_0() *dest32=pfp32(table32[*cur_src],*dest32);
+#define wp_32_x8_0_0_1_1() *dest32=blend_channel32(table32[*cur_src],*dest32,*cur_src_mask);
+#define wp_32_x8_0_1_0_0() *dest32=fillcolor;
+#define wp_32_x8_0_1_0_1() *dest32=blend_channel32(fillcolor,*dest32,*cur_src_mask);
+#define wp_32_x8_0_1_1_0() *dest32=pfp32(fillcolor,*dest32);
+#define wp_32_x8_0_1_1_1() *dest32=blend_channel32(fillcolor,*dest32,*cur_src_mask);
+#define wp_32_x8_1_0_0_0() if(*cur_src)*dest32=table32[*cur_src];
+#define wp_32_x8_1_0_0_1() if(*cur_src)*dest32=blend_channel32(table32[*cur_src],*dest32,*cur_src_mask);
+#define wp_32_x8_1_0_1_0() if(*cur_src)*dest32=pfp32(table32[*cur_src],*dest32);
+#define wp_32_x8_1_0_1_1() if(*cur_src)*dest32=blend_channel32(table32[*cur_src],*dest32,*cur_src_mask);
+#define wp_32_x8_1_1_0_0() if(*cur_src)*dest32=fillcolor;
+#define wp_32_x8_1_1_0_1() if(*cur_src)*dest32=blend_channel32(fillcolor,*dest32,*cur_src_mask);
+#define wp_32_x8_1_1_1_0() if(*cur_src)*dest32=pfp32(fillcolor,*dest32);
+#define wp_32_x8_1_1_1_1() if(*cur_src)*dest32=pfp32(fillcolor,*dest32);
 
 #define src32 ((unsigned*)cur_src)
 #define wp_32_32_0_0_0() *dest32=*src32;
@@ -84,23 +92,31 @@ case 21: x wp_16_16_1_0_1() y break; \
 case 22: x wp_16_16_1_1_0() y break; \
 case 23: x wp_16_16_1_1_1() y break; \
  \
-case 24: x wp_32_x8_0_0_0() y break; \
-case 25: x wp_32_x8_0_0_1() y break; \
-case 26: x wp_32_x8_0_1_0() y break; \
-case 27: x wp_32_x8_0_1_1() y break; \
-case 28: x wp_32_x8_1_0_0() y break; \
-case 29: x wp_32_x8_1_0_1() y break; \
-case 30: x wp_32_x8_1_1_0() y break; \
-case 31: x wp_32_x8_1_1_1() y break; \
+case 24: x wp_32_x8_0_0_0_0() y break; \
+case 25: x wp_32_x8_0_0_0_1() y break; \
+case 26: x wp_32_x8_0_0_1_0() y break; \
+case 27: x wp_32_x8_0_0_1_1() y break; \
+case 28: x wp_32_x8_0_1_0_0() y break; \
+case 29: x wp_32_x8_0_1_0_1() y break; \
+case 30: x wp_32_x8_0_1_1_0() y break; \
+case 31: x wp_32_x8_0_1_1_1() y break; \
+case 32: x wp_32_x8_1_0_0_0() y break; \
+case 33: x wp_32_x8_1_0_0_1() y break; \
+case 34: x wp_32_x8_1_0_1_0() y break; \
+case 35: x wp_32_x8_1_0_1_1() y break; \
+case 36: x wp_32_x8_1_1_0_0() y break; \
+case 37: x wp_32_x8_1_1_0_1() y break; \
+case 38: x wp_32_x8_1_1_1_0() y break; \
+case 39: x wp_32_x8_1_1_1_1() y break; \
  \
-case 32: x wp_32_32_0_0_0() y break; \
-case 33: x wp_32_32_0_0_1() y break; \
-case 34: x wp_32_32_0_1_0() y break; \
-case 35: x wp_32_32_0_1_1() y break; \
-case 36: x wp_32_32_1_0_0() y break; \
-case 37: x wp_32_32_1_0_1() y break; \
-case 38: x wp_32_32_1_1_0() y break; \
-case 39: x wp_32_32_1_1_1() y break; \
+case 40: x wp_32_32_0_0_0() y break; \
+case 41: x wp_32_32_0_0_1() y break; \
+case 42: x wp_32_32_0_1_0() y break; \
+case 43: x wp_32_32_0_1_1() y break; \
+case 44: x wp_32_32_1_0_0() y break; \
+case 45: x wp_32_32_1_0_1() y break; \
+case 46: x wp_32_32_1_1_0() y break; \
+case 47: x wp_32_32_1_1_1() y break; \
 }
 
 
