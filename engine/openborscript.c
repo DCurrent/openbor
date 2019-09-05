@@ -5588,7 +5588,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->modeldata.antigravity = (DOUBLE)dbltemp;
+            ent->modeldata.antigravity = (DOUBLE)dbltemp*0.01;
         }
         break;
     }
