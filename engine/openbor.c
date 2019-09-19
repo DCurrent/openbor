@@ -19665,7 +19665,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 	}
 
 	// Attack block breaking exceeds block power?
-	if (ent->defense[attack->attack_type].blockpower)
+	if (attack->no_block || ent->defense[attack->attack_type].blockpower)
 	{
 		if (attack->no_block >= ent->defense[attack->attack_type].blockpower)
 		{
