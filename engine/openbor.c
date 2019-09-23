@@ -13112,9 +13112,20 @@ void load_levelorder()
 		if(i % 2 == 1)
 			xoff = P2_STATS_DIST;
 
+		switch(i / 2)
+		{
+		// p1, p2 on top
+		case 0:
+			break;
 		// p3, p4 on bottom
-		if(i / 2 == 1)
+		case 1:
 			yoff = 200;
+			break;
+		// others make new rows
+		default:
+			yoff = ((i / 2) - 1) * 40;
+			break;
+		}
 
 		// default fonts
 		plifeX[i][2] = -1;
@@ -13270,6 +13281,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2LIFE:
         case CMD_LEVELORDER_P3LIFE:
         case CMD_LEVELORDER_P4LIFE:
+		case CMD_LEVELORDER_P5LIFE:
+		case CMD_LEVELORDER_P6LIFE:
+		case CMD_LEVELORDER_P7LIFE:
+		case CMD_LEVELORDER_P8LIFE:
 			i = cmd - CMD_LEVELORDER_P1LIFE;
 			assert(i >= 0 && i < MAX_PLAYERS);
 
@@ -13289,6 +13304,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2MP:
         case CMD_LEVELORDER_P3MP:
         case CMD_LEVELORDER_P4MP:
+		case CMD_LEVELORDER_P5MP:
+		case CMD_LEVELORDER_P6MP:
+		case CMD_LEVELORDER_P7MP:
+		case CMD_LEVELORDER_P8MP:
 			i = cmd - CMD_LEVELORDER_P1MP;
 			assert(i >= 0 && i < MAX_PLAYERS);
 
@@ -13306,6 +13325,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2LIFEX:
         case CMD_LEVELORDER_P3LIFEX:
         case CMD_LEVELORDER_P4LIFEX:
+		case CMD_LEVELORDER_P5LIFEX:
+		case CMD_LEVELORDER_P6LIFEX:
+		case CMD_LEVELORDER_P7LIFEX:
+		case CMD_LEVELORDER_P8LIFEX:
 			j = cmd - CMD_LEVELORDER_P1LIFEX;
 			assert(j >= 0 && j < MAX_PLAYERS);
 
@@ -13320,6 +13343,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2LIFEN:
         case CMD_LEVELORDER_P3LIFEN:
         case CMD_LEVELORDER_P4LIFEN:
+		case CMD_LEVELORDER_P5LIFEN:
+		case CMD_LEVELORDER_P6LIFEN:
+		case CMD_LEVELORDER_P7LIFEN:
+		case CMD_LEVELORDER_P8LIFEN:
 			j = cmd - CMD_LEVELORDER_P1LIFEN;
 			assert(j >= 0 && j < MAX_PLAYERS);
 
@@ -13334,6 +13361,10 @@ void load_levelorder()
         case CMD_LEVELORDER_E2LIFE:
         case CMD_LEVELORDER_E3LIFE:
         case CMD_LEVELORDER_E4LIFE:
+		case CMD_LEVELORDER_E5LIFE:
+		case CMD_LEVELORDER_E6LIFE:
+		case CMD_LEVELORDER_E7LIFE:
+		case CMD_LEVELORDER_E8LIFE:
 			i = cmd - CMD_LEVELORDER_E1LIFE;
 			assert(i >= 0 && i < MAX_PLAYERS);
 
@@ -13353,6 +13384,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2ICON:
         case CMD_LEVELORDER_P3ICON:
         case CMD_LEVELORDER_P4ICON:
+		case CMD_LEVELORDER_P5ICON:
+		case CMD_LEVELORDER_P6ICON:
+		case CMD_LEVELORDER_P7ICON:
+		case CMD_LEVELORDER_P8ICON:
 			i = cmd - CMD_LEVELORDER_P1ICON;
 			assert(i >= 0 && i < MAX_PLAYERS);
 
@@ -13372,6 +13407,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2ICONW:
         case CMD_LEVELORDER_P3ICONW:
         case CMD_LEVELORDER_P4ICONW:
+		case CMD_LEVELORDER_P5ICONW:
+		case CMD_LEVELORDER_P6ICONW:
+		case CMD_LEVELORDER_P7ICONW:
+		case CMD_LEVELORDER_P8ICONW:
 			i = cmd - CMD_LEVELORDER_P1ICONW;
 			assert(i >= 0 && i < MAX_PLAYERS);
 
@@ -13391,6 +13430,10 @@ void load_levelorder()
         case CMD_LEVELORDER_MP2ICON:
         case CMD_LEVELORDER_MP3ICON:
         case CMD_LEVELORDER_MP4ICON:
+		case CMD_LEVELORDER_MP5ICON:
+		case CMD_LEVELORDER_MP6ICON:
+		case CMD_LEVELORDER_MP7ICON:
+		case CMD_LEVELORDER_MP8ICON:
 			i = cmd - CMD_LEVELORDER_MP1ICON;
 			assert(i >= 0 && i < MAX_PLAYERS);
             if((arg = GET_ARG(1))[0])
@@ -13406,6 +13449,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2NAMEJ:
         case CMD_LEVELORDER_P3NAMEJ:
         case CMD_LEVELORDER_P4NAMEJ:
+		case CMD_LEVELORDER_P5NAMEJ:
+		case CMD_LEVELORDER_P6NAMEJ:
+		case CMD_LEVELORDER_P7NAMEJ:
+		case CMD_LEVELORDER_P8NAMEJ:
 			j = cmd - CMD_LEVELORDER_P1NAMEJ;
 			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 7; i++)
@@ -13419,6 +13466,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2SCORE:
         case CMD_LEVELORDER_P3SCORE:
         case CMD_LEVELORDER_P4SCORE:
+		case CMD_LEVELORDER_P5SCORE:
+		case CMD_LEVELORDER_P6SCORE:
+		case CMD_LEVELORDER_P7SCORE:
+		case CMD_LEVELORDER_P8SCORE:
 			j = cmd - CMD_LEVELORDER_P1SCORE;
 			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 7; i++)
@@ -13432,6 +13483,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2SHOOT:
         case CMD_LEVELORDER_P3SHOOT:
         case CMD_LEVELORDER_P4SHOOT:
+		case CMD_LEVELORDER_P5SHOOT:
+		case CMD_LEVELORDER_P6SHOOT:
+		case CMD_LEVELORDER_P7SHOOT:
+		case CMD_LEVELORDER_P8SHOOT:
 			j = cmd - CMD_LEVELORDER_P1SHOOT;
 			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 3; i++)
@@ -13444,6 +13499,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2RUSH:
         case CMD_LEVELORDER_P3RUSH:
         case CMD_LEVELORDER_P4RUSH:
+		case CMD_LEVELORDER_P5RUSH:
+		case CMD_LEVELORDER_P6RUSH:
+		case CMD_LEVELORDER_P7RUSH:
+		case CMD_LEVELORDER_P8RUSH:
 			j = cmd - CMD_LEVELORDER_P1RUSH;
 			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 8; i++)
@@ -13456,6 +13515,10 @@ void load_levelorder()
         case CMD_LEVELORDER_E2ICON:
         case CMD_LEVELORDER_E3ICON:
         case CMD_LEVELORDER_E4ICON:
+		case CMD_LEVELORDER_E5ICON:
+		case CMD_LEVELORDER_E6ICON:
+		case CMD_LEVELORDER_E7ICON:
+		case CMD_LEVELORDER_E8ICON:
 			i = cmd - CMD_LEVELORDER_E1ICON;
 			assert(i >= 0 && i < MAX_PLAYERS);
 			if(i >= 2)
@@ -13473,6 +13536,10 @@ void load_levelorder()
         case CMD_LEVELORDER_E2NAME:
         case CMD_LEVELORDER_E3NAME:
         case CMD_LEVELORDER_E4NAME:
+		case CMD_LEVELORDER_E5NAME:
+		case CMD_LEVELORDER_E6NAME:
+		case CMD_LEVELORDER_E7NAME:
+		case CMD_LEVELORDER_E8NAME:
 			j = cmd - CMD_LEVELORDER_E1NAME;
 			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 3; i++)
@@ -13486,6 +13553,10 @@ void load_levelorder()
         case CMD_LEVELORDER_P2SMENU:
         case CMD_LEVELORDER_P3SMENU:
         case CMD_LEVELORDER_P4SMENU:
+		case CMD_LEVELORDER_P5SMENU:
+		case CMD_LEVELORDER_P6SMENU:
+		case CMD_LEVELORDER_P7SMENU:
+		case CMD_LEVELORDER_P8SMENU:
 			j = cmd - CMD_LEVELORDER_P1SMENU;
 			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < MAX_PLAYERS; i++)
@@ -14755,6 +14826,10 @@ void load_level(char *filename)
         case CMD_LEVEL_SPAWN2:
         case CMD_LEVEL_SPAWN3:
         case CMD_LEVEL_SPAWN4:
+		case CMD_LEVEL_SPAWN5:
+		case CMD_LEVEL_SPAWN6:
+		case CMD_LEVEL_SPAWN7:
+		case CMD_LEVEL_SPAWN8:
 			i = cmd - CMD_LEVEL_SPAWN1;
 			assert(i >= 0 && i < MAX_PLAYERS);
 
@@ -15057,6 +15132,10 @@ void load_level(char *filename)
         case CMD_LEVEL_2PSPAWN:
         case CMD_LEVEL_3PSPAWN:
         case CMD_LEVEL_4PSPAWN:
+		case CMD_LEVEL_5PSPAWN:
+		case CMD_LEVEL_6PSPAWN:
+		case CMD_LEVEL_7PSPAWN:
+		case CMD_LEVEL_8PSPAWN:
 			// Entity only for 2p+ game
 			i = cmd - CMD_LEVEL_SPAWN;
 			assert(i >= 0 && i < MAX_PLAYERS);
@@ -15074,6 +15153,10 @@ void load_level(char *filename)
         case CMD_LEVEL_2PHEALTH:
         case CMD_LEVEL_3PHEALTH:
         case CMD_LEVEL_4PHEALTH:
+		case CMD_LEVEL_5PHEALTH:
+		case CMD_LEVEL_6PHEALTH:
+		case CMD_LEVEL_7PHEALTH:
+		case CMD_LEVEL_8PHEALTH:
 			// Health the spawned entity will have if 2+ people are playing
 			i = cmd - CMD_LEVEL_HEALTH;
 			assert(i >= 0 && i < MAX_PLAYERS);
@@ -15129,6 +15212,10 @@ void load_level(char *filename)
         case CMD_LEVEL_2PITEM:
         case CMD_LEVEL_3PITEM:
         case CMD_LEVEL_4PITEM:
+		case CMD_LEVEL_5PITEM:
+		case CMD_LEVEL_6PITEM:
+		case CMD_LEVEL_7PITEM:
+		case CMD_LEVEL_8PITEM:
 			i = cmd - CMD_LEVEL_ITEM;
 			assert(i >= 0 && i < MAX_PLAYERS);
 			next.item_properties.player_count = i;
@@ -37950,9 +38037,9 @@ void menu_options_input()
     int selector = 1; // 0
     int x_pos = -6;
     #if ANDROID
-    int OPTIONS_NUM = 6;
+	int OPTIONS_NUM = 10;
     #else
-    int OPTIONS_NUM = 5;
+	int OPTIONS_NUM = 9;
     #endif
 
     controloptionsMenu = 1;
@@ -37999,18 +38086,22 @@ void menu_options_input()
         _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
         _menutext((selector == 3), x_pos, 1, Tr("Setup Player 3..."));
         _menutext((selector == 4), x_pos, 2, Tr("Setup Player 4..."));
+        _menutext((selector == 5), x_pos, 3, Tr("Setup Player 5..."));
+        _menutext((selector == 6), x_pos, 4, Tr("Setup Player 6..."));
+        _menutext((selector == 7), x_pos, 5, Tr("Setup Player 7..."));
+        _menutext((selector == 8), x_pos, 6, Tr("Setup Player 8..."));
         #if ANDROID
         if(savedata.is_touchpad_vibration_enabled)
         {
-            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Enabled"));
+            _menutextm((selector == 5), 7, 0, Tr("Touchpad Vibration Enabled"));
         }
-        else
+		else
         {
-            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Disabled"));
+            _menutextm((selector == 5), 7, 0, Tr("Touchpad Vibration Disabled"));
         }
-        _menutextm((selector == 6), 6, 0, Tr("Back"));
+        _menutextm((selector == 6), 9, 0, Tr("Back"));
         #else
-        _menutextm((selector == 5), 5, 0, Tr("Back"));
+        _menutextm((selector == 9), 8, 0, Tr("Back"));
         #endif
 
         update((level != NULL), 0);
@@ -38060,10 +38151,14 @@ void menu_options_input()
             case 2:
             case 3:
             case 4:
+			case 5:
+			case 6:
+			case 7:
+			case 8:
 				keyboard_setup(selector - 1);
                 break;
             #if ANDROID
-            case 5:
+			case 9:
                 savedata.is_touchpad_vibration_enabled ^= 1;
                 break;
             #endif

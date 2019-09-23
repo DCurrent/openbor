@@ -82,6 +82,10 @@ const char *JoystickKeyName[JOY_NAME_SIZE] = {
 	JOYSTICK_NAMES("P2")
 	JOYSTICK_NAMES("P3")
 	JOYSTICK_NAMES("P4")
+	JOYSTICK_NAMES("P5")
+	JOYSTICK_NAMES("P6")
+	JOYSTICK_NAMES("P7")
+	JOYSTICK_NAMES("P8")
 	"undefined"
 };
 
@@ -152,6 +156,10 @@ const char *GameparkKeyName[JOY_NAME_SIZE] = {
 	GAMEPARK_NAMES("P2")
 	GAMEPARK_NAMES("P3")
 	GAMEPARK_NAMES("P4")
+	GAMEPARK_NAMES("P5")
+	GAMEPARK_NAMES("P6")
+	GAMEPARK_NAMES("P7")
+	GAMEPARK_NAMES("P8")
 	"undefined"
 };
 
@@ -295,6 +303,10 @@ const char* JoystickButtonNames[JOY_NAME_SIZE] = {
 	BUTTON_NAMES("P2")
 	BUTTON_NAMES("P3")
 	BUTTON_NAMES("P4")
+	BUTTON_NAMES("P5")
+	BUTTON_NAMES("P6")
+	BUTTON_NAMES("P7")
+	BUTTON_NAMES("P8")
 };
 
 const char* JoystickAxisNames[JOY_NAME_SIZE] = {
@@ -339,6 +351,10 @@ const char* JoystickAxisNames[JOY_NAME_SIZE] = {
 	AXIS_NAMES("P2")
 	AXIS_NAMES("P3")
 	AXIS_NAMES("P4")
+	AXIS_NAMES("P5")
+	AXIS_NAMES("P6")
+	AXIS_NAMES("P7")
+	AXIS_NAMES("P8")
 };
 
 const char* JoystickHatNames[JOY_NAME_SIZE] = {
@@ -369,6 +385,10 @@ const char* JoystickHatNames[JOY_NAME_SIZE] = {
 	HAT_NAMES("P2")
 	HAT_NAMES("P3")
 	HAT_NAMES("P4")
+	HAT_NAMES("P5")
+	HAT_NAMES("P6")
+	HAT_NAMES("P7")
+	HAT_NAMES("P8")
 };
 
 const char* JoystickUnknownNames[JOY_NAME_SIZE] = {
@@ -442,6 +462,10 @@ const char* JoystickUnknownNames[JOY_NAME_SIZE] = {
 	UNKNOWN_NAMES("P2")
 	UNKNOWN_NAMES("P3")
 	UNKNOWN_NAMES("P4")
+	UNKNOWN_NAMES("P5")
+	UNKNOWN_NAMES("P6")
+	UNKNOWN_NAMES("P7")
+	UNKNOWN_NAMES("P8")
 };
 
 // Numbering order: buttons, then axes, then hats
