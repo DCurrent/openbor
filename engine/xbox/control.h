@@ -24,45 +24,18 @@
 #define CONTROL_DEFAULT1_START		11
 #define CONTROL_DEFAULT1_SCREENSHOT 10
 
-#define	CONTROL_DEFAULT2_UP			(1+16)
-#define	CONTROL_DEFAULT2_RIGHT		(2+16)
-#define	CONTROL_DEFAULT2_DOWN		(3+16)
-#define	CONTROL_DEFAULT2_LEFT		(4+16)
-#define CONTROL_DEFAULT2_FIRE1		(5+16)
-#define CONTROL_DEFAULT2_FIRE2		(6+16)
-#define	CONTROL_DEFAULT2_FIRE3		(7+16)
-#define	CONTROL_DEFAULT2_FIRE4		(8+16)
-#define	CONTROL_DEFAULT2_FIRE5		(13+16)
-#define	CONTROL_DEFAULT2_FIRE6		(14+16)
-#define CONTROL_DEFAULT2_START		(11+16)
-#define CONTROL_DEFAULT2_SCREENSHOT (10+16)
-
-#define	CONTROL_DEFAULT3_UP			(1+(16*2))
-#define	CONTROL_DEFAULT3_RIGHT		(2+(16*2))
-#define	CONTROL_DEFAULT3_DOWN		(3+(16*2))
-#define	CONTROL_DEFAULT3_LEFT		(4+(16*2))
-#define CONTROL_DEFAULT3_FIRE1		(5+(16*2))
-#define CONTROL_DEFAULT3_FIRE2		(6+(16*2))
-#define	CONTROL_DEFAULT3_FIRE3		(7+(16*2))
-#define	CONTROL_DEFAULT3_FIRE4		(8+(16*2))
-#define	CONTROL_DEFAULT3_FIRE5		(13+(16*2))
-#define	CONTROL_DEFAULT3_FIRE6		(14+(16*2))
-#define CONTROL_DEFAULT3_START		(11+(16*2))
-#define CONTROL_DEFAULT3_SCREENSHOT (10+(16*2))
-
-#define	CONTROL_DEFAULT4_UP			(1+(16*3))
-#define	CONTROL_DEFAULT4_RIGHT		(2+(16*3))
-#define	CONTROL_DEFAULT4_DOWN		(3+(16*3))
-#define	CONTROL_DEFAULT4_LEFT		(4+(16*3))
-#define CONTROL_DEFAULT4_FIRE1		(5+(16*3))
-#define CONTROL_DEFAULT4_FIRE2		(6+(16*3))
-#define	CONTROL_DEFAULT4_FIRE3		(7+(16*3))
-#define	CONTROL_DEFAULT4_FIRE4		(8+(16*3))
-#define	CONTROL_DEFAULT4_FIRE5		(13+(16*3))
-#define	CONTROL_DEFAULT4_FIRE6		(14+(16*3))
-#define CONTROL_DEFAULT4_START		(11+(16*3))
-#define CONTROL_DEFAULT4_SCREENSHOT (10+(16*3))
-
+#define CONTROL_DEFAULT_UP(x)         (1+(16*(x)))
+#define CONTROL_DEFAULT_RIGHT(x)      (2+(16*(x)))
+#define CONTROL_DEFAULT_DOWN(x)       (3+(16*(x)))
+#define CONTROL_DEFAULT_LEFT(x)       (4+(16*(x)))
+#define CONTROL_DEFAULT_FIRE1(x)      (5+(16*(x)))
+#define CONTROL_DEFAULT_FIRE2(x)      (6+(16*(x)))
+#define CONTROL_DEFAULT_FIRE3(x)      (7+(16*(x)))
+#define CONTROL_DEFAULT_FIRE4(x)      (8+(16*(x)))
+#define CONTROL_DEFAULT_FIRE5(x)      (13+(16*(x)))
+#define CONTROL_DEFAULT_FIRE6(x)      (14+(16*(x)))
+#define CONTROL_DEFAULT_START(x)      (11+(16*(x)))
+#define CONTROL_DEFAULT_SCREENSHOT(x) (10+(16*(x)))
 
 typedef struct{
 	int		settings[32];
@@ -80,7 +53,7 @@ void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key);
 int control_scankey();
 
 char * control_getkeyname(unsigned int keycode);
-void control_update(s_playercontrols ** playercontrols, int numplayers);
+void control_update(s_playercontrols * playercontrols, int numplayers);
 void control_rumble(int port, int ratio, int msec);
 
 #endif

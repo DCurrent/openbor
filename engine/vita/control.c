@@ -127,7 +127,7 @@ char * control_getkeyname(unsigned keycode)
 	return "...";
 }
 
-void control_update(s_playercontrols ** playercontrols, int numplayers)
+void control_update(s_playercontrols * playercontrols, int numplayers)
 {
 	unsigned int k;
 	unsigned int i;
@@ -138,7 +138,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	for (i=0; i<MAX_PADS; i++) port[i] = getPad(i);
 	for (player=0; player<numplayers; player++)
 	{
-		pcontrols = playercontrols[player];
+		pcontrols = &playercontrols[player];
 		k = 0;
 		for (i=0; i<32; i++)
 		{

@@ -535,7 +535,7 @@ int					gameOver			= 0;
 int					showComplete		= 0;
 char				*currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
-int                 reached[MAX_PLAYERS]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
+bool                reached[MAX_PLAYERS];                       // Used with TYPE_ENDLEVEL to determine which players have reached the point
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
@@ -574,17 +574,6 @@ entity				*stalker				= NULL;					// an enemy (usually) tries to go behind the p
 entity				*firstplayer			= NULL;
 int					stalking			= 0;
 int					nextplan			= 0;
-int                 plife[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
-int                 plifeX[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar 'x'
-int                 plifeN[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player lifebar number of lives
-int                 picon[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player icon
-int                 piconw[MAX_PLAYERS][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player weapon icons
-int                 mpicon[MAX_PLAYERS][2]        = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable magicbar player icon
-int                 pnameJ[MAX_PLAYERS][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, Select Hero, (Credits, Press Start, Game Over) when joining
-int                 pscore[MAX_PLAYERS][7]        = {{0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}, {0, 0, 0, 0, 0, 0, -1}}; // Used for customizable player name, dash, score
-int                 pshoot[MAX_PLAYERS][3]        = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable player shootnum
-int                 prush[MAX_PLAYERS][8]         = {{0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0}}; // Used for customizable player combo/rush system
-int                 psmenu[MAX_PLAYERS][4]        = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}; // Used for customizable player placement in select menu
 int                 mpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 hpcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int                 ldcolourtable[11]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -594,6 +583,24 @@ float               musicfade[2]        = {0, 0};
 int                 musicloop           = 0;
 u32                 musicoffset         = 0;
 int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a chance
+
+// Customizable statbar stuff.
+int                 plife[MAX_PLAYERS][2];    // player lifebar
+int                 plifeX[MAX_PLAYERS][3];   // player lifebar 'x'
+int                 plifeN[MAX_PLAYERS][3];   // player lifebar number of lives
+int                 picon[MAX_PLAYERS][2];    // player icon
+int                 piconw[MAX_PLAYERS][2];   // player weapon icons
+int                 elife[MAX_PLAYERS][2];    // enemy lifebar
+int                 ename[MAX_PLAYERS][3];    // enemy name
+int                 eicon[MAX_PLAYERS][2];    // enemy icon
+int                 pmp[MAX_PLAYERS][2];      // player mpbar
+int                 mpicon[MAX_PLAYERS][2];   // magicbar player icon
+int                 pnameJ[MAX_PLAYERS][7];   // player name, Select Hero, (Credits, Press Start, Game Over) when joining
+int                 pscore[MAX_PLAYERS][7];   // player name, dash, score
+int                 pshoot[MAX_PLAYERS][3];   // player shootnum
+int                 prush[MAX_PLAYERS][8];    // player combo/rush system
+int                 psmenu[MAX_PLAYERS][4];   // player placement in select menu
+e_direction         spdirection[MAX_PLAYERS]; // Select Player Direction for select player screen
 
 s_barstatus loadingbarstatus =
 {
@@ -656,9 +663,6 @@ char                bgicon_path[MAX_BUFFER_LEN]    = {""};
 int                 olicon    			= -1;
 int                 olicon_offsets[3]	= {0, 0, 0};
 char                olicon_path[MAX_BUFFER_LEN]    = {""};
-int                 elife[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable enemy lifebar
-int                 ename[4][3]         = {{0, 0, -1}, {0, 0, -1}, {0, 0, -1}, {0, 0, -1}}; // Used for customizable enemy name
-int                 eicon[4][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable enemy icon
 int                 scomplete[6]		= {0, 0, 0, 0, 0, 0};		// Used for customizable Stage # Complete
 int                 cbonus[10]          = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Used for customizable clear bonus
 int                 lbonus[10]          = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Used for customizable life bonus
@@ -693,8 +697,6 @@ int                 noaircancel         = 0;					// Now, you can make jumping at
 int                 nomaxrushreset[5]   = {0, 0, 0, 0, 0};
 int			        mpbartext[4]		= { -1, 0, 0, 0};			// Array for adjusting MP status text (font, Xpos, Ypos, Display type).
 int			        lbartext[4]			= { -1, 0, 0, 0};			// Array for adjusting HP status text (font, Xpos, Ypos, Display type).
-int                 pmp[4][2]			= {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player mpbar
-int                 spdirection[4]		= {1, 0, 1, 0};			// Used for Select Player Direction for select player screen
 int                 bonus				= 0;					// Used for unlocking Bonus difficulties
 int                 versusdamage		= 2;					// Used for setting mode. (ability to hit other players)
 int                 z_coords[3]			= {0, 0, 0};				// Used for setting customizable walkable area
@@ -744,11 +746,7 @@ int                 ent_max				= 0;
 s_player            player[MAX_PLAYERS];
 u64                 bothkeys, bothnewkeys;
 
-s_playercontrols    playercontrols1;
-s_playercontrols    playercontrols2;
-s_playercontrols    playercontrols3;
-s_playercontrols    playercontrols4;
-s_playercontrols   *playercontrolpointers[] = {&playercontrols1, &playercontrols2, &playercontrols3, &playercontrols4};
+s_playercontrols    playercontrols[MAX_PLAYERS];
 s_playercontrols    default_control;
 int default_keys[MAX_BTN_NUM];
 
@@ -1102,85 +1100,29 @@ void load_scripts()
     {
         Script_Clear(&loading_script,       2);
     }
-    if(!load_script(&score_script[0],   "data/scripts/score1.c"))
-    {
-        Script_Clear(&score_script[0],      2);
-    }
-    if(!load_script(&score_script[1],   "data/scripts/score2.c"))
-    {
-        Script_Clear(&score_script[1],      2);
-    }
-    if(!load_script(&score_script[2],   "data/scripts/score3.c"))
-    {
-        Script_Clear(&score_script[2],      2);
-    }
-    if(!load_script(&score_script[3],   "data/scripts/score4.c"))
-    {
-        Script_Clear(&score_script[3],      2);
-    }
-    if(!load_script(&key_script[0],     "data/scripts/key1.c"))
-    {
-        Script_Clear(&key_script[0],        2);
-    }
-    if(!load_script(&key_script[1],     "data/scripts/key2.c"))
-    {
-        Script_Clear(&key_script[1],        2);
-    }
-    if(!load_script(&key_script[2],     "data/scripts/key3.c"))
-    {
-        Script_Clear(&key_script[2],        2);
-    }
-    if(!load_script(&key_script[3],     "data/scripts/key4.c"))
-    {
-        Script_Clear(&key_script[3],        2);
-    }
-    if(!load_script(&join_script[0],    "data/scripts/join1.c"))
-    {
-        Script_Clear(&join_script[0],       2);
-    }
-    if(!load_script(&join_script[1],    "data/scripts/join2.c"))
-    {
-        Script_Clear(&join_script[1],       2);
-    }
-    if(!load_script(&join_script[2],    "data/scripts/join3.c"))
-    {
-        Script_Clear(&join_script[2],       2);
-    }
-    if(!load_script(&join_script[3],    "data/scripts/join4.c"))
-    {
-        Script_Clear(&join_script[3],       2);
-    }
-    if(!load_script(&respawn_script[0], "data/scripts/respawn1.c"))
-    {
-        Script_Clear(&respawn_script[0],    2);
-    }
-    if(!load_script(&respawn_script[1], "data/scripts/respawn2.c"))
-    {
-        Script_Clear(&respawn_script[1],    2);
-    }
-    if(!load_script(&respawn_script[2], "data/scripts/respawn3.c"))
-    {
-        Script_Clear(&respawn_script[2],    2);
-    }
-    if(!load_script(&respawn_script[3], "data/scripts/respawn4.c"))
-    {
-        Script_Clear(&respawn_script[3],    2);
-    }
-    if(!load_script(&pdie_script[0],    "data/scripts/die1.c"))
-    {
-        Script_Clear(&pdie_script[0],       2);
-    }
-    if(!load_script(&pdie_script[1],    "data/scripts/die2.c"))
-    {
-        Script_Clear(&pdie_script[1],       2);
-    }
-    if(!load_script(&pdie_script[2],    "data/scripts/die3.c"))
-    {
-        Script_Clear(&pdie_script[2],       2);
-    }
-    if(!load_script(&pdie_script[3],    "data/scripts/die4.c"))
-    {
-        Script_Clear(&pdie_script[3],       2);
+	for(i = 0; i < MAX_PLAYERS; i++)
+	{
+		char file[MAX_FILENAME_LEN];
+
+		sprintf(file, "data/scripts/score%u.c", i+1);
+		if(!load_script(&score_script[i], file))
+			Script_Clear(&score_script[i], 2);
+
+		sprintf(file, "data/scripts/key%u.c", i+1);
+		if(!load_script(&key_script[i], file))
+			Script_Clear(&key_script[i], 2);
+
+		sprintf(file, "data/scripts/join%u.c", i+1);
+		if(!load_script(&join_script[i], file))
+			Script_Clear(&join_script[i], 2);
+
+		sprintf(file, "data/scripts/respawn%u.c", i+1);
+		if(!load_script(&respawn_script[i], file))
+			Script_Clear(&respawn_script[i], 2);
+
+		sprintf(file, "data/scripts/die%u.c", i+1);
+		if(!load_script(&pdie_script[i], file))
+			Script_Clear(&pdie_script[i], 2);
     }
     Script_Compile(&update_script);
     Script_Compile(&updated_script);
@@ -2468,58 +2410,22 @@ void clearbuttons(int player)
         control_setkey(&default_control, FLAG_START,      default_keys[SDID_START]);
         control_setkey(&default_control, FLAG_SCREENSHOT, default_keys[SDID_SCREENSHOT]);
     }
-    else if (player == 1)
-    {
-        savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP;
-        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_DEFAULT2_DOWN;
-        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_DEFAULT2_LEFT;
-        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_DEFAULT2_RIGHT;
-        savedata.keys[1][SDID_ATTACK]    = CONTROL_DEFAULT2_FIRE1;
-        savedata.keys[1][SDID_ATTACK2]   = CONTROL_DEFAULT2_FIRE2;
-        savedata.keys[1][SDID_ATTACK3]   = CONTROL_DEFAULT2_FIRE3;
-        savedata.keys[1][SDID_ATTACK4]   = CONTROL_DEFAULT2_FIRE4;
-        savedata.keys[1][SDID_JUMP]      = CONTROL_DEFAULT2_FIRE5;
-        savedata.keys[1][SDID_SPECIAL]   = CONTROL_DEFAULT2_FIRE6;
-        savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
-        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
+	else
+	{
+		savedata.keys[player][SDID_MOVEUP]    = CONTROL_DEFAULT_UP(player);
+		savedata.keys[player][SDID_MOVEDOWN]  = CONTROL_DEFAULT_DOWN(player);
+		savedata.keys[player][SDID_MOVELEFT]  = CONTROL_DEFAULT_LEFT(player);
+		savedata.keys[player][SDID_MOVERIGHT] = CONTROL_DEFAULT_RIGHT(player);
+		savedata.keys[player][SDID_ATTACK]    = CONTROL_DEFAULT_FIRE1(player);
+		savedata.keys[player][SDID_ATTACK2]   = CONTROL_DEFAULT_FIRE2(player);
+		savedata.keys[player][SDID_ATTACK3]   = CONTROL_DEFAULT_FIRE3(player);
+		savedata.keys[player][SDID_ATTACK4]   = CONTROL_DEFAULT_FIRE4(player);
+		savedata.keys[player][SDID_JUMP]      = CONTROL_DEFAULT_FIRE5(player);
+		savedata.keys[player][SDID_SPECIAL]   = CONTROL_DEFAULT_FIRE6(player);
+		savedata.keys[player][SDID_START]     = CONTROL_DEFAULT_START(player);
+		savedata.keys[player][SDID_SCREENSHOT] = CONTROL_DEFAULT_SCREENSHOT(player);
         #ifdef SDL
-            //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
-        #endif
-    }
-    else if (player == 2)
-    {
-        savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP;
-        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_DEFAULT3_DOWN;
-        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_DEFAULT3_LEFT;
-        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_DEFAULT3_RIGHT;
-        savedata.keys[2][SDID_ATTACK]    = CONTROL_DEFAULT3_FIRE1;
-        savedata.keys[2][SDID_ATTACK2]   = CONTROL_DEFAULT3_FIRE2;
-        savedata.keys[2][SDID_ATTACK3]   = CONTROL_DEFAULT3_FIRE3;
-        savedata.keys[2][SDID_ATTACK4]   = CONTROL_DEFAULT3_FIRE4;
-        savedata.keys[2][SDID_JUMP]      = CONTROL_DEFAULT3_FIRE5;
-        savedata.keys[2][SDID_SPECIAL]   = CONTROL_DEFAULT3_FIRE6;
-        savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
-        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
-        #ifdef SDL
-            //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
-        #endif
-    }
-    else if (player == 3)
-    {
-        savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP;
-        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_DEFAULT4_DOWN;
-        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_DEFAULT4_LEFT;
-        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_DEFAULT4_RIGHT;
-        savedata.keys[3][SDID_ATTACK]    = CONTROL_DEFAULT4_FIRE1;
-        savedata.keys[3][SDID_ATTACK2]   = CONTROL_DEFAULT4_FIRE2;
-        savedata.keys[3][SDID_ATTACK3]   = CONTROL_DEFAULT4_FIRE3;
-        savedata.keys[3][SDID_ATTACK4]   = CONTROL_DEFAULT4_FIRE4;
-        savedata.keys[3][SDID_JUMP]      = CONTROL_DEFAULT4_FIRE5;
-        savedata.keys[3][SDID_SPECIAL]   = CONTROL_DEFAULT4_FIRE6;
-        savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
-        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
-        #ifdef SDL
-            //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
+		//savedata.keys[player][SDID_ESC]       = CONTROL_DEFAULT_ESC(player);
         #endif
     }
 }
@@ -12599,7 +12505,7 @@ int load_models()
 {
     char filename[MAX_BUFFER_LEN] = "data/models.txt";
     int i;
-    char *buf;
+	char *buf, *arg;
     size_t size;
     ptrdiff_t pos;
     char *command;
@@ -12649,6 +12555,9 @@ int load_models()
         borShutdown(1, "Error loading model list from %s", filename);
     }
 
+	for(i = 0; i < MAX_PLAYERS; i++)
+		spdirection[i] = (i & 1 ? DIRECTION_LEFT : DIRECTION_RIGHT);
+
     pos = 0;
     while(pos < size) // peek global settings
     {
@@ -12676,10 +12585,11 @@ int load_models()
                 break;
             case CMD_MODELSTXT_SPDIRECTION:
                 // Select Player Direction for select player screen
-                spdirection[0] =  GET_INT_ARG(1);
-                spdirection[1] =  GET_INT_ARG(2);
-                spdirection[2] =  GET_INT_ARG(3);
-                spdirection[3] =  GET_INT_ARG(4);
+				for(i = 0; i < MAX_PLAYERS; i++)
+				{
+					if((arg = GET_ARG(i + 1))[0])
+						spdirection[i] = (atoi(arg) && true) || false;
+				}
                 break;
             case CMD_MODELSTXT_AUTOLAND:
                 // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
@@ -13132,17 +13042,17 @@ void load_levelorder()
     char *command;
     char *arg;
     char *errormessage = NULL;
-    int plifeUsed[2]  = {0, 0};
-    int elifeUsed[2]  = {0, 0};
-    int piconUsed[2]  = {0, 0};
-    int piconwUsed[2] = {0, 0};
-    int eiconUsed[4]  = {0, 0, 0, 0};
-    int pmpUsed[4]    = {0, 0, 0, 0};
-    int plifeXused[4] = {0, 0, 0, 0};     // 4-7-2006 New custimizable variable for players 'x'
-    int plifeNused[4] = {0, 0, 0, 0};     // 4-7-2006 New custimizable variable for players 'lives'
-    int enameused[4]  = {0, 0, 0, 0};     // 4-7-2006 New custimizable variable for enemy names
-    int pnameJused[4] = {0, 0, 0, 0};     // 1-8-2006 New custimizable variable for players name Select Hero
-    int pscoreUsed[4] = {0, 0, 0, 0};     // 1-8-2006 New custimizable variable for players name Select Hero
+	bool plifeUsed[MAX_PLAYERS - 2];
+	bool elifeUsed[MAX_PLAYERS - 2];
+	bool piconUsed[MAX_PLAYERS - 2];
+	bool piconwUsed[MAX_PLAYERS - 2];
+	bool eiconUsed[MAX_PLAYERS - 2];
+	bool pmpUsed[MAX_PLAYERS];
+	bool plifeXused[MAX_PLAYERS];     // 4-7-2006 New custimizable variable for players 'x'
+	bool plifeNused[MAX_PLAYERS];     // 4-7-2006 New custimizable variable for players 'lives'
+	bool enameused[MAX_PLAYERS];     // 4-7-2006 New custimizable variable for enemy names
+	bool pnameJused[MAX_PLAYERS];     // 1-8-2006 New custimizable variable for players name Select Hero
+	bool pscoreUsed[MAX_PLAYERS];     // 1-8-2006 New custimizable variable for players name Select Hero
 
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
@@ -13150,6 +13060,18 @@ void load_levelorder()
     int line = 0;
 
     unload_levelorder();
+
+	memset(plifeUsed,  0, sizeof(plifeUsed));
+	memset(elifeUsed,  0, sizeof(elifeUsed));
+	memset(piconUsed,  0, sizeof(piconUsed));
+	memset(piconwUsed, 0, sizeof(piconwUsed));
+	memset(eiconUsed,  0, sizeof(eiconUsed));
+	memset(pmpUsed,    0, sizeof(pmpUsed));
+	memset(plifeXused, 0, sizeof(plifeXused));
+	memset(plifeNused, 0, sizeof(plifeNused));
+	memset(enameused,  0, sizeof(enameused));
+	memset(pnameJused, 0, sizeof(pnameJused));
+	memset(pscoreUsed, 0, sizeof(pscoreUsed));
 
     if(custLevels != NULL)
     {
@@ -13172,23 +13094,45 @@ void load_levelorder()
     pos = 0;
 
     // Custom lifebar/timebox/icon positioning and size
-    picon[0][0] = piconw[0][0] = picon[2][0] = piconw[2][0] = eicon[0][0] = eicon[2][0] = 2;
-    picon[1][0] = piconw[1][0] = picon[3][0] = piconw[3][0] = eicon[1][0] = eicon[3][0] = 2 + P2_STATS_DIST;
-    picon[0][1] = piconw[0][1] = picon[1][1] = piconw[1][1] = 2;
-    picon[2][1] = piconw[2][1] = picon[3][1] = piconw[3][1] = 202;
-    plife[0][0] = pmp[0][0] = plife[2][0] = pmp[2][0] = elife[0][0] = elife[2][0] = 20;
-    plife[1][0] = pmp[1][0] = plife[3][0] = pmp[3][0] = elife[1][0] = elife[3][0] = 20 + P2_STATS_DIST;
-    plife[0][1] = plife[1][1] = 10;
-    plife[2][1] = plife[3][1] = 210;
-    pmp[0][1] = pmp[1][1] = 18;
-    pmp[2][1] = pmp[3][1] = 218;
-
+	memset(plifeX, 0, sizeof(plifeX));
+	memset(plifeN, 0, sizeof(plifeN));
+	memset(mpicon, 0, sizeof(mpicon));
+	memset(ename,  0, sizeof(ename));
+	memset(pnameJ, 0, sizeof(pnameJ));
+	memset(pscore, 0, sizeof(pscore));
+	memset(pshoot, 0, sizeof(pshoot));
+	memset(prush,  0, sizeof(prush));
     memset(psmenu, 0, sizeof(psmenu));
 
-    eicon[0][1] = eicon[1][1] = 19;
-    eicon[2][1] = eicon[3][1] = 220;
-    elife[0][1] = elife[1][1] = 27;
-    elife[2][1] = elife[3][1] = 227;
+	for(i = 0; i < MAX_PLAYERS; i++)
+	{
+		unsigned xoff = 0, yoff = 0;
+
+		// p2, p4 on right side
+		if(i % 2 == 1)
+			xoff = P2_STATS_DIST;
+
+		// p3, p4 on bottom
+		if(i / 2 == 1)
+			yoff = 200;
+
+		// default fonts
+		plifeX[i][2] = -1;
+		plifeN[i][2] = -1;
+		ename[i][2]  = -1;
+		pnameJ[i][6] = -1;
+		pscore[i][6] = -1;
+		pshoot[i][2] = -1;
+
+		// default stat positions
+		picon[i][0] = piconw[i][0] = eicon[i][0] = 2 + xoff;
+		picon[i][1] = piconw[i][1] = 2 + yoff;
+		plife[i][0] = pmp[i][0] = elife[i][0] = 20 + xoff;
+		plife[i][1] = 10 + yoff;
+		pmp[i][1] = 18 + yoff;
+		eicon[i][1] = 19 + yoff;
+		elife[i][1] = 27 + yoff;
+	}
 
     timeloc[0] = 149;
     timeloc[1] = 4;
@@ -13326,25 +13270,12 @@ void load_levelorder()
         case CMD_LEVELORDER_P2LIFE:
         case CMD_LEVELORDER_P3LIFE:
         case CMD_LEVELORDER_P4LIFE:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1LIFE:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_P2LIFE:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_P3LIFE:
-                i = 2;
-                plifeUsed[0] = 1;
-                break;
-            case CMD_LEVELORDER_P4LIFE:
-                i = 3;
-                plifeUsed[1] = 1;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_P1LIFE;
+			assert(i >= 0 && i < MAX_PLAYERS);
+
+			if(i >= 2)
+				plifeUsed[i - 2] = true;
+
             if((arg = GET_ARG(1))[0])
             {
                 plife[i][0] = atoi(arg);
@@ -13358,23 +13289,9 @@ void load_levelorder()
         case CMD_LEVELORDER_P2MP:
         case CMD_LEVELORDER_P3MP:
         case CMD_LEVELORDER_P4MP:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1MP:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_P2MP:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_P3MP:
-                i = 2;
-                break;
-            case CMD_LEVELORDER_P4MP:
-                i = 3;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_P1MP;
+			assert(i >= 0 && i < MAX_PLAYERS);
+
             if((arg = GET_ARG(1))[0])
             {
                 pmp[i][0] = atoi(arg);
@@ -13383,87 +13300,46 @@ void load_levelorder()
             {
                 pmp[i][1] = atoi(arg);
             }
-            pmpUsed[i] = 1;
+            pmpUsed[i] = true;
             break;
         case CMD_LEVELORDER_P1LIFEX:
         case CMD_LEVELORDER_P2LIFEX:
         case CMD_LEVELORDER_P3LIFEX:
         case CMD_LEVELORDER_P4LIFEX:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1LIFEX:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2LIFEX:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3LIFEX:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4LIFEX:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1LIFEX;
+			assert(j >= 0 && j < MAX_PLAYERS);
+
             for(i = 0; i < 3; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     plifeX[j][i] = atoi(arg);
                 }
-            plifeXused[j] = 1;
+			plifeXused[j] = true;
             break;
         case CMD_LEVELORDER_P1LIFEN:
         case CMD_LEVELORDER_P2LIFEN:
         case CMD_LEVELORDER_P3LIFEN:
         case CMD_LEVELORDER_P4LIFEN:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1LIFEN:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2LIFEN:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3LIFEN:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4LIFEN:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1LIFEN;
+			assert(j >= 0 && j < MAX_PLAYERS);
+
             for(i = 0; i < 3; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     plifeN[j][i] = atoi(arg);
                 }
-            plifeNused[j] = 1;
+			plifeNused[j] = true;
             break;
         case CMD_LEVELORDER_E1LIFE:
         case CMD_LEVELORDER_E2LIFE:
         case CMD_LEVELORDER_E3LIFE:
         case CMD_LEVELORDER_E4LIFE:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_E1LIFE:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_E2LIFE:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_E3LIFE:
-                i = 2;
-                elifeUsed[0] = 1;
-                break;
-            case CMD_LEVELORDER_E4LIFE:
-                i = 3;
-                elifeUsed[1] = 1;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_E1LIFE;
+			assert(i >= 0 && i < MAX_PLAYERS);
+
+			if(i >= 2)
+				elifeUsed[i - 2] = true;
+
             if((arg = GET_ARG(1))[0])
             {
                 elife[i][0] = atoi(arg);
@@ -13477,25 +13353,12 @@ void load_levelorder()
         case CMD_LEVELORDER_P2ICON:
         case CMD_LEVELORDER_P3ICON:
         case CMD_LEVELORDER_P4ICON:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1ICON:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_P2ICON:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_P3ICON:
-                i = 2;
-                piconUsed[0] = 1;
-                break;
-            case CMD_LEVELORDER_P4ICON:
-                i = 3;
-                piconUsed[1] = 1;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_P1ICON;
+			assert(i >= 0 && i < MAX_PLAYERS);
+
+			if(i >= 2)
+				piconUsed[i - 2] = true;
+
             if((arg = GET_ARG(1))[0])
             {
                 picon[i][0] = atoi(arg);
@@ -13509,25 +13372,12 @@ void load_levelorder()
         case CMD_LEVELORDER_P2ICONW:
         case CMD_LEVELORDER_P3ICONW:
         case CMD_LEVELORDER_P4ICONW:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1ICONW:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_P2ICONW:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_P3ICONW:
-                i = 2;
-                piconwUsed[0] = 1;
-                break;
-            case CMD_LEVELORDER_P4ICONW:
-                i = 3;
-                piconwUsed[1] = 1;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_P1ICONW;
+			assert(i >= 0 && i < MAX_PLAYERS);
+
+			if(i >= 2)
+				piconwUsed[i - 2] = true;
+
             if((arg = GET_ARG(1))[0])
             {
                 piconw[i][0] = atoi(arg);
@@ -13541,23 +13391,8 @@ void load_levelorder()
         case CMD_LEVELORDER_MP2ICON:
         case CMD_LEVELORDER_MP3ICON:
         case CMD_LEVELORDER_MP4ICON:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_MP1ICON:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_MP2ICON:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_MP3ICON:
-                i = 2;
-                break;
-            case CMD_LEVELORDER_MP4ICON:
-                i = 3;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_MP1ICON;
+			assert(i >= 0 && i < MAX_PLAYERS);
             if((arg = GET_ARG(1))[0])
             {
                 mpicon[i][0] = atoi(arg);
@@ -13571,79 +13406,34 @@ void load_levelorder()
         case CMD_LEVELORDER_P2NAMEJ:
         case CMD_LEVELORDER_P3NAMEJ:
         case CMD_LEVELORDER_P4NAMEJ:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1NAMEJ:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2NAMEJ:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3NAMEJ:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4NAMEJ:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1NAMEJ;
+			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 7; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     pnameJ[j][i] = atoi(arg);
                 }
-            pnameJused[j] = 1;
+			pnameJused[j] = true;
             break;
         case CMD_LEVELORDER_P1SCORE:
         case CMD_LEVELORDER_P2SCORE:
         case CMD_LEVELORDER_P3SCORE:
         case CMD_LEVELORDER_P4SCORE:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1SCORE:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2SCORE:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3SCORE:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4SCORE:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1SCORE;
+			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 7; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     pscore[j][i] = atoi(arg);
                 }
-            pscoreUsed[j] = 1;
+			pscoreUsed[j] = true;
             break;
         case CMD_LEVELORDER_P1SHOOT:
         case CMD_LEVELORDER_P2SHOOT:
         case CMD_LEVELORDER_P3SHOOT:
         case CMD_LEVELORDER_P4SHOOT:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1SHOOT:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2SHOOT:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3SHOOT:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4SHOOT:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1SHOOT;
+			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 3; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
@@ -13654,23 +13444,8 @@ void load_levelorder()
         case CMD_LEVELORDER_P2RUSH:
         case CMD_LEVELORDER_P3RUSH:
         case CMD_LEVELORDER_P4RUSH:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1RUSH:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2RUSH:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3RUSH:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4RUSH:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1RUSH;
+			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 8; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
@@ -13681,25 +13456,10 @@ void load_levelorder()
         case CMD_LEVELORDER_E2ICON:
         case CMD_LEVELORDER_E3ICON:
         case CMD_LEVELORDER_E4ICON:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_E1ICON:
-                i = 0;
-                break;
-            case CMD_LEVELORDER_E2ICON:
-                i = 1;
-                break;
-            case CMD_LEVELORDER_E3ICON:
-                i = 2;
-                eiconUsed[0] = 1;
-                break;
-            case CMD_LEVELORDER_E4ICON:
-                i = 3;
-                eiconUsed[1] = 1;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVELORDER_E1ICON;
+			assert(i >= 0 && i < MAX_PLAYERS);
+			if(i >= 2)
+				eiconUsed[i - 2] = true;
             if((arg = GET_ARG(1))[0])
             {
                 eicon[i][0] = atoi(arg);
@@ -13713,51 +13473,21 @@ void load_levelorder()
         case CMD_LEVELORDER_E2NAME:
         case CMD_LEVELORDER_E3NAME:
         case CMD_LEVELORDER_E4NAME:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_E1NAME:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_E2NAME:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_E3NAME:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_E4NAME:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_E1NAME;
+			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < 3; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     ename[j][i] = atoi(arg);
                 }
-            enameused[j] = 1;
+			enameused[j] = true;
             break;
         case CMD_LEVELORDER_P1SMENU:
         case CMD_LEVELORDER_P2SMENU:
         case CMD_LEVELORDER_P3SMENU:
         case CMD_LEVELORDER_P4SMENU:
-            switch(cmd)
-            {
-            case CMD_LEVELORDER_P1SMENU:
-                j = 0;
-                break;
-            case CMD_LEVELORDER_P2SMENU:
-                j = 1;
-                break;
-            case CMD_LEVELORDER_P3SMENU:
-                j = 2;
-                break;
-            case CMD_LEVELORDER_P4SMENU:
-                j = 3;
-                break;
-            default:
-                assert(0);
-            }
+			j = cmd - CMD_LEVELORDER_P1SMENU;
+			assert(j >= 0 && j < MAX_PLAYERS);
             for(i = 0; i < MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
@@ -14041,217 +13771,115 @@ void load_levelorder()
         olbarstatus = lbarstatus;
     }
 
-    if(!plifeUsed[0])
+    for(i = 0; i < MAX_PLAYERS; i++)
     {
-        plife[2][0] = plife[0][0];
-        plife[2][1] = plife[2][1] + (plife[0][1] - 10);
-    }
-    if(!plifeUsed[1])
-    {
-        plife[3][0] = plife[1][0];
-        plife[3][1] = plife[3][1] + (plife[1][1] - 10);
-    }
+        if(i < MAX_PLAYERS - 2)
+        {
+            if(!plifeUsed[i])
+            {
+                plife[i + 2][0] = plife[i & 1][0];
+                plife[i + 2][1] += plife[i & 1][1] - 10;
+            }
 
-    if(!elifeUsed[0])
-    {
-        elife[2][0] = elife[0][0];
-        elife[2][1] = elife[2][1] + (elife[0][1] - 27);
-    }
-    if(!elifeUsed[1])
-    {
-        elife[3][0] = elife[1][0];
-        elife[3][1] = elife[3][1] + (elife[1][1] - 27);
-    }
+            if(!elifeUsed[i])
+            {
+                elife[i + 2][0] = elife[i & 1][0];
+                elife[i + 2][1] += elife[i & 1][1] - 27;
+            }
 
-    if(!piconUsed[0])
-    {
-        picon[2][0] = picon[0][0];
-        picon[2][1] = picon[2][1] + (picon[0][1] - 2);
-    }
-    if(!piconUsed[1])
-    {
-        picon[3][0] = picon[1][0];
-        picon[3][1] = picon[3][1] + (picon[1][1] - 2);
-    }
+            if(!piconUsed[i])
+		    {
+                picon[i + 2][0] = picon[i & 1][0];
+                picon[i + 2][1] += picon[i & 1][1] - 2;
+            }
 
-    if(!piconwUsed[0])
-    {
-        piconw[2][0] = piconw[0][0];
-        piconw[2][1] = piconw[2][1] + (piconw[0][1] - 2);
-    }
-    if(!piconwUsed[1])
-    {
-        piconw[3][0] = piconw[1][0];
-        piconw[3][1] = piconw[3][1] + (piconw[1][1] - 2);
-    }
+            if(!piconwUsed[i])
+            {
+                piconw[i + 2][0] = piconw[i & 1][0];
+                piconw[i + 2][1] += piconw[i & 1][1] - 2;
+            }
 
-    if(!eiconUsed[0])
-    {
-        eicon[2][0] = eicon[0][0];
-        eicon[2][1] = eicon[2][1] + (eicon[0][1] - 19);
-    }
-    if(!eiconUsed[1])
-    {
-        eicon[3][0] = eicon[1][0];
-        eicon[3][1] = eicon[3][1] + (eicon[1][1] - 19);
-    }
+            if(!eiconUsed[i])
+            {
+                eicon[i + 2][0] = eicon[i & 1][0];
+                eicon[i + 2][1] += eicon[i & 1][1] - 19;
+            }
+        }
 
-    if(!pmpUsed[0])
-    {
-        pmp[0][0] = plife[0][0];
-        pmp[0][1] = plife[0][1] + 8;
-    }
-    if(!pmpUsed[1])
-    {
-        pmp[1][0] = plife[1][0];
-        pmp[1][1] = plife[1][1] + 8;
-    }
-    if(!pmpUsed[2])
-    {
-        pmp[2][0] = pmp[0][0];
-        pmp[2][1] = pmp[2][1] + (pmp[0][1] - 18);
-    }
-    if(!pmpUsed[3])
-    {
-        pmp[3][0] = pmp[1][0];
-        pmp[3][1] = pmp[1][1] + (pmp[1][1] - 18);
-    }
+        if(!pmpUsed[i])
+        {
+            if(i < 2)
+            {
+	            pmp[i][0] = plife[i][0];
+	            pmp[i][1] = plife[i][1] + 8;
+            }
+	        else
+            {
+	            pmp[i][0] = pmp[i & 1][0];
+	            pmp[i][1] += pmp[i & 1][1] - 18;
+            }
+        }
 
-    if(!plifeXused[0])
-    {
-        plifeX[0][0] = plife[0][0] + lbarstatus.size.x + 4;
-        plifeX[0][1] = picon[0][1] + 7;
-    }
-    if(!plifeXused[1])
-    {
-        plifeX[1][0] = plife[1][0] + lbarstatus.size.x + 4;
-        plifeX[1][1] = picon[1][1] + 7;
-    }
-    if(!plifeXused[2])
-    {
-        plifeX[2][0] = plife[2][0] + lbarstatus.size.x + 4;
-        plifeX[2][1] = picon[2][1] + 7;
-    }
-    if(!plifeXused[3])
-    {
-        plifeX[3][0] = plife[3][0] + lbarstatus.size.x + 4;
-        plifeX[3][1] = picon[3][1] + 7;
-    }
-    for(i = 0; i < MAX_PLAYERS; i++) if(plifeX[i][2] == -1)
+        if(!plifeXused[i])
+        {
+            plifeX[i][0] = plife[i][0] + lbarstatus.size.x + 4;
+            plifeX[i][1] = picon[i][1] + 7;
+        }
+        if(plifeX[i][2] == -1)
         {
             plifeX[i][2] = 0;
         }
 
-    if(!plifeNused[0])
-    {
-        plifeN[0][0] = plife[0][0] + lbarstatus.size.x + 11;
-        plifeN[0][1] = picon[0][1];
-    }
-    if(!plifeNused[1])
-    {
-        plifeN[1][0] = plife[1][0] + lbarstatus.size.x + 11;
-        plifeN[1][1] = picon[1][1];
-    }
-    if(!plifeNused[2])
-    {
-        plifeN[2][0] = plifeN[0][0];
-        plifeN[2][1] = picon[2][1];
-    }
-    if(!plifeNused[3])
-    {
-        plifeN[3][0] = plifeN[1][0];
-        plifeN[3][1] = picon[3][1];
-    }
-    for(i = 0; i < MAX_PLAYERS; i++) if(plifeN[i][2] == -1)
+        if(!plifeNused[i])
+        {
+            plifeN[i][0] = plife[i][0] + lbarstatus.size.x + 11;
+            plifeN[i][1] = picon[i][1];
+        }
+        if(plifeN[i][2] == -1)
         {
             plifeN[i][2] = 3;
         }
 
-    if(!pnameJused[0])
-    {
-        pnameJ[0][2] = pnameJ[0][4] = pnameJ[0][0] = plife[0][0] + 1;
-        pnameJ[0][5] = pnameJ[0][1] = picon[0][1];
-        pnameJ[0][3] = 10 + pnameJ[0][5];
-    }
-    if(!pnameJused[1])
-    {
-        pnameJ[1][2] = pnameJ[1][4] = pnameJ[1][0] = plife[1][0] + 1;
-        pnameJ[1][5] = pnameJ[1][1] = picon[1][1];
-        pnameJ[1][3] = 10 + pnameJ[1][5];
-    }
-    if(!pnameJused[2])
-    {
-        pnameJ[2][2] = pnameJ[2][4] = pnameJ[2][0] = plife[2][0] + 1;
-        pnameJ[2][5] = pnameJ[2][1] = picon[2][1];
-        pnameJ[2][3] = 10 + pnameJ[2][5];
-    }
-    if(!pnameJused[3])
-    {
-        pnameJ[3][2] = pnameJ[3][4] = pnameJ[3][0] = plife[3][0] + 1;
-        pnameJ[3][5] = pnameJ[3][1] = picon[3][1];
-        pnameJ[3][3] = 10 + pnameJ[3][5];
-    }
-    for(i = 0; i < MAX_PLAYERS; i++) if(pnameJ[i][6] == -1)
+        if(!pnameJused[i])
+        {
+            pnameJ[i][2] = pnameJ[i][4] = pnameJ[i][0] = plife[i][0] + 1;
+            pnameJ[i][5] = pnameJ[i][1] = picon[i][1];
+            pnameJ[i][3] = 10 + pnameJ[i][5];
+        }
+        if(pnameJ[i][6] == -1)
         {
             pnameJ[i][6] = 0;
         }
 
-    if(!pscoreUsed[0])
-    {
-        pscore[0][0] = plife[0][0] + 1;
-        pscore[0][1] = picon[0][1];
-    }
-    if(!pscoreUsed[1])
-    {
-        pscore[1][0] = plife[1][0] + 1;
-        pscore[1][1] = picon[1][1];
-    }
-    if(!pscoreUsed[2])
-    {
-        pscore[2][0] = plife[2][0] + 1;
-        pscore[2][1] = picon[2][1];
-    }
-    if(!pscoreUsed[3])
-    {
-        pscore[3][0] = plife[3][0] + 1;
-        pscore[3][1] = picon[3][1];
-    }
-    for(i = 0; i < MAX_PLAYERS; i++) if(pscore[i][6] == -1)
+        if(!pscoreUsed[i])
+        {
+            pscore[i][0] = plife[i][0] + 1;
+            pscore[i][1] = picon[i][1];
+        }
+        if(pscore[i][6] == -1)
         {
             pscore[i][6] = 0;
         }
 
-    if(!enameused[0])
-    {
-        ename[0][0] = elife[0][0] + 1;
-        ename[0][1] = eicon[0][1];
-    }
-    if(!enameused[1])
-    {
-        ename[1][0] = elife[1][0] + 1;
-        ename[1][1] = eicon[1][1];
-    }
-    if(!enameused[2])
-    {
-        ename[2][0] = ename[0][0];
-        ename[2][1] = eicon[2][1];
-    }
-    if(!enameused[3])
-    {
-        ename[3][0] = ename[1][0];
-        ename[3][1] = eicon[3][1];
-    }
-    for(i = 0; i < MAX_PLAYERS; i++) if(ename[i][2] == -1)
+        if(!enameused[i])
+        {
+            ename[i][0] = elife[i][0] + 1;
+            ename[i][1] = eicon[i][1];
+            ename[i][2] = -1;
+        }
+        if(ename[i][2] == -1)
         {
             ename[i][2] = 0;
         }
 
-    branch_name[0] = 0; //clear up branch name, so we can use it in game
-
-    for(i = 0; i < MAX_PLAYERS; i++) if(pshoot[i][2] == -1)
+        if(pshoot[i][2] == -1)
         {
             pshoot[i][2] = 2;
         }
+    }
+
+    branch_name[0] = 0; //clear up branch name, so we can use it in game
+
     if(timeloc[5] == -1)
     {
         timeloc[5] = 3;
@@ -14419,7 +14047,6 @@ void free_level(s_level *lv)
 void unload_level()
 {
     s_model *temp;
-    int i;
 
     kill_all();
     unload_background();
@@ -14482,7 +14109,7 @@ void unload_level()
     level_completed = 0;
     level_completed_defeating_boss = 0;
     tospeedup = 0;    // Reset so it sets to normal speed for the next level
-    for (i = 0; i < MAX_PLAYERS; i++) reached[i] = 0; // TYPE_ENDLEVEL values reset after level completed //4player
+	memset(reached, 0, sizeof(reached)); // Initialize TYPE_ENDLEVEL values
     showtimeover = 0;
     _pause = 0;
     endgame = 0;
@@ -15128,23 +14755,8 @@ void load_level(char *filename)
         case CMD_LEVEL_SPAWN2:
         case CMD_LEVEL_SPAWN3:
         case CMD_LEVEL_SPAWN4:
-            switch(cmd)
-            {
-            case CMD_LEVEL_SPAWN1:
-                i = 0;
-                break;
-            case CMD_LEVEL_SPAWN2:
-                i = 1;
-                break;
-            case CMD_LEVEL_SPAWN3:
-                i = 2;
-                break;
-            case CMD_LEVEL_SPAWN4:
-                i = 3;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVEL_SPAWN1;
+			assert(i >= 0 && i < MAX_PLAYERS);
 
             // Verify specified player index exists,
             // then set values.
@@ -15443,16 +15055,12 @@ void load_level(char *filename)
             }
             break;
         case CMD_LEVEL_2PSPAWN:
-            // Entity only for 2p game
-            next.spawnplayer_count = 1;
-            break;
         case CMD_LEVEL_3PSPAWN:
-            // Entity only for 3p game
-            next.spawnplayer_count = 2;
-            break;
         case CMD_LEVEL_4PSPAWN:
-            // Entity only for 4p game
-            next.spawnplayer_count = 3;
+			// Entity only for 2p+ game
+			i = cmd - CMD_LEVEL_SPAWN;
+			assert(i >= 0 && i < MAX_PLAYERS);
+			next.spawnplayer_count = i;
             break;
         case CMD_LEVEL_BOSS:
             next.boss = GET_INT_ARG(1);
@@ -15463,19 +15071,15 @@ void load_level(char *filename)
             next.flip = GET_INT_ARG(1);
             break;
         case CMD_LEVEL_HEALTH:
-            next.health[0] = next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
-            break;
         case CMD_LEVEL_2PHEALTH:
-            // Health the spawned entity will have if 2 people are playing
-            next.health[1] = next.health[2] = next.health[3] = GET_INT_ARG(1);
-            break;
         case CMD_LEVEL_3PHEALTH:
-            // Health the spawned entity will have if 2 people are playing
-            next.health[2] = next.health[3] = GET_INT_ARG(1);  //4player
-            break;
         case CMD_LEVEL_4PHEALTH:
-            // Health the spawned entity will have if 2 people are playing
-            next.health[3] = GET_INT_ARG(1);  //4player
+			// Health the spawned entity will have if 2+ people are playing
+			i = cmd - CMD_LEVEL_HEALTH;
+			assert(i >= 0 && i < MAX_PLAYERS);
+			j = GET_INT_ARG(1);
+			for(; i < MAX_PLAYERS; i++)
+				next.health[i] = j;
             break;
         case CMD_LEVEL_MP:
             // mp values to put max mp for player by tails
@@ -15525,24 +15129,9 @@ void load_level(char *filename)
         case CMD_LEVEL_2PITEM:
         case CMD_LEVEL_3PITEM:
         case CMD_LEVEL_4PITEM:
-            switch(cmd)
-            {
-                // Item to be contained by new entry
-            case CMD_LEVEL_ITEM:
-                next.item_properties.player_count = 0;
-                break;
-            case CMD_LEVEL_2PITEM:
-                next.item_properties.player_count = 1;
-                break;
-            case CMD_LEVEL_3PITEM:
-                next.item_properties.player_count = 2;
-                break;
-            case CMD_LEVEL_4PITEM:
-                next.item_properties.player_count = 3;
-                break;
-            default:
-                assert(0);
-            }
+			i = cmd - CMD_LEVEL_ITEM;
+			assert(i >= 0 && i < MAX_PLAYERS);
+			next.item_properties.player_count = i;
             // Load model (if not loaded already)
             cached_model = findmodel(GET_ARG(1));
             if(cached_model)
@@ -17019,7 +16608,7 @@ void update_loading(s_loadingbar *s,  int value, int max)
 
     if(ticks - keybtick > 250)
     {
-        control_update(playercontrolpointers, 1); // Respond to exit and/or fullscreen requests from user/OS
+		control_update(playercontrols, 1); // Respond to exit and/or fullscreen requests from user/OS
         keybtick = ticks;
     }
 
@@ -17079,7 +16668,7 @@ void addscore(int playerindex, int add)
         return;    //dont score if <0, e.g., npc damage enemy, enemy damage enemy
     }
 
-    playerindex &= 3;
+	assert(playerindex < MAX_PLAYERS);
 
     s = player[playerindex].score;
     cs = score_script + playerindex;
@@ -33325,7 +32914,8 @@ void spawnplayer(int index)
     //s_model * model = NULL;
     int wall;
     int xc, zc, find = 0;
-    index &= 3;
+
+	assert(index < MAX_PLAYERS);
 
 //    model = find_model(player[index].name);
 //    if(model == NULL) return;
@@ -34479,7 +34069,7 @@ void inputrefresh(int playrecmode)
     s_player *pl;
     u64 k;
 
-    control_update(playercontrolpointers, MAX_PLAYERS);
+	control_update(playercontrols, MAX_PLAYERS);
 
     bothkeys = 0;
     bothnewkeys = 0;
@@ -34491,10 +34081,10 @@ void inputrefresh(int playrecmode)
         if ( playrecmode != A_REC_PLAY )
         {
 
-            pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
+			pl->releasekeys = (playercontrols[p].keyflags | pl->keys) - playercontrols[p].keyflags;
             pl->releasekeys &= ~pl->disablekeys;
-            pl->keys = playercontrolpointers[p]->keyflags & ~pl->disablekeys;
-            pl->newkeys = playercontrolpointers[p]->newkeyflags & ~pl->disablekeys;
+			pl->keys = playercontrols[p].keyflags & ~pl->disablekeys;
+			pl->newkeys = playercontrols[p].newkeyflags & ~pl->disablekeys;
             pl->playkeys |= pl->newkeys;
             pl->playkeys &= pl->keys;
             pl->playkeys &= ~pl->disablekeys;
@@ -34502,10 +34092,10 @@ void inputrefresh(int playrecmode)
         else
         {
             // in play mode: add pressed keys to rec keys
-            pl->releasekeys |= (playercontrolpointers[p]->keyflags | pl->prevkeys) - playercontrolpointers[p]->keyflags;
+			pl->releasekeys |= (playercontrols[p].keyflags | pl->prevkeys) - playercontrols[p].keyflags;
             pl->releasekeys &= ~pl->disablekeys;
-            pl->keys |= playercontrolpointers[p]->keyflags & ~pl->disablekeys;
-            pl->newkeys |= playercontrolpointers[p]->newkeyflags & ~pl->disablekeys;
+			pl->keys |= playercontrols[p].keyflags & ~pl->disablekeys;
+			pl->newkeys |= playercontrols[p].newkeyflags & ~pl->disablekeys;
             pl->playkeys |= pl->newkeys;
             pl->playkeys &= pl->keys;
             pl->playkeys &= ~pl->disablekeys;
@@ -35269,19 +34859,19 @@ void apply_controls()
 
     for(p = 0; p < MAX_PLAYERS; p++)
     {
-        control_setkey(playercontrolpointers[p], FLAG_ESC,        CONTROL_ESC);
-        control_setkey(playercontrolpointers[p], FLAG_MOVEUP,     savedata.keys[p][SDID_MOVEUP]);
-        control_setkey(playercontrolpointers[p], FLAG_MOVEDOWN,   savedata.keys[p][SDID_MOVEDOWN]);
-        control_setkey(playercontrolpointers[p], FLAG_MOVELEFT,   savedata.keys[p][SDID_MOVELEFT]);
-        control_setkey(playercontrolpointers[p], FLAG_MOVERIGHT,  savedata.keys[p][SDID_MOVERIGHT]);
-        control_setkey(playercontrolpointers[p], FLAG_ATTACK,     savedata.keys[p][SDID_ATTACK]);
-        control_setkey(playercontrolpointers[p], FLAG_ATTACK2,    savedata.keys[p][SDID_ATTACK2]);
-        control_setkey(playercontrolpointers[p], FLAG_ATTACK3,    savedata.keys[p][SDID_ATTACK3]);
-        control_setkey(playercontrolpointers[p], FLAG_ATTACK4,    savedata.keys[p][SDID_ATTACK4]);
-        control_setkey(playercontrolpointers[p], FLAG_JUMP,       savedata.keys[p][SDID_JUMP]);
-        control_setkey(playercontrolpointers[p], FLAG_SPECIAL,    savedata.keys[p][SDID_SPECIAL]);
-        control_setkey(playercontrolpointers[p], FLAG_START,      savedata.keys[p][SDID_START]);
-        control_setkey(playercontrolpointers[p], FLAG_SCREENSHOT, savedata.keys[p][SDID_SCREENSHOT]);
+		control_setkey(&playercontrols[p], FLAG_ESC,        CONTROL_ESC);
+		control_setkey(&playercontrols[p], FLAG_MOVEUP,     savedata.keys[p][SDID_MOVEUP]);
+		control_setkey(&playercontrols[p], FLAG_MOVEDOWN,   savedata.keys[p][SDID_MOVEDOWN]);
+		control_setkey(&playercontrols[p], FLAG_MOVELEFT,   savedata.keys[p][SDID_MOVELEFT]);
+		control_setkey(&playercontrols[p], FLAG_MOVERIGHT,  savedata.keys[p][SDID_MOVERIGHT]);
+		control_setkey(&playercontrols[p], FLAG_ATTACK,     savedata.keys[p][SDID_ATTACK]);
+		control_setkey(&playercontrols[p], FLAG_ATTACK2,    savedata.keys[p][SDID_ATTACK2]);
+		control_setkey(&playercontrols[p], FLAG_ATTACK3,    savedata.keys[p][SDID_ATTACK3]);
+		control_setkey(&playercontrols[p], FLAG_ATTACK4,    savedata.keys[p][SDID_ATTACK4]);
+		control_setkey(&playercontrols[p], FLAG_JUMP,       savedata.keys[p][SDID_JUMP]);
+		control_setkey(&playercontrols[p], FLAG_SPECIAL,    savedata.keys[p][SDID_SPECIAL]);
+		control_setkey(&playercontrols[p], FLAG_START,      savedata.keys[p][SDID_START]);
+		control_setkey(&playercontrols[p], FLAG_SCREENSHOT, savedata.keys[p][SDID_SCREENSHOT]);
     }
 }
 
@@ -36575,7 +36165,7 @@ static entity *spawnexample(int player_index)
 	float pos_x;
 	float pos_y;
 	float pos_z;
-	int direction;
+	e_direction direction;
 		
 	set = levelsets + current_set;
 
@@ -38467,16 +38057,10 @@ void menu_options_input()
                 control_usejoy((savedata.usejoy ^= 1));
                 break;
             case 1:
-                keyboard_setup(0);
-                break;
             case 2:
-                keyboard_setup(1);
-                break;
             case 3:
-                keyboard_setup(2);
-                break;
             case 4:
-                keyboard_setup(3);
+				keyboard_setup(selector - 1);
                 break;
             #if ANDROID
             case 5:

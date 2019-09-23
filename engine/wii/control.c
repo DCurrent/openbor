@@ -190,7 +190,7 @@ char * control_getkeyname(unsigned keycode)
 	return "...";
 }
 
-void control_update(s_playercontrols ** playercontrols, int numplayers)
+void control_update(s_playercontrols * playercontrols, int numplayers)
 {
 	unsigned long k;
 	unsigned long i;
@@ -216,7 +216,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 	}
 	for(player=0; player<numplayers; player++)
 	{
-		pcontrols = playercontrols[player];
+		pcontrols = &playercontrols[player];
 		k = 0;
 		for(i=0; i<32; i++)
 		{
