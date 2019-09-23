@@ -601,6 +601,10 @@ int                 pshoot[MAX_PLAYERS][3];   // player shootnum
 int                 prush[MAX_PLAYERS][8];    // player combo/rush system
 int                 psmenu[MAX_PLAYERS][4];   // player placement in select menu
 e_direction         spdirection[MAX_PLAYERS]; // Select Player Direction for select player screen
+int                 cbonus[2 + 2 * MAX_PLAYERS]; // clear bonus
+int                 lbonus[2 + 2 * MAX_PLAYERS]; // life bonus
+int                 rbonus[2 + 2 * MAX_PLAYERS]; // rush bonus
+int                 tscore[2 + 2 * MAX_PLAYERS]; // total score
 
 s_barstatus loadingbarstatus =
 {
@@ -664,10 +668,6 @@ int                 olicon    			= -1;
 int                 olicon_offsets[3]	= {0, 0, 0};
 char                olicon_path[MAX_BUFFER_LEN]    = {""};
 int                 scomplete[6]		= {0, 0, 0, 0, 0, 0};		// Used for customizable Stage # Complete
-int                 cbonus[10]          = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Used for customizable clear bonus
-int                 lbonus[10]          = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Used for customizable life bonus
-int                 rbonus[10]          = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Used for customizable rush bonus
-int                 tscore[10]          = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Used for customizable total score
 int                 scbonuses[4]        = {10000, 1000, 100, 0};//Stage complete bonus multipliers
 int                 showrushbonus       = 0;
 int                 noshare				= 0;					// Used for when you want to keep p1 & p2 credits separate
@@ -13164,18 +13164,26 @@ void load_levelorder()
     scomplete[4] = 0;
     scomplete[5] = 0;
 
-    // Show Complete Y Values
+    // Show Complete Default Positions
     cbonus[0] = lbonus[0] = rbonus[0] = tscore[0] = 10;
-    cbonus[1] = cbonus[3] = cbonus[5] = cbonus[7] = cbonus[9] = 100;
-    lbonus[1] = lbonus[3] = lbonus[5] = lbonus[7] = lbonus[9] = 120;
-    rbonus[1] = rbonus[3] = rbonus[5] = rbonus[7] = rbonus[9] = 140;
-    tscore[1] = tscore[3] = tscore[5] = tscore[7] = tscore[9] = 160;
+    cbonus[1] = 100;
+    lbonus[1] = 120;
+    rbonus[1] = 140;
+    tscore[1] = 160;
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        int p = 2 + i * 2;
+        int x = 100 + 55 * i;
 
-    // Show Complete X Values
-    cbonus[2] = lbonus[2] = rbonus[2] = tscore[2] = 100;
-    cbonus[4] = lbonus[4] = rbonus[4] = tscore[4] = 155;
-    cbonus[6] = lbonus[6] = rbonus[6] = tscore[6] = 210;
-    cbonus[8] = lbonus[8] = rbonus[8] = tscore[8] = 265;
+        cbonus[p] = x;
+        cbonus[p + 1] = cbonus[1];
+        lbonus[p] = x;
+        lbonus[p + 1] = lbonus[1];
+        rbonus[p] = x;
+        rbonus[p + 1] = rbonus[1];
+        tscore[p] = x;
+        tscore[p + 1] = tscore[1];
+    }
 
     while(pos < size)
     {
@@ -13662,21 +13670,21 @@ void load_levelorder()
                 }
             break;
         case CMD_LEVELORDER_CLEARBONUS:
-            for(i = 0; i < 10; i++)
+            for(i = 0; i < 2 + 2 * MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     cbonus[i] = atoi(arg);
                 }
             break;
         case CMD_LEVELORDER_RUSHBONUS:
-            for(i = 0; i < 10; i++)
+            for(i = 0; i < 2 + 2 * MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     rbonus[i] = atoi(arg);
                 }
             break;
         case CMD_LEVELORDER_LIFEBONUS:
-            for(i = 0; i < 10; i++)
+            for(i = 0; i < 2 + 2 * MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     lbonus[i] = atoi(arg);
@@ -13690,7 +13698,7 @@ void load_levelorder()
                 }
             break;
         case CMD_LEVELORDER_TOTALSCORE:
-            for(i = 0; i < 10; i++)
+            for(i = 0; i < 2 + 2 * MAX_PLAYERS; i++)
                 if((arg = GET_ARG(i + 1))[0])
                 {
                     tscore[i] = atoi(arg);
@@ -35875,13 +35883,20 @@ void showcomplete(int num)
 {
     int done = 0;
     int i, j, k;
-    u32 clearbonus[4] = { 10000, 10000, 10000, 10000 };
-    u32 lifebonus[4] = { 10000, 10000, 10000, 10000 };
-    u32 rushbonus[4] = { 10000, 10000, 10000, 10000 };
+    u32 clearbonus[MAX_PLAYERS];
+    u32 lifebonus[MAX_PLAYERS];
+    u32 rushbonus[MAX_PLAYERS];
     u32 nexttime = 0;
     u32 finishtime = 0;
     int chan = 0;
     char tmpBuff[MAX_BUFFER_LEN] = {""};
+
+    for(i = 0; i < MAX_PLAYERS; i++)
+    {
+        clearbonus[i] = 10000;
+        lifebonus[i] = 10000;
+        rushbonus[i] = 10000;
+    }
 
     showComplete = 1;
 
