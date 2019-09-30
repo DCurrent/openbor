@@ -32152,22 +32152,32 @@ void dropweapon(int flag)
     int wall;
     entity *other = NULL;
 
+	// If we already have a weapon, we'll need to discard it.
     if(self->weapent)
     {
+		// 2019-09-29 - Not sure about this logic. It appears that only type shot
+		// weapons or weapons with shot ammo are dropped.  Anything else is simply discarded.
+		// Need to evaluate all weapon logic to get the workflow.
         if(self->weapent->modeldata.typeshot || (!self->weapent->modeldata.typeshot && self->weapent->modeldata.shootnum))
-        {
-            self->weapent->direction = self->direction;//same direction as players, 2007 -2 - 11   by UTunnels
-            if(flag < 2)
+        {            
+			// If the flag is 2 or below, we subtract the flag's
+			// value from weapon counter.
+			if(flag < 2)
             {
                 self->weapent->modeldata.counter -= flag;
             }
-            self->weapent->position.z = self->position.z;
+            
+			// We're going to use our own position for the weapon.
+			self->weapent->direction = self->direction;
+			self->weapent->position.z = self->position.z;
             self->weapent->position.x = self->position.x;
             self->weapent->position.y = self->position.y;
 
+			// Get any walls and platforms.
             other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
             wall = checkwall_index(self->weapent->position.x, self->weapent->position.z);
 
+			// Place onto wall or platform.
             if(other && other != self->weapent)
             {
                 self->weapent->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
@@ -32177,6 +32187,8 @@ void dropweapon(int flag)
                 self->weapent->base += level->walls[wall].height;
             }
 
+			// Use the weapon's RESPAWN or SPAWN animations if available, otherwise
+			// go right to idle.
             if(validanim(self->weapent, ANI_RESPAWN))
             {
                 ent_set_anim(self->weapent, ANI_RESPAWN, 1);
@@ -32190,6 +32202,9 @@ void dropweapon(int flag)
                 if(validanim(self->weapent, ANI_IDLE)) ent_set_anim(self->weapent, ANI_IDLE, 1);
             }
 
+			// If the weapon's counter is depleted, then weapon is lost for good.
+			// If it is an "animal", then we apply the animal running away logic.
+			// Otherwise the weapon blinks out.
             if(!self->weapent->modeldata.counter)
             {
                 if(!self->modeldata.animal)
@@ -32205,8 +32220,14 @@ void dropweapon(int flag)
             }
             self->weapent->nextthink = _time + 1;
         }
+
+		// Clear our tracking variable that keeps the weapon entity pointer.
         self->weapent = NULL;
     }
+
+	// Flag 2 means we're probably setting the weapon directly (ex: setweapon command). 
+	// In that case we don't worry about a weapon entity. Just switch ourselves over
+	// to the weapon model.
     if(flag < 2)
     {
         if(self->modeldata.type & TYPE_PLAYER)
@@ -32226,6 +32247,9 @@ void dropweapon(int flag)
         }
     }
 
+	// Model override. If this is populated, we use its value
+	// to locate a model by index and revert to that instead 
+	// of the default model when a weapon is lost.
     if(self->modeldata.weaploss[1] > 0)
     {
         set_weapon(self, self->modeldata.weaploss[1], 0);
