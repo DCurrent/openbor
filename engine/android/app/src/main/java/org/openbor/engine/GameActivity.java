@@ -256,8 +256,8 @@ public class GameActivity extends SDLActivity {
           Toast.makeText(appCtx, toast, Toast.LENGTH_LONG).show();
           outFolder.mkdirs();
 
-          int resId = appCtx.getResources().getIdentifier("raw/bor", null, appCtx.getPackageName());
-          InputStream in = getResources().openRawResource(resId);
+		  //custom pak should be saved in "app\src\main\assets\bor.pak"
+		  InputStream in = ctx.getAssets().open("bor.pak");
           FileOutputStream out = new FileOutputStream(outFile);
 
           copyFile(in, out);
