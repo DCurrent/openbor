@@ -117,6 +117,8 @@ movement restirctions are here!
 #define		DEFAULT_ATK_DROPV_X 1.2
 #define		DEFAULT_ATK_DROPV_Z 0
 
+#define		ITEM_HIDE_POSITION_Z 100000	
+
 // Caskey, Damon V.
 // 2019-01-27
 // 
@@ -2498,7 +2500,6 @@ typedef struct
     int player_count;               // int itemplayer_count;
     char alias[MAX_NAME_LEN];   // char itemalias[MAX_NAME_LEN]; // Now items spawned can have their properties changed
 } s_item_properties;
-
 
 typedef struct entity
 {
