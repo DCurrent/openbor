@@ -28508,7 +28508,7 @@ void common_pickupitem(entity *other)
     {
         do_item_script(self, other);
 
-        other->position.z = 100000;
+        other->position.z = ITEM_HIDE_POSITION_Z;
     }
 }
 
