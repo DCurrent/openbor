@@ -20941,10 +20941,10 @@ int check_lost()
     s_collision_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
-    if((self->position.z != 100000 && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
+    if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
                               (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->position.z + self->position.y > osk || self->position.z - self->position.y - advancey - videomodes.vRes > osk)) ||
                               ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->position.z - self->position.y < -osk || self->position.z - self->position.y > videomodes.vRes + osk))		) )
-            || self->position.y < 2 * PIT_DEPTH) //self->position.z<100000, so weapon item won't be killed
+            || self->position.y < 2 * PIT_DEPTH) //self->position.z<ITEM_HIDE_POSITION_Z, so weapon item won't be killed
     {
         if(self->modeldata.type & TYPE_PLAYER)
         {
@@ -30530,7 +30530,7 @@ void didfind_item(entity *other)
     {
         other->nextthink = other->nextanim = _time + GAME_SPEED * 999999;
     }
-    other->position.z = 100000;
+    other->position.z = ITEM_HIDE_POSITION_Z;
 }
 
 void player_fall_check()
@@ -33262,7 +33262,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // give the entity a weapon item
     if(props->weapon)
     {
-        wp = spawn(e->position.x, 100000, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
+        wp = spawn(e->position.x, ITEM_HIDE_POSITION_Z, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
         if(wp)
         {
             //ent_default_init(wp);
