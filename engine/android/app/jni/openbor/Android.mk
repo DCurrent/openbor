@@ -21,6 +21,11 @@ LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libSDL2.so
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
+LOCAL_MODULE    := libhidapi
+LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libhidapi.so
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
 LOCAL_MODULE    := png
 LOCAL_SRC_FILES := lib/$(TARGET_ARCH_ABI)/libpng.a
 LOCAL_EXPORT_LDLIBS := -lz
@@ -97,7 +102,7 @@ LOCAL_SRC_FILES += SDL_android_main.cpp
 
 LOCAL_LDLIBS := -ldl -lGLESv2 -llog
 
-LOCAL_STATIC_LIBRARIES := png vorbisidec SDL2 vpx
+LOCAL_STATIC_LIBRARIES := png vorbisidec SDL2 vpx libhidapi
 
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,android/cpufeatures)

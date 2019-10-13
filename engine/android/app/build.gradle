@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
   compileSdkVersion 28
     defaultConfig {
-      minSdkVersion 19
+      minSdkVersion 16
         targetSdkVersion 28
 
         //////////// MODFY FOR CUSTOM APK /////////////////
@@ -15,10 +15,10 @@ android {
 
         externalNativeBuild {
           ndkBuild {
-            arguments "APP_PLATFORM=android-19"
+            arguments "APP_PLATFORM=android-16"
               // currently supports with pre-built libraries for following
-              // two target abis
-              abiFilters 'arm64-v8a', 'armeabi-v7a'
+              // two target abis removed arm64 as unsupported for now
+              abiFilters 'armeabi-v7a'//, 'arm64-v8a'
           }
         }
     }

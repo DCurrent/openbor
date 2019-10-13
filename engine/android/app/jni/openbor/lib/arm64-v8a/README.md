@@ -5,4 +5,5 @@
 * libogg - 1.3.3
 * libpng - 1.6.36
 * libvorbis (tremor, at commit 7c30a66) - 1.3.6
-* libSDL2 - (at commit cb54647) - 2.0.8
+* libSDL2 - 2.0.10 (stable)
+* libhidapi.so - 2.0.10 (stable)
