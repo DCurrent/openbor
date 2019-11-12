@@ -10335,10 +10335,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.x.max            = (int)newchar->jumpheight * 20;		// 30-12-2004 default range affected by jump height
                 newanim->range.z.min            = (int) - newchar->grabdistance / 3;	//zmin
                 newanim->range.z.max            = (int)newchar->grabdistance / 3;		//zmax
-                newanim->range.y.min            = T_MIN_BASEMAP;						//amin
-				newanim->range.y.max			= (int)newchar->jumpheight * 20;		// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
-                newanim->range.base.min         = T_MIN_BASEMAP;						// Base min.				
-				newanim->range.base.max			= (int)newchar->jumpheight * 20;		// Just use same logic as range Y.
+                newanim->range.y.min            = 0;									//amin
+				newanim->range.y.max			= (int)newchar->jumpheight * 20;			// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
+                newanim->range.base.min         = 0;									// Base min.				
+				newanim->range.base.max			= (int)newchar->jumpheight * 20;			// Just use same logic as range Y.
                 newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
@@ -16567,6 +16567,9 @@ void draw_visual_debug()
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
 
+	int range_y_min = 0;
+	int range_y_max = 0;
+
     drawmethod.alpha = BLEND_MODE_ALPHA;
 
     for(i=0; i<ent_max; i++)
@@ -16594,7 +16597,17 @@ void draw_visual_debug()
         // Range debug requested?
         if(savedata.debuginfo & DEBUG_DISPLAY_RANGE)
         {
-            draw_box_on_entity(entity, entity->animation->range.x.min, entity->animation->range.y.min, entity->position.z+1, entity->animation->range.x.max, entity->animation->range.y.max, -1, LOCAL_COLOR_GREEN, &drawmethod);
+			// Range is calculated a bit differently than body/attack 
+			// boxes, which is what the draw_box_on_entity() funciton
+			// is meant for. For Y axis, We need to invert the value, 
+			// and place them in opposiing parameters (Max Y into 
+			// function's min Y parameter, and and min Y into function's
+			// max Y parameter).
+
+			range_y_min =  -entity->animation->range.y.min;
+			range_y_max =  -entity->animation->range.y.max;
+			
+            draw_box_on_entity(entity, entity->animation->range.x.min, range_y_max, entity->position.z+1, entity->animation->range.x.max, range_y_min, -1, LOCAL_COLOR_GREEN, &drawmethod);
         }
 
         // Collision body debug requested?
