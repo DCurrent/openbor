@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2018 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -262,6 +262,11 @@ extern DECLSPEC const char * SDLCALL SDL_WinRTGetFSPathUTF8(SDL_WinRT_Path pathT
 extern DECLSPEC SDL_WinRT_DeviceFamily SDLCALL SDL_WinRTGetDeviceFamily();
 
 #endif /* __WINRT__ */
+
+/**
+ \brief Return true if the current device is a tablet.
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_IsTablet(void);
 
 /* Ends C function definitions when using C++ */
 #ifdef __cplusplus
