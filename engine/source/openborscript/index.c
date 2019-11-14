@@ -898,15 +898,29 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_systemvariant;
     }
-    else if (functionRef == ((void *)openbor_getentityproperty))
+    
+	// Animation
+	else if (functionRef == ((void*)openbor_get_animation_property))
+	{
+		return (void*)mapstrings_animation_property;
+	}
+	else if (functionRef == ((void*)openbor_set_animation_property))
+	{
+		return (void*)mapstrings_animation_property;
+	}
+
+	// Entity (Legacy)
+	else if (functionRef == ((void *)openbor_getentityproperty))
     {
         return (void *)mapstrings_entityproperty;
     }
     else if (functionRef == ((void *)openbor_changeentityproperty))
     {
         return (void *)mapstrings_entityproperty;
-    }    
-    else if (functionRef == ((void *)openbor_get_entity_property))
+    } 
+	
+	// Entity
+	else if (functionRef == ((void *)openbor_get_entity_property))
     {
         return (void *)mapstrings_entity_property;
     }

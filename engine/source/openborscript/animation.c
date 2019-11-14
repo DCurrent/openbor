@@ -14,6 +14,96 @@
 
 #include "scriptcommon.h"
 
+/*
+ * OpenBOR - http://www.chronocrash.com
+ * -----------------------------------------------------------------------
+ * All rights reserved. See LICENSE in OpenBOR root for license details.
+ *
+ * Copyright (c) 2004 - 2018 OpenBOR Team
+ */
+
+#include "scriptcommon.h"
+
+ // Use string property argument to find an
+ // integer property constant and populate
+ // varlist->lval.
+int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
+{
+#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
+#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
+
+	char* propname = NULL;  // Placeholder for string property name from varlist.
+	int prop;               // Placeholder for integer constant located by string.
+
+	static const char* proplist[] =
+	{
+		"anim_hits",
+		"anti_gravity",
+		"attack",
+		"collision_one",
+		"body_collision",
+		"entity_collision",
+		"bounce",
+		"cancel",
+		"charge_time",
+		"counter_range",
+		"delay",
+		"drawmethod",
+		"drop_frame",
+		"drop_velocity",
+		"energy_cost",
+		"flipframe",
+		"follow",
+		"idle",
+		"ignore_attack_id",
+		"index",
+		"jump_frame",
+		"land_frame",
+		"loop",
+		"model_index",
+		"move",
+		"numframes",
+		"offset",
+		"platform",
+		"projectile",
+		"quake_frame",
+		"range",
+		"shadow",
+		"size",
+		"sound_id",
+		"spawn_frame",
+		"sprite",
+		"sprite_a",
+		"sub_entity",
+		"summon_frame",
+		"sync",
+		"unsummon_frame",
+		"vunerable",
+		"weapon_frame"		
+	};
+
+	// If the minimum argument count
+	// was not passed, then there is
+	// nothing to map. Return true - we'll
+	// catch the mistake in property access
+	// functions.
+	if (paramCount < ARG_MINIMUM)
+	{
+		return 1;
+	}
+
+	// See macro - will return 0 on fail.
+	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ANIMATION_PROP_END,
+		"\n\n Error: '%s' is not a known animation property.\n");
+
+
+	// If we made it this far everything should be OK.
+	return 1;
+
+#undef ARG_MINIMUM
+#undef ARG_PROPERTY
+}
+
 // Get animation property.
 // Caskey, Damon V.
 // 2016-10-20
@@ -55,19 +145,19 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to get?
     switch(property)
     {
-        case ANI_PROP_ANIMHITS:
+        case _ANIMATION_PROP_ANIMHITS:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->animhits;
             break;
 
-        case ANI_PROP_ANTIGRAV:
+        case _ANIMATION_PROP_ANTIGRAV:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->antigrav;
             break;
 
-        case ANI_PROP_ATTACK:
+        case _ANIMATION_PROP_ATTACK:
 
             // Verify animation has attacks.
             if(handle->collision_attack)
@@ -78,13 +168,13 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_COLLISIONONE:
+        case _ANIMATION_PROP_COLLISIONONE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attackone;
             break;
 
-        case ANI_PROP_BODY_COLLISION:
+        case _ANIMATION_PROP_BODY_COLLISION:
 
             // Verify animation has any bbox.
             if(handle->collision_body)
@@ -95,7 +185,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_ENTITY_COLLISION:
+        case _ANIMATION_PROP_ENTITY_COLLISION:
 
             // Verify animation has any bbox.
             if(handle->collision_entity)
@@ -106,26 +196,26 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_BOUNCE:
+        case _ANIMATION_PROP_BOUNCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->bounce;
 
             break;
 
-        case ANI_PROP_CANCEL:
+        case _ANIMATION_PROP_CANCEL:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->cancel;
             break;
 
-        case ANI_PROP_CHARGETIME:
+        case _ANIMATION_PROP_CHARGETIME:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->chargetime;
             break;
 
-        case ANI_PROP_COUNTERRANGE:
+        case _ANIMATION_PROP_COUNTERRANGE:
 
             // Verify animation has item.
             if(handle->counterrange)
@@ -136,7 +226,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_NUMFRAMES:
+        case _ANIMATION_PROP_NUMFRAMES:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->numframes;
@@ -208,7 +298,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to modify?
     switch(property)
     {
-        case ANI_PROP_ANIMHITS:
+        case _ANIMATION_PROP_ANIMHITS:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -217,7 +307,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_ANTIGRAV:
+        case _ANIMATION_PROP_ANTIGRAV:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -226,7 +316,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-        case ANI_PROP_NUMFRAMES:
+        case _ANIMATION_PROP_NUMFRAMES:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {

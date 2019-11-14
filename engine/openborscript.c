@@ -2878,30 +2878,6 @@ enum cep_think_enum   // 2011_03_03, DC: Think types.
     _ep_th_the_end,
 };
 
-int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
-{
-    return 0;
-//    char *propname;
-//    const char *aps;
-//    int prop, ap; //int prop, i, ep, t;
-//    int result = 1;
-//
-//    MAPSTRINGS(varlist[1], list_animation_prop, ANI_PROP_THE_END,
-//               "Property name '%s' is not a supported animation property.\n");
-//
-//    if(paramCount < 3 || varlist[1]->vt != VT_INTEGER)
-//    {
-//        return result;
-//    }
-//    else
-//    {
-//        ap = varlist[1]->lVal;
-//        aps = (ap < ANI_PROP_THE_END && ap >= 0) ? list_animation_prop[ap] : "";
-//    }
-//
-//    return result;
-}
-
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
 {
     char *propname;
