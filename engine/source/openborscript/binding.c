@@ -83,11 +83,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
     ScriptVariant_Clear(*pretvar);
-
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_bind_property(varlist, paramCount);
-
+	
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
@@ -255,11 +251,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 	// Value carriers to apply on properties after
 	// taken from argument.
 	LONG         temp_int;
-
-	// Map string property name to a
-	// matching integer constant.
-	mapstrings_bind_property(varlist, paramCount);
-
+	
 	// Verify incoming arguments. There should at least
 	// be a pointer for the property handle and an integer
 	// to determine which property is accessed.
