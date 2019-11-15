@@ -39,46 +39,31 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 	{
 		"anim_hits",
 		"anti_gravity",
-		"attack",
 		"collision_one",
-		"body_collision",
-		"entity_collision",
 		"bounce",
 		"cancel",
 		"charge_time",
 		"counter_range",
-		"delay",
-		"drawmethod",
 		"drop_frame",
-		"drop_velocity",
 		"energy_cost",
 		"flipframe",
 		"follow",
-		"idle",
 		"ignore_attack_id",
 		"index",
 		"jump_frame",
 		"land_frame",
 		"loop",
 		"model_index",
-		"move",
 		"numframes",
-		"offset",
-		"platform",
 		"projectile",
 		"quake_frame",
 		"range",
-		"shadow",
 		"size",
-		"sound_id",
 		"spawn_frame",
-		"sprite",
-		"sprite_a",
 		"sub_entity",
 		"summon_frame",
 		"sync",
 		"unsummon_frame",
-		"vunerable",
 		"weapon_frame"		
 	};
 
@@ -95,6 +80,56 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 	// See macro - will return 0 on fail.
 	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ANIMATION_PROP_END,
 		"\n\n Error: '%s' is not a known animation property.\n");
+
+
+	// If we made it this far everything should be OK.
+	return 1;
+
+#undef ARG_MINIMUM
+#undef ARG_PROPERTY
+}
+
+// Use string property argument to find an
+// integer property constant and populate
+// varlist->lval.
+int mapstrings_animation_frame_property(ScriptVariant** varlist, int paramCount)
+{
+#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
+#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
+
+	char* propname = NULL;  // Placeholder for string property name from varlist.
+	int prop;               // Placeholder for integer constant located by string.
+
+	static const char* proplist[] =
+	{
+		"attack",
+		"body_collision",
+		"entity_collision",
+		"delay",
+		"drawmethods",
+		"idle",
+		"move",
+		"offset",
+		"platform",
+		"shadow",
+		"sound_to_play",
+		"sprite",
+		"vulnerable"
+	};
+
+	// If the minimum argument count
+	// was not passed, then there is
+	// nothing to map. Return true - we'll
+	// catch the mistake in property access
+	// functions.
+	if (paramCount < ARG_MINIMUM)
+	{
+		return 1;
+	}
+
+	// See macro - will return 0 on fail.
+	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ANIMATION_FRAME_PROP_END,
+		"\n\n Error: '%s' is not a known animation frame property.\n");
 
 
 	// If we made it this far everything should be OK.
@@ -157,43 +192,10 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             (*pretvar)->dblVal = (DOUBLE)handle->antigrav;
             break;
 
-        case _ANIMATION_PROP_ATTACK:
-
-            // Verify animation has attacks.
-            if(handle->collision_attack)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->collision_attack;
-            }
-
-            break;
-
         case _ANIMATION_PROP_COLLISIONONE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attackone;
-            break;
-
-        case _ANIMATION_PROP_BODY_COLLISION:
-
-            // Verify animation has any bbox.
-            if(handle->collision_body)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->collision_body;
-            }
-
-            break;
-
-        case _ANIMATION_PROP_ENTITY_COLLISION:
-
-            // Verify animation has any bbox.
-            if(handle->collision_entity)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->collision_entity;
-            }
-
             break;
 
         case _ANIMATION_PROP_BOUNCE:
