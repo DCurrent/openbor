@@ -39,7 +39,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 	{
 		"anim_hits",
 		"anti_gravity",
-		"collision_one",
+		"attack_one",
 		"bounce",
 		"cancel",
 		"charge_time",
@@ -192,7 +192,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             (*pretvar)->dblVal = (DOUBLE)handle->antigrav;
             break;
 
-        case _ANIMATION_PROP_COLLISIONONE:
+        case _ANIMATION_PROP_ATTACK_ONE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->attackone;
