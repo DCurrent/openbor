@@ -2000,18 +2000,19 @@ typedef struct
 
 typedef struct
 {
-    bool                    antigrav;               // This animation ignores gravity.
+	bool                    attackone;              // Attack hits only one target.
+	bool                    subject_to_gravity;		// This animation ignores gravity.
+
     int                     hit_count;               // How many consecutive hits have been made? Used for canceling.
     unsigned int            chargetime;             // charge time for an animation
     int                     flipframe;              // Turns entities around on the desired frame
     int                     numframes;              // Count of frames in the animation.
     int                     unsummonframe;          // Un-summon the entity
-    bool                    attackone;              // Attack hits only one target.
     int                     cancel;                 // Cancel anims with freespecial
     int                     index;                  // unique id
     int                     model_index;
     int                     subentity;              // Store the sub-entity's name for further use
-    int                     sync;                   // Synchronize frame to previous animation if they matches
+	int                     sync;                   // Synchronize frame to previous animation if they matches
     float                   bounce;                 // -tossv/bounce = new tossv
     s_follow                followup;               // Subsequent animation on hit.
     s_loop                  loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.

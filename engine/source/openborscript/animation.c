@@ -37,7 +37,6 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 
 	static const char* proplist[] =
 	{
-		"anti_gravity",
 		"attack_one",
 		"bounce",
 		"cancel",
@@ -60,6 +59,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"size",
 		"spawn_frame",
 		"sub_entity",
+		"subject_to_gravity",
 		"summon_frame",
 		"sync",
 		"unsummon_frame",
@@ -179,12 +179,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to get?
     switch(property)
     {
-        case _ANIMATION_PROP_ANTIGRAV:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->antigrav;
-            break;
-
         case _ANIMATION_PROP_ATTACK_ONE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -232,6 +226,12 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->numframes;
             break;
+		
+		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->subject_to_gravity;
+			break;
 
         default:
 
@@ -299,16 +299,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to modify?
     switch(property)
     {
-        case _ANIMATION_PROP_ANTIGRAV:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->antigrav = (int)temp_int;
-            }
-
-            break;
-
-		case _ANIMATION_PROP_HIT_COUNT:
+        case _ANIMATION_PROP_HIT_COUNT:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
@@ -325,6 +316,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
             }
 
             break;
+
+		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->subject_to_gravity = (bool)temp_int;
+			}
+
+			break;
 
         default:
 

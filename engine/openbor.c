@@ -10346,7 +10346,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
                 newanim->flipframe              = -1;
                 newanim->attackone              = 0;
-                newanim->antigrav               = 0;
+                newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
                 newanim->unsummonframe          = -1;
@@ -10477,9 +10477,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->projectile.star = get_cached_model_index(GET_ARG(1));
                 break;
 
-                // UT: merge dive and jumpframe, because they can't be used at the same time
-            case CMD_MODEL_DIVE:	//antigrav kicks
-                newanim->antigrav = 1;
+				// Legacy dive attacks. Turn off animation level subject_to_gravity
+				// and then use jumpframe to fly down at an angle.
+            case CMD_MODEL_DIVE: 
+                newanim->subject_to_gravity = 0;
 
                 // Allocate jumpframe and use it to set movement.
                 newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
@@ -10491,7 +10492,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_DIVE1:
-                newanim->antigrav = 1;
+                newanim->subject_to_gravity = 0;
 
                 // Allocate jumpframe and use it to set movement.
                 newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
@@ -10502,7 +10503,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe->ent = -1;
                 break;
             case CMD_MODEL_DIVE2:
-                newanim->antigrav = 1;
+                newanim->subject_to_gravity = 0;
 
                 // Allocate jumpframe and use it to set movement.
                 newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
@@ -20796,7 +20797,7 @@ void check_gravity(entity *e)
             }
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
-            if(self->animation->antigrav)
+            if(!self->animation->subject_to_gravity)
             {
                 gravity = 0;
             }
