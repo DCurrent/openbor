@@ -227,6 +227,12 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             (*pretvar)->lVal = (LONG)handle->numframes;
             break;
 		
+		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->sub_entity_model_index;
+			break;
+
 		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -316,6 +322,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
             }
 
             break;
+
+		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->sub_entity_model_index = (int)temp_int;
+			}
+
+			break;
 
 		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
 
