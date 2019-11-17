@@ -2011,7 +2011,7 @@ typedef struct
     int                     cancel;                 // Cancel anims with freespecial
     int                     index;                  // unique id
     int                     model_index;
-    int                     subentity;              // Store the sub-entity's name for further use
+    int                     sub_entity_model_index;              // Store the sub-entity's name for further use
 	int                     sync;                   // Synchronize frame to previous animation if they matches
     float                   bounce;                 // -tossv/bounce = new tossv
     s_follow                followup;               // Subsequent animation on hit.

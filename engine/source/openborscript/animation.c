@@ -58,7 +58,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"range",
 		"size",
 		"spawn_frame",
-		"sub_entity",
+		"sub_entity_model_index",
 		"subject_to_gravity",
 		"summon_frame",
 		"sync",

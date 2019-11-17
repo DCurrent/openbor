@@ -10355,7 +10355,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
                 newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
-                newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife =
+                newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
                                                   newanim->projectile.star = newanim->projectile.flash = -1;
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = -1;
@@ -11682,7 +11682,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(value[0])
                 {
-                    newanim->subentity = get_cached_model_index(value);
+                    newanim->sub_entity_model_index = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_SPAWNFRAME:
@@ -17769,24 +17769,24 @@ void ent_spawn_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
     {
         if(level && !(level->scrolldir & SCROLL_UP) && !(level->scrolldir & SCROLL_DOWN))
         {
-            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
         else
         {
-            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
     }
     //absolute position in level
     else
     {
-        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3] + 0.001, 0, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3] + 0.001, 0, NULL, ent->animation->sub_entity_model_index, NULL);
     }
 
     if(s_ent)
@@ -17814,24 +17814,24 @@ void ent_summon_ent(entity *ent)
     // spawn point relative to current entity
     if(spawnframe[4] == 0)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
     }
     //relative to screen position
     else if(spawnframe[4] == 1)
     {
         if(level && !(level->scrolldir & SCROLL_UP) && !(level->scrolldir & SCROLL_DOWN))
         {
-            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
         else
         {
-            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
     }
     //absolute position in level
     else
     {
-        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
     }
 
     if(s_ent)
@@ -18076,12 +18076,12 @@ void update_frame(entity *ent, unsigned int f)
     }
 
     //spawn / summon /unsummon features
-    if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity >= 0)
+    if(anim->spawnframe && anim->spawnframe[0] == f && anim->sub_entity_model_index >= 0)
     {
         ent_spawn_ent(self);
     }
 
-    if(anim->summonframe && anim->summonframe[0] == f && anim->subentity >= 0)
+    if(anim->summonframe && anim->summonframe[0] == f && anim->sub_entity_model_index >= 0)
     {
         //subentity is dead
         if(!self->subentity || self->subentity->dead)
