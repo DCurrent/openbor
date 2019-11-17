@@ -48,7 +48,6 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"energy_cost",
 		"flipframe",
 		"follow",
-		"ignore_attack_id",
 		"index",
 		"jump_frame",
 		"land_frame",
