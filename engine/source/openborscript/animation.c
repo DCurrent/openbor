@@ -37,7 +37,6 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 
 	static const char* proplist[] =
 	{
-		"anim_hits",
 		"anti_gravity",
 		"attack_one",
 		"bounce",
@@ -48,6 +47,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"energy_cost",
 		"flipframe",
 		"follow",
+		"hit_count",
 		"index",
 		"jump_frame",
 		"land_frame",
@@ -179,12 +179,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to get?
     switch(property)
     {
-        case _ANIMATION_PROP_ANIMHITS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->animhits;
-            break;
-
         case _ANIMATION_PROP_ANTIGRAV:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -226,6 +220,12 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             }
 
             break;
+
+		case _ANIMATION_PROP_HIT_COUNT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->hit_count;
+			break;
 
         case _ANIMATION_PROP_NUMFRAMES:
 
@@ -299,15 +299,6 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to modify?
     switch(property)
     {
-        case _ANIMATION_PROP_ANIMHITS:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->animhits = (int)temp_int;
-            }
-
-            break;
-
         case _ANIMATION_PROP_ANTIGRAV:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -316,6 +307,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
             }
 
             break;
+
+		case _ANIMATION_PROP_HIT_COUNT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->hit_count = (int)temp_int;
+			}
+
+			break;
 
         case _ANIMATION_PROP_NUMFRAMES:
 

@@ -3443,7 +3443,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_animhits:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animation->animhits;
+        (*pretvar)->lVal = (LONG)ent->animation->hit_count;
         break;
     }
     case _ep_animnum:
@@ -5540,7 +5540,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->animation->animhits = (LONG)ltemp;
+            ent->animation->hit_count = (LONG)ltemp;
         }
         break;
     }

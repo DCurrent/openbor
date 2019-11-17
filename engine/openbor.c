@@ -10354,7 +10354,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe              = NULL;
                 newanim->dropframe              = NULL;
                 newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
-                newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
+                newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife =
                                                   newanim->projectile.star = newanim->projectile.flash = -1;
                 newanim->quakeframe.framestart  = 0;
@@ -18206,7 +18206,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         ent->animnum_previous = ent->animnum;
         ent->animnum = aninum;    // Stored for nocost usage
         ent->animation = ani;
-        ent->animation->animhits = 0;
+        ent->animation->hit_count = 0;
 
         ent->animating = ANIMATING_FORWARD;
         ent->lasthit = ent->grabbing;
@@ -19894,7 +19894,7 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 
 	// Blocked hit is still a hit, so
 	// increment the attacker's hit counter.
-	++other->animation->animhits;
+	++other->animation->hit_count;
 
 	// Execute our block script.
 	execute_didblock_script(ent, other, attack);
@@ -20354,7 +20354,7 @@ void do_attack(entity *e)
                 // process the hit.
 
                 execute_didhit_script(e, self, attack, 0);
-                ++e->animation->animhits;
+                ++e->animation->hit_count;
 
                 e->lasthit = self;
 
@@ -31236,7 +31236,7 @@ int check_combo()
                 (self->animnum != com->cancel ||
                  com->frame.min > self->animpos ||
                  com->frame.max < self->animpos ||
-                 self->animation->animhits < com->hits))
+                 self->animation->hit_count < com->hits))
         {
             continue;
         }

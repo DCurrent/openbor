@@ -2001,7 +2001,7 @@ typedef struct
 typedef struct
 {
     bool                    antigrav;               // This animation ignores gravity.
-    int                     animhits;               // How many consecutive hits have been made? Used for canceling.
+    int                     hit_count;               // How many consecutive hits have been made? Used for canceling.
     unsigned int            chargetime;             // charge time for an animation
     int                     flipframe;              // Turns entities around on the desired frame
     int                     numframes;              // Count of frames in the animation.
