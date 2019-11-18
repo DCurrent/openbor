@@ -182,7 +182,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
         case _ANIMATION_PROP_ATTACK_ONE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->attackone;
+            (*pretvar)->lVal = (LONG)handle->attack_one;
             break;
 
         case _ANIMATION_PROP_BOUNCE:
@@ -283,8 +283,8 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
     // Value carriers to apply on properties after
     // taken from argument.
-    LONG     temp_int;
-    //DOUBLE  temp_float;
+    LONG	temp_int;
+    DOUBLE	temp_float;
 
     // Verify incoming arguments. There must be a
     // pointer for the animation handle, an integer
@@ -310,6 +310,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->attack_one = (bool)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_BOUNCE:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->bounce = temp_float;
 			}
 
 			break;

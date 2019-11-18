@@ -2000,49 +2000,56 @@ typedef struct
 
 typedef struct
 {
-	bool                    attackone;              // Attack hits only one target. ~~
-	bool                    subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~
+	// Sub structures.
+	s_follow					followup;               // Subsequent animation on hit.
+	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
+	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
+	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
+	s_range						range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
+	s_axis_principal_int		size;                   // Dimensions (height, width).
 
-    int                     hit_count;               // How many consecutive hits have been made? Used for canceling.
-    unsigned int            chargetime;             // charge time for an animation
-    int                     flipframe;              // Turns entities around on the desired frame
-    int                     numframes;              // Count of frames in the animation.
-    int                     unsummonframe;          // Un-summon the entity
-    int                     cancel;                 // Cancel anims with freespecial
-    int                     index;                  // unique id
-    int                     model_index;
-    int                     sub_entity_model_index;              // Store the sub-entity's name for further use
-	int                     sync;                   // Synchronize frame to previous animation if they matches
-    float                   bounce;                 // -tossv/bounce = new tossv
-    s_follow                followup;               // Subsequent animation on hit.
-    s_loop                  loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
-    s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
-    s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
-    s_range                 range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    s_axis_principal_int                size;                   // Dimensions (height, width).
-    unsigned                *idle;                  // Allow free move
-    int                     *delay;
-    float                   (*platform)[8];         // Now entities can have others land on them
-    int                     *shadow;
-    int                     (*shadow_coords)[2];    // x, z offset of shadow
-    int                     *soundtoplay;           // each frame can have a sound
-    float                   *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    float                   *starvelocity;          // 3 velocities for the start projectile
-    int                     *sprite;                // sprite[set][framenumber]
-    float                   *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    int                     *vulnerable;
-    int                     *weaponframe;           // Specify with a frame when to switch to a weapon model
-    s_collision_attack_list **collision_attack;
-    s_collision_body_list   **collision_body;
-    s_collision_entity_list **collision_entity;
-    s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
-    s_drawmethod            **drawmethods;
-    s_onframe_set           *dropframe;             // if tossv < 0, this frame will be set
-    s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
-    s_onframe_set           *landframe;             // Landing behavior.
-    s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    s_move                  **move;                 // base = seta, x = move, y = movea, z = movez
-    s_axis_plane_vertical_int   **offset;               // original sprite offsets
+	s_collision_attack_list		**collision_attack;
+	s_collision_body_list		**collision_body;
+	s_collision_entity_list		**collision_entity;
+	s_move						**move;					// base = seta, x = move, y = movea, z = movez
+	s_axis_plane_vertical_int	**offset;				// original sprite offsets
+	s_drawmethod				**drawmethods;
+	
+	s_counterrange				*counterrange;			// Auto counter attack. 2011_04_01, DC: Moved to struct.
+	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set
+	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
+	s_onframe_set				*landframe;				// Landing behavior.
+	s_energycost				*energycost;			// 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+	
+	float						*spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
+	float						*starvelocity;          // 3 velocities for the start projectile
+	float						(*platform)[8];			// Now entities can have others land on them
+	float						*summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
+
+	unsigned					*idle;					// Allow free move
+	int							*delay;
+	int							*shadow;
+	int							(*shadow_coords)[2];	// x, z offset of shadow
+	int							*soundtoplay;           // each frame can have a sound
+	int							*sprite;                // sprite[set][framenumber]
+	int							*vulnerable;
+	int							*weaponframe;           // Specify with a frame when to switch to a weapon model
+	
+	float						bounce;                 // -tossv/bounce = new tossv
+
+	int							hit_count;               // How many consecutive hits have been made? Used for canceling.
+	unsigned int				chargetime;             // charge time for an animation
+	int							flipframe;              // Turns entities around on the desired frame
+	int							numframes;              // Count of frames in the animation.
+	int							unsummonframe;          // Un-summon the entity
+	int							cancel;                 // Cancel anims with freespecial
+	int							index;                  // unique id
+	int							model_index;
+	int							sub_entity_model_index;	// Store the sub-entity's name for further use
+	int							sync;                   // Synchronize frame to previous animation if they matches
+
+	bool						attack_one;             // Attack hits only one target. ~~
+	bool						subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~    
 } s_anim;
 
 struct animlist

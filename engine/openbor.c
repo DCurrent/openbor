@@ -7366,52 +7366,52 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "grabattack") == 0)
     {
         ani_id = ANI_GRABATTACK;
-        newanim->attackone = 1; // default to 1, attack one one opponent
+        newanim->attack_one = 1; // default to 1, attack one one opponent
     }
     else if(stricmp(value, "grabattack2") == 0)
     {
         ani_id = ANI_GRABATTACK2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabforward") == 0)   // New grab attack for when pressing forward attack
     {
         ani_id = ANI_GRABFORWARD;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabforward2") == 0)   // New grab attack for when pressing forward attack
     {
         ani_id = ANI_GRABFORWARD2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabbackward") == 0)   // New grab attack for when pressing backward attack
     {
         ani_id = ANI_GRABBACKWARD;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabbackward2") == 0)   // New grab attack for when pressing backward attack
     {
         ani_id = ANI_GRABBACKWARD2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabup") == 0)   // New grab attack for when pressing up attack
     {
         ani_id = ANI_GRABUP;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabup2") == 0)   // New grab attack for when pressing up attack
     {
         ani_id = ANI_GRABUP2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabdown") == 0)   // New grab attack for when pressing down attack
     {
         ani_id = ANI_GRABDOWN;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabdown2") == 0)   // New grab attack for when pressing down attack
     {
         ani_id = ANI_GRABDOWN2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "spawn") == 0)     //  spawn/respawn works separately now
     {
@@ -10345,7 +10345,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->projectile.throwframe  = -1;
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
                 newanim->flipframe              = -1;
-                newanim->attackone              = 0;
+                newanim->attack_one             = 0;
                 newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
@@ -10424,7 +10424,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->chargetime = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISIONONE:
-                newanim->attackone = GET_INT_ARG(1);
+                newanim->attack_one = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERATTACK:
                 attack.counterattack = GET_INT_ARG(1);
@@ -20130,13 +20130,13 @@ void do_attack(entity *e)
         }
 
         // If attack is set to only hit
-        // one entity at a time (attackone),
+        // one entity at a time (attack_one),
         // we verify last hit (lasthit) is
         // set. If last hit is set and
         // differs from current target,
         // then we are trying to hit
         // another entity and should exit.
-        if(current_anim->attackone)
+        if(current_anim->attack_one)
         {
             if(e->lasthit)
             {
@@ -20335,9 +20335,9 @@ void do_attack(entity *e)
                     current_follow_id = animfollows[self->animation->followup.animation - 1];
                     if(validanim(self, current_follow_id))
                     {
-                        if(!self->modeldata.animation[current_follow_id]->attackone)
+                        if(!self->modeldata.animation[current_follow_id]->attack_one)
                         {
-                            self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
+                            self->modeldata.animation[current_follow_id]->attack_one = self->animation->attack_one;
                         }
                         ent_set_anim(self, current_follow_id, 0);
                         self->attack_id_incoming = current_attack_id;
@@ -20412,9 +20412,9 @@ void do_attack(entity *e)
                 current_follow_id = animfollows[e->animation->followup.animation - 1];
                 if(validanim(e, current_follow_id))
                 {
-                    if(!e->modeldata.animation[current_follow_id]->attackone)
+                    if(!e->modeldata.animation[current_follow_id]->attack_one)
                     {
-                        e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
+                        e->modeldata.animation[current_follow_id]->attack_one = e->animation->attack_one;
                     }
                     ent_set_anim(e, current_follow_id, 1);          // Then go to it!
                 }
