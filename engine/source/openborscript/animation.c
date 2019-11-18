@@ -305,6 +305,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     // Which property to modify?
     switch(property)
     {
+		case _ANIMATION_PROP_ATTACK_ONE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->attack_one = (bool)temp_int;
+			}
+
+			break;
+
         case _ANIMATION_PROP_HIT_COUNT:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))

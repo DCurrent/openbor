@@ -2000,7 +2000,7 @@ typedef struct
 
 typedef struct
 {
-	bool                    attackone;              // Attack hits only one target.
+	bool                    attackone;              // Attack hits only one target. ~~
 	bool                    subject_to_gravity;		// This animation ignores gravity.
 
     int                     hit_count;               // How many consecutive hits have been made? Used for canceling.
