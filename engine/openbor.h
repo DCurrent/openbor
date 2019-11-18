@@ -2001,7 +2001,7 @@ typedef struct
 typedef struct
 {
 	bool                    attackone;              // Attack hits only one target. ~~
-	bool                    subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). 
+	bool                    subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~
 
     int                     hit_count;               // How many consecutive hits have been made? Used for canceling.
     unsigned int            chargetime;             // charge time for an animation
