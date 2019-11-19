@@ -1889,7 +1889,7 @@ typedef struct
     e_counteraction_condition condition; //Counter conditions.
     e_counteraction_damage damaged;      //Receive damage from attack.
     s_metric_range frame;   //Frame range.
-} s_counterrange;
+} s_counter_range;
 
 typedef struct
 {
@@ -2033,7 +2033,7 @@ typedef struct
 	s_axis_plane_vertical_int	**offset;				// original sprite offsets
 	s_drawmethod				**drawmethods;
 	
-	s_counterrange				*counterrange;			// Auto counter attack. 2011_04_01, DC: Moved to struct.
+	s_counter_range				*counter_range;			// Auto counter attack. 2011_04_01, DC: Moved to struct.
 	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
 	s_onframe_set				*landframe;				// Landing behavior.

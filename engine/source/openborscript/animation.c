@@ -207,10 +207,10 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
         case _ANIMATION_PROP_COUNTERRANGE:
 
             // Verify animation has item.
-            if(handle->counterrange)
+            if(handle->counter_range)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (VOID *)handle->counterrange;
+                (*pretvar)->ptrVal = (VOID *)handle->counter_range;
             }
 
             break;
