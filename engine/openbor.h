@@ -652,7 +652,7 @@ typedef enum //Animations
     ANI_FAINT,  			// Faint animations for players/enemys by tails
     ANI_CANT,  				// Can't animation for players(animation when mp is less than mpcost) by tails.
     ANI_THROWATTACK,		// Added for subtype projectile
-    ANI_CHARGEATTACK,       // Plays when player releases attack1 after holding >= chargetime.
+    ANI_CHARGEATTACK,       // Plays when player releases attack1 after holding >= charge_time.
     ANI_JUMPCANT,
     ANI_JUMPSPECIAL,
     ANI_BURNDIE,
@@ -1998,8 +1998,8 @@ typedef struct
     int                     star;       // custstar;
 } s_projectile;
 
-#define ANIM_BOUNCE_FACTOR_DEFAULT 4
-
+#define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
+#define ANIMATION_CHARGE_TIME_DEFAULT	2
 // Caskey, Damon V
 // 2019-11-19
 //
@@ -2012,8 +2012,8 @@ typedef struct
 // but since 3 works let’s take his advice and leave it be for now.
 typedef enum
 {
-	ANIM_CANCEL_DISABLED	= 0,
-	ANIM_CANCEL_ENABLED		= 3
+	ANIMATION_CANCEL_DISABLED	= 0,
+	ANIMATION_CANCEL_ENABLED	= 3
 } e_anim_cancel;
 
 typedef struct
@@ -2060,7 +2060,7 @@ typedef struct
 
 	// Integers
 	int							hit_count;              // How many consecutive hits have been made? Used for canceling.
-	unsigned int				chargetime;             // charge time for an animation
+	unsigned int				charge_time;             // charge time for an animation
 	int							flipframe;              // Turns entities around on the desired frame
 	int							numframes;              // Count of frames in the animation.
 	int							unsummonframe;          // Un-summon the entity

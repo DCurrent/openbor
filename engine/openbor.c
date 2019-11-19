@@ -6730,7 +6730,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             }
             ani_id = animfalls[tempInt + STA_ATKS - 1];
         }
-        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(starts_with_num(value, "backfall"))
     {
@@ -6783,27 +6783,27 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             }
             ani_id = animbackfalls[tempInt + STA_ATKS - 1];
         }
-        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "shock") == 0)   // If shock attacks do knock opponent down, play this
     {
         ani_id = ANI_SHOCK;
-        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "backshock") == 0)   // If shock attacks do knock opponent down, play this
     {
         ani_id = ANI_BACKSHOCK;
-        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "burn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BURN;
-        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "backburn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BACKBURN;
-        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(starts_with_num(value, "death"))
     {
@@ -10340,7 +10340,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.base.min         = 0;									// Base min.				
 				newanim->range.base.max			= (int)newchar->jumpheight * 20;			// Just use same logic as range Y.
                 newanim->energycost             = NULL;
-                newanim->chargetime             = 2;			// Default for backwards compatibility
+                newanim->charge_time            = ANIMATION_CHARGE_TIME_DEFAULT;
                 newanim->projectile.shootframe  = -1;
                 newanim->projectile.throwframe  = -1;
                 newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
@@ -10353,7 +10353,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->landframe              = NULL;
                 newanim->jumpframe              = NULL;
                 newanim->dropframe              = NULL;
-                newanim->cancel                 = ANIM_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
+                newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
                 newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
                                                   newanim->projectile.star = newanim->projectile.flash = -1;
@@ -10421,7 +10421,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->energycost->mponly = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHARGETIME:
-                newanim->chargetime = GET_INT_ARG(1);
+                newanim->charge_time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISIONONE:
                 newanim->attack_one = GET_INT_ARG(1);
@@ -10602,7 +10602,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 int i, t;
                 int add_flag = 0;
                 alloc_specials(newchar);
-                newanim->cancel = ANIM_CANCEL_ENABLED;
+                newanim->cancel = ANIMATION_CANCEL_ENABLED;
                 newchar->special[newchar->specials_loaded].numkeys = 0;
                 for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS - 6; i++, t++)
                 {
@@ -31233,7 +31233,7 @@ int check_combo()
     {
         com = self->modeldata.special + i;
 
-        if(self->animation->cancel != ANIM_CANCEL_DISABLED &&
+        if(self->animation->cancel != ANIMATION_CANCEL_DISABLED &&
                 (self->animnum != com->cancel ||
                  com->frame.min > self->animpos ||
                  com->frame.max < self->animpos ||
@@ -31241,7 +31241,7 @@ int check_combo()
         {
             continue;
         }
-        else if(self->animation->cancel == ANIM_CANCEL_DISABLED &&
+        else if(self->animation->cancel == ANIMATION_CANCEL_DISABLED &&
                 (com->cancel || !self->idling || diff(self->position.y, self->base) > 1) )
         {
             continue;
@@ -31588,9 +31588,9 @@ void player_think()
     if((pl->releasekeys & FLAG_ATTACK))
     {
         if(self->stalltime && notinair &&
-                ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < _time) ||
+                ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->charge_time) < _time) ||
                  (!validanim(self, ANI_CHARGEATTACK) && validanim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1])
-                  && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->chargetime) < _time)))
+                  && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->charge_time) < _time)))
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);

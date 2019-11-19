@@ -157,7 +157,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     e_animation_properties  property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
-    // property data back to calling script.     .
+    // property data back to calling script.
     ScriptVariant_Clear(*pretvar);
 
     // Verify incoming arguments. There should at least
@@ -198,10 +198,10 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             (*pretvar)->lVal = (LONG)handle->cancel;
             break;
 
-        case _ANIMATION_PROP_CHARGETIME:
+        case _ANIMATION_PROP_CHARGE_TIME:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->chargetime;
+            (*pretvar)->lVal = (LONG)handle->charge_time;
             break;
 
         case _ANIMATION_PROP_COUNTERRANGE:
@@ -328,6 +328,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->cancel = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_CHARGE_TIME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->charge_time = (unsigned int)temp_int;
 			}
 
 			break;
