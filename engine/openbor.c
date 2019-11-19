@@ -6730,7 +6730,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             }
             ani_id = animfalls[tempInt + STA_ATKS - 1];
         }
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
     }
     else if(starts_with_num(value, "backfall"))
     {
@@ -6783,27 +6783,27 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             }
             ani_id = animbackfalls[tempInt + STA_ATKS - 1];
         }
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "shock") == 0)   // If shock attacks do knock opponent down, play this
     {
         ani_id = ANI_SHOCK;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "backshock") == 0)   // If shock attacks do knock opponent down, play this
     {
         ani_id = ANI_BACKSHOCK;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "burn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BURN;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "backburn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BACKBURN;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIM_BOUNCE_FACTOR_DEFAULT;
     }
     else if(starts_with_num(value, "death"))
     {
@@ -10570,7 +10570,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             }
             break;
             case CMD_MODEL_BOUNCEFACTOR:
-                newanim->bounce = GET_FLOAT_ARG(1);
+                newanim->bounce_factor = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_LANDFRAME:
                 newanim->landframe    = malloc(sizeof(*newanim->landframe));
@@ -20888,9 +20888,9 @@ void check_gravity(entity *e)
                         if(tobounce(self) && self->modeldata.bounce)
                         {
                             int i;
-                            self->velocity.x /= self->animation->bounce;
-                            self->velocity.z /= self->animation->bounce;
-                            toss(self, (-self->velocity.y) / self->animation->bounce);
+                            self->velocity.x /= self->animation->bounce_factor;
+                            self->velocity.z /= self->animation->bounce_factor;
+                            toss(self, (-self->velocity.y) / self->animation->bounce_factor);
                             if(level && !(self->modeldata.noquake & NO_QUAKE))
                             {
                                 level->quake = 4;    // Don't shake if specified

@@ -38,7 +38,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 	static const char* proplist[] =
 	{
 		"attack_one",
-		"bounce",
+		"bounce_factor",
 		"cancel",
 		"charge_time",
 		"counter_range",
@@ -185,10 +185,10 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             (*pretvar)->lVal = (LONG)handle->attack_one;
             break;
 
-        case _ANIMATION_PROP_BOUNCE:
+        case _ANIMATION_PROP_BOUNCE_FACTOR:
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->bounce;
+            (*pretvar)->dblVal = (DOUBLE)handle->bounce_factor;
 
             break;
 
@@ -314,11 +314,11 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
-		case _ANIMATION_PROP_BOUNCE:
+		case _ANIMATION_PROP_BOUNCE_FACTOR:
 
 			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
 			{
-				handle->bounce = temp_float;
+				handle->bounce_factor = temp_float;
 			}
 
 			break;

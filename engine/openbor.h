@@ -1539,7 +1539,7 @@ if(n<1) n = 1;
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
 
-#define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
+#define tobounce(e) (e->animation->bounce_factor && diff(0, e->velocity.y) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing.attack_force == -1) || e->damage_on_landing.attack_force == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
@@ -1998,6 +1998,8 @@ typedef struct
     int                     star;       // custstar;
 } s_projectile;
 
+#define ANIM_BOUNCE_FACTOR_DEFAULT 4
+
 typedef struct
 {
 	// Sub structures.
@@ -2035,9 +2037,9 @@ typedef struct
 	int							*vulnerable;
 	int							*weaponframe;           // Specify with a frame when to switch to a weapon model
 	
-	float						bounce;                 // -tossv/bounce = new tossv
+	float						bounce_factor;			// On fall landing, New Y = -(old Y) / bounce_factor. ~~
 
-	int							hit_count;               // How many consecutive hits have been made? Used for canceling.
+	int							hit_count;              // How many consecutive hits have been made? Used for canceling.
 	unsigned int				chargetime;             // charge time for an animation
 	int							flipframe;              // Turns entities around on the desired frame
 	int							numframes;              // Count of frames in the animation.

@@ -842,6 +842,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(COLLISION_COORDINATES_PROP_X)
         ICMPCONST(COLLISION_COORDINATES_PROP_Y)
 
+		// Default animation property values.
+		ICMPCONST(ANIM_BOUNCE_FACTOR_DEFAULT)
+
         // Porting
         ICMPCONST(PORTING_ANDROID)
         ICMPCONST(PORTING_DARWIN)
