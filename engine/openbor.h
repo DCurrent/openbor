@@ -2000,6 +2000,22 @@ typedef struct
 
 #define ANIM_BOUNCE_FACTOR_DEFAULT 4
 
+// Caskey, Damon V
+// 2019-11-19
+//
+// Cancel feature originally coded by orochi_x ("OX" in code). 
+// Functionally the cancel member appears to be a simple Boolean 
+// flag and the code uses it as such. Therefore we normally wouldn't
+// need or bother with named constants. However, OX used a value 
+// of 3 for the enabled state and left a notation stressing the 
+// importance of keeping it as is. I am unable to determine why, 
+// but since 3 works let’s take his advice and leave it be for now.
+typedef enum
+{
+	ANIM_CANCEL_DISABLED	= 0,
+	ANIM_CANCEL_ENABLED		= 3
+} e_anim_cancel;
+
 typedef struct
 {
 	// Sub structures.
@@ -2039,17 +2055,21 @@ typedef struct
 	
 	float						bounce_factor;			// On fall landing, New Y = -(old Y) / bounce_factor. ~~
 
+	// Enumerated integers
+	e_anim_cancel				cancel;                 // Cancel anims with freespecial. ~~
+
+	// Integers
 	int							hit_count;              // How many consecutive hits have been made? Used for canceling.
 	unsigned int				chargetime;             // charge time for an animation
 	int							flipframe;              // Turns entities around on the desired frame
 	int							numframes;              // Count of frames in the animation.
 	int							unsummonframe;          // Un-summon the entity
-	int							cancel;                 // Cancel anims with freespecial
 	int							index;                  // unique id
 	int							model_index;
 	int							sub_entity_model_index;	// Store the sub-entity's name for further use
 	int							sync;                   // Synchronize frame to previous animation if they matches
 
+	// Boolean flags.
 	bool						attack_one;             // Attack hits only one target. ~~
 	bool						subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~    
 } s_anim;

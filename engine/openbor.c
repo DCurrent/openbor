@@ -10353,7 +10353,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->landframe              = NULL;
                 newanim->jumpframe              = NULL;
                 newanim->dropframe              = NULL;
-                newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
+                newanim->cancel                 = ANIM_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
                 newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
                                                   newanim->projectile.star = newanim->projectile.flash = -1;
@@ -10602,7 +10602,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 int i, t;
                 int add_flag = 0;
                 alloc_specials(newchar);
-                newanim->cancel = 3;
+                newanim->cancel = ANIM_CANCEL_ENABLED;
                 newchar->special[newchar->specials_loaded].numkeys = 0;
                 for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS - 6; i++, t++)
                 {
@@ -31233,7 +31233,7 @@ int check_combo()
     {
         com = self->modeldata.special + i;
 
-        if(self->animation->cancel &&
+        if(self->animation->cancel != ANIM_CANCEL_DISABLED &&
                 (self->animnum != com->cancel ||
                  com->frame.min > self->animpos ||
                  com->frame.max < self->animpos ||
@@ -31241,7 +31241,7 @@ int check_combo()
         {
             continue;
         }
-        else if(!self->animation->cancel &&
+        else if(self->animation->cancel == ANIM_CANCEL_DISABLED &&
                 (com->cancel || !self->idling || diff(self->position.y, self->base) > 1) )
         {
             continue;

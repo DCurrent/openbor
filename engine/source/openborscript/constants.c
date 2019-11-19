@@ -844,6 +844,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
 		// Default animation property values.
 		ICMPCONST(ANIM_BOUNCE_FACTOR_DEFAULT)
+		ICMPCONST(ANIM_CANCEL_DISABLED)
+		ICMPCONST(ANIM_CANCEL_ENABLED)
 
         // Porting
         ICMPCONST(PORTING_ANDROID)
