@@ -206,6 +206,10 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
     // property data back to calling script.
     ScriptVariant_Clear(*pretvar);
 
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_entity_property(varlist, paramCount);
+
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
@@ -1258,6 +1262,10 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     // taken from argument.
     LONG    temp_int;
     DOUBLE  temp_float;
+
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_entity_property(varlist, paramCount);
 	
     // Verify incoming arguments. There should at least
     // be a pointer for the property handle and an integer

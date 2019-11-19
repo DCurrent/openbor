@@ -35,7 +35,7 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
 		"offset_x",
 		"offset_y",
 		"offset_z",
-        "override",
+		"override",
         "sort_id",
         "tag",
         "target"
@@ -55,6 +55,8 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
     MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _BIND_END,
                "Property name '%s' is not supported by binding.\n");
 
+	//const char *eps = (varlist[ARG_PROPERTY]->lVal < _BIND_END && varlist[ARG_PROPERTY]->lVal >= 0) ? proplist[varlist[ARG_PROPERTY]->lVal] : "";
+	//printf("\nBind arg: %s\n", eps);
 
     // If we made it this far everything should be OK.
     return 1;
@@ -84,6 +86,10 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     // property data back to calling script.     .
     ScriptVariant_Clear(*pretvar);
 	
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_bind_property(varlist, paramCount);
+
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
@@ -252,6 +258,10 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 	// taken from argument.
 	LONG         temp_int;
 	
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_bind_property(varlist, paramCount);
+
 	// Verify incoming arguments. There should at least
 	// be a pointer for the property handle and an integer
 	// to determine which property is accessed.
