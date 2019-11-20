@@ -10583,11 +10583,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(2);
                 if(value[0])
                 {
-                    newanim->landframe->ent = get_cached_model_index(value);
+                    newanim->landframe->model_index = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->landframe->ent = -1;
+                    newanim->landframe->model_index = -1;
                 }
 
                 break;
@@ -20666,9 +20666,9 @@ bool check_landframe(entity *ent)
     }
 
     // If a land frame dust effect entity is set, let's spawn it here.
-    if(ent->animation->landframe->ent >= 0)
+    if(ent->animation->landframe->model_index >= 0)
     {
-        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->ent, NULL);
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->model_index, NULL);
 
         if(effect)
         {

@@ -1921,8 +1921,8 @@ typedef struct
 // On frame action, where no movement is needed. (Landing, starting to fall...).
 typedef struct
 {
-    unsigned int  frame;  // Frame to perform action.
-    int         ent;        // Index of entity to spawn.
+    unsigned int  frame;		// Frame to perform action.
+    int         model_index;	// Index of model to spawn.
 } s_onframe_set;
 
 typedef struct
