@@ -20752,7 +20752,7 @@ bool check_frame_set_drop(entity* ent)
 	// If a frame set effect entity is set, let's spawn it here.
 	if (ent->animation->dropframe->model_index != MODEL_INDEX_NONE)
 	{
-		effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->model_index, NULL);
+		effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->dropframe->model_index, NULL);
 
 		if (effect)
 		{
