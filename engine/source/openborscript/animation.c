@@ -269,7 +269,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
 			{
-				handle->bounce_factor = temp_float;
+				handle->bounce_factor = (float)temp_float;
 			}
 
 			break;
@@ -619,4 +619,45 @@ error_local:
 #undef ARG_HANDLE
 #undef ARG_PROPERTY
 #undef ARG_VALUE
+}
+
+// allocate_frame_set();
+HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+
+#define SELF_NAME  "openbor_allocate_frame_set()"
+
+	int				result = S_OK; // Success or error?
+	s_onframe_set	* frame_set;
+
+	// Run allocation function, and verify we got a pointer.
+	frame_set = allocate_frame_set();
+		
+	if (!frame_set)
+	{
+		goto error_local;
+	}
+
+	// Now place our allocated pointer into the return var, and verify.
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+	(*pretvar)->ptrVal = (s_onframe_set*)frame_set;
+
+	if ((*pretvar)->ptrVal == NULL)
+	{
+		(*pretvar) = NULL;
+		goto error_local;
+	}
+
+	// Everything looks good, return OK.
+	return result;
+
+// Error trapping.
+error_local:
+
+	printf("Failed to allocate a frame set. May be out of memory: " SELF_NAME "\n");
+
+	result = E_FAIL;
+	return result;
+
+#undef SELF_NAME
 }
