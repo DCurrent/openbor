@@ -10573,8 +10573,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->bounce_factor = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_LANDFRAME:
-                newanim->landframe    = malloc(sizeof(*newanim->landframe));
-                memset(newanim->landframe, 0, sizeof(*newanim->landframe));
+				newanim->landframe = allocate_frame_set();
 
                 // Landing frame.
                 newanim->landframe->frame = GET_FRAME_ARG(1);
@@ -10584,10 +10583,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(value[0])
                 {
                     newanim->landframe->model_index = get_cached_model_index(value);
-                }
-                else
-                {
-                    newanim->landframe->model_index = -1;
                 }
 
                 break;
