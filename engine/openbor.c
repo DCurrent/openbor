@@ -10590,6 +10590,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->dropframe = allocate_frame_set();
 
                 newanim->dropframe->frame = GET_FRAME_ARG(1);
+
+				// Entity to spawn when drop frame triggers.
+				value = GET_ARG(2);
+				if (value[0])
+				{
+					newanim->dropframe->model_index = get_cached_model_index(value);
+				}
+
                 break;
             case CMD_MODEL_CANCEL:
             {
@@ -20663,7 +20671,7 @@ bool check_landframe(entity *ent)
     }
 
     // Can't be bound with a landframe override.
-    if(check_bind_override(ent, BIND_OVERRIDE_LANDFRAME))
+    if(check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_LAND))
     {
         return 0;
     }
@@ -20698,6 +20706,66 @@ bool check_landframe(entity *ent)
 
     return 1;
 }
+
+// Caskey, Damon V.
+// 2018-04-20
+//
+// Go to landing frame if available. Also spawns an effect ("dust") entity if set.
+bool check_frame_set_drop(entity* ent)
+{
+	entity* effect;
+
+	// Dropframe set?
+	if (!ent->animation->dropframe)
+	{
+		return 0;
+	}
+	
+	// Falling?
+	if (ent->velocity.y > 0)
+	{
+		return 0;
+	}
+
+	// Can't be bound with a drop frame override.
+	if (check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_DROP))
+	{
+		return 0;
+	}
+
+	// Can't be passed over current animation's frame count.
+	if (ent->animation->dropframe->frame > ent->animation->numframes)
+	{
+		return 0;
+	}
+
+	// Can't be already at or passed drop frame.
+	if (ent->animpos >= ent->animation->dropframe->frame)
+	{
+		return 0;
+	}
+
+	// Passed all checks. Let's update frame and spawn model (if available).
+
+	update_frame(ent, ent->animation->dropframe->frame);
+
+	// If a frame set effect entity is set, let's spawn it here.
+	if (ent->animation->dropframe->model_index != MODEL_INDEX_NONE)
+	{
+		effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->model_index, NULL);
+
+		if (effect)
+		{
+			effect->spawntype = SPAWN_TYPE_DUST_DROP;
+			effect->base = ent->position.y;
+			effect->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+			execute_onspawn_script(effect);
+		}
+	}
+
+	return 1;
+}
+
 
 int check_edge(entity *ent)
 {
@@ -20837,19 +20905,8 @@ void check_gravity(entity *e)
                 self->velocity.y = fmax;
             }
 
-            // Dropframe set?
-            if(self->animation->dropframe)
-            {
-                // If falling and frame has not
-                // passed dropframe, set frame to dropframe.
-                if(self->velocity.y <= 0)
-                {
-                    if(self->animpos < self->animation->dropframe->frame)
-                    {
-                        update_frame(self, self->animation->dropframe->frame);
-                    }
-                }
-            }
+			// Evaluate and apply drop frame settings if we have them.
+			check_frame_set_drop(self);				
 
             if (self->velocity.y)
             {

@@ -381,6 +381,7 @@ typedef enum
     SPAWN_TYPE_BIKER,
     SPAWN_TYPE_CMD_SPAWN,
     SPAWN_TYPE_CMD_SUMMON,
+	SPAWN_TYPE_DUST_DROP,
     SPAWN_TYPE_DUST_FALL,
     SPAWN_TYPE_DUST_JUMP,
     SPAWN_TYPE_DUST_LAND,
@@ -1230,11 +1231,12 @@ typedef enum
 
 typedef enum
 {
-    BIND_OVERRIDE_NONE             = 0,
-    BIND_OVERRIDE_FALL_LAND        = (1 << 0),
-    BIND_OVERRIDE_LANDFRAME        = (1 << 1),
-    BIND_OVERRIDE_SPECIAL_AI       = (1 << 2),
-    BIND_OVERRIDE_SPECIAL_PLAYER   = (1 << 3)
+    BIND_OVERRIDE_NONE				= 0,
+    BIND_OVERRIDE_FALL_LAND			= (1 << 0),
+	BIND_OVERRIDE_FRAME_SET_DROP	= (1 << 1),
+    BIND_OVERRIDE_FRAME_SET_LAND	= (1 << 2),
+    BIND_OVERRIDE_SPECIAL_AI		= (1 << 3),
+    BIND_OVERRIDE_SPECIAL_PLAYER	= (1 << 4)
 } e_bind_override;
 
 // Caskey, Damon V.
@@ -3200,7 +3202,8 @@ int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 bool check_jumpframe(entity *ent, unsigned int frame);
-bool check_landframe(entity *ent);
+bool check_frame_set_drop(entity *ent);
+bool check_landframe(entity* ent);
 int check_edge(entity *ent);
 void update_ents();
 entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
