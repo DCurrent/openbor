@@ -10592,8 +10592,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_DROPFRAME:
-                newanim->dropframe    = malloc(sizeof(*newanim->dropframe));
-                memset(newanim->dropframe, 0, sizeof(*newanim->dropframe));
+				newanim->dropframe = allocate_frame_set();
 
                 newanim->dropframe->frame = GET_FRAME_ARG(1);
                 break;
@@ -18436,6 +18435,27 @@ s_drawmethod *allocate_drawmethod()
 
 	// Copy default values into new drawmethod.
 	memcpy(result, &plainmethod, sizeof(*result));
+
+	return result;
+}
+
+// Caskey, Damon V.
+// 2019-11-21
+//
+// Allocate memory for a frame set and return pointer. As
+// of 2019-11-19, used for dropframe and landframe.
+s_onframe_set *allocate_frame_set()
+{
+	s_onframe_set* result;
+
+	// Allocate memory for new drawmethod structure and get pointer.
+	result = malloc(sizeof(*result));
+	
+	// Make sure the memory is zero'd out.
+	memset(result, 0, sizeof(*result));
+
+	// Apply default model index.
+	result->model_index = ON_FRAME_MODEL_INDEX_DEFAULT;
 
 	return result;
 }

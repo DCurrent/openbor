@@ -1915,14 +1915,17 @@ typedef struct
     s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
+#define MODEL_INDEX_NONE -1	// Indicates no model is set (model IDs are 0+).
+#define ON_FRAME_MODEL_INDEX_DEFAULT MODEL_INDEX_NONE
+
 // Caskey, Damon V.
 // 2018-04-20
 //
 // On frame action, where no movement is needed. (Landing, starting to fall...).
 typedef struct
 {
-    unsigned int  frame;		// Frame to perform action.
-    int         model_index;	// Index of model to spawn.
+    int		frame;			// Frame to perform action.
+    int		model_index;	// Index of model to spawn.
 } s_onframe_set;
 
 typedef struct
@@ -3039,6 +3042,8 @@ void free_anim(s_anim *anim);
 void free_models();
 int free_model();
 void cache_model_sprites();
+
+s_onframe_set			*allocate_frame_set();
 s_anim                  *alloc_anim();
 s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack      **collision_alloc_attack_list();
