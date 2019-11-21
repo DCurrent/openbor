@@ -278,6 +278,17 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_animation_property";
     }
+
+	// Frame set (drop frame, land frame)
+	else if (functionRef == ((void*)openbor_get_frame_set_property))
+	{
+	return "get_frame_set_property";
+	}
+	else if (functionRef == ((void*)openbor_set_frame_set_property))
+	{
+	return "set_frame_set_property";
+	}
+
     else if (functionRef == ((void *)openbor_get_attack_collection))
     {
         return "get_attack_collection";
@@ -1190,10 +1201,18 @@ void Script_LoadSystemFunctions()
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");
-    List_InsertAfter(&theFunctionList,
+    
+	// Animation properties.
+	List_InsertAfter(&theFunctionList,
                      (void *)openbor_get_animation_property, "get_animation_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_animation_property, "set_animation_property");
+
+	// Frame set properties.
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_get_frame_set_property, "get_frame_set_property");
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_set_frame_set_property, "set_frame_set_property");
 
     // Attack properties
     List_InsertAfter(&theFunctionList,
