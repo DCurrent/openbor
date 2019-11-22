@@ -32,7 +32,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"cancel",
 		"charge_time",
 		"counter_action",
-		"drop_frame",
+		"drop",
 		"energy_cost",
 		"flipframe",
 		"follow",
@@ -155,7 +155,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-		case _ANIMATION_PROP_DROP_FRAME:
+		case _ANIMATION_PROP_DROP:
 
 			// Verify animation has item.
 			if (handle->dropframe)
@@ -298,7 +298,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
-		case _ANIMATION_PROP_DROP_FRAME:
+		case _ANIMATION_PROP_DROP:
 
 			handle->dropframe = (s_onframe_set *)varlist[ARG_VALUE]->ptrVal;
 

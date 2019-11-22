@@ -16,8 +16,8 @@ typedef enum
 	_ANIMATION_PROP_BOUNCE_FACTOR,       
 	_ANIMATION_PROP_CANCEL,      
 	_ANIMATION_PROP_CHARGE_TIME,   
-	_ANIMATION_PROP_COUNTER_ACTION, 	
-	_ANIMATION_PROP_DROP_FRAME,    
+	_ANIMATION_PROP_COUNTER_ACTION,
+	_ANIMATION_PROP_DROP,
 	_ANIMATION_PROP_ENERGYCOST,
 	_ANIMATION_PROP_FLIPFRAME,
 	_ANIMATION_PROP_FOLLOWUP,
@@ -81,3 +81,6 @@ HRESULT openbor_get_frame_set_property(ScriptVariant** varlist, ScriptVariant** 
 HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 int mapstrings_frame_set_property(ScriptVariant** varlist, int paramCount);
+
+//	To allocate a frame set.
+HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);

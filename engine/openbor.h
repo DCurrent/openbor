@@ -2039,7 +2039,7 @@ typedef struct
 	s_drawmethod				**drawmethods;
 	
 	s_counter_action			*counter_action;		// Auto counter attack. ~~
-	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set
+	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
 	s_onframe_set				*landframe;				// Landing behavior.
 	s_energycost				*energycost;			// 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
