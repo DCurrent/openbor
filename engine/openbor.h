@@ -1918,7 +1918,7 @@ typedef struct
 } s_onframe_move;
 
 #define MODEL_INDEX_NONE -1	// Indicates no model is set (model IDs are 0+).
-#define ON_FRAME_MODEL_INDEX_DEFAULT MODEL_INDEX_NONE
+#define FRAME_SET_MODEL_INDEX_DEFAULT MODEL_INDEX_NONE
 
 // Caskey, Damon V.
 // 2018-04-20

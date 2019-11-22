@@ -18458,7 +18458,7 @@ s_onframe_set *allocate_frame_set()
 	memset(result, 0, sizeof(*result));
 
 	// Apply default model index.
-	result->model_index = ON_FRAME_MODEL_INDEX_DEFAULT;
+	result->model_index = FRAME_SET_MODEL_INDEX_DEFAULT;
 
 	return result;
 }

@@ -572,6 +572,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		// Starting entity lifespan.
 		ICMPCONST(LIFESPAN_DEFAULT)
 
+		// Model flags.
+		ICMPCONST(MODEL_INDEX_NONE)
+
         // Platform props.
         ICMPCONST(PLATFORM_X)
         ICMPCONST(PLATFORM_Z)
@@ -847,6 +850,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		ICMPCONST(ANIMATION_CANCEL_DISABLED)
 		ICMPCONST(ANIMATION_CANCEL_ENABLED)
 		ICMPCONST(ANIMATION_CHARGE_TIME_DEFAULT)
+		ICMPCONST(FRAME_SET_MODEL_INDEX_DEFAULT)
+
 
         // Porting
         ICMPCONST(PORTING_ANDROID)
