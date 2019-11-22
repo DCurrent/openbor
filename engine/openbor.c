@@ -24057,8 +24057,8 @@ void normal_prepare()
     for(i = 0; i < max_freespecials; i++)
     {
         if(validanim(self, animspecials[i]) &&
-                (check_energy(COST_CHECK_MP, animspecials[i]) ||
-                 check_energy(COST_CHECK_HP, animspecials[i])) &&
+                (check_energy(ENERGY_TYPE_MP, animspecials[i]) ||
+                 check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
                 check_range_target_all(self, target, animspecials[i]))
         {
             atkchoices[found++] = animspecials[i];
@@ -25767,8 +25767,8 @@ int pick_random_attack(entity *target, int testonly)
     for(i = 0; i < max_freespecials; i++)
     {
         if(validanim(self, animspecials[i]) &&
-                (check_energy(COST_CHECK_MP, animspecials[i]) ||
-                 check_energy(COST_CHECK_HP, animspecials[i])) &&
+                (check_energy(ENERGY_TYPE_MP, animspecials[i]) ||
+                 check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
                 (!target || check_range_target_all(self, target, animspecials[i])))
         {
             atkchoices[found++] = animspecials[i];
@@ -27170,7 +27170,7 @@ void common_attack_proc()
         if(self->animation->energycost)
         {
             // Enemy was hit with a special so go ahead and subtract life
-            if(check_energy(COST_CHECK_MP, self->animnum))
+            if(check_energy(ENERGY_TYPE_MP, self->animnum))
             {
                 self->energy_state.mp_current -= self->animation->energycost->cost;
             }
@@ -29934,10 +29934,10 @@ int check_energy(e_cost_check which, int ani)
             if(!self->seal || self->seal >= energycost.cost)
             {
                 if(validanim(self, ani) &&										    //Validate the animation one more time.
-                        ((which == COST_CHECK_MP &&			                    //Check magic validity
+                        ((which == ENERGY_TYPE_MP &&			                    //Check magic validity
                           (energycost.mponly != COST_TYPE_HP_ONLY) &&
                           (self->energy_state.mp_current >= energycost.cost)) ||
-                         (which == COST_CHECK_HP &&			                    //Check health validity
+                         (which == ENERGY_TYPE_HP &&			                    //Check health validity
                           (energycost.mponly != COST_TYPE_MP_ONLY) &&
                           (self->energy_state.health_current > energycost.cost))))
                 {
@@ -30125,7 +30125,7 @@ int check_special()
 {
     entity *e;
     if((!level->nospecial || level->nospecial == 3) && validanim(self, ANI_SPECIAL) &&
-            (check_energy(COST_CHECK_HP, ANI_SPECIAL) || check_energy(COST_CHECK_MP, ANI_SPECIAL))
+            (check_energy(ENERGY_TYPE_HP, ANI_SPECIAL) || check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
        )
     {
         self->takeaction = common_attack_proc;
@@ -30159,7 +30159,7 @@ int check_special()
             // Energycost defined?
             if(self->modeldata.animation[ANI_SPECIAL]->energycost)
             {
-                if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
+                if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
                 {
                     self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
                 }
@@ -31052,7 +31052,7 @@ void player_jump_check()
 
             if(validanim(self, ANI_JUMPSPECIAL))
             {
-                if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_MP, ANI_JUMPSPECIAL))
+                if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(ENERGY_TYPE_MP, ANI_JUMPSPECIAL))
                 {
                     if(!healthcheat)
                     {
@@ -31060,7 +31060,7 @@ void player_jump_check()
                     }
                     candospecial = 1;
                 }
-                else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_HP, ANI_JUMPSPECIAL))
+                else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(ENERGY_TYPE_HP, ANI_JUMPSPECIAL))
                 {
                     if(!healthcheat)
                     {
@@ -31237,8 +31237,8 @@ void player_charge_check()
 int check_costmove(int s, int fs, int jumphack)
 {
     if(((fs == 1 && level->nospecial < 2) || (fs == 0 && level->nospecial == 0) || (fs == 0 && level->nospecial == 3)) &&
-            (check_energy(COST_CHECK_HP, s) ||
-             check_energy(COST_CHECK_MP, s))  )
+            (check_energy(ENERGY_TYPE_HP, s) ||
+             check_energy(ENERGY_TYPE_MP, s))  )
     {
         if(!jumphack)
         {
@@ -31248,7 +31248,7 @@ int check_costmove(int s, int fs, int jumphack)
         {
             if(self->modeldata.animation[s]->energycost)
             {
-                if(check_energy(COST_CHECK_MP, s))
+                if(check_energy(ENERGY_TYPE_MP, s))
                 {
                     self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
                 }
@@ -31322,7 +31322,7 @@ int check_combo()
         // find the longest possible combo with more keys pressed concurrently
         if( com->steps >= maxstep && com->numkeys > maxkeys &&
                 validanim(self, com->anim) &&
-                (check_energy(COST_CHECK_MP, com->anim) || check_energy(COST_CHECK_HP, com->anim)) &&
+                (check_energy(ENERGY_TYPE_MP, com->anim) || check_energy(ENERGY_TYPE_HP, com->anim)) &&
                 match_combo(com->input, p, com->steps))
         {
             // combo valid! but which better? The longest combo that has with more keys pressed concurrently
@@ -32478,7 +32478,7 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
         // Energycost defined?
         if(self->modeldata.animation[ANI_SPECIAL]->energycost)
         {
-            if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
+            if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
             {
                 self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
             }

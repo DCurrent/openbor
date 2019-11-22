@@ -1144,8 +1144,8 @@ typedef enum
     2013-12-29
     */
 
-    COST_CHECK_HP,
-    COST_CHECK_MP
+    ENERGY_TYPE_HP,
+    ENERGY_TYPE_MP
 } e_cost_check;
 
 typedef enum
