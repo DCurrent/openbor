@@ -477,8 +477,9 @@ typedef enum
     TYPE_ENDLEVEL	= (1 << 9),		// New endlevel type that ends the level when touched
     TYPE_NPC		= (1 << 10),	// A character can be an ally or enemy.
     TYPE_PANEL		= (1 << 11),	// Fake panel, scroll with screen using model speed
-    TYPE_MAX		= TYPE_PANEL,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
-    TYPE_RESERVED	= 0x40000000    // should not use as a type
+	TYPE_UNKNOWN	= (1 << 12),	// Not a real type - probably means something went wrong.
+	TYPE_MAX		= TYPE_UNKNOWN,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
+	TYPE_RESERVED	= 0x40000000    // should not use as a type
 } e_entity_type;
 
 // Caskey, Damon V.
@@ -3276,6 +3277,7 @@ int common_backwalk_anim(entity *ent);
 void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
+e_entity_type find_entity_type_from_string(char* value);
 int bomb_move(void);
 int arrow_move(void);
 int common_move(void);

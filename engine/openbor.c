@@ -7981,6 +7981,77 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     }
 }
 
+// Caskey, Damon V.
+// 2019-11-22
+// 
+// Consolidate parsing string to entity type.
+e_entity_type find_entity_type_from_string(char* value)
+{
+	e_entity_type result;
+
+	if (stricmp(value, "end_level") == 0)
+	{
+		result = TYPE_ENEMY;
+	}
+	else if (stricmp(value, "enemy") == 0)
+	{
+		result = TYPE_ENEMY;
+	}
+	else if (stricmp(value, "item") == 0)
+	{
+		result = TYPE_ITEM;
+	}
+	else if (stricmp(value, "none") == 0)
+	{
+		result = TYPE_NONE;
+	}
+	else if (stricmp(value, "npc") == 0)
+	{
+		result = TYPE_NPC;
+	}
+	else if (stricmp(value, "obstacle") == 0)
+	{
+		result = TYPE_OBSTACLE;
+	}
+	else if (stricmp(value, "panel") == 0)
+	{
+		result = TYPE_PLAYER;
+	}
+	else if (stricmp(value, "player") == 0)
+	{
+		result = TYPE_PLAYER;
+	}
+	else if (stricmp(value, "shot") == 0)
+	{
+		result = TYPE_SHOT;
+	}
+	else if (stricmp(value, "steamer") == 0)
+	{
+		result = TYPE_STEAMER;
+	}
+	else if (stricmp(value, "text_box") == 0)
+	{
+		result = TYPE_TEXTBOX;
+	}
+	else if (stricmp(value, "trap") == 0)
+	{
+		result = TYPE_TRAP;
+	}
+	else if (stricmp(value, "npc") == 0)
+	{
+		result = TYPE_NPC;
+	}
+	else
+	{
+		// This is not a real type. Just here to let us know
+		// we couldn't find a correct value.
+		result = TYPE_UNKNOWN;
+
+	}
+
+	return result;
+}
+
 void lcmHandleCommandHostile(ArgList *arglist, s_model *newchar)
 {
     int i;
@@ -7989,32 +8060,10 @@ void lcmHandleCommandHostile(ArgList *arglist, s_model *newchar)
 
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "enemy") == 0)
-        {
-            newchar->hostile |= TYPE_ENEMY;
-        }
-        else if(stricmp(value, "player") == 0)
-        {
-            newchar->hostile |= TYPE_PLAYER;
-        }
-        else if(stricmp(value, "obstacle") == 0)
-        {
-            newchar->hostile |= TYPE_OBSTACLE;
-        }
-        else if(stricmp(value, "shot") == 0)
-        {
-            newchar->hostile |= TYPE_SHOT;
-        }
-        else if(stricmp(value, "npc") == 0)
-        {
-            newchar->hostile |= TYPE_NPC;
-        }
-        else
-        {
-            newchar->hostile |= atoi(value); //debug raw integer value
-        }
+		newchar->hostile |= find_entity_type_from_string(value);
     }
 }
+
 void lcmHandleCommandCandamage(ArgList *arglist, s_model *newchar)
 {
     int i;
@@ -8023,34 +8072,7 @@ void lcmHandleCommandCandamage(ArgList *arglist, s_model *newchar)
 
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "enemy") == 0)
-        {
-            newchar->candamage |= TYPE_ENEMY;
-        }
-        else if(stricmp(value, "player") == 0)
-        {
-            newchar->candamage |= TYPE_PLAYER;
-        }
-        else if(stricmp(value, "obstacle") == 0)
-        {
-            newchar->candamage |= TYPE_OBSTACLE;
-        }
-        else if(stricmp(value, "shot") == 0)
-        {
-            newchar->candamage |= TYPE_SHOT;
-        }
-        else if(stricmp(value, "npc") == 0)
-        {
-            newchar->candamage |= TYPE_NPC;
-        }
-        else if(stricmp(value, "ground") == 0)  // not really needed, though
-        {
-            newchar->ground = 1;
-        }
-        else
-        {
-            newchar->candamage |= atoi(value); //debug raw integer value
-        }
+		newchar->candamage |= find_entity_type_from_string(value);
     }
 }
 
@@ -8062,30 +8084,7 @@ void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
 
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "enemy") == 0)
-        {
-            newchar->projectilehit |= TYPE_ENEMY;
-        }
-        else if(stricmp(value, "player") == 0)
-        {
-            newchar->projectilehit |= TYPE_PLAYER;
-        }
-        else if(stricmp(value, "obstacle") == 0)
-        {
-            newchar->projectilehit |= TYPE_OBSTACLE;
-        }
-        else if(stricmp(value, "shot") == 0)
-        {
-            newchar->projectilehit |= TYPE_SHOT;
-        }
-        else if(stricmp(value, "npc") == 0)
-        {
-            newchar->projectilehit |= TYPE_NPC;
-        }
-        else
-        {
-            newchar->projectilehit |= atoi(value); //debug raw integer value
-        }
+		newchar->projectilehit |= find_entity_type_from_string(value);
     }
 }
 
@@ -10408,7 +10407,34 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 newanim->energycost->cost    = GET_INT_ARG(1);
                 newanim->energycost->mponly  = GET_INT_ARG(2);
-                newanim->energycost->disable = GET_INT_ARG(3);
+				newanim->energycost->disable = GET_INT_ARG(3);
+
+				// Caskey, Damon V.
+				// 2019-11-22
+				// 
+				// Convert the idiotic arbitrary numeric value in text into bitwise 
+				// logic with entity types. I was a buffoon when I first coded this 
+				// feature and should have used bitwise logic to begin with.
+				switch (newanim->energycost->disable)
+				{
+				case 1:
+					newanim->energycost->disable |= TYPE_ENEMY;
+					newanim->energycost->disable |= TYPE_NPC;
+					newanim->energycost->disable |= TYPE_PLAYER;
+					break;
+				case 2:
+					newanim->energycost->disable |= TYPE_ENEMY;
+					newanim->energycost->disable |= TYPE_NPC;
+					break;
+				case 3:
+					newanim->energycost->disable |= TYPE_NPC;
+					newanim->energycost->disable |= TYPE_PLAYER;
+					break;
+				case 4:
+					newanim->energycost->disable |= TYPE_ENEMY;
+					newanim->energycost->disable |= TYPE_PLAYER;
+					break;
+				}
 
                 break;
             case CMD_MODEL_MPONLY:
@@ -17504,7 +17530,8 @@ void ent_default_init(entity *e)
     switch(e->modeldata.type)
     {
     case TYPE_RESERVED:
-        //Do nothing.
+	case TYPE_UNKNOWN:
+		//Do nothing.
         break;
     case TYPE_ENDLEVEL:
     case TYPE_ITEM:
@@ -29915,7 +29942,7 @@ int check_energy(e_cost_check which, int ani)
         }
     }
 
-    if(self->modeldata.animation[ani])
+    if(validanim(self, ani))
     {
         // Caskey, Damon V.
         // 2010-05-08
@@ -29924,22 +29951,14 @@ int check_energy(e_cost_check which, int ani)
         // many cases (weapons in particular) this can	help cut down the need for
         // superfluous models when differing abilities are desired for players,
         // enemies, or npcs.
-        if(!(energycost.disable == type													// Disabled by type?
-                || (energycost.disable == -1)											    // Disabled for all?
-                || (energycost.disable == -2 && (type & (TYPE_ENEMY  | TYPE_NPC)))		    // Disabled for all AI?
-                || (energycost.disable == -3 && (type & (TYPE_PLAYER | TYPE_NPC)))	        // Disabled for players & NPCs?
-                || (energycost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
+        if(!(energycost.disable & type))
         {
             // No seal or seal is less/same as energy cost?
             if(!self->seal || self->seal >= energycost.cost)
             {
-                if(validanim(self, ani) &&										    //Validate the animation one more time.
-                        ((which == ENERGY_TYPE_MP &&			                    //Check magic validity
-                          (energycost.mponly != COST_TYPE_HP_ONLY) &&
-                          (self->energy_state.mp_current >= energycost.cost)) ||
-                         (which == ENERGY_TYPE_HP &&			                    //Check health validity
-                          (energycost.mponly != COST_TYPE_MP_ONLY) &&
-                          (self->energy_state.health_current > energycost.cost))))
+                if((which == ENERGY_TYPE_MP && (energycost.mponly != COST_TYPE_HP_ONLY) && (self->energy_state.mp_current >= energycost.cost)) 
+					||
+                   (which == ENERGY_TYPE_HP && (energycost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energycost.cost)))
                 {
                     result = TRUE;
                 }
