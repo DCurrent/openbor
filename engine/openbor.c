@@ -20128,11 +20128,6 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 //
 // Check follow up conditions. Return TRUE if all conditions 
 // pass, FALSE otherwise.
-
-//newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
-//newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
-//newanim->followup.condition ^= FOLLOW_CONDITION_GRAB_TRUE;
-//newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
 int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bool blocked)
 {
 	if (!animation->followup.animation)
