@@ -2062,7 +2062,7 @@ enum entityproperty_enum
     _ep_edelay,
     _ep_edge,
     _ep_edgerange,
-    _ep_energycost,
+    _ep_energy_cost,
     _ep_entitypushing,
     _ep_escapecount,
     _ep_escapehits,
@@ -2723,12 +2723,12 @@ enum gep_edelay_enum
     _ep_edelay_the_end,
 };
 
-enum gep_energycost_enum
+enum gep_energy_cost_enum
 {
-    _ep_energycost_cost,
-    _ep_energycost_disable,
-    _ep_energycost_mponly,
-    _ep_energycost_the_end,
+    _ep_energy_cost_cost,
+    _ep_energy_cost_disable,
+    _ep_energy_cost_mponly,
+    _ep_energy_cost_the_end,
 };
 
 enum gep_flash_enum
@@ -2905,7 +2905,7 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
         "range_min",
     };
 
-    static const char *proplist_energycost[] =
+    static const char *proplist_energy_cost[] =
     {
         "cost",
         "disable",
@@ -3103,10 +3103,10 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
-    // map subproperties of Energycost
-    case _ep_energycost:
+    // map subproperties of energy_cost
+    case _ep_energy_cost:
     {
-        MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
+        MAPSTRINGS(varlist[2], proplist_energy_cost, _ep_energy_cost_the_end,
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
@@ -3885,7 +3885,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
-    case _ep_energycost:
+    case _ep_energy_cost:
     {
         if(paramCount < 4)
         {
@@ -3911,26 +3911,26 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
 
         switch(ltemp)
         {
-        case _ep_energycost_cost:
+        case _ep_energy_cost_cost:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
+            if(ent->modeldata.animation[i]->energy_cost)
             {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->cost;
+                (*pretvar)->lVal = ent->modeldata.animation[i]->energy_cost->cost;
             }
 
             break;
-        case _ep_energycost_disable:
+        case _ep_energy_cost_disable:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
+            if(ent->modeldata.animation[i]->energy_cost)
             {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->disable;
+                (*pretvar)->lVal = ent->modeldata.animation[i]->energy_cost->disable;
             }
             break;
-        case _ep_energycost_mponly:
+        case _ep_energy_cost_mponly:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
+            if(ent->modeldata.animation[i]->energy_cost)
             {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->mponly;
+                (*pretvar)->lVal = ent->modeldata.animation[i]->energy_cost->mponly;
             }
             break;
         default:
@@ -5882,7 +5882,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
-    case _ep_energycost:
+    case _ep_energy_cost:
     {
         if(paramCount != 5)
         {
@@ -5912,42 +5912,42 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
 
         switch(varlist[2]->lVal)
         {
-        case _ep_energycost_cost:
+        case _ep_energy_cost_cost:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
+                if(ent->modeldata.animation[i]->energy_cost)
                 {
-                    ent->modeldata.animation[i]->energycost->cost = ltemp;
+                    ent->modeldata.animation[i]->energy_cost->cost = ltemp;
                 }
 
             }
             break;
         }
-        case _ep_energycost_disable:
+        case _ep_energy_cost_disable:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
+                if(ent->modeldata.animation[i]->energy_cost)
                 {
-                    ent->modeldata.animation[i]->energycost->disable = ltemp;
+                    ent->modeldata.animation[i]->energy_cost->disable = ltemp;
                 }
             }
             break;
         }
-        case _ep_energycost_mponly:
+        case _ep_energy_cost_mponly:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
+                if(ent->modeldata.animation[i]->energy_cost)
                 {
-                    ent->modeldata.animation[i]->energycost->mponly = ltemp;
+                    ent->modeldata.animation[i]->energy_cost->mponly = ltemp;
                 }
             }
             break;
         }
         default:
-            printf("Unknown Energycost flag.\n");
+            printf("Unknown energy_cost flag.\n");
             goto changeentityproperty_error;
         }
         break;

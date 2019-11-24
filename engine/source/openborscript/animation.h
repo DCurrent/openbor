@@ -47,6 +47,8 @@ HRESULT openbor_set_animation_property(ScriptVariant** varlist, ScriptVariant** 
 
 int mapstrings_animation_property(ScriptVariant** varlist, int paramCount);
 
+// Animation frame properties
+
 typedef enum
 {
 	_ANIMATION_FRAME_PROP_ATTACK,
@@ -70,6 +72,8 @@ HRESULT openbor_set_animation_frame_property(ScriptVariant** varlist, ScriptVari
 
 int mapstrings_animation_frame_property(ScriptVariant** varlist, int paramCount);
 
+// Frame set (drop frame, land frame) properties
+
 typedef enum
 {
 	_FRAME_SET_PROP_FRAME,
@@ -79,8 +83,22 @@ typedef enum
 
 HRESULT openbor_get_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 int mapstrings_frame_set_property(ScriptVariant** varlist, int paramCount);
 
-//	To allocate a frame set.
+// Energy cost properties
+
+typedef enum
+{
+	_ENERGY_COST_PROP_COST,
+	_ENERGY_COST_PROP_DISABLE,
+	_ENERGY_COST_PROP_MP_ONLY,
+	_ENERGY_COST_PROP_END
+} e_energy_cost_properties;
+
+HRESULT openbor_get_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_set_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+
+int mapstrings_energy_cost_property(ScriptVariant** varlist, int paramCount);

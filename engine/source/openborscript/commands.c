@@ -263,7 +263,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_EBOXZ, "eboxz");
     LIST_ADD(CMD_MODEL_EDELAY, "edelay");
     LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
-    LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");
+    LIST_ADD(CMD_MODEL_ENERGY_COST, "energycost");	// Backward compatability.
+	LIST_ADD(CMD_MODEL_ENERGY_COST, "energy_cost");
     LIST_ADD(CMD_MODEL_ENTITYPUSHING, "entitypushing");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");

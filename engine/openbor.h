@@ -1152,7 +1152,7 @@ typedef enum
 typedef enum
 {
     /*
-    Energycost type enum.
+    energy_cost type enum.
     Damon V. Caskey
     2013-12-29
     */
@@ -1165,11 +1165,11 @@ typedef enum
 typedef enum
 {
     /*
-    Energycost value enum.
+    energy_cost value enum.
     */
 
-    ENERGYCOST_NOCOST = 0,
-    ENERGYCOST_DEFAULT_COST = 6,
+    ENERGY_COST_NOCOST = 0,
+    ENERGY_COST_DEFAULT_COST = 6,
 } e_cost_value;
 
 typedef enum
@@ -1832,7 +1832,7 @@ typedef struct
     int                 jugglecost;         // cost for juggling a falling ent
     int                 no_block;           // If this is greater than defense block power, make the hit
     int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
-    int                 seal;               // Disable target's animations with energycost > seal.
+    int                 seal;               // Disable target's animations with energy_cost > seal.
     e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;       // Hit point damage attack inflicts.
@@ -1905,7 +1905,7 @@ typedef struct
     int cost;           //Amount of energy cost.
     int disable;        //Disable flag. See check_energy function.
     e_cost_type mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
-} s_energycost;
+} s_energy_cost;
 
 // Caskey, Damon V.
 // 2011-04-01
@@ -2043,7 +2043,7 @@ typedef struct
 	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
 	s_onframe_set				*landframe;				// Landing behavior.
-	s_energycost				*energycost;			// 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
+	s_energy_cost				*energy_cost;			// 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
 	
 	float						*spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
 	float						*starvelocity;          // 3 velocities for the start projectile
