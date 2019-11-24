@@ -905,7 +905,7 @@ HRESULT openbor_allocate_energy_cost(ScriptVariant** varlist, ScriptVariant** pr
 	// Error trapping.
 error_local:
 
-	printf("Failed to allocate a frame set. May be out of memory: " SELF_NAME "\n");
+	printf("Failed to allocate an energy cost set. May be out of memory: " SELF_NAME "\n");
 
 	result = E_FAIL;
 	return result;

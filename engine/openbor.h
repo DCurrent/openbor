@@ -1311,21 +1311,43 @@ typedef enum
     FACING_ADJUST_LEVEL    //Face according to level scroll direction.
 } e_facing_adjust;
 
+// Caskey, Damon V.
+// 2019-11-24 (refactored from 2014-01-04 version)
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the follow command from author. Then we
+// populate the follow condition with a set of bit values 
+// from e_follow_condition_logic accordingly.
 typedef enum
 {
-    /*
-    Follow up conditional enumerator.
-    Damon V. Caskey
-    2014-01-04
-    */
+    FOLLOW_CONDITION_CMD_READ_DISABLED,                     //No followup (default).
+    FOLLOW_CONDITION_CMD_READ_ALWAYS,                       //Always perform.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE,                      //Perform if target is hostile.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
+} e_follow_condition_command_read;
 
-    FOLLOW_CONDITION_DISABLED,                     //No followup (default).
-    FOLLOW_CONDITION_ALWAYS,                       //Always perform.
-    FOLLOW_CONDITION_HOSTILE,                      //Perform if target is hostile.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
-} e_follow_condition;
+// Caskey, Damon V.
+// 2019-11-24
+// 
+// Logic values for follow up condiiton. Must meet all conditions
+// to perform follow up.
+typedef enum
+{
+	FOLLOW_CONDITION_NONE			= 0,		// No conditions.		
+	FOLLOW_CONDITION_ANY			= (1 << 0),	// Always follow up.
+	FOLLOW_CONDITION_BLOCK_FALSE	= (1 << 1),	// Not blocked.
+	FOLLOW_CONDITION_BLOCK_TRUE		= (1 << 2),	// Blocked.
+	FOLLOW_CONDITION_GRAB_FALSE		= (1 << 3),	// Target can not grabbed.
+	FOLLOW_CONDITION_GRAB_TRUE		= (1 << 4),	// Target can be grabbed.
+	FOLLOW_CONDITION_HOSTILE_FALSE	= (1 << 5),	// Target hostile.
+	FOLLOW_CONDITION_HOSTILE_TRUE	= (1 << 6),	// Target neutral/friendly.
+	FOLLOW_CONDITION_LETHAL_FALSE	= (1 << 7),	// Target not killed by damage.
+	FOLLOW_CONDITION_LETHAL_TRUE	= (1 << 8)	// Target killed by damage.
+} e_follow_condition_logic;
+
+
 
 // Caskey, Damon V.
 // 2019-05-31
@@ -1985,7 +2007,7 @@ typedef struct
     */
 
     unsigned int animation;   // Follow animation to perform.
-    e_follow_condition condition;   // Condition in which follow up will be performed.
+    e_follow_condition_command_read condition;   // Condition in which follow up will be performed.
 } s_follow;
 
 // Caskey, Damon V.

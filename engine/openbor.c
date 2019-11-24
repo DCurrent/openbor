@@ -10338,7 +10338,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->attack_one             = 0;
                 newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
-                newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
+                newanim->followup.condition     = FOLLOW_CONDITION_CMD_READ_DISABLED;
                 newanim->unsummonframe          = -1;
                 newanim->landframe              = NULL;
                 newanim->jumpframe              = NULL;
@@ -11668,8 +11668,47 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_FOLLOWCOND:
-                newanim->followup.condition = GET_INT_ARG(1);
-                break;
+				
+				// 2019-11-24
+				// Caskey, Damon V.
+				//
+				// Follow up condition is now handled by bitwise logic.
+				// We need to set up our bit flags based on the old int 
+				// arg for backward compatability.
+				
+				// Get legacy style condition arg.
+				tempInt = GET_INT_ARG(1);
+				
+				// Make sure condition is reset.
+				newanim->followup.condition = FOLLOW_CONDITION_NONE;
+
+				switch (tempInt)
+				{
+				default:
+				case FOLLOW_CONDITION_CMD_READ_ALWAYS:
+					newanim->followup.condition ^= FOLLOW_CONDITION_ANY;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE:
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK:
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB:
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_GRAB_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK:
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+					break;
+				}				
+                
             case CMD_MODEL_COUNTERRANGE:
                 newanim->counter_action    = malloc(sizeof(*newanim->counter_action));
                 memset(newanim->counter_action, 0, sizeof(*newanim->counter_action));
@@ -20084,6 +20123,141 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 	return NULL;
 }
 
+// Caskey, Damon V. 
+// 2019-11-24
+//
+// Check follow up conditions. Return TRUE if all conditions 
+// pass, FALSE otherwise.
+
+//newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+//newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
+//newanim->followup.condition ^= FOLLOW_CONDITION_GRAB_TRUE;
+//newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bool blocked)
+{
+	if (!animation->followup.animation)
+	{
+		return FALSE;
+	}
+
+	// No follow up allowed.
+	if (animation->followup.condition & FOLLOW_CONDITION_NONE)
+	{
+		return FALSE;
+	}
+
+	// Always do follow up.
+	if (animation->followup.condition & FOLLOW_CONDITION_ANY)
+	{
+		return TRUE;
+	}
+
+	// Block attack.
+	if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_FALSE)
+	{
+		if (blocked)
+		{
+			return FALSE;
+		}
+	}
+	
+	if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_TRUE)
+	{
+		if (!blocked)
+		{
+			return FALSE;
+		}
+	}
+
+	// Possible to grab target.
+	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_FALSE)
+	{
+		if (cangrab(ent, target))
+		{
+			return FALSE;
+		}
+	}
+	
+	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_TRUE)
+	{
+		if (!cangrab(ent, target))
+		{
+			return FALSE;
+		}
+	}
+
+	// Hostile.
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_FALSE)
+	{
+		if (ent->modeldata.type & target->modeldata.hostile)
+		{
+			return FALSE;
+		}
+	}
+
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TRUE)
+	{
+		if (!(ent->modeldata.type & target->modeldata.hostile))
+		{
+			return FALSE;
+		}
+	}
+
+	// Lethal damage.
+	if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_FALSE)
+	{
+		if (target->energy_state.health_current <= 0)
+		{
+			return FALSE;
+		}
+	}
+
+	if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_TRUE)
+	{
+		if (target->energy_state.health_current > 0)
+		{
+			return FALSE;
+		}
+	}
+
+	// If all checks passed, return true.
+	return TRUE;
+}
+
+// Caskey, Damon  V.
+// 2019-11-24
+//
+// Attempt to perform follow up animation. If successful, sets entity animation to
+// appropriate follow up and returns TRUE.
+bool try_follow_up(entity *ent, entity *target, s_anim *animation, bool didblock)
+{
+	e_animations animation_id;
+
+	// If we don't have a follow action, get out.
+	if (!animation->followup.animation)
+	{
+		return FALSE;
+	}
+
+	// Have to meet follow up conditions.
+	if (!check_follow_up_condition(ent, target, animation, didblock))
+	{
+		return FALSE;
+	}
+		
+	// If we have the animation, then execute it now.
+	animation_id = animfollows[animation->followup.animation - 1];
+	
+	if (validanim(ent, animation_id))
+	{		
+		ent_set_anim(ent, animation_id, 1); 
+
+		return TRUE;
+	}	
+
+	return FALSE;
+}
+
 void do_attack(entity *e)
 {
     int them;
@@ -20457,28 +20631,10 @@ void do_attack(entity *e)
                 def = self;
             }
             
-			// Follow animations.
-            if((e->animation->followup.animation) && // follow up?
-                    (!e->animation->counter_action) && // This isn't suppossed to be a counter, right?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE) || (self->modeldata.type & e->modeldata.hostile)) &&                                // Does type matter?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->energy_state.health_current > 0) && !didblock)) &&                             // check if health or not blocking matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || ((self->energy_state.health_current > 0) && !didblock && cangrab(e, self)) ) && // check if nograb matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK) || ((self->energy_state.health_current > 0) && didblock))                                   // check if health or blocking matters
-              )
-            {
-                current_follow_id = animfollows[e->animation->followup.animation - 1];
-                if(validanim(e, current_follow_id))
-                {
-                    if(!e->modeldata.animation[current_follow_id]->attack_one)
-                    {
-                        e->modeldata.animation[current_follow_id]->attack_one = e->animation->attack_one;
-                    }
-                    ent_set_anim(e, current_follow_id, 1);          // Then go to it!
-                }
-                //followed = 1; // quit loop, animation is changed
-            }
+			// Attacker executes a follow up animation if it can.
+			try_follow_up(e, self, e->animation, didblock);
 
-            self->attack_id_incoming = current_attack_id;
+			self->attack_id_incoming = current_attack_id;
             
 			// If hit, stop blocking.
 			if(self == def)
