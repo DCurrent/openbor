@@ -882,7 +882,7 @@ HRESULT openbor_allocate_energy_cost(ScriptVariant** varlist, ScriptVariant** pr
 	s_energy_cost* energy_cost = NULL;
 
 	// Run allocation function, and verify we got a pointer.
-	//energy_cost = allocate_energy_cost();
+	energy_cost = allocate_energy_cost();
 
 	if (!energy_cost)
 	{

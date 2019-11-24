@@ -3047,6 +3047,7 @@ int free_model();
 void cache_model_sprites();
 
 s_onframe_set			*allocate_frame_set();
+s_energy_cost			*allocate_energy_cost();
 s_anim                  *alloc_anim();
 s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack      **collision_alloc_attack_list();

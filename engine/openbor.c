@@ -7218,11 +7218,10 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_SPECIAL;
         if(!newanim->energy_cost)
         {
-            newanim->energy_cost         = malloc(sizeof(*newanim->energy_cost));
-            memset(newanim->energy_cost, 0, sizeof(*newanim->energy_cost));
+			newanim->energy_cost = allocate_energy_cost();
 
-            newanim->energy_cost->cost   = ENERGY_COST_DEFAULT_COST;
-            newanim->energy_cost->mponly = COST_TYPE_MP_THEN_HP;
+            newanim->energy_cost->cost = ENERGY_COST_DEFAULT_COST;
+            
         }
     }
     else if(stricmp(value, "special2") == 0)
@@ -7230,11 +7229,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_SPECIAL2;
         if(!newanim->energy_cost)
         {
-            newanim->energy_cost         = malloc(sizeof(*newanim->energy_cost));
-            memset(newanim->energy_cost, 0, sizeof(*newanim->energy_cost));
-
-            newanim->energy_cost->cost   = ENERGY_COST_NOCOST;
-            newanim->energy_cost->mponly = COST_TYPE_MP_THEN_HP;
+			newanim->energy_cost = allocate_energy_cost();
         }
     }
     else if(stricmp(value, "special3") == 0 || stricmp(value, "jumpspecial") == 0)
@@ -7242,11 +7237,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
         ani_id = ANI_JUMPSPECIAL;
         if(!newanim->energy_cost)
         {
-            newanim->energy_cost         = malloc(sizeof(*newanim->energy_cost));
-            memset(newanim->energy_cost, 0, sizeof(*newanim->energy_cost));
-
-            newanim->energy_cost->cost   = ENERGY_COST_NOCOST;
-            newanim->energy_cost->mponly = COST_TYPE_MP_THEN_HP;
+			newanim->energy_cost = allocate_energy_cost();
         }
     }
     else if(starts_with_num(value, "freespecial"))
@@ -10401,8 +10392,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_MPCOST:
                 if(!newanim->energy_cost)
                 {
-                    newanim->energy_cost    = malloc(sizeof(*newanim->energy_cost));
-                    memset(newanim->energy_cost, 0, sizeof(*newanim->energy_cost));
+					newanim->energy_cost = allocate_energy_cost();
                 }
 
                 newanim->energy_cost->cost    = GET_INT_ARG(1);
@@ -10440,8 +10430,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_MPONLY:
                 if(!newanim->energy_cost)
                 {
-                    newanim->energy_cost    = malloc(sizeof(*newanim->energy_cost));
-                    memset(newanim->energy_cost, 0, sizeof(*newanim->energy_cost));
+					newanim->energy_cost = allocate_energy_cost();
                 }
 
                 newanim->energy_cost->mponly = GET_INT_ARG(1);
@@ -18486,6 +18475,24 @@ s_onframe_set *allocate_frame_set()
 
 	// Apply default model index.
 	result->model_index = FRAME_SET_MODEL_INDEX_DEFAULT;
+
+	return result;
+}
+
+// Caskey, Damon V.
+// 2019-11-21
+//
+// Allocate memory for a frame set and return pointer. As
+// of 2019-11-19, used for dropframe and landframe.
+s_energy_cost* allocate_energy_cost()
+{
+	s_energy_cost* result;
+
+	// Allocate memory for new drawmethod structure and get pointer.
+	result = malloc(sizeof(*result));
+
+	// Make sure the memory is zero'd out.
+	memset(result, 0, sizeof(*result));
 
 	return result;
 }
