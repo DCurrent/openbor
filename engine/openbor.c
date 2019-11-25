@@ -25583,6 +25583,8 @@ void checkdamage(entity *other, s_collision_attack *attack)
 		&& attack->attack_type != ATK_ITEM
 		&& attack->attack_type != ATK_LIFESPAN
 		&& attack->attack_type != ATK_LOSE
+		&& attack->attack_type != ATK_SUB_ENTITY_PARENT_KILL
+		&& attack->attack_type != ATK_SUB_ENTITY_UNSUMMON
 		&& attack->attack_type != ATK_TIMEOVER
 		&& attack->attack_type != ATK_PIT
 		&& force >= 0);
