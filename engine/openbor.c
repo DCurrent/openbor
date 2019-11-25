@@ -6457,7 +6457,8 @@ static int translate_attack_type(char *command)
         break;
     case CMD_MODEL_COLLISION_ETC:
         tempInt = atoi(command + 6); // White Dragon: 6 is "ATTACK" string length
-        if(tempInt < MAX_ATKS - STA_ATKS + 1)
+		
+		if(tempInt < MAX_ATKS - STA_ATKS + 1)
         {
             tempInt = MAX_ATKS - STA_ATKS + 1;
         }
@@ -18118,7 +18119,7 @@ void update_frame(entity *ent, unsigned int f)
             attack = emptyattack;
             attack.dropv = default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
-            attack.attack_type = max_attack_types - 1;
+            attack.attack_type = ATK_SUB_ENTITY_UNSUMMON;
             if(self->takedamage)
             {
                 self->takedamage(self, &attack, 0);
@@ -18722,7 +18723,7 @@ void kill_entity(entity *victim)
     if(victim->modeldata.summonkill)
     {
         attack = emptyattack;
-        attack.attack_type = max_attack_types - 1;
+        attack.attack_type = ATK_SUB_ENTITY_PARENT_KILL;
         attack.dropv = default_model_dropv;
     }
     // kill minions

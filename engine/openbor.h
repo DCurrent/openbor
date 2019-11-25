@@ -995,19 +995,21 @@ typedef enum
     // For engine and script use. These are
     // applied automatically by various
     // conditions or intended for script logic.
-    ATK_BOSS_DEATH, // KO leftover enemies when boss is defeated.
-    ATK_ITEM,       // Scripting item logic. Item "attacks" entity that collects it.
-    ATK_LAND,       // Touching ground during a damage on landing fall.
-    ATK_LIFESPAN,   // Entity's lifespan timer expires.
-    ATK_LOSE,       // Players (with lose animation) when level time expires.
-    ATK_PIT,        // Entity falls into a pit and reaches specified depth.
-    ATK_TIMEOVER,   // Players (without lose animation) when level time expires.
-
-    // Default max attack types (must
+    ATK_BOSS_DEATH,					// KO leftover enemies when boss is defeated.
+    ATK_ITEM,						// Scripting item logic. Item "attacks" entity that collects it.
+    ATK_LAND,						// Touching ground during a damage on landing fall.
+    ATK_LIFESPAN,					// Entity's lifespan timer expires.
+    ATK_LOSE,						// Players (with lose animation) when level time expires.
+    ATK_PIT,						// Entity falls into a pit and reaches specified depth.
+	ATK_SUB_ENTITY_PARENT_KILL,		// Used to KO a summon when parent is killed.
+	ATK_SUB_ENTITY_UNSUMMON,		// Used to KO a summon on unsummon frame.
+	ATK_TIMEOVER,					// Players (without lose animation) when level time expires.
+    
+	// Default max attack types (must
     // be below all attack types in enum
     // to get correct value)
     MAX_ATKS,
-    STA_ATKS        = (MAX_ATKS-10)
+    STA_ATKS       = (MAX_ATKS-10)
 } e_attack_types;
 
 // Attack box properties.
