@@ -155,6 +155,11 @@ HRESULT openbor_get_frame_set_property(ScriptVariant** varlist, ScriptVariant** 
 HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
+// Energy cost properties.
+HRESULT openbor_get_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_set_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_allocate_energy_cost(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+
 // Attack properties
 HRESULT openbor_get_attack_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_get_attack_instance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

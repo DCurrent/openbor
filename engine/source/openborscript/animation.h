@@ -99,6 +99,6 @@ typedef enum
 
 HRESULT openbor_get_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_set_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_allocate_energy_cost(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 int mapstrings_energy_cost_property(ScriptVariant** varlist, int paramCount);

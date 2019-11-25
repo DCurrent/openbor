@@ -854,6 +854,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		ICMPCONST(ANIMATION_CHARGE_TIME_DEFAULT)
 		ICMPCONST(FRAME_SET_MODEL_INDEX_DEFAULT)
 
+		// Energy cost MP only type
+		ICMPCONST(COST_TYPE_MP_THEN_HP)
+		ICMPCONST(COST_TYPE_MP_ONLY)
+		ICMPCONST(COST_TYPE_HP_ONLY)
 
         // Porting
         ICMPCONST(PORTING_ANDROID)

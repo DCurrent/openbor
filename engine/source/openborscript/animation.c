@@ -166,6 +166,17 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
+		case _ANIMATION_PROP_ENERGY_COST:
+
+			// Verify animation has item.
+			if (handle->energy_cost)
+			{
+				ScriptVariant_ChangeType(*pretvar, VT_PTR);
+				(*pretvar)->ptrVal = (s_energy_cost*)handle->energy_cost;
+			}
+
+			break;
+
 		case _ANIMATION_PROP_HIT_COUNT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -301,6 +312,12 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 		case _ANIMATION_PROP_DROP:
 
 			handle->dropframe = (s_onframe_set *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ANIMATION_PROP_ENERGY_COST:
+
+			handle->energy_cost = (s_energy_cost*)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
@@ -679,8 +696,9 @@ int mapstrings_energy_cost_property(ScriptVariant** varlist, int paramCount)
 
 	static const char* proplist[] =
 	{
-		"frame",
-		"model_index"
+		"cost",
+		"disable",
+		"mp_only"
 	};
 
 	// If the minimum argument count
@@ -695,7 +713,7 @@ int mapstrings_energy_cost_property(ScriptVariant** varlist, int paramCount)
 
 	// See macro - will return 0 on fail.
 	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _ENERGY_COST_PROP_END,
-		"\n\n Error: '%s' is not a known frame set property.\n");
+		"\n\n Error: '%s' is not a known energy cost property.\n");
 
 
 	// If we made it this far everything should be OK.
@@ -754,6 +772,12 @@ HRESULT openbor_get_energy_cost_property(ScriptVariant** varlist, ScriptVariant*
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->cost;
+		break;
+
+	case _ENERGY_COST_PROP_DISABLE:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)handle->disable;
 		break;
 
 	case _ENERGY_COST_PROP_MP_ONLY:
@@ -836,6 +860,15 @@ HRESULT openbor_set_energy_cost_property(ScriptVariant** varlist, ScriptVariant*
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->cost = (unsigned int)temp_int;
+		}
+
+		break;
+
+	case _ENERGY_COST_PROP_DISABLE:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->disable = (int)temp_int;
 		}
 
 		break;

@@ -293,6 +293,20 @@ const char *Script_GetFunctionName(void *functionRef)
 	return "allocate_frame_set";
 	}
 
+	// Energy cost
+	else if (functionRef == ((void*)openbor_get_energy_cost_property))
+	{
+	return "get_energy_cost_property";
+	}
+	else if (functionRef == ((void*)openbor_set_energy_cost_property))
+	{
+	return "set_energy_cost_property";
+	}
+	else if (functionRef == ((void*)openbor_allocate_energy_cost))
+	{
+	return "allocate_energy_cost";
+	}
+
 
 
     else if (functionRef == ((void *)openbor_get_attack_collection))
@@ -1221,6 +1235,14 @@ void Script_LoadSystemFunctions()
 		(void*)openbor_set_frame_set_property, "set_frame_set_property");
 	List_InsertAfter(&theFunctionList,
 		(void*)openbor_allocate_frame_set, "allocate_frame_set");
+
+	// Energy cost properties.
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_get_energy_cost_property, "get_energy_cost_property");
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_set_energy_cost_property, "set_energy_cost_property");
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_allocate_energy_cost, "allocate_energy_cost");
 
     // Attack properties
     List_InsertAfter(&theFunctionList,
