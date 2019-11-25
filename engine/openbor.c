@@ -9537,6 +9537,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                            || i == ATK_ITEM
                            || i == ATK_LIFESPAN
                            || i == ATK_LOSE
+						   || i == ATK_SUB_ENTITY_PARENT_KILL
+						   || i == ATK_SUB_ENTITY_UNSUMMON
                            || i == ATK_TIMEOVER
                            || i == ATK_PIT)
                         {
@@ -9598,12 +9600,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-                        if(i == ATK_BOSS_DEATH
-                           || i == ATK_ITEM
-                           || i == ATK_LIFESPAN
-                           || i == ATK_LOSE
-                           || i == ATK_TIMEOVER
-                           || i == ATK_PIT)
+						if (i == ATK_BOSS_DEATH
+							|| i == ATK_ITEM
+							|| i == ATK_LIFESPAN
+							|| i == ATK_LOSE
+							|| i == ATK_SUB_ENTITY_PARENT_KILL
+							|| i == ATK_SUB_ENTITY_UNSUMMON
+							|| i == ATK_TIMEOVER
+							|| i == ATK_PIT)
                         {
                             continue;
                         }
