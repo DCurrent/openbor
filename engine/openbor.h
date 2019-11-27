@@ -2066,7 +2066,7 @@ typedef struct
 	s_counter_action			*counter_action;		// Auto counter attack. ~~
 	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
-	s_onframe_set				*landframe;				// Landing behavior.
+	s_onframe_set				*landframe;				// Landing behavior. ~~
 	s_energy_cost				*energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
 	
 	float						*spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}

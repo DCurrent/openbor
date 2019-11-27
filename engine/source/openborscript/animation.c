@@ -32,14 +32,14 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"cancel",
 		"charge_time",
 		"counter_action",
-		"drop",
 		"energy_cost",
 		"flipframe",
 		"follow",
+		"frame_set_drop",
+		"frame_set_land",
 		"hit_count",
 		"index",
 		"jump_frame",
-		"land_frame",
 		"loop",
 		"model_index",
 		"numframes",
@@ -155,17 +155,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
             break;
 
-		case _ANIMATION_PROP_DROP:
-
-			// Verify animation has item.
-			if (handle->dropframe)
-			{
-				ScriptVariant_ChangeType(*pretvar, VT_PTR);
-				(*pretvar)->ptrVal = (s_onframe_set *)handle->dropframe;
-			}
-
-			break;
-
 		case _ANIMATION_PROP_ENERGY_COST:
 
 			// Verify animation has item.
@@ -173,6 +162,28 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			{
 				ScriptVariant_ChangeType(*pretvar, VT_PTR);
 				(*pretvar)->ptrVal = (s_energy_cost*)handle->energy_cost;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_FRAME_SET_DROP:
+
+			// Verify animation has item.
+			if (handle->dropframe)
+			{
+				ScriptVariant_ChangeType(*pretvar, VT_PTR);
+				(*pretvar)->ptrVal = (s_onframe_set*)handle->dropframe;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_FRAME_SET_LAND:
+
+			// Verify animation has item.
+			if (handle->landframe)
+			{
+				ScriptVariant_ChangeType(*pretvar, VT_PTR);
+				(*pretvar)->ptrVal = (s_onframe_set*)handle->landframe;
 			}
 
 			break;
@@ -309,15 +320,21 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
-		case _ANIMATION_PROP_DROP:
-
-			handle->dropframe = (s_onframe_set *)varlist[ARG_VALUE]->ptrVal;
-
-			break;
-
 		case _ANIMATION_PROP_ENERGY_COST:
 
 			handle->energy_cost = (s_energy_cost*)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ANIMATION_PROP_FRAME_SET_DROP:
+
+			handle->dropframe = (s_onframe_set*)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ANIMATION_PROP_FRAME_SET_LAND:
+
+			handle->landframe = (s_onframe_set*)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
