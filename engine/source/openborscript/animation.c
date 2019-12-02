@@ -33,7 +33,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"charge_time",
 		"counter_action",
 		"energy_cost",
-		"flipframe",
+		"flip_frame",
 		"follow",
 		"frame_set_drop",
 		"frame_set_land",
@@ -164,6 +164,12 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 				(*pretvar)->ptrVal = (s_energy_cost*)handle->energy_cost;
 			}
 
+			break;
+
+		case _ANIMATION_PROP_FLIP_FRAME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->flipframe;
 			break;
 
 		case _ANIMATION_PROP_FRAME_SET_DROP:
@@ -325,6 +331,13 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			handle->energy_cost = (s_energy_cost*)varlist[ARG_VALUE]->ptrVal;
 
 			break;
+		
+		case _ANIMATION_PROP_FLIP_FRAME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->flipframe = (int)temp_int;
+			}
 
 		case _ANIMATION_PROP_FRAME_SET_DROP:
 
