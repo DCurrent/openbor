@@ -1337,16 +1337,18 @@ typedef enum
 // to perform follow up.
 typedef enum
 {
-	FOLLOW_CONDITION_NONE			= 0,		// No conditions.		
-	FOLLOW_CONDITION_ANY			= (1 << 0),	// Always follow up.
-	FOLLOW_CONDITION_BLOCK_FALSE	= (1 << 1),	// Not blocked.
-	FOLLOW_CONDITION_BLOCK_TRUE		= (1 << 2),	// Blocked.
-	FOLLOW_CONDITION_GRAB_FALSE		= (1 << 3),	// Target can not grabbed.
-	FOLLOW_CONDITION_GRAB_TRUE		= (1 << 4),	// Target can be grabbed.
-	FOLLOW_CONDITION_HOSTILE_FALSE	= (1 << 5),	// Target hostile.
-	FOLLOW_CONDITION_HOSTILE_TRUE	= (1 << 6),	// Target neutral/friendly.
-	FOLLOW_CONDITION_LETHAL_FALSE	= (1 << 7),	// Target not killed by damage.
-	FOLLOW_CONDITION_LETHAL_TRUE	= (1 << 8)	// Target killed by damage.
+	FOLLOW_CONDITION_NONE					= 0,		// No conditions.		
+	FOLLOW_CONDITION_ANY					= (1 << 0),	// Always follow up.
+	FOLLOW_CONDITION_BLOCK_FALSE			= (1 << 1),	// Not blocked.
+	FOLLOW_CONDITION_BLOCK_TRUE				= (1 << 2),	// Blocked.
+	FOLLOW_CONDITION_GRAB_FALSE				= (1 << 3),	// Target can not grabbed.
+	FOLLOW_CONDITION_GRAB_TRUE				= (1 << 4),	// Target can be grabbed.
+	FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 5),	// Attacker hostile to target.
+	FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 6),	// Attacker neutral/friendly.
+	FOLLOW_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 7),	// Target hostile to attacker.
+	FOLLOW_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 8),	// Target neutral/friendly.
+	FOLLOW_CONDITION_LETHAL_FALSE			= (1 << 9),	// Target not killed by damage.
+	FOLLOW_CONDITION_LETHAL_TRUE			= (1 << 10)	// Target killed by damage.
 } e_follow_condition_logic;
 
 
@@ -2009,7 +2011,7 @@ typedef struct
     */
 
     unsigned int animation;   // Follow animation to perform.
-    e_follow_condition_command_read condition;   // Condition in which follow up will be performed.
+    e_follow_condition_logic condition;   // Condition in which follow up will be performed.
 } s_follow;
 
 // Caskey, Damon V.
@@ -2049,7 +2051,7 @@ typedef enum
 typedef struct
 {
 	// Sub structures.
-	s_follow					followup;               // Subsequent animation on hit.
+	s_follow					followup;               // Subsequent animation on hit. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
 	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
 	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.

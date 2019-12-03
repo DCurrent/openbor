@@ -34,7 +34,8 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"counter_action",
 		"energy_cost",
 		"flip_frame",
-		"follow",
+		"follow_up_animation_select",
+		"follow_up_condition",
 		"frame_set_drop",
 		"frame_set_land",
 		"hit_count",
@@ -170,6 +171,18 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->flipframe;
+			break;
+
+		case _ANIMATION_PROP_FOLLOW_UP_ANIMATION_SELECT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->followup.animation;
+			break;
+
+		case _ANIMATION_PROP_FOLLOW_UP_CONDITION:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->followup.condition;
 			break;
 
 		case _ANIMATION_PROP_FRAME_SET_DROP:
@@ -337,6 +350,20 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->flipframe = (int)temp_int;
+			}
+
+		case _ANIMATION_PROP_FOLLOW_UP_ANIMATION_SELECT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->followup.animation = (unsigned int)temp_int;
+			}
+
+		case _ANIMATION_PROP_FOLLOW_UP_CONDITION:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->followup.condition = (e_follow_condition_logic)temp_int;
 			}
 
 		case _ANIMATION_PROP_FRAME_SET_DROP:

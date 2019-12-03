@@ -11698,21 +11698,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 					newanim->followup.condition ^= FOLLOW_CONDITION_ANY;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_GRAB_TRUE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TRUE;
+					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_TRUE;
 					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
 					break;
@@ -18493,11 +18493,15 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     }
 }
 
+// Caskey, Damon V.
+// ~2018
+//
+// Allocate memory for a drawmethod and return pointer.
 s_drawmethod *allocate_drawmethod()
 {
 	s_drawmethod *result;
 
-	// Allocate memory for new drawmethod structure and get pointer.
+	// Allocate memory and get the pointer.
 	result = malloc(sizeof(*result));
 
 	// Copy default values into new drawmethod.
@@ -18509,20 +18513,16 @@ s_drawmethod *allocate_drawmethod()
 // Caskey, Damon V.
 // 2019-11-21
 //
-// Allocate memory for a frame set and return pointer. As
-// of 2019-11-19, used for dropframe and landframe.
-s_onframe_set *allocate_frame_set()
+// Allocate memory for an energy cost and return pointer.
+s_energy_cost *allocate_energy_cost()
 {
-	s_onframe_set* result;
+	s_energy_cost *result;
 
-	// Allocate memory for new drawmethod structure and get pointer.
+	// Allocate memory and get the pointer.
 	result = malloc(sizeof(*result));
-	
+
 	// Make sure the memory is zero'd out.
 	memset(result, 0, sizeof(*result));
-
-	// Apply default model index.
-	result->model_index = FRAME_SET_MODEL_INDEX_DEFAULT;
 
 	return result;
 }
@@ -18532,15 +18532,18 @@ s_onframe_set *allocate_frame_set()
 //
 // Allocate memory for a frame set and return pointer. As
 // of 2019-11-19, used for dropframe and landframe.
-s_energy_cost* allocate_energy_cost()
+s_onframe_set *allocate_frame_set()
 {
-	s_energy_cost* result;
+	s_onframe_set *result;
 
-	// Allocate memory for new drawmethod structure and get pointer.
+	// Allocate memory and get the pointer.
 	result = malloc(sizeof(*result));
-
+	
 	// Make sure the memory is zero'd out.
 	memset(result, 0, sizeof(*result));
+
+	// Apply default model index.
+	result->model_index = FRAME_SET_MODEL_INDEX_DEFAULT;
 
 	return result;
 }
@@ -20190,8 +20193,25 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 		}
 	}
 
-	// Hostile.
-	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_FALSE)
+	// We are hostile toward target.
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
+	{
+		if (target->modeldata.type & ent->modeldata.hostile)
+		{
+			return FALSE;
+		}
+	}
+
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE)
+	{
+		if (!(target->modeldata.type & ent->modeldata.hostile))
+		{
+			return FALSE;
+		}
+	}
+
+	// Target is hostile toward us.
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_FALSE)
 	{
 		if (ent->modeldata.type & target->modeldata.hostile)
 		{
@@ -20199,7 +20219,7 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 		}
 	}
 
-	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TRUE)
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_TRUE)
 	{
 		if (!(ent->modeldata.type & target->modeldata.hostile))
 		{
