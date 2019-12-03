@@ -5499,11 +5499,7 @@ void free_anim(s_anim *anim)
         free(anim->summonframe);
         anim->summonframe = NULL;
     }
-    if(anim->counter_action)
-    {
-        free(anim->counter_action);
-        anim->counter_action = NULL;
-    }
+    
 
     if(anim->dropframe)
     {
@@ -11719,13 +11715,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				}				
                 
             case CMD_MODEL_COUNTERRANGE:
-                newanim->counter_action    = malloc(sizeof(*newanim->counter_action));
-                memset(newanim->counter_action, 0, sizeof(*newanim->counter_action));
-
-                newanim->counter_action->frame.min    = GET_FRAME_ARG(1);
-                newanim->counter_action->frame.max    = GET_FRAME_ARG(2);
-                newanim->counter_action->condition    = GET_INT_ARG(3);
-                newanim->counter_action->damaged      = GET_INT_ARG(4);
+                newanim->counter_action.frame.min    = GET_FRAME_ARG(1);
+                newanim->counter_action.frame.max    = GET_FRAME_ARG(2);
+                newanim->counter_action.condition    = GET_INT_ARG(3);
+                newanim->counter_action.damaged      = GET_INT_ARG(4);
                 break;
             case CMD_MODEL_WEAPONFRAME:
                 if(!newanim->weaponframe)
@@ -20545,19 +20538,18 @@ void do_attack(entity *e)
                 do_passive_block(self, e, attack);
             }
             // Counter the attack?
-            else if(self->animation->counter_action &&	// Has counter range?
-                    (self->animpos >= self->animation->counter_action->frame.min && self->animpos <= self->animation->counter_action->frame.max) &&  // Current frame within counter range frames?
+            else if((self->animpos >= self->animation->counter_action.frame.min && self->animpos <= self->animation->counter_action.frame.max) &&  // Current frame within counter range frames?
                     !self->frozen &&
-                    (self->energy_state.health_current > force || (self->energy_state.health_current-force <= 0 && (self->animation->counter_action->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
+                    (self->energy_state.health_current > force || (self->energy_state.health_current-force <= 0 && (self->animation->counter_action.condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
                     // counter_action conditions
-                    ( (self->animation->counter_action->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counter_action->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
-                    (self->animation->counter_action->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
-                    (self->animation->counter_action->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze ) )
+                    ( (self->animation->counter_action.condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counter_action.condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
+                    (self->animation->counter_action.condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
+                    (self->animation->counter_action.condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze ) )
 
                     ) {
 
                     // Take damage from attack?
-                    if(self->animation->counter_action->damaged == COUNTERACTION_DAMAGE_NORMAL)
+                    if(self->animation->counter_action.damaged == COUNTERACTION_DAMAGE_NORMAL)
                     {
                         if (self->energy_state.health_current-force <= 0)
                         {

@@ -2051,6 +2051,7 @@ typedef enum
 typedef struct
 {
 	// Sub structures.
+	s_counter_action			counter_action;			// Auto counter attack. ~~
 	s_follow					followup;               // Subsequent animation on hit. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
 	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
@@ -2065,7 +2066,7 @@ typedef struct
 	s_axis_plane_vertical_int	**offset;				// original sprite offsets
 	s_drawmethod				**drawmethods;
 	
-	s_counter_action			*counter_action;		// Auto counter attack. ~~
+	
 	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
 	s_onframe_set				*landframe;				// Landing behavior. ~~

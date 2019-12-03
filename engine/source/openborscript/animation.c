@@ -31,7 +31,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"bounce_factor",
 		"cancel",
 		"charge_time",
-		"counter_action",
+		"counter_action_condition",
 		"energy_cost",
 		"flip_frame",
 		"follow_up_animation_select",
@@ -145,16 +145,11 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
             (*pretvar)->lVal = (LONG)handle->charge_time;
             break;
 
-        case _ANIMATION_PROP_COUNTER_ACTION:
+        case _ANIMATION_PROP_COUNTER_ACTION_CONDITION:
 
-            // Verify animation has item.
-            if(handle->counter_action)
-            {
-                ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (s_counter_action *)handle->counter_action;
-            }
-
-            break;
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->counter_action.condition;
+			break;
 
 		case _ANIMATION_PROP_ENERGY_COST:
 
@@ -333,9 +328,12 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
-		case _ANIMATION_PROP_COUNTER_ACTION:
+		case _ANIMATION_PROP_COUNTER_ACTION_CONDITION:
 
-			handle->counter_action = (s_counter_action *)varlist[ARG_VALUE]->ptrVal;
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->counter_action.condition = (int)temp_int;
+			}
 
 			break;
 
