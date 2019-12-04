@@ -20319,6 +20319,7 @@ bool check_counter_condition(entity* target, entity* attacker, s_collision_attac
 	s_counter_action* counter = NULL;
 
 	counter = &target->animation->counter_action;
+	int force;
 
 	// If there's no condition, get out now.
 	if (!counter->condition)
@@ -20375,9 +20376,11 @@ bool check_counter_condition(entity* target, entity* attacker, s_collision_attac
 	}
 
 	// Vs. lethal / non-lethal damage.
+	force = calculate_force_damage(target, attacker, attack);
+
 	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE)
 	{
-		if (target->energy_state.health_current <= attack->attack_force)
+		if (target->energy_state.health_current <= force)
 		{
 			return FALSE;
 		}
@@ -20385,7 +20388,7 @@ bool check_counter_condition(entity* target, entity* attacker, s_collision_attac
 
 	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE)
 	{
-		if (target->energy_state.health_current > attack->attack_force)
+		if (target->energy_state.health_current > force)
 		{
 			return FALSE;
 		}
@@ -20446,6 +20449,63 @@ bool check_counter_condition(entity* target, entity* attacker, s_collision_attac
 	return TRUE;
 }
 
+// Caskey, Damon  V.
+// 2019-12-04
+//
+// Attempt to perform counter action animation. If successful, sets entity animation to
+// appropriate counter and returns TRUE.
+bool try_counter_action(entity* target, entity* attacker, s_collision_attack* attack)
+{
+	int force;
+	int current_follow_id;
+
+	// If we don't have a follow animation to use 
+	// for counter, get out.
+	if (!target->animation->followup.animation)
+	{
+		return FALSE;
+	}
+
+	// Have to meet counter action conditions.
+	if (!check_counter_condition(target, attacker, attack))
+	{
+		return FALSE;
+	}	
+
+	// Take damage from attack?
+	if (target->animation->counter_action.damaged == COUNTER_ACTION_TAKE_DAMAGE_NORMAL)
+	{
+		// We need the real damage.
+		force = calculate_force_damage(target, attacker, attack);
+
+		// Revert lethal damage to 1.
+		if (target->energy_state.health_current - force <= 0)
+		{
+			target->energy_state.health_current = 1; // rage
+		}
+		else
+		{
+			target->energy_state.health_current -= force;
+		}
+	}
+
+	// Set counter animation if we can. 
+	current_follow_id = animfollows[target->animation->followup.animation - 1];
+	if (validanim(self, current_follow_id))
+	{
+		if (!target->modeldata.animation[current_follow_id]->attack_one)
+		{
+			target->modeldata.animation[current_follow_id]->attack_one = target->animation->attack_one;
+		}
+		ent_set_anim(target, current_follow_id, 0);
+	}
+
+	// Flash spawn.
+	spawn_attack_flash(target, attack, attack->blockflash, target->modeldata.bflash);
+
+	return TRUE;
+}
+
 void do_attack(entity *e)
 {
     int them;
@@ -20462,7 +20522,6 @@ void do_attack(entity *e)
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
-    int current_follow_id   = 0;
     //int hit_detected        = 0;    // Has a hit been detected?
 
 
@@ -20708,41 +20767,10 @@ void do_attack(entity *e)
                 // Perform the blocking actions.
                 do_passive_block(self, e, attack);
             }
-            // Counter the attack?
-           	else if(check_counter_condition(self, e, attack))
-			{
-				
-                
-				// Take damage from attack?
-                if(self->animation->counter_action.damaged == COUNTER_ACTION_TAKE_DAMAGE_NORMAL)
-                {
-					// Revert lethal damage to 1.
-                    if (self->energy_state.health_current-force <= 0)
-                    {
-                        self->energy_state.health_current = 1; // rage
-                    }
-                    else
-                    {
-                        self->energy_state.health_current -= force;
-                    }
-                }
-
-				// Set counter animation.
-                current_follow_id = animfollows[self->animation->followup.animation - 1];
-                if(validanim(self, current_follow_id))
-                {
-                    if(!self->modeldata.animation[current_follow_id]->attack_one)
-                    {
-                        self->modeldata.animation[current_follow_id]->attack_one = self->animation->attack_one;
-                    }
-                    ent_set_anim(self, current_follow_id, 0);
-                    self->attack_id_incoming = current_attack_id;
-                }
-
-                // Flash spawn.
-                spawn_attack_flash(self, attack, attack->blockflash, self->modeldata.bflash);
-				
-				
+            // Counter the attack? 
+           	else if(try_counter_action(self, e, attack))
+			{				
+				self->attack_id_incoming = current_attack_id;
             }
             else if(self->takedamage(e, attack, 0))
             {
@@ -25583,19 +25611,19 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     }
 }
 
-int calculate_force_damage(entity *other, s_collision_attack *attack)
+int calculate_force_damage(entity *target, entity *attacker, s_collision_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
 
-    if(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0)
+    if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
     {
         force = 0;    //guardbreak does not deal damage.
     }
     if(type >= 0 && type < max_attack_types)
     {
-        force = (int)(force * other->offense_factors[type]);
-        force = (int)(force * self->defense[type].factor);
+        force = (int)(force * attacker->offense_factors[type]);
+        force = (int)(force * target->defense[type].factor);
     }
 
     return force;
@@ -25738,7 +25766,7 @@ void checkdamage(entity *other, s_collision_attack *attack)
 	bool	normal_damage;
 
 	// Get attack damage force after defense is applied.
-    force = calculate_force_damage(other, attack);
+    force = calculate_force_damage(self, other, attack);
 
 	// Damage does not return HP and comes from
 	// a normal source?

@@ -10018,7 +10018,6 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
 {
     entity *defender = NULL;
     entity *attacker = NULL;
-    entity *temp = NULL;
     LONG force, drop, type;
     s_collision_attack atk;
 
@@ -10080,11 +10079,8 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
         atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
     }
     atk.attack_type = type;
-
-    temp = self;
-    self = defender;
-    (*pretvar)->lVal = (LONG)calculate_force_damage(attacker, &atk);
-    self = temp;
+    
+    (*pretvar)->lVal = (LONG)calculate_force_damage(defender, attacker, &atk);   
 
     return S_OK;
 

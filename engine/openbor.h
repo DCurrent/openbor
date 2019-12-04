@@ -3197,7 +3197,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 void checkdamagedrop(s_collision_attack *attack);
 void checkmpadd();
 void checkhitscore(entity *other, s_collision_attack *attack);
-int calculate_force_damage(entity *other, s_collision_attack *attack);
+int calculate_force_damage(entity *target, entity *attacker, s_collision_attack *attack);
 void checkdamage(entity *other, s_collision_attack *attack);
 void checkdamageonlanding();
 int checkhit(entity *attacker, entity *target);
