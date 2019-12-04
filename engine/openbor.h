@@ -1176,34 +1176,6 @@ typedef enum
 
 typedef enum
 {
-    /*
-    Counter action conditionals.
-    2012-12-16
-    Damon V. Caskey
-    */
-
-    COUNTERACTION_CONDITION_NONE,                  //No counter.
-    COUNTERACTION_CONDITION_ALWAYS,                //Always perform coutner action.
-    COUNTERACTION_CONDITION_HOSTILE,               //Only if attacker is hostile entity.
-    COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE, //Attacker is hostile, strikes from front, and uses non-freeze attack.
-    COUNTERACTION_CONDITION_ALWAYS_RAGE,           //Always perform coutner action and if health - attack_damage <= 0, set health to 1
-} e_counteraction_condition;
-
-typedef enum
-{
-    /*
-    Counteraction damage taking modes.
-    2012-12-16
-    Damon V. Caskey
-    */
-
-    COUNTERACTION_DAMAGE_NONE,		// No damage.
-    COUNTERACTION_DAMAGE_NORMAL,	// Normal damage.
-	COUNTERACTION_DAMAGE_NON_LETHAL // Normal damage.
-} e_counteraction_damage;
-
-typedef enum
-{
     // These must be kept in the current order
     // to ensure backward compatibility with
     // modules that used magic numbers before
@@ -1344,15 +1316,57 @@ typedef enum
 	FOLLOW_CONDITION_BLOCK_TRUE				= (1 << 2),	// Blocked.
 	FOLLOW_CONDITION_GRAB_FALSE				= (1 << 3),	// Target can not grabbed.
 	FOLLOW_CONDITION_GRAB_TRUE				= (1 << 4),	// Target can be grabbed.
-	FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 5),	// Attacker hostile to target.
-	FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 6),	// Attacker neutral/friendly.
-	FOLLOW_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 7),	// Target hostile to attacker.
-	FOLLOW_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 8),	// Target neutral/friendly.
+	FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 5),	// Attacker neutral/friendly.
+	FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 6),	// Attacker hostile to target.
+	FOLLOW_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 7),	// Target neutral/friendly.
+	FOLLOW_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 8),	// Target hostile to attacker.
 	FOLLOW_CONDITION_LETHAL_FALSE			= (1 << 9),	// Target not killed by damage.
 	FOLLOW_CONDITION_LETHAL_TRUE			= (1 << 10)	// Target killed by damage.
 } e_follow_condition_logic;
 
+// Caskey, Damon V.
+// 2019-12-04 (refactored from 2012-12-16 version)
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the counter command from author. Then we
+// populate the counter condition with a set of bit values 
+// from e_follow_condition_logic accordingly.
+typedef enum
+{
+	COUNTER_ACTION_CONDITION_CMD_READ_NONE,						// No counter.
+	COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS,					// Always perform coutner action.
+	COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE,					// Only if attacker is hostile entity.
+	COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE,	// Attacker is hostile, strikes from front, and uses non-freeze attack.
+	COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE,				// Always perform coutner action and if health - attack_damage <= 0, set health to 1
+} e_counter_action_condition_command_read;
 
+typedef enum
+{
+	COUNTER_ACTION_CONDITION_NONE					= 0,			// No conditions.
+	COUNTER_ACTION_CONDITION_ANY					= (1 << 0),		// Always counter.
+	COUNTER_ACTION_CONDITION_BACK_FALSE				= (1 << 1),		// Not from back.
+	COUNTER_ACTION_CONDITION_BACK_TRUE				= (1 << 2),		// ONLY from back.
+	COUNTER_ACTION_CONDITION_BLOCK_FALSE			= (1 << 3),		// No unblockable attacks.
+	COUNTER_ACTION_CONDITION_BLOCK_TRUE				= (1 << 4),		// Only blockable attacks.
+	COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE	= (1 << 5),		// Damage must be non-lethal.
+	COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE		= (1 << 6),		// Damage must be lethal.
+	COUNTER_ACTION_CONDITION_FREEZE_FALSE			= (1 << 7),		// Not against freeze attack.
+	COUNTER_ACTION_CONDITION_FREEZE_TRUE			= (1 << 8),		// Only against freeze attack.
+	COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 9),		// Attacker neutral/friendly.
+	COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 10),	// Attacker hostile to target.
+	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 11),	// Target neutral/friendly.
+	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 12)		// Target hostile to attacker.
+} e_counter_action_condition_logic;
+
+// Caskey, Damon V.
+// 2012-12-16
+//	 
+// Counteraction damage taking modes.
+typedef enum
+{
+	COUNTER_ACTION_TAKE_DAMAGE_NONE,	// No damage.
+	COUNTER_ACTION_TAKE_DAMAGE_NORMAL	// Normal damage.
+} e_counter_action_take_damage;
 
 // Caskey, Damon V.
 // 2019-05-31
@@ -1908,17 +1922,15 @@ typedef struct
 	struct entity			*attacker;	// Entity dishing out the hit.
 } s_lasthit;
 
+// Caskey, Damon V.
+// 2011-04-01
+//
+// Counter action when taking hit.
 typedef struct
 {
-    /*
-    Counter action when taking hit.
-    Damon V. Caskey
-    2011-04-01
-    */
-
-    e_counteraction_condition condition; //Counter conditions.
-    e_counteraction_damage damaged;      //Receive damage from attack.
-    s_metric_range frame;   //Frame range.
+	e_counter_action_condition_logic condition; // Counter conditions.
+    e_counter_action_take_damage damaged;		// Receive damage from attack.
+    s_metric_range frame;						// Frame range.
 } s_counter_action;
 
 typedef struct

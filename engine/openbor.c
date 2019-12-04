@@ -11717,7 +11717,42 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COUNTERRANGE:
                 newanim->counter_action.frame.min    = GET_FRAME_ARG(1);
                 newanim->counter_action.frame.max    = GET_FRAME_ARG(2);
-                newanim->counter_action.condition    = GET_INT_ARG(3);
+				
+				// 2019-12-04
+				// Caskey, Damon V.
+				//
+				// Counter action condition is now handled by bitwise logic.
+				// We need to set up our bit flags based on the old int 
+				// arg for backward compatability.
+
+				// Get legacy style condition arg.
+				tempInt = GET_INT_ARG(3);
+
+				// Make sure condition is reset.
+				newanim->counter_action.condition = COUNTER_ACTION_CONDITION_NONE;
+
+				switch (tempInt)
+				{
+				default:
+				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS:
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					break;
+				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE:
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					break;
+				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE:
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_BACK_TRUE;
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_BLOCK_TRUE;
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_FREEZE_FALSE;
+					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					break;
+				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE:
+					newanim->counter_action.condition ^= FOLLOW_CONDITION_ANY;
+					break;
+				}
+
                 newanim->counter_action.damaged      = GET_INT_ARG(4);
                 break;
             case CMD_MODEL_WEAPONFRAME:
@@ -20291,66 +20326,117 @@ bool check_counter_condition(entity* target, entity* attacker, s_collision_attac
 		return FALSE;
 	}
 
-	// If outside of min or max range, we can't counter.
+	// Verify in the frame range.
 	if (target->animpos < counter->frame.min || target->animpos > counter->frame.max)
 	{
 		return FALSE;
 	}
 	
-	// Can't counter if frozen.
-	if (target->frozen)
-	{
-		return FALSE;
-	}
-	
-	// If counter rage, then any further conditions don't matter.
-	if (counter->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE)
-	{
-		return TRUE;
-	}	
-	
-	// Can't counter if dead!
-	if (target->energy_state.health_current <= attack->attack_force && counter->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE)
-	{
-		return FALSE;
-	}
-	
-	// Now we can start looking at specific conditions.
+	// Now we verify condition flags.
 
 	// Always is always...
-	if (counter->condition == COUNTERACTION_CONDITION_ALWAYS)
+	if (counter->condition == COUNTER_ACTION_CONDITION_ANY)
 	{
 		return TRUE;
 	}
-	
-	// We must be hostile to attacker.
-	if (counter->condition == COUNTERACTION_CONDITION_HOSTILE)
-	{
-		if (!(attacker->modeldata.type & target->modeldata.hostile))
-		{
-			return FALSE;
-		}
-	}
-	
-	// Attack must be blockable, not from behind, and non-freezing.
-	if (counter->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE)
-	{
-		// Unblockable?
-		if (attack->no_block > target->defense[attack->attack_type].blockpower)
-		{
-			return FALSE;
-		}
 
-		// From behind? We don't compare positions, we're
-		// just assuming if attacker is facing same direction 
-		// we are they must be behind us.
+	// In the back?
+	if (counter->condition & COUNTER_ACTION_CONDITION_BACK_FALSE)
+	{
 		if (target->direction == attacker->direction)
 		{
 			return FALSE;
 		}
+	}
 
-		// Freezing attack?
+	if (counter->condition & COUNTER_ACTION_CONDITION_BACK_TRUE)
+	{
+		if (target->direction != attacker->direction)
+		{
+			return FALSE;
+		}
+	}
+	
+	// Blockable?
+	if (counter->condition & COUNTER_ACTION_CONDITION_BLOCK_FALSE)
+	{
+		if (attack->no_block <= target->defense[attack->attack_type].blockpower)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_BLOCK_TRUE)
+	{
+		if (attack->no_block > target->defense[attack->attack_type].blockpower)
+		{
+			return FALSE;
+		}
+	}
+
+	// Vs. lethal / non-lethal damage.
+	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE)
+	{
+		if (target->energy_state.health_current <= attack->attack_force)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE)
+	{
+		if (target->energy_state.health_current > attack->attack_force)
+		{
+			return FALSE;
+		}
+	}
+
+	// Freeze attack?
+	if (counter->condition & COUNTER_ACTION_CONDITION_FREEZE_FALSE)
+	{
 		if (attack->freeze)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_FREEZE_TRUE)
+	{
+		if (!attack->freeze)
+		{
+			return FALSE;
+		}
+	}
+
+	// Attacker hostile to us?
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE)
+	{
+		if (attacker->modeldata.hostile & target->modeldata.type)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE)
+	{
+		if (!(attacker->modeldata.hostile & target->modeldata.type))
+		{
+			return FALSE;
+		}
+	}
+
+	// Hostile to attacker?
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE)
+	{
+		if (target->modeldata.hostile & attacker->modeldata.type)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE)
+	{
+		if (!(target->modeldata.hostile & attacker->modeldata.type))
 		{
 			return FALSE;
 		}
@@ -20628,7 +20714,7 @@ void do_attack(entity *e)
 				
                 
 				// Take damage from attack?
-                if(self->animation->counter_action.damaged == COUNTERACTION_DAMAGE_NORMAL)
+                if(self->animation->counter_action.damaged == COUNTER_ACTION_TAKE_DAMAGE_NORMAL)
                 {
 					// Revert lethal damage to 1.
                     if (self->energy_state.health_current-force <= 0)
