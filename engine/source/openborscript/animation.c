@@ -32,6 +32,9 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"cancel",
 		"charge_time",
 		"counter_action_condition",
+		"counter_action_frame_max",
+		"counter_action_frame_min",
+		"counter_action_take_damage",
 		"energy_cost",
 		"flip_frame",
 		"follow_up_animation_select",
@@ -149,6 +152,24 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->counter_action.condition;
+			break;
+
+		case _ANIMATION_PROP_COUNTER_ACTION_FRAME_MAX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->counter_action.frame.max;
+			break;
+
+		case _ANIMATION_PROP_COUNTER_ACTION_FRAME_MIN:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->counter_action.frame.min;
+			break;
+
+		case _ANIMATION_PROP_COUNTER_ACTION_TAKE_DAMAGE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->counter_action.damaged;
 			break;
 
 		case _ANIMATION_PROP_ENERGY_COST:
@@ -332,7 +353,34 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->counter_action.condition = (int)temp_int;
+				handle->counter_action.condition = (e_counter_action_condition_logic)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_COUNTER_ACTION_FRAME_MAX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->counter_action.frame.max = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_COUNTER_ACTION_FRAME_MIN:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->counter_action.frame.min = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_COUNTER_ACTION_TAKE_DAMAGE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->counter_action.damaged = (e_counter_action_take_damage)temp_int;
 			}
 
 			break;
