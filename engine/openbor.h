@@ -1197,8 +1197,9 @@ typedef enum
     Damon V. Caskey
     */
 
-    COUNTERACTION_DAMAGE_NONE,  //No damage.
-    COUNTERACTION_DAMAGE_NORMAL //Normal damage.
+    COUNTERACTION_DAMAGE_NONE,		// No damage.
+    COUNTERACTION_DAMAGE_NORMAL,	// Normal damage.
+	COUNTERACTION_DAMAGE_NON_LETHAL // Normal damage.
 } e_counteraction_damage;
 
 typedef enum

@@ -20275,6 +20275,91 @@ bool try_follow_up(entity *ent, entity *target, s_anim *animation, bool didblock
 	return FALSE;
 }
 
+// Caskey, Damon V.
+// 2019-12-03
+//
+// Verify an attack meets conditions to trigger a counter action.
+bool check_counter_condition(entity* target, entity* attacker, s_collision_attack* attack)
+{
+	s_counter_action* counter = NULL;
+
+	counter = &target->animation->counter_action;
+
+	// If there's no condition, get out now.
+	if (!counter->condition)
+	{
+		return FALSE;
+	}
+
+	// If outside of min or max range, we can't counter.
+	if (target->animpos < counter->frame.min || target->animpos > counter->frame.max)
+	{
+		return FALSE;
+	}
+	
+	// Can't counter if frozen.
+	if (target->frozen)
+	{
+		return FALSE;
+	}
+	
+	// If counter rage, then any further conditions don't matter.
+	if (counter->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE)
+	{
+		return TRUE;
+	}	
+	
+	// Can't counter if dead!
+	if (target->energy_state.health_current <= attack->attack_force && counter->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE)
+	{
+		return FALSE;
+	}
+	
+	// Now we can start looking at specific conditions.
+
+	// Always is always...
+	if (counter->condition == COUNTERACTION_CONDITION_ALWAYS)
+	{
+		return TRUE;
+	}
+	
+	// We must be hostile to attacker.
+	if (counter->condition == COUNTERACTION_CONDITION_HOSTILE)
+	{
+		if (!(attacker->modeldata.type & target->modeldata.hostile))
+		{
+			return FALSE;
+		}
+	}
+	
+	// Attack must be blockable, not from behind, and non-freezing.
+	if (counter->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE)
+	{
+		// Unblockable?
+		if (attack->no_block > target->defense[attack->attack_type].blockpower)
+		{
+			return FALSE;
+		}
+
+		// From behind? We don't compare positions, we're
+		// just assuming if attacker is facing same direction 
+		// we are they must be behind us.
+		if (target->direction == attacker->direction)
+		{
+			return FALSE;
+		}
+
+		// Freezing attack?
+		if (attack->freeze)
+		{
+			return FALSE;
+		}
+	}
+
+	// Passed all checks. We can return true.
+	return TRUE;
+}
+
 void do_attack(entity *e)
 {
     int them;
@@ -20501,7 +20586,7 @@ void do_attack(entity *e)
             didhit = 0;
         }//end of if #02
 
-        //if #05,   blocking code section
+        // Blocking code section
         if(didhit)
         {
             if(attack->attack_type == ATK_ITEM)
@@ -20538,60 +20623,40 @@ void do_attack(entity *e)
                 do_passive_block(self, e, attack);
             }
             // Counter the attack?
-            else if((self->animpos >= self->animation->counter_action.frame.min && self->animpos <= self->animation->counter_action.frame.max) &&  // Current frame within counter range frames?
-                    !self->frozen &&
-                    (self->energy_state.health_current > force || (self->energy_state.health_current-force <= 0 && (self->animation->counter_action.condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
-                    // counter_action conditions
-                    ( (self->animation->counter_action.condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counter_action.condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
-                    (self->animation->counter_action.condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
-                    (self->animation->counter_action.condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze ) )
-
-                    ) {
-
-                    // Take damage from attack?
-                    if(self->animation->counter_action.damaged == COUNTERACTION_DAMAGE_NORMAL)
+           	else if(check_counter_condition(self, e, attack))
+			{
+				
+                
+				// Take damage from attack?
+                if(self->animation->counter_action.damaged == COUNTERACTION_DAMAGE_NORMAL)
+                {
+					// Revert lethal damage to 1.
+                    if (self->energy_state.health_current-force <= 0)
                     {
-                        if (self->energy_state.health_current-force <= 0)
-                        {
-                            // White Dragon: commented the alternative method
-                            /*s_collision_attack atk;
-
-                            atk = emptyattack;
-                            atk.attack_force = force;
-                            atk.attack_drop = attack->attack_drop;
-                            atk.attack_type = attack->attack_type;
-
-                            atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
-                            atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
-                            atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
-
-                            if (e) self->takedamage(e, &atk, 0);
-                            else self->takedamage(self, &atk, 0);
-
-                            self = temp;
-                            return;*/
-
-                            self->energy_state.health_current = 1; // rage
-                        }
-                        else
-                        {
-                            self->energy_state.health_current -= force;
-                        }
+                        self->energy_state.health_current = 1; // rage
                     }
-
-                    current_follow_id = animfollows[self->animation->followup.animation - 1];
-                    if(validanim(self, current_follow_id))
+                    else
                     {
-                        if(!self->modeldata.animation[current_follow_id]->attack_one)
-                        {
-                            self->modeldata.animation[current_follow_id]->attack_one = self->animation->attack_one;
-                        }
-                        ent_set_anim(self, current_follow_id, 0);
-                        self->attack_id_incoming = current_attack_id;
+                        self->energy_state.health_current -= force;
                     }
+                }
 
-                    // Flash spawn.
-                    spawn_attack_flash(self, attack, attack->blockflash, self->modeldata.bflash);
+				// Set counter animation.
+                current_follow_id = animfollows[self->animation->followup.animation - 1];
+                if(validanim(self, current_follow_id))
+                {
+                    if(!self->modeldata.animation[current_follow_id]->attack_one)
+                    {
+                        self->modeldata.animation[current_follow_id]->attack_one = self->animation->attack_one;
+                    }
+                    ent_set_anim(self, current_follow_id, 0);
+                    self->attack_id_incoming = current_attack_id;
+                }
+
+                // Flash spawn.
+                spawn_attack_flash(self, attack, attack->blockflash, self->modeldata.bflash);
+				
+				
             }
             else if(self->takedamage(e, attack, 0))
             {
@@ -20662,7 +20727,7 @@ void do_attack(entity *e)
             // because block needs this as well otherwise blockratio causes instant death
             self->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (GAME_SPEED / 5));
             self->nextattack = 0; // reset this, make it easier to fight back
-        }//end of if #05
+        }
         self = temp;
 
     } // end of for
