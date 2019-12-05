@@ -5500,12 +5500,6 @@ void free_anim(s_anim *anim)
         anim->summonframe = NULL;
     }
 
-    if(anim->jumpframe)
-    {
-        free(anim->jumpframe);
-        anim->jumpframe = NULL;
-    }
-
     free(anim);
 }
 
@@ -10317,7 +10311,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->unsummonframe          = FRAME_NONE;
                 newanim->landframe.frame		= FRAME_NONE;
 				newanim->landframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
-                newanim->jumpframe              = NULL;
+                newanim->jumpframe.frame        = FRAME_NONE;
+				newanim->jumpframe.ent			= MODEL_INDEX_NONE;
+				newanim->jumpframe.velocity		= default_model_dropv;
                 newanim->dropframe.frame        = FRAME_NONE;
 				newanim->dropframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
                 newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
@@ -10465,78 +10461,72 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DIVE: 
                 newanim->subject_to_gravity = 0;
 
-                // Allocate jumpframe and use it to set movement.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
-
-                newanim->jumpframe->frame = 0;
-                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(2);
-                newanim->jumpframe->ent = -1;
+                // Use jumpframe it to set movement.
+                newanim->jumpframe.frame = 0;
+                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
+				newanim->jumpframe.velocity.z = 0.0;
+                newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE1:
                 newanim->subject_to_gravity = 0;
 
-                // Allocate jumpframe and use it to set movement.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
-
-                newanim->jumpframe->frame = 0;
-                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe->ent = -1;
+                // Use jumpframe to set movement.
+                newanim->jumpframe.frame = 0;
+				newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe.velocity.y = 0.0;
+				newanim->jumpframe.velocity.z = 0.0;
+                newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE2:
                 newanim->subject_to_gravity = 0;
 
-                // Allocate jumpframe and use it to set movement.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
-
-                newanim->jumpframe->frame = 0;
-                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(1);
-                newanim->jumpframe->ent = -1;
-                break;
+				// Use jumpframe to set movement.
+				newanim->jumpframe.frame = 0;
+				newanim->jumpframe.velocity.x = 0.0;
+				newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
+				newanim->jumpframe.velocity.z = 0.0;
+				newanim->jumpframe.ent = MODEL_INDEX_NONE; 
+				break;
             case CMD_MODEL_JUMPFRAME:
             {
-                // Allocate jumpframe.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+                memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
 
-                newanim->jumpframe->frame        = GET_FRAME_ARG(1);
-                newanim->jumpframe->velocity.y   = GET_FLOAT_ARG(2);
+                newanim->jumpframe.frame        = GET_FRAME_ARG(1);
+                newanim->jumpframe.velocity.y   = GET_FLOAT_ARG(2);
 
                 value = GET_ARG(3);
                 if(value[0])
                 {
-                    newanim->jumpframe->velocity.x = GET_FLOAT_ARG(3);
-                    newanim->jumpframe->velocity.z = GET_FLOAT_ARG(4);
+                    newanim->jumpframe.velocity.x = GET_FLOAT_ARG(3);
+                    newanim->jumpframe.velocity.z = GET_FLOAT_ARG(4);
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
-                    if(newanim->jumpframe->velocity.y <= 0)
+                    if(newanim->jumpframe.velocity.y <= 0)
                     {
                         if(newchar->type == TYPE_PLAYER)
                         {
-                            newanim->jumpframe->velocity.y = newchar->jumpheight / 2;
-                            newanim->jumpframe->velocity.z = 0;
-                            newanim->jumpframe->velocity.x = 2;
+                            newanim->jumpframe.velocity.y = newchar->jumpheight / 2;
+                            newanim->jumpframe.velocity.z = 0;
+                            newanim->jumpframe.velocity.x = 2;
                         }
                         else
                         {
-                            newanim->jumpframe->velocity.y = newchar->jumpheight;
-                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
+                            newanim->jumpframe.velocity.y = newchar->jumpheight;
+                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                     }
                     else
                     {
                         if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
                         {
-                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
+                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                         else
                         {
-                            newanim->jumpframe->velocity.z = 0;
-                            newanim->jumpframe->velocity.x = (float)1.3;
+                            newanim->jumpframe.velocity.z = 0;
+                            newanim->jumpframe.velocity.x = (float)1.3;
                         }
                     }
                 }
@@ -10544,11 +10534,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(5);
                 if(value[0])
                 {
-                    newanim->jumpframe->ent = get_cached_model_index(value);
+                    newanim->jumpframe.ent = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->jumpframe->ent = -1;
+                    newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 }
             }
             break;
@@ -17961,39 +17951,43 @@ bool check_jumpframe(entity *ent, unsigned int frame)
 {
     entity *effect;
 
+	s_onframe_move* jump;
+
+	jump = &ent->animation->jumpframe;
+
     // Must have jump frame allocated.
-    if(!ent->animation->jumpframe)
+    if(jump->frame == FRAME_NONE)
     {
         return 0;
     }
 
     // Must be on assigned jump frame.
-    if(ent->animation->jumpframe->frame != frame)
+    if(jump->frame != frame)
     {
         return 0;
     }
 
     // Chuck entity into the air.
-    toss(ent, ent->animation->jumpframe->velocity.y);
+    toss(ent, jump->velocity.y);
 
     // Set left or right horizontal velocity depending on
     // current direction.
     if(ent->direction == DIRECTION_RIGHT)
     {
-        ent->velocity.x = ent->animation->jumpframe->velocity.x;
+        ent->velocity.x = jump->velocity.x;
     }
     else
     {
-        ent->velocity.x = -ent->animation->jumpframe->velocity.x;
+        ent->velocity.x = -jump->velocity.x;
     }
 
     // Lateral velocity.
-    ent->velocity.z = ent->animation->jumpframe->velocity.z;
+    ent->velocity.z = jump->velocity.z;
 
     // Spawn an effect entity if defined.
-    if(ent->animation->jumpframe->ent >= 0)
+    if(jump->ent >= 0)
     {
-        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->jumpframe->ent, NULL);
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, jump->ent, NULL);
         if(effect)
         {
             effect->spawntype = SPAWN_TYPE_DUST_JUMP;
