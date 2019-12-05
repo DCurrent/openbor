@@ -35,13 +35,14 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"counter_action_frame_max",
 		"counter_action_frame_min",
 		"counter_action_take_damage",
+		"drop_frame",
+		"drop_model_index",
 		"energy_cost_amount",
 		"energy_cost_disable",
 		"energy_cost_type",
 		"flip_frame",
 		"follow_up_animation_select",
 		"follow_up_condition",
-		"frame_set_drop",
 		"frame_set_land",
 		"hit_count",
 		"index",
@@ -174,6 +175,18 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			(*pretvar)->lVal = (LONG)handle->counter_action.damaged;
 			break;
 
+		case _ANIMATION_PROP_DROP_FRAME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->dropframe.frame;
+			break;
+
+		case _ANIMATION_PROP_DROP_MODEL_INDEX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->dropframe.model_index;
+			break;
+			
 		case _ANIMATION_PROP_ENERGY_COST_AMOUNT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -208,17 +221,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->followup.condition;
-			break;
-
-		case _ANIMATION_PROP_FRAME_SET_DROP:
-
-			// Verify animation has item.
-			//if (handle->dropframe)
-			//{
-			//	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			//	(*pretvar)->ptrVal = (s_onframe_set*)handle->dropframe;
-			//}
-
 			break;
 
 		case _ANIMATION_PROP_FRAME_SET_LAND:
@@ -394,6 +396,24 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
+		case _ANIMATION_PROP_DROP_FRAME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->dropframe.frame = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_DROP_MODEL_INDEX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->dropframe.model_index = (int)temp_int;
+			}
+
+			break;
+
 		case _ANIMATION_PROP_ENERGY_COST_AMOUNT:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -441,12 +461,6 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			{
 				handle->followup.condition = (e_follow_condition_logic)temp_int;
 			}
-
-		case _ANIMATION_PROP_FRAME_SET_DROP:
-
-			//handle->dropframe = (s_onframe_set*)varlist[ARG_VALUE]->ptrVal;
-
-			break;
 
 		case _ANIMATION_PROP_FRAME_SET_LAND:
 
