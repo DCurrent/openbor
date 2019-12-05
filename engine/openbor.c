@@ -5499,13 +5499,6 @@ void free_anim(s_anim *anim)
         free(anim->summonframe);
         anim->summonframe = NULL;
     }
-    
-
-    if(anim->dropframe)
-    {
-        free(anim->dropframe);
-        anim->dropframe = NULL;
-    }
 
     if(anim->jumpframe)
     {
@@ -10319,18 +10312,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->energy_cost.disable	= 0;
 				newanim->energy_cost.mponly		= COST_TYPE_MP_THEN_HP;
                 newanim->charge_time            = ANIMATION_CHARGE_TIME_DEFAULT;
-                newanim->projectile.shootframe  = -1;
-                newanim->projectile.throwframe  = -1;
-                newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-                newanim->flipframe              = -1;
+                newanim->projectile.shootframe  = FRAME_NONE;
+                newanim->projectile.throwframe  = FRAME_NONE;
+                newanim->projectile.tossframe   = FRAME_NONE;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
+                newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
                 newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_NONE;
-                newanim->unsummonframe          = -1;
+                newanim->unsummonframe          = FRAME_NONE;
                 newanim->landframe              = NULL;
                 newanim->jumpframe              = NULL;
-                newanim->dropframe              = NULL;
+                newanim->dropframe.frame        = FRAME_NONE;
+				newanim->dropframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
                 newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
                 newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
@@ -10581,15 +10575,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_DROPFRAME:
-				newanim->dropframe = allocate_frame_set();
 
-                newanim->dropframe->frame = GET_FRAME_ARG(1);
+                newanim->dropframe.frame = GET_FRAME_ARG(1);
 
 				// Entity to spawn when drop frame triggers.
 				value = GET_ARG(2);
 				if (value[0])
 				{
-					newanim->dropframe->model_index = get_cached_model_index(value);
+					newanim->dropframe.model_index = get_cached_model_index(value);
 				}
 
                 break;
@@ -21057,8 +21050,12 @@ bool check_frame_set_drop(entity* ent)
 {
 	entity* effect;
 
+	s_onframe_set* drop;
+
+	drop = &ent->animation->dropframe;
+
 	// Dropframe set?
-	if (!ent->animation->dropframe)
+	if (drop->frame == FRAME_NONE)
 	{
 		return 0;
 	}
@@ -21076,25 +21073,25 @@ bool check_frame_set_drop(entity* ent)
 	}
 
 	// Can't be passed over current animation's frame count.
-	if (ent->animation->dropframe->frame > ent->animation->numframes)
+	if (drop->frame > ent->animation->numframes)
 	{
 		return 0;
 	}
 
 	// Can't be already at or passed drop frame.
-	if (ent->animpos >= ent->animation->dropframe->frame)
+	if (ent->animpos >= drop->frame)
 	{
 		return 0;
 	}
 
 	// Passed all checks. Let's update frame and spawn model (if available).
 
-	update_frame(ent, ent->animation->dropframe->frame);
+	update_frame(ent, drop->frame);
 
 	// If a frame set effect entity is set, let's spawn it here.
-	if (ent->animation->dropframe->model_index != MODEL_INDEX_NONE)
+	if (drop->model_index != MODEL_INDEX_NONE)
 	{
-		effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->dropframe->model_index, NULL);
+		effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, drop->model_index, NULL);
 
 		if (effect)
 		{

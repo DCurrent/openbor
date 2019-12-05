@@ -3785,11 +3785,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-        if(ent->modeldata.animation[ltemp]->dropframe)
-        {
-            (*pretvar)->lVal = ent->modeldata.animation[ltemp]->dropframe->frame;
-        }
+		       
+        (*pretvar)->lVal = ent->modeldata.animation[ltemp]->dropframe.frame;       
 
         break;
     }

@@ -213,11 +213,11 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 		case _ANIMATION_PROP_FRAME_SET_DROP:
 
 			// Verify animation has item.
-			if (handle->dropframe)
-			{
-				ScriptVariant_ChangeType(*pretvar, VT_PTR);
-				(*pretvar)->ptrVal = (s_onframe_set*)handle->dropframe;
-			}
+			//if (handle->dropframe)
+			//{
+			//	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			//	(*pretvar)->ptrVal = (s_onframe_set*)handle->dropframe;
+			//}
 
 			break;
 
@@ -444,7 +444,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 		case _ANIMATION_PROP_FRAME_SET_DROP:
 
-			handle->dropframe = (s_onframe_set*)varlist[ARG_VALUE]->ptrVal;
+			//handle->dropframe = (s_onframe_set*)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 

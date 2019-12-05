@@ -116,6 +116,8 @@ movement restirctions are here!
 #define		DEFAULT_ATK_DROPV_Y 3.0
 #define		DEFAULT_ATK_DROPV_X 1.2
 #define		DEFAULT_ATK_DROPV_Z 0
+#define		FRAME_NONE			-1	// Lot of things use frames 0+, and this value to mean they are disabled.
+#define		MODEL_INDEX_NONE	-1	// No model/disabled.
 
 #define		ITEM_HIDE_POSITION_Z 100000	
 
@@ -1957,7 +1959,6 @@ typedef struct
     s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
-#define MODEL_INDEX_NONE -1	// Indicates no model is set (model IDs are 0+).
 #define FRAME_SET_MODEL_INDEX_DEFAULT MODEL_INDEX_NONE
 
 // Caskey, Damon V.
@@ -2066,6 +2067,7 @@ typedef struct
 	// Sub structures.
 	s_counter_action			counter_action;			// Auto counter attack. ~~
 	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
+	s_onframe_set				dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_follow					followup;               // Subsequent animation on hit. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
 	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
@@ -2081,7 +2083,6 @@ typedef struct
 	s_drawmethod				**drawmethods;
 	
 	
-	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
 	s_onframe_set				*landframe;				// Landing behavior. ~~	
 	
