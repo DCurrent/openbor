@@ -2065,6 +2065,7 @@ typedef struct
 {
 	// Sub structures.
 	s_counter_action			counter_action;			// Auto counter attack. ~~
+	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. 
 	s_follow					followup;               // Subsequent animation on hit. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
 	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
@@ -2082,8 +2083,7 @@ typedef struct
 	
 	s_onframe_set				*dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
-	s_onframe_set				*landframe;				// Landing behavior. ~~
-	s_energy_cost				*energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
+	s_onframe_set				*landframe;				// Landing behavior. ~~	
 	
 	float						*spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
 	float						*starvelocity;          // 3 velocities for the start projectile

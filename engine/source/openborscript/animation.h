@@ -90,19 +90,3 @@ HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** 
 HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 int mapstrings_frame_set_property(ScriptVariant** varlist, int paramCount);
-
-// Energy cost properties
-
-typedef enum
-{
-	_ENERGY_COST_PROP_COST,
-	_ENERGY_COST_PROP_DISABLE,
-	_ENERGY_COST_PROP_MP_ONLY,
-	_ENERGY_COST_PROP_END
-} e_energy_cost_properties;
-
-HRESULT openbor_get_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_set_energy_cost_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_allocate_energy_cost(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-
-int mapstrings_energy_cost_property(ScriptVariant** varlist, int paramCount);
