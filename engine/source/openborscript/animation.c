@@ -35,7 +35,9 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"counter_action_frame_max",
 		"counter_action_frame_min",
 		"counter_action_take_damage",
-		"energy_cost",
+		"energy_cost_amount",
+		"energy_cost_disable",
+		"energy_cost_type",
 		"flip_frame",
 		"follow_up_animation_select",
 		"follow_up_condition",
@@ -172,15 +174,22 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			(*pretvar)->lVal = (LONG)handle->counter_action.damaged;
 			break;
 
-		case _ANIMATION_PROP_ENERGY_COST:
+		case _ANIMATION_PROP_ENERGY_COST_AMOUNT:
 
-			// Verify animation has item.
-			//if (handle->energy_cost)
-			//{
-			//	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			//	(*pretvar)->ptrVal = (s_energy_cost*)handle->energy_cost;
-			//}
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->energy_cost.cost;
+			break;
 
+		case _ANIMATION_PROP_ENERGY_COST_DISABLE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (e_entity_type)handle->energy_cost.disable;
+			break;
+
+		case _ANIMATION_PROP_ENERGY_COST_TYPE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (e_cost_type)handle->energy_cost.mponly;
 			break;
 
 		case _ANIMATION_PROP_FLIP_FRAME:
@@ -385,9 +394,30 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
-		case _ANIMATION_PROP_ENERGY_COST:
+		case _ANIMATION_PROP_ENERGY_COST_AMOUNT:
 
-			//handle->energy_cost = (s_energy_cost*)varlist[ARG_VALUE]->ptrVal;
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->energy_cost.cost = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_ENERGY_COST_DISABLE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->energy_cost.disable = (e_entity_type)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_ENERGY_COST_TYPE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->energy_cost.mponly = (e_cost_type)temp_int;
+			}
 
 			break;
 		

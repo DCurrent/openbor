@@ -2065,7 +2065,7 @@ typedef struct
 {
 	// Sub structures.
 	s_counter_action			counter_action;			// Auto counter attack. ~~
-	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. 
+	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
 	s_follow					followup;               // Subsequent animation on hit. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
 	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
