@@ -150,11 +150,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
 HRESULT openbor_get_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
-// Frame set properties.
-HRESULT openbor_get_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-
 // Attack properties
 HRESULT openbor_get_attack_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_get_attack_instance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

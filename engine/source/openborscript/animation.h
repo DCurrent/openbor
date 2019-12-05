@@ -28,10 +28,11 @@ typedef enum
 	_ANIMATION_PROP_FLIP_FRAME,
 	_ANIMATION_PROP_FOLLOW_UP_ANIMATION_SELECT,
 	_ANIMATION_PROP_FOLLOW_UP_CONDITION,
-	_ANIMATION_PROP_FRAME_SET_LAND,
 	_ANIMATION_PROP_HIT_COUNT,
 	_ANIMATION_PROP_INDEX,
 	_ANIMATION_PROP_JUMPFRAME,
+	_ANIMATION_PROP_LAND_FRAME,
+	_ANIMATION_PROP_LAND_MODEL_INDEX,
 	_ANIMATION_PROP_LOOP,
 	_ANIMATION_PROP_MODEL_INDEX,
 	_ANIMATION_PROP_NUMFRAMES,
@@ -78,18 +79,3 @@ HRESULT openbor_get_animation_frame_property(ScriptVariant** varlist, ScriptVari
 HRESULT openbor_set_animation_frame_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 int mapstrings_animation_frame_property(ScriptVariant** varlist, int paramCount);
-
-// Frame set (drop frame, land frame) properties
-
-typedef enum
-{
-	_FRAME_SET_PROP_FRAME,
-	_FRAME_SET_PROP_MODEL_INDEX,
-	_FRAME_SET_PROP_END			// End cap. ALWAYS last!
-} e_frame_set_properties;
-
-HRESULT openbor_get_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-
-int mapstrings_frame_set_property(ScriptVariant** varlist, int paramCount);

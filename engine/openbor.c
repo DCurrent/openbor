@@ -5506,12 +5506,6 @@ void free_anim(s_anim *anim)
         anim->jumpframe = NULL;
     }
 
-    if(anim->landframe)
-    {
-        free(anim->landframe);
-        anim->landframe = NULL;
-    }
-
     free(anim);
 }
 
@@ -10321,7 +10315,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_NONE;
                 newanim->unsummonframe          = FRAME_NONE;
-                newanim->landframe              = NULL;
+                newanim->landframe.frame		= FRAME_NONE;
+				newanim->landframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
                 newanim->jumpframe              = NULL;
                 newanim->dropframe.frame        = FRAME_NONE;
 				newanim->dropframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
@@ -10560,17 +10555,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_BOUNCEFACTOR:
                 newanim->bounce_factor = GET_FLOAT_ARG(1);
                 break;
-            case CMD_MODEL_LANDFRAME:
-				newanim->landframe = allocate_frame_set();
-
+            case CMD_MODEL_LANDFRAME:				
                 // Landing frame.
-                newanim->landframe->frame = GET_FRAME_ARG(1);
+                newanim->landframe.frame = GET_FRAME_ARG(1);
 
                 // Entity to spawn when land frame triggers.
                 value = GET_ARG(2);
                 if(value[0])
                 {
-                    newanim->landframe->model_index = get_cached_model_index(value);
+                    newanim->landframe.model_index = get_cached_model_index(value);
                 }
 
                 break;
@@ -18505,27 +18498,6 @@ s_drawmethod *allocate_drawmethod()
 	return result;
 }
 
-// Caskey, Damon V.
-// 2019-11-21
-//
-// Allocate memory for a frame set and return pointer. As
-// of 2019-11-19, used for dropframe and landframe.
-s_onframe_set *allocate_frame_set()
-{
-	s_onframe_set *result;
-
-	// Allocate memory and get the pointer.
-	result = malloc(sizeof(*result));
-	
-	// Make sure the memory is zero'd out.
-	memset(result, 0, sizeof(*result));
-
-	// Apply default model index.
-	result->model_index = FRAME_SET_MODEL_INDEX_DEFAULT;
-
-	return result;
-}
-
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model)
 {
     entity *e = NULL;
@@ -20999,8 +20971,12 @@ bool check_landframe(entity *ent)
 {
     entity *effect;
 
+	s_onframe_set* land;
+
+	land = &ent->animation->landframe;
+
     // Must have a landframe.
-    if(!ent->animation->landframe)
+    if(land->frame == FRAME_NONE)
     {
         return 0;
     }
@@ -21012,21 +20988,21 @@ bool check_landframe(entity *ent)
     }
 
     // Can't be passed over current animation's frame count.
-    if(ent->animation->landframe->frame > ent->animation->numframes)
+    if(land->frame > ent->animation->numframes)
     {
         return 0;
     }
 
     // Can't be already at or passed land frame.
-    if(ent->animpos >= ent->animation->landframe->frame)
+    if(ent->animpos >= land->frame)
     {
         return 0;
     }
 
     // If a land frame dust effect entity is set, let's spawn it here.
-    if(ent->animation->landframe->model_index >= 0)
+    if(land->model_index >= 0)
     {
-        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->model_index, NULL);
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, land->model_index, NULL);
 
         if(effect)
         {
@@ -21037,7 +21013,7 @@ bool check_landframe(entity *ent)
         }
     }
 
-    update_frame(ent, ent->animation->landframe->frame);
+    update_frame(ent, land->frame);
 
     return 1;
 }
@@ -24500,7 +24476,7 @@ void common_jump()
         self->velocity.z = self->velocity.x = 0;
 
         // check if jumpland animation exists and not using landframe
-        if(validanim(self, ANI_JUMPLAND) && !self->animation->landframe)
+        if(validanim(self, ANI_JUMPLAND) && self->animation->landframe.frame == FRAME_NONE)
         {
             self->takeaction = common_jumpland;
             ent_set_anim(self, ANI_JUMPLAND, 0);
@@ -24518,7 +24494,7 @@ void common_jump()
         }
         else
         {
-            if(self->modeldata.dust.jump_land >= 0 && !self->animation->landframe)
+            if(self->modeldata.dust.jump_land >= 0 && self->animation->landframe.frame == FRAME_NONE)
             {
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
@@ -24529,7 +24505,7 @@ void common_jump()
                     execute_onspawn_script(dust);
                 }
             }
-            if(self->animation->landframe && self->animating)
+            if(self->animation->landframe.frame != FRAME_NONE && self->animating)
             {
                 return;
             }

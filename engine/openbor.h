@@ -2069,6 +2069,7 @@ typedef struct
 	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
 	s_onframe_set				dropframe;				// if tossv < 0, this frame will be set. ~~
 	s_follow					followup;               // Subsequent animation on hit. ~~
+	s_onframe_set				landframe;				// Landing behavior. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
 	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
 	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
@@ -2084,7 +2085,7 @@ typedef struct
 	
 	
 	s_onframe_move				*jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct.
-	s_onframe_set				*landframe;				// Landing behavior. ~~	
+		
 	
 	float						*spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
 	float						*starvelocity;          // 3 velocities for the start projectile
@@ -2106,12 +2107,13 @@ typedef struct
 	e_anim_cancel				cancel;                 // Cancel anims with freespecial. ~~
 
 	// Integers
-	int							hit_count;              // How many consecutive hits have been made? Used for canceling.
-	unsigned int				charge_time;             // charge time for an animation
-	int							flipframe;              // Turns entities around on the desired frame
+	unsigned int				charge_time;            // charge time for an animation. ~~
+	int							flipframe;              // Turns entities around on the desired frame. ~~
+	int							hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
+	int							index;                  // unique id.~~
 	int							numframes;              // Count of frames in the animation.
 	int							unsummonframe;          // Un-summon the entity
-	int							index;                  // unique id
+	
 	int							model_index;
 	int							sub_entity_model_index;	// Store the sub-entity's name for further use
 	int							sync;                   // Synchronize frame to previous animation if they matches

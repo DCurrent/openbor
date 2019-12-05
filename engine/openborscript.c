@@ -4326,21 +4326,15 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         }
 
-        // entity must have a land frame set.
-        if(!ent->modeldata.animation[i]->landframe)
-        {
-            break;
-        }
-
         switch(ltemp)
         {
         case _ep_landframe_ent:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe->model_index;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.model_index;
             break;
         case _ep_landframe_frame:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe->frame;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
             break;
         default:
             *pretvar = NULL;

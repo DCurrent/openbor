@@ -43,10 +43,11 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"flip_frame",
 		"follow_up_animation_select",
 		"follow_up_condition",
-		"frame_set_land",
 		"hit_count",
 		"index",
 		"jump_frame",
+		"land_frame",
+		"land_model_index",
 		"loop",
 		"model_index",
 		"numframes",
@@ -223,21 +224,28 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			(*pretvar)->lVal = (LONG)handle->followup.condition;
 			break;
 
-		case _ANIMATION_PROP_FRAME_SET_LAND:
-
-			// Verify animation has item.
-			if (handle->landframe)
-			{
-				ScriptVariant_ChangeType(*pretvar, VT_PTR);
-				(*pretvar)->ptrVal = (s_onframe_set*)handle->landframe;
-			}
-
-			break;
-
 		case _ANIMATION_PROP_HIT_COUNT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->hit_count;
+			break;
+
+		case _ANIMATION_PROP_INDEX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->index;
+			break;
+
+		case _ANIMATION_PROP_LAND_FRAME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->landframe.frame;
+			break;
+
+		case _ANIMATION_PROP_LAND_MODEL_INDEX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->landframe.model_index;
 			break;
 
         case _ANIMATION_PROP_NUMFRAMES:
@@ -462,17 +470,38 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 				handle->followup.condition = (e_follow_condition_logic)temp_int;
 			}
 
-		case _ANIMATION_PROP_FRAME_SET_LAND:
-
-			handle->landframe = (s_onframe_set*)varlist[ARG_VALUE]->ptrVal;
-
-			break;
-
         case _ANIMATION_PROP_HIT_COUNT:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->hit_count = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_INDEX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->index = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_LAND_FRAME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->landframe.frame = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_LAND_MODEL_INDEX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->landframe.model_index = (int)temp_int;
 			}
 
 			break;
@@ -578,253 +607,3 @@ int mapstrings_animation_frame_property(ScriptVariant** varlist, int paramCount)
 #undef ARG_MINIMUM
 #undef ARG_PROPERTY
 }
-
-// Frame set
-
-// Use string property argument to find an
-// integer property constant and populate
-// varlist->lval.
-int mapstrings_frame_set_property(ScriptVariant** varlist, int paramCount)
-{
-#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
-#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
-
-	char* propname = NULL;  // Placeholder for string property name from varlist.
-	int prop;               // Placeholder for integer constant located by string.
-
-	static const char* proplist[] =
-	{
-		"frame",
-		"model_index"
-	};
-
-	// If the minimum argument count
-	// was not passed, then there is
-	// nothing to map. Return true - we'll
-	// catch the mistake in property access
-	// functions.
-	if (paramCount < ARG_MINIMUM)
-	{
-		return 1;
-	}
-
-	// See macro - will return 0 on fail.
-	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _FRAME_SET_PROP_END,
-		"\n\n Error: '%s' is not a known frame set property.\n");
-
-
-	// If we made it this far everything should be OK.
-	return 1;
-
-#undef ARG_MINIMUM
-#undef ARG_PROPERTY
-}
-
-// Get frame set property.
-// Caskey, Damon V.
-// 2019-11-21
-//
-// Access property by handle (pointer).
-//
-// get_frame_set_property(void handle, char property)
-HRESULT openbor_get_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
-{
-#define SELF_NAME       "get_frame_set_property(void handle, char property)"
-#define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_HANDLE      0   // Handle (pointer to property structure).
-#define ARG_PROPERTY    1   // Property to access.
-
-	int                     result = S_OK; // Success or error?
-	s_onframe_set*			handle = NULL; // Property handle.
-	e_frame_set_properties  property = 0;    // Property argument.
-
-	// Clear pass by reference argument used to send
-	// property data back to calling script.
-	ScriptVariant_Clear(*pretvar);
-
-	// Map string property name to a
-	// matching integer constant.
-	mapstrings_frame_set_property(varlist, paramCount);
-
-	// Verify incoming arguments. There should at least
-	// be a pointer for the property handle and an integer
-	// to determine which property is accessed.
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-	{
-		*pretvar = NULL;
-		goto error_local;
-	}
-	else
-	{
-		handle = (s_onframe_set *)varlist[ARG_HANDLE]->ptrVal;
-		property = (LONG)varlist[ARG_PROPERTY]->lVal;
-	}
-
-	// Which property to get?
-	switch (property)
-	{
-	case _FRAME_SET_PROP_FRAME:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->frame;
-		break;
-
-	case _FRAME_SET_PROP_MODEL_INDEX:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->model_index;
-		break;
-
-	default:
-
-		printf("Unsupported property.\n");
-		goto error_local;
-		break;
-	}
-
-	return result;
-
-	// Error trapping.
-error_local:
-
-	printf("You must provide a valid handle and property: " SELF_NAME "\n");
-
-	result = E_FAIL;
-	return result;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_HANDLE
-#undef ARG_PROPERTY
-}
-
-// Set frame set properties.
-// Caskey, Damon V.
-// 2016-10-20
-//
-// Access property by handle (pointer).
-//
-// set_frame_set_property(void handle, char property, mixed value)
-HRESULT openbor_set_frame_set_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
-{
-#define SELF_NAME           "set_frame_set_property(void handle, char property, mixed value)"
-#define ARG_MINIMUM         3   // Minimum required arguments.
-#define ARG_HANDLE          0   // Handle (pointer to property structure).
-#define ARG_PROPERTY        1   // Property to access.
-#define ARG_VALUE           2   // New value to apply.
-
-	int                     result = S_OK; // Success or error?
-	s_onframe_set*			handle = NULL; // Property handle.
-	e_frame_set_properties  property = 0;    // Property to access.
-
-	// Value carriers to apply on properties after
-	// taken from argument.
-	LONG	temp_int;
-	
-	// Map string property name to a
-	// matching integer constant.
-	mapstrings_frame_set_property(varlist, paramCount);
-
-	// Verify incoming arguments. There must be a
-	// pointer for the animation handle, an integer
-	// property, and a new value to apply.
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-	{
-		*pretvar = NULL;
-		goto error_local;
-	}
-	else
-	{
-		handle = (s_onframe_set *)varlist[ARG_HANDLE]->ptrVal;
-		property = (LONG)varlist[ARG_PROPERTY]->lVal;
-	}
-
-	// Which property to modify?
-	switch (property)
-	{
-	case _FRAME_SET_PROP_FRAME:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->frame = (unsigned int)temp_int;
-		}
-
-		break;
-
-	case _FRAME_SET_PROP_MODEL_INDEX:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->model_index = (unsigned int)temp_int;
-		}
-
-	default:
-
-		printf("Unsupported property.\n");
-		goto error_local;
-
-		break;
-	}
-
-	return result;
-
-	// Error trapping.
-error_local:
-
-	printf("You must provide a valid handle and property: " SELF_NAME "\n");
-
-	result = E_FAIL;
-	return result;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_HANDLE
-#undef ARG_PROPERTY
-#undef ARG_VALUE
-}
-
-// allocate_frame_set();
-HRESULT openbor_allocate_frame_set(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
-{
-
-#define SELF_NAME  "openbor_allocate_frame_set()"
-
-	int				result = S_OK; // Success or error?
-	s_onframe_set	* frame_set;
-
-	// Run allocation function, and verify we got a pointer.
-	frame_set = allocate_frame_set();
-		
-	if (!frame_set)
-	{
-		goto error_local;
-	}
-
-	// Now place our allocated pointer into the return var, and verify.
-	ScriptVariant_ChangeType(*pretvar, VT_PTR);
-	(*pretvar)->ptrVal = (s_onframe_set*)frame_set;
-
-	if ((*pretvar)->ptrVal == NULL)
-	{
-		(*pretvar) = NULL;
-		goto error_local;
-	}
-
-	// Everything looks good, return OK.
-	return result;
-
-// Error trapping.
-error_local:
-
-	printf("Failed to allocate a frame set. May be out of memory: " SELF_NAME "\n");
-
-	result = E_FAIL;
-	return result;
-
-#undef SELF_NAME
-}
-
