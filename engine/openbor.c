@@ -10462,30 +10462,31 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->subject_to_gravity = 0;
 
                 // Use jumpframe it to set movement.
-                newanim->jumpframe.frame = 0;
+				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
+
+				newanim->jumpframe.frame = 0;
                 newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
                 newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
-				newanim->jumpframe.velocity.z = 0.0;
                 newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE1:
                 newanim->subject_to_gravity = 0;
 
                 // Use jumpframe to set movement.
-                newanim->jumpframe.frame = 0;
+				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
+
+				newanim->jumpframe.frame = 0;
 				newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.velocity.y = 0.0;
-				newanim->jumpframe.velocity.z = 0.0;
                 newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE2:
                 newanim->subject_to_gravity = 0;
 
 				// Use jumpframe to set movement.
+				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
+
 				newanim->jumpframe.frame = 0;
-				newanim->jumpframe.velocity.x = 0.0;
 				newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
-				newanim->jumpframe.velocity.z = 0.0;
 				newanim->jumpframe.ent = MODEL_INDEX_NONE; 
 				break;
             case CMD_MODEL_JUMPFRAME:

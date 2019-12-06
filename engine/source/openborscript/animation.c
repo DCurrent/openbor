@@ -46,6 +46,10 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"hit_count",
 		"index",
 		"jump_frame",
+		"jump_model_index",
+		"jump_velocity_x",
+		"jump_velocity_y",
+		"jump_velocity_z",
 		"land_frame",
 		"land_model_index",
 		"loop",
@@ -234,6 +238,36 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->index;
+			break;
+
+		case _ANIMATION_PROP_JUMP_FRAME:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->jumpframe.frame;
+			break;
+
+		case _ANIMATION_PROP_JUMP_MODEL_INDEX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->jumpframe.ent;
+			break;
+
+		case _ANIMATION_PROP_JUMP_VELOCITY_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->jumpframe.velocity.x;
+			break;
+
+		case _ANIMATION_PROP_JUMP_VELOCITY_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->jumpframe.velocity.y;
+			break;
+
+		case _ANIMATION_PROP_JUMP_VELOCITY_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->jumpframe.velocity.z;
 			break;
 
 		case _ANIMATION_PROP_LAND_FRAME:
@@ -484,6 +518,51 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->index = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_JUMP_FRAME:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->jumpframe.frame = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_JUMP_MODEL_INDEX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->jumpframe.ent = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_JUMP_VELOCITY_X:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->jumpframe.velocity.x = (float)temp_float;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_JUMP_VELOCITY_Y:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->jumpframe.velocity.y = (float)temp_float;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_JUMP_VELOCITY_Z:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->jumpframe.velocity.z = (float)temp_float;
 			}
 
 			break;
