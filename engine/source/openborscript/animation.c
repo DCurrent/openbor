@@ -43,6 +43,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"flip_frame",
 		"follow_up_animation_select",
 		"follow_up_condition",
+		"frame_count",
 		"hit_count",
 		"index",
 		"jump_frame",
@@ -56,7 +57,6 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"loop_frame_start",
 		"loop_state",
 		"model_index",
-		"numframes",
 		"projectile",
 		"quake_frame",
 		"range",
@@ -230,6 +230,12 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			(*pretvar)->lVal = (LONG)handle->followup.condition;
 			break;
 
+		case _ANIMATION_PROP_FRAME_COUNT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->numframes;
+			break;
+
 		case _ANIMATION_PROP_HIT_COUNT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -301,12 +307,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->loop.mode;
 			break;
-
-        case _ANIMATION_PROP_NUMFRAMES:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->numframes;
-            break;
 		
 		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
 
@@ -524,6 +524,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 				handle->followup.condition = (e_follow_condition_logic)temp_int;
 			}
 
+		case _ANIMATION_PROP_FRAME_COUNT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->numframes = (int)temp_int;
+			}
+
+			break;
+
         case _ANIMATION_PROP_HIT_COUNT:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -631,15 +640,6 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			}
 
 			break;
-
-        case _ANIMATION_PROP_NUMFRAMES:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->numframes = (int)temp_int;
-            }
-
-            break;
 
 		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
 
