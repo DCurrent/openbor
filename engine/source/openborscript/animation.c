@@ -52,7 +52,9 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"jump_velocity_z",
 		"land_frame",
 		"land_model_index",
-		"loop",
+		"loop_frame_end",
+		"loop_frame_start",
+		"loop_state",
 		"model_index",
 		"numframes",
 		"projectile",
@@ -280,6 +282,24 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->landframe.model_index;
+			break;
+
+		case _ANIMATION_PROP_LOOP_FRAME_END:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->loop.frame.max;
+			break;
+
+		case _ANIMATION_PROP_LOOP_FRAME_START:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->loop.frame.min;
+			break;
+
+		case _ANIMATION_PROP_LOOP_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->loop.mode;
 			break;
 
         case _ANIMATION_PROP_NUMFRAMES:
@@ -581,6 +601,33 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->landframe.model_index = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_LOOP_FRAME_END:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->loop.frame.max = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_LOOP_FRAME_START:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->loop.frame.min = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_LOOP_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->loop.mode = (int)temp_int;
 			}
 
 			break;
