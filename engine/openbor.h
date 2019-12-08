@@ -2071,8 +2071,8 @@ typedef struct
 	s_follow					followup;               // Subsequent animation on hit. ~~
 	s_onframe_move				jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct. ~~
 	s_onframe_set				landframe;				// Landing behavior. ~~
-	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
-	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
+	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct. ~~
+	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc. ~~
 	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
 	s_range						range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
 	s_axis_principal_int		size;                   // Dimensions (height, width).
