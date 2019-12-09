@@ -64,7 +64,9 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"projectile_model_index_flash",
 		"projectile_model_index_knife",
 		"projectile_model_index_star",
+		"projectile_position_x",
 		"projectile_position_y",
+		"projectile_position_z",
 		"quake_frame",
 		"range",
 		"size",
@@ -357,10 +359,22 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			(*pretvar)->lVal = (LONG)handle->projectile.star;
 			break;
 
+		case _ANIMATION_PROP_PROJECTILE_POSITION_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->projectile.position.x;
+			break;
+
 		case _ANIMATION_PROP_PROJECTILE_POSITION_Y:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->projectile.position.y;
+			break;
+
+		case _ANIMATION_PROP_PROJECTILE_POSITION_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->projectile.position.z;
 			break;
 		
 		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
@@ -759,11 +773,29 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
+		case _ANIMATION_PROP_PROJECTILE_POSITION_X:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->projectile.position.x = (int)temp_int;
+			}
+
+			break;
+
 		case _ANIMATION_PROP_PROJECTILE_POSITION_Y:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->projectile.position.y = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_PROJECTILE_POSITION_Z:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->projectile.position.z = (int)temp_int;
 			}
 
 			break;
