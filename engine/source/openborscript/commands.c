@@ -402,6 +402,9 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_PLAYSHOTW, "playshotw");
     LIST_ADD(CMD_MODEL_PRIORITY, "priority");
     LIST_ADD(CMD_MODEL_PROJECT, "project");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_X, "projectile_position_x");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Y, "projectile_position_y");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Z, "projectile_position_z");
     LIST_ADD(CMD_MODEL_PROJECTILEHIT, "projectilehit");
     LIST_ADD(CMD_MODEL_PSHOTFRAME, "pshotframe");
     LIST_ADD(CMD_MODEL_PSHOTFRAMENO, "pshotframeno");

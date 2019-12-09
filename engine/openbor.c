@@ -10303,6 +10303,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->projectile.shootframe  = FRAME_NONE;
                 newanim->projectile.throwframe  = FRAME_NONE;
                 newanim->projectile.tossframe   = FRAME_NONE;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
+				newanim->projectile.position.x	= 0;
+				newanim->projectile.position.y	= 70;
+				newanim->projectile.position.z	= 0;
                 newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
                 newanim->subject_to_gravity     = 1;
@@ -10319,9 +10322,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
                 newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
-                                                  newanim->projectile.star = newanim->projectile.flash = -1;
+                                                  newanim->projectile.star = newanim->projectile.flash = MODEL_INDEX_NONE;
                 newanim->quakeframe.framestart  = 0;
-                newanim->sync                   = -1;
+                newanim->sync                   = FRAME_NONE;
 
                 if((ani_id = translate_ani_id(value, newchar, newanim, &attack)) < 0)
                 {
@@ -10455,6 +10458,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CUSTSTAR:
                 newanim->projectile.star = get_cached_model_index(GET_ARG(1));
                 break;
+			case CMD_MODEL_PROJECTILE_POSITION_X:
+				newanim->projectile.position.x = GET_INT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_POSITION_Y:
+				newanim->projectile.position.y = GET_INT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_POSITION_Z:
+				newanim->projectile.position.z = GET_INT_ARG(1);
+				break;
 
 				// Legacy dive attacks. Turn off animation level subject_to_gravity
 				// and then use jumpframe to fly down at an angle.
@@ -18147,6 +18159,12 @@ void update_frame(entity *ent, unsigned int f)
     // Perform jumping if on a jumpframe.
     check_jumpframe(self, f);
 
+	int position_x = anim->projectile.position.x;
+
+	if (self->direction == DIRECTION_LEFT)
+	{
+		position_x = -position_x;
+	}
 
     if(anim->projectile.throwframe == f)
     {
@@ -18156,8 +18174,10 @@ void update_frame(entity *ent, unsigned int f)
         // then if the entity is jumping, check star first, if failed, try knife instead
         // well, try knife at last, if still failed, try star, or just let if shutdown?
 
+		
+
         #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-        #define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
+        #define __tryknife knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile.position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
 
         if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
         {
@@ -18183,13 +18203,13 @@ void update_frame(entity *ent, unsigned int f)
 
     if(anim->projectile.shootframe == f)
     {
-        knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y, self->direction, 1, 0);
+        knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile.position.z, self->position.y + anim->projectile.position.y, self->direction, 1, 0);
         self->deduct_ammo = 1;
     }
 
     if(anim->projectile.tossframe == f)
     {
-        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
+        bomb_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile.position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
         self->deduct_ammo = 1;
     }
 
