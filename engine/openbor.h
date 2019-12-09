@@ -1255,13 +1255,29 @@ typedef enum
     DOGRAB_ADJUSTCHECK_FALSE
 } e_dograb_adjustcheck;
 
+// 2019-12-08
+// Caskey, Damon V.
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the recursive damage command from author. Then we
+// populate the recursive damage mode with a set of bit values 
+// from e_damage_recursive_logic accordingly. 
+typedef enum
+{
+	DAMAGE_RECURSIVE_CMD_READ_NONLETHAL_HP = 1, //  1 = Nonlethal HP(can reduce to 1 but not below).
+	DAMAGE_RECURSIVE_CMD_READ_MP = 2, // = MP.
+	DAMAGE_RECURSIVE_CMD_READ_MP_NONLETHAL_HP = 3, // 3 = MP and nonlethal HP.
+	DAMAGE_RECURSIVE_CMD_READ_HP = 4, // = HP.
+	DAMAGE_RECURSIVE_CMD_READ_HP_MP = 5 // = MP and HP.
+}e_damage_recursive_cmd_read;
+
 typedef enum
 {
 	DAMAGE_RECURSIVE_MODE_NONE			= 0,
 	DAMAGE_RECURSIVE_MODE_HP			= (1 << 0),
 	DAMAGE_RECURSIVE_MODE_MP			= (1 << 1),
 	DAMAGE_RECURSIVE_MODE_NON_LETHAL	= (1 << 2)
-} e_damage_recursive;
+} e_damage_recursive_logic;
 
 typedef enum
 {
@@ -1777,7 +1793,7 @@ typedef struct s_damage_recursive
 {
     int							force;  // Damage force per tick.
     int							index;  // Index.
-	e_damage_recursive			mode;   // Mode.
+	e_damage_recursive_logic			mode;   // Mode.
     int							rate;   // Tick delay.
 	int							tag;	// User defined value.
 	unsigned int				tick;   // Time of next tick.

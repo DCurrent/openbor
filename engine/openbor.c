@@ -11358,7 +11358,34 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 recursive.index  = GET_INT_ARG(1);  //Index.
                 recursive.time   = GET_INT_ARG(2);  //Time to expiration.
-                recursive.mode	 = GET_INT_ARG(3);  //Mode, see damage_recursive.
+                
+				tempInt = GET_INT_ARG(3);
+
+				recursive.mode = DAMAGE_RECURSIVE_MODE_NONE;
+
+				switch (tempInt)
+				{
+				case DAMAGE_RECURSIVE_CMD_READ_NONLETHAL_HP:
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_HP;
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_MP:
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_MP;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_MP_NONLETHAL_HP:
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_HP;
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_MP;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_HP:
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_HP;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_HP_MP:
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_HP;
+					recursive.mode ^= DAMAGE_RECURSIVE_MODE_MP;
+					break;
+				}
+
                 recursive.force  = GET_INT_ARG(4);  //Amount per tick.
                 recursive.rate   = GET_INT_ARG(5);  //Tick delay.
 
