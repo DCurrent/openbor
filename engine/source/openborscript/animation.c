@@ -67,7 +67,10 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"projectile_position_x",
 		"projectile_position_y",
 		"projectile_position_z",
-		"quake_frame",
+		"quake_frame_start",
+		"quake_move_y",
+		"quake_repeat_count",
+		"quake_repeat_max",
 		"range",
 		"size",
 		"spawn_frame",
@@ -375,6 +378,30 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->projectile.position.z;
+			break;
+
+		case _ANIMATION_PROP_QUAKE_FRAME_START:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->quakeframe.framestart;
+			break;
+
+		case _ANIMATION_PROP_QUAKE_MOVE_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->quakeframe.v;
+			break;
+
+		case _ANIMATION_PROP_QUAKE_REPEAT_COUNT:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->quakeframe.cnt;
+			break;
+
+		case _ANIMATION_PROP_QUAKE_REPEAT_MAX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->quakeframe.repeat;
 			break;
 		
 		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
@@ -796,6 +823,42 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->projectile.position.z = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_QUAKE_FRAME_START:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->quakeframe.framestart = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_QUAKE_MOVE_Y:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->quakeframe.v = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_QUAKE_REPEAT_COUNT:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->quakeframe.cnt = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_QUAKE_REPEAT_MAX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->quakeframe.repeat = (int)temp_int;
 			}
 
 			break;
