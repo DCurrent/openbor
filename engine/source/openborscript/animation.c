@@ -79,7 +79,8 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"range_y_min",
 		"range_z_max",
 		"range_z_min",
-		"size",
+		"size_x",
+		"size_y",
 		"spawn_frame",
 		"sub_entity_model_index",
 		"subject_to_gravity",
@@ -457,6 +458,18 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->range.z.min;
+			break;
+
+		case _ANIMATION_PROP_SIZE_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->size.x;
+			break;
+
+		case _ANIMATION_PROP_SIZE_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->size.y;
 			break;
 		
 		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
@@ -986,6 +999,24 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->range.z.min = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_SIZE_X:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->size.x = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_SIZE_Y:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->size.y = (int)temp_int;
 			}
 
 			break;
