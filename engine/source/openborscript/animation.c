@@ -71,7 +71,14 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"quake_move_y",
 		"quake_repeat_count",
 		"quake_repeat_max",
-		"range",
+		"range_base_max",
+		"range_base_min",
+		"range_x_max",
+		"range_x_min",
+		"range_y_max",
+		"range_y_min",
+		"range_z_max",
+		"range_z_min",
 		"size",
 		"spawn_frame",
 		"sub_entity_model_index",
@@ -402,6 +409,54 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->quakeframe.repeat;
+			break;
+
+		case _ANIMATION_PROP_RANGE_BASE_MAX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.base.max;
+			break;
+
+		case _ANIMATION_PROP_RANGE_BASE_MIN:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.base.min;
+			break;
+
+		case _ANIMATION_PROP_RANGE_X_MAX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.x.max;
+			break;
+
+		case _ANIMATION_PROP_RANGE_X_MIN:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.x.min;
+			break;
+
+		case _ANIMATION_PROP_RANGE_Y_MAX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.y.max;
+			break;
+
+		case _ANIMATION_PROP_RANGE_Y_MIN:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.y.min;
+			break;
+
+		case _ANIMATION_PROP_RANGE_Z_MAX:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.z.max;
+			break;
+
+		case _ANIMATION_PROP_RANGE_Z_MIN:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->range.z.min;
 			break;
 		
 		case _ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX:
@@ -859,6 +914,78 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->quakeframe.repeat = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_BASE_MAX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.base.max = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_BASE_MIN:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.base.min = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_X_MAX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.x.max = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_X_MIN:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.x.min = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_Y_MAX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.y.max = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_Y_MIN:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.y.min = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_Z_MAX:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.z.max = (int)temp_int;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_RANGE_Z_MIN:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->range.z.min = (int)temp_int;
 			}
 
 			break;
