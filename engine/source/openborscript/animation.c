@@ -81,12 +81,12 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"range_z_min",
 		"size_x",
 		"size_y",
-		"spawn_frame",
 		"sub_entity_model_index",
+		"sub_entity_spawn",
+		"sub_entity_summon",
+		"sub_entity_unsummon",
 		"subject_to_gravity",
-		"summon_frame",
 		"sync",
-		"unsummon_frame",
 		"weapon_frame"		
 	};
 
@@ -477,6 +477,27 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->sub_entity_model_index;
 			break;
+
+		case _ANIMATION_PROP_SUB_ENTITY_SPAWN:
+			
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_sub_entity*)handle->sub_entity_spawn;
+
+			break;
+
+		case _ANIMATION_PROP_SUB_ENTITY_SUMMON:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_sub_entity*)handle->sub_entity_summon;
+
+			break;
+
+		case _ANIMATION_PROP_SUB_ENTITY_UNSUMMON:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->sub_entity_unsummon;
+			break;
+			
 
 		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
 
@@ -1030,6 +1051,27 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
+		case _ANIMATION_PROP_SUB_ENTITY_SPAWN:
+
+			handle->sub_entity_spawn = (s_sub_entity*)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ANIMATION_PROP_SUB_ENTITY_SUMMON:
+
+			handle->sub_entity_summon = (s_sub_entity*)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ANIMATION_PROP_SUB_ENTITY_UNSUMMON:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->sub_entity_unsummon = (int)temp_int;
+			}
+
+			break;
+
 		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -1112,4 +1154,272 @@ int mapstrings_animation_frame_property(ScriptVariant** varlist, int paramCount)
 
 #undef ARG_MINIMUM
 #undef ARG_PROPERTY
+}
+
+// Sub entity (spawn/summon)
+
+// Caskey, Damon  V.
+// 2019-12-12
+//
+// Allocate a new sub entity and return the pointer.
+HRESULT openbor_allocate_sub_entity(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+	extern s_sub_entity* allocate_sub_entity();
+	s_sub_entity* result;
+
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+
+	if ((result = allocate_sub_entity()))
+	{
+		(*pretvar)->ptrVal = (s_sub_entity*)result;
+	}
+
+	return S_OK;
+}
+
+// Use string property argument to find an
+// integer property constant and populate
+// varlist->lval.
+int mapstrings_sub_entity_property(ScriptVariant** varlist, int paramCount)
+{
+#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
+#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
+
+	char* propname = NULL;  // Placeholder for string property name from varlist.
+	int prop;               // Placeholder for integer constant located by string.
+
+	static const char* proplist[] =
+	{
+		"frame",
+		"placement",
+		"position_x",
+		"position_y",
+		"position_z",
+		"spawn_type"
+	};
+
+	// If the minimum argument count
+	// was not passed, then there is
+	// nothing to map. Return true - we'll
+	// catch the mistake in property access
+	// functions.
+	if (paramCount < ARG_MINIMUM)
+	{
+		return 1;
+	}
+
+	// See macro - will return 0 on fail.
+	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _SUB_ENTITY_PROP_END,
+		"\n\n Error: '%s' is not a known sub entity property.\n");
+
+	// If we made it this far everything should be OK.
+	return 1;
+
+#undef ARG_MINIMUM
+#undef ARG_PROPERTY
+}
+
+// Caskey, Damon V.
+// 2019-12-11
+//
+// Access sub_entity property by handle (pointer).
+//
+// get_sub_entity_property(void handle, int property)
+HRESULT openbor_get_sub_entity_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+#define SELF_NAME       "get_sub_entity_property(void handle, int property)"
+#define ARG_MINIMUM     2   // Minimum required arguments.
+#define ARG_HANDLE      0   // Handle (pointer to property structure).
+#define ARG_PROPERTY    1   // Property to access.
+
+	int                     result = S_OK; // Success or error?
+	s_sub_entity			*handle = NULL; // Property handle.
+	e_sub_entity_properties  property = 0;    // Property argument.
+
+	// Clear pass by reference argument used to send
+	// property data back to calling script.
+	ScriptVariant_Clear(*pretvar);
+
+	// Verify incoming arguments. There should at least
+	// be a pointer for the property handle and an integer
+	// to determine which property is accessed.
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+	{
+		*pretvar = NULL;
+		goto error_local;
+	}
+	else
+	{
+		handle = (s_sub_entity*)varlist[ARG_HANDLE]->ptrVal;
+		property = (e_sub_entity_properties)varlist[ARG_PROPERTY]->lVal;
+	}
+
+	// Which property to get?
+	switch (property)
+	{
+	case _SUB_ENTITY_PROP_FRAME:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (LONG)handle->frame;
+		break;
+
+	case _SUB_ENTITY_PROP_PLACEMENT:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (e_sub_entity_placement)handle->placement;
+		break;
+
+	case _SUB_ENTITY_PROP_POSITION_X:
+
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)handle->position.x;
+		break;
+
+	case _SUB_ENTITY_PROP_POSITION_Y:
+
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)handle->position.y;
+		break;
+
+	case _SUB_ENTITY_PROP_POSITION_Z:
+
+		ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+		(*pretvar)->dblVal = (DOUBLE)handle->position.z;
+		break;
+
+	default:
+
+		printf("Unsupported property.\n");
+		goto error_local;
+		break;
+	}
+
+	return result;
+
+	// Error trapping.
+error_local:
+
+	printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+	result = E_FAIL;
+	return result;
+
+#undef SELF_NAME
+#undef ARG_MINIMUM
+#undef ARG_HANDLE
+#undef ARG_PROPERTY
+}
+
+// Caskey, Damon V.
+// 2019-12-11
+//
+// Access sub entity property by handle (pointer).
+//
+// set_sub_entity_property(void handle, int property, value)
+HRESULT openbor_set_sub_entity_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+#define SELF_NAME           "set_sub_entity_property(void handle, int property, value)"
+#define ARG_MINIMUM         3   // Minimum required arguments.
+#define ARG_HANDLE          0   // Handle (pointer to property structure).
+#define ARG_PROPERTY        1   // Property to access.
+#define ARG_VALUE           2   // New value to apply.
+
+	int                     result = S_OK; // Success or error?
+	s_sub_entity			*handle = NULL; // Property handle.
+	e_sub_entity_properties  property = 0;    // Property to access.
+
+	// Value carriers to apply on properties after
+	// taken from argument.
+	LONG	temp_int;
+	DOUBLE	temp_float;
+
+	// Verify incoming arguments. There must be a
+	// pointer for the animation handle, an integer
+	// property, and a new value to apply.
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
+	{
+		*pretvar = NULL;
+		goto error_local;
+	}
+	else
+	{
+		handle = (s_sub_entity*)varlist[ARG_HANDLE]->ptrVal;
+		property = (e_sub_entity_properties)varlist[ARG_PROPERTY]->lVal;
+	}
+
+	// Which property to modify?
+	switch (property)
+	{
+	case _SUB_ENTITY_PROP_FRAME:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->frame = (int)temp_int;
+		}
+
+		break;	
+
+	case _SUB_ENTITY_PROP_PLACEMENT:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->placement = (e_sub_entity_placement)temp_int;
+		}
+
+		break;
+
+	case _SUB_ENTITY_PROP_POSITION_X:
+
+		if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+		{
+			handle->position.x = temp_float;
+		}
+
+		break;
+
+	case _SUB_ENTITY_PROP_POSITION_Y:
+
+		if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+		{
+			handle->position.y = temp_float;
+		}
+
+		break;
+
+	case _SUB_ENTITY_PROP_POSITION_Z:
+
+		if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+		{
+			handle->position.z = temp_float;
+		}
+
+		break;	
+
+	default:
+
+		printf("Unsupported property.\n");
+		goto error_local;
+
+		break;
+	}
+
+	return result;
+
+	// Error trapping.
+error_local:
+
+	printf("You must provide a valid handle and property: " SELF_NAME "\n");
+
+	result = E_FAIL;
+	return result;
+
+#undef SELF_NAME
+#undef ARG_MINIMUM
+#undef ARG_HANDLE
+#undef ARG_PROPERTY
+#undef ARG_VALUE
 }

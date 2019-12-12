@@ -2060,6 +2060,25 @@ typedef struct
     int                     star;       // custstar;
 } s_projectile;
 
+typedef enum
+{
+	// Keep these in order for legacy compatability.
+	SUB_ENTITY_PLACEMENT_PARENT,
+	SUB_ENTITY_PLACEMENT_SCREEN,
+	SUB_ENTITY_PLACEMENT_ABSOLUTE
+} e_sub_entity_placement;
+
+// Caskey, Damon V.
+// 2019-12-11
+//
+//  Sub entity spawning.
+typedef struct
+{
+	int frame;
+	e_sub_entity_placement placement;
+	s_axis_principal_float position;
+} s_sub_entity;
+
 #define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
 #define ANIMATION_CHARGE_TIME_DEFAULT	2
 // Caskey, Damon V
@@ -2092,6 +2111,10 @@ typedef struct
 	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct. ~~
 	s_range						range;                  // Verify distance to target, jump landings, etc. ~~
 	s_axis_principal_int		size;                   // Dimensions (height, width). ~~
+	
+	s_sub_entity				*sub_entity_spawn;		// Replace legacy "spawnframe" - spawn an entity unrelated to parent. ~~
+	s_sub_entity				*sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
+
 
 	s_collision_attack_list		**collision_attack;
 	s_collision_body_list		**collision_body;
@@ -2100,15 +2123,9 @@ typedef struct
 	s_axis_plane_vertical_int	**offset;				// original sprite offsets
 	s_drawmethod				**drawmethods;
 	
-	
-	
-		
-	
-	float						*spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
 	float						*starvelocity;          // 3 velocities for the start projectile
 	float						(*platform)[8];			// Now entities can have others land on them
-	float						*summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-
+	
 	unsigned					*idle;					// Allow free move
 	int							*delay;
 	int							*shadow;
@@ -2128,11 +2145,10 @@ typedef struct
 	int							flipframe;              // Turns entities around on the desired frame. ~~
 	int							hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
 	int							index;                  // unique id.~~
-	int							numframes;              // Count of frames in the animation.
-	int							unsummonframe;          // Un-summon the entity
-	
+	int							numframes;              // Count of frames in the animation.	
 	int							model_index;
-	int							sub_entity_model_index;	// Store the sub-entity's name for further use
+	int							sub_entity_model_index;	// Sub entity model index (for spawn/summon).
+	int							sub_entity_unsummon;    // Un-summon the entity
 	int							sync;                   // Synchronize frame to previous animation if they matches
 
 	// Boolean flags.
@@ -3107,7 +3123,7 @@ int free_model();
 void cache_model_sprites();
 
 s_onframe_set			*allocate_frame_set();
-s_energy_cost			*allocate_energy_cost();
+s_sub_entity			*allocate_sub_entity();
 s_anim                  *alloc_anim();
 s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack      **collision_alloc_attack_list();

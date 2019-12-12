@@ -5489,17 +5489,17 @@ void free_anim(s_anim *anim)
         free(anim->weaponframe);
         anim->weaponframe = NULL;
     }
-    if(anim->spawnframe)
-    {
-        free(anim->spawnframe);
-        anim->spawnframe = NULL;
-    }
-    if(anim->summonframe)
-    {
-        free(anim->summonframe);
-        anim->summonframe = NULL;
-    }
-
+	if (anim->sub_entity_spawn)
+	{
+		free(anim->sub_entity_spawn);
+		anim->sub_entity_spawn = NULL;
+	}
+	if (anim->sub_entity_summon)
+	{
+		free(anim->sub_entity_summon);
+		anim->sub_entity_summon = NULL;
+	}
+   
     free(anim);
 }
 
@@ -10311,7 +10311,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_NONE;
-                newanim->unsummonframe          = FRAME_NONE;
+                newanim->sub_entity_unsummon          = FRAME_NONE;
                 newanim->landframe.frame		= FRAME_NONE;
 				newanim->landframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
                 newanim->jumpframe.frame        = FRAME_NONE;
@@ -10323,6 +10323,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
                 newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
                                                   newanim->projectile.star = newanim->projectile.flash = MODEL_INDEX_NONE;
+				newanim->sub_entity_spawn		= NULL;
+				newanim->sub_entity_summon		= NULL;
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = FRAME_NONE;
 
@@ -11769,23 +11771,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_SPAWNFRAME:
-                newanim->spawnframe    = malloc(5 * sizeof(*newanim->spawnframe));
-                memset(newanim->spawnframe, 0, 5 * sizeof(*newanim->spawnframe));
-                newanim->spawnframe[0] = GET_FRAME_ARG(1);
-                newanim->spawnframe[1] = GET_FLOAT_ARG(2);
-                newanim->spawnframe[2] = GET_FLOAT_ARG(3);
-                newanim->spawnframe[3] = GET_FLOAT_ARG(4);
-                newanim->spawnframe[4] = GET_FLOAT_ARG(5);
+                
+				newanim->sub_entity_spawn = allocate_sub_entity();
+
+				newanim->sub_entity_spawn->frame = GET_FRAME_ARG(1);
+				newanim->sub_entity_spawn->position.x = GET_FLOAT_ARG(2);
+				newanim->sub_entity_spawn->position.z = GET_FLOAT_ARG(3);
+				newanim->sub_entity_spawn->position.y = GET_FLOAT_ARG(4);
+				newanim->sub_entity_spawn->placement = GET_INT_ARG(5);
                 break;
+
             case CMD_MODEL_SUMMONFRAME:
-                newanim->summonframe    = malloc(5 * sizeof(*newanim->summonframe));
-                memset(newanim->summonframe, 0, 5 * sizeof(*newanim->summonframe));
-                newanim->summonframe[0] = GET_FRAME_ARG(1);
-                newanim->summonframe[1] = GET_FLOAT_ARG(2);
-                newanim->summonframe[2] = GET_FLOAT_ARG(3);
-                newanim->summonframe[3] = GET_FLOAT_ARG(4);
-                newanim->summonframe[4] = GET_FLOAT_ARG(5);
+				
+				newanim->sub_entity_summon = allocate_sub_entity();
+
+				newanim->sub_entity_summon->frame = GET_FRAME_ARG(1);
+				newanim->sub_entity_summon->position.x = GET_FLOAT_ARG(2);
+				newanim->sub_entity_summon->position.z = GET_FLOAT_ARG(3);
+				newanim->sub_entity_summon->position.y = GET_FLOAT_ARG(4);
+				newanim->sub_entity_summon->placement = GET_INT_ARG(5);
                 break;
+
             case CMD_MODEL_STAR_VELOCITY:
                 newanim->starvelocity    = malloc(3 * sizeof(*newanim->starvelocity));
                 memset(newanim->starvelocity, 0, 3 * sizeof(*newanim->starvelocity));
@@ -11794,7 +11800,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->starvelocity[2] = GET_FLOAT_ARG(3);
                 break;
             case CMD_MODEL_UNSUMMONFRAME:
-                newanim->unsummonframe = GET_FRAME_ARG(1);
+                newanim->sub_entity_unsummon = GET_FRAME_ARG(1);
                 break;
             case CMD_MODEL_NOHITHEAD:
                 value = GET_ARG(1);
@@ -17848,29 +17854,30 @@ void ent_default_init(entity *e)
 void ent_spawn_ent(entity *ent)
 {
     entity *s_ent = NULL;
-    float *spawnframe = ent->animation->spawnframe;
+	s_sub_entity *spawnframe = ent->animation->sub_entity_spawn;
     float dy = level ? 4.0 : 0.0;
-    // spawn point relative to current entity
-    if(spawnframe[4] == 0)
+    
+	// spawn point relative to current entity
+    if(spawnframe->placement == SUB_ENTITY_PLACEMENT_PARENT)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe->position.x : -spawnframe->position.x), ent->position.z + spawnframe->position.z, ent->position.y + spawnframe->position.y, ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
     }
     //relative to screen position
-    else if(spawnframe[4] == 1)
+    else if(spawnframe->placement == SUB_ENTITY_PLACEMENT_SCREEN)
     {
         if(level && !(level->scrolldir & SCROLL_UP) && !(level->scrolldir & SCROLL_DOWN))
         {
-            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, advancey + spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
         else
         {
-            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
     }
     //absolute position in level
     else
     {
-        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3] + 0.001, 0, NULL, ent->animation->sub_entity_model_index, NULL);
+        s_ent = spawn(spawnframe->position.x, spawnframe->position.z, spawnframe->position.y + 0.001, 0, NULL, ent->animation->sub_entity_model_index, NULL);
     }
 
     if(s_ent)
@@ -17888,39 +17895,40 @@ void ent_spawn_ent(entity *ent)
         s_ent->parent = ent;  //maybe used by A.I.
         execute_onspawn_script(s_ent);
     }
+
 }
 
 void ent_summon_ent(entity *ent)
 {
     entity *s_ent = NULL;
-    float *spawnframe = ent->animation->summonframe;
+	s_sub_entity *spawnframe = ent->animation->sub_entity_summon;
     float dy = level ? 4.0 : 0.0;
     // spawn point relative to current entity
-    if(spawnframe[4] == 0)
+    if(spawnframe->placement == SUB_ENTITY_PLACEMENT_PARENT)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe->position.x : -spawnframe->position.x), ent->position.z + spawnframe->position.z,  ent->position.y + spawnframe->position.y, ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
     }
     //relative to screen position
-    else if(spawnframe[4] == 1)
+    else if(spawnframe->placement == SUB_ENTITY_PLACEMENT_SCREEN)
     {
         if(level && !(level->scrolldir & SCROLL_UP) && !(level->scrolldir & SCROLL_DOWN))
         {
-            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, advancey + spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
         else
         {
-            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
     }
     //absolute position in level
     else
     {
-        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->sub_entity_model_index, NULL);
+        s_ent = spawn(spawnframe->position.x, spawnframe->position.z, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
     }
 
     if(s_ent)
     {
-        if(!spawnframe[4])
+        if(spawnframe->placement == SUB_ENTITY_PLACEMENT_PARENT)
         {
             s_ent->direction = ent->direction;
         }
@@ -18141,7 +18149,7 @@ void update_frame(entity *ent, unsigned int f)
         }
     }
 
-    if(anim->unsummonframe == f)
+    if(anim->sub_entity_unsummon == f)
     {
         if(self->subentity)
         {
@@ -18164,12 +18172,12 @@ void update_frame(entity *ent, unsigned int f)
     }
 
     //spawn / summon /unsummon features
-    if(anim->spawnframe && anim->spawnframe[0] == f && anim->sub_entity_model_index >= 0)
+    if(anim->sub_entity_spawn && anim->sub_entity_spawn->frame == f && anim->sub_entity_model_index >= 0)
     {
         ent_spawn_ent(self);
     }
 
-    if(anim->summonframe && anim->summonframe[0] == f && anim->sub_entity_model_index >= 0)
+    if(anim->sub_entity_summon && anim->sub_entity_summon->frame == f && anim->sub_entity_model_index >= 0)
     {
         //subentity is dead
         if(!self->subentity || self->subentity->dead)
@@ -18536,6 +18544,23 @@ s_drawmethod *allocate_drawmethod()
 
 	// Copy default values into new drawmethod.
 	memcpy(result, &plainmethod, sizeof(*result));
+
+	return result;
+}
+
+// Caskey, Damon V.
+// 2019-12-11
+//
+// Allocate memory for a sub entity command and return pointer.
+s_sub_entity *allocate_sub_entity()
+{
+	s_sub_entity *result;
+
+	// Allocate memory and get the pointer.
+	result = malloc(sizeof(*result));
+
+	// Set any default values we need.
+	result->frame = FRAME_NONE;
 
 	return result;
 }

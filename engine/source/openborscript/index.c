@@ -279,6 +279,15 @@ const char *Script_GetFunctionName(void *functionRef)
         return "set_animation_property";
     }
 
+	else if (functionRef == ((void*)openbor_get_sub_entity_property))
+	{
+	return "get_sub_entity_property";
+	}
+	else if (functionRef == ((void*)openbor_set_sub_entity_property))
+	{
+	return "set_sub_entity_property";
+	}
+
 	else if (functionRef == ((void *)openbor_get_attack_collection))
     {
         return "get_attack_collection";
@@ -910,6 +919,16 @@ void *Script_GetStringMapFunction(void *functionRef)
 		return (void*)mapstrings_animation_property;
 	}
 
+	// Animation
+	else if (functionRef == ((void*)openbor_get_sub_entity_property))
+	{
+		return (void*)mapstrings_sub_entity_property;
+	}
+	else if (functionRef == ((void*)openbor_set_sub_entity_property))
+	{
+		return (void*)mapstrings_sub_entity_property;
+	}
+
 	// Entity (Legacy)
 	else if (functionRef == ((void *)openbor_getentityproperty))
     {
@@ -1197,6 +1216,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_animation_property, "get_animation_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_animation_property, "set_animation_property");
+
+	// Sub entity properties.
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_get_sub_entity_property, "get_sub_entity_property");
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_set_sub_entity_property, "set_sub_entity_property");
 
     // Attack properties
     List_InsertAfter(&theFunctionList,

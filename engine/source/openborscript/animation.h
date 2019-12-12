@@ -66,12 +66,12 @@ typedef enum
 	_ANIMATION_PROP_RANGE_Z_MIN,
 	_ANIMATION_PROP_SIZE_X,
 	_ANIMATION_PROP_SIZE_Y,
-	_ANIMATION_PROP_SPAWNFRAME,		
-	_ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX,	
+	_ANIMATION_PROP_SUB_ENTITY_MODEL_INDEX,
+	_ANIMATION_PROP_SUB_ENTITY_SPAWN,
+	_ANIMATION_PROP_SUB_ENTITY_SUMMON,
+	_ANIMATION_PROP_SUB_ENTITY_UNSUMMON,
 	_ANIMATION_PROP_SUBJECT_TO_GRAVITY,
-	_ANIMATION_PROP_SUMMONFRAME,	
-	_ANIMATION_PROP_SYNC,			
-	_ANIMATION_PROP_UNSUMMONFRAME,	
+	_ANIMATION_PROP_SYNC,				
 	_ANIMATION_PROP_WEAPONFRAME,    
 	_ANIMATION_PROP_END				// End cap. ALWAYS last!				
 } e_animation_properties;
@@ -105,3 +105,20 @@ HRESULT openbor_get_animation_frame_property(ScriptVariant** varlist, ScriptVari
 HRESULT openbor_set_animation_frame_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 int mapstrings_animation_frame_property(ScriptVariant** varlist, int paramCount);
+
+// Sub entity properties.
+typedef enum
+{
+	_SUB_ENTITY_PROP_FRAME,
+	_SUB_ENTITY_PROP_PLACEMENT,
+	_SUB_ENTITY_PROP_POSITION_X,
+	_SUB_ENTITY_PROP_POSITION_Y,
+	_SUB_ENTITY_PROP_POSITION_Z,
+	_SUB_ENTITY_PROP_END			// End cap. ALWAYS last!
+} e_sub_entity_properties;
+
+HRESULT openbor_allocate_sub_entity(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_get_sub_entity_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_set_sub_entity_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+
+int mapstrings_sub_entity_property(ScriptVariant** varlist, int paramCount);
