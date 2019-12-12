@@ -2145,8 +2145,8 @@ typedef struct
 	int							flipframe;              // Turns entities around on the desired frame. ~~
 	int							hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
 	int							index;                  // unique id.~~
-	int							numframes;              // Count of frames in the animation.	
-	int							model_index;
+	int							numframes;              // Count of frames in the animation. ~~	
+	int							model_index;			// model index animation loaded to. ~~
 	int							sub_entity_model_index;	// Sub entity model index (for spawn/summon).
 	int							sub_entity_unsummon;    // Un-summon the entity
 	int							sync;                   // Synchronize frame to previous animation if they matches
