@@ -405,6 +405,9 @@ List *createModelCommandList(void)
 	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_X, "projectile_position_x");
 	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Y, "projectile_position_y");
 	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Z, "projectile_position_z");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_X, "projectile_velocity_x");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_Y, "projectile_velocity_y");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_Z, "projectile_velocity_z");
     LIST_ADD(CMD_MODEL_PROJECTILEHIT, "projectilehit");
     LIST_ADD(CMD_MODEL_PSHOTFRAME, "pshotframe");
     LIST_ADD(CMD_MODEL_PSHOTFRAMENO, "pshotframeno");

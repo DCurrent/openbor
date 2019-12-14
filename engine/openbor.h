@@ -119,7 +119,11 @@ movement restirctions are here!
 #define		FRAME_NONE			-1	// Lot of things use frames 0+, and this value to mean they are disabled.
 #define		MODEL_INDEX_NONE	-1	// No model/disabled.
 
-#define		ITEM_HIDE_POSITION_Z 100000	
+#define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
+#define		MODEL_SPEED_NONE			999999.9	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
+#define		PROJECTILE_DEFAULT_SPEED_X	2
+#define		PROJECTILE_DEFAULT_SPEED_Y	0
+#define		PROJECTILE_DEFAULT_SPEED_Z	0
 
 // Caskey, Damon V.
 // 2019-01-27
@@ -2052,12 +2056,13 @@ typedef struct
 {
     unsigned int      shootframe;
     unsigned int      throwframe;
-    unsigned int      tossframe;  // Frame to toss bomb/grenade
+    unsigned int      tossframe;		// Frame to toss bomb/grenade
     int                     bomb;       // custbomb;
     int                     flash;      // custpshotno;
     int                     knife;      // custknife;
-    s_axis_principal_int  position;   // Location at which projectiles are spawned
+    s_axis_principal_int  position;		// Location at which projectiles are spawned
     int                     star;       // custstar;
+	s_axis_principal_float velocity;	// Throw velocity.
 } s_projectile;
 
 typedef enum
@@ -2107,13 +2112,13 @@ typedef struct
 	s_onframe_move				jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct. ~~
 	s_onframe_set				landframe;				// Landing behavior. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct. ~~
-	s_projectile				projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc. ~~
 	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct. ~~
 	s_range						range;                  // Verify distance to target, jump landings, etc. ~~
 	s_axis_principal_int		size;                   // Dimensions (height, width). ~~
 	
 	s_sub_entity				*sub_entity_spawn;		// Replace legacy "spawnframe" - spawn an entity unrelated to parent. ~~
 	s_sub_entity				*sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
+	s_projectile				*projectile;            // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
 
 	s_collision_attack_list		**collision_attack;
@@ -2388,7 +2393,7 @@ typedef struct
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
     s_axis_plane_vertical_int size; // Used to set height of player in pixels
-    float speed;
+    s_axis_principal_float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
     int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
@@ -3122,6 +3127,8 @@ void free_models();
 int free_model();
 void cache_model_sprites();
 
+s_drawmethod			*allocate_drawmethod();
+s_projectile			*allocate_projectile();
 s_onframe_set			*allocate_frame_set();
 s_sub_entity			*allocate_sub_entity();
 s_anim                  *alloc_anim();

@@ -4934,7 +4934,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_speed:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.speed;
+        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.speed.x;
         break;
     }
     case _ep_sprite:
@@ -6769,7 +6769,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->modeldata.speed = (DOUBLE)dbltemp;
+            ent->modeldata.speed.x = (DOUBLE)dbltemp;
         }
         break;
     }
@@ -10792,11 +10792,22 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else if(relative)
     {
-        a  = self->animation->projectile.position.y;
+		if (self->animation->projectile)
+		{
+			a = self->animation->projectile->position.y;
+		}
+        
     }
     else
     {
-        a = self->position.y + self->animation->projectile.position.y;
+		if (self->animation->projectile)
+		{
+			a = self->position.y + self->animation->projectile->position.y;
+		}
+		else
+		{
+			a = 70;
+		}        
     }
 
 	// Direction.

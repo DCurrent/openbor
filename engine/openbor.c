@@ -100,6 +100,22 @@ const s_drawmethod plainmethod =
     .water = {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0}
 };
 
+// Caskey, Damon V.
+// 2019-12-13
+// Need default values for projectile animation 
+// settings, and projectiles in general.
+const s_projectile projectile_default_animation = {
+	.shootframe = FRAME_NONE,
+	.throwframe = FRAME_NONE,
+	.tossframe = FRAME_NONE,
+	.position = {	.x = 56,
+					.y = 70,
+					.z = 0},
+	.velocity = {.x = PROJECTILE_DEFAULT_SPEED_X,
+					.y = PROJECTILE_DEFAULT_SPEED_Y,
+					.z = PROJECTILE_DEFAULT_SPEED_Z }
+};
+
 const s_defense default_defense =
 {
     .factor         = 1.f,
@@ -5479,16 +5495,17 @@ void free_anim(s_anim *anim)
         return;
     }
     free_frames(anim);
-    if(anim->starvelocity)
-    {
-        free(anim->starvelocity);
-        anim->starvelocity = NULL;
-    }
-    if(anim->weaponframe)
-    {
-        free(anim->weaponframe);
-        anim->weaponframe = NULL;
-    }
+    
+	if (anim->projectile)
+	{
+		free(anim->projectile);
+		anim->projectile = NULL;
+	}
+	if (anim->starvelocity)
+	{
+		free(anim->starvelocity);
+		anim->starvelocity = NULL;
+	}
 	if (anim->sub_entity_spawn)
 	{
 		free(anim->sub_entity_spawn);
@@ -5498,6 +5515,11 @@ void free_anim(s_anim *anim)
 	{
 		free(anim->sub_entity_summon);
 		anim->sub_entity_summon = NULL;
+	}
+	if (anim->weaponframe)
+	{
+		free(anim->weaponframe);
+		anim->weaponframe = NULL;
 	}
    
     free(anim);
@@ -9364,20 +9386,20 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SPEED:
                 value = GET_ARG(1);
-                newchar->speed = atof(value);
-                newchar->speed /= 10;
-                if(newchar->speed < 0.5)
+                newchar->speed.x = atof(value);
+                newchar->speed.x /= 10;
+                if(newchar->speed.x < 0.5)
                 {
-                    newchar->speed = 0.5;
+                    newchar->speed.x = 0.5;
                 }
-                if(newchar->speed > 30)
+                if(newchar->speed.x > 30)
                 {
-                    newchar->speed = 30;
+                    newchar->speed.x = 30;
                 }
                 break;
             case CMD_MODEL_SPEEDF:
                 value = GET_ARG(1);
-                newchar->speed = atof(value);
+                newchar->speed.x = atof(value);
                 break;
             case CMD_MODEL_JUMPSPEED:
                 value = GET_ARG(1);
@@ -10300,12 +10322,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->energy_cost.disable	= 0;
 				newanim->energy_cost.mponly		= COST_TYPE_MP_THEN_HP;
                 newanim->charge_time            = ANIMATION_CHARGE_TIME_DEFAULT;
-                newanim->projectile.shootframe  = FRAME_NONE;
-                newanim->projectile.throwframe  = FRAME_NONE;
-                newanim->projectile.tossframe   = FRAME_NONE;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-				newanim->projectile.position.x	= 0;
-				newanim->projectile.position.y	= 70;
-				newanim->projectile.position.z	= 0;
+				newanim->projectile				= NULL;
+				//newanim->projectile.shootframe  = FRAME_NONE;
+				//newanim->projectile.throwframe  = FRAME_NONE;
+				//newanim->projectile.tossframe   = FRAME_NONE;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
+				//newanim->projectile.position.x	= 0;
+				//newanim->projectile.position.y	= 70;
+				//newanim->projectile.position.z	= 0;
+				//newanim->projectile.velocity.x	= MODEL_SPEED_NONE;
+				//newanim->projectile.velocity.y	= MODEL_SPEED_NONE;
+				//newanim->projectile.velocity.z	= MODEL_SPEED_NONE;
                 newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
                 newanim->subject_to_gravity     = 1;
@@ -10320,9 +10346,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->dropframe.frame        = FRAME_NONE;
 				newanim->dropframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
                 newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
-                newanim->hit_count               = 0; //OX counts hits on a per anim basis for cancels.
-                newanim->sub_entity_model_index              = newanim->projectile.bomb = newanim->projectile.knife =
-                                                  newanim->projectile.star = newanim->projectile.flash = MODEL_INDEX_NONE;
+                newanim->hit_count              = 0; //OX counts hits on a per anim basis for cancels.
+                newanim->sub_entity_model_index = MODEL_INDEX_NONE;
 				newanim->sub_entity_spawn		= NULL;
 				newanim->sub_entity_summon		= NULL;
                 newanim->quakeframe.framestart  = 0;
@@ -10417,57 +10442,146 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_PSHOTFRAME:
             case CMD_MODEL_PSHOTFRAMEW:
             case CMD_MODEL_PSHOTFRAMENO:
-                newanim->projectile.throwframe = GET_FRAME_ARG(1);
-                newanim->projectile.position.y = GET_INT_ARG(2);
-                if(!newanim->projectile.position.y)
-                {
-                    newanim->projectile.position.y = 70;
-                }
-                else if(newanim->projectile.position.y == -1)
-                {
-                    newanim->projectile.position.y = 0;
-                }
-                break;
+
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->throwframe = GET_FRAME_ARG(1);
+                
+				if (GET_INT_ARG(2))
+				{
+					newanim->projectile->position.y = GET_INT_ARG(2);
+				}
+				break;
+
+
             case CMD_MODEL_SHOOTFRAME:
-                newanim->projectile.shootframe = GET_FRAME_ARG(1);
-                newanim->projectile.position.y = GET_INT_ARG(2);
-                if(newanim->projectile.position.y == -1)
-                {
-                    newanim->projectile.position.y = 0;
-                }
-                break;
+                
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->shootframe = GET_FRAME_ARG(1);
+
+				if (GET_INT_ARG(2))
+				{
+					newanim->projectile->position.y = GET_INT_ARG(2);
+				}
+				break;
+
             case CMD_MODEL_TOSSFRAME:
             case CMD_MODEL_PBOMBFRAME:
-                newanim->projectile.tossframe = GET_FRAME_ARG(1);
-                newanim->projectile.position.y = GET_INT_ARG(2);
-                if(newanim->projectile.position.y < 0)
-                {
-                    newanim->projectile.position.y = -1;
-                }
-                break;
+               
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->tossframe = GET_FRAME_ARG(1);
+
+				if (GET_INT_ARG(2))
+				{
+					newanim->projectile->position.y = GET_INT_ARG(2);
+				}
+				break;
             case CMD_MODEL_CUSTKNIFE:
             case CMD_MODEL_CUSTPSHOT:
             case CMD_MODEL_CUSTPSHOTW:
-                newanim->projectile.knife = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->knife = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTPSHOTNO:
-                newanim->projectile.flash = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->flash = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTBOMB:
             case CMD_MODEL_CUSTPBOMB:
-                newanim->projectile.bomb = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->bomb = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTSTAR:
-                newanim->projectile.star = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->star = get_cached_model_index(GET_ARG(1));
                 break;
 			case CMD_MODEL_PROJECTILE_POSITION_X:
-				newanim->projectile.position.x = GET_INT_ARG(1);
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->position.x = GET_INT_ARG(1);
 				break;
 			case CMD_MODEL_PROJECTILE_POSITION_Y:
-				newanim->projectile.position.y = GET_INT_ARG(1);
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->position.y = GET_INT_ARG(1);
 				break;
 			case CMD_MODEL_PROJECTILE_POSITION_Z:
-				newanim->projectile.position.z = GET_INT_ARG(1);
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->position.z = GET_INT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_VELOCITY_X:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->velocity.x = GET_FLOAT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_VELOCITY_Y:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->velocity.y = GET_FLOAT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_VELOCITY_Z:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->velocity.z = GET_FLOAT_ARG(1);
 				break;
 
 				// Legacy dive attacks. Turn off animation level subject_to_gravity
@@ -11045,6 +11159,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z:
                 attack.dropv.z = GET_FLOAT_ARG(1);
                 break;
+			case CMD_MODEL_COLLISION_REACTION_REPOSITION_DIRECTION:
+				attack.force_direction = GET_FLOAT_ARG(1);
+				break;
             case CMD_MODEL_COLLISION_EFFECT_BLOCK_FLASH:
 
                 value = GET_ARG(1);
@@ -12159,7 +12276,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     if(newchar->jumpspeed < 0)
     {
-        newchar->jumpspeed = MAX(newchar->speed, 1);
+        newchar->jumpspeed = MAX(newchar->speed.x, 1);
     }
 
     if(blendfx_is_set == 0)
@@ -17647,9 +17764,9 @@ void ent_default_init(entity *e)
             e->nograb_default = e->nograb;
             e->attacking = ATTACKING_ACTIVE;
             //e->direction = (e->position.x<0);
-            if(e->modeldata.speed)
+            if(e->modeldata.speed.x)
             {
-                e->velocity.x = (e->direction == DIRECTION_RIGHT) ? (e->modeldata.speed) : (-e->modeldata.speed);
+                e->velocity.x = (e->direction == DIRECTION_RIGHT) ? (e->modeldata.speed.x) : (-e->modeldata.speed.x);
             }
             else
             {
@@ -17663,13 +17780,13 @@ void ent_default_init(entity *e)
         else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
             e->energy_state.health_current = 1;
-            if(!e->modeldata.speed && !e->modeldata.nomove)
+            if(!e->modeldata.speed.x && !e->modeldata.nomove)
             {
-                e->modeldata.speed = 2;    // Set default speed to 2 for arrows
+                e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
             }
             else if(e->modeldata.nomove)
             {
-                e->modeldata.speed = 0;
+                e->modeldata.speed.x = 0;
             }
             if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
             {
@@ -17690,13 +17807,13 @@ void ent_default_init(entity *e)
         {
             e->trymove = common_trymove;
             // Must just be a regular enemy, set defaults accordingly
-            if(!e->modeldata.speed && !e->modeldata.nomove)
+            if(!e->modeldata.speed.x && !e->modeldata.nomove)
             {
-                e->modeldata.speed = 1;
+                e->modeldata.speed.x = 1;
             }
             else if(e->modeldata.nomove)
             {
-                e->modeldata.speed = 0;
+                e->modeldata.speed.x = 0;
             }
             if(e->modeldata.multiple == 0)
             {
@@ -17766,13 +17883,13 @@ void ent_default_init(entity *e)
         e->think = common_think;
         e->takedamage = arrow_takedamage;
         e->attacking = ATTACKING_ACTIVE;
-        if(!e->model->speed && !e->modeldata.nomove)
+        if(!e->model->speed.x && !e->modeldata.nomove)
         {
-            e->modeldata.speed = 2;    // Set default speed to 2 for arrows
+            e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
         }
         else if(e->modeldata.nomove)
         {
-            e->modeldata.speed = 0;
+            e->modeldata.speed.x = 0;
         }
         if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
         {
@@ -17801,11 +17918,11 @@ void ent_default_init(entity *e)
         {
             if(e->direction == DIRECTION_RIGHT)
             {
-                e->velocity.x = e->modeldata.speed;
+                e->velocity.x = e->modeldata.speed.x;
             }
             else
             {
-                e->velocity.x = -(e->modeldata.speed);
+                e->velocity.x = -(e->modeldata.speed.x);
             }
             e->think = anything_walk;
 
@@ -18194,59 +18311,61 @@ void update_frame(entity *ent, unsigned int f)
     // Perform jumping if on a jumpframe.
     check_jumpframe(self, f);
 
-	int position_x = anim->projectile.position.x;
-
-	if (self->direction == DIRECTION_LEFT)
+	// This animation have projectile settings?
+	if (anim->projectile)
 	{
-		position_x = -position_x;
+		int position_x = anim->projectile->position.x;
+
+		if (self->direction == DIRECTION_LEFT)
+		{
+			position_x = -position_x;
+		}
+
+		if (anim->projectile->throwframe == f)
+		{
+			// For backward compatible thing
+			// throw stars in the air, hmm, strange
+			// custstar custknife in animation should be checked first
+			// then if the entity is jumping, check star first, if failed, try knife instead
+			// well, try knife at last, if still failed, try star, or just let if shutdown?
+
+#define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
+#define __tryknife knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 0, 0)
+
+			if (anim->projectile->knife >= 0 || anim->projectile->flash >= 0)
+			{
+				__tryknife;
+			}
+			else if (anim->projectile->star >= 0)
+			{
+				__trystar;
+			}
+			else if (self->jumping)
+			{
+				if (!__trystar)
+				{
+					__tryknife;
+				}
+			}
+			else if (!__tryknife)
+			{
+				__trystar;
+			}
+			self->deduct_ammo = 1;
+		}
+
+		if (anim->projectile->shootframe == f)
+		{
+			knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 1, 0);
+			self->deduct_ammo = 1;
+		}
+
+		if (anim->projectile->tossframe == f)
+		{
+			bomb_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 0);
+			self->deduct_ammo = 1;
+		}
 	}
-
-    if(anim->projectile.throwframe == f)
-    {
-        // For backward compatible thing
-        // throw stars in the air, hmm, strange
-        // custstar custknife in animation should be checked first
-        // then if the entity is jumping, check star first, if failed, try knife instead
-        // well, try knife at last, if still failed, try star, or just let if shutdown?
-
-		
-
-        #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-        #define __tryknife knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile.position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
-
-        if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
-        {
-            __tryknife;
-        }
-        else if(anim->projectile.star >= 0)
-        {
-            __trystar;
-        }
-        else if(self->jumping)
-        {
-            if(!__trystar)
-            {
-                __tryknife;
-            }
-        }
-        else if(!__tryknife)
-        {
-            __trystar;
-        }
-        self->deduct_ammo = 1;
-    }
-
-    if(anim->projectile.shootframe == f)
-    {
-        knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile.position.z, self->position.y + anim->projectile.position.y, self->direction, 1, 0);
-        self->deduct_ammo = 1;
-    }
-
-    if(anim->projectile.tossframe == f)
-    {
-        bomb_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile.position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
-        self->deduct_ammo = 1;
-    }
 
 uf_interrupted:
 
@@ -18544,6 +18663,23 @@ s_drawmethod *allocate_drawmethod()
 
 	// Copy default values into new drawmethod.
 	memcpy(result, &plainmethod, sizeof(*result));
+
+	return result;
+}
+
+// Caskey, Damon V.
+// 2019-12-13
+//
+// Allocate memory for a projectile animation setting and return pointer.
+s_projectile* allocate_projectile()
+{
+	s_projectile* result;
+
+	// Allocate memory and get the pointer.
+	result = malloc(sizeof(*result));
+
+	// Copy default values into new projectile setting.
+	memcpy(result, &projectile_default_animation, sizeof(*result));
 
 	return result;
 }
@@ -21781,7 +21917,7 @@ void update_animation()
         }
         if(self->modeldata.type & TYPE_PANEL)
         {
-            scrollv += self->modeldata.speed;
+            scrollv += self->modeldata.speed.x;
         }
         if(self->modeldata.scroll)
         {
@@ -23902,9 +24038,9 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
 
     if(!(newmodel->model_flag & MODEL_NO_COPY))
     {
-        if(!newmodel->speed)
+        if(!newmodel->speed.x)
         {
-            newmodel->speed = model->speed;
+            newmodel->speed.x = model->speed.x;
         }
         if(!newmodel->runspeed)
         {
@@ -27412,11 +27548,11 @@ void common_runoff()
     }
     if(self->direction == DIRECTION_RIGHT)
     {
-        self->velocity.x = -self->modeldata.speed / 2;
+        self->velocity.x = -self->modeldata.speed.x / 2;
     }
     else
     {
-        self->velocity.x = self->modeldata.speed / 2;
+        self->velocity.x = self->modeldata.speed.x / 2;
     }
 
     self->velocity.z = 0;
@@ -27501,7 +27637,7 @@ void common_attack_finish()
         self->takeaction = NULL;//common_runoff;
         self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
         self->destz = self->position.z;
-        self->velocity.x = self->position.x > target->position.x ? self->modeldata.speed : -self->modeldata.speed;
+        self->velocity.x = self->position.x > target->position.x ? self->modeldata.speed.x : -self->modeldata.speed.x;
         self->velocity.z = 0;
         adjust_walk_animation(target);
         self->idling = IDLING_PREPARED;
@@ -27826,7 +27962,7 @@ void adjust_walk_animation(entity *other)
 int common_try_pick(entity *other)
 {
     // if there's an item to pick up, move towards it.
-    float maxspeed = self->modeldata.speed * 1.5;
+    float maxspeed = self->modeldata.speed.x * 1.5;
     float dx = diff(self->position.x, other->position.x);
     float dz = diff(self->position.z, other->position.z);
 
@@ -28226,19 +28362,19 @@ int checkpathblocked()
             z = self->velocity.z;
             if(x > 0)
             {
-                x = self->modeldata.speed;
+                x = self->modeldata.speed.x;
             }
             else if(x < 0)
             {
-                x = -self->modeldata.speed;
+                x = -self->modeldata.speed.x;
             }
             if(z > 0)
             {
-                z = self->modeldata.speed / 2;
+                z = self->modeldata.speed.x / 2;
             }
             else if(z < 0)
             {
-                z = -self->modeldata.speed / 2;
+                z = -self->modeldata.speed.x / 2;
             }
             r = randf(1);
             if(r > 0.6f)
@@ -28253,8 +28389,8 @@ int checkpathblocked()
             }
             else
             {
-                self->velocity.z = (1.0f - randf(2)) * self->modeldata.speed / 2;
-                self->velocity.x = (1.0f - randf(2)) * self->modeldata.speed;
+                self->velocity.z = (1.0f - randf(2)) * self->modeldata.speed.x / 2;
+                self->velocity.x = (1.0f - randf(2)) * self->modeldata.speed.x;
             }
             self->running = 0; // TODO: re-adjust walk speed
             self->stalltime = _time + GAME_SPEED / 2;
@@ -28305,7 +28441,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     self->running = 0;
 
-    //adjustspeed(self->modeldata.speed, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
+    //adjustspeed(self->modeldata.speed.x, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
 
     if(target == NULL || self->modeldata.nomove)
     {
@@ -28351,7 +28487,7 @@ int common_try_chase(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         if(self->destx < self->position.x)
         {
@@ -28371,7 +28507,7 @@ int common_try_chase(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
         }
         if(self->destz < self->position.z)
         {
@@ -28437,7 +28573,7 @@ int common_try_follow(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
             self->running = 0;
         }
         if(self->position.x > target->position.x)
@@ -28456,7 +28592,7 @@ int common_try_follow(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
             self->running = 0; // not right, to be modified
         }
         if(self->position.z > target->position.z)
@@ -28491,13 +28627,13 @@ int common_try_avoid(entity *target, int dox, int doz)
 
     if((rand32() & 15) < 8 && randomatk >= 0)
     {
-        maxdx = self->modeldata.animation[randomatk]->range.x.max - self->modeldata.speed;
+        maxdx = self->modeldata.animation[randomatk]->range.x.max - self->modeldata.speed.x;
         if(maxdx < videomodes.hRes / 5)
         {
             maxdx = videomodes.hRes / 5;
         }
         mindx = maxdx - 10;
-        maxdz = self->modeldata.animation[randomatk]->range.z.max - self->modeldata.speed;
+        maxdz = self->modeldata.animation[randomatk]->range.z.max - self->modeldata.speed.x;
         if(maxdz < videomodes.vRes / 5)
         {
             maxdz = videomodes.vRes / 5;
@@ -28516,22 +28652,22 @@ int common_try_avoid(entity *target, int dox, int doz)
     {
         if(self->position.x < screenx)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes / 12.0;
         }
         else if(self->position.x > screenx + videomodes.hRes)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes * 11.0 / 12.0;
         }
         else if(dx < mindx)
         {
-            self->velocity.x = (self->position.x < target->position.x) ? (-self->modeldata.speed) : self->modeldata.speed;
+            self->velocity.x = (self->position.x < target->position.x) ? (-self->modeldata.speed.x) : self->modeldata.speed.x;
             self->destx = (self->position.x < target->position.x) ? (target->position.x - maxdx) : (target->position.x + maxdx);
         }
         else if (dx > maxdx)
         {
-            self->velocity.x = (self->position.x < target->position.x) ? self->modeldata.speed : (-self->modeldata.speed);
+            self->velocity.x = (self->position.x < target->position.x) ? self->modeldata.speed.x : (-self->modeldata.speed.x);
             self->destx = (self->position.x < target->position.x) ? (target->position.x - mindx) : (target->position.x + mindx);
         }
         else
@@ -28545,22 +28681,22 @@ int common_try_avoid(entity *target, int dox, int doz)
     {
         if(self->position.z < screeny)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
             self->destz = screeny +  videomodes.vRes / 12.0;
         }
         else if(self->position.z > screeny + videomodes.vRes)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
             self->destz = screeny +  videomodes.vRes * 11.0 / 12.0;
         }
         else if(dz < mindz)
         {
-            self->velocity.z = (self->position.z < target->position.z) ? (-self->modeldata.speed / 2) : (self->modeldata.speed / 2);
+            self->velocity.z = (self->position.z < target->position.z) ? (-self->modeldata.speed.x / 2) : (self->modeldata.speed.x / 2);
             self->destz = (self->position.z < target->position.z) ? (target->position.z - maxdz) : (target->position.z + maxdz);
         }
         else if(dz > maxdz)
         {
-            self->velocity.z = (self->position.z < target->position.z) ? (self->modeldata.speed / 2) : (-self->modeldata.speed / 2);
+            self->velocity.z = (self->position.z < target->position.z) ? (self->modeldata.speed.x / 2) : (-self->modeldata.speed.x / 2);
             self->destz = (self->position.z < target->position.z) ? (target->position.z - mindz) : (target->position.z + mindz);
         }
         else
@@ -28591,11 +28727,11 @@ int common_try_wandercompletely(int dox, int doz)
         rnum = rand32() & 15;
         if(rnum < 4)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else if(rnum > 11)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         else
         {
@@ -28603,11 +28739,11 @@ int common_try_wandercompletely(int dox, int doz)
         }
         if( self->position.x < screenx - 10)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         else if(self->position.x > screenx + videomodes.hRes + 10)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
 
         if(self->velocity.x > 0)
@@ -28629,11 +28765,11 @@ int common_try_wandercompletely(int dox, int doz)
         rnum = rand32() & 15;
         if(rnum < 4)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
         }
         else if(rnum > 11)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
         }
         else
         {
@@ -28641,11 +28777,11 @@ int common_try_wandercompletely(int dox, int doz)
         }
         if(self->position.z < screeny - 10)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
         }
         else if(self->position.z > screeny + videomodes.vRes + 10)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
         }
 
         if(self->velocity.z > 0)
@@ -28798,7 +28934,7 @@ int common_try_wander(entity *target, int dox, int doz)
     }
     mindz = grabd / 4;
 
-    mod = ((int)(_time / (videomodes.hRes / self->modeldata.speed)) + 1000 + self->energy_state.health_current / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
+    mod = ((int)(_time / (videomodes.hRes / self->modeldata.speed.x)) + 1000 + self->energy_state.health_current / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
     if(mod < 0)
     {
         mod = -mod;
@@ -28813,19 +28949,19 @@ int common_try_wander(entity *target, int dox, int doz)
     {
         if(self->position.x < screenx - borderdx)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes / 8.0;
             walk = 1;
         }
         else if (self->position.x > screenx + videomodes.hRes + borderdx)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes * 7.0 / 8.0;
             walk = 1;
         }
         else if(diffx > returndx)
         {
-            self->velocity.x = (self->position.x > target->position.x) ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = (self->position.x > target->position.x) ? -self->modeldata.speed.x : self->modeldata.speed.x;
             self->destx = (self->position.x > target->position.x) ? (target->position.x + mindx) : (target->position.x - mindx);
             walk = 1;
         }
@@ -28846,7 +28982,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destx = target->position.x - videomodes.hRes * 0.4 - (self->energy_state.health_current / 3 % 20);
                 break;
             }
-            self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed.x : self->modeldata.speed.x;
             walk = 1;
             //printf("mod x %d\n", mod);
         }
@@ -28856,19 +28992,19 @@ int common_try_wander(entity *target, int dox, int doz)
     {
         if(self->position.z < screeny - borderdz)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
             self->destz = screeny + videomodes.vRes / 12.0;
             walk |= 1;
         }
         else if (self->position.z > screeny + videomodes.vRes + borderdz)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
             self->destz = screeny + videomodes.vRes * 11.0 / 12.0;
             walk |= 1;
         }
         else if(diffz > returndz)
         {
-            self->velocity.z = (self->position.z > target->position.z) ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = (self->position.z > target->position.z) ? -self->modeldata.speed.x / 2 : self->modeldata.speed.x / 2;
             self->destz = (self->position.z > target->position.z) ? (target->position.z + mindz) : (target->position.z - mindz);
             walk |= 1;
         }
@@ -28889,7 +29025,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destz = target->position.z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->energy_state.health_current / 3 % 5);
                 break;
             }
-            self->velocity.z = self->position.z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = self->position.z > self->destz ? -self->modeldata.speed.x / 2 : self->modeldata.speed.x / 2;
             walk |= 1;
             //printf("mod z %d\n", mod);
         }
@@ -28995,9 +29131,9 @@ int biker_move()
         {
             sound_play_sample(SAMPLE_BIKE, 0, savedata.effectvol, savedata.effectvol, 100);
         }
-        if(self->modeldata.speed)
+        if(self->modeldata.speed.x)
         {
-            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (self->modeldata.speed) : (-self->modeldata.speed);
+            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (self->modeldata.speed.x) : (-self->modeldata.speed.x);
         }
         else
         {
@@ -29030,7 +29166,7 @@ int arrow_move()
             // start chasing the target
             dx = diff(self->position.x, target->position.x);
             dz = diff(self->position.z, target->position.z);
-            maxspeed = self->modeldata.speed * 1.5;
+            maxspeed = self->modeldata.speed.x * 1.5;
 
             if(!dz && !dx)
             {
@@ -29056,11 +29192,11 @@ int arrow_move()
             {
                 if(self->direction == DIRECTION_LEFT)
                 {
-                    self->velocity.x = -self->modeldata.speed;
+                    self->velocity.x = -self->modeldata.speed.x;
                 }
                 else if(self->direction == DIRECTION_RIGHT)
                 {
-                    self->velocity.x = self->modeldata.speed;
+                    self->velocity.x = self->modeldata.speed.x;
                 }
             }
         }
@@ -29089,12 +29225,15 @@ int arrow_move()
         // Now projectiles can have custom speeds
         if(self->direction == DIRECTION_LEFT)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else if(self->direction == DIRECTION_RIGHT)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
+
+		self->velocity.y = self->modeldata.speed.y;
+		self->velocity.z = self->modeldata.speed.z;
     }
 
     if(level)
@@ -29266,11 +29405,11 @@ int bomb_move()
     {
         if(self->direction == DIRECTION_LEFT)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else if(self->direction == DIRECTION_RIGHT)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     else if(self->takeaction != bomb_explode)
@@ -29652,7 +29791,7 @@ int common_move()
 
         // make the entity walks in a straight path instead of flickering here and there
         // acceleration can be added easily based on this logic, if necessary
-        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed,
+        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed.x,
                                                     self->position.x, self->position.z,
                                                     self->destx, self->destz,
                                                     &self->velocity.x,
@@ -29851,7 +29990,7 @@ void checkstalker()
 
     running = validanim(self, ANI_RUN);
 
-    maxspeed = running ? self->modeldata.runspeed : self->modeldata.speed;
+    maxspeed = running ? self->modeldata.runspeed : self->modeldata.speed.x;
 
     self->velocity.x = maxspeed;
     self->velocity.z = 0;
@@ -30602,11 +30741,11 @@ void runanimal()
 
     if(self->direction == DIRECTION_RIGHT)
     {
-        self->position.x += self->modeldata.speed;
+        self->position.x += self->modeldata.speed.x;
     }
     else
     {
-        self->position.x -= self->modeldata.speed;
+        self->position.x -= self->modeldata.speed.x;
     }
 }
 
@@ -31215,7 +31354,7 @@ void player_grab_check()
                 }
                 else
                 {
-                    self->velocity.z = -self->modeldata.speed / 2;
+                    self->velocity.z = -self->modeldata.speed.x / 2;
                 }
             }
             else if(player[self->playerindex].keys & FLAG_MOVEDOWN)
@@ -31226,7 +31365,7 @@ void player_grab_check()
                 }
                 else
                 {
-                    self->velocity.z = self->modeldata.speed / 2;
+                    self->velocity.z = self->modeldata.speed.x / 2;
                 }
             }
             else if(!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
@@ -31244,7 +31383,7 @@ void player_grab_check()
             }
             else
             {
-                self->velocity.x = -self->modeldata.speed;
+                self->velocity.x = -self->modeldata.speed.x;
             }
         }
 
@@ -31256,7 +31395,7 @@ void player_grab_check()
             }
             else
             {
-                self->velocity.x = self->modeldata.speed;
+                self->velocity.x = self->modeldata.speed.x;
             }
         }
         else if(!((player[self->playerindex].keys & FLAG_MOVELEFT) || (player[self->playerindex].keys & FLAG_MOVERIGHT)) )
@@ -31362,11 +31501,11 @@ void player_walkoff_check()
 
         if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->velocity.x))
         {
-            self->velocity.x -= self->modeldata.speed;
+            self->velocity.x -= self->modeldata.speed.x;
         }
         else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->velocity.x))
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     if(self->modeldata.walkoffmovez & 2) //z move?
@@ -31396,11 +31535,11 @@ void player_walkoff_check()
 
         if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
-            self->velocity.z -= (0.5 * self->modeldata.speed);
+            self->velocity.z -= (0.5 * self->modeldata.speed.x);
         }
         else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->velocity.z))
         {
-            self->velocity.z = (0.5 * self->modeldata.speed);
+            self->velocity.z = (0.5 * self->modeldata.speed.x);
         }
     }
 
@@ -31509,11 +31648,11 @@ void player_jump_check()
 
         if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->velocity.x))
         {
-            self->velocity.x -= self->modeldata.speed;
+            self->velocity.x -= self->modeldata.speed.x;
         }
         else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->velocity.x))
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     if(self->modeldata.jumpmovez & 2) //z move?
@@ -31543,11 +31682,11 @@ void player_jump_check()
 
         if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
-            self->velocity.z -= (0.5 * self->modeldata.speed);
+            self->velocity.z -= (0.5 * self->modeldata.speed.x);
         }
         else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->velocity.z))
         {
-            self->velocity.z = (0.5 * self->modeldata.speed);
+            self->velocity.z = (0.5 * self->modeldata.speed.x);
         }
     }
 
@@ -31884,7 +32023,7 @@ void player_think()
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
             self->idling = IDLING_NONE;
-            self->velocity.z = -self->modeldata.speed * 1.75;
+            self->velocity.z = -self->modeldata.speed.x * 1.75;
             self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -31920,7 +32059,7 @@ void player_think()
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
             self->idling = IDLING_NONE;
-            self->velocity.z = self->modeldata.speed * 1.75;
+            self->velocity.z = self->modeldata.speed.x * 1.75;
             self->velocity.x = 0;
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -32299,7 +32438,7 @@ void player_think()
             if(validanim(self, ANI_UP) && !self->running)
             {
                 action = 2;
-                self->velocity.z = -self->modeldata.speed / 2;  // Used for up animation
+                self->velocity.z = -self->modeldata.speed.x / 2;  // Used for up animation
             }
             else if(self->running)
             {
@@ -32309,7 +32448,7 @@ void player_think()
             else
             {
                 action = 1;
-                self->velocity.z = -self->modeldata.speed / 2;
+                self->velocity.z = -self->modeldata.speed.x / 2;
             }
         }
         else if(pl->keys & FLAG_MOVEDOWN)
@@ -32319,7 +32458,7 @@ void player_think()
             if(validanim(self, ANI_DOWN) && !self->running )
             {
                 action = 3;
-                self->velocity.z = self->modeldata.speed / 2;  // Used for down animation
+                self->velocity.z = self->modeldata.speed.x / 2;  // Used for down animation
             }
             else if(self->running)
             {
@@ -32329,7 +32468,7 @@ void player_think()
             else
             {
                 action = 1;
-                self->velocity.z = self->modeldata.speed / 2;
+                self->velocity.z = self->modeldata.speed.x / 2;
             }
         }
         else if(!(pl->keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
@@ -32391,11 +32530,11 @@ void player_think()
         else if(action != 2 && action != 3)
         {
             action = 1;
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
     }
     else if(pl->keys & FLAG_MOVERIGHT && self->ducking == DUCK_NONE)
@@ -32446,11 +32585,11 @@ void player_think()
         else if(action != 2 && action != 3)
         {
             action = 1;
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         else
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     else if(!((pl->keys & FLAG_MOVELEFT) ||
@@ -32908,11 +33047,11 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON;
         e->projectile_prime |= PROJECTILE_PRIME_REQUEST_PROJECTILE;
 
-        e->position.y = a;
+        e->position.y = a;		
     }
-    else if(self->animation->projectile.knife >= 0)
+    else if(self->animation->projectile->knife >= 0)
     {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile.knife, NULL);
+        e = spawn(x, z, a, direction, NULL, self->animation->projectile->knife, NULL);
         if(!e)
         {
             return NULL;
@@ -32924,10 +33063,11 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
 
         e->position.y = a;
+
     }
-    else if(self->animation->projectile.flash >= 0)
+    else if(self->animation->projectile->flash >= 0)
     {
-        e = spawn(x, z, 0, direction, NULL, self->animation->projectile.flash, NULL);
+        e = spawn(x, z, 0, direction, NULL, self->animation->projectile->flash, NULL);
         if(!e)
         {
             return NULL;
@@ -33014,14 +33154,25 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.type = self->modeldata.type;
     }
 
-    if(!e->model->speed && !e->modeldata.nomove)
-    {
-        e->modeldata.speed = 2;
-    }
-    else if(e->modeldata.nomove)
-    {
-        e->modeldata.speed = 0;
-    }
+	// If no move, then all speed is 0. Otherwise check for use of
+	// projectile velocity. If player supplied any value other 
+	// than MODEL_SPEED_NONE, we use player's value. If not, fall
+	// back to default values. This is a bit overcomplicated, but
+	// allows players to supply a 0 velocity value on any axis.
+	if (e->modeldata.nomove)
+	{
+		e->modeldata.speed.x = 0;
+		e->modeldata.speed.y = 0;
+		e->modeldata.speed.z = 0;
+	}
+	else
+	{
+		if (self->animation->projectile)
+		{
+			// Copy speed values from animation projectile settings to model.
+			memcpy(&e->modeldata.speed, &self->animation->projectile->velocity, sizeof(e->modeldata.speed));
+		}		
+	}
 
     e->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
     e->owner = self;                                                     // Added so projectiles don't hit the owner
@@ -33079,8 +33230,11 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
         e->modeldata.candamage &= ~TYPE_PLAYER;
     }
 
-    e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
-    e->modeldata.no_adjust_base  = 1;
+	e->modeldata.subject_to_wall = 1;
+	e->modeldata.subject_to_platform = 1;
+	e->modeldata.subject_to_hole = 1;
+	e->modeldata.subject_to_gravity = 0;
+    e->modeldata.no_adjust_base  = 0;
     
 	// Execute the projectile's on spawn event.
 	execute_onspawn_script(e);
@@ -33110,9 +33264,9 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     {
         e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
     }
-    else if(self->animation->projectile.bomb >= 0)
+    else if(self->animation->projectile->bomb >= 0)
     {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile.bomb, NULL);
+        e = spawn(x, z, a, direction, NULL, self->animation->projectile->bomb, NULL);
     }
     else if(self->modeldata.bomb >= 0)
     {
@@ -33126,13 +33280,13 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
 
     e->position.y = a + 0.5;
 
-    if(!e->model->speed && !e->modeldata.nomove)
+    if(!e->model->speed.x && !e->modeldata.nomove)
     {
-        e->modeldata.speed = 2;
+        e->modeldata.speed.x = 2;
     }
     else if(e->modeldata.nomove)
     {
-        e->modeldata.speed = 0;
+        e->modeldata.speed.x = 0;
     }
 
     e->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
@@ -33194,9 +33348,9 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
     {
         index = self->weapent->modeldata.project;
     }
-    else if(self->animation->projectile.star >= 0)
+    else if(self->animation->projectile->star >= 0)
     {
-        index = self->animation->projectile.star;    //use any star
+        index = self->animation->projectile->star;    //use any star
     }
     else if(self->modeldata.star >= 0)
     {
@@ -34056,10 +34210,10 @@ void update_scroller()
     /*
     	//level->advancetime = _time + (GAME_SPEED/100);    // Changed so scrolling speeds up for faster players
     	level->advancetime = _time  -
-    		((player[0].ent && (player[0].ent->modeldata.speed >= 12 || player[0].ent->modeldata.runspeed >= 12)) ||
-    		 (player[1].ent && (player[1].ent->modeldata.speed >= 12 || player[1].ent->modeldata.runspeed >= 12)) ||
-    		 (player[2].ent && (player[2].ent->modeldata.speed >= 12 || player[2].ent->modeldata.runspeed >= 12)) ||
-    		 (player[3].ent && (player[3].ent->modeldata.speed >= 12 || player[3].ent->modeldata.runspeed >= 12)) );    // Changed so if your player is faster the backgrounds scroll faster*/
+    		((player[0].ent && (player[0].ent->modeldata.speed.x >= 12 || player[0].ent->modeldata.runspeed >= 12)) ||
+    		 (player[1].ent && (player[1].ent->modeldata.speed.x >= 12 || player[1].ent->modeldata.runspeed >= 12)) ||
+    		 (player[2].ent && (player[2].ent->modeldata.speed.x >= 12 || player[2].ent->modeldata.runspeed >= 12)) ||
+    		 (player[3].ent && (player[3].ent->modeldata.speed.x >= 12 || player[3].ent->modeldata.runspeed >= 12)) );    // Changed so if your player is faster the backgrounds scroll faster*/
 
     level->advancetime = _time;
 

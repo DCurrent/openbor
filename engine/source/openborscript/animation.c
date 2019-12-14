@@ -67,6 +67,9 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"projectile_position_x",
 		"projectile_position_y",
 		"projectile_position_z",
+		"projectile_velocity_x",
+		"projectile_velocity_y",
+		"projectile_velocity_z",
 		"quake_frame_start",
 		"quake_move_y",
 		"quake_repeat_count",
@@ -327,7 +330,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->loop.mode;
 			break;
-
+		/*
 		case _ANIMATION_PROP_PROJECTILE_FRAME_SHOOT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -339,7 +342,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->projectile.throwframe;
 			break;
-
+			
 		case _ANIMATION_PROP_PROJECTILE_FRAME_TOSS:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -387,6 +390,25 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->projectile.position.z;
 			break;
+
+		case _ANIMATION_PROP_PROJECTILE_VELOCITY_X:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->projectile.velocity.x;
+			break;
+
+		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Y:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->projectile.velocity.y;
+			break;
+
+		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Z:
+
+			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+			(*pretvar)->dblVal = (DOUBLE)handle->projectile.velocity.z;
+			break;
+			*/
 
 		case _ANIMATION_PROP_QUAKE_FRAME_START:
 
@@ -826,6 +848,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
+			/*
 		case _ANIMATION_PROP_PROJECTILE_FRAME_SHOOT:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -916,6 +939,33 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			break;
 
+		case _ANIMATION_PROP_PROJECTILE_VELOCITY_X:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->projectile.velocity.x = (float)temp_float;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Y:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->projectile.velocity.y = (float)temp_float;
+			}
+
+			break;
+
+		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Z:
+
+			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+			{
+				handle->projectile.velocity.z = (float)temp_float;
+			}
+
+			break;
+			*/
 		case _ANIMATION_PROP_QUAKE_FRAME_START:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
