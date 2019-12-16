@@ -105,12 +105,17 @@ const s_drawmethod plainmethod =
 // Need default values for projectile animation 
 // settings, and projectiles in general.
 const s_projectile projectile_default_animation = {
+	.bomb		= MODEL_INDEX_NONE,
+	.flash		= MODEL_INDEX_NONE,
+	.knife		= MODEL_INDEX_NONE,
+	.position = {.x = 56,
+					.y = 70,
+					.z = 0},
 	.shootframe = FRAME_NONE,
 	.throwframe = FRAME_NONE,
 	.tossframe = FRAME_NONE,
-	.position = {	.x = 56,
-					.y = 70,
-					.z = 0},
+	.star		= MODEL_INDEX_NONE,
+	// star_velocity
 	.velocity = {.x = PROJECTILE_DEFAULT_SPEED_X,
 					.y = PROJECTILE_DEFAULT_SPEED_Y,
 					.z = PROJECTILE_DEFAULT_SPEED_Z }
@@ -8743,14 +8748,14 @@ s_model *init_model(int cacheindex, int unload)
     newchar->subject_to_minz            = -1;
     newchar->subject_to_maxz            = -1;
     newchar->no_adjust_base             = -1;
-    newchar->pshotno                    = -1;
-    newchar->project                    = -1;
-    newchar->dust.fall_land             = -1;
-    newchar->dust.jump_land             = -1;
-    newchar->dust.jump_start            = -1;
-    newchar->bomb                       = -1;
-    newchar->star                       = -1;
-    newchar->knife                      = -1;
+    newchar->pshotno                    = MODEL_INDEX_NONE;
+    newchar->project                    = MODEL_INDEX_NONE;
+    newchar->dust.fall_land             = MODEL_INDEX_NONE;
+    newchar->dust.jump_land             = MODEL_INDEX_NONE;
+    newchar->dust.jump_start            = MODEL_INDEX_NONE;
+    newchar->bomb                       = MODEL_INDEX_NONE;
+    newchar->star                       = MODEL_INDEX_NONE;
+    newchar->knife                      = MODEL_INDEX_NONE;
     newchar->stealth.hide               = 0;
     newchar->stealth.detect             = 0;
     newchar->attackthrottle				= 0.0f;
@@ -9274,7 +9279,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->star = -1;
+                    newchar->star = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -12255,10 +12260,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             //Do nothing.
             break;
         case TYPE_ENEMY:
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->projectilehit = TYPE_ENEMY | TYPE_OBSTACLE;
             break;
         case TYPE_PLAYER:
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->projectilehit = TYPE_PLAYER | TYPE_OBSTACLE;
             break;
         case TYPE_TRAP: // hmm, don't really needed
             newchar->projectilehit  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
@@ -33337,7 +33342,7 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
 int star_spawn(float x, float z, float a, int direction)  // added entity to know which star to load
 {
     entity *e = NULL;
-    int i, index = -1;
+    int i, index = MODEL_INDEX_NONE;
     char *starname = NULL;
     float fd = (float)((direction ? 2 : -2));
     int max_stars = 3;

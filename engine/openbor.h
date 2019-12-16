@@ -2054,15 +2054,16 @@ typedef struct
 // Projectile spawning.
 typedef struct
 {
-    unsigned int      shootframe;
-    unsigned int      throwframe;
-    unsigned int      tossframe;		// Frame to toss bomb/grenade
-    int                     bomb;       // custbomb;
-    int                     flash;      // custpshotno;
-    int                     knife;      // custknife;
-    s_axis_principal_int  position;		// Location at which projectiles are spawned
-    int                     star;       // custstar;
-	s_axis_principal_float velocity;	// Throw velocity.
+    int						shootframe;
+    int						throwframe;
+    int						tossframe;		// Frame to toss bomb/grenade
+    int                     bomb;			// custbomb;
+    int                     flash;			// custpshotno;
+    int                     knife;			// custknife;
+    s_axis_principal_int	position;		// Location at which projectiles are spawned
+    int                     star;			// custstar;
+	float					star_velocity;	// Legacy star velocity
+	s_axis_principal_float	velocity;		// Throw velocity.
 } s_projectile;
 
 typedef enum
