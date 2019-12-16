@@ -20671,7 +20671,7 @@ void do_attack(entity *e)
     }
 
 	// If any blast active, use projectile hit property.
-    if(e->projectile & BLAST_ATTACK)
+    if(e->projectile != BLAST_NONE)
     {
         them = e->modeldata.projectilehit;
     }
@@ -26748,7 +26748,8 @@ void dothrow()
     }
 
     other->direction = self->direction;
-    other->projectile |= BLAST_TOSS;
+	other->projectile |= BLAST_TOSS;
+	other->projectile |= BLAST_ATTACK;
     other->velocity.x = (other->direction == DIRECTION_RIGHT) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
 
     if(autoland == 1 && validanim(other, ANI_LAND))
