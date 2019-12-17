@@ -2056,14 +2056,14 @@ typedef struct
 {
     int						shootframe;
     int						throwframe;
-    int						tossframe;		// Frame to toss bomb/grenade
-    int                     bomb;			// custbomb;
-    int                     flash;			// custpshotno;
-    int                     knife;			// custknife;
-    s_axis_principal_int	position;		// Location at which projectiles are spawned
-    int                     star;			// custstar;
-	float					star_velocity;	// Legacy star velocity
-	s_axis_principal_float	velocity;		// Throw velocity.
+    int						tossframe;			// Frame to toss bomb/grenade
+    int                     bomb;				// custbomb;
+    int                     flash;				// custpshotno;
+    int                     knife;				// custknife;
+    s_axis_principal_int	position;			// Location at which projectiles are spawned
+    int                     star;				// custstar;
+	float					star_velocity[3];	// Legacy star velocity
+	s_axis_principal_float	velocity;			// Throw velocity.
 } s_projectile;
 
 typedef enum
@@ -2128,8 +2128,7 @@ typedef struct
 	s_move						**move;					// base = seta, x = move, y = movea, z = movez
 	s_axis_plane_vertical_int	**offset;				// original sprite offsets
 	s_drawmethod				**drawmethods;
-	
-	float						*starvelocity;          // 3 velocities for the start projectile
+
 	float						(*platform)[8];			// Now entities can have others land on them
 	
 	unsigned					*idle;					// Allow free move
@@ -3389,7 +3388,7 @@ void anything_walk(void);
 entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
 entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 void bomb_explode(void);
-int star_spawn(float x, float z, float a, int direction);
+int star_spawn(float x, float z, float y, int direction);
 void steam_think(void);
 void trap_think(void);
 void steam_spawn(float x, float z, float a);

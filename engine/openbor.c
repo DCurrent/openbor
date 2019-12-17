@@ -108,14 +108,16 @@ const s_projectile projectile_default_animation = {
 	.bomb		= MODEL_INDEX_NONE,
 	.flash		= MODEL_INDEX_NONE,
 	.knife		= MODEL_INDEX_NONE,
-	.position = {.x = 56,
+	.position = {.x = 60,
 					.y = 70,
 					.z = 0},
 	.shootframe = FRAME_NONE,
 	.throwframe = FRAME_NONE,
 	.tossframe = FRAME_NONE,
 	.star		= MODEL_INDEX_NONE,
-	// star_velocity
+	.star_velocity = {0.f, 
+						1.f, 
+						2.f},
 	.velocity = {.x = PROJECTILE_DEFAULT_SPEED_X,
 					.y = PROJECTILE_DEFAULT_SPEED_Y,
 					.z = PROJECTILE_DEFAULT_SPEED_Z }
@@ -5506,11 +5508,6 @@ void free_anim(s_anim *anim)
 		free(anim->projectile);
 		anim->projectile = NULL;
 	}
-	if (anim->starvelocity)
-	{
-		free(anim->starvelocity);
-		anim->starvelocity = NULL;
-	}
 	if (anim->sub_entity_spawn)
 	{
 		free(anim->sub_entity_spawn);
@@ -10328,16 +10325,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->energy_cost.mponly		= COST_TYPE_MP_THEN_HP;
                 newanim->charge_time            = ANIMATION_CHARGE_TIME_DEFAULT;
 				newanim->projectile				= NULL;
-				//newanim->projectile.shootframe  = FRAME_NONE;
-				//newanim->projectile.throwframe  = FRAME_NONE;
-				//newanim->projectile.tossframe   = FRAME_NONE;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-				//newanim->projectile.position.x	= 0;
-				//newanim->projectile.position.y	= 70;
-				//newanim->projectile.position.z	= 0;
-				//newanim->projectile.velocity.x	= MODEL_SPEED_NONE;
-				//newanim->projectile.velocity.y	= MODEL_SPEED_NONE;
-				//newanim->projectile.velocity.z	= MODEL_SPEED_NONE;
-                newanim->flipframe              = FRAME_NONE;
+				newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
                 newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
@@ -10587,6 +10575,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				}
 
 				newanim->projectile->velocity.z = GET_FLOAT_ARG(1);
+				break;
+			case CMD_MODEL_STAR_VELOCITY:
+								
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+				
+				newanim->projectile->star_velocity[0] = GET_FLOAT_ARG(1);
+				newanim->projectile->star_velocity[1] = GET_FLOAT_ARG(2);
+				newanim->projectile->star_velocity[2] = GET_FLOAT_ARG(3);
 				break;
 
 				// Legacy dive attacks. Turn off animation level subject_to_gravity
@@ -11805,26 +11805,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				{
 				default:
 				case FOLLOW_CONDITION_CMD_READ_ALWAYS:
-					newanim->followup.condition ^= FOLLOW_CONDITION_ANY;
+					newanim->followup.condition |= FOLLOW_CONDITION_ANY;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_FALSE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_GRAB_TRUE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_GRAB_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
 					break;
 				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK:
-					newanim->followup.condition ^= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_BLOCK_TRUE;
-					newanim->followup.condition ^= FOLLOW_CONDITION_LETHAL_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
 					break;
 				}				
                 
@@ -11849,18 +11849,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				{
 				default:
 				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS:
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
 					break;
 				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE:
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
 					break;
 				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE:
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_BACK_TRUE;
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_BLOCK_TRUE;
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_FREEZE_FALSE;
-					newanim->counter_action.condition ^= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_BACK_TRUE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_BLOCK_TRUE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_FREEZE_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
 					break;
 				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE:
 					newanim->counter_action.condition ^= FOLLOW_CONDITION_ANY;
@@ -11914,13 +11914,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->sub_entity_summon->placement = GET_INT_ARG(5);
                 break;
 
-            case CMD_MODEL_STAR_VELOCITY:
-                newanim->starvelocity    = malloc(3 * sizeof(*newanim->starvelocity));
-                memset(newanim->starvelocity, 0, 3 * sizeof(*newanim->starvelocity));
-                newanim->starvelocity[0] = GET_FLOAT_ARG(1);
-                newanim->starvelocity[1] = GET_FLOAT_ARG(2);
-                newanim->starvelocity[2] = GET_FLOAT_ARG(3);
-                break;
+            
             case CMD_MODEL_UNSUMMONFRAME:
                 newanim->sub_entity_unsummon = GET_FRAME_ARG(1);
                 break;
@@ -33340,23 +33334,43 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
 }
 
 // Spawn 3 stars
-int star_spawn(float x, float z, float a, int direction)  // added entity to know which star to load
+//
+// Caskey, Damon V.
+// 2019-12-17
+//
+// Spawn three “star” projectiles. Meant for Eiji enemies in 
+// original Beats of Rage, who would jump and throw three star 
+// shuriken diagonally downward at players. Original author 
+// Roel, but modified several times by unknown parties. Refactored 
+// by DC 2019-12-17 to work with current projectile system. 
+// Obviously, we need this for backward compatibility with legacy 
+// modules, but otherwise script is the best choice to handle 
+// multiple projectiles or any other sort of specialized 
+// projectile spawns.
+//
+// Return TRUE if stars spawned, FALSE on fail.
+int star_spawn(float x, float z, float y, int direction)
 {
+#define MAX_STARS 3
+
     entity *e = NULL;
-    int i, index = MODEL_INDEX_NONE;
+	int i = 0;
+	int index = MODEL_INDEX_NONE;
     char *starname = NULL;
-    float fd = (float)((direction ? 2 : -2));
-    int max_stars = 3;
     int first_sortid = 0;
 
-    //merge enemy/player together, use the same rules
+    // Same concept as knife spawn. Look for model to spawn.
+	// 1. Animation projectile.
+	// 2. Weapon model projectile.
+	// 3. Base model projectile.
+	// 4. Legacy default.
     if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
     {
         index = self->weapent->modeldata.project;
     }
     else if(self->animation->projectile->star >= 0)
     {
-        index = self->animation->projectile->star;    //use any star
+        index = self->animation->projectile->star; 
     }
     else if(self->modeldata.star >= 0)
     {
@@ -33364,57 +33378,85 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
     }
     else
     {
-        starname = "Star";    // this is default star
+        starname = "Star";    
     }
 
-    for(i = 0; i < max_stars; i++)
+	// Loop to max star count.
+    for(i = 0; i < MAX_STARS; i++)
     {
-        e = spawn(x, z, a, direction, starname, index, NULL);
+		// Spawn the star entity. If we fail, exit and return false.
+        e = spawn(x, z, y, direction, starname, index, NULL);
         if(e == NULL)
         {
             return 0;
         }
 
+		// 2019-12-17 DC - Not sure why we set attacking off, but
+		// leaving it here for legacy behavior.
         self->attacking = ATTACKING_NONE;
 
-        if (i <= 0) first_sortid = e->sortid;
+		// First star spawned sort id serves as a base for sorting. 
+		// Then the next star's sort is the base - loop index. Each 
+		// subsequent star appears one step further behind in
+		// sorting order. 
+		//
+		// Ex: Base (first star) = 20, 20 - 1 = 19, 20 - 2 = 18.
+		if (i <= 0)
+		{
+			first_sortid = e->sortid;
+		}
+
         e->sortid = first_sortid - i;
-        e->takedamage = arrow_takedamage;//enemy_takedamage;    // Players can now hit projectiles
-        e->owner = self;    // Added so enemy projectiles don't hit the owner
+
+        e->takedamage = arrow_takedamage;
+        e->owner = self;
         e->attacking = ATTACKING_ACTIVE;
-        e->nograb = 1;    // Prevents trying to grab a projectile
-        if (self->animation->starvelocity)
-        {
-            e->velocity.x = fd * (float)self->animation->starvelocity[i];
-        }
-        else e->velocity.x = fd * (float)i / 2;
-        e->think = common_think;
+        e->nograb = 1;
+        
+		// Get the star velocity setting from animation.
+		e->velocity.x = self->animation->projectile->star_velocity[i];
+
+		// Reverse X velocity if direction is left.
+		if (direction == DIRECTION_LEFT)
+		{
+			e->velocity.x = -e->velocity.x;
+		}
+		
+		e->think = common_think;
         e->nextthink = _time + 1;
         e->trymove = NULL;
         e->takeaction = NULL;
         e->modeldata.aimove = AIMOVE1_STAR;
         e->modeldata.aiattack = AIATTACK1_NOATTACK;
         
+		// Remove star on contact.
 		if (e->modeldata.remove)
 		{
 			e->autokill |= AUTOKILL_ATTACK_HIT;
 		}
 				
-		e->position.y = e->base = a;
+		e->position.y = y;
+		e->base = y;
         e->speedmul = 2;
-        //e->direction = direction;
-
+        
+		// Copy parent's hostile and can damage settings if
+		// star model doesn't have its own.
         if(e->modeldata.hostile < 0)
         {
             e->modeldata.hostile = self->modeldata.hostile;
         }
+
         if(e->modeldata.candamage < 0)
         {
             e->modeldata.candamage = self->modeldata.candamage;
         }
 
-        e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform =
-                                           e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
+		// Basic terrian property setup.
+		e->modeldata.subject_to_basemap = 1;
+		e->modeldata.subject_to_wall = 1;
+		e->modeldata.subject_to_platform = 1;
+		e->modeldata.subject_to_hole = 1;
+		e->modeldata.subject_to_gravity = 1;
         e->modeldata.no_adjust_base = 0;
 
         e->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
@@ -33423,6 +33465,8 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
 		execute_onspawn_script(e);
     }
     return 1;
+
+#undef MAX_STARS
 }
 
 
