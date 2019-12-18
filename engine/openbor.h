@@ -125,6 +125,7 @@ movement restirctions are here!
 #define		PROJECTILE_DEFAULT_SPEED_Y	0
 #define		PROJECTILE_DEFAULT_SPEED_Z	0
 
+
 // Caskey, Damon V.
 // 2019-01-27
 // 
@@ -273,24 +274,39 @@ typedef enum
     // Movement behavior on launch.
     PROJECTILE_PRIME_LAUNCH_MOVING      = (1 << 2),
     PROJECTILE_PRIME_LAUNCH_STATIONARY  = (1 << 3),
-
-    // Type of projectile as determined by launch method.
-    PROJECTILE_PRIME_REQUEST_FLASH      = (1 << 4),
-    PROJECTILE_PRIME_REQUEST_KNIFE      = (1 << 5),
-    PROJECTILE_PRIME_REQUEST_PROJECTILE = (1 << 6),
-    PROJECTILE_PRIME_REQUEST_PSHOTNO    = (1 << 7),
-    PROJECTILE_PRIME_REQUEST_SHOT       = (1 << 8),
-    PROJECTILE_PRIME_REQUEST_UNDEFINED  = (1 << 9),		// Probably by a script.
-
-
+	
     // How was projectile model determined?
-    PROJECTILE_PRIME_SOURCE_ANIMATION   = (1 << 10),	//  Animation setting.
-    PROJECTILE_PRIME_SOURCE_GLOBAL      = (1 << 11),	//  Global "knife" or global "shot".
-    PROJECTILE_PRIME_SOURCE_INDEX       = (1 << 12),	//  By projectile's model index.
-    PROJECTILE_PRIME_SOURCE_HEADER      = (1 << 13),	//  Model header setting.
-    PROJECTILE_PRIME_SOURCE_NAME        = (1 << 14),	//  By projectile's model name.
-    PROJECTILE_PRIME_SOURCE_WEAPON      = (1 << 15)		//  From a SUBTYPE_PROJECTLE weapon pickup.
+	PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE		= (1 << 5),		// Global "knife" or global "shot".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT			= (1 << 6),		// Global "knife" or global "shot".
+	PROJECTILE_PRIME_SOURCE_MODEL_KNIFE			= (1 << 7),		// Model header setting.
+	PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE	= (1 << 8),		// From a SUBTYPE_PROJECTLE weapon pickup.
+	PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO		= (1 << 9),		// By projectile's model name.
+	PROJECTILE_PRIME_SOURCE_PROJ_FLASH			= (1 << 10),	// Projectile flash setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_KNIFE			= (1 << 11)		// Projectile knife/shot setting.
+
 } e_projectile_prime;
+
+// Caskey, Damon V.
+// 2019-12-17
+// 
+// Select how to launch a projectile, as a bomb or knife. 
+typedef enum
+{
+	// Maintain order for legacy 
+	// compatability (before named constants).
+	PROJECTILE_TYPE_KNIFE,
+	PROJECTILE_TYPE_BOMB
+} e_projectile_type;
+
+// Caskey, Damon V.
+// 2019-12-17
+// 
+// Select using self or parent's offense factors. 
+typedef enum
+{
+	PROJECTILE_OFFENSE_PARENT,
+	PROJECTILE_OFFENSE_SELF
+} e_projectile_offense;
 
 // State of attack boxes.
 typedef enum
@@ -2049,30 +2065,54 @@ typedef struct
 } s_follow;
 
 // Caskey, Damon V.
+// 2019-12-17
+//
+// Placements for projectile entities.  Controls
+// how position is applied (relative to parent, 
+// the screen, ...). 
+typedef enum
+{
+	// Keep these in order for legacy compatability.
+	PROJECTILE_PLACEMENT_SCREEN,
+	PROJECTILE_PLACEMENT_PARENT,
+	PROJECTILE_PLACEMENT_ABSOLUTE
+} e_projectile_placement;
+
+// Caskey, Damon V.
 // 2014-01-18
 //
 // Projectile spawning.
 typedef struct
 {
-    int						shootframe;
-    int						throwframe;
-    int						tossframe;			// Frame to toss bomb/grenade
-    int                     bomb;				// custbomb;
-    int                     flash;				// custpshotno;
-    int                     knife;				// custknife;
-    s_axis_principal_int	position;			// Location at which projectiles are spawned
-    int                     star;				// custstar;
-	float					star_velocity[3];	// Legacy star velocity
+	int                     bomb;				// custbomb;
+	e_direction_adjust		direction;
+	int                     flash;				// custpshotno;
+	int                     knife;				// custknife;
+	int						map_index;			// Palette selection.
+	e_projectile_offense	offense;			// Offense factor source.
+	e_projectile_placement	placement;			// How position applies.
+	s_axis_principal_float	position;			// Location at which projectiles are spawned.
+	int						shootframe;
+	int                     star;				// custstar.
+	float					star_velocity[3];	// Legacy star velocity.
+	int						throwframe;
+	int						tossframe;			// Frame to toss bomb/grenade.
 	s_axis_principal_float	velocity;			// Throw velocity.
 } s_projectile;
 
+// Caskey, Damon V.
+// 2019-12-15
+//
+// Placements for sub entities.  Controls
+// how position is applied (relative to 
+// parent, the screen, ...). 
 typedef enum
 {
 	// Keep these in order for legacy compatability.
 	SUB_ENTITY_PLACEMENT_PARENT,
 	SUB_ENTITY_PLACEMENT_SCREEN,
 	SUB_ENTITY_PLACEMENT_ABSOLUTE
-} e_sub_entity_placement;
+} e_sub_entity_placement; 
 
 // Caskey, Damon V.
 // 2019-12-11
@@ -3385,7 +3425,8 @@ void drop_all_enemies();
 void kill_all_enemies();
 void smart_bomb(entity *e, s_collision_attack *attack);
 void anything_walk(void);
-entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
+//entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
+entity* knife_spawn(entity *parent, s_projectile* projectile);
 entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 void bomb_explode(void);
 int star_spawn(float x, float z, float y, int direction);

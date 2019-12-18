@@ -105,12 +105,17 @@ const s_drawmethod plainmethod =
 // Need default values for projectile animation 
 // settings, and projectiles in general.
 const s_projectile projectile_default_animation = {
-	.bomb		= MODEL_INDEX_NONE,
-	.flash		= MODEL_INDEX_NONE,
-	.knife		= MODEL_INDEX_NONE,
-	.position = {.x = 60,
-					.y = 70,
-					.z = 0},
+	
+	.bomb = MODEL_INDEX_NONE,
+	.direction = DIRECTION_ADJUST_SAME,
+	.flash = MODEL_INDEX_NONE,
+	.knife = MODEL_INDEX_NONE,
+	.map_index = 0,
+	.offense = PROJECTILE_OFFENSE_PARENT,
+	.placement = PROJECTILE_PLACEMENT_PARENT,
+	.position = {.x = 60.f,
+					.y = 70.f,
+					.z = 0.f},
 	.shootframe = FRAME_NONE,
 	.throwframe = FRAME_NONE,
 	.tossframe = FRAME_NONE,
@@ -18329,7 +18334,9 @@ void update_frame(entity *ent, unsigned int f)
 			// well, try knife at last, if still failed, try star, or just let if shutdown?
 
 #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-#define __tryknife knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 0, 0)
+//#define __tryknife knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 0, 0)
+#define __tryknife knife_spawn(self, anim->projectile)
+
 
 			if (anim->projectile->knife >= 0 || anim->projectile->flash >= 0)
 			{
@@ -18355,7 +18362,7 @@ void update_frame(entity *ent, unsigned int f)
 
 		if (anim->projectile->shootframe == f)
 		{
-			knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 1, 0);
+			knife_spawn(self, anim->projectile);
 			self->deduct_ammo = 1;
 		}
 
@@ -33005,153 +33012,144 @@ void anything_walk()
     //self->position.x += self->velocity.x;
 }
 
-entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map)
+entity *knife_spawn(entity *parent, s_projectile *projectile)
 {
-    entity *e = NULL;
+    entity *ent = NULL;
 
-    if(index >= 0 || name)
-    {
-        e = spawn(x, z, a, direction, name, index, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	s_axis_principal_float position;
+	e_direction direction;
+	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
+	
+	// If there's no projectile or parent setting, exit now.
+	if (!projectile || !parent)
+	{
+		return NULL;
+	}
 
-        // Index takes priority in spawning, so if it's here
-        // then we'll type this as an index spawn source.
-        if(index < 0)
-        {
-            e->projectile_prime |= PROJECTILE_PRIME_SOURCE_INDEX;
-        }
-        else
-        {
-            e->projectile_prime |= PROJECTILE_PRIME_SOURCE_NAME;
-        }
+	// Let's set up the spawn position. Reverse X when parent
+	// faces left.
+	direction = parent->direction;
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_UNDEFINED;
+	if (direction == DIRECTION_RIGHT)
+	{
+		position.x = parent->position.x + projectile->position.x;
+	}
+	else
+	{
+		position.x = parent->position.x - projectile->position.x;
+	}
 
-        e->position.y = a;
-    }
-    else if(self->weapent && self->weapent->modeldata.project >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	position.y = parent->position.y + projectile->position.y;
+	position.z = parent->position.z + projectile->position.z;
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_PROJECTILE;
+	// Now we need to spawn the projectile entity. There are many haphazard legacy 
+	// additions to sift through, so we need to prioritize which model to spawn. 
+	// In general, we work back from most granular to most global.
+	//
+	// From highest to lowest priority:
+	// 
+	// 1. Projectile Knife property.
+	// 2. Projectile Flash property.
+	// 3. Using weapon with model Project property.
+	// 4. Model Knife property.
+	// 5. Model Pshotno property.
+	// 6. Global hardcode model name, "Knife".
+	// 7. Global hardcode model name, "Shot".
+	if (projectile->knife >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->knife, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_KNIFE;
+	}
+	else if (projectile->flash >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->flash, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_FLASH;
+	}
+	else if (parent->weapent && parent->weapent->modeldata.project >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->weapent->modeldata.project, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE;
+	}
+	else if (parent->modeldata.knife >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.knife, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_KNIFE;
+	}
+	else if (parent->modeldata.pshotno >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.pshotno, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO;
+	}
+	else
+	{
+		// No model indexes set, so let's fall back to
+		// the legacy hardcode model names. If we still 
+		// can't find anything, just exit.
 
-        e->position.y = a;		
-    }
-    else if(self->animation->projectile->knife >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile->knife, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+		// Try hardcode "knife" first. If that fails, we'll try
+		// "shot" next.
+		ent = spawn(position.x, position.z, position.y, direction, "Knife", MODEL_INDEX_NONE, NULL);
+		
+		if (ent)
+		{
+			// Hardcode knife spawn successful. Mark as legacy knife
+			// and continue.
+			projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE;
+		}
+		else 
+		{
+			//  Try "shot".
+			ent = spawn(position.x, position.z, position.y, direction, "Shot", MODEL_INDEX_NONE, NULL);
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_ANIMATION;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
+			projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT;
+		}
 
-        e->position.y = a;
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+	}
 
-    }
-    else if(self->animation->projectile->flash >= 0)
-    {
-        e = spawn(x, z, 0, direction, NULL, self->animation->projectile->flash, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
-
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_ANIMATION;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_FLASH;
-
-        e->position.y = 0;
-    }
-    else if(self->modeldata.knife >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->modeldata.knife, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
-
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_HEADER;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
-
-        e->position.y = a;
-    }
-    else if(self->modeldata.pshotno >= 0)
-    {
-        e = spawn(x, z, 0, direction, NULL, self->modeldata.pshotno, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
-
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_HEADER;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_PSHOTNO;
-
-        e->position.y = 0;
-    }
-    else if(type)
-    {
-        e = spawn(x, z, a, direction, "Shot", -1, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
-
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_SHOT;
-
-        e->position.y = a;
-    }
-    else
-    {
-        e = spawn(x, z, a, direction, "Knife", -1, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
-
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
-
-        e->position.y = a;
-    }
-
-    if(e == NULL)
+	// If we never successfully spawned a projectile entity, exit.
+    if(!ent)
     {
         return NULL;
     }
-    else if(self->modeldata.type & TYPE_PLAYER)
+    
+	// Apply projectile prime flags.
+	ent->projectile_prime = projectile_prime;	
+
+	// Copy offense values from parent offense settings 
+	// to projectile enity if requested.
+	if (projectile->offense == PROJECTILE_OFFENSE_PARENT)
+	{
+		memcpy(ent->offense_factors, parent->offense_factors, sizeof(*ent->offense_factors) * max_attack_types);
+	}
+
+	// Apply color setting.
+	ent_set_colourmap(ent, projectile->map_index);
+
+	// Player projectiles are always type "shot".
+	if(parent->modeldata.type & TYPE_PLAYER)
     {
-        e->modeldata.type = TYPE_SHOT;
+		ent->modeldata.type = TYPE_SHOT;
     }
     else
     {
-        e->modeldata.type = self->modeldata.type;
+		ent->modeldata.type = parent->modeldata.type;
     }
 
 	// If no move, then all speed is 0. Otherwise check for use of
@@ -33159,87 +33157,94 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
 	// than MODEL_SPEED_NONE, we use player's value. If not, fall
 	// back to default values. This is a bit overcomplicated, but
 	// allows players to supply a 0 velocity value on any axis.
-	if (e->modeldata.nomove)
+	if (ent->modeldata.nomove)
 	{
-		e->modeldata.speed.x = 0;
-		e->modeldata.speed.y = 0;
-		e->modeldata.speed.z = 0;
+		ent->modeldata.speed.x = 0;
+		ent->modeldata.speed.y = 0;
+		ent->modeldata.speed.z = 0;
 	}
 	else
-	{
-		if (self->animation->projectile)
-		{
-			// Copy speed values from animation projectile settings to model.
-			memcpy(&e->modeldata.speed, &self->animation->projectile->velocity, sizeof(e->modeldata.speed));
-		}		
+	{		
+		// Copy speed values from animation projectile settings to model.
+		memcpy(&ent->modeldata.speed, &projectile->velocity, sizeof(ent->modeldata.speed));
 	}
 
-    e->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
-    e->owner = self;                                                     // Added so projectiles don't hit the owner
-    e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->attacking = ATTACKING_ACTIVE;
-    //e->direction = direction;
-    e->think = common_think;
-    e->nextthink = _time + 1;
-    e->trymove = NULL;
-    e->takedamage = arrow_takedamage;
-    e->takeaction = NULL;
-    e->modeldata.aimove = AIMOVE1_ARROW;
-    if(!e->modeldata.offscreenkill)
+	// Set up behavior flags.
+	ent->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
+	ent->owner = self;
+	ent->nograb = 1;
+	ent->attacking = ATTACKING_ACTIVE;
+	ent->think = common_think;
+	ent->nextthink = _time + 1;
+	ent->trymove = NULL;
+	ent->takedamage = arrow_takedamage;
+	ent->takeaction = NULL;
+	ent->modeldata.aimove = AIMOVE1_ARROW;
+
+    if(!ent->modeldata.offscreenkill)
     {
-        e->modeldata.offscreenkill = 200;    //default value
+		ent->modeldata.offscreenkill = 200;    //default value
     }
-    e->modeldata.aiattack = AIATTACK1_NOATTACK;
+	ent->modeldata.aiattack = AIATTACK1_NOATTACK;
     
 	// Kill self when we hit.
-	if (e->modeldata.remove)
+	if (ent->modeldata.remove)
 	{
-		e->autokill |= AUTOKILL_ATTACK_HIT;
+		ent->autokill |= AUTOKILL_ATTACK_HIT;
 	}
 	
     // Kill self when we finish animation.
-	if (e->modeldata.nomove)
+	if (ent->modeldata.nomove)
 	{
-		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
 	
-    e->speedmul = 2;
+	ent->speedmul = 2;
 
-    ent_set_colourmap(e, map);
+    //ent_set_colourmap(ent, map);
 
-    if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
+	// Is this a floor or flying projectile? Set base accordingly.
+    if(ent->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
-        e->base = 0;
+		ent->base = 0;
     }
     else
     {
-        e->base = a;
+		ent->base = position.y;
     }
 
-    if(e->modeldata.hostile < 0)
+	// if projectile model doesn't already have hostile and
+	// candamage settings, copy them from parent.
+    if(ent->modeldata.hostile < 0)
     {
-        e->modeldata.hostile = self->modeldata.hostile;
+		ent->modeldata.hostile = parent->modeldata.hostile;
     }
-    if(e->modeldata.candamage < 0)
+    
+	if(ent->modeldata.candamage < 0)
     {
-        e->modeldata.candamage = self->modeldata.candamage;
-    }
-    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
-    {
-        e->modeldata.hostile &= ~TYPE_PLAYER;
-        e->modeldata.candamage &= ~TYPE_PLAYER;
+		ent->modeldata.candamage = parent->modeldata.candamage;
     }
 
-	e->modeldata.subject_to_wall = 1;
-	e->modeldata.subject_to_platform = 1;
-	e->modeldata.subject_to_hole = 1;
-	e->modeldata.subject_to_gravity = 0;
-    e->modeldata.no_adjust_base  = 0;
+	// If player damage turned off, remove player type from
+	// hostile (so homing projectiles leave players alone) and 
+	// from candamage.
+    if((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
+    {
+		ent->modeldata.hostile &= ~TYPE_PLAYER;
+		ent->modeldata.candamage &= ~TYPE_PLAYER;
+    }
+
+	// Set terrain behavior flags.
+	ent->modeldata.subject_to_wall = 1;
+	ent->modeldata.subject_to_platform = 1;
+	ent->modeldata.subject_to_hole = 1;
+	ent->modeldata.subject_to_gravity = 0;
+	ent->modeldata.no_adjust_base  = 0;
     
 	// Execute the projectile's on spawn event.
-	execute_onspawn_script(e);
+	execute_onspawn_script(ent);
 	
-	return e;
+	return ent;
 }
 
 void bomb_explode()

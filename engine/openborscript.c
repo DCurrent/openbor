@@ -121,6 +121,7 @@ extern int shadowopacity;
 extern s_axis_plane_vertical_int light;
 extern int max_attack_types;
 extern int max_animations;
+extern s_projectile projectile_default_animation;
 
 static void clear_named_var_list(List *list, int level)
 {
@@ -10735,11 +10736,17 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     char *name = NULL;
     float x = 0, z = 0, a = 0;
     int direction = DIRECTION_LEFT;
-    int type = 0;
+	e_projectile_type type = PROJECTILE_TYPE_KNIFE;
     int projectile_prime = 0;
     int map = 0;
+	int model_index = MODEL_INDEX_NONE;
 
     int relative;
+
+	s_projectile projectile = projectile_default_animation;
+
+	// We are going to return an entity pointer (or NULL).
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
 
     if(paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
     {
@@ -10755,11 +10762,52 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     if(paramCount >= 1 && varlist[0]->vt == VT_STR)
     {
         name = StrCache_Get(varlist[0]->strVal);
-    }
+		model_index = get_cached_model_index(name);
+	}
+
+	// Caskey, Damon V.
+	// 2019-12-17
+	//
+	// This function is a total mess, and there's no good
+	// way to refactor it to match updated projectile system while 
+	// keeping legacy compatabilty.
+	//
+	// To get around this we will have to do things out of order.
+	// First we will is spawn the projectile with a proper default
+	// setup. Then we'll go back and apply incoming parameters 
+	// and their legacy logic to the projectile entity.
+
+	// Type (Spawn as knife or bomb). Out of order, but we need to know
+	// this before doing anything else.
+	if (paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
+	{
+		type = (LONG)ltemp;
+	}
+
+	// Now spawn the projectile.
+	switch (type)
+	{
+	default:
+	case PROJECTILE_TYPE_KNIFE:
+		projectile.knife = model_index;
+		ent = knife_spawn(self, &projectile);
+		break;
+	case PROJECTILE_TYPE_BOMB:
+		projectile.bomb = model_index;
+		ent = bomb_spawn(name, -1, x, z, a, direction, map);
+		break;
+	}
+
+	// If we couldn't spawn a projectile entity, then 
+	// exit. Author will get back a NULL value.
+	if (!ent)
+	{
+		return S_OK;
+	}
 
     // X offset.
 	if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
-    {
+	{		
         x = (float)temp;
     }
     else if(relative)
@@ -10795,8 +10843,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		if (self->animation->projectile)
 		{
 			a = self->animation->projectile->position.y;
-		}
-        
+		}        
     }
     else
     {
@@ -10806,7 +10853,8 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		}
 		else
 		{
-			a = 70;
+			//Use default fromprojectil settings.
+			a = projectile.position.y;
 		}        
     }
 
@@ -10841,13 +10889,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
             projectile_prime |= PROJECTILE_PRIME_BASE_Y;
             projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
         }
-    }
-
-	// Type (Spawn as knife or bomb).
-    if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
-    {
-        type = (LONG)ltemp;
-    }
+    }	
     
 	// Map
 	if(paramCount >= 8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
@@ -10871,18 +10913,13 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         a += self->position.y;
     }
 
-    switch(type)
-    {
-    default:
-    case 0:
-        ent = knife_spawn(name, -1, x, z, a, direction, projectile_prime, map);
-        break;
-    case 1:
-        ent = bomb_spawn(name, -1, x, z, a, direction, map);
-        break;
-    }
-
-    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+	// Apply incomming parameters.
+	ent->position.x = x;
+	ent->position.y = a;
+	ent->position.z = z;
+	ent->direction = direction;
+	ent_set_colourmap(ent, map);
+        
     (*pretvar)->ptrVal = (VOID *) ent;
 
     return S_OK;
