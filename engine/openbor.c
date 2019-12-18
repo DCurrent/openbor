@@ -33012,6 +33012,13 @@ void anything_walk()
     //self->position.x += self->velocity.x;
 }
 
+// Caskey, Damon  V.
+// 2019-12-18 (refactor)
+//
+// Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
+// and consolidate projectile spawn logic. Spawns an entity and fires it as a projectile. 
+// Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
+// comments in function).
 entity *knife_spawn(entity *parent, s_projectile *projectile)
 {
     entity *ent = NULL;
@@ -33026,10 +33033,12 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		return NULL;
 	}
 
+	// Get result of direction adjustment. We need this before we can handle
+	// positioning on X axis.
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction);
+
 	// Let's set up the spawn position. Reverse X when parent
 	// faces left.
-	direction = parent->direction;
-
 	if (direction == DIRECTION_RIGHT)
 	{
 		position.x = parent->position.x + projectile->position.x;
