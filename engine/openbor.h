@@ -276,13 +276,16 @@ typedef enum
     PROJECTILE_PRIME_LAUNCH_STATIONARY  = (1 << 3),
 	
     // How was projectile model determined?
-	PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE		= (1 << 5),		// Global "knife" or global "shot".
-	PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT			= (1 << 6),		// Global "knife" or global "shot".
-	PROJECTILE_PRIME_SOURCE_MODEL_KNIFE			= (1 << 7),		// Model header setting.
-	PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE	= (1 << 8),		// From a SUBTYPE_PROJECTLE weapon pickup.
-	PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO		= (1 << 9),		// By projectile's model name.
-	PROJECTILE_PRIME_SOURCE_PROJ_FLASH			= (1 << 10),	// Projectile flash setting.
-	PROJECTILE_PRIME_SOURCE_PROJ_KNIFE			= (1 << 11)		// Projectile knife/shot setting.
+	PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE		= (1 << 5),		// Global "Knife".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT			= (1 << 6),		// Global "Shot".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_STAR			= (1 << 7),		// Global "Shot".
+	PROJECTILE_PRIME_SOURCE_MODEL_KNIFE			= (1 << 8),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE	= (1 << 9),		// From a SUBTYPE_PROJECTLE weapon pickup.
+	PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO		= (1 << 10),	// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_STAR			= (1 << 11),	// Model header property.
+	PROJECTILE_PRIME_SOURCE_PROJ_FLASH			= (1 << 12),	// Projectile flash setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_KNIFE			= (1 << 13),	// Projectile knife/shot setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_STAR			= (1 << 14)		// Projectile star setting.
 
 } e_projectile_prime;
 
@@ -3432,11 +3435,10 @@ void drop_all_enemies();
 void kill_all_enemies();
 void smart_bomb(entity *e, s_collision_attack *attack);
 void anything_walk(void);
-//entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
 entity* knife_spawn(entity *parent, s_projectile* projectile);
 entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
 void bomb_explode(void);
-int star_spawn(float x, float z, float y, int direction);
+int star_spawn(entity *parent, s_projectile *projectile);
 void steam_think(void);
 void trap_think(void);
 void steam_spawn(float x, float z, float a);

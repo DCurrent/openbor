@@ -18393,11 +18393,9 @@ void update_frame(entity *ent, unsigned int f)
 			// then if the entity is jumping, check star first, if failed, try knife instead
 			// well, try knife at last, if still failed, try star, or just let if shutdown?
 
-#define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-//#define __tryknife knife_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 0, 0)
+#define __trystar star_spawn(self, anim->projectile)
 #define __tryknife knife_spawn(self, anim->projectile)
-
-
+			
 			if (anim->projectile->knife >= 0 || anim->projectile->flash >= 0)
 			{
 				__tryknife;
@@ -33468,51 +33466,89 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
 // projectile spawns.
 //
 // Return TRUE if stars spawned, FALSE on fail.
-int star_spawn(float x, float z, float y, int direction)
+int star_spawn(entity *parent, s_projectile *projectile)
 {
 #define MAX_STARS 3
 
-    entity *e = NULL;
+    entity *ent = NULL;
 	int i = 0;
 	int index = MODEL_INDEX_NONE;
-    char *starname = NULL;
     int first_sortid = 0;
+
+	s_axis_principal_float position;
+	e_direction direction;
+	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
+
+	// If there's no projectile or parent setting, exit now.
+	if (!projectile || !parent)
+	{
+		return FALSE;
+	}
+
+	// Get result of direction adjustment. We need this before we can handle
+	// positioning on X axis.
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+
+	// Let's set up the spawn position. Reverse X when parent
+	// faces left.
+	if (direction == DIRECTION_RIGHT)
+	{
+		position.x = parent->position.x + projectile->position.x;
+	}
+	else
+	{
+		position.x = parent->position.x - projectile->position.x;
+	}
+
+	position.y = parent->position.y + projectile->position.y;
+	position.z = parent->position.z + projectile->position.z;
 
     // Same concept as knife spawn. Look for model to spawn.
 	// 1. Animation projectile.
 	// 2. Weapon model projectile.
 	// 3. Base model projectile.
 	// 4. Legacy default.
-    if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
+    if(projectile->star >= 0)
     {
-        index = self->weapent->modeldata.project;
+        index = projectile->star;
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_STAR;
     }
-    else if(self->animation->projectile->star >= 0)
+	else if (parent->weapent && parent->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && parent->weapent->modeldata.project >= 0)
+	{
+		index = parent->weapent->modeldata.project;
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE;
+	}
+    else if(parent->modeldata.star >= 0)
     {
-        index = self->animation->projectile->star; 
-    }
-    else if(self->modeldata.star >= 0)
-    {
-        index = self->modeldata.star;
+        index = parent->modeldata.star;
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_STAR;
     }
     else
     {
-        starname = "Star";    
+        index = get_cached_model_index("Star"); 
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_STAR;
     }
+
+	projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+	projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
 
 	// Loop to max star count.
     for(i = 0; i < MAX_STARS; i++)
     {
 		// Spawn the star entity. If we fail, exit and return false.
-        e = spawn(x, z, y, direction, starname, index, NULL);
-        if(e == NULL)
+        ent = spawn(position.x, position.z, position.y, direction, NULL, index, NULL);
+        if(ent == NULL)
         {
-            return 0;
+            return FALSE;
         }
 
 		// 2019-12-17 DC - Not sure why we set attacking off, but
 		// leaving it here for legacy behavior.
-        self->attacking = ATTACKING_NONE;
+        parent->attacking = ATTACKING_NONE;
 
 		// First star spawned sort id serves as a base for sorting. 
 		// Then the next star's sort is the base - loop index. Each 
@@ -33522,68 +33558,69 @@ int star_spawn(float x, float z, float y, int direction)
 		// Ex: Base (first star) = 20, 20 - 1 = 19, 20 - 2 = 18.
 		if (i <= 0)
 		{
-			first_sortid = e->sortid;
+			first_sortid = ent->sortid;
 		}
 
-        e->sortid = first_sortid - i;
+        ent->sortid = first_sortid - i;
 
-        e->takedamage = arrow_takedamage;
-        e->owner = self;
-        e->attacking = ATTACKING_ACTIVE;
-        e->nograb = 1;
+        ent->takedamage = arrow_takedamage;
+        ent->owner = self;
+        ent->attacking = ATTACKING_ACTIVE;
+        ent->nograb = 1;
         
 		// Get the star velocity setting from animation.
-		e->velocity.x = self->animation->projectile->star_velocity[i];
+		ent->velocity.x = projectile->star_velocity[i];
 
 		// Reverse X velocity if direction is left.
 		if (direction == DIRECTION_LEFT)
 		{
-			e->velocity.x = -e->velocity.x;
+			ent->velocity.x = -ent->velocity.x;
 		}
 		
-		e->think = common_think;
-        e->nextthink = _time + 1;
-        e->trymove = NULL;
-        e->takeaction = NULL;
-        e->modeldata.aimove = AIMOVE1_STAR;
-        e->modeldata.aiattack = AIATTACK1_NOATTACK;
+		ent->think = common_think;
+        ent->nextthink = _time + 1;
+        ent->trymove = NULL;
+        ent->takeaction = NULL;
+        ent->modeldata.aimove = AIMOVE1_STAR;
+        ent->modeldata.aiattack = AIATTACK1_NOATTACK;
         
 		// Remove star on contact.
-		if (e->modeldata.remove)
+		if (ent->modeldata.remove)
 		{
-			e->autokill |= AUTOKILL_ATTACK_HIT;
+			ent->autokill |= AUTOKILL_ATTACK_HIT;
 		}
 				
-		e->position.y = y;
-		e->base = y;
-        e->speedmul = 2;
+		ent->position.y = position.y;
+		ent->base = position.y;
+        ent->speedmul = 2;
         
 		// Copy parent's hostile and can damage settings if
 		// star model doesn't have its own.
-        if(e->modeldata.hostile < 0)
+        if(ent->modeldata.hostile < 0)
         {
-            e->modeldata.hostile = self->modeldata.hostile;
+            ent->modeldata.hostile = parent->modeldata.hostile;
         }
 
-        if(e->modeldata.candamage < 0)
+        if(ent->modeldata.candamage < 0)
         {
-            e->modeldata.candamage = self->modeldata.candamage;
+            ent->modeldata.candamage = parent->modeldata.candamage;
         }
 
 		// Basic terrian property setup.
-		e->modeldata.subject_to_basemap = 1;
-		e->modeldata.subject_to_wall = 1;
-		e->modeldata.subject_to_platform = 1;
-		e->modeldata.subject_to_hole = 1;
-		e->modeldata.subject_to_gravity = 1;
-        e->modeldata.no_adjust_base = 0;
+		ent->modeldata.subject_to_basemap = 1;
+		ent->modeldata.subject_to_wall = 1;
+		ent->modeldata.subject_to_platform = 1;
+		ent->modeldata.subject_to_hole = 1;
+		ent->modeldata.subject_to_gravity = 1;
+        ent->modeldata.no_adjust_base = 0;
 
-        e->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
+        ent->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
+		ent->projectile_prime = projectile_prime;
 
 		// Execute the projectile's on spawn event.
-		execute_onspawn_script(e);
+		execute_onspawn_script(ent);
     }
-    return 1;
+    return TRUE;
 
 #undef MAX_STARS
 }
