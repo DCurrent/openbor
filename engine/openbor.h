@@ -1449,6 +1449,13 @@ typedef enum
 
 typedef enum
 {
+	COLOR_SET_ADJUST_NONE			= -1,	// Don't adjust color.
+	COLOR_SET_ADJUST_PARENT_INDEX	= -2,	// Match parent/owner index.
+	COLOR_SET_ADJUST_PARENT_TABLE	= -3	// Match parent/owner table.
+} e_color_adjust;
+
+typedef enum
+{
     LE_TYPE_NORMAL,
     LE_TYPE_CUT_SCENE,
     LE_TYPE_SELECT_SCREEN,
@@ -2085,10 +2092,10 @@ typedef enum
 typedef struct
 {
 	int                     bomb;				// custbomb;
-	e_direction_adjust		direction;
+	e_color_adjust			color_set_adjust;	// Palette selection.
+	e_direction_adjust		direction_adjust;	
 	int                     flash;				// custpshotno;
 	int                     knife;				// custknife;
-	int						map_index;			// Palette selection.
 	e_projectile_offense	offense;			// Offense factor source.
 	e_projectile_placement	placement;			// How position applies.
 	s_axis_principal_float	position;			// Location at which projectiles are spawned.
@@ -2112,7 +2119,7 @@ typedef enum
 	SUB_ENTITY_PLACEMENT_PARENT,
 	SUB_ENTITY_PLACEMENT_SCREEN,
 	SUB_ENTITY_PLACEMENT_ABSOLUTE
-} e_sub_entity_placement; 
+} e_sub_entity_placement;
 
 // Caskey, Damon V.
 // 2019-12-11

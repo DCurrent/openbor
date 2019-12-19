@@ -107,10 +107,10 @@ const s_drawmethod plainmethod =
 const s_projectile projectile_default_animation = {
 	
 	.bomb = MODEL_INDEX_NONE,
-	.direction = DIRECTION_ADJUST_SAME,
+	.color_set_adjust = COLOR_SET_ADJUST_NONE,
+	.direction_adjust = DIRECTION_ADJUST_SAME,
 	.flash = MODEL_INDEX_NONE,
 	.knife = MODEL_INDEX_NONE,
-	.map_index = 0,
 	.offense = PROJECTILE_OFFENSE_PARENT,
 	.placement = PROJECTILE_PLACEMENT_PARENT,
 	.position = {.x = 60.f,
@@ -10527,6 +10527,66 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 newanim->projectile->star = get_cached_model_index(GET_ARG(1));
                 break;
+			case CMD_MODEL_PROJECTILE_COLOR_SET_ADJUST:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				value = GET_ARG(1);
+
+				if (stricmp(value, "none") == 0)
+				{
+					tempInt = COLOR_SET_ADJUST_NONE;
+				}
+				else if (stricmp(value, "parent_index") == 0)
+				{
+					tempInt = COLOR_SET_ADJUST_PARENT_INDEX;
+				}
+				else if (stricmp(value, "parent_table") == 0)
+				{
+					tempInt = COLOR_SET_ADJUST_PARENT_TABLE;
+				}
+				else
+				{
+					tempInt = GET_INT_ARG(1);
+				}
+
+				newanim->projectile->color_set_adjust = tempInt;
+				break;
+			case CMD_MODEL_PROJECTILE_DIRECTION_ADJUST:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				value = GET_ARG(1);
+
+				if (stricmp(value, "left") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_LEFT;
+				}
+				else if (stricmp(value, "none") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_NONE;
+				}
+				else if (stricmp(value, "opposite") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_OPPOSITE;
+				}
+				else if (stricmp(value, "right") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_RIGHT;
+				}
+				else if (stricmp(value, "same") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_SAME;
+				}
+				
+				newanim->projectile->direction_adjust = tempInt;
+				break;
 			case CMD_MODEL_PROJECTILE_POSITION_X:
 				// If we don't have a projectile allcated, do it now.
 				if (!newanim->projectile)
@@ -33012,6 +33072,55 @@ void anything_walk()
     //self->position.x += self->velocity.x;
 }
 
+// Caskey, Damon V.
+// 2019-12-18
+//
+// Apply color set adjustment to entity, possibly
+// based on a parent/owner depending on color set 
+// adjustment setting.
+void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustment)
+{
+	int i = 0; // Loop cursor.
+
+	// Apply color setting.
+	switch (adjustment)
+	{
+	default:
+	
+		// Use adjustment value as color set index.
+		ent_set_colourmap(ent, adjustment);
+		break;
+	
+	case COLOR_SET_ADJUST_NONE:
+		
+		// Do nothing.		
+		break;
+	
+	case COLOR_SET_ADJUST_PARENT_INDEX:
+
+		// Locate parent's current color set index. Then
+		// set our color set by that index.
+
+		for (i = 0; i < parent->modeldata.maps_loaded; i++)
+		{
+			if (parent->colourmap == parent->modeldata.colourmap[i])
+			{
+				ent_set_colourmap(ent, i);
+				break;
+			}
+		}
+		break;
+
+	case COLOR_SET_ADJUST_PARENT_TABLE:
+		
+		// Use parent's color table.
+
+		ent->colourmap = parent->colourmap;
+		break;
+
+	}
+}
+
 // Caskey, Damon  V.
 // 2019-12-18 (refactor)
 //
@@ -33035,7 +33144,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 
 	// Get result of direction adjustment. We need this before we can handle
 	// positioning on X axis.
-	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction);
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
 
 	// Let's set up the spawn position. Reverse X when parent
 	// faces left.
@@ -33107,8 +33216,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	else
 	{
 		// No model indexes set, so let's fall back to
-		// the legacy hardcode model names. If we still 
-		// can't find anything, just exit.
+		// the legacy hardcode model names.
 
 		// Try hardcode "knife" first. If that fails, we'll try
 		// "shot" next.
@@ -33148,9 +33256,9 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		memcpy(ent->offense_factors, parent->offense_factors, sizeof(*ent->offense_factors) * max_attack_types);
 	}
 
-	// Apply color setting.
-	ent_set_colourmap(ent, projectile->map_index);
-
+	// Apply color adjustment.
+	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
+	
 	// Player projectiles are always type "shot".
 	if(parent->modeldata.type & TYPE_PLAYER)
     {
@@ -33189,6 +33297,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	ent->takedamage = arrow_takedamage;
 	ent->takeaction = NULL;
 	ent->modeldata.aimove = AIMOVE1_ARROW;
+	ent->speedmul = 2;
 
     if(!ent->modeldata.offscreenkill)
     {
@@ -33208,10 +33317,6 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
 	
-	ent->speedmul = 2;
-
-    //ent_set_colourmap(ent, map);
-
 	// Is this a floor or flying projectile? Set base accordingly.
     if(ent->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
@@ -33222,7 +33327,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		ent->base = position.y;
     }
 
-	// if projectile model doesn't already have hostile and
+	// If projectile model doesn't already have hostile and
 	// candamage settings, copy them from parent.
     if(ent->modeldata.hostile < 0)
     {

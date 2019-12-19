@@ -276,6 +276,12 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
 		ICMPCONST(PROJECTILE_OFFENSE_PARENT)
 		ICMPCONST(PROJECTILE_OFFENSE_SELF)
+
+		// Color set adjustments. Meant for projectile spawns
+		// but useful elsewhere too.
+		ICMPCONST(COLOR_SET_ADJUST_NONE)
+		ICMPCONST(COLOR_SET_ADJUST_PARENT_INDEX)
+		ICMPCONST(COLOR_SET_ADJUST_PARENT_TABLE)
 					   			 
         // Scrolling type flags.
         ICMPCONST(SCROLL_RIGHT)
