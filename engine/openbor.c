@@ -33286,7 +33286,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 
 	// Set up behavior flags.
 	ent->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
-	ent->owner = self;
+	ent->owner = parent;
 	ent->nograb = 1;
 	ent->attacking = ATTACKING_ACTIVE;
 	ent->think = common_think;
@@ -33564,7 +33564,7 @@ int star_spawn(entity *parent, s_projectile *projectile)
         ent->sortid = first_sortid - i;
 
         ent->takedamage = arrow_takedamage;
-        ent->owner = self;
+        ent->owner = parent;
         ent->attacking = ATTACKING_ACTIVE;
         ent->nograb = 1;
         
