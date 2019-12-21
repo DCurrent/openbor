@@ -29466,7 +29466,9 @@ void sort_invert_by_parent(entity *ent, entity *parent)
 // for common bomb types
 int bomb_move()
 {
-    if(inair(self) && self->toexplode & EXPLODE_PREPARED)
+	// In air, and prepared to explode (meaning will detonante on contact), 
+	// but NOT yet set to detonate.
+    if(inair(self) && self->toexplode & EXPLODE_PREPARED && !(self->toexplode & EXPLODE_DETONATE))
     {
         if(self->direction == DIRECTION_LEFT)
         {
@@ -29477,37 +29479,40 @@ int bomb_move()
             self->velocity.x = self->modeldata.speed.x;
         }
     }
-    else if(self->takeaction != bomb_explode)
-    {
-        self->takeaction = bomb_explode;
+	else if (self->takeaction != bomb_explode)
+	{
+		self->takeaction = bomb_explode;
 
-        // hit something, just make it an explosion animation.
-        self->modeldata.subject_to_wall = 1;
-        self->modeldata.subject_to_platform = 1;
-        self->modeldata.subject_to_hole = 1;
-        //self->modeldata.no_adjust_base = 1;    // Stop moving up/down
-        self->modeldata.subject_to_basemap = 1;
+		// hit something, just make it an explosion animation.
+		self->modeldata.subject_to_wall = 1;
+		self->modeldata.subject_to_platform = 1;
+		self->modeldata.subject_to_hole = 1;
+		self->modeldata.subject_to_basemap = 1;
 
-        if ( !checkhole(self->position.x, self->position.z) ) {
-            self->velocity.y = 0;    // Stop moving up/down
-            self->base = self->position.y;
-            self->velocity.x = self->velocity.z = 0;
-        }
+		// Stop movement. 
+		if (!checkhole(self->position.x, self->position.z)) {
+			self->velocity.y = 0;    // Stop moving up/down
+			self->base = self->position.y;
+			self->velocity.x = 0;
+			self->velocity.z = 0;
+		}
 
-        if(self->modeldata.diesound >= 0)
-        {
-            sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
-        }
+		if (self->modeldata.diesound >= 0)
+		{
+			sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
+		}
 
-        if(self->toexplode & EXPLODE_DETONATE && validanim(self, ANI_ATTACK2))
-        {
-            ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
-        }
-        else if (validanim(self, ANI_ATTACK1))
-        {
-            ent_set_anim(self, ANI_ATTACK1, 0);
-        }
-    }
+		if (self->toexplode & EXPLODE_DETONATE && validanim(self, ANI_ATTACK2))
+		{
+			ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
+			self->animation->subject_to_gravity = 0;		
+		}
+		else if (validanim(self, ANI_ATTACK1))
+		{
+			ent_set_anim(self, ANI_ATTACK1, 0);
+			self->animation->subject_to_gravity = 0;
+		}
+	}
     return 1;
 }
 
