@@ -3412,7 +3412,7 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
 e_entity_type find_entity_type_from_string(char* value);
-int bomb_move(void);
+int bomb_move(entity *ent);
 int arrow_move(void);
 int common_move(void);
 void common_think(void);

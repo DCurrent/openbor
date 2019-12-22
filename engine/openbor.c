@@ -29463,55 +29463,73 @@ void sort_invert_by_parent(entity *ent, entity *parent)
     }
 }
 
-// for common bomb types
-int bomb_move()
+// Caskey, Damon V.
+// 2019-12-22
+//
+// Orginal author unknown. Refactored to stop using global self,
+// and fix bomb falling after detonation.
+int bomb_move(entity *ent)
 {
-	// In air, and prepared to explode (meaning will detonante on contact), 
-	// but NOT yet set to detonate.
-    if(inair(self) && self->toexplode & EXPLODE_PREPARED && !(self->toexplode & EXPLODE_DETONATE))
+	// If in air, and prepared to explode (meaning will detonate on contact), 
+	// but NOT yet set to detonate, then we move using velocity (presumably 
+	// we've been tossed and so any Z and Y momentum is already handled). 
+	//
+	// EXPLODE_DETONATE status is applied by do_attack() if the we touch
+	// ground, hit another entity, or are hit by another entity attack.
+	// In that case, we "explode" by playing an appropriate animation.
+    if(inair(ent) && ent->toexplode & EXPLODE_PREPARED && !(ent->toexplode & EXPLODE_DETONATE))
     {
-        if(self->direction == DIRECTION_LEFT)
+        if(ent->direction == DIRECTION_LEFT)
         {
-            self->velocity.x = -self->modeldata.speed.x;
+            ent->velocity.x = -ent->modeldata.speed.x;
         }
-        else if(self->direction == DIRECTION_RIGHT)
+        else if(ent->direction == DIRECTION_RIGHT)
         {
-            self->velocity.x = self->modeldata.speed.x;
+            ent->velocity.x = ent->modeldata.speed.x;
         }
     }
-	else if (self->takeaction != bomb_explode)
+	else if (ent->takeaction != bomb_explode)
 	{
-		self->takeaction = bomb_explode;
 
-		// hit something, just make it an explosion animation.
-		self->modeldata.subject_to_wall = 1;
-		self->modeldata.subject_to_platform = 1;
-		self->modeldata.subject_to_hole = 1;
-		self->modeldata.subject_to_basemap = 1;
+		// The bomb action will clear us out when finished exploding or
+		// if we don't have an explode animation and the current
+		// animation is complete.
+		ent->takeaction = bomb_explode;
 
-		// Stop movement. 
-		if (!checkhole(self->position.x, self->position.z)) {
-			self->velocity.y = 0;    // Stop moving up/down
-			self->base = self->position.y;
-			self->velocity.x = 0;
-			self->velocity.z = 0;
+		// Explosions are subject to most terrain barriers.
+		ent->modeldata.subject_to_wall = 1;
+		ent->modeldata.subject_to_platform = 1;
+		ent->modeldata.subject_to_hole = 1;
+		ent->modeldata.subject_to_basemap = 1;
+
+		// Stop movement. We'll still need to turn off gravity
+		// in explosion animation or we'll just start falling
+		// again immediately.
+		if (!checkhole(ent->position.x, ent->position.z)) {
+			
+			ent->base = ent->position.y;
+			ent->velocity.y = 0;
+			ent->velocity.x = 0;
+			ent->velocity.z = 0;
 		}
 
-		if (self->modeldata.diesound >= 0)
+		// Play die sound if we have it. This can act as the explosion sound.
+		if (ent->modeldata.diesound >= 0)
 		{
-			sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
+			sound_play_sample(ent->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
 		}
 
-		if (self->toexplode & EXPLODE_DETONATE && validanim(self, ANI_ATTACK2))
+		// If we hit or got hit, then play ATTACK2. If we landed first, play ATTACK1.
+		if (ent->toexplode & EXPLODE_DETONATE && validanim(ent, ANI_ATTACK2))
 		{
-			ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
-			self->animation->subject_to_gravity = 0;		
+			ent_set_anim(ent, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
+			ent->animation->subject_to_gravity = 0;		
 		}
-		else if (validanim(self, ANI_ATTACK1))
+		else if (validanim(ent, ANI_ATTACK1))
 		{
-			ent_set_anim(self, ANI_ATTACK1, 0);
-			self->animation->subject_to_gravity = 0;
-		}
+			ent_set_anim(ent, ANI_ATTACK1, 0);
+			ent->animation->subject_to_gravity = 0;
+		}		
 	}
     return 1;
 }
@@ -29585,7 +29603,7 @@ int common_move()
     else if(aimove & AIMOVE1_BOMB)
     {
         // for a bomb, travel in a arc
-        return bomb_move();
+        return bomb_move(self);
     }
     else if(aimove & AIMOVE1_NOMOVE)
     {
