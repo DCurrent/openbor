@@ -7733,6 +7733,33 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         newchar->offscreenkill = 80;
         newchar->type = TYPE_STEAMER;
     }
+	else if(stricmp(value, "projectile") == 0)
+	{
+		newchar->type |= TYPE_PROJECTILE;
+
+		if (newchar->aimove == AIMOVE1_NONE)
+		{
+			newchar->aimove = AIMOVE1_NORMAL;
+		}
+		newchar->aimove |= AIMOVE1_ARROW;
+		if (!newchar->offscreenkill)
+		{			
+			newchar->offscreenkill = (int)(videomodes.hRes * 0.5);
+		}
+
+		// Note when using as a projectile, most of these
+		// are modified. See knife_spawn and bomb_spawn.
+		newchar->subject_to_hole = 0;
+		newchar->subject_to_gravity = 1;
+		newchar->subject_to_basemap = 0;
+		newchar->subject_to_wall = 0;
+		newchar->subject_to_platform = 0;
+		newchar->subject_to_screen = 0;
+		newchar->subject_to_minz = 1;
+		newchar->subject_to_maxz = 1;
+		newchar->subject_to_platform = 0;
+		newchar->no_adjust_base = 1;
+	}
     // my new types   7-1-2005
     else if(stricmp(value, "pshot") == 0)
     {
@@ -7746,6 +7773,9 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         {
             newchar->offscreenkill = 200;
         }
+
+		// Note when using as a projectile, most of these
+		// are modified. See knife_spawn and bomb_spawn.
         newchar->subject_to_hole                = 0;
         newchar->subject_to_gravity             = 1;
         newchar->subject_to_basemap             = 0;
@@ -7994,11 +8024,15 @@ e_entity_type find_entity_type_from_string(char* value)
 	}
 	else if (stricmp(value, "panel") == 0)
 	{
-		result = TYPE_PLAYER;
+		result = TYPE_PANEL;
 	}
 	else if (stricmp(value, "player") == 0)
 	{
 		result = TYPE_PLAYER;
+	}
+	else if (stricmp(value, "projectile") == 0)
+	{
+		result = TYPE_PROJECTILE;
 	}
 	else if (stricmp(value, "shot") == 0)
 	{
@@ -12276,8 +12310,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         case TYPE_TRAP:
             newchar->hostile  = TYPE_ENEMY | TYPE_PLAYER;
         case TYPE_OBSTACLE:
-            newchar->hostile = 0;
+            newchar->hostile = TYPE_UNDELCARED;
             break;
+		case TYPE_PROJECTILE:
+			// We want a clean slate so the projectile 
+			// spawn functions will copy owner settings 
+			// by default.
+			newchar->hostile = TYPE_UNDELCARED;
+			break;
         case TYPE_SHOT:  // only target enemies
             newchar->hostile = TYPE_ENEMY ;
             break;
@@ -12309,6 +12349,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         case TYPE_OBSTACLE:
             newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
             break;
+		case TYPE_PROJECTILE:
+			// We want a clean slate so the projectile 
+			// spawn functions will copy owner settings 
+			// by default.
+			newchar->candamage = TYPE_UNDELCARED;
+			break;
         case TYPE_SHOT:
             newchar->candamage = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
@@ -12339,6 +12385,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         case TYPE_OBSTACLE: // hmm, don't really needed
             newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
+		case TYPE_PROJECTILE:
+			// We want a clean slate so the projectile 
+			// spawn functions will copy owner settings 
+			// by default.
+			newchar->projectilehit = TYPE_UNDELCARED;
+			break;
         case TYPE_SHOT: // hmm, don't really needed
             newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
@@ -17781,6 +17833,7 @@ void ent_default_init(entity *e)
 
     switch(e->modeldata.type)
     {
+	case TYPE_UNDELCARED:
     case TYPE_RESERVED:
 	case TYPE_UNKNOWN:
 		//Do nothing.
@@ -17950,6 +18003,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         e->think = text_think;
         break;
+	case TYPE_PROJECTILE:
     case TYPE_SHOT:
         e->energy_state.health_current = 1;
         e->nograb = 1;
@@ -33176,17 +33230,17 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 void copy_faction_data(entity* ent, entity* source)
 {
 	// Copy the faction data if we don't already have it.
-	if (ent->modeldata.hostile < 0)
+	if (ent->modeldata.hostile == TYPE_UNDELCARED)
 	{
 		ent->modeldata.hostile = source->modeldata.hostile;
 	}
 
-	if (ent->modeldata.candamage < 0)
+	if (ent->modeldata.candamage == TYPE_UNDELCARED)
 	{
 		ent->modeldata.candamage = source->modeldata.candamage;
 	}
 
-	if (ent->modeldata.projectilehit < 0)
+	if (ent->modeldata.projectilehit == TYPE_UNDELCARED)
 	{
 		ent->modeldata.candamage = source->modeldata.candamage;
 	}
@@ -33332,15 +33386,19 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	// Apply color adjustment.
 	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
 	
-	// Player projectiles are always type "shot".
-	if(parent->modeldata.type & TYPE_PLAYER)
-    {
-		ent->modeldata.type = TYPE_SHOT;
-    }
-    else
-    {
-		ent->modeldata.type = parent->modeldata.type;
-    }
+	// Player projectiles are always type "shot", unless 
+	// using the current PROJECTILE type.
+	if (!(ent->modeldata.type & TYPE_PROJECTILE))
+	{
+		if (parent->modeldata.type & TYPE_PLAYER)
+		{
+			ent->modeldata.type = TYPE_SHOT;
+		}
+		else
+		{
+			ent->modeldata.type = parent->modeldata.type;
+		}
+	}
 
 	// If no move, then all speed is 0. Otherwise check for use of
 	// projectile velocity. If player supplied any value other 

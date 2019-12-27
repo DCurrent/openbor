@@ -490,19 +490,21 @@ typedef enum
 // Entity types.
 typedef enum
 {
-    TYPE_NONE		= (1 << 0),
-    TYPE_PLAYER		= (1 << 1),
-    TYPE_ENEMY		= (1 << 2),
-    TYPE_ITEM		= (1 << 3),
-    TYPE_OBSTACLE	= (1 << 4),
-    TYPE_STEAMER	= (1 << 5),
+	TYPE_UNDELCARED = -1,			
+    TYPE_NONE		= 0,
+    TYPE_PLAYER		= (1 << 0),
+    TYPE_ENEMY		= (1 << 1),
+    TYPE_ITEM		= (1 << 2),
+    TYPE_OBSTACLE	= (1 << 3),
+    TYPE_PROJECTILE	= (1 << 4),		// 2019-12-27: Projectile type for use by any entity that doesn't have all the legacy baggage.
+	TYPE_STEAMER	= (1 << 5),
     TYPE_SHOT		= (1 << 6),		// 7-1-2005 type to use for player projectiles
     TYPE_TRAP		= (1 << 7),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
     TYPE_TEXTBOX	= (1 << 8),		// New textbox type for displaying messages
     TYPE_ENDLEVEL	= (1 << 9),		// New endlevel type that ends the level when touched
     TYPE_NPC		= (1 << 10),	// A character can be an ally or enemy.
-    TYPE_PANEL		= (1 << 11),	// Fake panel, scroll with screen using model speed
-	TYPE_UNKNOWN	= (1 << 12),	// Not a real type - probably means something went wrong.
+    TYPE_PANEL		= (1 << 12),	// Fake panel, scroll with screen using model speed
+	TYPE_UNKNOWN	= (1 << 13),	// Not a real type - probably means something went wrong.
 	TYPE_MAX		= TYPE_UNKNOWN,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
 	TYPE_RESERVED	= 0x40000000    // should not use as a type
 } e_entity_type;
@@ -534,28 +536,28 @@ typedef enum
 } e_exchange;
 
 //------------reserved for A.I. types-------------------------
+
+// Caskey, Damon V
+// 2013-12-27
+//
+// Movement behavior types.
 typedef enum
 {
-    /*
-    AI move 1 enum: Affects movement path
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    AIMOVE1_NORMAL,                     // Current default style
-    AIMOVE1_CHASE       = 0x00000001,   // alway move towards target, and can run to them if target is farway
-    AIMOVE1_CHASEZ      = 0x00000002,   // only try to get close in z direction
-    AIMOVE1_CHASEX      = 0x00000004,   // only try to get colse in x direction
-    AIMOVE1_AVOID       = 0x00000008,   // try to avoid target
-    AIMOVE1_AVOIDZ      = 0x00000010,   // only try to avoid target in z direction
-    AIMOVE1_AVOIDX      = 0x00000020,   // only try to avoid target in x direction
-    AIMOVE1_WANDER      = 0x00000040,   // ignore the target's position completely, wander everywhere, long idle time
-    AIMOVE1_BIKER       = 0x00000080,   // move like a biker
-    AIMOVE1_ARROW       = 0x00000100,   // fly like an arrow
-    AIMOVE1_STAR        = 0x00000200,   // fly like a star, subject to ground
-    AIMOVE1_BOMB        = 0x00000400,   // fly like a bomb, subject to ground/wall etc
-    AIMOVE1_NOMOVE      = 0x00000800,   // don't move at all
-    MASK_AIMOVE1        = 0x0000FFFF
+	AIMOVE1_NONE = -1,			// No AIMOVE set.
+	AIMOVE1_NORMAL = 0,			// Current default style
+	AIMOVE1_CHASE = (1 << 0),		// alway move towards target, and can run to them if target is farway
+	AIMOVE1_CHASEZ = (1 << 1),		// only try to get close in z direction
+	AIMOVE1_CHASEX = (1 << 2),		// only try to get colse in x direction
+	AIMOVE1_AVOID = (1 << 3),		// try to avoid target
+	AIMOVE1_AVOIDZ = (1 << 4),		// only try to avoid target in z direction
+	AIMOVE1_AVOIDX = (1 << 5),		// only try to avoid target in x direction
+	AIMOVE1_WANDER = (1 << 6),		// ignore the target's position completely, wander everywhere, long idle time
+	AIMOVE1_BIKER = (1 << 7),		// move like a biker
+	AIMOVE1_ARROW = (1 << 8),	// fly like an arrow
+	AIMOVE1_STAR = (1 << 9),	// fly like a star, subject to ground
+	AIMOVE1_BOMB = (1 << 10),	// fly like a bomb, subject to ground/wall etc
+	AIMOVE1_NOMOVE = (1 << 11),	// don't move at all
+	MASK_AIMOVE1 = 0x0000FFFF
 } e_aimove_1;
 
 typedef enum
@@ -1626,7 +1628,7 @@ if(n<1) n = 1;
 
 #define freezeall        (smartbomber || textbox)
 
-#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->owner)
+#define is_projectile(e) (e->modeldata.type & TYPE_SHOT || e->model->subtype & SUBTYPE_ARROW || e->owner)
 
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
@@ -1642,7 +1644,7 @@ if(n<1) n = 1;
 		 (!self->animation->move || self->animation->move[self->animpos]->axis.z == 0 ) && \
 		 !(other->nograb || other->invincible & INVINCIBLE_INTANGIBLE || other->link || \
 		   other->model->animal || inair(other) || \
-		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
+		  (self->modeldata.type & TYPE_PLAYER && other->modeldata.type & TYPE_PLAYER && savedata.mode)))
 
 #define cangrab(self, other) \
 		((other->modeldata.antigrab - self->modeldata.grabforce + \
