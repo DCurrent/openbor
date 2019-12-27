@@ -10727,44 +10727,76 @@ HRESULT openbor_spawn(ScriptVariant **varlist , ScriptVariant **pretvar, int par
     return S_OK;
 }
 
-//entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
+// Caskey, Damon V. 
+// 2019-12-26 (minor refactoring - orginal author uTunnels)
+//
+// Legacy projectile function. Depreciated and authors should avoid using.
+// Refactored work with updated projectile system but otherwise maintains
+// legacy functionality.
+//
+// entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
+//
+// [0/1] = Relative. Semi-optional.  
+// - Any non-zero value: Relative to parent/owner.
+// - Not used: Relative to absolute location.
+// - 0: Same as not used, but does not work as intended. Projectile cannot spawn.
 HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     DOUBLE temp = 0;
     LONG ltemp = 0;
     entity *ent;
     char *name = NULL;
-    float x = 0, z = 0, a = 0;
-    int direction = DIRECTION_LEFT;
+	float x = 0;
+	float z = 0; 
+	float a = 0;
+    e_direction direction = DIRECTION_LEFT;
 	e_projectile_type type = PROJECTILE_TYPE_KNIFE;
-    int projectile_prime = 0;
+    e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
     int map = 0;
 	int model_index = MODEL_INDEX_NONE;
-
-    int relative;
+	int relative = 0;
 
 	s_projectile projectile = projectile_default_animation;
 
 	// We are going to return an entity pointer (or NULL).
 	ScriptVariant_ChangeType(*pretvar, VT_PTR);
 
-    if(paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
-    {
-        relative = 1;
-        paramCount--;
-        varlist++;
-    }
-    else
-    {
-        relative = 0;
-    }
+	// DC - 2019-12-26
+	//
+	// Looking at this, it appears to try and adapt to number of arguments
+	// author passes in order to make "relative" parameter optional - but it 
+	// does not work as intended. Instead, if relative argument is any non-zero 
+	// value then relative is 1 (as in relative to parent). If no relative 
+	// argument is passed at all, relative is 0. So far, so good. However, if 
+	// a relative argument of 0 is passed, relative is 0 but the other parameters 
+	// are out of sync. It is therefore impossible to read in the model name 
+	// to launch a projectile, and all the other settings would be mixed up 
+	// even if we could. Since a new projectile function is coming, I am 
+	// leaving this as-is to avoid breaking any legacy compatibility.
+	if (paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
+	{
+		relative = 1;
+		paramCount--;
+		varlist++;
+	}
+	else 
+	{
+		relative = 0;
+	}
 
-    if(paramCount >= 1 && varlist[0]->vt == VT_STR)
+	// Get model index if we can.
+	if(paramCount >= 1 && varlist[0]->vt == VT_STR)
     {
-        name = StrCache_Get(varlist[0]->strVal);
+		name = StrCache_Get(varlist[0]->strVal);		
 		model_index = get_cached_model_index(name);
 	}
 
+	// No model, then nothing more to do.
+	if (model_index == MODEL_INDEX_NONE)
+	{
+		return S_OK;
+	}
+	
 	// Caskey, Damon V.
 	// 2019-12-17
 	//
@@ -10794,7 +10826,12 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		break;
 	case PROJECTILE_TYPE_BOMB:
 		projectile.bomb = model_index;
-		ent = bomb_spawn(name, -1, x, z, a, direction, map);
+
+		// This is for legacy compatability. See bomb_spawn 
+		// function for details.
+		projectile.velocity.y = MODEL_SPEED_NONE;
+		
+		ent = bomb_spawn(self, &projectile);
 		break;
 	}
 
@@ -10805,7 +10842,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		return S_OK;
 	}
 
-    // X offset.
+	// X offset.
 	if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
 	{		
         x = (float)temp;
@@ -10857,8 +10894,17 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 			a = projectile.position.y;
 		}        
     }
+	
 
 	// Direction.
+	//
+	// This logic seems strange. Utunnels wrote it to work in conjunction with
+	// relative logic below. If auother supplies any integer (including 0), then
+	// that value is used for direction. 
+	//
+	// If NULL() (and only NULL()) is supplied and relative flag is TRUE, direction
+	// is DIRECTION_RIGHT. It may reset later by relative logic. If relative flag is
+	// FALSE, then direction is same as parent/owner.
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
         direction = (LONG)ltemp;
@@ -10903,6 +10949,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         if(self->direction == DIRECTION_RIGHT)
         {
             x += self->position.x;
+			direction = DIRECTION_RIGHT;
         }
         else
         {
@@ -10921,7 +10968,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 	ent_set_colourmap(ent, map);
         
     (*pretvar)->ptrVal = (VOID *) ent;
-
+	
     return S_OK;
 }
 

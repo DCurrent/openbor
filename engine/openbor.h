@@ -120,8 +120,8 @@ movement restirctions are here!
 #define		MODEL_INDEX_NONE	-1	// No model/disabled.
 
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
-#define		MODEL_SPEED_NONE			999999.9	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
-#define		PROJECTILE_DEFAULT_SPEED_X	2
+#define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
+#define		PROJECTILE_DEFAULT_SPEED_X	1
 #define		PROJECTILE_DEFAULT_SPEED_Y	0
 #define		PROJECTILE_DEFAULT_SPEED_Z	0
 
@@ -3436,7 +3436,7 @@ void kill_all_enemies();
 void smart_bomb(entity *e, s_collision_attack *attack);
 void anything_walk(void);
 entity* knife_spawn(entity *parent, s_projectile* projectile);
-entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
+entity *bomb_spawn(entity *parent, s_projectile *projectile);
 void bomb_explode(void);
 int star_spawn(entity *parent, s_projectile *projectile);
 void steam_think(void);

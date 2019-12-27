@@ -10487,6 +10487,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				{
 					newanim->projectile->position.y = GET_INT_ARG(2);
 				}
+
+				// For legacy compatability. See bomb_spawn() for details.
+				newanim->projectile->velocity.y = MODEL_SPEED_NONE;
 				break;
             case CMD_MODEL_CUSTKNIFE:
             case CMD_MODEL_CUSTPSHOT:
@@ -10517,6 +10520,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				}
 
                 newanim->projectile->bomb = get_cached_model_index(GET_ARG(1));
+				
                 break;
             case CMD_MODEL_CUSTSTAR:
 				// If we don't have a projectile allcated, do it now.
@@ -18426,7 +18430,7 @@ void update_frame(entity *ent, unsigned int f)
 
 		if (anim->projectile->tossframe == f)
 		{
-			bomb_spawn(NULL, -1, self->position.x + position_x, self->position.z + anim->projectile->position.z, self->position.y + anim->projectile->position.y, self->direction, 0);
+			bomb_spawn(self, anim->projectile);
 			self->deduct_ammo = 1;
 		}
 	}
@@ -33142,6 +33146,30 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 	}
 }
 
+// Caskey, Damon V.
+//
+// 2019-12-22
+// Copy the faction settings (candamage, hostile, projectilehit) from
+// a source entity.
+void copy_faction_data(entity* ent, entity* source)
+{
+	// Copy the faction data if we don't already have it.
+	if (ent->modeldata.hostile < 0)
+	{
+		ent->modeldata.hostile = source->modeldata.hostile;
+	}
+
+	if (ent->modeldata.candamage < 0)
+	{
+		ent->modeldata.candamage = source->modeldata.candamage;
+	}
+
+	if (ent->modeldata.projectilehit < 0)
+	{
+		ent->modeldata.candamage = source->modeldata.candamage;
+	}
+}
+
 // Caskey, Damon  V.
 // 2019-12-18 (refactor)
 //
@@ -33149,6 +33177,8 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 // and consolidate projectile spawn logic. Spawns an entity and fires it as a projectile. 
 // Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
 // comments in function).
+//
+// Returns pointer of spawned projectile, or NULL on fail.
 entity *knife_spawn(entity *parent, s_projectile *projectile)
 {
     entity *ent = NULL;
@@ -33302,7 +33332,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		ent->modeldata.speed.z = 0;
 	}
 	else
-	{		
+	{	
 		// Copy speed values from animation projectile settings to model.
 		memcpy(&ent->modeldata.speed, &projectile->velocity, sizeof(ent->modeldata.speed));
 	}
@@ -33348,17 +33378,9 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		ent->base = position.y;
     }
 
-	// If projectile model doesn't already have hostile and
+	// If projectile entity doesn't already have hostile and
 	// candamage settings, copy them from parent.
-    if(ent->modeldata.hostile < 0)
-    {
-		ent->modeldata.hostile = parent->modeldata.hostile;
-    }
-    
-	if(ent->modeldata.candamage < 0)
-    {
-		ent->modeldata.candamage = parent->modeldata.candamage;
-    }
+	copy_faction_data(ent, parent);
 
 	// If player damage turned off, remove player type from
 	// hostile (so homing projectiles leave players alone) and 
@@ -33392,85 +33414,177 @@ void bomb_explode()
 }
 
 
-entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map)
+// Caskey, Damon  V.
+// 2019-12-22 (refactor)
+//
+// Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
+// and consolidate projectile spawn logic. Spawns an entity and fires it as a bomb projectile. 
+// Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
+// comments in function).
+//
+// Returns pointer of spawned projectile, or NULL on fail.
+entity *bomb_spawn(entity *parent, s_projectile *projectile)
 {
-    entity *e = NULL;
 
-    if(index >= 0 || name)
+	entity* ent = NULL;
+	s_axis_principal_float position;
+	e_direction direction;
+	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
+
+	// If there's no projectile or parent setting, exit now.
+	if (!projectile || !parent)
+	{
+		return NULL;
+	}
+
+	// Get result of direction adjustment. We need this before we can handle
+	// positioning on X axis.
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+
+	// Let's set up the spawn position. Reverse X when parent
+	// faces left.
+	if (direction == DIRECTION_RIGHT)
+	{
+		position.x = parent->position.x + projectile->position.x;
+	}
+	else
+	{
+		position.x = parent->position.x - projectile->position.x;
+	}
+
+	position.y = parent->position.y + projectile->position.y;
+	position.z = parent->position.z + projectile->position.z;
+
+	// Now we need to spawn the projectile entity. There are many haphazard legacy 
+	// additions to sift through, so we need to prioritize which model to spawn. 
+	// In general, we work back from most granular to most global.
+	//
+	// From highest to lowest priority:
+	// 
+	// 1. Projectile Bomb property.
+	// 2. Using weapon with model bomb property.
+	// 3. Model Knife property.
+	    
+    if(projectile->bomb >= 0)
     {
-        e = spawn(x, z, a, direction, name, index, NULL);
+        ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->bomb, NULL);
+
+		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
     }
-    else if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
-    }
-    else if(self->animation->projectile->bomb >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile->bomb, NULL);
-    }
+	else if (self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, self->weapent->modeldata.project, NULL);
+	}
     else if(self->modeldata.bomb >= 0)
     {
-        e = spawn(x, z, a, direction, NULL, self->modeldata.bomb, NULL);
+        ent = spawn(position.x, position.z, position.y, direction, NULL, self->modeldata.bomb, NULL);
     }
 
-    if(e == NULL)
+	printf("\n");
+	printf("\n ent: %d", ent);
+	printf("\n ent x: %f", ent->position.x);
+	printf("\n ent y: %f", ent->position.y);
+	printf("\n ent z: %f", ent->position.z);
+
+
+	projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_KNIFE;
+
+	// If we never successfully spawned a projectile entity, exit.
+    if(!ent)
     {
         return NULL;
     }
 
-    e->position.y = a + 0.5;
+	ent->projectile_prime = projectile_prime;
 
-    if(!e->model->speed.x && !e->modeldata.nomove)
-    {
-        e->modeldata.speed.x = 2;
-    }
-    else if(e->modeldata.nomove)
-    {
-        e->modeldata.speed.x = 0;
-    }
-
-    e->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
-    e->attacking = ATTACKING_ACTIVE;
-    e->owner = self;                                                     // Added so projectiles don't hit the owner
-    e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->toexplode |= EXPLODE_PREPARED;                                    // Set to distinguish exploding projectiles and also so stops falling when hitting an opponent
-    ent_set_colourmap(e, map);
-    //e->direction = direction;
-    toss(e, e->modeldata.jumpheight);
-    e->think = common_think;
-    e->nextthink = _time + 1;
-    e->trymove = NULL;
-    e->takeaction = NULL;
-    e->modeldata.aimove = AIMOVE1_BOMB;
-    e->modeldata.aiattack = AIATTACK1_NOATTACK;                                    // Well, bomb's attack animation is passive, dont use any A.I. code.
-    e->takedamage = common_takedamage;
-	e->autokill &= ~AUTOKILL_ATTACK_HIT;
-
-	if (e->modeldata.nomove)
+    // If no move, then all speed is 0. Otherwise check for use of
+	// projectile velocity. If player supplied any value other 
+	// than MODEL_SPEED_NONE, we use player's value. If not, fall
+	// back to default values. This is a bit overcomplicated, but
+	// allows players to supply a 0 velocity value on any axis.
+	if (ent->modeldata.nomove)
 	{
-		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+		//memset(ent->modeldata.speed, 0, sizeof(*ent->modeldata.speed));
+
+		ent->modeldata.speed.x = 0;
+		ent->modeldata.speed.y = 0;
+		ent->modeldata.speed.z = 0;
+	}
+	else
+	{
+		// Copy speed values from animation projectile settings to model.
+		memcpy(&ent->modeldata.speed, &projectile->velocity, sizeof(ent->modeldata.speed));
+	}
+
+	// Toss the bomb entity in an arc.
+	//
+	// We want to handle legacy behavior (use projectile jumpheight 
+	// for Y toss velocity), allow author to apply a 0 value for Y 
+	// velocity, and use the same velocity structure members for bomb 
+	// and knife projectiles. The last part is an extra challenge because 
+	// the default velocity needs for knife and bomb are not compatible. 
+	// To handle all of this this we will set the velocity.y member to 
+	// MODEL_SPEED_NONE specfically when a bomb projectile is requested 
+	// by the Throwframe command or "bomb" type from legacy script function 
+	// projectile(). If the author does not modify this value, we know 
+	// to fall back to legacy behavior and use the projectile entity's 
+	// model jumpheight.  
+	//
+	// If the value is anything other than MODEL_SPEED_NONE, then we know 
+	// the author requested a specific velocity (including 0) and will 
+	// use author value instead of model jumpheight.
+			
+	if (projectile->velocity.y == MODEL_SPEED_NONE)
+	{
+		toss(ent, ent->modeldata.jumpheight);
+	}
+	else
+	{
+		toss(ent, projectile->velocity.y);
 	}
 	
-    e->speedmul = 2;
+	// Apply color adjustment.
+	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
 
+    ent->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
+    ent->attacking = ATTACKING_ACTIVE;
+    ent->owner = parent;                                                     
+    ent->nograb = 1;                                                       
+    ent->toexplode |= EXPLODE_PREPARED;                                    
+    
+        
+    ent->think = common_think;
+    ent->nextthink = _time + 1;
+    ent->trymove = NULL;
+    ent->takeaction = NULL;
+    ent->modeldata.aimove = AIMOVE1_BOMB;
+    ent->modeldata.aiattack = AIATTACK1_NOATTACK;
+    ent->takedamage = common_takedamage;
+	ent->autokill &= ~AUTOKILL_ATTACK_HIT;
 
-    // Ok, some old mods use type none, will have troubles.
-    // so we give them some default hostile types.
-    if(e->modeldata.hostile < 0)
-    {
-        e->modeldata.hostile = self->modeldata.hostile;
-    }
-    if(e->modeldata.candamage < 0)
-    {
-        e->modeldata.candamage = self->modeldata.candamage;
-    }
-    e->modeldata.no_adjust_base = 0;
-    e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
+	if (ent->modeldata.nomove)
+	{
+		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+	}
+	
+    ent->speedmul = 2;
+
+	// If projectile entity doesn't already have hostile and
+	// candamage settings, copy them from parent.
+	copy_faction_data(ent, parent);
+    
+	ent->modeldata.no_adjust_base = 0;
+	ent->modeldata.subject_to_basemap = 1;
+	ent->modeldata.subject_to_wall = 1;
+	ent->modeldata.subject_to_platform = 1;
+	ent->modeldata.subject_to_hole = 1;
+	ent->modeldata.subject_to_gravity = 1;
     
 	// Execute the projectile's on spawn event.
-	execute_onspawn_script(e);
+	execute_onspawn_script(ent);
 	
-	return e;
+	return ent;
 }
 
 // Spawn 3 stars
@@ -33617,17 +33731,9 @@ int star_spawn(entity *parent, s_projectile *projectile)
 		ent->base = position.y;
         ent->speedmul = 2;
         
-		// Copy parent's hostile and can damage settings if
-		// star model doesn't have its own.
-        if(ent->modeldata.hostile < 0)
-        {
-            ent->modeldata.hostile = parent->modeldata.hostile;
-        }
-
-        if(ent->modeldata.candamage < 0)
-        {
-            ent->modeldata.candamage = parent->modeldata.candamage;
-        }
+		// If projectile entity doesn't already have hostile and
+		// candamage settings, copy them from parent.
+		copy_faction_data(ent, parent);
 
 		// Basic terrian property setup.
 		ent->modeldata.subject_to_basemap = 1;
