@@ -3059,6 +3059,7 @@ typedef struct ArgList
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
+bool is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);

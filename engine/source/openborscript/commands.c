@@ -404,6 +404,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_PROJECT, "project");
 	LIST_ADD(CMD_MODEL_PROJECTILE_COLOR_SET_ADJUST, "projectile_color_set_adjust");
 	LIST_ADD(CMD_MODEL_PROJECTILE_DIRECTION_ADJUST, "projectile_direction_adjust");
+	LIST_ADD(CMD_MODEL_PROJECTILE_OFFENSE, "projectile_offense");
 	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_X, "projectile_position_x");
 	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Y, "projectile_position_y");
 	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Z, "projectile_position_z");

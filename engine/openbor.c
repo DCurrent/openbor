@@ -111,7 +111,7 @@ const s_projectile projectile_default_animation = {
 	.direction_adjust = DIRECTION_ADJUST_SAME,
 	.flash = MODEL_INDEX_NONE,
 	.knife = MODEL_INDEX_NONE,
-	.offense = PROJECTILE_OFFENSE_PARENT,
+	.offense = PROJECTILE_OFFENSE_SELF,
 	.placement = PROJECTILE_PLACEMENT_PARENT,
 	.position = {.x = 60.f,
 					.y = 70.f,
@@ -9522,14 +9522,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-                        if(i == ATK_BOSS_DEATH
-                           || i == ATK_ITEM
-                           || i == ATK_LIFESPAN
-                           || i == ATK_LOSE
-						   || i == ATK_SUB_ENTITY_PARENT_KILL
-						   || i == ATK_SUB_ENTITY_UNSUMMON
-                           || i == ATK_TIMEOVER
-                           || i == ATK_PIT)
+                        if(is_attack_type_special(i))
                         {
                             continue;
                         }
@@ -9591,14 +9584,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-						if (i == ATK_BOSS_DEATH
-							|| i == ATK_ITEM
-							|| i == ATK_LIFESPAN
-							|| i == ATK_LOSE
-							|| i == ATK_SUB_ENTITY_PARENT_KILL
-							|| i == ATK_SUB_ENTITY_UNSUMMON
-							|| i == ATK_TIMEOVER
-							|| i == ATK_PIT)
+						if (is_attack_type_special(i))
                         {
                             continue;
                         }
@@ -10590,6 +10576,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				}
 				
 				newanim->projectile->direction_adjust = tempInt;
+				break;
+			case CMD_MODEL_PROJECTILE_OFFENSE:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				value = GET_ARG(1);
+
+				if (stricmp(value, "parent") == 0)
+				{
+					tempInt = PROJECTILE_OFFENSE_PARENT;
+				}
+				else if (stricmp(value, "self") == 0)
+				{
+					tempInt = PROJECTILE_OFFENSE_SELF;
+				}
+
+				newanim->projectile->offense = tempInt;
 				break;
 			case CMD_MODEL_PROJECTILE_POSITION_X:
 				// If we don't have a projectile allcated, do it now.
@@ -25961,6 +25967,29 @@ void checkdamageonlanding()
     return;
 }
 
+// Caskey, Damon V.
+// 2019-12-26
+//
+// Return true if attack type is one of the types not included
+// in normal use by authors.
+bool is_attack_type_special(e_attack_types type)
+{
+	switch (type)
+	{
+	default:
+		return FALSE;
+	case ATK_BOSS_DEATH:
+	case ATK_ITEM:
+	case ATK_LIFESPAN:
+	case ATK_LOSE:
+	case ATK_SUB_ENTITY_PARENT_KILL:
+	case ATK_SUB_ENTITY_UNSUMMON:
+	case ATK_TIMEOVER:
+	case ATK_PIT:
+		return TRUE;
+	}
+}
+
 void checkdamage(entity *other, s_collision_attack *attack)
 {
 	int		force;
@@ -25971,14 +26000,7 @@ void checkdamage(entity *other, s_collision_attack *attack)
 
 	// Damage does not return HP and comes from
 	// a normal source?
-	normal_damage = (attack->attack_type != ATK_BOSS_DEATH
-		&& attack->attack_type != ATK_ITEM
-		&& attack->attack_type != ATK_LIFESPAN
-		&& attack->attack_type != ATK_LOSE
-		&& attack->attack_type != ATK_SUB_ENTITY_PARENT_KILL
-		&& attack->attack_type != ATK_SUB_ENTITY_UNSUMMON
-		&& attack->attack_type != ATK_TIMEOVER
-		&& attack->attack_type != ATK_PIT
+	normal_damage = (!is_attack_type_special(attack->attack_type)
 		&& force >= 0);
 
 	// If we're invincible to normal damage sources, laugh it off.
