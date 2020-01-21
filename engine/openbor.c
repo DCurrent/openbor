@@ -33322,7 +33322,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		
 		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE;
 	}
 	else if (parent->modeldata.knife >= 0)
 	{
@@ -33543,33 +33543,30 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	// 
 	// 1. Projectile Bomb property.
 	// 2. Using weapon with model bomb property.
-	// 3. Model Knife property.
+	// 3. Model bomb property.
 	    
     if(projectile->bomb >= 0)
     {
         ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->bomb, NULL);
 
-		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
-		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-    }
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_BOMB;
+	}
 	else if (self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
 	{
 		ent = spawn(position.x, position.z, position.y, direction, NULL, self->weapent->modeldata.project, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE;
 	}
     else if(self->modeldata.bomb >= 0)
     {
         ent = spawn(position.x, position.z, position.y, direction, NULL, self->modeldata.bomb, NULL);
-    }
 
-	printf("\n");
-	printf("\n ent: %d", ent);
-	printf("\n ent x: %f", ent->position.x);
-	printf("\n ent y: %f", ent->position.y);
-	printf("\n ent z: %f", ent->position.z);
-
-
-	projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_KNIFE;
-
+		projectile_prime | -PROJECTILE_PRIME_SOURCE_MODEL_BOMB;
+	}
+	
+	projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+	projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+	
 	// If we never successfully spawned a projectile entity, exit.
     if(!ent)
     {
@@ -33735,7 +33732,7 @@ int star_spawn(entity *parent, s_projectile *projectile)
 	{
 		index = parent->weapent->modeldata.project;
 
-		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_PROJECTILE;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE;
 	}
     else if(parent->modeldata.star >= 0)
     {
