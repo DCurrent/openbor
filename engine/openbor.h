@@ -1919,7 +1919,7 @@ typedef struct
     bool                no_kill;            // this attack won't kill target (leave 1 HP)
     bool                no_pain;            // No animation reaction on hit.
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
-    int                 attack_type;        // Reaction animation, death, etc.
+    e_attack_types      attack_type;        // Reaction animation, death, etc.
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 freeze;             // Lock target in place and set freeze time.
     int                 jugglecost;         // cost for juggling a falling ent

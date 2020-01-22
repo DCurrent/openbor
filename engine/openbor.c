@@ -20983,14 +20983,14 @@ void do_attack(entity *e)
             didhit = 0;
         }
 
-        //if #02 , ground missle checking, and bullets wont hit each other
+        //Ground missle checking, and bullets wont hit each other
         if( (e->owner && self->owner) ||
                 (e->modeldata.ground && inair(e))  )
         {
             didhit = 0;
-        }//end of if #02
+        }
 
-        // Blocking code section
+        // Blocking code section.
         if(didhit)
         {
             if(attack->attack_type == ATK_ITEM)
@@ -21047,10 +21047,11 @@ void do_attack(entity *e)
                 // Flash spawn.
                 spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
 
+				// Add to owner's combo time.
+                topowner->combotime = _time + combodelay; 
 
-                topowner->combotime = _time + combodelay; // well, add to its owner's combo
-
-                if(e->pausetime < _time || (inair(e) && !equalairpause))        // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
+				// If equalairpause is set, inair(e) is nolonger a condition for extra pausetime.
+                if(e->pausetime < _time || (inair(e) && !equalairpause))        
                 {
                     // Adds pause to the current animation
                     e->toss_time += attack->pause_add;      // So jump height pauses in midair
@@ -21077,7 +21078,6 @@ void do_attack(entity *e)
                 didhit = 0;
                 continue;
             }
-            // end of if #053
 
             // 2007 3 24, hmm, def should be like this
             if(didblock && !def)
@@ -21096,19 +21096,30 @@ void do_attack(entity *e)
                 self->blocking = didblock;   
             }
 
-            //2011/11/24 UT: move the next_hit_time logic here,
-            // because block needs this as well otherwise blockratio causes instant death
+			// Utunnels
+            // 2011-11-24 UT
+			//
+			// Move the next_hit_time logic here, because block needs this 
+			// as well. Otherwise, blockratio causes instant death
             self->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (GAME_SPEED / 5));
             self->nextattack = 0; // reset this, make it easier to fight back
         }
         self = temp;
 
-    } // end of for
+    }
 
 
-    // if ###
+    // Did we get a hit? let's process it.
     if(didhit)
     {
+		// Handle energy cost if attacking animation has any.
+
+		// Caskey, Damon V.
+		// 2020-01-22
+		//
+		// I'm honestly not sure how the legacy logic works. Will need to spend
+		// some more time breaking it down.
+
         if(current_anim->energy_cost.cost > 0)
         {
             // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
