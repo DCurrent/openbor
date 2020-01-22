@@ -20971,8 +20971,14 @@ void do_attack(entity *e)
             otherowner = otherowner->owner;
         }
 
-        //if #01, if they are fired by the same owner, or the owner itself
-        if(topowner == otherowner)
+        // Ensure projectile can't hit its owner. Important since projectile attack
+		// boxes usualy overlap owner's body boxes as the projectile is first thrown.
+		// Note if an author wants to add projectile reflection feature, they need to
+		// change the projectile's owner when reflect effect occurs, or the reflected 
+		// projectile won't be able to hit its orginal owner. If they need to know the 
+		// orginal owner after changing the owner property, they can check the parent 
+		// property.
+		if(topowner == otherowner)
         {
             didhit = 0;
         }
@@ -21129,37 +21135,43 @@ void do_attack(entity *e)
                     }
                 }
 
-                e->tocost = 1;    // Little backwards, but set to 1 so cost doesn't get subtracted multiple times
+				// Little backwards, but set to 1 so cost doesn't get subtracted multiple times.
+                e->tocost = 1;   
             }
         }
 
-        // New blocking checks
-        //04/27/2008 Damon Caskey: Added checks for defense property specific blockratio and type. Could probably use some cleaning.
+		// Caskey, Damon V.
+        // 2008-04-27 
+		//
+		// Added checks for defense property specific blockratio and type. 
+		// Could probably use some cleaning.
         if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON)
         {
-            if(blockratio || def->defense[attack->attack_type].blockratio) // Is damage reduced?
+			// If global blockratio or target's defense block ratio is 
+			// in use, then damage is reduced rather than negated.
+            if(blockratio || def->defense[attack->attack_type].blockratio)
             {
-                if (def->defense[attack->attack_type].blockratio)                       //Typed blockratio?
+				// Apply ratio to damage force. Use type specific ratio if target 
+				// has one. Otherwise, use global ratio.
+                if (def->defense[attack->attack_type].blockratio)
                 {
                     force = (int)(force * def->defense[attack->attack_type].blockratio);
                 }
-                else                                                                              //No typed. Use static block ratio.
+                else       
                 {
                     force = force / 4;
                 }
-
-                /*
-                Block type handling. For backward compatibility we will use BLOCK_TYPE_MP_FIRST regardless
-                of defense setting if author has enabled mpblock. Otherwise the defender's blocktype
-                for incoming attack type will be used. Once this is determined, we will apply the
-                appropriate blocktype accordingly.
-                */
+				               
+                // Block type handling. For backward compatibility we will use BLOCK_TYPE_MP_FIRST regardless
+                // of defense setting if author has enabled mpblock. Otherwise, the defender's blocktype
+                // for incoming attack type will be used. Once this is determined, we will apply the
+                // appropriate blocktype.
                 blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : def->defense[attack->attack_type].blocktype;
 
                 switch (blocktype)
                 {
                     case BLOCK_TYPE_HP:
-                        //Do nothing. This is so modders can overidde energy_cost mponly 1 with health only.
+                        // Do nothing. This is so modders can overidde energy_cost mponly 1 with health only.
                         break;
 
                     case BLOCK_TYPE_MP_ONLY:
@@ -21176,7 +21188,8 @@ void do_attack(entity *e)
 
                         def->energy_state.mp_current -= force;
 
-                        /* If there isn't enough MP to cover force, subtract remaining MP from force and set MP to 0 */
+                        // If there isn't enough MP to cover force, subtract remaining 
+						// MP from force and set MP to 0.
                         if(def->energy_state.mp_current < 0)
                         {
                             force = -def->energy_state.mp_current;
@@ -21197,11 +21210,23 @@ void do_attack(entity *e)
                         }
                 }
 
-                if(force < def->energy_state.health_current)                    // If an attack won't deal damage, this line won't do anything anyway.
+				// Apply remaining damage force to HP after blocking calculations.
+				// 
+				// 1. Damage force < HP: Subtract directly - Don't use take 
+				// damage because we don't want a visible reaction in game.
+				//
+				// 2. Damage force > HP, but nochipdeath is enabled (meaning
+				// chip death is not allowed) - Set HP to 1. Again, we don't 
+				// want a reaction.
+				//
+				// 3. Damage force > HP, chip death is allowed - Set take 
+				// damage so engine will apply damage normally and KO the 
+				// entity.
+                if(force < def->energy_state.health_current)
                 {
                     def->energy_state.health_current -= force;
                 }
-                else if(nochipdeath)                       // No chip deaths?
+                else if(nochipdeath)
                 {
                     def->energy_state.health_current = 1;
                 }
@@ -21209,12 +21234,14 @@ void do_attack(entity *e)
                 {
                     temp = self;
                     self = def;
-                    self->takedamage(e, attack, 0);           // Must be a fatal attack, then!
+                    self->takedamage(e, attack, 0);
                     self = temp;
                 }
             }
         }
 
+		// If the attack was not blocked, let's increment the
+		// attacker's combo counter and time.
         if(!didblock)
         {
             topowner->rush.time = _time + (GAME_SPEED * rush[1]);
@@ -21225,15 +21252,27 @@ void do_attack(entity *e)
             }
         }
 
+		// Play the impact sound effect.
+		//
+		// 1. Attack blocked.
+		//	a) Attack has block sound - play attack block sound.
+		//	b) Attack does not have block sound - play global block sound.
+		//
+		// 2. Attacker is actually a "projectile" (as in, thrown or knocked
+		// through the air by a blasting attack) - play global indirect sound.
+		//	
+		// 3. Typical attack hit.
+		//	a) Attack has hit sound - play attack hit sound.
+		//	b) Attack does not have hit sound - play global hit sound. 
         if(didblock)
         {
             if(attack->blocksound >= 0)
             {
-                sound_play_sample(attack->blocksound, 0, savedata.effectvol, savedata.effectvol, 100);    // New custom block sound effect
+                sound_play_sample(attack->blocksound, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             else if(SAMPLE_BLOCK >= 0)
             {
-                sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);    // Default block sound effect
+                sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         else if(e->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
@@ -21242,6 +21281,12 @@ void do_attack(entity *e)
         }
         else if(attack->hitsound >= 0)
         {
+			// If noslofx is enabled, then just play sound at default speed.
+			// Otherwise, subtract 5 from damage force, and then subtract 
+			// that result from default play speed. 
+			//
+			// This has the effect of slowing down the sound playback as damage 
+			// increases to give it a slightly lower tone and more impact.
             t = 100 - (noslowfx ? 0 : (force - 5));
             if(t > 100)
             {
@@ -21254,11 +21299,14 @@ void do_attack(entity *e)
             sound_play_sample(attack->hitsound, 0, savedata.effectvol, savedata.effectvol, t);
         }
 
+		// If the auto kill flag is set, attacker 
+		// kills itself instantly. Used mainly for
+		// projectiles.
         if(e->autokill & AUTOKILL_ATTACK_HIT)
         {
             kill_entity(e);
         }
-    }//end of if ###
+    }
 #undef followed
 }
 
