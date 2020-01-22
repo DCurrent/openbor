@@ -33414,7 +33414,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	else
 	{	
 		// Copy speed values from animation projectile settings to model.
-		memcpy(&ent->modeldata.speed, &projectile->velocity, sizeof(ent->modeldata.speed));
+		ent->modeldata.speed = projectile->velocity;
 	}
 
 	// Set up behavior flags.
@@ -33561,7 +33561,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
     {
         ent = spawn(position.x, position.z, position.y, direction, NULL, self->modeldata.bomb, NULL);
 
-		projectile_prime | -PROJECTILE_PRIME_SOURCE_MODEL_BOMB;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_BOMB;
 	}
 	
 	projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
@@ -33582,16 +33582,14 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	// allows players to supply a 0 velocity value on any axis.
 	if (ent->modeldata.nomove)
 	{
-		//memset(ent->modeldata.speed, 0, sizeof(*ent->modeldata.speed));
-
 		ent->modeldata.speed.x = 0;
 		ent->modeldata.speed.y = 0;
 		ent->modeldata.speed.z = 0;
 	}
 	else
-	{
+	{		
 		// Copy speed values from animation projectile settings to model.
-		memcpy(&ent->modeldata.speed, &projectile->velocity, sizeof(ent->modeldata.speed));
+		ent->modeldata.speed = projectile->velocity;
 	}
 
 	// Toss the bomb entity in an arc.
