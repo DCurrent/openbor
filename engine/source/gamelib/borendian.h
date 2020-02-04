@@ -58,10 +58,10 @@ static __inline__ UInt16 Swap16(UInt16 x)
 #elif defined(__GNUC__) && (defined(__powerpc__) || defined(__ppc__))
 static __inline__ UInt16 Swap16(UInt16 x)
 {
-    UInt16 result;
+    UInt32 result;
 
     __asm__("rlwimi %0,%2,8,16,23" : "=&r" (result) : "0" (x >> 8), "r" (x));
-    return result;
+    return (UInt16)result;
 }
 #elif defined(__GNUC__) && (defined(__M68000__) || defined(__M68020__))
 static __inline__ UInt16 Swap16(UInt16 x)
