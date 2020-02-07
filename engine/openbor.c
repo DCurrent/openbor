@@ -143,8 +143,8 @@ const s_hitbox empty_collision_coords = {   .x      = 0,
                                             .y      = 0,
                                             .width  = 0,
                                             .height = 0,
-                                            .z1     = 0,
-                                            .z2     = 0};
+                                            .z_background     = 0,
+                                            .z_foreground     = 0};
 
 const s_collision_body empty_body =   {     .coords     = NULL,
                                             .index      = 0,
@@ -8893,22 +8893,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     .y      = 0,
                                     .width  = 0,
                                     .height = 0,
-                                    .z1     = 0,
-                                    .z2     = 0};
+                                    .z_background     = 0,
+                                    .z_foreground     = 0};
 
     s_hitbox            ebox = {    .x      = 0,
                                     .y      = 0,
                                     .width  = 0,
                                     .height = 0,
-                                    .z1     = 0,
-                                    .z2     = 0};
+                                    .z_background     = 0,
+                                    .z_foreground     = 0};
 
     s_hitbox            abox = {    .x = 0,
                                     .y = 0,
                                     .width = 0,
                                     .height = 0,
-                                    .z1 = 0,
-                                    .z2 = 0};
+                                    .z_background = 0,
+                                    .z_foreground = 0};
 
     s_axis_plane_vertical_int         offset = { .x = 0,
                                                  .y = 0 };
@@ -10306,25 +10306,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
+                
+                memset(&abox, 0, sizeof(abox));
                 memset(&ebox, 0, sizeof(ebox));
                 memset(&bbox, 0, sizeof(bbox));
-                memset(&abox, 0, sizeof(abox));
                 memset(&offset, 0, sizeof(offset));
                 memset(shadow_coords, 0, sizeof(shadow_coords));
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
+
                 shadow_set                      = 0;
                 bbox_con                        = empty_body;
                 ebox_con                        = empty_entity_collision;
                 body_coords                     = empty_collision_coords;
                 attack                          = emptyattack;
 				attack.dropv					= default_model_dropv;
+                attack.hitsound                 = SAMPLE_BEAT;
                 attack_coords                   = empty_collision_coords;
                 recursive                       = empty_recursive;
-                attack.hitsound                 = SAMPLE_BEAT;
-                attack.hitflash                 = -1;
-                attack.blockflash               = -1;
-                attack.blocksound               = -1;
                 drawmethod                      = plainmethod;
                 idle                            = 0;
                 move.base                       = -1;
@@ -10973,8 +10972,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 bbox.y = GET_INT_ARG(2);
                 bbox.width = GET_INT_ARG(3);
                 bbox.height = GET_INT_ARG(4);
-                bbox.z1 = GET_INT_ARG(5);
-                bbox.z2 = GET_INT_ARG(6);
+                bbox.z_background = GET_INT_ARG(5);
+                bbox.z_foreground = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_BBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
@@ -10992,22 +10991,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 bbox.height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_1:
-                bbox.z1 = GET_INT_ARG(1);
+                bbox.z_background = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_2:
-                bbox.z2 = GET_INT_ARG(1);
+                bbox.z_foreground = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOXZ:
-                bbox.z1 = GET_INT_ARG(1);
-                bbox.z2 = GET_INT_ARG(2);
+                bbox.z_background = GET_INT_ARG(1);
+                bbox.z_foreground = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_EBOX:
                 ebox.x = GET_INT_ARG(1);
                 ebox.y = GET_INT_ARG(2);
                 ebox.width = GET_INT_ARG(3);
                 ebox.height = GET_INT_ARG(4);
-                ebox.z1 = GET_INT_ARG(5);
-                ebox.z2 = GET_INT_ARG(6);
+                ebox.z_background = GET_INT_ARG(5);
+                ebox.z_foreground = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_EBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
@@ -11025,14 +11024,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 ebox.height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Z_1:
-                ebox.z1 = GET_INT_ARG(1);
+                ebox.z_background = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Z_2:
-                ebox.z2 = GET_INT_ARG(1);
+                ebox.z_foreground = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOXZ:
-                ebox.z1 = GET_INT_ARG(1);
-                ebox.z2 = GET_INT_ARG(2);
+                ebox.z_background = GET_INT_ARG(1);
+                ebox.z_foreground = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
@@ -11384,10 +11383,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox.height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SIZE_Z_1:
-                attack_coords.z1 = GET_INT_ARG(1);
+                abox.z_background = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_SIZE_Z_2:
-                attack_coords.z2 = GET_INT_ARG(1);
+                abox.z_foreground = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_STAYDOWN_RISE:
                 attack.staydown.rise = GET_INT_ARG(1);
@@ -11420,6 +11419,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 abox.y = GET_INT_ARG(2);
                 abox.width = GET_INT_ARG(3);
                 abox.height = GET_INT_ARG(4);
+
                 attack.attack_force = GET_INT_ARG(5);
 
                 attack.attack_drop = GET_INT_ARG(6);
@@ -11427,8 +11427,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.no_block = GET_INT_ARG(7);
                 attack.no_flash = GET_INT_ARG(8);
                 attack.pause_add = GET_INT_ARG(9);
-                attack_coords.z1 = GET_INT_ARG(10); // depth or z
-
+                
+				// Z depth. For backward compatability, we take
+				// the legacy Z for both.                
+                abox.z_background = GET_INT_ARG(10);
+                abox.z_foreground = GET_INT_ARG(10);
+                
                 switch(cmd)
                 {
                 case CMD_MODEL_COLLISION:
@@ -11501,8 +11505,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
-                attack_coords.z1 = GET_INT_ARG(1);
-                attack_coords.z2 = GET_INT_ARG(2);
+                abox.z_background = GET_INT_ARG(1);
+                abox.z_foreground = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_BLAST:
                 abox.x = GET_INT_ARG(1);
@@ -11518,7 +11522,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 attack.pause_add = GET_INT_ARG(8);
                 attack.attack_drop = 1;
                 attack.attack_type = ATK_BLAST;
-                attack_coords.z1 = GET_INT_ARG(9); // depth or z
+				
+                // Z depth. For backward compatability, we take
+                // the legacy Z for both.
+                abox.z_background = GET_INT_ARG(9);
+                abox.z_foreground = GET_INT_ARG(9);
+               
+
                 attack.blast = 1;
                 break;
             case CMD_MODEL_DROPV:
@@ -11779,40 +11789,42 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 body_coords.y      = bbox.y - offset.y;
                 body_coords.width  = bbox.width + body_coords.x;
                 body_coords.height = bbox.height + body_coords.y;
-                body_coords.z1     = bbox.z1;
-                body_coords.z2     = bbox.z2;
-
-                if(body_coords.z2 > body_coords.z1)
-                {
-                    body_coords.z1 -= offset.y;
-                    body_coords.z2 -= offset.y;
-                }
+                body_coords.z_background     = bbox.z_background;
+                body_coords.z_foreground     = bbox.z_foreground;
 
                 entity_coords.x      = ebox.x - offset.x;
                 entity_coords.y      = ebox.y - offset.y;
                 entity_coords.width  = ebox.width + entity_coords.x;
                 entity_coords.height = ebox.height + entity_coords.y;
-                entity_coords.z1     = ebox.z1;
-                entity_coords.z2     = ebox.z2;
+                entity_coords.z_background     = ebox.z_background;
+                entity_coords.z_foreground     = ebox.z_foreground;
 
-                if(entity_coords.z2 > entity_coords.z1)
+                // 2020-02-07
+                // Caskey, Damon V.
+                //
+                // Legacy Z depth default. Moved here from collision calculation
+                // so we aren't wasting resources on floating point division in
+                // every collision check. If the author didn't initialize Z depth
+                // or both are 0, we'll calculate one from grabdistance 
+                // instead. The use of a dummy value for default allows authors
+                // to set up a 0 depth attack box if they wish.
+                //
+                // At time of writing, default grabdistance is 36, so with this 
+                // formula default fore/aft depth is 13. We leave body boxes 
+                // alone, so they are default depth 0.
+               
+                if (!abox.z_background && !abox.z_foreground)
                 {
-                    entity_coords.z1 -= offset.y;
-                    entity_coords.z2 -= offset.y;
-                }
+                    abox.z_background = abox.z_foreground = (int)(newchar->grabdistance / 3 + 1);
+                } 
 
                 attack_coords.x      = abox.x - offset.x;
                 attack_coords.y      = abox.y - offset.y;
                 attack_coords.width  = abox.width + attack_coords.x;
                 attack_coords.height = abox.height + attack_coords.y;
-
-                if(attack_coords.z2 > attack_coords.z1)
-                {
-                    attack_coords.z1 -= offset.y;
-                    attack_coords.z2 -= offset.y;
-                }
-
-                //attack.coords.z1 = abox.z1;
+                attack_coords.z_background = abox.z_background;
+                attack_coords.z_foreground = abox.z_foreground;
+               
                 if(platform[PLATFORM_X] == PLATFORM_DEFAULT_X) // old style
                 {
                     platform_con[PLATFORM_X] = 0;
@@ -19138,245 +19150,300 @@ void kill_all()
     }
 }
 
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Test collision between two boxes. If any overlap is found,
+// populates collision_check_data->return_overlap with overlap
+// position and returns true.
+int check_collision(s_collision_check_data* collision_data)
+{
+	s_box seek_pos;
+	s_box detect_pos;
+
+	// X axis. 
+	//
+	// Before we can check X positions, we need to 
+	// accomidate handle left/right flipping of
+	// both the seeker and target.
+
+	if (collision_data->seeker_direction == DIRECTION_LEFT)
+	{
+		seek_pos.left = collision_data->seeker_pos->x - collision_data->seeker_coords->width;
+		seek_pos.right = collision_data->seeker_pos->x - collision_data->seeker_coords->x;
+	}
+	else
+	{
+		seek_pos.left = collision_data->seeker_pos->x + collision_data->seeker_coords->x;
+		seek_pos.right = collision_data->seeker_pos->x + collision_data->seeker_coords->width;
+	}
+	
+	if (collision_data->target_direction == DIRECTION_LEFT)
+	{
+		detect_pos.left = collision_data->target_pos->x - collision_data->target_coords->width;
+		detect_pos.right = collision_data->target_pos->x - collision_data->target_coords->x;
+	}
+	else
+	{
+		detect_pos.left = collision_data->target_pos->x + collision_data->target_coords->x;
+		detect_pos.right = collision_data->target_pos->x + collision_data->target_coords->width;
+	}
+
+	// If we are out of bounds, there's no collision.
+	if (seek_pos.left > detect_pos.right || seek_pos.right < detect_pos.left)
+	{
+		return FALSE;
+	}
+
+	// Y axis.
+	//
+	// This looks backwards, but we're not crazy.
+	// 
+	// The text input treats box as starting from
+	// a Y position with a Y size that proceeds
+	// downward, but when checking for collision
+	// we do the opposite. So here the Y position
+	// is our lower coordinate and Y size is the 
+	// top coordinate.
+
+	seek_pos.bottom = collision_data->seeker_pos->y + -(collision_data->seeker_coords->height);
+	seek_pos.top = collision_data->seeker_pos->y + -(collision_data->seeker_coords->y);
+
+	detect_pos.bottom = collision_data->target_pos->y + -(collision_data->target_coords->height);
+	detect_pos.top = collision_data->target_pos->y + -(collision_data->target_coords->y);
+
+	// If we are out of bounds, there's no collision.
+	if (seek_pos.bottom > detect_pos.top || seek_pos.top < detect_pos.bottom)
+	{
+		return FALSE;
+	}
+	
+	// Z axis.
+	//
+	// Z axis is fairly simple. We just need to compare
+	// the foreground and background sides of our cubes. 
+	// Same principal as the left and right sides of X 
+	// axis, except we don't have to worry about flipping 
+	// direction.
+	
+	seek_pos.background = collision_data->seeker_pos->z - collision_data->seeker_coords->z_background;
+	seek_pos.foreground = collision_data->seeker_pos->z + collision_data->seeker_coords->z_foreground;
+	
+	detect_pos.background = collision_data->target_pos->z - collision_data->target_coords->z_background;
+	detect_pos.foreground = collision_data->target_pos->z + collision_data->target_coords->z_foreground;
+	
+	// If Z is out of range, then there's no hit.
+	if (seek_pos.background > detect_pos.foreground || seek_pos.foreground < detect_pos.background)
+	{
+		return FALSE;
+	}
+
+	// If we got this far, find the collision area and apply
+	// values to collision area box supplied by parent function.
+	//
+	// We do this by treating the collision area as a third 
+	// box set of coordinates between the attack and detect
+	// boxes. Then we find the center of our third box. This 
+	// gives us a calculated center of the collision detection 
+	// point.
+	//
+	// For center Z, we just always set one pixel in
+	// front of whichever entity is furthest toward the
+	// foreground.
+
+	collision_data->return_overlap->left = seek_pos.left < detect_pos.left ? detect_pos.left : seek_pos.left;
+	collision_data->return_overlap->right = seek_pos.right > detect_pos.right ? detect_pos.right : seek_pos.right;
+	collision_data->return_overlap->bottom = seek_pos.bottom < detect_pos.bottom ? detect_pos.bottom : seek_pos.bottom;
+	collision_data->return_overlap->top = seek_pos.top > detect_pos.top ? detect_pos.top : seek_pos.top;
+
+	collision_data->return_overlap->center_x = (collision_data->return_overlap->left + collision_data->return_overlap->right) / 2;
+	collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
+	collision_data->return_overlap->center_z = 1 + (collision_data->seeker_pos->z > collision_data->target_pos->z ? collision_data->seeker_pos->z : collision_data->target_pos->z);
+
+	return TRUE;
+}
+
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Send collision and entity data to last hit structure.
+// This data is vital for checking hit reactions, spawning
+// flash effects, performing hit overrides, populating 
+// script variables and other post hit functionality.
+void populate_lasthit(s_collision_check_data *collision_data, s_collision_attack *attack, s_collision_body *body)
+{
+	lasthit.attack = attack;
+	lasthit.body = body;
+	lasthit.position.x = collision_data->return_overlap->center_x;
+	lasthit.position.y = collision_data->return_overlap->center_y;
+	lasthit.position.z = collision_data->return_overlap->center_z;
+	lasthit.target = collision_data->target_ent;
+	lasthit.attacker = collision_data->seeker_ent;
+	lasthit.confirm = 1;	
+}
+
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Check collisions of a seeking box vs. all of a target's
+// current frame attack boxes. Return true if collision is found.
+int check_collision_vs_attack(s_collision_check_data* collision_check_data)
+{
+    int instance = 0;
+
+    s_anim* animation = collision_check_data->target_animation;
+    int frame = collision_check_data->target_frame;
+
+    // Loop over the collision objects for animation frame,
+    // then populate collision_check_data structure with the
+    // collision object's coordinates pointer. Then we can
+    // run the check collision function.
+    //
+    // If the collision check function finds a collision we
+    // return TRUE and exit. If we pass over all collision
+    // objects without a collision, then we return FALSE.
+    for (instance = 0; instance < max_collisons; instance++)
+    {
+        if (!animation->collision_attack || !animation->collision_attack[frame])
+        {
+            continue;
+        }
+
+        collision_check_data->target_coords = animation->collision_attack[frame]->instance[instance]->coords;
+
+        // Found a collision?
+        if (check_collision(collision_check_data))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Check collisions of a seeking box vs. all of a target's
+// current frame body boxes. Return true if collision is found.
+int check_collision_vs_body(s_collision_check_data* collision_check_data)
+{
+    int instance = 0;
+    
+    s_anim* animation = collision_check_data->target_animation;
+    int frame = collision_check_data->target_frame;    
+
+    // Loop over the collision objects for animation frame,
+    // then populate collision_check_data structure with the
+    // collision object's coordinates pointer. Then we can
+    // run the check collision function.
+    //
+    // If the collision check function finds a collision we
+    // return TRUE and exit. If we pass over all collision
+    // objects without a collision, then we return FALSE.
+    for (instance = 0; instance < max_collisons; instance++)
+    {   
+        if (!animation->collision_body || !animation->collision_body[frame])
+        {
+            continue;
+        }
+
+        collision_check_data->target_coords = animation->collision_body[frame]->instance[instance]->coords;
+
+        // Found a collision?
+        if (check_collision(collision_check_data))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 int checkhit(entity *attacker, entity *target)
 {
-    #define KEY_ATTACKER    0
-    #define KEY_TARGET      1
-    #define KEY_POS_X       0
-    #define KEY_POS_Y       1
-    #define KEY_SIZE_X      2
-    #define KEY_SIZE_Y      3
-
-    s_hitbox *coords_attack;
-    s_hitbox *coords_detect;
-    s_collision_attack  *attack = NULL;
-    s_collision_body    *detect = NULL;
-    int x1,
-        x2,
-        y1,
-        y2,
-        attack_instance;
-    float medx,
-        medy;
-    int attack_pos_x    = 0,
-        attack_pos_y    = 0,
-        attack_size_x   = 0,
-        attack_size_y   = 0,
-        detect_pos_x    = 0,
-        detect_pos_y    = 0,
-        detect_size_x   = 0,
-        detect_size_y   = 0;
-    int topleast,
-        bottomleast,
-        leftleast,
-        rightleast;
-    float zdist = 0,
-        z1 = 0,
-        z2 = 0;
-
+	// Before we do anything else, let's make
+	// make sure we aren't about to run collision
+	// checks on ourself or a target with no
+	// collision boxes active.
+    	
     if(attacker == target
        || !target->animation->collision_body
        || !attacker->animation->collision_attack
        || !target->animation->vulnerable[target->animpos]
        )
     {
-        return 0;
+        return FALSE;
     }
 
-    int detect_instance = 0;
-    int collision_found = 0;
+	s_collision_attack* attack = NULL;
+	s_collision_body* detect = NULL;
+	s_collision_check_data collision_check_data;
 
-    for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
+	int attack_instance = 0;	
+
+	// We'll use these in collision check data
+	// structure in lieu of memory allocations.
+	s_axis_principal_int seeker_pos;
+	s_axis_principal_int target_pos;
+	s_box return_overlap;
+
+	// Get entity positions, cast as int.
+	seeker_pos.x = (int)attacker->position.x;
+	seeker_pos.y = (int)attacker->position.y;
+	seeker_pos.z = (int)attacker->position.z;
+	target_pos.x = (int)target->position.x;
+	target_pos.y = (int)target->position.y;
+	target_pos.z = (int)target->position.z;
+
+	// Prime the collision data check structure pointers
+	// using the address of local vars from this function.
+	collision_check_data.seeker_pos = &seeker_pos;
+	collision_check_data.target_pos = &target_pos;
+	collision_check_data.return_overlap = &return_overlap;
+    
+    // Populate collision check data with everything
+    // we can before running loop checks. 
+    collision_check_data.seeker_ent = attacker;
+    collision_check_data.target_ent = target;
+    collision_check_data.target_animation = target->animation;
+    collision_check_data.target_frame = target->animpos;
+	
+    // Get entity directions.
+	collision_check_data.seeker_direction = attacker->direction;
+	collision_check_data.target_direction = target->direction;
+
+	// Loop over each attack instance. We populate collision data
+    // with attributes that must fall in loop, and then
+    // run collision detection functions.
+	    
+	for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
     {
-        attack          = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
-        coords_attack   = attack->coords;
+        attack = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
 
-        for(detect_instance = 0; detect_instance < max_collisons; detect_instance++)
+		collision_check_data.seeker_coords = attack->coords;        
+
+        // If this is a counter attack let's check against the target's
+        // attack boxes.
+        if (attack->counterattack && check_collision_vs_attack(&collision_check_data))
         {
-            // Z calculations use increments in,
-            // each loop, so we need to reset them here.
-            z1      = attacker->position.z;
-            z2      = target->position.z;
-            zdist   = 0;
-
-            //if(!attack->counterattack)
-            //{
-                detect          = target->animation->collision_body[target->animpos]->instance[detect_instance];
-                coords_detect   = detect->coords;
-
-            //}
-            //else if((target->animation->collision_attack && target->animation->collision_attack[target->animpos]) && target->animation->collision_attack[target->animpos]->counterattack <= attacker->animation->collision_attack[attacker->animpos]->counterattack)
-            //{
-                //coords_detect = target->animation->collision_attack[target->animpos]->coords;
-            //}
-            //else
-            //{
-            //    return 0;
-            //}
-
-            if(coords_attack->z2 > coords_attack->z1)
-            {
-                z1 += coords_attack->z1 + (coords_attack->z2 - coords_attack->z1) / 2;
-                zdist = (coords_attack->z2 - coords_attack->z1) / 2;
-            }
-            else if(coords_attack->z1)
-            {
-                zdist += coords_attack->z1;
-            }
-            else
-            {
-                zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
-            }
-
-            if(coords_detect->z2 > coords_detect->z1)
-            {
-                z2 += coords_detect->z1 + (coords_detect->z2 - coords_detect->z1) / 2;
-                zdist += (coords_detect->z2 - coords_detect->z1) / 2;
-            }
-            else if(coords_detect->z1)
-            {
-                zdist += coords_detect->z1;
-            }
-
-            zdist++; // pass >= <= check
-
-            if(diff(z1, z2) > zdist)
-            {
-                continue;
-            }
-
-            x1 = (int)(attacker->position.x);
-            y1 = (int)(z1 - attacker->position.y);
-            x2 = (int)(target->position.x);
-            y2 = (int)(z2 - target->position.y);
-
-            if(attacker->direction == DIRECTION_LEFT)
-            {
-                attack_pos_x   = x1 - coords_attack->width;
-                attack_pos_y   = y1 + coords_attack->y;
-                attack_size_x  = x1 - coords_attack->x;
-                attack_size_y  = y1 + coords_attack->height;
-            }
-            else
-            {
-                attack_pos_x    = x1 + coords_attack->x;
-                attack_pos_y    = y1 + coords_attack->y;
-                attack_size_x   = x1 + coords_attack->width;
-                attack_size_y   = y1 + coords_attack->height;
-            }
-
-            if(target->direction == DIRECTION_LEFT)
-            {
-                detect_pos_x    = x2 - coords_detect->width;
-                detect_pos_y    = y2 + coords_detect->y;
-                detect_size_x   = x2 - coords_detect->x;
-                detect_size_y   = y2 + coords_detect->height;
-            }
-            else
-            {
-                detect_pos_x    = x2 + coords_detect->x;
-                detect_pos_y    = y2 + coords_detect->y;
-                detect_size_x   = x2 + coords_detect->width;
-                detect_size_y   = y2 + coords_detect->height;
-            }
-
-            if(attack_pos_x > detect_size_x)
-            {
-                continue;
-            }
-            if(detect_pos_x > attack_size_x)
-            {
-                continue;
-            }
-            if(attack_pos_y > detect_size_y)
-            {
-                continue;
-            }
-            if(detect_pos_y > attack_size_y)
-            {
-                continue;
-            }
-
-            // If we got this far, set collision flag
-            // and break this loop.
-            collision_found = 1;
-            break;
+            populate_lasthit(&collision_check_data, attack, detect);
+            return TRUE;
         }
 
-        // If a collision was found
-        // break out of loop.
-        if(collision_found)
-        {
-            break;
-        }
+        // Check against target body boxes.
+		if (check_collision_vs_body(&collision_check_data))
+		{
+			populate_lasthit(&collision_check_data, attack, detect);
+			return TRUE;
+		}
     }
 
-    if(!collision_found)
-    {
-        return 0;
-    }
+	// If we made it here, then we were unable to find
+	// any collisions, - return FALSE. 
 
-    // Find center of attack area
-    leftleast = attack_pos_x;
-
-    if(leftleast < detect_pos_x)
-    {
-        leftleast = detect_pos_x;
-    }
-
-    topleast = attack_pos_y;
-
-    if(topleast < detect_pos_y)
-    {
-        topleast = detect_pos_y;
-    }
-
-    rightleast = attack_size_x;
-
-    if(rightleast > detect_size_x)
-    {
-        rightleast = detect_size_x;
-    }
-
-    bottomleast = attack_size_y;
-
-    if(bottomleast > detect_size_y)
-    {
-        bottomleast = detect_size_y;
-    }
-
-    medx = (float)(leftleast + rightleast) / 2;
-    medy = (float)(topleast + bottomleast) / 2;
-
-    // Now convert these coords to 3D
-    lasthit.position.x = medx;
-
-    if(attacker->position.z > target->position.z)
-    {
-        lasthit.position.z = z1 + 1;    // Changed so flashes always spawn in front
-    }
-    else
-    {
-        lasthit.position.z = z2 + 1;
-    }
-
-    lasthit.attack      = attack;
-    lasthit.body        = detect;
-    lasthit.position.y  = lasthit.position.z - medy;
-	lasthit.target = target;
-	lasthit.attacker = attacker;
-    lasthit.confirm     = 1;
-
-    return 1;
-
-    #undef KEY_ATTACKER
-    #undef KEY_TARGET
-    #undef KEY_POS_X
-    #undef KEY_POS_Y
-    #undef KEY_SIZE_X
-    #undef KEY_SIZE_Y
+    return FALSE;
 }
-
 
 
 /*
@@ -27264,28 +27331,28 @@ int check_entity_collision(entity *ent, entity *target)
             z2      = target->position.z + target->movez;
             zdist   = 0;
 
-            if(coords_col_entity_ent->z2 > coords_col_entity_ent->z1)
+            if(coords_col_entity_ent->z_foreground > coords_col_entity_ent->z_background)
             {
-                zdepth1 = (coords_col_entity_ent->z2 - coords_col_entity_ent->z1) / 2;
-                z1 += coords_col_entity_ent->z1 + zdepth1;
+                zdepth1 = (coords_col_entity_ent->z_foreground - coords_col_entity_ent->z_background) / 2;
+                z1 += coords_col_entity_ent->z_background + zdepth1;
                 zdist += zdepth1;
             }
-            else if(coords_col_entity_ent->z1)
+            else if(coords_col_entity_ent->z_background)
             {
-                zdepth1 = coords_col_entity_ent->z1;
-                zdist += coords_col_entity_ent->z1;
+                zdepth1 = coords_col_entity_ent->z_background;
+                zdist += coords_col_entity_ent->z_background;
             }
 
-            if(coords_col_entity_target->z2 > coords_col_entity_target->z1)
+            if(coords_col_entity_target->z_foreground > coords_col_entity_target->z_background)
             {
-                zdepth2 = (coords_col_entity_target->z2 - coords_col_entity_target->z1) / 2;
-                z2 += coords_col_entity_target->z1 + zdepth2;
+                zdepth2 = (coords_col_entity_target->z_foreground - coords_col_entity_target->z_background) / 2;
+                z2 += coords_col_entity_target->z_background + zdepth2;
                 zdist += zdepth2;
             }
-            else if(coords_col_entity_target->z1)
+            else if(coords_col_entity_target->z_background)
             {
-                zdepth2 = coords_col_entity_target->z1;
-                zdist += coords_col_entity_target->z1;
+                zdepth2 = coords_col_entity_target->z_background;
+                zdist += coords_col_entity_target->z_background;
             }
 
             if(diff(z1, z2) > zdist)

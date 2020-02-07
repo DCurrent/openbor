@@ -89,6 +89,7 @@
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_ARG_COUNT       64
 #define     PLATFORM_DEFAULT_X  99999
+
 #define     LIFESPAN_DEFAULT	0x7fffffff
 /*
 Note: the min Z coordinate of the player is important
@@ -121,6 +122,7 @@ movement restirctions are here!
 
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
+
 #define		PROJECTILE_DEFAULT_SPEED_X	1
 #define		PROJECTILE_DEFAULT_SPEED_Y	0
 #define		PROJECTILE_DEFAULT_SPEED_Z	0
@@ -1843,8 +1845,8 @@ typedef struct
 	int y;
 	int width;
 	int height;
-	int z1;
-	int z2;
+	int z_background;
+	int z_foreground;
 } s_hitbox;
 
 typedef struct
@@ -1959,6 +1961,8 @@ typedef struct
 {
     s_collision_attack **instance;
 } s_collision_attack_list;
+
+
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -2222,6 +2226,77 @@ struct animlist
 };
 typedef struct animlist s_anim_list;
 s_anim_list *anim_list;
+
+// Caskey, Damon V.
+// 2019-02-03
+// 
+// Absolute Cube. This is when
+// we need the post calculation 
+// coordinates at each side of 
+// a cube as opposed to demensions.
+typedef struct
+{
+    int background;	// Side of cube facing toward background.
+    int foreground;	// Side of cube facing foreground/camera.
+    int center_x;
+    int center_y;
+    int center_z;
+    int left;
+    int right;
+    int bottom;
+    int top;
+} s_box;
+
+// Caskey, Damon V.
+// 2020-02-03
+//
+// Data structure to calculate collisions. We want to 
+// break collision detection down into reusable functions.
+// These functions usually run in loops and much of the
+// processing can be factored outside of loops, but we
+// also want to avoid a ton of messy and repetitive 
+// parameters. This structre gives us a "one stop shop"
+// we can use to pass data around between the functions
+// with a single fast pointer, and allows future extension.
+//
+// Some members may appear redendant (i.e animation when
+// we could just get it from entity pointer). This is
+// because of the nested looping needed to check collisions.
+// Some attributes must be aquired at different points
+// in the checking process.
+typedef struct {
+
+    // return_overlap is the center position between both
+    // collision boxes. This is vital for functionality like
+    // spawning hit flash entities.
+
+    s_box* return_overlap;
+
+    // Seek is generally the initiating party. In the 
+    // case of attack detection, it would be the attacker.
+    // Target is the party we want to know if we are making
+    // contact with. Both are just labels for human use. The 
+    // code can use them interchangeably.
+
+    s_anim* seeker_animation;    // Current animation. use this to determine which animation's collision boxes to check.    
+    s_hitbox* seeker_coords;            // Current set of collision coordinates to compare.
+    e_direction seeker_direction;       // Current facing. In the case of entities, we have to reverse the X coordinates when facing left. 
+    struct entity* seeker_ent;          // Acting entity (if any).
+    int seeker_frame;                   // Current animation frame.       
+    s_axis_principal_int* seeker_pos;   // Current position as integer. Collision coordinates are relative positions and dimensions - We need the acting entity's location as an integer to calculate absolute collisions box before we can test overlap. 
+
+    // Target is the testing target. In the case of an
+    // attack, this is the party that might get hit. The
+    // attribites are otherwise identical to seeker.
+
+    s_anim* target_animation;
+    s_hitbox* target_coords;
+    e_direction target_direction;
+    struct entity* target_ent;
+    int target_frame;
+    s_axis_principal_int* target_pos;
+
+} s_collision_check_data;
 
 typedef struct
 {
