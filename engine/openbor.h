@@ -1962,7 +1962,57 @@ typedef struct
     s_collision_attack **instance;
 } s_collision_attack_list;
 
+// ** Collision Refactor IP - 2020-02-10 **
+//
+// Abstract collision into a single parent structure, with 
+// body, attack, and space properties as allocated sub structures.
+//
+// This is to eliminate double looping, redundant logic checks 
+// and increase extensability.
 
+// Caskey, Damon V.
+// 2019-02-10
+//
+// Collision types. 
+typedef enum
+{
+    COLLISION_TYPE_NONE = 0,		    // Ignored by all native logic.		
+    COLLISION_TYPE_ATTACK = (1 << 0),	// Attack vs. body boxes.
+    COLLISION_TYPE_BODY = (1 << 1),	    // Detects incoming attacks.
+    COLLISION_TYPE_SPACE = (1 << 3)     // Physical space ("pushing").
+} e_collision_type;
+
+// Collision box for detecting
+// physical space.
+typedef struct
+{
+    int         index;          // To enable user tracking of this box's index when multiple instances are in use.
+    int         tag;            // User defined tag for scripts. No hard coded purpose.
+} s_collision_space;
+
+// Caskey, Damon V.
+// 2020-02-20
+//
+// Collision container.
+typedef struct
+{
+    s_collision_attack  *attack;    // Attacking properties.
+    s_collision_body    *body;      // Body (detecting incoming attack) properties.
+    s_collision_space   *space;     // Physical space properties.
+    s_hitbox            *coords;    // Collision box dimensions.
+
+    e_collision_type    type;       // Detection type.  
+    int                 index;      // Listing index.
+} s_collision;
+
+// Caskey, Damon V.
+// 2020-02-20
+//
+// Collision array container.
+typedef struct
+{
+    s_collision **instance;
+} s_collision_list;
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -2143,6 +2193,8 @@ typedef struct
 	s_axis_principal_float position;
 } s_sub_entity;
 
+
+
 #define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
 #define ANIMATION_CHARGE_TIME_DEFAULT	2
 // Caskey, Damon V
@@ -2179,7 +2231,7 @@ typedef struct
 	s_sub_entity				*sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
 	s_projectile				*projectile;            // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
-
+    s_collision_list            **collision;              // Collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
 	s_collision_attack_list		**collision_attack;
 	s_collision_body_list		**collision_body;
 	s_collision_entity_list		**collision_entity;
