@@ -2012,6 +2012,7 @@ typedef struct
 typedef struct
 {
     s_collision **instance;
+    int         count;
 } s_collision_list;
 
 // Caskey, Damon V.
@@ -2231,7 +2232,7 @@ typedef struct
 	s_sub_entity				*sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
 	s_projectile				*projectile;            // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
-    s_collision_list            **collision;              // Collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
+    s_collision_list            **collision_list;       // Collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
 	s_collision_attack_list		**collision_attack;
 	s_collision_body_list		**collision_body;
 	s_collision_entity_list		**collision_entity;

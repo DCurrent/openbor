@@ -5832,6 +5832,55 @@ s_anim *alloc_anim()
 }
 
 // Caskey, Damon V.
+// 2020-02-10
+//
+// Allocate a collision instance, copy
+// property data if present, and return pointer.
+s_collision* allocate_collision_instance(s_collision* properties)
+{
+    s_collision*    result;
+    size_t          alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // If previous data is provided,
+    // copy into new allocation.
+    if (properties)
+    {
+        memcpy(result, properties, alloc_size);
+    }
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
+// 2016-11-27
+//
+// Allocate an empty collision list.
+s_collision** allocate_collision_list()
+{
+    s_collision**   result;
+    size_t          alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the list is blank.
+    memset(result, 0, alloc_size);
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
 // 2016-11-27
 //
 // Allocate a collision attack instance, copy
@@ -6138,6 +6187,38 @@ int addframe(s_anim             *a,
     if((attack_coords->width - attack_coords->x) &&
             (attack_coords->height - attack_coords->y))
     {
+        
+        // 2020-02-10 Collision Rework
+        
+        // Collisons are like all frame properties; meaning frames
+        // don't really exist. Frame properties are actually arrayed 
+        // animation properties, where the individual elements act 
+        // as a frame. In the case of collision, each array element 
+        // contains another array - this second array is the list of 
+        // collision instances.
+        
+        // First step is to make sure the collision list animation property 
+        // is allocated. If it isn't, we'll allocate space for an array
+        // of collision lists. As above, this array is analogous to
+        // the animation's "frames".
+        if (!a->collision_list)
+        {
+            size_col_on_frame = framecount * sizeof(*a->collision_list);
+
+            a->collision_list = malloc(size_col_on_frame);
+            memset(a->collision_list, 0, size_col_on_frame);
+        }
+
+        // Allocate a single collision list and place its pointer in 
+        // the current frame.
+
+        size_col_on_frame_struct = sizeof(**a->collision_list);
+        a->collision_list[currentframe] = malloc(size_col_on_frame_struct);
+
+        a->collision_list[currentframe]->instance = allocate_collision_list();
+
+        // End Collison Rework IP
+        
         if(!a->collision_attack)
         {
             size_col_on_frame = framecount * sizeof(*a->collision_attack);
