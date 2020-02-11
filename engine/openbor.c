@@ -5861,28 +5861,6 @@ s_collision* allocate_collision_instance(s_collision* properties)
 // Caskey, Damon V.
 // 2016-11-27
 //
-// Allocate an empty collision list.
-s_collision** allocate_collision_list()
-{
-    s_collision**   result;
-    size_t          alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // Make sure the list is blank.
-    memset(result, 0, alloc_size);
-
-    // return result.
-    return result;
-}
-
-// Caskey, Damon V.
-// 2016-11-27
-//
 // Allocate a collision attack instance, copy
 // property data if present, and return pointer.
 s_collision_attack *collision_alloc_attack_instance(s_collision_attack *properties)
@@ -6048,7 +6026,142 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
     return result;
 }
 
-int addframe(s_anim             *a,
+// Caskey, Damon V.
+// 2016-11-27
+//
+// Allocate an empty collision list.
+s_collision** allocate_collision_list()
+{
+    s_collision** result;
+    size_t          alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the list is blank.
+    memset(result, 0, alloc_size);
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-02-10
+//
+// Allocate collision instances to target animation frame.
+void initialize_frame_collision(s_anim *animation, int framecount, ptrdiff_t frame)
+{
+    // printf("\n\n initialize_frame_collision");
+
+    size_t frame_list_size;
+    size_t collision_list_size;
+    s_collision* collision_instance;
+
+    s_collision temp_collision;
+
+    int instance_count; // How many collisions on current frame.
+    int i;  // Cursor.
+
+    // 2020-02-10 Collision Rework
+
+    // Collisons are like all frame properties; meaning frames
+    // don't really exist. Frame properties are actually arrayed 
+    // animation properties, where the individual elements act 
+    // as a frame. In the case of collision, each array element 
+    // contains another array - this second array is the list of 
+    // collision instances.
+
+    // First step is to make sure the collision list animation property 
+    // is allocated. If it isn't, we'll allocate space for an array
+    // of collision lists. As above, this array is analogous to
+    // the animation's "frames".
+    if (!animation->collision_list)
+    {
+        frame_list_size = framecount * sizeof(*animation->collision_list);
+
+        animation->collision_list = malloc(frame_list_size);
+        memset(animation->collision_list, 0, frame_list_size);
+
+        //printf("\n allocated animation->collision_list - %d frames, %d bytes.", framecount, frame_list_size);
+    }
+
+    // If current frame does not have a collision list pointer, 
+    // allocate and aquire it now.
+    if (!animation->collision_list[frame])
+    {
+        collision_list_size = sizeof(**animation->collision_list);
+        animation->collision_list[frame] = malloc(collision_list_size);
+
+        memset(animation->collision_list[frame], 0, collision_list_size);
+
+        //printf("\n allocated animation->collision_list[%d] - %d bytes.", frame, collision_list_size);
+    }    
+    
+    instance_count = animation->collision_list[frame]->count;
+    //printf("\n instance_count: %d", instance_count);
+
+    // Allocate list of collisions.
+    animation->collision_list[frame]->instance = allocate_collision_list();
+
+    // Only for testing. Replace with collision index value from author.
+    int temp_index = 0;
+
+    // Loop at least once, then to number of collision instances
+    // currently on this frame. If there is an index mismatch 
+    // then we create a new collision instance for the frame
+    // and assign the author's index value (or the default 0).
+    // Then we increment the instance counter so later we will
+    // know how many collision instances this frame has.
+    for(i = 0; i <= instance_count; i++)
+    {
+        // If user provided an index and it's not the
+        // one we are at, exit this iteration of loop/
+        if (temp_index != i)
+        {
+            continue;
+        }
+
+        // If there is no collision allocated for this
+        // frame and instance, let's take care of that
+        // that here and increment the instances count. 
+        //
+        // We could just allocate without bothering to 
+        // check first, but this extra step avoids wasting 
+        // memory if the author duplicates a collision 
+        // command with same index on one frame. 
+
+        collision_instance = animation->collision_list[frame]->instance[i];
+        
+        if (!collision_instance)
+        {
+            collision_instance = allocate_collision_instance(&temp_collision);
+            animation->collision_list[frame]->instance[i] = collision_instance;
+
+            // Increase the instance count for this frame's set
+            // of collisions.
+            animation->collision_list[frame]->count++;
+        }        
+
+        // From here we have a collision instance pointer to work with. Let's
+        // set up its attributes and allocate sub structures.
+
+        // Set index.
+        collision_instance->index = i;
+
+        // Now let's allocate sub-properties.
+        // ...
+
+        //printf("\n index: %d", animation->collision_list[frame]->instance[i]->index);
+    }    
+
+    instance_count = animation->collision_list[frame]->count;
+    //printf("\n instance_count: %d", instance_count);
+}
+
+int addframe(s_anim             *animation,
              int                spriteindex,
              int                framecount,
              int                delay,
@@ -6079,51 +6192,53 @@ int addframe(s_anim             *a,
     ptrdiff_t currentframe;
     if(framecount > 0)
     {
-        alloc_frames(a, framecount);
+        alloc_frames(animation, framecount);
     }
     else
     {
         framecount = -framecount;    // for alloc method, use a negative value
     }
 
-    currentframe = a->numframes;
-    ++a->numframes;
+    currentframe = animation->numframes;
+    ++animation->numframes;
 
-    a->sprite[currentframe] = spriteindex;
-    a->delay[currentframe] = delay * GAME_SPEED / 100;
+    animation->sprite[currentframe] = spriteindex;
+    animation->delay[currentframe] = delay * GAME_SPEED / 100;
 
     // Allocate body boxes.
     if((body_coords->width - body_coords->x)
         && (body_coords->height - body_coords->y))
     {
         // Set vulnerability.
-        a->vulnerable[currentframe] = 1;
+        animation->vulnerable[currentframe] = 1;
 
         // If there is no previous collision
         // list on this animation's frames,
         // we need to allocate space.
-        if(!a->collision_body)
+        if(!animation->collision_body)
         {
             // Get memory size.
-            size_col_on_frame = framecount * sizeof(*a->collision_body);
+            size_col_on_frame = framecount * sizeof(*animation->collision_body);
 
             // Allocate memory.
-            a->collision_body = malloc(size_col_on_frame);
-            memset(a->collision_body, 0, size_col_on_frame);
+            animation->collision_body = malloc(size_col_on_frame);
+            memset(animation->collision_body, 0, size_col_on_frame);
         }
+
+       
 
         // Get memory size for the collision
         // list structure.
-        size_col_on_frame_struct = sizeof(**a->collision_body);
+        size_col_on_frame_struct = sizeof(**animation->collision_body);
 
         // Allocate memory for collision list
         // structure and store resulting pointer
         // on current frame.
-        a->collision_body[currentframe] = malloc(size_col_on_frame_struct);
+        animation->collision_body[currentframe] = malloc(size_col_on_frame_struct);
 
         // Allocate memory for a pointer to each instance
         // and set empty default.
-        a->collision_body[currentframe]->instance = collision_alloc_body_list();
+        animation->collision_body[currentframe]->instance = collision_alloc_body_list();
 
         // Loop instances, allocate memory, and assign
         // user values.
@@ -6132,7 +6247,7 @@ int addframe(s_anim             *a,
             // Allocate memory for this instance structure.
             // We're also using a local pointer for readability.
             collision_body = collision_alloc_body_instance(bbox);
-            a->collision_body[currentframe]->instance[i] = collision_body;
+            animation->collision_body[currentframe]->instance[i] = collision_body;
 
             // Set index. Engine does not need this,
             // but will allow scripts to identify
@@ -6154,23 +6269,23 @@ int addframe(s_anim             *a,
     if((entity_coords->width - entity_coords->x)
         && (entity_coords->height - entity_coords->y))
     {
-        if(!a->collision_entity)
+        if(!animation->collision_entity)
         {
-            size_col_on_frame = framecount * sizeof(*a->collision_entity);
+            size_col_on_frame = framecount * sizeof(*animation->collision_entity);
 
-            a->collision_entity = malloc(size_col_on_frame);
-            memset(a->collision_entity, 0, size_col_on_frame);
+            animation->collision_entity = malloc(size_col_on_frame);
+            memset(animation->collision_entity, 0, size_col_on_frame);
         }
 
-        size_col_on_frame_struct = sizeof(**a->collision_entity);
-        a->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
+        size_col_on_frame_struct = sizeof(**animation->collision_entity);
+        animation->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
 
-        a->collision_entity[currentframe]->instance = collision_alloc_entity_list();
+        animation->collision_entity[currentframe]->instance = collision_alloc_entity_list();
 
         for(i=0; i<max_collisons; i++)
         {
             collision_entity = collision_alloc_entity_instance(ebox);
-            a->collision_entity[currentframe]->instance[i] = collision_entity;
+            animation->collision_entity[currentframe]->instance[i] = collision_entity;
 
             collision_entity->index = i;
 
@@ -6187,55 +6302,27 @@ int addframe(s_anim             *a,
     if((attack_coords->width - attack_coords->x) &&
             (attack_coords->height - attack_coords->y))
     {
+    
+        // Collision rework IP 2020-02-10
+        initialize_frame_collision(animation, framecount, currentframe);
         
-        // 2020-02-10 Collision Rework
-        
-        // Collisons are like all frame properties; meaning frames
-        // don't really exist. Frame properties are actually arrayed 
-        // animation properties, where the individual elements act 
-        // as a frame. In the case of collision, each array element 
-        // contains another array - this second array is the list of 
-        // collision instances.
-        
-        // First step is to make sure the collision list animation property 
-        // is allocated. If it isn't, we'll allocate space for an array
-        // of collision lists. As above, this array is analogous to
-        // the animation's "frames".
-        if (!a->collision_list)
+        if(!animation->collision_attack)
         {
-            size_col_on_frame = framecount * sizeof(*a->collision_list);
+            size_col_on_frame = framecount * sizeof(*animation->collision_attack);
 
-            a->collision_list = malloc(size_col_on_frame);
-            memset(a->collision_list, 0, size_col_on_frame);
+            animation->collision_attack = malloc(size_col_on_frame);
+            memset(animation->collision_attack, 0, size_col_on_frame);
         }
 
-        // Allocate a single collision list and place its pointer in 
-        // the current frame.
+        size_col_on_frame_struct = sizeof(**animation->collision_attack);
+        animation->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
 
-        size_col_on_frame_struct = sizeof(**a->collision_list);
-        a->collision_list[currentframe] = malloc(size_col_on_frame_struct);
-
-        a->collision_list[currentframe]->instance = allocate_collision_list();
-
-        // End Collison Rework IP
-        
-        if(!a->collision_attack)
-        {
-            size_col_on_frame = framecount * sizeof(*a->collision_attack);
-
-            a->collision_attack = malloc(size_col_on_frame);
-            memset(a->collision_attack, 0, size_col_on_frame);
-        }
-
-        size_col_on_frame_struct = sizeof(**a->collision_attack);
-        a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
-
-        a->collision_attack[currentframe]->instance = collision_alloc_attack_list();
+        animation->collision_attack[currentframe]->instance = collision_alloc_attack_list();
 
         for(i=0; i<max_collisons; i++)
         {
             collision_attack = collision_alloc_attack_instance(attack);
-            a->collision_attack[currentframe]->instance[i] = collision_attack;
+            animation->collision_attack[currentframe]->instance[i] = collision_attack;
 
             collision_attack->index = i;
 
@@ -6256,88 +6343,88 @@ int addframe(s_anim             *a,
 
     if(drawmethod->flag)
     {
-        if(!a->drawmethods)
+        if(!animation->drawmethods)
         {
-            a->drawmethods = malloc(framecount * sizeof(*a->drawmethods));
-            memset(a->drawmethods, 0, framecount * sizeof(*a->drawmethods));
+            animation->drawmethods = malloc(framecount * sizeof(*animation->drawmethods));
+            memset(animation->drawmethods, 0, framecount * sizeof(*animation->drawmethods));
         }
-        setDrawMethod(a, currentframe, malloc(sizeof(**a->drawmethods)));
-        //a->drawmethods[currenframe] = malloc(sizeof(s_drawmethod));
-        memcpy(getDrawMethod(a, currentframe), drawmethod, sizeof(**a->drawmethods));
-        //memcpy(a->drawmethods[currentframe], drawmethod, sizeof(s_drawmethod));
+        setDrawMethod(animation, currentframe, malloc(sizeof(**animation->drawmethods)));
+        //animation->drawmethods[currenframe] = malloc(sizeof(s_drawmethod));
+        memcpy(getDrawMethod(animation, currentframe), drawmethod, sizeof(**animation->drawmethods));
+        //memcpy(animation->drawmethods[currentframe], drawmethod, sizeof(s_drawmethod));
     }
-    if(idle && !a->idle)
+    if(idle && !animation->idle)
     {
-        a->idle = malloc(framecount * sizeof(*a->idle));
-        memset(a->idle, 0, framecount * sizeof(*a->idle));
+        animation->idle = malloc(framecount * sizeof(*animation->idle));
+        memset(animation->idle, 0, framecount * sizeof(*animation->idle));
     }
-    if(a->idle)
+    if(animation->idle)
     {
-        a->idle[currentframe] = idle;
+        animation->idle[currentframe] = idle;
     }
 
     if(move)
     {
-        if(!a->move)
+        if(!animation->move)
         {
-            a->move = malloc(framecount * sizeof(*a->move));
-            memset(a->move, 0, framecount * sizeof(*a->move));
+            animation->move = malloc(framecount * sizeof(*animation->move));
+            memset(animation->move, 0, framecount * sizeof(*animation->move));
         }
-        a->move[currentframe] = malloc(sizeof(**a->move));
-        memcpy(a->move[currentframe], move, sizeof(**a->move));
+        animation->move[currentframe] = malloc(sizeof(**animation->move));
+        memcpy(animation->move[currentframe], move, sizeof(**animation->move));
     }
 
-    if(frameshadow >= 0 && !a->shadow)
+    if(frameshadow >= 0 && !animation->shadow)
     {
-        a->shadow = malloc(framecount * sizeof(*a->shadow));
-        memset(a->shadow, -1, framecount * sizeof(*a->shadow)); //default to -1
+        animation->shadow = malloc(framecount * sizeof(*animation->shadow));
+        memset(animation->shadow, -1, framecount * sizeof(*animation->shadow)); //default to -1
     }
-    if(a->shadow)
+    if(animation->shadow)
     {
-        a->shadow[currentframe] = frameshadow;    // shadow index for each frame
+        animation->shadow[currentframe] = frameshadow;    // shadow index for each frame
     }
     if(shadow_coords[0] || shadow_coords[1])
     {
-        if(!a->shadow_coords)
+        if(!animation->shadow_coords)
         {
-            a->shadow_coords = malloc(framecount * sizeof(*a->shadow_coords));
-            memset(a->shadow_coords, 0, framecount * sizeof(*a->shadow_coords));
+            animation->shadow_coords = malloc(framecount * sizeof(*animation->shadow_coords));
+            memset(animation->shadow_coords, 0, framecount * sizeof(*animation->shadow_coords));
         }
-        memcpy(a->shadow_coords[currentframe], shadow_coords, sizeof(*a->shadow_coords));
+        memcpy(animation->shadow_coords[currentframe], shadow_coords, sizeof(*animation->shadow_coords));
     }
 
     // Offset
     if(offset->x || offset->y)
     {
-        if(!a->offset)
+        if(!animation->offset)
         {
-            a->offset = malloc(framecount * sizeof(*a->offset));
-            memset(a->offset, 0, framecount * sizeof(*a->offset));
+            animation->offset = malloc(framecount * sizeof(*animation->offset));
+            memset(animation->offset, 0, framecount * sizeof(*animation->offset));
         }
-        a->offset[currentframe] = malloc(sizeof(**a->offset));
-        memcpy(a->offset[currentframe], offset, sizeof(**a->offset));
+        animation->offset[currentframe] = malloc(sizeof(**animation->offset));
+        memcpy(animation->offset[currentframe], offset, sizeof(**animation->offset));
     }
 
     if(platform[PLATFORM_HEIGHT]) //height
     {
-        if(!a->platform)
+        if(!animation->platform)
         {
-            a->platform = malloc(framecount * sizeof(*a->platform));
-            memset(a->platform, 0, framecount * sizeof(*a->platform));
+            animation->platform = malloc(framecount * sizeof(*animation->platform));
+            memset(animation->platform, 0, framecount * sizeof(*animation->platform));
         }
-        memcpy(a->platform[currentframe], platform, sizeof(*a->platform));// Used so entity can be landed on
+        memcpy(animation->platform[currentframe], platform, sizeof(*animation->platform));// Used so entity can be landed on
     }
     if(soundtoplay >= 0)
     {
-        if(!a->soundtoplay)
+        if(!animation->soundtoplay)
         {
-            a->soundtoplay = malloc(framecount * sizeof(*a->soundtoplay));
-            memset(a->soundtoplay, -1, framecount * sizeof(*a->soundtoplay)); // default to -1
+            animation->soundtoplay = malloc(framecount * sizeof(*animation->soundtoplay));
+            memset(animation->soundtoplay, -1, framecount * sizeof(*animation->soundtoplay)); // default to -1
         }
-        a->soundtoplay[currentframe] = soundtoplay;
+        animation->soundtoplay[currentframe] = soundtoplay;
     }
 
-    return a->numframes;
+    return animation->numframes;
 }
 
 

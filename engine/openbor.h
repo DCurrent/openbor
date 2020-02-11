@@ -3322,7 +3322,7 @@ s_collision_body        **collision_alloc_body_list();
 s_collision_entity      *collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity      **collision_alloc_entity_list();
 s_hitbox                *collision_alloc_coords(s_hitbox *coords);
-int                     addframe(s_anim             *a,
+int                     addframe(s_anim             *animation,
                                 int                 spriteindex,
                                 int                 framecount,
                                 int                 delay,
