@@ -5832,33 +5832,6 @@ s_anim *alloc_anim()
 }
 
 // Caskey, Damon V.
-// 2020-02-10
-//
-// Allocate a collision instance, copy
-// property data if present, and return pointer.
-s_collision* allocate_collision_instance(s_collision* properties)
-{
-    s_collision*    result;
-    size_t          alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // If previous data is provided,
-    // copy into new allocation.
-    if (properties)
-    {
-        memcpy(result, properties, alloc_size);
-    }
-
-    // return result.
-    return result;
-}
-
-// Caskey, Damon V.
 // 2016-11-27
 //
 // Allocate a collision attack instance, copy
@@ -6027,13 +6000,32 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
 }
 
 // Caskey, Damon V.
-// 2016-11-27
-//
-// Allocate an empty collision list.
-s_collision** allocate_collision_list()
+// 2020-02-11
+// 
+// Allocate an attack property structure and return pointer.
+s_collision_attack* allocate_attack()
 {
-    s_collision** result;
-    size_t          alloc_size;
+    s_collision_attack* result;
+
+    // Allocate memory and get the pointer.
+    result = malloc(sizeof(*result));
+
+    // Copy default values into new drawmethod.
+    memcpy(result, &emptyattack, sizeof(*result));
+
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-02-10
+//
+// Allocate a blank collision object 
+// and return its pointer. Does not 
+// allocate sub-objects (attack, body, etc.).
+s_collision* allocate_collision()
+{
+    s_collision* result;
+    size_t       alloc_size;
 
     // Get amount of memory we'll need.
     alloc_size = sizeof(*result);
@@ -6041,8 +6033,12 @@ s_collision** allocate_collision_list()
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
 
-    // Make sure the list is blank.
+    // Make sure the data members are 
+    // zero'd and that "next" member 
+    // is NULL.
     memset(result, 0, alloc_size);
+    
+    result->next = NULL;
 
     // return result.
     return result;
@@ -6051,115 +6047,167 @@ s_collision** allocate_collision_list()
 // Caskey, Damon V.
 // 2020-02-10
 //
-// Allocate collision instances to target animation frame.
-void initialize_frame_collision(s_anim *animation, int framecount, ptrdiff_t frame)
+// Allocate new collision node and append it to 
+// end of collision linked list. If no lists exists
+// yet, the new node becomes head of a new list.
+// 
+// Returns pointer to new node.
+s_collision* append_collision(struct s_collision* head)
 {
-    // printf("\n\n initialize_frame_collision");
+    // 1. allocate node     
+    struct s_collision* new_node = allocate_collision();
 
-    size_t frame_list_size;
-    size_t collision_list_size;
-    s_collision* collision_instance;
+    struct s_collision* last = head;  // used in step 5
 
-    s_collision temp_collision;
+    // 2. put in the data     
+    
+    // 3. This new node is going to be the last node, so make next
+    //  of it as NULL
+    new_node->next = NULL;
 
-    int instance_count; // How many collisions on current frame.
-    int i;  // Cursor.
-
-    // 2020-02-10 Collision Rework
-
-    // Collisons are like all frame properties; meaning frames
-    // don't really exist. Frame properties are actually arrayed 
-    // animation properties, where the individual elements act 
-    // as a frame. In the case of collision, each array element 
-    // contains another array - this second array is the list of 
-    // collision instances.
-
-    // First step is to make sure the collision list animation property 
-    // is allocated. If it isn't, we'll allocate space for an array
-    // of collision lists. As above, this array is analogous to
-    // the animation's "frames".
-    if (!animation->collision_list)
-    {
-        frame_list_size = framecount * sizeof(*animation->collision_list);
-
-        animation->collision_list = malloc(frame_list_size);
-        memset(animation->collision_list, 0, frame_list_size);
-
-        //printf("\n allocated animation->collision_list - %d frames, %d bytes.", framecount, frame_list_size);
+    // 4. If the Linked List is empty, then make the new node as head
+    if (head == NULL)
+    {        
+        head = new_node;
+        
+        return new_node;
     }
 
-    // If current frame does not have a collision list pointer, 
-    // allocate and aquire it now.
-    if (!animation->collision_list[frame])
+    // 5. Else traverse till the last node
+    while (last->next != NULL)
     {
-        collision_list_size = sizeof(**animation->collision_list);
-        animation->collision_list[frame] = malloc(collision_list_size);
+        last = last->next;
+    }
 
-        memset(animation->collision_list[frame], 0, collision_list_size);
+    // 6. Change the next of last node
+    last->next = new_node;
 
-        //printf("\n allocated animation->collision_list[%d] - %d bytes.", frame, collision_list_size);
-    }    
-    
-    instance_count = animation->collision_list[frame]->count;
-    //printf("\n instance_count: %d", instance_count);
-
-    // Allocate list of collisions.
-    animation->collision_list[frame]->instance = allocate_collision_list();
-
-    // Only for testing. Replace with collision index value from author.
-    int temp_index = 0;
-
-    // Loop at least once, then to number of collision instances
-    // currently on this frame. If there is an index mismatch 
-    // then we create a new collision instance for the frame
-    // and assign the author's index value (or the default 0).
-    // Then we increment the instance counter so later we will
-    // know how many collision instances this frame has.
-    for(i = 0; i <= instance_count; i++)
-    {
-        // If user provided an index and it's not the
-        // one we are at, exit this iteration of loop/
-        if (temp_index != i)
-        {
-            continue;
-        }
-
-        // If there is no collision allocated for this
-        // frame and instance, let's take care of that
-        // that here and increment the instances count. 
-        //
-        // We could just allocate without bothering to 
-        // check first, but this extra step avoids wasting 
-        // memory if the author duplicates a collision 
-        // command with same index on one frame. 
-
-        collision_instance = animation->collision_list[frame]->instance[i];
-        
-        if (!collision_instance)
-        {
-            collision_instance = allocate_collision_instance(&temp_collision);
-            animation->collision_list[frame]->instance[i] = collision_instance;
-
-            // Increase the instance count for this frame's set
-            // of collisions.
-            animation->collision_list[frame]->count++;
-        }        
-
-        // From here we have a collision instance pointer to work with. Let's
-        // set up its attributes and allocate sub structures.
-
-        // Set index.
-        collision_instance->index = i;
-
-        // Now let's allocate sub-properties.
-        // ...
-
-        //printf("\n index: %d", animation->collision_list[frame]->instance[i]->index);
-    }    
-
-    instance_count = animation->collision_list[frame]->count;
-    //printf("\n instance_count: %d", instance_count);
+    return new_node;
 }
+
+// 2020-02-23
+// Caskey, Damon V.
+//
+// Receive head pointer. If head is NULL, we allocate a
+// collision object, and return it as head of a list.
+// Otherwise append new collision node to the existing
+// list and return current head.
+//
+// Used when we want to populate a parent property 
+// like animation->collision[currentframe] with a new
+// list or more nodes.
+s_collision* apportion_collision(s_collision* head)
+{
+    s_collision* result = head;
+
+    if (!head)
+    {
+        result = append_collision(head);
+    }
+    else
+    {
+        append_collision(head);
+    }
+
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Find a collision node by index and return pointer, or
+// NULL if no match found. 
+s_collision* find_collision_by_index(s_collision* head, int index)
+{    
+    s_collision* current = NULL;
+    
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    current = head;
+
+    while (current != NULL)
+    {
+        // If we found a collision index match, return the pointer.
+        if (current->index == index)
+        {
+            return current;
+        }
+    }
+
+    // If we didn't find a node, return 
+    // the last cursor position.
+    return NULL;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Find a collision node by index, or append a new node
+// with target index if no match is found. Returns pointer
+// to found or appended node.
+s_collision* find_or_append_collision_by_index(s_collision* head, int index)
+{
+    s_collision* result = NULL;
+
+    // Run index search.
+    result = find_collision_by_index(head, index);
+
+    // We couldn't find an index match, so lets add
+    // a node and apply the index we wanted.
+    if (!result)
+    {
+        result = append_collision(head);
+        result->index = index;
+    }
+
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Clear a collision linked list from memory.
+void free_collision_list(s_collision* head)
+{
+    s_collision* current = NULL;
+    s_collision* next = NULL;
+
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    current = head;
+    
+    while (current != NULL)
+    {
+        // We still need the next member after we
+        // delete collision object, so we'll store
+        // it in a temp var.
+        next = current->next;
+
+        // Free the current collision object.
+        free_collision(current);
+
+        // Set cursor to next.
+        current = next;
+    }
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+// 
+// Clear a single collision object from memory.
+void free_collision(s_collision* target)
+{
+    // Free sub objects.
+    free(target->attack);
+    free(target->body);
+    free(target->coords);
+    free(target->space);
+    free(target->tag);
+
+    // Free the collision structure.
+    free(target);
+}
+
 
 int addframe(s_anim             *animation,
              int                spriteindex,
@@ -6179,7 +6227,10 @@ int addframe(s_anim             *animation,
              s_damage_recursive *recursive,
              s_hitbox           *attack_coords,
              s_hitbox           *body_coords,
-             s_hitbox           *entity_coords)
+             s_hitbox           *entity_coords,
+             s_collision        *collision,
+            s_hitbox            *collision_coords,
+            int                 instance_count)
 {
     int     i;
     size_t  size_col_on_frame,
@@ -6297,15 +6348,33 @@ int addframe(s_anim             *animation,
         }
     }
 
+    // Collision rework IP 2020-02-10
+    //initialize_frame_collision(animation, framecount, currentframe);
+
+    if (!animation->collision)
+    {
+        animation->collision = malloc(framecount * sizeof(*animation->collision));
+        memset(animation->collision, 0, framecount * sizeof(*animation->collision));
+
+        printf("\n\t allocated animation->collision_list - %d frames, %d bytes.", framecount, framecount * sizeof(*animation->collision));
+    }
+
+        for (i = 0; i < 10; i++)
+        {
+            printf("\n\t i: %d", i);
+            
+            printf("\n\t (pre) animation->collision[%d]: %p", currentframe, animation->collision[currentframe]);
+
+            animation->collision[currentframe] = apportion_collision(animation->collision[currentframe]);
+            
+            printf("\n\t (post) animation->collision[%d]: %p", currentframe, animation->collision[currentframe]);
+        }
+
     // Allocate attack boxes. See body box
     // for notes.
     if((attack_coords->width - attack_coords->x) &&
             (attack_coords->height - attack_coords->y))
     {
-    
-        // Collision rework IP 2020-02-10
-        initialize_frame_collision(animation, framecount, currentframe);
-        
         if(!animation->collision_attack)
         {
             size_col_on_frame = framecount * sizeof(*animation->collision_attack);
@@ -6391,7 +6460,7 @@ int addframe(s_anim             *animation,
             memset(animation->shadow_coords, 0, framecount * sizeof(*animation->shadow_coords));
         }
         memcpy(animation->shadow_coords[currentframe], shadow_coords, sizeof(*animation->shadow_coords));
-    }
+    }    
 
     // Offset
     if(offset->x || offset->y)
@@ -9104,6 +9173,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
 
+    s_collision* temp_collision = NULL;
+
     char *shutdownmessage = NULL;
 
 
@@ -9231,6 +9302,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     newchar->hitwalltype = -1; // init to -1
 
+    // Reset temp collision list.
+    free_collision_list(temp_collision);
+    temp_collision = NULL;
 
     //char* test = "load   knife 0";
     //ParseArgs(&arglist,test,argbuf);
@@ -11147,6 +11221,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Nothing yet - for future support of multiple boxes.
                 break;
             case CMD_MODEL_BBOX_POSITION_X:
+                
+                
+
                 bbox.x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_Y:
@@ -12042,7 +12119,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     &ebox_con, &bbox_con, &attack, &move, platform_con,
                                     frameshadow, shadow_coords, soundtoplay,
                                     &dm, &offset, &recursive, &attack_coords,
-                                    &body_coords, &entity_coords);
+                                    &body_coords, &entity_coords, NULL, NULL, 0);
 
                 soundtoplay = -1;
                 frm_id = -1;

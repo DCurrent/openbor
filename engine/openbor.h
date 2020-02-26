@@ -1982,38 +1982,47 @@ typedef enum
     COLLISION_TYPE_SPACE = (1 << 3)     // Physical space ("pushing").
 } e_collision_type;
 
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Tags are data defined by author on various other structures
+// that have no associated engine logic. For example, an author
+// might place tags on a given attack that identifies the attack
+// source as "right arm", "left leg", and so on. The engine will 
+// not use this data in any way, but the author could write scripts 
+// to cause unique reactions when attacks make contact.
+typedef struct s_tag
+{
+    struct s_tag* next;
+    char* string[512];
+    float decimal;
+    int integer;
+} s_tag;
+
 // Collision box for detecting
 // physical space.
 typedef struct
 {
     int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    int         tag;            // User defined tag for scripts. No hard coded purpose.
+    s_tag*      tag;            // User defined data.
 } s_collision_space;
 
 // Caskey, Damon V.
 // 2020-02-20
 //
 // Collision container.
-typedef struct
+typedef struct s_collision
 {
-    s_collision_attack  *attack;    // Attacking properties.
-    s_collision_body    *body;      // Body (detecting incoming attack) properties.
-    s_collision_space   *space;     // Physical space properties.
-    s_hitbox            *coords;    // Collision box dimensions.
+    struct s_collision* next;   // Next item in linked list.
+    s_tag*              tag;    // User defined data.
+    s_collision_attack* attack; // Attacking properties.
+    s_collision_body*   body;   // Body (detecting incoming attack) properties.
+    s_collision_space*  space;  // Physical space properties.
+    s_hitbox*           coords; // Collision box dimensions.
 
-    e_collision_type    type;       // Detection type.  
-    int                 index;      // Listing index.
+    e_collision_type    type;   // Detection type.  
+    int                 index;  // Listing index.
 } s_collision;
-
-// Caskey, Damon V.
-// 2020-02-20
-//
-// Collision array container.
-typedef struct
-{
-    s_collision **instance;
-    int         count;
-} s_collision_list;
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -2232,7 +2241,7 @@ typedef struct
 	s_sub_entity				*sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
 	s_projectile				*projectile;            // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
-    s_collision_list            **collision_list;       // Collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
+    s_collision                 **collision;            // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
 	s_collision_attack_list		**collision_attack;
 	s_collision_body_list		**collision_body;
 	s_collision_entity_list		**collision_entity;
@@ -2773,7 +2782,7 @@ typedef struct entity
 	s_defense				*defense;							// Resistance or vulnerability to certain attack types. ~~
 	s_model					*model;								// current model ~~
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
+    s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
 	s_scripts				*scripts;							// Loaded scripts. ~~
 
 	struct entity			*collided_entity;					// Opposing entity when entities occupy same space. ~~
@@ -3315,6 +3324,16 @@ s_projectile			*allocate_projectile();
 s_onframe_set			*allocate_frame_set();
 s_sub_entity			*allocate_sub_entity();
 s_anim                  *alloc_anim();
+
+//s_collision*            allocate_collision_instance();
+//s_collision**           allocate_collision_list();
+s_collision*            allocate_collision();
+s_collision*            append_collision(struct s_collision* head);
+s_collision*            find_collision_by_index(s_collision* head, int index);
+s_collision*            find_or_append_collision_by_index(s_collision* head, int index);
+void                    free_collision(s_collision* target);
+void                    free_collision_list(s_collision* head);
+s_collision_attack*     allocate_attack();
 s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack      **collision_alloc_attack_list();
 s_collision_body        *collision_alloc_body_instance(s_collision_body *properties);
@@ -3340,7 +3359,10 @@ int                     addframe(s_anim             *animation,
                                 s_damage_recursive  *recursive,
                                 s_hitbox            *attack_coords,
                                 s_hitbox            *body_coords,
-                                s_hitbox            *entity_coords);
+                                s_hitbox            *entity_coords,
+                                s_collision         *collision,
+                                s_hitbox            *collision_coords,
+                                int                 instance_count);
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
