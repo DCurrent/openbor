@@ -6057,7 +6057,7 @@ s_collision* append_collision(struct s_collision* head)
     // 1. allocate node     
     struct s_collision* new_node = allocate_collision();
 
-    struct s_collision* last = head;  // used in step 5
+    struct s_collision* last = head;  // used in step 5.
 
     // 2. put in the data     
     
@@ -6088,26 +6088,28 @@ s_collision* append_collision(struct s_collision* head)
 // 2020-02-23
 // Caskey, Damon V.
 //
-// Receive head pointer. If head is NULL, we allocate a
-// collision object, and return it as head of a list.
-// Otherwise append new collision node to the existing
-// list and return current head.
+// Receive pointer to property. If property value is NULL
+// a new collision list is allocated and the property 
+// value is populated with head node. If the property
+// already has a head pointer, a new node is allocated
+// to existing list and property value is unchanged.
 //
-// Used when we want to populate a parent property 
-// like animation->collision[currentframe] with a new
-// list or more nodes.
-s_collision* apportion_collision(s_collision* head)
+// Returns pointer to allocated node.
+s_collision* append_collision_to_property(s_collision** target_property)
 {
-    s_collision* result = head;
+    // Allocate new node and get pointer. See function 
+    // for details.
+    s_collision* result = append_collision(*target_property);
 
-    if (!head)
+    // If target property valur is not set, then the
+    // new node is a list head. Populate the property 
+    // with node pointer.
+    if (!*target_property)
     {
-        result = append_collision(head);
+        *target_property = result;
     }
-    else
-    {
-        append_collision(head);
-    }
+
+    printf("\n\t\t apportion_collision new node: %p", result);
 
     return result;
 }
@@ -6116,7 +6118,7 @@ s_collision* apportion_collision(s_collision* head)
 // 2020-02-17
 //
 // Find a collision node by index and return pointer, or
-// NULL if no match found. 
+// NULL if no match found.
 s_collision* find_collision_by_index(s_collision* head, int index)
 {    
     s_collision* current = NULL;
@@ -6351,6 +6353,11 @@ int addframe(s_anim             *animation,
     // Collision rework IP 2020-02-10
     //initialize_frame_collision(animation, framecount, currentframe);
 
+    // If collision is not allocated yet, we need to allocate
+    // an array of collision pointers (one element for each 
+    // animation frame). If the frame has a collision, its
+    // collision property is populated with pointer to head
+    // of a linked list of collision objects.
     if (!animation->collision)
     {
         animation->collision = malloc(framecount * sizeof(*animation->collision));
@@ -6364,9 +6371,9 @@ int addframe(s_anim             *animation,
             printf("\n\t i: %d", i);
             
             printf("\n\t (pre) animation->collision[%d]: %p", currentframe, animation->collision[currentframe]);
-
-            animation->collision[currentframe] = apportion_collision(animation->collision[currentframe]);
             
+            append_collision_to_property(&animation->collision[currentframe]);
+
             printf("\n\t (post) animation->collision[%d]: %p", currentframe, animation->collision[currentframe]);
         }
 
