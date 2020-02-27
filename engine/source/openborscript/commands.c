@@ -149,6 +149,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
     LIST_ADD(CMD_MODEL_COLLISION_GROUND,                           "attack.ground.mode");                       // otg
+    LIST_ADD(CMD_MODEL_COLLISION_INDEX,                            "collision.index");                         // Index to identify mutiple collisions.
     LIST_ADD(CMD_MODEL_COLLISION_MAP_INDEX,                        "attack.map.index");                        // Forcemap.
     LIST_ADD(CMD_MODEL_COLLISION_MAP_TIME,                         "attack.map.time");                         // Forcemap time.
     LIST_ADD(CMD_MODEL_COLLISION_POSITION_X,                       "attack.position.x");

@@ -9076,62 +9076,61 @@ void update_model_loadflag(s_model *model, char unload)
 
 s_model *load_cached_model(char *name, char *owner, char unload)
 {
-
     #define LOG_CMD_TITLE   "%-20s"
 
-    s_model *newchar = NULL,
-            *tempmodel = NULL;
+    s_model* newchar = NULL;
+    s_model* tempmodel = NULL;
 
     s_anim *newanim = NULL;
 
-    char *filename      = NULL,
-         *buf           = NULL,
-         *animscriptbuf = NULL,
-         *scriptbuf     = NULL,
-         *command       = NULL,
-         *value         = NULL,
-         *value2        = NULL,
-         *value3        = NULL;
+    char* filename = NULL;
+    char* buf = NULL;
+    char* animscriptbuf = NULL;
+    char* scriptbuf = NULL;
+    char* command = NULL;
+    char* value = NULL;
+    char* value2 = NULL;
+    char* value3 = NULL;
 
-    char fnbuf[MAX_BUFFER_LEN] = {""},
-                      namebuf[MAX_BUFFER_LEN] = {""},
-                                     argbuf[MAX_ARG_LEN + 1] = {""};
+    char fnbuf[MAX_BUFFER_LEN] = { "" };
+    char namebuf[MAX_BUFFER_LEN] = { "" };
+    char argbuf[MAX_ARG_LEN + 1] = { "" };
 
     ArgList arglist;
 
     float tempFloat;
 
-    int ani_id = -1,
-        script_id = -1,
-        frm_id = -1,
-        i = 0,
-        j = 0,
-        tempInt = 0,
-        framecount = 0,
-        //framenum = 0,
-        frameset = 0,
-        peek = 0,
-        cacheindex = 0,
-        curframe = 0,
-        delay = 0,
-        errorVal = 0,
-        shadow_set = 0,
-        idle = 0,
-        frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
-        soundtoplay = -1,
-        aimoveset = 0,
-        aiattackset = 0,
-        maskindex = -1,
-        nopalette = 0;
+    int ani_id = -1;
+    int script_id = -1;
+    int frm_id = -1;
+    int i = 0;
+    int j = 0;
+    int tempInt = 0;
+    int framecount = 0;
+    int frameset = 0;
+    int peek = 0;
+    int cacheindex = 0;
+    int curframe = 0;
+    int delay = 0;
+    int errorVal = 0;
+    int shadow_set = 0;
+    int idle = 0;
+    int frameshadow = -1;	// -1 will use default shadow for this entity, otherwise will use this value
+    int soundtoplay = -1;
+    int aimoveset = 0;
+    int aiattackset = 0;
+    int maskindex = -1;
+    int nopalette = 0;
+    // int collision_index = 0;
 
-    size_t size = 0,
-           line = 0,
-           len = 0,
-           sbsize = 0,
-           scriptlen = 0;
+    size_t size = 0;
+    size_t line = 0;
+    size_t len = 0;
+    size_t sbsize = 0;
+    size_t scriptlen = 0;
 
-    ptrdiff_t pos = 0,
-              index = 0;
+    ptrdiff_t pos = 0;
+    ptrdiff_t index = 0;
 
     s_hitbox            bbox = {    .x      = 0,
                                     .y      = 0,
@@ -9156,11 +9155,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_axis_plane_vertical_int         offset = { .x = 0,
                                                  .y = 0 };
-    int                 shadow_xz[2] = {0, 0};
-    int                 shadow_coords[2] = {0, 0};
+    int shadow_xz[2] = {0, 0};
+    int shadow_coords[2] = {0, 0};
 
-    float               platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
-                        platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    float platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    float platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     s_move                  move = {    {   .x = 0,
                                             .y = 0,
@@ -9180,13 +9179,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
 
-    s_collision* temp_collision = NULL;
+    // Caskey, Damon V.
+    // 2020-02-27
+    //
+    // Head of temporary collision list. As we read in collision
+    // commands, we build a linked list of collisions for the
+    // frame. 
+    //
+    // When we add the frame, the data from this list
+    // is used to build a new linked list that is identical. 
+    // We populate the frame's collision property with head 
+    // of new list, and then delete this temporary list.
+    s_collision* temp_collision = NULL; 
 
-    char *shutdownmessage = NULL;
+    char* shutdownmessage = NULL;
 
-
-
-    unsigned *mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
+    unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
     static const char pre_text[] =   // this is the skeleton of frame function
     {
@@ -9248,7 +9256,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     };
 
     modelCommands cmd;
-    s_scripts *tempscripts;
+    s_scripts* tempscripts;
 
 #ifdef DEBUG
     printf("load_cached_model: %s, unload: %d\n", name, unload);
@@ -9309,7 +9317,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     newchar->hitwalltype = -1; // init to -1
 
-    // Reset temp collision list.
+    // Reset temp collision list. See notes in
+    // temp_collision declaration.
     free_collision_list(temp_collision);
     temp_collision = NULL;
 
@@ -11444,6 +11453,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             // Caskey, Damon
             // Broken down attack commands.
             case CMD_MODEL_COLLISION_BLOCK_COST:
+
+                // 1. First we need to know index.
+                // 2. Look for index and get pointer (found or allocated).
+                // 3. Get attack pointer (find or allocate).
+                // 4. Populate attack data.
+
                 attack.guardcost = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_BLOCK_PENETRATE:

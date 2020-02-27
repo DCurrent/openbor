@@ -71,7 +71,10 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\Users\Desktop\Documents\GitHub\openbor\engine\source\scriptlib;C:\Users\Desktop\Documents\GitHub\openbor\engine;$(IncludePath)</IncludePath>
   </PropertyGroup>
-  <ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <LanguageStandard>Default</LanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\android\jni\openbor\jniutils.cpp" />
