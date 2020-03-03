@@ -6119,7 +6119,7 @@ s_collision* append_collision_to_property(s_collision** target_property)
 //
 // Find a collision node by index and return pointer, or
 // NULL if no match found.
-s_collision* find_collision_by_index(s_collision* head, int index)
+s_collision* find_collision_index(s_collision* head, e_collision_type type, int index)
 {    
     s_collision* current = NULL;
     
@@ -6130,14 +6130,17 @@ s_collision* find_collision_by_index(s_collision* head, int index)
     while (current != NULL)
     {
         // If we found a collision index match, return the pointer.
-        if (current->index == index)
+        if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
         {
             return current;
         }
-    }
 
-    // If we didn't find a node, return 
-    // the last cursor position.
+        // Go to next node.
+        current = current->next;
+    }    
+
+    // If we got here, find failed.
+    // Just return NULL.
     return NULL;
 }
 
@@ -6147,12 +6150,12 @@ s_collision* find_collision_by_index(s_collision* head, int index)
 // Find a collision node by index, or append a new node
 // with target index if no match is found. Returns pointer
 // to found or appended node.
-s_collision* find_or_append_collision_by_index(s_collision* head, int index)
+s_collision* upsert_collision_index(s_collision* head, e_collision_type type, int index)
 {
     s_collision* result = NULL;
 
     // Run index search.
-    result = find_collision_by_index(head, index);
+    result = find_collision_index(head, type, index);
 
     // We couldn't find an index match, so lets add
     // a node and apply the index we wanted.
@@ -9121,7 +9124,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int aiattackset = 0;
     int maskindex = -1;
     int nopalette = 0;
-    // int collision_index = 0;
+    int temp_collision_index = 0;
 
     size_t size = 0;
     size_t line = 0;
@@ -9179,18 +9182,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
 
-    // Caskey, Damon V.
-    // 2020-02-27
-    //
-    // Head of temporary collision list. As we read in collision
-    // commands, we build a linked list of collisions for the
-    // frame. 
-    //
-    // When we add the frame, the data from this list
-    // is used to build a new linked list that is identical. 
-    // We populate the frame's collision property with head 
-    // of new list, and then delete this temporary list.
-    s_collision* temp_collision = NULL; 
+    s_collision* temp_collision_head = NULL;
+    s_collision* temp_collision_current = NULL;
 
     char* shutdownmessage = NULL;
 
@@ -9316,11 +9309,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     drawmethod = plainmethod;  // better than memset it to 0
 
     newchar->hitwalltype = -1; // init to -1
-
-    // Reset temp collision list. See notes in
-    // temp_collision declaration.
-    free_collision_list(temp_collision);
-    temp_collision = NULL;
 
     //char* test = "load   knife 0";
     //ParseArgs(&arglist,test,argbuf);
@@ -11449,15 +11437,54 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 drawmethod.flag = 0;
                 break;
 
+            // 2020-03-02
+            // Caskey, Damon V.
+            //
+            // This needs to come before any other collision
+            // command so we know which collision index we 
+            // want the collision commands to affect.
+            case CMD_MODEL_COLLISION_INDEX:
+                temp_collision_index = GET_INT_ARG(1);
+                break;
+
             // 2016-10-11
             // Caskey, Damon
             // Broken down attack commands.
             case CMD_MODEL_COLLISION_BLOCK_COST:
 
                 // 1. First we need to know index.
+                //  -- temp_collision_index
+
                 // 2. Look for index and get pointer (found or allocated).
+                
+                // Get the node we want to work on by searching
+                // for a matched index. In most cases, this will
+                // just be the head node.
+                temp_collision_current = upsert_collision_index(temp_collision_head, COLLISION_TYPE_ATTACK, temp_collision_index);
+                
+                // If head is NULL, this must be the first allocated 
+                // collision for current frame. Populate head with 
+                // current so we have a head for the next pass.
+                if (temp_collision_head == NULL)
+                {
+                    temp_collision_head = temp_collision_current;
+                }
+
                 // 3. Get attack pointer (find or allocate).
-                // 4. Populate attack data.
+                
+                // Have an attack? if not we'll need to allocate it.
+                if (!temp_collision_current->attack)
+                {
+                    temp_collision_current->attack = allocate_attack();
+                }
+
+                // 4. Set this collision as an attacking type.                
+                temp_collision_current->type ^= COLLISION_TYPE_ATTACK;
+
+                // 5. Populate attack data.
+                temp_collision_current->attack->guardcost = GET_INT_ARG(1);
+                
+                //
 
                 attack.guardcost = GET_INT_ARG(1);
                 break;
@@ -12142,6 +12169,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                     frameshadow, shadow_coords, soundtoplay,
                                     &dm, &offset, &recursive, &attack_coords,
                                     &body_coords, &entity_coords, NULL, NULL, 0);
+
+                // Caskey, Damon V.
+                // 2020-03-03
+                //
+                // Addframe function has made a copy of the local collision 
+                // list and attached its head to the frame's collision property.
+                // We need to destory the local list and set pointer vars
+                // to NULL so it will be clean for the next read cycle. 
+                free_collision_list(temp_collision_head);
+                temp_collision_current = NULL;
+                temp_collision_head = NULL;
+                
 
                 soundtoplay = -1;
                 frm_id = -1;

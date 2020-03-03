@@ -1976,6 +1976,7 @@ typedef struct
 // Collision types. 
 typedef enum
 {
+    COLLISION_TYPE_ALL = -1,		    // For compare operations when we want any type to return TRUE.
     COLLISION_TYPE_NONE = 0,		    // Ignored by all native logic.		
     COLLISION_TYPE_ATTACK = (1 << 0),	// Attack vs. body boxes.
     COLLISION_TYPE_BODY = (1 << 1),	    // Detects incoming attacks.
@@ -3329,18 +3330,18 @@ s_anim                  *alloc_anim();
 //s_collision**           allocate_collision_list();
 s_collision*            allocate_collision();
 s_collision*            append_collision(struct s_collision* head);
-s_collision*            find_collision_by_index(s_collision* head, int index);
-s_collision*            find_or_append_collision_by_index(s_collision* head, int index);
+s_collision*            find_collision_index(s_collision* head, e_collision_type type, int index);
+s_collision*            upsert_collision_index(s_collision* head, e_collision_type type, int index);
 void                    free_collision(s_collision* target);
 void                    free_collision_list(s_collision* head);
 s_collision_attack*     allocate_attack();
-s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
-s_collision_attack      **collision_alloc_attack_list();
-s_collision_body        *collision_alloc_body_instance(s_collision_body *properties);
-s_collision_body        **collision_alloc_body_list();
-s_collision_entity      *collision_alloc_entity_instance(s_collision_entity *properties);
-s_collision_entity      **collision_alloc_entity_list();
-s_hitbox                *collision_alloc_coords(s_hitbox *coords);
+s_collision_attack*     collision_alloc_attack_instance(s_collision_attack* properties);
+s_collision_attack**    collision_alloc_attack_list();
+s_collision_body*       collision_alloc_body_instance(s_collision_body *properties);
+s_collision_body**      collision_alloc_body_list();
+s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
+s_collision_entity**    collision_alloc_entity_list();
+s_hitbox*               collision_alloc_coords(s_hitbox *coords);
 int                     addframe(s_anim             *animation,
                                 int                 spriteindex,
                                 int                 framecount,
