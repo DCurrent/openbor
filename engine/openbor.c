@@ -6054,10 +6054,17 @@ s_collision* allocate_collision()
 // Returns pointer to new node.
 s_collision* append_collision(struct s_collision* head)
 {
+    printf("\n\n -- append_collision --");
+    printf("\n\n\t head: %p", head);
+
     // 1. allocate node     
     struct s_collision* new_node = allocate_collision();
+    
+    printf("\n\n\t new_node: %p", new_node);
 
     struct s_collision* last = head;  // used in step 5.
+
+    printf("\n\n\t last: %p", last);
 
     // 2. put in the data     
     
@@ -6065,22 +6072,35 @@ s_collision* append_collision(struct s_collision* head)
     //  of it as NULL
     new_node->next = NULL;
 
+    printf("\n\n\t new_node->next: %p", new_node->next);
+
     // 4. If the Linked List is empty, then make the new node as head
     if (head == NULL)
-    {        
+    {   
+        printf("\n\n\t\t head == NULL");
+
         head = new_node;
         
+        printf("\n\n\t\t head: %p", head);
+
         return new_node;
     }
 
     // 5. Else traverse till the last node
     while (last->next != NULL)
     {
+        printf("\n\n\t\t last->next: %p", last->next);
+
         last = last->next;
+
+        printf("\n\n\t\t last: %p", last);
     }
 
     // 6. Change the next of last node
     last->next = new_node;
+
+    printf("\n\n\t last->next: %p", last->next);
+    printf("\n\n\t new_node: %p", new_node);
 
     return new_node;
 }
@@ -6235,6 +6255,8 @@ int addframe(s_addframe_data* data)
     s_collision_body    *collision_body;
     s_collision_entity  *collision_entity;
 
+    s_collision* temp_collision;
+
     ptrdiff_t currentframe;
     if(data->framecount > 0)
     {
@@ -6269,9 +6291,7 @@ int addframe(s_addframe_data* data)
             // Allocate memory.
             data->animation->collision_body = malloc(size_col_on_frame);
             memset(data->animation->collision_body, 0, size_col_on_frame);
-        }
-
-       
+        }       
 
         // Get memory size for the collision
         // list structure.
@@ -6346,29 +6366,61 @@ int addframe(s_addframe_data* data)
     // Collision rework IP 2020-02-10
     //initialize_frame_collision(data->animation, data->framecount, currentframe);
 
-    // If collision is not allocated yet, we need to allocate
-    // an array of collision pointers (one element for each 
-    // animation frame). If the frame has a collision, its
-    // collision property is populated with pointer to head
-    // of a linked list of collision objects.
-    if (!data->animation->collision)
+    
+    if (data->collision)
     {
-        data->animation->collision = malloc(data->framecount * sizeof(*data->animation->collision));
-        memset(data->animation->collision, 0, data->framecount * sizeof(*data->animation->collision));
-
-        printf("\n\t allocated data->animation->collision_list - %d frames, %d bytes.", data->framecount, data->framecount * sizeof(*data->animation->collision));
-    }
-
-        for (i = 0; i < 10; i++)
+        // If collision is not allocated yet, we need to allocate
+        // an array of collision pointers (one element for each 
+        // animation frame). If the frame has a collision, its
+        // collision property is populated with pointer to head
+        // of a linked list of collision objects.
+        if (!data->animation->collision)
         {
-            printf("\n\t i: %d", i);
-            
-            printf("\n\t (pre) data->animation->collision[%d]: %p", currentframe, data->animation->collision[currentframe]);
-            
-            append_collision_to_property(&data->animation->collision[currentframe]);
+            data->animation->collision = malloc(data->framecount * sizeof(*data->animation->collision));
+            memset(data->animation->collision, 0, data->framecount * sizeof(*data->animation->collision));
 
-            printf("\n\t (post) data->animation->collision[%d]: %p", currentframe, data->animation->collision[currentframe]);
+            printf("\n\t allocated data->animation->collision_list - %d frames, %d bytes.", data->framecount, data->framecount * sizeof(*data->animation->collision));
         }
+
+        data->animation->collision[currentframe] = data->collision;
+
+        temp_collision = data->animation->collision[currentframe];
+        printf("\n\t\t temp_collision: %p", temp_collision);
+
+        printf("\n\t Frame: %d", currentframe);
+
+        while (temp_collision != NULL)
+        {
+            printf("\n\t\t temp_collision[%p]->index: %d", temp_collision, temp_collision->index);
+
+            if (temp_collision->attack)
+            {
+                printf("\n\t\t\t temp_collision->attack: %p", temp_collision->attack);
+                printf("\n\t\t\t ...->guardcost: %d", temp_collision->attack->guardcost);
+            }
+            else
+            {
+                printf("\n\t\t\t temp_collision->attack: NULL", temp_collision->attack);
+            }
+
+            temp_collision = temp_collision->next;
+
+            printf("\n\t\t temp_collision (next): %p", temp_collision);
+        }
+
+        
+
+        //for (i = 0; i < 10; i++)
+        //{
+        //    printf("\n\t i: %d", i);
+
+        //    printf("\n\t (pre) data->animation->collision[%d]: %p", currentframe, data->animation->collision[currentframe]);
+
+        //    append_collision_to_property(&data->animation->collision[currentframe]);
+
+        //    printf("\n\t (post) data->animation->collision[%d]: %p", currentframe, data->animation->collision[currentframe]);
+        //}
+    }
 
     // Allocate attack boxes. See body box
     // for notes.
@@ -9132,6 +9184,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     ptrdiff_t pos = 0;
     ptrdiff_t index = 0;
+
+    s_addframe_data add_frame_data;                                   
 
     s_hitbox            bbox = {    .x      = 0,
                                     .y      = 0,
@@ -12162,7 +12216,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     dm.flag = 0;
                 }
 
-                s_addframe_data add_frame_data;
+                
 
                 add_frame_data.animation = newanim;
                 add_frame_data.spriteindex = index;
@@ -12194,7 +12248,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // list and attached its head to the frame's collision property.
                 // We need to destory the local list and set pointer vars
                 // to NULL so it will be clean for the next read cycle. 
-                free_collision_list(temp_collision_head);
+                // free_collision_list(temp_collision_head);
                 temp_collision_current = NULL;
                 temp_collision_head = NULL;
                 
