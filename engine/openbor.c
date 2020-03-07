@@ -6227,6 +6227,59 @@ void free_collision_list(s_collision* head)
     }
 }
 
+// 2020-02-23
+// Caskey, Damon V.
+//
+// Get pointer to attack object for modification. Used when
+// loading a model and reading in attack properties.
+//
+// 1. Receive pointer to head node of collision list. If 
+// the head node is NULL a new collision list is allocated 
+// and the head property value is populated with head node. 
+// 
+// 2. Search collision list for an attack enabled node
+// with index matching received index property. New node
+// allocated if not found. See upsert_collision_index().
+//
+// 3. Find or allocate attack object on collision node.
+// Returns pointer to attack object.
+s_collision_attack* upsert_attack_property(s_collision** head, int index)
+{
+    s_collision* temp_collision_current;
+
+    // 1. First we need to know index.
+                //  -- temp_collision_index
+
+                // 2. Look for index and get pointer (found or allocated).
+
+                // Get the node we want to work on by searching
+                // for a matched index. In most cases, this will
+                // just be the head node.
+    temp_collision_current = upsert_collision_index(*head, COLLISION_TYPE_ATTACK, index);
+
+    // If head is NULL, this must be the first allocated 
+    // collision for current frame. Populate head with 
+    // current so we have a head for the next pass.
+    if (*head == NULL)
+    {
+        *head = temp_collision_current;
+    }
+
+    // 3. Get attack pointer (find or allocate).
+
+    // Have an attack? if not we'll need to allocate it.
+    if (!temp_collision_current->attack)
+    {
+        temp_collision_current->attack = allocate_attack();
+    }
+
+    // 4. Set this collision as an attacking type.                
+    temp_collision_current->type |= COLLISION_TYPE_ATTACK;
+
+    // Return pointer to the attack structure.
+    return temp_collision_current->attack;
+}
+
 // Caskey, Damon V.
 // 2020-02-17
 // 
@@ -9244,7 +9297,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_drawmethod        dm;
 
     s_collision* temp_collision_head = NULL;
-    s_collision* temp_collision_current = NULL;
 
     char* shutdownmessage = NULL;
 
@@ -11513,39 +11565,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             // Broken down attack commands.
             case CMD_MODEL_COLLISION_BLOCK_COST:
 
-                // 1. First we need to know index.
-                //  -- temp_collision_index
-
-                // 2. Look for index and get pointer (found or allocated).
-                
-                // Get the node we want to work on by searching
-                // for a matched index. In most cases, this will
-                // just be the head node.
-                temp_collision_current = upsert_collision_index(temp_collision_head, COLLISION_TYPE_ATTACK, temp_collision_index);
-                
-                // If head is NULL, this must be the first allocated 
-                // collision for current frame. Populate head with 
-                // current so we have a head for the next pass.
-                if (temp_collision_head == NULL)
-                {
-                    temp_collision_head = temp_collision_current;
-                }
-
-                // 3. Get attack pointer (find or allocate).
-                
-                // Have an attack? if not we'll need to allocate it.
-                if (!temp_collision_current->attack)
-                {
-                    temp_collision_current->attack = allocate_attack();
-                }
-
-                // 4. Set this collision as an attacking type.                
-                temp_collision_current->type |= COLLISION_TYPE_ATTACK;
-
-                // 5. Populate attack data.
-                temp_collision_current->attack->guardcost = GET_INT_ARG(1);
-                
-                //
+                upsert_attack_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);               
 
                 attack.guardcost = GET_INT_ARG(1);
                 break;
@@ -12257,8 +12277,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // list and attached its head to the frame's collision property.
                 // We need to destory the local list and set pointer vars
                 // to NULL so it will be clean for the next read cycle. 
-                // free_collision_list(temp_collision_head);
-                temp_collision_current = NULL;
                 temp_collision_head = NULL;
                 
 
