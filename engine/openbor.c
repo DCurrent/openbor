@@ -6140,24 +6140,35 @@ s_collision* append_collision_to_property(s_collision** target_property)
 // Find a collision node by index and return pointer, or
 // NULL if no match found.
 s_collision* find_collision_index(s_collision* head, e_collision_type type, int index)
-{    
+{   
+    printf("\n\n -- find_collision_index(%p, %d, %d) --", head, type, index);
+
     s_collision* current = NULL;
     
     // Starting from head node, iterate through
     // all collision nodes and free them.
     current = head;
 
+    printf("\n\n\t (pre loop) current: %p", current);
+
     while (current != NULL)
     {
+        printf("\n\n\t\t current: %p", current);
+        printf("\n\n\t\t current->index: %d", current->index);
+        printf("\n\n\t\t current->type: %d", current->type);
+
         // If we found a collision index match, return the pointer.
         if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
         {
+            printf("\n\n\t\t\t Found: %p", current);
             return current;
         }
 
         // Go to next node.
         current = current->next;
     }    
+
+    printf("\n\n\t No match");
 
     // If we got here, find failed.
     // Just return NULL.
@@ -6240,60 +6251,52 @@ void free_collision(s_collision* target)
 void initialize_frame_collision(s_addframe_data* data, ptrdiff_t frame)
 {
     s_collision* temp_collision;
+    size_t memory_size;
 
-    if (data->collision)
+    if (!data->collision)
     {
-        // If collision is not allocated yet, we need to allocate
-        // an array of collision pointers (one element for each 
-        // animation frame). If the frame has a collision, its
-        // collision property is populated with pointer to head
-        // of a linked list of collision objects.
-        if (!data->animation->collision)
-        {
-            data->animation->collision = malloc(data->framecount * sizeof(*data->animation->collision));
-            memset(data->animation->collision, 0, data->framecount * sizeof(*data->animation->collision));
+        return;
+    }
 
-            printf("\n\t allocated data->animation->collision_list - %d frames, %d bytes.", data->framecount, data->framecount * sizeof(*data->animation->collision));
+    // If collision is not allocated yet, we need to allocate
+    // an array of collision pointers (one element for each 
+    // animation frame). If the frame has a collision, its
+    // collision property is populated with pointer to head
+    // of a linked list of collision objects.
+    if (!data->animation->collision)
+    {
+        memory_size = data->framecount * sizeof(*data->animation->collision);
+
+        data->animation->collision = malloc(memory_size);
+        memset(data->animation->collision, 0, memory_size);
+
+        printf("\n\t allocated data->animation->collision_list - %d frames, %d bytes.", data->framecount, memory_size);
+    }
+
+    data->animation->collision[frame] = data->collision;
+
+    temp_collision = data->animation->collision[frame];
+    printf("\n\t\t temp_collision: %p", temp_collision);
+
+    printf("\n\t Frame: %d", frame);
+
+    while (temp_collision != NULL)
+    {
+        printf("\n\t\t temp_collision[%p]->index: %d", temp_collision, temp_collision->index);
+
+        if (temp_collision->attack)
+        {
+            printf("\n\t\t\t temp_collision->attack: %p", temp_collision->attack);
+            printf("\n\t\t\t ...->guardcost: %d", temp_collision->attack->guardcost);
+        }
+        else
+        {
+            printf("\n\t\t\t temp_collision->attack: NULL", temp_collision->attack);
         }
 
-        data->animation->collision[frame] = data->collision;
+        temp_collision = temp_collision->next;
 
-        temp_collision = data->animation->collision[frame];
-        printf("\n\t\t temp_collision: %p", temp_collision);
-
-        printf("\n\t Frame: %d", frame);
-
-        while (temp_collision != NULL)
-        {
-            printf("\n\t\t temp_collision[%p]->index: %d", temp_collision, temp_collision->index);
-
-            if (temp_collision->attack)
-            {
-                printf("\n\t\t\t temp_collision->attack: %p", temp_collision->attack);
-                printf("\n\t\t\t ...->guardcost: %d", temp_collision->attack->guardcost);
-            }
-            else
-            {
-                printf("\n\t\t\t temp_collision->attack: NULL", temp_collision->attack);
-            }
-
-            temp_collision = temp_collision->next;
-
-            printf("\n\t\t temp_collision (next): %p", temp_collision);
-        }
-
-
-
-        //for (i = 0; i < 10; i++)
-        //{
-        //    printf("\n\t i: %d", i);
-
-        //    printf("\n\t (pre) data->animation->collision[%d]: %p", currentframe, data->animation->collision[currentframe]);
-
-        //    append_collision_to_property(&data->animation->collision[currentframe]);
-
-        //    printf("\n\t (post) data->animation->collision[%d]: %p", currentframe, data->animation->collision[currentframe]);
-        //}
+        printf("\n\t\t temp_collision (next): %p", temp_collision);
     }
 }
 
@@ -11537,7 +11540,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 // 4. Set this collision as an attacking type.                
-                temp_collision_current->type ^= COLLISION_TYPE_ATTACK;
+                temp_collision_current->type |= COLLISION_TYPE_ATTACK;
 
                 // 5. Populate attack data.
                 temp_collision_current->attack->guardcost = GET_INT_ARG(1);
