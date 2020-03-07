@@ -3326,6 +3326,37 @@ s_onframe_set			*allocate_frame_set();
 s_sub_entity			*allocate_sub_entity();
 s_anim                  *alloc_anim();
 
+// Caskey, Damon V.
+// 2020-03-04
+//
+// Addframe() and related sub functions function have 
+// a TON of parameters. Let's package them up into a 
+// more manageable structure.
+typedef struct {
+    s_anim* animation;      // Animation we will add frame to.
+    int                         spriteindex;    // Image displayed during frame.
+    int                         framecount;     // Number of frames.
+    int                         delay;          // Frame duration (centiseonds)
+    unsigned                    idle;           // TRUE = Set idle status during frame.
+    s_collision_entity* ebox;           // "Entity" box added by WD. To be removed.
+    s_hitbox* entity_coords;  // Coordinates for "Entity" box. To be removed.
+    s_collision_body* bbox;           // Legacy body box parameters.
+    s_hitbox* body_coords;    // Coordinates for legacy body box.
+    s_collision_attack* attack;         // Legacy attack box.
+    s_hitbox* attack_coords;  // Coordinates for legacy attack box.
+    s_damage_recursive* recursive;      // Recursive damage properties for attack.
+    s_move* move;           // Move <n> horizontal pixels on frame.
+    float* platform;       // Platform coordinates.
+    int                         frameshadow;    // TRUE = Display shadow during frame.
+    int* shadow_coords;  // Shadow position.
+    int                         soundtoplay;    // Sound index played on frame.
+    s_drawmethod* drawmethod;     // Drawmethod to apply on frame.
+    s_axis_plane_vertical_int* offset;         // X & Y offset coordinates.    
+    s_collision* collision;      // Head node of collision list for frame.
+} s_addframe_data;
+
+int addframe(s_addframe_data* data);
+
 //s_collision*            allocate_collision_instance();
 //s_collision**           allocate_collision_list();
 s_collision*            allocate_collision();
@@ -3334,6 +3365,7 @@ s_collision*            find_collision_index(s_collision* head, e_collision_type
 s_collision*            upsert_collision_index(s_collision* head, e_collision_type type, int index);
 void                    free_collision(s_collision* target);
 void                    free_collision_list(s_collision* head);
+void                    initialize_frame_collision(s_addframe_data* data, ptrdiff_t frame);
 s_collision_attack*     allocate_attack();
 s_collision_attack*     collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack**    collision_alloc_attack_list();
@@ -3343,35 +3375,7 @@ s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *prop
 s_collision_entity**    collision_alloc_entity_list();
 s_hitbox*               collision_alloc_coords(s_hitbox *coords);
 
-// Caskey, Damon V.
-// 2020-03-04
-//
-// Addframe function has a TON of parameters. Let's package 
-// them up into a more manageable structure.
-typedef struct {
-    s_anim*                     animation;      // Animation we will add frame to.
-    int                         spriteindex;    // Image displayed during frame.
-    int                         framecount;     // Number of frames.
-    int                         delay;          // Frame duration (centiseonds)
-    unsigned                    idle;           // TRUE = Set idle status during frame.
-    s_collision_entity*         ebox;           // "Entity" box added by WD. To be removed.
-    s_hitbox*                   entity_coords;  // Coordinates for "Entity" box. To be removed.
-    s_collision_body*           bbox;           // Legacy body box parameters.
-    s_hitbox*                   body_coords;    // Coordinates for legacy body box.
-    s_collision_attack*         attack;         // Legacy attack box.
-    s_hitbox*                   attack_coords;  // Coordinates for legacy attack box.
-    s_damage_recursive*         recursive;      // Recursive damage properties for attack.
-    s_move*                     move;           // Move <n> horizontal pixels on frame.
-    float*                      platform;       // Platform coordinates.
-    int                         frameshadow;    // TRUE = Display shadow during frame.
-    int*                        shadow_coords;  // Shadow position.
-    int                         soundtoplay;    // Sound index played on frame.
-    s_drawmethod*               drawmethod;     // Drawmethod to apply on frame.
-    s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
-    s_collision*                collision;      // Head node of collision list for frame.
-} s_addframe_data;
 
-int addframe(s_addframe_data* data);
 
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
