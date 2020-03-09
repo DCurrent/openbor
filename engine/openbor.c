@@ -6045,6 +6045,113 @@ s_collision* allocate_collision()
 }
 
 // Caskey, Damon V.
+// 2020-03-09
+//
+// Allocate new attack object with same values (but not same 
+// pointers) as received attack object. Returns pointer to
+// new object.
+s_collision_attack* clone_collision_attack(s_collision_attack* source)
+{
+    s_collision_attack* result = NULL;
+
+    if (!source)
+    {
+        return result;
+    }
+
+    result = allocate_attack();
+
+    // Attack has a ton of members. Rather than do everything 
+    // piecemeal, we'll memcopy to get all the basic values, 
+    // and overwrite object pointers individually.
+    memcpy(result, source, sizeof(*result));
+    
+    result->coords = NULL;
+    result->recursive = NULL;
+
+    return result;
+}
+
+// Caskey, Damon V
+// 2020-03-09
+// 
+// Allocate new collision list with same values as source.
+// Returns pointer to head of new list.
+s_collision* copy_collision_list(s_collision* source_head)
+{
+    printf("\n\n -- copy_collision_list(%p) --", source_head);
+
+    s_collision* source_cursor = NULL;
+    s_collision* clone_head = NULL;
+    s_collision* clone_node = NULL;   
+
+    // Head is null? Get out now.
+    if (source_head == NULL)
+    {
+        printf("\n\t source_head NULL");
+
+        return source_cursor;
+    }
+
+    source_cursor = source_head;
+
+    printf("\n\t source_cursor: %p", source_cursor);
+
+    while (source_cursor != NULL)
+    {
+        printf("\n\t\t source_cursor: %p", source_cursor);
+        printf("\n\t\t clone_head: %p", clone_head);
+        printf("\n\t\t clone_node: %p", clone_node);
+       
+        clone_node = append_collision(clone_head);
+       
+        printf("\n\t\t clone_node (post append): %p", clone_node);
+
+        // Populate head if NULL so we
+        // have one for the next cycle.
+        if (clone_head == NULL)
+        {
+            clone_head = clone_node;
+        }
+
+        printf("\n\t\t clone_head (post append): %p", clone_head);
+
+        // Copy the values.
+        clone_node->attack = clone_collision_attack(source_cursor->attack);
+        printf("\n\t\t clone_node->attack: %p", clone_node->attack);
+        
+        clone_node->body = NULL;
+        printf("\n\t\t clone_node->body: %p", clone_node->body);
+
+        if (clone_node != NULL)
+        {
+            clone_node->coords = collision_alloc_coords(source_cursor->coords);
+        }
+
+        printf("\n\t\t clone_node->coords: %p", clone_node->coords);
+
+        clone_node->index = source_cursor->index;
+        printf("\n\t\t clone_node->index: %d", clone_node->index);
+
+        clone_node->space = NULL;
+        printf("\n\t\t clone_node->space: %p", clone_node->space);
+
+        clone_node->tag = NULL;
+        printf("\n\t\t clone_node->tag: %p", clone_node->tag);
+
+        clone_node->type = source_cursor->type;
+        printf("\n\t\t clone_node->index: %d", clone_node->index);
+        
+        source_cursor = source_cursor->next;
+
+        printf("\n\t\t source_cursor (post next): %p", source_cursor);
+    }
+
+    printf("\n\t clone_head: %p", clone_head);
+    return clone_head;
+}
+
+// Caskey, Damon V.
 // 2020-02-10
 //
 // Allocate new collision node and append it to 
@@ -6361,8 +6468,10 @@ void initialize_frame_collision(s_addframe_data* data, ptrdiff_t frame)
 
         printf("\n\t allocated data->animation->collision_list - %d frames, %d bytes.", data->framecount, memory_size);
     }
-
-    data->animation->collision[frame] = data->collision;
+    
+    // Clone source list and populate frame's collision
+    // property with the pointer to clone list head.
+    data->animation->collision[frame] = copy_collision_list(data->collision);
 
     temp_collision = data->animation->collision[frame];
     printf("\n\t\t temp_collision: %p", temp_collision);
@@ -10702,6 +10811,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Reset vars
                 curframe = 0;
                 
+                free_collision_list(temp_collision_head);
+                temp_collision_head = NULL;
+                temp_collision_index = 0;
+
                 memset(&abox, 0, sizeof(abox));
                 memset(&ebox, 0, sizeof(ebox));
                 memset(&bbox, 0, sizeof(bbox));
@@ -12551,17 +12664,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 add_frame_data.collision = temp_collision_head;
 
                 curframe = addframe(&add_frame_data);
-
-                // Caskey, Damon V.
-                // 2020-03-03
-                //
-                // Addframe function has made a copy of the local collision 
-                // list and attached its head to the frame's collision property.
-                // We need to destory the local list and set pointer vars
-                // to NULL so it will be clean for the next read cycle. 
-                temp_collision_head = NULL;
                 
-
                 soundtoplay = -1;
                 frm_id = -1;
             }
