@@ -3358,28 +3358,29 @@ typedef struct {
 
 int addframe(s_addframe_data* data);
 
-//s_collision*            allocate_collision_instance();
-//s_collision**           allocate_collision_list();
-s_collision*            allocate_collision();
+s_collision*            collision_allocate_object();
+s_collision*            collision_append_node(struct s_collision* head);
+s_collision*            collision_find_node_index(s_collision* head, e_collision_type type, int index);
+s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
+s_collision_attack*     collision_upsert_attack_property(s_collision** head, int index);
+s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
+bool                    collision_check_has_coords(s_collision* target);
+void                    collision_remove_undefined_coordinates(s_collision** head);
+void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
+void                    collision_dump_list(s_collision* head);
+void                    collision_free_node(s_collision* target);
+void                    collision_free_list(s_collision* head);
+void                    collision_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+s_collision_attack*     collision_allocate_attack();
+s_hitbox* collision_allocate_coords(s_hitbox* coords);
 
-s_collision*            append_collision(struct s_collision* head);
-s_collision*            find_collision_index(s_collision* head, e_collision_type type, int index);
-s_collision*            upsert_collision_index(s_collision* head, e_collision_type type, int index);
-s_collision_attack*     upsert_collision_attack_property(s_collision** head, int index);
-s_hitbox*               upsert_collision_coordinates_property(s_collision** head, int index);
-void                    collision_adjust_coordinates(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
-void                    dump_collision_list(s_collision* head);
-void                    free_collision(s_collision* target);
-void                    free_collision_list(s_collision* head);
-void                    initialize_frame_collision(s_addframe_data* data, ptrdiff_t frame);
-s_collision_attack*     allocate_attack();
 s_collision_attack*     collision_alloc_attack_instance(s_collision_attack* properties);
 s_collision_attack**    collision_alloc_attack_list();
 s_collision_body*       collision_alloc_body_instance(s_collision_body *properties);
 s_collision_body**      collision_alloc_body_list();
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
-s_hitbox*               collision_alloc_coords(s_hitbox *coords);
+
 
 
 
