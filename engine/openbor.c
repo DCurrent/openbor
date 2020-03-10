@@ -9764,7 +9764,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 #endif
 
     // Start up the standard log entry.
-    printf("Loaded '%s'", name);
+    printf("Loading '%s'", name);
 
     // Model already loaded but we might want to unload after level is completed.
     if((tempmodel = findmodel(name)) != NULL)
@@ -12731,6 +12731,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot add frame: animation not specified!";
                     goto lCleanup;
                 }
+
+                // Reset index for collision boxes.
+                temp_collision_index = 0;
+
                 peek = 0;
                 if(frameset && framecount >= 0)
                 {
@@ -12916,7 +12920,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 add_frame_data.body_coords = &body_coords;
                 add_frame_data.entity_coords = &entity_coords;
                 
-                add_frame_data.model = newchar;
+                add_frame_data.model = newchar;                
 
                 // Delete collision nodes from collision list 
                 // that don't have coordinates defined at all 
@@ -13513,6 +13517,7 @@ lCleanup:
 
     if(!shutdownmessage)
     {
+        printf(" ...done!\n");
         return newchar;
     }
 
@@ -17960,10 +17965,11 @@ void draw_visual_debug()
     int i;
     int instance;
     s_hitbox            *coords;
-    s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
+
+    s_collision*         collision_cursor;
 
 	int range_y_min = 0;
 	int range_y_max = 0;
@@ -18038,25 +18044,22 @@ void draw_visual_debug()
         if(savedata.debuginfo & DEBUG_DISPLAY_COLLISION_ATTACK)
         {
             // Animation has collision?
-            if(entity->animation->collision_attack)
+            if(entity->animation->collision)
             {
-                // Frame has collision?
-                if(entity->animation->collision_attack[entity->animpos])
-                {
-                    // Loop instances of collision.
-                    for(instance = 0; instance < max_collisons; instance++)
-                    {
-                        // Get collision instance pointer.
-                        collision_attack = entity->animation->collision_attack[entity->animpos]->instance[instance];
+                collision_cursor = entity->animation->collision[entity->animpos];
 
-                        // Valid collision instance pointer found?
-                        if(collision_attack)
-                        {
-                            coords = collision_attack->coords;
-                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_MAGENTA, &drawmethod);
-                        }
+                while (collision_cursor != NULL)
+                {
+                    if (collision_cursor->type & COLLISION_TYPE_ATTACK && collision_cursor->coords)
+                    {
+                        coords = collision_cursor->coords;
+                        draw_box_on_entity(entity, coords->x, coords->y, entity->position.z + 1, coords->width, coords->height, 2, LOCAL_COLOR_MAGENTA, &drawmethod);
                     }
+
+                    collision_cursor = collision_cursor->next;
                 }
+
+                collision_cursor = NULL;
             }
         }
     }
