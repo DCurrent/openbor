@@ -3353,6 +3353,7 @@ typedef struct {
     s_drawmethod* drawmethod;     // Drawmethod to apply on frame.
     s_axis_plane_vertical_int* offset;         // X & Y offset coordinates.    
     s_collision* collision;      // Head node of collision list for frame.
+    s_model* model; // New model in progress.
 } s_addframe_data;
 
 int addframe(s_addframe_data* data);
@@ -3360,12 +3361,14 @@ int addframe(s_addframe_data* data);
 //s_collision*            allocate_collision_instance();
 //s_collision**           allocate_collision_list();
 s_collision*            allocate_collision();
+
 s_collision*            append_collision(struct s_collision* head);
 s_collision*            find_collision_index(s_collision* head, e_collision_type type, int index);
 s_collision*            upsert_collision_index(s_collision* head, e_collision_type type, int index);
 s_collision_attack*     upsert_collision_attack_property(s_collision** head, int index);
 s_hitbox*               upsert_collision_coordinates_property(s_collision** head, int index);
-
+void                    collision_adjust_coordinates(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
+void                    dump_collision_list(s_collision* head);
 void                    free_collision(s_collision* target);
 void                    free_collision_list(s_collision* head);
 void                    initialize_frame_collision(s_addframe_data* data, ptrdiff_t frame);

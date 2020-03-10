@@ -5988,6 +5988,9 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
 
+    // 0 out valules.
+    memset(result, 0, sizeof(*result));
+
     // If previous data is provided,
     // copy into new allocation.
     if(coords)
@@ -6073,13 +6076,192 @@ s_collision_attack* clone_collision_attack(s_collision_attack* source)
 }
 
 // Caskey, Damon V
+// 2020-03-10
+//
+// Send all collision list data to log for debugging.
+void dump_collision_list(s_collision* head)
+{
+    printf("\n\n *-- Dump Collision List (%p) --*", head);
+    
+    s_collision* cursor;
+    int count = 0;
+
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        count++;
+
+        printf("\n\t Node: %p", cursor);
+        printf("\n\t\t ->attack: %p", cursor->attack);
+
+        if (cursor->attack)
+        {
+            printf("\n\t\t\t ->attack_drop: %d", cursor->attack->attack_drop);
+            printf("\n\t\t\t ->attack_force: %d", cursor->attack->attack_force);
+            printf("\n\t\t\t ->attack_type: %d", cursor->attack->attack_type);
+            printf("\n\t\t\t ->blockflash: %d", cursor->attack->blockflash);
+            printf("\n\t\t\t ->blocksound: %d", cursor->attack->blocksound);
+            printf("\n\t\t\t ->counterattack: %d", cursor->attack->counterattack);
+            printf("\n\t\t\t ->damage_on_landing.attack_force: %d", cursor->attack->damage_on_landing.attack_force);
+            printf("\n\t\t\t ->damage_on_landing.attack_type: %d", cursor->attack->damage_on_landing.attack_type);
+            printf("\n\t\t\t ->dropv.x: %f", cursor->attack->dropv.x);
+            printf("\n\t\t\t ->dropv.y: %f", cursor->attack->dropv.y);
+            printf("\n\t\t\t ->dropv.z: %f", cursor->attack->dropv.z);
+            printf("\n\t\t\t ->forcemap: %d", cursor->attack->forcemap);
+            printf("\n\t\t\t ->force_direction: %d", cursor->attack->force_direction);
+            printf("\n\t\t\t ->freeze: %d", cursor->attack->freeze);
+            printf("\n\t\t\t ->freezetime: %d", cursor->attack->freezetime);
+            printf("\n\t\t\t ->grab: %d", cursor->attack->grab);
+            printf("\n\t\t\t ->grab_distance: %d", cursor->attack->grab_distance);
+            printf("\n\t\t\t ->guardcost: %d", cursor->attack->guardcost);
+            printf("\n\t\t\t ->hitflash: %d", cursor->attack->hitflash);
+            printf("\n\t\t\t ->hitsound: %d", cursor->attack->hitsound);
+            printf("\n\t\t\t ->jugglecost: %d", cursor->attack->jugglecost);
+            printf("\n\t\t\t ->maptime: %d", cursor->attack->maptime);
+            printf("\n\t\t\t ->next_hit_time: %d", cursor->attack->next_hit_time);
+            printf("\n\t\t\t ->no_block: %d", cursor->attack->no_block);
+            printf("\n\t\t\t ->otg: %d", cursor->attack->otg);
+            printf("\n\t\t\t ->pause_add: %d", cursor->attack->pause_add);
+            printf("\n\t\t\t ->pause_add: %d", cursor->attack->recursive);
+
+            if (cursor->attack->recursive)
+            {
+                printf("\n\t\t\t\t ->force: %d", cursor->attack->recursive->force);
+                printf("\n\t\t\t\t ->index: %d", cursor->attack->recursive->index);
+                printf("\n\t\t\t\t ->mode: %d", cursor->attack->recursive->mode);
+                printf("\n\t\t\t\t ->next: %p", cursor->attack->recursive->next);
+                printf("\n\t\t\t\t ->mode: %p", cursor->attack->recursive->owner);
+                printf("\n\t\t\t\t ->rate: %d", cursor->attack->recursive->rate);
+                printf("\n\t\t\t\t ->tag: %d", cursor->attack->recursive->tag);
+                printf("\n\t\t\t\t ->tick: %d", cursor->attack->recursive->tick);
+                printf("\n\t\t\t\t ->time: %d", cursor->attack->recursive->time);
+                printf("\n\t\t\t\t ->type: %d", cursor->attack->recursive->type);
+            }
+
+            printf("\n\t\t\t ->seal: %d", cursor->attack->seal);
+            printf("\n\t\t\t ->sealtime: %d", cursor->attack->sealtime);
+            printf("\n\t\t\t ->staydown.rise: %d", cursor->attack->staydown.rise);
+            printf("\n\t\t\t ->staydown.riseattack: %d", cursor->attack->staydown.riseattack);
+            printf("\n\t\t\t ->staydown.riseattack_stall: %d", cursor->attack->staydown.riseattack_stall);
+        }
+
+        printf("\n\t\t ->body: %p", cursor->body);
+
+        if (cursor->body)
+        {
+            printf("\n\t\t\t ->defense: %p", cursor->body->defense);
+
+            if (cursor->body->defense)
+            {
+                printf("\n\t\t\t\t ->blockpower: %d", cursor->body->defense->blockpower);
+                printf("\n\t\t\t\t ->blockratio: %f", cursor->body->defense->blockratio);
+                printf("\n\t\t\t\t ->blockthreshold: %d", cursor->body->defense->blockthreshold);
+                printf("\n\t\t\t\t ->blocktype: %d", cursor->body->defense->blocktype);
+                printf("\n\t\t\t\t ->factor: %d", cursor->body->defense->factor);
+                printf("\n\t\t\t\t ->knockdown: %f", cursor->body->defense->knockdown);
+                printf("\n\t\t\t\t ->pain: %f", cursor->body->defense->pain);
+            }
+        }
+
+        printf("\n\t\t ->coords: %p", cursor->coords);
+
+        if (cursor->coords)
+        {
+            printf("\n\t\t\t ->height: %d", cursor->coords->height);
+            printf("\n\t\t\t ->width: %d", cursor->coords->width);
+            printf("\n\t\t\t ->x: %d", cursor->coords->x);
+            printf("\n\t\t\t ->y: %d", cursor->coords->y);
+            printf("\n\t\t\t ->z_background: %d", cursor->coords->z_background);
+            printf("\n\t\t\t ->z_foreground: %d", cursor->coords->z_foreground);
+        }
+
+        printf("\n\t\t ->index: %d", cursor->index);
+        printf("\n\t\t ->next: %p", cursor->next);
+        printf("\n\t\t ->space: %p", cursor->space);
+        printf("\n\t\t ->tag: %p", cursor->tag);
+        printf("\n\t\t ->type: %d", cursor->type);
+
+        cursor = cursor->next;
+    }
+
+    printf("\n\n %d nodes.", count);
+    printf("\n\n *-- End Dump Collision List --* \n", head);
+}
+
+// Caskey, Damon V.
+// 2020-03-10
+//
+// Apply final adjustments to collision coordinates
+// with defaults settings for required properties 
+// author did not provide values for.
+void collision_adjust_coordinates(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data)
+{
+    printf("\n\n -- collision_adjust_coordinates(%p) --", collision_head);
+
+    s_collision* cursor;
+    s_hitbox* coords;
+
+    cursor = collision_head;
+
+    while (cursor != NULL)
+    {
+        coords = cursor->coords;
+
+        if (coords)
+        {
+            // Position includes offset. Size includes position.
+            coords->x = coords->x - add_frame_data->offset->x;
+            coords->y = coords->y - add_frame_data->offset->y;
+            coords->width = coords->width + coords->x;
+            coords->height = coords->height + coords->y;
+            
+            printf("\n\n\t\t\t\t coords->x: %d", coords->x);
+            printf("\n\n\t\t\t\t coords->y: %d", coords->y);
+            printf("\n\n\t\t\t\t coords->height: %d", coords->height);
+            printf("\n\n\t\t\t\t coords->width: %d", coords->width);
+            printf("\n\n\t\t\t\t coords->z_background: %d", coords->z_background);
+            printf("\n\n\t\t\t\t coords->z_foreground: %d", coords->z_foreground);
+
+            // If this is an attack, we may need to apply
+            // a stand in for Z depth. Legacy behavior is
+            // to use a calculation based on grabdistance. 
+            // IMO it's not very logical and doesn't allow
+            // authors to use 0 values, but we need to 
+            // keep it for backward compatabilty.
+            if (cursor->type & COLLISION_TYPE_ATTACK)
+            {
+                if (!coords->z_background && !coords->z_foreground)
+                {
+                    printf("\n\n\t\t\t\t\t COLLISION_TYPE_ATTACK");
+                    printf("\n\n\t\t\t\t\t model->grabdistance: %f", model->grabdistance);
+                    printf("\n\n\t\t\t\t\t (int)(model->grabdistance / 3 + 1): %d", (int)(model->grabdistance / 3 + 1));
+
+                    coords->z_background = coords->z_foreground = (int)(model->grabdistance / 3 + 1);
+                
+                    printf("\n\n\t\t\t\t\t coords->z_background: %d", coords->z_background);
+                    printf("\n\n\t\t\t\t\t coords->z_foreground: %d", coords->z_foreground);                    
+                }
+            }
+
+            printf("\n\n\t\t\t\t coords->z_background: %d", coords->z_background);
+            printf("\n\n\t\t\t\t coords->z_foreground: %d", coords->z_foreground);
+        }
+
+        cursor = cursor->next;
+    }
+
+    printf("\n End collision_adjust_coordinates");
+}
+
+// Caskey, Damon V
 // 2020-03-09
 // 
 // Allocate new collision list with same values as source.
 // Returns pointer to head of new list.
 s_collision* copy_collision_list(s_collision* source_head)
 {
-    printf("\n\n -- copy_collision_list(%p) --", source_head);
+    // printf("\n\n -- copy_collision_list(%p) --", source_head);
 
     s_collision* source_cursor = NULL;
     s_collision* clone_head = NULL;
@@ -6088,24 +6270,24 @@ s_collision* copy_collision_list(s_collision* source_head)
     // Head is null? Get out now.
     if (source_head == NULL)
     {
-        printf("\n\t source_head NULL");
+        // printf("\n\t source_head NULL");
 
         return source_cursor;
     }
 
     source_cursor = source_head;
 
-    printf("\n\t source_cursor: %p", source_cursor);
+    // printf("\n\t source_cursor: %p", source_cursor);
 
     while (source_cursor != NULL)
     {
-        printf("\n\t\t source_cursor: %p", source_cursor);
-        printf("\n\t\t clone_head: %p", clone_head);
-        printf("\n\t\t clone_node: %p", clone_node);
+        // printf("\n\t\t source_cursor: %p", source_cursor);
+        // printf("\n\t\t clone_head: %p", clone_head);
+        // printf("\n\t\t clone_node: %p", clone_node);
        
         clone_node = append_collision(clone_head);
        
-        printf("\n\t\t clone_node (post append): %p", clone_node);
+        // printf("\n\t\t clone_node (post append): %p", clone_node);
 
         // Populate head if NULL so we
         // have one for the next cycle.
@@ -6114,40 +6296,40 @@ s_collision* copy_collision_list(s_collision* source_head)
             clone_head = clone_node;
         }
 
-        printf("\n\t\t clone_head (post append): %p", clone_head);
+        // printf("\n\t\t clone_head (post append): %p", clone_head);
 
         // Copy the values.
         clone_node->attack = clone_collision_attack(source_cursor->attack);
-        printf("\n\t\t clone_node->attack: %p", clone_node->attack);
+        // printf("\n\t\t clone_node->attack: %p", clone_node->attack);
         
         clone_node->body = NULL;
-        printf("\n\t\t clone_node->body: %p", clone_node->body);
+        // printf("\n\t\t clone_node->body: %p", clone_node->body);
 
         if (clone_node != NULL)
         {
             clone_node->coords = collision_alloc_coords(source_cursor->coords);
         }
 
-        printf("\n\t\t clone_node->coords: %p", clone_node->coords);
+        // printf("\n\t\t clone_node->coords: %p", clone_node->coords);
 
         clone_node->index = source_cursor->index;
-        printf("\n\t\t clone_node->index: %d", clone_node->index);
+        // printf("\n\t\t clone_node->index: %d", clone_node->index);
 
         clone_node->space = NULL;
-        printf("\n\t\t clone_node->space: %p", clone_node->space);
+        // printf("\n\t\t clone_node->space: %p", clone_node->space);
 
         clone_node->tag = NULL;
-        printf("\n\t\t clone_node->tag: %p", clone_node->tag);
+        // printf("\n\t\t clone_node->tag: %p", clone_node->tag);
 
         clone_node->type = source_cursor->type;
-        printf("\n\t\t clone_node->index: %d", clone_node->index);
+        // printf("\n\t\t clone_node->index: %d", clone_node->index);
         
         source_cursor = source_cursor->next;
 
-        printf("\n\t\t source_cursor (post next): %p", source_cursor);
+        // printf("\n\t\t source_cursor (post next): %p", source_cursor);
     }
 
-    printf("\n\t clone_head: %p", clone_head);
+    // printf("\n\t clone_head: %p", clone_head);
     return clone_head;
 }
 
@@ -6161,17 +6343,17 @@ s_collision* copy_collision_list(s_collision* source_head)
 // Returns pointer to new node.
 s_collision* append_collision(struct s_collision* head)
 {
-    printf("\n\n -- append_collision --");
-    printf("\n\n\t head: %p", head);
+    // printf("\n\n -- append_collision --");
+    // printf("\n\n\t head: %p", head);
 
     // 1. allocate node     
     struct s_collision* new_node = allocate_collision();
     
-    printf("\n\n\t new_node: %p", new_node);
+    // printf("\n\n\t new_node: %p", new_node);
 
     struct s_collision* last = head;  // used in step 5.
 
-    printf("\n\n\t last: %p", last);
+    // printf("\n\n\t last: %p", last);
 
     // 2. put in the data     
     
@@ -6179,16 +6361,16 @@ s_collision* append_collision(struct s_collision* head)
     //  of it as NULL
     new_node->next = NULL;
 
-    printf("\n\n\t new_node->next: %p", new_node->next);
+    // printf("\n\n\t new_node->next: %p", new_node->next);
 
     // 4. If the Linked List is empty, then make the new node as head
     if (head == NULL)
     {   
-        printf("\n\n\t\t head == NULL");
+        // printf("\n\n\t\t head == NULL");
 
         head = new_node;
         
-        printf("\n\n\t\t head: %p", head);
+        // printf("\n\n\t\t head: %p", head);
 
         return new_node;
     }
@@ -6196,18 +6378,18 @@ s_collision* append_collision(struct s_collision* head)
     // 5. Else traverse till the last node
     while (last->next != NULL)
     {
-        printf("\n\n\t\t last->next: %p", last->next);
+        // printf("\n\n\t\t last->next: %p", last->next);
 
         last = last->next;
 
-        printf("\n\n\t\t last: %p", last);
+        // printf("\n\n\t\t last: %p", last);
     }
 
     // 6. Change the next of last node
     last->next = new_node;
 
-    printf("\n\n\t last->next: %p", last->next);
-    printf("\n\n\t new_node: %p", new_node);
+    // printf("\n\n\t last->next: %p", last->next);
+    // printf("\n\n\t new_node: %p", new_node);
 
     return new_node;
 }
@@ -6236,7 +6418,7 @@ s_collision* append_collision_to_property(s_collision** target_property)
         *target_property = result;
     }
 
-    printf("\n\t\t apportion_collision new node: %p", result);
+    // printf("\n\t\t apportion_collision new node: %p", result);
 
     return result;
 }
@@ -6248,7 +6430,7 @@ s_collision* append_collision_to_property(s_collision** target_property)
 // NULL if no match found.
 s_collision* find_collision_index(s_collision* head, e_collision_type type, int index)
 {   
-    printf("\n\n -- find_collision_index(%p, %d, %d) --", head, type, index);
+    // printf("\n\n -- find_collision_index(%p, %d, %d) --", head, type, index);
 
     s_collision* current = NULL;
     
@@ -6256,18 +6438,18 @@ s_collision* find_collision_index(s_collision* head, e_collision_type type, int 
     // all collision nodes and free them.
     current = head;
 
-    printf("\n\n\t (pre loop) current: %p", current);
+    // printf("\n\n\t (pre loop) current: %p", current);
 
     while (current != NULL)
     {
-        printf("\n\n\t\t current: %p", current);
-        printf("\n\n\t\t current->index: %d", current->index);
-        printf("\n\n\t\t current->type: %d", current->type);
+        // printf("\n\n\t\t current: %p", current);
+        // printf("\n\n\t\t current->index: %d", current->index);
+        // printf("\n\n\t\t current->type: %d", current->type);
 
         // If we found a collision index match, return the pointer.
         if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
         {
-            printf("\n\n\t\t\t Found: %p", current);
+            // printf("\n\n\t\t\t Found: %p", current);
             return current;
         }
 
@@ -6275,7 +6457,7 @@ s_collision* find_collision_index(s_collision* head, e_collision_type type, int 
         current = current->next;
     }    
 
-    printf("\n\n\t No match");
+    // printf("\n\n\t No match");
 
     // If we got here, find failed.
     // Just return NULL.
@@ -6417,6 +6599,8 @@ s_hitbox* upsert_collision_coordinates_property(s_collision** head, int index)
     if (!temp_collision_current->coords)
     {
         temp_collision_current->coords = collision_alloc_coords(temp_collision_current->coords);
+
+
     }
 
     // Return pointer to the coords structure.
@@ -6465,37 +6649,20 @@ void initialize_frame_collision(s_addframe_data* data, ptrdiff_t frame)
 
         data->animation->collision = malloc(memory_size);
         memset(data->animation->collision, 0, memory_size);
-
-        printf("\n\t allocated data->animation->collision_list - %d frames, %d bytes.", data->framecount, memory_size);
     }
     
     // Clone source list and populate frame's collision
     // property with the pointer to clone list head.
-    data->animation->collision[frame] = copy_collision_list(data->collision);
+    temp_collision = copy_collision_list(data->collision);
 
-    temp_collision = data->animation->collision[frame];
-    printf("\n\t\t temp_collision: %p", temp_collision);
+    // Apply final adjustments to any collision coordinates.
+    collision_adjust_coordinates(temp_collision, data->model, data);
 
-    printf("\n\t Frame: %d", frame);
+    // Frame collision property is head of collision list.
+    data->animation->collision[frame] = temp_collision;
 
-    while (temp_collision != NULL)
-    {
-        printf("\n\t\t temp_collision[%p]->index: %d", temp_collision, temp_collision->index);
-
-        if (temp_collision->attack)
-        {
-            printf("\n\t\t\t temp_collision->attack: %p", temp_collision->attack);
-            printf("\n\t\t\t ...->guardcost: %d", temp_collision->attack->guardcost);
-        }
-        else
-        {
-            printf("\n\t\t\t temp_collision->attack: NULL", temp_collision->attack);
-        }
-
-        temp_collision = temp_collision->next;
-
-        printf("\n\t\t temp_collision (next): %p", temp_collision);
-    }
+    printf("\n\n Post frame allocation dump: ");
+    dump_collision_list(temp_collision);
 }
 
 // Caskey, Damon V. (Orginal author unknown, 
@@ -12554,6 +12721,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         maskindex = -1;
                     }
                 }
+                
+                
+
+                
+                
                 // Adjust coords: add offsets and change size to coords
                 body_coords.x      = bbox.x - offset.x;
                 body_coords.y      = bbox.y - offset.y;
@@ -12582,11 +12754,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // At time of writing, default grabdistance is 36, so with this 
                 // formula default fore/aft depth is 13. We leave body boxes 
                 // alone, so they are default depth 0.
-               
                 if (!abox.z_background && !abox.z_foreground)
                 {
                     abox.z_background = abox.z_foreground = (int)(newchar->grabdistance / 3 + 1);
-                } 
+                }
 
                 attack_coords.x      = abox.x - offset.x;
                 attack_coords.y      = abox.y - offset.y;
@@ -12662,6 +12833,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 add_frame_data.body_coords = &body_coords;
                 add_frame_data.entity_coords = &entity_coords;
                 add_frame_data.collision = temp_collision_head;
+                add_frame_data.model = newchar;
+
+                dump_collision_list(temp_collision_head);
 
                 curframe = addframe(&add_frame_data);
                 
