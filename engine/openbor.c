@@ -6013,7 +6013,7 @@ s_collision_attack* collision_allocate_attack()
     // Allocate memory and get the pointer.
     result = malloc(sizeof(*result));
 
-    // Copy default values into new drawmethod.
+    // Copy default values into new attack.
     memcpy(result, &emptyattack, sizeof(*result));
 
     return result;
@@ -6091,8 +6091,17 @@ s_collision_attack* collision_clone_attack(s_collision_attack* source)
     // and overwrite object pointers individually.
     memcpy(result, source, sizeof(*result));
     
+    // Clone sub objects. Same principal - we want new pointers
+    // allocated with the same data as the source pointers.
+
+    // Recursive damage.
+    if (source->recursive && source->recursive->mode)
+    {
+        result->recursive = malloc(sizeof(*result->recursive));
+        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
+    }
+
     result->coords = NULL;
-    result->recursive = NULL;
 
     return result;
 }
@@ -6619,6 +6628,11 @@ s_collision_attack* collision_upsert_attack_property(s_collision** head, int ind
     if (!temp_collision_current->attack)
     {
         temp_collision_current->attack = collision_allocate_attack();
+
+        // Set up default drop velocity.
+        temp_collision_current->attack->dropv.x = default_model_dropv.x;
+        temp_collision_current->attack->dropv.y = default_model_dropv.y;
+        temp_collision_current->attack->dropv.z = default_model_dropv.z;
     }
 
     // 4. Set this collision as an attacking type.                
@@ -12074,19 +12088,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_X:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(1);
 
                 attack.dropv.x = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Y:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
 
                 attack.dropv.y = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(1);
 
                 attack.dropv.z = GET_FLOAT_ARG(1);
                 break;
@@ -20432,11 +20446,16 @@ int checkhit(entity *attacker, entity *target)
         return FALSE;
     }
 
-	s_collision_attack* attack = NULL;
+    printf("\n\n *-- checkhit: %p, %p --*", attacker, target);
+
+    s_collision* seek_cursor = NULL;
+    //s_collision* target_cursor = NULL;
+
+	//s_collision_attack* attack = NULL;
 	s_collision_body* detect = NULL;
 	s_collision_check_data collision_check_data;
 
-	int attack_instance = 0;	
+	//int attack_instance = 0;	
 
 	// We'll use these in collision check data
 	// structure in lieu of memory allocations.
@@ -20469,31 +20488,48 @@ int checkhit(entity *attacker, entity *target)
 	collision_check_data.seeker_direction = attacker->direction;
 	collision_check_data.target_direction = target->direction;
 
-	// Loop over each attack instance. We populate collision data
-    // with attributes that must fall in loop, and then
-    // run collision detection functions.
-	    
-	for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
+    // New
+    if (!attacker->animation->collision)
     {
-        attack = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
+        return FALSE;
+    }
 
-		collision_check_data.seeker_coords = attack->coords;        
+    // Set seek cursor to seeker's collision list head.
+    seek_cursor = attacker->animation->collision[attacker->animpos];
+    
+    // Iterate through seeker's collision list.
+    // During iteration, we skip any collision node that 
+    // is not an attack type or does not have coordinates 
+    // defined. This check might seem redundant because the 
+    // model text read-in eliminates collision nodes without 
+    // defined coordinates. However, it is possible for an 
+    // author to add collisions with script that bypass the 
+    // read-in criteria.
+    while (seek_cursor != NULL && seek_cursor->type & COLLISION_TYPE_ATTACK && seek_cursor->coords != NULL)
+    {
+        collision_check_data.seeker_coords = seek_cursor->coords;
+        
+        // TO DO: Don't use attack properties without verifying
+        // attack is defined.
 
         // If this is a counter attack let's check against the target's
         // attack boxes.
-        if (attack->counterattack && check_collision_vs_attack(&collision_check_data))
+        if (seek_cursor->attack->counterattack && check_collision_vs_attack(&collision_check_data))
         {
-            populate_lasthit(&collision_check_data, attack, detect);
+            populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
+            return TRUE;
+        }
+        
+        // Check against target body boxes.
+        if (check_collision_vs_body(&collision_check_data))
+        {
+            populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
             return TRUE;
         }
 
-        // Check against target body boxes.
-		if (check_collision_vs_body(&collision_check_data))
-		{
-			populate_lasthit(&collision_check_data, attack, detect);
-			return TRUE;
-		}
+        seek_cursor = seek_cursor->next;
     }
+    
 
 	// If we made it here, then we were unable to find
 	// any collisions, - return FALSE. 
