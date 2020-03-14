@@ -6016,6 +6016,11 @@ s_collision_attack* collision_allocate_attack()
     // Copy default values into new attack.
     memcpy(result, &emptyattack, sizeof(*result));
 
+    // Set up default drop velocity. 
+    result->dropv.x = default_model_dropv.x;
+    result->dropv.y = default_model_dropv.y;
+    result->dropv.z = default_model_dropv.z;
+
     return result;
 }
 
@@ -6107,12 +6112,90 @@ s_collision_attack* collision_clone_attack(s_collision_attack* source)
 }
 
 // Caskey, Damon V
+// 2020-03-12
+//
+// Send all recursive damage data to log for debugging.
+void dump_recursive_object(s_damage_recursive* recursive)
+{
+    printf("\n\n -- Recursive (%p) dump --", recursive);
+
+    if (recursive)
+    {
+        printf("\n\t ->force: %d", recursive->force);
+        printf("\n\t ->index: %d", recursive->index);
+        printf("\n\t ->mode: %d", recursive->mode);
+        printf("\n\t ->next: %p", recursive->next);
+        printf("\n\t ->owner: %p", recursive->owner);
+        printf("\n\t ->rate: %d", recursive->rate);
+        printf("\n\t ->tag: %d", recursive->tag);
+        printf("\n\t ->tick: %d", recursive->tick);
+        printf("\n\t ->time: %d", recursive->time);
+        printf("\n\t ->type: %d", recursive->type);
+    }
+
+    printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
+}
+
+// Caskey, Damon V
+// 2020-03-12
+//
+// Send all attack data to log for debugging.
+void collision_dump_attack(s_collision_attack* attack)
+{
+    printf("\n\n -- Attack (%p) dump --", attack);
+
+    if (attack)
+    {
+        printf("\n\t ->attack_drop: %d", attack->attack_drop);
+        printf("\n\t ->attack_force: %d", attack->attack_force);
+        printf("\n\t ->attack_type: %d", attack->attack_type);
+        printf("\n\t ->blockflash: %d", attack->blockflash);
+        printf("\n\t ->blocksound: %d", attack->blocksound);
+        printf("\n\t ->counterattack: %d", attack->counterattack);
+        printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
+        printf("\n\t ->damage_on_landing.attack_type: %d", attack->damage_on_landing.attack_type);
+        printf("\n\t ->dropv.x: %f", attack->dropv.x);
+        printf("\n\t ->dropv.y: %f", attack->dropv.y);
+        printf("\n\t ->dropv.z: %f", attack->dropv.z);
+        printf("\n\t ->forcemap: %d", attack->forcemap);
+        printf("\n\t ->force_direction: %d", attack->force_direction);
+        printf("\n\t ->freeze: %d", attack->freeze);
+        printf("\n\t ->freezetime: %d", attack->freezetime);
+        printf("\n\t ->grab: %d", attack->grab);
+        printf("\n\t ->grab_distance: %d", attack->grab_distance);
+        printf("\n\t ->guardcost: %d", attack->guardcost);
+        printf("\n\t ->hitflash: %d", attack->hitflash);
+        printf("\n\t ->hitsound: %d", attack->hitsound);
+        printf("\n\t ->jugglecost: %d", attack->jugglecost);
+        printf("\n\t ->maptime: %d", attack->maptime);
+        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
+        printf("\n\t ->no_block: %d", attack->no_block);
+        printf("\n\t ->otg: %d", attack->otg);
+        printf("\n\t ->pause_add: %d", attack->pause_add);
+        printf("\n\t ->recursive: %d", attack->recursive);
+
+        if (attack->recursive)
+        {
+            dump_recursive_object(attack->recursive);
+        }
+
+        printf("\n\t ->seal: %d", attack->seal);
+        printf("\n\t ->sealtime: %d", attack->sealtime);
+        printf("\n\t ->staydown.rise: %d", attack->staydown.rise);
+        printf("\n\t ->staydown.riseattack: %d", attack->staydown.riseattack);
+        printf("\n\t ->staydown.riseattack_stall: %d", attack->staydown.riseattack_stall);
+    }
+
+    printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
+}
+
+// Caskey, Damon V
 // 2020-03-10
 //
 // Send all collision list data to log for debugging.
 void collision_dump_list(s_collision* head)
 {
-    printf("\n\n *-- Collision List Dump (%p) --*", head);
+    printf("\n\n -- Collision List (%p) Dump --", head);
     
     s_collision* cursor;
     int count = 0;
@@ -6123,58 +6206,12 @@ void collision_dump_list(s_collision* head)
     {
         count++;
 
-        printf("\n\t Node: %p", cursor);
+        printf("\n\n\t Node: %p", cursor);
         printf("\n\t\t ->attack: %p", cursor->attack);
 
         if (cursor->attack)
         {
-            printf("\n\t\t\t ->attack_drop: %d", cursor->attack->attack_drop);
-            printf("\n\t\t\t ->attack_force: %d", cursor->attack->attack_force);
-            printf("\n\t\t\t ->attack_type: %d", cursor->attack->attack_type);
-            printf("\n\t\t\t ->blockflash: %d", cursor->attack->blockflash);
-            printf("\n\t\t\t ->blocksound: %d", cursor->attack->blocksound);
-            printf("\n\t\t\t ->counterattack: %d", cursor->attack->counterattack);
-            printf("\n\t\t\t ->damage_on_landing.attack_force: %d", cursor->attack->damage_on_landing.attack_force);
-            printf("\n\t\t\t ->damage_on_landing.attack_type: %d", cursor->attack->damage_on_landing.attack_type);
-            printf("\n\t\t\t ->dropv.x: %f", cursor->attack->dropv.x);
-            printf("\n\t\t\t ->dropv.y: %f", cursor->attack->dropv.y);
-            printf("\n\t\t\t ->dropv.z: %f", cursor->attack->dropv.z);
-            printf("\n\t\t\t ->forcemap: %d", cursor->attack->forcemap);
-            printf("\n\t\t\t ->force_direction: %d", cursor->attack->force_direction);
-            printf("\n\t\t\t ->freeze: %d", cursor->attack->freeze);
-            printf("\n\t\t\t ->freezetime: %d", cursor->attack->freezetime);
-            printf("\n\t\t\t ->grab: %d", cursor->attack->grab);
-            printf("\n\t\t\t ->grab_distance: %d", cursor->attack->grab_distance);
-            printf("\n\t\t\t ->guardcost: %d", cursor->attack->guardcost);
-            printf("\n\t\t\t ->hitflash: %d", cursor->attack->hitflash);
-            printf("\n\t\t\t ->hitsound: %d", cursor->attack->hitsound);
-            printf("\n\t\t\t ->jugglecost: %d", cursor->attack->jugglecost);
-            printf("\n\t\t\t ->maptime: %d", cursor->attack->maptime);
-            printf("\n\t\t\t ->next_hit_time: %d", cursor->attack->next_hit_time);
-            printf("\n\t\t\t ->no_block: %d", cursor->attack->no_block);
-            printf("\n\t\t\t ->otg: %d", cursor->attack->otg);
-            printf("\n\t\t\t ->pause_add: %d", cursor->attack->pause_add);
-            printf("\n\t\t\t ->pause_add: %d", cursor->attack->recursive);
-
-            if (cursor->attack->recursive)
-            {
-                printf("\n\t\t\t\t ->force: %d", cursor->attack->recursive->force);
-                printf("\n\t\t\t\t ->index: %d", cursor->attack->recursive->index);
-                printf("\n\t\t\t\t ->mode: %d", cursor->attack->recursive->mode);
-                printf("\n\t\t\t\t ->next: %p", cursor->attack->recursive->next);
-                printf("\n\t\t\t\t ->mode: %p", cursor->attack->recursive->owner);
-                printf("\n\t\t\t\t ->rate: %d", cursor->attack->recursive->rate);
-                printf("\n\t\t\t\t ->tag: %d", cursor->attack->recursive->tag);
-                printf("\n\t\t\t\t ->tick: %d", cursor->attack->recursive->tick);
-                printf("\n\t\t\t\t ->time: %d", cursor->attack->recursive->time);
-                printf("\n\t\t\t\t ->type: %d", cursor->attack->recursive->type);
-            }
-
-            printf("\n\t\t\t ->seal: %d", cursor->attack->seal);
-            printf("\n\t\t\t ->sealtime: %d", cursor->attack->sealtime);
-            printf("\n\t\t\t ->staydown.rise: %d", cursor->attack->staydown.rise);
-            printf("\n\t\t\t ->staydown.riseattack: %d", cursor->attack->staydown.riseattack);
-            printf("\n\t\t\t ->staydown.riseattack_stall: %d", cursor->attack->staydown.riseattack_stall);
+            collision_dump_attack(cursor->attack);
         }
 
         printf("\n\t\t ->body: %p", cursor->body);
@@ -6217,7 +6254,7 @@ void collision_dump_list(s_collision* head)
     }
 
     printf("\n\n %d nodes.", count);
-    printf("\n\n *-- End Collision List Dump --* \n", head);
+    printf("\n\n Collision list (%p) dump complete! \n", head);
 }
 
 // Caskey, Damon V.
@@ -6584,6 +6621,59 @@ void collision_remove_undefined_coordinates(s_collision** head)
     }
 }
 
+// 2020-03-10
+// Caskey, Damon V
+//
+// allocate a recursive damage object and return
+// its pointer.
+s_damage_recursive* allocate_recursive_damage()
+{
+    s_damage_recursive* result;
+    size_t memory_size;
+    
+    memory_size = sizeof(*result);
+
+    result = malloc(memory_size);
+
+    // 0 The property values.
+    memset(result, 0, memory_size);
+
+    // Make sure pointers are NULL.
+    result->next = NULL;
+    result->owner = NULL;
+
+    return result;
+}
+
+// 2020-03-10
+// Caskey, Damon V
+//
+// Create or update a recursive attack property.
+// Same principal as collision_upsert_attack_property.
+s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int index)
+{
+    printf("\n\n * -- collision_upsert_recursive_property(%p, %d) --*", *head, index);
+
+    s_collision_attack* cursor;
+
+    // Run attack upsert to make sure we have a valid
+    // collision node for requested index, and that
+    // it has an attack property.
+    cursor = collision_upsert_attack_property(head, index);
+        
+
+    // Have a recursive property? If not we'll need to allocate it.
+    if (!cursor->recursive)
+    {
+        cursor->recursive = allocate_recursive_damage();
+    }
+
+    collision_dump_list(*head);
+
+    // Return pointer to the recrisve structure.
+    return cursor->recursive;
+}
+
 // 2020-02-23
 // Caskey, Damon V
 //
@@ -6628,11 +6718,6 @@ s_collision_attack* collision_upsert_attack_property(s_collision** head, int ind
     if (!temp_collision_current->attack)
     {
         temp_collision_current->attack = collision_allocate_attack();
-
-        // Set up default drop velocity.
-        temp_collision_current->attack->dropv.x = default_model_dropv.x;
-        temp_collision_current->attack->dropv.y = default_model_dropv.y;
-        temp_collision_current->attack->dropv.z = default_model_dropv.z;
     }
 
     // 4. Set this collision as an attacking type.                
@@ -12062,22 +12147,45 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
-				recursive.force = GET_INT_ARG(1);
+                printf("\n\n CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE: %d", GET_INT_ARG(1));
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->force = GET_INT_ARG(1);
+                               
+
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX:
-				recursive.index = GET_INT_ARG(1);
+                printf("\n\n CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX: %d", GET_INT_ARG(1));
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->index = GET_INT_ARG(1);
+
+                
+
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
-				recursive.mode = GET_INT_ARG(1);
+                printf("\n\n CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE: %d", GET_INT_ARG(1));
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->mode = GET_INT_ARG(1);
+
+                
+
                 break;
 			case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG:
-				recursive.tag = GET_INT_ARG(1);
+                printf("\n\n CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG: %d", GET_INT_ARG(1));
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->tag = GET_INT_ARG(1);
+
+               
+
 				break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
-				recursive.rate = GET_INT_ARG(1);
+                printf("\n\n CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE: %d", GET_INT_ARG(1));
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->rate = GET_INT_ARG(1);
+
+                
+
                 break;
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE:
-				recursive.time = GET_INT_ARG(1);
+                
+                printf("\n\n CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE: %d", GET_INT_ARG(1));
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->time = GET_INT_ARG(1);
+                       
+
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FALL_FORCE:
@@ -18629,6 +18737,8 @@ entity *alloc_ent()
     return ent;
 }
 
+
+
 int alloc_ents()
 {
     int i;
@@ -20524,7 +20634,12 @@ int checkhit(entity *attacker, entity *target)
         if (check_collision_vs_body(&collision_check_data))
         {
             populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
+
+            collision_dump_list(attacker->animation->collision[attacker->animpos]);
+
             return TRUE;
+
+            
         }
 
         seek_cursor = seek_cursor->next;
@@ -22192,6 +22307,8 @@ void do_attack(entity *e)
             }
             else if(self->takedamage(e, attack, 0))
             {
+                
+
                 // This is the block for normal hits. The
                 // hit was not blocked, countered, or
                 // otherwise nullified, and this entity
@@ -23582,22 +23699,43 @@ void update_health()
 // 2019-01-18
 //
 // Free all members of a recursive damage list.
-void free_recursive_list(s_damage_recursive * head)
+void free_recursive_list(s_damage_recursive* head)
 {
-	s_damage_recursive * cursor;
+    s_damage_recursive* cursor = NULL;
+    s_damage_recursive* next = NULL;
 
-	while (head != NULL)
-	{
-		cursor = head;
-		head = head->next;
-		free(cursor);
-	}
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        // We still need the next node after we
+        // delete current one, so we'll store
+        // it in a temp var.
+        next = cursor->next;
+
+        // Free the current node.
+        free_recursive_object(cursor);
+
+        // Set cursor to next.
+        cursor = next;
+    }
+}
+
+// Caskey, Damon V.
+// 2020-03-13
+//
+// Wrapper for deleting a recrusive object's data.
+void free_recursive_object(s_damage_recursive* target)
+{
+    free(target);
 }
 
 // Caskey, Damon V.
 // 2019-01-20
 //
-// Remove a single node from the recursive damage linked list.
+// Remove single node from a recursive damage linked list.
 void free_damage_recursive_node(s_damage_recursive **list, s_damage_recursive *node)
 {
 	s_damage_recursive *cursor;
@@ -23627,12 +23765,15 @@ void free_damage_recursive_node(s_damage_recursive **list, s_damage_recursive *n
 			}
 
 			// Deallocate the node.
-			free(cursor);
+            free(cursor);
 
 			return;
 		}
 	}
 }
+
+
+
 
 // damage_recursive
 // Caskey, Damon V.
@@ -23649,8 +23790,8 @@ void damage_recursive(entity *ent)
     s_collision_attack attack;  // Attack structure.
 	s_damage_recursive *cursor;
 
-	// Iterate target's recursive damage nodes.
-	for(cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
+    // Iterate target's recursive damage nodes.
+    for (cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
 	{
 		// If time has expired, destroy node and exit
 		// this loop iteration.
@@ -23662,7 +23803,7 @@ void damage_recursive(entity *ent)
 			// only delete the node.
 			if (cursor == ent->recursive_damage && cursor->next == NULL)
 			{
-				free(cursor);
+                free(cursor);
 				ent->recursive_damage = NULL;
 			}
 			else
@@ -23788,23 +23929,23 @@ void damage_recursive(entity *ent)
 		}
 
 		// Does this recursive damage affect MP?
-		if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
-		{
-			// Recursive MP Damage Logic:
+        if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
+        {
+            // Recursive MP Damage Logic:
 
-			// Could not be more simple. Subtract
-			// recursive force from MP. If MP would
-			// end with negative value, set 0.
+            // Could not be more simple. Subtract
+            // recursive force from MP. If MP would
+            // end with negative value, set 0.
 
-			// Subtract force from MP.
-			ent->energy_state.mp_current -= cursor->force;
+            // Subtract force from MP.
+            ent->energy_state.mp_current -= cursor->force;
 
-			// Stabilize MP at 0.
-			if (ent->energy_state.mp_current < 0)
-			{
-				ent->energy_state.mp_current = 0;
-			}
-		}		
+            // Stabilize MP at 0.
+            if (ent->energy_state.mp_current < 0)
+            {
+                ent->energy_state.mp_current = 0;
+            }
+        }
 	}    
 }
 
@@ -26754,7 +26895,7 @@ void checkdamageflip(entity *other, s_collision_attack *attack)
     }
 
     if(!self->frozen && !self->modeldata.noflip)// && !inair(self))
-    {
+    {       
         switch(attack->force_direction)
         {
             case DIRECTION_ADJUST_NONE:
@@ -26949,7 +27090,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	{
 		return;
 	}
-
+    
 	// Let's see if we have a allocated any elements
 	// for recursive damage already.
 	if (ent->recursive_damage)
@@ -26982,10 +27123,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		if (!cursor)
 		{
 			// Allocate the memory and get pointer.
-			cursor = malloc(sizeof(*cursor));
-
-			// Make sure there's no random garbage in our next pointer.
-			cursor->next = NULL;
+			cursor = allocate_recursive_damage();
 			
 			// Link previous node's next to our new node.
 			previous->next = cursor;
@@ -26997,16 +27135,13 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		// Let's allocate a head node.
 
 		// Allocate the memory and get pointer.
-		cursor = malloc(sizeof(*cursor));
-
-		// Make sure there's no random garbage in our next pointer.
-		cursor->next = NULL;
+		cursor = allocate_recursive_damage();
 
 		// Assign to entity.
 		ent->recursive_damage = cursor;
-	}		
-
-	// Now we have a target recursive element to populate with
+	}
+    
+    // Now we have a target recursive element to populate with
 	// attack's recursive values.
 	cursor->tag = attack->recursive->tag;
 	cursor->mode = attack->recursive->mode;
@@ -27015,7 +27150,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	cursor->force = attack->recursive->force;
 	cursor->rate = attack->recursive->rate;
 	cursor->type = attack->attack_type;
-	cursor->owner = other;
+	cursor->owner = other;       
 }
 
 void checkdamagedrop(s_collision_attack *attack)

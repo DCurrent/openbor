@@ -2025,6 +2025,12 @@ typedef struct s_collision
     int                 index;  // Listing index.
 } s_collision;
 
+typedef struct s_collision_list
+{
+    s_collision** instance;
+    int count;
+} s_collision_list;
+
 // Caskey, Damon V.
 // 2013-12-15
 //
@@ -3208,7 +3214,8 @@ void    adjust_bind(entity *e);
 float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
 int     check_bind_override(entity *ent, e_bind_override overriding);
 
-// Linked lists
+// Recursive damage.
+void    free_recursive_object(s_damage_recursive* target);
 void	free_recursive_list(s_damage_recursive * head);
 
 // Blocking logic.
@@ -3362,6 +3369,7 @@ s_collision*            collision_allocate_object();
 s_collision*            collision_append_node(struct s_collision* head);
 s_collision*            collision_find_node_index(s_collision* head, e_collision_type type, int index);
 s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
+s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, int index);
 s_collision_attack*     collision_upsert_attack_property(s_collision** head, int index);
 s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
 bool                    collision_check_has_coords(s_collision* target);
