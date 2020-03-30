@@ -5397,47 +5397,7 @@ void free_frames(s_anim *anim)
         free(anim->soundtoplay);
         anim->soundtoplay = NULL;
     }
-    if(anim->collision_attack)
-    {
-        for(i = 0; i < anim->numframes; i++)
-        {
-            if(anim->collision_attack[i])
-            {
-                // Check each attack instance and free memory as needed.
-                // Momma always said put your toys away when you're done!
-                for(instance = 0; instance < max_collisons; instance++)
-                {
-                    if(anim->collision_attack[i]->instance[instance])
-                    {
-                        // First free any pointers allocated
-                        // for sub structures.
-
-                        // Coords.
-                        if(anim->collision_attack[i]->instance[instance]->coords)
-                        {
-                            free(anim->collision_attack[i]->instance[instance]->coords);
-                            anim->collision_attack[i]->instance[instance]->coords = NULL;
-                        }
-
-                        // Recursive damage.
-                        if(anim->collision_attack[i]->instance[instance]->recursive)
-                        {
-                            free(anim->collision_attack[i]->instance[instance]->recursive);
-                            anim->collision_attack[i]->instance[instance]->recursive = NULL;
-                        }
-
-                        free(anim->collision_attack[i]->instance[instance]);
-                        anim->collision_attack[i]->instance[instance] = NULL;
-                    }
-                }
-
-                free(anim->collision_attack[i]);
-                anim->collision_attack[i] = NULL;
-            }
-        }
-        free(anim->collision_attack);
-        anim->collision_attack = NULL;
-    }
+    
     if(anim->drawmethods)
     {
         for(i = 0; i < anim->numframes; i++)
@@ -5544,9 +5504,28 @@ void addFreeType(s_model *m, e_ModelFreetype t)
     m->freetypes |= t;
 }
 
+// Caskey, Damon V.
+// 2020-03-30
+// Load/unload sound IDs assigned to a list of 
+// attack collisions.
+void cache_attack_hit_sounds(s_collision* head, int load)
+{
+    s_collision* cursor;
+
+    cursor = head;
+
+    while (cursor != NULL && cursor->type & COLLISION_TYPE_ATTACK && cursor->attack)
+    {        
+        cachesound(cursor->attack->hitsound, load);
+        cachesound(cursor->attack->blocksound, load);   
+    
+        cursor = cursor->next;
+    }
+}
+
 void cache_model_sprites(s_model *m, int ld)
 {
-    int i, f, instance;
+    int i, f;
     s_anim *anim;
     cachesprite(m->icon.def, ld);
     cachesprite(m->icon.die, ld);
@@ -5575,18 +5554,17 @@ void cache_model_sprites(s_model *m, int ld)
                 {
                     cachesound(anim->soundtoplay[f], ld);
                 }
-                if(anim->collision_attack && anim->collision_attack[f])
+                
+                // Hit sounds.
+                if(anim->collision && anim->collision[f])
                 {
-                    for(instance = 0; instance < max_collisons; instance++)
-                    {
-                        cachesound(anim->collision_attack[f]->instance[instance]->hitsound, ld);
-                        cachesound(anim->collision_attack[f]->instance[instance]->blocksound, ld);
-                    }
+                    cache_attack_hit_sounds(anim->collision[f], ld);
                 }
             }
         }
     }
 }
+
 
 // Unload single model from memory
 int free_model(s_model *model)
@@ -6865,7 +6843,7 @@ int addframe(s_addframe_data* data)
     size_t  size_col_on_frame,
             size_col_on_frame_struct;
 
-    s_collision_attack  *collision_attack;
+    //s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
     s_collision_entity  *collision_entity;
 
@@ -6978,45 +6956,7 @@ int addframe(s_addframe_data* data)
     // Collision rework IP 2020-02-10
     collision_initialize_frame_property(data, currentframe);
     
-    // Allocate attack boxes. See body box
-    // for notes.
-    if((data->attack_coords->width - data->attack_coords->x) &&
-            (data->attack_coords->height - data->attack_coords->y))
-    {
-        if(!data->animation->collision_attack)
-        {
-            size_col_on_frame = data->framecount * sizeof(*data->animation->collision_attack);
-
-            data->animation->collision_attack = malloc(size_col_on_frame);
-            memset(data->animation->collision_attack, 0, size_col_on_frame);
-        }
-
-        size_col_on_frame_struct = sizeof(**data->animation->collision_attack);
-        data->animation->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
-
-        data->animation->collision_attack[currentframe]->instance = collision_alloc_attack_list();
-
-        for(i=0; i<max_collisons; i++)
-        {
-            collision_attack = collision_alloc_attack_instance(data->attack);
-            data->animation->collision_attack[currentframe]->instance[i] = collision_attack;
-
-            collision_attack->index = i;
-
-            // Coordinates.
-            if(!collision_attack->coords)
-            {
-                collision_attack->coords = collision_allocate_coords(data->attack_coords);
-            }
-
-            // Recursive damage.
-            if(!collision_attack->recursive && data->recursive->mode)
-            {
-                collision_attack->recursive = malloc(sizeof(*data->recursive));
-                memcpy(collision_attack->recursive, data->recursive, sizeof(*data->recursive));
-            }
-        }
-    }
+    
 
     // Drawmethod (graphic settings)
     if(data->drawmethod->flag)
@@ -20466,45 +20406,6 @@ void populate_lasthit(s_collision_check_data *collision_data, s_collision_attack
 // 2020-02-04
 //
 // Check collisions of a seeking box vs. all of a target's
-// current frame attack boxes. Return true if collision is found.
-int check_collision_vs_attack(s_collision_check_data* collision_check_data)
-{
-    int instance = 0;
-
-    s_anim* animation = collision_check_data->target_animation;
-    int frame = collision_check_data->target_frame;
-
-    // Loop over the collision objects for animation frame,
-    // then populate collision_check_data structure with the
-    // collision object's coordinates pointer. Then we can
-    // run the check collision function.
-    //
-    // If the collision check function finds a collision we
-    // return TRUE and exit. If we pass over all collision
-    // objects without a collision, then we return FALSE.
-    for (instance = 0; instance < max_collisons; instance++)
-    {
-        if (!animation->collision_attack || !animation->collision_attack[frame])
-        {
-            continue;
-        }
-
-        collision_check_data->target_coords = animation->collision_attack[frame]->instance[instance]->coords;
-
-        // Found a collision?
-        if (check_collision(collision_check_data))
-        {
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-// Caskey, Damon V.
-// 2020-02-04
-//
-// Check collisions of a seeking box vs. all of a target's
 // current frame body boxes. Return true if collision is found.
 int check_collision_vs_body(s_collision_check_data* collision_check_data)
 {
@@ -20549,7 +20450,7 @@ int checkhit(entity *attacker, entity *target)
     	
     if(attacker == target
        || !target->animation->collision_body
-       || !attacker->animation->collision_attack
+       || !attacker->animation->collision
        || !target->animation->vulnerable[target->animpos]
        )
     {
@@ -20624,11 +20525,11 @@ int checkhit(entity *attacker, entity *target)
 
         // If this is a counter attack let's check against the target's
         // attack boxes.
-        if (seek_cursor->attack->counterattack && check_collision_vs_attack(&collision_check_data))
-        {
-            populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
-            return TRUE;
-        }
+        //if (seek_cursor->attack->counterattack && check_collision_vs_attack(&collision_check_data))
+        //{
+        //    populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
+        //    return TRUE;
+        //}
         
         // Check against target body boxes.
         if (check_collision_vs_body(&collision_check_data))
@@ -23526,8 +23427,8 @@ void check_attack()
     }
 
     // Can't hit an opponent if you are frozen
-    if(!is_frozen(self) && self->animation->collision_attack &&
-            self->animation->collision_attack[self->animpos])
+    if(!is_frozen(self) && self->animation->collision &&
+            self->animation->collision[self->animpos])
     {
                 do_attack(self);
         return;
@@ -25702,9 +25603,79 @@ entity *long_find_target()
     return NULL;
 }
 
+// Caskey, Damon V.
+// 2020-03-30
+//
+// Return first valid attacking type collision in animation
+// frame, or NULL if none found.
+s_collision* collision_find_attack_on_frame(s_anim* animation, int frame)
+{
+    s_collision* cursor;
+
+    // Return NULL if there's no collision on this frame.
+    if (!animation->collision || !animation->collision[frame])
+    {
+        return NULL;
+    }
+
+    cursor = animation->collision[frame];
+
+    // Check all collisions for attack type.
+    while (cursor != NULL)
+    {
+        if (cursor->type & COLLISION_TYPE_ATTACK)
+        {
+            return cursor;
+        }
+
+        cursor = cursor->next;
+    }
+
+    // Loop didn't find a collision with attacking type. 
+    return NULL;
+}
+
+// Caskey, Damon V.
+// 2020-03-30
+//
+// Return first valid attacking type collision in animation
+// frame that has no_block enabled, or NULL if none found.
+s_collision* collision_find_no_block_attack_on_frame(s_anim* animation, int frame, int block)
+{
+    s_collision* cursor;
+
+    // Return NULL if there's no collision on this frame.
+    if (!animation->collision || !animation->collision[frame])
+    {
+        return NULL;
+    }
+
+    cursor = animation->collision[frame];
+
+    // Check all collisions for attack type.
+    while (cursor != NULL)
+    {
+        if (cursor->type & COLLISION_TYPE_ATTACK && cursor->attack)
+        {
+            if (cursor->attack->no_block < block)
+            {
+                return cursor;
+            }           
+        }
+
+        cursor = cursor->next;
+    }
+
+    // Loop didn't find a collision with attacking type. 
+    return NULL;
+}
+
 entity *block_find_target(int anim, int detect_adj)
 {
-    int i , min, max, instance, detect;
+    int i;
+    int min;
+    int max;
+    int detect;
     int index = -1;
     min = 0;
     max = 9999;
@@ -25718,27 +25689,23 @@ entity *block_find_target(int anim, int detect_adj)
     {
         attacker = ent_list[i];
 
-        for(instance = 0; instance < max_collisons; instance++)
+        if (attacker && attacker->exists && attacker != self // Can't target self
+            && (attacker->modeldata.candamage & self->modeldata.type) // Type is something attacker can damage.
+            && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim))) // Valid animation ID and in range.
+            && !attacker->dead // Must be alive.
+            && attacker->attacking != ATTACKING_NONE // Must be attacking.
+            && collision_find_no_block_attack_on_frame(attacker->animation, attacker->animpos, 1) != NULL // Valid blockable attack.
+            && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
+            && diffd <= max
+            && (attacker->modeldata.stealth.hide <= detect) // Stealth factor less then perception factor (allows invisibility).
+            )
         {
-            if( attacker && attacker->exists && attacker != self //cant target self
-                && (attacker->modeldata.candamage & self->modeldata.type)
-                && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim)))
-                && !attacker->dead //must be alive
-                && attacker->attacking != ATTACKING_NONE
-                && attacker->animation->collision_attack && attacker->animation->collision_attack[attacker->animpos] && attacker->animation->collision_attack[attacker->animpos]->instance
-                && ( !attacker->animation->collision_attack[attacker->animpos]->instance[instance] || (attacker->animation->collision_attack[attacker->animpos]->instance[instance] && attacker->animation->collision_attack[attacker->animpos]->instance[instance]->no_block == 0) )
-                && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
-                && diffd <= max
-                && (attacker->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
-              )
+            if (index < 0 || diffd < diffo)
             {
-                if(index < 0 || diffd < diffo)
-                {
-                    index = i;
-                    diffo = diffd;
+                index = i;
+                diffo = diffd;
 
-                    continue;
-                }
+                continue;
             }
         }
     }

@@ -1952,16 +1952,6 @@ typedef struct
     s_hitbox            *coords;            // Collision detection coordinates.
 } s_collision_attack;
 
-// Caskey, Damon V.
-// 2016-10~
-//
-// List of collision attack boxes
-// per animation frame.
-typedef struct
-{
-    s_collision_attack **instance;
-} s_collision_attack_list;
-
 // ** Collision Refactor IP - 2020-02-10 **
 //
 // Abstract collision into a single parent structure, with 
@@ -2024,12 +2014,6 @@ typedef struct s_collision
     e_collision_type    type;   // Detection type.  
     int                 index;  // Listing index.
 } s_collision;
-
-typedef struct s_collision_list
-{
-    s_collision** instance;
-    int count;
-} s_collision_list;
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -2249,7 +2233,6 @@ typedef struct
 	s_projectile				*projectile;            // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
     s_collision                 **collision;            // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
-	s_collision_attack_list		**collision_attack;
 	s_collision_body_list		**collision_body;
 	s_collision_entity_list		**collision_entity;
 	s_move						**move;					// base = seta, x = move, y = movea, z = movez
@@ -3325,6 +3308,7 @@ s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
 int free_model();
+void cache_attack_hit_sounds(s_collision* head, int load);
 void cache_model_sprites();
 
 s_drawmethod			*allocate_drawmethod();
@@ -3373,6 +3357,8 @@ s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, 
 s_collision_attack*     collision_upsert_attack_property(s_collision** head, int index);
 s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
 bool                    collision_check_has_coords(s_collision* target);
+s_collision*            collision_find_attack_on_frame(s_anim* animation, int frame);
+s_collision*            collision_find_no_block_attack_on_frame(s_anim* animation, int frame, int block);
 void                    collision_remove_undefined_coordinates(s_collision** head);
 void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
 void                    collision_dump_list(s_collision* head);
