@@ -3357,6 +3357,12 @@ s_attack*               attack_clone_object(s_attack* source);
 void                    attack_dump_object(s_attack* attack);
 void                    attack_free_object(s_attack* attack);
 
+// -- Body properties
+s_collision_body*       body_allocate_object();
+s_collision_body*       body_clone_object(s_collision_body* source);
+void                    body_dump_object(s_collision_body* body);
+void                    body_free_object(s_collision_body* body);
+
 // -- Recursive damage
 s_damage_recursive*     recursive_damage_allocate_object();
 void                    recursive_damage_dump_object(s_damage_recursive* recursive);
@@ -3378,6 +3384,7 @@ void                    collision_initialize_frame_property(s_addframe_data* dat
 void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
 void                    collision_remove_undefined_coordinates(s_collision** head);
 s_attack*               collision_upsert_attack_property(s_collision** head, int index);
+s_collision_body*       collision_upsert_body_property(s_collision** head, int index);
 s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
 s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
 s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, int index);
