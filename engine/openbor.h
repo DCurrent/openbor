@@ -1950,7 +1950,7 @@ typedef struct
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
     s_hitbox            *coords;            // Collision detection coordinates.
-} s_collision_attack;
+} s_attack;
 
 // ** Collision Refactor IP - 2020-02-10 **
 //
@@ -2006,7 +2006,7 @@ typedef struct s_collision
 {
     struct s_collision* next;   // Next item in linked list.
     s_tag*              tag;    // User defined data.
-    s_collision_attack* attack; // Attacking properties.
+    s_attack* attack; // Attacking properties.
     s_collision_body*   body;   // Body (detecting incoming attack) properties.
     s_collision_space*  space;  // Physical space properties.
     s_hitbox*           coords; // Collision box dimensions.
@@ -2023,7 +2023,7 @@ typedef struct
 {
     int						confirm;    // Will engine's default hit handling be used?
     s_axis_principal_float	position;   // X,Y,Z of last hit.
-    s_collision_attack		*attack;    // Collision attacking box.
+    s_attack		*attack;    // Collision attacking box.
     s_collision_body		*body;      // Collision detect box.
 	struct entity			*target;	// Entity taking the hit.
 	struct entity			*attacker;	// Entity dishing out the hit.
@@ -2228,16 +2228,16 @@ typedef struct
 	s_range						range;                  // Verify distance to target, jump landings, etc. ~~
 	s_axis_principal_int		size;                   // Dimensions (height, width). ~~
 	
-	s_sub_entity				*sub_entity_spawn;		// Replace legacy "spawnframe" - spawn an entity unrelated to parent. ~~
-	s_sub_entity				*sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
-	s_projectile				*projectile;            // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
+	s_sub_entity*				sub_entity_spawn;		// Replace legacy "spawnframe" - spawn an entity unrelated to parent. ~~
+	s_sub_entity*				sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
+	s_projectile*				projectile;             // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
-    s_collision                 **collision;            // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
-	s_collision_body_list		**collision_body;
-	s_collision_entity_list		**collision_entity;
-	s_move						**move;					// base = seta, x = move, y = movea, z = movez
-	s_axis_plane_vertical_int	**offset;				// original sprite offsets
-	s_drawmethod				**drawmethods;
+    s_collision**               collision;              // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
+	s_collision_body_list**		collision_body;
+	s_collision_entity_list**	collision_entity;
+	s_move**					move;					// base = seta, x = move, y = movea, z = movez
+	s_axis_plane_vertical_int**	offset;				    // original sprite offsets
+	s_drawmethod**				drawmethods;
 
 	float						(*platform)[8];			// Now entities can have others land on them
 	
@@ -2648,7 +2648,7 @@ typedef struct
 
     s_defense *defense; //defense related, make a struct to aid copying
     float *offense_factors; //basic offense factors: damage = damage*offense
-    s_collision_attack *smartbomb;
+    s_attack *smartbomb;
 
     // e.g., boss
     s_barstatus hpbarstatus;
@@ -2907,7 +2907,7 @@ typedef struct entity
 	void					(*takeaction)();					// Take an action (lie, attack, etc.). ~~
 	void					(*think)();							// Entity thinks. ~~
     
-	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
+	int						(*takedamage)(struct entity *, s_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 } entity;
 
@@ -3203,14 +3203,14 @@ void	free_recursive_list(s_damage_recursive * head);
 
 // Blocking logic.
 int     check_blocking_decision(entity *ent);
-int     check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack);
-int     check_blocking_master(entity *ent, entity *other, s_collision_attack *attack);
+int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack);
+int     check_blocking_master(entity *ent, entity *other, s_attack *attack);
 int     check_blocking_rules(entity *ent);
-int     check_blocking_pain(entity *ent, s_collision_attack *attack);
+int     check_blocking_pain(entity *ent, s_attack *attack);
 void	do_active_block(entity *ent);
-void	do_passive_block(entity *ent, entity *other, s_collision_attack *attack);
-void    set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
-void    set_blocking_animation(entity *ent, s_collision_attack *attack);
+void	do_passive_block(entity *ent, entity *other, s_attack *attack);
+void    set_blocking_action(entity *ent, entity *other, s_attack *attack);
+void    set_blocking_animation(entity *ent, s_attack *attack);
 
 // Select player models.
 int		find_selectable_model_count				();
@@ -3237,13 +3237,13 @@ int     load_script								(Script *script, char *path);
 void    init_scripts();
 void    load_scripts();
 void    execute_animation_script                (entity *ent);
-void    execute_takedamage_script               (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_takedamage_script               (entity *ent, entity *other, s_attack *attack);
 void    execute_on_bind_update_other_to_self    (entity *ent, entity *other, s_bind *bind);
 void    execute_on_bind_update_self_to_other    (entity *ent, entity *other, s_bind *bind);
-void    execute_ondeath_script                  (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_ondeath_script                  (entity *ent, entity *other, s_attack *attack);
 void    execute_onkill_script                   (entity *ent);
 void    execute_onpain_script                   (entity *ent, int iType, int iReset);
-void    execute_onfall_script                   (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_onfall_script                   (entity *ent, entity *other, s_attack *attack);
 void    execute_inhole_script                   (entity *ent, s_terrain *hole, int index);
 void    execute_onblocks_script                 (entity *ent);
 void    execute_onblockw_script                 (entity *ent, s_terrain *wall, int index, e_plane plane);
@@ -3254,11 +3254,11 @@ void    execute_onblocka_script                 (entity *ent, entity *other);
 void    execute_onmovex_script                  (entity *ent);
 void    execute_onmovez_script                  (entity *ent);
 void    execute_onmovea_script                  (entity *ent);
-void    execute_didblock_script                 (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_ondoattack_script               (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
+void    execute_didblock_script                 (entity *ent, entity *other, s_attack *attack);
+void    execute_ondoattack_script               (entity *ent, entity *other, s_attack *attack, e_exchange which, int attack_id);
 void    execute_updateentity_script             (entity *ent);
 void    execute_think_script                    (entity *ent);
-void    execute_didhit_script                   (entity *ent, entity *other, s_collision_attack *attack, int blocked);
+void    execute_didhit_script                   (entity *ent, entity *other, s_attack *attack, int blocked);
 void    execute_onspawn_script                  (entity *ent);
 void    clearbuttonss(int player);
 void    clearsettings(void);
@@ -3324,52 +3324,65 @@ s_anim                  *alloc_anim();
 // a TON of parameters. Let's package them up into a 
 // more manageable structure.
 typedef struct {
-    s_anim* animation;      // Animation we will add frame to.
+    s_anim*                     animation;      // Animation we will add frame to.
     int                         spriteindex;    // Image displayed during frame.
     int                         framecount;     // Number of frames.
     int                         delay;          // Frame duration (centiseonds)
     unsigned                    idle;           // TRUE = Set idle status during frame.
-    s_collision_entity* ebox;           // "Entity" box added by WD. To be removed.
-    s_hitbox* entity_coords;  // Coordinates for "Entity" box. To be removed.
-    s_collision_body* bbox;           // Legacy body box parameters.
-    s_hitbox* body_coords;    // Coordinates for legacy body box.
-    s_collision_attack* attack;         // Legacy attack box.
-    s_hitbox* attack_coords;  // Coordinates for legacy attack box.
-    s_damage_recursive* recursive;      // Recursive damage properties for attack.
-    s_move* move;           // Move <n> horizontal pixels on frame.
-    float* platform;       // Platform coordinates.
+    s_collision_entity*         ebox;           // "Entity" box added by WD. To be removed.
+    s_hitbox*                   entity_coords;  // Coordinates for "Entity" box. To be removed.
+    s_collision_body*           bbox;           // Legacy body box parameters.
+    s_hitbox*                   body_coords;    // Coordinates for legacy body box.
+    s_attack*         attack;         // Legacy attack box.
+    s_hitbox*                   attack_coords;  // Coordinates for legacy attack box.
+    s_damage_recursive*         recursive;      // Recursive damage properties for attack.
+    s_move*                     move;           // Move <n> horizontal pixels on frame.
+    float*                      platform;       // Platform coordinates.
     int                         frameshadow;    // TRUE = Display shadow during frame.
-    int* shadow_coords;  // Shadow position.
+    int*                        shadow_coords;  // Shadow position.
     int                         soundtoplay;    // Sound index played on frame.
-    s_drawmethod* drawmethod;     // Drawmethod to apply on frame.
-    s_axis_plane_vertical_int* offset;         // X & Y offset coordinates.    
-    s_collision* collision;      // Head node of collision list for frame.
-    s_model* model; // New model in progress.
+    s_drawmethod*               drawmethod;     // Drawmethod to apply on frame.
+    s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
+    s_collision*                collision;      // Head node of collision list for frame.
+    s_model*                    model;          // New model in progress.
 } s_addframe_data;
 
 int addframe(s_addframe_data* data);
 
+// Collision and attcking control.
+
+// -- Attack properties.
+s_attack*               attack_allocate_object();
+s_attack*               attack_clone_object(s_attack* source);
+void                    attack_dump_object(s_attack* attack);
+void                    attack_free_object(s_attack* attack);
+
+// -- Recursive damage
+s_damage_recursive*     recursive_damage_allocate_object();
+void                    recursive_damage_dump_object(s_damage_recursive* recursive);
+
+// -- Collision container and list.
+s_hitbox*               collision_allocate_coords(s_hitbox* coords);
 s_collision*            collision_allocate_object();
 s_collision*            collision_append_node(struct s_collision* head);
-s_collision*            collision_find_node_index(s_collision* head, e_collision_type type, int index);
-s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
-s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, int index);
-s_collision_attack*     collision_upsert_attack_property(s_collision** head, int index);
-s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
-bool                    collision_check_has_coords(s_collision* target);
+s_collision*            collision_append_node_to_property(s_collision** target_property);
+int                     collision_check_has_coords(s_collision* target);
+s_collision*            collision_clone_list(s_collision* source_head);
+void                    collision_dump_list(s_collision* head);
 s_collision*            collision_find_attack_on_frame(s_anim* animation, int frame);
 s_collision*            collision_find_no_block_attack_on_frame(s_anim* animation, int frame, int block);
-void                    collision_remove_undefined_coordinates(s_collision** head);
-void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
-void                    collision_dump_list(s_collision* head);
-void                    collision_free_node(s_collision* target);
+s_collision*            collision_find_node_index(s_collision* head, e_collision_type type, int index);
 void                    collision_free_list(s_collision* head);
+void                    collision_free_node(s_collision* target);
 void                    collision_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
-s_collision_attack*     collision_allocate_attack();
-s_hitbox* collision_allocate_coords(s_hitbox* coords);
+void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
+void                    collision_remove_undefined_coordinates(s_collision** head);
+s_attack*               collision_upsert_attack_property(s_collision** head, int index);
+s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
+s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
+s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, int index);
 
-s_collision_attack*     collision_alloc_attack_instance(s_collision_attack* properties);
-s_collision_attack**    collision_alloc_attack_list();
+// -- Legacy
 s_collision_body*       collision_alloc_body_instance(s_collision_body *properties);
 s_collision_body**      collision_alloc_body_list();
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
@@ -3420,9 +3433,9 @@ void steamer_think(void);
 void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
-int player_takedamage(entity *other, s_collision_attack *attack, int);
-int biker_takedamage(entity *other, s_collision_attack *attack, int);
-int obstacle_takedamage(entity *other, s_collision_attack *attack, int);
+int player_takedamage(entity *other, s_attack *attack, int);
+int biker_takedamage(entity *other, s_attack *attack, int);
+int obstacle_takedamage(entity *other, s_attack *attack, int);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
@@ -3442,7 +3455,7 @@ void ent_summon_ent(entity *ent);
 void ent_set_anim(entity *ent, int aninum, int resetable);
 void ent_set_colourmap(entity *ent, unsigned int which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
-entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash);
+entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash);
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model);
 void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
@@ -3454,14 +3467,14 @@ int projectile_wall_deflect(entity *ent);
 
 void sort_invert_by_parent(entity *ent, entity* parent);
 
-int checkgrab(entity *other, s_collision_attack *attack);
-void checkdamageeffects(s_collision_attack *attack);
-void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack);
-void checkdamagedrop(s_collision_attack *attack);
+int checkgrab(entity *other, s_attack *attack);
+void checkdamageeffects(s_attack *attack);
+void check_damage_recursive(entity *ent, entity *other, s_attack *attack);
+void checkdamagedrop(s_attack *attack);
 void checkmpadd();
-void checkhitscore(entity *other, s_collision_attack *attack);
-int calculate_force_damage(entity *target, entity *attacker, s_collision_attack *attack);
-void checkdamage(entity *other, s_collision_attack *attack);
+void checkhitscore(entity *other, s_attack *attack);
+int calculate_force_damage(entity *target, entity *attacker, s_attack *attack);
+void checkdamage(entity *other, s_attack *attack);
 void checkdamageonlanding();
 int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
@@ -3518,7 +3531,7 @@ entity *findent(int types);
 int count_ents(int types);
 int set_idle(entity *ent);
 int set_death(entity *iDie, int type, int reset);
-int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset);
+int set_fall(entity *ent, entity *other, s_attack *attack, int reset);
 int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
 int set_blockpain(entity *iBlkpain, int type, int reset);
@@ -3554,8 +3567,8 @@ void common_grab(void);
 void common_grabattack();
 void common_grabbed();
 void common_block(void);
-int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
-int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
+int arrow_takedamage(entity *other, s_attack *attack, int fall_flag);
+int common_takedamage(entity *other, s_attack *attack, int fall_flag);
 int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);
@@ -3603,7 +3616,7 @@ void subtract_shot();
 void dropweapon(int flag);
 void drop_all_enemies();
 void kill_all_enemies();
-void smart_bomb(entity *e, s_collision_attack *attack);
+void smart_bomb(entity *e, s_attack *attack);
 void anything_walk(void);
 entity* knife_spawn(entity *parent, s_projectile* projectile);
 entity *bomb_spawn(entity *parent, s_projectile *projectile);

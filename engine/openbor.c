@@ -166,7 +166,7 @@ const s_damage_recursive empty_recursive = {    .force  = 0,
 												.next	= NULL};
 
 // unknockdown attack
-const s_collision_attack emptyattack =
+const s_attack emptyattack =
 {
     .attack_drop        = 0,
     .attack_force       = 0,
@@ -1399,7 +1399,7 @@ void execute_animation_script(entity *ent)
     }
 }
 
-void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_takedamage_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->takedamage_script;
@@ -1547,7 +1547,7 @@ void execute_onpain_script(entity *ent, int iType, int iReset)
     }
 }
 
-void execute_onfall_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_onfall_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onfall_script;
@@ -1879,7 +1879,7 @@ void execute_onmovea_script(entity *ent)
     }
 }
 
-void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_ondeath_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondeath_script;
@@ -1954,7 +1954,7 @@ void execute_onkill_script(entity *ent)
     }
 }
 
-void execute_didblock_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_didblock_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->didblock_script;
@@ -2011,7 +2011,7 @@ void execute_didblock_script(entity *ent, entity *other, s_collision_attack *att
     }
 }
 
-void execute_ondoattack_script(entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id)
+void execute_ondoattack_script(entity *ent, entity *other, s_attack *attack, e_exchange which, int attack_id)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondoattack_script;
@@ -2109,7 +2109,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack, int blocked)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_attack *attack, int blocked)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2168,7 +2168,7 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
     Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack, int blocked)
+void execute_didhit_script(entity *ent, entity *other, s_attack *attack, int blocked)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
@@ -5812,55 +5812,6 @@ s_anim *alloc_anim()
 // Caskey, Damon V.
 // 2016-11-27
 //
-// Allocate a collision attack instance, copy
-// property data if present, and return pointer.
-s_collision_attack *collision_alloc_attack_instance(s_collision_attack *properties)
-{
-    s_collision_attack  *result;
-    size_t              alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // If previous data is provided,
-    // copy into new allocation.
-    if(properties)
-    {
-        memcpy(result, properties, alloc_size);
-    }
-
-    // return result.
-    return result;
-}
-
-// Caskey, Damon V.
-// 2016-11-27
-//
-// Allocate an empty collision attack list.
-s_collision_attack **collision_alloc_attack_list()
-{
-    s_collision_attack **result;
-    size_t             alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // Make sure the list is blank.
-    memset(result, 0, alloc_size);
-
-    // return result.
-    return result;
-}
-
-// Caskey, Damon V.
-// 2016-11-27
-//
 // Allocate a collision body instance, copy
 // property data if present, and return pointer.
 s_collision_body *collision_alloc_body_instance(s_collision_body *properties)
@@ -5984,9 +5935,9 @@ s_hitbox *collision_allocate_coords(s_hitbox *coords)
 // 2020-02-11
 // 
 // Allocate an attack property structure and return pointer.
-s_collision_attack* collision_allocate_attack()
+s_attack* attack_allocate_object()
 {
-    s_collision_attack* result;
+    s_attack* result;
 
     // Allocate memory and get the pointer.
     result = malloc(sizeof(*result));
@@ -6003,81 +5954,31 @@ s_collision_attack* collision_allocate_attack()
 }
 
 // Caskey, Damon V.
-// 2020-03-10
-// 
-// Free attack properties from memory.
-void free_attack(s_collision_attack * target)
-{
-    if (target->coords)
-    {
-        free(target->coords);
-        target->coords = NULL;
-    }
-
-    if (target->recursive)
-    {
-        free(target->recursive);
-        target->recursive = NULL;
-    }
-   
-    free(target);
-}
-
-
-// Caskey, Damon V.
-// 2020-02-10
-//
-// Allocate a blank collision object 
-// and return its pointer. Does not 
-// allocate sub-objects (attack, body, etc.).
-s_collision* collision_allocate_object()
-{
-    s_collision* result;
-    size_t       alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // Make sure the data members are 
-    // zero'd and that "next" member 
-    // is NULL.
-    memset(result, 0, alloc_size);
-    
-    result->next = NULL;
-
-    // return result.
-    return result;
-}
-
-// Caskey, Damon V.
 // 2020-03-09
 //
 // Allocate new attack object with same values (but not same 
 // pointers) as received attack object. Returns pointer to
 // new object.
-s_collision_attack* collision_clone_attack(s_collision_attack* source)
+s_attack* attack_clone_object(s_attack* source)
 {
-    s_collision_attack* result = NULL;
+    s_attack* result = NULL;
 
     if (!source)
     {
         return result;
     }
 
-    result = collision_allocate_attack();
+    result = attack_allocate_object();
 
     // Attack has a ton of members. Rather than do everything 
     // piecemeal, we'll memcopy to get all the basic values, 
     // and overwrite object pointers individually.
     memcpy(result, source, sizeof(*result));
-    
+
     // Clone sub objects. Same principal - we want new pointers
     // allocated with the same data as the source pointers.
 
-    // Recursive damage.
+    // -- Recursive damage.
     if (source->recursive && source->recursive->mode)
     {
         result->recursive = malloc(sizeof(*result->recursive));
@@ -6092,33 +5993,8 @@ s_collision_attack* collision_clone_attack(s_collision_attack* source)
 // Caskey, Damon V
 // 2020-03-12
 //
-// Send all recursive damage data to log for debugging.
-void dump_recursive_object(s_damage_recursive* recursive)
-{
-    printf("\n\n -- Recursive (%p) dump --", recursive);
-
-    if (recursive)
-    {
-        printf("\n\t ->force: %d", recursive->force);
-        printf("\n\t ->index: %d", recursive->index);
-        printf("\n\t ->mode: %d", recursive->mode);
-        printf("\n\t ->next: %p", recursive->next);
-        printf("\n\t ->owner: %p", recursive->owner);
-        printf("\n\t ->rate: %d", recursive->rate);
-        printf("\n\t ->tag: %d", recursive->tag);
-        printf("\n\t ->tick: %d", recursive->tick);
-        printf("\n\t ->time: %d", recursive->time);
-        printf("\n\t ->type: %d", recursive->type);
-    }
-
-    printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
-}
-
-// Caskey, Damon V
-// 2020-03-12
-//
 // Send all attack data to log for debugging.
-void collision_dump_attack(s_collision_attack* attack)
+void attack_dump_object(s_attack* attack)
 {
     printf("\n\n -- Attack (%p) dump --", attack);
 
@@ -6154,7 +6030,7 @@ void collision_dump_attack(s_collision_attack* attack)
 
         if (attack->recursive)
         {
-            dump_recursive_object(attack->recursive);
+            recursive_damage_dump_object(attack->recursive);
         }
 
         printf("\n\t ->seal: %d", attack->seal);
@@ -6165,6 +6041,104 @@ void collision_dump_attack(s_collision_attack* attack)
     }
 
     printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
+}
+
+// Caskey, Damon V.
+// 2020-03-10
+// 
+// Free attack properties from memory.
+void attack_free_object(s_attack * target)
+{
+    if (target->coords)
+    {
+        free(target->coords);
+        target->coords = NULL;
+    }
+
+    if (target->recursive)
+    {
+        free(target->recursive);
+        target->recursive = NULL;
+    }
+   
+    free(target);
+}
+
+// 2020-03-10
+// Caskey, Damon V
+//
+// allocate a recursive damage object and return
+// its pointer.
+s_damage_recursive* recursive_damage_allocate_object()
+{
+    s_damage_recursive* result;
+    size_t memory_size;
+
+    memory_size = sizeof(*result);
+
+    result = malloc(memory_size);
+
+    // 0 The property values.
+    memset(result, 0, memory_size);
+
+    // Make sure pointers are NULL.
+    result->next = NULL;
+    result->owner = NULL;
+
+    return result;
+}
+
+// Caskey, Damon V
+// 2020-03-12
+//
+// Send all recursive damage data to log for debugging.
+void recursive_damage_dump_object(s_damage_recursive* recursive)
+{
+    printf("\n\n -- Recursive (%p) dump --", recursive);
+
+    if (recursive)
+    {
+        printf("\n\t ->force: %d", recursive->force);
+        printf("\n\t ->index: %d", recursive->index);
+        printf("\n\t ->mode: %d", recursive->mode);
+        printf("\n\t ->next: %p", recursive->next);
+        printf("\n\t ->owner: %p", recursive->owner);
+        printf("\n\t ->rate: %d", recursive->rate);
+        printf("\n\t ->tag: %d", recursive->tag);
+        printf("\n\t ->tick: %d", recursive->tick);
+        printf("\n\t ->time: %d", recursive->time);
+        printf("\n\t ->type: %d", recursive->type);
+    }
+
+    printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
+}
+
+// Caskey, Damon V.
+// 2020-02-10
+//
+// Allocate a blank collision object 
+// and return its pointer. Does not 
+// allocate sub-objects (attack, body, etc.).
+s_collision* collision_allocate_object()
+{
+    s_collision* result;
+    size_t       alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the data members are 
+    // zero'd and that "next" member 
+    // is NULL.
+    memset(result, 0, alloc_size);
+    
+    result->next = NULL;
+
+    // return result.
+    return result;
 }
 
 // Caskey, Damon V
@@ -6189,7 +6163,7 @@ void collision_dump_list(s_collision* head)
 
         if (cursor->attack)
         {
-            collision_dump_attack(cursor->attack);
+            attack_dump_object(cursor->attack);
         }
 
         printf("\n\t\t ->body: %p", cursor->body);
@@ -6310,7 +6284,7 @@ s_collision* collision_clone_list(s_collision* source_head)
         }
 
         // Copy the values.
-        clone_node->attack = collision_clone_attack(source_cursor->attack);
+        clone_node->attack = attack_clone_object(source_cursor->attack);
         
         clone_node->body = NULL;
         
@@ -6507,7 +6481,7 @@ void collision_free_list(s_collision* head)
 //
 // Return FALSE if a collision object
 // has coordinates set, FALSE otherwise.
-bool collision_check_has_coords(s_collision* target)
+int collision_check_has_coords(s_collision* target)
 {
     // If target missing or coordinates
     // are not allocated then return FALSE.
@@ -6602,37 +6576,11 @@ void collision_remove_undefined_coordinates(s_collision** head)
 // 2020-03-10
 // Caskey, Damon V
 //
-// allocate a recursive damage object and return
-// its pointer.
-s_damage_recursive* allocate_recursive_damage()
-{
-    s_damage_recursive* result;
-    size_t memory_size;
-    
-    memory_size = sizeof(*result);
-
-    result = malloc(memory_size);
-
-    // 0 The property values.
-    memset(result, 0, memory_size);
-
-    // Make sure pointers are NULL.
-    result->next = NULL;
-    result->owner = NULL;
-
-    return result;
-}
-
-// 2020-03-10
-// Caskey, Damon V
-//
 // Create or update a recursive attack property.
 // Same principal as collision_upsert_attack_property.
 s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int index)
 {
-    printf("\n\n * -- collision_upsert_recursive_property(%p, %d) --*", *head, index);
-
-    s_collision_attack* cursor;
+    s_attack* cursor;
 
     // Run attack upsert to make sure we have a valid
     // collision node for requested index, and that
@@ -6643,7 +6591,7 @@ s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int 
     // Have a recursive property? If not we'll need to allocate it.
     if (!cursor->recursive)
     {
-        cursor->recursive = allocate_recursive_damage();
+        cursor->recursive = recursive_damage_allocate_object();
     }
 
     collision_dump_list(*head);
@@ -6668,7 +6616,7 @@ s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int 
 //
 // 3. Find or allocate attack object on collision node.
 // Returns pointer to attack object.
-s_collision_attack* collision_upsert_attack_property(s_collision** head, int index)
+s_attack* collision_upsert_attack_property(s_collision** head, int index)
 {
     s_collision* temp_collision_current;
 
@@ -6695,7 +6643,7 @@ s_collision_attack* collision_upsert_attack_property(s_collision** head, int ind
     // Have an attack? if not we'll need to allocate it.
     if (!temp_collision_current->attack)
     {
-        temp_collision_current->attack = collision_allocate_attack();
+        temp_collision_current->attack = attack_allocate_object();
     }
 
     // 4. Set this collision as an attacking type.                
@@ -6755,7 +6703,7 @@ void collision_free_node(s_collision* target)
 
     if (target->attack)
     {
-        free_attack(target->attack);
+        attack_free_object(target->attack);
         target->attack = NULL;
     }
 
@@ -6843,7 +6791,7 @@ int addframe(s_addframe_data* data)
     size_t  size_col_on_frame,
             size_col_on_frame_struct;
 
-    //s_collision_attack  *collision_attack;
+    //s_attack  *collision_attack;
     s_collision_body    *collision_body;
     s_collision_entity  *collision_entity;
 
@@ -7266,13 +7214,13 @@ static int translate_attack_type(char *command)
 }
 
 //move here to ease animation name to id logic
-static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_collision_attack *attack)
+static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_attack *attack)
 {
     int ani_id = -1, tempInt;
     //those are dummy values to simplify code
     static s_model mdl;
     static s_anim ani;
-    static s_collision_attack atk;
+    static s_attack atk;
     if(!newchar)
     {
         newchar = &mdl;
@@ -9720,8 +9668,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_damage_recursive  recursive;
     s_hitbox            attack_coords;
-    s_collision_attack  attack;
-    s_collision_attack  *pattack = NULL;
+    s_attack  attack;
+    s_attack  *pattack = NULL;
     s_collision_body    bbox_con;
     s_collision_entity  ebox_con;
     s_hitbox            body_coords;
@@ -19430,7 +19378,7 @@ bool check_jumpframe(entity *ent, unsigned int frame)
 void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
-    s_collision_attack attack;
+    s_attack attack;
     s_axis_principal_float move;
     s_anim *anim = ent->animation;
 
@@ -20120,7 +20068,7 @@ void ents_link(entity *e1, entity *e2)
 void kill_entity(entity *victim)
 {
     int i = 0;
-    s_collision_attack attack;
+    s_attack attack;
     entity *tempent = self;
 
     if(victim == NULL || !victim->exists)
@@ -20390,7 +20338,7 @@ int check_collision(s_collision_check_data* collision_data)
 // This data is vital for checking hit reactions, spawning
 // flash effects, performing hit overrides, populating 
 // script variables and other post hit functionality.
-void populate_lasthit(s_collision_check_data *collision_data, s_collision_attack *attack, s_collision_body *body)
+void populate_lasthit(s_collision_check_data *collision_data, s_attack *attack, s_collision_body *body)
 {
 	lasthit.attack = attack;
 	lasthit.body = body;
@@ -20462,7 +20410,7 @@ int checkhit(entity *attacker, entity *target)
     s_collision* seek_cursor = NULL;
     //s_collision* target_cursor = NULL;
 
-	//s_collision_attack* attack = NULL;
+	//s_attack* attack = NULL;
 	s_collision_body* detect = NULL;
 	s_collision_check_data collision_check_data;
 
@@ -21231,7 +21179,7 @@ void do_active_block(entity *ent)
 // vs. entity in terms of game mechanics like
 // guard break, attack type vs. defense, and
 // so on. It does not handle rules for AI blocking.
-int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
+int check_blocking_eligible(entity *ent, entity *other, s_attack *attack)
 {
 	// If guardpoints are set, then find out if they've been depleted.
 	if (ent->modeldata.guardpoints.max)
@@ -21383,7 +21331,7 @@ int check_blocking_decision(entity *ent)
 //
 // Runs all blocking conditions and returns true
 // if the attack should be blocked.
-int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack)
+int check_blocking_master(entity *ent, entity *other, s_attack *attack)
 {
 	e_entity_type entity_type;
 
@@ -21439,7 +21387,7 @@ int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack
 //
 // Apply primary block settings, animations,
 // actions, and scripts.
-void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
+void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 {
 	// Execute the attacker's didhit script with blocked flag.
 	execute_didhit_script(other, ent, attack, 1);
@@ -21470,7 +21418,7 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 //
 // Verify entity has blockpain and that attack
 // should trigger it.
-int check_blocking_pain(entity *ent, s_collision_attack *attack)
+int check_blocking_pain(entity *ent, s_attack *attack)
 {
 	// If we don't have blockpain,
 	// nothing else to do!
@@ -21493,7 +21441,7 @@ int check_blocking_pain(entity *ent, s_collision_attack *attack)
 // 2018-09-21
 //
 // Place entity into appropriate blocking animation.
-void set_blocking_animation(entity *ent, s_collision_attack *attack)
+void set_blocking_animation(entity *ent, s_attack *attack)
 {
 	// If we have an appropriate blockpain, lets
 	// apply it here.
@@ -21511,7 +21459,7 @@ void set_blocking_animation(entity *ent, s_collision_attack *attack)
 // 2018-09-21
 //
 // Perform a block.
-void do_passive_block(entity *ent, entity *other, s_collision_attack *attack)
+void do_passive_block(entity *ent, entity *other, s_attack *attack)
 {	
 	// Place entity in blocking animation.
 	set_blocking_animation(ent, attack);
@@ -21528,7 +21476,7 @@ void do_passive_block(entity *ent, entity *other, s_collision_attack *attack)
 //
 // Handle flash spawning for hits. Will spawn and prepare an appropriate
 // flash effect entity if conditions are met.
-entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash)
+entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash)
 {
 	int to_spawn;
 	entity *flash;
@@ -21742,7 +21690,7 @@ bool try_follow_up(entity *ent, entity *target, s_anim *animation, bool didblock
 // 2019-12-03
 //
 // Verify an attack meets conditions to trigger a counter action.
-bool check_counter_condition(entity* target, entity* attacker, s_collision_attack* attack)
+bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 {
 	s_counter_action* counter = NULL;
 
@@ -21882,7 +21830,7 @@ bool check_counter_condition(entity* target, entity* attacker, s_collision_attac
 //
 // Attempt to perform counter action animation. If successful, sets entity animation to
 // appropriate counter and returns TRUE.
-bool try_counter_action(entity* target, entity* attacker, s_collision_attack* attack)
+bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
 {
 	int force;
 	int current_follow_id;
@@ -21946,7 +21894,7 @@ void do_attack(entity *e)
     entity *otherowner      = NULL;
     entity *target          = NULL;
     s_anim      *current_anim;
-    s_collision_attack *attack = NULL;
+    s_attack *attack = NULL;
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
@@ -22906,7 +22854,7 @@ void check_gravity(entity *e)
 
 int check_lost()
 {
-    s_collision_attack attack;
+    s_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
@@ -23688,7 +23636,7 @@ void damage_recursive(entity *ent)
     int         force_final;    // Final force; total damage after defense and offense factors are applied.
     float       offense;        // Owner's offense.
     float       defense;        // target defense.
-    s_collision_attack attack;  // Attack structure.
+    s_attack attack;  // Attack structure.
 	s_damage_recursive *cursor;
 
     // Iterate target's recursive damage nodes.
@@ -25039,7 +24987,7 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
+int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
 {
     int fall = 0;
 
@@ -26852,7 +26800,7 @@ void checkdeath()
     }
 }
 
-void checkdamageflip(entity *other, s_collision_attack *attack)
+void checkdamageflip(entity *other, s_attack *attack)
 {
     self->normaldamageflipdir = -1;
 
@@ -26913,7 +26861,7 @@ void checkdamageflip(entity *other, s_collision_attack *attack)
     }
 }
 
-void checkdamageeffects(s_collision_attack *attack)
+void checkdamageeffects(s_attack *attack)
 {
 #define _freeze         attack->freeze
 #define _maptime        attack->maptime
@@ -27046,7 +26994,7 @@ void checkdamageeffects(s_collision_attack *attack)
 //
 // If attack has any recursive effects, apply
 // them to entity accordingly.
-void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack)
+void check_damage_recursive(entity *ent, entity *other, s_attack *attack)
 {
 	s_damage_recursive *previous;
 	s_damage_recursive *cursor;
@@ -27090,7 +27038,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		if (!cursor)
 		{
 			// Allocate the memory and get pointer.
-			cursor = allocate_recursive_damage();
+			cursor = recursive_damage_allocate_object();
 			
 			// Link previous node's next to our new node.
 			previous->next = cursor;
@@ -27102,7 +27050,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		// Let's allocate a head node.
 
 		// Allocate the memory and get pointer.
-		cursor = allocate_recursive_damage();
+		cursor = recursive_damage_allocate_object();
 
 		// Assign to entity.
 		ent->recursive_damage = cursor;
@@ -27120,7 +27068,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	cursor->owner = other;       
 }
 
-void checkdamagedrop(s_collision_attack *attack)
+void checkdamagedrop(s_attack *attack)
 {
     int attackdrop = attack->attack_drop;
     float fdefense_knockdown = self->defense[attack->attack_type].knockdown;
@@ -27170,7 +27118,7 @@ void checkmpadd()
     }
 }
 
-void checkhitscore(entity *other, s_collision_attack *attack)
+void checkhitscore(entity *other, s_attack *attack)
 {
     entity *opp = self->opponent;
     if(!opp)
@@ -27192,7 +27140,7 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     }
 }
 
-int calculate_force_damage(entity *target, entity *attacker, s_collision_attack *attack)
+int calculate_force_damage(entity *target, entity *attacker, s_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
@@ -27219,7 +27167,7 @@ void checkdamageonlanding()
         int didhit = 0;
 
         //##################
-        s_collision_attack attack;
+        s_attack attack;
         entity *other;
 
         attack              = emptyattack;
@@ -27312,7 +27260,7 @@ void checkdamageonlanding()
         if(self->takedamage)
         {
             //##################
-            s_collision_attack attack;
+            s_attack attack;
             entity *other;
 
             attack              = emptyattack;
@@ -27364,7 +27312,7 @@ bool is_attack_type_special(e_attack_types type)
 	}
 }
 
-void checkdamage(entity *other, s_collision_attack *attack)
+void checkdamage(entity *other, s_attack *attack)
 {
 	int		force;
 	bool	normal_damage;
@@ -27426,7 +27374,7 @@ void checkdamage(entity *other, s_collision_attack *attack)
     return;
 }
 
-int checkgrab(entity *other, s_collision_attack *attack)
+int checkgrab(entity *other, s_attack *attack)
 {
     //if(attack->no_pain) return  0; //no effect, let modders to deside, don't bother check it here
     if(self != other && attack->grab && cangrab(other, self))
@@ -27444,7 +27392,7 @@ int checkgrab(entity *other, s_collision_attack *attack)
     return 1;
 }
 
-int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int arrow_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     self->modeldata.no_adjust_base = 0;
     self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_basemap = self->modeldata.subject_to_gravity = 1;
@@ -27455,7 +27403,7 @@ int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     return 0;
 }
 
-int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int common_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     if(self->dead)
     {
@@ -28186,7 +28134,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
-    s_collision_attack attack;
+    s_attack attack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -30506,7 +30454,7 @@ int common_try_wander(entity *target, int dox, int doz)
 // to allow easy item scripting.
 void do_item_script(entity *ent, entity *item)
 {
-    s_collision_attack attack;
+    s_attack attack;
     attack = emptyattack;
     attack.attack_type = ATK_ITEM;
 
@@ -30799,7 +30747,7 @@ int projectile_wall_deflect(entity *ent)
     #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
-    s_collision_attack attack;
+    s_attack attack;
 
     if(validanim(ent, ANI_FALL))
     {
@@ -34335,9 +34283,9 @@ void dropweapon(int flag)
 }
 
 
-int player_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int player_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
-    s_collision_attack atk = *attack;
+    s_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
     if(healthcheat || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
@@ -34356,7 +34304,7 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
-    s_collision_attack attack;
+    s_attack attack;
 
     for(i = 0; i < ent_max; i++)
     {
@@ -34400,7 +34348,7 @@ void drop_all_enemies()
 void kill_all_enemies()
 {
     int i;
-    s_collision_attack attack;
+    s_attack attack;
     entity *tmpself = NULL;
 
     attack = emptyattack;
@@ -34426,7 +34374,7 @@ void kill_all_enemies()
 
 
 
-void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smartbombs
+void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
 {
     int i, hostile, hit = 0;
     entity *tmpself = NULL;
@@ -35276,7 +35224,7 @@ void bike_crash()
 
 
 
-int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int biker_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     entity *driver = NULL;
     entity *tempself = NULL;
@@ -35365,7 +35313,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 
 
-int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     if(self->position.y <= PIT_DEPTH)
     {
@@ -35843,7 +35791,7 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_collision_attack attack_timeover, attack_lose;
+    s_attack attack_timeover, attack_lose;
 
     attack_timeover = emptyattack;
     attack_timeover.attack_type = ATK_TIMEOVER;
