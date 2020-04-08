@@ -1914,12 +1914,12 @@ typedef struct
 // attacks.
 typedef struct
 {
-    bool                blast;              // Attack box active on hit opponent's fall animation.
-    bool                steal;              // Add damage to owner's hp.
-    bool                ignore_attack_id;   // Ignore attack ID to attack in every frame
-    bool                no_flash;           // Flag to determine if an attack spawns a flash or not
-    bool                no_kill;            // this attack won't kill target (leave 1 HP)
-    bool                no_pain;            // No animation reaction on hit.
+    int                 blast;              // Attack box active on hit opponent's fall animation.
+    int                 steal;              // Add damage to owner's hp.
+    int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
+    int                 no_flash;           // Flag to determine if an attack spawns a flash or not
+    int                 no_kill;            // this attack won't kill target (leave 1 HP)
+    int                 no_pain;            // No animation reaction on hit.
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
     e_attack_types      attack_type;        // Reaction animation, death, etc.
     int                 counterattack;      // Treat other attack boxes as body box.
@@ -3333,8 +3333,6 @@ typedef struct {
     s_hitbox*                   entity_coords;  // Coordinates for "Entity" box. To be removed.
     s_collision_body*           bbox;           // Legacy body box parameters.
     s_hitbox*                   body_coords;    // Coordinates for legacy body box.
-    s_attack*         attack;         // Legacy attack box.
-    s_hitbox*                   attack_coords;  // Coordinates for legacy attack box.
     s_damage_recursive*         recursive;      // Recursive damage properties for attack.
     s_move*                     move;           // Move <n> horizontal pixels on frame.
     float*                      platform;       // Platform coordinates.
