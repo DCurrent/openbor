@@ -29,6 +29,8 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
 		"animation_id",
 		"animation_match",
 		"direction",
+		"meta_data",
+		"meta_tag",
 		"mode_x",
 		"mode_y",
 		"mode_z",
@@ -36,8 +38,7 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
 		"offset_y",
 		"offset_z",
 		"override",
-        "sort_id",
-        "tag",
+        "sort_id",		
         "target"
     };
 
@@ -137,6 +138,20 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
             break;
 
+		case _BIND_META_DATA:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_meta_data*)handle->meta_data;
+
+			break;
+
+		case _BIND_META_TAG:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->meta_tag;
+
+			break;
+
 		case _BIND_MODE_X:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -190,13 +205,6 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->sortid;
-
-            break;
-
-        case _BIND_TAG:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->tag;
 
             break;
 
@@ -317,6 +325,21 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 
 			break;
 
+		case _BIND_META_DATA:
+
+			handle->meta_data = (s_meta_data*)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _BIND_META_TAG:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->meta_tag = temp_int;
+			}
+
+			break;
+
 		case _BIND_MODE_X:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -385,15 +408,6 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->sortid = temp_int;
-			}
-
-			break;
-
-		case _BIND_TAG:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->tag = temp_int;
 			}
 
 			break;

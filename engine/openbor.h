@@ -119,6 +119,7 @@ movement restirctions are here!
 #define		DEFAULT_ATK_DROPV_Z 0
 #define		FRAME_NONE			-1	// Lot of things use frames 0+, and this value to mean they are disabled.
 #define		MODEL_INDEX_NONE	-1	// No model/disabled.
+#define		SAMPLE_ID_NONE	    -1	// No sound sameple/disabled.
 
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
@@ -616,7 +617,7 @@ typedef enum //Animations
     2013-12-27
     */
 
-    ANI_NONE,               // To indicate a blank or no animation at all.
+    ANI_NONE = -1,               // To indicate a blank or no animation at all.
     ANI_IDLE,
     ANI_WALK,
     ANI_JUMP,
@@ -1669,6 +1670,23 @@ if(n<1) n = 1;
 #pragma pack(4)
 
 // Caskey, Damon V.
+// 2020-02-17
+//
+// Tags are data defined by author on various other structures
+// that have no associated engine logic. For example, an author
+// might place tags on a given attack that identifies the attack
+// source as "right arm", "left leg", and so on. The engine will 
+// not use this data in any way, but the author could write scripts 
+// to cause unique reactions when attacks make contact.
+typedef struct s_meta_data
+{
+    struct s_meta_data* next;
+    char* string[512];
+    float decimal;
+    int integer;
+} s_meta_data;
+
+// Caskey, Damon V.
 // 2014-01-20
 //
 // Axis - Horizontal and lateral only (float).
@@ -1831,12 +1849,15 @@ typedef struct s_damage_recursive
     int							index;  // Index.
 	e_damage_recursive_logic			mode;   // Mode.
     int							rate;   // Tick delay.
-	int							tag;	// User defined value.
-	unsigned int				tick;   // Time of next tick.
+    unsigned int				tick;   // Time of next tick.
     unsigned int				time;   // Time to expire.
 	int							type;	// Attack type.
 	struct entity				*owner;	// Entity that caused the recursive damage.
 	struct s_damage_recursive	*next;	// Next node of linked list.
+
+    // Meta data.
+    s_meta_data*                meta_data;              // User defiend data.
+    int					        meta_tag;	            // User defined int.
 } s_damage_recursive;
 
 typedef struct
@@ -1858,6 +1879,10 @@ typedef struct
     float       factor;         // basic defense factors: damage = damage*defense
     float       knockdown;      // Knockdowncount (like knockdowncount) for attack type.
     float       pain;           // Pain factor (like nopain) for defense type.
+
+    // Meta data.
+    s_meta_data* meta_data;     // User defiend data.
+    int			 meta_tag;	    // User defined int.
 } s_defense;
 
 // Caskey, Damon V.
@@ -1881,7 +1906,8 @@ typedef struct
     s_hitbox    *coords;        // Collision box dimensions.
     s_defense   *defense;       // Defense properties for this collision box only.
     int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    int         tag;            // User defined tag for scripts. No hard coded purpose.
+    s_meta_data* meta_data;     // User defiend data.
+    int			meta_tag;	// User defined int.
 } s_collision_body;
 
 // Caskey, Damon V.
@@ -1900,7 +1926,8 @@ typedef struct
 {
     s_hitbox    *coords;        // Collision box dimensions.
     int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    int         tag;            // User defined tag for scripts. No hard coded purpose.
+    s_meta_data* meta_data;  // User defiend data.
+    int			meta_tag;	// User defined int.
 } s_collision_entity;
 
 // List of collision body boxes
@@ -1941,14 +1968,17 @@ typedef struct
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     unsigned int        maptime;            // Time for forcemap to remain in effect.
-    unsigned int        next_hit_time;          // pain invincible time
+    unsigned int        next_hit_time;      // pain invincible time
     unsigned int        sealtime;           // Time for seal to remain in effect.
-    int                 tag;                // User defined tag for scripts. No hard coded purpose.
     int                 grab_distance;      // Distance used by "grab".
     s_axis_principal_float            dropv;              // Velocity of target if knocked down.
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
+
+    // Meta data.
+    s_meta_data*        meta_data;              // User defiend data.
+    int					meta_tag;	            // User defined int.
 } s_attack;
 
 // ** Collision Refactor IP - 2020-02-10 **
@@ -1972,29 +2002,13 @@ typedef enum
     COLLISION_TYPE_SPACE = (1 << 3)     // Physical space ("pushing").
 } e_collision_type;
 
-// Caskey, Damon V.
-// 2020-02-17
-//
-// Tags are data defined by author on various other structures
-// that have no associated engine logic. For example, an author
-// might place tags on a given attack that identifies the attack
-// source as "right arm", "left leg", and so on. The engine will 
-// not use this data in any way, but the author could write scripts 
-// to cause unique reactions when attacks make contact.
-typedef struct s_tag
-{
-    struct s_tag* next;
-    char* string[512];
-    float decimal;
-    int integer;
-} s_tag;
-
 // Collision box for detecting
 // physical space.
 typedef struct
 {
-    int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    s_tag*      tag;            // User defined data.
+    int         index;              // To enable user tracking of this box's index when multiple instances are in use.
+    s_meta_data*      meta_data;    // User defined data.
+    int         meta_tag;           // user defined int.
 } s_collision_space;
 
 // Caskey, Damon V.
@@ -2004,12 +2018,12 @@ typedef struct
 typedef struct s_collision
 {
     struct s_collision* next;   // Next item in linked list.
-    s_tag*              tag;    // User defined data.
     s_attack* attack; // Attacking properties.
     s_collision_body*   body;   // Body (detecting incoming attack) properties.
     s_collision_space*  space;  // Physical space properties.
     s_hitbox*           coords; // Collision box dimensions.
-
+    s_meta_data*        meta_data;  // User defined data.
+    int                 meta_tag;   // User defined int.
     e_collision_type    type;   // Detection type.  
     int                 index;  // Listing index.
 } s_collision;
@@ -2266,8 +2280,12 @@ typedef struct
 	int							sync;                   // Synchronize frame to previous animation if they matches
 
 	// Boolean flags.
-	bool						attack_one;             // Attack hits only one target. ~~
-	bool						subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~    
+	int						    attack_one;             // Attack hits only one target. ~~
+	int						    subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~    
+
+    // Meta data.
+    s_meta_data*                meta_data;              // User defiend data.
+    int					        meta_tag;	            // User defined int.
 } s_anim;
 
 struct animlist
@@ -2675,6 +2693,11 @@ typedef struct
     int hitwalltype; // wall type to toggle hitwall animations
     e_ModelFreetype freetypes;
     s_scripts *scripts;
+
+    // Meta data.
+    s_meta_data*    meta_data;      // User defined data.
+    int             meta_tag;       // user defined int.
+
 } s_model;
 
 typedef struct
@@ -2705,7 +2728,6 @@ typedef struct
 typedef struct
 {
     unsigned int            match;			// Animation binding type. ~~
-    int                     tag;            // User data.
     int                     sortid;         // Relative binding sortid. Default = -1
     int                     frame;          // Frame to match (only if requested in matching).
     e_bind_override			overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
@@ -2714,6 +2736,11 @@ typedef struct
     s_axis_principal_int    offset;         // x,y,z offset.
     e_direction_adjust      direction;      // Direction force.
     struct entity           *ent;           // Entity subject will bind itself to.
+
+    // Meta data.
+    s_meta_data*            meta_data;      // User defined data.
+    int                     meta_tag;       // user defined int.
+
 } s_bind;
 
 typedef struct
@@ -2874,30 +2901,30 @@ typedef struct entity
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
 	// Boolean flags.
-    bool					arrowon;							// Display arrow icon (parrow<player>) ~~
-	bool					blink;								// Toggle flash effect. ~~
-	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
-	bool					blocking;							// In blocking state. ~~
-	bool					charging;							// Charging MP. Gain according to chargerate. ~~
-	bool					dead;								// He's dead Jim. ~~
-	bool					deduct_ammo;						// Check for ammo count? ~~
-	bool					die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
-	bool					drop;								// Knocked down. Remains true until rising. ~~
-	bool					exists;								// flag to determine if it is a valid entity. ~~
-	bool					falling;							// Knocked down and haven't landed. ~~
-	bool					frozen;								// Frozen in place. ~~
-	bool					getting;							// Picking up item. ~~
-	bool					grabwalking;						// Walking while grappling. ~~
-	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
-	bool					idling;								// ~~
-	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
-	bool					inpain;								// Hit and block stun. ~~
-	bool					jumping;							// ~~
-	bool					noaicontrol;						// No AI or automated control. ~~
-	bool					running;							// ~~
-	bool					tocost;								// Cost life on hit with special. ~~
-	bool					turning;							// Turning around. ~~
-	bool					walking;							// ~~
+    int					    arrowon;							// Display arrow icon (parrow<player>) ~~
+	int					    blink;								// Toggle flash effect. ~~
+	int					    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+	int					    blocking;							// In blocking state. ~~
+	int					    charging;							// Charging MP. Gain according to chargerate. ~~
+	int					    dead;								// He's dead Jim. ~~
+	int					    deduct_ammo;						// Check for ammo count? ~~
+	int					    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
+	int					    drop;								// Knocked down. Remains true until rising. ~~
+	int					    exists;								// flag to determine if it is a valid entity. ~~
+	int					    falling;							// Knocked down and haven't landed. ~~
+	int					    frozen;								// Frozen in place. ~~
+	int					    getting;							// Picking up item. ~~
+	int					    grabwalking;						// Walking while grappling. ~~
+	int					    hitwall;							// Blcoked by wall/platform/obstacle. ~~
+	int					    idling;								// ~~
+	int					    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
+	int					    inpain;								// Hit and block stun. ~~
+	int					    jumping;							// ~~
+	int					    noaicontrol;						// No AI or automated control. ~~
+	int					    running;							// ~~
+	int					    tocost;								// Cost life on hit with special. ~~
+	int					    turning;							// Turning around. ~~
+	int					    walking;							// ~~
 	
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
@@ -2908,6 +2935,10 @@ typedef struct entity
     
 	int						(*takedamage)(struct entity *, s_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
+
+    // Meta data.
+    s_meta_data*            meta_data;              // User defiend data.
+    int					    meta_tag;	            // User defined int.
 } entity;
 
 
@@ -2934,6 +2965,11 @@ typedef struct
     int hasplayed;
     int weapnum;
     int status;
+
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int			    meta_tag;	            // User defined int.
+
 } s_player;
 
 typedef struct
@@ -3039,6 +3075,10 @@ typedef struct
     int             z;
     int             quake;
     int             neon;
+    
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int				meta_tag;	            // User defined int.
 } s_layer;
 
 typedef struct
@@ -3053,6 +3093,10 @@ typedef struct
     s_axis_principal_int position;  //x,y,z location on screen.
     u32 time;           //Time to expire.
     char *text;         //Text to display.
+    
+    // Meta data.
+    s_meta_data*        meta_data;              // User defiend data.
+    int					meta_tag;	            // User defined int.
 } s_textobj;
 
 typedef struct
@@ -3067,6 +3111,10 @@ typedef struct
     s_axis_plane_lateral_int position;
     s_axis_plane_lateral_int size;
     float *map;
+
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int		        meta_tag;	            // User defined int.
 } s_basemap;
 
  typedef struct
@@ -3085,6 +3133,10 @@ typedef struct
     float x;
     float z;
     int type;
+
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int             meta_tag;	            // User defined int.
 } s_terrain;
 
 typedef struct
@@ -3166,6 +3218,9 @@ typedef struct
     int quake;
     int waiting;
 
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int			    meta_tag;	            // User defined int.
 } s_level;
 
 typedef struct ArgList
@@ -3392,7 +3447,8 @@ s_collision_body**      collision_alloc_body_list();
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
 
-
+// Meta data control.
+void meta_data_free_list(s_meta_data* head);
 
 
 void cache_model(char *name, char *path, int flag);

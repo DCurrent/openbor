@@ -401,7 +401,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
         case ATTACK_PROP_TAG:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->tag;
+            (*pretvar)->lVal = (LONG)handle->meta_tag;
             break;
 
         default:
@@ -756,7 +756,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->tag = temp_int;
+                handle->meta_tag = temp_int;
             }
             break;
 

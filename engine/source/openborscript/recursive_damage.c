@@ -146,7 +146,7 @@ HRESULT openbor_get_recursive_damage_property(ScriptVariant **varlist, ScriptVar
 	case _RECURSIVE_DAMAGE_TAG:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->tag;
+		(*pretvar)->lVal = (LONG)handle->meta_tag;
 
 		break;
 
@@ -287,7 +287,7 @@ HRESULT openbor_set_recursive_damage_property(ScriptVariant **varlist, ScriptVar
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
-			handle->tag = temp_int;
+			handle->meta_tag = temp_int;
 		}
 
 		break;

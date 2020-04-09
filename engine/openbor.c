@@ -46,7 +46,7 @@ int		skiptoset = -1;
 int spawnoverride = 999999;
 int maxentities = 999999;
 
-int	global_model = -1;
+int	global_model = MODEL_INDEX_NONE;
 #define global_model_scripts ((global_model>=0 && model_cache[global_model].model)?model_cache[global_model].model->scripts:NULL)
 
 s_level            *level               = NULL;
@@ -149,21 +149,25 @@ const s_hitbox empty_collision_coords = {   .x      = 0,
 const s_collision_body empty_body =   {     .coords     = NULL,
                                             .index      = 0,
                                             .defense    = NULL,
-                                            .tag        = 0};
+                                            .meta_data  = NULL,
+                                            .meta_tag   = 0};
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
                                                         .index      = 0,
-                                                        .tag        = 0};
+                                                        .meta_data  = NULL,
+                                                        .meta_tag   = 0};
 
 // Recursive damage (dot).
-const s_damage_recursive empty_recursive = {    .force  = 0,
-                                                .index  = 0,
-                                                .mode   = 0,
-                                                .rate   = 0,
-                                                .tick	= 0,
-												.time   = 0,
-												.owner	= NULL,
-												.next	= NULL};
+const s_damage_recursive empty_recursive = { .force = 0,
+                                                .index = 0,
+                                                .mode = 0,
+                                                .rate = 0,
+                                                .tick = 0,
+                                                .time = 0,
+                                                .owner = NULL,
+                                                .next = NULL,
+                                                .meta_data = NULL,
+                                                .meta_tag = 0};
 
 // unknockdown attack
 const s_attack emptyattack =
@@ -172,8 +176,8 @@ const s_attack emptyattack =
     .attack_force       = 0,
     .attack_type        = ATK_NORMAL,
     .blast              = 0,
-    .blockflash         = -1,
-    .blocksound         = -1,
+    .blockflash         = MODEL_INDEX_NONE,
+    .blocksound         = SAMPLE_ID_NONE,
     .counterattack      = 0,
     .damage_on_landing.attack_force =  0,
     .damage_on_landing.attack_type = ATK_NONE,
@@ -187,8 +191,8 @@ const s_attack emptyattack =
     .grab               = 0,
     .grab_distance      = 0,
     .guardcost          = 0,
-    .hitflash           = -1,
-    .hitsound           = -1,
+    .hitflash           = MODEL_INDEX_NONE,
+    .hitsound           = SAMPLE_ID_NONE,
     .jugglecost         = 0,
     .maptime            = 0,
     .no_block           = 0,
@@ -196,7 +200,7 @@ const s_attack emptyattack =
     .no_kill            = 0,
     .no_pain            = 0,
     .otg                = OTG_NONE,
-    .next_hit_time          = 0,
+    .next_hit_time      = 0,
     .pause_add          = 0,
     .recursive          = NULL,
     .seal               = 0,
@@ -205,13 +209,13 @@ const s_attack emptyattack =
                             .riseattack         = 0,
                             .riseattack_stall   = 0},
     .steal              = 0,
-    .tag                = 0
+    .meta_data          = NULL,
+    .meta_tag           = 0
 };
 
+// Default values for knockdown velocity.
 s_axis_principal_float default_model_dropv =
 {
-    /* Default values for knockdown velocity */
-
     .x = 1.2f,
     .y = 3.f,
     .z = 0.f
@@ -296,21 +300,21 @@ u64 freeram = 0;
 u32 interval = 0;
 //extern u64 seed;
 
-int                 SAMPLE_GO			= -1;
-int                 SAMPLE_BEAT			= -1;
-int                 SAMPLE_BLOCK		= -1;
-int                 SAMPLE_INDIRECT		= -1;
-int                 SAMPLE_GET			= -1;
-int                 SAMPLE_GET2			= -1;
-int                 SAMPLE_FALL			= -1;
-int                 SAMPLE_JUMP			= -1;
-int                 SAMPLE_PUNCH		= -1;
-int                 SAMPLE_1UP			= -1;
-int                 SAMPLE_TIMEOVER		= -1;
-int                 SAMPLE_BEEP			= -1;
-int                 SAMPLE_BEEP2		= -1;
-int                 SAMPLE_BIKE			= -1;
-int                 SAMPLE_PAUSE		= -1;
+int                 SAMPLE_GO			= SAMPLE_ID_NONE;
+int                 SAMPLE_BEAT			= SAMPLE_ID_NONE;
+int                 SAMPLE_BLOCK		= SAMPLE_ID_NONE;
+int                 SAMPLE_INDIRECT		= SAMPLE_ID_NONE;
+int                 SAMPLE_GET			= SAMPLE_ID_NONE;
+int                 SAMPLE_GET2			= SAMPLE_ID_NONE;
+int                 SAMPLE_FALL			= SAMPLE_ID_NONE;
+int                 SAMPLE_JUMP			= SAMPLE_ID_NONE;
+int                 SAMPLE_PUNCH		= SAMPLE_ID_NONE;
+int                 SAMPLE_1UP			= SAMPLE_ID_NONE;
+int                 SAMPLE_TIMEOVER		= SAMPLE_ID_NONE;
+int                 SAMPLE_BEEP			= SAMPLE_ID_NONE;
+int                 SAMPLE_BEEP2		= SAMPLE_ID_NONE;
+int                 SAMPLE_BIKE			= SAMPLE_ID_NONE;
+int                 SAMPLE_PAUSE		= SAMPLE_ID_NONE;
 
 // 2016-11-01
 // Caskey, Damon V.
@@ -1436,7 +1440,7 @@ void execute_takedamage_script(entity *ent, entity *other, s_attack *attack)
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
 
@@ -1583,7 +1587,7 @@ void execute_onfall_script(entity *ent, entity *other, s_attack *attack)
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         Script_Execute(cs);
@@ -1916,7 +1920,7 @@ void execute_ondeath_script(entity *ent, entity *other, s_attack *attack)
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         Script_Execute(cs);
@@ -1991,7 +1995,7 @@ void execute_didblock_script(entity *ent, entity *other, s_attack *attack)
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         Script_Execute(cs);
@@ -2047,7 +2051,7 @@ void execute_ondoattack_script(entity *ent, entity *other, s_attack *attack, e_e
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         tempvar.lVal = (LONG)which;
@@ -2144,7 +2148,7 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_att
     tempvar.lVal = (LONG)attack->pause_add;
     Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-    tempvar.lVal = (LONG)attack->tag;
+    tempvar.lVal = (LONG)attack->meta_tag;
     Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
     tempvar.lVal = (LONG)blocked;
@@ -5809,6 +5813,17 @@ s_anim *alloc_anim()
 }
 
 // Caskey, Damon V.
+// 2020-04-09
+// 
+// Remove a meta data list from memory.
+//
+// TODO (2020-04-09): List not yet implemented. 
+void meta_data_free_list(s_meta_data* head)
+{
+    free(head);
+}
+
+// Caskey, Damon V.
 // 2016-11-27
 //
 // Allocate a collision body instance, copy
@@ -6097,11 +6112,12 @@ void recursive_damage_dump_object(s_damage_recursive* recursive)
     {
         printf("\n\t ->force: %d", recursive->force);
         printf("\n\t ->index: %d", recursive->index);
+        printf("\n\t ->meta_data: %p", recursive->meta_data);
+        printf("\n\t ->meta_tag: %d", recursive->meta_tag);
         printf("\n\t ->mode: %d", recursive->mode);
         printf("\n\t ->next: %p", recursive->next);
         printf("\n\t ->owner: %p", recursive->owner);
         printf("\n\t ->rate: %d", recursive->rate);
-        printf("\n\t ->tag: %d", recursive->tag);
         printf("\n\t ->tick: %d", recursive->tick);
         printf("\n\t ->time: %d", recursive->time);
         printf("\n\t ->type: %d", recursive->type);
@@ -6194,9 +6210,10 @@ void collision_dump_list(s_collision* head)
         }
 
         printf("\n\t\t ->index: %d", cursor->index);
+        printf("\n\t\t ->meta_data: %p", cursor->meta_data);
+        printf("\n\t\t ->meta_tag: %d", cursor->meta_tag);
         printf("\n\t\t ->next: %p", cursor->next);
         printf("\n\t\t ->space: %p", cursor->space);
-        printf("\n\t\t ->tag: %p", cursor->tag);
         printf("\n\t\t ->type: %d", cursor->type);
 
         cursor = cursor->next;
@@ -6279,7 +6296,7 @@ s_collision* collision_clone_list(s_collision* source_head)
         {
             clone_head = clone_node;
         }
-
+        
         // Copy the values.
         clone_node->attack = attack_clone_object(source_cursor->attack);
         
@@ -6291,8 +6308,9 @@ s_collision* collision_clone_list(s_collision* source_head)
         }
 
         clone_node->index = source_cursor->index;
+        clone_node->meta_data = source_cursor->meta_data;
+        clone_node->meta_tag = source_cursor->meta_tag;
         clone_node->space = NULL;
-        clone_node->tag = NULL;
         clone_node->type = source_cursor->type;
         
         source_cursor = source_cursor->next;
@@ -6720,10 +6738,11 @@ void collision_free_node(s_collision* target)
         target->space = NULL;
     }
 
-    if (target->tag)
+    // To Do: Free tag function.
+    if (target->meta_data)
     {
-        free(target->tag);
-        target->tag = NULL;
+        meta_data_free_list(target->meta_data);
+        target->meta_data = NULL;
     }
 
     // Free the collision structure.
@@ -6987,7 +7006,7 @@ int addframe(s_addframe_data* data)
         if(!data->animation->soundtoplay)
         {
             data->animation->soundtoplay = malloc(data->framecount * sizeof(*data->animation->soundtoplay));
-            memset(data->animation->soundtoplay, -1, data->framecount * sizeof(*data->animation->soundtoplay)); // default to -1
+            memset(data->animation->soundtoplay, SAMPLE_ID_NONE, data->framecount * sizeof(*data->animation->soundtoplay)); // default to SAMPLE_ID_NONE
         }
         data->animation->soundtoplay[currentframe] = data->soundtoplay;
     }
@@ -8439,12 +8458,12 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "obstacle") == 0)
     {
         newchar->type                   = TYPE_OBSTACLE;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove = 0;
         }
         newchar->aimove |= AIMOVE1_NOMOVE;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aiattack = 0;
         }
@@ -8494,7 +8513,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "pshot") == 0)
     {
         newchar->type = TYPE_SHOT;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove = 0;
         }
@@ -8580,7 +8599,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
     if(stricmp(value, "biker") == 0)
     {
         newchar->subtype                                        = SUBTYPE_BIKER;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove                 = 0;
         }
@@ -8606,7 +8625,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "arrow") == 0) // 7-1-2005 Arrow type
     {
         newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove = 0;
         }
@@ -9461,12 +9480,12 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.pain          = -1;
     newchar->icon.get           = -1;
     newchar->icon.weapon		= -1;			    // No weapon icon set yet
-    newchar->diesound           = -1;
+    newchar->diesound           = SAMPLE_ID_NONE;
     newchar->nolife             = 0;			    // default show life = 1 (yes)
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
     newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
-    newchar->aimove             = -1;
+    newchar->aimove             = AIMOVE1_NONE;
     newchar->aiattack           = -1;
     newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
     newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
@@ -9586,7 +9605,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     float tempFloat;
 
-    int ani_id = -1;
+    int ani_id = ANI_NONE;
     int script_id = -1;
     int frm_id = -1;
     int i = 0;
@@ -9602,7 +9621,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int shadow_set = 0;
     int idle = 0;
     int frameshadow = -1;	// -1 will use default shadow for this entity, otherwise will use this value
-    int soundtoplay = -1;
+    int soundtoplay = SAMPLE_ID_NONE;
     int aimoveset = 0;
     int aiattackset = 0;
     int maskindex = -1;
@@ -9972,7 +9991,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->project = -1;
+                    newchar->project = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10001,7 +10020,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->rider = -1;
+                    newchar->rider = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10015,7 +10034,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->knife = -1;
+                    newchar->knife = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10026,7 +10045,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->pshotno = -1;
+                    newchar->pshotno = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10049,7 +10068,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->bomb = -1;
+                    newchar->bomb = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10060,7 +10079,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->flash = -1;
+                    newchar->flash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10071,7 +10090,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->bflash = -1;
+                    newchar->bflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10082,7 +10101,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust.fall_land = -1;
+                    newchar->dust.fall_land = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10091,7 +10110,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(2);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust.jump_land = -1;
+                    newchar->dust.jump_land = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -10100,7 +10119,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(3);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust.jump_start = -1;
+                    newchar->dust.jump_start = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -11052,7 +11071,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 move.axis.y                     = 0;
                 move.axis.z                     = 0;
                 frameshadow                     = -1;
-                soundtoplay                     = -1;
+                soundtoplay                     = SAMPLE_ID_NONE;
 
                 if(!newanim->range.x.min)
                 {
@@ -11649,7 +11668,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
                 }
                 else
                 {
@@ -11664,7 +11683,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -11679,7 +11698,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -11694,7 +11713,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
                 }
                 else
                 {
@@ -12054,7 +12073,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 			case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG:
                 
-                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->tag = GET_INT_ARG(1);
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->meta_tag = GET_INT_ARG(1);
 
 				break;
 
@@ -12106,7 +12125,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -12121,7 +12140,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
                 }
                 else
                 {
@@ -12136,7 +12155,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -12156,7 +12175,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
                 }
                 else
                 {
@@ -12962,7 +12981,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 curframe = addframe(&add_frame_data);
                 
-                soundtoplay = -1;
+                soundtoplay = SAMPLE_ID_NONE;
                 frm_id = -1;
             }
             break;
@@ -13335,9 +13354,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     {
         newchar->aiattack = 0;
     }
-    if(newchar->aimove == -1)
+    if(newchar->aimove == AIMOVE1_NONE)
     {
-        newchar->aimove = 0;
+        newchar->aimove = AIMOVE1_NORMAL;
     }
     //if(!newchar->offscreenkill) newchar->offscreenkill = 1000;
 
@@ -19745,7 +19764,7 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.no_adjust_base       = oldmodel->no_adjust_base;
     }
-    if(ent->modeldata.aimove == -1)
+    if(ent->modeldata.aimove == AIMOVE1_NONE)
     {
         ent->modeldata.aimove               = oldmodel->aimove;
     }
@@ -27070,7 +27089,8 @@ void check_damage_recursive(entity *ent, entity *other, s_attack *attack)
     
     // Now we have a target recursive element to populate with
 	// attack's recursive values.
-	cursor->tag = attack->recursive->tag;
+	cursor->meta_tag = attack->recursive->meta_tag;
+    cursor->meta_data = attack->recursive->meta_data;
 	cursor->mode = attack->recursive->mode;
 	cursor->index = attack->recursive->index;
 	cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
@@ -38844,7 +38864,7 @@ int playlevel(char *filename)
 static entity *spawnexample(int player_index)
 {
 	#define SPAWN_MODEL_NAME	NULL
-	#define SPAWN_MODEL_INDEX	-1
+	#define SPAWN_MODEL_INDEX	MODEL_INDEX_NONE
 
     entity	*example;
 	s_model *model;
