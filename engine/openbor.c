@@ -174,7 +174,6 @@ const s_attack emptyattack =
     .blast              = 0,
     .blockflash         = -1,
     .blocksound         = -1,
-    .coords             = NULL,
     .counterattack      = 0,
     .damage_on_landing.attack_force =  0,
     .damage_on_landing.attack_type = ATK_NONE,
@@ -5991,8 +5990,6 @@ s_attack* attack_clone_object(s_attack* source)
         memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
     }
 
-    result->coords = NULL;
-
     return result;
 }
 
@@ -6055,12 +6052,6 @@ void attack_dump_object(s_attack* attack)
 // Free attack properties from memory.
 void attack_free_object(s_attack * target)
 {
-    if (target->coords)
-    {
-        free(target->coords);
-        target->coords = NULL;
-    }
-
     if (target->recursive)
     {
         free(target->recursive);

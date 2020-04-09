@@ -1949,7 +1949,6 @@ typedef struct
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
-    s_hitbox            *coords;            // Collision detection coordinates.
 } s_attack;
 
 // ** Collision Refactor IP - 2020-02-10 **
