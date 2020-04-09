@@ -5515,7 +5515,7 @@ void cache_attack_hit_sounds(s_collision* head, int load)
     cursor = head;
 
     while (cursor != NULL && cursor->type & COLLISION_TYPE_ATTACK && cursor->attack)
-    {        
+    {
         cachesound(cursor->attack->hitsound, load);
         cachesound(cursor->attack->blocksound, load);   
     
@@ -5942,10 +5942,16 @@ s_attack* attack_allocate_object()
     // Allocate memory and get the pointer.
     result = malloc(sizeof(*result));
 
-    // Copy default values into new attack.
+    // Default values.
+
+    // -- Copy the universal empty attack structure. This
+    // takes care of most default values in one shot.
     memcpy(result, &emptyattack, sizeof(*result));
 
-    // Set up default drop velocity. 
+    // -- Apply default hit sound effect (for legacy compatability).
+    result->hitsound = SAMPLE_BEAT;
+    
+    // -- Apply default drop velocity. 
     result->dropv.x = default_model_dropv.x;
     result->dropv.y = default_model_dropv.y;
     result->dropv.z = default_model_dropv.z;
@@ -6206,7 +6212,7 @@ void collision_dump_list(s_collision* head)
     }
 
     printf("\n\n %d nodes.", count);
-    printf("\n\n Collision list (%p) dump complete! \n", head);
+    printf("\n\n -- Collision list (%p) dump complete! -- \n", head);
 }
 
 // Caskey, Damon V.
@@ -6593,8 +6599,6 @@ s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int 
     {
         cursor->recursive = recursive_damage_allocate_object();
     }
-
-    collision_dump_list(*head);
 
     // Return pointer to the recrisve structure.
     return cursor->recursive;
@@ -20428,9 +20432,7 @@ int checkhit(entity *attacker, entity *target)
     {
         return FALSE;
     }
-
-    printf("\n\n *-- checkhit: %p, %p --*", attacker, target);
-
+    
     s_collision* seek_cursor = NULL;
     //s_collision* target_cursor = NULL;
 
@@ -20508,17 +20510,12 @@ int checkhit(entity *attacker, entity *target)
         {
             populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
 
-            collision_dump_list(attacker->animation->collision[attacker->animpos]);
-
-            return TRUE;
-
-            
+            return TRUE;            
         }
 
         seek_cursor = seek_cursor->next;
     }
     
-
 	// If we made it here, then we were unable to find
 	// any collisions, - return FALSE. 
 
