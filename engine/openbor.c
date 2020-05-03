@@ -38467,7 +38467,9 @@ void menu_options_input()
             switch(selector)
             {
             case 0:
+#ifndef __SWITCH__
                 control_usejoy((savedata.usejoy ^= 1));
+#endif
                 break;
             case 1:
                 keyboard_setup(0);

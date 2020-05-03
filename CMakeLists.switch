@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-set(CMAKE_VERBOSE_MAKEFILE ON)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
 
 option(PLATFORM_LINUX "Linux platform target" OFF)
 option(PLATFORM_SWITCH "Nintendo Switch platform target" OFF)
