@@ -180,7 +180,7 @@ void setSystemRam()
     systemRam = 0x0f000000;
     elfOffset = 0x00000000;
 #elif __SWITCH__
-    systemRam = (u64) 2048 * 1024 * 1024;
+    systemRam = (u64) 2560 * 1024 * 1024;
     elfOffset = 0x00000000;
 #else
     elfOffset = 0x00000000;

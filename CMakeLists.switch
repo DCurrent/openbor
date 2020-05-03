@@ -79,7 +79,7 @@ file(GLOB BOR_SRC
         engine/source/webmlib/nestegg/*.c
         )
 
-set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -D__CMAKE__)
+set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DOPENGL -DLOADGL -D__CMAKE__)
 set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
 
 ##############
@@ -142,6 +142,6 @@ target_link_libraries(${CMAKE_PROJECT_NAME}.elf ${BOR_LDFLAGS})
 if (PLATFORM_SWITCH)
     add_custom_target(${CMAKE_PROJECT_NAME}.nro
             DEPENDS ${CMAKE_PROJECT_NAME}.elf
-            COMMAND ${DEVKITPRO}/tools/bin/nacptool --create "${CMAKE_PROJECT_NAME}" "cpasjuste, rsn8887" "1.1" ${CMAKE_PROJECT_NAME}.nacp
+            COMMAND ${DEVKITPRO}/tools/bin/nacptool --create "${CMAKE_PROJECT_NAME}" "cpasjuste" "3.0.7087" ${CMAKE_PROJECT_NAME}.nacp
             COMMAND elf2nro ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.nro --icon=${CMAKE_SOURCE_DIR}/engine/resources/switch_icon.jpg --nacp=${CMAKE_PROJECT_NAME}.nacp)
 endif ()
