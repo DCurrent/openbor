@@ -64,10 +64,15 @@ void initSDL()
 	}
 #endif
 
+#ifdef __SWITCH__
+    nativeWidth = 1280;
+    nativeHeight = 720;
+#else
 	SDL_GetCurrentDisplayMode(0, &video_info);
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
 	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
+#endif
 }
 
 void video_set_window_title(const char* title)

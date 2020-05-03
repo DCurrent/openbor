@@ -79,7 +79,7 @@ file(GLOB BOR_SRC
         engine/source/webmlib/nestegg/*.c
         )
 
-set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DOPENGL -DLOADGL -D__CMAKE__)
+set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DWEBM -DOPENGL -DLOADGL -D__CMAKE__)
 set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
 
 ##############
@@ -115,7 +115,7 @@ if (PLATFORM_SWITCH)
     #####################
     # SWITCH PLATORM
     #####################
-    list(APPEND BOR_CFLAGS -D__SWITCH__)
+    list(APPEND BOR_CFLAGS -D__SWITCH__ -DNXLINK)
     list(APPEND BOR_LDFLAGS
             -L${DEVKITPRO}/libnx/lib
             -L${DEVKITPRO}/portlibs/switch/lib
