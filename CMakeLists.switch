@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-#set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 option(PLATFORM_LINUX "Linux platform target" OFF)
 option(PLATFORM_SWITCH "Nintendo Switch platform target" OFF)
@@ -79,9 +79,17 @@ file(GLOB BOR_SRC
         engine/source/webmlib/nestegg/*.c
         )
 
-set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2)
-
+set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -D__CMAKE__)
 set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
+
+##############
+# VERSION.SH
+##############
+ADD_CUSTOM_COMMAND(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/engine/version.h
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/engine
+        COMMAND bash version.sh)
+list(APPEND BOR_SRC ${CMAKE_CURRENT_SOURCE_DIR}/engine/version.h)
 
 #####################
 # OPTIONS
@@ -107,11 +115,6 @@ if (PLATFORM_SWITCH)
     #####################
     # SWITCH PLATORM
     #####################
-    # Ryujinx doesn't like original png decoding code.. replace that
-    # list(REMOVE_ITEM BOR_SRC ${CMAKE_CURRENT_SOURCE_DIR}/engine/source/pnglib/pngdec.c)
-    #list(APPEND BOR_INC engine/switch)
-    #file(GLOB SWITCH_SRC engine/switch/*.c)
-    #list(APPEND BOR_SRC ${SWITCH_SRC})
     list(APPEND BOR_CFLAGS -D__SWITCH__)
     list(APPEND BOR_LDFLAGS
             -L${DEVKITPRO}/libnx/lib
@@ -122,7 +125,7 @@ elseif (PLATFORM_LINUX)
     #####################
     # LINUX PLATORM
     #####################
-    list(APPEND BOR_CFLAGS -D__LINUX__)
+    list(APPEND BOR_CFLAGS -D__LINUX__ -DLINUX)
 endif ()
 
 #####################
