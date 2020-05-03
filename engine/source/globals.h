@@ -65,6 +65,11 @@
 #define strnicmp strncasecmp
 #endif
 
+#if defined(__LINUX__) || defined(__SWITCH__)
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#endif
+
 #include "packfile.h"
 
 /////////////////////////////////////////////////////////////////////////////
