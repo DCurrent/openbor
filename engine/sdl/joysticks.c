@@ -224,6 +224,80 @@ const u64 JoystickBits[JOY_MAX_INPUTS + 1] = {
 	0x8000000000000000  // Button 60
 };
 
+#ifdef __SWITCH__
+const char *JoystickButtonNames[JOY_NAME_SIZE] = {
+    "...",
+#define BUTTON_NAMES(x) \
+    "A",        \
+    "B",        \
+    "X",        \
+    "Y",        \
+    "LS",       \
+    "RS",       \
+    "L",        \
+    "R",        \
+    "ZL",       \
+    "ZR",       \
+    "+",        \
+    "-",        \
+    "LEFT",     \
+    "UP",       \
+    "RIGHT",    \
+    "DOWN",     \
+    "SL_LEFT",  \
+    "SL_UP",    \
+    "SL_RIGHT", \
+    "SL_DOWN",  \
+    "SR_LEFT",  \
+    "SR_UP",    \
+    "SR_RIGHT", \
+    "SR_DOWN",  \
+    "Button 25",       \
+    "Button 26",       \
+    "Button 27",       \
+    "Button 28",       \
+    "Button 29",       \
+    "Button 30",       \
+    "Button 31",       \
+    "Button 32",       \
+    "Button 33",       \
+    "Button 34",       \
+    "Button 35",       \
+    "Button 36",       \
+    "Button 37",       \
+    "Button 38",       \
+    "Button 39",       \
+    "Button 40",       \
+    "Button 41",       \
+    "Button 42",       \
+    "Button 43",       \
+    "Button 44",       \
+    "Button 45",       \
+    "Button 46",       \
+    "Button 47",       \
+    "Button 48",       \
+    "Button 49",       \
+    "Button 50",       \
+    "Button 51",       \
+    "Button 52",       \
+    "Button 53",       \
+    "Button 54",       \
+    "Button 55",       \
+    "Button 56",       \
+    "Button 57",       \
+    "Button 58",       \
+    "Button 59",       \
+    "Button 60",       \
+    "Button 61",       \
+    "Button 62",       \
+    "Button 63",       \
+    "Button 64",
+    BUTTON_NAMES("P1")
+    BUTTON_NAMES("P2")
+    BUTTON_NAMES("P3")
+    BUTTON_NAMES("P4")
+};
+#else
 const char* JoystickButtonNames[JOY_NAME_SIZE] = {
 	"...",
 #define BUTTON_NAMES(x) \
@@ -296,6 +370,7 @@ const char* JoystickButtonNames[JOY_NAME_SIZE] = {
 	BUTTON_NAMES("P3")
 	BUTTON_NAMES("P4")
 };
+#endif
 
 const char* JoystickAxisNames[JOY_NAME_SIZE] = {
 	"...",
