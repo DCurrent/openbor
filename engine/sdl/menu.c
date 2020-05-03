@@ -279,8 +279,8 @@ static s_screen *getPreview(char *filename)
 	else
 	{
 		scalescreen(scale, title);
+		memcpy(scale->palette, title->palette, PAL_BYTES);
 	}
-	memcpy(scale->palette, title->palette, PAL_BYTES);
 
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
