@@ -58,7 +58,11 @@ static s_screen* logscreen;
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
 static int bpp = 32;
+#ifdef __SWITCH__
+static int isWide = 1;
+#else
 static int isWide = 0;
+#endif
 static int isFull = 0;
 static int dListTotal;
 static int dListCurrentPosition;
