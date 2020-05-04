@@ -269,8 +269,12 @@ static s_screen *getPreview(char *filename)
 	// Grab current path and filename
 	getBasePath(packfile, filename, 1);
 	// Create & Load & Scale Image
-	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title) &&
-	   !loadscreen32("data/bgs/title", packfile, &title))
+	if(!loadscreen("data/bgs/title", packfile, NULL, PIXEL_x8, &title)
+       #ifdef __SWITCH__
+       )
+       #else
+        && !loadscreen32("data/bgs/title", packfile, &title))
+       #endif
 	{
 		return NULL;
 	}
