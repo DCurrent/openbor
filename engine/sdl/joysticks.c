@@ -232,37 +232,37 @@ const char *JoystickButtonNames[JOY_NAME_SIZE] = {
     "B",        \
     "X",        \
     "Y",        \
-    "LS",       \
-    "RS",       \
+    "LSTICK",   \
+    "RSTICK",   \
     "L",        \
     "R",        \
     "ZL",       \
     "ZR",       \
-    "+",        \
-    "-",        \
-    "LEFT",     \
-    "UP",       \
-    "RIGHT",    \
-    "DOWN",     \
-    "SL_LEFT",  \
-    "SL_UP",    \
-    "SL_RIGHT", \
-    "SL_DOWN",  \
-    "SR_LEFT",  \
-    "SR_UP",    \
-    "SR_RIGHT", \
-    "SR_DOWN",  \
-    "Button 25",       \
-    "Button 26",       \
-    "Button 27",       \
-    "Button 28",       \
-    "Button 29",       \
-    "Button 30",       \
-    "Button 31",       \
-    "Button 32",       \
-    "Button 33",       \
-    "Button 34",       \
-    "Button 35",       \
+    "PLUS",     \
+    "MINUS",    \
+    "DLEFT",    \
+    "DUP",      \
+    "DRIGHT",   \
+    "DDOWN",    \
+    "LSTICK_LEFT",  \
+    "LSTICK_UP",    \
+    "LSTICK_RIGHT", \
+    "LSTICK_DOWN",  \
+    "RSTICK_LEFT",  \
+    "RSTICK_UP",    \
+    "RSTICK_RIGHT", \
+    "RSTICK_DOWN",  \
+    "SL_LEFT",      \
+    "SR_LEFT",      \
+    "SL_RIGHT",     \
+    "SR_RIGHT",     \
+    "UP",           \
+    "DOWN",         \
+    "LEFT",         \
+    "RIGHT",        \
+    "SL",           \
+    "SR",           \
+    "PLUS_OR_MINUS",   \
     "Button 36",       \
     "Button 37",       \
     "Button 38",       \

@@ -2560,6 +2560,7 @@ void clearsettings()
         savedata.hwscale = 0.0;
         #elif __SWITCH__
         savedata.hwscale = 2.0f;
+        savedata.single_joycon_mode = 1;
         #else
         savedata.hwscale = 1.0;
         #endif
@@ -38362,7 +38363,11 @@ void keyboard_setup(int player)
 void menu_options_input()
 {
     int quit = 0;
+    #if __SWITCH__
+    int selector = 0; // 0
+    #else
     int selector = 1; // 0
+    #endif
     int x_pos = -6;
     #if ANDROID
     int OPTIONS_NUM = 6;
@@ -38395,6 +38400,11 @@ void menu_options_input()
         {
             _menutext((selector == 0), -4, -2, Tr("Nunchuk Analog Disabled"));
         }
+        #elif __SWITCH__
+        if(savedata.single_joycon_mode)
+            _menutext((selector == 0), x_pos, -2, Tr("Single Joycon Mode Enabled"));
+        else
+            _menutext((selector == 0), x_pos, -2, Tr("Single Joycon Mode Disabled"));
         #else
         if(savedata.usejoy)
         {
@@ -38469,7 +38479,13 @@ void menu_options_input()
             switch(selector)
             {
             case 0:
-#ifndef __SWITCH__
+#ifdef __SWITCH__
+                savedata.single_joycon_mode ^= 1;
+                if(savedata.single_joycon_mode)
+                    SDL_SetHint("SDL_HINT_SINGLE_JOYCONS_MODE", "1");
+                else
+                    SDL_SetHint("SDL_HINT_SINGLE_JOYCONS_MODE", "0");
+#else
                 control_usejoy((savedata.usejoy ^= 1));
 #endif
                 break;

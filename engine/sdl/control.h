@@ -17,6 +17,9 @@
 #endif
 #include "joysticks.h"
 
+#ifdef __SWITCH__
+#include "control_switch.h"
+#else
 #ifdef OPENDINGUX
 	#define	CONTROL_ESC                 OPENDINGUX_BUTTON_SELECT
 	#define	CONTROL_DEFAULT1_START		OPENDINGUX_BUTTON_START
@@ -47,21 +50,6 @@
 	#define CONTROL_DEFAULT1_START		(JOY_LIST_FIRST + 11)
 	#define CONTROL_DEFAULT1_SCREENSHOT (JOY_LIST_FIRST + 12)
 	#define	CONTROL_DEFAULT1_ESC        (JOY_LIST_FIRST + 15)
-#elif __SWITCH__
-	#define	CONTROL_ESC                 (JOY_LIST_FIRST + 11) + 1   // MINUS
-	#define	CONTROL_DEFAULT1_START      (JOY_LIST_FIRST + 10) + 1   // PLUS
-	#define	CONTROL_DEFAULT1_UP         (JOY_LIST_FIRST + 13) + 1   // DUP
-	#define	CONTROL_DEFAULT1_DOWN       (JOY_LIST_FIRST + 15) + 1   // DDOWN
-	#define	CONTROL_DEFAULT1_LEFT       (JOY_LIST_FIRST + 12) + 1   // DLEFT
-	#define	CONTROL_DEFAULT1_RIGHT      (JOY_LIST_FIRST + 14) + 1   // DRIGHT
-	#define	CONTROL_DEFAULT1_FIRE1      (JOY_LIST_FIRST + 0) + 1    // A
-	#define	CONTROL_DEFAULT1_FIRE2      (JOY_LIST_FIRST + 1) + 1    // B
-	#define	CONTROL_DEFAULT1_FIRE3      (JOY_LIST_FIRST + 8) + 1    // X
-	#define	CONTROL_DEFAULT1_FIRE4      (JOY_LIST_FIRST + 9) + 1    // Y
-	#define	CONTROL_DEFAULT1_FIRE5      (JOY_LIST_FIRST + 2) + 1    // ZL
-	#define	CONTROL_DEFAULT1_FIRE6      (JOY_LIST_FIRST + 3) + 1    // ZR
-	#define	CONTROL_DEFAULT1_SCREENSHOT (JOY_LIST_FIRST + 5) + 1    // RSTICK
-	#define	CONTROL_DEFAULT1_ESC        (JOY_LIST_FIRST + 11) + 1   // MINUS
 #else
 #ifdef SDL2
 	#define	CONTROL_ESC                 SDL_SCANCODE_ESCAPE
@@ -137,6 +125,7 @@
 #define CONTROL_DEFAULT4_START		((JOY_LIST_FIRST + 11) + (JOY_MAX_INPUTS * 3))
 #define CONTROL_DEFAULT4_SCREENSHOT ((JOY_LIST_FIRST + 12) + (JOY_MAX_INPUTS * 3))
 #define	CONTROL_DEFAULT4_ESC        ((JOY_LIST_FIRST + 15) + (JOY_MAX_INPUTS * 3))
+#endif // __SWITCH__
 
 #define JOYBUTTON(index, btn) (1 + i * JOY_MAX_INPUTS + btn)
 #define JOYAXIS(index, axis, dir) (JOYBUTTON(index, joysticks[index].NumButtons) + 2 * axis + dir)

@@ -22,6 +22,10 @@
 #include "jniutils.h"
 #endif
 
+#ifdef __SWITCH__
+#include <switch.h>
+#endif
+
 SDL_Joystick *joystick[JOY_LIST_TOTAL];         // SDL struct for joysticks
 SDL_Haptic *joystick_haptic[JOY_LIST_TOTAL];   // SDL haptic for joysticks
 static int usejoy;						        // To be or Not to be used?
@@ -223,6 +227,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				break;
 
 			case SDL_JOYAXISMOTION:
+#ifndef __SWITCH__
 				for(i=0; i<JOY_LIST_TOTAL; i++)
 				{
 					if (SDL_JoystickInstanceID(joystick[i]) == ev.jaxis.which)
@@ -240,6 +245,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
                         #endif
 					}
 				}
+#endif
 				break;
 
             // PLUG AND PLAY
@@ -294,9 +300,21 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 			// check buttons
 			for(j = 0; j < joysticks[i].NumButtons; j++)
             {
+#ifdef __SWITCH__
+			    // we want "plus" or "minus" button to send start in single joycon mode
+			    if(j == 10 || j == 11)
+			    {
+			        joysticks[i].Buttons |= SDL_JoystickGetButton(joystick[i], j) << 10;
+			        continue;
+                }
+			    // skip "plus and minus" combo key (?!)
+			    else if(j == 34)
+                    continue;
+#endif
                 joysticks[i].Buttons |= SDL_JoystickGetButton(joystick[i], j) << j;
             }
 
+#ifndef __SWITCH__
 			// check axes
 			for(j = 0; j < joysticks[i].NumAxes; j++)
 			{
@@ -304,6 +322,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				if(axis < -1*T_AXIS)  { joysticks[i].Axes |= 0x01 << (j*2); }
 				if(axis >    T_AXIS)  { joysticks[i].Axes |= 0x02 << (j*2); }
 			}
+#endif
 
 			// check hats
 			for(j = 0; j < joysticks[i].NumHats; j++)
@@ -499,6 +518,13 @@ void control_init(int joy_enable)
 	usejoy = joy_enable ? joy_enable : 1;
 #else
 	usejoy = joy_enable;
+#endif
+
+#ifdef __SWITCH__
+	if(savedata.single_joycon_mode)
+        SDL_SetHint("SDL_HINT_SINGLE_JOYCONS_MODE", "1");
+    else
+        SDL_SetHint("SDL_HINT_SINGLE_JOYCONS_MODE", "0");
 #endif
 
 	//memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
