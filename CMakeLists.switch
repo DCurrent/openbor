@@ -31,6 +31,8 @@ endif ()
 
 project(OpenBOR)
 
+set(OPENBOR_VERSION "3.0.7087")
+
 ##############
 # COMMON
 ##############
@@ -145,6 +147,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME}.elf ${BOR_LDFLAGS})
 if (PLATFORM_SWITCH)
     add_custom_target(${CMAKE_PROJECT_NAME}.nro
             DEPENDS ${CMAKE_PROJECT_NAME}.elf
-            COMMAND ${DEVKITPRO}/tools/bin/nacptool --create "${CMAKE_PROJECT_NAME}" "cpasjuste" "3.0.7087" ${CMAKE_PROJECT_NAME}.nacp
+            COMMAND ${DEVKITPRO}/tools/bin/nacptool --create "${CMAKE_PROJECT_NAME}" "cpasjuste" "${OPENBOR_VERSION}" ${CMAKE_PROJECT_NAME}.nacp
             COMMAND elf2nro ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.nro --icon=${CMAKE_SOURCE_DIR}/engine/resources/switch_icon.jpg --nacp=${CMAKE_PROJECT_NAME}.nacp)
+    add_custom_target(${PROJECT_NAME}_switch_release
+            DEPENDS ${PROJECT_NAME}.nro
+            COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-${OPENBOR_VERSION}_switch.zip
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/release/${PROJECT_NAME}
+            COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.nro ${CMAKE_BINARY_DIR}/release/${PROJECT_NAME}/
+            COMMAND cd ${CMAKE_BINARY_DIR}/release && zip -r ../${PROJECT_NAME}-${OPENBOR_VERSION}_switch.zip ${PROJECT_NAME}
+            )
 endif ()
