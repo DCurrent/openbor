@@ -2419,7 +2419,11 @@ void execute_pdie_script(int index)
 
 void clearbuttons(int player)
 {
+#ifdef __SWITCH__
+    savedata.joyrumble[player] = 1;
+#else
     savedata.joyrumble[player] = 0;
+#endif
 
     if (player == 0)
     {
