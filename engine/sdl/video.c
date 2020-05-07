@@ -57,7 +57,7 @@ void initSDL()
 	SDL_ShowCursor(SDL_DISABLE);
 	//atexit(SDL_Quit); //White Dragon: use SDL_Quit() into sdlport.c it's best practice!
 
-#ifdef LOADGL
+#if defined(LOADGL) && !defined(__SWITCH__)
 	if(SDL_GL_LoadLibrary(NULL) < 0)
 	{
 		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
