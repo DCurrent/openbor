@@ -714,7 +714,9 @@ HRESULT pp_parser_stringify(pp_parser *self)
             }
             else
             {
+                OPENBOR_STRINGOP_TRUNCATION_WARN_OFF;
                 strncat(self->token.theSource, source, 1);
+                OPENBOR_STRINGOP_TRUNCATION_WARN_ON;                
             }
 
             if(strlen(self->token.theSource) + 2 > MAX_TOKEN_LENGTH)

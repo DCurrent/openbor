@@ -98,4 +98,15 @@ memset((p)+(n), 0, sizeof(*(p)));
 p = realloc((p), sizeof(*(p))*(s));\
 memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));
 
+#if __GNUC__ >= 8
+#define OPENBOR_STRINGOP_TRUNCATION_WARN_OFF \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wstringop-truncation\"")
+#define OPENBOR_STRINGOP_TRUNCATION_WARN_ON \
+    _Pragma("GCC diagnostic pop")
+#else /* !(__GNUC__ >= 8)  */
+#define OPENBOR_STRINGOP_TRUNCATION_WARN_OFF /* stub */
+#define OPENBOR_STRINGOP_TRUNCATION_WARN_ON /* stub */
+#endif /* __GNUC__ >= 8 */
+
 #endif

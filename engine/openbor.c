@@ -36369,7 +36369,9 @@ void savelevelinfo()
         save->pSpawnmp[i] = player[i].spawnmp;
         save->pWeapnum[i] = player[i].weapnum;
         save->pColourmap[i] = player[i].colourmap;
+        OPENBOR_STRINGOP_TRUNCATION_WARN_OFF;
         strncpy(save->pName[i], player[i].name, MAX_NAME_LEN);
+        OPENBOR_STRINGOP_TRUNCATION_WARN_ON;
     }
     save->credits = credits;
     save->level = current_level;
