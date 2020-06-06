@@ -98,6 +98,9 @@ memset((p)+(n), 0, sizeof(*(p)));
 p = realloc((p), sizeof(*(p))*(s));\
 memset((p)+(n), 0, sizeof(*(p))*((s)-(n)));
 
+/*
+ * credit: https://github.com/iponweb/luavela/blob/f34210c08cf459efb90d155688b44b47aea1b3e8/src/lj_def.h#L165 
+ */
 #if __GNUC__ >= 8
 #define OPENBOR_STRINGOP_TRUNCATION_WARN_OFF \
     _Pragma("GCC diagnostic push") \
