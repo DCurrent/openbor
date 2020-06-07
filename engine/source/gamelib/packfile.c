@@ -319,7 +319,9 @@ char *casesearch(const char *dir, const char *filepath)
     //if (entry != NULL && entry->d_name != NULL)
     if (entry != NULL)
     {
-        sprintf(fullpath, "%s/%s", dir, entry->d_name);
+        OPENBOR_FORMAT_TRUNCATION_WARN_OFF;
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
+        OPENBOR_FORMAT_TRUNCATION_WARN_ON;
     }
 
     if (closedir(d))
