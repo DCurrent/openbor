@@ -6405,35 +6405,24 @@ s_collision* collision_append_node_to_property(s_collision** target_property)
 // NULL if no match found.
 s_collision* collision_find_node_index(s_collision* head, e_collision_type type, int index)
 {   
-    // printf("\n\n -- collision_find_node_index(%p, %d, %d) --", head, type, index);
-
     s_collision* current = NULL;
     
     // Starting from head node, iterate through
     // all collision nodes and free them.
     current = head;
 
-    // printf("\n\n\t (pre loop) current: %p", current);
-
     while (current != NULL)
     {
-        // printf("\n\n\t\t current: %p", current);
-        // printf("\n\n\t\t current->index: %d", current->index);
-        // printf("\n\n\t\t current->type: %d", current->type);
-
         // If we found a collision index match, return the pointer.
         if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
         {
-            // printf("\n\n\t\t\t Found: %p", current);
             return current;
         }
 
         // Go to next node.
         current = current->next;
     }    
-
-    // printf("\n\n\t No match");
-
+        
     // If we got here, find failed.
     // Just return NULL.
     return NULL;
@@ -6631,6 +6620,8 @@ s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int 
 // Returns pointer to attack object.
 s_attack* collision_upsert_attack_property(s_collision** head, int index)
 {
+    // printf("\n\t collision_upsert_attack_property(%p, %d)", *head, index);
+
     s_collision* temp_collision_current;
 
     // 1. First we need to know index.
@@ -6653,6 +6644,8 @@ s_attack* collision_upsert_attack_property(s_collision** head, int index)
 
     // 3. Get attack pointer (find or allocate).
 
+    // printf("\n\t\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
+
     // Have an attack? if not we'll need to allocate it.
     if (!temp_collision_current->attack)
     {
@@ -6661,6 +6654,8 @@ s_attack* collision_upsert_attack_property(s_collision** head, int index)
 
     // 4. Set this collision as an attacking type.                
     temp_collision_current->type |= COLLISION_TYPE_ATTACK;
+
+    // printf("\n\t\t result: %p", temp_collision_current->attack);
 
     // Return pointer to the attack structure.
     return temp_collision_current->attack;
@@ -25024,13 +25019,13 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
 
     if ( ent->inbackpain ) fall = animbackfalls[attack->attack_type];
     else fall = animfalls[attack->attack_type];
-
+   
     if(validanim(ent, fall))
     {
         ent_set_anim(ent, fall, reset);
     }
     else if( ent->inbackpain && validanim(ent, animbackfalls[0]) )
-    {
+    {       
         ent_set_anim(ent, animbackfalls[0], reset);
     }
     else if( validanim(ent, animfalls[attack->attack_type]) )
@@ -27326,12 +27321,14 @@ void checkdamageonlanding()
 //
 // Return true if attack type is one of the types not included
 // in normal use by authors.
-bool is_attack_type_special(e_attack_types type)
+int is_attack_type_special(e_attack_types type)
 {
 	switch (type)
 	{
 	default:
 		return FALSE;
+        break;
+
 	case ATK_BOSS_DEATH:
 	case ATK_ITEM:
 	case ATK_LIFESPAN:
@@ -27341,6 +27338,7 @@ bool is_attack_type_special(e_attack_types type)
 	case ATK_TIMEOVER:
 	case ATK_PIT:
 		return TRUE;
+        break;
 	}
 }
 
@@ -27354,8 +27352,7 @@ void checkdamage(entity *other, s_attack *attack)
 
 	// Damage does not return HP and comes from
 	// a normal source?
-	normal_damage = (!is_attack_type_special(attack->attack_type)
-		&& force >= 0);
+	normal_damage = (!is_attack_type_special(attack->attack_type) && force >= 0);
 
 	// If we're invincible to normal damage sources, laugh it off.
 	if (self->invincible & INVINCIBLE_HP_NULLIFY && normal_damage)

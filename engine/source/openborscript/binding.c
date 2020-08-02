@@ -42,6 +42,8 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
         "target"
     };
 
+	//printf("\n\n mapstring_bind_property(%s)", varlist[ARG_PROPERTY]);
+
     // If the minimum argument count
     // was not passed, then there is
     // nothing to map. Return true - we'll

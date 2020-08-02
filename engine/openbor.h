@@ -617,7 +617,7 @@ typedef enum //Animations
     2013-12-27
     */
 
-    ANI_NONE = -1,               // To indicate a blank or no animation at all.
+    ANI_NONE,               // To indicate a blank or no animation at all.
     ANI_IDLE,
     ANI_WALK,
     ANI_JUMP,
@@ -1041,7 +1041,7 @@ typedef enum
     // be below all attack types in enum
     // to get correct value)
     MAX_ATKS,
-    STA_ATKS       = (MAX_ATKS-10)
+    STA_ATKS       = (MAX_ATKS-1)
 } e_attack_types;
 
 // Attack box properties.
@@ -3244,7 +3244,7 @@ typedef struct ArgList
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
-bool is_attack_type_special(e_attack_types attack_type);
+int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);
