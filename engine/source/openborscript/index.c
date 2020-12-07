@@ -982,16 +982,6 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_bind;
     }
-
-	// Drawmethod
-	else if (functionRef == ((void *)openbor_get_drawmethod_property))
-	{
-		return (void *)mapstrings_drawmethod;
-	}
-	else if (functionRef == ((void *)openbor_set_drawmethod_property))
-	{
-		return (void *)mapstrings_drawmethod;
-	}
 	
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
