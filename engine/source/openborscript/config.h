@@ -12,6 +12,7 @@
 #include "Interpreter.h"
 #include "pp_parser.h"
 
+#include "animation.h"
 #include "axis.h"
 #include "binding.h"
 #include "drawmethod.h"
@@ -146,8 +147,8 @@ HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, in
 // Animation properties.
 HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_get_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+// Sub entity properties.
 
 // Attack properties
 HRESULT openbor_get_attack_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -326,7 +327,7 @@ HRESULT openbor_getrecordingstatus(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_recordinputs(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
-int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount);
+int mapstrings_animation_property(ScriptVariant **varlist, int paramCount);
 int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount);

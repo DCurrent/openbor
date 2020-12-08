@@ -149,6 +149,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
     LIST_ADD(CMD_MODEL_COLLISION_GROUND,                           "attack.ground.mode");                       // otg
+    LIST_ADD(CMD_MODEL_COLLISION_INDEX,                            "collision.index");                         // Index to identify mutiple collisions.
     LIST_ADD(CMD_MODEL_COLLISION_MAP_INDEX,                        "attack.map.index");                        // Forcemap.
     LIST_ADD(CMD_MODEL_COLLISION_MAP_TIME,                         "attack.map.time");                         // Forcemap time.
     LIST_ADD(CMD_MODEL_COLLISION_POSITION_X,                       "attack.position.x");
@@ -263,7 +264,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_EBOXZ, "eboxz");
     LIST_ADD(CMD_MODEL_EDELAY, "edelay");
     LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
-    LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");
+    LIST_ADD(CMD_MODEL_ENERGY_COST, "energycost");	// Backward compatability.
+	LIST_ADD(CMD_MODEL_ENERGY_COST, "energy_cost");
     LIST_ADD(CMD_MODEL_ENTITYPUSHING, "entitypushing");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");
@@ -401,6 +403,15 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_PLAYSHOTW, "playshotw");
     LIST_ADD(CMD_MODEL_PRIORITY, "priority");
     LIST_ADD(CMD_MODEL_PROJECT, "project");
+	LIST_ADD(CMD_MODEL_PROJECTILE_COLOR_SET_ADJUST, "projectile_color_set_adjust");
+	LIST_ADD(CMD_MODEL_PROJECTILE_DIRECTION_ADJUST, "projectile_direction_adjust");
+	LIST_ADD(CMD_MODEL_PROJECTILE_OFFENSE, "projectile_offense");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_X, "projectile_position_x");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Y, "projectile_position_y");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Z, "projectile_position_z");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_X, "projectile_velocity_x");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_Y, "projectile_velocity_y");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_Z, "projectile_velocity_z");
     LIST_ADD(CMD_MODEL_PROJECTILEHIT, "projectilehit");
     LIST_ADD(CMD_MODEL_PSHOTFRAME, "pshotframe");
     LIST_ADD(CMD_MODEL_PSHOTFRAMENO, "pshotframeno");

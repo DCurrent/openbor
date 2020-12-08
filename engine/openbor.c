@@ -46,7 +46,7 @@ int		skiptoset = -1;
 int spawnoverride = 999999;
 int maxentities = 999999;
 
-int	global_model = -1;
+int	global_model = MODEL_INDEX_NONE;
 #define global_model_scripts ((global_model>=0 && model_cache[global_model].model)?model_cache[global_model].model->scripts:NULL)
 
 s_level            *level               = NULL;
@@ -100,6 +100,34 @@ const s_drawmethod plainmethod =
     .water = {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0}
 };
 
+// Caskey, Damon V.
+// 2019-12-13
+// Need default values for projectile animation 
+// settings, and projectiles in general.
+const s_projectile projectile_default_animation = {
+	
+	.bomb = MODEL_INDEX_NONE,
+	.color_set_adjust = COLOR_SET_ADJUST_NONE,
+	.direction_adjust = DIRECTION_ADJUST_SAME,
+	.flash = MODEL_INDEX_NONE,
+	.knife = MODEL_INDEX_NONE,
+	.offense = PROJECTILE_OFFENSE_SELF,
+	.placement = PROJECTILE_PLACEMENT_PARENT,
+	.position = {.x = 60.f,
+					.y = 70.f,
+					.z = 0.f},
+	.shootframe = FRAME_NONE,
+	.throwframe = FRAME_NONE,
+	.tossframe = FRAME_NONE,
+	.star		= MODEL_INDEX_NONE,
+	.star_velocity = {0.f, 
+						1.f, 
+						2.f},
+	.velocity = {.x = PROJECTILE_DEFAULT_SPEED_X,
+					.y = PROJECTILE_DEFAULT_SPEED_Y,
+					.z = PROJECTILE_DEFAULT_SPEED_Z }
+};
+
 const s_defense default_defense =
 {
     .factor         = 1.f,
@@ -115,38 +143,41 @@ const s_hitbox empty_collision_coords = {   .x      = 0,
                                             .y      = 0,
                                             .width  = 0,
                                             .height = 0,
-                                            .z1     = 0,
-                                            .z2     = 0};
+                                            .z_background     = 0,
+                                            .z_foreground     = 0};
 
 const s_collision_body empty_body =   {     .coords     = NULL,
                                             .index      = 0,
                                             .defense    = NULL,
-                                            .tag        = 0};
+                                            .meta_data  = NULL,
+                                            .meta_tag   = 0};
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
                                                         .index      = 0,
-                                                        .tag        = 0};
+                                                        .meta_data  = NULL,
+                                                        .meta_tag   = 0};
 
 // Recursive damage (dot).
-const s_damage_recursive empty_recursive = {    .force  = 0,
-                                                .index  = 0,
-                                                .mode   = 0,
-                                                .rate   = 0,
-                                                .tick	= 0,
-												.time   = 0,
-												.owner	= NULL,
-												.next	= NULL};
+const s_damage_recursive empty_recursive = { .force = 0,
+                                                .index = 0,
+                                                .mode = 0,
+                                                .rate = 0,
+                                                .tick = 0,
+                                                .time = 0,
+                                                .owner = NULL,
+                                                .next = NULL,
+                                                .meta_data = NULL,
+                                                .meta_tag = 0};
 
 // unknockdown attack
-const s_collision_attack emptyattack =
+const s_attack emptyattack =
 {
     .attack_drop        = 0,
     .attack_force       = 0,
     .attack_type        = ATK_NORMAL,
     .blast              = 0,
-    .blockflash         = -1,
-    .blocksound         = -1,
-    .coords             = NULL,
+    .blockflash         = MODEL_INDEX_NONE,
+    .blocksound         = SAMPLE_ID_NONE,
     .counterattack      = 0,
     .damage_on_landing.attack_force =  0,
     .damage_on_landing.attack_type = ATK_NONE,
@@ -160,8 +191,8 @@ const s_collision_attack emptyattack =
     .grab               = 0,
     .grab_distance      = 0,
     .guardcost          = 0,
-    .hitflash           = -1,
-    .hitsound           = -1,
+    .hitflash           = MODEL_INDEX_NONE,
+    .hitsound           = SAMPLE_ID_NONE,
     .jugglecost         = 0,
     .maptime            = 0,
     .no_block           = 0,
@@ -169,7 +200,7 @@ const s_collision_attack emptyattack =
     .no_kill            = 0,
     .no_pain            = 0,
     .otg                = OTG_NONE,
-    .next_hit_time          = 0,
+    .next_hit_time      = 0,
     .pause_add          = 0,
     .recursive          = NULL,
     .seal               = 0,
@@ -178,13 +209,13 @@ const s_collision_attack emptyattack =
                             .riseattack         = 0,
                             .riseattack_stall   = 0},
     .steal              = 0,
-    .tag                = 0
+    .meta_data          = NULL,
+    .meta_tag           = 0
 };
 
+// Default values for knockdown velocity.
 s_axis_principal_float default_model_dropv =
 {
-    /* Default values for knockdown velocity */
-
     .x = 1.2f,
     .y = 3.f,
     .z = 0.f
@@ -269,21 +300,21 @@ u64 freeram = 0;
 u32 interval = 0;
 //extern u64 seed;
 
-int                 SAMPLE_GO			= -1;
-int                 SAMPLE_BEAT			= -1;
-int                 SAMPLE_BLOCK		= -1;
-int                 SAMPLE_INDIRECT		= -1;
-int                 SAMPLE_GET			= -1;
-int                 SAMPLE_GET2			= -1;
-int                 SAMPLE_FALL			= -1;
-int                 SAMPLE_JUMP			= -1;
-int                 SAMPLE_PUNCH		= -1;
-int                 SAMPLE_1UP			= -1;
-int                 SAMPLE_TIMEOVER		= -1;
-int                 SAMPLE_BEEP			= -1;
-int                 SAMPLE_BEEP2		= -1;
-int                 SAMPLE_BIKE			= -1;
-int                 SAMPLE_PAUSE		= -1;
+int                 SAMPLE_GO			= SAMPLE_ID_NONE;
+int                 SAMPLE_BEAT			= SAMPLE_ID_NONE;
+int                 SAMPLE_BLOCK		= SAMPLE_ID_NONE;
+int                 SAMPLE_INDIRECT		= SAMPLE_ID_NONE;
+int                 SAMPLE_GET			= SAMPLE_ID_NONE;
+int                 SAMPLE_GET2			= SAMPLE_ID_NONE;
+int                 SAMPLE_FALL			= SAMPLE_ID_NONE;
+int                 SAMPLE_JUMP			= SAMPLE_ID_NONE;
+int                 SAMPLE_PUNCH		= SAMPLE_ID_NONE;
+int                 SAMPLE_1UP			= SAMPLE_ID_NONE;
+int                 SAMPLE_TIMEOVER		= SAMPLE_ID_NONE;
+int                 SAMPLE_BEEP			= SAMPLE_ID_NONE;
+int                 SAMPLE_BEEP2		= SAMPLE_ID_NONE;
+int                 SAMPLE_BIKE			= SAMPLE_ID_NONE;
+int                 SAMPLE_PAUSE		= SAMPLE_ID_NONE;
 
 // 2016-11-01
 // Caskey, Damon V.
@@ -1371,7 +1402,7 @@ void execute_animation_script(entity *ent)
     }
 }
 
-void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_takedamage_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->takedamage_script;
@@ -1409,7 +1440,7 @@ void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *a
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
 
@@ -1519,7 +1550,7 @@ void execute_onpain_script(entity *ent, int iType, int iReset)
     }
 }
 
-void execute_onfall_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_onfall_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onfall_script;
@@ -1556,7 +1587,7 @@ void execute_onfall_script(entity *ent, entity *other, s_collision_attack *attac
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         Script_Execute(cs);
@@ -1851,7 +1882,7 @@ void execute_onmovea_script(entity *ent)
     }
 }
 
-void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_ondeath_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondeath_script;
@@ -1889,7 +1920,7 @@ void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *atta
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         Script_Execute(cs);
@@ -1926,7 +1957,7 @@ void execute_onkill_script(entity *ent)
     }
 }
 
-void execute_didblock_script(entity *ent, entity *other, s_collision_attack *attack)
+void execute_didblock_script(entity *ent, entity *other, s_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->didblock_script;
@@ -1964,7 +1995,7 @@ void execute_didblock_script(entity *ent, entity *other, s_collision_attack *att
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         Script_Execute(cs);
@@ -1983,7 +2014,7 @@ void execute_didblock_script(entity *ent, entity *other, s_collision_attack *att
     }
 }
 
-void execute_ondoattack_script(entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id)
+void execute_ondoattack_script(entity *ent, entity *other, s_attack *attack, e_exchange which, int attack_id)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondoattack_script;
@@ -2020,7 +2051,7 @@ void execute_ondoattack_script(entity *ent, entity *other, s_collision_attack *a
         tempvar.lVal = (LONG)attack->pause_add;
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-        tempvar.lVal = (LONG)attack->tag;
+        tempvar.lVal = (LONG)attack->meta_tag;
         Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
         tempvar.lVal = (LONG)which;
@@ -2081,7 +2112,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack, int blocked)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_attack *attack, int blocked)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2117,7 +2148,7 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
     tempvar.lVal = (LONG)attack->pause_add;
     Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
 
-    tempvar.lVal = (LONG)attack->tag;
+    tempvar.lVal = (LONG)attack->meta_tag;
     Script_Set_Local_Variant(cs, "tag",    &tempvar);
 
     tempvar.lVal = (LONG)blocked;
@@ -2140,7 +2171,7 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_col
     Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack, int blocked)
+void execute_didhit_script(entity *ent, entity *other, s_attack *attack, int blocked)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
@@ -5369,47 +5400,7 @@ void free_frames(s_anim *anim)
         free(anim->soundtoplay);
         anim->soundtoplay = NULL;
     }
-    if(anim->collision_attack)
-    {
-        for(i = 0; i < anim->numframes; i++)
-        {
-            if(anim->collision_attack[i])
-            {
-                // Check each attack instance and free memory as needed.
-                // Momma always said put your toys away when you're done!
-                for(instance = 0; instance < max_collisons; instance++)
-                {
-                    if(anim->collision_attack[i]->instance[instance])
-                    {
-                        // First free any pointers allocated
-                        // for sub structures.
-
-                        // Coords.
-                        if(anim->collision_attack[i]->instance[instance]->coords)
-                        {
-                            free(anim->collision_attack[i]->instance[instance]->coords);
-                            anim->collision_attack[i]->instance[instance]->coords = NULL;
-                        }
-
-                        // Recursive damage.
-                        if(anim->collision_attack[i]->instance[instance]->recursive)
-                        {
-                            free(anim->collision_attack[i]->instance[instance]->recursive);
-                            anim->collision_attack[i]->instance[instance]->recursive = NULL;
-                        }
-
-                        free(anim->collision_attack[i]->instance[instance]);
-                        anim->collision_attack[i]->instance[instance] = NULL;
-                    }
-                }
-
-                free(anim->collision_attack[i]);
-                anim->collision_attack[i] = NULL;
-            }
-        }
-        free(anim->collision_attack);
-        anim->collision_attack = NULL;
-    }
+    
     if(anim->drawmethods)
     {
         for(i = 0; i < anim->numframes; i++)
@@ -5479,55 +5470,28 @@ void free_anim(s_anim *anim)
         return;
     }
     free_frames(anim);
-    if(anim->starvelocity)
-    {
-        free(anim->starvelocity);
-        anim->starvelocity = NULL;
-    }
-    if(anim->weaponframe)
-    {
-        free(anim->weaponframe);
-        anim->weaponframe = NULL;
-    }
-    if(anim->spawnframe)
-    {
-        free(anim->spawnframe);
-        anim->spawnframe = NULL;
-    }
-    if(anim->summonframe)
-    {
-        free(anim->summonframe);
-        anim->summonframe = NULL;
-    }
-    if(anim->counterrange)
-    {
-        free(anim->counterrange);
-        anim->counterrange = NULL;
-    }
-
-    if(anim->dropframe)
-    {
-        free(anim->dropframe);
-        anim->dropframe = NULL;
-    }
-
-    if(anim->jumpframe)
-    {
-        free(anim->jumpframe);
-        anim->jumpframe = NULL;
-    }
-
-    if(anim->landframe)
-    {
-        free(anim->landframe);
-        anim->landframe = NULL;
-    }
-
-    if(anim->energycost)
-    {
-        free(anim->energycost);
-        anim->energycost = NULL;
-    }
+    
+	if (anim->projectile)
+	{
+		free(anim->projectile);
+		anim->projectile = NULL;
+	}
+	if (anim->sub_entity_spawn)
+	{
+		free(anim->sub_entity_spawn);
+		anim->sub_entity_spawn = NULL;
+	}
+	if (anim->sub_entity_summon)
+	{
+		free(anim->sub_entity_summon);
+		anim->sub_entity_summon = NULL;
+	}
+	if (anim->weaponframe)
+	{
+		free(anim->weaponframe);
+		anim->weaponframe = NULL;
+	}
+   
     free(anim);
 }
 
@@ -5543,9 +5507,28 @@ void addFreeType(s_model *m, e_ModelFreetype t)
     m->freetypes |= t;
 }
 
+// Caskey, Damon V.
+// 2020-03-30
+// Load/unload sound IDs assigned to a list of 
+// attack collisions.
+void cache_attack_hit_sounds(s_collision* head, int load)
+{
+    s_collision* cursor;
+
+    cursor = head;
+
+    while (cursor != NULL && cursor->type & COLLISION_TYPE_ATTACK && cursor->attack)
+    {
+        cachesound(cursor->attack->hitsound, load);
+        cachesound(cursor->attack->blocksound, load);   
+    
+        cursor = cursor->next;
+    }
+}
+
 void cache_model_sprites(s_model *m, int ld)
 {
-    int i, f, instance;
+    int i, f;
     s_anim *anim;
     cachesprite(m->icon.def, ld);
     cachesprite(m->icon.die, ld);
@@ -5574,18 +5557,17 @@ void cache_model_sprites(s_model *m, int ld)
                 {
                     cachesound(anim->soundtoplay[f], ld);
                 }
-                if(anim->collision_attack && anim->collision_attack[f])
+                
+                // Hit sounds.
+                if(anim->collision && anim->collision[f])
                 {
-                    for(instance = 0; instance < max_collisons; instance++)
-                    {
-                        cachesound(anim->collision_attack[f]->instance[instance]->hitsound, ld);
-                        cachesound(anim->collision_attack[f]->instance[instance]->blocksound, ld);
-                    }
+                    cache_attack_hit_sounds(anim->collision[f], ld);
                 }
             }
         }
     }
 }
+
 
 // Unload single model from memory
 int free_model(s_model *model)
@@ -5831,52 +5813,14 @@ s_anim *alloc_anim()
 }
 
 // Caskey, Damon V.
-// 2016-11-27
+// 2020-04-09
+// 
+// Remove a meta data list from memory.
 //
-// Allocate a collision attack instance, copy
-// property data if present, and return pointer.
-s_collision_attack *collision_alloc_attack_instance(s_collision_attack *properties)
+// TODO (2020-04-09): List not yet implemented. 
+void meta_data_free_list(s_meta_data* head)
 {
-    s_collision_attack  *result;
-    size_t              alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // If previous data is provided,
-    // copy into new allocation.
-    if(properties)
-    {
-        memcpy(result, properties, alloc_size);
-    }
-
-    // return result.
-    return result;
-}
-
-// Caskey, Damon V.
-// 2016-11-27
-//
-// Allocate an empty collision attack list.
-s_collision_attack **collision_alloc_attack_list()
-{
-    s_collision_attack **result;
-    size_t             alloc_size;
-
-    // Get amount of memory we'll need.
-    alloc_size = sizeof(*result);
-
-    // Allocate memory and get pointer.
-    result = malloc(alloc_size);
-
-    // Make sure the list is blank.
-    memset(result, 0, alloc_size);
-
-    // return result.
-    return result;
+    free(head);
 }
 
 // Caskey, Damon V.
@@ -5976,7 +5920,7 @@ s_collision_entity **collision_alloc_entity_list()
 //
 // Allocate collision coordinates, copy coords
 // data if present, and return pointer.
-s_hitbox *collision_alloc_coords(s_hitbox *coords)
+s_hitbox *collision_allocate_coords(s_hitbox *coords)
 {
     s_hitbox    *result;
     size_t      alloc_size;
@@ -5986,6 +5930,9 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
 
     // Allocate memory and get pointer.
     result = malloc(alloc_size);
+
+    // 0 out valules.
+    memset(result, 0, sizeof(*result));
 
     // If previous data is provided,
     // copy into new allocation.
@@ -5998,82 +5945,913 @@ s_hitbox *collision_alloc_coords(s_hitbox *coords)
     return result;
 }
 
-int addframe(s_anim             *a,
-             int                spriteindex,
-             int                framecount,
-             int                delay,
-             unsigned           idle,
-             s_collision_entity *ebox,
-             s_collision_body   *bbox,
-             s_collision_attack *attack,
-             s_move             *move,
-             float              *platform,
-             int                frameshadow,
-             int                *shadow_coords,
-             int                soundtoplay,
-             s_drawmethod       *drawmethod,
-             s_axis_plane_vertical_int        *offset,
-             s_damage_recursive *recursive,
-             s_hitbox           *attack_coords,
-             s_hitbox           *body_coords,
-             s_hitbox           *entity_coords)
+// Caskey, Damon V.
+// 2020-02-11
+// 
+// Allocate an attack property structure and return pointer.
+s_attack* attack_allocate_object()
+{
+    s_attack* result;
+
+    // Allocate memory and get the pointer.
+    result = malloc(sizeof(*result));
+
+    // Default values.
+
+    // -- Copy the universal empty attack structure. This
+    // takes care of most default values in one shot.
+    memcpy(result, &emptyattack, sizeof(*result));
+
+    // -- Apply default hit sound effect (for legacy compatability).
+    result->hitsound = SAMPLE_BEAT;
+    
+    // -- Apply default drop velocity. 
+    result->dropv.x = default_model_dropv.x;
+    result->dropv.y = default_model_dropv.y;
+    result->dropv.z = default_model_dropv.z;
+
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-03-09
+//
+// Allocate new attack object with same values (but not same 
+// pointers) as received attack object. Returns pointer to
+// new object.
+s_attack* attack_clone_object(s_attack* source)
+{
+    s_attack* result = NULL;
+
+    if (!source)
+    {
+        return result;
+    }
+
+    result = attack_allocate_object();
+
+    // Attack has a ton of members. Rather than do everything 
+    // piecemeal, we'll memcopy to get all the basic values, 
+    // and overwrite object pointers individually.
+    memcpy(result, source, sizeof(*result));
+
+    // Clone sub objects. Same principal - we want new pointers
+    // allocated with the same data as the source pointers.
+
+    // -- Recursive damage.
+    if (source->recursive && source->recursive->mode)
+    {
+        result->recursive = malloc(sizeof(*result->recursive));
+        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
+    }
+
+    return result;
+}
+
+// Caskey, Damon V
+// 2020-03-12
+//
+// Send all attack data to log for debugging.
+void attack_dump_object(s_attack* attack)
+{
+    printf("\n\n -- Attack (%p) dump --", attack);
+
+    if (attack)
+    {
+        printf("\n\t ->attack_drop: %d", attack->attack_drop);
+        printf("\n\t ->attack_force: %d", attack->attack_force);
+        printf("\n\t ->attack_type: %d", attack->attack_type);
+        printf("\n\t ->blockflash: %d", attack->blockflash);
+        printf("\n\t ->blocksound: %d", attack->blocksound);
+        printf("\n\t ->counterattack: %d", attack->counterattack);
+        printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
+        printf("\n\t ->damage_on_landing.attack_type: %d", attack->damage_on_landing.attack_type);
+        printf("\n\t ->dropv.x: %f", attack->dropv.x);
+        printf("\n\t ->dropv.y: %f", attack->dropv.y);
+        printf("\n\t ->dropv.z: %f", attack->dropv.z);
+        printf("\n\t ->forcemap: %d", attack->forcemap);
+        printf("\n\t ->force_direction: %d", attack->force_direction);
+        printf("\n\t ->freeze: %d", attack->freeze);
+        printf("\n\t ->freezetime: %d", attack->freezetime);
+        printf("\n\t ->grab: %d", attack->grab);
+        printf("\n\t ->grab_distance: %d", attack->grab_distance);
+        printf("\n\t ->guardcost: %d", attack->guardcost);
+        printf("\n\t ->hitflash: %d", attack->hitflash);
+        printf("\n\t ->hitsound: %d", attack->hitsound);
+        printf("\n\t ->jugglecost: %d", attack->jugglecost);
+        printf("\n\t ->maptime: %d", attack->maptime);
+        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
+        printf("\n\t ->no_block: %d", attack->no_block);
+        printf("\n\t ->otg: %d", attack->otg);
+        printf("\n\t ->pause_add: %d", attack->pause_add);
+        printf("\n\t ->recursive: %d", attack->recursive);
+
+        if (attack->recursive)
+        {
+            recursive_damage_dump_object(attack->recursive);
+        }
+
+        printf("\n\t ->seal: %d", attack->seal);
+        printf("\n\t ->sealtime: %d", attack->sealtime);
+        printf("\n\t ->staydown.rise: %d", attack->staydown.rise);
+        printf("\n\t ->staydown.riseattack: %d", attack->staydown.riseattack);
+        printf("\n\t ->staydown.riseattack_stall: %d", attack->staydown.riseattack_stall);
+    }
+
+    printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
+}
+
+// Caskey, Damon V.
+// 2020-03-10
+// 
+// Free attack properties from memory.
+void attack_free_object(s_attack * target)
+{
+    if (target->recursive)
+    {
+        free(target->recursive);
+        target->recursive = NULL;
+    }
+   
+    free(target);
+}
+
+// 2020-03-10
+// Caskey, Damon V
+//
+// allocate a recursive damage object and return
+// its pointer.
+s_damage_recursive* recursive_damage_allocate_object()
+{
+    s_damage_recursive* result;
+    size_t memory_size;
+
+    memory_size = sizeof(*result);
+
+    result = malloc(memory_size);
+
+    // 0 The property values.
+    memset(result, 0, memory_size);
+
+    // Make sure pointers are NULL.
+    result->next = NULL;
+    result->owner = NULL;
+
+    return result;
+}
+
+// Caskey, Damon V
+// 2020-03-12
+//
+// Send all recursive damage data to log for debugging.
+void recursive_damage_dump_object(s_damage_recursive* recursive)
+{
+    printf("\n\n -- Recursive (%p) dump --", recursive);
+
+    if (recursive)
+    {
+        printf("\n\t ->force: %d", recursive->force);
+        printf("\n\t ->index: %d", recursive->index);
+        printf("\n\t ->meta_data: %p", recursive->meta_data);
+        printf("\n\t ->meta_tag: %d", recursive->meta_tag);
+        printf("\n\t ->mode: %d", recursive->mode);
+        printf("\n\t ->next: %p", recursive->next);
+        printf("\n\t ->owner: %p", recursive->owner);
+        printf("\n\t ->rate: %d", recursive->rate);
+        printf("\n\t ->tick: %d", recursive->tick);
+        printf("\n\t ->time: %d", recursive->time);
+        printf("\n\t ->type: %d", recursive->type);
+    }
+
+    printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
+}
+
+// Caskey, Damon V.
+// 2020-02-10
+//
+// Allocate a blank collision object 
+// and return its pointer. Does not 
+// allocate sub-objects (attack, body, etc.).
+s_collision* collision_allocate_object()
+{
+    s_collision* result;
+    size_t       alloc_size;
+
+    // Get amount of memory we'll need.
+    alloc_size = sizeof(*result);
+
+    // Allocate memory and get pointer.
+    result = malloc(alloc_size);
+
+    // Make sure the data members are 
+    // zero'd and that "next" member 
+    // is NULL.
+    memset(result, 0, alloc_size);
+    
+    result->next = NULL;
+
+    // return result.
+    return result;
+}
+
+// Caskey, Damon V
+// 2020-03-10
+//
+// Send all collision list data to log for debugging.
+void collision_dump_list(s_collision* head)
+{
+    printf("\n\n -- Collision List (%p) Dump --", head);
+    
+    s_collision* cursor;
+    int count = 0;
+
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        count++;
+
+        printf("\n\n\t Node: %p", cursor);
+        printf("\n\t\t ->attack: %p", cursor->attack);
+
+        if (cursor->attack)
+        {
+            attack_dump_object(cursor->attack);
+        }
+
+        printf("\n\t\t ->body: %p", cursor->body);
+
+        if (cursor->body)
+        {
+            printf("\n\t\t\t ->defense: %p", cursor->body->defense);
+
+            if (cursor->body->defense)
+            {
+                printf("\n\t\t\t\t ->blockpower: %d", cursor->body->defense->blockpower);
+                printf("\n\t\t\t\t ->blockratio: %f", cursor->body->defense->blockratio);
+                printf("\n\t\t\t\t ->blockthreshold: %d", cursor->body->defense->blockthreshold);
+                printf("\n\t\t\t\t ->blocktype: %d", cursor->body->defense->blocktype);
+                printf("\n\t\t\t\t ->factor: %d", cursor->body->defense->factor);
+                printf("\n\t\t\t\t ->knockdown: %f", cursor->body->defense->knockdown);
+                printf("\n\t\t\t\t ->pain: %f", cursor->body->defense->pain);
+            }
+        }
+
+        printf("\n\t\t ->coords: %p", cursor->coords);
+
+        if (cursor->coords)
+        {
+            printf("\n\t\t\t ->height: %d", cursor->coords->height);
+            printf("\n\t\t\t ->width: %d", cursor->coords->width);
+            printf("\n\t\t\t ->x: %d", cursor->coords->x);
+            printf("\n\t\t\t ->y: %d", cursor->coords->y);
+            printf("\n\t\t\t ->z_background: %d", cursor->coords->z_background);
+            printf("\n\t\t\t ->z_foreground: %d", cursor->coords->z_foreground);
+        }
+
+        printf("\n\t\t ->index: %d", cursor->index);
+        printf("\n\t\t ->meta_data: %p", cursor->meta_data);
+        printf("\n\t\t ->meta_tag: %d", cursor->meta_tag);
+        printf("\n\t\t ->next: %p", cursor->next);
+        printf("\n\t\t ->space: %p", cursor->space);
+        printf("\n\t\t ->type: %d", cursor->type);
+
+        cursor = cursor->next;
+    }
+
+    printf("\n\n %d nodes.", count);
+    printf("\n\n -- Collision list (%p) dump complete! -- \n", head);
+}
+
+// Caskey, Damon V.
+// 2020-03-10
+//
+// Apply final adjustments to collision coordinates
+// with defaults settings for required properties 
+// author did not provide values for.
+void collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data)
+{
+    s_collision* cursor;
+    s_hitbox* coords;
+
+    cursor = collision_head;
+
+    while (cursor != NULL)
+    {
+        coords = cursor->coords;
+
+        if (coords)
+        {
+            // Position includes offset. Size includes position.
+            coords->x = coords->x - add_frame_data->offset->x;
+            coords->y = coords->y - add_frame_data->offset->y;
+            coords->width = coords->width + coords->x;
+            coords->height = coords->height + coords->y;
+
+            // If this is an attack, we may need to apply
+            // a stand in for Z depth. Legacy behavior is
+            // to use a calculation based on grabdistance. 
+            // IMO it's not very logical and doesn't allow
+            // authors to use 0 values, but we need to 
+            // keep it for backward compatabilty.
+            if (cursor->type & COLLISION_TYPE_ATTACK)
+            {
+                if (!coords->z_background && !coords->z_foreground)
+                {
+                    coords->z_background = coords->z_foreground = (int)(model->grabdistance / 3 + 1);
+                }
+            }
+        }
+
+        cursor = cursor->next;
+    }   
+}
+
+// Caskey, Damon V
+// 2020-03-09
+// 
+// Allocate new collision list with same values as source.
+// Returns pointer to head of new list.
+s_collision* collision_clone_list(s_collision* source_head)
+{
+    s_collision* source_cursor = NULL;
+    s_collision* clone_head = NULL;
+    s_collision* clone_node = NULL;   
+
+    // Head is null? Get out now.
+    if (source_head == NULL)
+    {  
+        return source_cursor;
+    }
+
+    source_cursor = source_head;  
+
+    while (source_cursor != NULL)
+    {               
+        clone_node = collision_append_node(clone_head);    
+
+        // Populate head if NULL so we
+        // have one for the next cycle.
+        if (clone_head == NULL)
+        {
+            clone_head = clone_node;
+        }
+        
+        // Copy the values.
+        clone_node->attack = attack_clone_object(source_cursor->attack);
+        
+        clone_node->body = NULL;
+        
+        if (source_cursor->coords != NULL)
+        {
+            clone_node->coords = collision_allocate_coords(source_cursor->coords);
+        }
+
+        clone_node->index = source_cursor->index;
+        clone_node->meta_data = source_cursor->meta_data;
+        clone_node->meta_tag = source_cursor->meta_tag;
+        clone_node->space = NULL;
+        clone_node->type = source_cursor->type;
+        
+        source_cursor = source_cursor->next;
+    }
+
+    return clone_head;
+}
+
+// Caskey, Damon V.
+// 2020-02-10
+//
+// Allocate new collision node and append it to 
+// end of collision linked list. If no lists exists
+// yet, the new node becomes head of a new list.
+// 
+// Returns pointer to new node.
+s_collision* collision_append_node(struct s_collision* head)
+{   
+    // Allocate node.   
+    struct s_collision* new_node = NULL;
+    struct s_collision* last = NULL;
+
+    // Allocate memory and get pointer fot new 
+    // collision node, then default last to head.
+    new_node = collision_allocate_object();
+    last = head;
+    
+    // New node is going to be the last node in
+    // list, so set its next as NULL.
+    new_node->next = NULL;
+
+    // If there wasn't already a list, the 
+    // new node is our head. We are done and
+    // can return the new node pointer.
+    if (head == NULL)
+    {  
+        head = new_node;
+
+        return new_node;
+    }
+
+    // If we got here, there was already a 
+    // list in place. Iterate to its last 
+    // node.
+    while (last->next != NULL)
+    {
+        last = last->next;        
+    }
+
+    // Populate existing last node's next
+    // with new node pointer. New node is
+    // now the last node in list.
+    last->next = new_node;
+
+    // Return the new node pointer.
+    return new_node;
+}
+
+// 2020-02-23
+// Caskey, Damon V.
+//
+// Receive pointer to property. If property value is NULL
+// a new collision list is allocated and the property 
+// value is populated with head node. If the property
+// already has a head pointer, a new node is allocated
+// to existing list and property value is unchanged.
+//
+// Returns pointer to allocated node.
+s_collision* collision_append_node_to_property(s_collision** target_property)
+{
+    // Allocate new node and get pointer. See function 
+    // for details.
+    s_collision* result = collision_append_node(*target_property);
+
+    // If target property valur is not set, then the
+    // new node is a list head. Populate the property 
+    // with node pointer.
+    if (!*target_property)
+    {
+        *target_property = result;
+    }
+
+    // printf("\n\t\t apportion_collision new node: %p", result);
+
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Find a collision node by index and return pointer, or
+// NULL if no match found.
+s_collision* collision_find_node_index(s_collision* head, e_collision_type type, int index)
+{   
+    s_collision* current = NULL;
+    
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    current = head;
+
+    while (current != NULL)
+    {
+        // If we found a collision index match, return the pointer.
+        if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
+        {
+            return current;
+        }
+
+        // Go to next node.
+        current = current->next;
+    }    
+        
+    // If we got here, find failed.
+    // Just return NULL.
+    return NULL;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Find a collision node by index, or append a new node
+// with target index if no match is found. Returns pointer
+// to found or appended node.
+s_collision* collision_upsert_index(s_collision* head, e_collision_type type, int index)
+{
+    s_collision* result = NULL;
+
+    // Run index search.
+    result = collision_find_node_index(head, type, index);
+
+    // We couldn't find an index match, so lets add
+    // a node and apply the index we wanted.
+    if (!result)
+    {
+        result = collision_append_node(head);
+        result->index = index;
+    }
+
+    return result;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Clear a collision linked list from memory.
+void collision_free_list(s_collision* head)
+{
+    s_collision* cursor = NULL;
+    s_collision* next = NULL;
+
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    cursor = head;
+    
+    while (cursor != NULL)
+    {
+        // We still need the next member after we
+        // delete collision object, so we'll store
+        // it in a temp var.
+        next = cursor->next;
+
+        // Free the current collision object.
+        collision_free_node(cursor);
+
+        // Set cursor to next.
+        cursor = next;
+    }
+}
+
+// Caskey, Damon V
+// 2020-03-10
+//
+// Return FALSE if a collision object
+// has coordinates set, FALSE otherwise.
+int collision_check_has_coords(s_collision* target)
+{
+    // If target missing or coordinates
+    // are not allocated then return FALSE.
+
+    if (!target)
+    {
+        return FALSE;
+    }
+
+    if (!target->coords)
+    {
+        return FALSE;
+    }
+
+    // If any one coordinate property has a value
+    // then return TRUE instantly.
+    if (target->coords->x || target->coords->y || target->coords->height || target->coords->width)
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// Caskey, Damon V.
+// 2020-03-10
+// 
+// Receives a reference (pointer to pointer) to the head 
+// of a list, deletes all occurrence of undefined collision
+// coordinates (no coords pointer or X/Y/H/W are all 0).
+//
+// This is to replicate legacy behavior of removing a collision 
+// box during read in from text when all 0 values are provided 
+// by author.
+//
+// Reference pointer is swapped for new head pointer if head
+// is deleted.
+void collision_remove_undefined_coordinates(s_collision** head)
+{
+    s_collision* cursor = NULL;
+    s_collision* prev = NULL;
+
+    // Start with head.
+    cursor = *head;
+    prev = *head;
+
+    // If head node or mutiple nodes lack defined collision 
+    // cordinates.
+    while (cursor != NULL && !collision_check_has_coords(cursor))
+    {
+        // Update head value. 
+        *head = cursor->next; 
+        
+        // Free collision memory.
+        collision_free_node(cursor);
+
+        // Change cursor to head.
+        cursor = *head; 
+    }
+
+    // Delete occurrences other than head. 
+    while (cursor != NULL)
+    {
+        // Search for and delete nodes without collision
+        // coordinates defined. Keep track of the previous 
+        // node as we need to change 'prev->next'. 
+        while (cursor != NULL && collision_check_has_coords(cursor))
+        {
+            prev = cursor;
+            cursor = cursor->next;
+
+        }
+
+        // If we didn't find any blank coordinate sets
+        // then just get out now.
+        if (cursor == NULL)
+        {
+            return;
+        }
+
+        // Unlink the node from linked list.
+        prev->next = cursor->next;
+
+        // Free collision memory.
+        collision_free_node(cursor);  
+
+        // Update cursor for next iteration of outer loop. 
+        cursor = prev->next;
+    }
+}
+
+// 2020-03-10
+// Caskey, Damon V
+//
+// Create or update a recursive attack property.
+// Same principal as collision_upsert_attack_property.
+s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int index)
+{
+    s_attack* cursor;
+
+    // Run attack upsert to make sure we have a valid
+    // collision node for requested index, and that
+    // it has an attack property.
+    cursor = collision_upsert_attack_property(head, index);
+        
+
+    // Have a recursive property? If not we'll need to allocate it.
+    if (!cursor->recursive)
+    {
+        cursor->recursive = recursive_damage_allocate_object();
+    }
+
+    // Return pointer to the recrisve structure.
+    return cursor->recursive;
+}
+
+// 2020-02-23
+// Caskey, Damon V
+//
+// Get pointer to attack object for modification. Used when
+// loading a model and reading in attack properties.
+//
+// 1. Receive pointer to head node of collision list. If 
+// the head node is NULL a new collision list is allocated 
+// and the head property value is populated with head node. 
+// 
+// 2. Search collision list for an attack enabled node
+// with index matching received index property. New node
+// allocated if not found. See collision_upsert_index().
+//
+// 3. Find or allocate attack object on collision node.
+// Returns pointer to attack object.
+s_attack* collision_upsert_attack_property(s_collision** head, int index)
+{
+    // printf("\n\t collision_upsert_attack_property(%p, %d)", *head, index);
+
+    s_collision* temp_collision_current;
+
+    // 1. First we need to know index.
+                //  -- temp_collision_index
+
+                // 2. Look for index and get pointer (found or allocated).
+
+                // Get the node we want to work on by searching
+                // for a matched index. In most cases, this will
+                // just be the head node.
+    temp_collision_current = collision_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
+
+    // If head is NULL, this must be the first allocated 
+    // collision for current frame. Populate head with 
+    // current so we have a head for the next pass.
+    if (*head == NULL)
+    {
+        *head = temp_collision_current;
+    }
+
+    // 3. Get attack pointer (find or allocate).
+
+    // printf("\n\t\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
+
+    // Have an attack? if not we'll need to allocate it.
+    if (!temp_collision_current->attack)
+    {
+        temp_collision_current->attack = attack_allocate_object();
+    }
+
+    // 4. Set this collision as an attacking type.                
+    temp_collision_current->type |= COLLISION_TYPE_ATTACK;
+
+    // printf("\n\t\t result: %p", temp_collision_current->attack);
+
+    // Return pointer to the attack structure.
+    return temp_collision_current->attack;
+}
+
+// 2020-02-23
+// Caskey, Damon V.
+s_hitbox* collision_upsert_coordinates_property(s_collision** head, int index)
+{
+    s_collision* temp_collision_current;
+
+    // 1. First we need to know index.
+    //  -- temp_collision_index
+
+    // 2. Look for index and get pointer (found or allocated).
+
+    // Get the node we want to work on by searching
+    // for a matched index. In most cases, this will
+    // just be the head node.
+    temp_collision_current = collision_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
+
+    // If head is NULL, this must be the first allocated 
+    // collision for current frame. Populate head with 
+    // current so we have a head for the next pass.
+    if (*head == NULL)
+    {
+        *head = temp_collision_current;
+    }
+
+    // 3. Get attack pointer (find or allocate).
+
+    // Have collision coordinates? If not we'll need to allocate them.
+    if (!temp_collision_current->coords)
+    {
+        temp_collision_current->coords = collision_allocate_coords(temp_collision_current->coords);
+
+
+    }
+
+    // Return pointer to the coords structure.
+    return temp_collision_current->coords;
+}
+
+// Caskey, Damon V.
+// 2020-02-17
+// 
+// Clear a single collision object from memory.
+// Note this does NOT remove node from list.
+// Be careful not to create a dangling pointer!
+void collision_free_node(s_collision* target)
+{
+    // Free sub objects.
+
+    if (target->attack)
+    {
+        attack_free_object(target->attack);
+        target->attack = NULL;
+    }
+
+    if (target->body)
+    {
+        free(target->body);
+        target->body = NULL;
+    }
+    
+    if (target->coords)
+    {
+        free(target->coords);
+        target->coords = NULL;
+    }
+
+    if (target->space)
+    {
+        free(target->space);
+        target->space = NULL;
+    }
+
+    // To Do: Free tag function.
+    if (target->meta_data)
+    {
+        meta_data_free_list(target->meta_data);
+        target->meta_data = NULL;
+    }
+
+    // Free the collision structure.
+    free(target);
+}
+
+// Caskey, Damon V.
+// 2020-03-07
+//
+// Allocate and apply collision settings to target frame.
+void collision_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame)
+{
+    s_collision* temp_collision;
+    size_t memory_size;
+
+    if (!data->collision)
+    {
+        return;
+    }
+
+    // If collision is not allocated yet, we need to allocate
+    // an array of collision pointers (one element for each 
+    // animation frame). If the frame has a collision, its
+    // collision property is populated with pointer to head
+    // of a linked list of collision objects.
+    if (!data->animation->collision)
+    {
+        memory_size = data->framecount * sizeof(*data->animation->collision);
+
+        data->animation->collision = malloc(memory_size);
+        memset(data->animation->collision, 0, memory_size);
+    }
+    
+    // Clone source list and populate frame's collision
+    // property with the pointer to clone list head.
+    temp_collision = collision_clone_list(data->collision);
+
+    // Apply final adjustments to any collision coordinates.
+    collision_prepare_coordinates_for_frame(temp_collision, data->model, data);
+
+    // Frame collision property is head of collision list.
+    data->animation->collision[frame] = temp_collision;
+}
+
+// Caskey, Damon V. (Orginal author unknown, 
+// reworked to the point it's essentially a 
+// new funciton)
+// 2020-03-04 (Previous reworks 2016).
+//
+// Allocate a frame to animation and add frame
+// properties as needed. In OpenBOR, frames are 
+// a bottom up structure: There is no single frame 
+// structure with sub properties. Instead, each 
+// "frame" property is an arrayed animation 
+// property array with number of elements matched 
+// to number of desired frames.
+int addframe(s_addframe_data* data)
 {
     int     i;
     size_t  size_col_on_frame,
             size_col_on_frame_struct;
 
-    s_collision_attack  *collision_attack;
+    //s_attack  *collision_attack;
     s_collision_body    *collision_body;
     s_collision_entity  *collision_entity;
 
     ptrdiff_t currentframe;
-    if(framecount > 0)
+    if(data->framecount > 0)
     {
-        alloc_frames(a, framecount);
+        alloc_frames(data->animation, data->framecount);
     }
     else
     {
-        framecount = -framecount;    // for alloc method, use a negative value
+        data->framecount = -data->framecount;    // for alloc method, use a negative value
     }
 
-    currentframe = a->numframes;
-    ++a->numframes;
+    currentframe = data->animation->numframes;
+    ++data->animation->numframes;
 
-    a->sprite[currentframe] = spriteindex;
-    a->delay[currentframe] = delay * GAME_SPEED / 100;
+    data->animation->sprite[currentframe] = data->spriteindex;
+    data->animation->delay[currentframe] = data->delay * GAME_SPEED / 100;
 
     // Allocate body boxes.
-    if((body_coords->width - body_coords->x)
-        && (body_coords->height - body_coords->y))
+    if((data->body_coords->width - data->body_coords->x)
+        && (data->body_coords->height - data->body_coords->y))
     {
         // Set vulnerability.
-        a->vulnerable[currentframe] = 1;
+        data->animation->vulnerable[currentframe] = 1;
 
         // If there is no previous collision
         // list on this animation's frames,
         // we need to allocate space.
-        if(!a->collision_body)
+        if(!data->animation->collision_body)
         {
             // Get memory size.
-            size_col_on_frame = framecount * sizeof(*a->collision_body);
+            size_col_on_frame = data->framecount * sizeof(*data->animation->collision_body);
 
             // Allocate memory.
-            a->collision_body = malloc(size_col_on_frame);
-            memset(a->collision_body, 0, size_col_on_frame);
-        }
+            data->animation->collision_body = malloc(size_col_on_frame);
+            memset(data->animation->collision_body, 0, size_col_on_frame);
+        }       
 
         // Get memory size for the collision
         // list structure.
-        size_col_on_frame_struct = sizeof(**a->collision_body);
+        size_col_on_frame_struct = sizeof(**data->animation->collision_body);
 
         // Allocate memory for collision list
         // structure and store resulting pointer
         // on current frame.
-        a->collision_body[currentframe] = malloc(size_col_on_frame_struct);
+        data->animation->collision_body[currentframe] = malloc(size_col_on_frame_struct);
 
         // Allocate memory for a pointer to each instance
         // and set empty default.
-        a->collision_body[currentframe]->instance = collision_alloc_body_list();
+        data->animation->collision_body[currentframe]->instance = collision_alloc_body_list();
 
         // Loop instances, allocate memory, and assign
         // user values.
@@ -6081,8 +6859,8 @@ int addframe(s_anim             *a,
         {
             // Allocate memory for this instance structure.
             // We're also using a local pointer for readability.
-            collision_body = collision_alloc_body_instance(bbox);
-            a->collision_body[currentframe]->instance[i] = collision_body;
+            collision_body = collision_alloc_body_instance(data->bbox);
+            data->animation->collision_body[currentframe]->instance[i] = collision_body;
 
             // Set index. Engine does not need this,
             // but will allow scripts to identify
@@ -6095,167 +6873,140 @@ int addframe(s_anim             *a,
             // Coordinates.
             if(!collision_body->coords)
             {
-                collision_body->coords = collision_alloc_coords(body_coords);
+                collision_body->coords = collision_allocate_coords(data->body_coords);
             }
         }
     }
 
     // Allocate entity boxes.
-    if((entity_coords->width - entity_coords->x)
-        && (entity_coords->height - entity_coords->y))
+    if((data->entity_coords->width - data->entity_coords->x)
+        && (data->entity_coords->height - data->entity_coords->y))
     {
-        if(!a->collision_entity)
+        if(!data->animation->collision_entity)
         {
-            size_col_on_frame = framecount * sizeof(*a->collision_entity);
+            size_col_on_frame = data->framecount * sizeof(*data->animation->collision_entity);
 
-            a->collision_entity = malloc(size_col_on_frame);
-            memset(a->collision_entity, 0, size_col_on_frame);
+            data->animation->collision_entity = malloc(size_col_on_frame);
+            memset(data->animation->collision_entity, 0, size_col_on_frame);
         }
 
-        size_col_on_frame_struct = sizeof(**a->collision_entity);
-        a->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
+        size_col_on_frame_struct = sizeof(**data->animation->collision_entity);
+        data->animation->collision_entity[currentframe] = malloc(size_col_on_frame_struct);
 
-        a->collision_entity[currentframe]->instance = collision_alloc_entity_list();
+        data->animation->collision_entity[currentframe]->instance = collision_alloc_entity_list();
 
         for(i=0; i<max_collisons; i++)
         {
-            collision_entity = collision_alloc_entity_instance(ebox);
-            a->collision_entity[currentframe]->instance[i] = collision_entity;
+            collision_entity = collision_alloc_entity_instance(data->ebox);
+            data->animation->collision_entity[currentframe]->instance[i] = collision_entity;
 
             collision_entity->index = i;
 
             // Coordinates.
             if(!collision_entity->coords)
             {
-                collision_entity->coords = collision_alloc_coords(entity_coords);
+                collision_entity->coords = collision_allocate_coords(data->entity_coords);
             }
         }
     }
 
-    // Allocate attack boxes. See body box
-    // for notes.
-    if((attack_coords->width - attack_coords->x) &&
-            (attack_coords->height - attack_coords->y))
+    // Collision rework IP 2020-02-10
+    collision_initialize_frame_property(data, currentframe);
+    
+    
+
+    // Drawmethod (graphic settings)
+    if(data->drawmethod->flag)
     {
-        if(!a->collision_attack)
+        if(!data->animation->drawmethods)
         {
-            size_col_on_frame = framecount * sizeof(*a->collision_attack);
-
-            a->collision_attack = malloc(size_col_on_frame);
-            memset(a->collision_attack, 0, size_col_on_frame);
+            data->animation->drawmethods = malloc(data->framecount * sizeof(*data->animation->drawmethods));
+            memset(data->animation->drawmethods, 0, data->framecount * sizeof(*data->animation->drawmethods));
         }
+        setDrawMethod(data->animation, currentframe, malloc(sizeof(**data->animation->drawmethods)));
+        //data->animation->drawmethods[currenframe] = malloc(sizeof(s_drawmethod));
+        memcpy(getDrawMethod(data->animation, currentframe), data->drawmethod, sizeof(**data->animation->drawmethods));
+        //memcpy(data->animation->drawmethods[currentframe], data->drawmethod, sizeof(s_drawmethod));
+    }
 
-        size_col_on_frame_struct = sizeof(**a->collision_attack);
-        a->collision_attack[currentframe] = malloc(size_col_on_frame_struct);
+    // Idle flag.
+    if(data->idle && !data->animation->idle)
+    {
+        data->animation->idle = malloc(data->framecount * sizeof(*data->animation->idle));
+        memset(data->animation->idle, 0, data->framecount * sizeof(*data->animation->idle));
+    }
+    if(data->animation->idle)
+    {
+        data->animation->idle[currentframe] = data->idle;
+    }
 
-        a->collision_attack[currentframe]->instance = collision_alloc_attack_list();
-
-        for(i=0; i<max_collisons; i++)
+    // Movement
+    if(data->move)
+    {
+        if(!data->animation->move)
         {
-            collision_attack = collision_alloc_attack_instance(attack);
-            a->collision_attack[currentframe]->instance[i] = collision_attack;
-
-            collision_attack->index = i;
-
-            // Coordinates.
-            if(!collision_attack->coords)
-            {
-                collision_attack->coords = collision_alloc_coords(attack_coords);
-            }
-
-            // Recursive damage.
-            if(!collision_attack->recursive && recursive->mode)
-            {
-                collision_attack->recursive = malloc(sizeof(*recursive));
-                memcpy(collision_attack->recursive, recursive, sizeof(*recursive));
-            }
+            data->animation->move = malloc(data->framecount * sizeof(*data->animation->move));
+            memset(data->animation->move, 0, data->framecount * sizeof(*data->animation->move));
         }
+        data->animation->move[currentframe] = malloc(sizeof(**data->animation->move));
+        memcpy(data->animation->move[currentframe], data->move, sizeof(**data->animation->move));
     }
 
-    if(drawmethod->flag)
+    // Shadow effects.
+    if(data->frameshadow >= 0 && !data->animation->shadow)
     {
-        if(!a->drawmethods)
+        data->animation->shadow = malloc(data->framecount * sizeof(*data->animation->shadow));
+        memset(data->animation->shadow, -1, data->framecount * sizeof(*data->animation->shadow)); //default to -1
+    }
+    if(data->animation->shadow)
+    {
+        data->animation->shadow[currentframe] = data->frameshadow;    // shadow index for each frame
+    }
+    if(data->shadow_coords[0] || data->shadow_coords[1])
+    {
+        if(!data->animation->shadow_coords)
         {
-            a->drawmethods = malloc(framecount * sizeof(*a->drawmethods));
-            memset(a->drawmethods, 0, framecount * sizeof(*a->drawmethods));
+            data->animation->shadow_coords = malloc(data->framecount * sizeof(*data->animation->shadow_coords));
+            memset(data->animation->shadow_coords, 0, data->framecount * sizeof(*data->animation->shadow_coords));
         }
-        setDrawMethod(a, currentframe, malloc(sizeof(**a->drawmethods)));
-        //a->drawmethods[currenframe] = malloc(sizeof(s_drawmethod));
-        memcpy(getDrawMethod(a, currentframe), drawmethod, sizeof(**a->drawmethods));
-        //memcpy(a->drawmethods[currentframe], drawmethod, sizeof(s_drawmethod));
-    }
-    if(idle && !a->idle)
-    {
-        a->idle = malloc(framecount * sizeof(*a->idle));
-        memset(a->idle, 0, framecount * sizeof(*a->idle));
-    }
-    if(a->idle)
-    {
-        a->idle[currentframe] = idle;
-    }
-
-    if(move)
-    {
-        if(!a->move)
-        {
-            a->move = malloc(framecount * sizeof(*a->move));
-            memset(a->move, 0, framecount * sizeof(*a->move));
-        }
-        a->move[currentframe] = malloc(sizeof(**a->move));
-        memcpy(a->move[currentframe], move, sizeof(**a->move));
-    }
-
-    if(frameshadow >= 0 && !a->shadow)
-    {
-        a->shadow = malloc(framecount * sizeof(*a->shadow));
-        memset(a->shadow, -1, framecount * sizeof(*a->shadow)); //default to -1
-    }
-    if(a->shadow)
-    {
-        a->shadow[currentframe] = frameshadow;    // shadow index for each frame
-    }
-    if(shadow_coords[0] || shadow_coords[1])
-    {
-        if(!a->shadow_coords)
-        {
-            a->shadow_coords = malloc(framecount * sizeof(*a->shadow_coords));
-            memset(a->shadow_coords, 0, framecount * sizeof(*a->shadow_coords));
-        }
-        memcpy(a->shadow_coords[currentframe], shadow_coords, sizeof(*a->shadow_coords));
-    }
+        memcpy(data->animation->shadow_coords[currentframe], data->shadow_coords, sizeof(*data->animation->shadow_coords));
+    }    
 
     // Offset
-    if(offset->x || offset->y)
+    if(data->offset->x || data->offset->y)
     {
-        if(!a->offset)
+        if(!data->animation->offset)
         {
-            a->offset = malloc(framecount * sizeof(*a->offset));
-            memset(a->offset, 0, framecount * sizeof(*a->offset));
+            data->animation->offset = malloc(data->framecount * sizeof(*data->animation->offset));
+            memset(data->animation->offset, 0, data->framecount * sizeof(*data->animation->offset));
         }
-        a->offset[currentframe] = malloc(sizeof(**a->offset));
-        memcpy(a->offset[currentframe], offset, sizeof(**a->offset));
+        data->animation->offset[currentframe] = malloc(sizeof(**data->animation->offset));
+        memcpy(data->animation->offset[currentframe], data->offset, sizeof(**data->animation->offset));
     }
 
-    if(platform[PLATFORM_HEIGHT]) //height
+    // Platform
+    if(data->platform[PLATFORM_HEIGHT]) //height
     {
-        if(!a->platform)
+        if(!data->animation->platform)
         {
-            a->platform = malloc(framecount * sizeof(*a->platform));
-            memset(a->platform, 0, framecount * sizeof(*a->platform));
+            data->animation->platform = malloc(data->framecount * sizeof(*data->animation->platform));
+            memset(data->animation->platform, 0, data->framecount * sizeof(*data->animation->platform));
         }
-        memcpy(a->platform[currentframe], platform, sizeof(*a->platform));// Used so entity can be landed on
-    }
-    if(soundtoplay >= 0)
-    {
-        if(!a->soundtoplay)
-        {
-            a->soundtoplay = malloc(framecount * sizeof(*a->soundtoplay));
-            memset(a->soundtoplay, -1, framecount * sizeof(*a->soundtoplay)); // default to -1
-        }
-        a->soundtoplay[currentframe] = soundtoplay;
+        memcpy(data->animation->platform[currentframe], data->platform, sizeof(*data->animation->platform));// Used so entity can be landed on
     }
 
-    return a->numframes;
+    // Sound effect
+    if(data->soundtoplay >= 0)
+    {
+        if(!data->animation->soundtoplay)
+        {
+            data->animation->soundtoplay = malloc(data->framecount * sizeof(*data->animation->soundtoplay));
+            memset(data->animation->soundtoplay, SAMPLE_ID_NONE, data->framecount * sizeof(*data->animation->soundtoplay)); // default to SAMPLE_ID_NONE
+        }
+        data->animation->soundtoplay[currentframe] = data->soundtoplay;
+    }
+
+    return data->animation->numframes;
 }
 
 
@@ -6457,7 +7208,8 @@ static int translate_attack_type(char *command)
         break;
     case CMD_MODEL_COLLISION_ETC:
         tempInt = atoi(command + 6); // White Dragon: 6 is "ATTACK" string length
-        if(tempInt < MAX_ATKS - STA_ATKS + 1)
+		
+		if(tempInt < MAX_ATKS - STA_ATKS + 1)
         {
             tempInt = MAX_ATKS - STA_ATKS + 1;
         }
@@ -6471,13 +7223,12 @@ static int translate_attack_type(char *command)
 }
 
 //move here to ease animation name to id logic
-static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim, s_collision_attack *attack)
+static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim)
 {
     int ani_id = -1, tempInt;
     //those are dummy values to simplify code
     static s_model mdl;
     static s_anim ani;
-    static s_collision_attack atk;
     if(!newchar)
     {
         newchar = &mdl;
@@ -6486,11 +7237,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         newanim = &ani;
     }
-    if(!attack)
-    {
-        attack = &atk;
-    }
-
+    
     if(starts_with_num(value, "idle"))
     {
         get_tail_number(tempInt, value, "idle");
@@ -6730,7 +7477,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             }
             ani_id = animfalls[tempInt + STA_ATKS - 1];
         }
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(starts_with_num(value, "backfall"))
     {
@@ -6783,27 +7530,27 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
             }
             ani_id = animbackfalls[tempInt + STA_ATKS - 1];
         }
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "shock") == 0)   // If shock attacks do knock opponent down, play this
     {
         ani_id = ANI_SHOCK;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "backshock") == 0)   // If shock attacks do knock opponent down, play this
     {
         ani_id = ANI_BACKSHOCK;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "burn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BURN;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(stricmp(value, "backburn") == 0)   // If burn attacks do knock opponent down, play this
     {
         ani_id = ANI_BACKBURN;
-        newanim->bounce = 4;
+        newanim->bounce_factor = ANIMATION_BOUNCE_FACTOR_DEFAULT;
     }
     else if(starts_with_num(value, "death"))
     {
@@ -7189,7 +7936,6 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "upper") == 0)
     {
         ani_id = ANI_UPPER;
-        attack->counterattack = 100; //default to 100
         newanim->range.x.min = -10;
         newanim->range.x.max = 120;
     }
@@ -7216,38 +7962,15 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "special") == 0 || stricmp(value, "special1") == 0)
     {
         ani_id = ANI_SPECIAL;
-        if(!newanim->energycost)
-        {
-            newanim->energycost         = malloc(sizeof(*newanim->energycost));
-            memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-
-            newanim->energycost->cost   = ENERGYCOST_DEFAULT_COST;
-            newanim->energycost->mponly = COST_TYPE_MP_THEN_HP;
-        }
+        newanim->energy_cost.cost = ENERGY_COST_DEFAULT_COST;       
     }
     else if(stricmp(value, "special2") == 0)
     {
         ani_id = ANI_SPECIAL2;
-        if(!newanim->energycost)
-        {
-            newanim->energycost         = malloc(sizeof(*newanim->energycost));
-            memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-
-            newanim->energycost->cost   = ENERGYCOST_NOCOST;
-            newanim->energycost->mponly = COST_TYPE_MP_THEN_HP;
-        }
     }
     else if(stricmp(value, "special3") == 0 || stricmp(value, "jumpspecial") == 0)
     {
         ani_id = ANI_JUMPSPECIAL;
-        if(!newanim->energycost)
-        {
-            newanim->energycost         = malloc(sizeof(*newanim->energycost));
-            memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-
-            newanim->energycost->cost   = ENERGYCOST_NOCOST;
-            newanim->energycost->mponly = COST_TYPE_MP_THEN_HP;
-        }
     }
     else if(starts_with_num(value, "freespecial"))
     {
@@ -7366,52 +8089,52 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "grabattack") == 0)
     {
         ani_id = ANI_GRABATTACK;
-        newanim->attackone = 1; // default to 1, attack one one opponent
+        newanim->attack_one = 1; // default to 1, attack one one opponent
     }
     else if(stricmp(value, "grabattack2") == 0)
     {
         ani_id = ANI_GRABATTACK2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabforward") == 0)   // New grab attack for when pressing forward attack
     {
         ani_id = ANI_GRABFORWARD;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabforward2") == 0)   // New grab attack for when pressing forward attack
     {
         ani_id = ANI_GRABFORWARD2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabbackward") == 0)   // New grab attack for when pressing backward attack
     {
         ani_id = ANI_GRABBACKWARD;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabbackward2") == 0)   // New grab attack for when pressing backward attack
     {
         ani_id = ANI_GRABBACKWARD2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabup") == 0)   // New grab attack for when pressing up attack
     {
         ani_id = ANI_GRABUP;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabup2") == 0)   // New grab attack for when pressing up attack
     {
         ani_id = ANI_GRABUP2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabdown") == 0)   // New grab attack for when pressing down attack
     {
         ani_id = ANI_GRABDOWN;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "grabdown2") == 0)   // New grab attack for when pressing down attack
     {
         ani_id = ANI_GRABDOWN2;
-        newanim->attackone = 1;
+        newanim->attack_one = 1;
     }
     else if(stricmp(value, "spawn") == 0)     //  spawn/respawn works separately now
     {
@@ -7730,12 +8453,12 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "obstacle") == 0)
     {
         newchar->type                   = TYPE_OBSTACLE;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove = 0;
         }
         newchar->aimove |= AIMOVE1_NOMOVE;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aiattack = 0;
         }
@@ -7754,11 +8477,38 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         newchar->offscreenkill = 80;
         newchar->type = TYPE_STEAMER;
     }
+	else if(stricmp(value, "projectile") == 0)
+	{
+		newchar->type |= TYPE_PROJECTILE;
+
+		if (newchar->aimove == AIMOVE1_NONE)
+		{
+			newchar->aimove = AIMOVE1_NORMAL;
+		}
+		newchar->aimove |= AIMOVE1_ARROW;
+		if (!newchar->offscreenkill)
+		{			
+			newchar->offscreenkill = (int)(videomodes.hRes * 0.5);
+		}
+
+		// Note when using as a projectile, most of these
+		// are modified. See knife_spawn and bomb_spawn.
+		newchar->subject_to_hole = 0;
+		newchar->subject_to_gravity = 1;
+		newchar->subject_to_basemap = 0;
+		newchar->subject_to_wall = 0;
+		newchar->subject_to_platform = 0;
+		newchar->subject_to_screen = 0;
+		newchar->subject_to_minz = 1;
+		newchar->subject_to_maxz = 1;
+		newchar->subject_to_platform = 0;
+		newchar->no_adjust_base = 1;
+	}
     // my new types   7-1-2005
     else if(stricmp(value, "pshot") == 0)
     {
         newchar->type = TYPE_SHOT;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove = 0;
         }
@@ -7767,6 +8517,9 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         {
             newchar->offscreenkill = 200;
         }
+
+		// Note when using as a projectile, most of these
+		// are modified. See knife_spawn and bomb_spawn.
         newchar->subject_to_hole                = 0;
         newchar->subject_to_gravity             = 1;
         newchar->subject_to_basemap             = 0;
@@ -7841,7 +8594,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
     if(stricmp(value, "biker") == 0)
     {
         newchar->subtype                                        = SUBTYPE_BIKER;
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove                 = 0;
         }
@@ -7867,7 +8620,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "arrow") == 0) // 7-1-2005 Arrow type
     {
         newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
-        if(newchar->aimove == -1)
+        if(newchar->aimove == AIMOVE1_NONE)
         {
             newchar->aimove = 0;
         }
@@ -7981,6 +8734,81 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     }
 }
 
+// Caskey, Damon V.
+// 2019-11-22
+// 
+// Consolidate parsing string to entity type.
+e_entity_type find_entity_type_from_string(char* value)
+{
+	e_entity_type result;
+
+	if (stricmp(value, "end_level") == 0)
+	{
+		result = TYPE_ENEMY;
+	}
+	else if (stricmp(value, "enemy") == 0)
+	{
+		result = TYPE_ENEMY;
+	}
+	else if (stricmp(value, "item") == 0)
+	{
+		result = TYPE_ITEM;
+	}
+	else if (stricmp(value, "none") == 0)
+	{
+		result = TYPE_NONE;
+	}
+	else if (stricmp(value, "npc") == 0)
+	{
+		result = TYPE_NPC;
+	}
+	else if (stricmp(value, "obstacle") == 0)
+	{
+		result = TYPE_OBSTACLE;
+	}
+	else if (stricmp(value, "panel") == 0)
+	{
+		result = TYPE_PANEL;
+	}
+	else if (stricmp(value, "player") == 0)
+	{
+		result = TYPE_PLAYER;
+	}
+	else if (stricmp(value, "projectile") == 0)
+	{
+		result = TYPE_PROJECTILE;
+	}
+	else if (stricmp(value, "shot") == 0)
+	{
+		result = TYPE_SHOT;
+	}
+	else if (stricmp(value, "steamer") == 0)
+	{
+		result = TYPE_STEAMER;
+	}
+	else if (stricmp(value, "text_box") == 0)
+	{
+		result = TYPE_TEXTBOX;
+	}
+	else if (stricmp(value, "trap") == 0)
+	{
+		result = TYPE_TRAP;
+	}
+	else if (stricmp(value, "npc") == 0)
+	{
+		result = TYPE_NPC;
+	}
+	else
+	{
+		// This is not a real type. Just here to let us know
+		// we couldn't find a correct value.
+		result = TYPE_UNKNOWN;
+
+	}
+
+	return result;
+}
+
 void lcmHandleCommandHostile(ArgList *arglist, s_model *newchar)
 {
     int i;
@@ -7989,32 +8817,10 @@ void lcmHandleCommandHostile(ArgList *arglist, s_model *newchar)
 
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "enemy") == 0)
-        {
-            newchar->hostile |= TYPE_ENEMY;
-        }
-        else if(stricmp(value, "player") == 0)
-        {
-            newchar->hostile |= TYPE_PLAYER;
-        }
-        else if(stricmp(value, "obstacle") == 0)
-        {
-            newchar->hostile |= TYPE_OBSTACLE;
-        }
-        else if(stricmp(value, "shot") == 0)
-        {
-            newchar->hostile |= TYPE_SHOT;
-        }
-        else if(stricmp(value, "npc") == 0)
-        {
-            newchar->hostile |= TYPE_NPC;
-        }
-        else
-        {
-            newchar->hostile |= atoi(value); //debug raw integer value
-        }
+		newchar->hostile |= find_entity_type_from_string(value);
     }
 }
+
 void lcmHandleCommandCandamage(ArgList *arglist, s_model *newchar)
 {
     int i;
@@ -8023,34 +8829,7 @@ void lcmHandleCommandCandamage(ArgList *arglist, s_model *newchar)
 
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "enemy") == 0)
-        {
-            newchar->candamage |= TYPE_ENEMY;
-        }
-        else if(stricmp(value, "player") == 0)
-        {
-            newchar->candamage |= TYPE_PLAYER;
-        }
-        else if(stricmp(value, "obstacle") == 0)
-        {
-            newchar->candamage |= TYPE_OBSTACLE;
-        }
-        else if(stricmp(value, "shot") == 0)
-        {
-            newchar->candamage |= TYPE_SHOT;
-        }
-        else if(stricmp(value, "npc") == 0)
-        {
-            newchar->candamage |= TYPE_NPC;
-        }
-        else if(stricmp(value, "ground") == 0)  // not really needed, though
-        {
-            newchar->ground = 1;
-        }
-        else
-        {
-            newchar->candamage |= atoi(value); //debug raw integer value
-        }
+		newchar->candamage |= find_entity_type_from_string(value);
     }
 }
 
@@ -8062,30 +8841,7 @@ void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
 
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "enemy") == 0)
-        {
-            newchar->projectilehit |= TYPE_ENEMY;
-        }
-        else if(stricmp(value, "player") == 0)
-        {
-            newchar->projectilehit |= TYPE_PLAYER;
-        }
-        else if(stricmp(value, "obstacle") == 0)
-        {
-            newchar->projectilehit |= TYPE_OBSTACLE;
-        }
-        else if(stricmp(value, "shot") == 0)
-        {
-            newchar->projectilehit |= TYPE_SHOT;
-        }
-        else if(stricmp(value, "npc") == 0)
-        {
-            newchar->projectilehit |= TYPE_NPC;
-        }
-        else
-        {
-            newchar->projectilehit |= atoi(value); //debug raw integer value
-        }
+		newchar->projectilehit |= find_entity_type_from_string(value);
     }
 }
 
@@ -8719,12 +9475,12 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.pain          = -1;
     newchar->icon.get           = -1;
     newchar->icon.weapon		= -1;			    // No weapon icon set yet
-    newchar->diesound           = -1;
+    newchar->diesound           = SAMPLE_ID_NONE;
     newchar->nolife             = 0;			    // default show life = 1 (yes)
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
     newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
-    newchar->aimove             = -1;
+    newchar->aimove             = AIMOVE1_NONE;
     newchar->aiattack           = -1;
     newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
     newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
@@ -8772,14 +9528,14 @@ s_model *init_model(int cacheindex, int unload)
     newchar->subject_to_minz            = -1;
     newchar->subject_to_maxz            = -1;
     newchar->no_adjust_base             = -1;
-    newchar->pshotno                    = -1;
-    newchar->project                    = -1;
-    newchar->dust.fall_land             = -1;
-    newchar->dust.jump_land             = -1;
-    newchar->dust.jump_start            = -1;
-    newchar->bomb                       = -1;
-    newchar->star                       = -1;
-    newchar->knife                      = -1;
+    newchar->pshotno                    = MODEL_INDEX_NONE;
+    newchar->project                    = MODEL_INDEX_NONE;
+    newchar->dust.fall_land             = MODEL_INDEX_NONE;
+    newchar->dust.jump_land             = MODEL_INDEX_NONE;
+    newchar->dust.jump_start            = MODEL_INDEX_NONE;
+    newchar->bomb                       = MODEL_INDEX_NONE;
+    newchar->star                       = MODEL_INDEX_NONE;
+    newchar->knife                      = MODEL_INDEX_NONE;
     newchar->stealth.hide               = 0;
     newchar->stealth.detect             = 0;
     newchar->attackthrottle				= 0.0f;
@@ -8820,91 +9576,92 @@ void update_model_loadflag(s_model *model, char unload)
 
 s_model *load_cached_model(char *name, char *owner, char unload)
 {
-
     #define LOG_CMD_TITLE   "%-20s"
 
-    s_model *newchar = NULL,
-            *tempmodel = NULL;
+    s_model* newchar = NULL;
+    s_model* tempmodel = NULL;
 
     s_anim *newanim = NULL;
 
-    char *filename      = NULL,
-         *buf           = NULL,
-         *animscriptbuf = NULL,
-         *scriptbuf     = NULL,
-         *command       = NULL,
-         *value         = NULL,
-         *value2        = NULL,
-         *value3        = NULL;
+    char* filename = NULL;
+    char* buf = NULL;
+    char* animscriptbuf = NULL;
+    char* scriptbuf = NULL;
+    char* command = NULL;
+    char* value = NULL;
+    char* value2 = NULL;
+    char* value3 = NULL;
 
-    char fnbuf[MAX_BUFFER_LEN] = {""},
-                      namebuf[MAX_BUFFER_LEN] = {""},
-                                     argbuf[MAX_ARG_LEN + 1] = {""};
+    char fnbuf[MAX_BUFFER_LEN] = { "" };
+    char namebuf[MAX_BUFFER_LEN] = { "" };
+    char argbuf[MAX_ARG_LEN + 1] = { "" };
 
     ArgList arglist;
 
     float tempFloat;
 
-    int ani_id = -1,
-        script_id = -1,
-        frm_id = -1,
-        i = 0,
-        j = 0,
-        tempInt = 0,
-        framecount = 0,
-        //framenum = 0,
-        frameset = 0,
-        peek = 0,
-        cacheindex = 0,
-        curframe = 0,
-        delay = 0,
-        errorVal = 0,
-        shadow_set = 0,
-        idle = 0,
-        frameshadow = -1,	// -1 will use default shadow for this entity, otherwise will use this value
-        soundtoplay = -1,
-        aimoveset = 0,
-        aiattackset = 0,
-        maskindex = -1,
-        nopalette = 0;
+    int ani_id = ANI_NONE;
+    int script_id = -1;
+    int frm_id = -1;
+    int i = 0;
+    int j = 0;
+    int tempInt = 0;
+    int framecount = 0;
+    int frameset = 0;
+    int peek = 0;
+    int cacheindex = 0;
+    int curframe = 0;
+    int delay = 0;
+    int errorVal = 0;
+    int shadow_set = 0;
+    int idle = 0;
+    int frameshadow = -1;	// -1 will use default shadow for this entity, otherwise will use this value
+    int soundtoplay = SAMPLE_ID_NONE;
+    int aimoveset = 0;
+    int aiattackset = 0;
+    int maskindex = -1;
+    int nopalette = 0;
+    int temp_collision_index = 0;
 
-    size_t size = 0,
-           line = 0,
-           len = 0,
-           sbsize = 0,
-           scriptlen = 0;
+    size_t size = 0;
+    size_t line = 0;
+    size_t len = 0;
+    size_t sbsize = 0;
+    size_t scriptlen = 0;
 
-    ptrdiff_t pos = 0,
-              index = 0;
+    ptrdiff_t pos = 0;
+    ptrdiff_t index = 0;
+
+    s_addframe_data add_frame_data;                                   
 
     s_hitbox            bbox = {    .x      = 0,
                                     .y      = 0,
                                     .width  = 0,
                                     .height = 0,
-                                    .z1     = 0,
-                                    .z2     = 0};
+                                    .z_background     = 0,
+                                    .z_foreground     = 0};
 
     s_hitbox            ebox = {    .x      = 0,
                                     .y      = 0,
                                     .width  = 0,
                                     .height = 0,
-                                    .z1     = 0,
-                                    .z2     = 0};
+                                    .z_background     = 0,
+                                    .z_foreground     = 0};
 
     s_hitbox            abox = {    .x = 0,
                                     .y = 0,
                                     .width = 0,
                                     .height = 0,
-                                    .z1 = 0,
-                                    .z2 = 0};
+                                    .z_background = 0,
+                                    .z_foreground = 0};
 
     s_axis_plane_vertical_int         offset = { .x = 0,
                                                  .y = 0 };
-    int                 shadow_xz[2] = {0, 0};
-    int                 shadow_coords[2] = {0, 0};
+    int shadow_xz[2] = {0, 0};
+    int shadow_coords[2] = {0, 0};
 
-    float               platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 },
-                        platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    float platform[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    float platform_con[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     s_move                  move = {    {   .x = 0,
                                             .y = 0,
@@ -8912,10 +9669,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                         .base = -1    //-1 = Disabled, 0+ base set
                                     };
 
-    s_damage_recursive  recursive;
-    s_hitbox            attack_coords;
-    s_collision_attack  attack;
-    s_collision_attack  *pattack = NULL;
     s_collision_body    bbox_con;
     s_collision_entity  ebox_con;
     s_hitbox            body_coords;
@@ -8924,11 +9677,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
 
-    char *shutdownmessage = NULL;
+    s_collision* temp_collision_head = NULL;
 
+    char* shutdownmessage = NULL;
 
-
-    unsigned *mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
+    unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
     static const char pre_text[] =   // this is the skeleton of frame function
     {
@@ -8990,14 +9743,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     };
 
     modelCommands cmd;
-    s_scripts *tempscripts;
+    s_scripts* tempscripts;
 
 #ifdef DEBUG
     printf("load_cached_model: %s, unload: %d\n", name, unload);
 #endif
 
     // Start up the standard log entry.
-    printf("Loaded '%s'", name);
+    printf("Loading '%s'", name);
 
     // Model already loaded but we might want to unload after level is completed.
     if((tempmodel = findmodel(name)) != NULL)
@@ -9039,18 +9792,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     //since recursive calls will change it!
     models_loaded++;
     addModel(newchar);
-
-    attack = emptyattack;      // empty attack
-
-	attack.dropv = default_model_dropv;
-
+        
     bbox_con = empty_body;
     ebox_con = empty_entity_collision;
 
     drawmethod = plainmethod;  // better than memset it to 0
 
     newchar->hitwalltype = -1; // init to -1
-
 
     //char* test = "load   knife 0";
     //ParseArgs(&arglist,test,argbuf);
@@ -9238,7 +9986,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->project = -1;
+                    newchar->project = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9267,7 +10015,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->rider = -1;
+                    newchar->rider = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9281,7 +10029,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->knife = -1;
+                    newchar->knife = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9292,7 +10040,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->pshotno = -1;
+                    newchar->pshotno = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9303,7 +10051,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->star = -1;
+                    newchar->star = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9315,7 +10063,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->bomb = -1;
+                    newchar->bomb = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9326,7 +10074,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->flash = -1;
+                    newchar->flash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9337,7 +10085,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->bflash = -1;
+                    newchar->bflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9348,7 +10096,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust.fall_land = -1;
+                    newchar->dust.fall_land = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9357,7 +10105,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(2);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust.jump_land = -1;
+                    newchar->dust.jump_land = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9366,7 +10114,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(3);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->dust.jump_start = -1;
+                    newchar->dust.jump_start = MODEL_INDEX_NONE;
                 }
                 else
                 {
@@ -9415,20 +10163,20 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SPEED:
                 value = GET_ARG(1);
-                newchar->speed = atof(value);
-                newchar->speed /= 10;
-                if(newchar->speed < 0.5)
+                newchar->speed.x = atof(value);
+                newchar->speed.x /= 10;
+                if(newchar->speed.x < 0.5)
                 {
-                    newchar->speed = 0.5;
+                    newchar->speed.x = 0.5;
                 }
-                if(newchar->speed > 30)
+                if(newchar->speed.x > 30)
                 {
-                    newchar->speed = 30;
+                    newchar->speed.x = 30;
                 }
                 break;
             case CMD_MODEL_SPEEDF:
                 value = GET_ARG(1);
-                newchar->speed = atof(value);
+                newchar->speed.x = atof(value);
                 break;
             case CMD_MODEL_JUMPSPEED:
                 value = GET_ARG(1);
@@ -9527,6 +10275,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 tempdef(else if, LIFESPAN)
                 tempdef(else if, LOSE)
                 tempdef(else if, PIT)
+				tempdef(else if, SUB_ENTITY_PARENT_KILL)
+				tempdef(else if, SUB_ENTITY_UNSUMMON)
                 tempdef(else if, TIMEOVER)
 
                 else if(starts_with(value, "normal"))
@@ -9542,12 +10292,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-                        if(i == ATK_BOSS_DEATH
-                           || i == ATK_ITEM
-                           || i == ATK_LIFESPAN
-                           || i == ATK_LOSE
-                           || i == ATK_TIMEOVER
-                           || i == ATK_PIT)
+                        if(is_attack_type_special(i))
                         {
                             continue;
                         }
@@ -9590,6 +10335,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 tempoff(else if,    LIFESPAN,   offense_factors)
                 tempoff(else if,    LOSE,       offense_factors)
                 tempoff(else if,    PIT,        offense_factors)
+				tempoff(else if,	SUB_ENTITY_PARENT_KILL,	offense_factors)
+				tempoff(else if,	SUB_ENTITY_UNSUMMON,	offense_factors)
                 tempoff(else if,    TIMEOVER,   offense_factors)
 
                 else if(starts_with(value, "normal"))
@@ -9607,12 +10354,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         // Skip types that we only intend for
                         // engine or script logic use.
-                        if(i == ATK_BOSS_DEATH
-                           || i == ATK_ITEM
-                           || i == ATK_LIFESPAN
-                           || i == ATK_LOSE
-                           || i == ATK_TIMEOVER
-                           || i == ATK_PIT)
+						if (is_attack_type_special(i))
                         {
                             continue;
                         }
@@ -10300,25 +11042,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
+                
+                collision_free_list(temp_collision_head);
+                temp_collision_head = NULL;
+                temp_collision_index = 0;
+
+                memset(&abox, 0, sizeof(abox));
                 memset(&ebox, 0, sizeof(ebox));
                 memset(&bbox, 0, sizeof(bbox));
-                memset(&abox, 0, sizeof(abox));
                 memset(&offset, 0, sizeof(offset));
                 memset(shadow_coords, 0, sizeof(shadow_coords));
                 memset(shadow_xz, 0, sizeof(shadow_xz));
                 memset(platform, 0, sizeof(platform));
+
                 shadow_set                      = 0;
                 bbox_con                        = empty_body;
                 ebox_con                        = empty_entity_collision;
                 body_coords                     = empty_collision_coords;
-                attack                          = emptyattack;
-				attack.dropv					= default_model_dropv;
-                attack_coords                   = empty_collision_coords;
-                recursive                       = empty_recursive;
-                attack.hitsound                 = SAMPLE_BEAT;
-                attack.hitflash                 = -1;
-                attack.blockflash               = -1;
-                attack.blocksound               = -1;
                 drawmethod                      = plainmethod;
                 idle                            = 0;
                 move.base                       = -1;
@@ -10326,7 +11066,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 move.axis.y                     = 0;
                 move.axis.z                     = 0;
                 frameshadow                     = -1;
-                soundtoplay                     = -1;
+                soundtoplay                     = SAMPLE_ID_NONE;
 
                 if(!newanim->range.x.min)
                 {
@@ -10339,28 +11079,33 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->range.y.max			= (int)newchar->jumpheight * 20;			// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
                 newanim->range.base.min         = 0;									// Base min.				
 				newanim->range.base.max			= (int)newchar->jumpheight * 20;			// Just use same logic as range Y.
-                newanim->energycost             = NULL;
-                newanim->chargetime             = 2;			// Default for backwards compatibility
-                newanim->projectile.shootframe  = -1;
-                newanim->projectile.throwframe  = -1;
-                newanim->projectile.tossframe   = -1;			// this get 1 of weapons numshots shots in the animation that you want(normaly the last)by tails
-                newanim->flipframe              = -1;
-                newanim->attackone              = 0;
-                newanim->antigrav               = 0;
+                newanim->energy_cost.cost       = 0;
+				newanim->energy_cost.disable	= 0;
+				newanim->energy_cost.mponly		= COST_TYPE_MP_THEN_HP;
+                newanim->charge_time            = ANIMATION_CHARGE_TIME_DEFAULT;
+				newanim->projectile				= NULL;
+				newanim->flipframe              = FRAME_NONE;
+                newanim->attack_one             = 0;
+                newanim->subject_to_gravity     = 1;
                 newanim->followup.animation     = 0;			// Default disabled
-                newanim->followup.condition     = FOLLOW_CONDITION_DISABLED;
-                newanim->unsummonframe          = -1;
-                newanim->landframe              = NULL;
-                newanim->jumpframe              = NULL;
-                newanim->dropframe              = NULL;
-                newanim->cancel                 = 0;  // OX. For cancelling anims into a freespecial. 0 by default , 3 when enabled. IMPORTANT!! Must stay as it is!
-                newanim->animhits               = 0; //OX counts hits on a per anim basis for cancels.
-                newanim->subentity              = newanim->projectile.bomb = newanim->projectile.knife =
-                                                  newanim->projectile.star = newanim->projectile.flash = -1;
+                newanim->followup.condition     = FOLLOW_CONDITION_NONE;
+                newanim->sub_entity_unsummon          = FRAME_NONE;
+                newanim->landframe.frame		= FRAME_NONE;
+				newanim->landframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
+                newanim->jumpframe.frame        = FRAME_NONE;
+				newanim->jumpframe.ent			= MODEL_INDEX_NONE;
+				newanim->jumpframe.velocity		= default_model_dropv;
+                newanim->dropframe.frame        = FRAME_NONE;
+				newanim->dropframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
+                newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
+                newanim->hit_count              = 0; //OX counts hits on a per anim basis for cancels.
+                newanim->sub_entity_model_index = MODEL_INDEX_NONE;
+				newanim->sub_entity_spawn		= NULL;
+				newanim->sub_entity_summon		= NULL;
                 newanim->quakeframe.framestart  = 0;
-                newanim->sync                   = -1;
+                newanim->sync                   = FRAME_NONE;
 
-                if((ani_id = translate_ani_id(value, newchar, newanim, &attack)) < 0)
+                if((ani_id = translate_ani_id(value, newchar, newanim)) < 0)
                 {
                     shutdownmessage = "Invalid animation name!";
                     goto lCleanup;
@@ -10384,7 +11129,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SYNC:
                 //if you want to remove default sync setting for idle or walk, use none
-                newanim->sync = translate_ani_id(GET_ARG(1), NULL, NULL, NULL);
+                newanim->sync = translate_ani_id(GET_ARG(1), NULL, NULL);
                 break;
             case CMD_MODEL_DELAY:
                 delay = GET_INT_ARG(1);
@@ -10398,161 +11143,369 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 shadow_xz[1] = GET_INT_ARG(2);
                 shadow_set = 1;
                 break;
-            case CMD_MODEL_ENERGYCOST:
+            case CMD_MODEL_ENERGY_COST:
             case CMD_MODEL_MPCOST:
-                if(!newanim->energycost)
-                {
-                    newanim->energycost    = malloc(sizeof(*newanim->energycost));
-                    memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-                }
+               
+                newanim->energy_cost.cost    = GET_INT_ARG(1);
+                newanim->energy_cost.mponly  = GET_INT_ARG(2);
+				newanim->energy_cost.disable = GET_INT_ARG(3);
 
-                newanim->energycost->cost    = GET_INT_ARG(1);
-                newanim->energycost->mponly  = GET_INT_ARG(2);
-                newanim->energycost->disable = GET_INT_ARG(3);
+				// Caskey, Damon V.
+				// 2019-11-22
+				// 
+				// Convert the idiotic arbitrary numeric value in text into bitwise 
+				// logic with entity types. I was a buffoon when I first coded this 
+				// feature and should have used bitwise logic to begin with.
+				switch (newanim->energy_cost.disable)
+				{
+				case 1:
+					newanim->energy_cost.disable |= TYPE_ENEMY;
+					newanim->energy_cost.disable |= TYPE_NPC;
+					newanim->energy_cost.disable |= TYPE_PLAYER;
+					break;
+				case 2:
+					newanim->energy_cost.disable |= TYPE_ENEMY;
+					newanim->energy_cost.disable |= TYPE_NPC;
+					break;
+				case 3:
+					newanim->energy_cost.disable |= TYPE_NPC;
+					newanim->energy_cost.disable |= TYPE_PLAYER;
+					break;
+				case 4:
+					newanim->energy_cost.disable |= TYPE_ENEMY;
+					newanim->energy_cost.disable |= TYPE_PLAYER;
+					break;
+				}
 
                 break;
             case CMD_MODEL_MPONLY:
-                if(!newanim->energycost)
-                {
-                    newanim->energycost    = malloc(sizeof(*newanim->energycost));
-                    memset(newanim->energycost, 0, sizeof(*newanim->energycost));
-                }
-
-                newanim->energycost->mponly = GET_INT_ARG(1);
+                newanim->energy_cost.mponly = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHARGETIME:
-                newanim->chargetime = GET_INT_ARG(1);
+                newanim->charge_time = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COLLISIONONE:
-                newanim->attackone = GET_INT_ARG(1);
+                newanim->attack_one = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_COUNTERATTACK:
-                attack.counterattack = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->counterattack = GET_INT_ARG(1);
+                
                 break;
             case CMD_MODEL_THROWFRAME:
             case CMD_MODEL_PSHOTFRAME:
             case CMD_MODEL_PSHOTFRAMEW:
             case CMD_MODEL_PSHOTFRAMENO:
-                newanim->projectile.throwframe = GET_FRAME_ARG(1);
-                newanim->projectile.position.y = GET_INT_ARG(2);
-                if(!newanim->projectile.position.y)
-                {
-                    newanim->projectile.position.y = 70;
-                }
-                else if(newanim->projectile.position.y == -1)
-                {
-                    newanim->projectile.position.y = 0;
-                }
-                break;
+
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->throwframe = GET_FRAME_ARG(1);
+                
+				if (GET_INT_ARG(2))
+				{
+					newanim->projectile->position.y = GET_INT_ARG(2);
+				}
+				break;
+
+
             case CMD_MODEL_SHOOTFRAME:
-                newanim->projectile.shootframe = GET_FRAME_ARG(1);
-                newanim->projectile.position.y = GET_INT_ARG(2);
-                if(newanim->projectile.position.y == -1)
-                {
-                    newanim->projectile.position.y = 0;
-                }
-                break;
+                
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->shootframe = GET_FRAME_ARG(1);
+
+				if (GET_INT_ARG(2))
+				{
+					newanim->projectile->position.y = GET_INT_ARG(2);
+				}
+				break;
+
             case CMD_MODEL_TOSSFRAME:
             case CMD_MODEL_PBOMBFRAME:
-                newanim->projectile.tossframe = GET_FRAME_ARG(1);
-                newanim->projectile.position.y = GET_INT_ARG(2);
-                if(newanim->projectile.position.y < 0)
-                {
-                    newanim->projectile.position.y = -1;
-                }
-                break;
+               
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->tossframe = GET_FRAME_ARG(1);
+
+				if (GET_INT_ARG(2))
+				{
+					newanim->projectile->position.y = GET_INT_ARG(2);
+				}
+
+				// For legacy compatability. See bomb_spawn() for details.
+				newanim->projectile->velocity.y = MODEL_SPEED_NONE;
+				break;
             case CMD_MODEL_CUSTKNIFE:
             case CMD_MODEL_CUSTPSHOT:
             case CMD_MODEL_CUSTPSHOTW:
-                newanim->projectile.knife = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->knife = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTPSHOTNO:
-                newanim->projectile.flash = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->flash = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CUSTBOMB:
             case CMD_MODEL_CUSTPBOMB:
-                newanim->projectile.bomb = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->bomb = get_cached_model_index(GET_ARG(1));
+				
                 break;
             case CMD_MODEL_CUSTSTAR:
-                newanim->projectile.star = get_cached_model_index(GET_ARG(1));
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+                newanim->projectile->star = get_cached_model_index(GET_ARG(1));
                 break;
+			case CMD_MODEL_PROJECTILE_COLOR_SET_ADJUST:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
 
-                // UT: merge dive and jumpframe, because they can't be used at the same time
-            case CMD_MODEL_DIVE:	//antigrav kicks
-                newanim->antigrav = 1;
+				value = GET_ARG(1);
 
-                // Allocate jumpframe and use it to set movement.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+				if (stricmp(value, "none") == 0)
+				{
+					tempInt = COLOR_SET_ADJUST_NONE;
+				}
+				else if (stricmp(value, "parent_index") == 0)
+				{
+					tempInt = COLOR_SET_ADJUST_PARENT_INDEX;
+				}
+				else if (stricmp(value, "parent_table") == 0)
+				{
+					tempInt = COLOR_SET_ADJUST_PARENT_TABLE;
+				}
+				else
+				{
+					tempInt = GET_INT_ARG(1);
+				}
 
-                newanim->jumpframe->frame = 0;
-                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(2);
-                newanim->jumpframe->ent = -1;
+				newanim->projectile->color_set_adjust = tempInt;
+				break;
+			case CMD_MODEL_PROJECTILE_DIRECTION_ADJUST:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				value = GET_ARG(1);
+
+				if (stricmp(value, "left") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_LEFT;
+				}
+				else if (stricmp(value, "none") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_NONE;
+				}
+				else if (stricmp(value, "opposite") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_OPPOSITE;
+				}
+				else if (stricmp(value, "right") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_RIGHT;
+				}
+				else if (stricmp(value, "same") == 0)
+				{
+					tempInt = DIRECTION_ADJUST_SAME;
+				}
+				
+				newanim->projectile->direction_adjust = tempInt;
+				break;
+			case CMD_MODEL_PROJECTILE_OFFENSE:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				value = GET_ARG(1);
+
+				if (stricmp(value, "parent") == 0)
+				{
+					tempInt = PROJECTILE_OFFENSE_PARENT;
+				}
+				else if (stricmp(value, "self") == 0)
+				{
+					tempInt = PROJECTILE_OFFENSE_SELF;
+				}
+
+				newanim->projectile->offense = tempInt;
+				break;
+			case CMD_MODEL_PROJECTILE_POSITION_X:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->position.x = GET_INT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_POSITION_Y:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->position.y = GET_INT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_POSITION_Z:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->position.z = GET_INT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_VELOCITY_X:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->velocity.x = GET_FLOAT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_VELOCITY_Y:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->velocity.y = GET_FLOAT_ARG(1);
+				break;
+			case CMD_MODEL_PROJECTILE_VELOCITY_Z:
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+
+				newanim->projectile->velocity.z = GET_FLOAT_ARG(1);
+				break;
+			case CMD_MODEL_STAR_VELOCITY:
+								
+				// If we don't have a projectile allcated, do it now.
+				if (!newanim->projectile)
+				{
+					newanim->projectile = allocate_projectile();
+				}
+				
+				newanim->projectile->star_velocity[0] = GET_FLOAT_ARG(1);
+				newanim->projectile->star_velocity[1] = GET_FLOAT_ARG(2);
+				newanim->projectile->star_velocity[2] = GET_FLOAT_ARG(3);
+				break;
+
+				// Legacy dive attacks. Turn off animation level subject_to_gravity
+				// and then use jumpframe to fly down at an angle.
+            case CMD_MODEL_DIVE: 
+                newanim->subject_to_gravity = 0;
+
+                // Use jumpframe it to set movement.
+				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
+
+				newanim->jumpframe.frame = 0;
+                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
+                newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE1:
-                newanim->antigrav = 1;
+                newanim->subject_to_gravity = 0;
 
-                // Allocate jumpframe and use it to set movement.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+                // Use jumpframe to set movement.
+				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
 
-                newanim->jumpframe->frame = 0;
-                newanim->jumpframe->velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe->ent = -1;
+				newanim->jumpframe.frame = 0;
+				newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
+                newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE2:
-                newanim->antigrav = 1;
+                newanim->subject_to_gravity = 0;
 
-                // Allocate jumpframe and use it to set movement.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+				// Use jumpframe to set movement.
+				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
 
-                newanim->jumpframe->frame = 0;
-                newanim->jumpframe->velocity.y = -GET_FLOAT_ARG(1);
-                newanim->jumpframe->ent = -1;
-                break;
+				newanim->jumpframe.frame = 0;
+				newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
+				newanim->jumpframe.ent = MODEL_INDEX_NONE; 
+				break;
             case CMD_MODEL_JUMPFRAME:
             {
-                // Allocate jumpframe.
-                newanim->jumpframe    = malloc(sizeof(*newanim->jumpframe));
-                memset(newanim->jumpframe, 0, sizeof(*newanim->jumpframe));
+                memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
 
-                newanim->jumpframe->frame        = GET_FRAME_ARG(1);
-                newanim->jumpframe->velocity.y   = GET_FLOAT_ARG(2);
+                newanim->jumpframe.frame        = GET_FRAME_ARG(1);
+                newanim->jumpframe.velocity.y   = GET_FLOAT_ARG(2);
 
                 value = GET_ARG(3);
                 if(value[0])
                 {
-                    newanim->jumpframe->velocity.x = GET_FLOAT_ARG(3);
-                    newanim->jumpframe->velocity.z = GET_FLOAT_ARG(4);
+                    newanim->jumpframe.velocity.x = GET_FLOAT_ARG(3);
+                    newanim->jumpframe.velocity.z = GET_FLOAT_ARG(4);
                 }
                 else // k, only for backward compatibility :((((((((((((((((
                 {
-                    if(newanim->jumpframe->velocity.y <= 0)
+                    if(newanim->jumpframe.velocity.y <= 0)
                     {
                         if(newchar->type == TYPE_PLAYER)
                         {
-                            newanim->jumpframe->velocity.y = newchar->jumpheight / 2;
-                            newanim->jumpframe->velocity.z = 0;
-                            newanim->jumpframe->velocity.x = 2;
+                            newanim->jumpframe.velocity.y = newchar->jumpheight / 2;
+                            newanim->jumpframe.velocity.z = 0;
+                            newanim->jumpframe.velocity.x = 2;
                         }
                         else
                         {
-                            newanim->jumpframe->velocity.y = newchar->jumpheight;
-                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
+                            newanim->jumpframe.velocity.y = newchar->jumpheight;
+                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                     }
                     else
                     {
                         if(newchar->type != TYPE_ENEMY && newchar->type != TYPE_NPC)
                         {
-                            newanim->jumpframe->velocity.z = newanim->jumpframe->velocity.x = 0;
+                            newanim->jumpframe.velocity.z = newanim->jumpframe.velocity.x = 0;
                         }
                         else
                         {
-                            newanim->jumpframe->velocity.z = 0;
-                            newanim->jumpframe->velocity.x = (float)1.3;
+                            newanim->jumpframe.velocity.z = 0;
+                            newanim->jumpframe.velocity.x = (float)1.3;
                         }
                     }
                 }
@@ -10560,48 +11513,47 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(5);
                 if(value[0])
                 {
-                    newanim->jumpframe->ent = get_cached_model_index(value);
+                    newanim->jumpframe.ent = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->jumpframe->ent = -1;
+                    newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 }
             }
             break;
             case CMD_MODEL_BOUNCEFACTOR:
-                newanim->bounce = GET_FLOAT_ARG(1);
+                newanim->bounce_factor = GET_FLOAT_ARG(1);
                 break;
-            case CMD_MODEL_LANDFRAME:
-                newanim->landframe    = malloc(sizeof(*newanim->landframe));
-                memset(newanim->landframe, 0, sizeof(*newanim->landframe));
-
+            case CMD_MODEL_LANDFRAME:				
                 // Landing frame.
-                newanim->landframe->frame = GET_FRAME_ARG(1);
+                newanim->landframe.frame = GET_FRAME_ARG(1);
 
                 // Entity to spawn when land frame triggers.
                 value = GET_ARG(2);
                 if(value[0])
                 {
-                    newanim->landframe->ent = get_cached_model_index(value);
-                }
-                else
-                {
-                    newanim->landframe->ent = -1;
+                    newanim->landframe.model_index = get_cached_model_index(value);
                 }
 
                 break;
             case CMD_MODEL_DROPFRAME:
-                newanim->dropframe    = malloc(sizeof(*newanim->dropframe));
-                memset(newanim->dropframe, 0, sizeof(*newanim->dropframe));
 
-                newanim->dropframe->frame = GET_FRAME_ARG(1);
+                newanim->dropframe.frame = GET_FRAME_ARG(1);
+
+				// Entity to spawn when drop frame triggers.
+				value = GET_ARG(2);
+				if (value[0])
+				{
+					newanim->dropframe.model_index = get_cached_model_index(value);
+				}
+
                 break;
             case CMD_MODEL_CANCEL:
             {
                 int i, t;
                 int add_flag = 0;
                 alloc_specials(newchar);
-                newanim->cancel = 3;
+                newanim->cancel = ANIMATION_CANCEL_ENABLED;
                 newchar->special[newchar->specials_loaded].numkeys = 0;
                 for(i = 0, t = 4; i < MAX_SPECIAL_INPUTS - 6; i++, t++)
                 {
@@ -10706,64 +11658,98 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 soundtoplay = sound_load_sample(GET_ARG(1), packfile, 1);
                 break;
             case CMD_MODEL_HITFX:
-                if(stricmp(GET_ARG(1), "none") == 0)
+
+                value = GET_ARG(1);
+
+                if(stricmp(value, "none") == 0)
                 {
-                    attack.hitsound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    attack.hitsound = sound_load_sample(GET_ARG(1), packfile, 1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
                 }
+
                 break;
+
             case CMD_MODEL_HITFLASH:
+
                 value = GET_ARG(1);
-                if(stricmp(value, "none") == 0)
+
+                if (stricmp(value, "none") == 0)
                 {
-                    attack.hitflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    attack.hitflash = get_cached_model_index(value);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
                 }
+
                 break;
+
             case CMD_MODEL_BLOCKFLASH:
+                
                 value = GET_ARG(1);
-                if(stricmp(value, "none") == 0)
+
+                if (stricmp(value, "none") == 0)
                 {
-                    attack.blockflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    attack.blockflash = get_cached_model_index(value);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
                 }
+
                 break;
+
             case CMD_MODEL_BLOCKFX:
-                attack.blocksound = sound_load_sample(GET_ARG(1), packfile, 1);
+                
+                value = GET_ARG(1);
+
+                if (stricmp(value, "none") == 0)
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
+                }
+
                 break;
+
             case CMD_MODEL_FASTATTACK:
+                
                 if(GET_INT_ARG(1))
                 {
-                    attack.next_hit_time = GAME_SPEED / 20;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->next_hit_time = GAME_SPEED / 20;
                 }
+
                 break;
+
             case CMD_MODEL_IGNOREATTACKID:
+                
                 if(GET_INT_ARG(1))
                 {
-                    attack.ignore_attack_id = 1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->ignore_attack_id = 1;
                 }
+                
                 break;
+
             case CMD_MODEL_BBOX:
                 bbox.x = GET_INT_ARG(1);
                 bbox.y = GET_INT_ARG(2);
                 bbox.width = GET_INT_ARG(3);
                 bbox.height = GET_INT_ARG(4);
-                bbox.z1 = GET_INT_ARG(5);
-                bbox.z2 = GET_INT_ARG(6);
+                bbox.z_background = GET_INT_ARG(5);
+                bbox.z_foreground = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_BBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
                 break;
             case CMD_MODEL_BBOX_POSITION_X:
+                
+                
+
                 bbox.x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_Y:
@@ -10776,22 +11762,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 bbox.height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_1:
-                bbox.z1 = GET_INT_ARG(1);
+                bbox.z_background = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_2:
-                bbox.z2 = GET_INT_ARG(1);
+                bbox.z_foreground = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOXZ:
-                bbox.z1 = GET_INT_ARG(1);
-                bbox.z2 = GET_INT_ARG(2);
+                bbox.z_background = GET_INT_ARG(1);
+                bbox.z_foreground = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_EBOX:
                 ebox.x = GET_INT_ARG(1);
                 ebox.y = GET_INT_ARG(2);
                 ebox.width = GET_INT_ARG(3);
                 ebox.height = GET_INT_ARG(4);
-                ebox.z1 = GET_INT_ARG(5);
-                ebox.z2 = GET_INT_ARG(6);
+                ebox.z_background = GET_INT_ARG(5);
+                ebox.z_foreground = GET_INT_ARG(6);
                 break;
             case CMD_MODEL_EBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
@@ -10809,14 +11795,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 ebox.height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Z_1:
-                ebox.z1 = GET_INT_ARG(1);
+                ebox.z_background = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOX_SIZE_Z_2:
-                ebox.z2 = GET_INT_ARG(1);
+                ebox.z_foreground = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_EBOXZ:
-                ebox.z1 = GET_INT_ARG(1);
-                ebox.z2 = GET_INT_ARG(2);
+                ebox.z_background = GET_INT_ARG(1);
+                ebox.z_foreground = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
@@ -10973,102 +11959,174 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 drawmethod.flag = 0;
                 break;
 
+            // 2020-03-02
+            // Caskey, Damon V.
+            //
+            // This needs to come before any other collision
+            // command so we know which collision index we 
+            // want the collision commands to affect.
+            case CMD_MODEL_COLLISION_INDEX:
+                temp_collision_index = GET_INT_ARG(1);
+                break;
+
             // 2016-10-11
             // Caskey, Damon
             // Broken down attack commands.
             case CMD_MODEL_COLLISION_BLOCK_COST:
-                attack.guardcost = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);               
+                
                 break;
+
             case CMD_MODEL_COLLISION_BLOCK_PENETRATE:
-                attack.no_block = GET_INT_ARG(1);
+                
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_COUNTER:
-                attack.counterattack = GET_INT_ARG(1);
+                
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->counterattack = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_FORCE:
-                attack.attack_force = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE:
-                attack.damage_on_landing.attack_force = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_force = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_LAND_MODE:
-                attack.blast = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blast = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_LETHAL_DISABLE:
-                attack.no_kill = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_kill = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_STEAL:
-                attack.steal = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->steal = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_TYPE:
 
 				value = GET_ARG(1);
 
 				if (stricmp(value, "burn") == 0)
 				{
-					attack.attack_type = ATK_BURN;
-				}
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
+                }
 				else if(stricmp(value, "freeze") == 0)
 				{
-					attack.attack_type = ATK_FREEZE;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
+
 				}
 				else if (stricmp(value, "shock") == 0)
 				{
-					attack.attack_type = ATK_SHOCK;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
 				}
 				else if (stricmp(value, "steal") == 0)
 				{
-					attack.attack_type = ATK_STEAL;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
 				}
 				else
 				{
-					attack.attack_type = GET_INT_ARG(1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = GET_INT_ARG(1);
 				}
 
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_FORCE:
-				recursive.force = GET_INT_ARG(1);
+          
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->force = GET_INT_ARG(1);                    
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX:
-				recursive.index = GET_INT_ARG(1);
+                
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->index = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
-				recursive.mode = GET_INT_ARG(1);
+                
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->mode = GET_INT_ARG(1);
+
                 break;
+
 			case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG:
-				recursive.tag = GET_INT_ARG(1);
+                
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->meta_tag = GET_INT_ARG(1);
+
 				break;
+
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
-				recursive.rate = GET_INT_ARG(1);
+                
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->rate = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE:
-				recursive.time = GET_INT_ARG(1);
+                
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->time = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_FALL_FORCE:
-                attack.attack_drop = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_X:
-                attack.dropv.x = GET_FLOAT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Y:
-                attack.dropv.y = GET_FLOAT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z:
-                attack.dropv.z = GET_FLOAT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(1);
+
                 break;
+
+			case CMD_MODEL_COLLISION_REACTION_REPOSITION_DIRECTION:
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
+                				
+				break;
+
             case CMD_MODEL_COLLISION_EFFECT_BLOCK_FLASH:
 
                 value = GET_ARG(1);
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    attack.blockflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-					attack.blockflash = get_cached_model_index(value);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
                 }
+
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_BLOCK_SOUND:
@@ -11077,12 +12135,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    attack.blocksound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    attack.blocksound = sound_load_sample(value, packfile, 1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
                 }
+
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH:
@@ -11091,16 +12150,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    attack.hitflash = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    attack.hitflash = get_cached_model_index(value);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
                 }
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE:
-                attack.no_flash = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(1);
+
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_SOUND:
@@ -11109,76 +12170,147 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    attack.hitsound = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    attack.hitsound = sound_load_sample(value, packfile, 1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
                 }
+
                 break;
+
             case CMD_MODEL_COLLISION_GROUND:
-                attack.otg = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->otg = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_COLLISION_MAP_INDEX:
-                attack.forcemap = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_COLLISION_MAP_TIME:
-                attack.maptime = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->maptime = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_POSITION_X:
-                abox.x = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_POSITION_Y:
-                abox.y = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_FREEZE_MODE:
-                attack.freeze = GET_INT_ARG(1);
+                
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freeze = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_FREEZE_TIME:
-                attack.freezetime = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freezetime = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME:
-                attack.next_hit_time = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->next_hit_time = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE:
-                attack.grab_distance = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab_distance = GET_INT_ARG(1);
+                                
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_MODE:
-                attack.grab = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_PAIN_SKIP:
-                attack.no_pain = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_pain = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_REACTION_PAUSE_TIME:
-                attack.pause_add = GET_INT_ARG(1);
+                
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_COLLISION_SEAL_COST:
-                attack.seal = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->seal = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_SEAL_TIME:
-                attack.sealtime = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->sealtime = GET_INT_ARG(1);
+
                 break;
+            
             case CMD_MODEL_COLLISION_SIZE_X:
-                abox.width = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_SIZE_Y:
-                abox.height = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_SIZE_Z_1:
-                attack_coords.z1 = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_SIZE_Z_2:
-                attack_coords.z2 = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(1);
+                                
                 break;
+
             case CMD_MODEL_COLLISION_STAYDOWN_RISE:
-                attack.staydown.rise = GET_INT_ARG(1);
+                
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.rise = GET_INT_ARG(1);
+                                
                 break;
+
             case CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK:
-                attack.staydown.riseattack = GET_INT_ARG(1);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.riseattack = GET_INT_ARG(1);
+
                 break;
+
             case CMD_MODEL_COLLISION_TAG:
-                attack.tag = GET_INT_ARG(1);
+                
+                // To do - Add tag system.
+                
                 break;
+
             case CMD_MODEL_COLLISION:
             case CMD_MODEL_COLLISION1:
             case CMD_MODEL_COLLISION2:
@@ -11197,193 +12329,407 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ITEMBOX:
             case CMD_MODEL_LOSE:
             case CMD_MODEL_COLLISION_ETC:
-                abox.x = GET_INT_ARG(1);
-                abox.y = GET_INT_ARG(2);
-                abox.width = GET_INT_ARG(3);
-                abox.height = GET_INT_ARG(4);
-                attack.attack_force = GET_INT_ARG(5);
 
-                attack.attack_drop = GET_INT_ARG(6);
+                // 2020-03-08, 
 
-                attack.no_block = GET_INT_ARG(7);
-                attack.no_flash = GET_INT_ARG(8);
-                attack.pause_add = GET_INT_ARG(9);
-                attack_coords.z1 = GET_INT_ARG(10); // depth or z
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(6);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(7);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(8);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(9);
+
+                // -- Not a typo - legacy Z sets identical value to back/fore.
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(10);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(10);         
 
                 switch(cmd)
                 {
                 case CMD_MODEL_COLLISION:
                 case CMD_MODEL_COLLISION1:
-                    attack.attack_type = ATK_NORMAL;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL;
+
                     break;
+
                 case CMD_MODEL_COLLISION2:
-                    attack.attack_type  = ATK_NORMAL2;
+                    
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL2;
+                    
                     break;
+
                 case CMD_MODEL_COLLISION3:
-                    attack.attack_type  = ATK_NORMAL3;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL3;
+                                        
                     break;
+
                 case CMD_MODEL_COLLISION4:
-                    attack.attack_type  = ATK_NORMAL4;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL4;
+
                     break;
+
                 case CMD_MODEL_COLLISION5:
-                    attack.attack_type  = ATK_NORMAL5;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL5;
+
                     break;
+
                 case CMD_MODEL_COLLISION6:
-                    attack.attack_type  = ATK_NORMAL6;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL6;
+
                     break;
+
                 case CMD_MODEL_COLLISION7:
-                    attack.attack_type  = ATK_NORMAL7;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL7;
+
                     break;
+
                 case CMD_MODEL_COLLISION8:
-                    attack.attack_type  = ATK_NORMAL8;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL8;
+
                     break;
+
                 case CMD_MODEL_COLLISION9:
-                    attack.attack_type  = ATK_NORMAL9;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL9;
+
                     break;
+
                 case CMD_MODEL_COLLISION10:
-                    attack.attack_type  = ATK_NORMAL10;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL10;
+                                        
                     break;
+
                 case CMD_MODEL_SHOCK:
-                    attack.attack_type  = ATK_SHOCK;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
+
                     break;
+
                 case CMD_MODEL_BURN:
-                    attack.attack_type  = ATK_BURN;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
+
                     break;
+
                 case CMD_MODEL_STEAL:
-                    attack.steal = 1;
-                    attack.attack_type  = ATK_STEAL;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->steal = 1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
+
                     break;
+
                 case CMD_MODEL_FREEZE:
-                    attack.attack_type  = ATK_FREEZE;
-                    attack.freeze = 1;
-                    attack.freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
-                    attack.forcemap = -1;
-                    attack.attack_drop = 0;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freeze = 1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->forcemap = -1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
+
                     break;
+
                 case CMD_MODEL_ITEMBOX:
-                    attack.attack_type  = ATK_ITEM;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_ITEM;
+
                     break;
+
                 case CMD_MODEL_LOSE:
-                    attack.attack_type  = ATK_LOSE;
-                    attack.attack_drop = 0;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_LOSE;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
+
                     break;
+
                 default:
                     tempInt = atoi(command + 6);
                     if(tempInt < MAX_ATKS - STA_ATKS + 1)
                     {
                         tempInt = MAX_ATKS - STA_ATKS + 1;
                     }
-                    attack.attack_type = tempInt + STA_ATKS - 1;
+
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = tempInt + STA_ATKS - 1;
                 }
                 break;
+
+                
+
             case CMD_MODEL_HITWALLTYPE:
                 value = GET_ARG(1);
                 newchar->hitwalltype = atoi(value);
                 break;
             case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
-                attack_coords.z1 = GET_INT_ARG(1);
-                attack_coords.z2 = GET_INT_ARG(2);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(2);
+
                 break;
+
             case CMD_MODEL_BLAST:
-                abox.x = GET_INT_ARG(1);
-                abox.y = GET_INT_ARG(2);
-                abox.width = GET_INT_ARG(3);
-                abox.height = GET_INT_ARG(4);
-                attack.dropv.y = default_model_dropv.y;
-                attack.dropv.x = default_model_dropv.x * 2.083f;
-                attack.dropv.z = 0;
-                attack.attack_force = GET_INT_ARG(5);
-                attack.no_block = GET_INT_ARG(6);
-                attack.no_flash = GET_INT_ARG(7);
-                attack.pause_add = GET_INT_ARG(8);
-                attack.attack_drop = 1;
-                attack.attack_type = ATK_BLAST;
-                attack_coords.z1 = GET_INT_ARG(9); // depth or z
-                attack.blast = 1;
+
+                // 2020-03-08, 
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(6);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(7);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(8);
+
+                // -- Not a typo - legacy Z sets identical value to back/fore.
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(9);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(9);
+
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 1;
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BLAST;
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blast = 1;
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = default_model_dropv.x * 2.083f;
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = default_model_dropv.y;
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = default_model_dropv.z;
+                
                 break;
+
             case CMD_MODEL_DROPV:
-                // drop velocity add if the target is knocked down
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->dropv.y = GET_FLOAT_ARG(1); // height add
-                pattack->dropv.x = GET_FLOAT_ARG(2); // xdir add
-                pattack->dropv.z = GET_FLOAT_ARG(3); // zdir add
+
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->dropv.y = GET_FLOAT_ARG(1);
+                    newchar->smartbomb->dropv.x = GET_FLOAT_ARG(2);
+                    newchar->smartbomb->dropv.z = GET_FLOAT_ARG(3);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(2);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(3);
+                }
+                
                 break;
+
             case CMD_MODEL_OTG:
                 // Over The Ground hit.
-                attack.otg = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->otg = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_JUGGLECOST:
+                
                 // if cost >= opponents jugglepoints , we can juggle
-                attack.jugglecost = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->jugglecost = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_GUARDCOST:
+                
                 // if cost >= opponents guardpoints , opponent will play guardcrush anim
-                attack.guardcost = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);
+                
                 break;
+
             case CMD_MODEL_STUN:
+                
                 //Like Freeze, but no auto remap.
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->freeze = 1;
-                pattack->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
-                pattack->attack_drop = 0;
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->freeze = 1;
+                    newchar->smartbomb->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
+                    newchar->smartbomb->attack_drop = 0;
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freeze = 1;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
+                }
+                                
                 break;
+
             case CMD_MODEL_GRABIN:
+                
                 // fake grab distanse efffect, not link
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->grab =  GET_INT_ARG(1);
-                pattack->grab_distance = GET_FLOAT_ARG(2);
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->grab = GET_INT_ARG(1);
+                    newchar->smartbomb->grab_distance = GET_FLOAT_ARG(2);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab = GET_INT_ARG(1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab_distance = GET_FLOAT_ARG(2);
+                }
+
                 break;
+
             case CMD_MODEL_NOREFLECT:
+                
                 // only cost target's hp, don't knock down or cause pain, unless the target is killed
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->no_pain = GET_INT_ARG(1);
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->no_pain = GET_INT_ARG(1);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_pain = GET_INT_ARG(1);
+                }
+
                 break;
+                                
             case CMD_MODEL_NOKILL:
+                
                 // don't kill the target, leave 1 hp
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->no_kill = GET_INT_ARG(1);
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->no_kill = GET_INT_ARG(1);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_kill = GET_INT_ARG(1);
+                }
+                
                 break;
+
             case CMD_MODEL_FORCEDIRECTION:
+                
                 // the attack direction
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->force_direction = GET_INT_ARG(1);
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->force_direction = GET_INT_ARG(1);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
+                }
+                                
                 break;
+
             case CMD_MODEL_DAMAGEONLANDING:
+                
                 // fake throw damage on landing
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->damage_on_landing.attack_force = GET_INT_ARG(1);
-                pattack->blast = GET_INT_ARG(2);
-                pattack->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->damage_on_landing.attack_force = GET_INT_ARG(1);
+                    newchar->smartbomb->blast = GET_INT_ARG(2);
+                    newchar->smartbomb->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_force = GET_INT_ARG(1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blast = GET_INT_ARG(2);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
+                }
+                                
                 break;
+
             case CMD_MODEL_SEAL:
+                
                 // Disable special moves for specified time.
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->sealtime = GET_INT_ARG(1) * GAME_SPEED;
-                pattack->seal = GET_INT_ARG(2);
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->sealtime = GET_INT_ARG(1) * GAME_SPEED;
+                    newchar->smartbomb->seal = GET_INT_ARG(2);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->sealtime = GET_INT_ARG(1) * GAME_SPEED;
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->seal = GET_INT_ARG(2);
+                }
+                              
                 break;
+
             case CMD_MODEL_STAYDOWN:
+                
                 // Disable special moves for specified time.
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->staydown.rise          = GET_INT_ARG(1); //Risetime modifier.
-                pattack->staydown.riseattack    = GET_INT_ARG(2); //Riseattack time addition and toggle.
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->staydown.rise = GET_INT_ARG(1);
+                    newchar->smartbomb->staydown.riseattack = GET_INT_ARG(2);
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.rise = GET_INT_ARG(1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.riseattack = GET_INT_ARG(2);
+                }
+
                 break;
+
             case CMD_MODEL_DOT:
 
-                recursive.index  = GET_INT_ARG(1);  //Index.
-                recursive.time   = GET_INT_ARG(2);  //Time to expiration.
-                recursive.mode	 = GET_INT_ARG(3);  //Mode, see damage_recursive.
-                recursive.force  = GET_INT_ARG(4);  //Amount per tick.
-                recursive.rate   = GET_INT_ARG(5);  //Tick delay.
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->index  = GET_INT_ARG(1);  //Index.
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->time   = GET_INT_ARG(2);  //Time to expiration.
+                
+				tempInt = GET_INT_ARG(3);
+
+				switch (tempInt)
+				{
+				case DAMAGE_RECURSIVE_CMD_READ_NONLETHAL_HP:
+                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_MP:
+                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_MP;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_MP_NONLETHAL_HP:
+                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_MP;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_HP:
+                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
+					break;
+				case DAMAGE_RECURSIVE_CMD_READ_HP_MP:
+                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
+					tempInt ^= DAMAGE_RECURSIVE_MODE_MP;
+					break;
+				}
+
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->mode = tempInt;
+
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->force  = GET_INT_ARG(4);  //Amount per tick.
+                collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->rate   = GET_INT_ARG(5);  //Tick delay.
+
+                tempInt = 0;
 
                 break;
 
             case CMD_MODEL_FORCEMAP:
+                
                 // force color map change for specified time
-                pattack = (!newanim && newchar->smartbomb) ? newchar->smartbomb : &attack;
-                pattack->forcemap = GET_INT_ARG(1);
-                pattack->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->forcemap = GET_INT_ARG(1);
+                    newchar->smartbomb->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
+                }
+                else
+                {
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
+                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
+                }
+
                 break;
+
             case CMD_MODEL_IDLE:
                 idle = GET_INT_ARG(1);
                 break;
@@ -11455,6 +12801,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shutdownmessage = "Cannot add frame: animation not specified!";
                     goto lCleanup;
                 }
+
+                // Reset index for collision boxes.
+                temp_collision_index = 0;
+
                 peek = 0;
                 if(frameset && framecount >= 0)
                 {
@@ -11528,45 +12878,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         maskindex = -1;
                     }
                 }
+                
+                
+
+                
+                
                 // Adjust coords: add offsets and change size to coords
                 body_coords.x      = bbox.x - offset.x;
                 body_coords.y      = bbox.y - offset.y;
                 body_coords.width  = bbox.width + body_coords.x;
                 body_coords.height = bbox.height + body_coords.y;
-                body_coords.z1     = bbox.z1;
-                body_coords.z2     = bbox.z2;
-
-                if(body_coords.z2 > body_coords.z1)
-                {
-                    body_coords.z1 -= offset.y;
-                    body_coords.z2 -= offset.y;
-                }
+                body_coords.z_background     = bbox.z_background;
+                body_coords.z_foreground     = bbox.z_foreground;
 
                 entity_coords.x      = ebox.x - offset.x;
                 entity_coords.y      = ebox.y - offset.y;
                 entity_coords.width  = ebox.width + entity_coords.x;
                 entity_coords.height = ebox.height + entity_coords.y;
-                entity_coords.z1     = ebox.z1;
-                entity_coords.z2     = ebox.z2;
-
-                if(entity_coords.z2 > entity_coords.z1)
-                {
-                    entity_coords.z1 -= offset.y;
-                    entity_coords.z2 -= offset.y;
-                }
-
-                attack_coords.x      = abox.x - offset.x;
-                attack_coords.y      = abox.y - offset.y;
-                attack_coords.width  = abox.width + attack_coords.x;
-                attack_coords.height = abox.height + attack_coords.y;
-
-                if(attack_coords.z2 > attack_coords.z1)
-                {
-                    attack_coords.z1 -= offset.y;
-                    attack_coords.z2 -= offset.y;
-                }
-
-                //attack.coords.z1 = abox.z1;
+                entity_coords.z_background     = ebox.z_background;
+                entity_coords.z_foreground     = ebox.z_foreground;
+                                
+               
                 if(platform[PLATFORM_X] == PLATFORM_DEFAULT_X) // old style
                 {
                     platform_con[PLATFORM_X] = 0;
@@ -11612,13 +12944,39 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     dm.flag = 0;
                 }
 
-                curframe = addframe(newanim, index, framecount, delay, idle,
-                                    &ebox_con, &bbox_con, &attack, &move, platform_con,
-                                    frameshadow, shadow_coords, soundtoplay,
-                                    &dm, &offset, &recursive, &attack_coords,
-                                    &body_coords, &entity_coords);
+                
 
-                soundtoplay = -1;
+                add_frame_data.animation = newanim;
+                add_frame_data.spriteindex = index;
+                add_frame_data.framecount = framecount;
+                add_frame_data.delay = delay;
+                add_frame_data.idle = idle;
+                add_frame_data.ebox = &ebox_con;
+                add_frame_data.bbox = &bbox_con;
+                add_frame_data.move = &move;
+                add_frame_data.platform = platform_con;
+                add_frame_data.frameshadow = frameshadow;
+                add_frame_data.shadow_coords = shadow_coords;
+                add_frame_data.soundtoplay = soundtoplay;
+                add_frame_data.drawmethod = &dm;
+                add_frame_data.offset = &offset;
+                add_frame_data.body_coords = &body_coords;
+                add_frame_data.entity_coords = &entity_coords;
+                
+                add_frame_data.model = newchar;                
+
+                // Delete collision nodes from collision list 
+                // that don't have coordinates defined at all 
+                // or the coordinates X/Y/H/W are all 0.
+                collision_remove_undefined_coordinates(&temp_collision_head);
+                
+                // Collision head may have changed, so this needs to
+                // be right before addframe.
+                add_frame_data.collision = temp_collision_head;
+                
+                curframe = addframe(&add_frame_data);
+                
+                soundtoplay = SAMPLE_ID_NONE;
                 frm_id = -1;
             }
             break;
@@ -11650,16 +13008,87 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_FOLLOWCOND:
-                newanim->followup.condition = GET_INT_ARG(1);
-                break;
-            case CMD_MODEL_COUNTERRANGE:
-                newanim->counterrange    = malloc(sizeof(*newanim->counterrange));
-                memset(newanim->counterrange, 0, sizeof(*newanim->counterrange));
+				
+				// 2019-11-24
+				// Caskey, Damon V.
+				//
+				// Follow up condition is now handled by bitwise logic.
+				// We need to set up our bit flags based on the old int 
+				// arg for backward compatability.
+				
+				// Get legacy style condition arg.
+				tempInt = GET_INT_ARG(1);
+				
+				// Make sure condition is reset.
+				newanim->followup.condition = FOLLOW_CONDITION_NONE;
 
-                newanim->counterrange->frame.min    = GET_FRAME_ARG(1);
-                newanim->counterrange->frame.max    = GET_FRAME_ARG(2);
-                newanim->counterrange->condition    = GET_INT_ARG(3);
-                newanim->counterrange->damaged      = GET_INT_ARG(4);
+				switch (tempInt)
+				{
+				default:
+				case FOLLOW_CONDITION_CMD_READ_ALWAYS:
+					newanim->followup.condition |= FOLLOW_CONDITION_ANY;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE:
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK:
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB:
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_FALSE;
+					newanim->followup.condition |= FOLLOW_CONDITION_GRAB_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
+					break;
+				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK:
+					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_TRUE;
+					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
+					break;
+				}				
+                
+            case CMD_MODEL_COUNTERRANGE:
+                newanim->counter_action.frame.min    = GET_FRAME_ARG(1);
+                newanim->counter_action.frame.max    = GET_FRAME_ARG(2);
+				
+				// 2019-12-04
+				// Caskey, Damon V.
+				//
+				// Counter action condition is now handled by bitwise logic.
+				// We need to set up our bit flags based on the old int 
+				// arg for backward compatability.
+
+				// Get legacy style condition arg.
+				tempInt = GET_INT_ARG(3);
+
+				// Make sure condition is reset.
+				newanim->counter_action.condition = COUNTER_ACTION_CONDITION_NONE;
+
+				switch (tempInt)
+				{
+				default:
+				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS:
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					break;
+				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE:
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					break;
+				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE:
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_BACK_TRUE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_BLOCK_TRUE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_FREEZE_FALSE;
+					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					break;
+				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE:
+					newanim->counter_action.condition ^= FOLLOW_CONDITION_ANY;
+					break;
+				}
+
+                newanim->counter_action.damaged      = GET_INT_ARG(4);
                 break;
             case CMD_MODEL_WEAPONFRAME:
                 if(!newanim->weaponframe)
@@ -11681,36 +13110,34 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(value[0])
                 {
-                    newanim->subentity = get_cached_model_index(value);
+                    newanim->sub_entity_model_index = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_SPAWNFRAME:
-                newanim->spawnframe    = malloc(5 * sizeof(*newanim->spawnframe));
-                memset(newanim->spawnframe, 0, 5 * sizeof(*newanim->spawnframe));
-                newanim->spawnframe[0] = GET_FRAME_ARG(1);
-                newanim->spawnframe[1] = GET_FLOAT_ARG(2);
-                newanim->spawnframe[2] = GET_FLOAT_ARG(3);
-                newanim->spawnframe[3] = GET_FLOAT_ARG(4);
-                newanim->spawnframe[4] = GET_FLOAT_ARG(5);
+                
+				newanim->sub_entity_spawn = allocate_sub_entity();
+
+				newanim->sub_entity_spawn->frame = GET_FRAME_ARG(1);
+				newanim->sub_entity_spawn->position.x = GET_FLOAT_ARG(2);
+				newanim->sub_entity_spawn->position.z = GET_FLOAT_ARG(3);
+				newanim->sub_entity_spawn->position.y = GET_FLOAT_ARG(4);
+				newanim->sub_entity_spawn->placement = GET_INT_ARG(5);
                 break;
+
             case CMD_MODEL_SUMMONFRAME:
-                newanim->summonframe    = malloc(5 * sizeof(*newanim->summonframe));
-                memset(newanim->summonframe, 0, 5 * sizeof(*newanim->summonframe));
-                newanim->summonframe[0] = GET_FRAME_ARG(1);
-                newanim->summonframe[1] = GET_FLOAT_ARG(2);
-                newanim->summonframe[2] = GET_FLOAT_ARG(3);
-                newanim->summonframe[3] = GET_FLOAT_ARG(4);
-                newanim->summonframe[4] = GET_FLOAT_ARG(5);
+				
+				newanim->sub_entity_summon = allocate_sub_entity();
+
+				newanim->sub_entity_summon->frame = GET_FRAME_ARG(1);
+				newanim->sub_entity_summon->position.x = GET_FLOAT_ARG(2);
+				newanim->sub_entity_summon->position.z = GET_FLOAT_ARG(3);
+				newanim->sub_entity_summon->position.y = GET_FLOAT_ARG(4);
+				newanim->sub_entity_summon->placement = GET_INT_ARG(5);
                 break;
-            case CMD_MODEL_STAR_VELOCITY:
-                newanim->starvelocity    = malloc(3 * sizeof(*newanim->starvelocity));
-                memset(newanim->starvelocity, 0, 3 * sizeof(*newanim->starvelocity));
-                newanim->starvelocity[0] = GET_FLOAT_ARG(1);
-                newanim->starvelocity[1] = GET_FLOAT_ARG(2);
-                newanim->starvelocity[2] = GET_FLOAT_ARG(3);
-                break;
+
+            
             case CMD_MODEL_UNSUMMONFRAME:
-                newanim->unsummonframe = GET_FRAME_ARG(1);
+                newanim->sub_entity_unsummon = GET_FRAME_ARG(1);
                 break;
             case CMD_MODEL_NOHITHEAD:
                 value = GET_ARG(1);
@@ -11922,9 +13349,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     {
         newchar->aiattack = 0;
     }
-    if(newchar->aimove == -1)
+    if(newchar->aimove == AIMOVE1_NONE)
     {
-        newchar->aimove = 0;
+        newchar->aimove = AIMOVE1_NORMAL;
     }
     //if(!newchar->offscreenkill) newchar->offscreenkill = 1000;
 
@@ -11995,8 +13422,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         case TYPE_TRAP:
             newchar->hostile  = TYPE_ENEMY | TYPE_PLAYER;
         case TYPE_OBSTACLE:
-            newchar->hostile = 0;
+            newchar->hostile = TYPE_UNDELCARED;
             break;
+		case TYPE_PROJECTILE:
+			// We want a clean slate so the projectile 
+			// spawn functions will copy owner settings 
+			// by default.
+			newchar->hostile = TYPE_UNDELCARED;
+			break;
         case TYPE_SHOT:  // only target enemies
             newchar->hostile = TYPE_ENEMY ;
             break;
@@ -12028,6 +13461,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         case TYPE_OBSTACLE:
             newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
             break;
+		case TYPE_PROJECTILE:
+			// We want a clean slate so the projectile 
+			// spawn functions will copy owner settings 
+			// by default.
+			newchar->candamage = TYPE_UNDELCARED;
+			break;
         case TYPE_SHOT:
             newchar->candamage = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
@@ -12048,16 +13487,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             //Do nothing.
             break;
         case TYPE_ENEMY:
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->projectilehit = TYPE_ENEMY | TYPE_OBSTACLE;
             break;
         case TYPE_PLAYER:
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->projectilehit = TYPE_PLAYER | TYPE_OBSTACLE;
             break;
         case TYPE_TRAP: // hmm, don't really needed
             newchar->projectilehit  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
         case TYPE_OBSTACLE: // hmm, don't really needed
             newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
+		case TYPE_PROJECTILE:
+			// We want a clean slate so the projectile 
+			// spawn functions will copy owner settings 
+			// by default.
+			newchar->projectilehit = TYPE_UNDELCARED;
+			break;
         case TYPE_SHOT: // hmm, don't really needed
             newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
@@ -12069,7 +13514,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     if(newchar->jumpspeed < 0)
     {
-        newchar->jumpspeed = MAX(newchar->speed, 1);
+        newchar->jumpspeed = MAX(newchar->speed.x, 1);
     }
 
     if(blendfx_is_set == 0)
@@ -12115,6 +13560,7 @@ lCleanup:
 
     if(!shutdownmessage)
     {
+        printf(" ...done!\n");
         return newchar;
     }
 
@@ -16562,10 +18008,11 @@ void draw_visual_debug()
     int i;
     int instance;
     s_hitbox            *coords;
-    s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
+
+    s_collision*         collision_cursor;
 
 	int range_y_min = 0;
 	int range_y_max = 0;
@@ -16640,25 +18087,22 @@ void draw_visual_debug()
         if(savedata.debuginfo & DEBUG_DISPLAY_COLLISION_ATTACK)
         {
             // Animation has collision?
-            if(entity->animation->collision_attack)
+            if(entity->animation->collision)
             {
-                // Frame has collision?
-                if(entity->animation->collision_attack[entity->animpos])
-                {
-                    // Loop instances of collision.
-                    for(instance = 0; instance < max_collisons; instance++)
-                    {
-                        // Get collision instance pointer.
-                        collision_attack = entity->animation->collision_attack[entity->animpos]->instance[instance];
+                collision_cursor = entity->animation->collision[entity->animpos];
 
-                        // Valid collision instance pointer found?
-                        if(collision_attack)
-                        {
-                            coords = collision_attack->coords;
-                            draw_box_on_entity(entity, coords->x, coords->y, entity->position.z+1, coords->width, coords->height, 2, LOCAL_COLOR_MAGENTA, &drawmethod);
-                        }
+                while (collision_cursor != NULL)
+                {
+                    if (collision_cursor->type & COLLISION_TYPE_ATTACK && collision_cursor->coords)
+                    {
+                        coords = collision_cursor->coords;
+                        draw_box_on_entity(entity, coords->x, coords->y, entity->position.z + 1, coords->width, coords->height, 2, LOCAL_COLOR_MAGENTA, &drawmethod);
                     }
+
+                    collision_cursor = collision_cursor->next;
                 }
+
+                collision_cursor = NULL;
             }
         }
     }
@@ -17214,6 +18658,8 @@ entity *alloc_ent()
     return ent;
 }
 
+
+
 int alloc_ents()
 {
     int i;
@@ -17500,8 +18946,10 @@ void ent_default_init(entity *e)
 
     switch(e->modeldata.type)
     {
+	case TYPE_UNDELCARED:
     case TYPE_RESERVED:
-        //Do nothing.
+	case TYPE_UNKNOWN:
+		//Do nothing.
         break;
     case TYPE_ENDLEVEL:
     case TYPE_ITEM:
@@ -17556,9 +19004,9 @@ void ent_default_init(entity *e)
             e->nograb_default = e->nograb;
             e->attacking = ATTACKING_ACTIVE;
             //e->direction = (e->position.x<0);
-            if(e->modeldata.speed)
+            if(e->modeldata.speed.x)
             {
-                e->velocity.x = (e->direction == DIRECTION_RIGHT) ? (e->modeldata.speed) : (-e->modeldata.speed);
+                e->velocity.x = (e->direction == DIRECTION_RIGHT) ? (e->modeldata.speed.x) : (-e->modeldata.speed.x);
             }
             else
             {
@@ -17572,13 +19020,13 @@ void ent_default_init(entity *e)
         else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
             e->energy_state.health_current = 1;
-            if(!e->modeldata.speed && !e->modeldata.nomove)
+            if(!e->modeldata.speed.x && !e->modeldata.nomove)
             {
-                e->modeldata.speed = 2;    // Set default speed to 2 for arrows
+                e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
             }
             else if(e->modeldata.nomove)
             {
-                e->modeldata.speed = 0;
+                e->modeldata.speed.x = 0;
             }
             if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
             {
@@ -17599,13 +19047,13 @@ void ent_default_init(entity *e)
         {
             e->trymove = common_trymove;
             // Must just be a regular enemy, set defaults accordingly
-            if(!e->modeldata.speed && !e->modeldata.nomove)
+            if(!e->modeldata.speed.x && !e->modeldata.nomove)
             {
-                e->modeldata.speed = 1;
+                e->modeldata.speed.x = 1;
             }
             else if(e->modeldata.nomove)
             {
-                e->modeldata.speed = 0;
+                e->modeldata.speed.x = 0;
             }
             if(e->modeldata.multiple == 0)
             {
@@ -17668,6 +19116,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         e->think = text_think;
         break;
+	case TYPE_PROJECTILE:
     case TYPE_SHOT:
         e->energy_state.health_current = 1;
         e->nograb = 1;
@@ -17675,13 +19124,13 @@ void ent_default_init(entity *e)
         e->think = common_think;
         e->takedamage = arrow_takedamage;
         e->attacking = ATTACKING_ACTIVE;
-        if(!e->model->speed && !e->modeldata.nomove)
+        if(!e->model->speed.x && !e->modeldata.nomove)
         {
-            e->modeldata.speed = 2;    // Set default speed to 2 for arrows
+            e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
         }
         else if(e->modeldata.nomove)
         {
-            e->modeldata.speed = 0;
+            e->modeldata.speed.x = 0;
         }
         if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
         {
@@ -17710,11 +19159,11 @@ void ent_default_init(entity *e)
         {
             if(e->direction == DIRECTION_RIGHT)
             {
-                e->velocity.x = e->modeldata.speed;
+                e->velocity.x = e->modeldata.speed.x;
             }
             else
             {
-                e->velocity.x = -(e->modeldata.speed);
+                e->velocity.x = -(e->modeldata.speed.x);
             }
             e->think = anything_walk;
 
@@ -17763,29 +19212,30 @@ void ent_default_init(entity *e)
 void ent_spawn_ent(entity *ent)
 {
     entity *s_ent = NULL;
-    float *spawnframe = ent->animation->spawnframe;
+	s_sub_entity *spawnframe = ent->animation->sub_entity_spawn;
     float dy = level ? 4.0 : 0.0;
-    // spawn point relative to current entity
-    if(spawnframe[4] == 0)
+    
+	// spawn point relative to current entity
+    if(spawnframe->placement == SUB_ENTITY_PLACEMENT_PARENT)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2], ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe->position.x : -spawnframe->position.x), ent->position.z + spawnframe->position.z, ent->position.y + spawnframe->position.y, ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
     }
     //relative to screen position
-    else if(spawnframe[4] == 1)
+    else if(spawnframe->placement == SUB_ENTITY_PLACEMENT_SCREEN)
     {
         if(level && !(level->scrolldir & SCROLL_UP) && !(level->scrolldir & SCROLL_DOWN))
         {
-            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, advancey + spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
         else
         {
-            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
     }
     //absolute position in level
     else
     {
-        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3] + 0.001, 0, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(spawnframe->position.x, spawnframe->position.z, spawnframe->position.y + 0.001, 0, NULL, ent->animation->sub_entity_model_index, NULL);
     }
 
     if(s_ent)
@@ -17803,39 +19253,40 @@ void ent_spawn_ent(entity *ent)
         s_ent->parent = ent;  //maybe used by A.I.
         execute_onspawn_script(s_ent);
     }
+
 }
 
 void ent_summon_ent(entity *ent)
 {
     entity *s_ent = NULL;
-    float *spawnframe = ent->animation->summonframe;
+	s_sub_entity *spawnframe = ent->animation->sub_entity_summon;
     float dy = level ? 4.0 : 0.0;
     // spawn point relative to current entity
-    if(spawnframe[4] == 0)
+    if(spawnframe->placement == SUB_ENTITY_PLACEMENT_PARENT)
     {
-        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe[1] : -spawnframe[1]), ent->position.z + spawnframe[2],  ent->position.y + spawnframe[3], ent->direction, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(ent->position.x + ((ent->direction == DIRECTION_RIGHT) ? spawnframe->position.x : -spawnframe->position.x), ent->position.z + spawnframe->position.z,  ent->position.y + spawnframe->position.y, ent->direction, NULL, ent->animation->sub_entity_model_index, NULL);
     }
     //relative to screen position
-    else if(spawnframe[4] == 1)
+    else if(spawnframe->placement == SUB_ENTITY_PLACEMENT_SCREEN)
     {
         if(level && !(level->scrolldir & SCROLL_UP) && !(level->scrolldir & SCROLL_DOWN))
         {
-            s_ent = spawn(advancex + spawnframe[1], advancey + spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, advancey + spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
         else
         {
-            s_ent = spawn(advancex + spawnframe[1], spawnframe[2] + dy, spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+            s_ent = spawn(advancex + spawnframe->position.x, spawnframe->position.z + dy, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
         }
     }
     //absolute position in level
     else
     {
-        s_ent = spawn(spawnframe[1], spawnframe[2], spawnframe[3], 0, NULL, ent->animation->subentity, NULL);
+        s_ent = spawn(spawnframe->position.x, spawnframe->position.z, spawnframe->position.y, 0, NULL, ent->animation->sub_entity_model_index, NULL);
     }
 
     if(s_ent)
     {
-        if(!spawnframe[4])
+        if(spawnframe->placement == SUB_ENTITY_PLACEMENT_PARENT)
         {
             s_ent->direction = ent->direction;
         }
@@ -17906,39 +19357,43 @@ bool check_jumpframe(entity *ent, unsigned int frame)
 {
     entity *effect;
 
+	s_onframe_move* jump;
+
+	jump = &ent->animation->jumpframe;
+
     // Must have jump frame allocated.
-    if(!ent->animation->jumpframe)
+    if(jump->frame == FRAME_NONE)
     {
         return 0;
     }
 
     // Must be on assigned jump frame.
-    if(ent->animation->jumpframe->frame != frame)
+    if(jump->frame != frame)
     {
         return 0;
     }
 
     // Chuck entity into the air.
-    toss(ent, ent->animation->jumpframe->velocity.y);
+    toss(ent, jump->velocity.y);
 
     // Set left or right horizontal velocity depending on
     // current direction.
     if(ent->direction == DIRECTION_RIGHT)
     {
-        ent->velocity.x = ent->animation->jumpframe->velocity.x;
+        ent->velocity.x = jump->velocity.x;
     }
     else
     {
-        ent->velocity.x = -ent->animation->jumpframe->velocity.x;
+        ent->velocity.x = -jump->velocity.x;
     }
 
     // Lateral velocity.
-    ent->velocity.z = ent->animation->jumpframe->velocity.z;
+    ent->velocity.z = jump->velocity.z;
 
     // Spawn an effect entity if defined.
-    if(ent->animation->jumpframe->ent >= 0)
+    if(jump->ent >= 0)
     {
-        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->jumpframe->ent, NULL);
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, jump->ent, NULL);
         if(effect)
         {
             effect->spawntype = SPAWN_TYPE_DUST_JUMP;
@@ -17956,7 +19411,7 @@ bool check_jumpframe(entity *ent, unsigned int frame)
 void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
-    s_collision_attack attack;
+    s_attack attack;
     s_axis_principal_float move;
     s_anim *anim = ent->animation;
 
@@ -18052,7 +19507,7 @@ void update_frame(entity *ent, unsigned int f)
         }
     }
 
-    if(anim->unsummonframe == f)
+    if(anim->sub_entity_unsummon == f)
     {
         if(self->subentity)
         {
@@ -18060,7 +19515,7 @@ void update_frame(entity *ent, unsigned int f)
             attack = emptyattack;
             attack.dropv = default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
-            attack.attack_type = max_attack_types - 1;
+            attack.attack_type = ATK_SUB_ENTITY_UNSUMMON;
             if(self->takedamage)
             {
                 self->takedamage(self, &attack, 0);
@@ -18075,12 +19530,12 @@ void update_frame(entity *ent, unsigned int f)
     }
 
     //spawn / summon /unsummon features
-    if(anim->spawnframe && anim->spawnframe[0] == f && anim->subentity >= 0)
+    if(anim->sub_entity_spawn && anim->sub_entity_spawn->frame == f && anim->sub_entity_model_index >= 0)
     {
         ent_spawn_ent(self);
     }
 
-    if(anim->summonframe && anim->summonframe[0] == f && anim->subentity >= 0)
+    if(anim->sub_entity_summon && anim->sub_entity_summon->frame == f && anim->sub_entity_model_index >= 0)
     {
         //subentity is dead
         if(!self->subentity || self->subentity->dead)
@@ -18097,51 +19552,61 @@ void update_frame(entity *ent, unsigned int f)
     // Perform jumping if on a jumpframe.
     check_jumpframe(self, f);
 
+	// This animation have projectile settings?
+	if (anim->projectile)
+	{
+		int position_x = anim->projectile->position.x;
 
-    if(anim->projectile.throwframe == f)
-    {
-        // For backward compatible thing
-        // throw stars in the air, hmm, strange
-        // custstar custknife in animation should be checked first
-        // then if the entity is jumping, check star first, if failed, try knife instead
-        // well, try knife at last, if still failed, try star, or just let if shutdown?
+		if (self->direction == DIRECTION_LEFT)
+		{
+			position_x = -position_x;
+		}
 
-        #define __trystar star_spawn(self->position.x + (self->direction == DIRECTION_RIGHT ? 56 : -56), self->position.z, self->position.y+67, self->direction)
-        #define __tryknife knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0, 0)
+		if (anim->projectile->throwframe == f)
+		{
+			// For backward compatible thing
+			// throw stars in the air, hmm, strange
+			// custstar custknife in animation should be checked first
+			// then if the entity is jumping, check star first, if failed, try knife instead
+			// well, try knife at last, if still failed, try star, or just let if shutdown?
 
-        if(anim->projectile.knife >= 0 || anim->projectile.flash >= 0)
-        {
-            __tryknife;
-        }
-        else if(anim->projectile.star >= 0)
-        {
-            __trystar;
-        }
-        else if(self->jumping)
-        {
-            if(!__trystar)
-            {
-                __tryknife;
-            }
-        }
-        else if(!__tryknife)
-        {
-            __trystar;
-        }
-        self->deduct_ammo = 1;
-    }
+#define __trystar star_spawn(self, anim->projectile)
+#define __tryknife knife_spawn(self, anim->projectile)
+			
+			if (anim->projectile->knife >= 0 || anim->projectile->flash >= 0)
+			{
+				__tryknife;
+			}
+			else if (anim->projectile->star >= 0)
+			{
+				__trystar;
+			}
+			else if (self->jumping)
+			{
+				if (!__trystar)
+				{
+					__tryknife;
+				}
+			}
+			else if (!__tryknife)
+			{
+				__trystar;
+			}
+			self->deduct_ammo = 1;
+		}
 
-    if(anim->projectile.shootframe == f)
-    {
-        knife_spawn(NULL, -1, self->position.x, self->position.z, self->position.y, self->direction, 1, 0);
-        self->deduct_ammo = 1;
-    }
+		if (anim->projectile->shootframe == f)
+		{
+			knife_spawn(self, anim->projectile);
+			self->deduct_ammo = 1;
+		}
 
-    if(anim->projectile.tossframe == f)
-    {
-        bomb_spawn(NULL, -1, self->position.x, self->position.z, self->position.y + anim->projectile.position.y, self->direction, 0);
-        self->deduct_ammo = 1;
-    }
+		if (anim->projectile->tossframe == f)
+		{
+			bomb_spawn(self, anim->projectile);
+			self->deduct_ammo = 1;
+		}
+	}
 
 uf_interrupted:
 
@@ -18206,7 +19671,7 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
         ent->animnum_previous = ent->animnum;
         ent->animnum = aninum;    // Stored for nocost usage
         ent->animation = ani;
-        ent->animation->animhits = 0;
+        ent->animation->hit_count = 0;
 
         ent->animating = ANIMATING_FORWARD;
         ent->lasthit = ent->grabbing;
@@ -18294,7 +19759,7 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.no_adjust_base       = oldmodel->no_adjust_base;
     }
-    if(ent->modeldata.aimove == -1)
+    if(ent->modeldata.aimove == AIMOVE1_NONE)
     {
         ent->modeldata.aimove               = oldmodel->aimove;
     }
@@ -18426,15 +19891,53 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     }
 }
 
+// Caskey, Damon V.
+// ~2018
+//
+// Allocate memory for a drawmethod and return pointer.
 s_drawmethod *allocate_drawmethod()
 {
 	s_drawmethod *result;
 
-	// Allocate memory for new drawmethod structure and get pointer.
+	// Allocate memory and get the pointer.
 	result = malloc(sizeof(*result));
 
 	// Copy default values into new drawmethod.
 	memcpy(result, &plainmethod, sizeof(*result));
+
+	return result;
+}
+
+// Caskey, Damon V.
+// 2019-12-13
+//
+// Allocate memory for a projectile animation setting and return pointer.
+s_projectile* allocate_projectile()
+{
+	s_projectile* result;
+
+	// Allocate memory and get the pointer.
+	result = malloc(sizeof(*result));
+
+	// Copy default values into new projectile setting.
+	memcpy(result, &projectile_default_animation, sizeof(*result));
+
+	return result;
+}
+
+// Caskey, Damon V.
+// 2019-12-11
+//
+// Allocate memory for a sub entity command and return pointer.
+s_sub_entity *allocate_sub_entity()
+{
+	s_sub_entity *result;
+
+	// Allocate memory and get the pointer.
+	result = malloc(sizeof(*result));
+
+	// Set any default values we need.
+	result->frame = FRAME_NONE;
 
 	return result;
 }
@@ -18598,7 +20101,7 @@ void ents_link(entity *e1, entity *e2)
 void kill_entity(entity *victim)
 {
     int i = 0;
-    s_collision_attack attack;
+    s_attack attack;
     entity *tempent = self;
 
     if(victim == NULL || !victim->exists)
@@ -18625,7 +20128,7 @@ void kill_entity(entity *victim)
     if(victim->modeldata.summonkill)
     {
         attack = emptyattack;
-        attack.attack_type = max_attack_types - 1;
+        attack.attack_type = ATK_SUB_ENTITY_PARENT_KILL;
         attack.dropv = default_model_dropv;
     }
     // kill minions
@@ -18748,245 +20251,281 @@ void kill_all()
     }
 }
 
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Test collision between two boxes. If any overlap is found,
+// populates collision_check_data->return_overlap with overlap
+// position and returns true.
+int check_collision(s_collision_check_data* collision_data)
+{
+	s_box seek_pos;
+	s_box detect_pos;
+
+	// X axis. 
+	//
+	// Before we can check X positions, we need to 
+	// accomidate handle left/right flipping of
+	// both the seeker and target.
+
+	if (collision_data->seeker_direction == DIRECTION_LEFT)
+	{
+		seek_pos.left = collision_data->seeker_pos->x - collision_data->seeker_coords->width;
+		seek_pos.right = collision_data->seeker_pos->x - collision_data->seeker_coords->x;
+	}
+	else
+	{
+		seek_pos.left = collision_data->seeker_pos->x + collision_data->seeker_coords->x;
+		seek_pos.right = collision_data->seeker_pos->x + collision_data->seeker_coords->width;
+	}
+	
+	if (collision_data->target_direction == DIRECTION_LEFT)
+	{
+		detect_pos.left = collision_data->target_pos->x - collision_data->target_coords->width;
+		detect_pos.right = collision_data->target_pos->x - collision_data->target_coords->x;
+	}
+	else
+	{
+		detect_pos.left = collision_data->target_pos->x + collision_data->target_coords->x;
+		detect_pos.right = collision_data->target_pos->x + collision_data->target_coords->width;
+	}
+
+	// If we are out of bounds, there's no collision.
+	if (seek_pos.left > detect_pos.right || seek_pos.right < detect_pos.left)
+	{
+		return FALSE;
+	}
+
+	// Y axis.
+	//
+	// This looks backwards, but we're not crazy.
+	// 
+	// The text input treats box as starting from
+	// a Y position with a Y size that proceeds
+	// downward, but when checking for collision
+	// we do the opposite. So here the Y position
+	// is our lower coordinate and Y size is the 
+	// top coordinate.
+
+	seek_pos.bottom = collision_data->seeker_pos->y + -(collision_data->seeker_coords->height);
+	seek_pos.top = collision_data->seeker_pos->y + -(collision_data->seeker_coords->y);
+
+	detect_pos.bottom = collision_data->target_pos->y + -(collision_data->target_coords->height);
+	detect_pos.top = collision_data->target_pos->y + -(collision_data->target_coords->y);
+
+	// If we are out of bounds, there's no collision.
+	if (seek_pos.bottom > detect_pos.top || seek_pos.top < detect_pos.bottom)
+	{
+		return FALSE;
+	}
+	
+	// Z axis.
+	//
+	// Z axis is fairly simple. We just need to compare
+	// the foreground and background sides of our cubes. 
+	// Same principal as the left and right sides of X 
+	// axis, except we don't have to worry about flipping 
+	// direction.
+	
+	seek_pos.background = collision_data->seeker_pos->z - collision_data->seeker_coords->z_background;
+	seek_pos.foreground = collision_data->seeker_pos->z + collision_data->seeker_coords->z_foreground;
+	
+	detect_pos.background = collision_data->target_pos->z - collision_data->target_coords->z_background;
+	detect_pos.foreground = collision_data->target_pos->z + collision_data->target_coords->z_foreground;
+	
+	// If Z is out of range, then there's no hit.
+	if (seek_pos.background > detect_pos.foreground || seek_pos.foreground < detect_pos.background)
+	{
+		return FALSE;
+	}
+
+	// If we got this far, find the collision area and apply
+	// values to collision area box supplied by parent function.
+	//
+	// We do this by treating the collision area as a third 
+	// box set of coordinates between the attack and detect
+	// boxes. Then we find the center of our third box. This 
+	// gives us a calculated center of the collision detection 
+	// point.
+	//
+	// For center Z, we just always set one pixel in
+	// front of whichever entity is furthest toward the
+	// foreground.
+
+	collision_data->return_overlap->left = seek_pos.left < detect_pos.left ? detect_pos.left : seek_pos.left;
+	collision_data->return_overlap->right = seek_pos.right > detect_pos.right ? detect_pos.right : seek_pos.right;
+	collision_data->return_overlap->bottom = seek_pos.bottom < detect_pos.bottom ? detect_pos.bottom : seek_pos.bottom;
+	collision_data->return_overlap->top = seek_pos.top > detect_pos.top ? detect_pos.top : seek_pos.top;
+
+	collision_data->return_overlap->center_x = (collision_data->return_overlap->left + collision_data->return_overlap->right) / 2;
+	collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
+	collision_data->return_overlap->center_z = 1 + (collision_data->seeker_pos->z > collision_data->target_pos->z ? collision_data->seeker_pos->z : collision_data->target_pos->z);
+
+	return TRUE;
+}
+
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Send collision and entity data to last hit structure.
+// This data is vital for checking hit reactions, spawning
+// flash effects, performing hit overrides, populating 
+// script variables and other post hit functionality.
+void populate_lasthit(s_collision_check_data *collision_data, s_attack *attack, s_collision_body *body)
+{
+	lasthit.attack = attack;
+	lasthit.body = body;
+	lasthit.position.x = collision_data->return_overlap->center_x;
+	lasthit.position.y = collision_data->return_overlap->center_y;
+	lasthit.position.z = collision_data->return_overlap->center_z;
+	lasthit.target = collision_data->target_ent;
+	lasthit.attacker = collision_data->seeker_ent;
+	lasthit.confirm = 1;	
+}
+
+// Caskey, Damon V.
+// 2020-02-04
+//
+// Check collisions of a seeking box vs. all of a target's
+// current frame body boxes. Return true if collision is found.
+int check_collision_vs_body(s_collision_check_data* collision_check_data)
+{
+    int instance = 0;
+    
+    s_anim* animation = collision_check_data->target_animation;
+    int frame = collision_check_data->target_frame;    
+
+    // Loop over the collision objects for animation frame,
+    // then populate collision_check_data structure with the
+    // collision object's coordinates pointer. Then we can
+    // run the check collision function.
+    //
+    // If the collision check function finds a collision we
+    // return TRUE and exit. If we pass over all collision
+    // objects without a collision, then we return FALSE.
+    for (instance = 0; instance < max_collisons; instance++)
+    {   
+        if (!animation->collision_body || !animation->collision_body[frame])
+        {
+            continue;
+        }
+
+        collision_check_data->target_coords = animation->collision_body[frame]->instance[instance]->coords;
+
+        // Found a collision?
+        if (check_collision(collision_check_data))
+        {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 int checkhit(entity *attacker, entity *target)
 {
-    #define KEY_ATTACKER    0
-    #define KEY_TARGET      1
-    #define KEY_POS_X       0
-    #define KEY_POS_Y       1
-    #define KEY_SIZE_X      2
-    #define KEY_SIZE_Y      3
-
-    s_hitbox *coords_attack;
-    s_hitbox *coords_detect;
-    s_collision_attack  *attack = NULL;
-    s_collision_body    *detect = NULL;
-    int x1,
-        x2,
-        y1,
-        y2,
-        attack_instance;
-    float medx,
-        medy;
-    int attack_pos_x    = 0,
-        attack_pos_y    = 0,
-        attack_size_x   = 0,
-        attack_size_y   = 0,
-        detect_pos_x    = 0,
-        detect_pos_y    = 0,
-        detect_size_x   = 0,
-        detect_size_y   = 0;
-    int topleast,
-        bottomleast,
-        leftleast,
-        rightleast;
-    float zdist = 0,
-        z1 = 0,
-        z2 = 0;
-
+	// Before we do anything else, let's make
+	// make sure we aren't about to run collision
+	// checks on ourself or a target with no
+	// collision boxes active.
+    	
     if(attacker == target
        || !target->animation->collision_body
-       || !attacker->animation->collision_attack
+       || !attacker->animation->collision
        || !target->animation->vulnerable[target->animpos]
        )
     {
-        return 0;
+        return FALSE;
+    }
+    
+    s_collision* seek_cursor = NULL;
+    //s_collision* target_cursor = NULL;
+
+	//s_attack* attack = NULL;
+	s_collision_body* detect = NULL;
+	s_collision_check_data collision_check_data;
+
+	//int attack_instance = 0;	
+
+	// We'll use these in collision check data
+	// structure in lieu of memory allocations.
+	s_axis_principal_int seeker_pos;
+	s_axis_principal_int target_pos;
+	s_box return_overlap;
+
+	// Get entity positions, cast as int.
+	seeker_pos.x = (int)attacker->position.x;
+	seeker_pos.y = (int)attacker->position.y;
+	seeker_pos.z = (int)attacker->position.z;
+	target_pos.x = (int)target->position.x;
+	target_pos.y = (int)target->position.y;
+	target_pos.z = (int)target->position.z;
+
+	// Prime the collision data check structure pointers
+	// using the address of local vars from this function.
+	collision_check_data.seeker_pos = &seeker_pos;
+	collision_check_data.target_pos = &target_pos;
+	collision_check_data.return_overlap = &return_overlap;
+    
+    // Populate collision check data with everything
+    // we can before running loop checks. 
+    collision_check_data.seeker_ent = attacker;
+    collision_check_data.target_ent = target;
+    collision_check_data.target_animation = target->animation;
+    collision_check_data.target_frame = target->animpos;
+	
+    // Get entity directions.
+	collision_check_data.seeker_direction = attacker->direction;
+	collision_check_data.target_direction = target->direction;
+
+    // New
+    if (!attacker->animation->collision)
+    {
+        return FALSE;
     }
 
-    int detect_instance = 0;
-    int collision_found = 0;
-
-    for(attack_instance = 0; attack_instance < max_collisons; attack_instance++)
+    // Set seek cursor to seeker's collision list head.
+    seek_cursor = attacker->animation->collision[attacker->animpos];
+    
+    // Iterate through seeker's collision list.
+    // During iteration, we skip any collision node that 
+    // is not an attack type or does not have coordinates 
+    // defined. This check might seem redundant because the 
+    // model text read-in eliminates collision nodes without 
+    // defined coordinates. However, it is possible for an 
+    // author to add collisions with script that bypass the 
+    // read-in criteria.
+    while (seek_cursor != NULL && seek_cursor->type & COLLISION_TYPE_ATTACK && seek_cursor->coords != NULL)
     {
-        attack          = attacker->animation->collision_attack[attacker->animpos]->instance[attack_instance];
-        coords_attack   = attack->coords;
+        collision_check_data.seeker_coords = seek_cursor->coords;
+        
+        // TO DO: Don't use attack properties without verifying
+        // attack is defined.
 
-        for(detect_instance = 0; detect_instance < max_collisons; detect_instance++)
+        // If this is a counter attack let's check against the target's
+        // attack boxes.
+        //if (seek_cursor->attack->counterattack && check_collision_vs_attack(&collision_check_data))
+        //{
+        //    populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
+        //    return TRUE;
+        //}
+        
+        // Check against target body boxes.
+        if (check_collision_vs_body(&collision_check_data))
         {
-            // Z calculations use increments in,
-            // each loop, so we need to reset them here.
-            z1      = attacker->position.z;
-            z2      = target->position.z;
-            zdist   = 0;
+            populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
 
-            //if(!attack->counterattack)
-            //{
-                detect          = target->animation->collision_body[target->animpos]->instance[detect_instance];
-                coords_detect   = detect->coords;
-
-            //}
-            //else if((target->animation->collision_attack && target->animation->collision_attack[target->animpos]) && target->animation->collision_attack[target->animpos]->counterattack <= attacker->animation->collision_attack[attacker->animpos]->counterattack)
-            //{
-                //coords_detect = target->animation->collision_attack[target->animpos]->coords;
-            //}
-            //else
-            //{
-            //    return 0;
-            //}
-
-            if(coords_attack->z2 > coords_attack->z1)
-            {
-                z1 += coords_attack->z1 + (coords_attack->z2 - coords_attack->z1) / 2;
-                zdist = (coords_attack->z2 - coords_attack->z1) / 2;
-            }
-            else if(coords_attack->z1)
-            {
-                zdist += coords_attack->z1;
-            }
-            else
-            {
-                zdist += attacker->modeldata.grabdistance / 3 + 1;    //temporay fix for integer to float conversion
-            }
-
-            if(coords_detect->z2 > coords_detect->z1)
-            {
-                z2 += coords_detect->z1 + (coords_detect->z2 - coords_detect->z1) / 2;
-                zdist += (coords_detect->z2 - coords_detect->z1) / 2;
-            }
-            else if(coords_detect->z1)
-            {
-                zdist += coords_detect->z1;
-            }
-
-            zdist++; // pass >= <= check
-
-            if(diff(z1, z2) > zdist)
-            {
-                continue;
-            }
-
-            x1 = (int)(attacker->position.x);
-            y1 = (int)(z1 - attacker->position.y);
-            x2 = (int)(target->position.x);
-            y2 = (int)(z2 - target->position.y);
-
-            if(attacker->direction == DIRECTION_LEFT)
-            {
-                attack_pos_x   = x1 - coords_attack->width;
-                attack_pos_y   = y1 + coords_attack->y;
-                attack_size_x  = x1 - coords_attack->x;
-                attack_size_y  = y1 + coords_attack->height;
-            }
-            else
-            {
-                attack_pos_x    = x1 + coords_attack->x;
-                attack_pos_y    = y1 + coords_attack->y;
-                attack_size_x   = x1 + coords_attack->width;
-                attack_size_y   = y1 + coords_attack->height;
-            }
-
-            if(target->direction == DIRECTION_LEFT)
-            {
-                detect_pos_x    = x2 - coords_detect->width;
-                detect_pos_y    = y2 + coords_detect->y;
-                detect_size_x   = x2 - coords_detect->x;
-                detect_size_y   = y2 + coords_detect->height;
-            }
-            else
-            {
-                detect_pos_x    = x2 + coords_detect->x;
-                detect_pos_y    = y2 + coords_detect->y;
-                detect_size_x   = x2 + coords_detect->width;
-                detect_size_y   = y2 + coords_detect->height;
-            }
-
-            if(attack_pos_x > detect_size_x)
-            {
-                continue;
-            }
-            if(detect_pos_x > attack_size_x)
-            {
-                continue;
-            }
-            if(attack_pos_y > detect_size_y)
-            {
-                continue;
-            }
-            if(detect_pos_y > attack_size_y)
-            {
-                continue;
-            }
-
-            // If we got this far, set collision flag
-            // and break this loop.
-            collision_found = 1;
-            break;
+            return TRUE;            
         }
 
-        // If a collision was found
-        // break out of loop.
-        if(collision_found)
-        {
-            break;
-        }
+        seek_cursor = seek_cursor->next;
     }
+    
+	// If we made it here, then we were unable to find
+	// any collisions, - return FALSE. 
 
-    if(!collision_found)
-    {
-        return 0;
-    }
-
-    // Find center of attack area
-    leftleast = attack_pos_x;
-
-    if(leftleast < detect_pos_x)
-    {
-        leftleast = detect_pos_x;
-    }
-
-    topleast = attack_pos_y;
-
-    if(topleast < detect_pos_y)
-    {
-        topleast = detect_pos_y;
-    }
-
-    rightleast = attack_size_x;
-
-    if(rightleast > detect_size_x)
-    {
-        rightleast = detect_size_x;
-    }
-
-    bottomleast = attack_size_y;
-
-    if(bottomleast > detect_size_y)
-    {
-        bottomleast = detect_size_y;
-    }
-
-    medx = (float)(leftleast + rightleast) / 2;
-    medy = (float)(topleast + bottomleast) / 2;
-
-    // Now convert these coords to 3D
-    lasthit.position.x = medx;
-
-    if(attacker->position.z > target->position.z)
-    {
-        lasthit.position.z = z1 + 1;    // Changed so flashes always spawn in front
-    }
-    else
-    {
-        lasthit.position.z = z2 + 1;
-    }
-
-    lasthit.attack      = attack;
-    lasthit.body        = detect;
-    lasthit.position.y  = lasthit.position.z - medy;
-	lasthit.target = target;
-	lasthit.attacker = attacker;
-    lasthit.confirm     = 1;
-
-    return 1;
-
-    #undef KEY_ATTACKER
-    #undef KEY_TARGET
-    #undef KEY_POS_X
-    #undef KEY_POS_Y
-    #undef KEY_SIZE_X
-    #undef KEY_SIZE_Y
+    return FALSE;
 }
-
 
 
 /*
@@ -19666,7 +21205,7 @@ void do_active_block(entity *ent)
 // vs. entity in terms of game mechanics like
 // guard break, attack type vs. defense, and
 // so on. It does not handle rules for AI blocking.
-int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
+int check_blocking_eligible(entity *ent, entity *other, s_attack *attack)
 {
 	// If guardpoints are set, then find out if they've been depleted.
 	if (ent->modeldata.guardpoints.max)
@@ -19818,7 +21357,7 @@ int check_blocking_decision(entity *ent)
 //
 // Runs all blocking conditions and returns true
 // if the attack should be blocked.
-int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack)
+int check_blocking_master(entity *ent, entity *other, s_attack *attack)
 {
 	e_entity_type entity_type;
 
@@ -19874,7 +21413,7 @@ int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack
 //
 // Apply primary block settings, animations,
 // actions, and scripts.
-void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
+void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 {
 	// Execute the attacker's didhit script with blocked flag.
 	execute_didhit_script(other, ent, attack, 1);
@@ -19894,7 +21433,7 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 
 	// Blocked hit is still a hit, so
 	// increment the attacker's hit counter.
-	++other->animation->animhits;
+	++other->animation->hit_count;
 
 	// Execute our block script.
 	execute_didblock_script(ent, other, attack);
@@ -19905,7 +21444,7 @@ void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 //
 // Verify entity has blockpain and that attack
 // should trigger it.
-int check_blocking_pain(entity *ent, s_collision_attack *attack)
+int check_blocking_pain(entity *ent, s_attack *attack)
 {
 	// If we don't have blockpain,
 	// nothing else to do!
@@ -19928,7 +21467,7 @@ int check_blocking_pain(entity *ent, s_collision_attack *attack)
 // 2018-09-21
 //
 // Place entity into appropriate blocking animation.
-void set_blocking_animation(entity *ent, s_collision_attack *attack)
+void set_blocking_animation(entity *ent, s_attack *attack)
 {
 	// If we have an appropriate blockpain, lets
 	// apply it here.
@@ -19946,7 +21485,7 @@ void set_blocking_animation(entity *ent, s_collision_attack *attack)
 // 2018-09-21
 //
 // Perform a block.
-void do_passive_block(entity *ent, entity *other, s_collision_attack *attack)
+void do_passive_block(entity *ent, entity *other, s_attack *attack)
 {	
 	// Place entity in blocking animation.
 	set_blocking_animation(ent, attack);
@@ -19963,7 +21502,7 @@ void do_passive_block(entity *ent, entity *other, s_collision_attack *attack)
 //
 // Handle flash spawning for hits. Will spawn and prepare an appropriate
 // flash effect entity if conditions are met.
-entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash)
+entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash)
 {
 	int to_spawn;
 	entity *flash;
@@ -20026,6 +21565,349 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 	return NULL;
 }
 
+// Caskey, Damon V. 
+// 2019-11-24
+//
+// Check follow up conditions. Return TRUE if all conditions 
+// pass, FALSE otherwise.
+int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bool blocked)
+{
+	if (!animation->followup.animation)
+	{
+		return FALSE;
+	}
+
+	// No follow up allowed.
+	if (animation->followup.condition & FOLLOW_CONDITION_NONE)
+	{
+		return FALSE;
+	}
+
+	// Always do follow up.
+	if (animation->followup.condition & FOLLOW_CONDITION_ANY)
+	{
+		return TRUE;
+	}
+
+	// Block attack.
+	if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_FALSE)
+	{
+		if (blocked)
+		{
+			return FALSE;
+		}
+	}
+	
+	if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_TRUE)
+	{
+		if (!blocked)
+		{
+			return FALSE;
+		}
+	}
+
+	// Possible to grab target.
+	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_FALSE)
+	{
+		if (cangrab(ent, target))
+		{
+			return FALSE;
+		}
+	}
+	
+	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_TRUE)
+	{
+		if (!cangrab(ent, target))
+		{
+			return FALSE;
+		}
+	}
+
+	// We are hostile toward target.
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
+	{
+		if (target->modeldata.type & ent->modeldata.hostile)
+		{
+			return FALSE;
+		}
+	}
+
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE)
+	{
+		if (!(target->modeldata.type & ent->modeldata.hostile))
+		{
+			return FALSE;
+		}
+	}
+
+	// Target is hostile toward us.
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_FALSE)
+	{
+		if (ent->modeldata.type & target->modeldata.hostile)
+		{
+			return FALSE;
+		}
+	}
+
+	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_TRUE)
+	{
+		if (!(ent->modeldata.type & target->modeldata.hostile))
+		{
+			return FALSE;
+		}
+	}
+
+	// Lethal damage.
+	if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_FALSE)
+	{
+		if (target->energy_state.health_current <= 0)
+		{
+			return FALSE;
+		}
+	}
+
+	if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_TRUE)
+	{
+		if (target->energy_state.health_current > 0)
+		{
+			return FALSE;
+		}
+	}
+
+	// If all checks passed, return true.
+	return TRUE;
+}
+
+// Caskey, Damon  V.
+// 2019-11-24
+//
+// Attempt to perform follow up animation. If successful, sets entity animation to
+// appropriate follow up and returns TRUE.
+bool try_follow_up(entity *ent, entity *target, s_anim *animation, bool didblock)
+{
+	e_animations animation_id;
+
+	// If we don't have a follow action, get out.
+	if (!animation->followup.animation)
+	{
+		return FALSE;
+	}
+
+	// Have to meet follow up conditions.
+	if (!check_follow_up_condition(ent, target, animation, didblock))
+	{
+		return FALSE;
+	}
+		
+	// If we have the animation, then execute it now.
+	animation_id = animfollows[animation->followup.animation - 1];
+	
+	if (validanim(ent, animation_id))
+	{		
+		ent_set_anim(ent, animation_id, 1); 
+
+		return TRUE;
+	}	
+
+	return FALSE;
+}
+
+// Caskey, Damon V.
+// 2019-12-03
+//
+// Verify an attack meets conditions to trigger a counter action.
+bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
+{
+	s_counter_action* counter = NULL;
+
+	counter = &target->animation->counter_action;
+	int force;
+
+	// If there's no condition, get out now.
+	if (!counter->condition)
+	{
+		return FALSE;
+	}
+
+	// Verify in the frame range.
+	if (target->animpos < counter->frame.min || target->animpos > counter->frame.max)
+	{
+		return FALSE;
+	}
+	
+	// Now we verify condition flags.
+
+	// Always is always...
+	if (counter->condition == COUNTER_ACTION_CONDITION_ANY)
+	{
+		return TRUE;
+	}
+
+	// In the back?
+	if (counter->condition & COUNTER_ACTION_CONDITION_BACK_FALSE)
+	{
+		if (target->direction == attacker->direction)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_BACK_TRUE)
+	{
+		if (target->direction != attacker->direction)
+		{
+			return FALSE;
+		}
+	}
+	
+	// Blockable?
+	if (counter->condition & COUNTER_ACTION_CONDITION_BLOCK_FALSE)
+	{
+		if (attack->no_block <= target->defense[attack->attack_type].blockpower)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_BLOCK_TRUE)
+	{
+		if (attack->no_block > target->defense[attack->attack_type].blockpower)
+		{
+			return FALSE;
+		}
+	}
+
+	// Vs. lethal / non-lethal damage.
+	force = calculate_force_damage(target, attacker, attack);
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE)
+	{
+		if (target->energy_state.health_current <= force)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE)
+	{
+		if (target->energy_state.health_current > force)
+		{
+			return FALSE;
+		}
+	}
+
+	// Freeze attack?
+	if (counter->condition & COUNTER_ACTION_CONDITION_FREEZE_FALSE)
+	{
+		if (attack->freeze)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition & COUNTER_ACTION_CONDITION_FREEZE_TRUE)
+	{
+		if (!attack->freeze)
+		{
+			return FALSE;
+		}
+	}
+
+	// Attacker hostile to us?
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE)
+	{
+		if (attacker->modeldata.hostile & target->modeldata.type)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE)
+	{
+		if (!(attacker->modeldata.hostile & target->modeldata.type))
+		{
+			return FALSE;
+		}
+	}
+
+	// Hostile to attacker?
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE)
+	{
+		if (target->modeldata.hostile & attacker->modeldata.type)
+		{
+			return FALSE;
+		}
+	}
+
+	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE)
+	{
+		if (!(target->modeldata.hostile & attacker->modeldata.type))
+		{
+			return FALSE;
+		}
+	}
+
+	// Passed all checks. We can return true.
+	return TRUE;
+}
+
+// Caskey, Damon  V.
+// 2019-12-04
+//
+// Attempt to perform counter action animation. If successful, sets entity animation to
+// appropriate counter and returns TRUE.
+bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
+{
+	int force;
+	int current_follow_id;
+
+	// If we don't have a follow animation to use 
+	// for counter, get out.
+	if (!target->animation->followup.animation)
+	{
+		return FALSE;
+	}
+
+	// Have to meet counter action conditions.
+	if (!check_counter_condition(target, attacker, attack))
+	{
+		return FALSE;
+	}	
+
+	// Take damage from attack?
+	if (target->animation->counter_action.damaged == COUNTER_ACTION_TAKE_DAMAGE_NORMAL)
+	{
+		// We need the real damage.
+		force = calculate_force_damage(target, attacker, attack);
+
+		// Revert lethal damage to 1.
+		if (target->energy_state.health_current - force <= 0)
+		{
+			target->energy_state.health_current = 1; // rage
+		}
+		else
+		{
+			target->energy_state.health_current -= force;
+		}
+	}
+
+	// Set counter animation if we can. 
+	current_follow_id = animfollows[target->animation->followup.animation - 1];
+	if (validanim(self, current_follow_id))
+	{
+		if (!target->modeldata.animation[current_follow_id]->attack_one)
+		{
+			target->modeldata.animation[current_follow_id]->attack_one = target->animation->attack_one;
+		}
+		ent_set_anim(target, current_follow_id, 0);
+	}
+
+	// Flash spawn.
+	spawn_attack_flash(target, attack, attack->blockflash, target->modeldata.bflash);
+
+	return TRUE;
+}
+
 void do_attack(entity *e)
 {
     int them;
@@ -20038,11 +21920,10 @@ void do_attack(entity *e)
     entity *otherowner      = NULL;
     entity *target          = NULL;
     s_anim      *current_anim;
-    s_collision_attack *attack = NULL;
+    s_attack *attack = NULL;
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
-    int current_follow_id   = 0;
     //int hit_detected        = 0;    // Has a hit been detected?
 
 
@@ -20062,7 +21943,7 @@ void do_attack(entity *e)
     }
 
 	// If any blast active, use projectile hit property.
-    if(e->projectile & BLAST_ATTACK)
+    if(e->projectile != BLAST_NONE)
     {
         them = e->modeldata.projectilehit;
     }
@@ -20129,13 +22010,13 @@ void do_attack(entity *e)
         }
 
         // If attack is set to only hit
-        // one entity at a time (attackone),
+        // one entity at a time (attack_one),
         // we verify last hit (lasthit) is
         // set. If last hit is set and
         // differs from current target,
         // then we are trying to hit
         // another entity and should exit.
-        if(current_anim->attackone)
+        if(current_anim->attack_one)
         {
             if(e->lasthit)
             {
@@ -20239,20 +22120,26 @@ void do_attack(entity *e)
             otherowner = otherowner->owner;
         }
 
-        //if #01, if they are fired by the same owner, or the owner itself
-        if(topowner == otherowner)
+        // Ensure projectile can't hit its owner. Important since projectile attack
+		// boxes usualy overlap owner's body boxes as the projectile is first thrown.
+		// Note if an author wants to add projectile reflection feature, they need to
+		// change the projectile's owner when reflect effect occurs, or the reflected 
+		// projectile won't be able to hit its orginal owner. If they need to know the 
+		// orginal owner after changing the owner property, they can check the parent 
+		// property.
+		if(topowner == otherowner)
         {
             didhit = 0;
         }
 
-        //if #02 , ground missle checking, and bullets wont hit each other
+        //Ground missle checking, and bullets wont hit each other
         if( (e->owner && self->owner) ||
                 (e->modeldata.ground && inair(e))  )
         {
             didhit = 0;
-        }//end of if #02
+        }
 
-        //if #05,   blocking code section
+        // Blocking code section.
         if(didhit)
         {
             if(attack->attack_type == ATK_ITEM)
@@ -20288,65 +22175,15 @@ void do_attack(entity *e)
                 // Perform the blocking actions.
                 do_passive_block(self, e, attack);
             }
-            // Counter the attack?
-            else if(self->animation->counterrange &&	// Has counter range?
-                    (self->animpos >= self->animation->counterrange->frame.min && self->animpos <= self->animation->counterrange->frame.max) &&  // Current frame within counter range frames?
-                    !self->frozen &&
-                    (self->energy_state.health_current > force || (self->energy_state.health_current-force <= 0 && (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE))) &&   // Rage or not?
-                    // counterrange conditions
-                    ( (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS) || (self->animation->counterrange->condition == COUNTERACTION_CONDITION_ALWAYS_RAGE) ||
-                    (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE && e->modeldata.type & them) ||
-                    (self->animation->counterrange->condition == COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE && !attack->no_block && !(self->direction == e->direction) && !attack->freeze ) )
-
-                    ) {
-
-                    // Take damage from attack?
-                    if(self->animation->counterrange->damaged == COUNTERACTION_DAMAGE_NORMAL)
-                    {
-                        if (self->energy_state.health_current-force <= 0)
-                        {
-                            // White Dragon: commented the alternative method
-                            /*s_collision_attack atk;
-
-                            atk = emptyattack;
-                            atk.attack_force = force;
-                            atk.attack_drop = attack->attack_drop;
-                            atk.attack_type = attack->attack_type;
-
-                            atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
-                            atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
-                            atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
-
-                            if (e) self->takedamage(e, &atk, 0);
-                            else self->takedamage(self, &atk, 0);
-
-                            self = temp;
-                            return;*/
-
-                            self->energy_state.health_current = 1; // rage
-                        }
-                        else
-                        {
-                            self->energy_state.health_current -= force;
-                        }
-                    }
-
-                    current_follow_id = animfollows[self->animation->followup.animation - 1];
-                    if(validanim(self, current_follow_id))
-                    {
-                        if(!self->modeldata.animation[current_follow_id]->attackone)
-                        {
-                            self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
-                        }
-                        ent_set_anim(self, current_follow_id, 0);
-                        self->attack_id_incoming = current_attack_id;
-                    }
-
-                    // Flash spawn.
-                    spawn_attack_flash(self, attack, attack->blockflash, self->modeldata.bflash);
+            // Counter the attack? 
+           	else if(try_counter_action(self, e, attack))
+			{				
+				self->attack_id_incoming = current_attack_id;
             }
             else if(self->takedamage(e, attack, 0))
             {
+                
+
                 // This is the block for normal hits. The
                 // hit was not blocked, countered, or
                 // otherwise nullified, and this entity
@@ -20354,17 +22191,18 @@ void do_attack(entity *e)
                 // process the hit.
 
                 execute_didhit_script(e, self, attack, 0);
-                ++e->animation->animhits;
+                ++e->animation->hit_count;
 
                 e->lasthit = self;
 
                 // Flash spawn.
                 spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
 
+				// Add to owner's combo time.
+                topowner->combotime = _time + combodelay; 
 
-                topowner->combotime = _time + combodelay; // well, add to its owner's combo
-
-                if(e->pausetime < _time || (inair(e) && !equalairpause))        // if equalairpause is set, inair(e) is nolonger a condition for extra pausetime
+				// If equalairpause is set, inair(e) is nolonger a condition for extra pausetime.
+                if(e->pausetime < _time || (inair(e) && !equalairpause))        
                 {
                     // Adds pause to the current animation
                     e->toss_time += attack->pause_add;      // So jump height pauses in midair
@@ -20391,7 +22229,6 @@ void do_attack(entity *e)
                 didhit = 0;
                 continue;
             }
-            // end of if #053
 
             // 2007 3 24, hmm, def should be like this
             if(didblock && !def)
@@ -20399,28 +22236,10 @@ void do_attack(entity *e)
                 def = self;
             }
             
-			// Follow animations.
-            if((e->animation->followup.animation) && // follow up?
-                    (!e->animation->counterrange) && // This isn't suppossed to be a counter, right?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE) || (self->modeldata.type & e->modeldata.hostile)) &&                                // Does type matter?
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK) || ((self->energy_state.health_current > 0) && !didblock)) &&                             // check if health or not blocking matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB) || ((self->energy_state.health_current > 0) && !didblock && cangrab(e, self)) ) && // check if nograb matters
-                    ((e->animation->followup.condition < FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK) || ((self->energy_state.health_current > 0) && didblock))                                   // check if health or blocking matters
-              )
-            {
-                current_follow_id = animfollows[e->animation->followup.animation - 1];
-                if(validanim(e, current_follow_id))
-                {
-                    if(!e->modeldata.animation[current_follow_id]->attackone)
-                    {
-                        e->modeldata.animation[current_follow_id]->attackone = e->animation->attackone;
-                    }
-                    ent_set_anim(e, current_follow_id, 1);          // Then go to it!
-                }
-                //followed = 1; // quit loop, animation is changed
-            }
+			// Attacker executes a follow up animation if it can.
+			try_follow_up(e, self, e->animation, didblock);
 
-            self->attack_id_incoming = current_attack_id;
+			self->attack_id_incoming = current_attack_id;
             
 			// If hit, stop blocking.
 			if(self == def)
@@ -20428,31 +22247,42 @@ void do_attack(entity *e)
                 self->blocking = didblock;   
             }
 
-            //2011/11/24 UT: move the next_hit_time logic here,
-            // because block needs this as well otherwise blockratio causes instant death
+			// Utunnels
+            // 2011-11-24 UT
+			//
+			// Move the next_hit_time logic here, because block needs this 
+			// as well. Otherwise, blockratio causes instant death
             self->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (GAME_SPEED / 5));
             self->nextattack = 0; // reset this, make it easier to fight back
-        }//end of if #05
+        }
         self = temp;
 
-    } // end of for
+    }
 
 
-    // if ###
+    // Did we get a hit? let's process it.
     if(didhit)
     {
-        if(current_anim->energycost)
+		// Handle energy cost if attacking animation has any.
+
+		// Caskey, Damon V.
+		// 2020-01-22
+		//
+		// I'm honestly not sure how the legacy logic works. Will need to spend
+		// some more time breaking it down.
+
+        if(current_anim->energy_cost.cost > 0)
         {
             // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
-            if(e == topowner && current_anim->energycost->cost > 0 && nocost && !healthcheat)
+            if(e == topowner && nocost && !healthcheat)
             {
                 e->tocost = 1;    // Set flag so life is subtracted when animation is finished
             }
-            else if(e != topowner && current_anim->energycost->cost > 0 && nocost && !healthcheat && !e->tocost) // if it is not top, then must be a shot
+            else if(e != topowner && nocost && !healthcheat && !e->tocost) // if it is not top, then must be a shot
             {
-                if(current_anim->energycost->mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
+                if(current_anim->energy_cost.mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
                 {
-                    topowner->energy_state.mp_current -= current_anim->energycost->cost;
+                    topowner->energy_state.mp_current -= current_anim->energy_cost.cost;
                     if(topowner->energy_state.mp_current < 0)
                     {
                         topowner->energy_state.mp_current = 0;
@@ -20460,44 +22290,50 @@ void do_attack(entity *e)
                 }
                 else
                 {
-                    topowner->energy_state.health_current -= current_anim->energycost->cost;
+                    topowner->energy_state.health_current -= current_anim->energy_cost.cost;
                     if(topowner->energy_state.health_current <= 0)
                     {
                         topowner->energy_state.health_current = 1;
                     }
                 }
 
-                e->tocost = 1;    // Little backwards, but set to 1 so cost doesn't get subtracted multiple times
+				// Little backwards, but set to 1 so cost doesn't get subtracted multiple times.
+                e->tocost = 1;   
             }
         }
 
-        // New blocking checks
-        //04/27/2008 Damon Caskey: Added checks for defense property specific blockratio and type. Could probably use some cleaning.
+		// Caskey, Damon V.
+        // 2008-04-27 
+		//
+		// Added checks for defense property specific blockratio and type. 
+		// Could probably use some cleaning.
         if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON)
         {
-            if(blockratio || def->defense[attack->attack_type].blockratio) // Is damage reduced?
+			// If global blockratio or target's defense block ratio is 
+			// in use, then damage is reduced rather than negated.
+            if(blockratio || def->defense[attack->attack_type].blockratio)
             {
-                if (def->defense[attack->attack_type].blockratio)                       //Typed blockratio?
+				// Apply ratio to damage force. Use type specific ratio if target 
+				// has one. Otherwise, use global ratio.
+                if (def->defense[attack->attack_type].blockratio)
                 {
                     force = (int)(force * def->defense[attack->attack_type].blockratio);
                 }
-                else                                                                              //No typed. Use static block ratio.
+                else       
                 {
                     force = force / 4;
                 }
-
-                /*
-                Block type handling. For backward compatibility we will use BLOCK_TYPE_MP_FIRST regardless
-                of defense setting if author has enabled mpblock. Otherwise the defender's blocktype
-                for incoming attack type will be used. Once this is determined, we will apply the
-                appropriate blocktype accordingly.
-                */
+				               
+                // Block type handling. For backward compatibility we will use BLOCK_TYPE_MP_FIRST regardless
+                // of defense setting if author has enabled mpblock. Otherwise, the defender's blocktype
+                // for incoming attack type will be used. Once this is determined, we will apply the
+                // appropriate blocktype.
                 blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : def->defense[attack->attack_type].blocktype;
 
                 switch (blocktype)
                 {
                     case BLOCK_TYPE_HP:
-                        //Do nothing. This is so modders can overidde energycost mponly 1 with health only.
+                        // Do nothing. This is so modders can overidde energy_cost mponly 1 with health only.
                         break;
 
                     case BLOCK_TYPE_MP_ONLY:
@@ -20514,7 +22350,8 @@ void do_attack(entity *e)
 
                         def->energy_state.mp_current -= force;
 
-                        /* If there isn't enough MP to cover force, subtract remaining MP from force and set MP to 0 */
+                        // If there isn't enough MP to cover force, subtract remaining 
+						// MP from force and set MP to 0.
                         if(def->energy_state.mp_current < 0)
                         {
                             force = -def->energy_state.mp_current;
@@ -20535,11 +22372,23 @@ void do_attack(entity *e)
                         }
                 }
 
-                if(force < def->energy_state.health_current)                    // If an attack won't deal damage, this line won't do anything anyway.
+				// Apply remaining damage force to HP after blocking calculations.
+				// 
+				// 1. Damage force < HP: Subtract directly - Don't use take 
+				// damage because we don't want a visible reaction in game.
+				//
+				// 2. Damage force > HP, but nochipdeath is enabled (meaning
+				// chip death is not allowed) - Set HP to 1. Again, we don't 
+				// want a reaction.
+				//
+				// 3. Damage force > HP, chip death is allowed - Set take 
+				// damage so engine will apply damage normally and KO the 
+				// entity.
+                if(force < def->energy_state.health_current)
                 {
                     def->energy_state.health_current -= force;
                 }
-                else if(nochipdeath)                       // No chip deaths?
+                else if(nochipdeath)
                 {
                     def->energy_state.health_current = 1;
                 }
@@ -20547,12 +22396,14 @@ void do_attack(entity *e)
                 {
                     temp = self;
                     self = def;
-                    self->takedamage(e, attack, 0);           // Must be a fatal attack, then!
+                    self->takedamage(e, attack, 0);
                     self = temp;
                 }
             }
         }
 
+		// If the attack was not blocked, let's increment the
+		// attacker's combo counter and time.
         if(!didblock)
         {
             topowner->rush.time = _time + (GAME_SPEED * rush[1]);
@@ -20563,15 +22414,27 @@ void do_attack(entity *e)
             }
         }
 
+		// Play the impact sound effect.
+		//
+		// 1. Attack blocked.
+		//	a) Attack has block sound - play attack block sound.
+		//	b) Attack does not have block sound - play global block sound.
+		//
+		// 2. Attacker is actually a "projectile" (as in, thrown or knocked
+		// through the air by a blasting attack) - play global indirect sound.
+		//	
+		// 3. Typical attack hit.
+		//	a) Attack has hit sound - play attack hit sound.
+		//	b) Attack does not have hit sound - play global hit sound. 
         if(didblock)
         {
             if(attack->blocksound >= 0)
             {
-                sound_play_sample(attack->blocksound, 0, savedata.effectvol, savedata.effectvol, 100);    // New custom block sound effect
+                sound_play_sample(attack->blocksound, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             else if(SAMPLE_BLOCK >= 0)
             {
-                sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);    // Default block sound effect
+                sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         else if(e->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
@@ -20580,6 +22443,12 @@ void do_attack(entity *e)
         }
         else if(attack->hitsound >= 0)
         {
+			// If noslofx is enabled, then just play sound at default speed.
+			// Otherwise, subtract 5 from damage force, and then subtract 
+			// that result from default play speed. 
+			//
+			// This has the effect of slowing down the sound playback as damage 
+			// increases to give it a slightly lower tone and more impact.
             t = 100 - (noslowfx ? 0 : (force - 5));
             if(t > 100)
             {
@@ -20592,11 +22461,14 @@ void do_attack(entity *e)
             sound_play_sample(attack->hitsound, 0, savedata.effectvol, savedata.effectvol, t);
         }
 
+		// If the auto kill flag is set, attacker 
+		// kills itself instantly. Used mainly for
+		// projectiles.
         if(e->autokill & AUTOKILL_ATTACK_HIT)
         {
             kill_entity(e);
         }
-    }//end of if ###
+    }
 #undef followed
 }
 
@@ -20640,34 +22512,38 @@ bool check_landframe(entity *ent)
 {
     entity *effect;
 
+	s_onframe_set* land;
+
+	land = &ent->animation->landframe;
+
     // Must have a landframe.
-    if(!ent->animation->landframe)
+    if(land->frame == FRAME_NONE)
     {
         return 0;
     }
 
     // Can't be bound with a landframe override.
-    if(check_bind_override(ent, BIND_OVERRIDE_LANDFRAME))
+    if(check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_LAND))
     {
         return 0;
     }
 
     // Can't be passed over current animation's frame count.
-    if(ent->animation->landframe->frame > ent->animation->numframes)
+    if(land->frame > ent->animation->numframes)
     {
         return 0;
     }
 
     // Can't be already at or passed land frame.
-    if(ent->animpos >= ent->animation->landframe->frame)
+    if(ent->animpos >= land->frame)
     {
         return 0;
     }
 
     // If a land frame dust effect entity is set, let's spawn it here.
-    if(ent->animation->landframe->ent >= 0)
+    if(land->model_index >= 0)
     {
-        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, ent->animation->landframe->ent, NULL);
+        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, land->model_index, NULL);
 
         if(effect)
         {
@@ -20678,10 +22554,74 @@ bool check_landframe(entity *ent)
         }
     }
 
-    update_frame(ent, ent->animation->landframe->frame);
+    update_frame(ent, land->frame);
 
     return 1;
 }
+
+// Caskey, Damon V.
+// 2018-04-20
+//
+// Go to landing frame if available. Also spawns an effect ("dust") entity if set.
+bool check_frame_set_drop(entity* ent)
+{
+	entity* effect;
+
+	s_onframe_set* drop;
+
+	drop = &ent->animation->dropframe;
+
+	// Dropframe set?
+	if (drop->frame == FRAME_NONE)
+	{
+		return 0;
+	}
+	
+	// Falling?
+	if (ent->velocity.y > 0)
+	{
+		return 0;
+	}
+
+	// Can't be bound with a drop frame override.
+	if (check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_DROP))
+	{
+		return 0;
+	}
+
+	// Can't be passed over current animation's frame count.
+	if (drop->frame > ent->animation->numframes)
+	{
+		return 0;
+	}
+
+	// Can't be already at or passed drop frame.
+	if (ent->animpos >= drop->frame)
+	{
+		return 0;
+	}
+
+	// Passed all checks. Let's update frame and spawn model (if available).
+
+	update_frame(ent, drop->frame);
+
+	// If a frame set effect entity is set, let's spawn it here.
+	if (drop->model_index != MODEL_INDEX_NONE)
+	{
+		effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, drop->model_index, NULL);
+
+		if (effect)
+		{
+			effect->spawntype = SPAWN_TYPE_DUST_DROP;
+			effect->base = ent->position.y;
+			effect->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+			execute_onspawn_script(effect);
+		}
+	}
+
+	return 1;
+}
+
 
 int check_edge(entity *ent)
 {
@@ -20796,7 +22736,7 @@ void check_gravity(entity *e)
             }
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
-            if(self->animation->antigrav)
+            if(!self->animation->subject_to_gravity)
             {
                 gravity = 0;
             }
@@ -20821,19 +22761,8 @@ void check_gravity(entity *e)
                 self->velocity.y = fmax;
             }
 
-            // Dropframe set?
-            if(self->animation->dropframe)
-            {
-                // If falling and frame has not
-                // passed dropframe, set frame to dropframe.
-                if(self->velocity.y <= 0)
-                {
-                    if(self->animpos < self->animation->dropframe->frame)
-                    {
-                        update_frame(self, self->animation->dropframe->frame);
-                    }
-                }
-            }
+			// Evaluate and apply drop frame settings if we have them.
+			check_frame_set_drop(self);				
 
             if (self->velocity.y)
             {
@@ -20887,9 +22816,9 @@ void check_gravity(entity *e)
                         if(tobounce(self) && self->modeldata.bounce)
                         {
                             int i;
-                            self->velocity.x /= self->animation->bounce;
-                            self->velocity.z /= self->animation->bounce;
-                            toss(self, (-self->velocity.y) / self->animation->bounce);
+                            self->velocity.x /= self->animation->bounce_factor;
+                            self->velocity.z /= self->animation->bounce_factor;
+                            toss(self, (-self->velocity.y) / self->animation->bounce_factor);
                             if(level && !(self->modeldata.noquake & NO_QUAKE))
                             {
                                 level->quake = 4;    // Don't shake if specified
@@ -20951,7 +22880,7 @@ void check_gravity(entity *e)
 
 int check_lost()
 {
-    s_collision_attack attack;
+    s_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
@@ -21326,7 +23255,7 @@ void update_animation()
         }
         if(self->modeldata.type & TYPE_PANEL)
         {
-            scrollv += self->modeldata.speed;
+            scrollv += self->modeldata.speed.x;
         }
         if(self->modeldata.scroll)
         {
@@ -21472,8 +23401,8 @@ void check_attack()
     }
 
     // Can't hit an opponent if you are frozen
-    if(!is_frozen(self) && self->animation->collision_attack &&
-            self->animation->collision_attack[self->animpos])
+    if(!is_frozen(self) && self->animation->collision &&
+            self->animation->collision[self->animpos])
     {
                 do_attack(self);
         return;
@@ -21645,22 +23574,43 @@ void update_health()
 // 2019-01-18
 //
 // Free all members of a recursive damage list.
-void free_recursive_list(s_damage_recursive * head)
+void free_recursive_list(s_damage_recursive* head)
 {
-	s_damage_recursive * cursor;
+    s_damage_recursive* cursor = NULL;
+    s_damage_recursive* next = NULL;
 
-	while (head != NULL)
-	{
-		cursor = head;
-		head = head->next;
-		free(cursor);
-	}
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        // We still need the next node after we
+        // delete current one, so we'll store
+        // it in a temp var.
+        next = cursor->next;
+
+        // Free the current node.
+        free_recursive_object(cursor);
+
+        // Set cursor to next.
+        cursor = next;
+    }
+}
+
+// Caskey, Damon V.
+// 2020-03-13
+//
+// Wrapper for deleting a recrusive object's data.
+void free_recursive_object(s_damage_recursive* target)
+{
+    free(target);
 }
 
 // Caskey, Damon V.
 // 2019-01-20
 //
-// Remove a single node from the recursive damage linked list.
+// Remove single node from a recursive damage linked list.
 void free_damage_recursive_node(s_damage_recursive **list, s_damage_recursive *node)
 {
 	s_damage_recursive *cursor;
@@ -21690,12 +23640,15 @@ void free_damage_recursive_node(s_damage_recursive **list, s_damage_recursive *n
 			}
 
 			// Deallocate the node.
-			free(cursor);
+            free(cursor);
 
 			return;
 		}
 	}
 }
+
+
+
 
 // damage_recursive
 // Caskey, Damon V.
@@ -21709,11 +23662,11 @@ void damage_recursive(entity *ent)
     int         force_final;    // Final force; total damage after defense and offense factors are applied.
     float       offense;        // Owner's offense.
     float       defense;        // target defense.
-    s_collision_attack attack;  // Attack structure.
+    s_attack attack;  // Attack structure.
 	s_damage_recursive *cursor;
 
-	// Iterate target's recursive damage nodes.
-	for(cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
+    // Iterate target's recursive damage nodes.
+    for (cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
 	{
 		// If time has expired, destroy node and exit
 		// this loop iteration.
@@ -21725,7 +23678,7 @@ void damage_recursive(entity *ent)
 			// only delete the node.
 			if (cursor == ent->recursive_damage && cursor->next == NULL)
 			{
-				free(cursor);
+                free(cursor);
 				ent->recursive_damage = NULL;
 			}
 			else
@@ -21851,23 +23804,23 @@ void damage_recursive(entity *ent)
 		}
 
 		// Does this recursive damage affect MP?
-		if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
-		{
-			// Recursive MP Damage Logic:
+        if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
+        {
+            // Recursive MP Damage Logic:
 
-			// Could not be more simple. Subtract
-			// recursive force from MP. If MP would
-			// end with negative value, set 0.
+            // Could not be more simple. Subtract
+            // recursive force from MP. If MP would
+            // end with negative value, set 0.
 
-			// Subtract force from MP.
-			ent->energy_state.mp_current -= cursor->force;
+            // Subtract force from MP.
+            ent->energy_state.mp_current -= cursor->force;
 
-			// Stabilize MP at 0.
-			if (ent->energy_state.mp_current < 0)
-			{
-				ent->energy_state.mp_current = 0;
-			}
-		}		
+            // Stabilize MP at 0.
+            if (ent->energy_state.mp_current < 0)
+            {
+                ent->energy_state.mp_current = 0;
+            }
+        }
 	}    
 }
 
@@ -23060,19 +25013,19 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
+int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
 {
     int fall = 0;
 
     if ( ent->inbackpain ) fall = animbackfalls[attack->attack_type];
     else fall = animfalls[attack->attack_type];
-
+   
     if(validanim(ent, fall))
     {
         ent_set_anim(ent, fall, reset);
     }
     else if( ent->inbackpain && validanim(ent, animbackfalls[0]) )
-    {
+    {       
         ent_set_anim(ent, animbackfalls[0], reset);
     }
     else if( validanim(ent, animfalls[attack->attack_type]) )
@@ -23447,9 +25400,9 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
 
     if(!(newmodel->model_flag & MODEL_NO_COPY))
     {
-        if(!newmodel->speed)
+        if(!newmodel->speed.x)
         {
-            newmodel->speed = model->speed;
+            newmodel->speed.x = model->speed.x;
         }
         if(!newmodel->runspeed)
         {
@@ -23624,9 +25577,79 @@ entity *long_find_target()
     return NULL;
 }
 
+// Caskey, Damon V.
+// 2020-03-30
+//
+// Return first valid attacking type collision in animation
+// frame, or NULL if none found.
+s_collision* collision_find_attack_on_frame(s_anim* animation, int frame)
+{
+    s_collision* cursor;
+
+    // Return NULL if there's no collision on this frame.
+    if (!animation->collision || !animation->collision[frame])
+    {
+        return NULL;
+    }
+
+    cursor = animation->collision[frame];
+
+    // Check all collisions for attack type.
+    while (cursor != NULL)
+    {
+        if (cursor->type & COLLISION_TYPE_ATTACK)
+        {
+            return cursor;
+        }
+
+        cursor = cursor->next;
+    }
+
+    // Loop didn't find a collision with attacking type. 
+    return NULL;
+}
+
+// Caskey, Damon V.
+// 2020-03-30
+//
+// Return first valid attacking type collision in animation
+// frame that has no_block enabled, or NULL if none found.
+s_collision* collision_find_no_block_attack_on_frame(s_anim* animation, int frame, int block)
+{
+    s_collision* cursor;
+
+    // Return NULL if there's no collision on this frame.
+    if (!animation->collision || !animation->collision[frame])
+    {
+        return NULL;
+    }
+
+    cursor = animation->collision[frame];
+
+    // Check all collisions for attack type.
+    while (cursor != NULL)
+    {
+        if (cursor->type & COLLISION_TYPE_ATTACK && cursor->attack)
+        {
+            if (cursor->attack->no_block < block)
+            {
+                return cursor;
+            }           
+        }
+
+        cursor = cursor->next;
+    }
+
+    // Loop didn't find a collision with attacking type. 
+    return NULL;
+}
+
 entity *block_find_target(int anim, int detect_adj)
 {
-    int i , min, max, instance, detect;
+    int i;
+    int min;
+    int max;
+    int detect;
     int index = -1;
     min = 0;
     max = 9999;
@@ -23640,27 +25663,23 @@ entity *block_find_target(int anim, int detect_adj)
     {
         attacker = ent_list[i];
 
-        for(instance = 0; instance < max_collisons; instance++)
+        if (attacker && attacker->exists && attacker != self // Can't target self
+            && (attacker->modeldata.candamage & self->modeldata.type) // Type is something attacker can damage.
+            && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim))) // Valid animation ID and in range.
+            && !attacker->dead // Must be alive.
+            && attacker->attacking != ATTACKING_NONE // Must be attacking.
+            && collision_find_no_block_attack_on_frame(attacker->animation, attacker->animpos, 1) != NULL // Valid blockable attack.
+            && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
+            && diffd <= max
+            && (attacker->modeldata.stealth.hide <= detect) // Stealth factor less then perception factor (allows invisibility).
+            )
         {
-            if( attacker && attacker->exists && attacker != self //cant target self
-                && (attacker->modeldata.candamage & self->modeldata.type)
-                && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim)))
-                && !attacker->dead //must be alive
-                && attacker->attacking != ATTACKING_NONE
-                && attacker->animation->collision_attack && attacker->animation->collision_attack[attacker->animpos] && attacker->animation->collision_attack[attacker->animpos]->instance
-                && ( !attacker->animation->collision_attack[attacker->animpos]->instance[instance] || (attacker->animation->collision_attack[attacker->animpos]->instance[instance] && attacker->animation->collision_attack[attacker->animpos]->instance[instance]->no_block == 0) )
-                && (diffd = (diffx = diff(attacker->position.x, self->position.x)) + (diffz = diff(attacker->position.z, self->position.z))) >= min
-                && diffd <= max
-                && (attacker->modeldata.stealth.hide <= detect) //Stealth factor less then perception factor (allows invisibility).
-              )
+            if (index < 0 || diffd < diffo)
             {
-                if(index < 0 || diffd < diffo)
-                {
-                    index = i;
-                    diffo = diffd;
+                index = i;
+                diffo = diffd;
 
-                    continue;
-                }
+                continue;
             }
         }
     }
@@ -23984,8 +26003,8 @@ void normal_prepare()
     for(i = 0; i < max_freespecials; i++)
     {
         if(validanim(self, animspecials[i]) &&
-                (check_energy(COST_CHECK_MP, animspecials[i]) ||
-                 check_energy(COST_CHECK_HP, animspecials[i])) &&
+                (check_energy(ENERGY_TYPE_MP, animspecials[i]) ||
+                 check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
                 check_range_target_all(self, target, animspecials[i]))
         {
             atkchoices[found++] = animspecials[i];
@@ -24088,7 +26107,7 @@ void common_jump()
         self->velocity.z = self->velocity.x = 0;
 
         // check if jumpland animation exists and not using landframe
-        if(validanim(self, ANI_JUMPLAND) && !self->animation->landframe)
+        if(validanim(self, ANI_JUMPLAND) && self->animation->landframe.frame == FRAME_NONE)
         {
             self->takeaction = common_jumpland;
             ent_set_anim(self, ANI_JUMPLAND, 0);
@@ -24106,7 +26125,7 @@ void common_jump()
         }
         else
         {
-            if(self->modeldata.dust.jump_land >= 0 && !self->animation->landframe)
+            if(self->modeldata.dust.jump_land >= 0 && self->animation->landframe.frame == FRAME_NONE)
             {
                 dust = spawn(self->position.x, self->position.z, self->position.y, self->direction, NULL, self->modeldata.dust.jump_land, NULL);
                 if(dust)
@@ -24117,7 +26136,7 @@ void common_jump()
                     execute_onspawn_script(dust);
                 }
             }
-            if(self->animation->landframe && self->animating)
+            if(self->animation->landframe.frame != FRAME_NONE && self->animating)
             {
                 return;
             }
@@ -24807,7 +26826,7 @@ void checkdeath()
     }
 }
 
-void checkdamageflip(entity *other, s_collision_attack *attack)
+void checkdamageflip(entity *other, s_attack *attack)
 {
     self->normaldamageflipdir = -1;
 
@@ -24817,7 +26836,7 @@ void checkdamageflip(entity *other, s_collision_attack *attack)
     }
 
     if(!self->frozen && !self->modeldata.noflip)// && !inair(self))
-    {
+    {       
         switch(attack->force_direction)
         {
             case DIRECTION_ADJUST_NONE:
@@ -24868,7 +26887,7 @@ void checkdamageflip(entity *other, s_collision_attack *attack)
     }
 }
 
-void checkdamageeffects(s_collision_attack *attack)
+void checkdamageeffects(s_attack *attack)
 {
 #define _freeze         attack->freeze
 #define _maptime        attack->maptime
@@ -24946,7 +26965,7 @@ void checkdamageeffects(s_collision_attack *attack)
     }
 
 	// Disable specials. Apply seal (Any animation with 
-	// energycost > seal) is disabled and time to expire.
+	// energy_cost > seal) is disabled and time to expire.
     if(_seal)                                                                       
     {
         self->sealtime  = _time + _sealtime;
@@ -25001,7 +27020,7 @@ void checkdamageeffects(s_collision_attack *attack)
 //
 // If attack has any recursive effects, apply
 // them to entity accordingly.
-void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack)
+void check_damage_recursive(entity *ent, entity *other, s_attack *attack)
 {
 	s_damage_recursive *previous;
 	s_damage_recursive *cursor;
@@ -25012,7 +27031,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 	{
 		return;
 	}
-
+    
 	// Let's see if we have a allocated any elements
 	// for recursive damage already.
 	if (ent->recursive_damage)
@@ -25045,10 +27064,7 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		if (!cursor)
 		{
 			// Allocate the memory and get pointer.
-			cursor = malloc(sizeof(*cursor));
-
-			// Make sure there's no random garbage in our next pointer.
-			cursor->next = NULL;
+			cursor = recursive_damage_allocate_object();
 			
 			// Link previous node's next to our new node.
 			previous->next = cursor;
@@ -25060,28 +27076,26 @@ void check_damage_recursive(entity *ent, entity *other, s_collision_attack *atta
 		// Let's allocate a head node.
 
 		// Allocate the memory and get pointer.
-		cursor = malloc(sizeof(*cursor));
-
-		// Make sure there's no random garbage in our next pointer.
-		cursor->next = NULL;
+		cursor = recursive_damage_allocate_object();
 
 		// Assign to entity.
 		ent->recursive_damage = cursor;
-	}		
-
-	// Now we have a target recursive element to populate with
+	}
+    
+    // Now we have a target recursive element to populate with
 	// attack's recursive values.
-	cursor->tag = attack->recursive->tag;
+	cursor->meta_tag = attack->recursive->meta_tag;
+    cursor->meta_data = attack->recursive->meta_data;
 	cursor->mode = attack->recursive->mode;
 	cursor->index = attack->recursive->index;
 	cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
 	cursor->force = attack->recursive->force;
 	cursor->rate = attack->recursive->rate;
 	cursor->type = attack->attack_type;
-	cursor->owner = other;
+	cursor->owner = other;       
 }
 
-void checkdamagedrop(s_collision_attack *attack)
+void checkdamagedrop(s_attack *attack)
 {
     int attackdrop = attack->attack_drop;
     float fdefense_knockdown = self->defense[attack->attack_type].knockdown;
@@ -25131,7 +27145,7 @@ void checkmpadd()
     }
 }
 
-void checkhitscore(entity *other, s_collision_attack *attack)
+void checkhitscore(entity *other, s_attack *attack)
 {
     entity *opp = self->opponent;
     if(!opp)
@@ -25153,19 +27167,19 @@ void checkhitscore(entity *other, s_collision_attack *attack)
     }
 }
 
-int calculate_force_damage(entity *other, s_collision_attack *attack)
+int calculate_force_damage(entity *target, entity *attacker, s_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
 
-    if(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0)
+    if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
     {
         force = 0;    //guardbreak does not deal damage.
     }
     if(type >= 0 && type < max_attack_types)
     {
-        force = (int)(force * other->offense_factors[type]);
-        force = (int)(force * self->defense[type].factor);
+        force = (int)(force * attacker->offense_factors[type]);
+        force = (int)(force * target->defense[type].factor);
     }
 
     return force;
@@ -25180,7 +27194,7 @@ void checkdamageonlanding()
         int didhit = 0;
 
         //##################
-        s_collision_attack attack;
+        s_attack attack;
         entity *other;
 
         attack              = emptyattack;
@@ -25273,7 +27287,7 @@ void checkdamageonlanding()
         if(self->takedamage)
         {
             //##################
-            s_collision_attack attack;
+            s_attack attack;
             entity *other;
 
             attack              = emptyattack;
@@ -25302,23 +27316,43 @@ void checkdamageonlanding()
     return;
 }
 
-void checkdamage(entity *other, s_collision_attack *attack)
+// Caskey, Damon V.
+// 2019-12-26
+//
+// Return true if attack type is one of the types not included
+// in normal use by authors.
+int is_attack_type_special(e_attack_types type)
+{
+	switch (type)
+	{
+	default:
+		return FALSE;
+        break;
+
+	case ATK_BOSS_DEATH:
+	case ATK_ITEM:
+	case ATK_LIFESPAN:
+	case ATK_LOSE:
+	case ATK_SUB_ENTITY_PARENT_KILL:
+	case ATK_SUB_ENTITY_UNSUMMON:
+	case ATK_TIMEOVER:
+	case ATK_PIT:
+		return TRUE;
+        break;
+	}
+}
+
+void checkdamage(entity *other, s_attack *attack)
 {
 	int		force;
 	bool	normal_damage;
 
 	// Get attack damage force after defense is applied.
-    force = calculate_force_damage(other, attack);
+    force = calculate_force_damage(self, other, attack);
 
 	// Damage does not return HP and comes from
 	// a normal source?
-	normal_damage = (attack->attack_type != ATK_BOSS_DEATH
-		&& attack->attack_type != ATK_ITEM
-		&& attack->attack_type != ATK_LIFESPAN
-		&& attack->attack_type != ATK_LOSE
-		&& attack->attack_type != ATK_TIMEOVER
-		&& attack->attack_type != ATK_PIT
-		&& force >= 0);
+	normal_damage = (!is_attack_type_special(attack->attack_type) && force >= 0);
 
 	// If we're invincible to normal damage sources, laugh it off.
 	if (self->invincible & INVINCIBLE_HP_NULLIFY && normal_damage)
@@ -25369,7 +27403,7 @@ void checkdamage(entity *other, s_collision_attack *attack)
     return;
 }
 
-int checkgrab(entity *other, s_collision_attack *attack)
+int checkgrab(entity *other, s_attack *attack)
 {
     //if(attack->no_pain) return  0; //no effect, let modders to deside, don't bother check it here
     if(self != other && attack->grab && cangrab(other, self))
@@ -25387,7 +27421,7 @@ int checkgrab(entity *other, s_collision_attack *attack)
     return 1;
 }
 
-int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int arrow_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     self->modeldata.no_adjust_base = 0;
     self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_basemap = self->modeldata.subject_to_gravity = 1;
@@ -25398,7 +27432,7 @@ int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
     return 0;
 }
 
-int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int common_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     if(self->dead)
     {
@@ -25694,8 +27728,8 @@ int pick_random_attack(entity *target, int testonly)
     for(i = 0; i < max_freespecials; i++)
     {
         if(validanim(self, animspecials[i]) &&
-                (check_energy(COST_CHECK_MP, animspecials[i]) ||
-                 check_energy(COST_CHECK_HP, animspecials[i])) &&
+                (check_energy(ENERGY_TYPE_MP, animspecials[i]) ||
+                 check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
                 (!target || check_range_target_all(self, target, animspecials[i])))
         {
             atkchoices[found++] = animspecials[i];
@@ -26129,7 +28163,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
-    s_collision_attack attack;
+    s_attack attack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -26150,7 +28184,8 @@ void dothrow()
     }
 
     other->direction = self->direction;
-    other->projectile |= BLAST_TOSS;
+	other->projectile |= BLAST_TOSS;
+	other->projectile |= BLAST_ATTACK;
     other->velocity.x = (other->direction == DIRECTION_RIGHT) ? (-other->modeldata.throwdist) : (other->modeldata.throwdist);
 
     if(autoland == 1 && validanim(other, ANI_LAND))
@@ -26467,28 +28502,28 @@ int check_entity_collision(entity *ent, entity *target)
             z2      = target->position.z + target->movez;
             zdist   = 0;
 
-            if(coords_col_entity_ent->z2 > coords_col_entity_ent->z1)
+            if(coords_col_entity_ent->z_foreground > coords_col_entity_ent->z_background)
             {
-                zdepth1 = (coords_col_entity_ent->z2 - coords_col_entity_ent->z1) / 2;
-                z1 += coords_col_entity_ent->z1 + zdepth1;
+                zdepth1 = (coords_col_entity_ent->z_foreground - coords_col_entity_ent->z_background) / 2;
+                z1 += coords_col_entity_ent->z_background + zdepth1;
                 zdist += zdepth1;
             }
-            else if(coords_col_entity_ent->z1)
+            else if(coords_col_entity_ent->z_background)
             {
-                zdepth1 = coords_col_entity_ent->z1;
-                zdist += coords_col_entity_ent->z1;
+                zdepth1 = coords_col_entity_ent->z_background;
+                zdist += coords_col_entity_ent->z_background;
             }
 
-            if(coords_col_entity_target->z2 > coords_col_entity_target->z1)
+            if(coords_col_entity_target->z_foreground > coords_col_entity_target->z_background)
             {
-                zdepth2 = (coords_col_entity_target->z2 - coords_col_entity_target->z1) / 2;
-                z2 += coords_col_entity_target->z1 + zdepth2;
+                zdepth2 = (coords_col_entity_target->z_foreground - coords_col_entity_target->z_background) / 2;
+                z2 += coords_col_entity_target->z_background + zdepth2;
                 zdist += zdepth2;
             }
-            else if(coords_col_entity_target->z1)
+            else if(coords_col_entity_target->z_background)
             {
-                zdepth2 = coords_col_entity_target->z1;
-                zdist += coords_col_entity_target->z1;
+                zdepth2 = coords_col_entity_target->z_background;
+                zdist += coords_col_entity_target->z_background;
             }
 
             if(diff(z1, z2) > zdist)
@@ -26955,11 +28990,11 @@ void common_runoff()
     }
     if(self->direction == DIRECTION_RIGHT)
     {
-        self->velocity.x = -self->modeldata.speed / 2;
+        self->velocity.x = -self->modeldata.speed.x / 2;
     }
     else
     {
-        self->velocity.x = self->modeldata.speed / 2;
+        self->velocity.x = self->modeldata.speed.x / 2;
     }
 
     self->velocity.z = 0;
@@ -27044,7 +29079,7 @@ void common_attack_finish()
         self->takeaction = NULL;//common_runoff;
         self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
         self->destz = self->position.z;
-        self->velocity.x = self->position.x > target->position.x ? self->modeldata.speed : -self->modeldata.speed;
+        self->velocity.x = self->position.x > target->position.x ? self->modeldata.speed.x : -self->modeldata.speed.x;
         self->velocity.z = 0;
         adjust_walk_animation(target);
         self->idling = IDLING_PREPARED;
@@ -27094,18 +29129,17 @@ void common_attack_proc()
 
     if(self->tocost)
     {
-        if(self->animation->energycost)
+       
+		// Enemy was hit with a special so go ahead and subtract life
+        if(check_energy(ENERGY_TYPE_MP, self->animnum))
         {
-            // Enemy was hit with a special so go ahead and subtract life
-            if(check_energy(COST_CHECK_MP, self->animnum))
-            {
-                self->energy_state.mp_current -= self->animation->energycost->cost;
-            }
-            else
-            {
-                self->energy_state.health_current -= self->animation->energycost->cost;
-            }
+            self->energy_state.mp_current -= self->animation->energy_cost.cost;
         }
+        else
+        {
+            self->energy_state.health_current -= self->animation->energy_cost.cost;
+        }
+        
         self->tocost = 0;    // Life is subtracted, so go ahead and reset the flag
     }
 
@@ -27370,7 +29404,7 @@ void adjust_walk_animation(entity *other)
 int common_try_pick(entity *other)
 {
     // if there's an item to pick up, move towards it.
-    float maxspeed = self->modeldata.speed * 1.5;
+    float maxspeed = self->modeldata.speed.x * 1.5;
     float dx = diff(self->position.x, other->position.x);
     float dz = diff(self->position.z, other->position.z);
 
@@ -27770,19 +29804,19 @@ int checkpathblocked()
             z = self->velocity.z;
             if(x > 0)
             {
-                x = self->modeldata.speed;
+                x = self->modeldata.speed.x;
             }
             else if(x < 0)
             {
-                x = -self->modeldata.speed;
+                x = -self->modeldata.speed.x;
             }
             if(z > 0)
             {
-                z = self->modeldata.speed / 2;
+                z = self->modeldata.speed.x / 2;
             }
             else if(z < 0)
             {
-                z = -self->modeldata.speed / 2;
+                z = -self->modeldata.speed.x / 2;
             }
             r = randf(1);
             if(r > 0.6f)
@@ -27797,8 +29831,8 @@ int checkpathblocked()
             }
             else
             {
-                self->velocity.z = (1.0f - randf(2)) * self->modeldata.speed / 2;
-                self->velocity.x = (1.0f - randf(2)) * self->modeldata.speed;
+                self->velocity.z = (1.0f - randf(2)) * self->modeldata.speed.x / 2;
+                self->velocity.x = (1.0f - randf(2)) * self->modeldata.speed.x;
             }
             self->running = 0; // TODO: re-adjust walk speed
             self->stalltime = _time + GAME_SPEED / 2;
@@ -27849,7 +29883,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     self->running = 0;
 
-    //adjustspeed(self->modeldata.speed, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
+    //adjustspeed(self->modeldata.speed.x, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
 
     if(target == NULL || self->modeldata.nomove)
     {
@@ -27895,7 +29929,7 @@ int common_try_chase(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         if(self->destx < self->position.x)
         {
@@ -27915,7 +29949,7 @@ int common_try_chase(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
         }
         if(self->destz < self->position.z)
         {
@@ -27981,7 +30015,7 @@ int common_try_follow(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
             self->running = 0;
         }
         if(self->position.x > target->position.x)
@@ -28000,7 +30034,7 @@ int common_try_follow(entity *target, int dox, int doz)
         }
         else
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
             self->running = 0; // not right, to be modified
         }
         if(self->position.z > target->position.z)
@@ -28035,13 +30069,13 @@ int common_try_avoid(entity *target, int dox, int doz)
 
     if((rand32() & 15) < 8 && randomatk >= 0)
     {
-        maxdx = self->modeldata.animation[randomatk]->range.x.max - self->modeldata.speed;
+        maxdx = self->modeldata.animation[randomatk]->range.x.max - self->modeldata.speed.x;
         if(maxdx < videomodes.hRes / 5)
         {
             maxdx = videomodes.hRes / 5;
         }
         mindx = maxdx - 10;
-        maxdz = self->modeldata.animation[randomatk]->range.z.max - self->modeldata.speed;
+        maxdz = self->modeldata.animation[randomatk]->range.z.max - self->modeldata.speed.x;
         if(maxdz < videomodes.vRes / 5)
         {
             maxdz = videomodes.vRes / 5;
@@ -28060,22 +30094,22 @@ int common_try_avoid(entity *target, int dox, int doz)
     {
         if(self->position.x < screenx)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes / 12.0;
         }
         else if(self->position.x > screenx + videomodes.hRes)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes * 11.0 / 12.0;
         }
         else if(dx < mindx)
         {
-            self->velocity.x = (self->position.x < target->position.x) ? (-self->modeldata.speed) : self->modeldata.speed;
+            self->velocity.x = (self->position.x < target->position.x) ? (-self->modeldata.speed.x) : self->modeldata.speed.x;
             self->destx = (self->position.x < target->position.x) ? (target->position.x - maxdx) : (target->position.x + maxdx);
         }
         else if (dx > maxdx)
         {
-            self->velocity.x = (self->position.x < target->position.x) ? self->modeldata.speed : (-self->modeldata.speed);
+            self->velocity.x = (self->position.x < target->position.x) ? self->modeldata.speed.x : (-self->modeldata.speed.x);
             self->destx = (self->position.x < target->position.x) ? (target->position.x - mindx) : (target->position.x + mindx);
         }
         else
@@ -28089,22 +30123,22 @@ int common_try_avoid(entity *target, int dox, int doz)
     {
         if(self->position.z < screeny)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
             self->destz = screeny +  videomodes.vRes / 12.0;
         }
         else if(self->position.z > screeny + videomodes.vRes)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
             self->destz = screeny +  videomodes.vRes * 11.0 / 12.0;
         }
         else if(dz < mindz)
         {
-            self->velocity.z = (self->position.z < target->position.z) ? (-self->modeldata.speed / 2) : (self->modeldata.speed / 2);
+            self->velocity.z = (self->position.z < target->position.z) ? (-self->modeldata.speed.x / 2) : (self->modeldata.speed.x / 2);
             self->destz = (self->position.z < target->position.z) ? (target->position.z - maxdz) : (target->position.z + maxdz);
         }
         else if(dz > maxdz)
         {
-            self->velocity.z = (self->position.z < target->position.z) ? (self->modeldata.speed / 2) : (-self->modeldata.speed / 2);
+            self->velocity.z = (self->position.z < target->position.z) ? (self->modeldata.speed.x / 2) : (-self->modeldata.speed.x / 2);
             self->destz = (self->position.z < target->position.z) ? (target->position.z - mindz) : (target->position.z + mindz);
         }
         else
@@ -28135,11 +30169,11 @@ int common_try_wandercompletely(int dox, int doz)
         rnum = rand32() & 15;
         if(rnum < 4)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else if(rnum > 11)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         else
         {
@@ -28147,11 +30181,11 @@ int common_try_wandercompletely(int dox, int doz)
         }
         if( self->position.x < screenx - 10)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         else if(self->position.x > screenx + videomodes.hRes + 10)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
 
         if(self->velocity.x > 0)
@@ -28173,11 +30207,11 @@ int common_try_wandercompletely(int dox, int doz)
         rnum = rand32() & 15;
         if(rnum < 4)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
         }
         else if(rnum > 11)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
         }
         else
         {
@@ -28185,11 +30219,11 @@ int common_try_wandercompletely(int dox, int doz)
         }
         if(self->position.z < screeny - 10)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
         }
         else if(self->position.z > screeny + videomodes.vRes + 10)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
         }
 
         if(self->velocity.z > 0)
@@ -28342,7 +30376,7 @@ int common_try_wander(entity *target, int dox, int doz)
     }
     mindz = grabd / 4;
 
-    mod = ((int)(_time / (videomodes.hRes / self->modeldata.speed)) + 1000 + self->energy_state.health_current / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
+    mod = ((int)(_time / (videomodes.hRes / self->modeldata.speed.x)) + 1000 + self->energy_state.health_current / 3 + self->pathblocked + self->modeldata.aggression / 10) % 4;
     if(mod < 0)
     {
         mod = -mod;
@@ -28357,19 +30391,19 @@ int common_try_wander(entity *target, int dox, int doz)
     {
         if(self->position.x < screenx - borderdx)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes / 8.0;
             walk = 1;
         }
         else if (self->position.x > screenx + videomodes.hRes + borderdx)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
             self->destx = screenx + videomodes.hRes * 7.0 / 8.0;
             walk = 1;
         }
         else if(diffx > returndx)
         {
-            self->velocity.x = (self->position.x > target->position.x) ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = (self->position.x > target->position.x) ? -self->modeldata.speed.x : self->modeldata.speed.x;
             self->destx = (self->position.x > target->position.x) ? (target->position.x + mindx) : (target->position.x - mindx);
             walk = 1;
         }
@@ -28390,7 +30424,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destx = target->position.x - videomodes.hRes * 0.4 - (self->energy_state.health_current / 3 % 20);
                 break;
             }
-            self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed : self->modeldata.speed;
+            self->velocity.x = self->position.x > self->destx ? -self->modeldata.speed.x : self->modeldata.speed.x;
             walk = 1;
             //printf("mod x %d\n", mod);
         }
@@ -28400,19 +30434,19 @@ int common_try_wander(entity *target, int dox, int doz)
     {
         if(self->position.z < screeny - borderdz)
         {
-            self->velocity.z = self->modeldata.speed / 2;
+            self->velocity.z = self->modeldata.speed.x / 2;
             self->destz = screeny + videomodes.vRes / 12.0;
             walk |= 1;
         }
         else if (self->position.z > screeny + videomodes.vRes + borderdz)
         {
-            self->velocity.z = -self->modeldata.speed / 2;
+            self->velocity.z = -self->modeldata.speed.x / 2;
             self->destz = screeny + videomodes.vRes * 11.0 / 12.0;
             walk |= 1;
         }
         else if(diffz > returndz)
         {
-            self->velocity.z = (self->position.z > target->position.z) ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = (self->position.z > target->position.z) ? -self->modeldata.speed.x / 2 : self->modeldata.speed.x / 2;
             self->destz = (self->position.z > target->position.z) ? (target->position.z + mindz) : (target->position.z - mindz);
             walk |= 1;
         }
@@ -28433,7 +30467,7 @@ int common_try_wander(entity *target, int dox, int doz)
                 self->destz = target->position.z - MIN((PLAYER_MAX_Z - PLAYER_MIN_Z), videomodes.vRes) * 0.25 - (self->energy_state.health_current / 3 % 5);
                 break;
             }
-            self->velocity.z = self->position.z > self->destz ? -self->modeldata.speed / 2 : self->modeldata.speed / 2;
+            self->velocity.z = self->position.z > self->destz ? -self->modeldata.speed.x / 2 : self->modeldata.speed.x / 2;
             walk |= 1;
             //printf("mod z %d\n", mod);
         }
@@ -28449,7 +30483,7 @@ int common_try_wander(entity *target, int dox, int doz)
 // to allow easy item scripting.
 void do_item_script(entity *ent, entity *item)
 {
-    s_collision_attack attack;
+    s_attack attack;
     attack = emptyattack;
     attack.attack_type = ATK_ITEM;
 
@@ -28539,9 +30573,9 @@ int biker_move()
         {
             sound_play_sample(SAMPLE_BIKE, 0, savedata.effectvol, savedata.effectvol, 100);
         }
-        if(self->modeldata.speed)
+        if(self->modeldata.speed.x)
         {
-            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (self->modeldata.speed) : (-self->modeldata.speed);
+            self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (self->modeldata.speed.x) : (-self->modeldata.speed.x);
         }
         else
         {
@@ -28574,7 +30608,7 @@ int arrow_move()
             // start chasing the target
             dx = diff(self->position.x, target->position.x);
             dz = diff(self->position.z, target->position.z);
-            maxspeed = self->modeldata.speed * 1.5;
+            maxspeed = self->modeldata.speed.x * 1.5;
 
             if(!dz && !dx)
             {
@@ -28600,11 +30634,11 @@ int arrow_move()
             {
                 if(self->direction == DIRECTION_LEFT)
                 {
-                    self->velocity.x = -self->modeldata.speed;
+                    self->velocity.x = -self->modeldata.speed.x;
                 }
                 else if(self->direction == DIRECTION_RIGHT)
                 {
-                    self->velocity.x = self->modeldata.speed;
+                    self->velocity.x = self->modeldata.speed.x;
                 }
             }
         }
@@ -28633,12 +30667,15 @@ int arrow_move()
         // Now projectiles can have custom speeds
         if(self->direction == DIRECTION_LEFT)
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else if(self->direction == DIRECTION_RIGHT)
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
+
+		self->velocity.y = self->modeldata.speed.y;
+		self->velocity.z = self->modeldata.speed.z;
     }
 
     if(level)
@@ -28739,7 +30776,7 @@ int projectile_wall_deflect(entity *ent)
     #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
-    s_collision_attack attack;
+    s_attack attack;
 
     if(validanim(ent, ANI_FALL))
     {
@@ -28803,51 +30840,74 @@ void sort_invert_by_parent(entity *ent, entity *parent)
     }
 }
 
-// for common bomb types
-int bomb_move()
+// Caskey, Damon V.
+// 2019-12-22
+//
+// Orginal author unknown. Refactored to stop using global self,
+// and fix bomb falling after detonation.
+int bomb_move(entity *ent)
 {
-    if(inair(self) && self->toexplode & EXPLODE_PREPARED)
+	// If in air, and prepared to explode (meaning will detonate on contact), 
+	// but NOT yet set to detonate, then we move using velocity (presumably 
+	// we've been tossed and so any Z and Y momentum is already handled). 
+	//
+	// EXPLODE_DETONATE status is applied by do_attack() if the we touch
+	// ground, hit another entity, or are hit by another entity attack.
+	// In that case, we "explode" by playing an appropriate animation.
+    if(inair(ent) && ent->toexplode & EXPLODE_PREPARED && !(ent->toexplode & EXPLODE_DETONATE))
     {
-        if(self->direction == DIRECTION_LEFT)
+        if(ent->direction == DIRECTION_LEFT)
         {
-            self->velocity.x = -self->modeldata.speed;
+            ent->velocity.x = -ent->modeldata.speed.x;
         }
-        else if(self->direction == DIRECTION_RIGHT)
+        else if(ent->direction == DIRECTION_RIGHT)
         {
-            self->velocity.x = self->modeldata.speed;
+            ent->velocity.x = ent->modeldata.speed.x;
         }
     }
-    else if(self->takeaction != bomb_explode)
-    {
-        self->takeaction = bomb_explode;
+	else if (ent->takeaction != bomb_explode)
+	{
 
-        // hit something, just make it an explosion animation.
-        self->modeldata.subject_to_wall = 1;
-        self->modeldata.subject_to_platform = 1;
-        self->modeldata.subject_to_hole = 1;
-        //self->modeldata.no_adjust_base = 1;    // Stop moving up/down
-        self->modeldata.subject_to_basemap = 1;
+		// The bomb action will clear us out when finished exploding or
+		// if we don't have an explode animation and the current
+		// animation is complete.
+		ent->takeaction = bomb_explode;
 
-        if ( !checkhole(self->position.x, self->position.z) ) {
-            self->velocity.y = 0;    // Stop moving up/down
-            self->base = self->position.y;
-            self->velocity.x = self->velocity.z = 0;
-        }
+		// Explosions are subject to most terrain barriers.
+		ent->modeldata.subject_to_wall = 1;
+		ent->modeldata.subject_to_platform = 1;
+		ent->modeldata.subject_to_hole = 1;
+		ent->modeldata.subject_to_basemap = 1;
 
-        if(self->modeldata.diesound >= 0)
-        {
-            sound_play_sample(self->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
-        }
+		// Stop movement. We'll still need to turn off gravity
+		// in explosion animation or we'll just start falling
+		// again immediately.
+		if (!checkhole(ent->position.x, ent->position.z)) {
+			
+			ent->base = ent->position.y;
+			ent->velocity.y = 0;
+			ent->velocity.x = 0;
+			ent->velocity.z = 0;
+		}
 
-        if(self->toexplode & EXPLODE_DETONATE && validanim(self, ANI_ATTACK2))
-        {
-            ent_set_anim(self, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
-        }
-        else if (validanim(self, ANI_ATTACK1))
-        {
-            ent_set_anim(self, ANI_ATTACK1, 0);
-        }
-    }
+		// Play die sound if we have it. This can act as the explosion sound.
+		if (ent->modeldata.diesound >= 0)
+		{
+			sound_play_sample(ent->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
+		}
+
+		// If we hit or got hit, then play ATTACK2. If we landed first, play ATTACK1.
+		if (ent->toexplode & EXPLODE_DETONATE && validanim(ent, ANI_ATTACK2))
+		{
+			ent_set_anim(ent, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
+			ent->animation->subject_to_gravity = 0;		
+		}
+		else if (validanim(ent, ANI_ATTACK1))
+		{
+			ent_set_anim(ent, ANI_ATTACK1, 0);
+			ent->animation->subject_to_gravity = 0;
+		}		
+	}
     return 1;
 }
 
@@ -28920,7 +30980,7 @@ int common_move()
     else if(aimove & AIMOVE1_BOMB)
     {
         // for a bomb, travel in a arc
-        return bomb_move();
+        return bomb_move(self);
     }
     else if(aimove & AIMOVE1_NOMOVE)
     {
@@ -29196,7 +31256,7 @@ int common_move()
 
         // make the entity walks in a straight path instead of flickering here and there
         // acceleration can be added easily based on this logic, if necessary
-        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed,
+        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed.x,
                                                     self->position.x, self->position.z,
                                                     self->destx, self->destz,
                                                     &self->velocity.x,
@@ -29395,7 +31455,7 @@ void checkstalker()
 
     running = validanim(self, ANI_RUN);
 
-    maxspeed = running ? self->modeldata.runspeed : self->modeldata.speed;
+    maxspeed = running ? self->modeldata.runspeed : self->modeldata.speed.x;
 
     self->velocity.x = maxspeed;
     self->velocity.z = 0;
@@ -29810,17 +31870,12 @@ int check_energy(e_cost_check which, int ani)
 {
     int result = FALSE;
     e_entity_type type;        //Entity type.
-    s_energycost energycost;
-
-    energycost.cost     = 0;
-    energycost.disable  = 0;
-    energycost.mponly   = COST_TYPE_MP_THEN_HP;
-
-    // Get animation's energycost if available.
-    if(self->modeldata.animation[ani]->energycost)
-    {
-        energycost = *self->modeldata.animation[ani]->energycost;
-    }
+    s_energy_cost energy_cost;
+	   
+    // Get animation's energy_cost data.
+    energy_cost.cost = self->modeldata.animation[ani]->energy_cost.cost;
+	energy_cost.disable = self->modeldata.animation[ani]->energy_cost.disable;
+	energy_cost.mponly = self->modeldata.animation[ani]->energy_cost.mponly;
 
     // Get entity type.
     type	   = self->modeldata.type;
@@ -29842,7 +31897,7 @@ int check_energy(e_cost_check which, int ani)
         }
     }
 
-    if(self->modeldata.animation[ani])
+    if(validanim(self, ani))
     {
         // Caskey, Damon V.
         // 2010-05-08
@@ -29851,22 +31906,14 @@ int check_energy(e_cost_check which, int ani)
         // many cases (weapons in particular) this can	help cut down the need for
         // superfluous models when differing abilities are desired for players,
         // enemies, or npcs.
-        if(!(energycost.disable == type													// Disabled by type?
-                || (energycost.disable == -1)											    // Disabled for all?
-                || (energycost.disable == -2 && (type & (TYPE_ENEMY  | TYPE_NPC)))		    // Disabled for all AI?
-                || (energycost.disable == -3 && (type & (TYPE_PLAYER | TYPE_NPC)))	        // Disabled for players & NPCs?
-                || (energycost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
+        if(!(energy_cost.disable & type))
         {
             // No seal or seal is less/same as energy cost?
-            if(!self->seal || self->seal >= energycost.cost)
+            if(!self->seal || self->seal >= energy_cost.cost)
             {
-                if(validanim(self, ani) &&										    //Validate the animation one more time.
-                        ((which == COST_CHECK_MP &&			                    //Check magic validity
-                          (energycost.mponly != COST_TYPE_HP_ONLY) &&
-                          (self->energy_state.mp_current >= energycost.cost)) ||
-                         (which == COST_CHECK_HP &&			                    //Check health validity
-                          (energycost.mponly != COST_TYPE_MP_ONLY) &&
-                          (self->energy_state.health_current > energycost.cost))))
+                if((which == ENERGY_TYPE_MP && (energy_cost.mponly != COST_TYPE_HP_ONLY) && (self->energy_state.mp_current >= energy_cost.cost)) 
+					||
+                   (which == ENERGY_TYPE_HP && (energy_cost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energy_cost.cost)))
                 {
                     result = TRUE;
                 }
@@ -30052,7 +32099,7 @@ int check_special()
 {
     entity *e;
     if((!level->nospecial || level->nospecial == 3) && validanim(self, ANI_SPECIAL) &&
-            (check_energy(COST_CHECK_HP, ANI_SPECIAL) || check_energy(COST_CHECK_MP, ANI_SPECIAL))
+            (check_energy(ENERGY_TYPE_HP, ANI_SPECIAL) || check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
        )
     {
         self->takeaction = common_attack_proc;
@@ -30083,18 +32130,15 @@ int check_special()
 
         if(!nocost && !healthcheat)
         {
-            // Energycost defined?
-            if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+            if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
             {
-                if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
-                {
-                    self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-                }
-                else
-                {
-                    self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-                }
+                self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
             }
+            else
+            {
+                self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+            }
+            
         }
 
         return 1;
@@ -30162,11 +32206,11 @@ void runanimal()
 
     if(self->direction == DIRECTION_RIGHT)
     {
-        self->position.x += self->modeldata.speed;
+        self->position.x += self->modeldata.speed.x;
     }
     else
     {
-        self->position.x -= self->modeldata.speed;
+        self->position.x -= self->modeldata.speed.x;
     }
 }
 
@@ -30775,7 +32819,7 @@ void player_grab_check()
                 }
                 else
                 {
-                    self->velocity.z = -self->modeldata.speed / 2;
+                    self->velocity.z = -self->modeldata.speed.x / 2;
                 }
             }
             else if(player[self->playerindex].keys & FLAG_MOVEDOWN)
@@ -30786,7 +32830,7 @@ void player_grab_check()
                 }
                 else
                 {
-                    self->velocity.z = self->modeldata.speed / 2;
+                    self->velocity.z = self->modeldata.speed.x / 2;
                 }
             }
             else if(!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
@@ -30804,7 +32848,7 @@ void player_grab_check()
             }
             else
             {
-                self->velocity.x = -self->modeldata.speed;
+                self->velocity.x = -self->modeldata.speed.x;
             }
         }
 
@@ -30816,7 +32860,7 @@ void player_grab_check()
             }
             else
             {
-                self->velocity.x = self->modeldata.speed;
+                self->velocity.x = self->modeldata.speed.x;
             }
         }
         else if(!((player[self->playerindex].keys & FLAG_MOVELEFT) || (player[self->playerindex].keys & FLAG_MOVERIGHT)) )
@@ -30922,11 +32966,11 @@ void player_walkoff_check()
 
         if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->velocity.x))
         {
-            self->velocity.x -= self->modeldata.speed;
+            self->velocity.x -= self->modeldata.speed.x;
         }
         else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->velocity.x))
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     if(self->modeldata.walkoffmovez & 2) //z move?
@@ -30956,11 +33000,11 @@ void player_walkoff_check()
 
         if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
-            self->velocity.z -= (0.5 * self->modeldata.speed);
+            self->velocity.z -= (0.5 * self->modeldata.speed.x);
         }
         else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->velocity.z))
         {
-            self->velocity.z = (0.5 * self->modeldata.speed);
+            self->velocity.z = (0.5 * self->modeldata.speed.x);
         }
     }
 
@@ -30979,19 +33023,19 @@ void player_jump_check()
 
             if(validanim(self, ANI_JUMPSPECIAL))
             {
-                if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_MP, ANI_JUMPSPECIAL))
+                if(check_energy(ENERGY_TYPE_MP, ANI_JUMPSPECIAL))
                 {
                     if(!healthcheat)
                     {
-                        self->energy_state.mp_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        self->energy_state.mp_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
                     }
                     candospecial = 1;
                 }
-                else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_HP, ANI_JUMPSPECIAL))
+                else if(check_energy(ENERGY_TYPE_HP, ANI_JUMPSPECIAL))
                 {
                     if(!healthcheat)
                     {
-                        self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
                     }
                     candospecial = 1;
                 }
@@ -31069,11 +33113,11 @@ void player_jump_check()
 
         if((player[self->playerindex].keys & FLAG_MOVELEFT) && (!self->velocity.x))
         {
-            self->velocity.x -= self->modeldata.speed;
+            self->velocity.x -= self->modeldata.speed.x;
         }
         else if((player[self->playerindex].keys & FLAG_MOVERIGHT) && (!self->velocity.x))
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     if(self->modeldata.jumpmovez & 2) //z move?
@@ -31103,11 +33147,11 @@ void player_jump_check()
 
         if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
-            self->velocity.z -= (0.5 * self->modeldata.speed);
+            self->velocity.z -= (0.5 * self->modeldata.speed.x);
         }
         else if((player[self->playerindex].keys & FLAG_MOVEDOWN) && (!self->velocity.z))
         {
-            self->velocity.z = (0.5 * self->modeldata.speed);
+            self->velocity.z = (0.5 * self->modeldata.speed.x);
         }
     }
 
@@ -31164,26 +33208,23 @@ void player_charge_check()
 int check_costmove(int s, int fs, int jumphack)
 {
     if(((fs == 1 && level->nospecial < 2) || (fs == 0 && level->nospecial == 0) || (fs == 0 && level->nospecial == 3)) &&
-            (check_energy(COST_CHECK_HP, s) ||
-             check_energy(COST_CHECK_MP, s))  )
+            (check_energy(ENERGY_TYPE_HP, s) ||
+             check_energy(ENERGY_TYPE_MP, s))  )
     {
         if(!jumphack)
         {
             self->takeaction = common_attack_proc;
         }
         if(!nocost && !healthcheat)
-        {
-            if(self->modeldata.animation[s]->energycost)
+        {           
+            if(check_energy(ENERGY_TYPE_MP, s))
             {
-                if(check_energy(COST_CHECK_MP, s))
-                {
-                    self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
-                }
-                else
-                {
-                    self->energy_state.health_current -= self->modeldata.animation[s]->energycost->cost;
-                }
+                self->energy_state.mp_current -= self->modeldata.animation[s]->energy_cost.cost;
             }
+            else
+            {
+                self->energy_state.health_current -= self->modeldata.animation[s]->energy_cost.cost;
+            }           
         }
 
 		self->running = 0;
@@ -31232,15 +33273,15 @@ int check_combo()
     {
         com = self->modeldata.special + i;
 
-        if(self->animation->cancel &&
+        if(self->animation->cancel != ANIMATION_CANCEL_DISABLED &&
                 (self->animnum != com->cancel ||
                  com->frame.min > self->animpos ||
                  com->frame.max < self->animpos ||
-                 self->animation->animhits < com->hits))
+                 self->animation->hit_count < com->hits))
         {
             continue;
         }
-        else if(!self->animation->cancel &&
+        else if(self->animation->cancel == ANIMATION_CANCEL_DISABLED &&
                 (com->cancel || !self->idling || diff(self->position.y, self->base) > 1) )
         {
             continue;
@@ -31249,7 +33290,7 @@ int check_combo()
         // find the longest possible combo with more keys pressed concurrently
         if( com->steps >= maxstep && com->numkeys > maxkeys &&
                 validanim(self, com->anim) &&
-                (check_energy(COST_CHECK_MP, com->anim) || check_energy(COST_CHECK_HP, com->anim)) &&
+                (check_energy(ENERGY_TYPE_MP, com->anim) || check_energy(ENERGY_TYPE_HP, com->anim)) &&
                 match_combo(com->input, p, com->steps))
         {
             // combo valid! but which better? The longest combo that has with more keys pressed concurrently
@@ -31447,7 +33488,7 @@ void player_think()
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
             self->idling = IDLING_NONE;
-            self->velocity.z = -self->modeldata.speed * 1.75;
+            self->velocity.z = -self->modeldata.speed.x * 1.75;
             self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -31483,7 +33524,7 @@ void player_think()
             self->takeaction = common_dodge;
             self->combostep[0] = 0;
             self->idling = IDLING_NONE;
-            self->velocity.z = self->modeldata.speed * 1.75;
+            self->velocity.z = self->modeldata.speed.x * 1.75;
             self->velocity.x = 0;
             ent_set_anim(self, ANI_DODGE, 0);
             pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -31587,9 +33628,9 @@ void player_think()
     if((pl->releasekeys & FLAG_ATTACK))
     {
         if(self->stalltime && notinair &&
-                ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->chargetime) < _time) ||
+                ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->charge_time) < _time) ||
                  (!validanim(self, ANI_CHARGEATTACK) && validanim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1])
-                  && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->chargetime) < _time)))
+                  && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->charge_time) < _time)))
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
@@ -31862,7 +33903,7 @@ void player_think()
             if(validanim(self, ANI_UP) && !self->running)
             {
                 action = 2;
-                self->velocity.z = -self->modeldata.speed / 2;  // Used for up animation
+                self->velocity.z = -self->modeldata.speed.x / 2;  // Used for up animation
             }
             else if(self->running)
             {
@@ -31872,7 +33913,7 @@ void player_think()
             else
             {
                 action = 1;
-                self->velocity.z = -self->modeldata.speed / 2;
+                self->velocity.z = -self->modeldata.speed.x / 2;
             }
         }
         else if(pl->keys & FLAG_MOVEDOWN)
@@ -31882,7 +33923,7 @@ void player_think()
             if(validanim(self, ANI_DOWN) && !self->running )
             {
                 action = 3;
-                self->velocity.z = self->modeldata.speed / 2;  // Used for down animation
+                self->velocity.z = self->modeldata.speed.x / 2;  // Used for down animation
             }
             else if(self->running)
             {
@@ -31892,7 +33933,7 @@ void player_think()
             else
             {
                 action = 1;
-                self->velocity.z = self->modeldata.speed / 2;
+                self->velocity.z = self->modeldata.speed.x / 2;
             }
         }
         else if(!(pl->keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
@@ -31954,11 +33995,11 @@ void player_think()
         else if(action != 2 && action != 3)
         {
             action = 1;
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
         else
         {
-            self->velocity.x = -self->modeldata.speed;
+            self->velocity.x = -self->modeldata.speed.x;
         }
     }
     else if(pl->keys & FLAG_MOVERIGHT && self->ducking == DUCK_NONE)
@@ -32009,11 +34050,11 @@ void player_think()
         else if(action != 2 && action != 3)
         {
             action = 1;
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
         else
         {
-            self->velocity.x = self->modeldata.speed;
+            self->velocity.x = self->modeldata.speed.x;
         }
     }
     else if(!((pl->keys & FLAG_MOVELEFT) ||
@@ -32271,9 +34312,9 @@ void dropweapon(int flag)
 }
 
 
-int player_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int player_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
-    s_collision_attack atk = *attack;
+    s_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
     if(healthcheat || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
@@ -32292,7 +34333,7 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
-    s_collision_attack attack;
+    s_attack attack;
 
     for(i = 0; i < ent_max; i++)
     {
@@ -32336,7 +34377,7 @@ void drop_all_enemies()
 void kill_all_enemies()
 {
     int i;
-    s_collision_attack attack;
+    s_attack attack;
     entity *tmpself = NULL;
 
     attack = emptyattack;
@@ -32362,7 +34403,7 @@ void kill_all_enemies()
 
 
 
-void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smartbombs
+void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
 {
     int i, hostile, hit = 0;
     entity *tmpself = NULL;
@@ -32401,19 +34442,16 @@ void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smar
     if(nocost && hit && smartbomber) // don't use e, because this can be an item-bomb
     {
         self = smartbomber;
-
-        // Energycost defined?
-        if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+        
+        if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
         {
-            if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
-            {
-                self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-            }
-            else
-            {
-                self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
-            }
+            self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
         }
+        else
+        {
+            self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+        }
+        
     }
     self = tmpself;
 
@@ -32432,226 +34470,315 @@ void anything_walk()
     //self->position.x += self->velocity.x;
 }
 
-entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map)
+// Caskey, Damon V.
+// 2019-12-18
+//
+// Apply color set adjustment to entity, possibly
+// based on a parent/owner depending on color set 
+// adjustment setting.
+void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustment)
 {
-    entity *e = NULL;
+	int i = 0; // Loop cursor.
 
-    if(index >= 0 || name)
-    {
-        e = spawn(x, z, a, direction, name, index, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	// Apply color setting.
+	switch (adjustment)
+	{
+	default:
+	
+		// Use adjustment value as color set index.
+		ent_set_colourmap(ent, adjustment);
+		break;
+	
+	case COLOR_SET_ADJUST_NONE:
+		
+		// Do nothing.		
+		break;
+	
+	case COLOR_SET_ADJUST_PARENT_INDEX:
 
-        // Index takes priority in spawning, so if it's here
-        // then we'll type this as an index spawn source.
-        if(index < 0)
-        {
-            e->projectile_prime |= PROJECTILE_PRIME_SOURCE_INDEX;
-        }
-        else
-        {
-            e->projectile_prime |= PROJECTILE_PRIME_SOURCE_NAME;
-        }
+		// Locate parent's current color set index. Then
+		// set our color set by that index.
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_UNDEFINED;
+		for (i = 0; i < parent->modeldata.maps_loaded; i++)
+		{
+			if (parent->colourmap == parent->modeldata.colourmap[i])
+			{
+				ent_set_colourmap(ent, i);
+				break;
+			}
+		}
+		break;
 
-        e->position.y = a;
-    }
-    else if(self->weapent && self->weapent->modeldata.project >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	case COLOR_SET_ADJUST_PARENT_TABLE:
+		
+		// Use parent's color table.
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_PROJECTILE;
+		ent->colourmap = parent->colourmap;
+		break;
 
-        e->position.y = a;
-    }
-    else if(self->animation->projectile.knife >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile.knife, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	}
+}
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_ANIMATION;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
+// Caskey, Damon V.
+//
+// 2019-12-22
+// Copy the faction settings (candamage, hostile, projectilehit) from
+// a source entity.
+void copy_faction_data(entity* ent, entity* source)
+{
+	// Copy the faction data if we don't already have it.
+	if (ent->modeldata.hostile == TYPE_UNDELCARED)
+	{
+		ent->modeldata.hostile = source->modeldata.hostile;
+	}
 
-        e->position.y = a;
-    }
-    else if(self->animation->projectile.flash >= 0)
-    {
-        e = spawn(x, z, 0, direction, NULL, self->animation->projectile.flash, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	if (ent->modeldata.candamage == TYPE_UNDELCARED)
+	{
+		ent->modeldata.candamage = source->modeldata.candamage;
+	}
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_ANIMATION;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_FLASH;
+	if (ent->modeldata.projectilehit == TYPE_UNDELCARED)
+	{
+		ent->modeldata.candamage = source->modeldata.candamage;
+	}
+}
 
-        e->position.y = 0;
-    }
-    else if(self->modeldata.knife >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->modeldata.knife, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+// Caskey, Damon  V.
+// 2019-12-18 (refactor)
+//
+// Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
+// and consolidate projectile spawn logic. Spawns an entity and fires it as a projectile. 
+// Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
+// comments in function).
+//
+// Returns pointer of spawned projectile, or NULL on fail.
+entity *knife_spawn(entity *parent, s_projectile *projectile)
+{
+    entity *ent = NULL;
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_HEADER;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
+	s_axis_principal_float position;
+	e_direction direction;
+	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
+	
+	// If there's no projectile or parent setting, exit now.
+	if (!projectile || !parent)
+	{
+		return NULL;
+	}
 
-        e->position.y = a;
-    }
-    else if(self->modeldata.pshotno >= 0)
-    {
-        e = spawn(x, z, 0, direction, NULL, self->modeldata.pshotno, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	// Get result of direction adjustment. We need this before we can handle
+	// positioning on X axis.
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_HEADER;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_PSHOTNO;
+	// Let's set up the spawn position. Reverse X when parent
+	// faces left.
+	if (direction == DIRECTION_RIGHT)
+	{
+		position.x = parent->position.x + projectile->position.x;
+	}
+	else
+	{
+		position.x = parent->position.x - projectile->position.x;
+	}
 
-        e->position.y = 0;
-    }
-    else if(type)
-    {
-        e = spawn(x, z, a, direction, "Shot", -1, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+	position.y = parent->position.y + projectile->position.y;
+	position.z = parent->position.z + projectile->position.z;
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_SHOT;
+	// Now we need to spawn the projectile entity. There are many haphazard legacy 
+	// additions to sift through, so we need to prioritize which model to spawn. 
+	// In general, we work back from most granular to most global.
+	//
+	// From highest to lowest priority:
+	// 
+	// 1. Projectile Knife property.
+	// 2. Projectile Flash property.
+	// 3. Using weapon with model Project property.
+	// 4. Model Knife property.
+	// 5. Model Pshotno property.
+	// 6. Global hardcode model name, "Knife".
+	// 7. Global hardcode model name, "Shot".
+	if (projectile->knife >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->knife, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_KNIFE;
+	}
+	else if (projectile->flash >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->flash, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_FLASH;
+	}
+	else if (parent->weapent && parent->weapent->modeldata.project >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->weapent->modeldata.project, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE;
+	}
+	else if (parent->modeldata.knife >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.knife, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_KNIFE;
+	}
+	else if (parent->modeldata.pshotno >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.pshotno, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO;
+	}
+	else
+	{
+		// No model indexes set, so let's fall back to
+		// the legacy hardcode model names.
 
-        e->position.y = a;
-    }
-    else
-    {
-        e = spawn(x, z, a, direction, "Knife", -1, NULL);
-        if(!e)
-        {
-            return NULL;
-        }
+		// Try hardcode "knife" first. If that fails, we'll try
+		// "shot" next.
+		ent = spawn(position.x, position.z, position.y, direction, "Knife", MODEL_INDEX_NONE, NULL);
+		
+		if (ent)
+		{
+			// Hardcode knife spawn successful. Mark as legacy knife
+			// and continue.
+			projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE;
+		}
+		else 
+		{
+			//  Try "shot".
+			ent = spawn(position.x, position.z, position.y, direction, "Shot", MODEL_INDEX_NONE, NULL);
 
-        e->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-        e->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
-        e->projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL;
-        e->projectile_prime |= PROJECTILE_PRIME_REQUEST_KNIFE;
+			projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT;
+		}
 
-        e->position.y = a;
-    }
+		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+	}
 
-    if(e == NULL)
+	// If we never successfully spawned a projectile entity, exit.
+    if(!ent)
     {
         return NULL;
     }
-    else if(self->modeldata.type & TYPE_PLAYER)
-    {
-        e->modeldata.type = TYPE_SHOT;
-    }
-    else
-    {
-        e->modeldata.type = self->modeldata.type;
-    }
+    
+	// Apply projectile prime flags.
+	ent->projectile_prime = projectile_prime;	
 
-    if(!e->model->speed && !e->modeldata.nomove)
-    {
-        e->modeldata.speed = 2;
-    }
-    else if(e->modeldata.nomove)
-    {
-        e->modeldata.speed = 0;
-    }
+	// Copy offense values from parent offense settings 
+	// to projectile enity if requested.
+	if (projectile->offense == PROJECTILE_OFFENSE_PARENT)
+	{
+		memcpy(ent->offense_factors, parent->offense_factors, sizeof(*ent->offense_factors) * max_attack_types);
+	}
 
-    e->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
-    e->owner = self;                                                     // Added so projectiles don't hit the owner
-    e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->attacking = ATTACKING_ACTIVE;
-    //e->direction = direction;
-    e->think = common_think;
-    e->nextthink = _time + 1;
-    e->trymove = NULL;
-    e->takedamage = arrow_takedamage;
-    e->takeaction = NULL;
-    e->modeldata.aimove = AIMOVE1_ARROW;
-    if(!e->modeldata.offscreenkill)
+	// Apply color adjustment.
+	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
+	
+	// Player projectiles are always type "shot", unless 
+	// using the current PROJECTILE type.
+	if (!(ent->modeldata.type & TYPE_PROJECTILE))
+	{
+		if (parent->modeldata.type & TYPE_PLAYER)
+		{
+			ent->modeldata.type = TYPE_SHOT;
+		}
+		else
+		{
+			ent->modeldata.type = parent->modeldata.type;
+		}
+	}
+
+	// If no move, then all speed is 0. Otherwise check for use of
+	// projectile velocity. If player supplied any value other 
+	// than MODEL_SPEED_NONE, we use player's value. If not, fall
+	// back to default values. This is a bit overcomplicated, but
+	// allows players to supply a 0 velocity value on any axis.
+	if (ent->modeldata.nomove)
+	{
+		ent->modeldata.speed.x = 0;
+		ent->modeldata.speed.y = 0;
+		ent->modeldata.speed.z = 0;
+	}
+	else
+	{	
+		// Copy speed values from animation projectile settings to model.
+		ent->modeldata.speed = projectile->velocity;
+	}
+
+	// Set up behavior flags.
+	ent->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
+	ent->owner = parent;
+	ent->nograb = 1;
+	ent->attacking = ATTACKING_ACTIVE;
+	ent->think = common_think;
+	ent->nextthink = _time + 1;
+	ent->trymove = NULL;
+	ent->takedamage = arrow_takedamage;
+	ent->takeaction = NULL;
+	ent->modeldata.aimove = AIMOVE1_ARROW;
+	ent->speedmul = 2;
+
+    if(!ent->modeldata.offscreenkill)
     {
-        e->modeldata.offscreenkill = 200;    //default value
+		ent->modeldata.offscreenkill = 200;    //default value
     }
-    e->modeldata.aiattack = AIATTACK1_NOATTACK;
+	ent->modeldata.aiattack = AIATTACK1_NOATTACK;
     
 	// Kill self when we hit.
-	if (e->modeldata.remove)
+	if (ent->modeldata.remove)
 	{
-		e->autokill |= AUTOKILL_ATTACK_HIT;
+		ent->autokill |= AUTOKILL_ATTACK_HIT;
 	}
 	
     // Kill self when we finish animation.
-	if (e->modeldata.nomove)
+	if (ent->modeldata.nomove)
 	{
-		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
 	
-    e->speedmul = 2;
-
-    ent_set_colourmap(e, map);
-
-    if(e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
+	// Is this a floor or flying projectile? Set base accordingly.
+    if(ent->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
-        e->base = 0;
+		ent->base = 0;
     }
     else
     {
-        e->base = a;
+		ent->base = position.y;
     }
 
-    if(e->modeldata.hostile < 0)
+	// If projectile entity doesn't already have hostile and
+	// candamage settings, copy them from parent.
+	copy_faction_data(ent, parent);
+
+	// If player damage turned off, remove player type from
+	// hostile (so homing projectiles leave players alone) and 
+	// from candamage.
+    if((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
-        e->modeldata.hostile = self->modeldata.hostile;
-    }
-    if(e->modeldata.candamage < 0)
-    {
-        e->modeldata.candamage = self->modeldata.candamage;
-    }
-    if((self->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
-    {
-        e->modeldata.hostile &= ~TYPE_PLAYER;
-        e->modeldata.candamage &= ~TYPE_PLAYER;
+		ent->modeldata.hostile &= ~TYPE_PLAYER;
+		ent->modeldata.candamage &= ~TYPE_PLAYER;
     }
 
-    e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
-    e->modeldata.no_adjust_base  = 1;
+	// Set terrain behavior flags.
+	ent->modeldata.subject_to_wall = 1;
+	ent->modeldata.subject_to_platform = 1;
+	ent->modeldata.subject_to_hole = 1;
+	ent->modeldata.subject_to_gravity = 0;
+	ent->modeldata.no_adjust_base  = 0;
     
 	// Execute the projectile's on spawn event.
-	execute_onspawn_script(e);
+	execute_onspawn_script(ent);
 	
-	return e;
+	return ent;
 }
 
 void bomb_explode()
@@ -32664,171 +34791,339 @@ void bomb_explode()
 }
 
 
-entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map)
+// Caskey, Damon  V.
+// 2019-12-22 (refactor)
+//
+// Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
+// and consolidate projectile spawn logic. Spawns an entity and fires it as a bomb projectile. 
+// Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
+// comments in function).
+//
+// Returns pointer of spawned projectile, or NULL on fail.
+entity *bomb_spawn(entity *parent, s_projectile *projectile)
 {
-    entity *e = NULL;
 
-    if(index >= 0 || name)
+	entity* ent = NULL;
+	s_axis_principal_float position;
+	e_direction direction;
+	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
+
+	// If there's no projectile or parent setting, exit now.
+	if (!projectile || !parent)
+	{
+		return NULL;
+	}
+
+	// Get result of direction adjustment. We need this before we can handle
+	// positioning on X axis.
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+
+	// Let's set up the spawn position. Reverse X when parent
+	// faces left.
+	if (direction == DIRECTION_RIGHT)
+	{
+		position.x = parent->position.x + projectile->position.x;
+	}
+	else
+	{
+		position.x = parent->position.x - projectile->position.x;
+	}
+
+	position.y = parent->position.y + projectile->position.y;
+	position.z = parent->position.z + projectile->position.z;
+
+	// Now we need to spawn the projectile entity. There are many haphazard legacy 
+	// additions to sift through, so we need to prioritize which model to spawn. 
+	// In general, we work back from most granular to most global.
+	//
+	// From highest to lowest priority:
+	// 
+	// 1. Projectile Bomb property.
+	// 2. Using weapon with model bomb property.
+	// 3. Model bomb property.
+	    
+    if(projectile->bomb >= 0)
     {
-        e = spawn(x, z, a, direction, name, index, NULL);
-    }
-    else if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->weapent->modeldata.project, NULL);
-    }
-    else if(self->animation->projectile.bomb >= 0)
-    {
-        e = spawn(x, z, a, direction, NULL, self->animation->projectile.bomb, NULL);
-    }
+        ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->bomb, NULL);
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_BOMB;
+	}
+	else if (self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
+	{
+		ent = spawn(position.x, position.z, position.y, direction, NULL, self->weapent->modeldata.project, NULL);
+		
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE;
+	}
     else if(self->modeldata.bomb >= 0)
     {
-        e = spawn(x, z, a, direction, NULL, self->modeldata.bomb, NULL);
-    }
+        ent = spawn(position.x, position.z, position.y, direction, NULL, self->modeldata.bomb, NULL);
 
-    if(e == NULL)
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_BOMB;
+	}
+	
+	projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+	projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+	
+	// If we never successfully spawned a projectile entity, exit.
+    if(!ent)
     {
         return NULL;
     }
 
-    e->position.y = a + 0.5;
+	ent->projectile_prime = projectile_prime;
 
-    if(!e->model->speed && !e->modeldata.nomove)
-    {
-        e->modeldata.speed = 2;
-    }
-    else if(e->modeldata.nomove)
-    {
-        e->modeldata.speed = 0;
-    }
-
-    e->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
-    e->attacking = ATTACKING_ACTIVE;
-    e->owner = self;                                                     // Added so projectiles don't hit the owner
-    e->nograb = 1;                                                       // Prevents trying to grab a projectile
-    e->toexplode |= EXPLODE_PREPARED;                                    // Set to distinguish exploding projectiles and also so stops falling when hitting an opponent
-    ent_set_colourmap(e, map);
-    //e->direction = direction;
-    toss(e, e->modeldata.jumpheight);
-    e->think = common_think;
-    e->nextthink = _time + 1;
-    e->trymove = NULL;
-    e->takeaction = NULL;
-    e->modeldata.aimove = AIMOVE1_BOMB;
-    e->modeldata.aiattack = AIATTACK1_NOATTACK;                                    // Well, bomb's attack animation is passive, dont use any A.I. code.
-    e->takedamage = common_takedamage;
-	e->autokill &= ~AUTOKILL_ATTACK_HIT;
-
-	if (e->modeldata.nomove)
+    // If no move, then all speed is 0. Otherwise check for use of
+	// projectile velocity. If player supplied any value other 
+	// than MODEL_SPEED_NONE, we use player's value. If not, fall
+	// back to default values. This is a bit overcomplicated, but
+	// allows players to supply a 0 velocity value on any axis.
+	if (ent->modeldata.nomove)
 	{
-		e->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+		ent->modeldata.speed.x = 0;
+		ent->modeldata.speed.y = 0;
+		ent->modeldata.speed.z = 0;
+	}
+	else
+	{		
+		// Copy speed values from animation projectile settings to model.
+		ent->modeldata.speed = projectile->velocity;
+	}
+
+	// Toss the bomb entity in an arc.
+	//
+	// We want to handle legacy behavior (use projectile jumpheight 
+	// for Y toss velocity), allow author to apply a 0 value for Y 
+	// velocity, and use the same velocity structure members for bomb 
+	// and knife projectiles. The last part is an extra challenge because 
+	// the default velocity needs for knife and bomb are not compatible. 
+	// To handle all of this this we will set the velocity.y member to 
+	// MODEL_SPEED_NONE specfically when a bomb projectile is requested 
+	// by the Throwframe command or "bomb" type from legacy script function 
+	// projectile(). If the author does not modify this value, we know 
+	// to fall back to legacy behavior and use the projectile entity's 
+	// model jumpheight.  
+	//
+	// If the value is anything other than MODEL_SPEED_NONE, then we know 
+	// the author requested a specific velocity (including 0) and will 
+	// use author value instead of model jumpheight.
+			
+	if (projectile->velocity.y == MODEL_SPEED_NONE)
+	{
+		toss(ent, ent->modeldata.jumpheight);
+	}
+	else
+	{
+		toss(ent, projectile->velocity.y);
 	}
 	
-    e->speedmul = 2;
+	// Apply color adjustment.
+	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
 
+    ent->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
+    ent->attacking = ATTACKING_ACTIVE;
+    ent->owner = parent;                                                     
+    ent->nograb = 1;                                                       
+    ent->toexplode |= EXPLODE_PREPARED;                                    
+    
+        
+    ent->think = common_think;
+    ent->nextthink = _time + 1;
+    ent->trymove = NULL;
+    ent->takeaction = NULL;
+    ent->modeldata.aimove = AIMOVE1_BOMB;
+    ent->modeldata.aiattack = AIATTACK1_NOATTACK;
+    ent->takedamage = common_takedamage;
+	ent->autokill &= ~AUTOKILL_ATTACK_HIT;
 
-    // Ok, some old mods use type none, will have troubles.
-    // so we give them some default hostile types.
-    if(e->modeldata.hostile < 0)
-    {
-        e->modeldata.hostile = self->modeldata.hostile;
-    }
-    if(e->modeldata.candamage < 0)
-    {
-        e->modeldata.candamage = self->modeldata.candamage;
-    }
-    e->modeldata.no_adjust_base = 0;
-    e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
+	if (ent->modeldata.nomove)
+	{
+		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+	}
+	
+    ent->speedmul = 2;
+
+	// If projectile entity doesn't already have hostile and
+	// candamage settings, copy them from parent.
+	copy_faction_data(ent, parent);
+    
+	ent->modeldata.no_adjust_base = 0;
+	ent->modeldata.subject_to_basemap = 1;
+	ent->modeldata.subject_to_wall = 1;
+	ent->modeldata.subject_to_platform = 1;
+	ent->modeldata.subject_to_hole = 1;
+	ent->modeldata.subject_to_gravity = 1;
     
 	// Execute the projectile's on spawn event.
-	execute_onspawn_script(e);
+	execute_onspawn_script(ent);
 	
-	return e;
+	return ent;
 }
 
 // Spawn 3 stars
-int star_spawn(float x, float z, float a, int direction)  // added entity to know which star to load
+//
+// Caskey, Damon V.
+// 2019-12-17
+//
+// Spawn three “star” projectiles. Meant for Eiji enemies in 
+// original Beats of Rage, who would jump and throw three star 
+// shuriken diagonally downward at players. Original author 
+// Roel, but modified several times by unknown parties. Refactored 
+// by DC 2019-12-17 to work with current projectile system. 
+// Obviously, we need this for backward compatibility with legacy 
+// modules, but otherwise script is the best choice to handle 
+// multiple projectiles or any other sort of specialized 
+// projectile spawns.
+//
+// Return TRUE if stars spawned, FALSE on fail.
+int star_spawn(entity *parent, s_projectile *projectile)
 {
-    entity *e = NULL;
-    int i, index = -1;
-    char *starname = NULL;
-    float fd = (float)((direction ? 2 : -2));
-    int max_stars = 3;
+#define MAX_STARS 3
+
+    entity *ent = NULL;
+	int i = 0;
+	int index = MODEL_INDEX_NONE;
     int first_sortid = 0;
 
-    //merge enemy/player together, use the same rules
-    if(self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && self->weapent->modeldata.project >= 0)
+	s_axis_principal_float position;
+	e_direction direction;
+	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
+
+	// If there's no projectile or parent setting, exit now.
+	if (!projectile || !parent)
+	{
+		return FALSE;
+	}
+
+	// Get result of direction adjustment. We need this before we can handle
+	// positioning on X axis.
+	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+
+	// Let's set up the spawn position. Reverse X when parent
+	// faces left.
+	if (direction == DIRECTION_RIGHT)
+	{
+		position.x = parent->position.x + projectile->position.x;
+	}
+	else
+	{
+		position.x = parent->position.x - projectile->position.x;
+	}
+
+	position.y = parent->position.y + projectile->position.y;
+	position.z = parent->position.z + projectile->position.z;
+
+    // Same concept as knife spawn. Look for model to spawn.
+	// 1. Animation projectile.
+	// 2. Weapon model projectile.
+	// 3. Base model projectile.
+	// 4. Legacy default.
+    if(projectile->star >= 0)
     {
-        index = self->weapent->modeldata.project;
+        index = projectile->star;
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_PROJ_STAR;
     }
-    else if(self->animation->projectile.star >= 0)
+	else if (parent->weapent && parent->weapent->modeldata.subtype == SUBTYPE_PROJECTILE && parent->weapent->modeldata.project >= 0)
+	{
+		index = parent->weapent->modeldata.project;
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE;
+	}
+    else if(parent->modeldata.star >= 0)
     {
-        index = self->animation->projectile.star;    //use any star
-    }
-    else if(self->modeldata.star >= 0)
-    {
-        index = self->modeldata.star;
+        index = parent->modeldata.star;
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_MODEL_STAR;
     }
     else
     {
-        starname = "Star";    // this is default star
+        index = get_cached_model_index("Star"); 
+
+		projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_STAR;
     }
 
-    for(i = 0; i < max_stars; i++)
+	projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+	projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+
+	// Loop to max star count.
+    for(i = 0; i < MAX_STARS; i++)
     {
-        e = spawn(x, z, a, direction, starname, index, NULL);
-        if(e == NULL)
+		// Spawn the star entity. If we fail, exit and return false.
+        ent = spawn(position.x, position.z, position.y, direction, NULL, index, NULL);
+        if(ent == NULL)
         {
-            return 0;
+            return FALSE;
         }
 
-        self->attacking = ATTACKING_NONE;
+		// 2019-12-17 DC - Not sure why we set attacking off, but
+		// leaving it here for legacy behavior.
+        parent->attacking = ATTACKING_NONE;
 
-        if (i <= 0) first_sortid = e->sortid;
-        e->sortid = first_sortid - i;
-        e->takedamage = arrow_takedamage;//enemy_takedamage;    // Players can now hit projectiles
-        e->owner = self;    // Added so enemy projectiles don't hit the owner
-        e->attacking = ATTACKING_ACTIVE;
-        e->nograb = 1;    // Prevents trying to grab a projectile
-        if (self->animation->starvelocity)
-        {
-            e->velocity.x = fd * (float)self->animation->starvelocity[i];
-        }
-        else e->velocity.x = fd * (float)i / 2;
-        e->think = common_think;
-        e->nextthink = _time + 1;
-        e->trymove = NULL;
-        e->takeaction = NULL;
-        e->modeldata.aimove = AIMOVE1_STAR;
-        e->modeldata.aiattack = AIATTACK1_NOATTACK;
-        
-		if (e->modeldata.remove)
+		// First star spawned sort id serves as a base for sorting. 
+		// Then the next star's sort is the base - loop index. Each 
+		// subsequent star appears one step further behind in
+		// sorting order. 
+		//
+		// Ex: Base (first star) = 20, 20 - 1 = 19, 20 - 2 = 18.
+		if (i <= 0)
 		{
-			e->autokill |= AUTOKILL_ATTACK_HIT;
+			first_sortid = ent->sortid;
+		}
+
+        ent->sortid = first_sortid - i;
+
+        ent->takedamage = arrow_takedamage;
+        ent->owner = parent;
+        ent->attacking = ATTACKING_ACTIVE;
+        ent->nograb = 1;
+        
+		// Get the star velocity setting from animation.
+		ent->velocity.x = projectile->star_velocity[i];
+
+		// Reverse X velocity if direction is left.
+		if (direction == DIRECTION_LEFT)
+		{
+			ent->velocity.x = -ent->velocity.x;
+		}
+		
+		ent->think = common_think;
+        ent->nextthink = _time + 1;
+        ent->trymove = NULL;
+        ent->takeaction = NULL;
+        ent->modeldata.aimove = AIMOVE1_STAR;
+        ent->modeldata.aiattack = AIATTACK1_NOATTACK;
+        
+		// Remove star on contact.
+		if (ent->modeldata.remove)
+		{
+			ent->autokill |= AUTOKILL_ATTACK_HIT;
 		}
 				
-		e->position.y = e->base = a;
-        e->speedmul = 2;
-        //e->direction = direction;
+		ent->position.y = position.y;
+		ent->base = position.y;
+        ent->speedmul = 2;
+        
+		// If projectile entity doesn't already have hostile and
+		// candamage settings, copy them from parent.
+		copy_faction_data(ent, parent);
 
-        if(e->modeldata.hostile < 0)
-        {
-            e->modeldata.hostile = self->modeldata.hostile;
-        }
-        if(e->modeldata.candamage < 0)
-        {
-            e->modeldata.candamage = self->modeldata.candamage;
-        }
+		// Basic terrian property setup.
+		ent->modeldata.subject_to_basemap = 1;
+		ent->modeldata.subject_to_wall = 1;
+		ent->modeldata.subject_to_platform = 1;
+		ent->modeldata.subject_to_hole = 1;
+		ent->modeldata.subject_to_gravity = 1;
+        ent->modeldata.no_adjust_base = 0;
 
-        e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform =
-                                           e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
-        e->modeldata.no_adjust_base = 0;
-
-        e->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
+        ent->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
+		ent->projectile_prime = projectile_prime;
 
 		// Execute the projectile's on spawn event.
-		execute_onspawn_script(e);
+		execute_onspawn_script(ent);
     }
-    return 1;
+    return TRUE;
+
+#undef MAX_STARS
 }
 
 
@@ -32958,7 +35253,7 @@ void bike_crash()
 
 
 
-int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int biker_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     entity *driver = NULL;
     entity *tempself = NULL;
@@ -33047,7 +35342,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 
 
-int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
+int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag)
 {
     if(self->position.y <= PIT_DEPTH)
     {
@@ -33525,7 +35820,7 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_collision_attack attack_timeover, attack_lose;
+    s_attack attack_timeover, attack_lose;
 
     attack_timeover = emptyattack;
     attack_timeover.attack_type = ATK_TIMEOVER;
@@ -33622,10 +35917,10 @@ void update_scroller()
     /*
     	//level->advancetime = _time + (GAME_SPEED/100);    // Changed so scrolling speeds up for faster players
     	level->advancetime = _time  -
-    		((player[0].ent && (player[0].ent->modeldata.speed >= 12 || player[0].ent->modeldata.runspeed >= 12)) ||
-    		 (player[1].ent && (player[1].ent->modeldata.speed >= 12 || player[1].ent->modeldata.runspeed >= 12)) ||
-    		 (player[2].ent && (player[2].ent->modeldata.speed >= 12 || player[2].ent->modeldata.runspeed >= 12)) ||
-    		 (player[3].ent && (player[3].ent->modeldata.speed >= 12 || player[3].ent->modeldata.runspeed >= 12)) );    // Changed so if your player is faster the backgrounds scroll faster*/
+    		((player[0].ent && (player[0].ent->modeldata.speed.x >= 12 || player[0].ent->modeldata.runspeed >= 12)) ||
+    		 (player[1].ent && (player[1].ent->modeldata.speed.x >= 12 || player[1].ent->modeldata.runspeed >= 12)) ||
+    		 (player[2].ent && (player[2].ent->modeldata.speed.x >= 12 || player[2].ent->modeldata.runspeed >= 12)) ||
+    		 (player[3].ent && (player[3].ent->modeldata.speed.x >= 12 || player[3].ent->modeldata.runspeed >= 12)) );    // Changed so if your player is faster the backgrounds scroll faster*/
 
     level->advancetime = _time;
 
@@ -36566,7 +38861,7 @@ int playlevel(char *filename)
 static entity *spawnexample(int player_index)
 {
 	#define SPAWN_MODEL_NAME	NULL
-	#define SPAWN_MODEL_INDEX	-1
+	#define SPAWN_MODEL_INDEX	MODEL_INDEX_NONE
 
     entity	*example;
 	s_model *model;

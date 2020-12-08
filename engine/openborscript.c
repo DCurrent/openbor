@@ -121,6 +121,7 @@ extern int shadowopacity;
 extern s_axis_plane_vertical_int light;
 extern int max_attack_types;
 extern int max_animations;
+extern s_projectile projectile_default_animation;
 
 static void clear_named_var_list(List *list, int level)
 {
@@ -675,7 +676,7 @@ int Script_Execute(Script *pscript)
     return result;
 }
 
-static s_collision_attack attack;
+static s_attack attack;
 
 //////////////////////////////////////////////////////////
 ////////////   system functions
@@ -2062,7 +2063,7 @@ enum entityproperty_enum
     _ep_edelay,
     _ep_edge,
     _ep_edgerange,
-    _ep_energycost,
+    _ep_energy_cost,
     _ep_entitypushing,
     _ep_escapecount,
     _ep_escapehits,
@@ -2723,12 +2724,12 @@ enum gep_edelay_enum
     _ep_edelay_the_end,
 };
 
-enum gep_energycost_enum
+enum gep_energy_cost_enum
 {
-    _ep_energycost_cost,
-    _ep_energycost_disable,
-    _ep_energycost_mponly,
-    _ep_energycost_the_end,
+    _ep_energy_cost_cost,
+    _ep_energy_cost_disable,
+    _ep_energy_cost_mponly,
+    _ep_energy_cost_the_end,
 };
 
 enum gep_flash_enum
@@ -2878,30 +2879,6 @@ enum cep_think_enum   // 2011_03_03, DC: Think types.
     _ep_th_the_end,
 };
 
-int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount)
-{
-    return 0;
-//    char *propname;
-//    const char *aps;
-//    int prop, ap; //int prop, i, ep, t;
-//    int result = 1;
-//
-//    MAPSTRINGS(varlist[1], list_animation_prop, ANI_PROP_THE_END,
-//               "Property name '%s' is not a supported animation property.\n");
-//
-//    if(paramCount < 3 || varlist[1]->vt != VT_INTEGER)
-//    {
-//        return result;
-//    }
-//    else
-//    {
-//        ap = varlist[1]->lVal;
-//        aps = (ap < ANI_PROP_THE_END && ap >= 0) ? list_animation_prop[ap] : "";
-//    }
-//
-//    return result;
-}
-
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
 {
     char *propname;
@@ -2929,7 +2906,7 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
         "range_min",
     };
 
-    static const char *proplist_energycost[] =
+    static const char *proplist_energy_cost[] =
     {
         "cost",
         "disable",
@@ -3127,10 +3104,10 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
-    // map subproperties of Energycost
-    case _ep_energycost:
+    // map subproperties of energy_cost
+    case _ep_energy_cost:
     {
-        MAPSTRINGS(varlist[2], proplist_energycost, _ep_energycost_the_end,
+        MAPSTRINGS(varlist[2], proplist_energy_cost, _ep_energy_cost_the_end,
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
@@ -3467,7 +3444,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_animhits:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animation->animhits;
+        (*pretvar)->lVal = (LONG)ent->animation->hit_count;
         break;
     }
     case _ep_animnum:
@@ -3809,11 +3786,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-
-        if(ent->modeldata.animation[ltemp]->dropframe)
-        {
-            (*pretvar)->lVal = ent->modeldata.animation[ltemp]->dropframe->frame;
-        }
+		       
+        (*pretvar)->lVal = ent->modeldata.animation[ltemp]->dropframe.frame;       
 
         break;
     }
@@ -3909,7 +3883,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
-    case _ep_energycost:
+    case _ep_energy_cost:
     {
         if(paramCount < 4)
         {
@@ -3935,27 +3909,24 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
 
         switch(ltemp)
         {
-        case _ep_energycost_cost:
+        case _ep_energy_cost_cost:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
-            {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->cost;
-            }
+           
+            (*pretvar)->lVal = ent->modeldata.animation[i]->energy_cost.cost;
+          
 
             break;
-        case _ep_energycost_disable:
+        case _ep_energy_cost_disable:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
-            {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->disable;
-            }
+            
+            (*pretvar)->lVal = ent->modeldata.animation[i]->energy_cost.disable;
+           
             break;
-        case _ep_energycost_mponly:
+        case _ep_energy_cost_mponly:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            if(ent->modeldata.animation[i]->energycost)
-            {
-                (*pretvar)->lVal = ent->modeldata.animation[i]->energycost->mponly;
-            }
+            
+			(*pretvar)->lVal = ent->modeldata.animation[i]->energy_cost.mponly;
+            
             break;
         default:
             *pretvar = NULL;
@@ -4356,21 +4327,15 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             break;
         }
 
-        // entity must have a land frame set.
-        if(!ent->modeldata.animation[i]->landframe)
-        {
-            break;
-        }
-
         switch(ltemp)
         {
         case _ep_landframe_ent:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe->ent;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.model_index;
             break;
         case _ep_landframe_frame:
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe->frame;
+            (*pretvar)->lVal = (LONG)ent->modeldata.animation[i]->landframe.frame;
             break;
         default:
             *pretvar = NULL;
@@ -4970,7 +4935,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_speed:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.speed;
+        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.speed.x;
         break;
     }
     case _ep_sprite:
@@ -5564,7 +5529,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->animation->animhits = (LONG)ltemp;
+            ent->animation->hit_count = (LONG)ltemp;
         }
         break;
     }
@@ -5906,7 +5871,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
-    case _ep_energycost:
+    case _ep_energy_cost:
     {
         if(paramCount != 5)
         {
@@ -5936,42 +5901,32 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
 
         switch(varlist[2]->lVal)
         {
-        case _ep_energycost_cost:
+        case _ep_energy_cost_cost:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
-            {
-                if(ent->modeldata.animation[i]->energycost)
-                {
-                    ent->modeldata.animation[i]->energycost->cost = ltemp;
-                }
-
+            {               
+                ent->modeldata.animation[i]->energy_cost.cost = ltemp;
             }
             break;
         }
-        case _ep_energycost_disable:
+        case _ep_energy_cost_disable:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
-                {
-                    ent->modeldata.animation[i]->energycost->disable = ltemp;
-                }
+				ent->modeldata.animation[i]->energy_cost.disable = ltemp;
             }
             break;
         }
-        case _ep_energycost_mponly:
+        case _ep_energy_cost_mponly:
         {
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
             {
-                if(ent->modeldata.animation[i]->energycost)
-                {
-                    ent->modeldata.animation[i]->energycost->mponly = ltemp;
-                }
+				ent->modeldata.animation[i]->energy_cost.mponly = ltemp;
             }
             break;
         }
         default:
-            printf("Unknown Energycost flag.\n");
+            printf("Unknown energy_cost flag.\n");
             goto changeentityproperty_error;
         }
         break;
@@ -6815,7 +6770,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
-            ent->modeldata.speed = (DOUBLE)dbltemp;
+            ent->modeldata.speed.x = (DOUBLE)dbltemp;
         }
         break;
     }
@@ -8769,7 +8724,7 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         break;
 	case _sv_lasthit_attack:
 		
-		lasthit.attack = (s_collision_attack*)value->ptrVal;
+		lasthit.attack = (s_attack*)value->ptrVal;
 		break;
 
 	case _sv_lasthit_attacker:
@@ -9944,7 +9899,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     entity *other = NULL;
     entity *temp = NULL;
     LONG force, drop, type;
-    s_collision_attack atk;
+    s_attack atk;
 
     if(paramCount < 1)
     {
@@ -10042,9 +9997,8 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
 {
     entity *defender = NULL;
     entity *attacker = NULL;
-    entity *temp = NULL;
     LONG force, drop, type;
-    s_collision_attack atk;
+    s_attack atk;
 
     if(paramCount < 3)
     {
@@ -10104,11 +10058,8 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
         atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
     }
     atk.attack_type = type;
-
-    temp = self;
-    self = defender;
-    (*pretvar)->lVal = (LONG)calculate_force_damage(attacker, &atk);
-    self = temp;
+    
+    (*pretvar)->lVal = (LONG)calculate_force_damage(defender, attacker, &atk);   
 
     return S_OK;
 
@@ -10776,40 +10727,124 @@ HRESULT openbor_spawn(ScriptVariant **varlist , ScriptVariant **pretvar, int par
     return S_OK;
 }
 
-//entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
+// Caskey, Damon V. 
+// 2019-12-26 (minor refactoring - orginal author uTunnels)
+//
+// Legacy projectile function. Depreciated and authors should avoid using.
+// Refactored work with updated projectile system but otherwise maintains
+// legacy functionality.
+//
+// entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
+//
+// [0/1] = Relative. Semi-optional.  
+// - Any non-zero value: Relative to parent/owner.
+// - Not used: Relative to absolute location.
+// - 0: Same as not used, but does not work as intended. Projectile cannot spawn.
 HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     DOUBLE temp = 0;
     LONG ltemp = 0;
     entity *ent;
     char *name = NULL;
-    float x = 0, z = 0, a = 0;
-    int direction = DIRECTION_LEFT;
-    int type = 0;
-    int projectile_prime = 0;
+	float x = 0;
+	float z = 0; 
+	float a = 0;
+    e_direction direction = DIRECTION_LEFT;
+	e_projectile_type type = PROJECTILE_TYPE_KNIFE;
+    e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
     int map = 0;
+	int model_index = MODEL_INDEX_NONE;
+	int relative = 0;
 
-    int relative;
+	s_projectile projectile = projectile_default_animation;
 
-    if(paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
+	// We are going to return an entity pointer (or NULL).
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+
+	// DC - 2019-12-26
+	//
+	// Looking at this, it appears to try and adapt to number of arguments
+	// author passes in order to make "relative" parameter optional - but it 
+	// does not work as intended. Instead, if relative argument is any non-zero 
+	// value then relative is 1 (as in relative to parent). If no relative 
+	// argument is passed at all, relative is 0. So far, so good. However, if 
+	// a relative argument of 0 is passed, relative is 0 but the other parameters 
+	// are out of sync. It is therefore impossible to read in the model name 
+	// to launch a projectile, and all the other settings would be mixed up 
+	// even if we could. Since a new projectile function is coming, I am 
+	// leaving this as-is to avoid breaking any legacy compatibility.
+	if (paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
+	{
+		relative = 1;
+		paramCount--;
+		varlist++;
+	}
+	else 
+	{
+		relative = 0;
+	}
+
+	// Get model index if we can.
+	if(paramCount >= 1 && varlist[0]->vt == VT_STR)
     {
-        relative = 1;
-        paramCount--;
-        varlist++;
-    }
-    else
-    {
-        relative = 0;
-    }
+		name = StrCache_Get(varlist[0]->strVal);		
+		model_index = get_cached_model_index(name);
+	}
 
-    if(paramCount >= 1 && varlist[0]->vt == VT_STR)
-    {
-        name = StrCache_Get(varlist[0]->strVal);
-    }
+	// No model, then nothing more to do.
+	if (model_index == MODEL_INDEX_NONE)
+	{
+		return S_OK;
+	}
+	
+	// Caskey, Damon V.
+	// 2019-12-17
+	//
+	// This function is a total mess, and there's no good
+	// way to refactor it to match updated projectile system while 
+	// keeping legacy compatabilty.
+	//
+	// To get around this we will have to do things out of order.
+	// First we will is spawn the projectile with a proper default
+	// setup. Then we'll go back and apply incoming parameters 
+	// and their legacy logic to the projectile entity.
 
-    // X offset.
+	// Type (Spawn as knife or bomb). Out of order, but we need to know
+	// this before doing anything else.
+	if (paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
+	{
+		type = (LONG)ltemp;
+	}
+
+	// Now spawn the projectile.
+	switch (type)
+	{
+	default:
+	case PROJECTILE_TYPE_KNIFE:
+		projectile.knife = model_index;
+		ent = knife_spawn(self, &projectile);
+		break;
+	case PROJECTILE_TYPE_BOMB:
+		projectile.bomb = model_index;
+
+		// This is for legacy compatability. See bomb_spawn 
+		// function for details.
+		projectile.velocity.y = MODEL_SPEED_NONE;
+		
+		ent = bomb_spawn(self, &projectile);
+		break;
+	}
+
+	// If we couldn't spawn a projectile entity, then 
+	// exit. Author will get back a NULL value.
+	if (!ent)
+	{
+		return S_OK;
+	}
+
+	// X offset.
 	if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
-    {
+	{		
         x = (float)temp;
     }
     else if(relative)
@@ -10842,14 +10877,34 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
     else if(relative)
     {
-        a  = self->animation->projectile.position.y;
+		if (self->animation->projectile)
+		{
+			a = self->animation->projectile->position.y;
+		}        
     }
     else
     {
-        a = self->position.y + self->animation->projectile.position.y;
+		if (self->animation->projectile)
+		{
+			a = self->position.y + self->animation->projectile->position.y;
+		}
+		else
+		{
+			//Use default fromprojectil settings.
+			a = projectile.position.y;
+		}        
     }
+	
 
 	// Direction.
+	//
+	// This logic seems strange. Utunnels wrote it to work in conjunction with
+	// relative logic below. If auother supplies any integer (including 0), then
+	// that value is used for direction. 
+	//
+	// If NULL() (and only NULL()) is supplied and relative flag is TRUE, direction
+	// is DIRECTION_RIGHT. It may reset later by relative logic. If relative flag is
+	// FALSE, then direction is same as parent/owner.
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
         direction = (LONG)ltemp;
@@ -10880,13 +10935,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
             projectile_prime |= PROJECTILE_PRIME_BASE_Y;
             projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
         }
-    }
-
-	// Type (Spawn as knife or bomb).
-    if(paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
-    {
-        type = (LONG)ltemp;
-    }
+    }	
     
 	// Map
 	if(paramCount >= 8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
@@ -10900,6 +10949,7 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         if(self->direction == DIRECTION_RIGHT)
         {
             x += self->position.x;
+			direction = DIRECTION_RIGHT;
         }
         else
         {
@@ -10910,20 +10960,15 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         a += self->position.y;
     }
 
-    switch(type)
-    {
-    default:
-    case 0:
-        ent = knife_spawn(name, -1, x, z, a, direction, projectile_prime, map);
-        break;
-    case 1:
-        ent = bomb_spawn(name, -1, x, z, a, direction, map);
-        break;
-    }
-
-    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+	// Apply incomming parameters.
+	ent->position.x = x;
+	ent->position.y = a;
+	ent->position.z = z;
+	ent->direction = direction;
+	ent_set_colourmap(ent, map);
+        
     (*pretvar)->ptrVal = (VOID *) ent;
-
+	
     return S_OK;
 }
 

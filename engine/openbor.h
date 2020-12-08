@@ -89,6 +89,7 @@
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_ARG_COUNT       64
 #define     PLATFORM_DEFAULT_X  99999
+
 #define     LIFESPAN_DEFAULT	0x7fffffff
 /*
 Note: the min Z coordinate of the player is important
@@ -116,8 +117,17 @@ movement restirctions are here!
 #define		DEFAULT_ATK_DROPV_Y 3.0
 #define		DEFAULT_ATK_DROPV_X 1.2
 #define		DEFAULT_ATK_DROPV_Z 0
+#define		FRAME_NONE			-1	// Lot of things use frames 0+, and this value to mean they are disabled.
+#define		MODEL_INDEX_NONE	-1	// No model/disabled.
+#define		SAMPLE_ID_NONE	    -1	// No sound sameple/disabled.
 
-#define		ITEM_HIDE_POSITION_Z 100000	
+#define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
+#define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
+
+#define		PROJECTILE_DEFAULT_SPEED_X	1
+#define		PROJECTILE_DEFAULT_SPEED_Y	0
+#define		PROJECTILE_DEFAULT_SPEED_Z	0
+
 
 // Caskey, Damon V.
 // 2019-01-27
@@ -311,24 +321,44 @@ typedef enum
     // Movement behavior on launch.
     PROJECTILE_PRIME_LAUNCH_MOVING      = (1 << 2),
     PROJECTILE_PRIME_LAUNCH_STATIONARY  = (1 << 3),
-
-    // Type of projectile as determined by launch method.
-    PROJECTILE_PRIME_REQUEST_FLASH      = (1 << 4),
-    PROJECTILE_PRIME_REQUEST_KNIFE      = (1 << 5),
-    PROJECTILE_PRIME_REQUEST_PROJECTILE = (1 << 6),
-    PROJECTILE_PRIME_REQUEST_PSHOTNO    = (1 << 7),
-    PROJECTILE_PRIME_REQUEST_SHOT       = (1 << 8),
-    PROJECTILE_PRIME_REQUEST_UNDEFINED  = (1 << 9),		// Probably by a script.
-
-
+	
     // How was projectile model determined?
-    PROJECTILE_PRIME_SOURCE_ANIMATION   = (1 << 10),	//  Animation setting.
-    PROJECTILE_PRIME_SOURCE_GLOBAL      = (1 << 11),	//  Global "knife" or global "shot".
-    PROJECTILE_PRIME_SOURCE_INDEX       = (1 << 12),	//  By projectile's model index.
-    PROJECTILE_PRIME_SOURCE_HEADER      = (1 << 13),	//  Model header setting.
-    PROJECTILE_PRIME_SOURCE_NAME        = (1 << 14),	//  By projectile's model name.
-    PROJECTILE_PRIME_SOURCE_WEAPON      = (1 << 15)		//  From a SUBTYPE_PROJECTLE weapon pickup.
+	PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE		= (1 << 4),		// Global "Knife".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT			= (1 << 5),		// Global "Shot".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_STAR			= (1 << 6),		// Global "Shot".
+	PROJECTILE_PRIME_SOURCE_MODEL_BOMB			= (1 << 7),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_KNIFE			= (1 << 8),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO		= (1 << 9),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_STAR			= (1 << 10),	// Model header property.
+	PROJECTILE_PRIME_SOURCE_PROJ_BOMB			= (1 << 11),	// Projectile bomb setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_FLASH			= (1 << 12),	// Projectile flash setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_KNIFE			= (1 << 13),	// Projectile knife/shot setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_STAR			= (1 << 14),	// Projectile star setting.
+	PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE	= (1 << 15)		// From a SUBTYPE_PROJECTLE weapon pickup.
+
 } e_projectile_prime;
+
+// Caskey, Damon V.
+// 2019-12-17
+// 
+// Select how to launch a projectile, as a bomb or knife. 
+typedef enum
+{
+	// Maintain order for legacy 
+	// compatability (before named constants).
+	PROJECTILE_TYPE_KNIFE,
+	PROJECTILE_TYPE_BOMB
+} e_projectile_type;
+
+// Caskey, Damon V.
+// 2019-12-17
+// 
+// Select using self or parent's offense factors. 
+typedef enum
+{
+	PROJECTILE_OFFENSE_PARENT,
+	PROJECTILE_OFFENSE_SELF
+} e_projectile_offense;
 
 // State of attack boxes.
 typedef enum
@@ -425,6 +455,7 @@ typedef enum
     SPAWN_TYPE_BIKER,
     SPAWN_TYPE_CMD_SPAWN,
     SPAWN_TYPE_CMD_SUMMON,
+	SPAWN_TYPE_DUST_DROP,
     SPAWN_TYPE_DUST_FALL,
     SPAWN_TYPE_DUST_JUMP,
     SPAWN_TYPE_DUST_LAND,
@@ -508,20 +539,23 @@ typedef enum
 // Entity types.
 typedef enum
 {
-    TYPE_NONE		= (1 << 0),
-    TYPE_PLAYER		= (1 << 1),
-    TYPE_ENEMY		= (1 << 2),
-    TYPE_ITEM		= (1 << 3),
-    TYPE_OBSTACLE	= (1 << 4),
-    TYPE_STEAMER	= (1 << 5),
+	TYPE_UNDELCARED = -1,			
+    TYPE_NONE		= 0,
+    TYPE_PLAYER		= (1 << 0),
+    TYPE_ENEMY		= (1 << 1),
+    TYPE_ITEM		= (1 << 2),
+    TYPE_OBSTACLE	= (1 << 3),
+    TYPE_PROJECTILE	= (1 << 4),		// 2019-12-27: Projectile type for use by any entity that doesn't have all the legacy baggage.
+	TYPE_STEAMER	= (1 << 5),
     TYPE_SHOT		= (1 << 6),		// 7-1-2005 type to use for player projectiles
     TYPE_TRAP		= (1 << 7),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
     TYPE_TEXTBOX	= (1 << 8),		// New textbox type for displaying messages
     TYPE_ENDLEVEL	= (1 << 9),		// New endlevel type that ends the level when touched
     TYPE_NPC		= (1 << 10),	// A character can be an ally or enemy.
-    TYPE_PANEL		= (1 << 11),	// Fake panel, scroll with screen using model speed
-    TYPE_MAX		= TYPE_PANEL,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
-    TYPE_RESERVED	= 0x40000000    // should not use as a type
+    TYPE_PANEL		= (1 << 12),	// Fake panel, scroll with screen using model speed
+	TYPE_UNKNOWN	= (1 << 13),	// Not a real type - probably means something went wrong.
+	TYPE_MAX		= TYPE_UNKNOWN,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
+	TYPE_RESERVED	= 0x40000000    // should not use as a type
 } e_entity_type;
 
 // Caskey, Damon V.
@@ -551,28 +585,28 @@ typedef enum
 } e_exchange;
 
 //------------reserved for A.I. types-------------------------
+
+// Caskey, Damon V
+// 2013-12-27
+//
+// Movement behavior types.
 typedef enum
 {
-    /*
-    AI move 1 enum: Affects movement path
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    AIMOVE1_NORMAL,                     // Current default style
-    AIMOVE1_CHASE       = 0x00000001,   // alway move towards target, and can run to them if target is farway
-    AIMOVE1_CHASEZ      = 0x00000002,   // only try to get close in z direction
-    AIMOVE1_CHASEX      = 0x00000004,   // only try to get colse in x direction
-    AIMOVE1_AVOID       = 0x00000008,   // try to avoid target
-    AIMOVE1_AVOIDZ      = 0x00000010,   // only try to avoid target in z direction
-    AIMOVE1_AVOIDX      = 0x00000020,   // only try to avoid target in x direction
-    AIMOVE1_WANDER      = 0x00000040,   // ignore the target's position completely, wander everywhere, long idle time
-    AIMOVE1_BIKER       = 0x00000080,   // move like a biker
-    AIMOVE1_ARROW       = 0x00000100,   // fly like an arrow
-    AIMOVE1_STAR        = 0x00000200,   // fly like a star, subject to ground
-    AIMOVE1_BOMB        = 0x00000400,   // fly like a bomb, subject to ground/wall etc
-    AIMOVE1_NOMOVE      = 0x00000800,   // don't move at all
-    MASK_AIMOVE1        = 0x0000FFFF
+	AIMOVE1_NONE = -1,			// No AIMOVE set.
+	AIMOVE1_NORMAL = 0,			// Current default style
+	AIMOVE1_CHASE = (1 << 0),		// alway move towards target, and can run to them if target is farway
+	AIMOVE1_CHASEZ = (1 << 1),		// only try to get close in z direction
+	AIMOVE1_CHASEX = (1 << 2),		// only try to get colse in x direction
+	AIMOVE1_AVOID = (1 << 3),		// try to avoid target
+	AIMOVE1_AVOIDZ = (1 << 4),		// only try to avoid target in z direction
+	AIMOVE1_AVOIDX = (1 << 5),		// only try to avoid target in x direction
+	AIMOVE1_WANDER = (1 << 6),		// ignore the target's position completely, wander everywhere, long idle time
+	AIMOVE1_BIKER = (1 << 7),		// move like a biker
+	AIMOVE1_ARROW = (1 << 8),	// fly like an arrow
+	AIMOVE1_STAR = (1 << 9),	// fly like a star, subject to ground
+	AIMOVE1_BOMB = (1 << 10),	// fly like a bomb, subject to ground/wall etc
+	AIMOVE1_NOMOVE = (1 << 11),	// don't move at all
+	MASK_AIMOVE1 = 0x0000FFFF
 } e_aimove_1;
 
 typedef enum
@@ -696,7 +730,7 @@ typedef enum //Animations
     ANI_FAINT,  			// Faint animations for players/enemys by tails
     ANI_CANT,  				// Can't animation for players(animation when mp is less than mpcost) by tails.
     ANI_THROWATTACK,		// Added for subtype projectile
-    ANI_CHARGEATTACK,       // Plays when player releases attack1 after holding >= chargetime.
+    ANI_CHARGEATTACK,       // Plays when player releases attack1 after holding >= charge_time.
     ANI_JUMPCANT,
     ANI_JUMPSPECIAL,
     ANI_BURNDIE,
@@ -881,53 +915,6 @@ typedef enum //Animations
 
 typedef enum
 {
-    ANI_PROP_ANIMHITS,     // Does the attack need to hit before cancel is allowed?
-    ANI_PROP_ANTIGRAV,     // UT: make dive a similar property as antigravity.
-    ANI_PROP_ATTACK,
-    ANI_PROP_COLLISIONONE,    // stick on the only one victim
-    ANI_PROP_BODY_COLLISION,
-    ANI_PROP_ENTITY_COLLISION,
-    ANI_PROP_BOUNCE,       //FLOAT -tossv/bounce = new tossv
-    ANI_PROP_CANCEL,       // Cancel anims with freespecial
-    ANI_PROP_CHARGETIME,   //INT charge time for an animation
-    ANI_PROP_COUNTERRANGE, //SUB Auto counter attack. 2011_04_01, DC: Moved to struct.
-    ANI_PROP_DELAY,
-    ANI_PROP_DRAWMETHODS,
-    ANI_PROP_DROPFRAME,    // SUB if tossv < 0, this frame will be set
-    ANI_PROP_DROPV,    // SUB if tossv < 0, this frame will be set
-    ANI_PROP_ENERGYCOST,   //SUB. 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    ANI_PROP_FLIPFRAME,    // Turns entities around on the desired frame
-    ANI_PROP_FOLLOWUP,     // use which FOLLOW anim?
-    ANI_PROP_IDLE,
-    ANI_PROP_IGNOREATTACKID,
-    ANI_PROP_INDEX,        //unique id
-    ANI_PROP_JUMPFRAME,    //SUB
-    ANI_PROP_LANDFRAME,    // SUB Landing behavior. 2011_04_01, DC: Moved to struct.
-    ANI_PROP_LOOP,         // Animation looping. 2011_03_31, DC: Moved to struct.
-    ANI_PROP_MODEL_INDEX,
-    ANI_PROP_MOVE,
-    ANI_PROP_NUMFRAMES,    //Framecount.
-    ANI_PROP_OFFSET,
-    ANI_PROP_PLATFORM,
-    ANI_PROP_PROJECTILE,
-    ANI_PROP_QUAKEFRAME,   // SUB Screen shake effect. 2011_04_01, DC; Moved to struct.
-    ANI_PROP_RANGE,        //SUB Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    ANI_PROP_SHADOW,
-    ANI_PROP_SIZE,         // SUB entity's size (height) during animation
-    ANI_PROP_SOUNDTOPLAY,
-    ANI_PROP_SPAWNFRAME,   // SUB Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    ANI_PROP_SPRITE,
-    ANI_PROP_SPRITEA,
-    ANI_PROP_SUBENTITY,    // Store the sub-entity's name for further use
-    ANI_PROP_SUMMONFRAME,  // SUB Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    ANI_PROP_SYNC,         // sychronize frame to previous animation if they matches
-    ANI_PROP_UNSUMMONFRAME,// SUB Un-summon the entity
-    ANI_PROP_VULNERABLE,
-    ANI_PROP_WEAPONFRAME    // SUB Specify with a frame when to switch to a weapon model
-} e_animation_properties;
-
-typedef enum
-{
     BOSS_SLOW_OFF,
     BOSS_SLOW_ON
 } e_boss_slow_flag;
@@ -1084,19 +1071,21 @@ typedef enum
     // For engine and script use. These are
     // applied automatically by various
     // conditions or intended for script logic.
-    ATK_BOSS_DEATH, // KO leftover enemies when boss is defeated.
-    ATK_ITEM,       // Scripting item logic. Item "attacks" entity that collects it.
-    ATK_LAND,       // Touching ground during a damage on landing fall.
-    ATK_LIFESPAN,   // Entity's lifespan timer expires.
-    ATK_LOSE,       // Players (with lose animation) when level time expires.
-    ATK_PIT,        // Entity falls into a pit and reaches specified depth.
-    ATK_TIMEOVER,   // Players (without lose animation) when level time expires.
-
-    // Default max attack types (must
+    ATK_BOSS_DEATH,					// KO leftover enemies when boss is defeated.
+    ATK_ITEM,						// Scripting item logic. Item "attacks" entity that collects it.
+    ATK_LAND,						// Touching ground during a damage on landing fall.
+    ATK_LIFESPAN,					// Entity's lifespan timer expires.
+    ATK_LOSE,						// Players (with lose animation) when level time expires.
+    ATK_PIT,						// Entity falls into a pit and reaches specified depth.
+	ATK_SUB_ENTITY_PARENT_KILL,		// Used to KO a summon when parent is killed.
+	ATK_SUB_ENTITY_UNSUMMON,		// Used to KO a summon on unsummon frame.
+	ATK_TIMEOVER,					// Players (without lose animation) when level time expires.
+    
+	// Default max attack types (must
     // be below all attack types in enum
     // to get correct value)
     MAX_ATKS,
-    STA_ATKS        = (MAX_ATKS-10)
+    STA_ATKS       = (MAX_ATKS-1)
 } e_attack_types;
 
 // Attack box properties.
@@ -1234,14 +1223,14 @@ typedef enum
     2013-12-29
     */
 
-    COST_CHECK_HP,
-    COST_CHECK_MP
+    ENERGY_TYPE_HP,
+    ENERGY_TYPE_MP
 } e_cost_check;
 
 typedef enum
 {
     /*
-    Energycost type enum.
+    energy_cost type enum.
     Damon V. Caskey
     2013-12-29
     */
@@ -1254,39 +1243,12 @@ typedef enum
 typedef enum
 {
     /*
-    Energycost value enum.
+    energy_cost value enum.
     */
 
-    ENERGYCOST_NOCOST = 0,
-    ENERGYCOST_DEFAULT_COST = 6,
+    ENERGY_COST_NOCOST = 0,
+    ENERGY_COST_DEFAULT_COST = 6,
 } e_cost_value;
-
-typedef enum
-{
-    /*
-    Counter action conditionals.
-    2012-12-16
-    Damon V. Caskey
-    */
-
-    COUNTERACTION_CONDITION_NONE,                  //No counter.
-    COUNTERACTION_CONDITION_ALWAYS,                //Always perform coutner action.
-    COUNTERACTION_CONDITION_HOSTILE,               //Only if attacker is hostile entity.
-    COUNTERACTION_CONDITION_HOSTILE_FRONT_NOFREEZE, //Attacker is hostile, strikes from front, and uses non-freeze attack.
-    COUNTERACTION_CONDITION_ALWAYS_RAGE,           //Always perform coutner action and if health - attack_damage <= 0, set health to 1
-} e_counteraction_condition;
-
-typedef enum
-{
-    /*
-    Counteraction damage taking modes.
-    2012-12-16
-    Damon V. Caskey
-    */
-
-    COUNTERACTION_DAMAGE_NONE,  //No damage.
-    COUNTERACTION_DAMAGE_NORMAL //Normal damage.
-} e_counteraction_damage;
 
 typedef enum
 {
@@ -1321,11 +1283,12 @@ typedef enum
 
 typedef enum
 {
-    BIND_OVERRIDE_NONE             = 0,
-    BIND_OVERRIDE_FALL_LAND        = (1 << 0),
-    BIND_OVERRIDE_LANDFRAME        = (1 << 1),
-    BIND_OVERRIDE_SPECIAL_AI       = (1 << 2),
-    BIND_OVERRIDE_SPECIAL_PLAYER   = (1 << 3)
+    BIND_OVERRIDE_NONE				= 0,
+    BIND_OVERRIDE_FALL_LAND			= (1 << 0),
+	BIND_OVERRIDE_FRAME_SET_DROP	= (1 << 1),
+    BIND_OVERRIDE_FRAME_SET_LAND	= (1 << 2),
+    BIND_OVERRIDE_SPECIAL_AI		= (1 << 3),
+    BIND_OVERRIDE_SPECIAL_PLAYER	= (1 << 4)
 } e_bind_override;
 
 // Caskey, Damon V.
@@ -1366,13 +1329,29 @@ typedef enum
     DOGRAB_ADJUSTCHECK_FALSE
 } e_dograb_adjustcheck;
 
+// 2019-12-08
+// Caskey, Damon V.
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the recursive damage command from author. Then we
+// populate the recursive damage mode with a set of bit values 
+// from e_damage_recursive_logic accordingly. 
+typedef enum
+{
+	DAMAGE_RECURSIVE_CMD_READ_NONLETHAL_HP = 1, //  1 = Nonlethal HP(can reduce to 1 but not below).
+	DAMAGE_RECURSIVE_CMD_READ_MP = 2, // = MP.
+	DAMAGE_RECURSIVE_CMD_READ_MP_NONLETHAL_HP = 3, // 3 = MP and nonlethal HP.
+	DAMAGE_RECURSIVE_CMD_READ_HP = 4, // = HP.
+	DAMAGE_RECURSIVE_CMD_READ_HP_MP = 5 // = MP and HP.
+}e_damage_recursive_cmd_read;
+
 typedef enum
 {
 	DAMAGE_RECURSIVE_MODE_NONE			= 0,
 	DAMAGE_RECURSIVE_MODE_HP			= (1 << 0),
 	DAMAGE_RECURSIVE_MODE_MP			= (1 << 1),
 	DAMAGE_RECURSIVE_MODE_NON_LETHAL	= (1 << 2)
-} e_damage_recursive;
+} e_damage_recursive_logic;
 
 typedef enum
 {
@@ -1399,21 +1378,87 @@ typedef enum
     FACING_ADJUST_LEVEL    //Face according to level scroll direction.
 } e_facing_adjust;
 
+// Caskey, Damon V.
+// 2019-11-24 (refactored from 2014-01-04 version)
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the follow command from author. Then we
+// populate the follow condition with a set of bit values 
+// from e_follow_condition_logic accordingly.
 typedef enum
 {
-    /*
-    Follow up conditional enumerator.
-    Damon V. Caskey
-    2014-01-04
-    */
+    FOLLOW_CONDITION_CMD_READ_DISABLED,                     //No followup (default).
+    FOLLOW_CONDITION_CMD_READ_ALWAYS,                       //Always perform.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE,                      //Perform if target is hostile.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
+    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
+} e_follow_condition_command_read;
 
-    FOLLOW_CONDITION_DISABLED,                     //No followup (default).
-    FOLLOW_CONDITION_ALWAYS,                       //Always perform.
-    FOLLOW_CONDITION_HOSTILE,                      //Perform if target is hostile.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
-    FOLLOW_CONDITION_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
-} e_follow_condition;
+// Caskey, Damon V.
+// 2019-11-24
+// 
+// Logic values for follow up condiiton. Must meet all conditions
+// to perform follow up.
+typedef enum
+{
+	FOLLOW_CONDITION_NONE					= 0,		// No conditions.		
+	FOLLOW_CONDITION_ANY					= (1 << 0),	// Always follow up.
+	FOLLOW_CONDITION_BLOCK_FALSE			= (1 << 1),	// Not blocked.
+	FOLLOW_CONDITION_BLOCK_TRUE				= (1 << 2),	// Blocked.
+	FOLLOW_CONDITION_GRAB_FALSE				= (1 << 3),	// Target can not grabbed.
+	FOLLOW_CONDITION_GRAB_TRUE				= (1 << 4),	// Target can be grabbed.
+	FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 5),	// Attacker neutral/friendly.
+	FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 6),	// Attacker hostile to target.
+	FOLLOW_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 7),	// Target neutral/friendly.
+	FOLLOW_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 8),	// Target hostile to attacker.
+	FOLLOW_CONDITION_LETHAL_FALSE			= (1 << 9),	// Target not killed by damage.
+	FOLLOW_CONDITION_LETHAL_TRUE			= (1 << 10)	// Target killed by damage.
+} e_follow_condition_logic;
+
+// Caskey, Damon V.
+// 2019-12-04 (refactored from 2012-12-16 version)
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the counter command from author. Then we
+// populate the counter condition with a set of bit values 
+// from e_follow_condition_logic accordingly.
+typedef enum
+{
+	COUNTER_ACTION_CONDITION_CMD_READ_NONE,						// No counter.
+	COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS,					// Always perform coutner action.
+	COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE,					// Only if attacker is hostile entity.
+	COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE,	// Attacker is hostile, strikes from front, and uses non-freeze attack.
+	COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE,				// Always perform coutner action and if health - attack_damage <= 0, set health to 1
+} e_counter_action_condition_command_read;
+
+typedef enum
+{
+	COUNTER_ACTION_CONDITION_NONE					= 0,			// No conditions.
+	COUNTER_ACTION_CONDITION_ANY					= (1 << 0),		// Always counter.
+	COUNTER_ACTION_CONDITION_BACK_FALSE				= (1 << 1),		// Not from back.
+	COUNTER_ACTION_CONDITION_BACK_TRUE				= (1 << 2),		// ONLY from back.
+	COUNTER_ACTION_CONDITION_BLOCK_FALSE			= (1 << 3),		// No unblockable attacks.
+	COUNTER_ACTION_CONDITION_BLOCK_TRUE				= (1 << 4),		// Only blockable attacks.
+	COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE	= (1 << 5),		// Damage must be non-lethal.
+	COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE		= (1 << 6),		// Damage must be lethal.
+	COUNTER_ACTION_CONDITION_FREEZE_FALSE			= (1 << 7),		// Not against freeze attack.
+	COUNTER_ACTION_CONDITION_FREEZE_TRUE			= (1 << 8),		// Only against freeze attack.
+	COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 9),		// Attacker neutral/friendly.
+	COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 10),	// Attacker hostile to target.
+	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 11),	// Target neutral/friendly.
+	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 12)		// Target hostile to attacker.
+} e_counter_action_condition_logic;
+
+// Caskey, Damon V.
+// 2012-12-16
+//	 
+// Counteraction damage taking modes.
+typedef enum
+{
+	COUNTER_ACTION_TAKE_DAMAGE_NONE,	// No damage.
+	COUNTER_ACTION_TAKE_DAMAGE_NORMAL	// Normal damage.
+} e_counter_action_take_damage;
 
 // Caskey, Damon V.
 // 2019-05-31
@@ -1455,6 +1500,13 @@ typedef enum
     KOMAP_TYPE_IMMEDIATELY,    //Apply instantly.
     KOMAP_TYPE_LAST_FALL_FRAME //Apply on last frame of fall.
 } e_komap_type;
+
+typedef enum
+{
+	COLOR_SET_ADJUST_NONE			= -1,	// Don't adjust color.
+	COLOR_SET_ADJUST_PARENT_INDEX	= -2,	// Match parent/owner index.
+	COLOR_SET_ADJUST_PARENT_TABLE	= -3	// Match parent/owner table.
+} e_color_adjust;
 
 typedef enum
 {
@@ -1625,12 +1677,12 @@ if(n<1) n = 1;
 
 #define freezeall        (smartbomber || textbox)
 
-#define is_projectile(e) (e->modeldata.type == TYPE_SHOT || e->model->subtype == SUBTYPE_ARROW || e->owner)
+#define is_projectile(e) (e->modeldata.type & TYPE_SHOT || e->model->subtype & SUBTYPE_ARROW || e->owner)
 
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
 
-#define tobounce(e) (e->animation->bounce && diff(0, e->velocity.y) > 1.5 && \
+#define tobounce(e) (e->animation->bounce_factor && diff(0, e->velocity.y) > 1.5 && \
 					 !((autoland == 1 && e->damage_on_landing.attack_force == -1) || e->damage_on_landing.attack_force == -2))
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
@@ -1641,7 +1693,7 @@ if(n<1) n = 1;
 		 (!self->animation->move || self->animation->move[self->animpos]->axis.z == 0 ) && \
 		 !(other->nograb || other->invincible & INVINCIBLE_INTANGIBLE || other->link || \
 		   other->model->animal || inair(other) || \
-		  (self->modeldata.type == TYPE_PLAYER && other->modeldata.type == TYPE_PLAYER && savedata.mode)))
+		  (self->modeldata.type & TYPE_PLAYER && other->modeldata.type & TYPE_PLAYER && savedata.mode)))
 
 #define cangrab(self, other) \
 		((other->modeldata.antigrab - self->modeldata.grabforce + \
@@ -1660,6 +1712,23 @@ if(n<1) n = 1;
 //#define     MAX_MOVE_STEPS        16
 
 #pragma pack(4)
+
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Tags are data defined by author on various other structures
+// that have no associated engine logic. For example, an author
+// might place tags on a given attack that identifies the attack
+// source as "right arm", "left leg", and so on. The engine will 
+// not use this data in any way, but the author could write scripts 
+// to cause unique reactions when attacks make contact.
+typedef struct s_meta_data
+{
+    struct s_meta_data* next;
+    char* string[512];
+    float decimal;
+    int integer;
+} s_meta_data;
 
 // Caskey, Damon V.
 // 2014-01-20
@@ -1822,14 +1891,17 @@ typedef struct s_damage_recursive
 {
     int							force;  // Damage force per tick.
     int							index;  // Index.
-	e_damage_recursive			mode;   // Mode.
+	e_damage_recursive_logic			mode;   // Mode.
     int							rate;   // Tick delay.
-	int							tag;	// User defined value.
-	unsigned int				tick;   // Time of next tick.
+    unsigned int				tick;   // Time of next tick.
     unsigned int				time;   // Time to expire.
 	int							type;	// Attack type.
 	struct entity				*owner;	// Entity that caused the recursive damage.
 	struct s_damage_recursive	*next;	// Next node of linked list.
+
+    // Meta data.
+    s_meta_data*                meta_data;              // User defiend data.
+    int					        meta_tag;	            // User defined int.
 } s_damage_recursive;
 
 typedef struct
@@ -1838,8 +1910,8 @@ typedef struct
 	int y;
 	int width;
 	int height;
-	int z1;
-	int z2;
+	int z_background;
+	int z_foreground;
 } s_hitbox;
 
 typedef struct
@@ -1851,6 +1923,10 @@ typedef struct
     float       factor;         // basic defense factors: damage = damage*defense
     float       knockdown;      // Knockdowncount (like knockdowncount) for attack type.
     float       pain;           // Pain factor (like nopain) for defense type.
+
+    // Meta data.
+    s_meta_data* meta_data;     // User defiend data.
+    int			 meta_tag;	    // User defined int.
 } s_defense;
 
 // Caskey, Damon V.
@@ -1874,7 +1950,8 @@ typedef struct
     s_hitbox    *coords;        // Collision box dimensions.
     s_defense   *defense;       // Defense properties for this collision box only.
     int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    int         tag;            // User defined tag for scripts. No hard coded purpose.
+    s_meta_data* meta_data;     // User defiend data.
+    int			meta_tag;	// User defined int.
 } s_collision_body;
 
 // Caskey, Damon V.
@@ -1893,7 +1970,8 @@ typedef struct
 {
     s_hitbox    *coords;        // Collision box dimensions.
     int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    int         tag;            // User defined tag for scripts. No hard coded purpose.
+    s_meta_data* meta_data;  // User defiend data.
+    int			meta_tag;	// User defined int.
 } s_collision_entity;
 
 // List of collision body boxes
@@ -1907,20 +1985,20 @@ typedef struct
 // attacks.
 typedef struct
 {
-    bool                blast;              // Attack box active on hit opponent's fall animation.
-    bool                steal;              // Add damage to owner's hp.
-    bool                ignore_attack_id;   // Ignore attack ID to attack in every frame
-    bool                no_flash;           // Flag to determine if an attack spawns a flash or not
-    bool                no_kill;            // this attack won't kill target (leave 1 HP)
-    bool                no_pain;            // No animation reaction on hit.
+    int                 blast;              // Attack box active on hit opponent's fall animation.
+    int                 steal;              // Add damage to owner's hp.
+    int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
+    int                 no_flash;           // Flag to determine if an attack spawns a flash or not
+    int                 no_kill;            // this attack won't kill target (leave 1 HP)
+    int                 no_pain;            // No animation reaction on hit.
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
-    int                 attack_type;        // Reaction animation, death, etc.
+    e_attack_types      attack_type;        // Reaction animation, death, etc.
     int                 counterattack;      // Treat other attack boxes as body box.
     int                 freeze;             // Lock target in place and set freeze time.
     int                 jugglecost;         // cost for juggling a falling ent
     int                 no_block;           // If this is greater than defense block power, make the hit
     int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
-    int                 seal;               // Disable target's animations with energycost > seal.
+    int                 seal;               // Disable target's animations with energy_cost > seal.
     e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;       // Hit point damage attack inflicts.
@@ -1934,26 +2012,65 @@ typedef struct
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     unsigned int        maptime;            // Time for forcemap to remain in effect.
-    unsigned int        next_hit_time;          // pain invincible time
+    unsigned int        next_hit_time;      // pain invincible time
     unsigned int        sealtime;           // Time for seal to remain in effect.
-    int                 tag;                // User defined tag for scripts. No hard coded purpose.
     int                 grab_distance;      // Distance used by "grab".
     s_axis_principal_float            dropv;              // Velocity of target if knocked down.
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
     s_staydown          staydown;           // Modify victum's stayodwn properties.
     s_damage_recursive  *recursive;         // Set up recursive damage (dot) on hit.
-    s_hitbox            *coords;            // Collision detection coordinates.
-} s_collision_attack;
+
+    // Meta data.
+    s_meta_data*        meta_data;              // User defiend data.
+    int					meta_tag;	            // User defined int.
+} s_attack;
+
+// ** Collision Refactor IP - 2020-02-10 **
+//
+// Abstract collision into a single parent structure, with 
+// body, attack, and space properties as allocated sub structures.
+//
+// This is to eliminate double looping, redundant logic checks 
+// and increase extensability.
 
 // Caskey, Damon V.
-// 2016-10~
+// 2019-02-10
 //
-// List of collision attack boxes
-// per animation frame.
+// Collision types. 
+typedef enum
+{
+    COLLISION_TYPE_ALL = -1,		    // For compare operations when we want any type to return TRUE.
+    COLLISION_TYPE_NONE = 0,		    // Ignored by all native logic.		
+    COLLISION_TYPE_ATTACK = (1 << 0),	// Attack vs. body boxes.
+    COLLISION_TYPE_BODY = (1 << 1),	    // Detects incoming attacks.
+    COLLISION_TYPE_SPACE = (1 << 3)     // Physical space ("pushing").
+} e_collision_type;
+
+// Collision box for detecting
+// physical space.
 typedef struct
 {
-    s_collision_attack **instance;
-} s_collision_attack_list;
+    int         index;              // To enable user tracking of this box's index when multiple instances are in use.
+    s_meta_data*      meta_data;    // User defined data.
+    int         meta_tag;           // user defined int.
+} s_collision_space;
+
+// Caskey, Damon V.
+// 2020-02-20
+//
+// Collision container.
+typedef struct s_collision
+{
+    struct s_collision* next;   // Next item in linked list.
+    s_attack* attack; // Attacking properties.
+    s_collision_body*   body;   // Body (detecting incoming attack) properties.
+    s_collision_space*  space;  // Physical space properties.
+    s_hitbox*           coords; // Collision box dimensions.
+    s_meta_data*        meta_data;  // User defined data.
+    int                 meta_tag;   // User defined int.
+    e_collision_type    type;   // Detection type.  
+    int                 index;  // Listing index.
+} s_collision;
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -1963,24 +2080,22 @@ typedef struct
 {
     int						confirm;    // Will engine's default hit handling be used?
     s_axis_principal_float	position;   // X,Y,Z of last hit.
-    s_collision_attack		*attack;    // Collision attacking box.
+    s_attack		*attack;    // Collision attacking box.
     s_collision_body		*body;      // Collision detect box.
 	struct entity			*target;	// Entity taking the hit.
 	struct entity			*attacker;	// Entity dishing out the hit.
 } s_lasthit;
 
+// Caskey, Damon V.
+// 2011-04-01
+//
+// Counter action when taking hit.
 typedef struct
 {
-    /*
-    Counter action when taking hit.
-    Damon V. Caskey
-    2011-04-01
-    */
-
-    e_counteraction_condition condition; //Counter conditions.
-    e_counteraction_damage damaged;      //Receive damage from attack.
-    s_metric_range frame;   //Frame range.
-} s_counterrange;
+	e_counter_action_condition_logic condition; // Counter conditions.
+    e_counter_action_take_damage damaged;		// Receive damage from attack.
+    s_metric_range frame;						// Frame range.
+} s_counter_action;
 
 typedef struct
 {
@@ -1993,7 +2108,7 @@ typedef struct
     int cost;           //Amount of energy cost.
     int disable;        //Disable flag. See check_energy function.
     e_cost_type mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
-} s_energycost;
+} s_energy_cost;
 
 // Caskey, Damon V.
 // 2011-04-01
@@ -2006,14 +2121,16 @@ typedef struct
     s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
+#define FRAME_SET_MODEL_INDEX_DEFAULT MODEL_INDEX_NONE
+
 // Caskey, Damon V.
 // 2018-04-20
 //
 // On frame action, where no movement is needed. (Landing, starting to fall...).
 typedef struct
 {
-    unsigned int  frame;  // Frame to perform action.
-    int         ent;        // Index of entity to spawn.
+    unsigned int	frame;			// Frame to perform action.
+    int				model_index;	// Index of model to spawn.
 } s_onframe_set;
 
 typedef struct
@@ -2070,8 +2187,22 @@ typedef struct
     */
 
     unsigned int animation;   // Follow animation to perform.
-    e_follow_condition condition;   // Condition in which follow up will be performed.
+    e_follow_condition_logic condition;   // Condition in which follow up will be performed.
 } s_follow;
+
+// Caskey, Damon V.
+// 2019-12-17
+//
+// Placements for projectile entities.  Controls
+// how position is applied (relative to parent, 
+// the screen, ...). 
+typedef enum
+{
+	// Keep these in order for legacy compatability.
+	PROJECTILE_PLACEMENT_SCREEN,
+	PROJECTILE_PLACEMENT_PARENT,
+	PROJECTILE_PLACEMENT_ABSOLUTE
+} e_projectile_placement;
 
 // Caskey, Damon V.
 // 2014-01-18
@@ -2079,60 +2210,126 @@ typedef struct
 // Projectile spawning.
 typedef struct
 {
-    unsigned int      shootframe;
-    unsigned int      throwframe;
-    unsigned int      tossframe;  // Frame to toss bomb/grenade
-    int                     bomb;       // custbomb;
-    int                     flash;      // custpshotno;
-    int                     knife;      // custknife;
-    s_axis_principal_int  position;   // Location at which projectiles are spawned
-    int                     star;       // custstar;
+	int                     bomb;				// custbomb;
+	e_color_adjust			color_set_adjust;	// Palette selection.
+	e_direction_adjust		direction_adjust;	
+	int                     flash;				// custpshotno;
+	int                     knife;				// custknife;
+	e_projectile_offense	offense;			// Offense factor source.
+	e_projectile_placement	placement;			// How position applies.
+	s_axis_principal_float	position;			// Location at which projectiles are spawned.
+	int						shootframe;
+	int                     star;				// custstar.
+	float					star_velocity[3];	// Legacy star velocity.
+	int						throwframe;
+	int						tossframe;			// Frame to toss bomb/grenade.
+	s_axis_principal_float	velocity;			// Throw velocity.
 } s_projectile;
+
+// Caskey, Damon V.
+// 2019-12-15
+//
+// Placements for sub entities.  Controls
+// how position is applied (relative to 
+// parent, the screen, ...). 
+typedef enum
+{
+	// Keep these in order for legacy compatability.
+	SUB_ENTITY_PLACEMENT_PARENT,
+	SUB_ENTITY_PLACEMENT_SCREEN,
+	SUB_ENTITY_PLACEMENT_ABSOLUTE
+} e_sub_entity_placement;
+
+// Caskey, Damon V.
+// 2019-12-11
+//
+//  Sub entity spawning.
+typedef struct
+{
+	int frame;
+	e_sub_entity_placement placement;
+	s_axis_principal_float position;
+} s_sub_entity;
+
+
+
+#define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
+#define ANIMATION_CHARGE_TIME_DEFAULT	2
+// Caskey, Damon V
+// 2019-11-19
+//
+// Cancel feature originally coded by orochi_x ("OX" in code). 
+// Functionally the cancel member appears to be a simple Boolean 
+// flag and the code uses it as such. Therefore we normally wouldn't
+// need or bother with named constants. However, OX used a value 
+// of 3 for the enabled state and left a notation stressing the 
+// importance of keeping it as is. I am unable to determine why, 
+// but since 3 works let’s take his advice and leave it be for now.
+typedef enum
+{
+	ANIMATION_CANCEL_DISABLED	= 0,
+	ANIMATION_CANCEL_ENABLED	= 3
+} e_anim_cancel;
 
 typedef struct
 {
-    bool                    antigrav;               // This animation ignores gravity.
-    int                     animhits;               // How many consecutive hits have been made? Used for canceling.
-    unsigned int            chargetime;             // charge time for an animation
-    int                     flipframe;              // Turns entities around on the desired frame
-    int                     numframes;              // Count of frames in the animation.
-    int                     unsummonframe;          // Un-summon the entity
-    bool                    attackone;              // Attack hits only one target.
-    int                     cancel;                 // Cancel anims with freespecial
-    int                     index;                  // unique id
-    int                     model_index;
-    int                     subentity;              // Store the sub-entity's name for further use
-    int                     sync;                   // Synchronize frame to previous animation if they matches
-    float                   bounce;                 // -tossv/bounce = new tossv
-    s_follow                followup;               // Subsequent animation on hit.
-    s_loop                  loop;                   // Animation looping. 2011_03_31, DC: Moved to struct.
-    s_projectile            projectile;             // Subentity spawn for knives, stars, bombs, hadoken, etc.
-    s_quakeframe            quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct.
-    s_range                 range;                  // Verify distance to target, jump landings, etc.. 2011_04_01, DC: Moved to struct.
-    s_axis_principal_int                size;                   // Dimensions (height, width).
-    unsigned                *idle;                  // Allow free move
-    int                     *delay;
-    float                   (*platform)[8];         // Now entities can have others land on them
-    int                     *shadow;
-    int                     (*shadow_coords)[2];    // x, z offset of shadow
-    int                     *soundtoplay;           // each frame can have a sound
-    float                   *spawnframe;            // Spawn the subentity as its default type. {frame} {x} {z} {a} {relative?}
-    float                   *starvelocity;          // 3 velocities for the start projectile
-    int                     *sprite;                // sprite[set][framenumber]
-    float                   *summonframe;           // Summon the subentity as an ally, only one though {frame} {x} {z} {a} {relative?}
-    int                     *vulnerable;
-    int                     *weaponframe;           // Specify with a frame when to switch to a weapon model
-    s_collision_attack_list **collision_attack;
-    s_collision_body_list   **collision_body;
-    s_collision_entity_list **collision_entity;
-    s_counterrange          *counterrange;           // Auto counter attack. 2011_04_01, DC: Moved to struct.
-    s_drawmethod            **drawmethods;
-    s_onframe_set           *dropframe;             // if tossv < 0, this frame will be set
-    s_onframe_move          *jumpframe;              // Jumpframe action. 2011_04_01, DC: moved to struct.
-    s_onframe_set           *landframe;             // Landing behavior.
-    s_energycost            *energycost;            // 1-10-05 to adjust the amount of energy used for specials. 2011_03_31, DC: Moved to struct.
-    s_move                  **move;                 // base = seta, x = move, y = movea, z = movez
-    s_axis_plane_vertical_int   **offset;               // original sprite offsets
+	// Sub structures.
+	s_counter_action			counter_action;			// Auto counter attack. ~~
+	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
+	s_onframe_set				dropframe;				// if tossv < 0, this frame will be set. ~~
+	s_follow					followup;               // Subsequent animation on hit. ~~
+	s_onframe_move				jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct. ~~
+	s_onframe_set				landframe;				// Landing behavior. ~~
+	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct. ~~
+	s_quakeframe				quakeframe;             // Screen shake effect. 2011_04_01, DC; Moved to struct. ~~
+	s_range						range;                  // Verify distance to target, jump landings, etc. ~~
+	s_axis_principal_int		size;                   // Dimensions (height, width). ~~
+	
+	s_sub_entity*				sub_entity_spawn;		// Replace legacy "spawnframe" - spawn an entity unrelated to parent. ~~
+	s_sub_entity*				sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
+	s_projectile*				projectile;             // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
+
+    s_collision**               collision;              // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
+	s_collision_body_list**		collision_body;
+	s_collision_entity_list**	collision_entity;
+	s_move**					move;					// base = seta, x = move, y = movea, z = movez
+	s_axis_plane_vertical_int**	offset;				    // original sprite offsets
+	s_drawmethod**				drawmethods;
+
+	float						(*platform)[8];			// Now entities can have others land on them
+	
+	unsigned					*idle;					// Allow free move
+	int							*delay;
+	int							*shadow;
+	int							(*shadow_coords)[2];	// x, z offset of shadow
+	int							*soundtoplay;           // each frame can have a sound
+	int							*sprite;                // sprite[set][framenumber]
+	int							*vulnerable;
+	int							*weaponframe;           // Specify with a frame when to switch to a weapon model
+	
+	float						bounce_factor;			// On fall landing, New Y = -(old Y) / bounce_factor. ~~
+
+	// Enumerated integers
+	e_anim_cancel				cancel;                 // Cancel anims with freespecial. ~~
+
+	// Integers
+	unsigned int				charge_time;            // charge time for an animation. ~~
+	int							flipframe;              // Turns entities around on the desired frame. ~~
+	int							hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
+	int							index;                  // unique id.~~
+	int							numframes;              // Count of frames in the animation. ~~	
+	int							model_index;			// model index animation loaded to. ~~
+	int							sub_entity_model_index;	// Sub entity model index (for spawn/summon).
+	int							sub_entity_unsummon;    // Un-summon the entity
+	int							sync;                   // Synchronize frame to previous animation if they matches
+
+	// Boolean flags.
+	int						    attack_one;             // Attack hits only one target. ~~
+	int						    subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~    
+
+    // Meta data.
+    s_meta_data*                meta_data;              // User defiend data.
+    int					        meta_tag;	            // User defined int.
 } s_anim;
 
 struct animlist
@@ -2142,6 +2339,77 @@ struct animlist
 };
 typedef struct animlist s_anim_list;
 s_anim_list *anim_list;
+
+// Caskey, Damon V.
+// 2019-02-03
+// 
+// Absolute Cube. This is when
+// we need the post calculation 
+// coordinates at each side of 
+// a cube as opposed to demensions.
+typedef struct
+{
+    int background;	// Side of cube facing toward background.
+    int foreground;	// Side of cube facing foreground/camera.
+    int center_x;
+    int center_y;
+    int center_z;
+    int left;
+    int right;
+    int bottom;
+    int top;
+} s_box;
+
+// Caskey, Damon V.
+// 2020-02-03
+//
+// Data structure to calculate collisions. We want to 
+// break collision detection down into reusable functions.
+// These functions usually run in loops and much of the
+// processing can be factored outside of loops, but we
+// also want to avoid a ton of messy and repetitive 
+// parameters. This structre gives us a "one stop shop"
+// we can use to pass data around between the functions
+// with a single fast pointer, and allows future extension.
+//
+// Some members may appear redendant (i.e animation when
+// we could just get it from entity pointer). This is
+// because of the nested looping needed to check collisions.
+// Some attributes must be aquired at different points
+// in the checking process.
+typedef struct {
+
+    // return_overlap is the center position between both
+    // collision boxes. This is vital for functionality like
+    // spawning hit flash entities.
+
+    s_box* return_overlap;
+
+    // Seek is generally the initiating party. In the 
+    // case of attack detection, it would be the attacker.
+    // Target is the party we want to know if we are making
+    // contact with. Both are just labels for human use. The 
+    // code can use them interchangeably.
+
+    s_anim* seeker_animation;    // Current animation. use this to determine which animation's collision boxes to check.    
+    s_hitbox* seeker_coords;            // Current set of collision coordinates to compare.
+    e_direction seeker_direction;       // Current facing. In the case of entities, we have to reverse the X coordinates when facing left. 
+    struct entity* seeker_ent;          // Acting entity (if any).
+    int seeker_frame;                   // Current animation frame.       
+    s_axis_principal_int* seeker_pos;   // Current position as integer. Collision coordinates are relative positions and dimensions - We need the acting entity's location as an integer to calculate absolute collisions box before we can test overlap. 
+
+    // Target is the testing target. In the case of an
+    // attack, this is the party that might get hit. The
+    // attribites are otherwise identical to seeker.
+
+    s_anim* target_animation;
+    s_hitbox* target_coords;
+    e_direction target_direction;
+    struct entity* target_ent;
+    int target_frame;
+    s_axis_principal_int* target_pos;
+
+} s_collision_check_data;
 
 typedef struct
 {
@@ -2367,7 +2635,7 @@ typedef struct
     int bflash; // Flash that plays when an attack is blocked
     s_dust dust; //Spawn entity during certain actions.
     s_axis_plane_vertical_int size; // Used to set height of player in pixels
-    float speed;
+    s_axis_principal_float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
     int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
@@ -2441,7 +2709,7 @@ typedef struct
 
     s_defense *defense; //defense related, make a struct to aid copying
     float *offense_factors; //basic offense factors: damage = damage*offense
-    s_collision_attack *smartbomb;
+    s_attack *smartbomb;
 
     // e.g., boss
     s_barstatus hpbarstatus;
@@ -2469,6 +2737,11 @@ typedef struct
     int hitwalltype; // wall type to toggle hitwall animations
     e_ModelFreetype freetypes;
     s_scripts *scripts;
+
+    // Meta data.
+    s_meta_data*    meta_data;      // User defined data.
+    int             meta_tag;       // user defined int.
+
 } s_model;
 
 typedef struct
@@ -2499,7 +2772,6 @@ typedef struct
 typedef struct
 {
     unsigned int            match;			// Animation binding type. ~~
-    int                     tag;            // User data.
     int                     sortid;         // Relative binding sortid. Default = -1
     int                     frame;          // Frame to match (only if requested in matching).
     e_bind_override			overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
@@ -2508,6 +2780,11 @@ typedef struct
     s_axis_principal_int    offset;         // x,y,z offset.
     e_direction_adjust      direction;      // Direction force.
     struct entity           *ent;           // Entity subject will bind itself to.
+
+    // Meta data.
+    s_meta_data*            meta_data;      // User defined data.
+    int                     meta_tag;       // user defined int.
+
 } s_bind;
 
 typedef struct
@@ -2565,7 +2842,7 @@ typedef struct entity
 	s_defense				*defense;							// Resistance or vulnerability to certain attack types. ~~
 	s_model					*model;								// current model ~~
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
-	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
+    s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
 	s_scripts				*scripts;							// Loaded scripts. ~~
 
 	struct entity			*collided_entity;					// Opposing entity when entities occupy same space. ~~
@@ -2668,30 +2945,30 @@ typedef struct entity
 	e_update_mark			update_mark;						// Which updates are completed. ~~
 
 	// Boolean flags.
-    bool					arrowon;							// Display arrow icon (parrow<player>) ~~
-	bool					blink;								// Toggle flash effect. ~~
-	bool					boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
-	bool					blocking;							// In blocking state. ~~
-	bool					charging;							// Charging MP. Gain according to chargerate. ~~
-	bool					dead;								// He's dead Jim. ~~
-	bool					deduct_ammo;						// Check for ammo count? ~~
-	bool					die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
-	bool					drop;								// Knocked down. Remains true until rising. ~~
-	bool					exists;								// flag to determine if it is a valid entity. ~~
-	bool					falling;							// Knocked down and haven't landed. ~~
-	bool					frozen;								// Frozen in place. ~~
-	bool					getting;							// Picking up item. ~~
-	bool					grabwalking;						// Walking while grappling. ~~
-	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
-	bool					idling;								// ~~
-	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
-	bool					inpain;								// Hit and block stun. ~~
-	bool					jumping;							// ~~
-	bool					noaicontrol;						// No AI or automated control. ~~
-	bool					running;							// ~~
-	bool					tocost;								// Cost life on hit with special. ~~
-	bool					turning;							// Turning around. ~~
-	bool					walking;							// ~~
+    int					    arrowon;							// Display arrow icon (parrow<player>) ~~
+	int					    blink;								// Toggle flash effect. ~~
+	int					    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+	int					    blocking;							// In blocking state. ~~
+	int					    charging;							// Charging MP. Gain according to chargerate. ~~
+	int					    dead;								// He's dead Jim. ~~
+	int					    deduct_ammo;						// Check for ammo count? ~~
+	int					    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
+	int					    drop;								// Knocked down. Remains true until rising. ~~
+	int					    exists;								// flag to determine if it is a valid entity. ~~
+	int					    falling;							// Knocked down and haven't landed. ~~
+	int					    frozen;								// Frozen in place. ~~
+	int					    getting;							// Picking up item. ~~
+	int					    grabwalking;						// Walking while grappling. ~~
+	int					    hitwall;							// Blcoked by wall/platform/obstacle. ~~
+	int					    idling;								// ~~
+	int					    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
+	int					    inpain;								// Hit and block stun. ~~
+	int					    jumping;							// ~~
+	int					    noaicontrol;						// No AI or automated control. ~~
+	int					    running;							// ~~
+	int					    tocost;								// Cost life on hit with special. ~~
+	int					    turning;							// Turning around. ~~
+	int					    walking;							// ~~
 	
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
@@ -2700,8 +2977,12 @@ typedef struct entity
 	void					(*takeaction)();					// Take an action (lie, attack, etc.). ~~
 	void					(*think)();							// Entity thinks. ~~
     
-	int						(*takedamage)(struct entity *, s_collision_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
+	int						(*takedamage)(struct entity *, s_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
+
+    // Meta data.
+    s_meta_data*            meta_data;              // User defiend data.
+    int					    meta_tag;	            // User defined int.
 } entity;
 
 
@@ -2728,6 +3009,11 @@ typedef struct
     int hasplayed;
     int weapnum;
     int status;
+
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int			    meta_tag;	            // User defined int.
+
 } s_player;
 
 typedef struct
@@ -2833,6 +3119,10 @@ typedef struct
     int             z;
     int             quake;
     int             neon;
+    
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int				meta_tag;	            // User defined int.
 } s_layer;
 
 typedef struct
@@ -2847,6 +3137,10 @@ typedef struct
     s_axis_principal_int position;  //x,y,z location on screen.
     u32 time;           //Time to expire.
     char *text;         //Text to display.
+    
+    // Meta data.
+    s_meta_data*        meta_data;              // User defiend data.
+    int					meta_tag;	            // User defined int.
 } s_textobj;
 
 typedef struct
@@ -2861,6 +3155,10 @@ typedef struct
     s_axis_plane_lateral_int position;
     s_axis_plane_lateral_int size;
     float *map;
+
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int		        meta_tag;	            // User defined int.
 } s_basemap;
 
  typedef struct
@@ -2879,6 +3177,10 @@ typedef struct
     float x;
     float z;
     int type;
+
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int             meta_tag;	            // User defined int.
 } s_terrain;
 
 typedef struct
@@ -2960,6 +3262,9 @@ typedef struct
     int quake;
     int waiting;
 
+    // Meta data.
+    s_meta_data*    meta_data;              // User defiend data.
+    int			    meta_tag;	            // User defined int.
 } s_level;
 
 typedef struct ArgList
@@ -2983,25 +3288,27 @@ typedef struct ArgList
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
+int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);
 float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
 int     check_bind_override(entity *ent, e_bind_override overriding);
 
-// Linked lists
+// Recursive damage.
+void    free_recursive_object(s_damage_recursive* target);
 void	free_recursive_list(s_damage_recursive * head);
 
 // Blocking logic.
 int     check_blocking_decision(entity *ent);
-int     check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack);
-int     check_blocking_master(entity *ent, entity *other, s_collision_attack *attack);
+int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack);
+int     check_blocking_master(entity *ent, entity *other, s_attack *attack);
 int     check_blocking_rules(entity *ent);
-int     check_blocking_pain(entity *ent, s_collision_attack *attack);
+int     check_blocking_pain(entity *ent, s_attack *attack);
 void	do_active_block(entity *ent);
-void	do_passive_block(entity *ent, entity *other, s_collision_attack *attack);
-void    set_blocking_action(entity *ent, entity *other, s_collision_attack *attack);
-void    set_blocking_animation(entity *ent, s_collision_attack *attack);
+void	do_passive_block(entity *ent, entity *other, s_attack *attack);
+void    set_blocking_action(entity *ent, entity *other, s_attack *attack);
+void    set_blocking_animation(entity *ent, s_attack *attack);
 
 // Select player models.
 int		find_selectable_model_count				();
@@ -3028,13 +3335,13 @@ int     load_script								(Script *script, char *path);
 void    init_scripts();
 void    load_scripts();
 void    execute_animation_script                (entity *ent);
-void    execute_takedamage_script               (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_takedamage_script               (entity *ent, entity *other, s_attack *attack);
 void    execute_on_bind_update_other_to_self    (entity *ent, entity *other, s_bind *bind);
 void    execute_on_bind_update_self_to_other    (entity *ent, entity *other, s_bind *bind);
-void    execute_ondeath_script                  (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_ondeath_script                  (entity *ent, entity *other, s_attack *attack);
 void    execute_onkill_script                   (entity *ent);
 void    execute_onpain_script                   (entity *ent, int iType, int iReset);
-void    execute_onfall_script                   (entity *ent, entity *other, s_collision_attack *attack);
+void    execute_onfall_script                   (entity *ent, entity *other, s_attack *attack);
 void    execute_inhole_script                   (entity *ent, s_terrain *hole, int index);
 void    execute_onblocks_script                 (entity *ent);
 void    execute_onblockw_script                 (entity *ent, s_terrain *wall, int index, e_plane plane);
@@ -3045,11 +3352,11 @@ void    execute_onblocka_script                 (entity *ent, entity *other);
 void    execute_onmovex_script                  (entity *ent);
 void    execute_onmovez_script                  (entity *ent);
 void    execute_onmovea_script                  (entity *ent);
-void    execute_didblock_script                 (entity *ent, entity *other, s_collision_attack *attack);
-void    execute_ondoattack_script               (entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id);
+void    execute_didblock_script                 (entity *ent, entity *other, s_attack *attack);
+void    execute_ondoattack_script               (entity *ent, entity *other, s_attack *attack, e_exchange which, int attack_id);
 void    execute_updateentity_script             (entity *ent);
 void    execute_think_script                    (entity *ent);
-void    execute_didhit_script                   (entity *ent, entity *other, s_collision_attack *attack, int blocked);
+void    execute_didhit_script                   (entity *ent, entity *other, s_attack *attack, int blocked);
 void    execute_onspawn_script                  (entity *ent);
 void    clearbuttonss(int player);
 void    clearsettings(void);
@@ -3099,34 +3406,95 @@ s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
 int free_model();
+void cache_attack_hit_sounds(s_collision* head, int load);
 void cache_model_sprites();
+
+s_drawmethod			*allocate_drawmethod();
+s_projectile			*allocate_projectile();
+s_onframe_set			*allocate_frame_set();
+s_sub_entity			*allocate_sub_entity();
 s_anim                  *alloc_anim();
-s_collision_attack      *collision_alloc_attack_instance(s_collision_attack* properties);
-s_collision_attack      **collision_alloc_attack_list();
-s_collision_body        *collision_alloc_body_instance(s_collision_body *properties);
-s_collision_body        **collision_alloc_body_list();
-s_collision_entity      *collision_alloc_entity_instance(s_collision_entity *properties);
-s_collision_entity      **collision_alloc_entity_list();
-s_hitbox                *collision_alloc_coords(s_hitbox *coords);
-int                     addframe(s_anim             *a,
-                                int                 spriteindex,
-                                int                 framecount,
-                                int                 delay,
-                                unsigned            idle,
-                                s_collision_entity  *ebox,
-                                s_collision_body    *bbox,
-                                s_collision_attack  *attack,
-                                s_move              *move,
-                                float               *platform,
-                                int                 frameshadow,
-                                int                 *shadow_coords,
-                                int                 soundtoplay,
-                                s_drawmethod        *drawmethod,
-                                s_axis_plane_vertical_int         *offset,
-                                s_damage_recursive  *recursive,
-                                s_hitbox            *attack_coords,
-                                s_hitbox            *body_coords,
-                                s_hitbox            *entity_coords);
+
+// Caskey, Damon V.
+// 2020-03-04
+//
+// Addframe() and related sub functions function have 
+// a TON of parameters. Let's package them up into a 
+// more manageable structure.
+typedef struct {
+    s_anim*                     animation;      // Animation we will add frame to.
+    int                         spriteindex;    // Image displayed during frame.
+    int                         framecount;     // Number of frames.
+    int                         delay;          // Frame duration (centiseonds)
+    unsigned                    idle;           // TRUE = Set idle status during frame.
+    s_collision_entity*         ebox;           // "Entity" box added by WD. To be removed.
+    s_hitbox*                   entity_coords;  // Coordinates for "Entity" box. To be removed.
+    s_collision_body*           bbox;           // Legacy body box parameters.
+    s_hitbox*                   body_coords;    // Coordinates for legacy body box.
+    s_damage_recursive*         recursive;      // Recursive damage properties for attack.
+    s_move*                     move;           // Move <n> horizontal pixels on frame.
+    float*                      platform;       // Platform coordinates.
+    int                         frameshadow;    // TRUE = Display shadow during frame.
+    int*                        shadow_coords;  // Shadow position.
+    int                         soundtoplay;    // Sound index played on frame.
+    s_drawmethod*               drawmethod;     // Drawmethod to apply on frame.
+    s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
+    s_collision*                collision;      // Head node of collision list for frame.
+    s_model*                    model;          // New model in progress.
+} s_addframe_data;
+
+int addframe(s_addframe_data* data);
+
+// Collision and attcking control.
+
+// -- Attack properties.
+s_attack*               attack_allocate_object();
+s_attack*               attack_clone_object(s_attack* source);
+void                    attack_dump_object(s_attack* attack);
+void                    attack_free_object(s_attack* attack);
+
+// -- Body properties
+s_collision_body*       body_allocate_object();
+s_collision_body*       body_clone_object(s_collision_body* source);
+void                    body_dump_object(s_collision_body* body);
+void                    body_free_object(s_collision_body* body);
+
+// -- Recursive damage
+s_damage_recursive*     recursive_damage_allocate_object();
+void                    recursive_damage_dump_object(s_damage_recursive* recursive);
+
+// -- Collision container and list.
+s_hitbox*               collision_allocate_coords(s_hitbox* coords);
+s_collision*            collision_allocate_object();
+s_collision*            collision_append_node(struct s_collision* head);
+s_collision*            collision_append_node_to_property(s_collision** target_property);
+int                     collision_check_has_coords(s_collision* target);
+s_collision*            collision_clone_list(s_collision* source_head);
+void                    collision_dump_list(s_collision* head);
+s_collision*            collision_find_attack_on_frame(s_anim* animation, int frame);
+s_collision*            collision_find_no_block_attack_on_frame(s_anim* animation, int frame, int block);
+s_collision*            collision_find_node_index(s_collision* head, e_collision_type type, int index);
+void                    collision_free_list(s_collision* head);
+void                    collision_free_node(s_collision* target);
+void                    collision_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
+void                    collision_remove_undefined_coordinates(s_collision** head);
+s_attack*               collision_upsert_attack_property(s_collision** head, int index);
+s_collision_body*       collision_upsert_body_property(s_collision** head, int index);
+s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
+s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
+s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, int index);
+
+// -- Legacy
+s_collision_body*       collision_alloc_body_instance(s_collision_body *properties);
+s_collision_body**      collision_alloc_body_list();
+s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
+s_collision_entity**    collision_alloc_entity_list();
+
+// Meta data control.
+void meta_data_free_list(s_meta_data* head);
+
+
 void cache_model(char *name, char *path, int flag);
 void remove_from_cache(char *name);
 void free_modelcache();
@@ -3169,9 +3537,9 @@ void steamer_think(void);
 void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
-int player_takedamage(entity *other, s_collision_attack *attack, int);
-int biker_takedamage(entity *other, s_collision_attack *attack, int);
-int obstacle_takedamage(entity *other, s_collision_attack *attack, int);
+int player_takedamage(entity *other, s_attack *attack, int);
+int biker_takedamage(entity *other, s_attack *attack, int);
+int obstacle_takedamage(entity *other, s_attack *attack, int);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
@@ -3191,7 +3559,7 @@ void ent_summon_ent(entity *ent);
 void ent_set_anim(entity *ent, int aninum, int resetable);
 void ent_set_colourmap(entity *ent, unsigned int which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
-entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash);
+entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash);
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model);
 void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
@@ -3203,14 +3571,14 @@ int projectile_wall_deflect(entity *ent);
 
 void sort_invert_by_parent(entity *ent, entity* parent);
 
-int checkgrab(entity *other, s_collision_attack *attack);
-void checkdamageeffects(s_collision_attack *attack);
-void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack);
-void checkdamagedrop(s_collision_attack *attack);
+int checkgrab(entity *other, s_attack *attack);
+void checkdamageeffects(s_attack *attack);
+void check_damage_recursive(entity *ent, entity *other, s_attack *attack);
+void checkdamagedrop(s_attack *attack);
 void checkmpadd();
-void checkhitscore(entity *other, s_collision_attack *attack);
-int calculate_force_damage(entity *other, s_collision_attack *attack);
-void checkdamage(entity *other, s_collision_attack *attack);
+void checkhitscore(entity *other, s_attack *attack);
+int calculate_force_damage(entity *target, entity *attacker, s_attack *attack);
+void checkdamage(entity *other, s_attack *attack);
 void checkdamageonlanding();
 int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
@@ -3256,7 +3624,8 @@ int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
 bool check_jumpframe(entity *ent, unsigned int frame);
-bool check_landframe(entity *ent);
+bool check_frame_set_drop(entity *ent);
+bool check_landframe(entity* ent);
 int check_edge(entity *ent);
 void update_ents();
 entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
@@ -3266,7 +3635,7 @@ entity *findent(int types);
 int count_ents(int types);
 int set_idle(entity *ent);
 int set_death(entity *iDie, int type, int reset);
-int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset);
+int set_fall(entity *ent, entity *other, s_attack *attack, int reset);
 int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
 int set_blockpain(entity *iBlkpain, int type, int reset);
@@ -3302,8 +3671,8 @@ void common_grab(void);
 void common_grabattack();
 void common_grabbed();
 void common_block(void);
-int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
-int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag);
+int arrow_takedamage(entity *other, s_attack *attack, int fall_flag);
+int common_takedamage(entity *other, s_attack *attack, int fall_flag);
 int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);
@@ -3329,7 +3698,8 @@ int common_backwalk_anim(entity *ent);
 void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
-int bomb_move(void);
+e_entity_type find_entity_type_from_string(char* value);
+int bomb_move(entity *ent);
 int arrow_move(void);
 int common_move(void);
 void common_think(void);
@@ -3350,12 +3720,12 @@ void subtract_shot();
 void dropweapon(int flag);
 void drop_all_enemies();
 void kill_all_enemies();
-void smart_bomb(entity *e, s_collision_attack *attack);
+void smart_bomb(entity *e, s_attack *attack);
 void anything_walk(void);
-entity *knife_spawn(char *name, int index, float x, float z, float a, int direction, int type, int map);
-entity *bomb_spawn(char *name, int index, float x, float z, float a, int direction, int map);
+entity* knife_spawn(entity *parent, s_projectile* projectile);
+entity *bomb_spawn(entity *parent, s_projectile *projectile);
 void bomb_explode(void);
-int star_spawn(float x, float z, float a, int direction);
+int star_spawn(entity *parent, s_projectile *projectile);
 void steam_think(void);
 void trap_think(void);
 void steam_spawn(float x, float z, float a);
