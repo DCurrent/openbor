@@ -147,6 +147,9 @@ typedef enum
 	AUTOKILL_ATTACK_HIT			= (1 << 1)
 } e_autokill_state;
 
+// Caskey, Damon V.
+// 2020-12-07
+// Drawmethod property exposure.
 typedef enum
 {
     DRAWMETHOD_PROPERTY_ALPHA,
