@@ -12,80 +12,6 @@
 
 #include "scriptcommon.h"
 
-// Use string property argument to find an
-// integer property constant and populate
-// varlist->lval.
-int mapstrings_drawmethod(ScriptVariant **varlist, int paramCount)
-{
-#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
-#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
-
-	char *propname = NULL;  // Placeholder for string property name from varlist.
-	int prop;               // Placeholder for integer constant located by string.
-
-	static const char *proplist[] =
-	{
-		"alpha",
-		"background_transparency",
-		"center_x",
-		"center_y",
-		"channel_blue",
-		"channel_green",
-		"channel_red",
-		"clip_position_x",
-		"clip_position_y",
-		"clip_size_x",
-		"clip_size_y",
-		"colorset_index",
-		"colorset_table",
-		"enable",
-		"fill_color",
-		"flip_x",
-		"flip_y",
-		"repeat_x",
-		"repeat_y",
-		"rotate",
-		"rotate_flip",
-		"scale_x",
-		"scale_y",
-		"shift_x",
-		"span_x",
-		"span_y",
-		"tag",
-		"tint_color",
-		"tint_mode",
-		"water_mode",
-		"water_perspective",
-		"water_size_begin",
-		"water_size_end",
-		"water_wave_amplitude",
-		"water_wave_length",
-		"water_wave_speed",
-		"water_wave_time"
-	};
-
-	// If the minimum argument count
-	// was not passed, then there is
-	// nothing to map. Return true - we'll
-	// catch the mistake in property access
-	// functions.
-	if (paramCount < ARG_MINIMUM)
-	{
-		return 1;
-	}
-
-	// See macro - will return 0 on fail.
-	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _DRAWMETHOD_END,
-		"Property name '%s' is not supported by drawmethod.\n");
-
-
-	// If we made it this far everything should be OK.
-	return 1;
-
-#undef ARG_MINIMUM
-#undef ARG_PROPERTY
-}
-
 // Caskey, Damon  V.
 // 2019-04-15
 //
@@ -226,7 +152,7 @@ error_local:
 // and a property to access.
 HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-#define SELF_NAME       "openbor_get_drawmethod_property(void drawmethod, char property)"
+#define SELF_NAME       "openbor_get_drawmethod_property(void drawmethod, int property)"
 #define ARG_MINIMUM     2   // Minimum required arguments.
 #define ARG_HANDLE      0   // Handle (pointer to property structure).
 #define ARG_PROPERTY    1   // Property to access.
@@ -257,259 +183,259 @@ HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 	switch (property)
 	{		
-	case _DRAWMETHOD_ALPHA:
+	case DRAWMETHOD_PROPERTY_ALPHA:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->alpha;
 
 		break;
 
-	case _DRAWMETHOD_BACKGROUND_TRANSPARENCY:
+	case DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->transbg;
 
 		break;
 
-	case _DRAWMETHOD_CENTER_X:
+	case DRAWMETHOD_PROPERTY_CENTER_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->centerx;
 
 		break;
 
-	case _DRAWMETHOD_CENTER_Y:
+	case DRAWMETHOD_PROPERTY_CENTER_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->centery;
 
 		break;
 
-	case _DRAWMETHOD_CHANNEL_BLUE:
+	case DRAWMETHOD_PROPERTY_CHANNEL_BLUE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->channelb;
 
 		break;
 
-	case _DRAWMETHOD_CHANNEL_GREEN:
+	case DRAWMETHOD_PROPERTY_CHANNEL_GREEN:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->channelg;
 
 		break;
 
-	case _DRAWMETHOD_CHANNEL_RED:
+	case DRAWMETHOD_PROPERTY_CHANNEL_RED:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->channelr;
 
 		break;
 
-	case _DRAWMETHOD_CLIP_POSITION_X:
+	case DRAWMETHOD_PROPERTY_CLIP_POSITION_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->clipx;
 
 		break;
 
-	case _DRAWMETHOD_CLIP_POSITION_Y:
+	case DRAWMETHOD_PROPERTY_CLIP_POSITION_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->clipy;
 
 		break;
 
-	case _DRAWMETHOD_CLIP_SIZE_X:
+	case DRAWMETHOD_PROPERTY_CLIP_SIZE_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->clipw;
 
 		break;
 
-	case _DRAWMETHOD_CLIP_SIZE_Y:
+	case DRAWMETHOD_PROPERTY_CLIP_SIZE_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->cliph;
 
 		break;
 
-	case _DRAWMETHOD_COLORSET_INDEX:
+	case DRAWMETHOD_PROPERTY_COLORSET_INDEX:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->remap;
 
 		break;
 
-	case _DRAWMETHOD_COLORSET_TABLE:
+	case DRAWMETHOD_PROPERTY_COLORSET_TABLE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_PTR);
 		(*pretvar)->ptrVal = (VOID *)(handle->table);
 
 		break;
 
-	case _DRAWMETHOD_ENABLE:
+	case DRAWMETHOD_PROPERTY_ENABLE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->flag;
 
 		break;
 	
-	case _DRAWMETHOD_FILL_COLOR:
+	case DRAWMETHOD_PROPERTY_FILL_COLOR:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->fillcolor;
 
 		break;
 
-	case _DRAWMETHOD_FLIP_X:
+	case DRAWMETHOD_PROPERTY_FLIP_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->flipx;
 
 		break;
 
-	case _DRAWMETHOD_FLIP_Y:
+	case DRAWMETHOD_PROPERTY_FLIP_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->flipy;
 
 		break;
 
-	case _DRAWMETHOD_REPEAT_X:
+	case DRAWMETHOD_PROPERTY_REPEAT_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->xrepeat;
 
 		break;
 
-	case _DRAWMETHOD_REPEAT_Y:
+	case DRAWMETHOD_PROPERTY_REPEAT_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->yrepeat;
 
 		break;
 
-	case _DRAWMETHOD_ROTATE:
+	case DRAWMETHOD_PROPERTY_ROTATE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->rotate;
 
 		break;
 
-	case _DRAWMETHOD_ROTATE_FLIP:
+	case DRAWMETHOD_PROPERTY_ROTATE_FLIP:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->fliprotate;
 
 		break;
 
-	case _DRAWMETHOD_SCALE_X:
+	case DRAWMETHOD_PROPERTY_SCALE_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->scalex;
 
 		break;
 
-	case _DRAWMETHOD_SCALE_Y:
+	case DRAWMETHOD_PROPERTY_SCALE_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->scaley;
 
 		break;
 
-	case _DRAWMETHOD_SHIFT_X:
+	case DRAWMETHOD_PROPERTY_SHIFT_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->shiftx;
 
 		break;
 
-	case _DRAWMETHOD_SPAN_X:
+	case DRAWMETHOD_PROPERTY_SPAN_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->xspan;
 
 		break;
 
-	case _DRAWMETHOD_SPAN_Y:
+	case DRAWMETHOD_PROPERTY_SPAN_Y:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->yspan;
 
 		break;
 
-	case _DRAWMETHOD_TAG:
+	case DRAWMETHOD_PROPERTY_TAG:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->tag;
 
 		break;
 
-	case _DRAWMETHOD_TINT_COLOR:
+	case DRAWMETHOD_PROPERTY_TINT_COLOR:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->tintcolor;
 
 		break;
 
-	case _DRAWMETHOD_TINT_MODE:
+	case DRAWMETHOD_PROPERTY_TINT_MODE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->tintmode;
 
 		break;
 
-	case _DRAWMETHOD_WATER_MODE:
+	case DRAWMETHOD_PROPERTY_WATER_MODE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.watermode;
 
 		break;
 
-	case _DRAWMETHOD_WATER_PERSPECTIVE:
+	case DRAWMETHOD_PROPERTY_WATER_PERSPECTIVE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.perspective;
 
 		break;
 
-	case _DRAWMETHOD_WATER_SIZE_BEGIN:
+	case DRAWMETHOD_PROPERTY_WATER_SIZE_BEGIN:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.beginsize;
 
 		break;
 
-	case _DRAWMETHOD_WATER_SIZE_END:
+	case DRAWMETHOD_PROPERTY_WATER_SIZE_END:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.endsize;
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_AMPLITUDE:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.amplitude;
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_LENGTH:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_LENGTH:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.wavelength;
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_SPEED:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_SPEED:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.wavespeed;
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_TIME:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_TIME:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->water.wavetime;
@@ -528,7 +454,7 @@ HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 error_local:
 
-	printf("\nYou must provide a valid pointer and property name: " SELF_NAME "\n");
+	printf("\nYou must provide a valid pointer and property constant: " SELF_NAME "\n");
 	*pretvar = NULL;
 
 	return E_FAIL;
@@ -547,7 +473,7 @@ error_local:
 // and a property to access.
 HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-#define SELF_NAME			"set_drawmethod_property(void drawmethod, char property, mixed value)"
+#define SELF_NAME			"set_drawmethod_property(void drawmethod, int property, mixed value)"
 #define ARG_MINIMUM         3   // Minimum required arguments.
 #define ARG_HANDLE          0   // Handle (pointer to property structure).
 #define ARG_PROPERTY        1   // Property to access.
@@ -581,7 +507,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 	// exit function.
 	if (handle == &plainmethod)
 	{
-		printf("\n Warning: The default drawmethod and its properties are read only: " SELF_NAME "\n");
+		printf("\n Warning: The global default drawmethod and its properties are read only: " SELF_NAME "\n");
 		
 		return S_OK;
 	}		
@@ -590,7 +516,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 	switch (property)
 	{
 	
-	case _DRAWMETHOD_ALPHA:
+	case DRAWMETHOD_PROPERTY_ALPHA:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -599,7 +525,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_BACKGROUND_TRANSPARENCY:
+	case DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -608,7 +534,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CENTER_X:
+	case DRAWMETHOD_PROPERTY_CENTER_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -617,7 +543,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CENTER_Y:
+	case DRAWMETHOD_PROPERTY_CENTER_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -626,7 +552,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CHANNEL_BLUE:
+	case DRAWMETHOD_PROPERTY_CHANNEL_BLUE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -635,7 +561,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CHANNEL_GREEN:
+	case DRAWMETHOD_PROPERTY_CHANNEL_GREEN:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -644,7 +570,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CHANNEL_RED:
+	case DRAWMETHOD_PROPERTY_CHANNEL_RED:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -653,7 +579,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CLIP_POSITION_X:
+	case DRAWMETHOD_PROPERTY_CLIP_POSITION_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -662,7 +588,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CLIP_POSITION_Y:
+	case DRAWMETHOD_PROPERTY_CLIP_POSITION_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -671,7 +597,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CLIP_SIZE_X:
+	case DRAWMETHOD_PROPERTY_CLIP_SIZE_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -680,7 +606,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_CLIP_SIZE_Y:
+	case DRAWMETHOD_PROPERTY_CLIP_SIZE_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -689,7 +615,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_COLORSET_INDEX:
+	case DRAWMETHOD_PROPERTY_COLORSET_INDEX:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -698,13 +624,13 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_COLORSET_TABLE:
+	case DRAWMETHOD_PROPERTY_COLORSET_TABLE:
 
 		handle->table = (VOID *)varlist[ARG_VALUE]->ptrVal;
 
 		break;
 
-	case _DRAWMETHOD_ENABLE:
+	case DRAWMETHOD_PROPERTY_ENABLE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -713,7 +639,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_FILL_COLOR:
+	case DRAWMETHOD_PROPERTY_FILL_COLOR:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -722,7 +648,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_FLIP_X:
+	case DRAWMETHOD_PROPERTY_FLIP_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -731,7 +657,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_FLIP_Y:
+	case DRAWMETHOD_PROPERTY_FLIP_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -740,7 +666,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_REPEAT_X:
+	case DRAWMETHOD_PROPERTY_REPEAT_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -749,7 +675,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_REPEAT_Y:
+	case DRAWMETHOD_PROPERTY_REPEAT_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -758,7 +684,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_ROTATE:
+	case DRAWMETHOD_PROPERTY_ROTATE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -767,7 +693,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_ROTATE_FLIP:
+	case DRAWMETHOD_PROPERTY_ROTATE_FLIP:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -776,7 +702,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_SCALE_X:
+	case DRAWMETHOD_PROPERTY_SCALE_X:
 		
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -785,7 +711,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_SCALE_Y:
+	case DRAWMETHOD_PROPERTY_SCALE_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -794,7 +720,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_SHIFT_X:
+	case DRAWMETHOD_PROPERTY_SHIFT_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -803,7 +729,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_SPAN_X:
+	case DRAWMETHOD_PROPERTY_SPAN_X:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -812,7 +738,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_SPAN_Y:
+	case DRAWMETHOD_PROPERTY_SPAN_Y:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -821,7 +747,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_TAG:
+	case DRAWMETHOD_PROPERTY_TAG:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -830,7 +756,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_TINT_COLOR:
+	case DRAWMETHOD_PROPERTY_TINT_COLOR:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -839,7 +765,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_TINT_MODE:
+	case DRAWMETHOD_PROPERTY_TINT_MODE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -848,7 +774,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_WATER_MODE:
+	case DRAWMETHOD_PROPERTY_WATER_MODE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -857,21 +783,21 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_WATER_PERSPECTIVE:
+	case DRAWMETHOD_PROPERTY_WATER_PERSPECTIVE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->water.perspective = temp_int;
 		}
 
-	case _DRAWMETHOD_WATER_SIZE_BEGIN:
+	case DRAWMETHOD_PROPERTY_WATER_SIZE_BEGIN:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->water.beginsize = temp_int;
 		}
 
-	case _DRAWMETHOD_WATER_SIZE_END:
+	case DRAWMETHOD_PROPERTY_WATER_SIZE_END:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -880,7 +806,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_AMPLITUDE:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -889,7 +815,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_LENGTH:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_LENGTH:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -898,7 +824,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_SPEED:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_SPEED:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
@@ -907,7 +833,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case _DRAWMETHOD_WATER_WAVE_TIME:
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_TIME:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
