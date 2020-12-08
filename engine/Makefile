@@ -55,8 +55,10 @@ BUILDING        = 1
 YASM 	        = yasm$(EXTENSION)
 CC              = $(WINDEV)/$(PREFIX)gcc$(EXTENSION)
 INCLUDES        = $(SDKPATH)/include \
-                  $(SDKPATH)/include/SDL2
-LIBRARIES       = $(SDKPATH)/lib
+                  $(SDKPATH)/include/SDL2 \
+		  $(EXTRA_INCLUDES)
+LIBRARIES       = $(SDKPATH)/lib \
+		  $(EXTRA_LIBRARIES)
 ARCHFLAGS       = -m32
 ifeq ($(findstring 86, $(TARGET_ARCH)), 86)
 BUILD_MMX       = 1
@@ -489,6 +491,8 @@ endif
 
 ifdef BUILD_WII
 CFLAGS 	       += -DCACHE_BACKGROUNDS -DREVERSE_COLOR -D__ppc__ $(MACHDEP) -Wl,-Map,$(TARGET_MAP),-wrap,wiiuse_register
+# This allows to compile with DevkitPPC r29 and above.
+CFLAGS 	       += -U__INT32_TYPE__ -U __UINT32_TYPE__ -D__INT32_TYPE__=int
 endif
 
 
@@ -567,7 +571,14 @@ ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
 LIBS           += -lSDL -lts
 else
-LIBS           += -Wl,-rpath,$(LIBRARIES) -lSDL2
+COMMA		=,
+RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
+LIBS	       += $(RPATH_LIBS) -lSDL2
+
+ifdef CROSSCOMPILE_LINUX_WIN
+LIBS	       += -lsetupapi
+endif
+
 endif
 endif
 
@@ -611,6 +622,9 @@ endif
 
 ifdef BUILD_WEBM
 LIBS           += -lvpx
+ifdef CROSSCOMPILE_LINUX_WIN
+LIBS	       += -lpthread
+endif
 endif
 
 
@@ -747,7 +761,7 @@ ifndef BUILD_PSP
 clean-all: clean-releases clean
 
 clean-releases:
-	@rm -rf releases/*
+	@if [ -d ./releases ]; then rm -rf ./releases; fi
 
 clean:
 	@echo

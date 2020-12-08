@@ -1,0 +1,8 @@
+/.gradle/
+*.iml
+.DS_Store
+/app/build
+/app/.externalNativeBuild
+/build
+/keystore.properties
+/my-key.jks

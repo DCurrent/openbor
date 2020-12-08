@@ -968,6 +968,8 @@ static const char *svlist[] =
     "in_titlescreen",
     "in_video_options",
 	"lasthit_attack",
+	"lasthit_attacker",
+	"lasthit_target",
 	"lasthita",
     "lasthitc",
     "lasthitt",
@@ -8250,6 +8252,15 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = lasthit.attack;
 		break;
+	case _sv_lasthit_attacker:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = lasthit.attacker;
+		break;
+	case _sv_lasthit_target:
+		ScriptVariant_ChangeType(var, VT_PTR);
+		var->ptrVal = lasthit.target;
+		break;
+
     case _sv_lasthita:
     case _sv_lasthity:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
@@ -8757,9 +8768,20 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         }
         break;
 	case _sv_lasthit_attack:
-		// read only
+		
+		lasthit.attack = (s_collision_attack*)value->ptrVal;
 		break;
 
+	case _sv_lasthit_attacker:
+
+		lasthit.attacker = (entity*)value->ptrVal;
+		break;
+
+	case _sv_lasthit_target:
+
+		lasthit.target = (entity*)value->ptrVal;
+		break;
+		
     case _sv_lasthita:
     case _sv_lasthity:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))

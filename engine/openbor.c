@@ -225,11 +225,7 @@ char                blendfx_is_set = 0;
 int                 fontmonospace[MAX_FONTS] = {0, 0, 0, 0, 0, 0, 0, 0};
 int                 fontmbs[MAX_FONTS] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-// move all blending effects here
-unsigned char      *blendings[MAX_BLENDINGS] = {NULL, NULL, NULL, NULL, NULL, NULL} ;
-// function pointers to create the tables
-palette_table_function blending_table_functions[MAX_BLENDINGS] = {palette_table_screen, palette_table_multiply, palette_table_overlay, palette_table_hardlight, palette_table_dodge, palette_table_half};
-blend_table_function blending_table_functions16[MAX_BLENDINGS] = {create_screen16_tbl, create_multiply16_tbl, create_overlay16_tbl, create_hardlight16_tbl, create_dodge16_tbl, create_half16_tbl};
+// function pointers to create the blending tables
 blend_table_function blending_table_functions32[MAX_BLENDINGS] = {create_screen32_tbl, create_multiply32_tbl, create_overlay32_tbl, create_hardlight32_tbl, create_dodge32_tbl, create_half32_tbl};
 
 int                 current_set = 0;
@@ -465,13 +461,13 @@ int                 normal_attacks[MAX_ATTACKS] =
     ANI_ATTACK1, ANI_ATTACK2, ANI_ATTACK3, ANI_ATTACK4
 };
 
-int                 grab_attacks[5][2] =
+int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
 {
-    {ANI_GRABATTACK, ANI_GRABATTACK2},
-    {ANI_GRABFORWARD, ANI_GRABFORWARD2},
-    {ANI_GRABUP, ANI_GRABUP2},
-    {ANI_GRABDOWN, ANI_GRABDOWN2},
-    {ANI_GRABBACKWARD, ANI_GRABBACKWARD2}
+    [GRAB_ACTION_SELECT_ATTACK] = {ANI_GRABATTACK, ANI_GRABATTACK2},
+	[GRAB_ACTION_SELECT_BACKWARD] = {ANI_GRABBACKWARD, ANI_GRABBACKWARD2},
+	[GRAB_ACTION_SELECT_FORWARD] = {ANI_GRABFORWARD, ANI_GRABFORWARD2},
+    [GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
+	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}    
 };
 
 int                 freespecials[MAX_SPECIALS] =
@@ -757,13 +753,14 @@ s_playercontrols    default_control;
 int default_keys[MAX_BTN_NUM];
 
 //global script
-Script level_script;    //execute when level start
-Script endlevel_script; //execute when level finished
-Script update_script;   //execute when ingame update
-Script updated_script;  //execute when ingame update finished
-Script loading_script;	// in loading screen
-Script key_script_all;  //keyscript for all players
-Script timetick_script; //time tick script.
+Script level_script;		//execute when level start
+Script endlevel_script;		//execute when level finished
+Script update_script;		//execute when ingame update
+Script updated_script;		//execute when ingame update finished
+Script loading_script;		// in loading screen
+Script input_script_all;  //keyscript for all players
+Script key_script_all;		//keyscript for all players
+Script timetick_script;		//time tick script.
 
 //player script
 Script score_script[MAX_PLAYERS];     //execute when add score, 4 players
@@ -1039,6 +1036,7 @@ void init_scripts()
     Script_Init(&updated_script,    "updated",  NULL, 1);
     Script_Init(&level_script,      "level",    NULL,  1);
     Script_Init(&endlevel_script,   "endlevel",  NULL, 1);
+	Script_Init(&input_script_all, "inputall", NULL, 1);
     Script_Init(&key_script_all,    "keyall",   NULL,  1);
     Script_Init(&timetick_script,   "timetick",  NULL, 1);
     Script_Init(&loading_script,    "loading",   NULL, 1);
@@ -1088,6 +1086,10 @@ void load_scripts()
     {
         Script_Clear(&endlevel_script,      2);
     }
+	if (!load_script(&input_script_all, "data/scripts/inputall.c"))
+	{
+		Script_Clear(&input_script_all, 2);
+	}
     if(!load_script(&key_script_all,    "data/scripts/keyall.c"))
     {
         Script_Clear(&key_script_all,       2);
@@ -1184,6 +1186,7 @@ void load_scripts()
     Script_Compile(&updated_script);
     Script_Compile(&level_script);
     Script_Compile(&endlevel_script);
+	Script_Compile(&input_script_all);
     Script_Compile(&key_script_all);
     Script_Compile(&timetick_script);
     Script_Compile(&loading_script);
@@ -1232,6 +1235,7 @@ void clear_scripts()
     Script_Clear(&updated_script,   2);
     Script_Clear(&level_script,     2);
     Script_Clear(&endlevel_script,  2);
+	Script_Clear(&input_script_all, 2);
     Script_Clear(&key_script_all,   2);
     Script_Clear(&timetick_script,  2);
     Script_Clear(&loading_script,   2);
@@ -2293,6 +2297,34 @@ void execute_level_key_script(int player)
         Script_Set_Local_Variant(cs, "player", &tempvar);
     }
 }
+
+void execute_input_script_all(int player)
+{
+	ScriptVariant tempvar;
+	Script *cs = &input_script_all;
+	if (Script_IsInitialized(cs))
+	{
+		ScriptVariant_Init(&tempvar);
+
+		//ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
+		//tempvar.ptrVal = (VOID *)player_object;
+		//Script_Set_Local_Variant(cs, "player_object", &tempvar);
+
+		ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+		tempvar.lVal = (LONG)player;
+		
+		Script_Set_Local_Variant(cs, "player", &tempvar);
+		
+		Script_Execute(cs);
+		
+		//clear to save variant space
+		ScriptVariant_Clear(&tempvar);
+		Script_Set_Local_Variant(cs, "player", &tempvar);
+		//Script_Set_Local_Variant(cs, "player_object", &tempvar);
+	}
+}
+
 
 void execute_key_script_all(int player)
 {
@@ -3476,67 +3508,45 @@ int convert_map_to_palette(s_model *model, unsigned mapflag[])
     return 1;
 }
 
-static int _load_palette32(unsigned char *palette, char *filename)
-{
-    int handle, i;
-    unsigned *dp;
-    unsigned char tpal[3];
-    handle = openpackfile(filename, packfile);
-    if(handle < 0)
-    {
-        return 0;
-    }
-    memset(palette, 0, MAX_PAL_SIZE);
-    dp = (unsigned *)palette;
-    for(i = 0; i < MAX_PAL_SIZE / 4; i++)
-    {
-        if(readpackfile(handle, tpal, 3) != 3)
-        {
-            closepackfile(handle);
-            return 0;
-        }
-        dp[i] = colour32(tpal[0], tpal[1], tpal[2]);
-
-    }
-    closepackfile(handle);
-    dp[0] = 0;
-
-    return 1;
-}
-
 //load a 256 colors' palette
 int load_palette(unsigned char *palette, char *filename)
 {
-    return _load_palette32(palette, filename);
-}
+    char *fileext;
+    int handle, i;
+    unsigned *dp;
+    unsigned char tpal[3];
 
-// create blending tables for the palette
-int create_blending_tables(unsigned char *palette, unsigned char *tables[], int usemap[])
-{
-    int i;
-    if(pixelformat != PIXEL_8)
+    // Determine whether the author is using an .act or image file, and
+    // verify the file content is valid to load a color table from.
+    fileext = strrchr(filename, '.');
+    if(fileext != NULL && stricmp(fileext, ".act") == 0)
     {
-        return 1;
-    }
-    if(!palette || !tables)
-    {
-        return 0;
-    }
-
-    memset(tables, 0, MAX_BLENDINGS * sizeof(*tables));
-    for(i = 0; i < MAX_BLENDINGS; i++)
-    {
-        if(!usemap || usemap[i])
+        handle = openpackfile(filename, packfile);
+        if(handle < 0)
         {
-            tables[i] = (blending_table_functions[i])(palette);
-            if(!tables[i])
+            return 0;
+        }
+        memset(palette, 0, MAX_PAL_SIZE);
+        dp = (unsigned *)palette;
+        for(i = 0; i < MAX_PAL_SIZE / 4; i++)
+        {
+            if(readpackfile(handle, tpal, 3) != 3)
             {
+                closepackfile(handle);
                 return 0;
             }
-        }
-    }
+            dp[i] = colour32(tpal[0], tpal[1], tpal[2]);
 
-    return 1;
+        }
+        closepackfile(handle);
+        dp[0] = 0;
+
+        return 1;
+    }
+    else
+    {
+        return loadimagepalette(filename, packfile, palette);
+    }
 }
 
 void create_blend_tables_x8(unsigned char *tables[])
@@ -3587,18 +3597,9 @@ void standard_palette(int immediate)
 
 void unload_background()
 {
-    int i;
     if (background)
     {
         clearscreen(background);
-    }
-    for(i = 0; i < MAX_BLENDINGS; i++)
-    {
-        if(blendings[i])
-        {
-            free(blendings[i]);
-        }
-        blendings[i] = NULL;
     }
 }
 
@@ -3773,7 +3774,7 @@ void init_colourtable()
     memcpy(ldcolourtable, hpcolourtable, 11 * sizeof(*hpcolourtable));
 }
 
-void load_background(char *filename, int createtables)
+void load_background(char *filename)
 {
     // Clean up any previous background.
     unload_background();
@@ -3800,16 +3801,6 @@ void load_background(char *filename, int createtables)
     {
         memcpy(pal, background->palette, PAL_BYTES);
         memcpy(neontable, pal, PAL_BYTES);
-    }
-
-
-    if(createtables)
-    {
-        standard_palette(0);
-        if(!create_blending_tables(pal, blendings, blendfx))
-        {
-            borShutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
-        }
     }
 
     lifebar_colors();
@@ -3869,10 +3860,10 @@ void load_background(char *filename, int createtables)
     change_system_palette(0);
 }
 
-void load_cached_background(char *filename, int createtables)
+void load_cached_background(char *filename)
 {
 #ifndef CACHE_BACKGROUNDS
-    load_background(filename, createtables);
+    load_background(filename);
 #else
     int index = -1;
     unload_background();
@@ -3934,16 +3925,6 @@ void load_cached_background(char *filename, int createtables)
     {
         memcpy(background->palette, bg_cache[index]->palette, PAL_BYTES);
         memcpy(pal, background->palette, PAL_BYTES);
-    }
-
-
-    if(createtables)
-    {
-        standard_palette(0);
-        if(!create_blending_tables(pal, blendings, blendfx))
-        {
-            borShutdown(1, "Failed to create colour conversion tables! (Out of memory?)");
-        }
     }
 
     video_clearscreen();
@@ -8848,7 +8829,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_anim *newanim = NULL;
 
     char *filename      = NULL,
-         *fileext       = NULL,
          *buf           = NULL,
          *animscriptbuf = NULL,
          *scriptbuf     = NULL,
@@ -8865,8 +8845,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     float tempFloat;
 
-    int length = 0,     // For string length.
-        ani_id = -1,
+    int ani_id = -1,
         script_id = -1,
         frm_id = -1,
         i = 0,
@@ -10169,30 +10148,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         // Allocate space for the color table.
                         newchar->palette = malloc(PAL_BYTES);
 
-                        // Extract the file extension so we can
-                        // use stricmp on it.
-                        length = strlen(value);
-                        fileext = value + length - 4;
-
-                        // Determine whether the author is using
-                        // an .act or image file, and verify the
-                        // file content is valid to load a color
-                        // table from.
-                        if(stricmp(fileext, ".act") == 0)
+                        if(load_palette(newchar->palette, value) == 0)
                         {
-                            if(load_palette(newchar->palette, value) == 0)
-                            {
-                                //printf("%s%s\n", "Failed to load color table from .act file: ", value);
-                                goto lCleanup;
-                            }
-                        }
-                        else
-                        {
-                            if(loadimagepalette(value, packfile, newchar->palette) == 0)
-                            {
-                                //printf("%s%s\n", "Failed to load color table from image: ", value);
-                                goto lCleanup;
-                            }
+                            //printf("%s%s\n", "Failed to load color table from file: ", value);
+                            goto lCleanup;
                         }
 
                         //printf("%s%s\n", "Loaded color selection 0: ", value);
@@ -10211,28 +10170,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 newchar->colourmap[newchar->maps_loaded] = malloc(PAL_BYTES);
 
-                // Extract the file extension so we can
-                // use stricmp on it.
-                length = strlen(value);
-                fileext = value + length - 4;
-
-                // Load color table directly if .act path given,
-                // else read in palette from an image.
-                if(stricmp(fileext, ".act") == 0)
+                if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                 {
-                    if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
-                    {
-                        //printf("%s%s", "Failed to load color table from .act file: ", value);
-                        goto lCleanup;
-                    }
-                }
-                else
-                {
-                    if(loadimagepalette(value, packfile, newchar->colourmap[newchar->maps_loaded]) == 0)
-                    {
-                        //printf("%s%s", "Failed to load color table from image: ", value);
-                        goto lCleanup;
-                    }
+                    //printf("%s%s", "Failed to load color table from file: ", value);
+                    goto lCleanup;
                 }
 
                 newchar->maps_loaded++;
@@ -10394,10 +10335,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.x.max            = (int)newchar->jumpheight * 20;		// 30-12-2004 default range affected by jump height
                 newanim->range.z.min            = (int) - newchar->grabdistance / 3;	//zmin
                 newanim->range.z.max            = (int)newchar->grabdistance / 3;		//zmax
-                newanim->range.y.min            = T_MIN_BASEMAP;						//amin
-				newanim->range.y.max			= (int)newchar->jumpheight * 20;		// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
-                newanim->range.base.min         = T_MIN_BASEMAP;						// Base min.				
-				newanim->range.base.max			= (int)newchar->jumpheight * 20;		// Just use same logic as range Y.
+                newanim->range.y.min            = 0;									//amin
+				newanim->range.y.max			= (int)newchar->jumpheight * 20;			// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
+                newanim->range.base.min         = 0;									// Base min.				
+				newanim->range.base.max			= (int)newchar->jumpheight * 20;			// Just use same logic as range Y.
                 newanim->energycost             = NULL;
                 newanim->chargetime             = 2;			// Default for backwards compatibility
                 newanim->projectile.shootframe  = -1;
@@ -12680,11 +12621,11 @@ int load_models()
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "loading");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_background("data/bgs/loading", 0);
+            load_background("data/bgs/loading");
         }
         standard_palette(1);
     }
@@ -14356,24 +14297,11 @@ lCleanup:
 
 void free_level(s_level *lv)
 {
-    int i, j;
+    int i;
 
     if(!lv)
     {
         return;
-    }
-
-    //offload blending tables
-    for(i = 0; i < lv->numpalettes; i++)
-    {
-        for(j = 0; j < MAX_BLENDINGS; j++)
-        {
-            if(lv->blendings[i][j])
-            {
-                free(lv->blendings[i][j]);
-            }
-            lv->blendings[i][j] = NULL;
-        }
     }
 
     //offload layers
@@ -14481,10 +14409,6 @@ void free_level(s_level *lv)
     if(lv->palettes)
     {
         free(lv->palettes);
-    }
-    if(lv->blendings)
-    {
-        free(lv->blendings);
     }
 
     free(lv);
@@ -14696,7 +14620,6 @@ void load_level(char *filename)
 
     int i = 0, j = 0, crlf = 0;
     int player_max = MAX_PLAYERS;
-    int usemap[MAX_BLENDINGS];
     char bgPath[MAX_BUFFER_LEN] = {""}, fnbuf[MAX_BUFFER_LEN];
     s_loadingbar bgPosi = {0, 0, {0,0}, {0,0}, 0, 0};
     char musicPath[MAX_BUFFER_LEN] = {""};
@@ -14736,11 +14659,11 @@ void load_level(char *filename)
         {
             strcpy(string, custBkgrds);
             strcat(string, "loading2");
-            load_background(string, 0);
+            load_background(string);
         }
         else
         {
-            load_cached_background("data/bgs/loading2", 0);
+            load_cached_background("data/bgs/loading2");
         }
         clearscreen(vscreen);
         spriteq_clear();
@@ -14828,7 +14751,7 @@ void load_level(char *filename)
         switch(cmd)
         {
         case CMD_LEVEL_LOADINGBG:
-            load_background(GET_ARG(1), 0);
+            load_background(GET_ARG(1));
             errormessage = fill_s_loadingbar(&bgPosi, GET_INT_ARG(2), GET_INT_ARG(3), GET_INT_ARG(4), GET_INT_ARG(5), GET_INT_ARG(6), GET_INT_ARG(7), GET_INT_ARG(8), GET_INT_ARG(9));
             if (errormessage)
             {
@@ -15365,13 +15288,7 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_PALETTE:
             __realloc(level->palettes, level->numpalettes);
-            __realloc(level->blendings, level->numpalettes);
-            for(i = 0; i < MAX_BLENDINGS; i++)
-            {
-                usemap[i] = GET_INT_ARG(i + 2);
-            }
-            if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)) ||
-                    !create_blending_tables(level->palettes[level->numpalettes], level->blendings[level->numpalettes], usemap))
+            if(!load_palette(level->palettes[level->numpalettes], GET_ARG(1)))
             {
                 errormessage = "Failed to create colour conversion tables for level! (Out of memory?)";
                 goto lCleanup;
@@ -15752,7 +15669,7 @@ void load_level(char *filename)
     {
         clearscreen(vscreen);
         spriteq_clear();
-        load_background(bgPath, 1);
+        load_background(bgPath);
     }
     else if(background)
     {
@@ -15938,7 +15855,13 @@ void load_level(char *filename)
     totalram = getSystemRam(BYTES);
     freeram = getFreeRam(BYTES);
     usedram = getUsedRam(BYTES);
-    printf("Total Ram: %"PRIu64" Bytes\n Free Ram: %"PRIu64" Bytes\n Used Ram: %"PRIu64" Bytes\n", totalram, freeram, usedram);
+    printf("Total Ram: %11"PRIu64" Bytes ( %5"PRIu64" MB )\n Free Ram: %11"PRIu64" Bytes ( %5"PRIu64" MB )\n Used Ram: %11"PRIu64" Bytes ( %5"PRIu64" MB )\n",
+        totalram,
+        totalram >> 20,
+        freeram,
+        freeram >> 20,
+        usedram,
+        usedram >> 20);
     printf("Total sprites mapped: %d\n\n", sprites_loaded);
 
 lCleanup:
@@ -16644,6 +16567,9 @@ void draw_visual_debug()
     s_drawmethod        drawmethod = plainmethod;
     entity              *entity;
 
+	int range_y_min = 0;
+	int range_y_max = 0;
+
     drawmethod.alpha = BLEND_MODE_ALPHA;
 
     for(i=0; i<ent_max; i++)
@@ -16671,7 +16597,17 @@ void draw_visual_debug()
         // Range debug requested?
         if(savedata.debuginfo & DEBUG_DISPLAY_RANGE)
         {
-            draw_box_on_entity(entity, entity->animation->range.x.min, entity->animation->range.y.min, entity->position.z+1, entity->animation->range.x.max, entity->animation->range.y.max, -1, LOCAL_COLOR_GREEN, &drawmethod);
+			// Range is calculated a bit differently than body/attack 
+			// boxes, which is what the draw_box_on_entity() funciton
+			// is meant for. For Y axis, We need to invert the value, 
+			// and place them in opposiing parameters (Max Y into 
+			// function's min Y parameter, and and min Y into function's
+			// max Y parameter).
+
+			range_y_min =  -entity->animation->range.y.min;
+			range_y_max =  -entity->animation->range.y.max;
+			
+            draw_box_on_entity(entity, entity->animation->range.x.min, range_y_max, entity->position.z+1, entity->animation->range.x.max, range_y_min, -1, LOCAL_COLOR_GREEN, &drawmethod);
         }
 
         // Collision body debug requested?
@@ -19037,6 +18973,8 @@ int checkhit(entity *attacker, entity *target)
     lasthit.attack      = attack;
     lasthit.body        = detect;
     lasthit.position.y  = lasthit.position.z - medy;
+	lasthit.target = target;
+	lasthit.attacker = attacker;
     lasthit.confirm     = 1;
 
     return 1;
@@ -19740,7 +19678,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *atta
 	}
 
 	// Attack block breaking exceeds block power?
-	if (ent->defense[attack->attack_type].blockpower)
+	if (attack->no_block || ent->defense[attack->attack_type].blockpower)
 	{
 		if (attack->no_block >= ent->defense[attack->attack_type].blockpower)
 		{
@@ -21016,10 +20954,10 @@ int check_lost()
     s_collision_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
-    if((self->position.z != 100000 && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
+    if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
                               (level->scrolldir != SCROLL_UP && level->scrolldir != SCROLL_DOWN && (advancey - self->position.z + self->position.y > osk || self->position.z - self->position.y - advancey - videomodes.vRes > osk)) ||
                               ((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN) && (self->position.z - self->position.y < -osk || self->position.z - self->position.y > videomodes.vRes + osk))		) )
-            || self->position.y < 2 * PIT_DEPTH) //self->position.z<100000, so weapon item won't be killed
+            || self->position.y < 2 * PIT_DEPTH) //self->position.z<ITEM_HIDE_POSITION_Z, so weapon item won't be killed
     {
         if(self->modeldata.type & TYPE_PLAYER)
         {
@@ -21512,6 +21450,7 @@ void update_animation()
             self->update_mark |= UPDATE_MARK_UPDATE_ANIMATION; // frame updated, mark it
             // just switch frame to f, if frozen, expand_time will deal with it well
             update_frame(self, f);
+			bothnewkeys = 0; //stop mutiple skips.
         }
     }
 
@@ -22055,7 +21994,7 @@ void adjust_bind(entity *e)
 	e->position.z = binding_position(e->position.z, e->binding.ent->position.z, e->binding.offset.z, e->binding.positioning.z);
 	e->position.y = binding_position(e->position.y, e->binding.ent->position.y, e->binding.offset.y, e->binding.positioning.y);
 
-	if (e->binding.ent->direction == DIRECTION_LEFT)
+	if (e->binding.positioning.x == BIND_MODE_TARGET && e->binding.ent->direction == DIRECTION_LEFT)
 	{
 		e->position.x = binding_position(e->position.x, e->binding.ent->position.x, -e->binding.offset.x, e->binding.positioning.x);
 	}
@@ -22413,12 +22352,13 @@ void display_ents()
             if(e->modeldata.hpbarstatus.size.x)
             {
                 drawenemystatus(e);
-
             }
-            sortid = e->sortid;
+            
+			sortid = e->sortid;
             scrx = o_scrx - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
             scry = o_scry - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
-            if(freezeall || !(e->blink && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
+            
+			if(freezeall || !(e->blink && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
             {
                 float eheight = T_WALKOFF, eplatheight = 0;
 
@@ -22451,27 +22391,7 @@ void display_ents()
                     // whether the entity is grabbing someone and has grabback set
 
                     z = (int)e->position.z;    // Set the layer offset
-
-                    /*if(e->binding.ent)
-                    {
-                        sortid = e->binding.ent->sortid + e->binding.sortid;
-                    }*/
-
-                    if(e->grabbing && e->modeldata.grabback)
-                    {
-                        sortid = e->link->sortid - 1;    // Grab animation displayed behind
-                    }
-                    else if(!e->modeldata.grabback && e->grabbing)
-                    {
-                        sortid = e->link->sortid + 1;
-                    }
-                    /*
-                    					if(e->binding.ent && e->binding.ent->grabbing==e)
-                    					{
-                    						if(e->binding.ent->modeldata.grabback) z--;
-                    						else                             z++;
-                    					}
-                    */
+					
                     if(other && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !other->modeldata.setlayer)
                     {
                         float zdepth = (float)( (float)e->position.z - (float)other->position.z +
@@ -24458,28 +24378,43 @@ void doprethrow()
 
 // 1 grabattack 2 grabforward 3 grabup 4 grabdown 5 grabbackward
 // other means grab finisher at once
+
+// Unknown author (utunnels?). 
+//
+// Retooled by Caskey, Damon V. to use named constants
+// for selecting which grab attack.
+// 2019-05-31
+//
+// Perform a grab attack action depending on request and
+// current number already performed for of a given
+// grab attack.
 void dograbattack(int which)
 {
     entity *other = self->link;
     self->takeaction = common_grabattack;
     self->attacking = ATTACKING_ACTIVE;
     other->velocity.x = other->velocity.z = self->velocity.x = self->velocity.z = 0;
-    if(which < 5 && which >= 0)
-    {
-        ++self->combostep[which];
-        if(self->combostep[which] < 3 && validanim(self, grab_attacks[which][0]))
-        {
-            ent_set_anim(self, grab_attacks[which][0], 0);
-        }
-        else
-        {
-            do_grab_attack_finish(self, which);
-        }
-    }
-    else
-    {
-        do_grab_attack_finish(self, 0);
-    }
+    
+	// If we requested finish attack, do it now. Otherwise
+	// we'll look at current combostep for the selected grab
+	// attack. If we're at the combo limit, then we finish.
+	// If not, do the requested attack.
+	if (which == GRAB_ACTION_SELECT_FINISH)
+	{
+		do_grab_attack_finish(self, 0);
+	}
+	else
+	{
+		++self->combostep[which];
+		if (self->combostep[which] < 3 && validanim(self, grab_attacks[which][0]))
+		{
+			ent_set_anim(self, grab_attacks[which][0], 0);
+		}
+		else
+		{
+			do_grab_attack_finish(self, which);
+		}
+	}
 }
 
 // Caskey, Damon V.
@@ -24580,10 +24515,10 @@ void common_grab_check()
     //grab finisher
     if(rnum < 4)
     {
-        dograbattack(-1);
+        dograbattack(GRAB_ACTION_SELECT_FINISH);
         return;
     }
-    which = rnum % 5;
+    which = rnum % GRAB_ACTION_SELECT_MAX;
     // grab attacks
     if(rnum > 12 && validanim(self, grab_attacks[which][0]))
     {
@@ -26303,15 +26238,18 @@ void npc_warp()
 
 int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
 {
-    float x1, z1, x2, z2, x;
+	float x1;
+	float z1;
+	float x2;
+	float z2;
+	float x;
 
-    //if(ent->position.y != other->position.y)
     if(diff(ent->position.y,other->position.y) > T_WALKOFF)
     {
         return 0;
     }
-    //if(ent->base != other->base)
-    if(diff(ent->base,other->base) > T_WALKOFF)
+   
+	if(diff(ent->base,other->base) > T_WALKOFF)
     {
         return 0;
     }
@@ -26341,6 +26279,23 @@ int adjust_grabposition(entity *ent, entity *other, float dist, int grabin)
     other->position.z = z2;
     //other->position.y = ent->position.y;
     //other->base = ent->base;
+
+	// Sort order control.
+	//
+	// If grabback is set (grabback = 1) the grabbed entity's 
+	// sort order is forced 1 greater than grappler so grappler 
+	// appears behind. Otherwise grabbed is moved one lower, 
+	// forcing grappler to appear in front.
+	if (ent->modeldata.grabback)
+	{
+		other->sortid = ent->sortid + 1;
+	}
+	else if (!ent->modeldata.grabback)
+	{
+		other->sortid = ent->sortid - 1;
+	}
+
+	
     return 1;
 }
 
@@ -28567,7 +28522,7 @@ void common_pickupitem(entity *other)
     {
         do_item_script(self, other);
 
-        other->position.z = 100000;
+        other->position.z = ITEM_HIDE_POSITION_Z;
     }
 }
 
@@ -30589,7 +30544,7 @@ void didfind_item(entity *other)
     {
         other->nextthink = other->nextanim = _time + GAME_SPEED * 999999;
     }
-    other->position.z = 100000;
+    other->position.z = ITEM_HIDE_POSITION_Z;
 }
 
 void player_fall_check()
@@ -30732,7 +30687,7 @@ void player_grab_check()
         player[self->playerindex].playkeys -= FLAG_ATTACK;
         if(validanim(self, ANI_GRABBACKWARD))
         {
-            dograbattack(4);
+            dograbattack(GRAB_ACTION_SELECT_BACKWARD);
         }
         else if(validanim(self, ANI_THROW))
         {
@@ -30747,7 +30702,7 @@ void player_grab_check()
         }
         else
         {
-            dograbattack(0);
+            dograbattack(GRAB_ACTION_SELECT_ATTACK);
         }
     }
     // grab forward
@@ -30758,27 +30713,27 @@ void player_grab_check()
              (player[self->playerindex].keys & FLAG_MOVERIGHT)))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(1);
+        dograbattack(GRAB_ACTION_SELECT_FORWARD);
     }
     // grab up
     else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
             validanim(self, ANI_GRABUP) && (player[self->playerindex].keys & FLAG_MOVEUP))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(2);
+        dograbattack(GRAB_ACTION_SELECT_UP);
     }
     // grab down
     else if((player[self->playerindex].playkeys & FLAG_ATTACK) &&
             validanim(self, ANI_GRABDOWN) && (player[self->playerindex].keys & FLAG_MOVEDOWN))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(3);
+        dograbattack(GRAB_ACTION_SELECT_DOWN);
     }
     // normal grab attack
     else if((player[self->playerindex].playkeys & FLAG_ATTACK) && validanim(self, ANI_GRABATTACK))
     {
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
-        dograbattack(0);
+        dograbattack(GRAB_ACTION_SELECT_ATTACK);
     }
     // grab attack finisher
     else if(player[self->playerindex].playkeys & (FLAG_JUMP | FLAG_ATTACK))
@@ -30788,7 +30743,7 @@ void player_grab_check()
         // Perform final blow
         if(validanim(self, ANI_GRABATTACK2) || validanim(self, ANI_ATTACK3))
         {
-            dograbattack(-1);
+            dograbattack(GRAB_ACTION_SELECT_FINISH);
         }
         else
         {
@@ -32211,22 +32166,32 @@ void dropweapon(int flag)
     int wall;
     entity *other = NULL;
 
+	// If we already have a weapon, we'll need to discard it.
     if(self->weapent)
     {
+		// 2019-09-29 - Not sure about this logic. It appears that only type shot
+		// weapons or weapons with shot ammo are dropped.  Anything else is simply discarded.
+		// Need to evaluate all weapon logic to get the workflow.
         if(self->weapent->modeldata.typeshot || (!self->weapent->modeldata.typeshot && self->weapent->modeldata.shootnum))
-        {
-            self->weapent->direction = self->direction;//same direction as players, 2007 -2 - 11   by UTunnels
-            if(flag < 2)
+        {            
+			// If the flag is 2 or below, we subtract the flag's
+			// value from weapon counter.
+			if(flag < 2)
             {
                 self->weapent->modeldata.counter -= flag;
             }
-            self->weapent->position.z = self->position.z;
+            
+			// We're going to use our own position for the weapon.
+			self->weapent->direction = self->direction;
+			self->weapent->position.z = self->position.z;
             self->weapent->position.x = self->position.x;
             self->weapent->position.y = self->position.y;
 
+			// Get any walls and platforms.
             other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
             wall = checkwall_index(self->weapent->position.x, self->weapent->position.z);
 
+			// Place onto wall or platform.
             if(other && other != self->weapent)
             {
                 self->weapent->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
@@ -32236,6 +32201,8 @@ void dropweapon(int flag)
                 self->weapent->base += level->walls[wall].height;
             }
 
+			// Use the weapon's RESPAWN or SPAWN animations if available, otherwise
+			// go right to idle.
             if(validanim(self->weapent, ANI_RESPAWN))
             {
                 ent_set_anim(self->weapent, ANI_RESPAWN, 1);
@@ -32249,6 +32216,9 @@ void dropweapon(int flag)
                 if(validanim(self->weapent, ANI_IDLE)) ent_set_anim(self->weapent, ANI_IDLE, 1);
             }
 
+			// If the weapon's counter is depleted, then weapon is lost for good.
+			// If it is an "animal", then we apply the animal running away logic.
+			// Otherwise the weapon blinks out.
             if(!self->weapent->modeldata.counter)
             {
                 if(!self->modeldata.animal)
@@ -32264,8 +32234,14 @@ void dropweapon(int flag)
             }
             self->weapent->nextthink = _time + 1;
         }
+
+		// Clear our tracking variable that keeps the weapon entity pointer.
         self->weapent = NULL;
     }
+
+	// Flag 2 means we're probably setting the weapon directly (ex: setweapon command). 
+	// In that case we don't worry about a weapon entity. Just switch ourselves over
+	// to the weapon model.
     if(flag < 2)
     {
         if(self->modeldata.type & TYPE_PLAYER)
@@ -32285,6 +32261,9 @@ void dropweapon(int flag)
         }
     }
 
+	// Model override. If this is populated, we use its value
+	// to locate a model by index and revert to that instead 
+	// of the default model when a weapon is lost.
     if(self->modeldata.weaploss[1] > 0)
     {
         set_weapon(self, self->modeldata.weaploss[1], 0);
@@ -32668,7 +32647,11 @@ entity *knife_spawn(char *name, int index, float x, float z, float a, int direct
 
     e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
     e->modeldata.no_adjust_base  = 1;
-    return e;
+    
+	// Execute the projectile's on spawn event.
+	execute_onspawn_script(e);
+	
+	return e;
 }
 
 void bomb_explode()
@@ -32755,7 +32738,11 @@ entity *bomb_spawn(char *name, int index, float x, float z, float a, int directi
     }
     e->modeldata.no_adjust_base = 0;
     e->modeldata.subject_to_basemap = e->modeldata.subject_to_wall = e->modeldata.subject_to_platform = e->modeldata.subject_to_hole = e->modeldata.subject_to_gravity = 1;
-    return e;
+    
+	// Execute the projectile's on spawn event.
+	execute_onspawn_script(e);
+	
+	return e;
 }
 
 // Spawn 3 stars
@@ -32837,6 +32824,9 @@ int star_spawn(float x, float z, float a, int direction)  // added entity to kno
         e->modeldata.no_adjust_base = 0;
 
         e->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
+
+		// Execute the projectile's on spawn event.
+		execute_onspawn_script(e);
     }
     return 1;
 }
@@ -32882,6 +32872,9 @@ void steam_spawn(float x, float z, float a)
     e->base = a;
     e->modeldata.no_adjust_base = 1;
     e->think = steam_think;
+
+	// Execute the steams's on spawn event.
+	execute_onspawn_script(e);
 }
 
 
@@ -33283,7 +33276,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     // give the entity a weapon item
     if(props->weapon)
     {
-        wp = spawn(e->position.x, 100000, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
+        wp = spawn(e->position.x, ITEM_HIDE_POSITION_Z, 0, 0, props->weapon, props->weaponindex, props->weaponmodel);
         if(wp)
         {
             //ent_default_init(wp);
@@ -34449,6 +34442,37 @@ u32 getinterval()
     return interval;
 }
 
+// Caskey, Damon V.
+// 2019-04-22
+// 
+// Run input scripts. Similar to keys, but
+// execute before processing any command functions.
+void execute_input_scripts(int player_index)
+{
+	s_player *player_obj = NULL;
+		
+	player_obj = player + player_index;
+
+	if (!player_obj)
+	{
+		return;
+	}
+	
+	if (player_obj->newkeys || (keyscriptrate && player->keys) || player->releasekeys)
+	{
+		// 2019-04-22 Don't exist yet
+		//if (level)
+		//{
+
+			//execute_level_key_script(player_index, player);
+			//execute_entity_key_script(player.ent);
+		//}
+		//execute_key_script(player_index, player);
+
+		execute_input_script_all(player_index);
+	}
+}
+
 void inputrefresh(int playrecmode)
 {
     int p;
@@ -34486,6 +34510,8 @@ void inputrefresh(int playrecmode)
             pl->playkeys &= pl->keys;
             pl->playkeys &= ~pl->disablekeys;
         }
+				
+		execute_input_scripts(p);		
 
         if(pl->ent && pl->ent->movetime < _time)
         {
@@ -34494,7 +34520,7 @@ void inputrefresh(int playrecmode)
             pl->combostep = 0;
         }
         if(pl->newkeys)
-        {
+        {			
             k = pl->newkeys;
             if(pl->ent)
             {
@@ -35295,7 +35321,7 @@ void display_credits()
         font_printf(col1, s + v * m,  0, 0, "Caskey, Damon V.");
         font_printf(col2, s + v * m,  0, 0, "Project Lead"); ++m;
 
-        font_printf(col1, s + v * m,  0, 0, "White Dragon");
+        font_printf(col1, s + v * m,  0, 0, "Msmalik681");
         font_printf(col2, s + v * m,  0, 0, "Developer"); ++m;
 
         font_printf(col1, s + v * m,  0, 0, "Plombo");
@@ -35311,24 +35337,25 @@ void display_credits()
         font_printf(col2, s + v * m, 0, 0, "Orochi_X");  ++m;
         font_printf(col1, s + v * m, 0, 0, "SX");
         font_printf(col2, s + v * m,  0, 0, "Tails"); ++m;
-        font_printf(col1, s + v * m,  0, 0, "uTunnels"); ++m;
+        font_printf(col1, s + v * m,  0, 0, "uTunnels");
+		font_printf(col2, s + v * m,  0, 0, "White Dragon"); ++m;
 
         font_printf(_strmidx(1, "Ports"), s + v * m,  1, 0, "Ports"); ++m;
         font_printf(col1, s + v * m, 0, 0, "PSP/Linux/OSX");
         font_printf(col2, s + v * m, 0, 0, "SX"); ++m;
-
+		/*
         font_printf(col1, s + v * m, 0, 0, "OpenDingux");
         font_printf(col2, s + v * m, 0, 0, "Shin-NiL"); ++m;
-
+        
         font_printf(col1, s + v * m, 0, 0, "DreamCast");
         font_printf(col2, s + v * m, 0, 0, "Neill Corlett, SX"); ++m;
-
+		*/
         font_printf(col1, s + v * m, 0, 0, "Wii");
-        font_printf(col2, s + v * m, 0, 0, "Plombo, SX"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "Plombo, SX, Msmalik681"); ++m;
 
         font_printf(col1, s + v * m, 0, 0, "Android");
         font_printf(col2, s + v * m, 0, 0, "CRxTRDude, Plombo,"); ++m;
-        font_printf(col2, s + v * m, 0, 0, "uTunnels,"); ++m;
+        font_printf(col2, s + v * m, 0, 0, "uTunnels, Msmalik681"); ++m;
         font_printf(col2, s + v * m, 0, 0, "White Dragon"); ++m;
 
         font_printf(col1,  s + v * m, 0, 0, "PS Vita");
@@ -35681,11 +35708,6 @@ void startup()
     if(!video_set_mode(videomodes))
     {
         borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
-    }
-
-    if(pixelformat == PIXEL_8)
-    {
-        standard_palette(1);
     }
 
     printf("Loading menu.txt.............\t");
@@ -36109,11 +36131,11 @@ void hallfame(int addtoscore)
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "hiscore");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_cached_background("data/bgs/hiscore", 0);
+            load_cached_background("data/bgs/hiscore");
         }
     }
 
@@ -36193,11 +36215,11 @@ void showcomplete(int num)
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "complete");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_cached_background("data/bgs/complete", 0);
+            load_cached_background("data/bgs/complete");
         }
     }
 
@@ -36628,7 +36650,7 @@ static void load_select_screen_info(s_savelevel *save)
 
     ParseArgs(&arglist, save->selectBackground, argbuf);
     command = GET_ARG(0);
-    if(command && command[0]) load_background(GET_ARG(1), 1);
+    if(command && command[0]) load_background(GET_ARG(1));
 
     return;
 }
@@ -36736,7 +36758,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				}
 				else if (stricmp(command, "background") == 0)
 				{
-					load_background(GET_ARG(1), 1);
+					load_background(GET_ARG(1));
 					// SAVE
 					multistrcatsp(save->selectBackground, command, GET_ARG(1), NULL);
 				}
@@ -36841,11 +36863,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				{
 					strcpy(string, custBkgrds);
 					strcat(string, "unlockbg");
-					load_background(string, 1);
+					load_background(string);
 				}
 				else
 				{
-					load_cached_background("data/bgs/unlockbg", 1);
+					load_cached_background("data/bgs/unlockbg");
 				}
 			}
 			else
@@ -36855,11 +36877,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				{
 					strcpy(string, custBkgrds);
 					strcat(string, "select");
-					load_background(string, 1);
+					load_background(string);
 				}
 				else
 				{
-					load_cached_background("data/bgs/select", 1);
+					load_cached_background("data/bgs/select");
 				}
 			}
 			if (!music("data/music/menu", 1, 0))
@@ -38390,11 +38412,11 @@ void menu_options_input()
         #if ANDROID
         if(savedata.is_touchpad_vibration_enabled)
         {
-            _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Enabled"));
+            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Enabled"));
         }
         else
         {
-            _menutext((selector == 5), x_pos, 4, Tr("Touchpad Vibration Disabled"));
+            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Disabled"));
         }
         _menutextm((selector == 6), 6, 0, Tr("Back"));
         #else
@@ -39719,6 +39741,7 @@ void openborMain(int argc, char **argv)
     printf("Game Selected: %s\n\n", packfile);
     loadsettings();
     startup();
+	bothnewkeys = 0;
 
     if(skiptoset < 0)
     {
@@ -39728,11 +39751,11 @@ void openborMain(int argc, char **argv)
         {
             strcpy(tmpBuff, custBkgrds);
             strcat(tmpBuff, "logo");
-            load_background(tmpBuff, 0);
+            load_background(tmpBuff);
         }
         else
         {
-            load_cached_background("data/bgs/logo", 0);
+            load_cached_background("data/bgs/logo");
         }
 
         while(_time < GAME_SPEED * 6 && !(bothnewkeys & (FLAG_ANYBUTTON | FLAG_ESC)))
@@ -39913,11 +39936,11 @@ void openborMain(int argc, char **argv)
                 {
                     strcpy(tmpBuff, custBkgrds);
                     strcat(tmpBuff, "titleb");
-                    load_background(tmpBuff, 0);
+                    load_background(tmpBuff);
                 }
                 else
                 {
-                    load_cached_background("data/bgs/titleb", 0);
+                    load_cached_background("data/bgs/titleb");
                 }
             }
             else
@@ -39928,11 +39951,11 @@ void openborMain(int argc, char **argv)
                 {
                     strcpy(tmpBuff, custBkgrds);
                     strcat(tmpBuff, "title");
-                    load_background(tmpBuff, 0);
+                    load_background(tmpBuff);
                 }
                 else
                 {
-                    load_cached_background("data/bgs/title", 0);
+                    load_cached_background("data/bgs/title");
                 }
             }
 

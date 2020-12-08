@@ -390,6 +390,8 @@ enum systemvariant_enum
     _sv_in_titlescreen,
     _sv_in_video_options,
 	_sv_lasthit_attack,
+	_sv_lasthit_attacker,
+	_sv_lasthit_target,
 	_sv_lasthita,
     _sv_lasthitc,
     _sv_lasthitt,

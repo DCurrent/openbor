@@ -3,8 +3,15 @@
 *.Td
 OpenBOR.elf
 meta.xml
+/engine/version.h
+/engine/resources/Info.plist
 engine/releases/
 /engine/ide/vs/.vs/
 /engine/ide/vs/Debug/
-/tools
+/tools/mingit/mingw32
 /.vs
+engine/resources/OpenBOR.res
+tools/bin/.wget-hsts
+tools/win-sdk/*
+tools/psp-sdk/*
+tools/devkitpro/*

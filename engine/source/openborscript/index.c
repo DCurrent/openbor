@@ -976,11 +976,11 @@ void *Script_GetStringMapFunction(void *functionRef)
     // Binding
     else if (functionRef == ((void *)openbor_get_bind_property))
     {
-        return (void *)mapstrings_bind;
+        return (void *)mapstrings_bind_property;
     }
     else if (functionRef == ((void *)openbor_set_bind_property))
     {
-        return (void *)mapstrings_bind;
+        return (void *)mapstrings_bind_property;
     }
 	
     else if (functionRef == ((void *)openbor_setspawnentry))

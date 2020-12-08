@@ -7,53 +7,51 @@
 #
 
 #!/bin/bash
-# Script acquires the verison number from SVN Repository and creates
+# Script acquires the verison number from GIT Repository and creates
 # a version.h as well as the environment variable to be used.
 
-function check_svn_bin {
+function check_git {
 HOST_PLATFORM=$(uname -s)
 if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
-  if [ ! -d "../tools/svn/bin" ]; then
+  if [ ! -d "../tools/mingit/mingw32" ]; then
     echo "-------------------------------------------------------"
-    echo "           SVN - Not Found, Installing SVN!"
+    echo "           GIT - Not Found, Installing GIT!"
     echo "-------------------------------------------------------"
-    7za x -y ../tools/svn/svn-win32-1.7.0.7z -o../tools/svn/
+    7za x -y ../tools/mingit/MinGit-2.21.0-32-bit.7z -o../tools/mingit/
     echo
     echo "-------------------------------------------------------"
-    echo "           SVN - Installation Has Completed!"
+    echo "           GIT - Installation Has Completed!"
     echo "-------------------------------------------------------"
   fi
 fi
 }
 
-# Support the Bazaar VCS as an alternative to SVN through the bzr-svn plugin
 function get_revnum {
-  if test -d "../.svn" || test -d "./.svn"; then
-    VERSION_BUILD=`svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d ".bzr"; then
-    VERSION_BUILD=`bzr version-info | grep "svn-revno" | sed 's/svn-revno: //g'`
-    if [ ! $VERSION_BUILD ]; then # use non-SVN revision number if "svn-revno" property not available
-      REVNO=`bzr version-info | grep "revno:" | sed 's/revno: //g'`
-      BRANCH=`bzr version-info | grep "branch-nick:" | sed 's/branch-nick: //g'`
-      VERSION_BUILD=$REVNO-bzr-$BRANCH
-    fi
-  elif git svn info >/dev/null 2>&1; then
-    VERSION_BUILD=`git svn info | grep "Last Changed Rev" | sed s/Last\ Changed\ Rev:\ //g`
-  elif test -d "../.git" || test -d ".git"; then
+  if test -d "../.git" || test -d ".git"; then
     VERSION_BUILD=`git rev-list --count HEAD`
-  elif test -d "../.hg" || test -d ".hg"; then
-    VERSION_BUILD=$((`hg id -n` + 1))
+    # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
+    VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
+  else
+	VERSION_BUILD=0000
+	VERSION_COMMIT=0000000
   fi
 }
 
 function read_version {
-check_svn_bin
+check_git
 get_revnum
 VERSION_NAME="OpenBOR"
 VERSION_MAJOR=3
 VERSION_MINOR=0
 VERSION_DATE=`date '+%Y%m%d%H%M%S'`
-export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
+
+# if there's no commit hash then set string as usual way
+# otherwise include it in the version string
+if [ -z "${VERSION_COMMIT}" ]; then
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
+else
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash: ${VERSION_COMMIT})"
+fi
 }
 
 function write_version {
@@ -73,9 +71,18 @@ echo "/*
 #define VERSION_MAJOR \"$VERSION_MAJOR\"
 #define VERSION_MINOR \"$VERSION_MINOR\"
 #define VERSION_BUILD \"$VERSION_BUILD\"
-#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
+#define VERSION_BUILD_INT $VERSION_BUILD" >> version.h
+
+if [ -z "${VERSION_COMMIT}" ]; then
+  echo "#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
 
 #endif" >> version.h
+else
+  echo "#define VERSION_COMMIT \"${VERSION_COMMIT}\"
+#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD\" (commit hash: \"VERSION_COMMIT\")\"
+
+#endif" >> version.h
+fi
 
 rm -rf resources/meta.xml
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>

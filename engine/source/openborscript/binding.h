@@ -23,5 +23,5 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 HRESULT openbor_set_bind_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_update_bind(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 
-int mapstrings_bind(ScriptVariant **varlist, int paramCount);
+int mapstrings_bind_property(ScriptVariant **varlist, int paramCount);
 

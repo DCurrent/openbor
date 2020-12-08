@@ -1,0 +1,79 @@
+apply plugin: 'com.android.application'
+
+android {
+  compileSdkVersion 28
+    defaultConfig {
+      minSdkVersion 14
+        targetSdkVersion 28
+
+        //////////// MODFY FOR CUSTOM APK /////////////////
+        applicationId "org.openbor.engine"
+        versionCode 1
+        versionName "1.0.0"
+        resValue "string", "app_name", "Openbor"
+        ///////////////////////////////////////////////////
+
+        externalNativeBuild {
+          ndkBuild {
+            arguments "APP_PLATFORM=android-16"
+              // currently supports with pre-built libraries for following
+              // two target abis removed arm64 as unsupported for now
+              abiFilters 'armeabi-v7a'//, 'arm64-v8a'
+          }
+        }
+    }
+
+  signingConfigs {
+    release {
+      // only try to find keystore.properties when it's release build
+      if (project.gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+        def keystorePropertiesFile = rootProject.file("keystore.properties")
+        def keystoreProperties = new Properties()
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+        keyAlias keystoreProperties['keyAlias']
+        keyPassword keystoreProperties['keyPassword']
+        storeFile file(keystoreProperties['storeFile'])
+        storePassword keystoreProperties['storePassword']
+      }
+    } 
+  }
+
+  buildTypes {
+  
+  android.applicationVariants.all { variant ->
+	if(applicationId == "org.openbor.engine"){
+    variant.outputs.all {
+        outputFileName = "OpenBOR.apk";
+			}
+		}
+	}
+  
+    release {
+      minifyEnabled false
+        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        signingConfig signingConfigs.release
+    }
+  }
+
+  if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
+    sourceSets.main {
+      jniLibs.srcDir 'libs'
+    }
+    externalNativeBuild {
+      ndkBuild {
+        path 'jni/Android.mk'
+      }
+    }
+
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+implementation fileTree(include: ['*.jar'], dir: 'libs')
+  implementation "com.android.support:support-v4:27.0.2"
+}

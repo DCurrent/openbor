@@ -15,7 +15,7 @@
 // Use string property argument to find an
 // integer property constant and populate
 // varlist->lval.
-int mapstrings_bind(ScriptVariant **varlist, int paramCount)
+int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
 {
     #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
     #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
@@ -86,7 +86,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
     // Map string property name to a
     // matching integer constant.
-    mapstrings_bind(varlist, paramCount);
+    mapstrings_bind_property(varlist, paramCount);
 
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
@@ -258,7 +258,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 
 	// Map string property name to a
 	// matching integer constant.
-	mapstrings_bind(varlist, paramCount);
+	mapstrings_bind_property(varlist, paramCount);
 
 	// Verify incoming arguments. There should at least
 	// be a pointer for the property handle and an integer
