@@ -938,6 +938,7 @@ static const char *svlist[] =
     "current_scene",
     "current_set",
     "current_stage",
+    "drawmethod_common",
 	"drawmethod_default",
     "effectvol",
     "elapsed_time",
@@ -8021,6 +8022,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_count_entities:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = ent_count;
+        break;
+    case _sv_drawmethod_common:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = (void*)&drawmethod;
         break;
 	case _sv_drawmethod_default:
 		ScriptVariant_ChangeType(var, VT_PTR);
