@@ -436,7 +436,7 @@ int openPackfile(const char *filename, const char *packfilename)
     packfilepointer[h] = 0;
 	int file_permission = 666;
     // Separate file present?
-    if((handle = open(filename, O_RDONLY | O_BINARY, per)) != -1)
+    if((handle = open(filename, O_RDONLY | O_BINARY, file_permission)) != -1)
     {
         if((packfilesize[h] = lseek(handle, 0, SEEK_END)) == -1)
         {
