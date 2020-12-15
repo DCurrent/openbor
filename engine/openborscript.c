@@ -1057,7 +1057,7 @@ int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount)
     int prop;
 
 
-    MAPSTRINGS(varlist[0], svlist, SYSTEM_VARIANT_THE_END,
+    MAPSTRINGS(varlist[0], svlist, _sv_the_end,
                "openborvariant: System variable name not found: '%s'\n");
 
     return 1;
@@ -8007,43 +8007,43 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
 
     switch(index)
     {
-    case SYSTEM_VARIANT_COUNT_ENEMIES:
+    case _sv_count_enemies:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = count_ents(TYPE_ENEMY);
         break;
-    case SYSTEM_VARIANT_COUNT_PLAYERS:
+    case _sv_count_players:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = count_ents(TYPE_PLAYER);
         break;
-    case SYSTEM_VARIANT_COUNT_NPCS:
+    case _sv_count_npcs:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = count_ents(TYPE_NPC);
         break;
-    case SYSTEM_VARIANT_COUNT_ENTITIES:
+    case _sv_count_entities:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = ent_count;
         break;
-    case SYSTEM_VARIANT_DRAWMETHOD_COMMON:
+    case _sv_drawmethod_common:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = (void*)&drawmethod;
         break;
-	case SYSTEM_VARIANT_DRAWMETHOD_DEFAULT:
+	case _sv_drawmethod_default:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = (void *)&plainmethod;
 		break;
-    case SYSTEM_VARIANT_ENT_MAX:
+    case _sv_ent_max:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = ent_max;
         break;
-    case SYSTEM_VARIANT_IN_LEVEL:
+    case _sv_in_level:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (level != NULL);
         break;
-    case SYSTEM_VARIANT_IN_GAMEOVERSCREEN:
+    case _sv_in_gameoverscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gameOver;
         break;
-    case SYSTEM_VARIANT_IN_MENUSCREEN:
+    case _sv_in_menuscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level || enginecreditsScreen)
         {
@@ -8054,79 +8054,79 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             var->lVal = menuScreen;
         }
         break;
-    case SYSTEM_VARIANT_IN_ENGINECREDITSSCREEN:
+    case _sv_in_enginecreditsscreen:
     		ScriptVariant_ChangeType(var, VT_INTEGER);
     		var->lVal = enginecreditsScreen;
     		break;
-    case SYSTEM_VARIANT_IN_OPTIONS:
+    case _sv_in_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = optionsMenu;
         break;
-    case SYSTEM_VARIANT_IN_SYSTEM_OPTIONS:
+    case _sv_in_system_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = systemoptionsMenu;
         break;
-    case SYSTEM_VARIANT_IN_CHEAT_OPTIONS:
+    case _sv_in_cheat_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (optionsMenu && is_cheat_actived()) ? 1:0;
         break;
-    case SYSTEM_VARIANT_CHEATS:
+    case _sv_cheats:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = is_cheat_actived();
         break;
-    case SYSTEM_VARIANT_IN_CONTROL_OPTIONS:
+    case _sv_in_control_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = controloptionsMenu;
         break;
-    case SYSTEM_VARIANT_IN_SOUND_OPTIONS:
+    case _sv_in_sound_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = soundoptionsMenu;
         break;
-    case SYSTEM_VARIANT_IN_VIDEO_OPTIONS:
+    case _sv_in_video_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videooptionsMenu;
         break;
-    case SYSTEM_VARIANT_IN_START_GAME:
+    case _sv_in_start_game:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = startgameMenu;
         break;
-    case SYSTEM_VARIANT_IN_NEW_GAME:
+    case _sv_in_new_game:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = newgameMenu;
         break;
-    case SYSTEM_VARIANT_IN_LOAD_GAME:
+    case _sv_in_load_game:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = loadgameMenu;
         break;
-    case SYSTEM_VARIANT_SETS_COUNT:
+    case _sv_sets_count:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = num_difficulties;
         break;
-    case SYSTEM_VARIANT_IN_SHOWCOMPLETE:
+    case _sv_in_showcomplete:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = showComplete;
         break;
-    case SYSTEM_VARIANT_IN_TITLESCREEN:
+    case _sv_in_titlescreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = titleScreen;
         break;
-    case SYSTEM_VARIANT_IN_HALLOFFAMESCREEN:
+    case _sv_in_halloffamescreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (hallOfFame);
         break;
-    case SYSTEM_VARIANT_SAMPLE_PLAY_ID:
+    case _sv_sample_play_id:
         ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = sample_play_id;
 		break;
-    case SYSTEM_VARIANT_EFFECTVOL:
+    case _sv_effectvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = savedata.effectvol;
         break;
-    case SYSTEM_VARIANT_ELAPSED_TIME:
+    case _sv_elapsed_time:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = _time;
         break;
-    case SYSTEM_VARIANT_GAME_SPEED:
+    case _sv_game_speed:
         if(!level)
         {
             return 0;
@@ -8134,17 +8134,17 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = GAME_SPEED;
         break;
-    case SYSTEM_VARIANT_GAME_PAUSED:
-    case SYSTEM_VARIANT_PAUSE:
+    case _sv_game_paused:
+    case _sv_pause:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         if( !(goto_mainmenu_flag&1) ) var->lVal = (_pause);
         else var->lVal = 0;
         break;
-    case SYSTEM_VARIANT_GAME_TIME:
+    case _sv_game_time:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = timeleft;
         break;
-    case SYSTEM_VARIANT_PORTING:
+    case _sv_porting:
     {
         e_porting porting;
 
@@ -8180,7 +8180,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->lVal = porting;
         break;
     }
-    case SYSTEM_VARIANT_GFX_X_OFFSET:
+    case _sv_gfx_x_offset:
         if(!level)
         {
             return 0;
@@ -8188,7 +8188,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gfx_x_offset;
         break;
-    case SYSTEM_VARIANT_GFX_Y_OFFSET:
+    case _sv_gfx_y_offset:
         if(!level)
         {
             return 0;
@@ -8196,7 +8196,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gfx_y_offset;
         break;
-    case SYSTEM_VARIANT_GFX_Y_OFFSET_ADJ:
+    case _sv_gfx_y_offset_adj:
         if(!level)
         {
             return 0;
@@ -8204,33 +8204,33 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gfx_y_offset_adj;
         break;
-    case SYSTEM_VARIANT_IN_SELECTSCREEN:
+    case _sv_in_selectscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = selectScreen;
         break;
-	case SYSTEM_VARIANT_LASTHIT_ATTACK:
+	case _sv_lasthit_attack:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = lasthit.attack;
 		break;
-	case SYSTEM_VARIANT_LASTHIT_ATTACKER:
+	case _sv_lasthit_attacker:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = lasthit.attacker;
 		break;
-	case SYSTEM_VARIANT_LASTHIT_TARGET:
+	case _sv_lasthit_target:
 		ScriptVariant_ChangeType(var, VT_PTR);
 		var->ptrVal = lasthit.target;
 		break;
 
-    case SYSTEM_VARIANT_LASTHITA:
-    case SYSTEM_VARIANT_LASTHITY:
+    case _sv_lasthita:
+    case _sv_lasthity:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = lasthit.position.y;
         break;
-    case SYSTEM_VARIANT_LASTHITC:
+    case _sv_lasthitc:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = lasthit.confirm;
         break;
-    case SYSTEM_VARIANT_LASTHITT:
+    case _sv_lasthitt:
         ScriptVariant_ChangeType(var, VT_INTEGER);
 
         if(lasthit.attack)
@@ -8239,15 +8239,15 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         }
 
         break;
-    case SYSTEM_VARIANT_LASTHITX:
+    case _sv_lasthitx:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = lasthit.position.x;
         break;
-    case SYSTEM_VARIANT_LASTHITZ:
+    case _sv_lasthitz:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = lasthit.position.z;
         break;
-    case SYSTEM_VARIANT_XPOS:
+    case _sv_xpos:
         if(!level)
         {
             return 0;
@@ -8255,7 +8255,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = advancex;
         break;
-    case SYSTEM_VARIANT_YPOS:
+    case _sv_ypos:
         if(!level)
         {
             return 0;
@@ -8263,15 +8263,15 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = advancey;
         break;
-    case SYSTEM_VARIANT_HRESOLUTION:
+    case _sv_hresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videomodes.hRes;
         break;
-    case SYSTEM_VARIANT_VRESOLUTION:
+    case _sv_vresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videomodes.vRes;
         break;
-    case SYSTEM_VARIANT_CURRENT_SCENE:
+    case _sv_current_scene:
         if(currentScene)
         {
             ScriptVariant_ChangeType(var, VT_STR);
@@ -8282,23 +8282,23 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             ScriptVariant_Clear(var);
         }
         break;
-    case SYSTEM_VARIANT_CURRENT_SET:
+    case _sv_current_set:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = current_set;
         break;
-    case SYSTEM_VARIANT_CURRENT_LEVEL:
+    case _sv_current_level:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = current_level;
         break;
-    case SYSTEM_VARIANT_CURRENT_PALETTE:
+    case _sv_current_palette:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = current_palette;
         break;
-    case SYSTEM_VARIANT_CURRENT_STAGE:
+    case _sv_current_stage:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = current_stage;
         break;
-    case SYSTEM_VARIANT_LEVELWIDTH:
+    case _sv_levelwidth:
         if(!level)
         {
             return 0;
@@ -8306,7 +8306,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->width;
         break;
-    case SYSTEM_VARIANT_LEVELHEIGHT:
+    case _sv_levelheight:
         if(!level)
         {
             return 0;
@@ -8314,11 +8314,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = panel_height;
         break;
-    case SYSTEM_VARIANT_BRANCHNAME:
+    case _sv_branchname:
         ScriptVariant_ChangeType(var, VT_STR);
         var->strVal = StrCache_CreateNewFrom(branch_name);
         break;
-    case SYSTEM_VARIANT_CURRENT_BRANCH:
+    case _sv_current_branch:
         if(level != NULL && levelsets && levelsets[current_set].levelorder && levelsets[current_set].levelorder[current_level].branchname)
         {
             ScriptVariant_ChangeType(var, VT_STR);
@@ -8329,7 +8329,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             ScriptVariant_Clear(var);
         }
         break;
-    case SYSTEM_VARIANT_PAKNAME:
+    case _sv_pakname:
     {
         char tempstr[MAX_BUFFER_LEN];
         getPakName(tempstr, -1);
@@ -8337,243 +8337,243 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->strVal = StrCache_CreateNewFrom(tempstr);
         break;
     }
-    case SYSTEM_VARIANT_BOSSESCOUNT:
+    case _sv_bossescount:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->bossescount;
         break;
-    case SYSTEM_VARIANT_MAXSOUNDCHANNELS:
+    case _sv_maxsoundchannels:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = maxchannels();
         break;
-    case SYSTEM_VARIANT_MAXENTITYVARS:
+    case _sv_maxentityvars:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = max_entity_vars;
         break;
-    case SYSTEM_VARIANT_MAXINDEXEDVARS:
+    case _sv_maxindexedvars:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = max_indexed_vars;
         break;
-    case SYSTEM_VARIANT_MAXPLAYERS:
+    case _sv_maxplayers:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = levelsets[current_set].maxplayers;
         break;
-    case SYSTEM_VARIANT_MAXSCRIPTVARS:
+    case _sv_maxscriptvars:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = max_script_vars;
         break;
-    case SYSTEM_VARIANT_MODELS_CACHED:
+    case _sv_models_cached:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = models_cached;
         break;
-    case SYSTEM_VARIANT_MODELS_LOADED:
+    case _sv_models_loaded:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = models_loaded;
         break;
-    case SYSTEM_VARIANT_MUSICVOL:
+    case _sv_musicvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = savedata.musicvol;
         break;
-    case SYSTEM_VARIANT_NOFADEOUT:
+    case _sv_nofadeout:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = nofadeout;
         break;
-    case SYSTEM_VARIANT_NOJOIN:
+    case _sv_nojoin:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = nojoin;
         break;
-    case SYSTEM_VARIANT_NOPAUSE:
+    case _sv_nopause:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = nopause;
         break;
-    case SYSTEM_VARIANT_NOSAVE:
+    case _sv_nosave:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = nosave;
         break;
-    case SYSTEM_VARIANT_NOSCREENSHOT:
+    case _sv_noscreenshot:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = noscreenshot;
         break;
-    case SYSTEM_VARIANT_NOSHOWCOMPLETE:
+    case _sv_noshowcomplete:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = levelsets[current_set].noshowcomplete;
         break;
-    case SYSTEM_VARIANT_NUMBASEMAPS:
+    case _sv_numbasemaps:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numbasemaps;
         break;
-    case SYSTEM_VARIANT_NUMBOSSES:
+    case _sv_numbosses:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numbosses;
         break;
-    case SYSTEM_VARIANT_NUMHOLES:
+    case _sv_numholes:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numholes;
         break;
-    case SYSTEM_VARIANT_NUMLAYERS:
+    case _sv_numlayers:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numlayers;
         break;
-    case SYSTEM_VARIANT_NUMPALETTES:
+    case _sv_numpalettes:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numpalettes;
         break;
-    case SYSTEM_VARIANT_NUMWALLS:
+    case _sv_numwalls:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level->numwalls;
         break;
-    case SYSTEM_VARIANT_PIXELFORMAT:
+    case _sv_pixelformat:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = pixelformat;
         break;
-    case SYSTEM_VARIANT_PLAYER:
-    case SYSTEM_VARIANT_PLAYER1:
+    case _sv_player:
+    case _sv_player1:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = player;
         break;
-    case SYSTEM_VARIANT_PLAYER2:
+    case _sv_player2:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = player + 1;
         break;
-    case SYSTEM_VARIANT_PLAYER3:
+    case _sv_player3:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = player + 2;
         break;
-    case SYSTEM_VARIANT_PLAYER4:
+    case _sv_player4:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = player + 3;
         break;
-    case SYSTEM_VARIANT_PLAYER_MAX_Z:
+    case _sv_player_max_z:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = PLAYER_MAX_Z;
         break;
-    case SYSTEM_VARIANT_PLAYER_MIN_Z:
+    case _sv_player_min_z:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = PLAYER_MIN_Z;
         break;
-    case SYSTEM_VARIANT_LIGHTX:
+    case _sv_lightx:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = light.x;
         break;
-    case SYSTEM_VARIANT_LIGHTZ:
+    case _sv_lightz:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = light.y;
         break;
-    case SYSTEM_VARIANT_SELF:
+    case _sv_self:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = self;
         break;
-    case SYSTEM_VARIANT_SHADOWALPHA:
+    case _sv_shadowalpha:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = shadowalpha;
         break;
-    case SYSTEM_VARIANT_SHADOWCOLOR:
+    case _sv_shadowcolor:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = shadowcolor;
         break;
-    case SYSTEM_VARIANT_SHADOWOPACITY:
+    case _sv_shadowopacity:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = shadowopacity;
         break;
-    case SYSTEM_VARIANT_SKIPTOSET:
+    case _sv_skiptoset:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = skiptoset;
         break;
-    case SYSTEM_VARIANT_SLOWMOTION:
+    case _sv_slowmotion:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = slowmotion.toggle;
         break;
-    case SYSTEM_VARIANT_SLOWMOTION_DURATION:
+    case _sv_slowmotion_duration:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = slowmotion.duration;
         break;
-    case SYSTEM_VARIANT_SOUNDVOL:
+    case _sv_soundvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = savedata.soundvol;
         break;
-    case SYSTEM_VARIANT_TOTALRAM:
+    case _sv_totalram:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = getSystemRam(KBYTES);
         break;
-    case SYSTEM_VARIANT_FREERAM:
+    case _sv_freeram:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = getFreeRam(KBYTES);
         break;
-    case SYSTEM_VARIANT_USEDRAM:
+    case _sv_usedram:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = getUsedRam(KBYTES);
         break;
-    case SYSTEM_VARIANT_TEXTBOX:
+    case _sv_textbox:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = textbox;
         break;
-    case SYSTEM_VARIANT_BACKGROUND:
+    case _sv_background:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = background;
         break;
-    case SYSTEM_VARIANT_VSCREEN:
+    case _sv_vscreen:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = vscreen;
         break;
-    case SYSTEM_VARIANT_VIEWPORTX:
+    case _sv_viewportx:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = viewportx;
         break;
-    case SYSTEM_VARIANT_VIEWPORTY:
+    case _sv_viewporty:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = viewporty;
         break;
-    case SYSTEM_VARIANT_VIEWPORTW:
+    case _sv_viewportw:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = viewportw;
         break;
-    case SYSTEM_VARIANT_VIEWPORTH:
+    case _sv_viewporth:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = viewporth;
         break;
-    case SYSTEM_VARIANT_SCROLLMINX:
+    case _sv_scrollminx:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = scrollminx;
         break;
-    case SYSTEM_VARIANT_SCROLLMAXX:
+    case _sv_scrollmaxx:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = scrollmaxx;
         break;
-    case SYSTEM_VARIANT_SCROLLMINZ:
+    case _sv_scrollminz:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = scrollminz;
         break;
-    case SYSTEM_VARIANT_SCROLLMAXZ:
+    case _sv_scrollmaxz:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = scrollmaxz;
         break;
-    case SYSTEM_VARIANT_BLOCKADE:
+    case _sv_blockade:
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = blockade;
         break;
-    case SYSTEM_VARIANT_WAITING:
+    case _sv_waiting:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = level ? level->waiting : 0;
-    case SYSTEM_VARIANT_MAXATTACKTYPES:
+    case _sv_maxattacktypes:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = max_attack_types;
         break;
-    case SYSTEM_VARIANT_MAXANIMATIONS:
+    case _sv_maxanimations:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = max_animations;
         break;
-    case SYSTEM_VARIANT_TICKS:
+    case _sv_ticks:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = timer_gettick();
         break;
-    case SYSTEM_VARIANT_NOGAMEOVER:
+    case _sv_nogameover:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = levelsets[current_set].noshowgameover; // or s_set_entry *set = levelsets + current_set;
         break;
-    case SYSTEM_VARIANT_NOHOF:
+    case _sv_nohof:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = levelsets[current_set].noshowhof;
         break;
-    case SYSTEM_VARIANT_FPS:
+    case _sv_fps:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = getFPS();
         break;
@@ -8595,269 +8595,269 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
 
     switch(index)
     {
-    case SYSTEM_VARIANT_ELAPSED_TIME:
+    case _sv_elapsed_time:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             _time = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_CURRENT_STAGE:
+    case _sv_current_stage:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             current_stage = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_CURRENT_SET:
+    case _sv_current_set:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             current_set = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_CURRENT_LEVEL:
+    case _sv_current_level:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             current_level = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_GAME_TIME:
+    case _sv_game_time:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             timeleft = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_GFX_X_OFFSET:
+    case _sv_gfx_x_offset:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             gfx_x_offset = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_GFX_Y_OFFSET:
+    case _sv_gfx_y_offset:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             gfx_y_offset = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_GFX_Y_OFFSET_ADJ:
+    case _sv_gfx_y_offset_adj:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             gfx_y_offset_adj = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_LEVELPOS:
+    case _sv_levelpos:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             level->pos = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_XPOS:
+    case _sv_xpos:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             advancex = (float)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_YPOS:
+    case _sv_ypos:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             advancey = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_SCROLLMINZ:
+    case _sv_scrollminz:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             scrollminz = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_SCROLLMAXZ:
+    case _sv_scrollmaxz:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             scrollmaxz = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_SCROLLMINX:
+    case _sv_scrollminx:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             scrollminx = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_SCROLLMAXX:
+    case _sv_scrollmaxx:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             scrollmaxx = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_BLOCKADE:
+    case _sv_blockade:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             blockade = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_SHADOWCOLOR:
+    case _sv_shadowcolor:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             shadowcolor = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_SHADOWALPHA:
+    case _sv_shadowalpha:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             shadowalpha = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_SHADOWOPACITY:
+    case _sv_shadowopacity:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             shadowopacity = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_SKIPTOSET:
+    case _sv_skiptoset:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             skiptoset = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_SLOWMOTION:
+    case _sv_slowmotion:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             slowmotion.toggle = (unsigned)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_SLOWMOTION_DURATION:
+    case _sv_slowmotion_duration:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             slowmotion.duration = (unsigned)ltemp;
         }
         break;
-	case SYSTEM_VARIANT_LASTHIT_ATTACK:
+	case _sv_lasthit_attack:
 		
 		lasthit.attack = (s_attack*)value->ptrVal;
 		break;
 
-	case SYSTEM_VARIANT_LASTHIT_ATTACKER:
+	case _sv_lasthit_attacker:
 
 		lasthit.attacker = (entity*)value->ptrVal;
 		break;
 
-	case SYSTEM_VARIANT_LASTHIT_TARGET:
+	case _sv_lasthit_target:
 
 		lasthit.target = (entity*)value->ptrVal;
 		break;
 		
-    case SYSTEM_VARIANT_LASTHITA:
-    case SYSTEM_VARIANT_LASTHITY:
+    case _sv_lasthita:
+    case _sv_lasthity:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             lasthit.position.y = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_LASTHITX:
+    case _sv_lasthitx:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             lasthit.position.x = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_LASTHITZ:
+    case _sv_lasthitz:
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             lasthit.position.z = (DOUBLE)dbltemp;
         }
         break;
-    case SYSTEM_VARIANT_LASTHITC:
+    case _sv_lasthitc:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             lasthit.confirm = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_LASTHITT:
+    case _sv_lasthitt:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             lasthit.attack->attack_type = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_SMARTBOMBER:
+    case _sv_smartbomber:
         smartbomber = (entity *)value->ptrVal;
         break;
-    case SYSTEM_VARIANT_TEXTBOX:
+    case _sv_textbox:
         textbox = (entity *)value->ptrVal;
         break;
-    case SYSTEM_VARIANT_BACKGROUND:
+    case _sv_background:
         background = (s_screen *)value->ptrVal;
         break;
-    case SYSTEM_VARIANT_BOSSESCOUNT:
+    case _sv_bossescount:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             level->bossescount = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_VSCREEN:
+    case _sv_vscreen:
         vscreen = (s_screen *)value->ptrVal;
         break;
-    case SYSTEM_VARIANT_NOFADEOUT:
+    case _sv_nofadeout:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             nofadeout = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOJOIN:
+    case _sv_nojoin:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             nojoin = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOPAUSE:
+    case _sv_nopause:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             nopause = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOSAVE:
+    case _sv_nosave:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             nosave = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOSCREENSHOT:
+    case _sv_noscreenshot:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             noscreenshot = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOSHOWCOMPLETE:
+    case _sv_noshowcomplete:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             levelsets[current_set].noshowcomplete = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NUMBOSSES:
+    case _sv_numbosses:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             level->numbosses = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_VIEWPORTX:
+    case _sv_viewportx:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             viewportx = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_VIEWPORTY:
+    case _sv_viewporty:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             viewporty = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_VIEWPORTW:
+    case _sv_viewportw:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             viewportw = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_VIEWPORTH:
+    case _sv_viewporth:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             viewporth = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_WAITING:
+    case _sv_waiting:
         if(!level)
         {
             break;
@@ -8867,13 +8867,13 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             level->waiting = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOGAMEOVER:
+    case _sv_nogameover:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             levelsets[current_set].noshowgameover = (LONG)ltemp;
         }
         break;
-    case SYSTEM_VARIANT_NOHOF:
+    case _sv_nohof:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             levelsets[current_set].noshowhof = (LONG)ltemp;
