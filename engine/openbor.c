@@ -35,6 +35,8 @@ s_savedata savedata;
 /////////////////////////////////////////////////////////////////////////////
 
 a_playrecstatus *playrecstatus = NULL;
+s_anim_list *anim_list = NULL;
+s_modelcache *model_cache = NULL;
 
 s_set_entry *levelsets = NULL;
 int        num_difficulties;
