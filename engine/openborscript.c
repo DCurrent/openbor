@@ -15229,6 +15229,23 @@ HRESULT openbor_gotomainmenu(ScriptVariant **varlist , ScriptVariant **pretvar, 
     return S_OK;
 }
 
+//backtotitle(flag), use flag 1 to back to title screen; has the same effect as the esc key but now accessible by script
+HRESULT openbor_backtotitle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+{
+    LONG ltemp = 0;
+
+    *pretvar = NULL;
+
+    if(paramCount >= 1 && FAILED(ScriptVariant_IntegerValue(varlist[0], &ltemp)) )
+    {
+        return E_FAIL;
+    }
+
+    backto_title((LONG)ltemp);
+
+    return S_OK;
+}
+
 //playgame(set, usesave?)
 HRESULT openbor_playgame(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
