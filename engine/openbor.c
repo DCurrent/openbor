@@ -547,6 +547,7 @@ int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 _pause              = 0;
 int                 goto_mainmenu_flag  = 0;
+int                 backto_title_flag   = 0;                    //(Kratus 04-02-21) Added a new "back to title" function in the select screen, has the same effect as the esc key but now accessible by script
 int					nofadeout			= 0;
 int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
@@ -559,6 +560,7 @@ int                 livescheat          = 0;
 int                 keyscriptrate       = 0;
 int                 creditscheat        = 0;
 int                 healthcheat         = 0;
+int                 multihitcheat       = 0;					//(Kratus 05-02-2021) Enable or disable the multihit glitch
 int                 showtimeover        = 0;
 int                 sameplayer          = 0;            		// 7-1-2005  flag to determine if players can use the same character
 int                 PLAYER_LIVES        = 3;					// 7-1-2005  default setting for Lives
@@ -15717,6 +15719,12 @@ void goto_mainmenu(int flag)
     goto_mainmenu_flag = 1|(flag<<1);
 }
 
+//(Kratus 04-02-21) Added a new "back to title" function in the select screen, has the same effect as the esc key but now accessible by script
+void backto_title(int flag)
+{
+    backto_title_flag = flag;
+}
+
 void static backto_mainmenu()
 {
     int i = 0;
@@ -19501,11 +19509,23 @@ void do_attack(entity *e)
             continue;
         }
 
-        // Attack IDs must be different.
-        if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
-        {
-            continue;
-        }
+        // Attack IDs must be different
+		if(!multihitcheat){
+
+			//Multihit Glitch disabled (Kratus 05-02-2021)
+			if((target->attack_id_incoming == current_attack_id || target->attack_id_incoming2 == current_attack_id || target->attack_id_incoming3 == current_attack_id || target->attack_id_incoming4 == current_attack_id ) && !attack->ignore_attack_id)
+			{
+				continue;
+			}
+		}
+		else
+		{
+			//Multihit Glitch enabled (Kratus 05-02-2021)
+			if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
+			{
+				continue;
+			}
+		}
 
         // Target laying down? Exit if
         // attack only hits standing targets.
@@ -35838,9 +35858,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
         }
         update(0, 0);
 
-        if(bothnewkeys & FLAG_ESC)
+        //(Kratus 04-02-21) Added a new "escape" function in the select screen, has the same effect as the esc key but now accessible by script
+        if(bothnewkeys & FLAG_ESC || backto_title_flag == 1)
         {
             escape = 1;
+            backto_title_flag = 0;
         }
     }
 
@@ -38246,10 +38268,10 @@ void menu_options_video()
 
 void menu_options()
 {
-    #define TOT_CHEATS          3
+    #define TOT_CHEATS          4
     #define OPT_Y_POS          -1
     #define OPT_X_POS          -7
-    #define CHEAT_PAUSE_POSY    3
+    #define CHEAT_PAUSE_POSY    4
 
     typedef enum {
         VIDEO_OPTION,
@@ -38260,6 +38282,7 @@ void menu_options()
         LIVES_CHEAT,
         CREDITS_CHEAT,
         HEALTH_CHEAT,
+        MULTIHIT_CHEAT,
 
         END_OPTION
     } e_selector;
@@ -38295,6 +38318,7 @@ void menu_options()
             _menutext((selector == LIVES_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
             _menutext((selector == CREDITS_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
             _menutext((selector == HEALTH_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
+            _menutext((selector == MULTIHIT_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+MULTIHIT_CHEAT, (multihitcheat)?Tr("Multihit Glitch On"):Tr("Multihit Glitch Off"));    // Multihit Glitch enabled or disabled (Kratus 05-02-2021)
         }
 
         _menutextm((selector == BACK_OPTION), y_offset+cheat_opt_offset+BACK_OPTION+2, 0, Tr("Back"));
@@ -38363,6 +38387,7 @@ void menu_options()
            else if(selector==LIVES_CHEAT) livescheat = !livescheat;
            else if(selector==CREDITS_CHEAT) creditscheat = !creditscheat;
            else if(selector==HEALTH_CHEAT) healthcheat = !healthcheat;
+           else if(selector==MULTIHIT_CHEAT) multihitcheat = !multihitcheat; // Multihit glitch option (Kratus 05-02-2021)
            else quit = 1;
         }
     }
