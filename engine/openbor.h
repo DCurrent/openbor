@@ -2427,6 +2427,9 @@ typedef struct entity
     int (*takedamage)(struct entity *, s_collision_attack *, int);
     int (*trymove)(float, float);
     unsigned int attack_id_incoming;
+    unsigned int attack_id_incoming2; //Additional hitboxes are used to avoid the multihit bug
+    unsigned int attack_id_incoming3; //Additional hitboxes are used to avoid the multihit bug
+    unsigned int attack_id_incoming4; //Additional hitboxes are used to avoid the multihit bug
     unsigned int attack_id_outgoing;
     int hitwall; // == 1 in the instant that hit the wall/platform/obstacle, else == 0
     unsigned char *colourmap;
@@ -3146,6 +3149,7 @@ int freeRecordedInputs(void);
 a_playrecstatus* init_input_recorder(void);
 void free_input_recorder(void);
 void goto_mainmenu(int);
+void backto_title(int); //(Kratus 04-02-21)
 
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;
