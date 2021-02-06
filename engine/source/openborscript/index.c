@@ -835,6 +835,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "gotomainmenu";
     }
+    else if (functionRef == ((void *)openbor_backtotitle))
+    {
+        return "backtotitle"; //(Kratus 04-02-21)
+    }
     else if (functionRef == ((void *)openbor_playgame))
     {
         return "playgame";
@@ -1441,6 +1445,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_gameover, "gameover");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_gotomainmenu, "gotomainmenu");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_backtotitle, "backtotitle"); //(Kratus 04-02-21)
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgame, "playgame");
     List_InsertAfter(&theFunctionList,
