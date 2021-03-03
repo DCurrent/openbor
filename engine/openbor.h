@@ -3149,7 +3149,6 @@ int freeRecordedInputs(void);
 a_playrecstatus* init_input_recorder(void);
 void free_input_recorder(void);
 void goto_mainmenu(int);
-void backto_title(int); //(Kratus 04-02-21)
 
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;

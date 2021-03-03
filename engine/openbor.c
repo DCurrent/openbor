@@ -547,7 +547,7 @@ int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 _pause              = 0;
 int                 goto_mainmenu_flag  = 0;
-int                 backto_title_flag   = 0;                    //(Kratus 04-02-21) Added a new "back to title" function in the select screen, has the same effect as the esc key but now accessible by script
+int                 backto_title_flag   = 0;                    //(Kratus 04-02-21) Added a new "back to title" flag in the select screen, has the same effect as the esc key but now accessible by script
 int					nofadeout			= 0;
 int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
@@ -15717,12 +15717,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
 void goto_mainmenu(int flag)
 {
     goto_mainmenu_flag = 1|(flag<<1);
-}
-
-//(Kratus 04-02-21) Added a new "back to title" function in the select screen, has the same effect as the esc key but now accessible by script
-void backto_title(int flag)
-{
-    backto_title_flag = flag;
+    backto_title_flag = flag; //Kratus (02-03-2021) removed the "backto_title" function and mixed with the "goto_mainmenu"
 }
 
 void static backto_mainmenu()
@@ -35864,8 +35859,8 @@ int selectplayer(int *players, char *filename, int useSavedGame)
         }
         update(0, 0);
 
-        //(Kratus 04-02-21) Added a new "escape" function in the select screen, has the same effect as the esc key but now accessible by script
-        if(bothnewkeys & FLAG_ESC || backto_title_flag == 1)
+        //(Kratus 04-02-21) Added a new "escape" function in the select screen using the flag 9, has the same effect as the esc key but now accessible by script
+        if(bothnewkeys & FLAG_ESC || backto_title_flag == 9)
         {
             escape = 1;
             backto_title_flag = 0;
