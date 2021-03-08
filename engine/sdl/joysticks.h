@@ -10,6 +10,7 @@
 #define	JOYSTICKS_H
 
 #define JOY_UNKNOWN_NAME "UNKNOWN"
+#define JOY_DISCONNECTED "DISCONNECTED" //Kratus (05-03-21) rename all keys when disconnected
 
 #define JOY_TYPE_DEFAULT   0
 #define JOY_TYPE_GAMEPARK  1
@@ -20,6 +21,7 @@
 #define JOY_LIST_TOTAL     4
 #define	JOY_LIST_LAST      JOY_LIST_FIRST + JOY_MAX_INPUTS * JOY_LIST_TOTAL
 #define JOY_NAME_SIZE      1 + 1 + JOY_MAX_INPUTS * JOY_LIST_TOTAL
+#define JOY_NONE           -999 //Kratus (05-03-21) value used to clear all keys
 
 #ifdef OPENDINGUX
 #define OPENDINGUX_BUTTON_UP     SDLK_UP
