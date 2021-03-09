@@ -87,6 +87,7 @@
 #define CONTROL_DEFAULT4_START		(10+(MAX_BUTTONS*3))
 #define CONTROL_DEFAULT4_SCREENSHOT (9+(MAX_BUTTONS*3))
 
+#define JOY_NONE					-999 //Kratus (05-03-21) value used to clear all keys
 #define	CONTROL_NONE				JOY_NONE //Kratus (05-03-21) value used to clear all keys
 
 #define WII_SHUTDOWN                -1
