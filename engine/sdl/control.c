@@ -266,7 +266,7 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 
                         //Kratus (08-03-21) new joystick scan, avoid accelerometer detection as buttons in Android
                         char real_joy_name[MAX_BUFFER_LEN];
-                        strcpy(real_joy_name,SDL_JoystickNameForIndex(i));
+                        strcpy(real_joy_name,SDL_JoystickName(i));
 
                         get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
                         //close_joystick(i); //Kratus (30-01-2021) disable the entire code to maintain joystick IDs
