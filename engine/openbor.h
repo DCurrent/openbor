@@ -2166,20 +2166,20 @@ typedef enum
 // Projectile spawning.
 typedef struct
 {
-	int                     bomb;				// custbomb;
-	e_color_adjust			color_set_adjust;	// Palette selection.
-	e_direction_adjust		direction_adjust;	
-	int                     flash;				// custpshotno;
-	int                     knife;				// custknife;
-	e_projectile_offense	offense;			// Offense factor source.
-	e_projectile_placement	placement;			// How position applies.
-	s_axis_principal_float	position;			// Location at which projectiles are spawned.
-	int						shootframe;
-	int                     star;				// custstar.
+	int                     bomb;				// ~ custbomb;
+	e_color_adjust			color_set_adjust;	// ~ Palette selection.
+	e_direction_adjust		direction_adjust;	// ~
+	int                     flash;				// ~ custpshotno;
+	int                     knife;				// ~ custknife;
+	e_projectile_offense	offense;			// ~ Offense factor source.
+	e_projectile_placement	placement;			// ~ How position applies.
+	s_axis_principal_float	position;			// ~ Location at which projectiles are spawned.
+	int						shootframe;         // ~ Frame to throw flash.
+	int                     star;				// ~ custstar.
 	float					star_velocity[3];	// Legacy star velocity.
-	int						throwframe;
-	int						tossframe;			// Frame to toss bomb/grenade.
-	s_axis_principal_float	velocity;			// Throw velocity.
+	int						throwframe;         // ~ Frame to throw knife.
+	int						tossframe;			// ~ Frame to toss bomb/grenade.
+	s_axis_principal_float	velocity;			// ~ Throw velocity.
 } s_projectile;
 
 // Caskey, Damon V.

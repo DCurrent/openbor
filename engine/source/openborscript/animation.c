@@ -57,19 +57,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"loop_frame_start",
 		"loop_state",
 		"model_index",
-		"projectile_frame_shoot",
-		"projectile_frame_throw",
-		"projectile_frame_toss",
-		"projectile_model_index_bomb",
-		"projectile_model_index_flash",
-		"projectile_model_index_knife",
-		"projectile_model_index_star",
-		"projectile_position_x",
-		"projectile_position_y",
-		"projectile_position_z",
-		"projectile_velocity_x",
-		"projectile_velocity_y",
-		"projectile_velocity_z",
+		"projectile",
 		"quake_frame_start",
 		"quake_move_y",
 		"quake_repeat_count",
@@ -330,86 +318,14 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->loop.mode;
 			break;
-		/*
-		case _ANIMATION_PROP_PROJECTILE_FRAME_SHOOT:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.shootframe;
+		case _ANIMATION_PROP_PROJECTILE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_projectile*)handle->projectile;
+
 			break;
-
-		case _ANIMATION_PROP_PROJECTILE_FRAME_THROW:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.throwframe;
-			break;
-			
-		case _ANIMATION_PROP_PROJECTILE_FRAME_TOSS:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.tossframe;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_BOMB:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.bomb;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_FLASH:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.flash;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_KNIFE:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.knife;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_STAR:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.star;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_POSITION_X:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.position.x;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_POSITION_Y:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.position.y;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_POSITION_Z:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->projectile.position.z;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_VELOCITY_X:
-
-			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-			(*pretvar)->dblVal = (DOUBLE)handle->projectile.velocity.x;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Y:
-
-			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-			(*pretvar)->dblVal = (DOUBLE)handle->projectile.velocity.y;
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Z:
-
-			ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-			(*pretvar)->dblVal = (DOUBLE)handle->projectile.velocity.z;
-			break;
-			*/
-
+		
 		case _ANIMATION_PROP_QUAKE_FRAME_START:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -847,125 +763,15 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			}
 
 			break;
+					
+		case _ANIMATION_PROP_PROJECTILE:
 
-			/*
-		case _ANIMATION_PROP_PROJECTILE_FRAME_SHOOT:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.shootframe = (int)temp_int;
-			}
-
+			
+			handle->projectile = (s_projectile*)varlist[ARG_VALUE]->ptrVal;
+			
 			break;
 
-		case _ANIMATION_PROP_PROJECTILE_FRAME_THROW:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.throwframe = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_FRAME_TOSS:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.tossframe = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_BOMB:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.bomb = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_FLASH:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.flash = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_KNIFE:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.knife = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_MODEL_INDEX_STAR:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.star = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_POSITION_X:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.position.x = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_POSITION_Y:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.position.y = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_POSITION_Z:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->projectile.position.z = (int)temp_int;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_VELOCITY_X:
-
-			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-			{
-				handle->projectile.velocity.x = (float)temp_float;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Y:
-
-			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-			{
-				handle->projectile.velocity.y = (float)temp_float;
-			}
-
-			break;
-
-		case _ANIMATION_PROP_PROJECTILE_VELOCITY_Z:
-
-			if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-			{
-				handle->projectile.velocity.z = (float)temp_float;
-			}
-
-			break;
-			*/
+		
 		case _ANIMATION_PROP_QUAKE_FRAME_START:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
