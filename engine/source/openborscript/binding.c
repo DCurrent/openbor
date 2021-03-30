@@ -29,17 +29,20 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
 		"animation_id",
 		"animation_match",
 		"direction",
+		"meta_data",
+		"meta_tag",
 		"mode_x",
 		"mode_y",
 		"mode_z",
 		"offset_x",
 		"offset_y",
 		"offset_z",
-        "override",
-        "sort_id",
-        "tag",
+		"override",
+        "sort_id",		
         "target"
     };
+
+	//printf("\n\n mapstring_bind_property(%s)", varlist[ARG_PROPERTY]);
 
     // If the minimum argument count
     // was not passed, then there is
@@ -55,6 +58,8 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
     MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _BIND_END,
                "Property name '%s' is not supported by binding.\n");
 
+	//const char *eps = (varlist[ARG_PROPERTY]->lVal < _BIND_END && varlist[ARG_PROPERTY]->lVal >= 0) ? proplist[varlist[ARG_PROPERTY]->lVal] : "";
+	//printf("\nBind arg: %s\n", eps);
 
     // If we made it this far everything should be OK.
     return 1;
@@ -83,10 +88,10 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     // Clear pass by reference argument used to send
     // property data back to calling script.     .
     ScriptVariant_Clear(*pretvar);
-
-    // Map string property name to a
-    // matching integer constant.
-    mapstrings_bind_property(varlist, paramCount);
+	
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_bind_property(varlist, paramCount);
 
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
@@ -134,6 +139,20 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)handle->direction;
 
             break;
+
+		case _BIND_META_DATA:
+
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (s_meta_data*)handle->meta_data;
+
+			break;
+
+		case _BIND_META_TAG:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->meta_tag;
+
+			break;
 
 		case _BIND_MODE_X:
 
@@ -188,13 +207,6 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->sortid;
-
-            break;
-
-        case _BIND_TAG:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->tag;
 
             break;
 
@@ -255,7 +267,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 	// Value carriers to apply on properties after
 	// taken from argument.
 	LONG         temp_int;
-
+	
 	// Map string property name to a
 	// matching integer constant.
 	mapstrings_bind_property(varlist, paramCount);
@@ -311,6 +323,21 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->direction = temp_int;
+			}
+
+			break;
+
+		case _BIND_META_DATA:
+
+			handle->meta_data = (s_meta_data*)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _BIND_META_TAG:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->meta_tag = temp_int;
 			}
 
 			break;
@@ -383,15 +410,6 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->sortid = temp_int;
-			}
-
-			break;
-
-		case _BIND_TAG:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->tag = temp_int;
 			}
 
 			break;

@@ -434,9 +434,9 @@ int openPackfile(const char *filename, const char *packfilename)
 #endif
 
     packfilepointer[h] = 0;
-	int per = 666;
+	int file_permission = 666;
     // Separate file present?
-    if((handle = open(filename, O_RDONLY | O_BINARY, per)) != -1)
+    if((handle = open(filename, O_RDONLY | O_BINARY, file_permission)) != -1)
     {
         if((packfilesize[h] = lseek(handle, 0, SEEK_END)) == -1)
         {
@@ -493,7 +493,7 @@ int openPackfile(const char *filename, const char *packfilename)
 #endif
 
     // Try to open packfile
-    if((handle = open(packfilename, O_RDONLY | O_BINARY, per)) == -1)
+    if((handle = open(packfilename, O_RDONLY | O_BINARY, file_permission) == -1))
     {
 #ifdef VERBOSE
         printf ("perm err\n");

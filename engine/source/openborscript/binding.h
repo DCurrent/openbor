@@ -5,6 +5,8 @@ typedef enum
 	_BIND_ANIMATION_ID,
 	_BIND_ANIMATION_MATCH,
 	_BIND_DIRECTION,
+	_BIND_META_DATA,
+	_BIND_META_TAG,
 	_BIND_MODE_X,
 	_BIND_MODE_Y,
 	_BIND_MODE_Z,
@@ -13,7 +15,6 @@ typedef enum
 	_BIND_OFFSET_Z,
 	_BIND_OVERRIDE,
 	_BIND_SORT_ID,
-	_BIND_TAG,
 	_BIND_TARGET,
 	_BIND_END,
 } e_bind_properties;
