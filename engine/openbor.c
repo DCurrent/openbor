@@ -547,6 +547,7 @@ int					loadingmusic        = 0;
 int                 unlockbg            = 0;         			// If set to 1, will look for a different background image after defeating the game
 int                 _pause              = 0;
 int                 goto_mainmenu_flag  = 0;
+int                 escape_flag         = 0;                    // Kratus (20-04-21) Added the new "escape" flag in the select screen, has the same effect as the esc key but now accessible by the "gotomainmenu" function
 int					nofadeout			= 0;
 int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
@@ -559,6 +560,7 @@ int                 livescheat          = 0;
 int                 keyscriptrate       = 0;
 int                 creditscheat        = 0;
 int                 healthcheat         = 0;
+int                 multihitcheat       = 0;					//Kratus (20-04-21) Flag to enable or disable the multihit glitch option
 int                 showtimeover        = 0;
 int                 sameplayer          = 0;            		// 7-1-2005  flag to determine if players can use the same character
 int                 PLAYER_LIVES        = 3;					// 7-1-2005  default setting for Lives
@@ -2425,18 +2427,18 @@ void clearbuttons(int player)
 
     if (player == 0)
     {
-        savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
-        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
+        savedata.keys[0][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
+        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_NONE;
+        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_NONE;
+        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_NONE;
+        savedata.keys[0][SDID_ATTACK]    = CONTROL_NONE;
+        savedata.keys[0][SDID_ATTACK2]   = CONTROL_NONE;
+        savedata.keys[0][SDID_ATTACK3]   = CONTROL_NONE;
+        savedata.keys[0][SDID_ATTACK4]   = CONTROL_NONE;
+        savedata.keys[0][SDID_JUMP]      = CONTROL_NONE;
+        savedata.keys[0][SDID_SPECIAL]   = CONTROL_NONE;
+        savedata.keys[0][SDID_START]     = CONTROL_NONE;
+        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_NONE;
         #ifdef SDL
             //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
         #endif
@@ -2472,54 +2474,54 @@ void clearbuttons(int player)
     }
     else if (player == 1)
     {
-        savedata.keys[1][SDID_MOVEUP]    = CONTROL_DEFAULT2_UP;
-        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_DEFAULT2_DOWN;
-        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_DEFAULT2_LEFT;
-        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_DEFAULT2_RIGHT;
-        savedata.keys[1][SDID_ATTACK]    = CONTROL_DEFAULT2_FIRE1;
-        savedata.keys[1][SDID_ATTACK2]   = CONTROL_DEFAULT2_FIRE2;
-        savedata.keys[1][SDID_ATTACK3]   = CONTROL_DEFAULT2_FIRE3;
-        savedata.keys[1][SDID_ATTACK4]   = CONTROL_DEFAULT2_FIRE4;
-        savedata.keys[1][SDID_JUMP]      = CONTROL_DEFAULT2_FIRE5;
-        savedata.keys[1][SDID_SPECIAL]   = CONTROL_DEFAULT2_FIRE6;
-        savedata.keys[1][SDID_START]     = CONTROL_DEFAULT2_START;
-        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_DEFAULT2_SCREENSHOT;
+        savedata.keys[1][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
+        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_NONE;
+        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_NONE;
+        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_NONE;
+        savedata.keys[1][SDID_ATTACK]    = CONTROL_NONE;
+        savedata.keys[1][SDID_ATTACK2]   = CONTROL_NONE;
+        savedata.keys[1][SDID_ATTACK3]   = CONTROL_NONE;
+        savedata.keys[1][SDID_ATTACK4]   = CONTROL_NONE;
+        savedata.keys[1][SDID_JUMP]      = CONTROL_NONE;
+        savedata.keys[1][SDID_SPECIAL]   = CONTROL_NONE;
+        savedata.keys[1][SDID_START]     = CONTROL_NONE;
+        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_NONE;
         #ifdef SDL
             //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
         #endif
     }
     else if (player == 2)
     {
-        savedata.keys[2][SDID_MOVEUP]    = CONTROL_DEFAULT3_UP;
-        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_DEFAULT3_DOWN;
-        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_DEFAULT3_LEFT;
-        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_DEFAULT3_RIGHT;
-        savedata.keys[2][SDID_ATTACK]    = CONTROL_DEFAULT3_FIRE1;
-        savedata.keys[2][SDID_ATTACK2]   = CONTROL_DEFAULT3_FIRE2;
-        savedata.keys[2][SDID_ATTACK3]   = CONTROL_DEFAULT3_FIRE3;
-        savedata.keys[2][SDID_ATTACK4]   = CONTROL_DEFAULT3_FIRE4;
-        savedata.keys[2][SDID_JUMP]      = CONTROL_DEFAULT3_FIRE5;
-        savedata.keys[2][SDID_SPECIAL]   = CONTROL_DEFAULT3_FIRE6;
-        savedata.keys[2][SDID_START]     = CONTROL_DEFAULT3_START;
-        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_DEFAULT3_SCREENSHOT;
+        savedata.keys[2][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
+        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_NONE;
+        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_NONE;
+        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_NONE;
+        savedata.keys[2][SDID_ATTACK]    = CONTROL_NONE;
+        savedata.keys[2][SDID_ATTACK2]   = CONTROL_NONE;
+        savedata.keys[2][SDID_ATTACK3]   = CONTROL_NONE;
+        savedata.keys[2][SDID_ATTACK4]   = CONTROL_NONE;
+        savedata.keys[2][SDID_JUMP]      = CONTROL_NONE;
+        savedata.keys[2][SDID_SPECIAL]   = CONTROL_NONE;
+        savedata.keys[2][SDID_START]     = CONTROL_NONE;
+        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_NONE;
         #ifdef SDL
             //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
         #endif
     }
     else if (player == 3)
     {
-        savedata.keys[3][SDID_MOVEUP]    = CONTROL_DEFAULT4_UP;
-        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_DEFAULT4_DOWN;
-        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_DEFAULT4_LEFT;
-        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_DEFAULT4_RIGHT;
-        savedata.keys[3][SDID_ATTACK]    = CONTROL_DEFAULT4_FIRE1;
-        savedata.keys[3][SDID_ATTACK2]   = CONTROL_DEFAULT4_FIRE2;
-        savedata.keys[3][SDID_ATTACK3]   = CONTROL_DEFAULT4_FIRE3;
-        savedata.keys[3][SDID_ATTACK4]   = CONTROL_DEFAULT4_FIRE4;
-        savedata.keys[3][SDID_JUMP]      = CONTROL_DEFAULT4_FIRE5;
-        savedata.keys[3][SDID_SPECIAL]   = CONTROL_DEFAULT4_FIRE6;
-        savedata.keys[3][SDID_START]     = CONTROL_DEFAULT4_START;
-        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_DEFAULT4_SCREENSHOT;
+        savedata.keys[3][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
+        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_NONE;
+        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_NONE;
+        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_NONE;
+        savedata.keys[3][SDID_ATTACK]    = CONTROL_NONE;
+        savedata.keys[3][SDID_ATTACK2]   = CONTROL_NONE;
+        savedata.keys[3][SDID_ATTACK3]   = CONTROL_NONE;
+        savedata.keys[3][SDID_ATTACK4]   = CONTROL_NONE;
+        savedata.keys[3][SDID_JUMP]      = CONTROL_NONE;
+        savedata.keys[3][SDID_SPECIAL]   = CONTROL_NONE;
+        savedata.keys[3][SDID_START]     = CONTROL_NONE;
+        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_NONE;
         #ifdef SDL
             //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
         #endif
@@ -16032,6 +16034,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
 void goto_mainmenu(int flag)
 {
     goto_mainmenu_flag = 1|(flag<<1);
+    escape_flag = flag; //Kratus (20-04-21) Added the new "escape" flag in the select screen, has the same effect as the esc key but now accessible by the "gotomainmenu" function
 }
 
 void static backto_mainmenu()
@@ -20172,10 +20175,22 @@ void do_attack(entity *e)
         }
 
         // Attack IDs must be different.
-        if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
-        {
-            continue;
-        }
+        if(!multihitcheat){
+
+			// Kratus (20-04-21) multihit disabled
+			if((target->attack_id_incoming == current_attack_id || target->attack_id_incoming2 == current_attack_id || target->attack_id_incoming3 == current_attack_id || target->attack_id_incoming4 == current_attack_id ) && !attack->ignore_attack_id)
+			{
+				continue;
+			}
+		}
+		else
+		{
+			// Kratus (20-04-21) multihit enabled
+			if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
+			{
+				continue;
+			}
+		}
 
 		// Target laying down? Exit if
         // attack only hits standing targets.
@@ -37172,9 +37187,10 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 		}
 		update(0, 0);
 
-		if (bothnewkeys & FLAG_ESC)
+		if (bothnewkeys & FLAG_ESC || escape_flag == 11) //Kratus (20-04-21) Added the new "escape" flag in the select screen by using the "gotomainmenu" function and the flag "11"
 		{
 			escape = 1;
+            escape_flag == 0
 		}
 	}
 
@@ -39567,10 +39583,10 @@ void menu_options_video()
 
 void menu_options()
 {
-    #define TOT_CHEATS          3
+    #define TOT_CHEATS          4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
     #define OPT_Y_POS          -1
     #define OPT_X_POS          -7
-    #define CHEAT_PAUSE_POSY    3
+    #define CHEAT_PAUSE_POSY    4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
 
     typedef enum {
         VIDEO_OPTION,
@@ -39581,6 +39597,7 @@ void menu_options()
         LIVES_CHEAT,
         CREDITS_CHEAT,
         HEALTH_CHEAT,
+        MULTIHIT_CHEAT, // Kratus (20-04-21) add the multihit glitch option
 
         END_OPTION
     } e_selector;
@@ -39616,6 +39633,7 @@ void menu_options()
             _menutext((selector == LIVES_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
             _menutext((selector == CREDITS_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
             _menutext((selector == HEALTH_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
+            _menutext((selector == MULTIHIT_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+MULTIHIT_CHEAT, (multihitcheat)?Tr("Multihit Glitch On"):Tr("Multihit Glitch Off"));    // Kratus (20-04-21) change the multihit glitch option on/off
         }
 
         _menutextm((selector == BACK_OPTION), y_offset+cheat_opt_offset+BACK_OPTION+2, 0, Tr("Back"));
@@ -39684,6 +39702,7 @@ void menu_options()
            else if(selector==LIVES_CHEAT) livescheat = !livescheat;
            else if(selector==CREDITS_CHEAT) creditscheat = !creditscheat;
            else if(selector==HEALTH_CHEAT) healthcheat = !healthcheat;
+           else if(selector==MULTIHIT_CHEAT) multihitcheat = !multihitcheat; // Kratus (20-04-21) selector for the multihit glitch option
            else quit = 1;
         }
     }
