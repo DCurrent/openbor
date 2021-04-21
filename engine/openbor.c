@@ -37190,7 +37190,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 		if (bothnewkeys & FLAG_ESC || escape_flag == 11) //Kratus (20-04-21) Added the new "escape" flag in the select screen by using the "gotomainmenu" function and the flag "11"
 		{
 			escape = 1;
-            escape_flag == 0
+            escape_flag = 0;
 		}
 	}
 
