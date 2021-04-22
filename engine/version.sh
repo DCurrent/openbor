@@ -53,7 +53,7 @@ VERSION_DATE=`date '+%Y%m%d%H%M%S'`
 if [ -z "${VERSION_COMMIT}" ]; then
   export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
 else
-  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash: ${VERSION_COMMIT})"
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash ${VERSION_COMMIT})"
 fi
 }
 
