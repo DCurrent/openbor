@@ -32,8 +32,10 @@ function get_revnum {
     # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
     VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
   else # manually add build number if missing
-	read -p "missing build numer please enter: " VERSION_BUILD
+	echo "Missing version build, please add it manually and press ENTER: "; read -r VERSION_BUILD
+	echo "Missing version commit, please add it manually and press ENTER: "; read -r VERSION_COMMIT
 	echo "VERSION_BUILD is set to: $VERSION_BUILD"
+	echo "VERSION_COMMIT is set to: $VERSION_COMMIT"
   fi
 }
 
