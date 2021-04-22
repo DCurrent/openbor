@@ -2427,18 +2427,18 @@ void clearbuttons(int player)
 
     if (player == 0)
     {
-        savedata.keys[0][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[0][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[0][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[0][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[0][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[0][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[0][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[0][SDID_START]     = CONTROL_NONE;
-        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_NONE;
+        savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules like PSP will not work with CONTROL_NONE
+        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
+        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
+        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
+        savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
+        savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
+        savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
+        savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
+        savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
+        savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
+        savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
+        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
         #ifdef SDL
             //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
         #endif
