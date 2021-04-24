@@ -20356,6 +20356,11 @@ void do_attack(entity *e)
                             self->modeldata.animation[current_follow_id]->attackone = self->animation->attackone;
                         }
                         ent_set_anim(self, current_follow_id, 0);
+
+                        // Kratus (20-04-21) used by the multihit glitch memorization
+                        self->attack_id_incoming4 = self->attack_id_incoming3;
+                        self->attack_id_incoming3 = self->attack_id_incoming2;
+                        self->attack_id_incoming2 = self->attack_id_incoming;
                         self->attack_id_incoming = current_attack_id;
                     }
 
@@ -20437,6 +20442,10 @@ void do_attack(entity *e)
                 //followed = 1; // quit loop, animation is changed
             }
 
+            // Kratus (20-04-21) used by the multihit glitch memorization
+            self->attack_id_incoming4 = self->attack_id_incoming3;
+            self->attack_id_incoming3 = self->attack_id_incoming2;
+            self->attack_id_incoming2 = self->attack_id_incoming;
             self->attack_id_incoming = current_attack_id;
             
 			// If hit, stop blocking.
