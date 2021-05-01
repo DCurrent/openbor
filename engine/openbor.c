@@ -19521,13 +19521,16 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     }
 
     // screen checking
+    // Kratus (29-04-21) Reduced the "screen checking" range from 10 to 5 to avoid the entities to stuck in the edge of the screen
+    // This change was made because the "common_trymove" function also has another "screen checking" with a range of 10 too
+    // If the "testmove" function has a equal or bigger range than the "common_trymove" function, sometimes the entities will stuck
     if(ent->modeldata.subject_to_screen > 0)
     {
-        if(x < advancex + 10)
+        if(x < advancex + 5)
         {
             return 0;
         }
-        else if(x > advancex + (videomodes.hRes - 10))
+        else if(x > advancex + (videomodes.hRes - 5))
         {
             return 0;
         }
