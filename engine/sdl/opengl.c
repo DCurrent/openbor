@@ -19,6 +19,7 @@
 #include "opengl.h"
 #include "video.h"
 #include "loadgl.h"
+#include "SDL2_framerate.h" //Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
 #include <math.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
@@ -38,6 +39,7 @@ static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point for
 static GLuint shaderProgram; // fragment shader program
 
 // use some variables declared in video.c that are common to both backends
+extern FPSmanager framerate_manager; //Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
 extern int stretch;
 extern int nativeWidth, nativeHeight;
 extern SDL_Window* window;
@@ -391,6 +393,12 @@ int video_gl_copy_screen(s_videosurface* surface)
 
 	// display the rendered frame on the screen
 	SDL_GL_SwapWindow(window);
+
+	//Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
+	#if WIN || LINUX
+	// limit framerate to 200 fps
+	SDL_framerateDelay(&framerate_manager);
+	#endif
 
 	return 1;
 }
