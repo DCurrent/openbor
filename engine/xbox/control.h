@@ -63,6 +63,8 @@
 #define CONTROL_DEFAULT4_START		(11+(16*3))
 #define CONTROL_DEFAULT4_SCREENSHOT (10+(16*3))
 
+#define	CONTROL_NONE				(1+(16*99)) //Kratus (20-04-21) value used to clear all keys
+
 
 typedef struct{
 	int		settings[32];

@@ -26,9 +26,9 @@
 
 #define		MAX_BUFFER_LEN		512
 #define		MAX_FILENAME_LEN	256
-#define		MAX_LABEL_LEN       128
+#define		MAX_LABEL_LEN		128
 
-#define MAX_MODS_NUM 18
+#define		MAX_MODS_NUM		18 //Kratus (13-03-21) decreased the max pak numbers from 100 to 18 to avoid engine "close" bug
 
 #ifdef PSP
 #include <stdarg.h>
