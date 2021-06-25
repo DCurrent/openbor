@@ -71,8 +71,8 @@ void initSDL()
 	SDL_GetCurrentDisplayMode(0, &video_info);
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
-#endif
 	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
+#endif
 	SDL_initFramerate(&framerate_manager);
 	SDL_setFramerate(&framerate_manager, 200); //Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
 }

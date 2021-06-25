@@ -1,44 +1,21 @@
 cmake_minimum_required(VERSION 3.1)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
-option(PLATFORM_LINUX "Linux platform target" OFF)
-option(PLATFORM_SWITCH "Nintendo Switch platform target" OFF)
+project(OpenBOR)
+set(OPENBOR_VERSION "3.0.7141")
 
+#####################
+# OPTIONS
+#####################
 option(BUILD_GFX "Build with GFX support" ON)
 option(BUILD_VORBIS "Build with BUILD_VORBIS support" ON)
-
-if (PLATFORM_LINUX)
-    set(CMAKE_SYSTEM_NAME "Linux")
-elseif (PLATFORM_SWITCH)
-    set(CMAKE_SYSTEM_NAME "Generic")
-    set(DEVKITPRO $ENV{DEVKITPRO})
-    set(CMAKE_SYSTEM_PROCESSOR "armv8-a")
-    set(CMAKE_C_COMPILER "${DEVKITPRO}/devkitA64/bin/aarch64-none-elf-gcc")
-    set(CMAKE_CXX_COMPILER "${DEVKITPRO}/devkitA64/bin/aarch64-none-elf-g++")
-    set(CMAKE_ASM_COMPILER "${DEVKITPRO}/devkitA64/bin/aarch64-none-elf-as")
-    set(CMAKE_AR "${DEVKITPRO}/devkitA64/bin/aarch64-none-elf-gcc-ar" CACHE STRING "")
-    set(CMAKE_RANLIB "${DEVKITPRO}/devkitA64/bin/aarch64-none-elf-gcc-ranlib" CACHE STRING "")
-    set(CMAKE_C_FLAGS "-g -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -ftls-model=local-exec -fPIC -I${DEVKITPRO}/libnx/include -I${DEVKITPRO}/portlibs/switch/include" CACHE STRING "C flags")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fno-rtti -fno-exceptions" CACHE STRING "C++ flags")
-    set(PKG_CONFIG_EXECUTABLE ${DEVKITPRO}/portlibs/switch/bin/aarch64-none-elf-pkg-config)
-    set(CMAKE_FIND_ROOT_PATH ${DEVKITPRO} ${DEVKITPRO}/devkitA64 ${DEVKITPRO}/libnx ${DEVKITPRO}/portlibs/switch)
-    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
-    set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "Shared libs not available")
-endif ()
-
-project(OpenBOR)
-
-set(OPENBOR_VERSION "3.0.7087")
 
 ##############
 # COMMON
 ##############
-
 include(FindPkgConfig)
 pkg_search_module(SDL2 REQUIRED sdl2)
+pkg_search_module(SDL2_GFX REQUIRED SDL2_gfx)
 pkg_search_module(VPX REQUIRED vpx)
 pkg_search_module(PNG REQUIRED libpng)
 pkg_search_module(ZLIB REQUIRED zlib)
@@ -59,6 +36,7 @@ set(BOR_INC
         engine/source/webmlib/halloc
         engine/source/webmlib/nestegg
         ${SDL2_INCLUDE_DIRS}
+        ${SDL2_GFX_INCLUDE_DIRS}
         ${VPX_INCLUDE_DIRS}
         ${PNG_INCLUDE_DIRS}
         ${ZLIB_INCLUDE_DIRS}
@@ -82,7 +60,7 @@ file(GLOB BOR_SRC
         )
 
 set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DWEBM -DOPENGL -DLOADGL -D__CMAKE__)
-set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
+set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${SDL2_GFX_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
 
 ##############
 # VERSION.SH
@@ -113,20 +91,15 @@ endif ()
 #####################
 # PLATORM SPECIFIC
 #####################
-if (PLATFORM_SWITCH)
+if (NINTENDO_SWITCH)
     #####################
     # SWITCH PLATORM
     #####################
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         list(APPEND BOR_CFLAGS -DNXLINK)
     endif ()
-    list(APPEND BOR_CFLAGS -D__SWITCH__)
-    list(APPEND BOR_LDFLAGS
-            -L${DEVKITPRO}/libnx/lib
-            -L${DEVKITPRO}/portlibs/switch/lib
-            -specs=${DEVKITPRO}/libnx/switch.specs
-            stdc++)
-elseif (PLATFORM_LINUX)
+    list(APPEND BOR_LDFLAGS stdc++)
+else ()
     #####################
     # LINUX PLATORM
     #####################
@@ -136,19 +109,24 @@ endif ()
 #####################
 # OpenBOR executable
 #####################
-add_executable(${CMAKE_PROJECT_NAME}.elf ${BOR_SRC})
-target_include_directories(${CMAKE_PROJECT_NAME}.elf PRIVATE ${BOR_INC})
-target_compile_options(${CMAKE_PROJECT_NAME}.elf PRIVATE ${BOR_CFLAGS})
-target_link_libraries(${CMAKE_PROJECT_NAME}.elf ${BOR_LDFLAGS})
+add_executable(${CMAKE_PROJECT_NAME} ${BOR_SRC})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${BOR_INC})
+target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE ${BOR_CFLAGS})
+target_link_libraries(${CMAKE_PROJECT_NAME} ${BOR_LDFLAGS})
 
 #####################
 # SWITCH target
 #####################
-if (PLATFORM_SWITCH)
-    add_custom_target(${CMAKE_PROJECT_NAME}.nro
-            DEPENDS ${CMAKE_PROJECT_NAME}.elf
-            COMMAND ${DEVKITPRO}/tools/bin/nacptool --create "${CMAKE_PROJECT_NAME}" "cpasjuste" "${OPENBOR_VERSION}" ${CMAKE_PROJECT_NAME}.nacp
-            COMMAND elf2nro ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.nro --icon=${CMAKE_SOURCE_DIR}/engine/resources/switch_icon.jpg --nacp=${CMAKE_PROJECT_NAME}.nacp)
+if (NINTENDO_SWITCH)
+    nx_generate_nacp(${CMAKE_PROJECT_NAME}.nacp
+            NAME "${CMAKE_PROJECT_NAME}"
+            AUTHOR "cpasjuste"
+            VERSION "${OPENBOR_VERSION}"
+            )
+    nx_create_nro(${CMAKE_PROJECT_NAME}
+            NACP ${CMAKE_PROJECT_NAME}.nacp
+            ICON "${CMAKE_SOURCE_DIR}/engine/resources/switch_icon.jpg"
+            )
     add_custom_target(${PROJECT_NAME}_switch_release
             DEPENDS ${PROJECT_NAME}.nro
             COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_BINARY_DIR}/${PROJECT_NAME}-${OPENBOR_VERSION}_switch.zip

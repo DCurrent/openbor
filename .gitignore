@@ -18,4 +18,3 @@ tools/devkitpro/*
 # switch port
 .idea
 cmake-build*
-CMakeLists.txt

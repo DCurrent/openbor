@@ -70,6 +70,14 @@
 #define strnicmp strncasecmp
 #endif
 
+#ifndef stricmp
+#define stricmp strcasecmp
+#endif
+
+#ifndef strnicmp
+#define strnicmp strncasecmp
+#endif
+
 #include "packfile.h"
 
 /////////////////////////////////////////////////////////////////////////////
