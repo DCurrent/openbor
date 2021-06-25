@@ -96,7 +96,7 @@ if (NINTENDO_SWITCH)
     # SWITCH PLATORM
     #####################
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        list(APPEND BOR_CFLAGS -DNXLINK)
+        list(APPEND BOR_CFLAGS -D__NXLINK__)
     endif ()
     list(APPEND BOR_LDFLAGS stdc++)
 else ()

@@ -20,9 +20,9 @@
 #include <CoreFoundation/CoreFoundation.h>
 #elif WIN
 #undef main
-#elif defined(__SWITCH__) && defined(NXLINK)
+#elif defined(__SWITCH__) && defined(__NXLINK__)
 #include <switch.h>
-static int nxlink_sock = -1;
+int nx_sock = -1;
 #endif
 
 char packfile[MAX_FILENAME_LEN] = {"bor.pak"};
@@ -67,9 +67,9 @@ void borExit(int reset)
 	SDL_Quit(); // call this instead of atexit(SDL_Quit); It's best practice!
 #endif
 
-#if defined(__SWITCH__) && defined(NXLINK)
-    if (nxlink_sock != -1)
-        close(nxlink_sock);
+#if defined(__SWITCH__) && defined(__NXLINK__)
+    if (nx_sock != -1)
+        close(nx_sock);
     socketExit();
 #endif
 
@@ -110,9 +110,9 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-#if defined(__SWITCH__) && defined(NXLINK)
+#if defined(__SWITCH__) && defined(__NXLINK__)
     socketInitializeDefault();
-    nxlink_sock = nxlinkStdio();
+    nx_sock = nxlinkStdio();
 #endif
 
 	setSystemRam();
