@@ -322,7 +322,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
 //
 // Access level property by handle.
 //
-// get_level_property(void handle, int frame, int property)
+// get_level_property(void handle, int property)
 HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME       "get_level_property(void handle, int property)"

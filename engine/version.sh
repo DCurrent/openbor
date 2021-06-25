@@ -31,11 +31,14 @@ function get_revnum {
     VERSION_BUILD=`git rev-list --count HEAD`
     # get commit hash, 7 chars in length is enough, and still work when supply as URL on github.com
     VERSION_COMMIT=`git rev-parse HEAD | cut -c -7`
-  else
-	VERSION_BUILD=0000
-	VERSION_COMMIT=0000000
+  else # manually add build number if missing
+	echo "Missing version build, please add it manually and press ENTER: "; read -r VERSION_BUILD
+	echo "Missing version commit, please add it manually and press ENTER: "; read -r VERSION_COMMIT
+	echo "VERSION_BUILD is set to: $VERSION_BUILD"
+	echo "VERSION_COMMIT is set to: $VERSION_COMMIT"
   fi
 }
+
 
 function read_version {
 check_git
@@ -50,7 +53,7 @@ VERSION_DATE=`date '+%Y%m%d%H%M%S'`
 if [ -z "${VERSION_COMMIT}" ]; then
   export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD"
 else
-  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash: ${VERSION_COMMIT})"
+  export VERSION="v$VERSION_MAJOR.$VERSION_MINOR Build $VERSION_BUILD (commit hash ${VERSION_COMMIT})"
 fi
 }
 

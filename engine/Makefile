@@ -103,6 +103,52 @@ BUILD_DEBUG     = 1
 endif
 endif
 
+ifdef BUILD_LINUX_LE_x86_64
+TARGET 	        = $(VERSION_NAME).elf
+TARGET_FINAL    = $(VERSION_NAME)
+TARGET_PLATFORM = LINUX
+BUILD_SDL       = 1
+BUILD_GFX       = 1
+BUILD_PTHREAD   = 1
+BUILD_SDL_IO    = 1
+BUILD_OPENGL    = 1
+BUILD_LOADGL    = 1
+BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
+BUILDING        = 1
+YASM 	          = nasm
+OBJTYPE         = elf
+INCLUDES        = $(SDKPATH)/usr/include \
+                  $(SDKPATH)/usr/include/SDL2
+TARGET_ARCH     = amd64
+BUILD_AMD64     = 1
+ARCHFLAGS       = -m64
+LIBRARIES       = $(SDKPATH)/usr/lib
+CFLAGS          += -DAMD64
+# Workaround for GCC 9
+CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=stringop-overflow
+endif
+
+ifdef BUILD_LINUX_LE_arm
+TARGET 	        = $(VERSION_NAME).elf
+TARGET_FINAL    = $(VERSION_NAME)
+TARGET_PLATFORM = LINUX
+BUILD_LINUX     = 1
+BUILD_SDL       = 1
+BUILD_GFX       = 1
+BUILD_PTHREAD   = 1
+BUILD_SDL_IO    = 1
+BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
+BUILDING        = 1
+INCLUDES        = $(SDKPATH)/usr/include \
+                  $(SDKPATH)/usr/include/SDL2
+OBJTYPE         = elf
+LIBRARIES       = $(SDKPATH)/usr/lib
+# Workaround for GCC 9
+CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=implicit-function-declaration -Wno-error=unused-variable -Wno-error=unused-label -Wno-error=stringop-overflow
+endif
+
 ifdef BUILD_DARWIN
 TARGET          = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME)
@@ -569,11 +615,11 @@ endif
 
 ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
-LIBS           += -lSDL -lts
+LIBS           += -lSDL -lSDL_gfx -lts #Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
 else
 COMMA		=,
 RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
-LIBS	       += $(RPATH_LIBS) -lSDL2
+LIBS	       += $(RPATH_LIBS) -lSDL2 -lSDL2_gfx #Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
 
 ifdef CROSSCOMPILE_LINUX_WIN
 LIBS	       += -lsetupapi

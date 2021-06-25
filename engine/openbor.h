@@ -99,8 +99,8 @@ movement restirctions are here!
 #define		FRONTPANEL_Z		(PLAYER_MAX_Z+50)
 #define     HUD_Z               (FRONTPANEL_Z+10000)
 #define		HOLE_Z				(PLAYER_MIN_Z-46)
-#define		NEONPANEL_Z			(PLAYER_MIN_Z-47)
-#define		SHADOW_Z			(PLAYER_MIN_Z-48)
+#define		SHADOW_Z			(PLAYER_MIN_Z-47)
+#define		NEONPANEL_Z			(PLAYER_MIN_Z-48)
 #define		SCREENPANEL_Z		(PLAYER_MIN_Z-49)
 #define		PANEL_Z				(PLAYER_MIN_Z-50)
 #define		MIRROR_Z			(PLAYER_MIN_Z-5)
@@ -2097,7 +2097,7 @@ struct animlist
     struct animlist *next;
 };
 typedef struct animlist s_anim_list;
-s_anim_list *anim_list;
+extern s_anim_list *anim_list;
 
 typedef struct
 {
@@ -2435,7 +2435,7 @@ typedef struct
     int loadflag;
     int selectable;
 } s_modelcache;
-s_modelcache *model_cache;
+extern s_modelcache *model_cache;
 
 // Caskey, Damon V.
 // 2013-12-08
@@ -2583,6 +2583,9 @@ typedef struct entity
 	// Unsigned integers
 	unsigned int			animpos;							// Current animation frame. ~~
 	unsigned int			attack_id_incoming;					// ~~
+    unsigned int			attack_id_incoming2;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
+    unsigned int			attack_id_incoming3;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
+    unsigned int			attack_id_incoming4;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
 	unsigned int			attack_id_outgoing;					// ~~
 	unsigned int			animnum;							// Current animation id. ~~
 	unsigned int			animnum_previous;					// Previous animation id. ~~

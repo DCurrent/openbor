@@ -87,6 +87,8 @@
 #define CONTROL_DEFAULT4_START		(10+(MAX_BUTTONS*3))
 #define CONTROL_DEFAULT4_SCREENSHOT (9+(MAX_BUTTONS*3))
 
+#define	CONTROL_NONE				(1+(MAX_BUTTONS*99)) //Kratus (20-04-21) value used to clear all keys
+
 #define WII_SHUTDOWN                -1
 #define WII_RESET                   -2
 
