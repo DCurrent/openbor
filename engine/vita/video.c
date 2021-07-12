@@ -15,7 +15,12 @@
 #include "video.h"
 
 static vita2d_texture *vitaTexture[2] = {NULL, NULL};
-static unsigned char vitaPalette[PAL_BYTES];
+// "error: variably modified 'vitaPalette' at file scope" when compiling
+// pixelbytes[(int)5] = {1, 1, 2, 3, 4};
+// PIXEL_32 = 4
+// PAL_BYTES should be 4*256 ????
+//static unsigned char vitaPalette[PAL_BYTES];
+static unsigned char vitaPalette[1024];
 static int vitaBrightness = 0;
 static unsigned char vitaBytesPerPixel = 1;
 

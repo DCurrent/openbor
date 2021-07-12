@@ -274,6 +274,7 @@ endif
 
 
 ifdef BUILD_VITA
+CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=implicit-function-declaration -Wno-error=unused-variable -Wno-error=unused-label -Wno-error=stringop-overflow -Wno-error=multistatement-macros -Wno-error=int-conversion
 INCS           += vita
 endif
 
@@ -546,7 +547,7 @@ endif
 
 
 ifdef BUILD_VITA
-CFLAGS 	       += -DCACHE_BACKGROUNDS -Wl,-q
+CFLAGS 	       += -DCACHE_BACKGROUNDS -Wl,-q -Wno-stringop-truncation
 endif
 
 
@@ -648,7 +649,7 @@ endif
 
 
 ifdef BUILD_VITA
-LIBS           += -lvita2d -lSceKernel_stub -lSceDisplay_stub -lSceGxm_stub \
+LIBS           += -lvita2d -lSceLibKernel_stub -lSceAppMgr_stub -lSceDisplay_stub -lSceGxm_stub \
 	              -lSceSysmodule_stub -lSceCtrl_stub -lScePgf_stub \
 	              -lSceCommonDialog_stub -lSceAudio_stub -lfreetype -ljpeg
 endif
