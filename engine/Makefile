@@ -92,6 +92,8 @@ BUILD_AMD64     = 1
 ARCHFLAGS       = -m64
 LIBRARIES       = $(SDKPATH)/lib/$(GCC_TARGET)
 CFLAGS          += -DAMD64
+# Workaround for GCC 9
+CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=stringop-overflow -Wno-error=deprecated-declarations
 else
 TARGET_ARCH     = x86
 ARCHFLAGS       = -m32
@@ -228,6 +230,7 @@ TARGET_PLATFORM = VITA
 CC  	        = arm-vita-eabi-gcc
 BUILD_TREMOR    = 1
 BUILDING        = 1
+CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=implicit-function-declaration -Wno-error=unused-variable -Wno-error=unused-label -Wno-error=stringop-overflow -Wno-error=multistatement-macros -Wno-error=int-conversion
 ifeq ($(BUILD_VITA), 0)
 BUILD_DEBUG     = 1
 endif
