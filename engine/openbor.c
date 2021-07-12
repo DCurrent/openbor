@@ -561,6 +561,7 @@ int                 keyscriptrate       = 0;
 int                 creditscheat        = 0;
 int                 healthcheat         = 0;
 int                 multihitcheat       = 0;					//Kratus (20-04-21) Flag to enable or disable the multihit glitch option
+int                 damagecheat         = 0;					//tacodog
 int                 showtimeover        = 0;
 int                 sameplayer          = 0;            		// 7-1-2005  flag to determine if players can use the same character
 int                 PLAYER_LIVES        = 3;					// 7-1-2005  default setting for Lives
@@ -25187,6 +25188,12 @@ int calculate_force_damage(entity *other, s_collision_attack *attack)
     int force = attack->attack_force;
     int type = attack->attack_type;
 
+    if(damagecheat && other->modeldata.type & TYPE_PLAYER)
+    {
+        force = self->energy_state.health_current;
+        attack->attack_drop = 1;
+    }
+
     if(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0)
     {
         force = 0;    //guardbreak does not deal damage.
@@ -32298,7 +32305,6 @@ void dropweapon(int flag)
         set_weapon(self, self->modeldata.weaploss[1], 0);
     }
 }
-
 
 int player_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
@@ -39594,10 +39600,10 @@ void menu_options_video()
 
 void menu_options()
 {
-    #define TOT_CHEATS          4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
+    #define TOT_CHEATS          5 // Kratus (20-04-21) increase +1 line to the multihit glitch option
     #define OPT_Y_POS          -1
     #define OPT_X_POS          -7
-    #define CHEAT_PAUSE_POSY    4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
+    #define CHEAT_PAUSE_POSY    5 // Kratus (20-04-21) increase +1 line to the multihit glitch option
 
     typedef enum {
         VIDEO_OPTION,
@@ -39609,6 +39615,7 @@ void menu_options()
         CREDITS_CHEAT,
         HEALTH_CHEAT,
         MULTIHIT_CHEAT, // Kratus (20-04-21) add the multihit glitch option
+        DAMAGE_CHEAT, // tacodog (21-07-11) infinite (9999) damage
 
         END_OPTION
     } e_selector;
@@ -39645,6 +39652,7 @@ void menu_options()
             _menutext((selector == CREDITS_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
             _menutext((selector == HEALTH_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
             _menutext((selector == MULTIHIT_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+MULTIHIT_CHEAT, (multihitcheat)?Tr("Multihit Glitch On"):Tr("Multihit Glitch Off"));    // Kratus (20-04-21) change the multihit glitch option on/off
+            _menutext((selector == DAMAGE_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+DAMAGE_CHEAT, (damagecheat)?Tr("One hit kills On"):Tr("One hit kills Off"));    // tacodog (21-07-11)
         }
 
         _menutextm((selector == BACK_OPTION), y_offset+cheat_opt_offset+BACK_OPTION+2, 0, Tr("Back"));
@@ -39714,6 +39722,7 @@ void menu_options()
            else if(selector==CREDITS_CHEAT) creditscheat = !creditscheat;
            else if(selector==HEALTH_CHEAT) healthcheat = !healthcheat;
            else if(selector==MULTIHIT_CHEAT) multihitcheat = !multihitcheat; // Kratus (20-04-21) selector for the multihit glitch option
+           else if(selector==DAMAGE_CHEAT) damagecheat = !damagecheat; // tacodog
            else quit = 1;
         }
     }
