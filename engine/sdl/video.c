@@ -13,7 +13,6 @@
 #else
 
 #include "sdlport.h"
-
 #include <math.h>
 #include "types.h"
 #include "video.h"
@@ -30,7 +29,6 @@
 SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
-
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
 int yuv_mode = 0;

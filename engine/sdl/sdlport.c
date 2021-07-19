@@ -137,7 +137,19 @@ int main(int argc, char *argv[])
 	dirExists(logsDir, 1);
 	dirExists(screenShotsDir, 1);
 
-	Menu();
+   // Test command line argument to launch MOD
+   int romArg = 0;
+   if(argc == 2) {
+      memcpy(packfile, argv[1], strlen(argv[1]));
+      if(fileExists(packfile)) {
+         romArg = 1;
+      }
+   }
+
+   if(!romArg) {
+       Menu();
+   }
+
 #ifndef SKIP_CODE
 	getPakName(pakname, -1);
 	video_set_window_title(pakname);
