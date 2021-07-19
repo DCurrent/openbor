@@ -615,11 +615,11 @@ endif
 
 ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
-LIBS           += -lSDL -lSDL_gfx -lts #Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
+LIBS           += -lSDL
 else
 COMMA		=,
 RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
-LIBS	       += $(RPATH_LIBS) -lSDL2 -lSDL2_gfx #Kratus (29-04-21) Reversed the FPS limit to reduce CPU usage
+LIBS	       += $(RPATH_LIBS) -lSDL2
 
 ifdef CROSSCOMPILE_LINUX_WIN
 LIBS	       += -lsetupapi
