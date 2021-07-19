@@ -126,7 +126,7 @@ ARCHFLAGS       = -m64
 LIBRARIES       = $(SDKPATH)/usr/lib
 CFLAGS          += -DAMD64
 # Workaround for GCC 9
-CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=stringop-overflow
+CFLAGS          +=  -Wno-error=stringop-overflow
 endif
 
 ifdef BUILD_LINUX_LE_arm
@@ -146,7 +146,7 @@ INCLUDES        = $(SDKPATH)/usr/include \
 OBJTYPE         = elf
 LIBRARIES       = $(SDKPATH)/usr/lib
 # Workaround for GCC 9
-CFLAGS          += -Wno-error=format-overflow -Wno-error=stringop-truncation -Wno-error=implicit-function-declaration -Wno-error=unused-variable -Wno-error=unused-label -Wno-error=stringop-overflow
+CFLAGS          += -Wno-error=format-overflow -Wno-error=implicit-function-declaration -Wno-error=unused-variable -Wno-error=unused-label -Wno-error=stringop-overflow
 endif
 
 ifdef BUILD_DARWIN
@@ -492,7 +492,7 @@ OBJS            = $(MAIN)                                                       
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
-CFLAGS 	       += -g -Wall -Werror -fsigned-char -std=gnu99
+CFLAGS 	       += -g -Wall -Werror -Wno-format-truncation -Wno-stringop-truncation -fsigned-char -std=gnu99
 
 
 ifndef BUILD_DARWIN
