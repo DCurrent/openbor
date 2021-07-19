@@ -2338,7 +2338,7 @@ struct animlist
     struct animlist *next;
 };
 typedef struct animlist s_anim_list;
-s_anim_list *anim_list;
+extern s_anim_list *anim_list;
 
 // Caskey, Damon V.
 // 2019-02-03
@@ -2752,7 +2752,7 @@ typedef struct
     int loadflag;
     int selectable;
 } s_modelcache;
-s_modelcache *model_cache;
+extern s_modelcache *model_cache;
 
 // Caskey, Damon V.
 // 2013-12-08
@@ -2904,6 +2904,9 @@ typedef struct entity
 	// Unsigned integers
 	unsigned int			animpos;							// Current animation frame. ~~
 	unsigned int			attack_id_incoming;					// ~~
+    unsigned int			attack_id_incoming2;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
+    unsigned int			attack_id_incoming3;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
+    unsigned int			attack_id_incoming4;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
 	unsigned int			attack_id_outgoing;					// ~~
 	unsigned int			animnum;							// Current animation id. ~~
 	unsigned int			animnum_previous;					// Previous animation id. ~~

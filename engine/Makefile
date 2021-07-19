@@ -103,6 +103,52 @@ BUILD_DEBUG     = 1
 endif
 endif
 
+ifdef BUILD_LINUX_LE_x86_64
+TARGET 	        = $(VERSION_NAME).elf
+TARGET_FINAL    = $(VERSION_NAME)
+TARGET_PLATFORM = LINUX
+BUILD_SDL       = 1
+BUILD_GFX       = 1
+BUILD_PTHREAD   = 1
+BUILD_SDL_IO    = 1
+BUILD_OPENGL    = 1
+BUILD_LOADGL    = 1
+BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
+BUILDING        = 1
+YASM 	          = nasm
+OBJTYPE         = elf
+INCLUDES        = $(SDKPATH)/usr/include \
+                  $(SDKPATH)/usr/include/SDL2
+TARGET_ARCH     = amd64
+BUILD_AMD64     = 1
+ARCHFLAGS       = -m64
+LIBRARIES       = $(SDKPATH)/usr/lib
+CFLAGS          += -DAMD64
+# Workaround for GCC 9
+CFLAGS          +=  -Wno-error=stringop-overflow
+endif
+
+ifdef BUILD_LINUX_LE_arm
+TARGET 	        = $(VERSION_NAME).elf
+TARGET_FINAL    = $(VERSION_NAME)
+TARGET_PLATFORM = LINUX
+BUILD_LINUX     = 1
+BUILD_SDL       = 1
+BUILD_GFX       = 1
+BUILD_PTHREAD   = 1
+BUILD_SDL_IO    = 1
+BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
+BUILDING        = 1
+INCLUDES        = $(SDKPATH)/usr/include \
+                  $(SDKPATH)/usr/include/SDL2
+OBJTYPE         = elf
+LIBRARIES       = $(SDKPATH)/usr/lib
+# Workaround for GCC 9
+CFLAGS          += -Wno-error=format-overflow -Wno-error=implicit-function-declaration -Wno-error=unused-variable -Wno-error=unused-label -Wno-error=stringop-overflow
+endif
+
 ifdef BUILD_DARWIN
 TARGET          = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME)
@@ -204,7 +250,7 @@ ifdef BUILD_PANDORA
 STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
 endif
 ifdef BUILD_WII
-STRIP           = elf2dol $< $@
+ELF2DOL         = elf2dol $< $@
 endif
 endif
 endif
@@ -446,7 +492,7 @@ OBJS            = $(MAIN)                                                       
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
-CFLAGS 	       += -g -Wall -Werror -fsigned-char -std=gnu99
+CFLAGS 	       += -g -Wall -Werror -Wno-format-truncation -Wno-stringop-truncation -fsigned-char -std=gnu99
 
 
 ifndef BUILD_DARWIN
@@ -569,7 +615,7 @@ endif
 
 ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
-LIBS           += -lSDL -lts
+LIBS           += -lSDL
 else
 COMMA		=,
 RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
@@ -696,7 +742,7 @@ $(TARGET) : $(OBJS) $(RES)
 	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS)
 $(TARGET_FINAL) : $(TARGET)
 	@echo Stripping $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
-	@$(STRIP)
+	@$(ELF2DOL)
 	@echo
 	@echo Completed $(TARGET_PLATFORM) Port!
 	@echo $(TARGET_FINAL) is now ready!

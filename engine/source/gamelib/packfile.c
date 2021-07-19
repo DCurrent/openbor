@@ -319,7 +319,7 @@ char *casesearch(const char *dir, const char *filepath)
     //if (entry != NULL && entry->d_name != NULL)
     if (entry != NULL)
     {
-        sprintf(fullpath, "%s/%s", dir, entry->d_name);
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
     }
 
     if (closedir(d))

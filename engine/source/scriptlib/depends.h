@@ -26,7 +26,9 @@ typedef char CHAR;
 typedef float FLOAT;
 typedef double DOUBLE;
 
-#ifndef WII
+#ifdef WII
+#include <gcbool.h>
+#else
 typedef int BOOL;
 #endif
 
