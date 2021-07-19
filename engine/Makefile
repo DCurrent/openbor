@@ -250,7 +250,7 @@ ifdef BUILD_PANDORA
 STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
 endif
 ifdef BUILD_WII
-STRIP           = elf2dol $< $@
+ELF2DOL         = elf2dol $< $@
 endif
 endif
 endif
@@ -742,7 +742,7 @@ $(TARGET) : $(OBJS) $(RES)
 	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS) $(TARGET_RESOURCE) $(LIBS)
 $(TARGET_FINAL) : $(TARGET)
 	@echo Stripping $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
-	@$(STRIP)
+	@$(ELF2DOL)
 	@echo
 	@echo Completed $(TARGET_PLATFORM) Port!
 	@echo $(TARGET_FINAL) is now ready!

@@ -102,11 +102,11 @@ int main(int argc, char * argv[])
 		strncpy(root, argv[0], strrchr(argv[0], '/') - argv[0]);
 	}
 
-	sprintf(rootDir, "%s/", root);
-	sprintf(savesDir, "%s/Saves", root);
-	sprintf(paksDir,"%s/Paks", root);
-	sprintf(logsDir, "%s/Logs", root);
-	sprintf(screenShotsDir, "%s/ScreenShots", root);
+	snprintf(rootDir, sizeof(rootDir), "%s/", root);
+	snprintf(savesDir, sizeof(savesDir), "%s/Saves", root);
+	snprintf(paksDir, sizeof(paksDir), "%s/Paks", root);
+	snprintf(logsDir, sizeof(logsDir), "%s/Logs", root);
+	snprintf(screenShotsDir, sizeof(screenShotsDir), "%s/ScreenShots", root);
 		
 
 	dirExists(paksDir, 1);
