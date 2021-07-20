@@ -41,7 +41,7 @@ int brightness = 0;
 void initSDL()
 {
 	SDL_DisplayMode video_info;
-	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC;
+	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC;
 
     /*#if EE_CURRENT_PLATFORM == EE_PLATFORM_WINDOWS
        SDL_setenv("SDL_AUDIODRIVER", "directsound", true);

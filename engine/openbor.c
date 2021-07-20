@@ -779,10 +779,10 @@ int                 ent_max				= 0;
 s_player            player[MAX_PLAYERS];
 u64                 bothkeys, bothnewkeys;
 
-s_playercontrols    playercontrols1;
-s_playercontrols    playercontrols2;
-s_playercontrols    playercontrols3;
-s_playercontrols    playercontrols4;
+s_playercontrols    playercontrols1 = {0, 0, 0};
+s_playercontrols    playercontrols2 = {1, 0, 0};
+s_playercontrols    playercontrols3 = {2, 0, 0};
+s_playercontrols    playercontrols4 = {3, 0, 0};
 s_playercontrols   *playercontrolpointers[] = {&playercontrols1, &playercontrols2, &playercontrols3, &playercontrols4};
 s_playercontrols    default_control;
 int default_keys[MAX_BTN_NUM];
@@ -2452,113 +2452,6 @@ void execute_pdie_script(int index)
 
 // ------------------------ Save/load -----------------------------
 
-void clearbuttons(int player)
-{
-    savedata.joyrumble[player] = 0;
-
-    if (player == 0)
-    {
-        savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules like PSP will not work with CONTROL_NONE
-        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
-        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-        #ifdef SDL
-            //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
-        #endif
-
-        /* *************** SET DEFAULT KEYS *************** */
-        // White Dragon: These are default keys: for Android is the touchpad and for Win/Linux etc. is the keyboard
-        default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-        default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
-        default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-
-        control_setkey(&default_control, FLAG_ESC,        CONTROL_ESC);
-        control_setkey(&default_control, FLAG_MOVEUP,     default_keys[SDID_MOVEUP]);
-        control_setkey(&default_control, FLAG_MOVEDOWN,   default_keys[SDID_MOVEDOWN]);
-        control_setkey(&default_control, FLAG_MOVELEFT,   default_keys[SDID_MOVELEFT]);
-        control_setkey(&default_control, FLAG_MOVERIGHT,  default_keys[SDID_MOVERIGHT]);
-        control_setkey(&default_control, FLAG_ATTACK,     default_keys[SDID_ATTACK]);
-        control_setkey(&default_control, FLAG_ATTACK2,    default_keys[SDID_ATTACK2]);
-        control_setkey(&default_control, FLAG_ATTACK3,    default_keys[SDID_ATTACK3]);
-        control_setkey(&default_control, FLAG_ATTACK4,    default_keys[SDID_ATTACK4]);
-        control_setkey(&default_control, FLAG_JUMP,       default_keys[SDID_JUMP]);
-        control_setkey(&default_control, FLAG_SPECIAL,    default_keys[SDID_SPECIAL]);
-        control_setkey(&default_control, FLAG_START,      default_keys[SDID_START]);
-        control_setkey(&default_control, FLAG_SCREENSHOT, default_keys[SDID_SCREENSHOT]);
-    }
-    else if (player == 1)
-    {
-        savedata.keys[1][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[1][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[1][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[1][SDID_START]     = CONTROL_NONE;
-        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
-        #endif
-    }
-    else if (player == 2)
-    {
-        savedata.keys[2][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[2][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[2][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[2][SDID_START]     = CONTROL_NONE;
-        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
-        #endif
-    }
-    else if (player == 3)
-    {
-        savedata.keys[3][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[3][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[3][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[3][SDID_START]     = CONTROL_NONE;
-        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
-        #endif
-    }
-}
-
 void clearsettings()
 {
     int i = 0;
@@ -2612,8 +2505,10 @@ void clearsettings()
 
     for (i = 0; i < MAX_PLAYERS; i++)
     {
-        clearbuttons(i);
+        savedata.joyrumble[i] = 0;
     }
+
+    control_clearmappings();
 }
 
 
@@ -2633,6 +2528,15 @@ void savesettings()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
+
+    // save controls
+    getBasePath(path, "Saves", 0);
+    getPakName(tmpname, 5);
+    strcat(path, tmpname);
+    if (!control_savemappings(path))
+    {
+        printf("Failed to save controls to %s\n", path);
+    }
 #endif
 }
 
@@ -2650,6 +2554,14 @@ void saveasdefault()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
+
+    // save controls
+    getBasePath(path, "Saves", 0);
+    strcat(path, "default.controls");
+    if (!control_savemappings(path))
+    {
+        printf("Failed to save controls to %s\n", path);
+    }
 #endif
 }
 
@@ -2680,6 +2592,15 @@ void loadsettings()
     {
         clearsettings();
     }
+
+    // load controls
+    getBasePath(path, "Saves", 0);
+    getPakName(tmpname, 5);
+    strcat(path, tmpname);
+    if (!control_loadmappings(path))
+    {
+        printf("Failed to load controls from %s\n", path);
+    }
 #else
     clearsettings();
 #endif
@@ -2703,6 +2624,14 @@ void loadfromdefault()
     if(savedata.compatibleversion != COMPATIBLEVERSION)
     {
         clearsettings();
+    }
+
+    // load controls
+    getBasePath(path, "Saves", 0);
+    strcat(path, "default.controls");
+    if (!control_loadmappings(path))
+    {
+        printf("Failed to load controls from %s\n", path);
     }
 #else
     clearsettings();
@@ -37584,6 +37513,7 @@ void fade_out(int type, int speed)
 
 void apply_controls()
 {
+#if 0 // TODO
     int p;
 
     for(p = 0; p < MAX_PLAYERS; p++)
@@ -37602,6 +37532,7 @@ void apply_controls()
         control_setkey(playercontrolpointers[p], FLAG_START,      savedata.keys[p][SDID_START]);
         control_setkey(playercontrolpointers[p], FLAG_SCREENSHOT, savedata.keys[p][SDID_SCREENSHOT]);
     }
+#endif
 }
 
 
@@ -40458,7 +40389,7 @@ void keyboard_setup(int player)
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
-    #if SDL || WII || DC
+    #if SDL || WII
     int OPTIONS_NUM = btnnum + 3;
     #else
     int OPTIONS_NUM = btnnum + 2;
@@ -40526,6 +40457,9 @@ void keyboard_setup(int player)
 
     while(!quit)
     {
+        int deviceID = playercontrolpointers[player]->deviceID;
+        int *mapping = control_getmappings(deviceID);
+
         voffset = -6;
         _menutextm(2, -8, 0, Tr("Player %i"), player + 1);
         for(i = 0; i < btnnum; i++)
@@ -40533,11 +40467,11 @@ void keyboard_setup(int player)
             if(!disabledkey[i])
             {
                 _menutext((selector == i), col1, voffset, "%s", buttonnames[i]);
-                _menutext((selector == i), col2, voffset, "%s", control_getkeyname(savedata.keys[player][i]));
+                _menutext((selector == i), col2, voffset, "%s", i == setting ? "..." : control_getkeyname(deviceID, mapping[i]));
                 voffset++;
             }
         }
-        #if SDL || WII || DC
+        #if SDL || WII
         ++voffset;
         if(savedata.joyrumble[player])
         {
@@ -40556,23 +40490,22 @@ void keyboard_setup(int player)
 
         if(setting > -1)
         {
-            if(bothnewkeys & FLAG_ESC)
+            k = control_getremappedkey();
+            if (k >= 0)
             {
-                savedata.keys[player][setting] = ok;
+                safe_set(mapping, setting, k, ok);
+                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+
+                // Prevent the newly configured button from counting as "pressed" and starting config again
+                playercontrolpointers[player]->keyflags |= (1 << setting);
+
+                setting = -1;
+                control_remapdevice(-1);
+            }
+            else if (bothnewkeys & FLAG_ESC)
+            {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 50);
                 setting = -1;
-            }
-            if(setting > -1)
-            {
-                k = control_scankey();
-                if(k)
-                {
-                    safe_set(savedata.keys[player], setting, k, ok);
-                    sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-                    setting = -1;
-                    // Prevent accidental screenshot
-                    bothnewkeys = 0;
-                }
             }
         }
         else
@@ -40612,27 +40545,20 @@ void keyboard_setup(int player)
                 while(disabledkey[selector]) if(++selector > btnnum - 1) break;
             }
 
-            #if SDL || WII || DC
-            if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
-            #else
-            if(bothnewkeys & (FLAG_ANYBUTTON))
-            #endif
-            if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+#if SDL || WII
+            if (selector == OPTIONS_NUM - 3 && (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON)))
+            {
+                // TODO: make rumble enable/disable a property of device, not player
+                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                savedata.joyrumble[player] = !savedata.joyrumble[player];
+            }
+            else
+#endif
+            if (bothnewkeys & FLAG_ANYBUTTON)
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                #if SDL || WII || DC
-                if (selector != OPTIONS_NUM - 3 &&
-                    bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
-
-                if(selector == OPTIONS_NUM - 3)
-                {
-                    savedata.joyrumble[player] ^= 1;
-                }
-                else if(selector == OPTIONS_NUM - 2) // OK
-                #else
                 if(selector == OPTIONS_NUM - 2) // OK
-                #endif
                 {
                     quit = 2;
                 }
@@ -40642,16 +40568,14 @@ void keyboard_setup(int player)
                 }
                 else if(selector == OPTIONS_NUM) // default
                 {
-                    clearbuttons(player);
+                    control_resetmappings(deviceID);
+                    savedata.joyrumble[player] = 0;
                 }
                 else
                 {
                     setting = selector;
-                    ok = savedata.keys[player][setting];
-                    savedata.keys[player][setting] = 0;
-                    #ifndef DC
-                    keyboard_getlastkey();
-                    #endif
+                    ok = mapping[setting];
+                    control_remapdevice(deviceID);
                 }
             }
         }
@@ -40667,139 +40591,203 @@ void keyboard_setup(int player)
         loadsettings();
     }
 
-
     update(0, 0);
     bothnewkeys = 0;
     printf("Done!\n");
 }
 
+// Set device safely (with switching)
+static void safe_set_device(int player, int newdevice, int olddevice)
+{
+    int i;
+    for (i = 0; i < levelsets[current_set].maxplayers; i++)
+    {
+        if (playercontrolpointers[i]->deviceID == newdevice)
+        {
+            playercontrolpointers[i]->deviceID = olddevice;
+        }
+    }
+    playercontrolpointers[player]->deviceID = newdevice;
+}
+
 void menu_options_input()
 {
     int quit = 0;
-    int selector = 1; // 0
-    int x_pos = -6;
+    int selector = 0;
+    const int col1 = -7;
+    const int col2 = 1;
+    const int max_players = levelsets[current_set].maxplayers;
+    const int base = -4 + (4 - max_players);
+    int active_devices = 0;
+    int selected_device = playercontrolpointers[0]->deviceID;
     #if ANDROID
-    int OPTIONS_NUM = 6;
+    const int OPTIONS_NUM = 9;
     #else
-    int OPTIONS_NUM = 5;
+    const int OPTIONS_NUM = 8;
     #endif
 
     controloptionsMenu = 1;
     bothnewkeys = 0;
 
-    while(!quit)
+    while (!quit)
     {
-        _menutextm(2, x_pos-1, 0, Tr("Control Options"));
+        _menutextm(2, base - 2, 0, Tr("Control Options"));
 
-        #if PSP
-        if(savedata.usejoy)
+        for (int i = 0; i < max_players; i++)
         {
-            _menutext((selector == 0), -4, -2, Tr("Analog Pad Enabled"));
+            _menutext((selector == i), col1, base + i + (selector < i), Tr("Player %i"), i+1);
+            _menutext((selector == i), col2, base + i + (selector < i), "< %s >",
+                      control_getdevicename(selector == i ? selected_device : playercontrolpointers[i]->deviceID));
         }
-        else
+
+        if (selector < max_players)
         {
-            _menutext((selector == 0), -4, -2, Tr("Analog Pad Disabled"));
+            _menutextm(1, selector + base + 1, 0, Tr("Press Start to apply, Up or Down to cancel"));
         }
-        #elif WII
-        if(savedata.usejoy)
+
+        active_devices = 0;
+        for (int i = 0; i < max_players; i++)
         {
-            _menutext((selector == 0), -4, -2, Tr("Nunchuk Analog Enabled"));
-        }
-        else
-        {
-            _menutext((selector == 0), -4, -2, Tr("Nunchuk Analog Disabled"));
-        }
-        #else
-        if(savedata.usejoy)
-        {
-            _menutext((selector == 0), x_pos, -2, Tr("GamePads Enabled"));
-            if(!control_getjoyenabled())
+            if (control_isvaliddevice(playercontrolpointers[i]->deviceID))
             {
-                _menutext((selector == 0), x_pos+11, -2, Tr(" - Device Not Ready"));
+                _menutextm((selector == 4+i), 1 + active_devices, 0, Tr("Setup Player %i..."), i + 1);
+                ++active_devices;
             }
         }
-        else
-        {
-            _menutext((selector == 0), x_pos, -2, Tr("GamePads Disabled"));
-        }
-        #endif
 
-        _menutext((selector == 1), x_pos,-1, Tr("Setup Player 1..."));
-        _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
-        _menutext((selector == 3), x_pos, 1, Tr("Setup Player 3..."));
-        _menutext((selector == 4), x_pos, 2, Tr("Setup Player 4..."));
         #if ANDROID
-        if(savedata.is_touchpad_vibration_enabled)
+        if (savedata.is_touchpad_vibration_enabled)
         {
-            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Enabled"));
+            _menutextm((selector == 8), 2 + active_devices, 0, Tr("Touchpad Vibration Enabled"));
         }
         else
         {
-            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Disabled"));
+            _menutextm((selector == 8), 2 + active_devices, 0, Tr("Touchpad Vibration Disabled"));
         }
-        _menutextm((selector == 6), 6, 0, Tr("Back"));
+        _menutextm((selector == 9), 4 + active_devices, 0, Tr("Back"));
         #else
-        _menutextm((selector == 5), 5, 0, Tr("Back"));
+        _menutextm((selector == 8), 2 + active_devices, 0, Tr("Back"));
         #endif
 
         update((level != NULL), 0);
 
-        if(bothnewkeys & FLAG_ESC)
+        if (bothnewkeys & FLAG_ESC)
         {
             quit = 1;
         }
-        if(bothnewkeys & FLAG_MOVEUP)
+        if (bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if (SAMPLE_BEEP >= 0)
             {
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
+
+            // skip over invisible configuration entries for non-existent devices
+            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(selector - 4))
+            {
+                --selector;
+            }
+
+            // skip over invisible device selection entries for non-existent players
+            if (selector < 4 && selector >= max_players)
+            {
+                selector = max_players - 1;
+            }
         }
-        if(bothnewkeys & FLAG_MOVEDOWN)
+        if (bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if (SAMPLE_BEEP >= 0)
             {
                 sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
             }
+
+            // skip over invisible device selection entries for non-existent players
+            if (selector < 4 && selector >= max_players)
+            {
+                selector = 4;
+            }
+
+            // skip over invisible configuration entries for non-existent devices
+            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(selector - 4))
+            {
+                ++selector;
+            }
         }
-        if(selector < 0)
+        if (selector < 0)
         {
             selector = OPTIONS_NUM;
         }
-        if(selector > OPTIONS_NUM)
+        if (selector > OPTIONS_NUM)
         {
             selector = 0;
         }
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if (selector < 4 && (bothnewkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
         {
+            selected_device = playercontrolpointers[selector]->deviceID;
+        }
 
-            if(SAMPLE_BEEP2 >= 0)
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        {
+            // Left/right only make sense for device reassignment
+            if (selector >= 4 && !(bothnewkeys & FLAG_ANYBUTTON))
+            {
+                continue;
+            }
+
+            if (SAMPLE_BEEP2 >= 0)
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            switch(selector)
+            switch (selector)
             {
             case 0:
-                control_usejoy((savedata.usejoy ^= 1));
-                break;
             case 1:
-                keyboard_setup(0);
-                break;
             case 2:
-                keyboard_setup(1);
-                break;
             case 3:
-                keyboard_setup(2);
+                if (bothnewkeys & FLAG_MOVELEFT)
+                {
+                    do {
+                        --selected_device;
+                        if (selected_device < 0)
+                        {
+                            selected_device = MAX_DEVICES - 1;
+                        }
+                    } while (!control_isvaliddevice(selected_device));
+                }
+                else if (bothnewkeys & FLAG_MOVERIGHT)
+                {
+                    do {
+                        ++selected_device;
+                        if (selected_device >= MAX_DEVICES)
+                        {
+                            selected_device = 0;
+                        }
+                    } while (!control_isvaliddevice(selected_device));
+                }
+                else // (bothnewkeys & FLAG_ANYBUTTON)
+                {
+                    // assign selected device to player
+                    safe_set_device(selector, selected_device, playercontrolpointers[selector]->deviceID);
+                }
                 break;
             case 4:
+                keyboard_setup(0);
+                break;
+            case 5:
+                keyboard_setup(1);
+                break;
+            case 6:
+                keyboard_setup(2);
+                break;
+            case 7:
                 keyboard_setup(3);
                 break;
             #if ANDROID
-            case 5:
-                savedata.is_touchpad_vibration_enabled ^= 1;
+            case 8:
+                savedata.is_touchpad_vibration_enabled = !savedata.is_touchpad_vibration_enabled;
                 break;
             #endif
             default:
