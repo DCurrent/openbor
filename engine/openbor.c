@@ -21100,37 +21100,41 @@ void set_opponent(entity *ent, entity *other)
 
 }
 
-// Caskey, Damon V.
-// 2018-12-31
-// 
-// Initialize appropriate block animation and flags. Called when 
-// entity blocks actively (blocking before attack hits). Used 
-// by all player controlled entities or AI controlled entities 
-// with nopassiveblock enabled. 
+/* 
+* Caskey, Damon V.
+* 2018-12-31
+* 
+* Initialize appropriate block animation and flags. Called when 
+* entity blocks actively (blocking before attack hits). Used 
+* by all player controlled entities or AI controlled entities 
+* with nopassiveblock enabled. 
+*/
 void do_active_block(entity *ent)
 {
-	// Run blocking action.
+	/* Run blocking action. */
 	ent->takeaction = common_block;
 
-	// Stop movement.
+	/* Stop movement. */
 	ent->velocity.x = 0;
 	ent->velocity.z = 0;
 
-	// Set flags.
-	set_blocking(self);
+	/* Set flags. */
+	set_blocking(ent);
 
-	// End combo.
-	self->combostep[0] = 0;
+	/* End combo. */
+    ent->combostep[0] = 0;
 
-	// If we have a block tranisiton animation, use it. Otherwise
-	// go right to block.
-	if (validanim(self, ANI_BLOCKSTART))
+	/* 
+    * If we have a block tranisiton animation, use it. Otherwise
+	* go right to block.
+	*/
+    if (validanim(ent, ANI_BLOCKSTART))
 	{
-		ent_set_anim(self, ANI_BLOCKSTART, 0);
+		ent_set_anim(ent, ANI_BLOCKSTART, 0);
 	}
 	else
 	{
-		ent_set_anim(self, ANI_BLOCK, 0);
+		ent_set_anim(ent, ANI_BLOCK, 0);
 	}
 }
 
@@ -21345,34 +21349,39 @@ int check_blocking_master(entity *ent, entity *other, s_attack *attack)
 	return 1;
 }
 
-// Caskey, Damon V.
-// 2018-09-18
-//
-// Apply primary block settings, animations,
-// actions, and scripts.
+/* 
+* Caskey, Damon V.
+* 2018-09-18
+*
+* Apply primary block settings, animations,
+* actions, and scripts.
+*/
 void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 {
-	// Execute the attacker's didhit script with blocked flag.
+	/* Execute the attacker's didhit script with blocked flag. */
 	execute_didhit_script(other, ent, attack, 1);
 
-	// Set up blocking action and flag.
+	/* Set up blocking action and flag. */
 	ent->takeaction = common_block;
 	set_blocking(ent);	
 
-	// Stop movement.
-	ent->velocity.x = ent->velocity.z = 0;
+	/* Stop ground movement. */
+    ent->velocity.x = 0;
+    ent->velocity.z = 0;
 
-	// If we have guardpoints, then reduce them here.
+	/* If we have guardpoints, then reduce them here. */
 	if (ent->modeldata.guardpoints.max > 0)
 	{
 		ent->modeldata.guardpoints.current -= attack->guardcost;
 	}
 
-	// Blocked hit is still a hit, so
-	// increment the attacker's hit counter.
-	++other->animation->hit_count;
+	/* 
+    * Blocked hit is still a hit, so
+	* increment the attacker's hit counter.
+	*/
+    ++other->animation->hit_count;
 
-	// Execute our block script.
+	/* Execute our block script. */
 	execute_didblock_script(ent, other, attack);
 }
 
