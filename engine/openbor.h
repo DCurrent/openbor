@@ -2013,21 +2013,33 @@ typedef struct
     int         meta_tag;           // user defined int.
 } s_collision_space;
 
-// Caskey, Damon V.
-// 2020-02-20
-//
-// Collision container.
+/* 
+* Caskey, Damon V.
+* 2020-02-20
+*
+* Collision container. We use this for all
+* types of collisions, setting type and then
+* allocating sub structures as needed. This
+* also allows us to have a collision box that 
+* is more than one type at once, though in 
+* practice we don't do that at the moment.
+*
+* Example: For an attack, we set the attack
+* bit in type property to TRUE and allocate
+* coordinates. Then we allocate the attack 
+* properties.
+*/
 typedef struct s_collision
 {
-    struct s_collision* next;   // Next item in linked list.
-    s_attack* attack; // Attacking properties.
-    s_collision_body*   body;   // Body (detecting incoming attack) properties.
-    s_collision_space*  space;  // Physical space properties.
-    s_hitbox*           coords; // Collision box dimensions.
+    struct s_collision* next;       // Next item in linked list.
+    s_attack*           attack;     // Attacking properties.
+    s_collision_body*   body;       // Body (detecting incoming attack) properties.
+    s_collision_space*  space;      // Physical space properties.
+    s_hitbox*           coords;     // Collision box dimensions.
     s_meta_data*        meta_data;  // User defined data.
     int                 meta_tag;   // User defined int.
-    e_collision_type    type;   // Detection type.  
-    int                 index;  // Listing index.
+    e_collision_type    type;       // Detection type.  
+    int                 index;      // Listing index.
 } s_collision;
 
 // Caskey, Damon V.
@@ -2213,16 +2225,19 @@ typedef struct
 
 #define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
 #define ANIMATION_CHARGE_TIME_DEFAULT	2
-// Caskey, Damon V
-// 2019-11-19
-//
-// Cancel feature originally coded by orochi_x ("OX" in code). 
-// Functionally the cancel member appears to be a simple Boolean 
-// flag and the code uses it as such. Therefore we normally wouldn't
-// need or bother with named constants. However, OX used a value 
-// of 3 for the enabled state and left a notation stressing the 
-// importance of keeping it as is. I am unable to determine why, 
-// but since 3 works let’s take his advice and leave it be for now.
+
+/* 
+* Caskey, Damon V
+* 2019-11-19
+*
+* Cancel feature originally coded by orochi_x ("OX" in code). 
+* Functionally the cancel member appears to be a simple Boolean 
+* flag and the code uses it as such. Therefore we normally wouldn't
+* need or bother with named constants. However, OX used a value 
+* of 3 for the enabled state and left a notation stressing the 
+* importance of keeping it as is. I am unable to determine why, 
+* but since 3 works let’s take his advice and leave it be for now.
+*/
 typedef enum
 {
 	ANIMATION_CANCEL_DISABLED	= 0,
@@ -3376,17 +3391,20 @@ s_onframe_set			*allocate_frame_set();
 s_sub_entity			*allocate_sub_entity();
 s_anim                  *alloc_anim();
 
-// Caskey, Damon V.
-// 2020-03-04
-//
-// Addframe() and related sub functions function have 
-// a TON of parameters. Let's package them up into a 
-// more manageable structure.
-typedef struct {
+/*
+* Caskey, Damon V.
+* 2020-03-04
+*
+* Used to package up the previously massive and 
+* unwieldy parameter list of addframe() and related 
+* functions.
+*/
+typedef struct 
+{
     s_anim*                     animation;      // Animation we will add frame to.
     int                         spriteindex;    // Image displayed during frame.
     int                         framecount;     // Number of frames.
-    int                         delay;          // Frame duration (centiseonds)
+    int                         delay;          // Frame duration (centiseonds).
     unsigned                    idle;           // TRUE = Set idle status during frame.
     s_collision_entity*         ebox;           // "Entity" box added by WD. To be removed.
     s_hitbox*                   entity_coords;  // Coordinates for "Entity" box. To be removed.
@@ -3406,19 +3424,19 @@ typedef struct {
 
 int addframe(s_addframe_data* data);
 
-// Collision and attcking control.
+/* Collision and attcking control. */
 
-// -- Attack properties.
+/* -- Attack properties. */
 s_attack*               attack_allocate_object();
 s_attack*               attack_clone_object(s_attack* source);
 void                    attack_dump_object(s_attack* attack);
-void                    attack_free_object(s_attack* attack);
+void                    attack_free_object(s_attack* target);
 
-// -- Body properties
+/* -- Body properties */
 s_collision_body*       body_allocate_object();
 s_collision_body*       body_clone_object(s_collision_body* source);
 void                    body_dump_object(s_collision_body* body);
-void                    body_free_object(s_collision_body* body);
+void                    body_free_object(s_collision_body* target);
 
 // -- Recursive damage
 s_damage_recursive*     recursive_damage_allocate_object();
@@ -3428,7 +3446,7 @@ void                    recursive_damage_dump_object(s_damage_recursive* recursi
 s_hitbox*               collision_allocate_coords(s_hitbox* coords);
 s_collision*            collision_allocate_object();
 s_collision*            collision_append_node(struct s_collision* head);
-s_collision*            collision_append_node_to_property(s_collision** target_property);
+// s_collision*            collision_append_node_to_property(s_collision** target_property);
 int                     collision_check_has_coords(s_collision* target);
 s_collision*            collision_clone_list(s_collision* source_head);
 void                    collision_dump_list(s_collision* head);

@@ -5878,27 +5878,55 @@ s_hitbox *collision_allocate_coords(s_hitbox *coords)
     return result;
 }
 
-// Caskey, Damon V.
-// 2020-02-11
-// 
-// Allocate an attack property structure and return pointer.
+/*
+* Caskey, Damon V.
+* 2021-08-08
+*
+* Allocate a body property structure and return pointer.
+*/
+s_collision_body* body_allocate_object()
+{
+    s_collision_body* result;
+
+    /* Allocate memory and get the pointer. */
+    result = malloc(sizeof(*result));
+    
+    /*
+    * Default values.
+    *
+    * -- Copy the universal empty body structure. This
+    * takes care of most default values in one shot.
+    */
+    memcpy(result, &empty_body, sizeof(*result));
+
+    return result;
+}
+
+/* 
+* Caskey, Damon V.
+* 2020-02-11
+* 
+* Allocate an attack property structure and return pointer.
+*/
 s_attack* attack_allocate_object()
 {
     s_attack* result;
 
-    // Allocate memory and get the pointer.
+    /* Allocate memory and get the pointer. */
     result = malloc(sizeof(*result));
 
-    // Default values.
-
-    // -- Copy the universal empty attack structure. This
-    // takes care of most default values in one shot.
+    /* 
+    * Default values.
+    *
+    * -- Copy the universal empty attack structure. This
+    * takes care of most default values in one shot.
+    */
     memcpy(result, &emptyattack, sizeof(*result));
 
-    // -- Apply default hit sound effect (for legacy compatability).
+    /* -- Apply default hit sound effect (for legacy compatability). */
     result->hitsound = SAMPLE_BEAT;
     
-    // -- Apply default drop velocity. 
+    /* -- Apply default drop velocity. */
     result->dropv.x = default_model_dropv.x;
     result->dropv.y = default_model_dropv.y;
     result->dropv.z = default_model_dropv.z;
@@ -5906,12 +5934,14 @@ s_attack* attack_allocate_object()
     return result;
 }
 
-// Caskey, Damon V.
-// 2020-03-09
-//
-// Allocate new attack object with same values (but not same 
-// pointers) as received attack object. Returns pointer to
-// new object.
+/* 
+* Caskey, Damon V.
+* 2020-03-09
+*
+* Allocate new attack object with same values (but not same 
+* pointers) as received attack object. Returns pointer to
+* new object.
+*/
 s_attack* attack_clone_object(s_attack* source)
 {
     s_attack* result = NULL;
@@ -5923,15 +5953,21 @@ s_attack* attack_clone_object(s_attack* source)
 
     result = attack_allocate_object();
 
-    // Attack has a ton of members. Rather than do everything 
-    // piecemeal, we'll memcopy to get all the basic values, 
-    // and overwrite object pointers individually.
+    /* 
+    * Attack has a ton of members. Rather than do everything 
+    * piecemeal, we'll memcopy to get all the basic values, 
+    * and then overwrite members individually as needed.
+    */
+
     memcpy(result, source, sizeof(*result));
 
-    // Clone sub objects. Same principal - we want new pointers
-    // allocated with the same data as the source pointers.
+    /* 
+    * Clone sub objects. Same principal as parent. We want 
+    * new pointers allocated with the same data as the source 
+    * pointers.
+    */
 
-    // -- Recursive damage.
+    /* -- Recursive damage. */
     if (source->recursive && source->recursive->mode)
     {
         result->recursive = malloc(sizeof(*result->recursive));
@@ -5941,10 +5977,64 @@ s_attack* attack_clone_object(s_attack* source)
     return result;
 }
 
-// Caskey, Damon V
-// 2020-03-12
-//
-// Send all attack data to log for debugging.
+/*
+* Caskey, Damon V.
+* 2021-08-08
+*
+* Allocate new body object with same values (but not same
+* pointers) as received body object. Returns pointer to
+* new object.
+*/
+s_collision_body* body_clone_object(s_collision_body* source)
+{
+    s_collision_body* result = NULL;
+
+    if (!source)
+    {
+        return result;
+    }
+
+    result = body_allocate_object();
+
+    /*
+    * Rather than do everything piecemeal, we'll memcopy 
+    * to get all the basic values, and then overwrite 
+    * members individually as needed.
+    */
+
+    memcpy(result, source, sizeof(*result));
+
+    return result;
+}
+
+/* 
+* Caskey, Damon V
+* 2020-03-12
+*
+* Send all body data to log for debugging.
+*/
+void body_dump_object(s_collision_body* body)
+{
+    printf("\n\n -- Body (%p) dump --", body);
+
+    if (body)
+    {
+        printf("\n\t ->body_coords: %d", body->coords);
+        printf("\n\t ->body_defense: %d", body->defense);
+        printf("\n\t ->body_index: %d", body->index);
+        printf("\n\t ->body_meta_data: %d", body->meta_data);
+        printf("\n\t ->body_meta_tag: %d", body->meta_tag);
+    }
+
+    printf("\n\n -- Body (%p) dump complete... -- \n", body);
+}
+
+/*
+* Caskey, Damon V
+* 2020-03-12
+*
+* Send all attack data to log for debugging.
+*/
 void attack_dump_object(s_attack* attack)
 {
     printf("\n\n -- Attack (%p) dump --", attack);
@@ -5994,10 +6084,12 @@ void attack_dump_object(s_attack* attack)
     printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
 }
 
-// Caskey, Damon V.
-// 2020-03-10
-// 
-// Free attack properties from memory.
+/*
+* Caskey, Damon V.
+* 2020-03-10
+* 
+* Free attack properties from memory.
+*/
 void attack_free_object(s_attack * target)
 {
     if (target->recursive)
@@ -6006,6 +6098,17 @@ void attack_free_object(s_attack * target)
         target->recursive = NULL;
     }
    
+    free(target);
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-21
+*
+* Free body properties from memory.
+*/
+void body_free_object(s_collision_body* target)
+{
     free(target);
 }
 
@@ -6252,14 +6355,19 @@ s_collision* collision_clone_list(s_collision* source_head)
     return clone_head;
 }
 
-// Caskey, Damon V.
-// 2020-02-10
-//
-// Allocate new collision node and append it to 
-// end of collision linked list. If no lists exists
-// yet, the new node becomes head of a new list.
-// 
-// Returns pointer to new node.
+/* 
+* Caskey, Damon V.
+* 2020-02-10
+*
+* Allocate new collision node and append it to 
+* end of collision linked list. If no lists exists
+* yet, the new node becomes head of a new list.
+* 
+* First step in adding another collision instance
+* of any type (body, space, or attack).
+* 
+* Returns pointer to new node.
+*/
 s_collision* collision_append_node(struct s_collision* head)
 {   
     // Allocate node.   
@@ -6302,23 +6410,30 @@ s_collision* collision_append_node(struct s_collision* head)
     return new_node;
 }
 
-// 2020-02-23
-// Caskey, Damon V.
-//
-// Receive pointer to property. If property value is NULL
-// a new collision list is allocated and the property 
-// value is populated with head node. If the property
-// already has a head pointer, a new node is allocated
-// to existing list and property value is unchanged.
-//
-// Returns pointer to allocated node.
+/* 
+*2020-02-23
+* Caskey, Damon V.
+*
+* Receive pointer to property. If property value is NULL
+* a new collision list is allocated and the property 
+* value is populated with head node. If the property
+* already has a head pointer, a new node is allocated
+* to existing list and property value is unchanged.
+*
+* Returns pointer to allocated node.
+*
+* 2021-08-08 - DC: This funciton is never used and I 
+* can't recall or figure out what I wrote it for. May 
+* have intended it as a script interface, so just
+* disabling for now.
+
 s_collision* collision_append_node_to_property(s_collision** target_property)
 {
     // Allocate new node and get pointer. See function 
     // for details.
     s_collision* result = collision_append_node(*target_property);
 
-    // If target property valur is not set, then the
+    // If target property value is not set, then the
     // new node is a list head. Populate the property 
     // with node pointer.
     if (!*target_property)
@@ -6330,6 +6445,7 @@ s_collision* collision_append_node_to_property(s_collision** target_property)
 
     return result;
 }
+*/
 
 // Caskey, Damon V.
 // 2020-02-17
