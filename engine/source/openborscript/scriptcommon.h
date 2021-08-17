@@ -129,7 +129,7 @@ extern s_sprite_map *sprite_map;
 
 extern unsigned char *blendings[MAX_BLENDINGS];
 extern int            current_palette;
-extern s_attack emptyattack;
+extern s_collision_attack emptyattack;
 
 #endif // SCRIPT_COMMON_H
 
