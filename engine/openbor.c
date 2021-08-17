@@ -6683,7 +6683,7 @@ void collision_remove_undefined_coordinates(s_collision** head)
 // Caskey, Damon V
 //
 // Create or update a recursive attack property.
-// Same principal as collision_upsert_attack_property.
+// Same principal as collision_attack_upsert_property.
 s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int index)
 {
     s_collision_attack* cursor;
@@ -6691,7 +6691,7 @@ s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int 
     // Run attack upsert to make sure we have a valid
     // collision node for requested index, and that
     // it has an attack property.
-    cursor = collision_upsert_attack_property(head, index);
+    cursor = collision_attack_upsert_property(head, index);
         
 
     // Have a recursive property? If not we'll need to allocate it.
@@ -6787,9 +6787,9 @@ s_collision_body* collision_upsert_body_property(s_collision** head, int index)
 * 3. Find or allocate attack object on collision node.
 * Returns pointer to attack object.
 */
-s_collision_attack* collision_upsert_attack_property(s_collision** head, int index)
+s_collision_attack* collision_attack_upsert_property(s_collision** head, int index)
 {
-    // printf("\n\n collision_upsert_attack_property(head: %p, index: %d)", *head, index);
+    // printf("\n\n collision_attack_upsert_property(head: %p, index: %d)", *head, index);
 
     s_collision* temp_collision_current;
 
@@ -11365,7 +11365,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_COUNTERATTACK:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->counterattack = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->counterattack = GET_INT_ARG(1);
                 
                 break;
             case CMD_MODEL_THROWFRAME:
@@ -11839,11 +11839,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
                 }
 
                 break;
@@ -11854,11 +11854,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
                 }
 
                 break;
@@ -11869,11 +11869,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
                 }
 
                 break;
@@ -11884,11 +11884,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
                 }
 
                 break;
@@ -11897,7 +11897,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if(GET_INT_ARG(1))
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->next_hit_time = GAME_SPEED / 20;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->next_hit_time = GAME_SPEED / 20;
                 }
 
                 break;
@@ -11906,7 +11906,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if(GET_INT_ARG(1))
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->ignore_attack_id = 1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->ignore_attack_id = 1;
                 }
                 
                 break;
@@ -12187,49 +12187,49 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             // Broken down attack commands.
             case CMD_MODEL_COLLISION_BLOCK_COST:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);               
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);               
                 
                 break;
 
             case CMD_MODEL_COLLISION_BLOCK_PENETRATE:
                 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_COUNTER:
                 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->counterattack = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->counterattack = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_FORCE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_force = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_force = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_LAND_MODE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blast = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blast = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_LETHAL_DISABLE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_kill = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_kill = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_STEAL:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->steal = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->steal = GET_INT_ARG(1);
 
                 break;
 
@@ -12239,24 +12239,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 				if (stricmp(value, "burn") == 0)
 				{
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
                 }
 				else if(stricmp(value, "freeze") == 0)
 				{
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
 
 				}
 				else if (stricmp(value, "shock") == 0)
 				{
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
 				}
 				else if (stricmp(value, "steal") == 0)
 				{
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
 				}
 				else
 				{
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = GET_INT_ARG(1);
 				}
 
                 break;
@@ -12299,31 +12299,31 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_COLLISION_REACTION_FALL_FORCE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_X:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Y:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FALL_VELOCITY_Z:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(1);
 
                 break;
 
 			case CMD_MODEL_COLLISION_REACTION_REPOSITION_DIRECTION:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
                 				
 				break;
 
@@ -12333,11 +12333,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
                 }
 
                 break;
@@ -12348,11 +12348,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
                 }
 
                 break;
@@ -12363,17 +12363,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
                 }
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(1);
 
                 break;
 
@@ -12383,145 +12383,145 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
                 }
 
                 break;
 
             case CMD_MODEL_COLLISION_GROUND:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->otg = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->otg = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_COLLISION_MAP_INDEX:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_COLLISION_MAP_TIME:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->maptime = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->maptime = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_POSITION_X:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->x = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_POSITION_Y:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->y = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FREEZE_MODE:
                 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freeze = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freeze = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FREEZE_TIME:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freezetime = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freezetime = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->next_hit_time = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->next_hit_time = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab_distance = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->grab_distance = GET_INT_ARG(1);
                                 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_MODE:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->grab = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_PAIN_SKIP:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_pain = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_pain = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_PAUSE_TIME:
                 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_COLLISION_SEAL_COST:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->seal = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->seal = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_SEAL_TIME:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->sealtime = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->sealtime = GET_INT_ARG(1);
 
                 break;
             
             case CMD_MODEL_COLLISION_SIZE_X:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->width = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Y:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->height = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Z_1:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_background = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Z_2:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_foreground = GET_INT_ARG(1);
                                 
                 break;
 
             case CMD_MODEL_COLLISION_STAYDOWN_RISE:
                 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.rise = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->staydown.rise = GET_INT_ARG(1);
                                 
                 break;
 
             case CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.riseattack = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->staydown.riseattack = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_TAG:
                 
                 // To do - Add tag system.
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->meta_tag = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->meta_tag = GET_INT_ARG(1);
 
                 break;
 
@@ -12546,16 +12546,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 // 2020-03-08, 
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->x = GET_INT_ARG(1);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->y = GET_INT_ARG(2);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->width = GET_INT_ARG(3);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->height = GET_INT_ARG(4);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(6);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(7);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(8);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(9);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(6);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(7);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(8);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(9);
 
                 // -- Not a typo - legacy Z sets identical value to back/fore.
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_background = GET_INT_ARG(10);
@@ -12566,103 +12566,103 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 case CMD_MODEL_COLLISION:
                 case CMD_MODEL_COLLISION1:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL;
 
                     break;
 
                 case CMD_MODEL_COLLISION2:
                     
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL2;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL2;
                     
                     break;
 
                 case CMD_MODEL_COLLISION3:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL3;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL3;
                                         
                     break;
 
                 case CMD_MODEL_COLLISION4:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL4;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL4;
 
                     break;
 
                 case CMD_MODEL_COLLISION5:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL5;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL5;
 
                     break;
 
                 case CMD_MODEL_COLLISION6:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL6;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL6;
 
                     break;
 
                 case CMD_MODEL_COLLISION7:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL7;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL7;
 
                     break;
 
                 case CMD_MODEL_COLLISION8:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL8;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL8;
 
                     break;
 
                 case CMD_MODEL_COLLISION9:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL9;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL9;
 
                     break;
 
                 case CMD_MODEL_COLLISION10:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL10;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL10;
                                         
                     break;
 
                 case CMD_MODEL_SHOCK:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
 
                     break;
 
                 case CMD_MODEL_BURN:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
 
                     break;
 
                 case CMD_MODEL_STEAL:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->steal = 1;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->steal = 1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
 
                     break;
 
                 case CMD_MODEL_FREEZE:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freeze = 1;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->forcemap = -1;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freeze = 1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = -1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
 
                     break;
 
                 case CMD_MODEL_ITEMBOX:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_ITEM;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_ITEM;
 
                     break;
 
                 case CMD_MODEL_LOSE:
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_LOSE;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_LOSE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
 
                     break;
 
@@ -12673,7 +12673,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         tempInt = MAX_ATKS - STA_ATKS + 1;
                     }
 
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = tempInt + STA_ATKS - 1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = tempInt + STA_ATKS - 1;
                 }
                 break;
 
@@ -12686,7 +12686,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_background = GET_INT_ARG(1);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_foreground = GET_INT_ARG(2);
 
@@ -12696,26 +12696,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 // 2020-03-08, 
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->x = GET_INT_ARG(1);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->y = GET_INT_ARG(2);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->width = GET_INT_ARG(3);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->height = GET_INT_ARG(4);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(6);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(7);
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(8);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(6);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(7);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(8);
 
                 // -- Not a typo - legacy Z sets identical value to back/fore.
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_background = GET_INT_ARG(9);
                 collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_ATTACK)->z_foreground = GET_INT_ARG(9);
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 1;
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BLAST;
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blast = 1;
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = default_model_dropv.x * 2.083f;
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = default_model_dropv.y;
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = default_model_dropv.z;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = 1;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BLAST;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blast = 1;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.x = default_model_dropv.x * 2.083f;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.y = default_model_dropv.y;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.z = default_model_dropv.z;
                 
                 break;
 
@@ -12729,30 +12729,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(2);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(3);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.y = GET_FLOAT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.x = GET_FLOAT_ARG(2);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->dropv.z = GET_FLOAT_ARG(3);
                 }
                 
                 break;
 
             case CMD_MODEL_OTG:
                 // Over The Ground hit.
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->otg = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->otg = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_JUGGLECOST:
                 
                 // if cost >= opponents jugglepoints , we can juggle
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->jugglecost = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->jugglecost = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_GUARDCOST:
                 
                 // if cost >= opponents guardpoints , opponent will play guardcrush anim
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);
                 
                 break;
 
@@ -12767,9 +12767,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freeze = 1;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freeze = 1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(1) * GAME_SPEED;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
                 }
                                 
                 break;
@@ -12784,8 +12784,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab = GET_INT_ARG(1);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->grab_distance = GET_FLOAT_ARG(2);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->grab = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->grab_distance = GET_FLOAT_ARG(2);
                 }
 
                 break;
@@ -12799,7 +12799,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_pain = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_pain = GET_INT_ARG(1);
                 }
 
                 break;
@@ -12813,7 +12813,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_kill = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_kill = GET_INT_ARG(1);
                 }
                 
                 break;
@@ -12827,7 +12827,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
                 }
                                 
                 break;
@@ -12843,9 +12843,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_force = GET_INT_ARG(1);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->blast = GET_INT_ARG(2);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_force = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blast = GET_INT_ARG(2);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->damage_on_landing.attack_type = translate_attack_type(GET_ARG(3));
                 }
                                 
                 break;
@@ -12860,8 +12860,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->sealtime = GET_INT_ARG(1) * GAME_SPEED;
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->seal = GET_INT_ARG(2);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->sealtime = GET_INT_ARG(1) * GAME_SPEED;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->seal = GET_INT_ARG(2);
                 }
                               
                 break;
@@ -12876,15 +12876,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.rise = GET_INT_ARG(1);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->staydown.riseattack = GET_INT_ARG(2);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->staydown.rise = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->staydown.riseattack = GET_INT_ARG(2);
                 }
 
                 break;
 
             case CMD_MODEL_DOT:
 
-                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
 
                 collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->index  = GET_INT_ARG(1);  //Index.
                 collision_upsert_recursive_property(&temp_collision_head, temp_collision_index)->time   = GET_INT_ARG(2);  //Time to expiration.
@@ -12938,8 +12938,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
-                    collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
                 }
 
                 break;

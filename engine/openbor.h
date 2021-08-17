@@ -3435,6 +3435,8 @@ int addframe(s_addframe_data* data);
 s_collision_attack*     collision_attack_find_node_index(s_collision_attack* head, int index);
 s_collision_attack*               attack_allocate_object();
 s_collision_attack*               attack_clone_object(s_collision_attack* source);
+s_collision_attack*     collision_attack_upsert_property(s_collision** head, int index);
+
 void                    attack_dump_object(s_collision_attack* attack);
 void                    attack_free_object(s_collision_attack* target);
 
@@ -3464,7 +3466,6 @@ void                    collision_free_node(s_collision* target);
 void                    collision_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
 void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
 void                    collision_remove_undefined_coordinates(s_collision** head);
-s_collision_attack*               collision_upsert_attack_property(s_collision** head, int index);
 s_collision_body*       collision_upsert_body_property(s_collision** head, int index);
 s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index, e_collision_type type);
 s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
