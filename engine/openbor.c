@@ -5902,80 +5902,9 @@ s_collision_body* body_allocate_object()
     return result;
 }
 
-/* 
-* Caskey, Damon V.
-* 2020-02-11
-* 
-* Allocate an attack property structure and return pointer.
-*/
-s_collision_attack* attack_allocate_object()
-{
-    s_collision_attack* result;
 
-    /* Allocate memory and get the pointer. */
-    result = malloc(sizeof(*result));
 
-    /* 
-    * Default values.
-    *
-    * -- Copy the universal empty attack structure. This
-    * takes care of most default values in one shot.
-    */
-    memcpy(result, &emptyattack, sizeof(*result));
 
-    /* -- Apply default hit sound effect (for legacy compatability). */
-    result->hitsound = SAMPLE_BEAT;
-    
-    /* -- Apply default drop velocity. */
-    result->dropv.x = default_model_dropv.x;
-    result->dropv.y = default_model_dropv.y;
-    result->dropv.z = default_model_dropv.z;
-
-    return result;
-}
-
-/* 
-* Caskey, Damon V.
-* 2020-03-09
-*
-* Allocate new attack object with same values (but not same 
-* pointers) as received attack object. Returns pointer to
-* new object.
-*/
-s_collision_attack* attack_clone_object(s_collision_attack* source)
-{
-    s_collision_attack* result = NULL;
-
-    if (!source)
-    {
-        return result;
-    }
-
-    result = attack_allocate_object();
-
-    /* 
-    * Attack has a ton of members. Rather than do everything 
-    * piecemeal, we'll memcopy to get all the basic values, 
-    * and then overwrite members individually as needed.
-    */
-
-    memcpy(result, source, sizeof(*result));
-
-    /* 
-    * Clone sub objects. Same principal as parent. We want 
-    * new pointers allocated with the same data as the source 
-    * pointers.
-    */
-
-    /* -- Recursive damage. */
-    if (source->recursive && source->recursive->mode)
-    {
-        result->recursive = malloc(sizeof(*result->recursive));
-        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
-    }
-
-    return result;
-}
 
 /*
 * Caskey, Damon V.
@@ -6027,80 +5956,6 @@ void body_dump_object(s_collision_body* body)
     }
 
     printf("\n\n -- Body (%p) dump complete... -- \n", body);
-}
-
-/*
-* Caskey, Damon V
-* 2020-03-12
-*
-* Send all attack data to log for debugging.
-*/
-void attack_dump_object(s_collision_attack* attack)
-{
-    printf("\n\n -- Attack (%p) dump --", attack);
-
-    if (attack)
-    {
-        printf("\n\t ->attack_drop: %d", attack->attack_drop);
-        printf("\n\t ->attack_force: %d", attack->attack_force);
-        printf("\n\t ->attack_type: %d", attack->attack_type);
-        printf("\n\t ->blockflash: %d", attack->blockflash);
-        printf("\n\t ->blocksound: %d", attack->blocksound);
-        printf("\n\t ->counterattack: %d", attack->counterattack);
-        printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
-        printf("\n\t ->damage_on_landing.attack_type: %d", attack->damage_on_landing.attack_type);
-        printf("\n\t ->dropv.x: %f", attack->dropv.x);
-        printf("\n\t ->dropv.y: %f", attack->dropv.y);
-        printf("\n\t ->dropv.z: %f", attack->dropv.z);
-        printf("\n\t ->forcemap: %d", attack->forcemap);
-        printf("\n\t ->force_direction: %d", attack->force_direction);
-        printf("\n\t ->freeze: %d", attack->freeze);
-        printf("\n\t ->freezetime: %d", attack->freezetime);
-        printf("\n\t ->grab: %d", attack->grab);
-        printf("\n\t ->grab_distance: %d", attack->grab_distance);
-        printf("\n\t ->guardcost: %d", attack->guardcost);
-        printf("\n\t ->hitflash: %d", attack->hitflash);
-        printf("\n\t ->hitsound: %d", attack->hitsound);
-        printf("\n\t ->jugglecost: %d", attack->jugglecost);
-        printf("\n\t ->maptime: %d", attack->maptime);
-        printf("\n\t ->meta_data: %p", attack->meta_data);
-        printf("\n\t ->meta_tag: %d", attack->meta_tag);
-        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
-        printf("\n\t ->no_block: %d", attack->no_block);
-        printf("\n\t ->otg: %d", attack->otg);
-        printf("\n\t ->pause_add: %d", attack->pause_add);
-        printf("\n\t ->recursive: %d", attack->recursive);
-
-        if (attack->recursive)
-        {
-            recursive_damage_dump_object(attack->recursive);
-        }
-
-        printf("\n\t ->seal: %d", attack->seal);
-        printf("\n\t ->sealtime: %d", attack->sealtime);
-        printf("\n\t ->staydown.rise: %d", attack->staydown.rise);
-        printf("\n\t ->staydown.riseattack: %d", attack->staydown.riseattack);
-        printf("\n\t ->staydown.riseattack_stall: %d", attack->staydown.riseattack_stall);
-    }
-
-    printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
-}
-
-/*
-* Caskey, Damon V.
-* 2020-03-10
-* 
-* Free attack properties from memory.
-*/
-void attack_free_object(s_collision_attack * target)
-{
-    if (target->recursive)
-    {
-        free(target->recursive);
-        target->recursive = NULL;
-    }
-   
-    free(target);
 }
 
 /*
@@ -6214,7 +6069,7 @@ void collision_dump_list(s_collision* head)
 
         if (cursor->attack)
         {
-            attack_dump_object(cursor->attack);
+            collision_attack_dump_object(cursor->attack);
         }
 
         printf("\n\t\t ->body: %p", cursor->body);
@@ -6336,7 +6191,7 @@ s_collision* collision_clone_list(s_collision* source_head)
         }
         
         // Copy the values.
-        clone_node->attack = attack_clone_object(source_cursor->attack);
+        clone_node->attack = collision_attack_clone_object(source_cursor->attack);
         clone_node->body = body_clone_object(source_cursor->body);
         
         if (source_cursor->coords != NULL)
@@ -6448,6 +6303,209 @@ s_collision* collision_append_node_to_property(s_collision** target_property)
 }
 */
 
+/*
+* Caskey, Damon V.
+* 2020-02-11
+*
+* Allocate an attack property structure and return pointer.
+*/
+s_collision_attack* collision_attack_allocate_object()
+{
+    s_collision_attack* result;
+
+    /* Allocate memory and get the pointer. */
+    result = malloc(sizeof(*result));
+
+    /*
+    * Default values.
+    *
+    * -- Copy the universal empty attack structure. This
+    * takes care of most default values in one shot.
+    */
+    memcpy(result, &emptyattack, sizeof(*result));
+
+    /* -- Apply default hit sound effect (for legacy compatability). */
+    result->hitsound = SAMPLE_BEAT;
+
+    /* -- Apply default drop velocity. */
+    result->dropv.x = default_model_dropv.x;
+    result->dropv.y = default_model_dropv.y;
+    result->dropv.z = default_model_dropv.z;
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-17
+*
+* Allocate new attack node and append it to
+* end of attack linked list. If no lists exists
+* yet, the new node becomes head of a new list.
+*
+* First step in adding another instance.
+*
+* Returns pointer to new node.
+*/
+s_collision_attack* collision_attack_append_node(struct s_collision_attack* head)
+{
+    /* Temporary node placeholders. */
+
+    struct s_collision_attack* new_node = NULL;
+    struct s_collision_attack* last = NULL;
+
+    /*
+    * Initialize object and get pointer for new
+    * node, then default last to head.
+    */
+
+    new_node = collision_attack_allocate_object();
+    last = head;
+
+    /*
+    * New node is going to be the last node in
+    * list, so set its next as NULL.
+    */
+
+    new_node->next = NULL;
+
+    /*
+    * If there wasn't already a list, the
+    * new node is our head. We are done and
+    * can return the new node pointer.
+    */
+
+    if (head == NULL)
+    {
+        head = new_node;
+
+        return new_node;
+    }
+
+    /*
+    * If we got here, there was already a
+    * list in place. Iterate to its last
+    * node.
+    */
+
+    while (last->next != NULL)
+    {
+        last = last->next;
+    }
+
+    /*
+    * Populate existing last node's next
+    * with new node's pointer. New node is
+    * now the last node in list.
+    */
+
+    last->next = new_node;
+
+    /* Return the new node pointer. */
+    return new_node;
+}
+
+/*
+* Caskey, Damon V.
+* 2020-03-09
+*
+* Allocate new attack object with same values (but not same
+* pointers) as received attack object. Returns pointer to
+* new object.
+*/
+s_collision_attack* collision_attack_clone_object(s_collision_attack* source)
+{
+    s_collision_attack* result = NULL;
+
+    if (!source)
+    {
+        return result;
+    }
+
+    result = collision_attack_allocate_object();
+
+    /*
+    * Attack has a ton of members. Rather than do everything
+    * piecemeal, we'll memcopy to get all the basic values,
+    * and then overwrite members individually as needed.
+    */
+
+    memcpy(result, source, sizeof(*result));
+
+    /*
+    * Clone sub objects. Same principal as parent. We want
+    * new pointers allocated with the same data as the source
+    * pointers.
+    */
+
+    /* -- Recursive damage. */
+    if (source->recursive && source->recursive->mode)
+    {
+        result->recursive = malloc(sizeof(*result->recursive));
+        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V
+* 2020-03-12
+*
+* Send all attack data to log for debugging.
+*/
+void collision_attack_dump_object(s_collision_attack* attack)
+{
+    printf("\n\n -- Attack (%p) dump --", attack);
+
+    if (attack)
+    {
+        printf("\n\t ->attack_drop: %d", attack->attack_drop);
+        printf("\n\t ->attack_force: %d", attack->attack_force);
+        printf("\n\t ->attack_type: %d", attack->attack_type);
+        printf("\n\t ->blockflash: %d", attack->blockflash);
+        printf("\n\t ->blocksound: %d", attack->blocksound);
+        printf("\n\t ->counterattack: %d", attack->counterattack);
+        printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
+        printf("\n\t ->damage_on_landing.attack_type: %d", attack->damage_on_landing.attack_type);
+        printf("\n\t ->dropv.x: %f", attack->dropv.x);
+        printf("\n\t ->dropv.y: %f", attack->dropv.y);
+        printf("\n\t ->dropv.z: %f", attack->dropv.z);
+        printf("\n\t ->forcemap: %d", attack->forcemap);
+        printf("\n\t ->force_direction: %d", attack->force_direction);
+        printf("\n\t ->freeze: %d", attack->freeze);
+        printf("\n\t ->freezetime: %d", attack->freezetime);
+        printf("\n\t ->grab: %d", attack->grab);
+        printf("\n\t ->grab_distance: %d", attack->grab_distance);
+        printf("\n\t ->guardcost: %d", attack->guardcost);
+        printf("\n\t ->hitflash: %d", attack->hitflash);
+        printf("\n\t ->hitsound: %d", attack->hitsound);
+        printf("\n\t ->jugglecost: %d", attack->jugglecost);
+        printf("\n\t ->maptime: %d", attack->maptime);
+        printf("\n\t ->meta_data: %p", attack->meta_data);
+        printf("\n\t ->meta_tag: %d", attack->meta_tag);
+        printf("\n\t ->next: %p", attack->next);
+        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
+        printf("\n\t ->no_block: %d", attack->no_block);
+        printf("\n\t ->otg: %d", attack->otg);
+        printf("\n\t ->pause_add: %d", attack->pause_add);
+        printf("\n\t ->recursive: %p", attack->recursive);
+
+        if (attack->recursive)
+        {
+            recursive_damage_dump_object(attack->recursive);
+        }
+
+        printf("\n\t ->seal: %d", attack->seal);
+        printf("\n\t ->sealtime: %d", attack->sealtime);
+        printf("\n\t ->staydown.rise: %d", attack->staydown.rise);
+        printf("\n\t ->staydown.riseattack: %d", attack->staydown.riseattack);
+        printf("\n\t ->staydown.riseattack_stall: %d", attack->staydown.riseattack_stall);
+    }
+
+    printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
+}
+
 /* 
 * Caskey, Damon V.
 * 2020-02-17
@@ -6486,6 +6544,124 @@ s_collision_attack* collision_attack_find_node_index(s_collision_attack* head, i
     */
     return NULL;
 }
+
+/*
+* Caskey, Damon V.
+* 2020-03-10
+*
+* Free attack properties from memory.
+*/
+void collision_attack_free_object(s_collision_attack* target)
+{
+    if (target->recursive)
+    {
+        free(target->recursive);
+        target->recursive = NULL;
+    }
+
+    free(target);
+}
+
+/* 
+* Caskey, Damon V.
+* 2021-08-17
+*
+* Find an attack node by index, or append a new node
+* with target index if no match is found. Returns 
+* pointer to found or appended node.
+*/
+s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, int index)
+{
+    s_collision_attack* result = NULL;
+
+    /* 
+    * Run index search. This will try to find
+    * an existing node with requested index 
+    * and gives us the pointer.
+    */
+
+    result = collision_attack_find_node_index(head, index);
+
+    /* 
+    * If result is NULL, the the index search
+    * couldn't find an index match, so lets add
+    * a node and apply the index we wanted.
+    */
+
+    if (!result)
+    {
+        result = collision_attack_append_node(head);
+        result->index = index;
+    }
+
+    return result;
+}
+
+/*
+* 2020-02-23
+* Caskey, Damon V
+*
+* Get pointer to attack object for modification. Used when
+* loading a model and reading in attack properties.
+*
+* 1. Receive pointer to head node of collision list. If
+* the head node is NULL a new collision list is allocated
+* and the head property value is populated with head node.
+*
+* 2. Search collision list for an attack enabled node
+* with index matching received index property. New node
+* allocated if not found. See collision_upsert_index().
+*
+* 3. Find or allocate attack object on collision node.
+* Returns pointer to attack object.
+*/
+s_collision_attack* collision_attack_upsert_property(s_collision** head, int index)
+{
+    // printf("\n\n collision_attack_upsert_property(head: %p, index: %d)", *head, index);
+
+    s_collision* temp_collision_current;
+
+    /*
+    * 1. Look for index and get pointer (found or allocated).
+    *
+    *   Get the node we want to work on by searching
+    *   for a matched index. In most cases, this will
+    *   just be the head node.
+    */
+    temp_collision_current = collision_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
+
+    /*
+    * If head is NULL, this must be the first allocated
+    * collision for current frame. Populate head with
+    * current so we have a head for the next pass.
+    */
+    if (*head == NULL)
+    {
+        *head = temp_collision_current;
+    }
+
+    /* 3. Get attack pointer (find or allocate) */
+
+    //printf("\n\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
+
+    /* Have an attack? if not we'll need to allocate it. */
+    if (!temp_collision_current->attack)
+    {
+        temp_collision_current->attack = collision_attack_allocate_object();
+    }
+
+    /*
+    * 4. Turn on the Attack bit so any collision
+    * logic knows this is an attack.
+    */
+    temp_collision_current->type |= COLLISION_TYPE_ATTACK;
+
+    //printf("\n\t result: %p \n", temp_collision_current->attack);
+
+    /* Return pointer to the attack structure. */
+    return temp_collision_current->attack;
+}
+
 
 // Caskey, Damon V.
 // 2020-02-17
@@ -6769,70 +6945,6 @@ s_collision_body* collision_upsert_body_property(s_collision** head, int index)
     return temp_collision_current->body;
 }
 
-/*
-* 2020-02-23
-* Caskey, Damon V
-*
-* Get pointer to attack object for modification. Used when
-* loading a model and reading in attack properties.
-*
-* 1. Receive pointer to head node of collision list. If
-* the head node is NULL a new collision list is allocated
-* and the head property value is populated with head node.
-*
-* 2. Search collision list for an attack enabled node
-* with index matching received index property. New node
-* allocated if not found. See collision_upsert_index().
-*
-* 3. Find or allocate attack object on collision node.
-* Returns pointer to attack object.
-*/
-s_collision_attack* collision_attack_upsert_property(s_collision** head, int index)
-{
-    // printf("\n\n collision_attack_upsert_property(head: %p, index: %d)", *head, index);
-
-    s_collision* temp_collision_current;
-
-    /*
-    * 1. Look for index and get pointer (found or allocated).
-    *
-    *   Get the node we want to work on by searching
-    *   for a matched index. In most cases, this will
-    *   just be the head node.
-    */
-    temp_collision_current = collision_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
-
-    /*
-    * If head is NULL, this must be the first allocated
-    * collision for current frame. Populate head with
-    * current so we have a head for the next pass.
-    */
-    if (*head == NULL)
-    {
-        *head = temp_collision_current;
-    }
-
-    /* 3. Get attack pointer (find or allocate) */
-
-    //printf("\n\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
-
-    /* Have an attack? if not we'll need to allocate it. */
-    if (!temp_collision_current->attack)
-    {
-        temp_collision_current->attack = attack_allocate_object();
-    }
-
-    /*
-    * 4. Turn on the Attack bit so any collision
-    * logic knows this is an attack.
-    */
-    temp_collision_current->type |= COLLISION_TYPE_ATTACK;
-
-    //printf("\n\t result: %p \n", temp_collision_current->attack);
-
-    /* Return pointer to the attack structure. */
-    return temp_collision_current->attack;
-}
 
 // 2020-02-23
 // Caskey, Damon V.
@@ -6882,7 +6994,7 @@ void collision_free_node(s_collision* target)
 
     if (target->attack)
     {
-        attack_free_object(target->attack);
+        collision_attack_free_object(target->attack);
         target->attack = NULL;
     }
 

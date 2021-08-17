@@ -3432,13 +3432,15 @@ int addframe(s_addframe_data* data);
 /* Collision and attcking control. */
 
 /* -- Attack properties. */
+s_collision_attack*     collision_attack_allocate_object();
+s_collision_attack*     collision_attack_append_node(struct s_collision_attack* head);
+s_collision_attack*     collision_attack_clone_object(s_collision_attack* source);
+void                    collision_attack_dump_object(s_collision_attack* attack);
 s_collision_attack*     collision_attack_find_node_index(s_collision_attack* head, int index);
-s_collision_attack*               attack_allocate_object();
-s_collision_attack*               attack_clone_object(s_collision_attack* source);
+void                    collision_attack_free_object(s_collision_attack* target);
+s_collision_attack*     collision_attack_upsert_index(s_collision_attack* head, int index);
 s_collision_attack*     collision_attack_upsert_property(s_collision** head, int index);
 
-void                    attack_dump_object(s_collision_attack* attack);
-void                    attack_free_object(s_collision_attack* target);
 
 /* -- Body properties */
 s_collision_body*       body_allocate_object();
