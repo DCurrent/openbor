@@ -6448,6 +6448,45 @@ s_collision* collision_append_node_to_property(s_collision** target_property)
 }
 */
 
+/* 
+* Caskey, Damon V.
+* 2020-02-17
+*
+* Find a collision attack node by index and 
+* return its pointer, or return  NULL if no 
+* match found.
+*/
+s_collision_attack* collision_attack_find_node_index(s_collision_attack* head, int index)
+{
+    s_collision_attack* current = NULL;
+
+    /* 
+    * Iterate linked list, starting from 
+    * head node. Check each node index
+    * against index parameter. If we find 
+    * a match, return the current node's 
+    * pointer.
+    */
+
+    current = head;
+
+    while (current != NULL)
+    {
+        if (current->index == index)
+        {    
+            return current;
+        }   
+        
+        current = current->next;
+    }
+
+    /* 
+    * If we got here, find failed.
+    * Just return NULL.
+    */
+    return NULL;
+}
+
 // Caskey, Damon V.
 // 2020-02-17
 //
@@ -6461,30 +6500,30 @@ s_collision* collision_find_node_index(s_collision* head, e_collision_type type,
     // all collision nodes and free them.
     current = head;
 
-    printf("\n\n collision_find_node_index(head: %p, type: %d, index: %d)", head, type, index);
+    //printf("\n\n collision_find_node_index(head: %p, type: %d, index: %d)", head, type, index);
     
     while (current != NULL)
     {
-        printf("\n\t current: %p", current);
-        printf("\n\t current->index: %d", current->index);
-        printf("\n\t current->type: %d", current->type);
-        printf("\n\t current->next: %p", current->next);
+        // printf("\n\t current: %p", current);
+        // printf("\n\t current->index: %d", current->index);
+        // printf("\n\t current->type: %d", current->type);
+        // printf("\n\t current->next: %p", current->next);
 
         // If we found a collision index match, return the pointer.
         if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
         {
-            printf("\n\t MATCH TRUE \n");
+//printf("\n\t MATCH TRUE \n");
 
             return current;
         }
 
-        printf("\n\t MATCH FALSE");
+        // printf("\n\t MATCH FALSE");
 
         // Go to next node.
         current = current->next;
     }    
         
-    printf("\n NO MATCH \n");
+    // printf("\n NO MATCH \n");
 
     // If we got here, find failed.
     // Just return NULL.
@@ -6750,7 +6789,7 @@ s_collision_body* collision_upsert_body_property(s_collision** head, int index)
 */
 s_collision_attack* collision_upsert_attack_property(s_collision** head, int index)
 {
-    printf("\n\n collision_upsert_attack_property(head: %p, index: %d)", *head, index);
+    // printf("\n\n collision_upsert_attack_property(head: %p, index: %d)", *head, index);
 
     s_collision* temp_collision_current;
 
@@ -6775,7 +6814,7 @@ s_collision_attack* collision_upsert_attack_property(s_collision** head, int ind
 
     /* 3. Get attack pointer (find or allocate) */
 
-    printf("\n\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
+    //printf("\n\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
 
     /* Have an attack? if not we'll need to allocate it. */
     if (!temp_collision_current->attack)
@@ -6789,7 +6828,7 @@ s_collision_attack* collision_upsert_attack_property(s_collision** head, int ind
     */
     temp_collision_current->type |= COLLISION_TYPE_ATTACK;
 
-    printf("\n\t result: %p \n", temp_collision_current->attack);
+    //printf("\n\t result: %p \n", temp_collision_current->attack);
 
     /* Return pointer to the attack structure. */
     return temp_collision_current->attack;
