@@ -172,7 +172,7 @@ const s_damage_recursive empty_recursive = { .force = 0,
                                                 .meta_tag = 0};
 
 // unknockdown attack
-const s_attack emptyattack =
+const s_collision_attack emptyattack =
 {
     .attack_drop        = 0,
     .attack_force       = 0,
@@ -1406,7 +1406,7 @@ void execute_animation_script(entity *ent)
     }
 }
 
-void execute_takedamage_script(entity *ent, entity *other, s_attack *attack)
+void execute_takedamage_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->takedamage_script;
@@ -1554,7 +1554,7 @@ void execute_onpain_script(entity *ent, int iType, int iReset)
     }
 }
 
-void execute_onfall_script(entity *ent, entity *other, s_attack *attack)
+void execute_onfall_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onfall_script;
@@ -1886,7 +1886,7 @@ void execute_onmovea_script(entity *ent)
     }
 }
 
-void execute_ondeath_script(entity *ent, entity *other, s_attack *attack)
+void execute_ondeath_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondeath_script;
@@ -1961,7 +1961,7 @@ void execute_onkill_script(entity *ent)
     }
 }
 
-void execute_didblock_script(entity *ent, entity *other, s_attack *attack)
+void execute_didblock_script(entity *ent, entity *other, s_collision_attack *attack)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->didblock_script;
@@ -2018,7 +2018,7 @@ void execute_didblock_script(entity *ent, entity *other, s_attack *attack)
     }
 }
 
-void execute_ondoattack_script(entity *ent, entity *other, s_attack *attack, e_exchange which, int attack_id)
+void execute_ondoattack_script(entity *ent, entity *other, s_collision_attack *attack, e_exchange which, int attack_id)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->ondoattack_script;
@@ -2116,7 +2116,7 @@ void execute_think_script(entity *ent)
     }
 }
 
-static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_attack *attack, int blocked)
+static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_collision_attack *attack, int blocked)
 {
     ScriptVariant tempvar;
     ScriptVariant_Init(&tempvar);
@@ -2175,7 +2175,7 @@ static void _execute_didhit_script(Script *cs, entity *ent, entity *other, s_att
     Script_Set_Local_Variant(cs, "tag",         &tempvar);
 }
 
-void execute_didhit_script(entity *ent, entity *other, s_attack *attack, int blocked)
+void execute_didhit_script(entity *ent, entity *other, s_collision_attack *attack, int blocked)
 {
     Script *cs;
     s_scripts *gs = global_model_scripts;
@@ -5876,15 +5876,15 @@ s_collision_attack* collision_attack_allocate_object()
     */
     
     memset(result, 0, alloc_size);
-
+* Allocate an attack property structure and return pointer.
     result->next = NULL;
-
+s_attack* attack_allocate_object()
     
     return result;
 }
 
 /*
-* Caskey, Damon V.
+
 * 2020-02-10
 *
 * Allocate new collision node and append it to
@@ -5933,6 +5933,31 @@ s_collision_attack* collision_attack_append_node(struct s_collision_attack* head
     * list in place. Iterate to its last
     * node.
     */
+    * new pointers allocated with the same data as the source 
+    * pointers.
+    */
+
+    /* -- Recursive damage. */
+    if (source->recursive && source->recursive->mode)
+    {
+        result->recursive = malloc(sizeof(*result->recursive));
+        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-08
+*
+* Allocate new body object with same values (but not same
+* pointers) as received body object. Returns pointer to
+* new object.
+*/
+s_collision_body* body_clone_object(s_collision_body* source)
+{
+    s_collision_body* result = NULL;
 
     while (last->next != NULL)
     {
@@ -5949,31 +5974,6 @@ s_collision_attack* collision_attack_append_node(struct s_collision_attack* head
 
     return new_node;
 }
-
-/*
-* Caskey, Damon V
-* 2020-03-10
-*
-* Return FALSE if a collision object
-* has coordinates set, FALSE otherwise.
-*/
-int collision_attack_check_has_coords(s_collision_attack* target)
-{
-    /*
-    * If target missing or coordinates
-    * are not allocated then return FALSE.
-    */
-
-    if (!target)
-    {
-        return FALSE;
-    }
-
-    if (!target->coords)
-    {
-        return FALSE;
-    }
-
     /*
     * If any one coordinate property has a value
     * then return TRUE instantly.
@@ -6019,6 +6019,68 @@ s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head)
         {
             clone_head = clone_node;
         }
+        printf("\n\t ->dropv.x: %f", attack->dropv.x);
+        printf("\n\t ->dropv.y: %f", attack->dropv.y);
+        printf("\n\t ->dropv.z: %f", attack->dropv.z);
+        printf("\n\t ->forcemap: %d", attack->forcemap);
+        printf("\n\t ->force_direction: %d", attack->force_direction);
+        printf("\n\t ->freeze: %d", attack->freeze);
+        printf("\n\t ->freezetime: %d", attack->freezetime);
+        printf("\n\t ->grab: %d", attack->grab);
+        printf("\n\t ->grab_distance: %d", attack->grab_distance);
+        printf("\n\t ->guardcost: %d", attack->guardcost);
+        printf("\n\t ->hitflash: %d", attack->hitflash);
+        printf("\n\t ->hitsound: %d", attack->hitsound);
+        printf("\n\t ->jugglecost: %d", attack->jugglecost);
+        printf("\n\t ->maptime: %d", attack->maptime);
+        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
+        printf("\n\t ->no_block: %d", attack->no_block);
+        printf("\n\t ->otg: %d", attack->otg);
+        printf("\n\t ->pause_add: %d", attack->pause_add);
+        printf("\n\t ->recursive: %d", attack->recursive);
+
+        if (attack->recursive)
+        {
+            recursive_damage_dump_object(attack->recursive);
+        }
+
+        printf("\n\t ->seal: %d", attack->seal);
+        printf("\n\t ->sealtime: %d", attack->sealtime);
+        printf("\n\t ->staydown.rise: %d", attack->staydown.rise);
+        printf("\n\t ->staydown.riseattack: %d", attack->staydown.riseattack);
+        printf("\n\t ->staydown.riseattack_stall: %d", attack->staydown.riseattack_stall);
+    }
+
+    printf("\n\n -- Attack (%p) dump complete... -- \n", attack);
+}
+
+/*
+* Caskey, Damon V.
+* 2020-03-10
+* 
+* Free attack properties from memory.
+*/
+void attack_free_object(s_attack * target)
+{
+    if (target->recursive)
+    {
+        free(target->recursive);
+        target->recursive = NULL;
+    }
+   
+    free(target);
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-21
+*
+* Free body properties from memory.
+*/
+void body_free_object(s_collision_body* target)
+{
+    free(target);
+}
 
         /* Copy the values. */
         clone_node->attack = attack_clone_object(source_cursor->attack);
@@ -6066,7 +6128,7 @@ void collision_attack_dump_list(s_collision_attack* head)
 
         if (cursor->attack)
         {
-            attack_dump_object(cursor->attack);
+            collision_attack_dump_object(cursor->attack);
         }
 
         printf("\n\t\t ->body: %p", cursor->body);
@@ -6106,29 +6168,16 @@ void collision_attack_dump_list(s_collision_attack* head)
         printf("\n\t\t ->space: %p", cursor->space);
         printf("\n\t\t ->type: %d", cursor->type);
 
-        cursor = cursor->next;
-    }
-
-    printf("\n\n %d nodes.", count);
-    printf("\n\n -- Collision list (%p) dump complete! -- \n", head);
-}
-
-/*
-* Caskey, Damon V.
-* 2020-03-30
-*
-* Return first valid attack collision in animation
+    while (current != NULL)
+    {
+        /* If we found a collision index match, return the pointer. */
+        if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
 * frame that has no_block enabled. If no match
 * found, return NULL.
 */
 s_collision_attack* collision_attack_find_no_block_on_frame(s_anim* animation, int frame, int block)
-{
-    s_collision_attack* cursor;
-
-    /* Return NULL if there's no collision on this frame. */
-    if (!animation->collision || !animation->collision[frame])
-    {
-        return NULL;
+        /* Go to next node. */
+        current = current->next;
     }
 
     cursor = animation->collision[frame];
@@ -6168,48 +6217,55 @@ s_collision_attack* collision_attack_find_node_index(s_collision_attack* head, e
     */
     current = head;
 
-    while (current != NULL)
-    {
-        /* If we found a collision index match, return the pointer. */
-        if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
+        // Populate head if NULL so we
+        // have one for the next cycle.
+        if (clone_head == NULL)
+        {
+            clone_head = clone_node;
+        }
+        
+        // Copy the values.
+        clone_node->attack = attack_clone_object(source_cursor->attack);
+        
+        clone_node->body = NULL;
+        
+        if (source_cursor->coords != NULL)
         {
             return current;
         }
 
-        /* Go to next node. */
-        current = current->next;
+        clone_node->index = source_cursor->index;
+        clone_node->meta_data = source_cursor->meta_data;
+        clone_node->meta_tag = source_cursor->meta_tag;
+        clone_node->space = NULL;
+        clone_node->type = source_cursor->type;
+        
+        source_cursor = source_cursor->next;
     }
 
     /*
     * If we got here, find failed.
-    * Just return NULL.
-    */
-    return NULL;
-}
-
-/*
-* Caskey, Damon V.
-* 2020-02-17
-*
-* Clear a collision linked list from memory.
-*/
-void collision_attack_free_list(s_collision_attack* head)
-{
-    s_collision_attack* cursor = NULL;
-    s_collision_attack* next = NULL;
-
-    /*
-    * Starting from head node, iterate through
-    * all collision nodes and free them.
-    */
-    cursor = head;
-
-    while (cursor != NULL)
+    if (target->coords)
     {
-        /*
-        * We still need the next member after we
-        * delete collision object, so we'll store
-        * it in a temp var.
+        free(target->coords);
+        target->coords = NULL;
+    }
+{
+    if (target->space)
+    {
+        free(target->space);
+        target->space = NULL;
+    }
+    cursor = head;
+    /* To Do: Free tag function. */
+    if (target->meta_data)
+    {
+        meta_data_free_list(target->meta_data);
+        target->meta_data = NULL;
+    }
+
+    /* Free the collision structure. */
+    free(target);
         */
 
         next = cursor->next;
@@ -6225,12 +6281,8 @@ void collision_attack_free_list(s_collision_attack* head)
 * Caskey, Damon V.
 * 2020-02-17
 *
-* Clear a single collision object from memory.
-* Note this does NOT remove node from list.
-* Be careful not to create a dangling pointer!
-*/
-void collision_attack_free_node(s_collision_attack* target)
-{
+        return;
+    }
     /* Free sub objects. */
 
     if (target->attack)
@@ -6245,27 +6297,34 @@ void collision_attack_free_node(s_collision_attack* target)
         target->body = NULL;
     }
 
-    if (target->coords)
-    {
-        free(target->coords);
-        target->coords = NULL;
-    }
+// Caskey, Damon V.
+// 2020-02-17
+//
+// Find a collision node by index and return pointer, or
+// NULL if no match found.
+s_collision* collision_find_node_index(s_collision* head, e_collision_type type, int index)
+{   
+    s_collision* current = NULL;
+    
+    // Starting from head node, iterate through
+    // all collision nodes and free them.
+    current = head;
 
-    if (target->space)
+    while (current != NULL)
     {
-        free(target->space);
-        target->space = NULL;
-    }
+        // If we found a collision index match, return the pointer.
+        if (current->index == index && (current->type & type || type == COLLISION_TYPE_ALL))
+        {
+            return current;
+        }
 
-    /* To Do: Free tag function. */
-    if (target->meta_data)
-    {
-        meta_data_free_list(target->meta_data);
-        target->meta_data = NULL;
-    }
-
-    /* Free the collision structure. */
-    free(target);
+        // Go to next node.
+        current = current->next;
+    }    
+        
+    // If we got here, find failed.
+    // Just return NULL.
+    return NULL;
 }
 
 /*
@@ -6281,8 +6340,12 @@ void collision_attack_initialize_frame_property(s_addframe_data* data, ptrdiff_t
 
     if (!data->collision)
     {
-        return;
+        result = collision_append_node(head);
+        result->index = index;
     }
+
+    return result;
+}
 
     /*
     * If collision is not allocated yet, we need to allocate
@@ -6407,20 +6470,29 @@ void collision_attack_remove_undefined_coordinates(s_collision_attack** head)
         * Search for and delete nodes without collision
         * coordinates defined. Keep track of the previous
         * node as we need to change 'prev->next'.
-        */
-        while (cursor != NULL && collision_attack_check_has_coords(cursor))
-        {
-            prev = cursor;
-            cursor = cursor->next;
+    /* 3. Get attack pointer (find or allocate). */
 
-        }
-
+    /* Have collision coordinates ? If not we'll need to allocate them. */
+    if (!temp_collision_current->coords)
+    {
+        temp_collision_current->coords = collision_allocate_coords(temp_collision_current->coords);
+    }
         /*
-        * If we didn't find any blank coordinate sets
-        * then just get out now.
-        */
-        if (cursor == NULL)
-        {
+    /* Return pointer to the coords structure. */
+    return temp_collision_current->coords;
+}
+
+/*
+* Caskey, Damon V.
+* 2020-02-17
+*
+* Find a collision node by index, or append a new node
+* with target index if no match is found. Returns pointer
+* to found or appended node.
+*/
+s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, e_collision_type type, int index)
+{
+    s_collision_attack* result = NULL;
             return;
         }
 
@@ -6438,78 +6510,6 @@ void collision_attack_remove_undefined_coordinates(s_collision_attack** head)
 /*
 * 2020-02-23
 * Caskey, Damon V.
-*
-* Used when building a list of attack objects on
-* a frame during model load. Locates or allocates
-* an object matching index parameter, and returns
-* the resulting object pointer.
-*/
-s_hitbox* collision_attack_upsert_coordinates_property(s_collision_attack** head, int index)
-{
-    s_collision_attack* temp_collision_current;
-
-    /*
-    * 1. First we need to know index.
-    *  -- temp_collision_index
-
-    * 2. Look for index and get pointer (found or allocated).
-
-    * Get the node we want to work on by searching
-    * for a matched index. In most cases, this will
-    * just be the head node.
-    */
-    temp_collision_current = collision_attack_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
-
-    /*
-    * If head is NULL, this must be the first allocated
-    * collision for current frame. Populate head with
-    * current so we have a head for the next pass.
-    */
-    if (*head == NULL)
-    {
-        *head = temp_collision_current;
-    }
-
-    /* 3. Get attack pointer (find or allocate). */
-
-    /* Have collision coordinates ? If not we'll need to allocate them. */
-    if (!temp_collision_current->coords)
-    {
-        temp_collision_current->coords = collision_allocate_coords(temp_collision_current->coords);
-    }
-
-    /* Return pointer to the coords structure. */
-    return temp_collision_current->coords;
-}
-
-/*
-* Caskey, Damon V.
-* 2020-02-17
-*
-* Find a collision node by index, or append a new node
-* with target index if no match is found. Returns pointer
-* to found or appended node.
-*/
-s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, e_collision_type type, int index)
-{
-    s_collision_attack* result = NULL;
-
-    /* Run index search. */
-    result = collision_attack_find_node_index(head, type, index);
-
-    /*
-    * If we couldn't find an index match, lets add
-    * a node and apply the index we wanted.
-    */
-    if (!result)
-    {
-        result = collision_attack_append_node(head);
-        result->index = index;
-    }
-
-    return result;
-}
-
 /*
 * 2020-02-23
 * Caskey, Damon V
@@ -6529,15 +6529,15 @@ s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, e_co
 * Returns pointer to attack object.
 */
 s_attack* collision_attack_upsert_property(s_collision_attack** head, int index)
-{
+    * for a matched index. In most cases, this will
     // printf("\n\t collision_attack_upsert_property(%p, %d)", *head, index);
-
-    s_collision_attack* temp_collision_current;
+    */
+    temp_collision_current = collision_attack_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
 
     /*
     * 1. First we need to know index.
                 *  -- temp_collision_index
-
+    * collision for current frame. Populate head with
                 * 2. Look for index and get pointer (found or allocated).
 
                 * Get the node we want to work on by searching
@@ -6553,27 +6553,95 @@ s_attack* collision_attack_upsert_property(s_collision_attack** head, int index)
     * current so we have a head for the next pass.
     */
 
+// Create or update a recursive attack property.
+// Same principal as collision_upsert_attack_property.
+s_damage_recursive* collision_upsert_recursive_property(s_collision** head, int index)
+{
+    s_attack* cursor;
+    /* 3. Get attack pointer (find or allocate). */
+    // Run attack upsert to make sure we have a valid
+    // collision node for requested index, and that
+    // it has an attack property.
+    /* Have an attack? if not we'll need to allocate it.*/
+    if (!temp_collision_current->attack)
+
+    /* Run index search. */
+    result = collision_attack_find_node_index(head, type, index);
+
+    /* 4. Set this collision as an attacking type. */
+    temp_collision_current->type |= COLLISION_TYPE_ATTACK;
+    * a node and apply the index we wanted.
+    */
+    if (!result)
+    /* Return pointer to the attack structure. */
+    return temp_collision_current->attack;
+        result->index = index;
+    }
+
+    return result;
+}
+
+// 2020-02-23
+// Caskey, Damon V
+//
+// Get pointer to attack object for modification. Used when
+// loading a model and reading in attack properties.
+//
+// 1. Receive pointer to head node of collision list. If 
+// the head node is NULL a new collision list is allocated 
+// and the head property value is populated with head node. 
+// 
+// 2. Search collision list for an attack enabled node
+// with index matching received index property. New node
+// allocated if not found. See collision_upsert_index().
+//
+// 3. Find or allocate attack object on collision node.
+// Returns pointer to attack object.
+s_attack* collision_upsert_attack_property(s_collision** head, int index)
+{
+    // printf("\n\t collision_upsert_attack_property(%p, %d)", *head, index);
+
+    s_collision_attack* temp_collision_current;
+
+    // 1. First we need to know index.
+                //  -- temp_collision_index
+
+
+/*
+* Caskey, Damon V.
+* 2016-11-26
+*
+* Allocate collision coordinates, copy coords
+* data if present, and return pointer.
+*/
+s_hitbox *collision_allocate_coords(s_hitbox *coords)
+                // for a matched index. In most cases, this will
+                // just be the head node.
+    temp_collision_current = collision_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
+
+    // If head is NULL, this must be the first allocated 
+    // collision for current frame. Populate head with 
+    // current so we have a head for the next pass.
     if (*head == NULL)
     {
         *head = temp_collision_current;
     }
 
-    /* 3. Get attack pointer (find or allocate). */
+    // 3. Get attack pointer (find or allocate).
 
-    // printf("\n\t\t temp_collision_current->attack (pre check): %p", temp_collision_current->attack);
+    printf("\n\t temp_collision_current->body (pre check): %p", temp_collision_current->body);
 
-    /* Have an attack? if not we'll need to allocate it.*/
+    // Have an attack? if not we'll need to allocate it.
     if (!temp_collision_current->attack)
     {
-        temp_collision_current->attack = attack_allocate_object();
-    }
+        temp_collision_current->body = body_allocate_object();
+    // Return result.
+    return result;
+}
 
-    /* 4. Set this collision as an attacking type. */
-    temp_collision_current->type |= COLLISION_TYPE_ATTACK;
+    printf("\n\t result: %p \n", temp_collision_current->body);
 
-    // printf("\n\t\t result: %p", temp_collision_current->attack);
-
-    /* Return pointer to the attack structure. */
+    // Return pointer to the attack structure.
     return temp_collision_current->attack;
 }
 
@@ -6606,15 +6674,9 @@ s_damage_recursive* collision_attack_upsert_recursive_property(s_collision_attac
     return cursor->recursive;
 }
 
-
-/*
-* Caskey, Damon V.
-* 2016-11-26
-*
-* Allocate collision coordinates, copy coords
-* data if present, and return pointer.
-*/
-s_hitbox *collision_allocate_coords(s_hitbox *coords)
+// 2020-02-23
+// Caskey, Damon V.
+s_hitbox* collision_upsert_coordinates_property(s_collision** head, int index)
 {
     s_hitbox    *result;
     size_t      alloc_size;
@@ -6623,9 +6685,30 @@ s_hitbox *collision_allocate_coords(s_hitbox *coords)
     alloc_size = sizeof(*result);
 
     // Allocate memory and get pointer.
-    result = malloc(alloc_size);
+        return result;
+    }
 
-    // 0 out valules.
+    result = attack_allocate_object();
+
+    /* 
+    * Attack has a ton of members. Rather than do everything 
+    * piecemeal, we'll memcopy to get all the basic values, 
+    * and then overwrite members individually as needed.
+    */
+
+    memcpy(result, source, sizeof(*result));
+
+    /* 
+    * Clone sub objects. Same principal as parent. We want 
+    * new pointers allocated with the same data as the source 
+    * pointers.
+    */
+
+    /* -- Recursive damage. */
+    if (source->recursive && source->recursive->mode)
+    {
+        result->recursive = malloc(sizeof(*result->recursive));
+        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
     memset(result, 0, sizeof(*result));
 
     // If previous data is provided,
@@ -6635,16 +6718,46 @@ s_hitbox *collision_allocate_coords(s_hitbox *coords)
         memcpy(result, coords, alloc_size);
     }
 
-    // Return result.
-    return result;
-}
+    // Get the node we want to work on by searching
+    // for a matched index. In most cases, this will
+    // just be the head node.
+    temp_collision_current = collision_upsert_index(*head, COLLISION_TYPE_ATTACK, index);
 
 /* 
 * Caskey, Damon V.
 * 2020-02-11
-* 
-* Allocate an attack property structure and return pointer.
-*/
+        printf("\n\t ->attack_drop: %d", attack->attack_drop);
+        printf("\n\t ->attack_force: %d", attack->attack_force);
+        printf("\n\t ->attack_type: %d", attack->attack_type);
+        printf("\n\t ->blockflash: %d", attack->blockflash);
+        printf("\n\t ->blocksound: %d", attack->blocksound);
+        printf("\n\t ->counterattack: %d", attack->counterattack);
+        printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
+        printf("\n\t ->damage_on_landing.attack_type: %d", attack->damage_on_landing.attack_type);
+        printf("\n\t ->dropv.x: %f", attack->dropv.x);
+        printf("\n\t ->dropv.y: %f", attack->dropv.y);
+        printf("\n\t ->dropv.z: %f", attack->dropv.z);
+        printf("\n\t ->forcemap: %d", attack->forcemap);
+        printf("\n\t ->force_direction: %d", attack->force_direction);
+        printf("\n\t ->freeze: %d", attack->freeze);
+        printf("\n\t ->freezetime: %d", attack->freezetime);
+        printf("\n\t ->grab: %d", attack->grab);
+        printf("\n\t ->grab_distance: %d", attack->grab_distance);
+        printf("\n\t ->guardcost: %d", attack->guardcost);
+        printf("\n\t ->hitflash: %d", attack->hitflash);
+        printf("\n\t ->hitsound: %d", attack->hitsound);
+        printf("\n\t ->jugglecost: %d", attack->jugglecost);
+        printf("\n\t ->maptime: %d", attack->maptime);
+        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
+        printf("\n\t ->no_block: %d", attack->no_block);
+        printf("\n\t ->otg: %d", attack->otg);
+        printf("\n\t ->pause_add: %d", attack->pause_add);
+        printf("\n\t ->recursive: %d", attack->recursive);
+
+        if (attack->recursive)
+        {
+            recursive_damage_dump_object(attack->recursive);
+        }
 s_attack* attack_allocate_object()
 {
     s_attack* result;
@@ -6685,30 +6798,9 @@ s_attack* attack_clone_object(s_attack* source)
 
     if (!source)
     {
-        return result;
-    }
+        temp_collision_current->coords = collision_allocate_coords(temp_collision_current->coords);
 
-    result = attack_allocate_object();
 
-    /* 
-    * Attack has a ton of members. Rather than do everything 
-    * piecemeal, we'll memcopy to get all the basic values, 
-    * and then overwrite members individually as needed.
-    */
-
-    memcpy(result, source, sizeof(*result));
-
-    /* 
-    * Clone sub objects. Same principal as parent. We want 
-    * new pointers allocated with the same data as the source 
-    * pointers.
-    */
-
-    /* -- Recursive damage. */
-    if (source->recursive && source->recursive->mode)
-    {
-        result->recursive = malloc(sizeof(*result->recursive));
-        memcpy(result->recursive, source->recursive, sizeof(*result->recursive));
     }
 
     return result;
@@ -6726,38 +6818,9 @@ void attack_dump_object(s_attack* attack)
 
     if (attack)
     {
-        printf("\n\t ->attack_drop: %d", attack->attack_drop);
-        printf("\n\t ->attack_force: %d", attack->attack_force);
-        printf("\n\t ->attack_type: %d", attack->attack_type);
-        printf("\n\t ->blockflash: %d", attack->blockflash);
-        printf("\n\t ->blocksound: %d", attack->blocksound);
-        printf("\n\t ->counterattack: %d", attack->counterattack);
-        printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
-        printf("\n\t ->damage_on_landing.attack_type: %d", attack->damage_on_landing.attack_type);
-        printf("\n\t ->dropv.x: %f", attack->dropv.x);
-        printf("\n\t ->dropv.y: %f", attack->dropv.y);
-        printf("\n\t ->dropv.z: %f", attack->dropv.z);
-        printf("\n\t ->forcemap: %d", attack->forcemap);
-        printf("\n\t ->force_direction: %d", attack->force_direction);
-        printf("\n\t ->freeze: %d", attack->freeze);
-        printf("\n\t ->freezetime: %d", attack->freezetime);
-        printf("\n\t ->grab: %d", attack->grab);
-        printf("\n\t ->grab_distance: %d", attack->grab_distance);
-        printf("\n\t ->guardcost: %d", attack->guardcost);
-        printf("\n\t ->hitflash: %d", attack->hitflash);
-        printf("\n\t ->hitsound: %d", attack->hitsound);
-        printf("\n\t ->jugglecost: %d", attack->jugglecost);
-        printf("\n\t ->maptime: %d", attack->maptime);
-        printf("\n\t ->next_hit_time: %d", attack->next_hit_time);
-        printf("\n\t ->no_block: %d", attack->no_block);
-        printf("\n\t ->otg: %d", attack->otg);
-        printf("\n\t ->pause_add: %d", attack->pause_add);
-        printf("\n\t ->recursive: %d", attack->recursive);
-
-        if (attack->recursive)
-        {
-            recursive_damage_dump_object(attack->recursive);
-        }
+        attack_free_object(target->attack);
+        target->attack = NULL;
+    }
 
         printf("\n\t ->seal: %d", attack->seal);
         printf("\n\t ->sealtime: %d", attack->sealtime);
@@ -6861,9 +6924,6 @@ void body_dump_object(s_collision_body* body)
 
     printf("\n\n -- Body (%p) dump complete... -- \n", body);
 }
-
-/*
-* Caskey, Damon V.
 * 2021-08-21
 *
 * Free body properties from memory.
@@ -6924,6 +6984,9 @@ void recursive_damage_dump_object(s_damage_recursive* recursive)
 }
 
 
+    // Frame collision property is head of collision list.
+    data->animation->collision[frame] = temp_collision;
+}
 
 // Caskey, Damon V. (Orginal author unknown, 
 // reworked to the point it's essentially a 
@@ -6943,7 +7006,7 @@ int addframe(s_addframe_data* data)
     size_t  size_col_on_frame,
             size_col_on_frame_struct;
 
-    //s_attack  *collision_attack;
+    //s_collision_attack  *collision_attack;
     s_collision_body    *collision_body;
     s_collision_entity  *collision_entity;
 
@@ -6991,10 +7054,10 @@ int addframe(s_addframe_data* data)
         // structure and store resulting pointer
         // on current frame.
         data->animation->collision_body[currentframe] = malloc(size_col_on_frame_struct);
+    collision_attack_initialize_frame_property(data, currentframe);
+    
+    
 
-        // Allocate memory for a pointer to each instance
-        // and set empty default.
-        data->animation->collision_body[currentframe]->instance = collision_alloc_body_list();
 
         // Loop instances, allocate memory, and assign
         // user values.
@@ -7054,7 +7117,7 @@ int addframe(s_addframe_data* data)
     }
 
     // Collision rework IP 2020-02-10
-    collision_attack_initialize_frame_property(data, currentframe);
+    collision_initialize_frame_property(data, currentframe);
     
     
 
@@ -11878,39 +11941,76 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 break;
 
-            case CMD_MODEL_BBOX:
+            case CMD_MODEL_BBOX:                
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->x = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->y = GET_INT_ARG(2);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->width = GET_INT_ARG(3);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->height = GET_INT_ARG(4);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->z_background = GET_INT_ARG(5);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->z_foreground = GET_INT_ARG(6);
+
                 bbox.x = GET_INT_ARG(1);
                 bbox.y = GET_INT_ARG(2);
                 bbox.width = GET_INT_ARG(3);
                 bbox.height = GET_INT_ARG(4);
                 bbox.z_background = GET_INT_ARG(5);
                 bbox.z_foreground = GET_INT_ARG(6);
+
                 break;
             case CMD_MODEL_BBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
                 break;
             case CMD_MODEL_BBOX_POSITION_X:
                 
-                
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->x = GET_INT_ARG(1);
 
                 bbox.x = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_Y:
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->y = GET_INT_ARG(1);
+
                 bbox.y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_X:
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->width = GET_INT_ARG(1);
+
                 bbox.width = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Y:
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->height = GET_INT_ARG(1);
+
                 bbox.height = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_1:
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->z_background = GET_INT_ARG(1);
+
                 bbox.z_background = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_2:
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->z_foreground = GET_INT_ARG(1);
+
                 bbox.z_foreground = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOXZ:
+
+                collision_upsert_body_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->z_background = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index, COLLISION_TYPE_BODY)->z_foreground = GET_INT_ARG(2);
+
                 bbox.z_background = GET_INT_ARG(1);
                 bbox.z_foreground = GET_INT_ARG(2);
                 break;
@@ -12279,15 +12379,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(stricmp(value, "none") == 0)
                 {
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blocksound = SAMPLE_ID_NONE;
-                }
-                else
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
                 {
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
                 }
 
                 break;
-
-            case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH:
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(1);
 
                 value = GET_ARG(1);
 
@@ -12342,34 +12442,34 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_COLLISION_POSITION_X:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
 
                 break;
 
-            case CMD_MODEL_COLLISION_POSITION_Y:
-
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(1);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(1);
 
                 break;
 
-            case CMD_MODEL_COLLISION_REACTION_FREEZE_MODE:
-                
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(1);
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freeze = GET_INT_ARG(1);
                 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_FREEZE_TIME:
-
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freezetime = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_INVINCIBLE_TIME:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->next_hit_time = GET_INT_ARG(1);
-
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_COLLISION_REACTION_REPOSITION_DISTANCE:
@@ -12410,29 +12510,29 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             
             case CMD_MODEL_COLLISION_SIZE_X:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(1);
-
-                break;
-
-            case CMD_MODEL_COLLISION_SIZE_Y:
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(1);
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(1);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(6);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(7);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(8);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(9);
 
-                break;
-
-            case CMD_MODEL_COLLISION_SIZE_Z_1:
-
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
-
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(10);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(10);         
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Z_2:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(1);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(1);
                                 
                 break;
 
@@ -12451,7 +12551,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_TAG:
                 
                 // To do - Add tag system.
-                
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->meta_tag = GET_INT_ARG(1);
+
                 break;
 
             case CMD_MODEL_COLLISION:
@@ -12475,20 +12576,20 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 // 2020-03-08, 
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(6);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(7);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(8);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(9);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_drop = GET_INT_ARG(6);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(7);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(8);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(9);
 
                 // -- Not a typo - legacy Z sets identical value to back/fore.
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(10);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(10);         
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(10);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(10);         
 
                 switch(cmd)
                 {
@@ -12552,9 +12653,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_NORMAL10;
                                         
                     break;
-
-                case CMD_MODEL_SHOCK:
-
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(2);
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
 
                     break;
@@ -12562,19 +12663,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 case CMD_MODEL_BURN:
 
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
-
-                    break;
-
-                case CMD_MODEL_STEAL:
-
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->steal = 1;
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
-
-                    break;
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(6);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(7);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(8);
 
                 case CMD_MODEL_FREEZE:
-
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(9);
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(9);
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freeze = 1;
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = -1;
@@ -12615,9 +12716,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISIONZ:
             case CMD_MODEL_HITZ:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(2);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(2);
 
                 break;
 
@@ -12625,19 +12726,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 // 2020-03-08, 
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(6);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(7);
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(8);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = GET_INT_ARG(4);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->attack_force = GET_INT_ARG(5);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_block = GET_INT_ARG(6);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(7);
+                collision_upsert_attack_property(&temp_collision_head, temp_collision_index)->pause_add = GET_INT_ARG(8);
 
                 // -- Not a typo - legacy Z sets identical value to back/fore.
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(9);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(9);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(9);
+                collision_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(9);
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = 1;
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BLAST;
@@ -19555,7 +19656,7 @@ bool check_jumpframe(entity *ent, unsigned int frame)
 void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
-    s_attack attack;
+    s_collision_attack attack;
     s_axis_principal_float move;
     s_anim *anim = ent->animation;
 
@@ -20245,7 +20346,7 @@ void ents_link(entity *e1, entity *e2)
 void kill_entity(entity *victim)
 {
     int i = 0;
-    s_attack attack;
+    s_collision_attack attack;
     entity *tempent = self;
 
     if(victim == NULL || !victim->exists)
@@ -20406,6 +20507,17 @@ int check_collision(s_collision_check_data* collision_data)
 	s_box seek_pos;
 	s_box detect_pos;
 
+    
+    // printf("\n seek_pos.background: %d", seek_pos.background);
+    // printf("\n seek_pos.center_x: %d", seek_pos.center_x);
+    // printf("\n seek_pos.center_y: %d", seek_pos.center_y);
+    // printf("\n seek_pos.center_z: %d", seek_pos.center_z);
+    // printf("\n seek_pos.foreground: %d", seek_pos.foreground);
+    // printf("\n seek_pos.left: %d", seek_pos.left);
+    // printf("\n seek_pos.right: %d", seek_pos.right);
+    // printf("\n seek_pos.top: %d", seek_pos.top);
+    
+
 	// X axis. 
 	//
 	// Before we can check X positions, we need to 
@@ -20434,7 +20546,7 @@ int check_collision(s_collision_check_data* collision_data)
 		detect_pos.right = collision_data->target_pos->x + collision_data->target_coords->width;
 	}
 
-	// If we are out of bounds, there's no collision.
+    // If we are out of bounds, there's no collision.
 	if (seek_pos.left > detect_pos.right || seek_pos.right < detect_pos.left)
 	{
 		return FALSE;
@@ -20455,7 +20567,7 @@ int check_collision(s_collision_check_data* collision_data)
 	seek_pos.top = collision_data->seeker_pos->y + -(collision_data->seeker_coords->y);
 
 	detect_pos.bottom = collision_data->target_pos->y + -(collision_data->target_coords->height);
-	detect_pos.top = collision_data->target_pos->y + -(collision_data->target_coords->y);
+	detect_pos.top = collision_data->target_pos->y + -(collision_data->target_coords->y);    
 
 	// If we are out of bounds, there's no collision.
 	if (seek_pos.bottom > detect_pos.top || seek_pos.top < detect_pos.bottom)
@@ -20515,7 +20627,7 @@ int check_collision(s_collision_check_data* collision_data)
 // This data is vital for checking hit reactions, spawning
 // flash effects, performing hit overrides, populating 
 // script variables and other post hit functionality.
-void populate_lasthit(s_collision_check_data *collision_data, s_attack *attack, s_collision_body *body)
+void populate_lasthit(s_collision_check_data *collision_data, s_collision_attack *attack, s_collision_body *body)
 {
 	lasthit.attack = attack;
 	lasthit.body = body;
@@ -20527,61 +20639,11 @@ void populate_lasthit(s_collision_check_data *collision_data, s_attack *attack, 
 	lasthit.confirm = 1;	
 }
 
-// Caskey, Damon V.
-// 2020-02-04
-//
-// Check collisions of a seeking box vs. all of a target's
-// current frame body boxes. Return true if collision is found.
-int check_collision_vs_body(s_collision_check_data* collision_check_data)
-{
-    int instance = 0;
-    
-    s_anim* animation = collision_check_data->target_animation;
-    int frame = collision_check_data->target_frame;    
-
-    // Loop over the collision objects for animation frame,
-    // then populate collision_check_data structure with the
-    // collision object's coordinates pointer. Then we can
-    // run the check collision function.
-    //
-    // If the collision check function finds a collision we
-    // return TRUE and exit. If we pass over all collision
-    // objects without a collision, then we return FALSE.
-    for (instance = 0; instance < max_collisons; instance++)
-    {   
-        if (!animation->collision_body || !animation->collision_body[frame])
-        {
-            continue;
-        }
-
-        collision_check_data->target_coords = animation->collision_body[frame]->instance[instance]->coords;
-
-        // Found a collision?
-        if (check_collision(collision_check_data))
-        {
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-int checkhit(entity *attacker, entity *target)
-{
-	// Before we do anything else, let's make
-	// make sure we aren't about to run collision
-	// checks on ourself or a target with no
-	// collision boxes active.
-    	
-    if(attacker == target
-       || !target->animation->collision_body
-       || !attacker->animation->collision
-       || !target->animation->vulnerable[target->animpos]
-       )
-    {
-        return FALSE;
-    }
-    
+/*
+* Caskey, Damon V.
+* 2020-02-04
+*
+* Check collisions of a seeking box vs. all of a target's
     s_collision_attack* seek_cursor = NULL;
     //s_collision_attack* target_cursor = NULL;
 
@@ -20596,77 +20658,148 @@ int checkhit(entity *attacker, entity *target)
 	s_axis_principal_int seeker_pos;
 	s_axis_principal_int target_pos;
 	s_box return_overlap;
+    /*
+    * Loop over the collision objects for animation frame,
+    * then populate collision_check_data structure with the
+    * collision object's coordinates pointer. Then we can
+    * run the check collision function.
+    *
+    * If the collision check function finds a collision we
+    * return TRUE and exit. If we pass over all collision
+    * objects without a collision, then we return FALSE.
+    */
+    for (instance = 0; instance < max_collisons; instance++)
+    {   
+        
+        if (!animation->collision_body || !animation->collision_body[frame])
+        {
 
-	// Get entity positions, cast as int.
-	seeker_pos.x = (int)attacker->position.x;
-	seeker_pos.y = (int)attacker->position.y;
-	seeker_pos.z = (int)attacker->position.z;
-	target_pos.x = (int)target->position.x;
-	target_pos.y = (int)target->position.y;
-	target_pos.z = (int)target->position.z;
+            continue;
+        }
 
-	// Prime the collision data check structure pointers
-	// using the address of local vars from this function.
-	collision_check_data.seeker_pos = &seeker_pos;
+        collision_check_data->target_coords = animation->collision_body[frame]->instance[instance]->coords;
+
+        /* Found a collision? */
+        if (check_collision(collision_check_data))
+        { 
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+int checkhit(entity *attacker, entity *target)
+{
+    /*
+	* Before we do anything else, let's make
+	* make sure we aren't about to run collision
+	* checks on ourself or a target with no
+	* collision boxes active.
+    */
+
+    if(attacker == target
+       || !target->animation->collision_body
+       || !attacker->animation->collision
+       || !target->animation->vulnerable[target->animpos]
+       )
+    {
+        return FALSE;
+    }
+    
+    s_collision* seek_cursor = NULL;
+    //s_collision* target_cursor = NULL;
+
+	//s_attack* attack = NULL;
+	s_collision_body* detect = NULL;
+	s_collision_check_data collision_check_data;
+
+	//int attack_instance = 0;	
+
+	// We'll use these in collision check data
+	// structure in lieu of memory allocations.
+	s_axis_principal_int seeker_pos;
+	s_axis_principal_int target_pos;
+	s_box return_overlap;
+
+	s_axis_principal_int target_pos = { .x = (int)target->position.x,
+                                        .y = (int)target->position.y,
+                                        .z = (int)target->position.z };    
+
+	/* 
+    * Prime the collision data check structure pointers
+	* using the address of local vars from this function.
+	*/
+    collision_check_data.seeker_pos = &seeker_pos;
 	collision_check_data.target_pos = &target_pos;
 	collision_check_data.return_overlap = &return_overlap;
     
-    // Populate collision check data with everything
-    // we can before running loop checks. 
+    /*
+    * Populate collision check data with everything
+    * we can before running loop checks. 
+    */
     collision_check_data.seeker_ent = attacker;
     collision_check_data.target_ent = target;
     collision_check_data.target_animation = target->animation;
     collision_check_data.target_frame = target->animpos;
 	
-    // Get entity directions.
+    /* Get entity directions. */
 	collision_check_data.seeker_direction = attacker->direction;
 	collision_check_data.target_direction = target->direction;
 
-    // New
-    if (!attacker->animation->collision)
-    {
-        return FALSE;
-    }
+    /* 
+    * Iterate through seeker's collision list.
+    * During iteration, we skip any collision node that 
+    * is not an attack type or does not have coordinates 
+    * defined. This check might seem redundant because the 
+    * model text read-in eliminates collision nodes without 
+    * defined coordinates. However, it is possible for an 
+    * author to add collisions with script that bypass the 
+    * read-in criteria.
+    */
+   
+    for(seek_cursor = attacker->animation->collision[attacker->animpos]; seek_cursor != NULL; seek_cursor = seek_cursor->next)
+    {        
+        // printf("\n seek_cursor: %p", seek_cursor);
+        // printf("\n\t z_background: %d", seek_cursor->coords->z_background);
+        // printf("\n\t tag: %d", seek_cursor->meta_tag);
+        // printf("\n\t type: %d", seek_cursor->type);       
 
-    // Set seek cursor to seeker's collision list head.
-    seek_cursor = attacker->animation->collision[attacker->animpos];
-    
-    // Iterate through seeker's collision list.
-    // During iteration, we skip any collision node that 
-    // is not an attack type or does not have coordinates 
-    // defined. This check might seem redundant because the 
-    // model text read-in eliminates collision nodes without 
-    // defined coordinates. However, it is possible for an 
-    // author to add collisions with script that bypass the 
-    // read-in criteria.
-    while (seek_cursor != NULL && seek_cursor->type & COLLISION_TYPE_ATTACK && seek_cursor->coords != NULL)
-    {
+        if (seek_cursor->type & ~COLLISION_TYPE_ATTACK)
+        {
+            continue;
+        }
+                
+        if (!seek_cursor->coords)
+        {
+            continue;
+        }
+                
         collision_check_data.seeker_coords = seek_cursor->coords;
         
-        // TO DO: Don't use attack properties without verifying
-        // attack is defined.
+        /* 
+        * TO DO:  If this is a counter attack let's check against the target's
+        * attack boxes.
+        * if (seek_cursor->attack->counterattack && check_collision_vs_attack(&collision_check_data))
+        * {
+        *     populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
+        *     return TRUE;
+        * }
+        */
 
-        // If this is a counter attack let's check against the target's
-        // attack boxes.
-        //if (seek_cursor->attack->counterattack && check_collision_vs_attack(&collision_check_data))
-        //{
-        //    populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
-        //    return TRUE;
-        //}
-        
-        // Check against target body boxes.
+        /* Check against target body boxes. */
         if (check_collision_vs_body(&collision_check_data))
         {
             populate_lasthit(&collision_check_data, seek_cursor->attack, detect);
 
             return TRUE;            
         }
-
-        seek_cursor = seek_cursor->next;
     }
-    
-	// If we made it here, then we were unable to find
-	// any collisions, - return FALSE. 
+
+    /*
+	* If we made it here, then we were unable to find
+	* any collisions, - return FALSE. 
+    */
 
     return FALSE;
 }
@@ -21356,7 +21489,7 @@ void do_active_block(entity *ent)
 // vs. entity in terms of game mechanics like
 // guard break, attack type vs. defense, and
 // so on. It does not handle rules for AI blocking.
-int check_blocking_eligible(entity *ent, entity *other, s_attack *attack)
+int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
 	// If guardpoints are set, then find out if they've been depleted.
 	if (ent->modeldata.guardpoints.max)
@@ -21508,7 +21641,7 @@ int check_blocking_decision(entity *ent)
 //
 // Runs all blocking conditions and returns true
 // if the attack should be blocked.
-int check_blocking_master(entity *ent, entity *other, s_attack *attack)
+int check_blocking_master(entity *ent, entity *other, s_collision_attack *attack)
 {
 	e_entity_type entity_type;
 
@@ -21566,7 +21699,7 @@ int check_blocking_master(entity *ent, entity *other, s_attack *attack)
 * Apply primary block settings, animations,
 * actions, and scripts.
 */
-void set_blocking_action(entity *ent, entity *other, s_attack *attack)
+void set_blocking_action(entity *ent, entity *other, s_collision_attack *attack)
 {
 	/* Execute the attacker's didhit script with blocked flag. */
 	execute_didhit_script(other, ent, attack, 1);
@@ -21600,7 +21733,7 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 //
 // Verify entity has blockpain and that attack
 // should trigger it.
-int check_blocking_pain(entity *ent, s_attack *attack)
+int check_blocking_pain(entity *ent, s_collision_attack *attack)
 {
 	// If we don't have blockpain,
 	// nothing else to do!
@@ -21623,7 +21756,7 @@ int check_blocking_pain(entity *ent, s_attack *attack)
 // 2018-09-21
 //
 // Place entity into appropriate blocking animation.
-void set_blocking_animation(entity *ent, s_attack *attack)
+void set_blocking_animation(entity *ent, s_collision_attack *attack)
 {
 	// If we have an appropriate blockpain, lets
 	// apply it here.
@@ -21641,7 +21774,7 @@ void set_blocking_animation(entity *ent, s_attack *attack)
 // 2018-09-21
 //
 // Perform a block.
-void do_passive_block(entity *ent, entity *other, s_attack *attack)
+void do_passive_block(entity *ent, entity *other, s_collision_attack *attack)
 {	
 	// Place entity in blocking animation.
 	set_blocking_animation(ent, attack);
@@ -21658,7 +21791,7 @@ void do_passive_block(entity *ent, entity *other, s_attack *attack)
 //
 // Handle flash spawning for hits. Will spawn and prepare an appropriate
 // flash effect entity if conditions are met.
-entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash)
+entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_flash, int model_flash)
 {
 	int to_spawn;
 	entity *flash;
@@ -21872,7 +22005,7 @@ bool try_follow_up(entity *ent, entity *target, s_anim *animation, bool didblock
 // 2019-12-03
 //
 // Verify an attack meets conditions to trigger a counter action.
-bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
+bool check_counter_condition(entity* target, entity* attacker, s_collision_attack* attack)
 {
 	s_counter_action* counter = NULL;
 
@@ -22012,7 +22145,7 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 //
 // Attempt to perform counter action animation. If successful, sets entity animation to
 // appropriate counter and returns TRUE.
-bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
+bool try_counter_action(entity* target, entity* attacker, s_collision_attack* attack)
 {
 	int force;
 	int current_follow_id;
@@ -22076,7 +22209,7 @@ void do_attack(entity *e)
     entity *otherowner      = NULL;
     entity *target          = NULL;
     s_anim      *current_anim;
-    s_attack *attack = NULL;
+    s_collision_attack *attack = NULL;
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
@@ -23056,7 +23189,7 @@ void check_gravity(entity *e)
 
 int check_lost()
 {
-    s_attack attack;
+    s_collision_attack attack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
@@ -23838,7 +23971,7 @@ void damage_recursive(entity *ent)
     int         force_final;    // Final force; total damage after defense and offense factors are applied.
     float       offense;        // Owner's offense.
     float       defense;        // target defense.
-    s_attack attack;  // Attack structure.
+    s_collision_attack attack;  // Attack structure.
 	s_damage_recursive *cursor;
 
     // Iterate target's recursive damage nodes.
@@ -25189,7 +25322,7 @@ int set_death(entity *iDie, int type, int reset)
 }
 
 
-int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
+int set_fall(entity *ent, entity *other, s_collision_attack *attack, int reset)
 {
     int fall = 0;
 
@@ -26935,7 +27068,7 @@ void checkdeath()
     }
 }
 
-void checkdamageflip(entity *other, s_attack *attack)
+void checkdamageflip(entity *other, s_collision_attack *attack)
 {
     self->normaldamageflipdir = -1;
 
@@ -26996,7 +27129,7 @@ void checkdamageflip(entity *other, s_attack *attack)
     }
 }
 
-void checkdamageeffects(s_attack *attack)
+void checkdamageeffects(s_collision_attack *attack)
 {
 #define _freeze         attack->freeze
 #define _maptime        attack->maptime
@@ -27129,7 +27262,7 @@ void checkdamageeffects(s_attack *attack)
 //
 // If attack has any recursive effects, apply
 // them to entity accordingly.
-void check_damage_recursive(entity *ent, entity *other, s_attack *attack)
+void check_damage_recursive(entity *ent, entity *other, s_collision_attack *attack)
 {
 	s_damage_recursive *previous;
 	s_damage_recursive *cursor;
@@ -27204,7 +27337,7 @@ void check_damage_recursive(entity *ent, entity *other, s_attack *attack)
 	cursor->owner = other;       
 }
 
-void checkdamagedrop(s_attack *attack)
+void checkdamagedrop(s_collision_attack *attack)
 {
     int attackdrop = attack->attack_drop;
     float fdefense_knockdown = self->defense[attack->attack_type].knockdown;
@@ -27254,7 +27387,7 @@ void checkmpadd()
     }
 }
 
-void checkhitscore(entity *other, s_attack *attack)
+void checkhitscore(entity *other, s_collision_attack *attack)
 {
     entity *opp = self->opponent;
     if(!opp)
@@ -27276,7 +27409,7 @@ void checkhitscore(entity *other, s_attack *attack)
     }
 }
 
-int calculate_force_damage(entity *target, entity *attacker, s_attack *attack)
+int calculate_force_damage(entity *target, entity *attacker, s_collision_attack *attack)
 {
     int force = attack->attack_force;
     int type = attack->attack_type;
@@ -27303,7 +27436,7 @@ void checkdamageonlanding()
         int didhit = 0;
 
         //##################
-        s_attack attack;
+        s_collision_attack attack;
         entity *other;
 
         attack              = emptyattack;
@@ -27396,7 +27529,7 @@ void checkdamageonlanding()
         if(self->takedamage)
         {
             //##################
-            s_attack attack;
+            s_collision_attack attack;
             entity *other;
 
             attack              = emptyattack;
@@ -27451,7 +27584,7 @@ int is_attack_type_special(e_attack_types type)
 	}
 }
 
-void checkdamage(entity *other, s_attack *attack)
+void checkdamage(entity *other, s_collision_attack *attack)
 {
 	int		force;
 	bool	normal_damage;
@@ -27512,7 +27645,7 @@ void checkdamage(entity *other, s_attack *attack)
     return;
 }
 
-int checkgrab(entity *other, s_attack *attack)
+int checkgrab(entity *other, s_collision_attack *attack)
 {
     //if(attack->no_pain) return  0; //no effect, let modders to deside, don't bother check it here
     if(self != other && attack->grab && cangrab(other, self))
@@ -27530,7 +27663,7 @@ int checkgrab(entity *other, s_attack *attack)
     return 1;
 }
 
-int arrow_takedamage(entity *other, s_attack *attack, int fall_flag)
+int arrow_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     self->modeldata.no_adjust_base = 0;
     self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_basemap = self->modeldata.subject_to_gravity = 1;
@@ -27541,7 +27674,7 @@ int arrow_takedamage(entity *other, s_attack *attack, int fall_flag)
     return 0;
 }
 
-int common_takedamage(entity *other, s_attack *attack, int fall_flag)
+int common_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     if(self->dead)
     {
@@ -28272,7 +28405,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
-    s_attack attack;
+    s_collision_attack attack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -30592,7 +30725,7 @@ int common_try_wander(entity *target, int dox, int doz)
 // to allow easy item scripting.
 void do_item_script(entity *ent, entity *item)
 {
-    s_attack attack;
+    s_collision_attack attack;
     attack = emptyattack;
     attack.attack_type = ATK_ITEM;
 
@@ -30885,7 +31018,7 @@ int projectile_wall_deflect(entity *ent)
     #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
-    s_attack attack;
+    s_collision_attack attack;
 
     if(validanim(ent, ANI_FALL))
     {
@@ -34421,9 +34554,9 @@ void dropweapon(int flag)
 }
 
 
-int player_takedamage(entity *other, s_attack *attack, int fall_flag)
+int player_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
-    s_attack atk = *attack;
+    s_collision_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
     if(healthcheat || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
@@ -34442,7 +34575,7 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
-    s_attack attack;
+    s_collision_attack attack;
 
     for(i = 0; i < ent_max; i++)
     {
@@ -34486,7 +34619,7 @@ void drop_all_enemies()
 void kill_all_enemies()
 {
     int i;
-    s_attack attack;
+    s_collision_attack attack;
     entity *tmpself = NULL;
 
     attack = emptyattack;
@@ -34512,7 +34645,7 @@ void kill_all_enemies()
 
 
 
-void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
+void smart_bomb(entity *e, s_collision_attack *attack)    // New method for smartbombs
 {
     int i, hostile, hit = 0;
     entity *tmpself = NULL;
@@ -35362,7 +35495,7 @@ void bike_crash()
 
 
 
-int biker_takedamage(entity *other, s_attack *attack, int fall_flag)
+int biker_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     entity *driver = NULL;
     entity *tempself = NULL;
@@ -35451,7 +35584,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
 
 
 
-int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag)
+int obstacle_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     if(self->position.y <= PIT_DEPTH)
     {
@@ -35929,7 +36062,7 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_attack attack_timeover, attack_lose;
+    s_collision_attack attack_timeover, attack_lose;
 
     attack_timeover = emptyattack;
     attack_timeover.attack_type = ATK_TIMEOVER;

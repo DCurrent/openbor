@@ -676,7 +676,7 @@ int Script_Execute(Script *pscript)
     return result;
 }
 
-static s_attack attack;
+static s_collision_attack attack;
 
 //////////////////////////////////////////////////////////
 ////////////   system functions
@@ -8729,7 +8729,7 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         break;
 	case _sv_lasthit_attack:
 		
-		lasthit.attack = (s_attack*)value->ptrVal;
+		lasthit.attack = (s_collision_attack*)value->ptrVal;
 		break;
 
 	case _sv_lasthit_attacker:
@@ -9904,7 +9904,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     entity *other = NULL;
     entity *temp = NULL;
     LONG force, drop, type;
-    s_attack atk;
+    s_collision_attack atk;
 
     if(paramCount < 1)
     {
@@ -10003,7 +10003,7 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     entity *defender = NULL;
     entity *attacker = NULL;
     LONG force, drop, type;
-    s_attack atk;
+    s_collision_attack atk;
 
     if(paramCount < 3)
     {
