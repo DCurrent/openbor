@@ -2029,9 +2029,9 @@ typedef struct
 * coordinates. Then we allocate the attack 
 * properties.
 */
-typedef struct s_collision
+typedef struct s_collision_attack
 {
-    struct s_collision* next;       // Next item in linked list.
+    struct s_collision_attack* next;       // Next item in linked list.
     s_attack*           attack;     // Attacking properties.
     s_collision_body*   body;       // Body (detecting incoming attack) properties.
     s_collision_space*  space;      // Physical space properties.
@@ -2040,7 +2040,7 @@ typedef struct s_collision
     int                 meta_tag;   // User defined int.
     e_collision_type    type;       // Detection type.  
     int                 index;      // Listing index.
-} s_collision;
+} s_collision_attack;
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -2262,7 +2262,7 @@ typedef struct
 	s_sub_entity*				sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
 	s_projectile*				projectile;             // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
-    s_collision**               collision;              // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
+    s_collision_attack**               collision;              // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
 	s_collision_body_list**		collision_body;
 	s_collision_entity_list**	collision_entity;
 	s_move**					move;					// base = seta, x = move, y = movea, z = movez
@@ -3382,7 +3382,7 @@ s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
 int free_model();
-void cache_attack_hit_sounds(s_collision* head, int load);
+void cache_attack_hit_sounds(s_collision_attack* head, int load);
 void cache_model_sprites();
 
 s_drawmethod			*allocate_drawmethod();
@@ -3418,7 +3418,7 @@ typedef struct
     int                         soundtoplay;    // Sound index played on frame.
     s_drawmethod*               drawmethod;     // Drawmethod to apply on frame.
     s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
-    s_collision*                collision;      // Head node of collision list for frame.
+    s_collision_attack*                collision;      // Head node of collision list for frame.
     s_model*                    model;          // New model in progress.
 } s_addframe_data;
 
@@ -3427,10 +3427,27 @@ int addframe(s_addframe_data* data);
 /* Collision and attcking control. */
 
 /* -- Attack properties. */
-s_attack*               attack_allocate_object();
-s_attack*               attack_clone_object(s_attack* source);
-void                    attack_dump_object(s_attack* attack);
-void                    attack_free_object(s_attack* target);
+s_attack*   attack_allocate_object();
+s_attack*   attack_clone_object(s_attack* source);
+void        attack_dump_object(s_attack* attack);
+void        attack_free_object(s_attack* target);
+
+s_collision_attack* collision_attack_allocate_object();
+s_collision_attack* collision_attack_append_node(struct s_collision_attack* head);
+int                 collision_attack_check_has_coords(s_collision_attack* target);
+s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head);
+void                collision_attack_dump_list(s_collision_attack* head);
+s_collision_attack* collision_attack_find_no_block_on_frame(s_anim* animation, int frame, int block);
+s_collision_attack* collision_attack_find_node_index(s_collision_attack* head, e_collision_type type, int index);
+void                collision_attack_free_list(s_collision_attack* head);
+void                collision_attack_free_node(s_collision_attack* target);
+void                collision_attack_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+void                collision_attack_prepare_coordinates_for_frame(s_collision_attack* collision_head, s_model* model, s_addframe_data* add_frame_data);
+void                collision_attack_remove_undefined_coordinates(s_collision_attack** head);
+s_hitbox*           collision_attack_upsert_coordinates_property(s_collision_attack** head, int index);
+s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, e_collision_type type, int index);
+s_attack*           collision_attack_upsert_property(s_collision_attack** head, int index);
+s_damage_recursive* collision_attack_upsert_recursive_property(s_collision_attack** head, int index);
 
 /* -- Body properties */
 s_collision_body*       body_allocate_object();
@@ -3442,29 +3459,10 @@ void                    body_free_object(s_collision_body* target);
 s_damage_recursive*     recursive_damage_allocate_object();
 void                    recursive_damage_dump_object(s_damage_recursive* recursive);
 
-// -- Collision container and list.
+/* -- Collision container and list. */
 s_hitbox*               collision_allocate_coords(s_hitbox* coords);
-s_collision*            collision_allocate_object();
-s_collision*            collision_append_node(struct s_collision* head);
-// s_collision*            collision_append_node_to_property(s_collision** target_property);
-int                     collision_check_has_coords(s_collision* target);
-s_collision*            collision_clone_list(s_collision* source_head);
-void                    collision_dump_list(s_collision* head);
-s_collision*            collision_find_attack_on_frame(s_anim* animation, int frame);
-s_collision*            collision_find_no_block_attack_on_frame(s_anim* animation, int frame, int block);
-s_collision*            collision_find_node_index(s_collision* head, e_collision_type type, int index);
-void                    collision_free_list(s_collision* head);
-void                    collision_free_node(s_collision* target);
-void                    collision_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
-void                    collision_prepare_coordinates_for_frame(s_collision* collision_head, s_model* model, s_addframe_data* add_frame_data);
-void                    collision_remove_undefined_coordinates(s_collision** head);
-s_attack*               collision_upsert_attack_property(s_collision** head, int index);
-s_collision_body*       collision_upsert_body_property(s_collision** head, int index);
-s_hitbox*               collision_upsert_coordinates_property(s_collision** head, int index);
-s_collision*            collision_upsert_index(s_collision* head, e_collision_type type, int index);
-s_damage_recursive*     collision_upsert_recursive_property(s_collision** head, int index);
 
-// -- Legacy
+/* --Legacy */
 s_collision_body*       collision_alloc_body_instance(s_collision_body *properties);
 s_collision_body**      collision_alloc_body_list();
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
@@ -3475,7 +3473,6 @@ void meta_data_free_list(s_meta_data* head);
 
 
 void cache_model(char *name, char *path, int flag);
-void remove_from_cache(char *name);
 void free_modelcache();
 int get_cached_model_index(char *name);
 char *get_cached_model_path(char *name);
