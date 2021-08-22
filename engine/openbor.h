@@ -1898,30 +1898,6 @@ typedef struct
     e_attack_types attack_type;
 } s_damage_on_landing;
 
-// Caskey, Damon V.
-// 2016-10~
-//
-// Collision box for detecting
-// body boxes.
-typedef struct
-{
-    s_hitbox    *coords;        // Collision box dimensions.
-    s_defense   *defense;       // Defense properties for this collision box only.
-    int         index;          // To enable user tracking of this box's index when multiple instances are in use.
-    s_meta_data* meta_data;     // User defiend data.
-    int			meta_tag;	// User defined int.
-} s_collision_body;
-
-// Caskey, Damon V.
-// 2016-10~
-//
-// List of collision body boxes
-// per animation frame.
-typedef struct
-{
-    s_collision_body **instance;
-} s_collision_body_list;
-
 // Collision box for detecting
 // entity boxes.
 typedef struct
@@ -1983,29 +1959,12 @@ typedef struct
     int					meta_tag;	            // User defined int.
 } s_attack;
 
-// ** Collision Refactor IP - 2020-02-10 **
-//
-// Abstract collision into a single parent structure, with 
-// body, attack, and space properties as allocated sub structures.
-//
-// This is to eliminate double looping, redundant logic checks 
-// and increase extensability.
+/* ** Collision Refactor IP - 2020-02-10 **/
 
-// Caskey, Damon V.
-// 2019-02-10
-//
-// Collision types. 
-typedef enum
-{
-    COLLISION_TYPE_ALL = -1,		    // For compare operations when we want any type to return TRUE.
-    COLLISION_TYPE_NONE = 0,		    // Ignored by all native logic.		
-    COLLISION_TYPE_ATTACK = (1 << 0),	// Attack vs. body boxes.
-    COLLISION_TYPE_BODY = (1 << 1),	    // Detects incoming attacks.
-    COLLISION_TYPE_SPACE = (1 << 3)     // Physical space ("pushing").
-} e_collision_type;
-
-// Collision box for detecting
-// physical space.
+/* 
+* Collision box for detecting
+* physical space.
+*/
 typedef struct
 {
     int         index;              // To enable user tracking of this box's index when multiple instances are in use.
@@ -2017,30 +1976,46 @@ typedef struct
 * Caskey, Damon V.
 * 2020-02-20
 *
-* Collision container. We use this for all
-* types of collisions, setting type and then
-* allocating sub structures as needed. This
-* also allows us to have a collision box that 
-* is more than one type at once, though in 
-* practice we don't do that at the moment.
-*
-* Example: For an attack, we set the attack
-* bit in type property to TRUE and allocate
-* coordinates. Then we allocate the attack 
-* properties.
+* Collision attack container for
+* dishing out hits. 
 */
 typedef struct s_collision_attack
 {
     struct s_collision_attack* next;       // Next item in linked list.
     s_attack*           attack;     // Attacking properties.
-    s_collision_body*   body;       // Body (detecting incoming attack) properties.
-    s_collision_space*  space;      // Physical space properties.
     s_hitbox*           coords;     // Collision box dimensions.
     s_meta_data*        meta_data;  // User defined data.
-    int                 meta_tag;   // User defined int.
-    e_collision_type    type;       // Detection type.  
+    int                 meta_tag;   // User defined int.      
     int                 index;      // Listing index.
 } s_collision_attack;
+
+/*
+* Caskey, Damon V.
+* 2020-02-20
+*
+* Body properties for detecting hits.
+*/
+typedef struct
+{    
+    s_defense* defense;       // Defense properties for this collision box only.    
+} s_body;
+
+/*
+* Caskey, Damon V.
+* 2020-02-20
+*
+* Collision body container for
+* detecting hits.
+*/
+typedef struct s_collision_body
+{
+    struct s_collision_body* next;    // Next item in linked list.
+    s_body* body;                       // Body properties.
+    s_hitbox* coords;                   // Collision box dimensions.
+    s_meta_data* meta_data;             // User defined data.
+    int                 meta_tag;       // User defined int.      
+    int                 index;          // Listing index.
+} s_collision_body;
 
 // Caskey, Damon V.
 // 2013-12-15
@@ -2048,12 +2023,16 @@ typedef struct s_collision_attack
 // Last hit structure. Populated each time a collision is detected.
 typedef struct
 {
-    int						confirm;    // Will engine's default hit handling be used?
-    s_axis_principal_float	position;   // X,Y,Z of last hit.
-    s_attack		*attack;    // Collision attacking box.
-    s_collision_body		*body;      // Collision detect box.
-	struct entity			*target;	// Entity taking the hit.
-	struct entity			*attacker;	// Entity dishing out the hit.
+    int						    confirm;                    // Will engine's default hit handling be used?
+    s_axis_principal_float	    position;                   // X,Y,Z of last hit.
+    s_collision_attack*         collision_attack;           // Collision container for attack.
+    s_attack*                   attack;                     // Attack object (has attack properties).
+    s_collision_body*           detect_collision_body;      // Collision container for body.
+    s_body*                     detect_body;                // Body object (has body properties).
+    s_collision_attack*         detect_collision_attack;    // When hit by counterattack, this is collision attack container taking hit.      
+    struct entity*			    target;	                    // Entity taking the hit.
+	struct entity*			    attacker;	                // Entity dishing out the hit.
+    
 } s_lasthit;
 
 // Caskey, Damon V.
@@ -2262,8 +2241,8 @@ typedef struct
 	s_sub_entity*				sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
 	s_projectile*				projectile;             // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
-    s_collision_attack**               collision;              // Head node for collision detection (IP replacement for collision_body, attack, entity 2020-02-10).
-	s_collision_body_list**		collision_body;
+    s_collision_attack**        collision_attack;       // Head node for collision detection (attack).
+    s_collision_body**          collision_body;         // Head node for collision detection (body).
 	s_collision_entity_list**	collision_entity;
 	s_move**					move;					// base = seta, x = move, y = movea, z = movez
 	s_axis_plane_vertical_int**	offset;				    // original sprite offsets
@@ -3408,8 +3387,6 @@ typedef struct
     unsigned                    idle;           // TRUE = Set idle status during frame.
     s_collision_entity*         ebox;           // "Entity" box added by WD. To be removed.
     s_hitbox*                   entity_coords;  // Coordinates for "Entity" box. To be removed.
-    s_collision_body*           bbox;           // Legacy body box parameters.
-    s_hitbox*                   body_coords;    // Coordinates for legacy body box.
     s_damage_recursive*         recursive;      // Recursive damage properties for attack.
     s_move*                     move;           // Move <n> horizontal pixels on frame.
     float*                      platform;       // Platform coordinates.
@@ -3418,7 +3395,8 @@ typedef struct
     int                         soundtoplay;    // Sound index played on frame.
     s_drawmethod*               drawmethod;     // Drawmethod to apply on frame.
     s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
-    s_collision_attack*                collision;      // Head node of collision list for frame.
+    s_collision_attack*         collision;      // Head node of collision list (attack) for frame.
+    s_collision_body*           collision_body; // Head node of collision list (body) for frame. 
     s_model*                    model;          // New model in progress.
 } s_addframe_data;
 
@@ -3438,22 +3416,38 @@ int                 collision_attack_check_has_coords(s_collision_attack* target
 s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head);
 void                collision_attack_dump_list(s_collision_attack* head);
 s_collision_attack* collision_attack_find_no_block_on_frame(s_anim* animation, int frame, int block);
-s_collision_attack* collision_attack_find_node_index(s_collision_attack* head, e_collision_type type, int index);
+s_collision_attack* collision_attack_find_node_index(s_collision_attack* head, int index);
 void                collision_attack_free_list(s_collision_attack* head);
 void                collision_attack_free_node(s_collision_attack* target);
 void                collision_attack_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
 void                collision_attack_prepare_coordinates_for_frame(s_collision_attack* collision_head, s_model* model, s_addframe_data* add_frame_data);
 void                collision_attack_remove_undefined_coordinates(s_collision_attack** head);
 s_hitbox*           collision_attack_upsert_coordinates_property(s_collision_attack** head, int index);
-s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, e_collision_type type, int index);
+s_collision_attack* collision_attack_upsert_index(s_collision_attack* head, int index);
 s_attack*           collision_attack_upsert_property(s_collision_attack** head, int index);
 s_damage_recursive* collision_attack_upsert_recursive_property(s_collision_attack** head, int index);
 
 /* -- Body properties */
-s_collision_body*       body_allocate_object();
-s_collision_body*       body_clone_object(s_collision_body* source);
-void                    body_dump_object(s_collision_body* body);
-void                    body_free_object(s_collision_body* target);
+s_body* body_allocate_object();
+s_body* body_clone_object(s_body* source);
+void    body_dump_object(s_body* body);
+void    body_free_object(s_body* target);
+
+s_collision_body*   collision_body_allocate_object();
+s_collision_body*   collision_body_append_node(struct s_collision_body* head);
+int                 collision_body_check_has_coords(s_collision_body* target);
+s_collision_body*   collision_body_clone_list(s_collision_body* source_head);
+void                collision_body_dump_list(s_collision_body* head);
+s_collision_body*   collision_body_find_node_index(s_collision_body* head, int index);
+void                collision_body_free_list(s_collision_body* head);
+void                collision_body_free_node(s_collision_body* target);
+void                collision_body_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+void                collision_body_prepare_coordinates_for_frame(s_collision_body* collision_head, s_model* model, s_addframe_data* add_frame_data);
+void                collision_body_remove_undefined_coordinates(s_collision_body** head);
+s_hitbox*           collision_body_upsert_coordinates_property(s_collision_body** head, int index);
+s_collision_body*   collision_body_upsert_index(s_collision_body* head, int index);
+s_body*             collision_body_upsert_property(s_collision_body** head, int index);
+
 
 // -- Recursive damage
 s_damage_recursive*     recursive_damage_allocate_object();
@@ -3462,9 +3456,9 @@ void                    recursive_damage_dump_object(s_damage_recursive* recursi
 /* -- Collision container and list. */
 s_hitbox*               collision_allocate_coords(s_hitbox* coords);
 
+void populate_lasthit(s_collision_check_data* collision_data, s_collision_attack* collision_attack, s_collision_body* detect_collision_body, s_collision_attack* detect_collision_attack);
+
 /* --Legacy */
-s_collision_body*       collision_alloc_body_instance(s_collision_body *properties);
-s_collision_body**      collision_alloc_body_list();
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
 
