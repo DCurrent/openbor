@@ -172,6 +172,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_SIZE_Y,                           "attack.size.y");
     LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_1,                         "attack.size.z.1");
     LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_2,                         "attack.size.z.2");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_BACKGROUND,                "attack.size.z.background");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_FOREGROUND,                "attack.size.z.foreground");
     LIST_ADD(CMD_MODEL_COLLISION_STAYDOWN_RISE,                    "attack.staydown.rise.time");
     LIST_ADD(CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK,              "attack.staydown.attack.time");
     LIST_ADD(CMD_MODEL_COLLISION_TAG,                              "attack.tag");
@@ -206,6 +208,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_BBOX_SIZE_Y, "bbox.size.y");
     LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_1, "bbox.size.z.1");
     LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_2, "bbox.size.z.2");
+    LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_BACKGROUND, "bbox.size.z.background");
+    LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_FOREGROUND, "bbox.size.z.foreground");
     LIST_ADD(CMD_MODEL_BBOXZ, "bboxz");
     LIST_ADD(CMD_MODEL_BFLASH, "bflash");
     LIST_ADD(CMD_MODEL_BLAST, "blast");
