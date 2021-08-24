@@ -11951,28 +11951,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 					newanim->projectile = allocate_projectile();
 				}
 
-				value = GET_ARG(1);
-
-				if (stricmp(value, "left") == 0)
-				{
-					tempInt = DIRECTION_ADJUST_LEFT;
-				}
-				else if (stricmp(value, "none") == 0)
-				{
-					tempInt = DIRECTION_ADJUST_NONE;
-				}
-				else if (stricmp(value, "opposite") == 0)
-				{
-					tempInt = DIRECTION_ADJUST_OPPOSITE;
-				}
-				else if (stricmp(value, "right") == 0)
-				{
-					tempInt = DIRECTION_ADJUST_RIGHT;
-				}
-				else if (stricmp(value, "same") == 0)
-				{
-					tempInt = DIRECTION_ADJUST_SAME;
-				}
+                tempInt = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
 				
 				newanim->projectile->direction_adjust = tempInt;
 				break;
@@ -12752,7 +12731,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 			case CMD_MODEL_COLLISION_REACTION_REPOSITION_DIRECTION:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
+                tempInt = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = tempInt;
                 				
 				break;
 
@@ -13250,14 +13231,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_FORCEDIRECTION:
                 
+                tempInt = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
+
                 // the attack direction
                 if (!newanim && newchar->smartbomb)
                 {
-                    newchar->smartbomb->force_direction = GET_INT_ARG(1);
+                    newchar->smartbomb->force_direction = tempInt;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = tempInt;
                 }
                                 
                 break;
@@ -24704,7 +24687,7 @@ void adjust_bind(entity *e)
 	e->sortid = e->binding.ent->sortid + e->binding.sortid;
 
 	// Get and apply direction adjustment.
-	e->direction = direction_adjustment(e->direction, e->binding.ent->direction, e->binding.direction);
+	e->direction = direction_get_adjustment_result(e->direction, e->binding.ent->direction, e->binding.direction);
 
 	// Run bind positioning function to get an
 	// adjusted (or not) position result we apply 
@@ -24756,13 +24739,53 @@ float binding_position(float position_default, float position_target, int offset
 	}
 }
 
+/*
+* Caskey, Damon V.
+* 2021-08-24
+* 
+* Read a text argument for direction and output
+* appropriate direction adjustment constant. If
+* input is legacy integer, we just pass it on.
+*/
+e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* command, char* value)
+{
+    e_direction_adjust result = DIRECTION_ADJUST_NONE;
+        
+    if (stricmp(value, "left") == 0)
+    {
+        result = DIRECTION_ADJUST_LEFT;
+    }
+    else if (stricmp(value, "none") == 0)
+    {
+        result = DIRECTION_ADJUST_NONE;
+    }
+    else if (stricmp(value, "opposite") == 0)
+    {
+        result = DIRECTION_ADJUST_OPPOSITE;
+    }
+    else if (stricmp(value, "right") == 0)
+    {
+        result = DIRECTION_ADJUST_RIGHT;
+    }
+    else if (stricmp(value, "same") == 0)
+    {
+        result = DIRECTION_ADJUST_SAME;
+    }
+    else
+    {
+        result = getValidInt(value, filename, command);
+    }
+
+    return result;
+}
+
 // Caskey, Damon V.
 // 2018-10-13
 //
 // Return an adjusted entity direction based 
 // on orginal direction, target direction
 // and direction adjust setting.
-e_direction direction_adjustment(e_direction direction_default, e_direction direction_target, e_direction_adjust adjustment)
+e_direction direction_get_adjustment_result(e_direction direction_default, e_direction direction_target, e_direction_adjust adjustment)
 {
 	// Apply direction adjustment.
 	switch (adjustment)
@@ -35269,7 +35292,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 
 	// Get result of direction adjustment. We need this before we can handle
 	// positioning on X axis.
-	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
 
 	// Let's set up the spawn position. Reverse X when parent
 	// faces left.
@@ -35517,7 +35540,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 
 	// Get result of direction adjustment. We need this before we can handle
 	// positioning on X axis.
-	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
 
 	// Let's set up the spawn position. Reverse X when parent
 	// faces left.
@@ -35697,7 +35720,7 @@ int star_spawn(entity *parent, s_projectile *projectile)
 
 	// Get result of direction adjustment. We need this before we can handle
 	// positioning on X axis.
-	direction = direction_adjustment(parent->direction, parent->direction, projectile->direction_adjust);
+	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
 
 	// Let's set up the spawn position. Reverse X when parent
 	// faces left.
