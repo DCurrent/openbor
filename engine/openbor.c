@@ -12403,12 +12403,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_1:
+            case CMD_MODEL_BBOX_SIZE_Z_BACKGROUND:
 
                 collision_body_upsert_property(&temp_collision_body_head, temp_collision_index);
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->z_background = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_2:
+            case CMD_MODEL_BBOX_SIZE_Z_FOREGROUND:
 
                 collision_body_upsert_property(&temp_collision_body_head, temp_collision_index);
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->z_foreground = GET_INT_ARG(1);
@@ -12920,6 +12922,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Z_1:
+            case CMD_MODEL_COLLISION_SIZE_Z_BACKGROUND:
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(1);
@@ -12927,6 +12930,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Z_2:
+            case CMD_MODEL_COLLISION_SIZE_Z_FOREGROUND:
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
                 collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(1);
