@@ -3250,9 +3250,14 @@ void    adjust_bind(entity *e);
 float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
 int     check_bind_override(entity *ent, e_bind_override overriding);
 
-// Recursive damage.
-void    free_recursive_object(s_damage_recursive* target);
-void	free_recursive_list(s_damage_recursive * head);
+/* Recursive damage. */
+s_damage_recursive*         recursive_damage_allocate_object();
+void                        recursive_damage_dump_object(s_damage_recursive* recursive);
+void	                    recursive_damage_free_list(s_damage_recursive* head);
+void                        recursive_damage_free_object(s_damage_recursive* target);
+e_damage_recursive_logic    recursive_damage_get_mode_flag_from_argument(char* value);
+e_damage_recursive_logic    recursive_damage_get_mode_setup_from_arg_list(ArgList* arglist);
+e_damage_recursive_logic    recursive_damage_get_mode_setup_from_legacy_argument(e_damage_recursive_cmd_read value);
 
 // Blocking logic.
 int     check_blocking_decision(entity *ent);
@@ -3516,7 +3521,7 @@ void player_blink(void);
 void common_prejump();
 void common_preduck();
 void common_idle();
-void damage_recursive(entity *target);
+void recursive_damage_update(entity *target);
 void tryjump(float, float, float, int);
 void dojump(float, float, float, int);
 void tryduck(entity*);

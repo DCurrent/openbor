@@ -7407,11 +7407,114 @@ void body_free_object(s_body* target)
     free(target);
 }
 
-// 2020-03-10
-// Caskey, Damon V
-//
-// allocate a recursive damage object and return
-// its pointer.
+
+/*
+* Caskey, Damon V.
+* 2021-08-24
+* 
+* Return recrisive mode flag constant from 
+* a string argument.
+*/
+e_damage_recursive_logic recursive_damage_get_mode_flag_from_argument(char* value)
+{
+    e_damage_recursive_logic result = DAMAGE_RECURSIVE_MODE_NONE;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = DAMAGE_RECURSIVE_MODE_NONE;
+    }
+    else if (stricmp(value, "hp") == 0)
+    {
+        result = DAMAGE_RECURSIVE_MODE_HP;
+    }
+    else if (stricmp(value, "mp") == 0)
+    {
+        result = DAMAGE_RECURSIVE_MODE_MP;
+    }
+    else if (stricmp(value, "non-lethal") == 0)
+    {
+        result = DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+    }
+
+    return result;    
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-24
+*
+* Reads text arguments from recursive mode
+* command and outputs integer with appropriate
+* bits toggled.
+*/
+e_damage_recursive_logic recursive_damage_get_mode_setup_from_arg_list(ArgList* arglist)
+{
+    e_damage_recursive_logic result = 0;
+
+    int i;
+    char* value;
+
+    /*
+    * Read all arguments left to right. We send each arg
+    * to function that interprets the value to get appropriate
+    * bit to toggle.
+    */
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= recursive_damage_get_mode_flag_from_argument(value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-24
+*
+* Interpret integer input and return mode 
+* value with appropriate bit flags toggled. 
+* an integer argument. This is for legacy
+* support of the very poorly conceived mode
+* flag originally coded by yours truly.
+*/
+e_damage_recursive_logic recursive_damage_get_mode_setup_from_legacy_argument(e_damage_recursive_cmd_read value)
+{
+    e_damage_recursive_logic result = DAMAGE_RECURSIVE_MODE_NONE;
+
+    switch (value)
+    {
+    case DAMAGE_RECURSIVE_CMD_READ_NONLETHAL_HP:
+        result |= DAMAGE_RECURSIVE_MODE_HP;
+        result |= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+        break;
+    case DAMAGE_RECURSIVE_CMD_READ_MP:
+        result |= DAMAGE_RECURSIVE_MODE_MP;
+        break;
+    case DAMAGE_RECURSIVE_CMD_READ_MP_NONLETHAL_HP:
+        result |= DAMAGE_RECURSIVE_MODE_HP;
+        result |= DAMAGE_RECURSIVE_MODE_MP;
+        result |= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
+        break;
+    case DAMAGE_RECURSIVE_CMD_READ_HP:
+        result |= DAMAGE_RECURSIVE_MODE_HP;
+        break;
+    case DAMAGE_RECURSIVE_CMD_READ_HP_MP:
+        result |= DAMAGE_RECURSIVE_MODE_HP;
+        result |= DAMAGE_RECURSIVE_MODE_MP;
+        break;
+    }
+
+    return result;
+}
+
+/*
+* 2020-03-10
+* Caskey, Damon V
+*
+* allocate a recursive damage object and return
+* its pointer.
+*/
 s_damage_recursive* recursive_damage_allocate_object()
 {
     s_damage_recursive* result;
@@ -7431,10 +7534,12 @@ s_damage_recursive* recursive_damage_allocate_object()
     return result;
 }
 
-// Caskey, Damon V
-// 2020-03-12
-//
-// Send all recursive damage data to log for debugging.
+/*
+* Caskey, Damon V
+* 2020-03-12
+*
+* Send all recursive damage data to log for debugging.
+*/
 void recursive_damage_dump_object(s_damage_recursive* recursive)
 {
     printf("\n\n -- Recursive (%p) dump --", recursive);
@@ -7457,7 +7562,179 @@ void recursive_damage_dump_object(s_damage_recursive* recursive)
     printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
 }
 
+/*
+* Caskey, Damon V.
+* 2009-06-17
+* --2018-01-02 retooled from former common_dot.
+* --2019-01-16 Replace recursion array with linked list.
+*
+* Apply recursive damage (damage over time (dot)).
+*/
+void recursive_damage_update(entity* ent)
+{
+    s_attack attack;  // Attack structure.
+    s_damage_recursive* cursor;
 
+    /* Iterate target's recursive damage nodes. */
+    for (cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
+    {
+        /*
+        * If time has expired, destroy node and exit
+        * this loop iteration.
+        */
+        if (_time > cursor->time)
+        {
+            /*
+            * If this is the head and there are no other
+            * recursive damage nodes, we need to delete
+            * the head AND set it to NULL. Otherwise, we
+            * only delete the node.
+            */
+            if (cursor == ent->recursive_damage && cursor->next == NULL)
+            {
+                free(cursor);
+                ent->recursive_damage = NULL;
+            }
+            else
+            {
+                free_damage_recursive_node(&ent->recursive_damage, cursor);
+            }
+
+            continue;
+        }
+
+        /*
+        * If it is not yet time for a tick, exit
+        * this iteration of loop.
+        */
+        if (_time < cursor->tick)
+        {
+            continue;
+        }
+
+        /* If target is not alive, exit this iteration of loop. */
+        if (ent->energy_state.health_current <= 0)
+        {
+            continue;
+        }
+
+        /* Reset next tick time. */
+        cursor->tick = _time + (cursor->rate * GAME_SPEED / 100);
+
+        /* Does this recursive damage affect HP ? */
+        if (cursor->mode & DAMAGE_RECURSIVE_MODE_HP)
+        {
+            /*
+            * Recursive HP Damage Logic:
+            *
+            * Normally it is preferable to apply takedamage(),
+            * any time we want to damage a target, but because
+            * it breaks grabs and would spam the HUD,
+            * takedamage() is not tenable for every tick
+            * of a recursive damage effect. However, we DO want
+            * the owner to get credit, grabs to be broken, HUD
+            * to react, etc., if the target is KO'd.
+            *
+            * To handle both needs, we will first factor offense
+            * and defense manually to get a calculated force. If
+            * the calculated force is sufficient to KO target, and
+            * this recursive tick is allowed to KO, we will go ahead
+            * and apply takedamage() using the original recursive
+            * force (takedamage() automatically calculates offense
+            * and defense). This way the engine will treat KO tick as
+            * if it were a direct hit with all appropriate reactions
+            * and credit. Otherwise, we'll just subtract the calculated
+            * force directly from target's HP for a 'silent' damage effect.
+            */
+
+            /*
+            * Populate local attack structure with recursive
+            * damage values and apply any damage mitigation.
+            */
+
+            attack = emptyattack;
+            attack.attack_type = cursor->type;
+            attack.attack_force = cursor->force;
+            attack.dropv = default_model_dropv;
+
+            attack.attack_force = calculate_force_damage(ent, cursor->owner, &attack);
+
+            /*
+            * Is calculated force enough to KO target?
+            * Is this recursive damage allowed to KO?
+            */
+            if (attack.attack_force >= ent->energy_state.health_current)
+            {
+                /* Is this recursive damage allowed to KO ? */
+                if (!(cursor->mode & DAMAGE_RECURSIVE_MODE_NON_LETHAL))
+                {
+                    /*
+                    * Does target have a takedamage structure? If so
+                    * we can use takedamage() for the finishing damage.
+                    * Otherwise it must be a none type or some other
+                    * exceptional entity like a projectile. In that case
+                    * we will just kill it.
+                    */
+                    if (ent->takedamage)
+                    {
+                        /*
+                        * Populate attack structure with our 
+                        * recursive damage values. Then we apply 
+                        * takedamage(). The takedamage logic will 
+                        * handle everything else.
+                        */
+
+                        ent->takedamage(cursor->owner, &attack, 0);
+                    }
+                    else
+                    {
+                        kill_entity(ent);
+                    }
+                }
+                else
+                {
+                    /*
+                    * Recursive damage is not allowed to KO.
+                    * Just set target's HP to minimum value.
+                    */
+                    ent->energy_state.health_current = 1;
+
+                    /* Execute the target's takedamage script. */
+                    execute_takedamage_script(ent, cursor->owner, &attack);
+                }
+            }
+            else
+            {
+                /*
+                * Calculated damage is insufficient to KO.
+                * Subtract directly from target's HP.
+                */
+                ent->energy_state.health_current -= attack.attack_force;
+
+                /* Execute the target's takedamage script. */
+                execute_takedamage_script(ent, cursor->owner, &attack);
+            }
+        }
+
+        /* Does this recursive damage affect MP ? */
+        if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
+        {
+            /* Recursive MP Damage Logic : 
+            *
+            * Could not be more simple. Subtract
+            * recursive force from MP. If MP would
+            * end with negative value, set 0.
+            */
+
+            ent->energy_state.mp_current -= cursor->force;
+
+            if (ent->energy_state.mp_current < 0)
+            {
+                ent->energy_state.mp_current = 0;
+            }
+        }
+    }
+}
 
 /*
 * Caskey, Damon V. (Orginal author unknown, 
@@ -12645,14 +12922,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 				value = GET_ARG(1);
 
-				if (stricmp(value, "burn") == 0)
+                if (stricmp(value, "blast") == 0)
+                {
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BLAST;
+                }
+				else if (stricmp(value, "burn") == 0)
 				{
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
                 }
 				else if(stricmp(value, "freeze") == 0)
 				{
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
-
 				}
 				else if (stricmp(value, "shock") == 0)
 				{
@@ -12682,8 +12962,44 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE:
+
+                /*
+                * Caskey, Damon V.
+                * 2021-08-24
+                *
+                * For legacy support of mode, we have to handle
+                * integer values differently because like a bonehead,
+                * I didn’t originally set them up with bitwise
+                * logic in mind.
+                */
+
+                value = GET_ARG(1);                
                 
-                collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->mode = GET_INT_ARG(1);
+                if (isNumeric(value))
+                {
+                    /*
+                    * Numeric is legacy. Interpret the number as
+                    * a list of modes.
+                    */
+
+                    tempInt = GET_INT_ARG(1);
+
+                    tempInt  = recursive_damage_get_mode_setup_from_legacy_argument(tempInt);                    
+                }
+                else
+                {
+                    /*
+                    * Toggle bits based on items provided in argument list.
+                    */
+
+                    tempInt = recursive_damage_get_mode_setup_from_arg_list(&arglist);
+                }
+
+
+                /* Send resulting bitwise integer to mode value. */
+                collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->mode = tempInt;
+                    
+                tempInt = 0;
 
                 break;
 
@@ -12734,6 +13050,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 tempInt = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = tempInt;
+
+                tempInt = 0;
                 				
 				break;
 
@@ -13245,6 +13563,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                 
                 break;
 
+                tempInt = 0;
+
             case CMD_MODEL_DAMAGEONLANDING:
                 
                 // fake throw damage on landing
@@ -13301,41 +13621,41 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->index  = GET_INT_ARG(1);  //Index.
                 collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->time   = GET_INT_ARG(2);  //Time to expiration.
-                
-				tempInt = GET_INT_ARG(3);
+                		
+                /*
+                * Caskey, Damon V.
+                * 2021-08-24
+                *
+                * For legacy support of mode, we have to handle
+                * integer values differently because like a bonehead,
+                * I didn’t originally set them up with bitwise
+                * logic in mind.
+                */
 
-				switch (tempInt)
-				{
-				case DAMAGE_RECURSIVE_CMD_READ_NONLETHAL_HP:
-                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
-					break;
-				case DAMAGE_RECURSIVE_CMD_READ_MP:
-                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_MP;
-					break;
-				case DAMAGE_RECURSIVE_CMD_READ_MP_NONLETHAL_HP:
-                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_NON_LETHAL;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_MP;
-					break;
-				case DAMAGE_RECURSIVE_CMD_READ_HP:
-                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
-					break;
-				case DAMAGE_RECURSIVE_CMD_READ_HP_MP:
-                    tempInt = DAMAGE_RECURSIVE_MODE_NONE;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_HP;
-					tempInt ^= DAMAGE_RECURSIVE_MODE_MP;
-					break;
-				}
+                value = GET_ARG(1);
 
+                if (isNumeric(value))
+                {
+                    /*
+                    * Numeric is legacy. Interpret the number as
+                    * a list of modes.
+                    */
+
+                    tempInt = GET_INT_ARG(1);
+
+                    tempInt = recursive_damage_get_mode_setup_from_legacy_argument(tempInt);
+                }
+                else
+                {
+                    /*
+                    * Toggle bits based on items provided in argument list.
+                    */
+
+                    tempInt = recursive_damage_get_mode_setup_from_arg_list(&arglist);
+                }
+
+                /* Send resulting bitwise integer to mode value. */
                 collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->mode = tempInt;
-
-                collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->force  = GET_INT_ARG(4);  //Amount per tick.
-                collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->rate   = GET_INT_ARG(5);  //Tick delay.
 
                 tempInt = 0;
 
@@ -19195,7 +19515,7 @@ void free_ent(entity *e)
 	// Recursive damage (damage over time).
 	if (e->recursive_damage)
 	{
-		free_recursive_list(e->recursive_damage);
+		recursive_damage_free_list(e->recursive_damage);
 		e->recursive_damage = NULL;
 	}
 
@@ -24221,7 +24541,7 @@ void update_health()
     }
 
     //Damage over time.
-    damage_recursive(self);
+    recursive_damage_update(self);
 
     // this is for restoring mp by _time by tails
     // Cleaning and addition of mpstable by DC, 08172008.
@@ -24325,7 +24645,7 @@ void update_health()
 // 2019-01-18
 //
 // Free all members of a recursive damage list.
-void free_recursive_list(s_damage_recursive* head)
+void recursive_damage_free_list(s_damage_recursive* head)
 {
     s_damage_recursive* cursor = NULL;
     s_damage_recursive* next = NULL;
@@ -24342,7 +24662,7 @@ void free_recursive_list(s_damage_recursive* head)
         next = cursor->next;
 
         // Free the current node.
-        free_recursive_object(cursor);
+        recursive_damage_free_object(cursor);
 
         // Set cursor to next.
         cursor = next;
@@ -24353,7 +24673,7 @@ void free_recursive_list(s_damage_recursive* head)
 // 2020-03-13
 //
 // Wrapper for deleting a recrusive object's data.
-void free_recursive_object(s_damage_recursive* target)
+void recursive_damage_free_object(s_damage_recursive* target)
 {
     free(target);
 }
@@ -24396,183 +24716,6 @@ void free_damage_recursive_node(s_damage_recursive **list, s_damage_recursive *n
 			return;
 		}
 	}
-}
-
-
-
-
-// damage_recursive
-// Caskey, Damon V.
-// 2009-06-17
-// --2018-01-02 retooled from former common_dot.
-// --2019-01-16 Replace recursion array with linked list.
-//
-// Apply recursive damage (damage over time (dot)).
-void damage_recursive(entity *ent)
-{
-    int         force_final;    // Final force; total damage after defense and offense factors are applied.
-    float       offense;        // Owner's offense.
-    float       defense;        // target defense.
-    s_attack attack;  // Attack structure.
-	s_damage_recursive *cursor;
-
-    // Iterate target's recursive damage nodes.
-    for (cursor = ent->recursive_damage; cursor != NULL; cursor = cursor->next)
-	{
-		// If time has expired, destroy node and exit
-		// this loop iteration.
-		if (_time > cursor->time)
-		{
-			// If this is the head and there are no other
-			// recursive damage nodes, we need to delete
-			// the head AND set it to NULL. Otherwise, we
-			// only delete the node.
-			if (cursor == ent->recursive_damage && cursor->next == NULL)
-			{
-                free(cursor);
-				ent->recursive_damage = NULL;
-			}
-			else
-			{
-				free_damage_recursive_node(&ent->recursive_damage, cursor);
-			}				
-
-			continue;
-		}
-
-		// If it is not yet time for a tick, exit
-		// this iteration of loop.
-		if (_time < cursor->tick)
-		{
-			continue;
-		}
-
-		// If target is not alive, exit this iteration of loop.
-		if (ent->energy_state.health_current <= 0)
-		{
-			continue;
-		}
-
-		// Reset next tick time.
-		cursor->tick = _time + (cursor->rate * GAME_SPEED / 100);
-
-		// Does this recursive damage affect HP?
-		if (cursor->mode & DAMAGE_RECURSIVE_MODE_HP)
-		{
-			// Recursive HP Damage Logic:
-			//
-			// Normally it is preferable to apply takedamage(),
-			// any time we want to damage a target, but because
-			// it breaks grabs and would spam the HUD,
-			// takedamage() is not tenable for every tick
-			// of a recursive damage effect. However, we DO want
-			// the owner to get credit, grabs to be broken, HUD
-			// to react, etc., if the target is KO'd.
-
-			// To handle both needs, we will first factor offense
-			// and defense manually to get a calculated force. If
-			// the calculated force is sufficient to KO target, and
-			// this recursive tick is allowed to KO, we will go ahead
-			// and apply takedamage() using the original recursive
-			// force (takedamage() automatically calculates offense
-			// and defense). This way the engine will treat KO tick as
-			// if it were a direct hit with all appropriate reactions
-			// and credit. Otherwise, we'll just subtract the calculated
-			// force directly from target's HP for a 'silent' damage effect.
-
-			// Populate remaining local vars we'll need
-			// to apply recursive HP damage.
-			force_final = cursor->force;
-
-			// Get owner's offense and target's defense
-			// factors for the recursive damage type.
-			offense = cursor->owner->offense_factors[cursor->type];
-			defense = ent->defense[cursor->type].factor;
-
-			// Calculate resulting force from any existing owner
-			// offense and target defense factors.
-			if (offense)
-			{
-				force_final = (int)(cursor->force * offense);
-			}
-
-			if (defense)
-			{
-				force_final = (int)(force_final * defense);
-			}
-
-			// Is calculated force enough to KO target?
-			// Is this recursive damage allowed to KO?
-			if (force_final >= ent->energy_state.health_current)
-			{
-				// Is this recursive damage allowed to KO?
-				if (!(cursor->mode & DAMAGE_RECURSIVE_MODE_NON_LETHAL))
-				{
-					// Does target have a takedamage structure? If so
-					// we can use takedamage() for the finishing damage.
-					// Otherwise it must be a none type or some other
-					// exceptional entity like a projectile. In that case
-					// we will simply kill it.
-					if (ent->takedamage)
-					{
-						// Populate attack structure with
-						// our recursive damage values.
-						attack = emptyattack;
-						attack.attack_type = cursor->type;
-						attack.attack_force = force_final;
-						attack.dropv = default_model_dropv;
-
-						// Apply takedamage(). The engine will
-						// take care of everything else damage
-						// related.
-						ent->takedamage(cursor->owner, &attack, 0);
-					}
-					else
-					{
-						// Kill target instantly.
-						kill_entity(ent);
-					}
-				}
-				else
-				{
-					// Recursive damage is not allowed to KO.
-					// Just set target's HP to minimum value.
-					ent->energy_state.health_current = 1;
-
-					// Execute the target's takedamage script.
-					execute_takedamage_script(ent, cursor->owner, &attack);
-				}
-			}
-			else
-			{
-				// Calculated damage is insufficient to KO.
-				// Subtract directly from target's HP.
-				ent->energy_state.health_current -= force_final;
-
-				// Execute the target's takedamage script.
-				execute_takedamage_script(ent, cursor->owner, &attack);
-			}
-		}
-
-		// Does this recursive damage affect MP?
-        if (cursor->mode & DAMAGE_RECURSIVE_MODE_MP)
-        {
-            // Recursive MP Damage Logic:
-
-            // Could not be more simple. Subtract
-            // recursive force from MP. If MP would
-            // end with negative value, set 0.
-
-            // Subtract force from MP.
-            ent->energy_state.mp_current -= cursor->force;
-
-            // Stabilize MP at 0.
-            if (ent->energy_state.mp_current < 0)
-            {
-                ent->energy_state.mp_current = 0;
-            }
-        }
-	}    
 }
 
 void adjust_bind(entity *e)
