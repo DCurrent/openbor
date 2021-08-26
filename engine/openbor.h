@@ -3252,8 +3252,10 @@ int     check_bind_override(entity *ent, e_bind_override overriding);
 
 /* Recursive damage. */
 s_damage_recursive*         recursive_damage_allocate_object();
+void                        recursive_damage_check_apply(entity* ent, entity* other, s_attack* attack);
 void                        recursive_damage_dump_object(s_damage_recursive* recursive);
 void	                    recursive_damage_free_list(s_damage_recursive* head);
+void                        recursive_damage_free_node(s_damage_recursive** list, s_damage_recursive* node);
 void                        recursive_damage_free_object(s_damage_recursive* target);
 e_damage_recursive_logic    recursive_damage_get_mode_flag_from_argument(char* value);
 e_damage_recursive_logic    recursive_damage_get_mode_setup_from_arg_list(ArgList* arglist);
@@ -3549,7 +3551,6 @@ void sort_invert_by_parent(entity *ent, entity* parent);
 
 int checkgrab(entity *other, s_attack *attack);
 void checkdamageeffects(s_attack *attack);
-void check_damage_recursive(entity *ent, entity *other, s_attack *attack);
 void checkdamagedrop(s_attack *attack);
 void checkmpadd();
 void checkhitscore(entity *other, s_attack *attack);

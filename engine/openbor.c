@@ -7409,6 +7409,267 @@ void body_free_object(s_body* target)
 
 
 /*
+* 2020-03-10
+* Caskey, Damon V
+*
+* allocate a recursive damage object and return
+* its pointer.
+*/
+s_damage_recursive* recursive_damage_allocate_object()
+{
+    s_damage_recursive* result;
+    size_t memory_size;
+
+    memory_size = sizeof(*result);
+
+    result = malloc(memory_size);
+
+    /*
+    * 0 The property values, then set
+    * specific default values.
+    */
+    memset(result, 0, memory_size);
+
+    result->type = ATK_NONE;
+    result->next = NULL;
+    result->owner = NULL;
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2019-01-15
+*
+* If attack has any recursive effects, apply
+* them to entity accordingly.
+*/
+void recursive_damage_check_apply(entity* ent, entity* other, s_attack* attack)
+{
+    s_damage_recursive* previous;
+    s_damage_recursive* cursor;
+
+    /*
+    * If the recursive head pointer is
+    * null, there's no recursive, so exit.
+    */
+    if (!attack->recursive)
+    {
+        return;
+    }
+
+    /*
+    * Let's see if we have a allocated any elements
+    * for recursive damage already.
+    */
+    if (ent->recursive_damage)
+    {
+        /*
+        * Iterate over linked list and try to find an index
+        * member matching index member from attack. If we
+        * find one, exit loop - we can use the target pointer.
+        *
+        * If we don't find a match, we'll need to create a new
+        * node in the list and its pointer instead.
+        */
+
+        cursor = ent->recursive_damage;
+
+        while (cursor != NULL)
+        {
+            previous = cursor;
+
+            /*
+            * Found index match, so we can use the cursor
+            * as is. Get out now.
+            */
+            if (cursor->index == attack->recursive->index)
+            {
+                break;
+            }
+
+            /* Move to next node in list (if any). */
+            cursor = cursor->next;
+        }
+
+        /* Add new node to list. */
+        if (!cursor)
+        {
+            /* Allocate the memoryand get pointer. */
+            cursor = recursive_damage_allocate_object();
+
+            /* Link previous node's next to our new node. */
+            previous->next = cursor;
+        }
+    }
+    else
+    {
+        /*
+        * Entity didn't have recursive damage at all.
+        * Let's allocate a head node.
+        */
+
+        cursor = recursive_damage_allocate_object();
+
+        /* Assign to entity. */
+        ent->recursive_damage = cursor;
+    }
+
+    /*
+    * Now we have a target recursive element to populate with
+    * attack's recursive values.
+    */
+
+    cursor->meta_tag = attack->recursive->meta_tag;
+    cursor->meta_data = attack->recursive->meta_data;
+    cursor->mode = attack->recursive->mode;
+    cursor->index = attack->recursive->index;
+    cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
+    cursor->force = attack->recursive->force;
+    cursor->rate = attack->recursive->rate;
+
+    /*
+    * If recursive type is none, that means
+    * use same type as original attack. Note
+    * that ATK_NONE is the default value of
+    * a newly allocated recursive node for
+    * legacy compatibility.
+    */
+    if (attack->recursive->type == ATK_NONE)
+    {
+        cursor->type = attack->attack_type;
+    }
+    else
+    {
+        cursor->type = attack->recursive->type;
+    }
+
+    cursor->type = attack->attack_type;
+    cursor->owner = other;
+}
+
+
+/*
+* Caskey, Damon V
+* 2020-03-12
+*
+* Send all recursive damage data to log for debugging.
+*/
+void recursive_damage_dump_object(s_damage_recursive* recursive)
+{
+    printf("\n\n -- Recursive (%p) dump --", recursive);
+
+    if (recursive)
+    {
+        printf("\n\t ->force: %d", recursive->force);
+        printf("\n\t ->index: %d", recursive->index);
+        printf("\n\t ->meta_data: %p", recursive->meta_data);
+        printf("\n\t ->meta_tag: %d", recursive->meta_tag);
+        printf("\n\t ->mode: %d", recursive->mode);
+        printf("\n\t ->next: %p", recursive->next);
+        printf("\n\t ->owner: %p", recursive->owner);
+        printf("\n\t ->rate: %d", recursive->rate);
+        printf("\n\t ->tick: %d", recursive->tick);
+        printf("\n\t ->time: %d", recursive->time);
+        printf("\n\t ->type: %d", recursive->type);
+    }
+
+    printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
+}
+
+
+/*
+* Caskey, Damon V.
+* 2019-01-18
+*
+* Free all members of a recursive damage list.
+*/
+void recursive_damage_free_list(s_damage_recursive* head)
+{
+    s_damage_recursive* cursor = NULL;
+    s_damage_recursive* next = NULL;
+
+    /*
+    * Starting from head node, iterate through
+    * all collision nodes and free them.
+    */
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        /*
+        * We still need the next node after we
+        * delete current one, so we'll store
+        * it in a temp var.
+        */
+        next = cursor->next;
+
+        /* Free the current node. */
+        recursive_damage_free_object(cursor);
+
+        /* Set cursor to next. */
+        cursor = next;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2019-01-20
+*
+* Remove single node from a recursive damage linked list.
+*/
+void recursive_damage_free_node(s_damage_recursive** list, s_damage_recursive* node)
+{
+    s_damage_recursive* cursor;
+    s_damage_recursive* previous;
+
+    /* Initialize previous. */
+    previous = NULL;
+
+    /*
+    * Iterate each node of list. On each iteration, previous is
+    * set to cursor before cursor iterates.
+    */
+    for (cursor = *list; cursor != NULL; previous = cursor, cursor = cursor->next)
+    {
+        /* Are we at target element ? */
+        if (cursor == node)
+        {
+            /* If previous is NULL we're at the head. */
+            if (previous == NULL)
+            {
+                /* Move node from head's next to head. */
+                *list = cursor->next;
+            }
+            else
+            {
+                /*
+                * Move previous next to cursor next. This
+                * effectivly "skips" cursor in sequence.
+                */
+                previous->next = cursor->next;
+            }
+
+            /* Deallocate the node. */
+            recursive_damage_free_object(cursor);
+
+            return;
+        }
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2020-03-13
+*
+* Wrapper for deleting a recrusive object's data.
+*/
+void recursive_damage_free_object(s_damage_recursive* target)
+{
+    free(target);
+}
+
+/*
 * Caskey, Damon V.
 * 2021-08-24
 * 
@@ -7509,60 +7770,6 @@ e_damage_recursive_logic recursive_damage_get_mode_setup_from_legacy_argument(e_
 }
 
 /*
-* 2020-03-10
-* Caskey, Damon V
-*
-* allocate a recursive damage object and return
-* its pointer.
-*/
-s_damage_recursive* recursive_damage_allocate_object()
-{
-    s_damage_recursive* result;
-    size_t memory_size;
-
-    memory_size = sizeof(*result);
-
-    result = malloc(memory_size);
-
-    // 0 The property values.
-    memset(result, 0, memory_size);
-
-    // Make sure pointers are NULL.
-    result->next = NULL;
-    result->owner = NULL;
-
-    return result;
-}
-
-/*
-* Caskey, Damon V
-* 2020-03-12
-*
-* Send all recursive damage data to log for debugging.
-*/
-void recursive_damage_dump_object(s_damage_recursive* recursive)
-{
-    printf("\n\n -- Recursive (%p) dump --", recursive);
-
-    if (recursive)
-    {
-        printf("\n\t ->force: %d", recursive->force);
-        printf("\n\t ->index: %d", recursive->index);
-        printf("\n\t ->meta_data: %p", recursive->meta_data);
-        printf("\n\t ->meta_tag: %d", recursive->meta_tag);
-        printf("\n\t ->mode: %d", recursive->mode);
-        printf("\n\t ->next: %p", recursive->next);
-        printf("\n\t ->owner: %p", recursive->owner);
-        printf("\n\t ->rate: %d", recursive->rate);
-        printf("\n\t ->tick: %d", recursive->tick);
-        printf("\n\t ->time: %d", recursive->time);
-        printf("\n\t ->type: %d", recursive->type);
-    }
-
-    printf("\n\n -- Recursive (%p) dump complete. -- \n", recursive);
-}
-
-/*
 * Caskey, Damon V.
 * 2009-06-17
 * --2018-01-02 retooled from former common_dot.
@@ -7597,7 +7804,7 @@ void recursive_damage_update(entity* ent)
             }
             else
             {
-                free_damage_recursive_node(&ent->recursive_damage, cursor);
+                recursive_damage_free_node(&ent->recursive_damage, cursor);
             }
 
             continue;
@@ -12924,28 +13131,32 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "blast") == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BLAST;
+                    tempInt = ATK_BLAST;
                 }
 				else if (stricmp(value, "burn") == 0)
 				{
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_BURN;
+                    tempInt = ATK_BURN;
                 }
 				else if(stricmp(value, "freeze") == 0)
 				{
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
+                    tempInt = ATK_FREEZE;
 				}
 				else if (stricmp(value, "shock") == 0)
 				{
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_SHOCK;
+                    tempInt = ATK_SHOCK;
 				}
 				else if (stricmp(value, "steal") == 0)
 				{
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_STEAL;
+                    tempInt = ATK_STEAL;
 				}
 				else
 				{
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = GET_INT_ARG(1);
+                    tempInt = GET_INT_ARG(1);
 				}
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = tempInt;
+
+                tempInt = 0;
 
                 break;
 
@@ -13008,6 +13219,45 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->meta_tag = GET_INT_ARG(1);
 
 				break;
+
+            case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TYPE:
+
+                value = GET_ARG(1);
+
+                if (stricmp(value, "same") == 0)
+                {
+                    tempInt = ATK_NONE;
+                }
+                else if (stricmp(value, "blast") == 0)
+                {
+                    tempInt = ATK_BLAST;
+                }
+                else if (stricmp(value, "burn") == 0)
+                {
+                    tempInt = ATK_BURN;
+                }
+                else if (stricmp(value, "freeze") == 0)
+                {
+                    tempInt = ATK_FREEZE;
+                }
+                else if (stricmp(value, "shock") == 0)
+                {
+                    tempInt = ATK_SHOCK;
+                }
+                else if (stricmp(value, "steal") == 0)
+                {
+                    tempInt = ATK_STEAL;
+                }
+                else
+                {
+                    tempInt = GET_INT_ARG(1);
+                }
+
+                collision_attack_upsert_recursive_property(&temp_collision_head, temp_collision_index)->type = tempInt;
+
+                tempInt = 0;
+
+                break;
 
             case CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE:
                 
@@ -24641,83 +24891,6 @@ void update_health()
     }
 }
 
-// Caskey, Damon V.
-// 2019-01-18
-//
-// Free all members of a recursive damage list.
-void recursive_damage_free_list(s_damage_recursive* head)
-{
-    s_damage_recursive* cursor = NULL;
-    s_damage_recursive* next = NULL;
-
-    // Starting from head node, iterate through
-    // all collision nodes and free them.
-    cursor = head;
-
-    while (cursor != NULL)
-    {
-        // We still need the next node after we
-        // delete current one, so we'll store
-        // it in a temp var.
-        next = cursor->next;
-
-        // Free the current node.
-        recursive_damage_free_object(cursor);
-
-        // Set cursor to next.
-        cursor = next;
-    }
-}
-
-// Caskey, Damon V.
-// 2020-03-13
-//
-// Wrapper for deleting a recrusive object's data.
-void recursive_damage_free_object(s_damage_recursive* target)
-{
-    free(target);
-}
-
-// Caskey, Damon V.
-// 2019-01-20
-//
-// Remove single node from a recursive damage linked list.
-void free_damage_recursive_node(s_damage_recursive **list, s_damage_recursive *node)
-{
-	s_damage_recursive *cursor;
-	s_damage_recursive *previous;
-
-	// Initialize previous.
-	previous = NULL;
-
-	// Iterate each node of list. On each iteration, previous is
-	// set to cursor before cursor iterates.
-	for (cursor = *list; cursor != NULL; previous = cursor, cursor = cursor->next) 
-	{
-		// Are we at target element?
-		if (cursor == node)
-		{ 
-			// If previous is NULL we're at the head.
-			if (previous == NULL) 
-			{
-				// Move node from head's next to head.
-				*list = cursor->next;
-			}
-			else 
-			{
-				// Move previous next to cursor next. This
-				// effectivly "skips" cursor in sequence.
-				previous->next = cursor->next;
-			}
-
-			// Deallocate the node.
-            free(cursor);
-
-			return;
-		}
-	}
-}
-
 void adjust_bind(entity *e)
 {
 	#define ADJUST_BIND_SET_ANIM_RESETABLE 1
@@ -27840,7 +28013,7 @@ void checkdamageeffects(s_attack *attack)
     }
 
 	// Apply any recursive (damage over time) effects.
-	check_damage_recursive(self, opp, attack);
+	recursive_damage_check_apply(self, opp, attack);
 
 	// Static enemies/nodrop enemies cannot be knocked down
     if(self->modeldata.nodrop)
@@ -27880,86 +28053,6 @@ void checkdamageeffects(s_attack *attack)
 #undef _sealtime
 #undef _staydown_rise
 #undef _staydown_rise_attack
-}
-
-// Caskey, Damon V.
-// 2019-01-15
-//
-// If attack has any recursive effects, apply
-// them to entity accordingly.
-void check_damage_recursive(entity *ent, entity *other, s_attack *attack)
-{
-	s_damage_recursive *previous;
-	s_damage_recursive *cursor;
-
-	// If the recursive head pointer is 
-	// null, there's no recursive, so exit.
-	if (!attack->recursive)
-	{
-		return;
-	}
-    
-	// Let's see if we have a allocated any elements
-	// for recursive damage already.
-	if (ent->recursive_damage)
-	{
-		// Iterate over linked list and try to find an index
-		// member matching index member from attack. If we
-		// find one, exit loop - we can use the target pointer.
-		//
-		// If we don't find a match, we'll need to create a new
-		// node in the list and its pointer instead.
-
-		cursor = ent->recursive_damage;
-
-		while (cursor != NULL)
-		{
-			previous = cursor;
-			
-			// Found index match, so we can use the cursor
-			// as is. Get out now.
-			if (cursor->index == attack->recursive->index)
-			{
-				break;
-			}
-						
-			// Move to next node in list (if any).
-			cursor = cursor->next;
-		}
-		
-		// Add new node to list.
-		if (!cursor)
-		{
-			// Allocate the memory and get pointer.
-			cursor = recursive_damage_allocate_object();
-			
-			// Link previous node's next to our new node.
-			previous->next = cursor;
-		}
-	}
-	else
-	{
-		// Entity didn't have recursive damage at all.
-		// Let's allocate a head node.
-
-		// Allocate the memory and get pointer.
-		cursor = recursive_damage_allocate_object();
-
-		// Assign to entity.
-		ent->recursive_damage = cursor;
-	}
-    
-    // Now we have a target recursive element to populate with
-	// attack's recursive values.
-	cursor->meta_tag = attack->recursive->meta_tag;
-    cursor->meta_data = attack->recursive->meta_data;
-	cursor->mode = attack->recursive->mode;
-	cursor->index = attack->recursive->index;
-	cursor->time = _time + (attack->recursive->time * GAME_SPEED / 100);
-	cursor->force = attack->recursive->force;
-	cursor->rate = attack->recursive->rate;
-	cursor->type = attack->attack_type;
-	cursor->owner = other;       
 }
 
 void checkdamagedrop(s_attack *attack)
