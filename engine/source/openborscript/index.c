@@ -11,6 +11,7 @@
 //return name of function from pointer to function
 const char *Script_GetFunctionName(void *functionRef)
 {
+
     if (functionRef == ((void *)system_isempty))
     {
         return "isempty";
@@ -261,6 +262,14 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_getentityproperty))
     {
         return "getentityproperty";
+    }
+    else if (functionRef == ((void*)openbor_get_attack_id_value))
+    {
+    return "get_attack_id_value";
+    }
+    else if (functionRef == ((void*)openbor_set_attack_id_value))
+    {
+    return "set_attack_id_value";
     }
     else if (functionRef == ((void *)openbor_get_entity_property))
     {

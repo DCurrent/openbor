@@ -6056,7 +6056,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->attack_id_incoming = (LONG)ltemp;
+            ent->attack_id_incoming[0] = (LONG)ltemp;
         }
         break;
     }

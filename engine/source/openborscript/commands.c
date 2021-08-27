@@ -246,6 +246,13 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_DAMAGEONLANDING, "damageonlanding");
     LIST_ADD(CMD_MODEL_DEATH, "death");
     LIST_ADD(CMD_MODEL_DEFENSE, "defense");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_POWER, "defense.block.power");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_RATIO, "defense.block.ratio");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_THRESHOLD, "defense.block.threshold");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_TYPE, "defense.block.type");
+    LIST_ADD(CMD_MODEL_DEFENSE_FACTOR, "defense.factor");
+    LIST_ADD(CMD_MODEL_DEFENSE_KNOCKDOWN, "defense.knockdown");
+    LIST_ADD(CMD_MODEL_DEFENSE_PAIN, "defense.pain");
     LIST_ADD(CMD_MODEL_DELAY, "delay");
     LIST_ADD(CMD_MODEL_DIDBLOCKSCRIPT, "didblockscript");
     LIST_ADD(CMD_MODEL_DIDHITSCRIPT, "didhitscript");

@@ -5546,7 +5546,7 @@ int free_model(s_model *model)
     printf(".");
     if(hasFreetype(model, MF_DEFENSE) && model->defense)
     {
-        free(model->defense);
+        defense_free_object(model->defense);
         model->defense = NULL;
     }
     printf(".");
@@ -7400,13 +7400,12 @@ void body_free_object(s_body* target)
 {
     if (target->defense)
     {
-        free(target->defense);
+        defense_free_object(target->defense);
         target->defense = NULL;
     }
 
     free(target);
 }
-
 
 /*
 * 2020-03-10
@@ -9706,10 +9705,13 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         {
             newchar->offscreenkill = 300;
         }
+        
+        /* Bikers deault to taking double damage. */
         for(i = 0; i < max_attack_types; i++)
         {
             newchar->defense[i].factor = 2.f;
         }
+
         newchar->subject_to_hole                                = 1;
         newchar->subject_to_gravity                             = 1;
         newchar->subject_to_basemap                             = 0;
@@ -10558,7 +10560,7 @@ s_model *init_model(int cacheindex, int unload)
 
     newchar->priority = 1;
 
-    newchar->defense		        = calloc(max_attack_types + 1, sizeof(*newchar->defense));
+    newchar->defense = defense_allocate_object();
     newchar->offense_factors        = calloc(max_attack_types + 1, sizeof(*newchar->offense_factors));
 
     newchar->special                = calloc(1, sizeof(s_com));
@@ -10657,8 +10659,7 @@ s_model *init_model(int cacheindex, int unload)
     //Default offense/defense values.
     for(i = 0; i < max_attack_types; i++)
     {
-        newchar->offense_factors[i]     = 1;
-        newchar->defense[i]				= default_defense;
+        newchar->offense_factors[i]     = 1;        
     }
 
     //Default sight ranges.
@@ -10760,7 +10761,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_collision_entity  ebox_con;
     s_hitbox            entity_coords;
-    s_defense           defense;
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
 
@@ -11309,99 +11309,35 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->guardpoints.max = atoi(value);
                 break;
             case CMD_MODEL_DEFENSE:
-#define tempdef(x, y) \
-					x(stricmp(value, #y)==0)\
-					{\
-						newchar->defense[ATK_##y] = defense;\
-					}
-            {
-                value = GET_ARG(1);
-                defense = default_defense;
-                if(newchar->subtype == SUBTYPE_BIKER)
-                {
-                    defense.factor = 2.f;
-                }
 
-                if(arglist.count >= 2)
-                {
-                    defense.factor = GET_FLOAT_ARG(2);
-                }
-                if(arglist.count >= 3)
-                {
-                    defense.pain = GET_FLOAT_ARG(3);
-                }
-                if(arglist.count >= 4)
-                {
-                    defense.knockdown = GET_FLOAT_ARG(4);
-                }
-                if(arglist.count >= 5)
-                {
-                    defense.blockpower = GET_FLOAT_ARG(5);
-                }
-                if(arglist.count >= 6)
-                {
-                    defense.blockthreshold = GET_FLOAT_ARG(6);
-                }
-                if(arglist.count >= 7)
-                {
-                    defense.blockratio = GET_FLOAT_ARG(7);
-                }
-                if(arglist.count >= 8)
-                {
-                    defense.blocktype = GET_FLOAT_ARG(8);
-                }
+                /*
+                * DEFENSE_PARAMETER_LEGACY triggers muti-parameter read
+                * from 3.0 builds. See function for details.
+                */
 
-                tempdef(if, NORMAL)
-                tempdef(else if, NORMAL2)
-                tempdef(else if, NORMAL3)
-                tempdef(else if, NORMAL4)
-                tempdef(else if, NORMAL5)
-                tempdef(else if, NORMAL6)
-                tempdef(else if, NORMAL7)
-                tempdef(else if, NORMAL8)
-                tempdef(else if, NORMAL9)
-                tempdef(else if, NORMAL10)
-                tempdef(else if, BLAST)
-                tempdef(else if, STEAL)
-                tempdef(else if, BURN)
-                tempdef(else if, SHOCK)
-                tempdef(else if, FREEZE)
-
-                tempdef(else if, BOSS_DEATH)
-                tempdef(else if, ITEM)
-                tempdef(else if, LAND)
-                tempdef(else if, LIFESPAN)
-                tempdef(else if, LOSE)
-                tempdef(else if, PIT)
-				tempdef(else if, SUB_ENTITY_PARENT_KILL)
-				tempdef(else if, SUB_ENTITY_UNSUMMON)
-                tempdef(else if, TIMEOVER)
-
-                else if(starts_with(value, "normal"))
-                {
-                    get_tail_number(tempInt, value, "normal");
-                    newchar->defense[tempInt + STA_ATKS - 1] = defense;
-                }
-                else if(stricmp(value, "ALL") == 0)
-                {
-                    // Loop over all attack types and apply
-                    // the value setting.
-                    for(i = 0; i < max_attack_types; i++)
-                    {
-                        // Skip types that we only intend for
-                        // engine or script logic use.
-                        if(is_attack_type_special(i))
-                        {
-                            continue;
-                        }
-
-                        newchar->defense[i] = defense;
-
-                    }
-                }
-            }
-#undef tempdef
-            break;
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_LEGACY);
+            break;                
+            case CMD_MODEL_DEFENSE_BLOCK_POWER:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_POWER);
+                break;
+            case CMD_MODEL_DEFENSE_BLOCK_RATIO:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_RATIO);
+                break;
+            case CMD_MODEL_DEFENSE_BLOCK_THRESHOLD:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_THRESHOLD);
+                break;
+            case CMD_MODEL_DEFENSE_BLOCK_TYPE:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_TYPE);
+                break;
+            case CMD_MODEL_DEFENSE_FACTOR:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
+                break;
+            case CMD_MODEL_DEFENSE_KNOCKDOWN:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_KNOCKDOWN);
+                break;
+            case CMD_MODEL_DEFENSE_PAIN:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_PAIN);
+                break;
             case CMD_MODEL_OFFENSE:
 #define tempoff(x, y, z) \
 					x(stricmp(value, #y)==0)\
@@ -19776,7 +19712,7 @@ void free_ent(entity *e)
     }
     if(e->defense)
     {
-        free(e->defense);
+        defense_free_object(e->defense);
         e->defense = NULL;
     }
     if(e->offense_factors)
@@ -22500,7 +22436,7 @@ void do_active_block(entity *ent)
 // vs. entity in terms of game mechanics like
 // guard break, attack type vs. defense, and
 // so on. It does not handle rules for AI blocking.
-int check_blocking_eligible(entity *ent, entity *other, s_attack *attack)
+int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body) 
 {
 	// If guardpoints are set, then find out if they've been depleted.
 	if (ent->modeldata.guardpoints.max)
@@ -22511,10 +22447,12 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack)
 		}
 	}
 
-	// Attack block breaking exceeds block power?
-	if (attack->no_block || ent->defense[attack->attack_type].blockpower)
+    /* Attack block breaking exceeds block power? */
+    int block_power = defense_get_current_blockpower(ent, body);
+
+	if (attack->no_block || block_power)
 	{
-		if (attack->no_block >= ent->defense[attack->attack_type].blockpower)
+		if (attack->no_block >= block_power)
 		{
 			return 0;
 		}
@@ -22652,7 +22590,7 @@ int check_blocking_decision(entity *ent)
 //
 // Runs all blocking conditions and returns true
 // if the attack should be blocked.
-int check_blocking_master(entity *ent, entity *other, s_attack *attack)
+int check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body *body)
 {
 	e_entity_type entity_type;
 
@@ -22669,7 +22607,7 @@ int check_blocking_master(entity *ent, entity *other, s_attack *attack)
 		}
 
 		// Verify entity can block the attack at all.
-		if (!check_blocking_eligible(ent, other, attack))
+		if (!check_blocking_eligible(ent, other, attack, body))
 		{
 			return 0;
 		}
@@ -22692,7 +22630,7 @@ int check_blocking_master(entity *ent, entity *other, s_attack *attack)
 		}
 
 		// Verify entity can block the attack at all.
-		if (!check_blocking_eligible(ent, other, attack))
+		if (!check_blocking_eligible(ent, other, attack, body))
 		{
 			return 0;
 		}
@@ -23208,26 +23146,100 @@ bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
 	return TRUE;
 }
 
-void do_attack(entity *e)
+/*
+* Caskey, Damon V.
+* 2021-09-04
+* 
+* Update attack IDs to avoid single attack 
+* hitting on every update. Orginal concept
+* of mutiple attack IDs by Kratus. Migrated 
+* to array and encapsulated into function
+* by DC.
+*/
+void attack_update_id(entity* acting_entity, int attack_id)
+{
+    int i = 0;
+    int i_source = 0;
+
+    /* 
+    * Loop backward from highest element to second lowest.
+    * At each iteration, update the current attack ID
+    * element in array with value from element one lower 
+    * in order.
+    * 
+    * Ex: array[4] = array[3]
+    */
+    for(i = MAX_ATTACK_IDS-1; i > 0; i--)
+    {
+        i_source = i - 1;
+
+        acting_entity->attack_id_incoming[i] = acting_entity->attack_id_incoming[i_source];
+    }
+
+    /* Update element 0 with supplied ID. */
+    acting_entity->attack_id_incoming[0] = attack_id;
+}
+
+int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int attack_id, int multihit)
+{
+    int i = 0;
+    int max_id = MAX_ATTACK_IDS;
+
+    /* 
+    * Attack is allowed to ignore ID checks, so 
+    * just return true now.
+    */
+    if (attack_object->ignore_attack_id)
+    {
+        return 1;
+    }
+
+    /* 
+    * If muti hit is enabled, we only want
+    * check the first ID. Set our max to 1
+    * so loop only runs for element 0.
+    */
+    if (multihit)
+    {
+        max_id = 1;
+    }
+   
+    /* 
+    * If any array element value matches supplied
+    * attack ID, we return true.
+    */
+    for (i = 0; i < max_id; i++)
+    {
+        if (acting_entity->attack_id_incoming[i] == attack_id)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+void do_attack(entity *attacking_entity)
 {
     int them;
     int i, t;
     int force = 0;
     e_blocktype blocktype;
-    entity *temp            = NULL;
-    entity *def             = NULL;
-    entity *topowner        = NULL;
-    entity *otherowner      = NULL;
-    entity *target          = NULL;
-    s_anim      *current_anim;
-    s_attack *attack = NULL;
+    entity* temp            = NULL;
+    entity* def             = NULL;
+    entity* topowner        = NULL;
+    entity* otherowner      = NULL;
+    entity* target          = NULL;
+    s_anim* current_anim    = NULL;
+    s_attack* attack        = NULL;
+    s_body* target_body_object  = NULL;
     int didhit              = 0;
     int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id;
     //int hit_detected        = 0;    // Has a hit been detected?
 
 
-#define followed (current_anim!=e->animation)
+#define followed (current_anim!=attacking_entity->animation)
     static unsigned int new_attack_id = 1;
 
     // Can't get hit after this
@@ -23236,25 +23248,25 @@ void do_attack(entity *e)
         return;
     }
 
-    topowner = e; // trace the top owner, for projectile combo checking :)
+    topowner = attacking_entity; // trace the top owner, for projectile combo checking :)
     while(topowner->owner)
     {
         topowner = topowner->owner;
     }
 
 	// If any blast active, use projectile hit property.
-    if(e->projectile != BLAST_NONE)
+    if(attacking_entity->projectile != BLAST_NONE)
     {
-        them = e->modeldata.projectilehit;
+        them = attacking_entity->modeldata.projectilehit;
     }
     else
     {
-        them = e->modeldata.candamage;
+        them = attacking_entity->modeldata.candamage;
     }
 
     // Every attack gets a unique ID to make sure no one
     // gets hit more than once by the same attack
-    current_attack_id = e->attack_id_outgoing;
+    current_attack_id = attacking_entity->attack_id_outgoing;
 
     if(!current_attack_id)
     {
@@ -23263,11 +23275,11 @@ void do_attack(entity *e)
         {
             new_attack_id = 1;
         }
-        e->attack_id_outgoing = current_attack_id = new_attack_id;
+        attacking_entity->attack_id_outgoing = current_attack_id = new_attack_id;
     }
 
 
-    current_anim = e->animation;
+    current_anim = attacking_entity->animation;
 
     for(i = 0; i < ent_max && !followed; i++)
     {
@@ -23283,11 +23295,12 @@ void do_attack(entity *e)
         // collision pointers are also
         // populated into lasthit, which
         // we will use below.
-        if(!checkhit(e, target))
+        if(!checkhit(attacking_entity, target))
         {
             continue;
         }
 
+        target_body_object = lasthit.detect_collision_body->body;
         attack = lasthit.attack;
         force = attack->attack_force;
 
@@ -23318,9 +23331,9 @@ void do_attack(entity *e)
         // another entity and should exit.
         if(current_anim->attack_one)
         {
-            if(e->lasthit)
+            if(attacking_entity->lasthit)
             {
-                if(target != e->lasthit)
+                if(target != attacking_entity->lasthit)
                 {
                     continue;
                 }
@@ -23349,24 +23362,19 @@ void do_attack(entity *e)
         {
             continue;
         }
-
-        // Attack IDs must be different.
-        if(!multihitcheat){
-
-			// Kratus (20-04-21) multihit disabled
-			if((target->attack_id_incoming == current_attack_id || target->attack_id_incoming2 == current_attack_id || target->attack_id_incoming3 == current_attack_id || target->attack_id_incoming4 == current_attack_id ) && !attack->ignore_attack_id)
-			{
-				continue;
-			}
-		}
-		else
-		{
-			// Kratus (20-04-21) multihit enabled
-			if(target->attack_id_incoming == current_attack_id && !attack->ignore_attack_id)
-			{
-				continue;
-			}
-		}
+        
+        /* 
+        * Avoid mutiple hits per update for a single collision.
+        * If any last incoming attack IDs match current attack ID
+        * then we exit iteration.
+        * 
+        * Note that function includes exceptions for an attacks 
+        * that ignore IDs and the global mutlihit cheat.
+        */
+        if (attack_id_check_match(target, attack, current_attack_id, multihitcheat))
+        {
+            continue;
+        }
 
 		// Target laying down? Exit if
         // attack only hits standing targets.
@@ -23401,8 +23409,8 @@ void do_attack(entity *e)
 
         // Execute the doattack scripts so author can set take action
         // before the hit code below does.
-        execute_ondoattack_script(self, e, attack, EXCHANGE_RECIPIANT, current_attack_id);
-        execute_ondoattack_script(e, self, attack, EXCHANGE_CONFERRER, current_attack_id);
+        execute_ondoattack_script(self, attacking_entity, attack, EXCHANGE_RECIPIANT, current_attack_id);
+        execute_ondoattack_script(attacking_entity, self, attack, EXCHANGE_CONFERRER, current_attack_id);
 
         // 2010-12-31
         // Damon V. Caskey
@@ -23445,8 +23453,8 @@ void do_attack(entity *e)
         }
 
         //Ground missle checking, and bullets wont hit each other
-        if( (e->owner && self->owner) ||
-                (e->modeldata.ground && inair(e))  )
+        if( (attacking_entity->owner && self->owner) ||
+                (attacking_entity->modeldata.ground && inair(attacking_entity)))
         {
             didhit = 0;
         }
@@ -23456,9 +23464,9 @@ void do_attack(entity *e)
         {
             if(attack->attack_type == ATK_ITEM)
             {
-                do_item_script(self, e);
+                do_item_script(self, attacking_entity);
 
-                didfind_item(e);
+                didfind_item(attacking_entity);
                 return;
             }
             
@@ -23469,9 +23477,9 @@ void do_attack(entity *e)
                 self->toexplode |= EXPLODE_DETONATE;
             }
            
-            if(e->toexplode & EXPLODE_PREPARED)
+            if(attacking_entity->toexplode & EXPLODE_PREPARED)
             {
-                e->toexplode |= EXPLODE_DETONATE;
+                attacking_entity->toexplode |= EXPLODE_DETONATE;
             }
 
             if(inair(self))
@@ -23479,24 +23487,21 @@ void do_attack(entity *e)
                 self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
             }
 
-            didblock = check_blocking_master(self, e, attack);
+            didblock = check_blocking_master(self, attacking_entity, attack, target_body_object);
 
             // Blocking the attack?
             if(didblock)
             {
                 // Perform the blocking actions.
-                do_passive_block(self, e, attack);
+                do_passive_block(self, attacking_entity, attack);
             }
             // Counter the attack? 
-           	else if(try_counter_action(self, e, attack))
+           	else if(try_counter_action(self, attacking_entity, attack))
 			{		
-                // Kratus (20-04-21) used by the multihit glitch memorization
-                self->attack_id_incoming4 = self->attack_id_incoming3;
-                self->attack_id_incoming3 = self->attack_id_incoming2;
-                self->attack_id_incoming2 = self->attack_id_incoming;
-                self->attack_id_incoming = current_attack_id;
+                /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
+                attack_update_id(self, current_attack_id);
             }
-            else if(self->takedamage(e, attack, 0))
+            else if(self->takedamage(attacking_entity, attack, 0))
             {
                 
 
@@ -23506,10 +23511,10 @@ void do_attack(entity *e)
                 // has takedamage() function. Let's
                 // process the hit.
 
-                execute_didhit_script(e, self, attack, 0);
-                ++e->animation->hit_count;
+                execute_didhit_script(attacking_entity, self, attack, 0);
+                ++attacking_entity->animation->hit_count;
 
-                e->lasthit = self;
+                attacking_entity->lasthit = self;
 
                 // Flash spawn.
                 spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
@@ -23517,15 +23522,15 @@ void do_attack(entity *e)
 				// Add to owner's combo time.
                 topowner->combotime = _time + combodelay; 
 
-				// If equalairpause is set, inair(e) is nolonger a condition for extra pausetime.
-                if(e->pausetime < _time || (inair(e) && !equalairpause))        
+				// If equalairpause is set, inair(attacking_entity) is nolonger a condition for extra pausetime.
+                if(attacking_entity->pausetime < _time || (inair(attacking_entity) && !equalairpause))
                 {
                     // Adds pause to the current animation
-                    e->toss_time += attack->pause_add;      // So jump height pauses in midair
-                    e->nextmove += attack->pause_add;      // xdir, zdir
-                    e->nextanim += attack->pause_add;       //Pause animation for a bit
-                    e->nextthink += attack->pause_add;      // So anything that auto moves will pause
-                    e->pausetime = _time + attack->pause_add ; //UT: temporary solution
+                    attacking_entity->toss_time += attack->pause_add;      // So jump height pauses in midair
+                    attacking_entity->nextmove += attack->pause_add;      // xdir, zdir
+                    attacking_entity->nextanim += attack->pause_add;       //Pause animation for a bit
+                    attacking_entity->nextthink += attack->pause_add;      // So anything that auto moves will pause
+                    attacking_entity->pausetime = _time + attack->pause_add ; //UT: temporary solution
                 }
 
                 self->toss_time += attack->pause_add;       // So jump height pauses in midair
@@ -23553,14 +23558,11 @@ void do_attack(entity *e)
             }
             
 			// Attacker executes a follow up animation if it can.
-			try_follow_up(e, self, e->animation, didblock);
+			try_follow_up(attacking_entity, self, attacking_entity->animation, didblock);
 
-            // Kratus (20-04-21) used by the multihit glitch memorization
-            self->attack_id_incoming4 = self->attack_id_incoming3;
-            self->attack_id_incoming3 = self->attack_id_incoming2;
-            self->attack_id_incoming2 = self->attack_id_incoming;
-            self->attack_id_incoming = current_attack_id;
-            
+            /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
+            attack_update_id(self, current_attack_id);
+
 			// If hit, stop blocking.
 			if(self == def)
             {
@@ -23594,11 +23596,11 @@ void do_attack(entity *e)
         if(current_anim->energy_cost.cost > 0)
         {
             // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
-            if(e == topowner && nocost && !healthcheat)
+            if(attacking_entity == topowner && nocost && !healthcheat)
             {
-                e->tocost = 1;    // Set flag so life is subtracted when animation is finished
+                attacking_entity->tocost = 1;    // Set flag so life is subtracted when animation is finished
             }
-            else if(e != topowner && nocost && !healthcheat && !e->tocost) // if it is not top, then must be a shot
+            else if(attacking_entity != topowner && nocost && !healthcheat && !attacking_entity->tocost) // if it is not top, then must be a shot
             {
                 if(current_anim->energy_cost.mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
                 {
@@ -23618,7 +23620,7 @@ void do_attack(entity *e)
                 }
 
 				// Little backwards, but set to 1 so cost doesn't get subtracted multiple times.
-                e->tocost = 1;   
+                attacking_entity->tocost = 1;
             }
         }
 
@@ -23644,16 +23646,23 @@ void do_attack(entity *e)
                     force = force / 4;
                 }
 				               
-                // Block type handling. For backward compatibility we will use BLOCK_TYPE_MP_FIRST regardless
-                // of defense setting if author has enabled mpblock. Otherwise, the defender's blocktype
-                // for incoming attack type will be used. Once this is determined, we will apply the
-                // appropriate blocktype.
-                blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : def->defense[attack->attack_type].blocktype;
+                /*
+                * Block type handling. For legacy compatibility if the global
+                * mpblock is enabled we ignore the target entity's defense 
+                * properties and apply BLOCK_TYPE_MP_FIRST logic. Otherwise, 
+                * we use the target's blocktype to determine which blocktype 
+                * logic we'll apply.
+                */ 
+                
+                blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : defense_get_current_blocktype(def, target_body_object);
 
                 switch (blocktype)
                 {
                     case BLOCK_TYPE_HP:
-                        // Do nothing. This is so modders can overidde energy_cost mponly 1 with health only.
+                        /* 
+                        * Do nothing. This allows creators to overidde energy_cost 
+                        * mponly 1 with health only. 
+                        */
                         break;
 
                     case BLOCK_TYPE_MP_ONLY:
@@ -23670,8 +23679,10 @@ void do_attack(entity *e)
 
                         def->energy_state.mp_current -= force;
 
-                        // If there isn't enough MP to cover force, subtract remaining 
-						// MP from force and set MP to 0.
+                        /*
+                        * If there isn't enough MP to cover force, subtract remaining 
+						* MP from force and set MP to 0.
+                        */
                         if(def->energy_state.mp_current < 0)
                         {
                             force = -def->energy_state.mp_current;
@@ -23716,7 +23727,7 @@ void do_attack(entity *e)
                 {
                     temp = self;
                     self = def;
-                    self->takedamage(e, attack, 0);
+                    self->takedamage(attacking_entity, attack, 0);
                     self = temp;
                 }
             }
@@ -23757,7 +23768,7 @@ void do_attack(entity *e)
                 sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        else if(e->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
+        else if(attacking_entity->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
         {
             sound_play_sample(SAMPLE_INDIRECT, 0, savedata.effectvol, savedata.effectvol, 100);
         }
@@ -23784,9 +23795,9 @@ void do_attack(entity *e)
 		// If the auto kill flag is set, attacker 
 		// kills itself instantly. Used mainly for
 		// projectiles.
-        if(e->autokill & AUTOKILL_ATTACK_HIT)
+        if(attacking_entity->autokill & AUTOKILL_ATTACK_HIT)
         {
-            kill_entity(e);
+            kill_entity(attacking_entity);
         }
     }
 #undef followed
@@ -28126,6 +28137,347 @@ void checkhitscore(entity *other, s_attack *attack)
         addscore(opp->playerindex, attack->attack_force);
     }
 }
+
+/*
+* Caskey, Damon V.
+* 2021-08-30
+*
+* Allocate a defense object and return pointer.
+*/
+s_defense* defense_allocate_object()
+{
+    int i = 0;
+    s_defense* result;
+
+    /* Allocate memory with 0 values and get the pointer. */
+    result = calloc(max_attack_types + 1, sizeof(*result));
+
+    /*
+    * Default values.
+    *
+    * -- Copy the global default to each attack type.
+    */
+    
+    for (i = 0; i < max_attack_types; i++)
+    {
+        result[i] = default_defense;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-30
+* 
+* Applies value to an attack type element
+* of defense.
+*/
+void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter)
+{
+    /* 
+    * If a NULL pointer gets through, lets
+    * get out before we cause a NULL pointer 
+    * error
+    */
+    if (!defense)
+    {
+        return;
+    }
+    
+    /*
+    * As of 2021-08-30, the up to date method
+    * sets one parameter at a time. This is more
+    * readable in the model text files. It also 
+    * allows easier debug and expansion in the future.
+    * 
+    * Defense is a bit clunky since we have to send
+    * a constant to tell us which parameter to update
+    * but it still beats the legacy method.
+    */
+
+    switch (target_parameter)
+    {
+    case DEFENSE_PARAMETER_BLOCK_POWER:
+        defense->blockpower = GET_FLOAT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_BLOCK_RATIO:
+        defense->blockratio = GET_FLOAT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_BLOCK_THRESHOLD:
+        defense->blockthreshold = GET_FLOAT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_BLOCK_TYPE:
+        defense->blocktype = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_FACTOR:
+        defense->factor = GET_FLOAT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_KNOCKDOWN:
+        defense->knockdown = GET_FLOAT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_LEGACY:
+            
+        /*
+        * Legacy read. Populate values from single
+        * line muti-parameter command.
+        * 
+        * Please do not expand the legacy read. We 
+        * want to encourage creators to use up to 
+        * date methods.
+        */
+
+        if (arglist->count >= 2)
+        {
+            defense->factor = GET_FLOAT_ARGP(2);
+        }
+        if (arglist->count >= 3)
+        {
+            defense->pain = GET_FLOAT_ARGP(3);
+        }
+        if (arglist->count >= 4)
+        {
+            defense->knockdown = GET_FLOAT_ARGP(4);
+        }
+        if (arglist->count >= 5)
+        {
+            defense->blockpower = GET_FLOAT_ARGP(5);
+        }
+        if (arglist->count >= 6)
+        {
+            defense->blockthreshold = GET_FLOAT_ARGP(6);
+        }
+        if (arglist->count >= 7)
+        {
+            defense->blockratio = GET_FLOAT_ARGP(7);
+        }
+        if (arglist->count >= 8)
+        {
+            defense->blocktype = GET_FLOAT_ARGP(8);
+        }
+        break;
+
+    case DEFENSE_PARAMETER_PAIN:
+        defense->pain = GET_FLOAT_ARGP(2);
+        break;
+    }
+    
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-30
+* 
+* Free defense from memory.
+*/
+void defense_free_object(s_defense* target)
+{
+    if (!target)
+    {
+        return;
+    }
+
+    free(target);
+}
+
+/*
+* Caskey, Damon V.
+* 2021-09-01
+*
+* Get correct defense property for use by hit 
+* logic. Obtains value by checking following
+* in oder from first to last
+*
+* - From supplied body object if its defense member
+* has a value. Presumably the body object what detected 
+* a hit.
+*
+* - From model level defense property if it has
+* a value.
+*
+* - Global default.
+*/
+int defense_get_current_blockpower(entity* ent, s_body* body_object)
+{    
+    /*
+    * We start with supplied body object.
+    * If it is a valid pointer and has
+    * a valid defense pointer, then we
+    * can return the defense property.
+    * 
+    * Next, we'll try the model level 
+    * defense property. If valid, then 
+    * we'll return get the property from 
+    * it.
+    * 
+    * Last, we fall back to the global 
+    * default defense object and return
+    * property from it.
+    */
+
+    /* Supplied body. */
+    if (body_object && body_object->defense)
+    {
+        return body_object->defense->blockpower;
+    }
+
+    /* Model defense */
+    if (ent->defense)
+    {
+        return ent->defense->blockpower;
+    }
+
+    /* Global default. */
+    return default_defense.blockpower;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-09-01
+*
+* Get correct defense property for use by hit
+* logic. Obtains value by checking following
+* in oder from first to last
+*
+* - From supplied body object if its defense member
+* has a value. Presumably the body object what detected
+* a hit.
+*
+* - From model level defense property if it has
+* a value.
+*
+* - Global default.
+*/
+e_blocktype defense_get_current_blocktype(entity* ent, s_body* body_object)
+{
+    /*
+    * We start with supplied body object.
+    * If it is a valid pointer and has
+    * a valid defense pointer, then we
+    * can return the defense property.
+    *
+    * Next, we'll try the model level
+    * defense property. If valid, then
+    * we'll return get the property from
+    * it.
+    *
+    * Last, we fall back to the global
+    * default defense object and return
+    * property from it.
+    */
+
+    /* Supplied body. */
+    if (body_object && body_object->defense)
+    {
+        return body_object->defense->blocktype;
+    }
+
+    /* Model defense */
+    if (ent->defense)
+    {
+        return ent->defense->blocktype;
+    }
+
+    /* Global default. */
+    return default_defense.blocktype;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-30
+* 
+* Read first argument in supplied argument list
+* for type, and determines which attack type or
+* attack types to assign a defense value. 
+*/ 
+void defense_setup_from_arg(char* filename, char* command, s_defense* target_defense, ArgList* arglist, e_defense_parameters target_parameter)
+{
+    int tempInt = 0;
+    int i = 0;
+    char* value = GET_ARGP(1);
+    /*
+    * Now we need to figure out which attack
+    * type this defense entry applies to.
+    */
+
+#define tempdef(x, y) \
+					    x(stricmp(value, #y)==0)\
+					    {\
+                            defense_apply_setup_to_property(filename, command, &target_defense[ATK_##y], arglist, target_parameter);\
+					    }
+
+    tempdef(if, NORMAL)
+        tempdef(else if, NORMAL2)
+        tempdef(else if, NORMAL3)
+        tempdef(else if, NORMAL4)
+        tempdef(else if, NORMAL5)
+        tempdef(else if, NORMAL6)
+        tempdef(else if, NORMAL7)
+        tempdef(else if, NORMAL8)
+        tempdef(else if, NORMAL9)
+        tempdef(else if, NORMAL10)
+        tempdef(else if, BLAST)
+        tempdef(else if, STEAL)
+        tempdef(else if, BURN)
+        tempdef(else if, SHOCK)
+        tempdef(else if, FREEZE)
+
+        tempdef(else if, BOSS_DEATH)
+        tempdef(else if, ITEM)
+        tempdef(else if, LAND)
+        tempdef(else if, LIFESPAN)
+        tempdef(else if, LOSE)
+        tempdef(else if, PIT)
+        tempdef(else if, SUB_ENTITY_PARENT_KILL)
+        tempdef(else if, SUB_ENTITY_UNSUMMON)
+        tempdef(else if, TIMEOVER)
+
+        else if (starts_with(value, "normal"))
+    {
+        get_tail_number(tempInt, value, "normal");
+
+        defense_apply_setup_to_property(filename, command, &target_defense[tempInt + STA_ATKS - 1], arglist, target_parameter);
+    }
+        else if (stricmp(value, "ALL") == 0)
+    {
+        /*
+        * "All" is a convenience feature so the creator
+        * doesn't need a defense entry for every type
+        * when they want to set up a generic defense
+        * across all attack types.
+        *
+        * To handle this we want to apply defense on
+        * all the attack types other than special types
+        * not normally used by creator. They may say
+        * “all” but they probably don’t mean get stuck
+        * in a pit forever because they're immune to
+        * pit damage! Loop through all types and type
+        * check function. If the type is special, we
+        * skip to the next. Otherwise apply the temporary
+        * values to that attack type to defense.
+        */
+
+        for (i = 0; i < max_attack_types; i++)
+        {
+            if (is_attack_type_special(i))
+            {
+                continue;
+            }
+
+            defense_apply_setup_to_property(filename, command, &target_defense[i], arglist, target_parameter);
+        }
+    }
+
+#undef tempdef
+
+}
+
 
 int calculate_force_damage(entity *target, entity *attacker, s_attack *attack)
 {

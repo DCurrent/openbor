@@ -88,6 +88,7 @@
 #define		MAX_PAL_SIZE		1024
 #define		MAX_CACHED_BACKGROUNDS 9
 #define     MAX_ARG_COUNT       64
+#define     MAX_ATTACK_IDS      4                   // Number of attack ID's kept to avoid single collision hitting on each update.
 #define     PLATFORM_DEFAULT_X  99999
 
 #define     LIFESPAN_DEFAULT	0x7fffffff
@@ -1872,15 +1873,39 @@ typedef struct
 	int z_foreground;
 } s_hitbox;
 
+/*
+* Caskey, Damon V.
+* 2021-08-29
+* 
+* Used by model read in functions to
+* tell the defense application which
+* parameter is incoming. This is really 
+* crude, but we do it this way because 
+* the "all" option for attack types needs 
+* to know beforehand which parameter to 
+* work with.
+*/
+typedef enum
+{    
+    DEFENSE_PARAMETER_BLOCK_POWER,
+    DEFENSE_PARAMETER_BLOCK_RATIO,
+    DEFENSE_PARAMETER_BLOCK_THRESHOLD,
+    DEFENSE_PARAMETER_BLOCK_TYPE,
+    DEFENSE_PARAMETER_FACTOR,
+    DEFENSE_PARAMETER_KNOCKDOWN,   
+    DEFENSE_PARAMETER_LEGACY,
+    DEFENSE_PARAMETER_PAIN
+} e_defense_parameters;
+
 typedef struct
 {
-    float       blockpower;     // If > unblockable, this attack type is blocked.
-    float       blockthreshold; // Strongest attack from this attack type that can be blocked.
+    int         blockpower;     // If > unblockable, this attack type is blocked.
+    int         blockthreshold; // Strongest attack from this attack type that can be blocked.
     float       blockratio;     // % of damage still taken from this attack type when blocked.
     e_blocktype blocktype;      // Resource drained when attack is blocked.
-    float       factor;         // basic defense factors: damage = damage*defense
-    float       knockdown;      // Knockdowncount (like knockdowncount) for attack type.
-    float       pain;           // Pain factor (like nopain) for defense type.
+    float       factor;         // Multiplier applied to incoming damage.
+    float       knockdown;      // Multiplier applied to incoming knockdown.
+    int         pain;           // Pain factor (like nopain) for defense type.
 
     // Meta data.
     s_meta_data* meta_data;     // User defiend data.
@@ -2855,12 +2880,9 @@ typedef struct entity
 	
 	// Unsigned integers
 	unsigned int			animpos;							// Current animation frame. ~~
-	unsigned int			attack_id_incoming;					// ~~
-    unsigned int			attack_id_incoming2;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
-    unsigned int			attack_id_incoming3;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
-    unsigned int			attack_id_incoming4;				//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug
-	unsigned int			attack_id_outgoing;					// ~~
-	unsigned int			animnum;							// Current animation id. ~~
+	unsigned int			attack_id_incoming[MAX_ATTACK_IDS];	// ~~ (	//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug. 2021-09-04, DC: Combine members into array. Should probably use pointer.
+    unsigned int			attack_id_outgoing;	                // ~~
+    unsigned int			animnum;							// Current animation id. ~~
 	unsigned int			animnum_previous;					// Previous animation id. ~~
 	unsigned int			combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
@@ -3250,6 +3272,17 @@ void    adjust_bind(entity *e);
 float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
 int     check_bind_override(entity *ent, e_bind_override overriding);
 
+/* Defense. */
+int calculate_force_damage(entity* target, entity* attacker, s_attack* attack);
+s_defense* defense_allocate_object();
+void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
+void defense_free_object(s_defense* target);
+int defense_get_current_blockpower(entity* ent, s_body* body_object);
+float defense_get_current_blockratio(entity* ent, s_body* body_object);
+int defense_get_current_threshold(entity* ent, s_body* body_object);
+e_blocktype defense_get_current_blocktype(entity* ent, s_body* body_object);
+void defense_setup_from_arg(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
+
 /* Recursive damage. */
 s_damage_recursive*         recursive_damage_allocate_object();
 void                        recursive_damage_check_apply(entity* ent, entity* other, s_attack* attack);
@@ -3263,8 +3296,8 @@ e_damage_recursive_logic    recursive_damage_get_mode_setup_from_legacy_argument
 
 // Blocking logic.
 int     check_blocking_decision(entity *ent);
-int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack);
-int     check_blocking_master(entity *ent, entity *other, s_attack *attack);
+int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
+int     check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
 int     check_blocking_rules(entity *ent);
 int     check_blocking_pain(entity *ent, s_attack *attack);
 void	do_active_block(entity *ent);
@@ -3554,7 +3587,6 @@ void checkdamageeffects(s_attack *attack);
 void checkdamagedrop(s_attack *attack);
 void checkmpadd();
 void checkhitscore(entity *other, s_attack *attack);
-int calculate_force_damage(entity *target, entity *attacker, s_attack *attack);
 void checkdamage(entity *other, s_attack *attack);
 void checkdamageonlanding();
 int checkhit(entity *attacker, entity *target);
@@ -3596,7 +3628,11 @@ float get_platform_base(entity *);
 int is_on_platform(entity *);
 entity *get_platform_on(entity *);
 void do_item_script(entity *ent, entity *item);
+
+int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int attack_id, int multihit);
+void attack_id_update(entity* acting_entity, int attack_id);
 void do_attack(entity *e);
+
 int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
