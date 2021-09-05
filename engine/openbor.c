@@ -7943,7 +7943,7 @@ void recursive_damage_update(entity* ent)
 }
 
 /*
-* Caskey, Damon V. (Orginal author unknown, 
+* Caskey, Damon V. (original author unknown, 
 * reworked to the point it's essentially a 
 * new funciton)
 * 2020-03-04 (Previous reworks 2016).
@@ -23151,8 +23151,8 @@ bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
 * 2021-09-04
 * 
 * Update attack IDs to avoid single attack 
-* hitting on every update. Orginal concept
-* of mutiple attack IDs by Kratus. Migrated 
+* hitting on every update. Original concept
+* of multiple attack IDs by Kratus. Migrated 
 * to array and encapsulated into function
 * by DC.
 */
@@ -23180,6 +23180,15 @@ void attack_update_id(entity* acting_entity, int attack_id)
     acting_entity->attack_id_incoming[0] = attack_id;
 }
 
+/*
+* Caskey, Damon V.
+* 2021-09-04
+* 
+* Compare supplied attack ID with existing attack
+* IDs. Returns true if any match, assuming no
+* rule exceptions from attack or multihit are
+* enabled.
+*/
 int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int attack_id, int multihit)
 {
     int i = 0;
@@ -23444,8 +23453,8 @@ void do_attack(entity *attacking_entity)
 		// boxes usualy overlap owner's body boxes as the projectile is first thrown.
 		// Note if an author wants to add projectile reflection feature, they need to
 		// change the projectile's owner when reflect effect occurs, or the reflected 
-		// projectile won't be able to hit its orginal owner. If they need to know the 
-		// orginal owner after changing the owner property, they can check the parent 
+		// projectile won't be able to hit its original owner. If they need to know the 
+		// original owner after changing the owner property, they can check the parent 
 		// property.
 		if(topowner == otherowner)
         {
@@ -25110,7 +25119,7 @@ e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* 
 // 2018-10-13
 //
 // Return an adjusted entity direction based 
-// on orginal direction, target direction
+// on original direction, target direction
 // and direction adjust setting.
 e_direction direction_get_adjustment_result(e_direction direction_default, e_direction direction_target, e_direction_adjust adjustment)
 {
@@ -29690,7 +29699,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         target->velocity.x = 0;
         target->velocity.z = 0;
 
-        /* Check for grab animation, otherwise use orginal throwing system. */
+        /* Check for grab animation, otherwise use original throwing system. */
         if(validanim(self, ANI_GRAB))
         {
             if(attacker->model->grabflip & 2)
@@ -32155,7 +32164,7 @@ void sort_invert_by_parent(entity *ent, entity *parent)
 // Caskey, Damon V.
 // 2019-12-22
 //
-// Orginal author unknown. Refactored to stop using global self,
+// Original author unknown. Refactored to stop using global self,
 // and fix bomb falling after detonation.
 int bomb_move(entity *ent)
 {
