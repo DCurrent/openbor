@@ -3277,10 +3277,7 @@ int calculate_force_damage(entity* target, entity* attacker, s_attack* attack);
 s_defense* defense_allocate_object();
 void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 void defense_free_object(s_defense* target);
-int defense_get_current_blockpower(entity* ent, s_body* body_object);
-float defense_get_current_blockratio(entity* ent, s_body* body_object);
-int defense_get_current_threshold(entity* ent, s_body* body_object);
-e_blocktype defense_get_current_blocktype(entity* ent, s_body* body_object);
+s_defense* defense_find_current_pointer(entity* ent, s_body* body_object);
 void defense_setup_from_arg(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 
 /* Recursive damage. */
@@ -3294,7 +3291,7 @@ e_damage_recursive_logic    recursive_damage_get_mode_flag_from_argument(char* v
 e_damage_recursive_logic    recursive_damage_get_mode_setup_from_arg_list(ArgList* arglist);
 e_damage_recursive_logic    recursive_damage_get_mode_setup_from_legacy_argument(e_damage_recursive_cmd_read value);
 
-// Blocking logic.
+/* Blocking logic. */
 int     check_blocking_decision(entity *ent);
 int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
 int     check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
@@ -3304,6 +3301,10 @@ void	do_active_block(entity *ent);
 void	do_passive_block(entity *ent, entity *other, s_attack *attack);
 void    set_blocking_action(entity *ent, entity *other, s_attack *attack);
 void    set_blocking_animation(entity *ent, s_attack *attack);
+
+/* Counter action (aka. couner attack). */
+int try_counter_action(entity* target, entity* attacker, s_attack* attack, s_body* body_object);
+int check_counter_condition(entity* target, entity* attacker, s_attack* attack, s_body* body_object);
 
 // Select player models.
 int		find_selectable_model_count				();

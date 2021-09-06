@@ -22428,39 +22428,34 @@ void do_active_block(entity *ent)
 	}
 }
 
-// Caskey, Damon V.
-// 2018-09-16
-//
-// Find out if attack can be blocked by entity.
-// This function is concerned with the attack
-// vs. entity in terms of game mechanics like
-// guard break, attack type vs. defense, and
-// so on. It does not handle rules for AI blocking.
+/*
+* Caskey, Damon V.
+* 2018-09-16
+*
+* Find out if attack can be blocked by entity.
+* This function is concerned with the attack
+* vs. entity in terms of game mechanics like
+* guard break, attack type vs. defense, and
+* so on. It does not handle rules for AI blocking.
+*/
 int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body) 
 {
-	// If guardpoints are set, then find out if they've been depleted.
-	if (ent->modeldata.guardpoints.max)
+	/* If guardpoints are set, then find out if they've been depleted. */
+	
+    if (ent->modeldata.guardpoints.max)
 	{
 		if (ent->modeldata.guardpoints.current <= 0)
 		{
 			return 0;
 		}
 	}
-
-    /* Attack block breaking exceeds block power? */
-    int block_power = defense_get_current_blockpower(ent, body);
-
-	if (attack->no_block || block_power)
-	{
-		if (attack->no_block >= block_power)
-		{
-			return 0;
-		}
-	}
-
-	// Attack from behind? Can't block that if
-	// we don't have blockback flag enabled.
-	if (ent->direction == other->direction)
+    
+    /*
+	* Attack from behind? Can't block that if
+	* we don't have blockback flag enabled.
+	*/
+    
+    if (ent->direction == other->direction)
 	{
 		if (!ent->modeldata.blockback)
 		{
@@ -22468,29 +22463,49 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 		}
 	}
 
-	// Is there a blocking threshold? Verify it vs. attack force.
-	if (ent->modeldata.thold)
+	/* Is there a blocking threshold ? Verify it vs.attack force. */
+	
+    if (ent->modeldata.thold)
 	{
-		// Threshold value vs. attack.
 		if (attack->attack_force >= ent->modeldata.thold)
 		{
 			return 0;
 		}
 	}
+    
+    /* Next checks need the current defense value. */
+    
+    s_defense* current_defense = defense_find_current_pointer(ent, body);
 
-	// Is there a blocking threshhold for the attack type?
-	// Verify it vs. attack force.
-	if (ent->defense[attack->attack_type].blockthreshold)
+    /* Attack block breaking exceeds block power? */
+    
+    if (attack->no_block || current_defense->blockpower)
+    {
+        if (attack->no_block >= current_defense->blockpower)
+        {
+            return 0;
+        }
+    }
+
+	/* 
+    * Is there a blocking threshhold for the attack type?
+	* Verify it vs. attack force.
+	*/
+    
+    if (current_defense->blockthreshold)
 	{
-		if (ent->defense[attack->attack_type].blockthreshold > attack->attack_force)
+		if (current_defense->blockthreshold > attack->attack_force)
 		{
 			return 0;
 		}
 	}
 
-	// If we made it through all that, then
-	// attack can be blocked. Return true.
-	return 1;
+    /*
+	* If we made it through all that, then
+	* attack can be blocked. Return true.
+	*/
+
+    return 1;
 }
 
 // Caskey, Damon V.
@@ -22735,104 +22750,140 @@ void do_passive_block(entity *ent, entity *other, s_attack *attack)
 	set_blocking_action(ent, other, attack);
 }
 
-// Caskey, Damon V.
-// 2018-09-18
-//
-// Handle flash spawning for hits. Will spawn and prepare an appropriate
-// flash effect entity if conditions are met.
+/*
+* Caskey, Damon V.
+* 2018-09-18
+*
+* Handle flash spawning for hits. If conditions 
+* are met, spawns and prepares an appropriate 
+* flash effect entity at hit location.
+*
+* Returns pointer to flash entity if spawned, 
+* or NULL if not.
+*/
 entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash)
 {
-	int to_spawn;
-	entity *flash;
+	int model_index = MODEL_INDEX_NONE; // THe model we will spawn as flash entity.
+	entity *flash = NULL;               // Flash entity pointer.
 
-	// Flash disabled by attack?
-	// We're done. Do nothing and exit.
-	if (attack->no_flash)
+    /*
+	* Flash disabled by attack?
+	* We're done. Do nothing and exit.
+	*/
+
+    if (attack->no_flash)
 	{
 		return NULL;
 	}
 
-	// If the model doesn't allow incoming custom 
-	// flash  effects, default to the model's global flash.
-	//
-	// Otherwise we need to see if the custom
-	// attack flash index is valid. If it is, then
-	// we will use it to spawn a flash effect.
-	if (!ent->modeldata.noatflash)
+    /*
+	* If the model doesn't allow incoming custom 
+	* flash effects, default to the model's global 
+    * flash.
+	*
+	* Otherwise we need to see if the custom
+	* attack flash index is valid. If it is, then
+	* we will use it to spawn a flash effect.
+	*/
+
+    if (!ent->modeldata.noatflash)
 	{
-		// Valid custom flash index?
+		/* Valid custom flash index ? */
 		if (attack_flash >= 0)
 		{
-			to_spawn = attack_flash;
+            model_index = attack_flash;
 		}
 		else
 		{
-			to_spawn = model_flash;
+            model_index = model_flash;
 		}
 	}
 	else
 	{
-		to_spawn = model_flash;
+        model_index = model_flash;
 	}
 
-	// Spawn the flash at last hit position.
-	flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, DIRECTION_LEFT, NULL, to_spawn, NULL);
+	/* Spawn the flash at last hit position. */
+	flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, DIRECTION_LEFT, NULL, model_index, NULL);
 
-	// One last check to make sure we
-	// were able to spawn to flash entity.
-	if (flash)
+    /*
+	* One last check to make sure we
+	* were able to spawn to flash entity.
+	*/
+
+    if (!flash)
 	{
-		// Set up basic properties.
-		flash->spawntype = SPAWN_TYPE_FLASH;
-		flash->base = lasthit.position.y;
-		flash->autokill |= AUTOKILL_ANIMATION_COMPLETE;
-
-		// If flipping enabled, flip the flash based on which
-		// side of entity the hit came from.
-		if (flash->modeldata.toflip)
-		{
-			flash->direction = (lasthit.position.x > ent->position.x);
-		}
-
-		// Run flash's spawn script.
-		execute_onspawn_script(flash);
-
-		return flash;
+        return NULL;
 	}
 
-	return NULL;
+    /* 
+    * We have a valid flash entity, let's
+    * set up its basic properties.
+    */
+    
+    flash->spawntype = SPAWN_TYPE_FLASH;
+    flash->base = lasthit.position.y;
+    flash->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+
+    /*
+    * If flipping enabled, flip the flash right 
+    * if hit is to right of target entity's
+    * position.
+    */
+
+    if (flash->modeldata.toflip)
+    {
+        if (lasthit.position.x > ent->position.x)
+        {
+            flash->direction = DIRECTION_RIGHT;
+        }
+    }
+
+    /* 
+    * Run flash's spawn script and
+    * return the flash pointer.
+    */
+    
+    execute_onspawn_script(flash);
+
+    return flash;
 }
 
-// Caskey, Damon V. 
-// 2019-11-24
-//
-// Check follow up conditions. Return TRUE if all conditions 
-// pass, FALSE otherwise.
-int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bool blocked)
+/*
+* Caskey, Damon V. 
+* 2019-11-24
+*
+* Check follow up conditions. Return true 
+* if all conditions pass, false otherwise.
+*/
+int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, int blocked)
 {
 	if (!animation->followup.animation)
 	{
-		return FALSE;
+		return 0;
 	}
 
-	// No follow up allowed.
-	if (animation->followup.condition & FOLLOW_CONDITION_NONE)
+	/* No follow up allowed. */
+ 	
+    if (animation->followup.condition & FOLLOW_CONDITION_NONE)
 	{
-		return FALSE;
+		return 0;
 	}
 
-	// Always do follow up.
-	if (animation->followup.condition & FOLLOW_CONDITION_ANY)
+	/* Always do follow up. */
+	
+    if (animation->followup.condition & FOLLOW_CONDITION_ANY)
 	{
-		return TRUE;
+		return 1;
 	}
 
-	// Block attack.
-	if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_FALSE)
+	/* Block attack. */
+	
+    if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_FALSE)
 	{
 		if (blocked)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 	
@@ -22840,16 +22891,17 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 	{
 		if (!blocked)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Possible to grab target.
-	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_FALSE)
+	/* Possible to grab target. */
+	
+    if (animation->followup.condition & FOLLOW_CONDITION_GRAB_FALSE)
 	{
 		if (cangrab(ent, target))
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 	
@@ -22857,16 +22909,17 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 	{
 		if (!cangrab(ent, target))
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// We are hostile toward target.
-	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
+	/* We are hostile toward target. */
+	
+    if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
 	{
 		if (target->modeldata.type & ent->modeldata.hostile)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -22874,16 +22927,17 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 	{
 		if (!(target->modeldata.type & ent->modeldata.hostile))
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Target is hostile toward us.
-	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_FALSE)
+	/* Target is hostile toward us. */
+	
+    if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_FALSE)
 	{
 		if (ent->modeldata.type & target->modeldata.hostile)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -22891,16 +22945,17 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 	{
 		if (!(ent->modeldata.type & target->modeldata.hostile))
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Lethal damage.
-	if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_FALSE)
+	/* Lethal damage. */
+	
+    if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_FALSE)
 	{
 		if (target->energy_state.health_current <= 0)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -22908,85 +22963,92 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, bo
 	{
 		if (target->energy_state.health_current > 0)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// If all checks passed, return true.
-	return TRUE;
+	/* If all checks passed, return true. */
+	
+    return 1;
 }
 
-// Caskey, Damon  V.
-// 2019-11-24
-//
-// Attempt to perform follow up animation. If successful, sets entity animation to
-// appropriate follow up and returns TRUE.
-bool try_follow_up(entity *ent, entity *target, s_anim *animation, bool didblock)
+/*
+* Caskey, Damon  V.
+* 2019-11-24
+*
+* Attempt to perform follow up animation. 
+* If successful, sets entity animation to 
+* appropriate follow up and returns true.
+*/
+int try_follow_up(entity *ent, entity *target, s_anim *animation, int didblock)
 {
-	e_animations animation_id;
+	e_animations animation_id = ANI_NONE;
 
-	// If we don't have a follow action, get out.
-	if (!animation->followup.animation)
+	/* If we don't have a follow action, get out. */
+	
+    if (!animation->followup.animation)
 	{
-		return FALSE;
+		return 0;
 	}
 
-	// Have to meet follow up conditions.
-	if (!check_follow_up_condition(ent, target, animation, didblock))
+	/* Must meet follow up conditions. */
+	
+    if (!check_follow_up_condition(ent, target, animation, didblock))
 	{
-		return FALSE;
+		return 0;
 	}
 		
-	// If we have the animation, then execute it now.
-	animation_id = animfollows[animation->followup.animation - 1];
+	/* If we have the animation, then execute it now. */
+	
+    animation_id = animfollows[animation->followup.animation - 1];
 	
 	if (validanim(ent, animation_id))
 	{		
 		ent_set_anim(ent, animation_id, 1); 
 
-		return TRUE;
+		return 1;
 	}	
 
-	return FALSE;
+	return 0;
 }
 
-// Caskey, Damon V.
-// 2019-12-03
-//
-// Verify an attack meets conditions to trigger a counter action.
-bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
+/*
+* Caskey, Damon V.
+* 2019-12-03
+*
+* Verify an attack meets conditions to trigger a counter action.
+*/
+int check_counter_condition(entity* target, entity* attacker, s_attack* attack, s_body* body_object)
 {
-	s_counter_action* counter = NULL;
+	s_counter_action* counter = &target->animation->counter_action;
+	int force = 0;
 
-	counter = &target->animation->counter_action;
-	int force;
-
-	// If there's no condition, get out now.
+	/* If there's no condition, get out now. */
 	if (!counter->condition)
 	{
-		return FALSE;
+		return 0;
 	}
 
-	// Verify in the frame range.
+	/* Verify in the frame range. */
 	if (target->animpos < counter->frame.min || target->animpos > counter->frame.max)
 	{
-		return FALSE;
+		return 0;
 	}
 	
-	// Now we verify condition flags.
+	/* Now we verify condition flags. */
 
-	// Always is always...
+	/* Always is always... */
 	if (counter->condition == COUNTER_ACTION_CONDITION_ANY)
 	{
-		return TRUE;
+		return 1;
 	}
 
-	// In the back?
+	/* In the back ? */
 	if (counter->condition & COUNTER_ACTION_CONDITION_BACK_FALSE)
 	{
 		if (target->direction == attacker->direction)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -22994,16 +23056,16 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 	{
 		if (target->direction != attacker->direction)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 	
-	// Blockable?
+	/* Blockable ? */
 	if (counter->condition & COUNTER_ACTION_CONDITION_BLOCK_FALSE)
 	{
 		if (attack->no_block <= target->defense[attack->attack_type].blockpower)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -23011,18 +23073,18 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 	{
 		if (attack->no_block > target->defense[attack->attack_type].blockpower)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Vs. lethal / non-lethal damage.
+	/* Vs.lethal / non - lethal damage. */
 	force = calculate_force_damage(target, attacker, attack);
 
 	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE)
 	{
 		if (target->energy_state.health_current <= force)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -23030,16 +23092,16 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 	{
 		if (target->energy_state.health_current > force)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Freeze attack?
+	/* Freeze attack ? */
 	if (counter->condition & COUNTER_ACTION_CONDITION_FREEZE_FALSE)
 	{
 		if (attack->freeze)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -23047,16 +23109,16 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 	{
 		if (!attack->freeze)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Attacker hostile to us?
+	/* Attacker hostile to us ? */
 	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE)
 	{
 		if (attacker->modeldata.hostile & target->modeldata.type)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -23064,16 +23126,16 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 	{
 		if (!(attacker->modeldata.hostile & target->modeldata.type))
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Hostile to attacker?
+	/* Hostile to attacker ? */
 	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE)
 	{
 		if (target->modeldata.hostile & attacker->modeldata.type)
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
@@ -23081,47 +23143,55 @@ bool check_counter_condition(entity* target, entity* attacker, s_attack* attack)
 	{
 		if (!(target->modeldata.hostile & attacker->modeldata.type))
 		{
-			return FALSE;
+			return 0;
 		}
 	}
 
-	// Passed all checks. We can return true.
-	return TRUE;
+	/* Passed all checks. We can return true. */
+	return 1;
 }
 
-// Caskey, Damon  V.
-// 2019-12-04
-//
-// Attempt to perform counter action animation. If successful, sets entity animation to
-// appropriate counter and returns TRUE.
-bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
+/*
+* Caskey, Damon  V.
+* 2019-12-04
+*
+* Attempt to perform counter action animation. 
+* If successful, sets entity animation to
+* appropriate counter and returns true.
+*/
+int try_counter_action(entity* target, entity* attacker, s_attack* attack, s_body* body_object)
 {
-	int force;
-	int current_follow_id;
+	int force = 0;
+	int current_follow_id = 0;
 
-	// If we don't have a follow animation to use 
-	// for counter, get out.
-	if (!target->animation->followup.animation)
+    /*
+	* If we don't have a follow animation to use 
+	* for counter, get out.
+	*/
+    
+    if (!target->animation->followup.animation)
 	{
-		return FALSE;
+		return 0;
 	}
 
-	// Have to meet counter action conditions.
-	if (!check_counter_condition(target, attacker, attack))
+	/* Must meet counter action conditions. */
+	
+    if (!check_counter_condition(target, attacker, attack, body_object))
 	{
-		return FALSE;
+		return 0;
 	}	
 
-	// Take damage from attack?
-	if (target->animation->counter_action.damaged == COUNTER_ACTION_TAKE_DAMAGE_NORMAL)
+	/* Take damage from attack ? */
+	
+    if (target->animation->counter_action.damaged == COUNTER_ACTION_TAKE_DAMAGE_NORMAL)
 	{
-		// We need the real damage.
+		/* We need the real damage. */
 		force = calculate_force_damage(target, attacker, attack);
 
-		// Revert lethal damage to 1.
+		/* Revert lethal damage to 1. */
 		if (target->energy_state.health_current - force <= 0)
 		{
-			target->energy_state.health_current = 1; // rage
+			target->energy_state.health_current = 1;
 		}
 		else
 		{
@@ -23129,9 +23199,11 @@ bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
 		}
 	}
 
-	// Set counter animation if we can. 
-	current_follow_id = animfollows[target->animation->followup.animation - 1];
-	if (validanim(self, current_follow_id))
+	/* Set counter animation if we can. */
+	
+    current_follow_id = animfollows[target->animation->followup.animation - 1];
+	
+    if (validanim(self, current_follow_id))
 	{
 		if (!target->modeldata.animation[current_follow_id]->attack_one)
 		{
@@ -23140,10 +23212,10 @@ bool try_counter_action(entity* target, entity* attacker, s_attack* attack)
 		ent_set_anim(target, current_follow_id, 0);
 	}
 
-	// Flash spawn.
+	/* Flash spawn. */
 	spawn_attack_flash(target, attack, attack->blockflash, target->modeldata.bflash);
 
-	return TRUE;
+	return 1;
 }
 
 /*
@@ -23184,10 +23256,10 @@ void attack_update_id(entity* acting_entity, int attack_id)
 * Caskey, Damon V.
 * 2021-09-04
 * 
-* Compare supplied attack ID with existing attack
-* IDs. Returns true if any match, assuming no
-* rule exceptions from attack or multihit are
-* enabled.
+* Compare supplied attack ID with existing 
+* attack IDs. Returns true if any match or 
+* if rule exceptions from attack or multihit 
+* are enabled.
 */
 int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int attack_id, int multihit)
 {
@@ -23204,7 +23276,7 @@ int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int at
     }
 
     /* 
-    * If muti hit is enabled, we only want
+    * If mutihit is enabled, we only want
     * check the first ID. Set our max to 1
     * so loop only runs for element 0.
     */
@@ -23225,6 +23297,7 @@ int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int at
         }
     }
 
+    /* Couldn't find any match or exception. Return false. */
     return 0;
 }
 
@@ -23505,7 +23578,7 @@ void do_attack(entity *attacking_entity)
                 do_passive_block(self, attacking_entity, attack);
             }
             // Counter the attack? 
-           	else if(try_counter_action(self, attacking_entity, attack))
+           	else if(try_counter_action(self, attacking_entity, attack, target_body_object))
 			{		
                 /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
                 attack_update_id(self, current_attack_id);
@@ -23663,7 +23736,7 @@ void do_attack(entity *attacking_entity)
                 * logic we'll apply.
                 */ 
                 
-                blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : defense_get_current_blocktype(def, target_body_object);
+                blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : defense_find_current_pointer(def, target_body_object)->blocktype;
 
                 switch (blocktype)
                 {
@@ -28298,89 +28371,56 @@ void defense_free_object(s_defense* target)
 /*
 * Caskey, Damon V.
 * 2021-09-01
-*
-* Get correct defense property for use by hit 
-* logic. Obtains value by checking following
-* in oder from first to last
-*
-* - From supplied body object if its defense member
-* has a value. Presumably the body object what detected 
-* a hit.
-*
-* - From model level defense property if it has
-* a value.
-*
-* - Global default.
+* 
+* Locate the appropriate pointer for dereferencing
+* an "at the moment" defense property. Meant for 
+* hit logic, so we know which defense value to use. 
+* Returns one of the following, first to last.
+* 
+* 1. Supplied body object's defense member.
+* Presumably the body object that detected
+* incoming hit. Return if defense pointer
+* is valid.
+*  
+* 2. Target entity's model level defense member.
+* Return if pointer is valid.
+* 
+* 3. Global defense_default constant.
 */
-int defense_get_current_blockpower(entity* ent, s_body* body_object)
-{    
-    /*
-    * We start with supplied body object.
-    * If it is a valid pointer and has
-    * a valid defense pointer, then we
-    * can return the defense property.
-    * 
-    * Next, we'll try the model level 
-    * defense property. If valid, then 
-    * we'll return get the property from 
-    * it.
-    * 
-    * Last, we fall back to the global 
-    * default defense object and return
-    * property from it.
-    */
-
+s_defense* defense_find_current_pointer(entity* ent, s_body* body_object)
+{
     /* Supplied body. */
+    
     if (body_object && body_object->defense)
     {
-        return body_object->defense->blockpower;
+        return body_object->defense;
     }
 
     /* Model defense */
+
     if (ent->defense)
     {
-        return ent->defense->blockpower;
+        return ent->defense;
     }
 
-    /* Global default. */
-    return default_defense.blockpower;
+    /* 
+    * Global default. We're recasting a
+    * a constant to return its pointer, so 
+    * we need to be careful and avoid mutating 
+    * any values downstream.
+    */
+
+    return (s_defense *)&default_defense;
 }
 
 /*
 * Caskey, Damon V.
 * 2021-09-01
 *
-* Get correct defense property for use by hit
-* logic. Obtains value by checking following
-* in oder from first to last
-*
-* - From supplied body object if its defense member
-* has a value. Presumably the body object what detected
-* a hit.
-*
-* - From model level defense property if it has
-* a value.
-*
-* - Global default.
+* Return current value for use by hit detection.
 */
 e_blocktype defense_get_current_blocktype(entity* ent, s_body* body_object)
 {
-    /*
-    * We start with supplied body object.
-    * If it is a valid pointer and has
-    * a valid defense pointer, then we
-    * can return the defense property.
-    *
-    * Next, we'll try the model level
-    * defense property. If valid, then
-    * we'll return get the property from
-    * it.
-    *
-    * Last, we fall back to the global
-    * default defense object and return
-    * property from it.
-    */
-
     /* Supplied body. */
     if (body_object && body_object->defense)
     {
@@ -28396,6 +28436,19 @@ e_blocktype defense_get_current_blocktype(entity* ent, s_body* body_object)
     /* Global default. */
     return default_defense.blocktype;
 }
+
+/*
+* Caskey, Damon V.
+* 2021-09-05
+* 
+* Return true if defense block threshold is
+* sufficient to block attack.
+
+int defense_check_blockthreshold(s_attack* attack_object, s_defense* defense_object)
+{
+
+}
+*/
 
 /*
 * Caskey, Damon V.
