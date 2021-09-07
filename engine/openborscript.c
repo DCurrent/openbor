@@ -9900,11 +9900,14 @@ HRESULT openbor_closefilestream(ScriptVariant **varlist , ScriptVariant **pretva
 //damageentity(entity, other, force, drop, type)
 HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    entity *ent = NULL;
-    entity *other = NULL;
-    entity *temp = NULL;
-    LONG force, drop, type;
-    s_attack atk;
+    entity* ent = NULL;
+    entity* other = NULL;
+    entity* temp = NULL;
+    LONG force = 0;
+    LONG drop = 0;
+    LONG type = 0;
+    s_attack atk = emptyattack;
+    s_defense* defense_object = NULL;
 
     if(paramCount < 1)
     {
@@ -9958,7 +9961,6 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
             }
         }
 
-        atk = emptyattack;
         atk.attack_force = force;
         atk.attack_drop = drop;
         if(drop)
@@ -9987,7 +9989,9 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     {
         temp = self;
         self = ent;
-        (*pretvar)->lVal = (LONG)self->takedamage(other, &atk, 0);
+
+        defense_object = defense_find_current_object(self, NULL, attack.attack_type);
+        (*pretvar)->lVal = (LONG)self->takedamage(other, &atk, 0, defense_object);
         self = temp;
     }
     return S_OK;
@@ -10004,6 +10008,7 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     entity *attacker = NULL;
     LONG force, drop, type;
     s_attack atk;
+    s_defense* defense_object = NULL;
 
     if(paramCount < 3)
     {
@@ -10064,7 +10069,19 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     }
     atk.attack_type = type;
     
-    (*pretvar)->lVal = (LONG)calculate_force_damage(defender, attacker, &atk);   
+    /* 
+    * Caskey, Damon V.
+    * 2021-09-07
+    * 
+    * Temporary patch: 
+    * Passing NULL to find current object body_object
+    * parameter. This has effect of always getting the 
+    * model level defense, and ignoring any body box 
+    * defense properties. 
+    */
+    defense_object = defense_find_current_object(defender, NULL, attack.attack_type);
+
+    (*pretvar)->lVal = (LONG)calculate_force_damage(defender, attacker, &atk, defense_object);
 
     return S_OK;
 

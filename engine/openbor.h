@@ -2954,7 +2954,7 @@ typedef struct entity
 	void					(*takeaction)();					// Take an action (lie, attack, etc.). ~~
 	void					(*think)();							// Entity thinks. ~~
     
-	int						(*takedamage)(struct entity *, s_attack *, int);	// Entity applies damage to itself when hit, thrown, and so on. ~~
+	int						(*takedamage)(struct entity* attacking_entity, s_attack* attack_object, int fall_flag, s_defense* defense_object);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 
     // Meta data.
@@ -3273,11 +3273,13 @@ float	binding_position(float position_default, float position_target, int offset
 int     check_bind_override(entity *ent, e_bind_override overriding);
 
 /* Defense. */
-int calculate_force_damage(entity* target, entity* attacker, s_attack* attack);
+int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object);
 s_defense* defense_allocate_object();
 void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 void defense_free_object(s_defense* target);
-s_defense* defense_find_current_pointer(entity* ent, s_body* body_object);
+s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attack_types attack_type);
+int defense_result_damage(s_attack* attack_object, s_defense* defense_object);
+int defense_result_pain(s_attack* attack_object, s_defense* defense_object);
 void defense_setup_from_arg(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 
 /* Recursive damage. */
@@ -3303,8 +3305,8 @@ void    set_blocking_action(entity *ent, entity *other, s_attack *attack);
 void    set_blocking_animation(entity *ent, s_attack *attack);
 
 /* Counter action (aka. couner attack). */
-int try_counter_action(entity* target, entity* attacker, s_attack* attack, s_body* body_object);
-int check_counter_condition(entity* target, entity* attacker, s_attack* attack, s_body* body_object);
+int check_counter_condition(entity* target, entity* attacker, s_attack* attack_object, s_body* body_object);
+int try_counter_action(entity* target, entity* attacker, s_attack* attack_object, s_body* body_object);
 
 // Select player models.
 int		find_selectable_model_count				();
@@ -3549,9 +3551,9 @@ void steamer_think(void);
 void text_think(void);
 void anything_walk(void);
 void adjust_walk_animation(entity *other);
-int player_takedamage(entity *other, s_attack *attack, int);
-int biker_takedamage(entity *other, s_attack *attack, int);
-int obstacle_takedamage(entity *other, s_attack *attack, int);
+int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object);
+int biker_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object);
+int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object);
 void suicide(void);
 void player_blink(void);
 void common_prejump();
@@ -3585,10 +3587,11 @@ void sort_invert_by_parent(entity *ent, entity* parent);
 
 int checkgrab(entity *other, s_attack *attack);
 void checkdamageeffects(s_attack *attack);
-void checkdamagedrop(s_attack *attack);
+void checkdamagedrop(entity* target_entity, s_attack* attack_object, s_defense* defense_object);
+void checkdamageflip(entity* target_entity, entity* other, s_attack* attack_object, s_defense* defense_object);
 void checkmpadd();
 void checkhitscore(entity *other, s_attack *attack);
-void checkdamage(entity *other, s_attack *attack);
+void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, s_defense* defense_object);
 void checkdamageonlanding();
 int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
@@ -3685,8 +3688,8 @@ void common_grab(void);
 void common_grabattack();
 void common_grabbed();
 void common_block(void);
-int arrow_takedamage(entity *other, s_attack *attack, int fall_flag);
-int common_takedamage(entity *other, s_attack *attack, int fall_flag);
+int arrow_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object);
+int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object);
 int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);
