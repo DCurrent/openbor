@@ -9797,6 +9797,8 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
 
 void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filename)
 {
+    char* value;
+
     //smartbomb now use a normal attack box
     if(!newchar->smartbomb)
     {
@@ -9843,6 +9845,16 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     {
         newchar->dofreeze = atoi(GET_ARGP(3));		// Are all animations frozen during special
         newchar->smartbomb->freezetime = atoi(GET_ARGP(4)) * GAME_SPEED;
+        
+        value = GET_ARGP(5);
+        if (stricmp(value, "none") == 0)
+        {
+            newchar->smartbomb->hitflash = MODEL_INDEX_NONE;
+        }
+        else
+        {
+            newchar->smartbomb->hitflash = get_cached_model_index(value);
+        }
     }
 }
 
@@ -21387,6 +21399,7 @@ int check_collision(s_collision_check_data* collision_data)
 {
 	s_box seek_pos;
 	s_box detect_pos;
+    int distance = 0;
 
 	// X axis. 
 	//
@@ -21459,24 +21472,27 @@ int check_collision(s_collision_check_data* collision_data)
 	detect_pos.background = collision_data->target_pos->z - collision_data->target_coords->z_background;
 	detect_pos.foreground = collision_data->target_pos->z + collision_data->target_coords->z_foreground;
 	
+
 	// If Z is out of range, then there's no hit.
 	if (seek_pos.background > detect_pos.foreground || seek_pos.foreground < detect_pos.background)
 	{
 		return FALSE;
 	}
 
-	// If we got this far, find the collision area and apply
-	// values to collision area box supplied by parent function.
-	//
-	// We do this by treating the collision area as a third 
-	// box set of coordinates between the attack and detect
-	// boxes. Then we find the center of our third box. This 
-	// gives us a calculated center of the collision detection 
-	// point.
-	//
-	// For center Z, we just always set one pixel in
-	// front of whichever entity is furthest toward the
-	// foreground.
+    /*
+	* If we got this far, find the collision area and apply
+	* values to collision area box supplied by parent function.
+	*
+	* We do this by treating the collision area as a third 
+	* box set of coordinates between the attack and detect
+	* boxes. Then we find the center of our third box. This 
+	* gives us a calculated center of the collision detection 
+	* point.
+	*
+	* For center Z, if the entities are with 10 pixels set one 
+    * pixel in front of whichever entity is furthest toward the
+	* foreground. Otherwise we set 1 pixel in front of the target.
+    */
 
 	collision_data->return_overlap->left = seek_pos.left < detect_pos.left ? detect_pos.left : seek_pos.left;
 	collision_data->return_overlap->right = seek_pos.right > detect_pos.right ? detect_pos.right : seek_pos.right;
@@ -21485,7 +21501,24 @@ int check_collision(s_collision_check_data* collision_data)
 
 	collision_data->return_overlap->center_x = (collision_data->return_overlap->left + collision_data->return_overlap->right) / 2;
 	collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
-	collision_data->return_overlap->center_z = 1 + (collision_data->seeker_pos->z > collision_data->target_pos->z ? collision_data->seeker_pos->z : collision_data->target_pos->z);
+    
+    if (collision_data->seeker_pos->z > collision_data->target_pos->z)
+    {
+        distance = collision_data->seeker_pos->z - collision_data->target_pos->z;
+    }
+    else
+    {
+        distance = collision_data->target_pos->z - collision_data->seeker_pos->z;
+    }
+
+    if (distance < 10)
+    {
+        collision_data->return_overlap->center_z = 1 + (collision_data->seeker_pos->z > collision_data->target_pos->z ? collision_data->seeker_pos->z : collision_data->target_pos->z);
+    }
+    else
+    {
+        collision_data->return_overlap->center_z = 1 + collision_data->target_pos->z;
+    }
 
 	return TRUE;
 }
@@ -36119,6 +36152,19 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
         {
             self = ent_list[i];
             hit = 1; // for nocost, if the bomb doesn't hit, it won't cost energy
+
+            lasthit.attack = attack;
+            lasthit.attacker = e;
+            lasthit.collision_attack = NULL;
+            lasthit.confirm = 1;
+            lasthit.detect_body = NULL;
+            lasthit.detect_collision_attack = NULL;
+            lasthit.detect_collision_body = NULL;
+            lasthit.position.x = self->position.x;
+            lasthit.position.y = self->position.y;
+            lasthit.position.z = self->position.z;
+            lasthit.target = self;
+
             if(self->takedamage)
             {
 
@@ -36135,6 +36181,9 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
                     kill_entity(self);
                 }
             }
+
+            spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
+            
         }
     }
     if(nocost && hit && smartbomber) // don't use e, because this can be an item-bomb
