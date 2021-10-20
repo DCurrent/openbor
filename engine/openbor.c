@@ -189,7 +189,7 @@ const s_attack emptyattack =
                             .y = 0,
                             .z = 0},
     .force_direction    = DIRECTION_ADJUST_NONE,
-    .forcemap           = 0,
+    .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,
     .freezetime         = 0,
     .grab               = 0,
@@ -9797,8 +9797,6 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
 
 void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filename)
 {
-    char* value;
-
     //smartbomb now use a normal attack box
     if(!newchar->smartbomb)
     {
@@ -9828,7 +9826,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     if(newchar->smartbomb->attack_type == ATK_FREEZE)
     {
         newchar->smartbomb->freeze = 1;
-        newchar->smartbomb->forcemap = -1;
+        newchar->smartbomb->forcemap = MAP_TYPE_FREEZE;
         newchar->smartbomb->attack_drop = 0;
     }
     else if(newchar->smartbomb->attack_type == ATK_STEAL)
@@ -9845,16 +9843,6 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     {
         newchar->dofreeze = atoi(GET_ARGP(3));		// Are all animations frozen during special
         newchar->smartbomb->freezetime = atoi(GET_ARGP(4)) * GAME_SPEED;
-        
-        value = GET_ARGP(5);
-        if (stricmp(value, "none") == 0)
-        {
-            newchar->smartbomb->hitflash = MODEL_INDEX_NONE;
-        }
-        else
-        {
-            newchar->smartbomb->hitflash = get_cached_model_index(value);
-        }
     }
 }
 
@@ -10613,6 +10601,14 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
+    newchar->maps.burn = MAP_INDEX_NONE;
+    newchar->maps.ko = MAP_INDEX_NONE;
+    newchar->maps.frozen = MAP_INDEX_NONE;
+    newchar->maps.hide_end = MAP_INDEX_NONE;
+    newchar->maps.hide_start = MAP_INDEX_NONE;
+    newchar->maps.ko = MAP_INDEX_NONE;
+    newchar->maps.kotype = KOMAP_TYPE_IMMEDIATELY;
+    newchar->maps.shock = MAP_INDEX_NONE;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -11461,10 +11457,25 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FMAP:	// Map that corresponds with the remap when a character is frozen
                 newchar->maps.frozen = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_KOMAP:	// Remap when character is KO'd.
+            case CMD_MODEL_KOMAP:
                 newchar->maps.ko = GET_INT_ARG(1);  //Remap.
                 newchar->maps.kotype = GET_INT_ARG(2);  //Type: 0 start of fall/death, 1 last frame.
                 break;
+            case CMD_MODEL_MAP_BURN_INDEX:
+                newchar->maps.burn = GET_INT_ARG(1);
+                break;            
+            case CMD_MODEL_MAP_KO_INDEX:
+                newchar->maps.ko = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_MAP_KO_TYPE:
+                newchar->maps.kotype = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_MAP_FREEZE_INDEX:
+                newchar->maps.frozen = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_MAP_SHOCK_INDEX:
+                newchar->maps.shock = GET_INT_ARG(1);
+                break;            
             case CMD_MODEL_HMAP:	// Maps range unavailable to player in select screen.
                 newchar->maps.hide_start = GET_INT_ARG(1); //First unavailable map.
                 newchar->maps.hide_end = GET_INT_ARG(2); //Last unavailable map.
@@ -12721,15 +12732,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_HITFLASH:
 
-                value = GET_ARG(1);
+                /* First find out which flash model index (if any). */
 
+                value = GET_ARG(1);
+                                
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
+                    tempInt = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
+                    tempInt = get_cached_model_index(value);
+                }
+
+                /* Apply model index to frame attack box or smartbomb? */
+
+                if (!newanim && newchar->smartbomb)
+                {
+                    newchar->smartbomb->hitflash = tempInt;
+                }
+                else
+                {                    
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = tempInt;
                 }
 
                 break;
@@ -13333,7 +13357,46 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_COLLISION_MAP_INDEX:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
+                /*
+                * Translate text value into a pre-defined forcemap constant.
+                * Wen applying a pre-defined forcemap, we’ll look at the model
+                * and try to find its appropriate index. For example, if the
+                * pre-defined BURN is used, forcemap will apply the model’s
+                * designated burn. This allows use of effect maps without the
+                * need to match all model palettes up (i.e. all having their
+                * second palette a burn palette).
+                *
+                * If the creator provides a numeric value, pass it straight
+                * through.
+                */
+
+                value = GET_ARG(1);
+                if (stricmp(value, "none") == 0)
+                {
+                    tempInt = MAP_TYPE_NONE;
+                }
+                else if (stricmp(value, "burn") == 0)
+                {
+                    tempInt = MAP_TYPE_BURN;
+                }
+                else if (stricmp(value, "freeze") == 0)
+                {
+                    tempInt = MAP_TYPE_FREEZE;
+                }
+                else if (stricmp(value, "ko") == 0)
+                {
+                    tempInt = MAP_TYPE_SHOCK;
+                }
+                else if (stricmp(value, "shock") == 0)
+                {
+                    tempInt = MAP_TYPE_SHOCK;
+                }
+                else
+                {
+                    tempInt = GET_INT_ARG(1);
+                }                
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = tempInt;
                 
                 break;
 
@@ -13582,7 +13645,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_type = ATK_FREEZE;
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freeze = 1;
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->freezetime = GET_FLOAT_ARG(6) * GAME_SPEED;
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = -1;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = MAP_TYPE_FREEZE;
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->attack_drop = 0;
 
                     break;
@@ -13868,15 +13931,55 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_FORCEMAP:
                 
+                /*
+                * Translate text value into a pre-defined forcemap constant.
+                * Wen applying a pre-defined forcemap, we’ll look at the model
+                * and try to find its appropriate index. For example, if the
+                * pre-defined BURN is used, forcemap will apply the model’s
+                * designated burn. This allows use of effect maps without the
+                * need to match all model palettes up (i.e. all having their
+                * second palette a burn palette).
+                *
+                * If the creator provides a numeric value, pass it straight
+                * through.
+                */
+
+                value = GET_ARG(1);
+
+                if (stricmp(value, "none") == 0)
+                {
+                    tempInt = MAP_TYPE_NONE;
+                }
+                else if (stricmp(value, "burn") == 0)
+                {
+                    tempInt = MAP_TYPE_BURN;
+                }
+                else if (stricmp(value, "freeze") == 0)
+                {
+                    tempInt = MAP_TYPE_FREEZE;
+                }
+                else if (stricmp(value, "ko") == 0)
+                {
+                    tempInt = MAP_TYPE_SHOCK;
+                }
+                else if (stricmp(value, "shock") == 0)
+                {
+                    tempInt = MAP_TYPE_SHOCK;
+                }
+                else
+                {
+                    tempInt = GET_INT_ARG(1);
+                }           
+
                 // force color map change for specified time
                 if (!newanim && newchar->smartbomb)
                 {
-                    newchar->smartbomb->forcemap = GET_INT_ARG(1);
+                    newchar->smartbomb->forcemap = tempInt;
                     newchar->smartbomb->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = GET_INT_ARG(1);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->forcemap = tempInt;
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->maptime = GET_FLOAT_ARG(2) * GAME_SPEED;
                 }
 
@@ -28205,10 +28308,51 @@ void checkdamageeffects(s_attack *attack)
 
 	// If we want to apply a remap without freezing (forcemap attack command) then
 	// set the map and expire time here.
-    if(_remap > 0 && !_freeze)
+    if(_remap != 0 && !_freeze)
     {
-        self->maptime = _time + _maptime;
-        self->colourmap = model_get_colourmap(&(self->modeldata), _remap);
+        /*
+        * Caskey, Damon V.
+        * 2020-10-20
+        * 
+        * Apply named map if available 
+        * or fall back to direct index. 
+        *
+        * TODO: Code is pretty messy and
+        * repetitive. Needs some refinement 
+        * and offloading to a function.
+        */
+        switch (_remap)
+        {
+            case MAP_TYPE_BURN:
+                if (self->modeldata.maps.burn != MAP_INDEX_NONE)
+                {
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.burn);
+                }
+                break;
+            case MAP_TYPE_FREEZE:
+                if (self->modeldata.maps.frozen != MAP_INDEX_NONE)
+                {
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.frozen);
+                }
+                break;
+            case MAP_TYPE_KO:
+                if (self->modeldata.maps.ko != MAP_INDEX_NONE)
+                {
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);
+                }
+                break;
+            case MAP_TYPE_SHOCK:
+                if (self->modeldata.maps.shock != MAP_INDEX_NONE)
+                {
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.shock);
+                }
+                break;
+            default:
+                self->colourmap = model_get_colourmap(&(self->modeldata), _remap);
+                break;
+        }
+
+        self->maptime = _time + _maptime;        
     }
 
 	// Disable specials. Apply seal (Any animation with 
@@ -29149,7 +29293,7 @@ int arrow_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* 
 }
 
 int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object)
-{
+{    
     int pain_check = 0; // React with pain animations (1) or ignore (0);
 
     if(self->dead)
@@ -29279,7 +29423,6 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
     * May also not react at all if attack doesn't 
     * cause pain or defense is enough to ignore it.
     */
-    
     pain_check = defense_result_pain(attack, defense_object);
     
     if(self->drop || self->energy_state.health_current <= 0)
@@ -36100,7 +36243,7 @@ void drop_all_enemies()
 
 
 
-// Called when boss dies
+/* Called when boss dies. */
 void kill_all_enemies()
 {
     int i;
@@ -36111,7 +36254,19 @@ void kill_all_enemies()
 	attack.attack_type = ATK_BOSS_DEATH;
 	attack.dropv = default_model_dropv;
 
+    /* 
+    * Downstream damage functions use 
+    * self global, so we populate it with
+    * entity cursor in each iteration of 
+    * loop below. Keep current value here 
+    * so we can restore when loop is finished. 
+    */
     tmpself = self;
+
+    /* 
+    * Every valid enemy type with a takedamage
+    * function takes its current health in damage.
+    */
     for(i = 0; i < ent_max; i++)
     {
         if(  ent_list[i]->exists
@@ -36120,12 +36275,13 @@ void kill_all_enemies()
                 && ent_list[i]->takedamage)
         {
             self = ent_list[i];
+
             attack.attack_force = self->energy_state.health_current;
-            self->takedamage(tmpself, &attack, 0, NULL);
-            self->dead = 1;
+            self->takedamage(self, &attack, 0, self->defense);           
         }
     }
-    self = tmpself;
+
+    self = tmpself;    
 }
 
 

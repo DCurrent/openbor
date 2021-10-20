@@ -341,7 +341,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
     LIST_ADD(CMD_MODEL_KNIFE, "knife");
     LIST_ADD(CMD_MODEL_KNOCKDOWNCOUNT, "knockdowncount");
-    LIST_ADD(CMD_MODEL_KOMAP, "komap");
+    LIST_ADD(CMD_MODEL_KOMAP, "komap");    
     LIST_ADD(CMD_MODEL_LANDFRAME, "landframe");
     LIST_ADD(CMD_MODEL_LIFEBARSTATUS, "lifebarstatus");
     LIST_ADD(CMD_MODEL_LIFEPOSITION, "lifeposition");
@@ -350,6 +350,11 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_LOOP, "loop");
     LIST_ADD(CMD_MODEL_LOSE, "lose");
     LIST_ADD(CMD_MODEL_MAKEINV, "makeinv");
+    LIST_ADD(CMD_MODEL_MAP_BURN_INDEX, "palette.burn.index");
+    LIST_ADD(CMD_MODEL_MAP_FREEZE_INDEX, "palette.freeze.index");
+    LIST_ADD(CMD_MODEL_MAP_KO_INDEX, "palette.ko.index");
+    LIST_ADD(CMD_MODEL_MAP_KO_TYPE, "palette.ko.type");
+    LIST_ADD(CMD_MODEL_MAP_SHOCK_INDEX, "palette.shock.index");
     LIST_ADD(CMD_MODEL_MODELFLAG, "modelflag");
     LIST_ADD(CMD_MODEL_MOVE, "move");
     LIST_ADD(CMD_MODEL_MOVEA, "movea");

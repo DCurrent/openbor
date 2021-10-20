@@ -129,6 +129,7 @@ movement restirctions are here!
 #define		PROJECTILE_DEFAULT_SPEED_Y	0
 #define		PROJECTILE_DEFAULT_SPEED_Z	0
 
+#define MAP_INDEX_NONE -1
 
 // Caskey, Damon V.
 // 2019-01-27
@@ -1410,6 +1411,15 @@ typedef enum
 	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 12)		// Target hostile to attacker.
 } e_counter_action_condition_logic;
 
+typedef enum
+{
+    MAP_TYPE_KO = -4,
+    MAP_TYPE_SHOCK = -3,
+    MAP_TYPE_BURN = -2,
+    MAP_TYPE_FREEZE = -1,  
+    MAP_TYPE_NONE = 0
+} e_maptype;
+
 // Caskey, Damon V.
 // 2012-12-16
 //	 
@@ -2466,6 +2476,8 @@ typedef struct
     s_axis_plane_vertical_int position;
 } s_icon;
 
+
+
 typedef struct
 {
     /*
@@ -2474,6 +2486,8 @@ typedef struct
     2011_04_07
     */
 
+    int burn;
+    int shock;
     int frozen;             //Frozen.
     int hide_end;           //End range for maps hidden during character selection.
     int hide_start;         //Start range for maps hidden during character selection.
