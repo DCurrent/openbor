@@ -10602,7 +10602,6 @@ s_model *init_model(int cacheindex, int unload)
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
     newchar->maps.burn = MAP_INDEX_NONE;
-    newchar->maps.ko = MAP_INDEX_NONE;
     newchar->maps.frozen = MAP_INDEX_NONE;
     newchar->maps.hide_end = MAP_INDEX_NONE;
     newchar->maps.hide_start = MAP_INDEX_NONE;
@@ -27621,11 +27620,19 @@ void common_lie()
             }
         }
 
-        if (self->modeldata.maps.ko)   //Have a KO map?
-        {
-            if (self->modeldata.maps.kotype == KOMAP_TYPE_IMMEDIATELY || !self->animating)  //Wait for fall/death animation to finish?
+        /*
+        * Apply KO (death) map if we have one.
+        */
+        if (self->modeldata.maps.ko != MAP_INDEX_NONE)
+        {   
+            /* 
+            * Wait for animation to finish unless type is set to
+            * apply map immediately.
+            */
+            
+            if (self->modeldata.maps.kotype == KOMAP_TYPE_IMMEDIATELY || !self->animating)
             {
-                self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);    //Apply map.
+                self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);
             }
         }
 
