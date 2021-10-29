@@ -342,7 +342,7 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount);
 
 int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
 
-
+// Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
 enum systemvariant_enum
 {
     _sv_background,
@@ -361,7 +361,7 @@ enum systemvariant_enum
     _sv_current_set,
     _sv_current_stage,
     _sv_drawmethod_common,
-	_sv_drawmethod_default,    
+	_sv_drawmethod_default,
     _sv_effectvol,
     _sv_elapsed_time,
     _sv_ent_max,
@@ -416,6 +416,7 @@ enum systemvariant_enum
     _sv_models_cached,
     _sv_models_loaded,
     _sv_musicvol,
+    _sv_noaircancel,
     _sv_nofadeout,
     _sv_nogameover,
     _sv_nohof,
