@@ -196,6 +196,7 @@ List *createModelCommandList(void)
         LIST_ADD(CMD_MODEL_COLLISION_ETC, buf);
     }
 
+    // Kratus (10-2021) Added new jumpspecial property
     LIST_ADD(CMD_MODEL_COLLISIONONE, "attackone");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
     LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
@@ -336,6 +337,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_JUMPFRAME, "jumpframe");
     LIST_ADD(CMD_MODEL_JUMPHEIGHT, "jumpheight");
     LIST_ADD(CMD_MODEL_JUMPMOVE, "jumpmove");
+    LIST_ADD(CMD_MODEL_JUMPSPECIAL, "jumpspecial");
     LIST_ADD(CMD_MODEL_JUMPSPEED, "jumpspeed");
     LIST_ADD(CMD_MODEL_JUMPSPEEDF, "jumpspeedf");
     LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
