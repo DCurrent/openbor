@@ -918,8 +918,8 @@ HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int par
 ////////////   openbor functions
 //////////////////////////////////////////////////////////
 
-//check openborscript.h for systemvariant_enum
-
+// check openborscript.h for systemvariant_enum
+// Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
 // arranged list, for searching
 static const char *svlist[] =
 {
@@ -994,6 +994,7 @@ static const char *svlist[] =
     "models_cached",
     "models_loaded",
     "musicvol",
+    "noaircancel",
     "nofadeout",
     "nogameover",
     "nohof",
@@ -2007,6 +2008,7 @@ HRESULT openbor_changemodelproperty(ScriptVariant **varlist , ScriptVariant **pr
 }
 
 // ===== getentityproperty =====
+// Kratus (10-2021) Make combostyle, grabflip, grabdistance and jumpspecial properties accessible by script
 enum entityproperty_enum
 {
     _ep_a,
@@ -2048,6 +2050,7 @@ enum entityproperty_enum
     _ep_colourmap,
     _ep_colourtable,
     _ep_combostep,
+    _ep_combostyle,
     _ep_combotime,
     _ep_custom_target,
     _ep_damage_on_landing,
@@ -2076,6 +2079,8 @@ enum entityproperty_enum
     _ep_frozen,
     _ep_gfxshadow,
     _ep_grabbing,
+    _ep_grabdistance,
+    _ep_grabflip,
     _ep_grabforce,
     _ep_guardpoints,
     _ep_hasplatforms,
@@ -2095,6 +2100,7 @@ enum entityproperty_enum
     _ep_jumpheight,
     _ep_jumpmovex,
     _ep_jumpmovez,
+    _ep_jumpspecial,
     _ep_jumpspeed,
     _ep_knockdowncount,
     _ep_komap,
@@ -2251,6 +2257,7 @@ static const char *eplist[] =
     "colourmap",
     "colourtable",
     "combostep",
+    "combostyle",
     "combotime",
     "custom_target",
     "damage_on_landing",
@@ -2279,6 +2286,8 @@ static const char *eplist[] =
     "frozen",
     "gfxshadow",
     "grabbing",
+    "grabdistance",
+    "grabflip",
     "grabforce",
     "guardpoints",
     "hasplatforms",
@@ -2298,6 +2307,7 @@ static const char *eplist[] =
     "jumpheight",
     "jumpmovex",
     "jumpmovez",
+    "jumpspecial",
     "jumpspeed",
     "knockdowncount",
     "komap",
@@ -3614,6 +3624,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->combostep[(LONG)ltemp2];
         break;
     }
+    case _ep_combostyle:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.combostyle;
+        break;
+    }
     case _ep_combotime:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -4043,6 +4059,18 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
         break;
     }
+    case _ep_grabdistance:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.grabdistance;
+        break;
+    }
+    case _ep_grabflip:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.grabflip;
+        break;
+    }
     case _ep_grabforce:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -4240,6 +4268,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovez;
+        break;
+    }
+    case _ep_jumpspecial:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.jumpspecial;
         break;
     }
     case _ep_jumpspeed:
@@ -5679,6 +5713,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_combostyle:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.combostyle = (LONG)ltemp;
+        }
+        break;
+    }
     case _ep_combotime:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -6012,6 +6054,22 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_grabdistance:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.grabdistance = (LONG)ltemp;
+        }
+        break;
+    }
+    case _ep_grabflip:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.grabflip = (LONG)ltemp;
+        }
+        break;
+    }
     case _ep_grabforce:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -6176,7 +6234,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jumpmovex = (LONG)ltemp;
+            ent->modeldata.jumpmovez = (LONG)ltemp; // Kratus (10-2021) Fixed the wrong jumpmove reference from x to z
+        }
+        break;
+    }
+    case _ep_jumpspecial:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.jumpspecial = (LONG)ltemp;
         }
         break;
     }
@@ -8373,6 +8439,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = savedata.musicvol;
         break;
+    case _sv_noaircancel:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = noaircancel;
+        break;
     case _sv_nofadeout:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = nofadeout;
@@ -8790,6 +8860,12 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         break;
     case _sv_vscreen:
         vscreen = (s_screen *)value->ptrVal;
+        break;
+    case _sv_noaircancel:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            noaircancel = (LONG)ltemp;
+        }
         break;
     case _sv_nofadeout:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
