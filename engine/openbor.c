@@ -501,8 +501,9 @@ int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
     [GRAB_ACTION_SELECT_ATTACK] = {ANI_GRABATTACK, ANI_GRABATTACK2},
 	[GRAB_ACTION_SELECT_BACKWARD] = {ANI_GRABBACKWARD, ANI_GRABBACKWARD2},
 	[GRAB_ACTION_SELECT_FORWARD] = {ANI_GRABFORWARD, ANI_GRABFORWARD2},
-    [GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
-	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}    
+	[GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
+	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2},
+	[GRAB_ACTION_SELECT_VAULT] = {ANI_VAULT} //Kratus (10-2021) Added vault animations
 };
 
 int                 freespecials[MAX_SPECIALS] =
@@ -4521,11 +4522,32 @@ void load_menu_txt()
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
+    // Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+    // Now the modder can load exported translation files by using "filestream" script functions
+    // Useful for creating custom translations without unpack the game
+    // The default engine translation location will be maintained for backward compatibility
     // Read file
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
+        goto alternative;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+alternative:
+
+    if(buffer_pakfile("translation/menu.txt", &buf, &size) != 1)
+    {
         return;
     }
+    else
+    {
+        goto proceed;
+    }
+
+proceed:
 
     // Now interpret the contents of buf line by line
     pos = 0;
@@ -9071,7 +9093,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "special") == 0 || stricmp(value, "special1") == 0)
     {
         ani_id = ANI_SPECIAL;
-        newanim->energy_cost.cost = ENERGY_COST_DEFAULT_COST;       
+        newanim->energy_cost.cost = ENERGY_COST_DEFAULT_COST;
     }
     else if(stricmp(value, "special2") == 0)
     {
@@ -9142,6 +9164,18 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     else if(stricmp(value, "grab") == 0)
     {
         ani_id = ANI_GRAB;
+    }
+	else if(stricmp(value, "backgrab") == 0) // Kratus (10-2021) Added the new backgrab animation
+    {
+        ani_id = ANI_BACKGRAB;
+    }
+    else if(stricmp(value, "vault") == 0) // Kratus (10-2021) Added the new vault animation
+    {
+        ani_id = ANI_VAULT;
+    }
+    else if(stricmp(value, "vault2") == 0) // Kratus (10-2021) Added the new vault2 animation
+    {
+        ani_id = ANI_VAULT2;
     }
     else if(stricmp(value, "grabwalk") == 0)
     {
@@ -10575,6 +10609,7 @@ s_model *init_model(int cacheindex, int unload)
     alloc_all_scripts(&newchar->scripts);
 
     newchar->unload             = unload;
+    newchar->jumpspecial        = 0; // Kratus (10-2021) Added new property to kill or not the default jumpspecial movement
     newchar->jumpspeed          = default_model_jumpspeed;
     newchar->jumpheight         = default_model_jumpheight; // 28-12-2004   Set default jump height to 4, if not specified
     newchar->runjumpheight      = default_model_jumpheight; // Default jump height if a player is running
@@ -11289,6 +11324,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_SPEEDF:
                 value = GET_ARG(1);
                 newchar->speed.x = atof(value);
+                break;
+            case CMD_MODEL_JUMPSPECIAL: // Kratus (10-2021) Added new jumpspecial property
+                newchar->jumpspecial = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_JUMPSPEED:
                 value = GET_ARG(1);
@@ -13158,7 +13196,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 *
                 * For legacy support of mode, we have to handle
                 * integer values differently because like a bonehead,
-                * I didn’t originally set them up with bitwise
+                * I didnï¿½t originally set them up with bitwise
                 * logic in mind.
                 */
 
@@ -13358,9 +13396,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 /*
                 * Translate text value into a pre-defined forcemap constant.
-                * Wen applying a pre-defined forcemap, we’ll look at the model
+                * Wen applying a pre-defined forcemap, weï¿½ll look at the model
                 * and try to find its appropriate index. For example, if the
-                * pre-defined BURN is used, forcemap will apply the model’s
+                * pre-defined BURN is used, forcemap will apply the modelï¿½s
                 * designated burn. This allows use of effect maps without the
                 * need to match all model palettes up (i.e. all having their
                 * second palette a burn palette).
@@ -13895,7 +13933,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 *
                 * For legacy support of mode, we have to handle
                 * integer values differently because like a bonehead,
-                * I didn’t originally set them up with bitwise
+                * I didnï¿½t originally set them up with bitwise
                 * logic in mind.
                 */
 
@@ -13932,9 +13970,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 /*
                 * Translate text value into a pre-defined forcemap constant.
-                * Wen applying a pre-defined forcemap, we’ll look at the model
+                * Wen applying a pre-defined forcemap, weï¿½ll look at the model
                 * and try to find its appropriate index. For example, if the
-                * pre-defined BURN is used, forcemap will apply the model’s
+                * pre-defined BURN is used, forcemap will apply the modelï¿½s
                 * designated burn. This allows use of effect maps without the
                 * need to match all model palettes up (i.e. all having their
                 * second palette a burn palette).
@@ -22590,6 +22628,16 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 {
     s_defense* defense_object = NULL;
 
+	/* 
+	* Kratus (10-2021) For safe, confirm if the entity's "BLOCKING" instance was gone or not
+	* This is to avoid the entity to block while in other animations like RISE, PAIN or WALK.
+	*/
+
+	if (!ent->blocking)
+	{
+		return 0;
+	}
+
 	/* If guardpoints are set, then find out if they've been depleted. */
 	
     if (ent->modeldata.guardpoints.max)
@@ -22737,9 +22785,11 @@ int check_blocking_decision(entity *ent)
 		}
 	}
 
+	// Kratus (10-2021) Fixed the random blocking chance according with the "blockodds" value defined by the modder
+	// Now it works as intended (1 = block all / 2147483647 = never block)
 	// Run random chance against blockodds. If it
 	// passes, AI will block.
-	if ((rand32()&ent->modeldata.blockodds) == 1)
+	if ((rand32()&ent->modeldata.blockodds) == 0)
 	{
 		return 1;
 	}
@@ -22986,6 +23036,16 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
         {
             flash->direction = DIRECTION_RIGHT;
         }
+    }
+    else
+    {
+    /*
+    * Kratus (10-2021) If the flag is 0, the flash will get the same direction as the defender
+    * This change was made to avoid the "random" direction applied by "toflip 1", because it depends on the "lasthit" position
+    * Without this line, the flash will never change the direction according to the defender's facing when "toflip" is 0
+    */
+
+        flash->direction = (ent->direction);
     }
 
     /* 
@@ -27769,10 +27829,18 @@ e_animations do_grab_attack_finish(entity *ent, int which)
     // The target entity is already unlinked from
     // grab before this function was called, so in
     // game they are let go with no finishing attack.
+    // Kratus (10-2021) Added the vault animation before attack3
     if(validanim(ent, animation))
     {
         ent_set_anim(ent, animation, 0);
         return animation;
+    }
+	else if(validanim(ent, ANI_VAULT))
+    {
+        // Get the vault animation first.
+        // The modder can disable it by simply not declaring this animation
+        ent_set_anim(ent, ANI_VAULT, 0);
+        return ANI_VAULT;
     }
     else if(validanim(ent, ANI_ATTACK3))
     {
@@ -28964,7 +29032,7 @@ void defense_setup_from_arg(char* filename, char* command, s_defense* target_def
         * To handle this we want to apply defense on
         * all the attack types other than special types
         * not normally used by creator. They may say
-        * “all” but they probably don’t mean get stuck
+        * ï¿½allï¿½ but they probably donï¿½t mean get stuck
         * in a pit forever because they're immune to
         * pit damage! Loop through all types and type
         * check function. If the type is special, we
@@ -30235,7 +30303,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
     /* If adjust_grabposition passed (or wasn't needed) perform grab actions. */
     if(pass)
     {
-        if(attacker->model->grabflip & 1)
+        if(attacker->modeldata.grabflip & 1) // Kratus (10-2021) Make grabflip property accessible by script
         {
             attacker->direction = (attacker->position.x < target->position.x);
         }
@@ -30258,7 +30326,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         /* Check for grab animation, otherwise use original throwing system. */
         if(validanim(self, ANI_GRAB))
         {
-            if(attacker->model->grabflip & 2)
+            if(attacker->modeldata.grabflip & 2) // Kratus (10-2021) Make grabflip property accessible by script
             {
                 target->direction = !attacker->direction;
             }
@@ -30283,7 +30351,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
             }
             else
             {
-                if(self->model->grabflip & 2)
+                if(attacker->modeldata.grabflip & 2) // Kratus (10-2021) Make grabflip property accessible by script
                 {
                     target->direction = !attacker->direction;
                 }
@@ -33783,7 +33851,12 @@ int check_energy(e_cost_check which, int ani)
         // many cases (weapons in particular) this can	help cut down the need for
         // superfluous models when differing abilities are desired for players,
         // enemies, or npcs.
-        if(!(energy_cost.disable & type))
+		// Kratus (10-2021) Fixed the new broken code for "disable" flag check, back to the previous code
+        if(!(energy_cost.disable == type													// Disabled by type?
+                || (energy_cost.disable == -1)											    // Disabled for all?
+                || (energy_cost.disable == -2 && (type & (TYPE_ENEMY  | TYPE_NPC)))		    // Disabled for all AI?
+                || (energy_cost.disable == -3 && (type & (TYPE_PLAYER | TYPE_NPC)))	        // Disabled for players & NPCs?
+                || (energy_cost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
         {
             // No seal or seal is less/same as energy cost?
             if(!self->seal || self->seal >= energy_cost.cost)
@@ -34005,19 +34078,55 @@ int check_special()
             smartbomber = self;    // Freezes the animations of all enemies/players while special is executed
         }
 
-        if(!nocost && !healthcheat)
+        // Kratus (10-2021) Now the "infinite health cheat" affects players only, not enemies or npc
+        // And now the "infinite health cheat" will only work when the cost is HEALTH, will not work when the cost is MP anymore
+        if(self->modeldata.type & TYPE_PLAYER)
         {
-            if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
+            if(!nocost)
             {
-                self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+                if(!healthcheat)
+                {
+                    if(self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost)
+                    {
+                        if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+                        }
+                        else
+                        {
+                            self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+                        }
+                    }
+                }
+                else
+                {
+                    if(self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost)
+                    {
+                        if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+                        }
+                    }
+                }
             }
-            else
-            {
-                self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
-            }
-            
         }
-
+        else
+        {
+            if(!nocost)
+            {
+                if(self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost)
+                {
+                    if(check_energy(ENERGY_TYPE_MP, ANI_SPECIAL))
+                    {
+                        self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+                    }
+                    else
+                    {
+                        self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost;
+                    }
+                }
+            }
+        }
         return 1;
     }
     return 0;
@@ -34025,18 +34134,31 @@ int check_special()
 
 
 // Check keys for special move. Used several times, so I func'd it.
+// Kratus (10-2021) Added new flags to use with another ATTACK# keys as an new alternative
 int player_check_special()
 {
     u64 thekey = 0;
-    if((!ajspecial || (ajspecial && !validanim(self, ANI_BLOCK))) &&
+    if((ajspecial == 0 || (ajspecial == 1 && !validanim(self, ANI_BLOCK))) &&
             (player[self->playerindex].playkeys & FLAG_SPECIAL))
     {
         thekey = FLAG_SPECIAL;
     }
-    else if(ajspecial && ((player[self->playerindex].playkeys & FLAG_JUMP) &&
+    else if(ajspecial == 1 && ((player[self->playerindex].playkeys & FLAG_JUMP) &&
                           (player[self->playerindex].keys & FLAG_ATTACK)))
     {
         thekey = FLAG_JUMP;
+    }
+    else if(ajspecial == 2 && ((player[self->playerindex].keys & FLAG_ATTACK2)))
+    {
+        thekey = FLAG_ATTACK2;
+    }
+    else if(ajspecial == 3 && ((player[self->playerindex].keys & FLAG_ATTACK3)))
+    {
+        thekey = FLAG_ATTACK3;
+    }
+    else if(ajspecial == 4 && ((player[self->playerindex].keys & FLAG_ATTACK4)))
+    {
+        thekey = FLAG_ATTACK4;
     }
     else
     {
@@ -34656,10 +34778,16 @@ void player_grab_check()
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         dograbattack(GRAB_ACTION_SELECT_ATTACK);
     }
-    // grab attack finisher
-    else if(player[self->playerindex].playkeys & (FLAG_JUMP | FLAG_ATTACK))
+	// Kratus (10-2021) Added the vault animation
+    else if(player[self->playerindex].playkeys & FLAG_JUMP && validanim(self, ANI_VAULT))
     {
-        player[self->playerindex].playkeys &= ~(FLAG_JUMP | FLAG_ATTACK);
+        player[self->playerindex].playkeys &= ~FLAG_JUMP;
+        dograbattack(GRAB_ACTION_SELECT_VAULT);
+    }
+    // grab attack finisher
+    else if(player[self->playerindex].playkeys & (FLAG_ATTACK | FLAG_JUMP))
+    {
+        player[self->playerindex].playkeys &= ~(FLAG_ATTACK | FLAG_JUMP);
 
         // Perform final blow
         if(validanim(self, ANI_GRABATTACK2) || validanim(self, ANI_ATTACK3))
@@ -34892,42 +35020,54 @@ void player_jump_check()
 {
     int candospecial = 0;
 
-    if(!noaircancel || !self->animating || self->animnum == self->jump.animation_id)
+    // Kratus (10-2021) Fixed the noaircancel function
+    // Now the flag "2" works as intended and completely disables the cancelation between all jumping attacks
+    // In the previous code, both flags 1 and 2 have the same effect and allow the cancelation after last jumpattack is finished
+    if((!noaircancel) || (noaircancel&1 && !self->animating) || (noaircancel&3 && (self->animnum == self->jump.animation_id)))
     {
         //air special, copied and changed from Fugue's code
         if((!level->nospecial || level->nospecial == 3) && player[self->playerindex].playkeys & FLAG_SPECIAL)
         {
-
             if(validanim(self, ANI_JUMPSPECIAL))
             {
-                if(check_energy(ENERGY_TYPE_MP, ANI_JUMPSPECIAL))
+                // Kratus (10-2021) For safe, added an new step to check if the entity is not in the "jumpspecial" animation
+                // Fixes the bug that constantly consumes health or mp if the special button is constantly pressed, even if
+                // the current "jumpspecial" animation cycle is not finished yet
+                if(self->animnum != ANI_JUMPSPECIAL)
                 {
-                    if(!healthcheat)
+                    if(self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost && check_energy(ENERGY_TYPE_MP, ANI_JUMPSPECIAL))
                     {
+                        // Kratus (10-2021) Now the "infinite health cheat" will only work when the cost is HEALTH, will not work when the cost is MP anymore
                         self->energy_state.mp_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
+                        candospecial = 1;
                     }
-                    candospecial = 1;
-                }
-                else if(check_energy(ENERGY_TYPE_HP, ANI_JUMPSPECIAL))
-                {
-                    if(!healthcheat)
+                    else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost && check_energy(ENERGY_TYPE_HP, ANI_JUMPSPECIAL))
                     {
-                        self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
+                        if(!healthcheat)
+                        {
+                            self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
+                        }
+                        candospecial = 1;
                     }
-                    candospecial = 1;
-                }
-                else if(validanim(self, ANI_JUMPCANT))
-                {
-                    ent_set_anim(self, ANI_JUMPCANT, 0);
-                    self->velocity.y = 0;
+                    else if(validanim(self, ANI_JUMPCANT))
+                    {
+                        ent_set_anim(self, ANI_JUMPCANT, 0);
+                        self->velocity.y = 0;
+                    }
                 }
 
                 if(candospecial)
                 {
                     player[self->playerindex].playkeys &= ~FLAG_SPECIAL;
                     self->attacking = ATTACKING_ACTIVE;
-                    self->velocity.x = self->velocity.z = 0;                         // Kill movement when the special starts
-                    self->velocity.y = 0;
+
+                    // Kratus (10-2021) Add a option to kill or not the xyz movement
+                    if(!self->modeldata.jumpspecial & 1)
+                    {
+                        self->velocity.x = self->velocity.z = 0; // Kill movement when the special starts
+                        self->velocity.y = 0;
+                    }
+
                     ent_set_anim(self, ANI_JUMPSPECIAL, 0);
                 }
             }
@@ -35092,16 +35232,54 @@ int check_costmove(int s, int fs, int jumphack)
         {
             self->takeaction = common_attack_proc;
         }
-        if(!nocost && !healthcheat)
-        {           
-            if(check_energy(ENERGY_TYPE_MP, s))
+        // Kratus (10-2021) Now the "infinite health cheat" affects players only, not enemies or npc
+        // And now the "infinite health cheat" will only work when the cost is HEALTH, will not work when the cost is MP anymore
+        if(self->modeldata.type & TYPE_PLAYER)
+        {
+            if(!nocost)
             {
-                self->energy_state.mp_current -= self->modeldata.animation[s]->energy_cost.cost;
+                if(!healthcheat)
+                {
+                    if(self->modeldata.animation[s]->energy_cost.cost)
+                    {
+                        if(check_energy(ENERGY_TYPE_MP, s))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[s]->energy_cost.cost;
+                        }
+                        else
+                        {
+                            self->energy_state.health_current -= self->modeldata.animation[s]->energy_cost.cost;
+                        }
+                    }
+                }
+                else
+                {
+                    if(self->modeldata.animation[s]->energy_cost.cost)
+                    {
+                        if(check_energy(ENERGY_TYPE_MP, s))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[s]->energy_cost.cost;
+                        }
+                    }
+                }
             }
-            else
+        }
+        else
+        {
+            if(!nocost)
             {
-                self->energy_state.health_current -= self->modeldata.animation[s]->energy_cost.cost;
-            }           
+                if(self->modeldata.animation[s]->energy_cost.cost)
+                {
+                    if(check_energy(ENERGY_TYPE_MP, s))
+                    {
+                        self->energy_state.mp_current -= self->modeldata.animation[s]->energy_cost.cost;
+                    }
+                    else
+                    {
+                        self->energy_state.health_current -= self->modeldata.animation[s]->energy_cost.cost;
+                    }
+                }
+            }
         }
 
 		self->running = 0;
@@ -35441,7 +35619,11 @@ void player_think()
         }
     }
 
-    if(!ajspecial && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))
+    // Kratus (10-2021) Added a new flag "2" to use ATTACK2 key as an new alternative
+    if( (ajspecial == 0 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (ajspecial == 2 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (ajspecial == 3 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (ajspecial == 4 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH)))
     {
         if((pl->keys & FLAG_ATTACK) && notinair)
         {
@@ -36193,7 +36375,14 @@ int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 {
     s_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
-    if(healthcheat || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
+
+	// Kratus (10-2021) Now the "infinite health cheat" will check the damage source, it will avoid some "special" damage sources
+	bool normal_damage;
+
+	// Damage comes from a normal source?
+	normal_damage = (attack->attack_type != ATK_LIFESPAN && attack->attack_type != ATK_TIMEOVER && attack->attack_type != ATK_PIT);
+
+    if((healthcheat && (normal_damage)) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
         atk.attack_force = 0;
     }
@@ -36874,7 +37063,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 // Caskey, Damon V.
 // 2019-12-17
 //
-// Spawn three “star” projectiles. Meant for Eiji enemies in 
+// Spawn three ï¿½starï¿½ projectiles. Meant for Eiji enemies in 
 // original Beats of Rage, who would jump and throw three star 
 // shuriken diagonally downward at players. Original author 
 // Roel, but modified several times by unknown parties. Refactored 
@@ -39919,7 +40108,6 @@ void startup()
     }
 #endif
 
-    ob_inittrans();
     loadHighScoreFile();
     clearSavedGame();
 
@@ -39929,19 +40117,11 @@ void startup()
         borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
     }
 
-    printf("Loading menu.txt.............\t");
-    load_menu_txt();
-    printf("Done!\n");
-
-    printf("Loading fonts................\t");
-    load_all_fonts();
-    printf("Done!\n");
-
     printf("Timer init...................\t");
     borTimerInit();
     printf("Done!\n");
 
-    printf("Initialize Sound..............\t");
+    printf("Initialize Sound.............\t");
     if(sound_init(12))
     {
         if(load_special_sounds())
@@ -39995,6 +40175,20 @@ void startup()
     {
         borShutdown(1, "Not enough memory for game objects!\n");
     }
+    printf("Done!\n");
+
+    // Kratus (10-2021) Moved the translation, menu and font functions to the end of the engine "startup" function,
+    // but before the "control init" function
+    printf("Loading menu.txt.............\t");
+    load_menu_txt();
+    printf("Done!\n");
+
+    printf("Loading fonts................\t");
+    load_all_fonts();
+    printf("Done!\n");
+
+    printf("Loading translation..........\t");
+    ob_inittrans();
     printf("Done!\n");
 
     printf("Input init...................\t");
@@ -41661,19 +41855,23 @@ int menu_difficulty()
             {
                 if(j < maxdisplay)
                 {
+                    // Kratus (10-2021) Added translation feature to the "set" name
+                    // It will get the "set" name in the "levels.txt" file and translate it
+                    // You need to add a new "msgid/msgstr" instance in your "translation.txt" file and put
+                    // the same names as used by all level sets
                     if(bonus >= levelsets[i].ifcomplete)
                     {
-                        _menutextm((selector == i), j, 0, "%s", levelsets[i].name);
+                        _menutextm((selector == i), j, 0, "%s", Tr(levelsets[i].name));
                     }
                     else
                     {
                         if(levelsets[i].ifcomplete > 1)
                         {
-                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game %i Times To UnLock"), levelsets[i].name, levelsets[i].ifcomplete);
+                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game %i Times To UnLock"), Tr(levelsets[i].name), levelsets[i].ifcomplete);
                         }
                         else
                         {
-                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game To UnLock"), levelsets[i].name);
+                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game To UnLock"), Tr(levelsets[i].name));
                         }
                     }
                 }
@@ -42383,44 +42581,69 @@ void keyboard_setup(int player)
     savesettings();
     bothnewkeys = 0;
 
-    // Read file
-    if(buffer_pakfile(filename, &buf, &size))
+    // Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+    // Now the modder can load exported translation files by using "filestream" script functions
+    // Useful for creating custom translations without unpack the game
+    // The default engine translation location will be maintained for backward compatibility
+    if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        // Now interpret the contents of buf line by line
-        pos = 0;
-        while(pos < size)
-        {
-            ParseArgs(&arglist, buf + pos, argbuf);
-            command = GET_ARG(0);
-            if(command[0])
-            {
-                if(stricmp(command, "disablekey") == 0)
-                {
-                    sdid = translate_SDID(GET_ARG(1));
-                    if(sdid >= 0)
-                    {
-                        disabledkey[sdid] = 1;
-                    }
-                }
-                else if(stricmp(command, "renamekey") == 0)
-                {
-                    sdid = translate_SDID(GET_ARG(1));
-                    if(sdid >= 0)
-                    {
-                        strcpy(buttonnames[sdid], GET_ARG(2));
-                    }
-                }
-
-            }
-            // Go to next line
-            pos += getNewLineStart(buf + pos);
-        }
-        if(buf != NULL)
-        {
-            free(buf);
-            buf = NULL;
-        }
+        goto alternative;
     }
+    else
+    {
+        goto proceed;
+    }
+
+alternative:
+
+    if(buffer_pakfile("translation/menu.txt", &buf, &size) != 1)
+    {
+        goto finish;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+proceed:
+
+    // Read file
+    // Now interpret the contents of buf line by line
+    pos = 0;
+    while(pos < size)
+    {
+        ParseArgs(&arglist, buf + pos, argbuf);
+        command = GET_ARG(0);
+        if(command[0])
+        {
+            if(stricmp(command, "disablekey") == 0)
+            {
+                sdid = translate_SDID(GET_ARG(1));
+                if(sdid >= 0)
+                {
+                    disabledkey[sdid] = 1;
+                }
+            }
+            else if(stricmp(command, "renamekey") == 0)
+            {
+                sdid = translate_SDID(GET_ARG(1));
+                if(sdid >= 0)
+                {
+                    strcpy(buttonnames[sdid], GET_ARG(2));
+                }
+            }
+
+        }
+        // Go to next line
+        pos += getNewLineStart(buf + pos);
+    }
+    if(buf != NULL)
+    {
+        free(buf);
+        buf = NULL;
+    }
+
+finish:
 
     while(disabledkey[selector]) if(++selector > btnnum - 1) break;
 
@@ -42597,6 +42820,10 @@ void menu_options_input()
 
     controloptionsMenu = 1;
     bothnewkeys = 0;
+
+    // Kratus (10-2021) Added a second instance of the "control_init" function while in the Control Options
+    // Useful to refresh some text translation if the language is changed "on-the-fly" and re-detect all active controls
+    control_init(savedata.usejoy);
 
     while (!quit)
     {
@@ -43523,7 +43750,7 @@ void menu_options_video()
         _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
         _menutext((selector == 8), col1, 5, Tr("VSync:"));
-        _menutext((selector == 8), col2, 5, savedata.vsync ? "Enabled" : "Disabled");
+        _menutext((selector == 8), col2, 5, savedata.vsync ? Tr("Enabled") : Tr("Disabled")); // Kratus (10-2021) Added "Tr" for translation purpose 
 
         if(savedata.fullscreen)
         {
@@ -44209,6 +44436,10 @@ void openborMain(int argc, char **argv)
         {
             if(started)
             {
+                
+                // Kratus (10-2021) Added an additional instance of the translation function at menu screen
+                // Used to refresh all text without close and reopen the engine
+                ob_inittrans();
                 menuScreen  = 1;
                 titleScreen = 0;
                 if(custBkgrds != NULL)
