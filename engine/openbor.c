@@ -33851,7 +33851,7 @@ int check_energy(e_cost_check which, int ani)
         // many cases (weapons in particular) this can	help cut down the need for
         // superfluous models when differing abilities are desired for players,
         // enemies, or npcs.
-		// Kratus (10-2021) Fixed the new broken code for "disable" flag check, back to the previous code
+        // Kratus (10-2021) Fixed the new broken code for "disable" flag check, back to the previous code
         if(!(energy_cost.disable == type													// Disabled by type?
                 || (energy_cost.disable == -1)											    // Disabled for all?
                 || (energy_cost.disable == -2 && (type & (TYPE_ENEMY  | TYPE_NPC)))		    // Disabled for all AI?
@@ -40219,7 +40219,7 @@ void startup()
         savedata.logo = 0;
     }
 
-    printf("Save settings so far........\t");
+    printf("Save settings so far.........\t");
     savesettings();
     printf("Done!\n");
 
