@@ -25968,91 +25968,184 @@ void display_ents()
                         spriteq_add_sprite((int)(e->position.x - scrx), (int)((2 * MIRROR_Z - e->position.z) - e->position.y - scry), 2 * PANEL_Z - z , f, drawmethod, ent_list_size * 100 - sortid);
                     }
                 }//end of if(f<sprites_loaded)
-
-                if(e->modeldata.gfxshadow == 1 && f < sprites_loaded) //gfx shadow
+                
+                // Kratus (10-2021) Added new "noshadow" property
+                // Used to temporarily disable shadow without changing the previously defined entity's shadow number
+                // Useful to avoid using "shadow 0" and needs to save the previously defined number into a variable
+                // Useful to avoid using "fshadow" at every animation, can be enabled/disabled by script events
+                if(e->modeldata.noshadow != 1)
                 {
-                    useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
-                    //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
-
-                    if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(e->modeldata.gfxshadow == 1 && f < sprites_loaded) //gfx shadow
                     {
-                        wall = checkwall_below(e->position.x, e->position.z, e->position.y);
-                        if(wall < 0)
-                        {
-                            alty = (int)e->position.y;
-                            temp1 = -1 * e->position.y * light.x / 256; // xshift
-                            temp2 = (float)(-alty * light.y / 256);               // zshift
-                            qx = (int)(e->position.x - scrx/* + temp1*/);
-                            qy = (int)(e->position.z - scry/* +  temp2*/);
-                        }
-                        else
-                        {
-                            alty = (int)(e->position.y - level->walls[wall].height);
-                            temp1 = -1 * (e->position.y - level->walls[wall].height) * light.x / 256; // xshift
-                            temp2 = (float)(-alty * light.y / 256);               // zshift
-                            qx = (int)(e->position.x - scrx/* + temp1*/);
-                            qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
-                        }
+                        useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
+                        //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
 
-                        wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
-
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1) )
+                        if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                         {
-                            alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]));
-                            temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])) * light.x / 256; // xshift
-                            temp2 = (float)(-e->position.y * light.y / 256);
-
-                            qx = (int)( e->position.x - scrx );
-                            qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] ); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
-                            //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
-                        }
-
-                        if(basemap > 0 && !(e->modeldata.shadowbase&1))
-                        {
-                            alty = (int)(e->position.y - basemap);
-                            temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
-                            temp2 = (float)(-alty * light.y / 256);               // zshift
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - scry - basemap);
-                        }
-
-                        //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
-                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
-                        {
-                            if(wall >= 0 && wall2 >= 0)
+                            wall = checkwall_below(e->position.x, e->position.z, e->position.y);
+                            if(wall < 0)
                             {
-                                alty += (int)(level->walls[wall].height - level->walls[wall2].height);
-                                /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light.x/256;
-                                qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light.y/256;*/
+                                alty = (int)e->position.y;
+                                temp1 = -1 * e->position.y * light.x / 256; // xshift
+                                temp2 = (float)(-alty * light.y / 256);               // zshift
+                                qx = (int)(e->position.x - scrx/* + temp1*/);
+                                qy = (int)(e->position.z - scry/* +  temp2*/);
                             }
-                            else if(wall >= 0)
+                            else
                             {
-                                alty += (int)(level->walls[wall].height);
-                                /*qx += -1*level->walls[wall].height*light.x/256;
-                                qy += level->walls[wall].height - level->walls[wall].height*light.y/256;*/
-                            }
-                            else if(wall2 >= 0)
-                            {
-                                alty -= (int)(level->walls[wall2].height);
-                                /*qx -= -1*level->walls[wall2].height*light.x/256;
-                                qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
+                                alty = (int)(e->position.y - level->walls[wall].height);
+                                temp1 = -1 * (e->position.y - level->walls[wall].height) * light.x / 256; // xshift
+                                temp2 = (float)(-alty * light.y / 256);               // zshift
+                                qx = (int)(e->position.x - scrx/* + temp1*/);
+                                qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
                             }
 
-                            /*if (other)
+                            wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
+
+                            if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1) )
                             {
-                                alty += (int)(other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
-                            }*/
+                                alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]));
+                                temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])) * light.x / 256; // xshift
+                                temp2 = (float)(-e->position.y * light.y / 256);
 
-                            // set 2D-LIKE shadow
-                            if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
+                                qx = (int)( e->position.x - scrx );
+                                qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] ); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
+                                //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
+                            }
 
-                            sy = (2 * MIRROR_Z - qy) - 2 * scry;
+                            if(basemap > 0 && !(e->modeldata.shadowbase&1))
+                            {
+                                alty = (int)(e->position.y - basemap);
+                                temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
+                                temp2 = (float)(-alty * light.y / 256);               // zshift
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - scry - basemap);
+                            }
 
-                            if ( other && !(e->modeldata.shadowbase&1) ) z = other->position.z + 1;
-                            else z = shadowz;
+                            //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
+                            if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
+                            {
+                                if(wall >= 0 && wall2 >= 0)
+                                {
+                                    alty += (int)(level->walls[wall].height - level->walls[wall2].height);
+                                    /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light.x/256;
+                                    qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light.y/256;*/
+                                }
+                                else if(wall >= 0)
+                                {
+                                    alty += (int)(level->walls[wall].height);
+                                    /*qx += -1*level->walls[wall].height*light.x/256;
+                                    qy += level->walls[wall].height - level->walls[wall].height*light.y/256;*/
+                                }
+                                else if(wall2 >= 0)
+                                {
+                                    alty -= (int)(level->walls[wall2].height);
+                                    /*qx -= -1*level->walls[wall2].height*light.x/256;
+                                    qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
+                                }
 
-                            sz = PANEL_Z - HUD_Z;
+                                /*if (other)
+                                {
+                                    alty += (int)(other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
+                                }*/
 
+                                // set 2D-LIKE shadow
+                                if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
+
+                                sy = (2 * MIRROR_Z - qy) - 2 * scry;
+
+                                if ( other && !(e->modeldata.shadowbase&1) ) z = other->position.z + 1;
+                                else z = shadowz;
+
+                                sz = PANEL_Z - HUD_Z;
+
+                                if(e->animation->shadow_coords)
+                                {
+                                    if(e->direction == DIRECTION_RIGHT)
+                                    {
+                                        qx += e->animation->shadow_coords[e->animpos][0];
+                                    }
+                                    else
+                                    {
+                                        qx -= e->animation->shadow_coords[e->animpos][0];
+                                    }
+                                    qy += e->animation->shadow_coords[e->animpos][1];
+                                    sy -= e->animation->shadow_coords[e->animpos][1];
+                                }
+                                shadowmethod = plainmethod;
+                                shadowmethod.fillcolor = (shadowcolor > 0 ? shadowcolor : 0);
+                                shadowmethod.alpha = shadowalpha;
+                                shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
+                                shadowmethod.table = drawmethod->table;
+                                shadowmethod.scalex = drawmethod->scalex;
+                                shadowmethod.flipx = drawmethod->flipx;
+                                shadowmethod.scaley = light.y * drawmethod->scaley / 256;
+                                shadowmethod.flipy = drawmethod->flipy;
+                                shadowmethod.centery += alty;
+                                if(shadowmethod.flipy)
+                                {
+                                    shadowmethod.centery = -shadowmethod.centery;
+                                }
+                                if(shadowmethod.scaley < 0)
+                                {
+                                    shadowmethod.scaley = -shadowmethod.scaley;
+                                    shadowmethod.flipy = !shadowmethod.flipy;
+                                }
+                                shadowmethod.rotate = drawmethod->rotate;
+                                shadowmethod.shiftx = drawmethod->shiftx + light.x;
+
+                                spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
+                                if(use_mirror)
+                                {
+                                    shadowmethod.flipy = !shadowmethod.flipy;
+                                    shadowmethod.centery = -shadowmethod.centery;
+                                    spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
+                                }
+                            }
+                        }//end of gfxshadow
+                    }
+                    else //plain shadow
+                    {
+                        useshadow = e->animation->shadow ? e->animation->shadow[e->animpos] : e->modeldata.shadow;
+                        if(useshadow < 0)
+                        {
+                            useshadow = e->modeldata.shadow;
+                        }
+                        if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                        {
+                            if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1))
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
+
+                                z = (int)(other->position.z + 1);
+                                sz = 2 * PANEL_Z - z;
+                            }
+                            else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - level->walls[wall].height - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - level->walls[wall].height - scry);
+                                z = shadowz;
+                                sz = PANEL_Z - HUD_Z;
+                            }
+                            else if(level && basemap > 0 && !(e->modeldata.shadowbase&1))
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - basemap - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - basemap - scry);
+                                z = shadowz;
+                                sz = PANEL_Z - HUD_Z;
+                            }
+                            else
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - scry);
+                                z = shadowz;
+                                sz = PANEL_Z - HUD_Z;
+                            }
                             if(e->animation->shadow_coords)
                             {
                                 if(e->direction == DIRECTION_RIGHT)
@@ -26066,104 +26159,18 @@ void display_ents()
                                 qy += e->animation->shadow_coords[e->animpos][1];
                                 sy -= e->animation->shadow_coords[e->animpos][1];
                             }
-                            shadowmethod = plainmethod;
-                            shadowmethod.fillcolor = (shadowcolor > 0 ? shadowcolor : 0);
-                            shadowmethod.alpha = shadowalpha;
-                            shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
-                            shadowmethod.table = drawmethod->table;
-                            shadowmethod.scalex = drawmethod->scalex;
-                            shadowmethod.flipx = drawmethod->flipx;
-                            shadowmethod.scaley = light.y * drawmethod->scaley / 256;
-                            shadowmethod.flipy = drawmethod->flipy;
-                            shadowmethod.centery += alty;
-                            if(shadowmethod.flipy)
-                            {
-                                shadowmethod.centery = -shadowmethod.centery;
-                            }
-                            if(shadowmethod.scaley < 0)
-                            {
-                                shadowmethod.scaley = -shadowmethod.scaley;
-                                shadowmethod.flipy = !shadowmethod.flipy;
-                            }
-                            shadowmethod.rotate = drawmethod->rotate;
-                            shadowmethod.shiftx = drawmethod->shiftx + light.x;
 
-                            spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
+                            shadowmethod = plainmethod;
+                            shadowmethod.alpha = BLEND_MULTIPLY + 1;
+                            shadowmethod.flipx = !e->direction;
+
+                            spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                             if(use_mirror)
                             {
-                                shadowmethod.flipy = !shadowmethod.flipy;
-                                shadowmethod.centery = -shadowmethod.centery;
-                                spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
+                                spriteq_add_sprite(qx, sy, sz, shadowsprites[useshadow - 1], &shadowmethod, 0);
                             }
-                        }
-                    }//end of gfxshadow
-                }
-                else //plain shadow
-                {
-                    useshadow = e->animation->shadow ? e->animation->shadow[e->animpos] : e->modeldata.shadow;
-                    if(useshadow < 0)
-                    {
-                        useshadow = e->modeldata.shadow;
+                        }//end of plan shadow
                     }
-                    if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
-                    {
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1))
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
-
-                            z = (int)(other->position.z + 1);
-                            sz = 2 * PANEL_Z - z;
-                        }
-                        else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - level->walls[wall].height - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - level->walls[wall].height - scry);
-                            z = shadowz;
-                            sz = PANEL_Z - HUD_Z;
-                        }
-                        else if(level && basemap > 0 && !(e->modeldata.shadowbase&1))
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - basemap - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - basemap - scry);
-                            z = shadowz;
-                            sz = PANEL_Z - HUD_Z;
-                        }
-                        else
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - scry);
-                            z = shadowz;
-                            sz = PANEL_Z - HUD_Z;
-                        }
-                        if(e->animation->shadow_coords)
-                        {
-                            if(e->direction == DIRECTION_RIGHT)
-                            {
-                                qx += e->animation->shadow_coords[e->animpos][0];
-                            }
-                            else
-                            {
-                                qx -= e->animation->shadow_coords[e->animpos][0];
-                            }
-                            qy += e->animation->shadow_coords[e->animpos][1];
-                            sy -= e->animation->shadow_coords[e->animpos][1];
-                        }
-
-                        shadowmethod = plainmethod;
-                        shadowmethod.alpha = BLEND_MULTIPLY + 1;
-                        shadowmethod.flipx = !e->direction;
-
-                        spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
-                        if(use_mirror)
-                        {
-                            spriteq_add_sprite(qx, sy, sz, shadowsprites[useshadow - 1], &shadowmethod, 0);
-                        }
-                    }//end of plan shadow
                 }
             }// end of blink checking
 

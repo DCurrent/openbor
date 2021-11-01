@@ -2008,7 +2008,8 @@ HRESULT openbor_changemodelproperty(ScriptVariant **varlist , ScriptVariant **pr
 }
 
 // ===== getentityproperty =====
-// Kratus (10-2021) Make combostyle, grabflip, grabdistance and jumpspecial properties accessible by script
+// Kratus (10-2021) Make combostyle, grabflip, grabdistance and shadow properties accessible by script
+// Kratus (10-2021) Added the new jumpspecial and noshadow properties accessible by script
 enum entityproperty_enum
 {
     _ep_a,
@@ -2140,6 +2141,7 @@ enum entityproperty_enum
     _ep_nohithead,
     _ep_nolife,
     _ep_nopain,
+    _ep_noshadow,
     _ep_numweapons,
     _ep_offense,
     _ep_offscreen_noatk_factor,
@@ -2167,6 +2169,7 @@ enum entityproperty_enum
     _ep_seal,
     _ep_sealtime,
     _ep_setlayer,
+    _ep_shadow,
     _ep_shadowbase,
     _ep_sortid,
     _ep_spawntype,
@@ -2347,6 +2350,7 @@ static const char *eplist[] =
     "nohithead",
     "nolife",
     "nopain",
+    "noshadow",
     "numweapons",
     "offense",
     "offscreennoatkfactor",
@@ -2374,6 +2378,7 @@ static const char *eplist[] =
     "seal",
     "sealtime",
     "setlayer",
+    "shadow",
     "shadowbase",
     "sortid",
     "spawntype",
@@ -4044,6 +4049,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.gfxshadow;
         break;
     }
+    case _ep_shadow:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.shadow;
+        break;
+    }
     case _ep_shadowbase:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -4705,6 +4716,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)ent->modeldata.nopain;
+        break;
+    }
+    case _ep_noshadow:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.noshadow;
         break;
     }
     case _ep_offense:
@@ -6046,6 +6063,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         }
         break;
     }
+    case _ep_shadow:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.shadow = (LONG)ltemp;
+        }
+        break;
+    }
     case _ep_shadowbase:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
@@ -6602,6 +6627,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
             ent->modeldata.nopain = (LONG)ltemp;
+        }
+        break;
+    }
+    case _ep_noshadow:
+    {
+        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        {
+            ent->modeldata.noshadow = (LONG)ltemp;
         }
         break;
     }
