@@ -44506,6 +44506,19 @@ int is_cheat_actived()
     }
 }
 
+// Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
+int is_healthcheat_actived()
+{
+    if(!healthcheat)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
 #undef GET_ARG
 #undef GET_ARG_LEN
 #undef GET_ARGP

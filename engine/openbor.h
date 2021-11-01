@@ -3828,6 +3828,7 @@ void menu_options_video();
 
 void openborMain(int argc, char **argv);
 int is_cheat_actived();
+int is_healthcheat_actived(); // Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);

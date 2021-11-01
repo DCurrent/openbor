@@ -919,7 +919,8 @@ HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int par
 //////////////////////////////////////////////////////////
 
 // check openborscript.h for systemvariant_enum
-// Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
+// Kratus (10-2021) Now the "noaircancel" function is accessible/editable by script using "openborvariant"
+// Kratus (10-2021) Now the "healthcheat" option is accessible/readable by script using "openborvariant"
 // arranged list, for searching
 static const char *svlist[] =
 {
@@ -951,6 +952,7 @@ static const char *svlist[] =
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
+    "healthcheat",
     "hresolution",
     "in_cheat_options",
     "in_control_options",
@@ -8361,6 +8363,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         }
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = advancey;
+        break;
+    case _sv_healthcheat:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = is_healthcheat_actived();
         break;
     case _sv_hresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
