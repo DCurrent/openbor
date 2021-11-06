@@ -12981,7 +12981,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else if (0 == stricmp(value, "fillcolor"))
                 {
-                    drawmethod.fliprotate = parsecolor(GET_ARG(2));
+                    drawmethod.fillcolor = parsecolor(GET_ARG(2));
                 }
                 else if (0 == stricmp(value, "remap"))
                 {
