@@ -87,11 +87,32 @@ static int ob_loadtrans()
     char *tmp = NULL;
     int isid = 0;
     // Read file
+
+    // Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+    // Now the modder can load exported translation files by using "filestream" script functions
+    // Useful for creating custom translations without unpack the game
+    // The default engine translation location will be maintained for backward compatibility
     if(buffer_pakfile("data/translation.txt", &buf, &size) != 1)
+    {
+        goto alternative;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+alternative:
+
+    if(buffer_pakfile("translation/translation.txt", &buf, &size) != 1)
     {
         return 0;
     }
+    else
+    {
+        goto proceed;
+    }
 
+proceed:
     //printf("Loading translation table\n");
 
     pos = 0;

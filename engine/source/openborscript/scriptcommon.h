@@ -119,6 +119,7 @@ extern float          musicfade[2];
 extern int            musicloop;
 extern u32            musicoffset;
 extern int            models_cached;
+extern int            noaircancel; // Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
 extern int endgame;
 extern int useSave;
 extern int useSet;

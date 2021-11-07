@@ -454,6 +454,7 @@ typedef enum modelCommand
     CMD_MODEL_JUMPFRAME,
     CMD_MODEL_JUMPHEIGHT,
     CMD_MODEL_JUMPMOVE,
+    CMD_MODEL_JUMPSPECIAL, // Kratus (10-2021) Added new jumpspecial property
     CMD_MODEL_JUMPSPEED,
     CMD_MODEL_JUMPSPEEDF,
     CMD_MODEL_KEYSCRIPT,
@@ -495,6 +496,7 @@ typedef enum modelCommand
     CMD_MODEL_NOLIFE,
     CMD_MODEL_NOMOVE,
     CMD_MODEL_NOPAIN,
+    CMD_MODEL_NOSHADOW, // Kratus (10-2021) Added new noshadow property
     CMD_MODEL_NOPASSIVEBLOCK,
     CMD_MODEL_NOQUAKE,
     CMD_MODEL_NOREFLECT,

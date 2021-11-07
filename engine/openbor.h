@@ -643,6 +643,9 @@ typedef enum //Animations
     ANI_JUMPATTACK2,
     ANI_GET,
     ANI_GRAB,
+    ANI_BACKGRAB,			// Kratus (10-2021) Added the new backgrab animation
+    ANI_VAULT,				// Kratus (10-2021) Added the new vault animation
+    ANI_VAULT2,				// Kratus (10-2021) Added the new vault2 animation
     ANI_GRABATTACK,
     ANI_GRABATTACK2,
     ANI_THROW,
@@ -1449,12 +1452,14 @@ typedef enum
 	// and that the value GRAB_ACTION_SELECT_FINISH should always 
 	// fall outside of the 0 to GRAB_ACTION_SELECT_MAX range. Order
 	// of the options does not matter otherwise.
-
+	// Kratus (10-2021) Added vault animations
+	
 	GRAB_ACTION_SELECT_ATTACK,	
 	GRAB_ACTION_SELECT_BACKWARD,
 	GRAB_ACTION_SELECT_FORWARD,
 	GRAB_ACTION_SELECT_DOWN,
 	GRAB_ACTION_SELECT_UP,
+	GRAB_ACTION_SELECT_VAULT,
 	GRAB_ACTION_SELECT_MAX,
 	GRAB_ACTION_SELECT_FINISH
 } e_grab_action_select;
@@ -2251,7 +2256,7 @@ typedef struct
 * need or bother with named constants. However, OX used a value 
 * of 3 for the enabled state and left a notation stressing the 
 * importance of keeping it as is. I am unable to determine why, 
-* but since 3 works let’s take his advice and leave it be for now.
+* but since 3 works letï¿½s take his advice and leave it be for now.
 */
 typedef enum
 {
@@ -2635,6 +2640,7 @@ typedef struct
     float jumpheight; // 28-12-2004	Jump height variable added per character
     int jumpmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
     int jumpmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
+    int jumpspecial; // Kratus (10-2021) 0 default 1 don't kill the "xyz" movement
     int walkoffmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
     int walkoffmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
     int grabfinish; // wait for grab animation to finish before do other actoins
@@ -2653,6 +2659,7 @@ typedef struct
     int falldie; // Play die animation?
     int globalmap; // use global palette for its colour map in 24bit mode
     int nopain;
+    int noshadow; // Kratus (10-2021) Temporarily disable shadow without losing entity's shadow configuration
     int summonkill; // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
     int combostyle;
     int blockpain;
@@ -2924,6 +2931,7 @@ typedef struct entity
 	e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
+	e_idling_state			idling;								// ~~ Kratus (10-2021) Moved from "bool" to the "Enumerated integers" section
 	e_attacking_state		attacking;							// ~~
 	e_autokill_state		autokill;							// Kill entity on condition. ~~
 	e_direction				direction;							//  ~~
@@ -2952,7 +2960,6 @@ typedef struct entity
 	int					    getting;							// Picking up item. ~~
 	int					    grabwalking;						// Walking while grappling. ~~
 	int					    hitwall;							// Blcoked by wall/platform/obstacle. ~~
-	int					    idling;								// ~~
 	int					    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
 	int					    inpain;								// Hit and block stun. ~~
 	int					    jumping;							// ~~
@@ -3821,6 +3828,7 @@ void menu_options_video();
 
 void openborMain(int argc, char **argv);
 int is_cheat_actived();
+int is_healthcheat_actived(); // Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
