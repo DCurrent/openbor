@@ -373,7 +373,7 @@ void packfile_mode(int mode)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#if WIN || LINUX
+#if WIN
 int isRawData()
 {
     DIR *d;
@@ -383,6 +383,29 @@ int isRawData()
     }
     closedir(d);
     return 1;
+}
+#endif
+
+#if LINUX
+int isRawData()
+{//check for data folder without case sensitivity.
+  DIR *d;
+  struct dirent *ep;     
+  d = opendir (".");
+  
+  if (d != NULL)
+  {
+    while( (ep = readdir(d)) ) 
+    {//read though all files and folders in directory.
+  if (strcasecmp("data",ep->d_name) == 0)
+      {//if data folder found.
+        (void) closedir (d);
+        return 1;
+      }
+    }
+  }
+  (void) closedir (d);
+  return 0;
 }
 #endif
 
