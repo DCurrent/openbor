@@ -4515,30 +4515,36 @@ int translate_SDID(char *value)
 
 void load_menu_txt()
 {
-    char *filename = "data/menu.txt";
+    char *filename = "translation/menu.txt";
     int pos, i;
     char *buf, *command;
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
-    // Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
-    // Now the modder can load exported translation files by using "filestream" script functions
-    // Useful for creating custom translations without unpack the game
-    // The default engine translation location will be maintained for backward compatibility
-    // Read file
+    /*
+        Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+        Now the modder can load exported translation files by using "filestream" script functions
+        Useful for creating custom translations without unpack the game
+        The default engine translation location will be maintained for backward compatibility
+
+        Kratus (11-2021) Inverted the path priority, now the external file will override the internal file
+        Useful to maintain the english translation intact inside the pak file if no other language file is found in the external path
+        Otherwise you will need to rollback the english file every time another language is used and then removed
+        This operation is needed only if the english translation file uses some custom menu texts for english language too
+    */
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        goto alternative;
+        goto default_file;
     }
     else
     {
         goto proceed;
     }
 
-alternative:
+default_file:
 
-    if(buffer_pakfile("translation/menu.txt", &buf, &size) != 1)
+    if(buffer_pakfile("data/menu.txt", &buf, &size) != 1)
     {
         return;
     }
@@ -42558,7 +42564,7 @@ void keyboard_setup(int player)
     ptrdiff_t voffset, pos;
     char *buf,
          *command,
-         *filename = "data/menu.txt",
+         *filename = "translation/menu.txt",
          buttonnames[btnnum][32];
     size_t size;
     ArgList arglist;
@@ -42588,22 +42594,29 @@ void keyboard_setup(int player)
     savesettings();
     bothnewkeys = 0;
 
-    // Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
-    // Now the modder can load exported translation files by using "filestream" script functions
-    // Useful for creating custom translations without unpack the game
-    // The default engine translation location will be maintained for backward compatibility
+    /*
+        Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+        Now the modder can load exported translation files by using "filestream" script functions
+        Useful for creating custom translations without unpack the game
+        The default engine translation location will be maintained for backward compatibility
+
+        Kratus (11-2021) Inverted the path priority, now the external file will override the internal file
+        Useful to maintain the english translation intact inside the pak file if no other language file is found in the external path
+        Otherwise you will need to rollback the english file every time another language is used and then removed
+        This operation is needed only if the english translation file uses some custom menu texts for english language too
+    */
     if(buffer_pakfile(filename, &buf, &size) != 1)
     {
-        goto alternative;
+        goto default_file;
     }
     else
     {
         goto proceed;
     }
 
-alternative:
+default_file:
 
-    if(buffer_pakfile("translation/menu.txt", &buf, &size) != 1)
+    if(buffer_pakfile("data/menu.txt", &buf, &size) != 1)
     {
         goto finish;
     }
@@ -43159,13 +43172,14 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
     bothnewkeys = 0;
 
+    // Kratus (11-2021) Removed spaces on the " Done!" text to fix translation
     while(!quit)
     {
         _menutextm(2, -5, 0, Tr("Configuration Settings"));
 
         if(saved == 1)
         {
-            _menutextm((selector == 0), -3, 0, Tr("Save Settings To Default.cfg%s"), Tr("  Done!"));
+            _menutextm((selector == 0), -3, 0, Tr("Save Settings To Default.cfg%s"), Tr(" Done!"));
         }
         else
         {
@@ -43174,7 +43188,7 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
         if(loaded == 1)
         {
-            _menutextm((selector == 1), -2, 0, Tr("Load Settings From Default.cfg%s"), Tr("  Done!"));
+            _menutextm((selector == 1), -2, 0, Tr("Load Settings From Default.cfg%s"), Tr(" Done!"));
         }
         else
         {
@@ -43183,7 +43197,7 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
         if(restored == 1)
         {
-            _menutextm((selector == 2), -1, 0, Tr("Restore OpenBoR Defaults%s"), Tr("  Done!"));
+            _menutextm((selector == 2), -1, 0, Tr("Restore OpenBoR Defaults%s"), Tr(" Done!"));
         }
         else
         {
