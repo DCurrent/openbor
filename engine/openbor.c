@@ -13870,11 +13870,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 else
                 {
                     collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->force_direction = tempInt;
-                }
-                                
-                break;
+                }               
 
                 tempInt = 0;
+
+                break;
 
             case CMD_MODEL_DAMAGEONLANDING:
                 
@@ -23654,10 +23654,12 @@ void do_attack(entity *attacking_entity)
             continue;
         }
 
-        // Pain time must have expired.
-        // This is to allow reasonable delay
-        // between hits so engine will not
-        // run hit on every update.
+        /*
+        * Pain time must have expired.
+        * This is to allow reasonable delay
+        * between hits so engine will not
+        * run hit on every update.
+        */
         if(target->next_hit_time >= _time)
         {
             continue;
@@ -23876,11 +23878,13 @@ void do_attack(entity *attacking_entity)
                 self->blocking = didblock;   
             }
 
-			// Utunnels
-            // 2011-11-24 UT
-			//
-			// Move the next_hit_time logic here, because block needs this 
-			// as well. Otherwise, blockratio causes instant death
+            /*
+			* Utunnels
+            * 2011-11-24 UT
+			*
+			* Move the next_hit_time logic here, because block needs this 
+			* as well. Otherwise, blockratio causes instant death
+            */
             self->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (GAME_SPEED / 5));
             self->nextattack = 0; // reset this, make it easier to fight back
         }
@@ -29401,9 +29405,6 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         return 0;    // try to grab but failed, so return 0 means attack missed
     }
 
-    // set next_hit_time so it wont get hit too often
-    // 2011/11/24 UT: move this to do_attack to merge with block code
-    //self->next_hit_time = _time + (attack->next_hit_time?attack->next_hit_time:(GAME_SPEED / 5));
     // set oppoent
     if(self != other)
     {
@@ -37466,7 +37467,6 @@ int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag, s_defens
         return 0;
     }
 
-    //self->next_hit_time = _time + (attack->next_hit_time?attack->next_hit_time:(GAME_SPEED / 5));
     set_opponent(other, self);
     if(self->opponent && (self->opponent->modeldata.type & TYPE_PLAYER))
     {
