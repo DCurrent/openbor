@@ -28854,10 +28854,13 @@ void defense_free_object(s_defense* target)
 * 2021-09-08
 * 
 * Get damage after applying defense mutiplier.
+* 
+* Note: We send damage separately from attack object
+* as it we usually want to get a calculated value
+* without modifying the original property.
 */
-int defense_result_damage(s_attack* attack_object, s_defense* defense_object)
+int defense_result_damage(s_attack* attack_object, s_defense* defense_object, int attack_force)
 {
-    int attack_force = attack_object->attack_force;
     e_attack_types attack_type = attack_object->attack_type;
    
     /* 
@@ -29084,7 +29087,7 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
         force = (int)(force * attacker->offense_factors[type]);
     }
 
-    force = defense_result_damage(attack_object, defense_object);
+    force = defense_result_damage(attack_object, defense_object, force);
 
     return force;
 }

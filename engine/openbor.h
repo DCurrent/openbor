@@ -3300,7 +3300,7 @@ s_defense* defense_allocate_object();
 void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 void defense_free_object(s_defense* target);
 s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attack_types attack_type);
-int defense_result_damage(s_attack* attack_object, s_defense* defense_object);
+int defense_result_damage(s_attack* attack_object, s_defense* defense_object, int attack_force);
 int defense_result_pain(s_attack* attack_object, s_defense* defense_object);
 void defense_setup_from_arg(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 
