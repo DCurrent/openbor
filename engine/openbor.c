@@ -12764,12 +12764,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
+                    tempInt = SAMPLE_ID_NONE;                    
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
+                    tempInt = sound_load_sample(value, packfile, 1);
                 }
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = tempInt;
+
+                tempInt = 0;
 
                 break;
 
@@ -13381,15 +13385,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 value = GET_ARG(1);
 
-                if(stricmp(value, "none") == 0)
+                if (stricmp(value, "none") == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = SAMPLE_ID_NONE;
+                    tempInt = SAMPLE_ID_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = sound_load_sample(value, packfile, 1);
+                    tempInt = sound_load_sample(value, packfile, 1);
                 }
 
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitsound = tempInt;
+
+                tempInt = 0;
+                
                 break;
 
             case CMD_MODEL_COLLISION_GROUND:
@@ -23527,7 +23535,6 @@ void do_attack(entity *attacking_entity)
 {
     int them = 0;
     int i = 0;
-    int t = 0;
     int force = 0;
     e_blocktype blocktype       = BLOCK_TYPE_MP_FIRST;
     entity* temp                = NULL;
@@ -24063,56 +24070,14 @@ void do_attack(entity *attacking_entity)
             }
         }
 
-		// Play the impact sound effect.
-		//
-		// 1. Attack blocked.
-		//	a) Attack has block sound - play attack block sound.
-		//	b) Attack does not have block sound - play global block sound.
-		//
-		// 2. Attacker is actually a "projectile" (as in, thrown or knocked
-		// through the air by a blasting attack) - play global indirect sound.
-		//	
-		// 3. Typical attack hit.
-		//	a) Attack has hit sound - play attack hit sound.
-		//	b) Attack does not have hit sound - play global hit sound. 
-        if(didblock)
-        {
-            if(attack->blocksound >= 0)
-            {
-                sound_play_sample(attack->blocksound, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-            else if(SAMPLE_BLOCK >= 0)
-            {
-                sound_play_sample(SAMPLE_BLOCK, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-        }
-        else if(attacking_entity->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
-        {
-            sound_play_sample(SAMPLE_INDIRECT, 0, savedata.effectvol, savedata.effectvol, 100);
-        }
-        else if(attack->hitsound >= 0)
-        {
-			// If noslofx is enabled, then just play sound at default speed.
-			// Otherwise, subtract 5 from damage force, and then subtract 
-			// that result from default play speed. 
-			//
-			// This has the effect of slowing down the sound playback as damage 
-			// increases to give it a slightly lower tone and more impact.
-            t = 100 - (noslowfx ? 0 : (force - 5));
-            if(t > 100)
-            {
-                t = 100;
-            }
-            else if(t < 60)
-            {
-                t = 60;
-            }
-            sound_play_sample(attack->hitsound, 0, savedata.effectvol, savedata.effectvol, t);
-        }
+        /* Choose the sound and playback speed for hit. */
+        play_hit_impact_sound(attack, attacking_entity, didblock);
 
-		// If the auto kill flag is set, attacker 
-		// kills itself instantly. Used mainly for
-		// projectiles.
+		/* 
+        * If the auto kill flag is set, attacker 
+		* kills itself instantly. Used mainly for
+		* projectiles.
+        */
         if(attacking_entity->autokill & AUTOKILL_ATTACK_HIT)
         {
             kill_entity(attacking_entity);
@@ -24121,6 +24086,88 @@ void do_attack(entity *attacking_entity)
 #undef followed
 }
 
+/*
+* Caskey, Damon V
+* 2021-11-16
+* 
+* Play appropriate hit impact sound 
+* based on hit/block, attack force, 
+* and defined samples.
+*/
+int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int attack_blocked)
+{
+#define PLAYBACK_PRIORITY 0
+#define PLAYBACK_SPEED_MIN 60
+#define PLAYBACK_SPEED_MAX 100
+#define PLAYBACK_SPEED_MODIFIER 5
+
+    int sound_index = SAMPLE_ID_NONE;
+    int playback_speed = PLAYBACK_SPEED_MAX;
+    
+    /*
+    * Play the impact sound effect.
+    *
+    * 1. Attack blocked.
+    *	a) Attack has block sound - play attack block sound.
+    *	b) Attack does not have block sound - play global block sound.
+    *
+    * 2. Attacker is actually a "projectile" (as in, thrown or knocked
+    * through the air by a blasting attack) - play global indirect sound.
+    *
+    * 3. Typical attack hit.
+    *	a) Attack has hit sound - play attack hit sound.
+    *	b) Attack does not have hit sound - play global hit sound.
+    */
+
+    if (attack_blocked)
+    {
+        if (attack_object->blocksound >= 0)
+        {
+            sound_index = attack_object->blocksound;
+        }
+        else if (SAMPLE_BLOCK >= 0)
+        {
+            sound_index = attack_object->blocksound;            
+        }
+    }
+    else if (attacking_entity->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
+    {
+        sound_index = SAMPLE_INDIRECT;
+    }
+    else if (attack_object->hitsound >= 0)
+    {
+        sound_index = attack_object->hitsound;
+
+        /*
+        * If noslofx is enabled, then just play sound at default speed.
+        * Otherwise, subtract 5 from damage force, and then subtract
+        * that result from default play speed.
+        *
+        * This has the effect of slowing down the sound playback as damage
+        * increases to give it a slightly lower tone and more impact.
+        */
+
+        playback_speed = PLAYBACK_SPEED_MAX - (noslowfx ? 0 : (attack_object->attack_force - PLAYBACK_SPEED_MODIFIER));
+
+        if (playback_speed > PLAYBACK_SPEED_MAX)
+        {
+            playback_speed = PLAYBACK_SPEED_MAX;
+        }
+        else if (playback_speed < PLAYBACK_SPEED_MIN)
+        {
+            playback_speed = PLAYBACK_SPEED_MIN;
+        }
+
+        sound_play_sample(sound_index, PLAYBACK_PRIORITY, savedata.effectvol, savedata.effectvol, playback_speed);
+    }
+
+    return sound_index;
+
+#undef PLAYBACK_PRIORITY
+#undef PLAYBACK_SPEED_MIN
+#undef PLAYBACK_SPEED_MAX
+#undef PLAYBACK_SPEED_MODIFIER
+}
 
 // it can be useful for next changes
 /*static int is_obstacle_around(entity* ent, float threshold)

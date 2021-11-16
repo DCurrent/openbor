@@ -3531,6 +3531,7 @@ s_collision_entity**    collision_alloc_entity_list();
 // Meta data control.
 void meta_data_free_list(s_meta_data* head);
 
+int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int attack_blocked);
 
 void cache_model(char *name, char *path, int flag);
 void free_modelcache();
