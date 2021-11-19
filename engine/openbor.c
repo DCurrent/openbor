@@ -21671,7 +21671,7 @@ int check_collision(s_collision_check_data* collision_data)
     }
     else
     {
-        collision_data->return_overlap->center_z = 1 + collision_data->target_pos->z;
+        collision_data->return_overlap->center_z = 1 + collision_data->seeker_pos->z; //Kratus (11-2021) Minor fix in the hitflash Z position
     }
 
 	return TRUE;
