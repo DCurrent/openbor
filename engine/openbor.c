@@ -28270,7 +28270,10 @@ void checkdeath()
 
 void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_object, s_defense* defense_object)
 {
-    self->normaldamageflipdir = -1;
+    /* Debuging info */
+    //attack_dump_object(attack_object);
+
+    target_entity->normaldamageflipdir = DIRECTION_ADJUST_OPPOSITE;
     
     int pain_check = 0;
 
@@ -28324,12 +28327,18 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
         return;
     }
 
+
     /* Apply appropriate direction switch (if any). */
+
+    printf("\n\t attack_object->force_direction: %d", attack_object->force_direction);
 
     switch(attack_object->force_direction)
     {
         case DIRECTION_ADJUST_NONE:
-            if( !target_entity->inbackpain )
+
+            printf("\n\t DIRECTION_ADJUST_NONE");
+
+            if(!target_entity->inbackpain )
             {
                 if(target_entity->position.x < other->position.x)
                 {
@@ -28355,20 +28364,28 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
 
         case DIRECTION_ADJUST_SAME:
 
+            printf("\n\t DIRECTION_ADJUST_SAME");
+
             target_entity->direction = other->direction;
             break;
 
         case DIRECTION_ADJUST_OPPOSITE:
+
+            printf("\n\t DIRECTION_ADJUST_OPPOSITE");
 
             target_entity->direction = !other->direction;
             break;
 
         case DIRECTION_ADJUST_RIGHT:
 
+            printf("\n\t DIRECTION_ADJUST_RIGHT");
+
             target_entity->direction = DIRECTION_RIGHT;
             break;
 
         case DIRECTION_ADJUST_LEFT:
+
+            printf("\n\t DIRECTION_ADJUST_LEFT");
 
             target_entity->direction = DIRECTION_LEFT;
             break;
