@@ -557,6 +557,12 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANI_RUNSLIDE)
         ICMPCONST(ANI_BLOCKPAIN)
         ICMPCONST(ANI_DUCKATTACK)
+
+        /* Animation state. */
+        ICMPCONST(ANIMATING_FORWARD)
+        ICMPCONST(ANIMATING_NONE)
+        ICMPCONST(ANIMATING_REVERSE)
+
         ICMPCONST(ATK_LOSE)
         ICMPCONST(MAX_ANIS)
 
