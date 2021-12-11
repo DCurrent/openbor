@@ -2640,7 +2640,6 @@ typedef struct
     float jumpheight; // 28-12-2004	Jump height variable added per character
     int jumpmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
     int jumpmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
-    int jumpspecial; // Kratus (10-2021) 0 default 1 don't kill the "xyz" movement
     int walkoffmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
     int walkoffmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
     int grabfinish; // wait for grab animation to finish before do other actoins
@@ -2659,7 +2658,6 @@ typedef struct
     int falldie; // Play die animation?
     int globalmap; // use global palette for its colour map in 24bit mode
     int nopain;
-    int noshadow; // Kratus (10-2021) Temporarily disable shadow without losing entity's shadow configuration
     int summonkill; // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
     int combostyle;
     int blockpain;
@@ -2734,6 +2732,11 @@ typedef struct
     int backpain;
     int nohithead; // used to hit or not a platform with head also when you set a height
     int hitwalltype; // wall type to toggle hitwall animations
+
+    //Kratus (12-2021) Moved the new added properties to the end of the list for easy searching
+    int jumpspecial; // 0 default, 1 don't kill the "xyz" movement
+    int noshadow; // 0 default, 1 temporarily disable shadow without losing entity's shadow configuration
+
     e_ModelFreetype freetypes;
     s_scripts *scripts;
 

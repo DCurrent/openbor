@@ -196,7 +196,7 @@ List *createModelCommandList(void)
         LIST_ADD(CMD_MODEL_COLLISION_ETC, buf);
     }
 
-    // Kratus (10-2021) Added new jumpspecial and noshadow properties
+    // Kratus (12-2021) Added new jumpspecial and noshadow properties, put "noshadow" in alphabetical order
     LIST_ADD(CMD_MODEL_COLLISIONONE, "attackone");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
     LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
@@ -378,10 +378,10 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_NOLIFE, "nolife");
     LIST_ADD(CMD_MODEL_NOMOVE, "nomove");
     LIST_ADD(CMD_MODEL_NOPAIN, "nopain");
-    LIST_ADD(CMD_MODEL_NOSHADOW, "noshadow");
     LIST_ADD(CMD_MODEL_NOPASSIVEBLOCK, "nopassiveblock");
     LIST_ADD(CMD_MODEL_NOQUAKE, "noquake");
     LIST_ADD(CMD_MODEL_NOREFLECT, "noreflect");
+    LIST_ADD(CMD_MODEL_NOSHADOW, "noshadow");
     LIST_ADD(CMD_MODEL_NOTGRAB, "notgrab");
     LIST_ADD(CMD_MODEL_OFFENSE, "offense");
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
