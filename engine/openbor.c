@@ -28205,8 +28205,9 @@ entity *drop_driver(entity *e)
         p.item_properties.player_count  = e->item_properties->player_count;
     }
 
+    /* Match driver color to entity color. */
+    p.colourmap = e->map;
 
-    //p.colourmap = e->map;
     for(i = 0; i < MAX_PLAYERS; i++)
     {
         p.health[i] = e->modeldata.health;
