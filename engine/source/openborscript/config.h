@@ -116,6 +116,8 @@ HRESULT system_clearglobalvar(ScriptVariant **varlist , ScriptVariant **pretvar,
 HRESULT system_clearindexedvar(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_free(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT system_string_to_float(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT system_string_to_int(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 HRESULT math_sin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_ssin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

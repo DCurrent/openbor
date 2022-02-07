@@ -64,6 +64,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "typeof";
     }
+    else if (functionRef == ((void*)system_string_to_float))
+    {
+        return "string_to_float";
+    }
+    else if (functionRef == ((void*)system_string_to_int))
+    {
+        return "string_to_int";
+    }
     else if (functionRef == ((void *)math_sin))
     {
         return "sin";
@@ -1119,6 +1127,10 @@ void Script_LoadSystemFunctions()
                      (void *)system_free, "free");
     List_InsertAfter(&theFunctionList,
                      (void *)system_typeof, "typeof");
+    List_InsertAfter(&theFunctionList,
+                    (void*)system_string_to_float, "string_to_float");
+    List_InsertAfter(&theFunctionList,
+                    (void*)system_string_to_int, "string_to_int");
     List_InsertAfter(&theFunctionList,
                      (void *)math_sin, "sin");
     List_InsertAfter(&theFunctionList,

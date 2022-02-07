@@ -914,6 +914,64 @@ HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int par
     return S_OK;
 }
 
+/*
+* Caskey, Damon V.
+* 2022-02-06
+* 
+* Accept string input and pass through C atof()
+* function to return a float value.
+*/
+HRESULT system_string_to_float(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+    float temp_float = 0.0;
+    char *temp_string = NULL;
+
+    if (paramCount < 1 || varlist[0]->vt != VT_STR)
+    {
+        *pretvar = NULL;
+        
+        printf("\n Error, string_to_float({string}): Valid {string} required. \n");
+        
+        return E_FAIL;
+    }
+
+    temp_string = (char*)StrCache_Get(varlist[0]->strVal);
+    temp_float = atof(temp_string);
+
+    ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+    (*pretvar)->dblVal = temp_float;
+    return S_OK;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-02-06
+*
+* Accept string input and pass through C atoi()
+* function to return an integer value.
+*/
+HRESULT system_string_to_int(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+    int temp_int = 0;
+    char* temp_string = NULL;
+
+    if (paramCount < 1 || varlist[0]->vt != VT_STR)
+    {
+        *pretvar = NULL;
+
+        printf("\n Error, string_to_int({string}): Valid {string} required. \n");
+
+        return E_FAIL;
+    }
+
+    temp_string = (char*)StrCache_Get(varlist[0]->strVal);
+    temp_int = atoi(temp_string);
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = temp_int;
+    return S_OK;
+}
+
 //////////////////////////////////////////////////////////
 ////////////   openbor functions
 //////////////////////////////////////////////////////////
