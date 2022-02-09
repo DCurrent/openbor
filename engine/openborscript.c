@@ -13249,6 +13249,33 @@ isfirst_error:
     return E_FAIL;
 }
 
+/*
+* Caskey, Damon V.
+* 2022-02-09
+* 
+* Accepts a pointer value. Returns 
+* true if pointer is an array.
+*
+* isarray({pointer})
+*/ 
+HRESULT openbor_isarray(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+    Varlist* array;
+    if (paramCount < 1 || varlist[0]->vt != VT_PTR)
+    {
+        goto isfirst_error;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)((array = (Varlist*)varlist[0]->ptrVal) && array->magic == varlist_magic);
+
+    return S_OK;
+isfirst_error:
+    printf("Function requires 1 pointer value: %s({pointer})\n", "isarray");
+    (*pretvar) = NULL;
+    return E_FAIL;
+}
+
 //key(array)
 HRESULT openbor_key(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {

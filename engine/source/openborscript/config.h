@@ -272,6 +272,7 @@ HRESULT openbor_key(ScriptVariant **varlist , ScriptVariant **pretvar, int param
 HRESULT openbor_value(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_islast(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_isfirst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_isarray(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_allocscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_clearscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

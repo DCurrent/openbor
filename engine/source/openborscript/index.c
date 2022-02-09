@@ -716,6 +716,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "isfirst";
     }
+    else if (functionRef == ((void*)openbor_isarray))
+    {
+        return "isarray";
+    }
     else if (functionRef == ((void *)openbor_allocscreen))
     {
         return "allocscreen";
@@ -1471,6 +1475,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_islast, "islast");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_isfirst, "isfirst");
+    List_InsertAfter(&theFunctionList,
+                    (void*)openbor_isarray, "isarray");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_allocscreen, "allocscreen");
     List_InsertAfter(&theFunctionList,
