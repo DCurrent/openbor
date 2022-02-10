@@ -13260,17 +13260,24 @@ isfirst_error:
 */ 
 HRESULT openbor_isarray(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
 {
-    Varlist* array;
-    if (paramCount < 1 || varlist[0]->vt != VT_PTR)
-    {
-        goto isfirst_error;
-    }
+    int temp_int = 0;
 
+    Varlist* array;
+
+    if (paramCount < 1)
+    {
+        goto isarray_error;
+    }
+    else if (varlist[0]->vt == VT_PTR) 
+    {
+        temp_int = ((array = (Varlist*)varlist[0]->ptrVal) && array->magic == varlist_magic);
+    }   
+    
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-    (*pretvar)->lVal = (LONG)((array = (Varlist*)varlist[0]->ptrVal) && array->magic == varlist_magic);
+    (*pretvar)->lVal = (LONG)temp_int;
 
     return S_OK;
-isfirst_error:
+isarray_error:
     printf("Function requires 1 pointer value: %s({pointer})\n", "isarray");
     (*pretvar) = NULL;
     return E_FAIL;
