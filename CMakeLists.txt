@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 
 project(OpenBOR)
-set(OPENBOR_VERSION "3.0.7141")
+set(OPENBOR_VERSION "3.0.7162")
 
 #####################
 # OPTIONS
@@ -15,7 +15,6 @@ option(BUILD_VORBIS "Build with BUILD_VORBIS support" ON)
 ##############
 include(FindPkgConfig)
 pkg_search_module(SDL2 REQUIRED sdl2)
-pkg_search_module(SDL2_GFX REQUIRED SDL2_gfx)
 pkg_search_module(VPX REQUIRED vpx)
 pkg_search_module(PNG REQUIRED libpng)
 pkg_search_module(ZLIB REQUIRED zlib)
@@ -36,7 +35,6 @@ set(BOR_INC
         engine/source/webmlib/halloc
         engine/source/webmlib/nestegg
         ${SDL2_INCLUDE_DIRS}
-        ${SDL2_GFX_INCLUDE_DIRS}
         ${VPX_INCLUDE_DIRS}
         ${PNG_INCLUDE_DIRS}
         ${ZLIB_INCLUDE_DIRS}
@@ -60,7 +58,7 @@ file(GLOB BOR_SRC
         )
 
 set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DWEBM -DOPENGL -DLOADGL -D__CMAKE__)
-set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${SDL2_GFX_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
+set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
 
 ##############
 # VERSION.SH
