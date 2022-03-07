@@ -58,7 +58,7 @@ static s_screen* logscreen;
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
 static int bpp = 32;
-#ifdef __SWITCH__
+#if defined(__SWITCH__) || defined(__PS4__)
 static int isWide = 1;
 #else
 static int isWide = 0;

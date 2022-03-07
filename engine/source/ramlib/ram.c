@@ -115,6 +115,8 @@ u64 getFreeRam(int byte_size)
     return (atoi(result) * 1024) / byte_size;
 #elif SYMBIAN
     return GetFreeAmount();
+#elif __PS4__
+    return 1024 * 1024 * 1024;
 #else
     struct mallinfo mi = mallinfo();
 #ifdef _INCLUDE_MALLOC_H_
@@ -187,7 +189,7 @@ void setSystemRam()
     stackSize = 0x00000000;
     systemRam = getFreeRam(BYTES);
 #endif
-#if !(defined(WIN) || defined(LINUX) || defined(DARWIN) || defined(SYMBIAN) || defined(VITA) || defined(__SWITCH__))
+#if !(defined(WIN) || defined(LINUX) || defined(DARWIN) || defined(SYMBIAN) || defined(VITA) || defined(__SWITCH__)) && !defined(__PS4__)
     stackSize = (int)&_end - (int)&_start + ((int)&_start - elfOffset);
 #endif
     getRamStatus(BYTES);

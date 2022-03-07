@@ -94,6 +94,13 @@ typedef void DIR;
 #define READ_LOGFILE(type)   type ? fopen(Alog, "rt") : fopen(Aslog, "rt")
 #define COPY_ROOT_PATH(buf, name) strncpy(buf, rootDir, strlen(rootDir)); strncat(buf, name, strlen(name)); strncat(buf, "/", 1);
 #define COPY_PAKS_PATH(buf, name) strncpy(buf, paksDir, strlen(paksDir)); strncat(buf, "/", 1); strncat(buf, name, strlen(name));
+#elif __PS4__
+#define CHECK_LOGFILE(type)  type ? fileExists("/data/OpenBOR/Logs/OpenBorLog.txt") : fileExists("/data/OpenBOR/Logs/ScriptLog.txt")
+#define OPEN_LOGFILE(type)   type ? fopen("/data/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("/data/OpenBOR/Logs/ScriptLog.txt", "wt")
+#define APPEND_LOGFILE(type) type ? fopen("/data/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("/data/OpenBOR/Logs/ScriptLog.txt", "at")
+#define READ_LOGFILE(type)   type ? fopen("/data/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("/data/OpenBOR/Logs/ScriptLog.txt", "rt")
+#define COPY_ROOT_PATH(buf, name) strcpy(buf, "/data/OpenBOR/"); strcat(buf, name); strcat(buf, "/");
+#define COPY_PAKS_PATH(buf, name) strcpy(buf, "/data/OpenBOR/Paks/"); strcat(buf, name);
 #else
 #define CHECK_LOGFILE(type)  type ? fileExists("./Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
 #define OPEN_LOGFILE(type)   type ? fopen("./Logs/OpenBorLog.txt", "wt") : fopen("./Logs/ScriptLog.txt", "wt")
@@ -303,7 +310,7 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
                        "\n*            Shutting Down            *\n\n");
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
-#ifndef WIN
+#if !defined(WIN) && !defined(__PS4__)
         writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
 #endif
         borExit(2);

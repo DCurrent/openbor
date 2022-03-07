@@ -358,7 +358,8 @@ typedef enum
     PORTING_WINDOWS,
     PORTING_WIZ,
     PORTING_XBOX,
-    PORTING_VITA
+    PORTING_VITA,
+    PORTING_PS4
 } e_porting;
 
 // Caskey, Damon V.

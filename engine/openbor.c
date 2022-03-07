@@ -2457,6 +2457,8 @@ void clearsettings()
         savedata.hwscale = 0.0;
         #elif __SWITCH__
         savedata.hwscale = 2.0f;
+        #elif __PS4__
+        savedata.hwscale = 2.0f;
         #else
         savedata.hwscale = 1.0;
         #endif
@@ -37835,6 +37837,9 @@ void init_videomodes(int log)
 #elif __SWITCH__
     tryfile("data/videoswitch.txt");
     tryfile("data/video169.txt");
+#elif __PS4__
+    tryfile("data/videops4.txt");
+    tryfile("data/video169.txt");
 #endif
 #undef tryfile
 
@@ -39494,7 +39499,7 @@ void menu_options_video()
 
 #if SDL
 #if !defined(GP2X) && !defined(OPENDINGUX)
-#ifndef __SWITCH__
+#if !defined(__SWITCH__) && !defined(__PS4__)
                 video_fullscreen_flip();
 #endif
                 break;

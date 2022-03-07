@@ -55,7 +55,7 @@ void initSDL()
 	SDL_ShowCursor(SDL_DISABLE);
 	//atexit(SDL_Quit); //White Dragon: use SDL_Quit() into sdlport.c it's best practice!
 
-#if defined(LOADGL) && !defined(__SWITCH__)
+#if defined(LOADGL) && !defined(__SWITCH__) && !defined(__PS4__)
 	if(SDL_GL_LoadLibrary(NULL) < 0)
 	{
 		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
@@ -65,6 +65,9 @@ void initSDL()
 #ifdef __SWITCH__
     nativeWidth = 1280;
     nativeHeight = 720;
+#elif __PS4__
+    nativeWidth = 1920;
+    nativeHeight = 1080;
 #else
 	SDL_GetCurrentDisplayMode(0, &video_info);
 	nativeWidth = video_info.w;

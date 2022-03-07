@@ -57,7 +57,7 @@ file(GLOB BOR_SRC
         engine/source/webmlib/nestegg/*.c
         )
 
-set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DWEBM -DOPENGL -DLOADGL -D__CMAKE__)
+set(BOR_CFLAGS -g -Wall -fsigned-char -fomit-frame-pointer -DSDL -DSDL2 -DWEBM -D__CMAKE__)
 set(BOR_LDFLAGS ${SDL2_LIBRARIES} ${VPX_LIBRARIES} ${PNG_LIBRARIES} ${ZLIB_LIBRARIES} m)
 
 ##############
@@ -90,18 +90,17 @@ endif ()
 # PLATORM SPECIFIC
 #####################
 if (NINTENDO_SWITCH)
-    #####################
-    # SWITCH PLATORM
-    #####################
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         list(APPEND BOR_CFLAGS -D__NXLINK__)
     endif ()
+    list(APPEND BOR_CFLAGS -DOPENGL -DLOADGL)
     list(APPEND BOR_LDFLAGS stdc++)
+elseif (PS4)
+    list(APPEND BOR_CFLAGS -D__CLANG_MAX_ALIGN_T_DEFINED)
+    add_self(${PROJECT_NAME})
+    add_pkg(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/engine/resources/ps4 "OPEN00001" "OpenBor @ cpasjuste" "03.71")
 else ()
-    #####################
-    # LINUX PLATORM
-    #####################
-    list(APPEND BOR_CFLAGS -D__LINUX__ -DLINUX)
+    list(APPEND BOR_CFLAGS -D__LINUX__ -DLINUX -DOPENGL -DLOADGL)
 endif ()
 
 #####################
