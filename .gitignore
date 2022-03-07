@@ -15,3 +15,6 @@ tools/bin/.wget-hsts
 tools/win-sdk/*
 tools/psp-sdk/*
 tools/devkitpro/*
+# switch port
+.idea
+cmake-build*

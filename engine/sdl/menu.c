@@ -58,7 +58,11 @@ static s_screen* logscreen;
 #define LOG_SCREEN_END (isWide ? 26 : 23)
 
 static int bpp = 32;
+#ifdef __SWITCH__
+static int isWide = 1;
+#else
 static int isWide = 0;
+#endif
 static int isFull = 0;
 static int dListTotal;
 static int dListCurrentPosition;
@@ -275,8 +279,8 @@ static s_screen *getPreview(char *filename)
 	else
 	{
 		scalescreen(scale, title);
+		memcpy(scale->palette, title->palette, PAL_BYTES);
 	}
-	memcpy(scale->palette, title->palette, PAL_BYTES);
 
 	// ScreenShots within Menu will be saved as "Menu"
 	strncpy(packfile,"Menu.xxx",MAX_FILENAME_LEN);
