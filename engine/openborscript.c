@@ -9623,7 +9623,7 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     }
     else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size) != 1)
     {
-        printf("Invalid filename used in openfilestream.\n");
+        //printf("Invalid filename used in openfilestream.\n");
         (*pretvar)->lVal = -1;
         return S_OK;
     }
