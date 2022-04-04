@@ -395,6 +395,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         // Kratus (10-2021) Added the new backgrab, vault and vault2 animations
         ICMPCONST(FRONTPANEL_Z)
         ICMPCONST(HOLE_Z)
+        ICMPCONST(HUD_Z)
         ICMPCONST(NEONPANEL_Z)
         ICMPCONST(SHADOW_Z)
         ICMPCONST(SCREENPANEL_Z)
