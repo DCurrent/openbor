@@ -12179,17 +12179,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 frameshadow                     = -1;
                 soundtoplay                     = SAMPLE_ID_NONE;
 
+                /*
+                * Other than Min X, default ranges are 
+                * based on jump height or grabdistance. 
+                * This is partialy for legacy compatability.
+                * It works well enough that beginners won't 
+                * know the difference and advanced creators 
+                * will always want to adjust for their specfic 
+                * needs.
+                */
+
                 if(!newanim->range.x.min)
                 {
                     newanim->range.x.min = -10;
                 }
-                newanim->range.x.max            = (int)newchar->jumpheight * 20;		// 30-12-2004 default range affected by jump height
-                newanim->range.z.min            = (int) - newchar->grabdistance / 3;	//zmin
-                newanim->range.z.max            = (int)newchar->grabdistance / 3;		//zmax
-                newanim->range.y.min            = 0;									//amin
-				newanim->range.y.max			= (int)newchar->jumpheight * 20;			// Same logic as X. Good for attacks, but not terrian. Author better remember to add jump ranges.
-                newanim->range.base.min         = 0;									// Base min.				
-				newanim->range.base.max			= (int)newchar->jumpheight * 20;			// Just use same logic as range Y.
+                newanim->range.x.max            = (int)newchar->jumpheight * 20;		
+                newanim->range.z.min            = (int) - newchar->grabdistance / 3;	
+                newanim->range.z.max            = (int)newchar->grabdistance / 3;		
+                newanim->range.y.min            = (int) - newchar->jumpheight * 10;		
+				newanim->range.y.max			= (int)newchar->jumpheight * 20;
+                newanim->range.base.min         = (int) - newchar->jumpheight * 10;						
+				newanim->range.base.max			= (int)newchar->jumpheight * 20;		
                 newanim->energy_cost.cost       = 0;
 				newanim->energy_cost.disable	= 0;
 				newanim->energy_cost.mponly		= COST_TYPE_MP_THEN_HP;
@@ -33985,11 +33995,27 @@ int check_range_target_all(entity *ent, entity *target, e_animations animation_i
     // Get pointer to animation.
     animation = ent->modeldata.animation[animation_id];
 
-    // Return result of individual axis range checks.
-    return(check_range_target_base(ent, target, animation)
-           && check_range_target_x(ent, target, animation)
-           && check_range_target_y(ent, target, animation)
-           && check_range_target_z(ent, target, animation));
+    if (!check_range_target_x(ent, target, animation))
+    {
+        return 0;
+    }
+
+    if (!check_range_target_y(ent, target, animation))
+    {
+        return 0;
+    }
+
+    if (!check_range_target_z(ent, target, animation))
+    {
+        return 0;
+    }
+
+    if (!check_range_target_base(ent, target, animation))
+    {
+        return 0;
+    }
+
+    return 1;
 }
 
 // Caskey, Damon V.
