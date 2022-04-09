@@ -19449,7 +19449,7 @@ void predrawstatus()
             {
                 icon = player[i].ent->modeldata.icon.die;
             }
-            else if(player[i].ent->inpain)
+            else if(player[i].ent->inpain & IN_PAIN_HIT)
             {
                 icon = player[i].ent->modeldata.icon.pain;
             }
@@ -19532,7 +19532,7 @@ void predrawstatus()
                 {
                     icon = player[i].ent->opponent->modeldata.icon.die;
                 }
-                else if(player[i].ent->opponent->inpain)
+                else if(player[i].ent->opponent->inpain & IN_PAIN_HIT)
                 {
                     icon = player[i].ent->opponent->modeldata.icon.pain;
                 }
@@ -19673,7 +19673,7 @@ void drawenemystatus(entity *ent)
         {
             icon = ent->modeldata.icon.die;
         }
-        else if(ent->inpain)
+        else if(ent->inpain & IN_PAIN_HIT)
         {
             icon = ent->modeldata.icon.pain;
         }
@@ -21553,6 +21553,49 @@ void kill_all()
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2022-04-09
+* 
+* Replacement for legacy cangrab 
+* macro. Return true if acting 
+* entity can grab target entity.
+*/
+int check_cangrab(entity* acting_entity, entity* target_entity)
+{
+    //((other->modeldata.antigrab - self->modeldata.grabforce + (other->modeldata.paingrab ? (other->modeldata.paingrab - other->inpain & IN_PAIN_HIT) : 0) <= 0) && canbegrabbed(self, other) && !inair_range(self) && diff(other->position.y, self->position.y) <= T_WALKOFF)
+
+    if (!canbegrabbed(acting_entity, target_entity))
+    {
+        return 0;
+    }
+
+    if (inair_range(acting_entity))
+    {
+        return 0;
+    }
+
+    if (diff(target_entity->position.y, acting_entity->position.y) > T_WALKOFF)
+    {
+        return 0;
+    }
+
+    if (target_entity->modeldata.antigrab > acting_entity->modeldata.grabforce)
+    {
+        return 0;
+    }
+
+    if (target_entity->modeldata.paingrab)
+    {
+        if (target_entity->inpain & ~IN_PAIN_HIT)
+        {
+            return 0;
+        }
+    }
+
+    return 1;    
+}
+
 // Caskey, Damon V.
 // 2020-02-04
 //
@@ -23132,7 +23175,7 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 	
     if (animation->followup.condition & FOLLOW_CONDITION_GRAB_FALSE)
 	{
-		if (cangrab(ent, target))
+		if (check_cangrab(ent, target))
 		{
 			return 0;
 		}
@@ -23140,7 +23183,7 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 	
 	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_TRUE)
 	{
-		if (!cangrab(ent, target))
+		if (!check_cangrab(ent, target))
 		{
 			return 0;
 		}
@@ -25009,7 +25052,7 @@ void update_animation()
         self->seal = 0;
     }
     // Reset their escapecount if they aren't being spammed anymore.
-    if(self->modeldata.escapehits && !self->inpain)
+    if(self->modeldata.escapehits && self->inpain == IN_PAIN_NONE)
     {
         self->escapecount = 0;
     }
@@ -26433,7 +26476,7 @@ int set_idle(entity *ent)
 {
     ent->idling = IDLING_PREPARED;
     ent->attacking = ATTACKING_NONE;
-    ent->inpain = 0;
+    ent->inpain = IN_PAIN_NONE;
     ent->rising = RISING_NONE;
     ent->ducking = DUCK_NONE;
     ent->inbackpain = 0;
@@ -26458,7 +26501,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->charging = 0;
         iDie->attacking = ATTACKING_NONE;
         iDie->blocking = 0;
-        iDie->inpain = 0;
+        iDie->inpain = IN_PAIN_NONE;
         iDie->falling = 0;
         iDie->rising = RISING_NONE;
         iDie->ducking = DUCK_NONE;
@@ -26504,7 +26547,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->charging = 0;
     iDie->attacking = ATTACKING_NONE;
     iDie->blocking = 0;
-    iDie->inpain = 0;
+    iDie->inpain = IN_PAIN_NONE;
     iDie->falling = 0;
     iDie->rising = RISING_NONE;
     iDie->ducking = DUCK_NONE;
@@ -26549,7 +26592,7 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
     }
 
     ent->drop = 1;
-    ent->inpain = 0;
+    ent->inpain = IN_PAIN_NONE;
     ent->rising = RISING_NONE;
     ent->idling = IDLING_NONE;
     ent->falling = 1;
@@ -26666,7 +26709,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->takeaction = common_attack_proc;
     self->staydown.riseattack_stall = 0;			//Reset riseattack delay.
     set_attacking(iRiseattack);
-    iRiseattack->inpain = 0;
+    iRiseattack->inpain = IN_PAIN_NONE;
     iRiseattack->falling = 0;
     iRiseattack->ducking = DUCK_NONE;
     iRiseattack->rising &= ~RISING_RISE;
@@ -26733,7 +26776,7 @@ int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
 
     ent->takeaction = common_block;
     set_blocking(self);
-    ent->inpain = 1;
+    ent->inpain = IN_PAIN_BLOCK;
     ent->rising = RISING_NONE;
     ent->ducking = DUCK_NONE;
     ent_set_anim(ent, animblkpains[attack_type], reset);
@@ -26758,7 +26801,7 @@ int reset_backpain(entity *ent)
 
 int check_backpain(entity* attacker, entity* defender) {
     if ( !defender->modeldata.backpain ) return 0;
-    if ( defender->inpain ) return 0;
+    if ( defender->inpain & IN_PAIN_HIT) return 0;
     if ( defender->falling ) return 0;
     if ( defender->dead ) return 0;
     if ( ((!defender->direction && attacker->position.x > defender->position.x) || (defender->direction && attacker->position.x < defender->position.x)) )
@@ -26833,12 +26876,12 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->charging = 0;
 	iPain->jumping = 0;
 	iPain->blocking = 0;
-	iPain->inpain = 1;
+	iPain->inpain = IN_PAIN_HIT;
 	if(iPain->frozen) unfrozen(iPain);
 
     if(pain == ANI_GRABBED)
     {
-        iPain->inpain = 0;
+        iPain->inpain = IN_PAIN_NONE;
         iPain->rising = RISING_NONE;
         iPain->ducking = DUCK_NONE;
         if ( iPain->inbackpain ) reset_backpain(iPain);
@@ -27809,7 +27852,7 @@ void common_pain()
         return;
     }
 
-    self->inpain = 0;
+    self->inpain = IN_PAIN_HIT;
     self->rising = RISING_NONE;
     self->ducking = DUCK_NONE;
     self->inbackpain = 0;
@@ -27820,6 +27863,7 @@ void common_pain()
     }
     else if(self->blocking)
     {
+        self->inpain = IN_PAIN_BLOCK;
         self->takeaction = common_block;
         ent_set_anim(self, ANI_BLOCK, 1);
     }
@@ -28045,12 +28089,12 @@ void common_block()
 {
 	// Player type with holdblock, also not in pain 
 	// or has post blockpain holdblock ability.
-    int hb1 = self->modeldata.holdblock 
+    int player_hold_block_eligible = self->modeldata.holdblock
 		&& (self->modeldata.type & TYPE_PLAYER) 
-		&& (!self->inpain || (self->modeldata.holdblock & 2));
+		&& (self->inpain == IN_PAIN_NONE || (self->modeldata.holdblock & 2));
     
 	// Controlling player is holding special key.
-	int hb2 = ((player + self->playerindex)->keys & FLAG_SPECIAL);
+	int player_holding_special = ((player + self->playerindex)->keys & FLAG_SPECIAL);
 
 	// If we are in a block transition, let's see if it is finished.
 	// If it is, apply block animation.
@@ -28059,33 +28103,46 @@ void common_block()
 		ent_set_anim(self, ANI_BLOCK, 0);
 	}
 	
-	// In "Blockstun", at last frame of animation, and have holdblock
-	// after blockpain ability? Then we return to block.
-	//
-	// Otherwise, entity is a player with various other flags (see bh1) but
-	// not holding special key, or the entity has finihsed animation and 
-	// doesn't match any of the player/holdblock criteria (could be another 
-	// entity type, doesn't have holdblock ability, or controlling 
-	// player isn't holding special key). In any of those cases, we disable
-	// blocking flag and return to idle.
-    if(self->inpain 
+    /*
+	* In "Blockstun", at last frame of animation, and 
+    * have holdblock after blockpain ability? Then we 
+    * return to block.
+	*
+	* Otherwise, entity is a player with various other 
+    * flags (see player_hold_block_eligible) but not 
+    * holding special key, or the entity has finihsed 
+    * animation and  doesn't match any of the player
+    * holdblock criteria. It could be another entity 
+    * type, doesn't have holdblock ability, or the 
+    * controlling player isn't holding special key. 
+    *
+    * In any of those cases, we disable blocking flag 
+    * and return to idle.
+    */
+
+    if(self->inpain & IN_PAIN_BLOCK
 		&& (self->modeldata.holdblock & 2) 
 		&& !self->animating 
 		&& validanim(self, ANI_BLOCK))
     {
-		self->inpain = 0;
+		self->inpain = IN_PAIN_NONE;
 		self->rising = RISING_NONE;
 		self->inbackpain = 0;
 		ent_set_anim(self, ANI_BLOCK, 0);
     }
-    else if((hb1 && !hb2) 
-		|| (!self->animating && (!hb1 || !hb2)))
+    else if((player_hold_block_eligible && !player_holding_special)
+		|| (!self->animating && (!player_hold_block_eligible || !player_holding_special)))
     {
-		// Can't release block until pain flag
-		// disables or the animation is complete. This 
-		// forces blockpain animations to finish before
-		// entity can act again.
-		if (!self->inpain || !self->animating)
+		
+        /*
+        * Is blockstun complete (no blockpain and
+        * animation finished)? If yes, play the block
+        * release animation. If we don't have a block 
+        * release or the block release is finished, 
+        * return to idle.
+        */ 
+
+		if (self->inpain & ~IN_PAIN_BLOCK || !self->animating)
 		{
 			if (self->animnum == ANI_BLOCKRELEASE && !self->animating)
 			{
@@ -29436,7 +29493,7 @@ void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* atta
 int checkgrab(entity *other, s_attack *attack)
 {
     //if(attack->no_pain) return  0; //no effect, let modders to deside, don't bother check it here
-    if(self != other && attack->grab && cangrab(other, self))
+    if(self != other && attack->grab && check_cangrab(other, self))
     {
         if(adjust_grabposition(other, self, attack->grab_distance, attack->grab))
         {
@@ -30473,7 +30530,7 @@ int trygrab(entity *other)
 
     int result = 0; //return value.
 
-    if(cangrab(self, other))
+    if(check_cangrab(self, other))
     {
         result = dograb(self, other, DOGRAB_ADJUSTCHECK_TRUE);
     }
@@ -33554,13 +33611,44 @@ int ai_check_lie()
 
 int ai_check_grabbed()
 {
-    if(self->link && !self->grabbing && !self->inpain && self->takeaction != common_prethrow && !inair(self) &&
-            _time >= self->stalltime && validanim(self, ANI_SPECIAL))
+    if (!self->link)
     {
-        check_special();
-        return 1;
+        return 0;
     }
-    return 0;
+
+    if (self->grabbing)
+    {
+        return 0;
+    }
+
+    if (self->inpain & ~IN_PAIN_NONE)
+    {
+        return 0;
+    }
+
+    if (self->takeaction == common_prethrow)
+    {
+        return 0;
+    }
+
+    if (inair(self))
+    {
+        return 0;
+    }
+
+    if (_time < self->stalltime)
+    {
+        return 0;
+    }
+
+    if (!validanim(self, ANI_SPECIAL))
+    {
+        return 0;
+    }
+
+    check_special();
+
+    return 1;
 }
 
 int ai_check_grab()
@@ -35287,7 +35375,7 @@ void player_pain_check()
 {
     if(player_check_special())
     {
-        self->inpain = 0;
+        self->inpain = IN_PAIN_NONE;
         self->rising = RISING_NONE;
         self->ducking = DUCK_NONE;
         self->inbackpain = 0;
@@ -35393,7 +35481,7 @@ int check_costmove(int s, int fs, int jumphack)
 		self->running = 0;
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
-        self->inpain = 0;
+        self->inpain = IN_PAIN_NONE;
         self->rising = RISING_NONE;
         self->inbackpain = 0;
         memset(self->combostep, 0, sizeof(*self->combostep) * 5);
@@ -35562,7 +35650,7 @@ void player_think()
         goto endthinkcheck;
     }
 
-    if(self->inpain || (self->link && !self->grabbing))
+    if(self->inpain & ~IN_PAIN_NONE || (self->link && !self->grabbing))
     {
         player_pain_check();
         goto endthinkcheck;
@@ -40903,7 +40991,7 @@ void savelevelinfo()
 void tryvictorypose(entity *ent)
 {
     if( ent &&
-       !ent->inpain &&
+       ent->inpain & ~IN_PAIN_NONE &&
        !ent->falling &&
        !ent->dead &&
        !ent->rising &&

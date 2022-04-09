@@ -175,6 +175,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(EXCHANGE_CONFERRER)
         ICMPCONST(EXCHANGE_RECIPIANT)
 
+        /* Hitstun status. */
+        ICMPCONST(IN_PAIN_BLOCK)
+        ICMPCONST(IN_PAIN_HIT)
+        ICMPCONST(IN_PAIN_NONE)
+
 		// Invincibility state flags.
 		ICMPCONST(INVINCIBLE_INTANGIBLE)
 		ICMPCONST(INVINCIBLE_HP_MINIMUM)

@@ -175,7 +175,7 @@ typedef enum
 // Caskey, Damon V.
 // 2019-01-25
 // 
-// Flags for flags used to time update functions.
+// Flags used to time update functions.
 typedef enum
 {
 	UPDATE_MARK_NONE				= 0,
@@ -206,6 +206,20 @@ typedef enum
 	RISING_RISE		= (1 << 0),
 	RISING_ATTACK	= (1 << 1)
 } e_rising_state;
+
+/*
+* Caskey, Damon V.
+* 2022-04-09
+* 
+* Pain (hitstun) state.
+*/
+typedef enum
+{
+    IN_PAIN_NONE = 0,
+    IN_PAIN_HIT = (1 << 0),
+    IN_PAIN_BACK = (1 << 1),
+    IN_PAIN_BLOCK = (1 << 2)
+} e_inpain_state;
 
 // PLAY/REC INPUT vars
 typedef struct InputKeys
@@ -1669,14 +1683,6 @@ if(n<1) n = 1;
 		 !(other->nograb || other->invincible & INVINCIBLE_INTANGIBLE || other->link || \
 		   other->model->animal || inair(other) || \
 		  (self->modeldata.type & TYPE_PLAYER && other->modeldata.type & TYPE_PLAYER && savedata.mode)))
-
-#define cangrab(self, other) \
-		((other->modeldata.antigrab - self->modeldata.grabforce + \
-		  (other->modeldata.paingrab?(other->modeldata.paingrab-other->inpain):0)<=0) &&\
-		 canbegrabbed(self, other) && \
-		 !inair_range(self) && \
-		 diff(other->position.y, self->position.y) <= T_WALKOFF)
-		 //diff(other->position.y, self->position.y) <= 0.1)
 
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
 
