@@ -10072,7 +10072,7 @@ HRESULT openbor_closefilestream(ScriptVariant **varlist , ScriptVariant **pretva
 }
 //damageentity(entity, other, force, drop, type)
 HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+{    
     entity* ent = NULL;
     entity* other = NULL;
     entity* temp = NULL;
@@ -10163,7 +10163,8 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         temp = self;
         self = ent;
 
-        defense_object = defense_find_current_object(self, NULL, attack.attack_type);
+        defense_object = defense_find_current_object(self, NULL, atk.attack_type);        
+
         (*pretvar)->lVal = (LONG)self->takedamage(other, &atk, 0, defense_object);
         self = temp;
     }

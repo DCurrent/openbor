@@ -28992,13 +28992,13 @@ void defense_free_object(s_defense* target)
 * Get damage after applying defense mutiplier.
 * 
 * Note: We send damage separately from attack object
-* as it we usually want to get a calculated value
+* as we usually want to get a calculated value
 * without modifying the original property.
 */
 int defense_result_damage(s_attack* attack_object, s_defense* defense_object, int attack_force)
-{
+{    
     e_attack_types attack_type = attack_object->attack_type;
-   
+    
     /* 
     * Make sure attack types are in bounds and defense
     * object is valid.
@@ -29093,10 +29093,10 @@ int defense_result_pain(s_attack* attack_object, s_defense* defense_object)
 */
 s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attack_types attack_type)
 {    
-    /* Supplied body. */
-    
+     /* Supplied body. */
+
     if (body_object && body_object->defense)
-    {    
+    {   
         return &body_object->defense[attack_type];
     }
 
@@ -29104,7 +29104,7 @@ s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attac
 
     if (ent->defense)
     {
-        return &ent->defense[attack_type];
+         return &ent->defense[attack_type];
     }
 
     /* 
@@ -29212,7 +29212,7 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
 {
     int force = attack_object->attack_force;
     int type = attack_object->attack_type;
-
+   
     if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
     {
         return 0;    //guardbreak does not deal damage.
@@ -29377,17 +29377,19 @@ void checkdamageonlanding()
     return;
 }
 
-// Caskey, Damon V.
-// 2019-12-26
-//
-// Return true if attack type is one of the types not included
-// in normal use by authors.
+/*
+* Caskey, Damon V.
+* 2019-12-26
+*
+* Return true if attack type is one of the 
+* types not included in normal use by creators.
+*/
 int is_attack_type_special(e_attack_types type)
 {
 	switch (type)
 	{
 	default:
-		return FALSE;
+		return 0;
         break;
 
 	case ATK_BOSS_DEATH:
@@ -29398,7 +29400,7 @@ int is_attack_type_special(e_attack_types type)
 	case ATK_SUB_ENTITY_UNSUMMON:
 	case ATK_TIMEOVER:
 	case ATK_PIT:
-		return TRUE;
+		return 1;
         break;
 	}
 }
@@ -29423,7 +29425,7 @@ void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* atta
 {    
 	int	force = 0;
 	int	normal_damage = 0;
-
+    
 	/* Get attack damage force after defense is applied. */
     force = calculate_force_damage(target_entity, attacking_entity, attack_object, defense_object);
 
@@ -29520,29 +29522,32 @@ int arrow_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* 
 }
 
 int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object)
-{    
+{   
+    
     int pain_check = 0; // React with pain animations (1) or ignore (0);
-
+    
     if(self->dead)
     {
         return 0;
     }
+
     if(self->toexplode & EXPLODE_DETONATE)
     {
         return 0;
-    }
+    }    
+    
     // fake 'grab', if failed, return as the attack hit nothing
     if(!checkgrab(other, attack))
     {
         return 0;    // try to grab but failed, so return 0 means attack missed
     }
-
+   
     // set oppoent
     if(self != other)
     {
         set_opponent(self, other);
     }
-
+    
     // adjust type
     if(attack->attack_type >= 0 && attack->attack_type < max_attack_types)
     {
@@ -29581,9 +29586,11 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         // mprate can also control the MP recovered per hit.
         checkmpadd();
         //damage score
-        checkhitscore(other, attack);
+        checkhitscore(other, attack);        
+        
         // check damage, cost hp.
         checkdamage(self, other, attack, defense_object);
+
         // is it dead now?
         checkdeath();
     }
@@ -36576,9 +36583,9 @@ int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 	bool normal_damage;
 
 	// Damage comes from a normal source?
-	normal_damage = (attack->attack_type != ATK_LIFESPAN && attack->attack_type != ATK_TIMEOVER && attack->attack_type != ATK_PIT);
+	normal_damage = (!is_attack_type_special(atk.attack_type));
 
-    if((healthcheat && (normal_damage)) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
+    if((healthcheat && normal_damage) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
         atk.attack_force = 0;
     }
