@@ -1,12 +1,12 @@
- # Overview
+# Overview
  
-OpenBOR is a royalty free sprite based side scrolling gaming engine. From humble beginnings in 2004, it has since grown into the most versatile, easy to use, and powerful engine of its type you will find anywhere. OpenBOR is optimized for side scrolling beat em’ up style games (Double Dragon, Streets of Rage, Final Fight), but easily accommodates any sort of gameplay style and feature set you can imagine. 
+OpenBOR is a royalty free sprite-based side scrolling gaming engine. From humble beginnings in 2004, it has since grown into the most versatile, easy to use, and powerful engine of its type you will find anywhere. OpenBOR is optimized for side scrolling beat em’ up style games (Double Dragon, Streets of Rage, Final Fight), but easily accommodates any sort of gameplay style and feature set you can imagine. 
 
-Want to try your hand at game making? Open up one of the already existing modules and tinker around – the community is right here to help you along.
+Want to try your hand at game making? Open one of the already existing modules and tinker around – the community is right here to help you along.
 
 Ready to make something of your own? Get some images together and away you go! 
 
-Feeling ambitious? Delve into the built in script engine and graphical suite to build a masterpiece rivaling the most outlandish Triple-A productions. Sell it if you if can!
+Feeling ambitious? Delve into the built-in script engine and graphical suite to build a masterpiece rivaling the most outlandish Triple-A productions. Sell it if you can!
 
 To find out more, stop into the OpenBOR community at [ChronoCrash.com](https://www.chronocrash.com/). You will also find dozens of game modules already finished to download and play.
 
@@ -26,7 +26,7 @@ To find out more, stop into the OpenBOR community at [ChronoCrash.com](https://w
 
 * **2011 -** *[Sumo1X](https://github.com/SumolX)* retires from the OpenBOR Team, and hands management duties to [DCurrent (Damon Caskey)](https://github.com/DCurrent).
 
-* **2017 -** OpenBOR repository migrates from Sourceforge to Github.
+* **2017 -** OpenBOR repository migrates from SourceForge to Github.
 
 * **2021 -** Development continues on OpenBOR 4.0, with various internal source cleanups, a more object centric script engine, and fixes for long standing issues.
 
@@ -44,7 +44,7 @@ These platforms are actively supported and may be compiled with the latest OpenB
 
 ### Discontinued
 
-The following platforms are still available as legacy binaries, but are no longer supported and may not be compatible with current iterations of OpenBOR.
+The following platforms are still available as legacy binaries but are no longer supported and may not be compatible with current iterations of OpenBOR.
 
 * Dreamcast
 * GP2X
@@ -62,13 +62,13 @@ OpenBOR project manager and site owner of the OpenBOR community. Primary contrib
 #### [Plombo](https://github.com/plombo) (2009-)
 A developer who prefers to work on OpenBOR's supporting libraries and platform-specific backends.  Known for maintaining the Wii port, writing the GPU-accelerated video code for Wii and OpenGL, and a few engine features.
 
-#### [Douglas Baldan](https://github.com/dbaldan) (2018-)
-Known as O'Ilusionista, Douglas is a highly respected administrator of the OpenBOR community and also a prolific member of the Mugen scene. Douglas brings a plethoera of graphic and game design experience to the team.
-
 #### [Malik](https://github.com/msmalik681) (2018-)
-Malik came to the team with a strong OpenBOR scripting background, and quickly established himself as a resident go-to for the Android Port. Malik dedicates himself to keeping the Android port of OpenBOR a commercialy viable platform for authors who wish to sell their orginal IP projects.
+Malik came to the team with a strong OpenBOR scripting background, and quickly established himself as a resident go-to for the Android Port. Malik dedicates himself to keeping the Android port of OpenBOR a commercially viable platform for authors who wish to sell their original IP projects.
 
 ### Former members and contributors
+
+#### [Douglas Baldan](https://github.com/dbaldan) (2018-2021)
+Known as O'Ilusionista, Douglas was a highly respected administrator of the OpenBOR community and a prolific member of the Mugen scene. His professional background in graphic design brought a plethora of graphic and game development experience to the team. Citing personal reasons, Douglas officially retired from the OpenBOR team mid-2021.
 
 #### [Wasin Thonkaew](https://github.com/haxpor) (2019)
 Haxpor in the forums, a Linux centric developer who works hard to ensure our penguin crowd has the proper tools for development and underlying libraries of OpenBOR remain compatible to compile for mobile platforms.
@@ -89,7 +89,7 @@ Former project manager and lead programmer, retired from the scene in 2011. Know
 Contributed a plethora of features, including the powerful text object and filestream capabilities.
 
 #### CGRemakes (2005-2006)
-Main developer after Kirby2K. Introduced many exicting features to engine.
+Main developer after Kirby2K. Introduced many exciting features to engine.
 
 #### LordBall (2006)
 Developed offshoot engine based on OpenBOR. Shared features with both engines.
@@ -106,7 +106,7 @@ up Beats Of Rage.
 
 ### [Senile Team](http://www.senileteam.com)
 Senile team was not directly involved with developing OpenBOR, but their opening
-of the orginal Beats of Rage codebase was vital. Parts of the orginal BOR still
+of the Beats of Rage codebase was vital. Parts of the original BOR still
 reside in OpenBOR to this day.
 
 #### [Roel](http://www.roelvanmastbergen.nl) (credited as "Opla" in BoR)
@@ -129,8 +129,8 @@ and code compatibility.
 ## Websites
 ### [ChronoCrash](http://www.ChronoCrash.com)
 
-Home of the OpenBOR community and OpenBOR team. This is the place to go if you want to discuss discuss OpenBOR development, find ready to play game modules, or get started building one of your own. 
+Home of the OpenBOR community and OpenBOR team. This is the place to go if you want to discuss OpenBOR development, find ready to play game modules, or get started building one of your own. 
 
 ### [Senile Team](http://www.senileteam.com)
 
-Senile Team is not responsible for OpenBOR, and has also dropped all support for the original Beats of Rage. Instead you should stop in to see their latest projects - you’ll no doubt find something interesting!
+Senile Team does not support OpenBOR or BOR in any way. Instead, you should stop in to see their latest projects - you’ll no doubt find something interesting!
