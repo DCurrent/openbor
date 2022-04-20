@@ -3617,6 +3617,7 @@ int projectile_wall_deflect(entity *ent);
 
 void sort_invert_by_parent(entity *ent, entity* parent);
 
+int check_cangrab(entity* acting_entity, entity* target_entity);
 int checkgrab(entity *other, s_attack *attack);
 void checkdamageeffects(s_attack *attack);
 void checkdamagedrop(entity* target_entity, s_attack* attack_object, s_defense* defense_object);

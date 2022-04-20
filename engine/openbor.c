@@ -21563,8 +21563,8 @@ void kill_all()
 */
 int check_cangrab(entity* acting_entity, entity* target_entity)
 {
-    //((other->modeldata.antigrab - self->modeldata.grabforce + (other->modeldata.paingrab ? (other->modeldata.paingrab - other->inpain & IN_PAIN_HIT) : 0) <= 0) && canbegrabbed(self, other) && !inair_range(self) && diff(other->position.y, self->position.y) <= T_WALKOFF)
-
+    int grab_resistance = 0;
+    
     if (!canbegrabbed(acting_entity, target_entity))
     {
         return 0;
@@ -21578,19 +21578,30 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
     if (diff(target_entity->position.y, acting_entity->position.y) > T_WALKOFF)
     {
         return 0;
-    }
+    }    
 
-    if (target_entity->modeldata.antigrab > acting_entity->modeldata.grabforce)
-    {
-        return 0;
-    }
+    /*
+    * Grab resistance. Acting entity's grab force
+    * must exceed target's total grab resistance.
+    *
+    * If the target as paingrab property, we add
+    * its value to grab resistance property if
+    * the target's pain flag is not active.
+    */
+    
+    grab_resistance = target_entity->modeldata.antigrab;
 
     if (target_entity->modeldata.paingrab)
     {
-        if (target_entity->inpain & ~IN_PAIN_HIT)
+        if ((target_entity->inpain & IN_PAIN_HIT) == 0)
         {
-            return 0;
+            grab_resistance += target_entity->modeldata.paingrab;
         }
+    }
+
+    if (grab_resistance > acting_entity->modeldata.grabforce)
+    {
+        return 0;
     }
 
     return 1;    
