@@ -21555,6 +21555,85 @@ void kill_all()
 
 /*
 * Caskey, Damon V.
+* 2022-04-20
+* 
+* Replacement for legacy canbegrabbed
+* macro. Return true if target entity
+* is eligible for grabbing.
+*/
+int check_canbegrabbed(entity* acting_entity, entity* target_entity)
+{
+    if (!target_entity->animation->vulnerable[target_entity->animpos])
+    {
+        return 0;
+    }
+
+    /*
+    * Note move refers to "move<axis> animation 
+    * commands, not if entity has velocity.
+    */
+
+    if (acting_entity->animation->move)
+    {
+        if (acting_entity->animation->move[acting_entity->animpos]->axis.x != 0)
+        {
+            return 0;
+        }
+
+        if (acting_entity->animation->move[acting_entity->animpos]->axis.z != 0)
+        {
+            return 0;
+        }   
+    }
+
+    if (target_entity->nograb)
+    {
+        return 0;
+    }
+
+    if (target_entity->invincible & INVINCIBLE_INTANGIBLE)
+    {
+        return 0;
+    }
+
+    if (target_entity->link)
+    {
+        return 0;
+    }
+
+    if (target_entity->model->animal)
+    {
+        return 0;
+    }
+
+    if (inair(target_entity))
+    {
+        return 0;
+    }
+
+    /*
+    * DC 2022-04-20. 
+    *  
+    * This check seems very open-ended. I would
+    * think savedata.mode should equal something
+    * specific and not just "true". Will need to 
+    * look over the menu options code to make 
+    * sure this is behaving as intended.
+    */
+
+    if (acting_entity->modeldata.type & TYPE_PLAYER && target_entity->modeldata.type & TYPE_PLAYER)
+    {   
+        if (savedata.mode)
+        {
+            return 0;
+        }   
+    }
+
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
 * 2022-04-09
 * 
 * Replacement for legacy cangrab 
@@ -21565,7 +21644,7 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
 {
     int grab_resistance = 0;
     
-    if (!canbegrabbed(acting_entity, target_entity))
+    if (!check_canbegrabbed(acting_entity, target_entity))
     {
         return 0;
     }

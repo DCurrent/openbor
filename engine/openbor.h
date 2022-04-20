@@ -1676,14 +1676,6 @@ if(n<1) n = 1;
 
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
-#define canbegrabbed(self, other) \
-		(other->animation->vulnerable[other->animpos] && \
-		 (!self->animation->move || self->animation->move[self->animpos]->axis.x == 0) && \
-		 (!self->animation->move || self->animation->move[self->animpos]->axis.z == 0 ) && \
-		 !(other->nograb || other->invincible & INVINCIBLE_INTANGIBLE || other->link || \
-		   other->model->animal || inair(other) || \
-		  (self->modeldata.type & TYPE_PLAYER && other->modeldata.type & TYPE_PLAYER && savedata.mode)))
-
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
 
 #define inScreen ( selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu || \
@@ -3617,6 +3609,7 @@ int projectile_wall_deflect(entity *ent);
 
 void sort_invert_by_parent(entity *ent, entity* parent);
 
+int check_canbegrabbed(entity* acting_entity, entity* target_entity);
 int check_cangrab(entity* acting_entity, entity* target_entity);
 int checkgrab(entity *other, s_attack *attack);
 void checkdamageeffects(s_attack *attack);
