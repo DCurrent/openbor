@@ -131,6 +131,33 @@ movement restirctions are here!
 
 #define MAP_INDEX_NONE -1
 
+/*
+* Caskey, Damon V.
+* 2022-04-19
+* 
+* Screen status flags.
+*/
+typedef enum
+{
+    IN_SCREEN_NONE                  = 0,
+    IN_SCREEN_BUTTON_CONFIG_MENU    = (1 << 0),
+    IN_SCREEN_CONTROL_OPTIONS_MENU  = (1 << 1),
+    IN_SCREEN_ENGINE_CREDIT         = (1 << 2),
+    IN_SCREEN_GAME_OVER             = (1 << 3),
+    IN_SCREEN_GAME_START_MENU       = (1 << 4),
+    IN_SCREEN_HALL_OF_FAME          = (1 << 5),
+    IN_SCREEN_LOAD_GAME_MENU        = (1 << 6),
+    IN_SCREEN_MENU                  = (1 << 7),
+    IN_SCREEN_NEW_GAME_MENU         = (1 << 8),    
+    IN_SCREEN_OPTIONS_MENU          = (1 << 9),    
+    IN_SCREEN_SELECT                = (1 << 10),
+    IN_SCREEN_SHOW_COMPLETE         = (1 << 11),
+    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 12),
+    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 13),
+    IN_SCREEN_TITLE                 = (1 << 14),
+    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 15)
+} e_screen_status;
+
 // Caskey, Damon V.
 // 2019-01-27
 // 
@@ -1677,9 +1704,6 @@ if(n<1) n = 1;
 #define getpal ((current_palette&&level)?(level->palettes[current_palette-1]):pal)
 
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
-
-#define inScreen ( selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu || \
-                  newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu )
 
 //#define     MAX_MOVES             16
 //#define     MAX_MOVE_STEPS        16
@@ -3468,6 +3492,8 @@ typedef struct
 } s_addframe_data;
 
 int addframe(s_addframe_data* data);
+
+int check_in_screen();
 
 /* Collision and attcking control. */
 

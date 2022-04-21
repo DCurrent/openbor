@@ -554,21 +554,7 @@ int                 level_completed_defeating_boss     = 0;
 int                 nojoin              = 0;					// dont allow new hero to join in, use "Please Wait" instead of "Select Hero"
 int                 groupmin            = 0;
 int					groupmax            = 0;
-int                 selectScreen        = 0;					// Flag to determine if at select screen (used for setting animations)
-int					titleScreen			= 0;
-int					menuScreen			= 0;
-int					enginecreditsScreen		= 0;								// CRxTRDude - Flag to determine if the credits for the engine is shown.
-int					hallOfFame			= 0;
-int					optionsMenu			= 0;
-int					newgameMenu			= 0;
-int					loadgameMenu		= 0;
-int					controloptionsMenu	= 0;
-int					videooptionsMenu	= 0;
-int					soundoptionsMenu	= 0;
-int					systemoptionsMenu	= 0;
-int					startgameMenu		= 0;
-int					gameOver			= 0;
-int					showComplete		= 0;
+e_screen_status     screen_status       = IN_SCREEN_NONE;       // Caskey, Damon V. (2022-04-21) - Current screen status. Replaces the previous 16+ "inscreen" flag variables.
 char				*currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
 int                 reached[MAX_PLAYERS]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
@@ -20191,7 +20177,7 @@ void ent_default_init(entity *e)
         return;
     }
 
-    if((!selectScreen && !_time) || e->modeldata.type != TYPE_PLAYER )
+    if((!(screen_status & IN_SCREEN_SELECT) && !_time) || e->modeldata.type != TYPE_PLAYER )
     {
         if( validanim(e, ANI_SPAWN))
         {
@@ -20203,7 +20189,7 @@ void ent_default_init(entity *e)
         }
         //else set_idle(e);
     }
-    else if(!selectScreen && _time && e->modeldata.type == TYPE_PLAYER) // mid-level respawn
+    else if(!(screen_status & IN_SCREEN_SELECT) && _time && e->modeldata.type == TYPE_PLAYER) // mid-level respawn
     {
         if( validanim(e, ANI_RESPAWN))
         {
@@ -20215,7 +20201,7 @@ void ent_default_init(entity *e)
         }
         //else set_idle(e);
     }
-    else if(selectScreen && validanim(e, ANI_SELECT))
+    else if(screen_status & IN_SCREEN_SELECT && validanim(e, ANI_SELECT))
     {
 		// Play transition if we have one. Default Select otherwise.
 		if (validanim(e, ANI_SELECTIN))
@@ -21142,7 +21128,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
     {
         ent->attacking = ATTACKING_NONE;
 
-        if((!selectScreen && !_time) || !(ent->modeldata.type & TYPE_PLAYER))
+        if((!(screen_status & IN_SCREEN_SELECT) && !_time) || !(ent->modeldata.type & TYPE_PLAYER))
         {
             // use new playerselect spawn anim
             if( validanim(ent, ANI_SPAWN))
@@ -21154,7 +21140,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
                 if( validanim(ent, ANI_IDLE)) ent_set_anim(ent, ANI_IDLE, 0);
             }
         }
-        else if(!selectScreen && _time && (ent->modeldata.type & TYPE_PLAYER))
+        else if(!(screen_status & IN_SCREEN_SELECT) && _time && (ent->modeldata.type & TYPE_PLAYER))
         {
             // mid-level respawn
             if( validanim(ent, ANI_RESPAWN))
@@ -21170,7 +21156,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
                 if( validanim(ent, ANI_IDLE)) ent_set_anim(ent, ANI_IDLE, 0);
             }
         }
-        else if(selectScreen && validanim(ent, ANI_SELECT))
+        else if(screen_status & IN_SCREEN_SELECT && validanim(ent, ANI_SELECT))
         {
 			// Play transition if we have one. Default Select otherwise.
 			if (validanim(ent, ANI_SELECTIN))
@@ -24810,6 +24796,34 @@ void check_link_move(float xdir, float zdir)
         self->grabbing->position.x = self->position.x - x + gx;
         self->grabbing->position.z = self->position.z - z + gz;
     }
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-21
+* 
+* Return true if currently in any 
+* active game or menu screen.
+*/
+int check_in_screen()
+{
+    /*
+    * Check the screen status first. 
+    * It should be faster.
+    */
+
+    if (screen_status & (IN_SCREEN_BUTTON_CONFIG_MENU | IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_ENGINE_CREDIT | IN_SCREEN_MENU | IN_SCREEN_GAME_START_MENU | IN_SCREEN_NEW_GAME_MENU | IN_SCREEN_LOAD_GAME_MENU | IN_SCREEN_OPTIONS_MENU | IN_SCREEN_CONTROL_OPTIONS_MENU | IN_SCREEN_SOUND_OPTIONS_MENU | IN_SCREEN_VIDEO_OPTIONS_MENU | IN_SCREEN_SYSTEM_OPTIONS_MENU))
+    {
+        return 1;
+    }
+
+    if (currentScene)
+    {
+        return 1;
+    }
+
+    return 0;
+        
 }
 
 void check_ai()
@@ -37853,8 +37867,8 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
 
     if( props == NULL /*||
         (level == NULL &&
-         (!selectScreen && !titleScreen && !hallOfFame && !gameOver && !showComplete && !currentScene && !enginecreditsScreen && !menuScreen && !startgameMenu && !newgameMenu && !loadgameMenu &&
-          !optionsMenu && !controloptionsMenu && !soundoptionsMenu && !videooptionsMenu && !systemoptionsMenu)
+         (!(screen_status & IN_SCREEN_SELECT) && !(screen_status & IN_SCREEN_TITLE) && !(screen_status & IN_SCREEN_HALL_OF_FAME) && !(screen_status & IN_SCREEN_GAME_OVER) && !(screen_status & IN_SCREEN_SHOW_COMPLETE) && !currentScene && !(screen_status & IN_SCREEN_ENGINE_CREDIT) && !(screen_status & IN_SCREEN_MENU) && !(screen_status & IN_SCREEN_GAME_START_MENU) && !(screen_status & IN_SCREEN_NEW_GAME_MENU) && !(screen_status & IN_SCREEN_LOAD_GAME_MENU) &&
+          !(screen_status & IN_SCREEN_OPTIONS_MENU) && !(screen_status & IN_SCREEN_CONTROL_OPTIONS_MENU) && !(screen_status & IN_SCREEN_SOUND_OPTIONS_MENU) && !(screen_status & IN_SCREEN_VIDEO_OPTIONS_MENU) && !(screen_status & IN_SCREEN_SYSTEM_OPTIONS_MENU))
         )*/
       )
     {
@@ -39249,7 +39263,7 @@ void execute_keyscripts()
     int p;
     for(p = 0; p < levelsets[current_set].maxplayers; p++)
     {
-        if(!_pause && (level || inScreen) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys))
+        if(!_pause && (level || check_in_screen()) && (player[p].newkeys || (keyscriptrate && player[p].keys) || player[p].releasekeys))
         {
             if(level)
             {
@@ -39649,7 +39663,7 @@ void update(int ingame, int usevwait)
     newtime = 0;
     if(!_pause)
     {
-        if(ingame == 1 || inScreen)
+        if(ingame == 1 || check_in_screen())
         {
             execute_keyscripts();
         }
@@ -39731,7 +39745,7 @@ void update(int ingame, int usevwait)
                     updatestatus();
                 }
             }
-            if(ingame == 1 || inScreen)
+            if(ingame == 1 || check_in_screen())
             {
                 update_ents();
             }
@@ -39767,7 +39781,7 @@ void update(int ingame, int usevwait)
     }
 
     // entity sprites queueing
-    if(ingame == 1 || inScreen)
+    if(ingame == 1 || check_in_screen())
         if(!_pause)
         {
             display_ents();
@@ -40115,7 +40129,8 @@ void borShutdown(int status, char *msg, ...)
     getRamStatus(BYTES);
     savesettings();
 
-    enginecreditsScreen = 1;		//entry point for the engine credits screen.
+    /* entry point for the engine credits screen. */
+    screen_status |= IN_SCREEN_ENGINE_CREDIT;		
 
     if(status != 2)
     {
@@ -40123,8 +40138,8 @@ void borShutdown(int status, char *msg, ...)
     }
 
     if(startup_done)
-    {
-        enginecreditsScreen = 0; //once the engine credits is done, disable flag.
+    {        
+        screen_status &= ~IN_SCREEN_ENGINE_CREDIT;
         term_videomodes();
     }
 
@@ -40781,7 +40796,7 @@ void gameover()
     music("data/music/gameover", 0, 0);
 
     _time = 0;
-    gameOver = 1;
+    screen_status |= IN_SCREEN_GAME_OVER;
 
     if(custScenes != NULL)
     {
@@ -40810,7 +40825,8 @@ void gameover()
         done |= (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON));
         update(0, 0);
     }
-    gameOver = 0;
+
+    screen_status &= ~IN_SCREEN_GAME_OVER;
 }
 
 
@@ -40827,7 +40843,7 @@ void hallfame(int addtoscore)
     int col1 = -8;
     int col2 = 6;
 
-    hallOfFame = 1;
+    screen_status |= IN_SCREEN_HALL_OF_FAME;
 
     if(hiscorebg)
     {
@@ -40892,7 +40908,7 @@ void hallfame(int addtoscore)
         done |= (bothnewkeys & (FLAG_START + FLAG_ESC));
     }
     unload_background();
-    hallOfFame = 0;
+    screen_status &= ~IN_SCREEN_HALL_OF_FAME;
 }
 
 
@@ -40911,7 +40927,7 @@ void showcomplete(int num)
     int chan = 0;
     char tmpBuff[MAX_BUFFER_LEN] = {""};
 
-    showComplete = 1;
+    screen_status |= IN_SCREEN_SHOW_COMPLETE;
 
     if(completebg)
     {
@@ -41054,7 +41070,7 @@ void showcomplete(int num)
     }
     unload_background();
 
-    showComplete = 0;
+    screen_status &= ~IN_SCREEN_SHOW_COMPLETE;
 }
 
 void savelevelinfo()
@@ -41386,8 +41402,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
 	savelevelinfo();
 
-	selectScreen = 1;
-	kill_all();
+    screen_status |= IN_SCREEN_SELECT;
+
+    kill_all();
 
 	// Initialize player sized arrays.
 	entity *example[set->maxplayers];
@@ -41554,7 +41571,8 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					else credits = savelevel[current_set].credits;
 				}
 			}
-			selectScreen = 0;
+
+			screen_status &= ~IN_SCREEN_SELECT;
 
 			return 1;
 		}
@@ -41884,7 +41902,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 	// No longer at the select screen
 	kill_all();
 	sound_close_music();
-	selectScreen = 0;
+	screen_status &= ~IN_SCREEN_SELECT;
 
 	return (!escape);
 }
@@ -42132,7 +42150,7 @@ int menu_difficulty()
     bary = _liney(0, 0) - 2;
     barw = videomodes.hRes * 3 / 5;
     barh = 5 * (fontheight(0) + 1) + 4;
-    newgameMenu = 1;
+    screen_status |= IN_SCREEN_NEW_GAME_MENU;
     bothnewkeys = 0;
 
     loadGameFile();
@@ -42198,7 +42216,7 @@ int menu_difficulty()
             {
                 saveslot = selector;
                 strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN - 1);
-                newgameMenu = 0;
+                screen_status &= ~IN_SCREEN_NEW_GAME_MENU;
                 return saveslot;
             }
         }
@@ -42249,13 +42267,13 @@ int menu_difficulty()
             {
                 saveslot = selector;
                 strncpy(savelevel[saveslot].dName, levelsets[saveslot].name, MAX_NAME_LEN - 1);
-                newgameMenu = 0;
+                screen_status &= ~IN_SCREEN_NEW_GAME_MENU;
                 return saveslot;
             }
         }
     }
     bothnewkeys = 0;
-    newgameMenu = 0;
+    screen_status &= ~IN_SCREEN_NEW_GAME_MENU;
     return -1;
 }
 
@@ -42267,7 +42285,7 @@ int load_saved_game()
     char name[MAX_BUFFER_LEN] = {""};
     int col1 = -8, col2 = 6;
 
-    loadgameMenu = 1;
+    screen_status |= IN_SCREEN_LOAD_GAME_MENU;
     bothnewkeys = 0;
 
     if((savedStatus = loadGameFile()))
@@ -42409,7 +42427,7 @@ int load_saved_game()
         }
     }
     bothnewkeys = 0;
-    loadgameMenu = 0;
+    screen_status &= ~IN_SCREEN_LOAD_GAME_MENU;
     return -1;
 }
 
@@ -42420,7 +42438,7 @@ int choose_mode(int *players)
     int selector = 0;
     int status = 0;
 
-    startgameMenu = 1;
+    screen_status |= IN_SCREEN_GAME_START_MENU;
     bothnewkeys = 0;
 
     while(!quit)
@@ -42494,7 +42512,7 @@ int choose_mode(int *players)
         }
     }
     bothnewkeys = 0;
-    startgameMenu = 0;
+    screen_status &= ~IN_SCREEN_GAME_START_MENU;
     return relback;
 }
 
@@ -42834,25 +42852,39 @@ void safe_set(int *arr, int index, int newkey, int oldkey)
 void keyboard_setup(int player)
 {
     const int btnnum = MAX_BTN_NUM;
-    int quit = 0, sdid = 0,
-        selector = 0,
-        setting = -1,
-        i, k, ok = 0,
-              disabledkey[MAX_BTN_NUM] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-                                col1 = -8, col2 = 6;
-    ptrdiff_t voffset, pos;
-    char *buf,
-         *command,
-         *filename = "translation/menu.txt",
-         buttonnames[btnnum][32];
+    
+    int quit = 0; 
+    int sdid = 0;
+    int selector = 0;
+    int setting = -1;
+    int i = 0;
+    int k = 0;
+    int ok = 0;
+    int disabledkey[MAX_BTN_NUM] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
+    int col1 = -8;
+    int col2 = 6;
+
+    ptrdiff_t voffset; 
+    ptrdiff_t pos;
+
+    char* buf;
+    char* command;
+    char* filename = "translation/menu.txt";
+    
+    char  buttonnames[btnnum][32];
+    
     size_t size;
     ArgList arglist;
+    
     char argbuf[MAX_ARG_LEN + 1] = "";
+    
     #if SDL || WII
     int OPTIONS_NUM = btnnum + 3;
     #else
     int OPTIONS_NUM = btnnum + 2;
     #endif
+
+    screen_status |= IN_SCREEN_BUTTON_CONFIG_MENU;
 
     printf("Loading control settings.......\t");
 
@@ -43082,6 +43114,8 @@ finish:
         loadsettings();
     }
 
+    screen_status &= ~IN_SCREEN_BUTTON_CONFIG_MENU;
+
     update(0, 0);
     bothnewkeys = 0;
     printf("Done!\n");
@@ -43117,7 +43151,7 @@ void menu_options_input()
     const int OPTIONS_NUM = 8;
     #endif
 
-    controloptionsMenu = 1;
+    screen_status |= IN_SCREEN_CONTROL_OPTIONS_MENU;
     bothnewkeys = 0;
 
     // Kratus (10-2021) Added a second instance of the "control_init" function while in the Control Options
@@ -43292,7 +43326,7 @@ void menu_options_input()
     }
     savesettings();
     bothnewkeys = 0;
-    controloptionsMenu = 0;
+    screen_status &= ~IN_SCREEN_CONTROL_OPTIONS_MENU;
 }
 
 
@@ -43306,7 +43340,7 @@ void menu_options_sound()
     int col1 = -8;
     int col2 = 6;
 
-    soundoptionsMenu = 1;
+    screen_status |= IN_SCREEN_SOUND_OPTIONS_MENU;
     bothnewkeys = 0;
 
     while(!quit)
@@ -43438,7 +43472,7 @@ void menu_options_sound()
     }
     savesettings();
     bothnewkeys = 0;
-    soundoptionsMenu = 0;
+    screen_status &= ~IN_SCREEN_SOUND_OPTIONS_MENU;
 }
 
 void menu_options_config()     //  OX. Load from / save to default.cfg. Restore OpenBoR "factory" settings.
@@ -43767,7 +43801,7 @@ void menu_options_system()
     int externalPower = 0;
 #endif
 
-    systemoptionsMenu = 1;
+    screen_status |= IN_SCREEN_SYSTEM_OPTIONS_MENU;
     bothnewkeys = 0;
     if (nodebugoptions) ex_labels = 1;
     RET -= ex_labels;
@@ -43944,7 +43978,7 @@ void menu_options_system()
     }
     savesettings();
     bothnewkeys = 0;
-    systemoptionsMenu = 0;
+    screen_status &= ~IN_SCREEN_SYSTEM_OPTIONS_MENU;
 
     #undef SYS_OPT_Y_POS
 }
@@ -43957,7 +43991,7 @@ void menu_options_video()
     int dir;
     int col1 = -15, col2 = 1;
 
-    videooptionsMenu = 1;
+    screen_status |= IN_SCREEN_VIDEO_OPTIONS_MENU;
     bothnewkeys = 0;
 
     while(!quit)
@@ -44362,7 +44396,7 @@ void menu_options_video()
     }
     savesettings();
     bothnewkeys = 0;
-    videooptionsMenu = 0;
+    screen_status &= ~IN_SCREEN_VIDEO_OPTIONS_MENU;
 }
 
 
@@ -44393,7 +44427,7 @@ void menu_options()
     int cheat_opt_offset = 0;
     e_selector selector = VIDEO_OPTION;
 
-    optionsMenu = 1;
+    screen_status |= IN_SCREEN_OPTIONS_MENU;
     bothnewkeys = 0;
 
     if (cheats && !forcecheatsoff)
@@ -44497,7 +44531,7 @@ void menu_options()
         _pause = 2;
     }
     bothnewkeys = 0;
-    optionsMenu = 0;
+    screen_status &= ~IN_SCREEN_OPTIONS_MENU;
 
     #undef TOT_CHEATS
     #undef OPT_Y_POS
@@ -44740,8 +44774,10 @@ void openborMain(int argc, char **argv)
                 // Kratus (10-2021) Added an additional instance of the translation function at menu screen
                 // Used to refresh all text without close and reopen the engine
                 ob_inittrans();
-                menuScreen  = 1;
-                titleScreen = 0;
+                
+                screen_status |= IN_SCREEN_MENU;
+                screen_status &= ~IN_SCREEN_TITLE;
+
                 if(custBkgrds != NULL)
                 {
                     strcpy(tmpBuff, custBkgrds);
@@ -44755,8 +44791,9 @@ void openborMain(int argc, char **argv)
             }
             else
             {
-                menuScreen  = 0;
-                titleScreen = 1;
+                screen_status &= ~IN_SCREEN_MENU;
+                screen_status |= IN_SCREEN_TITLE;
+
                 if(custBkgrds != NULL)
                 {
                     strcpy(tmpBuff, custBkgrds);

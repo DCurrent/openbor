@@ -448,6 +448,7 @@ enum systemvariant_enum
     _sv_player_min_z,
     _sv_porting,
     _sv_sample_play_id,
+    _sv_screen_status,
     _sv_scrollmaxx,
     _sv_scrollmaxz,
     _sv_scrollminx,

@@ -49,22 +49,8 @@ int			   no_nested_script = 0;
 
 extern int  ent_count;
 extern int  ent_max;
-extern int  gameOver;
-extern int  selectScreen;
-extern int	titleScreen;
-extern int  hallOfFame;
-extern int	showComplete;
+extern e_screen_status  screen_status;
 extern char	*currentScene;
-extern int  enginecreditsScreen;
-extern int	menuScreen;
-extern int  optionsMenu;
-extern int	controloptionsMenu;
-extern int	videooptionsMenu;
-extern int  soundoptionsMenu;
-extern int	systemoptionsMenu;
-extern int	startgameMenu;
-extern int  newgameMenu;
-extern int  loadgameMenu;
 extern int  num_difficulties;
 extern u32  _time;
 extern int goto_mainmenu_flag;
@@ -1081,6 +1067,7 @@ static const char *svlist[] =
     "player_min_z",
     "porting",
     "sample_play_id",
+    "screen_status",
     "scrollmaxx",
     "scrollmaxz",
     "scrollminx",
@@ -8200,34 +8187,34 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_gameoverscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = gameOver;
+        var->lVal = (screen_status & IN_SCREEN_GAME_OVER);
         break;
     case _sv_in_menuscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        if(selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || level || enginecreditsScreen)
+        if(screen_status & IN_SCREEN_SELECT || screen_status & IN_SCREEN_TITLE || screen_status & IN_SCREEN_HALL_OF_FAME || screen_status & IN_SCREEN_GAME_OVER || screen_status & IN_SCREEN_SHOW_COMPLETE || currentScene || level || screen_status & IN_SCREEN_ENGINE_CREDIT)
         {
             var->lVal = 0;
         }
         else
         {
-            var->lVal = menuScreen;
+            var->lVal = (screen_status & IN_SCREEN_MENU);
         }
         break;
     case _sv_in_enginecreditsscreen:
     		ScriptVariant_ChangeType(var, VT_INTEGER);
-    		var->lVal = enginecreditsScreen;
+    		var->lVal = (screen_status & IN_SCREEN_ENGINE_CREDIT);
     		break;
     case _sv_in_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = optionsMenu;
+        var->lVal = (screen_status & IN_SCREEN_OPTIONS_MENU);
         break;
     case _sv_in_system_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = systemoptionsMenu;
+        var->lVal = (screen_status & IN_SCREEN_SYSTEM_OPTIONS_MENU);
         break;
     case _sv_in_cheat_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (optionsMenu && is_cheat_actived()) ? 1:0;
+        var->lVal = (screen_status & IN_SCREEN_OPTIONS_MENU && is_cheat_actived()) ? 1:0;
         break;
     case _sv_cheats:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8235,27 +8222,27 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_control_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = controloptionsMenu;
+        var->lVal = (screen_status & IN_SCREEN_CONTROL_OPTIONS_MENU);
         break;
     case _sv_in_sound_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = soundoptionsMenu;
+        var->lVal = (screen_status & IN_SCREEN_SOUND_OPTIONS_MENU);
         break;
     case _sv_in_video_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = videooptionsMenu;
+        var->lVal = (screen_status & IN_SCREEN_VIDEO_OPTIONS_MENU);
         break;
     case _sv_in_start_game:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = startgameMenu;
+        var->lVal = (screen_status & IN_SCREEN_GAME_START_MENU);
         break;
     case _sv_in_new_game:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = newgameMenu;
+        var->lVal = (screen_status & IN_SCREEN_NEW_GAME_MENU); 
         break;
     case _sv_in_load_game:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = loadgameMenu;
+        var->lVal = (screen_status & IN_SCREEN_LOAD_GAME_MENU);
         break;
     case _sv_sets_count:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8263,20 +8250,24 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_showcomplete:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = showComplete;
+        var->lVal = (screen_status & IN_SCREEN_SHOW_COMPLETE);
         break;
     case _sv_in_titlescreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = titleScreen;
+        var->lVal = (screen_status & IN_SCREEN_TITLE);
         break;
     case _sv_in_halloffamescreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (hallOfFame);
+        var->lVal = (screen_status & IN_SCREEN_HALL_OF_FAME);
         break;
     case _sv_sample_play_id:
         ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = sample_play_id;
 		break;
+    case _sv_screen_status:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = screen_status;
+        break;
     case _sv_effectvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = savedata.effectvol;
@@ -8364,8 +8355,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->lVal = gfx_y_offset_adj;
         break;
     case _sv_in_selectscreen:
+        
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = selectScreen;
+        
+        var->lVal = (screen_status & IN_SCREEN_SELECT);        
+        
         break;
 	case _sv_lasthit_attack:
 		ScriptVariant_ChangeType(var, VT_PTR);
@@ -8826,6 +8820,12 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_DecimalValue(value, &dbltemp)))
         {
             advancey = (DOUBLE)dbltemp;
+        }
+        break;
+    case _sv_screen_status:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            screen_status = (e_screen_status)ltemp;
         }
         break;
     case _sv_scrollminz:
