@@ -37865,11 +37865,10 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     entity *wp = NULL;
     int playercount;
 
-    if( props == NULL /*||
+    if( props == NULL /* ||
         (level == NULL &&
-         (!(screen_status & IN_SCREEN_SELECT) && !(screen_status & IN_SCREEN_TITLE) && !(screen_status & IN_SCREEN_HALL_OF_FAME) && !(screen_status & IN_SCREEN_GAME_OVER) && !(screen_status & IN_SCREEN_SHOW_COMPLETE) && !currentScene && !(screen_status & IN_SCREEN_ENGINE_CREDIT) && !(screen_status & IN_SCREEN_MENU) && !(screen_status & IN_SCREEN_GAME_START_MENU) && !(screen_status & IN_SCREEN_NEW_GAME_MENU) && !(screen_status & IN_SCREEN_LOAD_GAME_MENU) &&
-          !(screen_status & IN_SCREEN_OPTIONS_MENU) && !(screen_status & IN_SCREEN_CONTROL_OPTIONS_MENU) && !(screen_status & IN_SCREEN_SOUND_OPTIONS_MENU) && !(screen_status & IN_SCREEN_VIDEO_OPTIONS_MENU) && !(screen_status & IN_SCREEN_SYSTEM_OPTIONS_MENU))
-        )*/
+         !(screen_status & (IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_ENGINE_CREDIT | IN_SCREEN_MENU | IN_SCREEN_GAME_START_MENU | IN_SCREEN_NEW_GAME_MENU | IN_SCREEN_LOAD_GAME_MENU | IN_SCREEN_OPTIONS_MENU | IN_SCREEN_CONTROL_OPTIONS_MENU | IN_SCREEN_SOUND_OPTIONS_MENU | IN_SCREEN_VIDEO_OPTIONS_MENU | IN_SCREEN_SYSTEM_OPTIONS_MENU)) &&
+         currentScene)*/
       )
     {
         return NULL;

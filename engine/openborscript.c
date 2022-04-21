@@ -8191,7 +8191,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_menuscreen:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        if(screen_status & IN_SCREEN_SELECT || screen_status & IN_SCREEN_TITLE || screen_status & IN_SCREEN_HALL_OF_FAME || screen_status & IN_SCREEN_GAME_OVER || screen_status & IN_SCREEN_SHOW_COMPLETE || currentScene || level || screen_status & IN_SCREEN_ENGINE_CREDIT)
+        if(screen_status & (IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_ENGINE_CREDIT) || currentScene || level)
         {
             var->lVal = 0;
         }
