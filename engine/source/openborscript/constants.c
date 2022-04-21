@@ -180,7 +180,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(IN_PAIN_HIT)
         ICMPCONST(IN_PAIN_NONE)
 
-        /* Screen status. */
+        /* Screen status.
+        *  Kratus (04-2022) Added the "showgo" event accessible by script
+        */
         ICMPCONST(IN_SCREEN_NONE)
         ICMPCONST(IN_SCREEN_BUTTON_CONFIG_MENU)
         ICMPCONST(IN_SCREEN_CONTROL_OPTIONS_MENU)
@@ -198,6 +200,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(IN_SCREEN_SYSTEM_OPTIONS_MENU)
         ICMPCONST(IN_SCREEN_TITLE)
         ICMPCONST(IN_SCREEN_VIDEO_OPTIONS_MENU)
+        ICMPCONST(IN_SCREEN_SHOW_GO_ARROW)
 
 		// Invincibility state flags.
 		ICMPCONST(INVINCIBLE_INTANGIBLE)
