@@ -153,11 +153,11 @@ typedef enum
     IN_SCREEN_OPTIONS_MENU          = (1 << 9),
     IN_SCREEN_SELECT                = (1 << 10),
     IN_SCREEN_SHOW_COMPLETE         = (1 << 11),
-    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 12),
-    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 13),
-    IN_SCREEN_TITLE                 = (1 << 14),
-    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 15),
-    IN_SCREEN_SHOW_GO_ARROW         = (1 << 16)
+    IN_SCREEN_SHOW_GO_ARROW         = (1 << 12),
+    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 13),
+    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 14),
+    IN_SCREEN_TITLE                 = (1 << 15),
+    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 16)
 } e_screen_status;
 
 // Caskey, Damon V.
