@@ -573,6 +573,7 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
+int                 allow_cheats        = -1;                   // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
 int                 forcecheatsoff      = 0;
 int                 nodebugoptions      = 0;
 int                 cheats              = 0;
@@ -44440,6 +44441,10 @@ void menu_options()
 
     screen_status |= IN_SCREEN_OPTIONS_MENU;
     bothnewkeys = 0;
+
+    // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
+    if(allow_cheats == 0){forcecheatsoff = 1; cheats = 0;}
+    if(allow_cheats == 1){forcecheatsoff = 0;}
 
     if (cheats && !forcecheatsoff)
     {
