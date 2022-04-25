@@ -75,8 +75,7 @@ int mapstrings_animation_property(ScriptVariant** varlist, int paramCount)
 		"sub_entity_model_index",
 		"sub_entity_spawn",
 		"sub_entity_summon",
-		"sub_entity_unsummon",
-		"subject_to_gravity",
+		"sub_entity_unsummon"
 		"sync",
 		"weapon_frame"		
 	};
@@ -436,13 +435,6 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 			(*pretvar)->lVal = (LONG)handle->sub_entity_unsummon;
 			break;
 			
-
-		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->subject_to_gravity;
-			break;
-
         default:
 
             printf("Unsupported property.\n");
@@ -927,16 +919,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 			}
 
 			break;
-
-		case _ANIMATION_PROP_SUBJECT_TO_GRAVITY:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->subject_to_gravity = (bool)temp_int;
-			}
-
-			break;
-
+			
         default:
 
             printf("Unsupported property.\n");

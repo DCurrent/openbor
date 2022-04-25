@@ -1296,6 +1296,22 @@ typedef enum
     BIND_OVERRIDE_SPECIAL_PLAYER	= (1 << 4)
 } e_bind_override;
 
+typedef enum e_move_constraint
+{
+    MOVE_CONSTRAINT_NONE                = 0,
+    MOVE_CONSTRAINT_NO_ADJUST_BASE      = (1 << 0),
+    MOVE_CONSTRAINT_NO_HIT_HEAD         = (1 << 1), // True = Pass upward through platforms when entity has valid height set.
+    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 2),
+    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 3),
+    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 4),
+    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 5),
+    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 6),
+    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 7),
+    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 8),
+    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 9),
+    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 10)
+} e_move_constraint;
+
 // Caskey, Damon V.
 // 2013-12-16
 //
@@ -2326,6 +2342,7 @@ typedef struct
 
 	// Enumerated integers
 	e_anim_cancel				cancel;                 // Cancel anims with freespecial. ~~
+    e_move_constraint           move_constraint;        // Subject to gravity, walls, etc.
 
 	// Integers
 	unsigned int				charge_time;            // charge time for an animation. ~~
@@ -2338,10 +2355,9 @@ typedef struct
 	int							sub_entity_unsummon;    // Un-summon the entity
 	int							sync;                   // Synchronize frame to previous animation if they matches
 
-	// Boolean flags.
+    
 	int						    attack_one;             // Attack hits only one target. ~~
-	int						    subject_to_gravity;		// Ignore gravity (same as model level subject_to_gravity). ~~    
-
+	
     // Meta data.
     s_meta_data*                meta_data;              // User defiend data.
     int					        meta_tag;	            // User defined int.
@@ -2737,22 +2753,14 @@ typedef struct
     int namex;
     int namey;
 
-    // movement flags
-    int subject_to_basemap;
-    int subject_to_wall;
-    int subject_to_platform;
-    int subject_to_obstacle;
-    int subject_to_hole;
-    int subject_to_gravity;
-    int subject_to_screen;
-    int subject_to_minz;
-    int subject_to_maxz;
-    int no_adjust_base; // dont change base to 0 automatically
+    /* Movement restriction flags. Subject to screen, wall, hole, hit head, etc. */
+    e_move_constraint move_constraint;
+        
     int instantitemdeath; // no delay before item suicides
     int	hasPlatforms;
     int isSubclassed;
     int backpain;
-    int nohithead; // used to hit or not a platform with head also when you set a height
+    
     int hitwalltype; // wall type to toggle hitwall animations
 
     //Kratus (12-2021) Moved the new added properties to the end of the list for easy searching
@@ -2968,6 +2976,7 @@ typedef struct entity
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
+    e_move_constraint       move_constraint;                    // Subject to basemap, wall, obstacle, hitting head on platforms, etc.
 
 	// Boolean flags.
     int					    arrowon;							// Display arrow icon (parrow<player>) ~~

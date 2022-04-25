@@ -359,6 +359,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_MAP_SHOCK_INDEX, "palette.shock.index");
     LIST_ADD(CMD_MODEL_MODELFLAG, "modelflag");
     LIST_ADD(CMD_MODEL_MOVE, "move");
+    LIST_ADD(CMD_MODEL_MOVE_CONSTRAINT, "move_constraint");
     LIST_ADD(CMD_MODEL_MOVEA, "movea");
     LIST_ADD(CMD_MODEL_MOVEZ, "movez");
     LIST_ADD(CMD_MODEL_MP, "mp");

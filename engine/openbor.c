@@ -9547,43 +9547,21 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         }
         newchar->chainlength            = 4;
         newchar->bounce                 = 1;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_obstacle    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_screen      = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 0;
+        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_constraint         &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "enemy") == 0)
     {
         newchar->type                   = TYPE_ENEMY;
         newchar->bounce                 = 1;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_obstacle    = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 0;
+        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "item") == 0)
     {
         newchar->type                   = TYPE_ITEM;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_obstacle    = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 0;
+        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "obstacle") == 0)
     {
@@ -9598,14 +9576,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
             newchar->aiattack = 0;
         }
         newchar->aimove |= AIATTACK1_NOATTACK;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 0;
+        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "steamer") == 0)
     {
@@ -9628,16 +9600,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 
 		// Note when using as a projectile, most of these
 		// are modified. See knife_spawn and bomb_spawn.
-		newchar->subject_to_hole = 0;
-		newchar->subject_to_gravity = 1;
-		newchar->subject_to_basemap = 0;
-		newchar->subject_to_wall = 0;
-		newchar->subject_to_platform = 0;
-		newchar->subject_to_screen = 0;
-		newchar->subject_to_minz = 1;
-		newchar->subject_to_maxz = 1;
-		newchar->subject_to_platform = 0;
-		newchar->no_adjust_base = 1;
+		newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+		newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
 	}
     // my new types   7-1-2005
     else if(stricmp(value, "pshot") == 0)
@@ -9655,66 +9619,38 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 
 		// Note when using as a projectile, most of these
 		// are modified. See knife_spawn and bomb_spawn.
-        newchar->subject_to_hole                = 0;
-        newchar->subject_to_gravity             = 1;
-        newchar->subject_to_basemap             = 0;
-        newchar->subject_to_wall                = 0;
-        newchar->subject_to_platform            = 0;
-        newchar->subject_to_screen              = 0;
-        newchar->subject_to_minz                = 1;
-        newchar->subject_to_maxz                = 1;
-        newchar->subject_to_platform            = 0;
-        newchar->no_adjust_base                 = 1;
+        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+        newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "trap") == 0)
     {
         newchar->type                   = TYPE_TRAP;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 0;
+        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "text") == 0)   // Used for displaying text/images and freezing the screen
     {
         newchar->type                   = TYPE_TEXTBOX;
-        newchar->subject_to_gravity     = 0;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
+        newchar->move_constraint        &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
     }
     else if(stricmp(value, "endlevel") == 0)   // Used for ending the level when the players reach a certain point
     {
-        newchar->type                   = TYPE_ENDLEVEL;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_obstacle    = 1;
-        newchar->subject_to_gravity     = 1;
+        newchar->type               = TYPE_ENDLEVEL;
+        newchar->move_constraint    |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "npc") == 0)   // NPC type
     {
         newchar->type                   = TYPE_NPC;
         newchar->bounce                 = 1;
-        newchar->subject_to_basemap     = 1;
-        newchar->subject_to_wall        = 1;
-        newchar->subject_to_platform    = 1;
-        newchar->subject_to_hole        = 1;
-        newchar->subject_to_obstacle    = 1;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 0;
+        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "panel") == 0)   // NPC type
     {
         newchar->type                   = TYPE_PANEL;
         newchar->antigravity            = 1.0; //float type
-        newchar->subject_to_gravity     = 1;
-        newchar->no_adjust_base         = 1;
+        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY);
     }
     else
     {
@@ -9745,15 +9681,8 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
             newchar->defense[i].factor = 2.f;
         }
 
-        newchar->subject_to_hole                                = 1;
-        newchar->subject_to_gravity                             = 1;
-        newchar->subject_to_basemap                             = 0;
-        newchar->subject_to_wall                                = 0;
-        newchar->subject_to_platform                            = 0;
-        newchar->subject_to_screen                              = 0;
-        newchar->subject_to_minz                                = 1;
-        newchar->subject_to_maxz                                = 1;
-        newchar->no_adjust_base                                 = 0;
+        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+        newchar->move_constraint &= ~(MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "arrow") == 0) // 7-1-2005 Arrow type
     {
@@ -9767,15 +9696,9 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         {
             newchar->offscreenkill = 200;
         }
-        newchar->subject_to_hole        = 0;
-        newchar->subject_to_gravity     = 1;
-        newchar->subject_to_basemap     = 0;
-        newchar->subject_to_wall        = 0;
-        newchar->subject_to_platform    = 0;
-        newchar->subject_to_screen      = 0;
-        newchar->subject_to_minz        = 1;
-        newchar->subject_to_maxz        = 1;
-        newchar->no_adjust_base         = 1;
+        
+        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+        newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "notgrab") == 0)
     {
@@ -9980,6 +9903,85 @@ void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
     for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
 		newchar->projectilehit |= find_entity_type_from_string(value);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2019-11-22
+* 
+* Accept string input and return 
+* matching constant.
+*/
+e_move_constraint find_move_constraint_from_string(char* value)
+{
+    e_move_constraint result;        
+
+    if(stricmp(value, "none") == 0)
+    {
+        result = MOVE_CONSTRAINT_NONE;
+    }
+    if (stricmp(value, "no_adjust_base") == 0)
+    {
+        result = MOVE_CONSTRAINT_NO_ADJUST_BASE;
+    }
+    else if (stricmp(value, "no_hit_head") == 0)
+    {
+        result = MOVE_CONSTRAINT_NO_HIT_HEAD;
+    }
+    else if (stricmp(value, "subject_to_basemap") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+    }
+    else if (stricmp(value, "subject_to_gravity") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+    }
+    else if (stricmp(value, "subject_to_hole") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+    }
+    else if (stricmp(value, "subject_to_max_z") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+    }
+    else if (stricmp(value, "subject_to_min_z") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+    }
+    else if (stricmp(value, "subject_to_obstacle") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+    }
+    else if (stricmp(value, "subject_to_platform") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+    }
+    else if (stricmp(value, "subject_to_screen") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+    }
+    else if (stricmp(value, "subject_to_wall") == 0)
+    {
+        result = MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+    }
+    else
+    {
+        printf("\n\n Unknown move constraint flag (%s), using 'none'. \n", value);
+    }    
+
+    return result;
+}
+
+void lcmHandleCommandMoveConstraint(ArgList* arglist, s_model* newchar)
+{
+    int i;
+    char* value;
+    newchar->move_constraint = MOVE_CONSTRAINT_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        newchar->move_constraint |= find_move_constraint_from_string(value);
     }
 }
 
@@ -10664,16 +10666,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->candamage                  = -1;
     newchar->hostile                    = -1;
     newchar->projectilehit              = -1;
-    newchar->subject_to_basemap         = -1;
-    newchar->subject_to_wall            = -1;
-    newchar->subject_to_platform        = -1;
-    newchar->subject_to_obstacle        = -1;
-    newchar->subject_to_hole            = -1;
-    newchar->subject_to_gravity         = -1;
-    newchar->subject_to_screen          = -1;
-    newchar->subject_to_minz            = -1;
-    newchar->subject_to_maxz            = -1;
-    newchar->no_adjust_base             = -1;
+    newchar->move_constraint            = MOVE_CONSTRAINT_NONE;
     newchar->pshotno                    = MODEL_INDEX_NONE;
     newchar->project                    = MODEL_INDEX_NONE;
     newchar->dust.fall_land             = MODEL_INDEX_NONE;
@@ -11073,35 +11066,131 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_AIATTACK:
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
                 break;
+            case CMD_MODEL_MOVE_CONSTRAINT:
+                lcmHandleCommandMoveConstraint(&arglist, newchar);
+                break;
             case CMD_MODEL_SUBJECT_TO_BASEMAP:
-                newchar->subject_to_basemap = (0 != GET_INT_ARG(1));
+
+                /* Legacy code allowed -1 or 0 for False.  */
+                if (GET_INT_ARG(1) > 0)
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+                }
+                
                 break;
             case CMD_MODEL_SUBJECT_TO_WALL:
-                newchar->subject_to_wall = (0 != GET_INT_ARG(1));
+
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_HOLE:
-                newchar->subject_to_hole = (0 != GET_INT_ARG(1));
+                
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_PLATFORM:
-                newchar->subject_to_platform = (0 != GET_INT_ARG(1));
+                
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_OBSTACLE:
-                newchar->subject_to_obstacle = (0 != GET_INT_ARG(1));
+                
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_GRAVITY:
-                newchar->subject_to_gravity = (0 != GET_INT_ARG(1));
+                
+                /* Legacy code allowed -1 or 0 for False.  */
+                if (GET_INT_ARG(1) > 0)
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_SCREEN:
-                newchar->subject_to_screen = (0 != GET_INT_ARG(1));
+                
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_MINZ:
-                newchar->subject_to_minz = (0 != GET_INT_ARG(1));
+                
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+                }
+
                 break;
             case CMD_MODEL_SUBJECT_TO_MAXZ:
-                newchar->subject_to_maxz = (0 != GET_INT_ARG(1));
+
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+                }
+
                 break;
             case CMD_MODEL_NO_ADJUST_BASE:
-                newchar->no_adjust_base = (0 != GET_INT_ARG(1));
+
+                /* Legacy code allowed -1 or 0 for False.  */
+                if (GET_INT_ARG(1) > 0)
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+                }
+
                 break;
             case CMD_MODEL_INSTANTITEMDEATH:
                 newchar->instantitemdeath = GET_INT_ARG(1);
@@ -12193,7 +12282,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->projectile				= NULL;
 				newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
-                newanim->subject_to_gravity     = 1;
+                newanim->move_constraint        |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_NONE;
                 newanim->sub_entity_unsummon          = FRAME_NONE;
@@ -12534,7 +12623,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				// Legacy dive attacks. Turn off animation level subject_to_gravity
 				// and then use jumpframe to fly down at an angle.
             case CMD_MODEL_DIVE: 
-                newanim->subject_to_gravity = 0;
+                newanim->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
 
                 // Use jumpframe it to set movement.
 				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -12545,7 +12634,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE1:
-                newanim->subject_to_gravity = 0;
+                newanim->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
 
                 // Use jumpframe to set movement.
 				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -12555,7 +12644,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE2:
-                newanim->subject_to_gravity = 0;
+                newanim->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
 
 				// Use jumpframe to set movement.
 				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -14430,9 +14519,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_UNSUMMONFRAME:
                 newanim->sub_entity_unsummon = GET_FRAME_ARG(1);
                 break;
-            case CMD_MODEL_NOHITHEAD:
-                value = GET_ARG(1);
-                newchar->nohithead = atoi(value);
+            case CMD_MODEL_NOHITHEAD:                               
+                
+                if (GET_INT_ARG(1))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_HIT_HEAD;
+                }
+                else
+                {
+                    newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_HIT_HEAD;
+                }
+
                 break;
             case CMD_MODEL_AT_SCRIPT:
                 if(!scriptbuf[0])  // if empty, paste the main function text here
@@ -20427,15 +20524,9 @@ void ent_default_init(entity *e)
     case TYPE_NONE:
         e->nograb = 1;
         e->nograb_default = e->nograb;
-        if(e->modeldata.subject_to_gravity < 0)
-        {
-            e->modeldata.subject_to_gravity = 1;
-        }
+        
         //e->base=e->position.y; //complained?
-        if(e->modeldata.no_adjust_base < 0)
-        {
-            e->modeldata.no_adjust_base = 1;
-        }
+        e->modeldata.move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY);
 
         if(validanim(e, ANI_WALK))
         {
@@ -20474,11 +20565,11 @@ void ent_default_init(entity *e)
         e->modeldata.multiple = 0;
     }
 
-    if(e->modeldata.subject_to_platform > 0 && (other = check_platform_below(e->position.x, e->position.z, e->position.y, e)))
+    if(e->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && (other = check_platform_below(e->position.x, e->position.z, e->position.y, e)))
     {
         e->base = other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
     }
-    else if(e->modeldata.subject_to_wall > 0 && (wall = checkwall_below(e->position.x, e->position.z, T_MAX_CHECK_ALTITUDE)) >= 0)
+    else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL && (wall = checkwall_below(e->position.x, e->position.z, T_MAX_CHECK_ALTITUDE)) >= 0)
     {
         if(level->walls[wall].height > MAX_WALL_HEIGHT)
         {
@@ -21003,46 +21094,9 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.multiple             = oldmodel->multiple;
     }
-    if(ent->modeldata.subject_to_basemap < 0)
-    {
-        ent->modeldata.subject_to_basemap   = oldmodel->subject_to_basemap;
-    }
-    if(ent->modeldata.subject_to_wall < 0)
-    {
-        ent->modeldata.subject_to_wall      = oldmodel->subject_to_wall;
-    }
-    if(ent->modeldata.subject_to_platform < 0)
-    {
-        ent->modeldata.subject_to_platform  = oldmodel->subject_to_platform;
-    }
-    if(ent->modeldata.subject_to_obstacle < 0)
-    {
-        ent->modeldata.subject_to_obstacle  = oldmodel->subject_to_obstacle;
-    }
-    if(ent->modeldata.subject_to_hole < 0)
-    {
-        ent->modeldata.subject_to_hole      = oldmodel->subject_to_hole;
-    }
-    if(ent->modeldata.subject_to_gravity < 0)
-    {
-        ent->modeldata.subject_to_gravity   = oldmodel->subject_to_gravity;
-    }
-    if(ent->modeldata.subject_to_screen < 0)
-    {
-        ent->modeldata.subject_to_screen    = oldmodel->subject_to_screen;
-    }
-    if(ent->modeldata.subject_to_minz < 0)
-    {
-        ent->modeldata.subject_to_minz      = oldmodel->subject_to_minz;
-    }
-    if(ent->modeldata.subject_to_maxz < 0)
-    {
-        ent->modeldata.subject_to_maxz      = oldmodel->subject_to_maxz;
-    }
-    if(ent->modeldata.no_adjust_base < 0)
-    {
-        ent->modeldata.no_adjust_base       = oldmodel->no_adjust_base;
-    }
+
+    ent->modeldata.move_constraint = oldmodel->move_constraint;
+      
     if(ent->modeldata.aimove == AIMOVE1_NONE)
     {
         ent->modeldata.aimove               = oldmodel->aimove;
@@ -22591,7 +22645,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
 
     // -----------bounds checking---------------
     // Subjec to Z and out of bounds? Return to level!
-    if (ent->modeldata.subject_to_minz > 0)
+    if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z)
     {
         if(zdir && z < PLAYER_MIN_Z)
         {
@@ -22599,7 +22653,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
         }
     }
 
-    if (ent->modeldata.subject_to_maxz > 0)
+    if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z)
     {
         if(zdir && z > PLAYER_MAX_Z)
         {
@@ -22611,7 +22665,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     // Kratus (29-04-21) Reduced the "screen checking" range from 10 to 5 to avoid the entities to stuck in the edge of the screen
     // This change was made because the "common_trymove" function also has another "screen checking" with a range of 10 too
     // If the "testmove" function has a equal or bigger range than the "common_trymove" function, sometimes the entities will stuck
-    if(ent->modeldata.subject_to_screen > 0)
+    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_SCREEN)
     {
         if(x < advancex + 5)
         {
@@ -22625,7 +22679,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of bounds checking-----------
 
     //-------------hole checking ---------------------
-    if(ent->modeldata.subject_to_hole > 0)
+    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE)
     {
         if(checkhole(x, z) && checkwall_index(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
         {
@@ -22635,7 +22689,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of hole checking---------------
 
     //--------------obstacle checking ------------------
-    if(ent->modeldata.subject_to_obstacle > 0)
+    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE)
     {
         if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
@@ -22657,7 +22711,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     }
 
     // Check for obstacles with platform code and adjust base accordingly
-    if(ent->modeldata.subject_to_platform > 0 && (other = check_platform_between(x, z, ent->position.y, ent->position.y + heightvar, ent)) )
+    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && (other = check_platform_between(x, z, ent->position.y, ent->position.y + heightvar, ent)) )
     {
         platbelow = check_platform_below(x, z, ent->position.y+T_WALKOFF, ent);
         if ( !platbelow ) return 0;
@@ -22670,7 +22724,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(ent->modeldata.subject_to_wall > 0 && (wall = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > ent->position.y)
+    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL && (wall = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > ent->position.y)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
@@ -24537,7 +24591,7 @@ void check_gravity(entity *e)
 
         if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= _time)
         {
-            if(heightvar && self->modeldata.subject_to_platform > 0 && self->velocity.y > 0)
+            if(heightvar && self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && self->velocity.y > 0)
             {
                 other = check_platform_above_entity(self);
             }
@@ -24546,7 +24600,7 @@ void check_gravity(entity *e)
                 other = NULL;
             }
 
-            if( other && other->position.y <= self->position.y + heightvar && !other->modeldata.nohithead)
+            if( other && other->position.y <= self->position.y + heightvar && !(other->modeldata.move_constraint & MOVE_CONSTRAINT_NO_HIT_HEAD))
             {
                 if(self->hithead == NULL) // bang! Hit the ceiling.
                 {
@@ -24561,7 +24615,7 @@ void check_gravity(entity *e)
             }
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
-            if(!self->animation->subject_to_gravity)
+            if(!(self->animation->move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY))
             {
                 gravity = 0;
             }
@@ -24569,7 +24623,7 @@ void check_gravity(entity *e)
             {
                 gravity = (level ? level->gravity : default_level_gravity) * (1.0 - self->modeldata.antigravity);
             }
-            if(self->modeldata.subject_to_gravity > 0)
+            if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY)
             {
                 self->velocity.y += gravity * 100.0 / GAME_SPEED;
             }
@@ -24856,7 +24910,7 @@ void check_ai()
 
         // Used so all entities can have a spawn animation, and then just changes to the idle animation when done
         // move here to so players wont get stuck
-        if((self->animation == self->modeldata.animation[ANI_SPAWN] || self->animation == self->modeldata.animation[ANI_RESPAWN]) && !self->animating /*&& (!inair(self)||!self->modeldata.subject_to_gravity)*/)
+        if((self->animation == self->modeldata.animation[ANI_SPAWN] || self->animation == self->modeldata.animation[ANI_RESPAWN]) && !self->animating /*&& (!inair(self)||!(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY))*/)
         {
             set_idle(self);
         }
@@ -24928,7 +24982,7 @@ void adjust_base(entity *e, entity **pla)
         self->landed_on_platform = NULL;
     }
 
-    if(self->modeldata.subject_to_platform > 0)
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
     {
         other = check_platform_below_entity(self);
         if(!other && self->landed_on_platform)
@@ -24969,14 +25023,14 @@ void adjust_base(entity *e, entity **pla)
     *pla = other;
 
     // adjust base
-    if(self->modeldata.no_adjust_base <= 0)
+    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE))
     {
         seta = (float)((self->animation->move[self->animpos]->base) ? (self->animation->move[self->animpos]->base) : (-1));
 
         // Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
         //wall = checkwall_below(self->position.x, self->position.z);
         //find a wall below us
-        if(self->modeldata.subject_to_wall > 0)
+        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
         {
             wall = checkwall_below(self->position.x, self->position.z, T_MAX_CHECK_ALTITUDE);
         }
@@ -24985,11 +25039,14 @@ void adjust_base(entity *e, entity **pla)
             wall = -1;
         }
 
-        //printf("stb:%d\n",self->modeldata.subject_to_basemap);
-        if(self->modeldata.subject_to_basemap > 0) maxbase = check_basemap(self->position.x, self->position.z);
+        //printf("stb:%d\n",self->modeldata.move_constraint);
+        if (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP)
+        {
+            maxbase = check_basemap(self->position.x, self->position.z);
+        }
 
-        if(self->modeldata.subject_to_hole > 0 &&
-           ( (self->modeldata.subject_to_basemap > 0 && maxbase == T_MIN_BASEMAP) || (self->modeldata.subject_to_basemap <= 0) )
+        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE &&
+           ((self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP && maxbase == T_MIN_BASEMAP) || !(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP))
            )
         {
             hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
@@ -25024,8 +25081,7 @@ void adjust_base(entity *e, entity **pla)
                 self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
             }
             else if(wall >= 0)
-            {
-                //self->modeldata.subject_to_wall &&//we move this up to avoid some checking time
+            {                
                 self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + level->walls[wall].height;
             }
             else if(seta >= 0)
@@ -25978,7 +26034,10 @@ void display_ents()
                 other = check_platform_below(e->position.x, e->position.z, e->position.y+eheight, e);
                 wall = checkwall_index(e->position.x, e->position.z);
 
-                if(e->modeldata.subject_to_basemap > 0) basemap = check_basemap(e->position.x, e->position.z);
+                if (e->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP)
+                {
+                    basemap = check_basemap(e->position.x, e->position.z);
+                }
 
                 if(f < sprites_loaded)
                 {
@@ -29616,8 +29675,9 @@ int checkgrab(entity *other, s_attack *attack)
 
 int arrow_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object)
 {
-    self->modeldata.no_adjust_base = 0;
-    self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_basemap = self->modeldata.subject_to_gravity = 1;
+    self->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+    self->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+
     if( common_takedamage(other, attack, 0, defense_object) && self->dead)
     {
         return 1;
@@ -30951,7 +31011,7 @@ int common_trymove(float xdir, float zdir)
     z = self->position.z + zdir;
     // -----------bounds checking---------------
     // Subjec to Z and out of bounds? Return to level!
-    if (self->modeldata.subject_to_minz > 0)
+    if (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z)
     {
         if(z < PLAYER_MIN_Z)
         {
@@ -30960,7 +31020,7 @@ int common_trymove(float xdir, float zdir)
         }
     }
 
-    if (self->modeldata.subject_to_maxz > 0)
+    if (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z)
     {
         if(z > PLAYER_MAX_Z)
         {
@@ -30970,7 +31030,7 @@ int common_trymove(float xdir, float zdir)
     }
 
     // screen checking
-    if(self->modeldata.subject_to_screen > 0)
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_SCREEN)
     {
         if(x < advancex + 10)
         {
@@ -30995,7 +31055,7 @@ int common_trymove(float xdir, float zdir)
 
     //-------------hole checking ---------------------
     // Don't walk into a hole or walk off platforms into holes
-    if( self->modeldata.subject_to_hole > 0 && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
+    if( self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
             (!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
             !(self->modeldata.aimove & AIMOVE2_IGNOREHOLES))
     {
@@ -31026,7 +31086,7 @@ int common_trymove(float xdir, float zdir)
     //-----------end of hole checking---------------
 
     //--------------obstacle checking ------------------
-    if(self->modeldata.subject_to_obstacle > 0 /*&& !inair(self)*/)
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE /*&& !inair(self)*/)
     {
         int hit = 0;
 
@@ -31077,7 +31137,7 @@ int common_trymove(float xdir, float zdir)
     }
 
     // Check for obstacles with platform code and adjust base accordingly
-    if(self->modeldata.subject_to_platform > 0 )
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
     {
         int hit = 0;
 
@@ -31112,7 +31172,7 @@ int common_trymove(float xdir, float zdir)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(self->modeldata.subject_to_wall > 0)
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
     {
         int hit = 0;
 
@@ -31968,8 +32028,8 @@ int checkpathblocked()
         }
 
         //be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
-        if((self->modeldata.subject_to_maxz && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->position.z > PLAYER_MAX_Z) ||
-                (self->modeldata.subject_to_minz && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->position.z < PLAYER_MIN_Z) )
+        if((self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->position.z > PLAYER_MAX_Z) ||
+                (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->position.z < PLAYER_MIN_Z) )
         {
             self->velocity.z = -self->velocity.z;
             self->pathblocked = 0;
@@ -32901,14 +32961,14 @@ int arrow_move()
 // 2018-04-07
 //
 // Find out if there is a wall blocking target entity, and
-// if so return its array key. Returns 0 if no blocking
+// if so return its array key. Returns -1 if no blocking
 // wall is found.
 int check_block_wall(entity *entity)
 {
     int wall = -1;
 
     // Target entity affected by walls?
-    if(entity->modeldata.subject_to_wall)
+    if(entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
     {
         // Get wall number at our X and Z axis (if any).
         wall = checkwall_index(entity->position.x, entity->position.z);
@@ -32943,7 +33003,7 @@ entity *check_block_obstacle(entity *ent)
     int height;
 
     // Target entity affected by obstacles?
-    if(ent->modeldata.subject_to_platform)
+    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
     {
         // Get the height. if entity does not have an
         // animation height defined, then use its
@@ -33007,9 +33067,8 @@ int projectile_wall_deflect(entity *ent)
             toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
 
             // Reset base detection
-            ent->modeldata.subject_to_basemap = 1;
-            ent->modeldata.no_adjust_base = 0;
-            ent->modeldata.subject_to_hole = 1;
+            ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE);
+            ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
             ent->base = 0;
 
             // Use default attack values.
@@ -33079,10 +33138,7 @@ int bomb_move(entity *ent)
 		ent->takeaction = bomb_explode;
 
 		// Explosions are subject to most terrain barriers.
-		ent->modeldata.subject_to_wall = 1;
-		ent->modeldata.subject_to_platform = 1;
-		ent->modeldata.subject_to_hole = 1;
-		ent->modeldata.subject_to_basemap = 1;
+		ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
 
 		// Stop movement. We'll still need to turn off gravity
 		// in explosion animation or we'll just start falling
@@ -33105,12 +33161,12 @@ int bomb_move(entity *ent)
 		if (ent->toexplode & EXPLODE_DETONATE && validanim(ent, ANI_ATTACK2))
 		{
 			ent_set_anim(ent, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
-			ent->animation->subject_to_gravity = 0;		
+			ent->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
 		}
 		else if (validanim(ent, ANI_ATTACK1))
 		{
 			ent_set_anim(ent, ANI_ATTACK1, 0);
-			ent->animation->subject_to_gravity = 0;
+			ent->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
 		}		
 	}
     return 1;
@@ -33439,11 +33495,11 @@ int common_move()
         }
 
         //fix 2d level panic, or should this be moved to the very beginning?
-        if(self->modeldata.subject_to_minz > 0 && self->destz < PLAYER_MIN_Z)
+        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z && self->destz < PLAYER_MIN_Z)
         {
             self->destz = PLAYER_MIN_Z;
         }
-        if(self->modeldata.subject_to_maxz > 0 && self->destz > PLAYER_MAX_Z)
+        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z && self->destz > PLAYER_MAX_Z)
         {
             self->destz = PLAYER_MAX_Z;
         }
@@ -35809,7 +35865,7 @@ void player_think()
 
 
     // Check if entity is under a platform
-    /*if(self->modeldata.subject_to_platform > 0 && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
+    /*if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
         self->idling = IDLING_NONE;
@@ -37175,11 +37231,8 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     }
 
 	// Set terrain behavior flags.
-	ent->modeldata.subject_to_wall = 1;
-	ent->modeldata.subject_to_platform = 1;
-	ent->modeldata.subject_to_hole = 1;
-	ent->modeldata.subject_to_gravity = 0;
-	ent->modeldata.no_adjust_base  = 0;
+	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+    ent->modeldata.move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_NO_ADJUST_BASE);
     
 	// Execute the projectile's on spawn event.
 	execute_onspawn_script(ent);
@@ -37352,13 +37405,9 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	// candamage settings, copy them from parent.
 	copy_faction_data(ent, parent);
     
-	ent->modeldata.no_adjust_base = 0;
-	ent->modeldata.subject_to_basemap = 1;
-	ent->modeldata.subject_to_wall = 1;
-	ent->modeldata.subject_to_platform = 1;
-	ent->modeldata.subject_to_hole = 1;
-	ent->modeldata.subject_to_gravity = 1;
-    
+	ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+	
 	// Execute the projectile's on spawn event.
 	execute_onspawn_script(ent);
 	
@@ -37514,12 +37563,8 @@ int star_spawn(entity *parent, s_projectile *projectile)
 		copy_faction_data(ent, parent);
 
 		// Basic terrian property setup.
-		ent->modeldata.subject_to_basemap = 1;
-		ent->modeldata.subject_to_wall = 1;
-		ent->modeldata.subject_to_platform = 1;
-		ent->modeldata.subject_to_hole = 1;
-		ent->modeldata.subject_to_gravity = 1;
-        ent->modeldata.no_adjust_base = 0;
+		ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+		ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
 
         ent->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
 		ent->projectile_prime = projectile_prime;
@@ -37571,7 +37616,7 @@ void steam_spawn(float x, float z, float a)
 
     e->spawntype = SPAWN_TYPE_STEAM;
     e->base = a;
-    e->modeldata.no_adjust_base = 1;
+    e->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
     e->think = steam_think;
 
 	// Execute the steams's on spawn event.

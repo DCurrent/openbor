@@ -4708,7 +4708,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_no_adjust_base:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.no_adjust_base;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE);
         break;
     }
     case _ep_noaicontrol:
@@ -4738,7 +4738,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_nohithead:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.nohithead;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_HIT_HEAD);
         break;
     }
     case _ep_nolife:
@@ -5195,55 +5195,55 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_subject_to_basemap:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_basemap;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP);
         break;
     }
     case _ep_subject_to_gravity:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_gravity;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY);
         break;
     }
     case _ep_subject_to_hole:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_hole;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE);
         break;
     }
     case _ep_subject_to_maxz:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_maxz;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z);
         break;
     }
     case _ep_subject_to_minz:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_minz;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
         break;
     }
     case _ep_subject_to_obstacle:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_obstacle;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE);
         break;
     }
     case _ep_subject_to_platform:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_platform;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
         break;
     }
     case _ep_subject_to_screen:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_screen;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_SCREEN);
         break;
     }
     case _ep_subject_to_wall:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.subject_to_wall;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL);
         break;
     }
     case _ep_subtype:
@@ -6601,7 +6601,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.no_adjust_base = (LONG)ltemp;
+            /* Legacy code allowed -1 or 0 for False.  */
+            if (ltemp > 0)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+            }
         }
         break;
     }
@@ -6641,7 +6649,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.nohithead = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_HIT_HEAD;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_HIT_HEAD;
+            }
         }
         break;
     }
@@ -7098,7 +7113,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_basemap = (LONG)ltemp;
+            /* Legacy code allowed -1 or 0 for False.  */
+            if (ltemp > 0)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+            }            
         }
         break;
     }
@@ -7106,15 +7129,30 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_gravity = (LONG)ltemp;
+            /* Legacy code allowed -1 or 0 for False.  */
+            if (ltemp > 0)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+            }
         }
         break;
     }
     case _ep_subject_to_hole:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            ent->modeldata.subject_to_hole = (LONG)ltemp;
+        {            
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+            }
         }
         break;
     }
@@ -7122,7 +7160,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_maxz = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+            }
         }
         break;
     }
@@ -7130,7 +7175,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_minz = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+            }
         }
         break;
     }
@@ -7138,23 +7190,46 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_obstacle = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+            }
         }
+        
         break;
     }
     case _ep_subject_to_platform:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_platform = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+            }
         }
+        
         break;
     }
     case _ep_subject_to_screen:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_screen = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+            }
         }
         break;
     }
@@ -7162,7 +7237,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.subject_to_wall = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+            }
+            else
+            {
+                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+            }
         }
         break;
     }
