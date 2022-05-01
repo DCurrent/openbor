@@ -28504,7 +28504,7 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
     /* Debuging info */
     //attack_dump_object(attack_object);
 
-    target_entity->normaldamageflipdir = DIRECTION_ADJUST_OPPOSITE;
+    target_entity->normaldamageflipdir = -1;
     
     int pain_check = 0;
 
@@ -35425,7 +35425,7 @@ void player_jump_check()
                     self->attacking = ATTACKING_ACTIVE;
 
                     // Kratus (10-2021) Add a option to kill or not the xyz movement
-                    if(!self->modeldata.jumpspecial & 1)
+                    if(!(self->modeldata.jumpspecial & 1))
                     {
                         self->velocity.x = self->velocity.z = 0; // Kill movement when the special starts
                         self->velocity.y = 0;
