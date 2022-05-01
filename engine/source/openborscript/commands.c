@@ -114,6 +114,7 @@ List *createModelCommandList(void)
         LIST_ADD(CMD_MODEL_AGGRESSION, "aggression");
     LIST_ADD(CMD_MODEL_AIATTACK, "aiattack");
     LIST_ADD(CMD_MODEL_AIMOVE, "aimove");
+    LIST_ADD(CMD_MODEL_AIR_CONTROL, "air_control");
     LIST_ADD(CMD_MODEL_AIRONLY, "aironly");
     LIST_ADD(CMD_MODEL_ALPHA, "alpha");
     LIST_ADD(CMD_MODEL_ALPHAMASK, "alphamask");

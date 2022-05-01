@@ -9908,6 +9908,486 @@ void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
 
 /*
 * Caskey, Damon V.
+* 2022-04-26
+* 
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_x air_control_interpret_to_legacy_jumpmove_x(e_air_control air_control_value)
+{
+    e_air_control_legacy_x result = AIR_CONTROL_LEGACY_X_NONE;
+
+    if (air_control_value & AIR_CONTROL_JUMP_TURN)
+    {
+        result |= AIR_CONTROL_LEGACY_X_FLIP;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_X_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_X_ADJUST;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_X_MOVE)
+    {
+        result |= AIR_CONTROL_LEGACY_X_MOVE;
+    }       
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_z air_control_interpret_to_legacy_jumpmove_z(e_air_control air_control_value)
+{
+    e_air_control_legacy_z result = AIR_CONTROL_LEGACY_Z_NONE;
+    
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+    
+    if (air_control_value & AIR_CONTROL_JUMP_Z_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_ADJUST;
+    }
+    
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_TURN && air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result = AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_x air_control_interpret_to_legacy_walkoffmove_x(e_air_control air_control_value)
+{
+    e_air_control_legacy_x result = AIR_CONTROL_LEGACY_X_NONE;
+
+    if (air_control_value & AIR_CONTROL_WALKOFF_TURN)
+    {
+        result |= AIR_CONTROL_LEGACY_X_FLIP;
+    }
+
+    if (air_control_value & AIR_CONTROL_WALKOFF_X_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_X_ADJUST;
+    }
+
+    if (air_control_value & AIR_CONTROL_WALKOFF_X_MOVE)
+    {
+        result |= AIR_CONTROL_LEGACY_X_MOVE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_control air_control_value)
+{
+    e_air_control_legacy_z result = AIR_CONTROL_LEGACY_Z_NONE;
+
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_Z_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_ADJUST;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_TURN && air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result = AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+* 
+* Interpret legacy Jumpmove commands into
+* air control bits per orginal documentaiton.
+*
+* low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move                 
+*/
+e_air_control air_control_interpret_from_legacy_jumpmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_X_NONE:
+
+        air_control_value &= ~(AIR_CONTROL_JUMP_TURN | AIR_CONTROL_JUMP_X_ADJUST | AIR_CONTROL_JUMP_X_MOVE);
+        break;
+
+    case AIR_CONTROL_LEGACY_X_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST:
+
+        air_control_value |= AIR_CONTROL_JUMP_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_JUMP_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_MOVE:
+    case AIR_CONTROL_LEGACY_X_MOVE_ALT:
+
+        air_control_value |= AIR_CONTROL_JUMP_X_MOVE;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP:
+    
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_JUMP_X_MOVE;
+        break;
+
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_X_MOVE_ALT)
+        {
+            air_control_value |= AIR_CONTROL_JUMP_TURN;
+            air_control_value |= AIR_CONTROL_JUMP_X_MOVE;
+        }
+
+        break;
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* See interpret_legacy_jumpmove_x();
+*/ 
+e_air_control air_control_interpret_from_legacy_jumpmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_Z_NONE:
+
+        air_control_value &= ~(AIR_CONTROL_JUMP_TURN | AIR_CONTROL_JUMP_Z_ADJUST | AIR_CONTROL_JUMP_Z_INITIAL);
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM:
+
+        air_control_value |= AIR_CONTROL_JUMP_Z_INITIAL;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_ADJUST:
+    
+        air_control_value |= AIR_CONTROL_JUMP_Z_INITIAL;
+        air_control_value |= AIR_CONTROL_JUMP_Z_ADJUST;
+        break; 
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_ADJUST:
+
+        air_control_value |= AIR_CONTROL_JUMP_Z_INITIAL;
+        air_control_value |= AIR_CONTROL_JUMP_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_JUMP_Z_MOVE;
+
+        break;
+    
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP)
+        {
+            air_control_value |= AIR_CONTROL_JUMP_TURN;
+            air_control_value |= AIR_CONTROL_JUMP_Z_MOVE;
+        }
+
+        break;
+    
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Interpret legacy walkmove commands into
+* air control bits per orginal documentaiton.
+*
+* low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+*/
+e_air_control air_control_interpret_from_legacy_walkoffmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_X_NONE:
+
+        air_control_value &= ~(AIR_CONTROL_WALKOFF_TURN | AIR_CONTROL_WALKOFF_X_ADJUST);
+        break;
+
+    case AIR_CONTROL_LEGACY_X_FLIP:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_TURN;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST_AND_FLIP:
+    case AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_TURN;
+        air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_MOVE:
+    case AIR_CONTROL_LEGACY_X_MOVE_ALT:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        break;
+
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_X_MOVE_ALT)
+        {
+            air_control_value |= AIR_CONTROL_WALKOFF_TURN;
+            air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        }
+
+        break;
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Interpret legacy walkmove commands into
+* air control bits per orginal documentaiton.
+*
+* low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+*/
+e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_Z_NONE:
+
+        air_control_value &= ~AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_ADJUST:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_ADJUST:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+
+        break;
+
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP)
+        {
+            air_control_value |= AIR_CONTROL_JUMP_TURN;
+            air_control_value |= AIR_CONTROL_JUMP_Z_MOVE;
+        }
+
+        break;
+
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Accept string input and return
+* matching constant.
+*/
+e_air_control find_air_control_from_string(char* value)
+{
+    e_air_control result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = AIR_CONTROL_NONE;
+    }
+    if (stricmp(value, "jump_disable") == 0)
+    {
+        result = AIR_CONTROL_JUMP_DISABLE;
+    }
+    else if (stricmp(value, "jump_turn") == 0)
+    {
+        result = AIR_CONTROL_JUMP_TURN;
+    }
+    else if (stricmp(value, "jump_x_adjust") == 0)
+    {
+        result = AIR_CONTROL_JUMP_X_ADJUST;
+    }
+    else if (stricmp(value, "jump_x_move") == 0)
+    {
+        result = AIR_CONTROL_JUMP_X_MOVE;
+    }
+    else if (stricmp(value, "jump_x_stop") == 0)
+    {
+        result = AIR_CONTROL_JUMP_X_STOP;
+    }
+    else if (stricmp(value, "jump_y_stop") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Y_STOP;
+    }
+    else if (stricmp(value, "jump_z_adjust") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_ADJUST;
+    }
+    else if (stricmp(value, "jump_z_initial") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_INITIAL;
+    }
+    else if (stricmp(value, "jump_z_move") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_MOVE;
+    }
+    else if (stricmp(value, "jump_z_stop") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_STOP;
+    }
+    else if (stricmp(value, "walkoff_turn") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_TURN;
+    }
+    else if (stricmp(value, "walkoff_x_adjust") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_X_ADJUST;
+    }
+    else if (stricmp(value, "walkoff_x_move") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_X_MOVE;
+    }
+    else if (stricmp(value, "walkoff_x_stop") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_X_STOP;
+    }
+    else if (stricmp(value, "walkoff_z_adjust") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_Z_ADJUST;
+    }
+    else if (stricmp(value, "walkoff_z_move") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_Z_MOVE;
+    }
+    else if (stricmp(value, "walkoff_z_stop") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_Z_STOP;
+    }
+    else
+    {
+        printf("\n\n Unknown air move flag (%s), using 'none'. \n", value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Populate air control model property
+* from text arguments.
+*/
+void lcmHandleCommandAirControl(ArgList* arglist, s_model* newchar)
+{
+    int i;
+    char* value;
+    newchar->air_control = AIR_CONTROL_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        newchar->air_control |= find_air_control_from_string(value);
+    }
+}
+
+/*
+* Caskey, Damon V.
 * 2019-11-22
 * 
 * Accept string input and return 
@@ -11538,14 +12018,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_JUMPHEIGHT:
                 newchar->jumpheight = GET_FLOAT_ARG(1);
                 break;
+
+            case CMD_MODEL_AIR_CONTROL:
+                
+                lcmHandleCommandAirControl(&arglist, newchar);
+                break;
+
             case CMD_MODEL_JUMPMOVE:
-                newchar->jumpmovex = GET_INT_ARG(1);
-                newchar->jumpmovez = GET_INT_ARG(2);
+                
+                newchar->air_control = air_control_interpret_from_legacy_jumpmove_x(newchar->air_control, GET_INT_ARG(1));
+                newchar->air_control = air_control_interpret_from_legacy_jumpmove_z(newchar->air_control, GET_INT_ARG(2));                
                 break;
+
             case CMD_MODEL_WALKOFFMOVE:
-                newchar->walkoffmovex = GET_INT_ARG(1);
-                newchar->walkoffmovez = GET_INT_ARG(2);
+
+                newchar->air_control = air_control_interpret_from_legacy_walkoffmove_x(newchar->air_control, GET_INT_ARG(1));
+                newchar->air_control = air_control_interpret_from_legacy_walkoffmove_z(newchar->air_control, GET_INT_ARG(2));;
                 break;
+
             case CMD_MODEL_KNOCKDOWNCOUNT:
                 newchar->knockdowncount = GET_FLOAT_ARG(1);
                 break;
@@ -24647,7 +25137,7 @@ void check_gravity(entity *e)
             {
                 execute_onmovea_script(self);    //Move A event.
             }
-
+                       
             if( self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > T_WALKOFF )
             {
                 entity *cplat = check_platform_below(self->position.x,self->position.z-1.0,self->position.y,self);
@@ -31460,17 +31950,35 @@ int common_attack()
 // return 1 if jump
 int common_try_jump()
 {
-    float xdir, zdir;
-    int wall, j = 0;
-    float rmin, rmax;
+#define COMMON_TRY_JUMP_DEFAULT 1
+#define COMMON_TRY_JUMP_RUN 2
 
-    if(validanim(self, ANI_JUMP)) //Can jump?
+    float xdir = 0.0;
+    float zdir = 0.0;
+    int wall = 0;
+    int to_jump = 0;
+    float rmin = 0.0;
+    float rmax = 0.0;
+    float initial_z_velocity = 0.0;
+
+    e_animations jump_animation = ANI_JUMP;
+
+    /*
+    * If we can't jump at all, return false now.
+    */
+
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE)
     {
-        //Check to see if there is a wall within jumping distance and within a jumping height
+        return 0;
+    }
+
+    if(validanim(self, ANI_JUMP))
+    {        
         xdir = 0;
         wall = -1;
         rmin = (float)self->modeldata.animation[ANI_JUMP]->range.x.min;
         rmax = (float)self->modeldata.animation[ANI_JUMP]->range.x.max;
+        
         if(self->direction == DIRECTION_RIGHT)
         {
             xdir = self->position.x + rmin;
@@ -31479,8 +31987,14 @@ int common_try_jump()
         {
             xdir = self->position.x - rmin;
         }
-        //check z jump
-        if(self->modeldata.jumpmovez)
+
+        /*
+        * If we can Z jump, apply velocity to ZDir.
+        * This means our checks below will have a
+        * bit of lateral (z) range.
+        */
+
+        if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
         {
             zdir = self->position.z + self->velocity.z;
         }
@@ -31489,34 +32003,39 @@ int common_try_jump()
             zdir = self->position.z;
         }
 
+        /* Check for obstruction in range of JUMP. */
+
         if( (wall = checkwall_below(xdir, zdir, T_MAX_CHECK_ALTITUDE)) >= 0 &&
                 level->walls[wall].height <= self->position.y + rmax &&
                 !inair(self) && self->position.y < level->walls[wall].height  )
         {
-            j = 1;
+            to_jump = COMMON_TRY_JUMP_DEFAULT;
         }
         else if(checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) &&
                 checkwall_index(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
                 check_platform (self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir, self) == NULL &&
                 !checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? rmax : -rmax), zdir))
         {
-            j = 1;
+            to_jump = COMMON_TRY_JUMP_DEFAULT;
         }
     }
 
     /*
-    Damon V. Caskey
-    03292010
-    AI can will check its RUNJUMP range if JUMP can't reach. Code is pretty redundant,
-    can probably be moved to a function later.
+    * Caskey, Damon V.
+    * 2010-03-29 
+    * 
+    * AI will check its RUNJUMP range if JUMP 
+    * check failed. Code is pretty redundant, 
+    * should probably move to a function later.
     */
-    if(!j && validanim(self, ANI_RUNJUMP))														//Jump check failed and can run jump?
+
+    if(!to_jump && validanim(self, ANI_RUNJUMP))														
     {
-        //Check for wall in range of RUNJUMP.
         xdir = 0;
         wall = -1;
         rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.x.min;
         rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.x.max;
+        
         if(self->direction == DIRECTION_RIGHT)
         {
             xdir = self->position.x + rmin;
@@ -31525,8 +32044,14 @@ int common_try_jump()
         {
             xdir = self->position.x - rmin;
         }
-        //check z jump
-        if(self->modeldata.jumpmovez)
+        
+        /* 
+        * If we can Z jump, apply velocity to ZDir.
+        * This means our checks below will have a
+        * bit of lateral (z) range.
+        */ 
+
+        if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
         {
             zdir = self->position.z + self->velocity.z;
         }
@@ -31535,54 +32060,73 @@ int common_try_jump()
             zdir = self->position.z;
         }
 
+        /* Check for obstruction in range of RUNJUMP. */
         if( (wall = checkwall_below(xdir, zdir, T_MAX_CHECK_ALTITUDE)) >= 0 &&
                 level->walls[wall].height <= self->position.y + rmax &&
                 !inair(self) && self->position.y < level->walls[wall].height  )
         {
-            j = 2;																				//Set to perform runjump.
-        }
-        //Check for pit in range of RUNJUMP.
+            to_jump = COMMON_TRY_JUMP_RUN;
+        }        
         else if(checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) &&
                 checkwall_index(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
                 check_platform (self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir, self) == NULL &&
                 !checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? rmax : -rmax), zdir))
         {
-            j = 2;																				//Set to perform runjump.
+            to_jump = COMMON_TRY_JUMP_RUN;																				
         }
     }
 
-    if(j)
+    /*
+    * Now select the appropriate animation
+    * and send data to tryjump.
+    */
+
+    if(to_jump)
     {
-        if(self->running || j == 2)
+        if(self->running || to_jump == COMMON_TRY_JUMP_RUN)
         {
-            if(validanim(self, ANI_RUNJUMP))														//Running or only within range of RUNJUMP?
+            if(validanim(self, ANI_RUNJUMP))														
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_RUNJUMP);
+                jump_animation = ANI_RUNJUMP;
             }
             else if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
+                jump_animation = ANI_FORWARDJUMP;
             }
             else
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                jump_animation = ANI_JUMP;
             }
         }
         else
         {
             if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
+                jump_animation = ANI_FORWARDJUMP;
             }
             else
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                jump_animation = ANI_JUMP;
             }
         }
+
+        if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
+        {
+            initial_z_velocity = self->velocity.z;
+        }
+        else
+        {
+            initial_z_velocity = 0.0;
+        }
+
+        tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed* self->modeldata.runjumpdist, initial_z_velocity, jump_animation);
 
         return 1;
     }
     return 0;
+
+#undef COMMON_TRY_JUMP_DEFAULT
+#undef COMMON_TRY_JUMP_RUN
 }
 
 //test if direction is available for anim_up
@@ -34718,7 +35262,7 @@ void common_prejump()
 }
 
 
-void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
+void tryjump(float jumpv, float jumpx, float jumpz, e_animations animation_id)
 {
     self->jump.velocity.y = jumpv;
     self->jump.velocity.x = jumpx;
@@ -34741,7 +35285,7 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
 }
 
 
-void dojump(float jumpv, float jumpx, float jumpz, int animation_id)
+void dojump(float jumpv, float jumpx, float jumpz, e_animations animation_id)
 {
     entity *dust;
 
@@ -35305,7 +35849,10 @@ void player_grab_check()
 
 void player_walkoff_check()
 {
-    if(self->modeldata.walkoffmovex & 1) //flip?
+    /*
+    * Turn. 
+    */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_TURN)
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
@@ -35316,7 +35863,39 @@ void player_walkoff_check()
             self->direction = DIRECTION_RIGHT;
         }
     }
-    if(self->modeldata.walkoffmovex & 2) //move?
+
+    /*
+    * X stop. If not holding a Left or
+    * Right key, kill horizontal momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_WALKOFF_X_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
+        {
+            if (self->velocity.x != 0)
+            {
+                self->velocity.x *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /*
+    * Z stop. If not holding an Up or
+    * Down key, kill lateral momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_WALKOFF_Z_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
+        {
+            if (self->velocity.z != 0)
+            {
+                self->velocity.z *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /* Horizontal move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_X_ADJUST) //move?
     {
         if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
@@ -35324,7 +35903,9 @@ void player_walkoff_check()
             self->velocity.x = -self->velocity.x;
         }
     }
-    if(self->modeldata.walkoffmovex & 4) //Move x if vertical jump?
+
+    /* Horizontal move control (any walkoff). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_X_MOVE)
     {
         if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
@@ -35341,7 +35922,9 @@ void player_walkoff_check()
             self->velocity.x = self->modeldata.speed.x;
         }
     }
-    if(self->modeldata.walkoffmovez & 2) //z move?
+
+    /* Z move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_Z_ADJUST)
     {
         if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
@@ -35349,23 +35932,10 @@ void player_walkoff_check()
             self->velocity.z = -self->velocity.z;
         }
     }
-    if(self->modeldata.walkoffmovez & 4) //Move z if vertical jump?
-    {
-        if((player[self->playerindex].keys & FLAG_MOVELEFT))
-        {
-            self->direction = DIRECTION_LEFT;
-        }
-        else if((player[self->playerindex].keys & FLAG_MOVERIGHT))
-        {
-            self->direction = DIRECTION_RIGHT;
-        }
 
-        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
-                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
-        {
-            self->velocity.z = -self->velocity.z;
-        }
-
+    /* Z move control (any walkoff). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_Z_MOVE)
+    {        
         if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
             self->velocity.z -= (0.5 * self->modeldata.speed.x);
@@ -35464,7 +36034,54 @@ void player_jump_check()
             }
         }//end of jumpattack
     }
-    if(self->modeldata.jumpmovex & 1) //flip?
+
+    /* 
+    * Jump height control. Stop rising if jump
+    * key is inactive.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_Y_STOP)
+    {
+        if (!(player[self->playerindex].keys & FLAG_JUMP))
+        {
+            if (self->velocity.y > 0)
+            {
+                self->velocity.y *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /* 
+    * Jump X stop. If not holding a Left or
+    * Right key, kill horizontal momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_X_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
+        {
+            if (self->velocity.x != 0)
+            {
+                self->velocity.x *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /*
+    * Jump Z stop. If not holding an Up or
+    * Down key, kill lateral momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
+        {
+            if (self->velocity.z != 0)
+            {
+                self->velocity.z *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /* Jump turn control. */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_TURN)
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
@@ -35475,16 +36092,20 @@ void player_jump_check()
             self->direction = DIRECTION_RIGHT;
         }
     }
-    if(self->modeldata.jumpmovex & 2) //move?
+
+    /* Jump horizontal move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_X_ADJUST)
     {
-        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
+        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0 ) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
         {
             self->velocity.x = -self->velocity.x;
         }
     }
-    if(self->modeldata.jumpmovex & 4) //Move x if vertical jump?
-    {
+    
+    /* Jump horizontal move control (any jump). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_X_MOVE)
+    {        
         if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
         {
@@ -35500,7 +36121,9 @@ void player_jump_check()
             self->velocity.x = self->modeldata.speed.x;
         }
     }
-    if(self->modeldata.jumpmovez & 2) //z move?
+        
+    /* Jump Z move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_ADJUST)
     {
         if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
@@ -35508,7 +36131,9 @@ void player_jump_check()
             self->velocity.z = -self->velocity.z;
         }
     }
-    if(self->modeldata.jumpmovez & 4) //Move z if vertical jump?
+
+    /* Jump Z move control (any jump). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_MOVE)
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
@@ -35743,11 +36368,16 @@ void player_think()
 {
     int action = 0;		// 1=walking, 2=up, 3=down, 4=running
     int bkwalk = 0;   //backwalk
-    int runx, runz, movex, movez;
-    int t, t2;
+    int runx = 0;
+    int runz = 0;
+    int movex = 0;
+    int movez = 0;
+    int t = 0;
+    int t2 = 0;
     entity *other = NULL;
     float altdiff;
     int notinair;
+    float initial_jump_velocity_z = 0.0;
 
     static int ll[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
     static int rr[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
@@ -36173,6 +36803,33 @@ void player_think()
         // Added !inair(self) so players can't jump when falling into holes
         pl->playkeys &= ~FLAG_JUMP;
 
+        /*
+        * Z axis control.
+        *
+        * If player can initialize a Z jump
+        * and Up or Down keys are active we'll
+        * get a portion of their jump speed as
+        * a Z velocity. We'll use this value as
+        * the Z parameter for all downstream
+        * jump function calls.
+        */
+
+        if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
+        {
+            if (pl->keys & FLAG_MOVEUP)
+            {
+                initial_jump_velocity_z = -self->modeldata.jumpspeed * 0.5;
+            }
+            else if (pl->keys & FLAG_MOVEDOWN)
+            {
+                initial_jump_velocity_z = self->modeldata.jumpspeed * 0.5;
+            }
+        }
+        else
+        {
+            initial_jump_velocity_z = 0.0;
+        }
+
         if(self->running)
         {
             //Slide
@@ -36185,19 +36842,23 @@ void player_think()
                 self->running = 0;
                 ent_set_anim(self, ANI_RUNSLIDE, 0);
                 goto endthinkcheck;
-            }
+            }           
 
-            if(validanim(self, ANI_RUNJUMP))
+            /* Jumping allowed? */
+            if (!(self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_RUNJUMP);
-            }
-            else if(validanim(self, ANI_FORWARDJUMP))
-            {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
-            }
-            else if(validanim(self, ANI_JUMP))
-            {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                if (validanim(self, ANI_RUNJUMP))
+                {
+                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_RUNJUMP);
+                }
+                else if (validanim(self, ANI_FORWARDJUMP))
+                {
+                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_FORWARDJUMP);
+                }
+                else if (validanim(self, ANI_JUMP))
+                {
+                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_JUMP);
+                }
             }
         }
         else
@@ -36214,27 +36875,47 @@ void player_think()
                 goto endthinkcheck;
             }
 
-            if(!(pl->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(self, ANI_JUMP))
+            /* Jumping allowed? */
+            if (!(self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
             {
-                tryjump(self->modeldata.jumpheight, 0, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
-                goto endthinkcheck;
-            }
-            else if((pl->keys & FLAG_MOVELEFT))
-            {
-                self->direction = DIRECTION_LEFT;
-            }
-            else if((pl->keys & FLAG_MOVERIGHT))
-            {
-                self->direction = DIRECTION_RIGHT;
-            }
 
-            if(validanim(self, ANI_FORWARDJUMP))
-            {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
-            }
-            else if(validanim(self, ANI_JUMP))
-            {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                /*
+                * Handle left/right direction command.
+                *
+                * If left or right key is active,
+                * then switch facing accordingly and
+                * continue on to moving jump logic.
+                *
+                * Otherwise perform a jump with no
+                * horizontal velocity.
+                */
+
+                if (!(pl->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(self, ANI_JUMP))
+                {
+                    tryjump(self->modeldata.jumpheight, 0, initial_jump_velocity_z, ANI_JUMP);
+                    goto endthinkcheck;
+                }
+                else if ((pl->keys & FLAG_MOVELEFT))
+                {
+                    self->direction = DIRECTION_LEFT;
+                }
+                else if ((pl->keys & FLAG_MOVERIGHT))
+                {
+                    self->direction = DIRECTION_RIGHT;
+                }
+
+                /*
+                * Horizontal moving jump.
+                */
+
+                if (validanim(self, ANI_FORWARDJUMP))
+                {
+                    tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, initial_jump_velocity_z, ANI_FORWARDJUMP);
+                }
+                else if (validanim(self, ANI_JUMP))
+                {
+                    tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, initial_jump_velocity_z, ANI_JUMP);
+                }
             }
         }
         return;

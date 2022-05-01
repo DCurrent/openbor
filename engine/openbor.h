@@ -2575,6 +2575,71 @@ typedef struct
 #define NO_QUAKE 1  //do not make screen quake
 #define NO_QUAKEN 2  //do not quake with screen
 
+/*
+* Caskey, Damon V.
+* 2022-04-26
+* 
+* Player control options while jumping.
+*/
+
+#define AIR_CONTROL_STOP_FACTOR 0.95
+
+typedef enum e_air_control
+{
+    AIR_CONTROL_NONE                = 0,
+    AIR_CONTROL_JUMP_DISABLE        = (1 << 0),
+    AIR_CONTROL_JUMP_TURN           = (1 << 1),
+    AIR_CONTROL_JUMP_X_ADJUST       = (1 << 2),
+    AIR_CONTROL_JUMP_X_MOVE         = (1 << 3),
+    AIR_CONTROL_JUMP_X_STOP         = (1 << 4),
+    AIR_CONTROL_JUMP_Y_STOP         = (1 << 5),
+    AIR_CONTROL_JUMP_Z_ADJUST       = (1 << 6),
+    AIR_CONTROL_JUMP_Z_INITIAL      = (1 << 7),
+    AIR_CONTROL_JUMP_Z_MOVE         = (1 << 8),
+    AIR_CONTROL_JUMP_Z_STOP         = (1 << 9),
+    AIR_CONTROL_WALKOFF_TURN        = (1 << 10),
+    AIR_CONTROL_WALKOFF_X_ADJUST    = (1 << 11),
+    AIR_CONTROL_WALKOFF_X_MOVE      = (1 << 12),
+    AIR_CONTROL_WALKOFF_X_STOP      = (1 << 13),
+    AIR_CONTROL_WALKOFF_Z_ADJUST    = (1 << 14),
+    AIR_CONTROL_WALKOFF_Z_MOVE      = (1 << 15),
+    AIR_CONTROL_WALKOFF_Z_STOP      = (1 << 16)
+} e_air_control;
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Used to interpret legacy air 
+* control text. Do not adjust 
+* these values or you will
+* break legacy compatability
+* for air control.
+*/
+typedef enum e_air_control_legacy_x
+{
+    // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+    AIR_CONTROL_LEGACY_X_NONE = 0,
+    AIR_CONTROL_LEGACY_X_FLIP = 1,
+    AIR_CONTROL_LEGACY_X_ADJUST = 2,          // Change velocity during horizontal jump.
+    AIR_CONTROL_LEGACY_X_ADJUST_AND_FLIP = 3, // Change velocity or flip during horizontal jump.
+    AIR_CONTROL_LEGACY_X_MOVE = 4,             // Change velocity during vertical jump.
+    AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP = 5,
+    AIR_CONTROL_LEGACY_X_MOVE_ALT = 6,
+    AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP_ALT = 7
+
+} e_air_control_legacy_x;
+
+typedef enum e_air_control_legacy_z
+{
+    // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+    AIR_CONTROL_LEGACY_Z_NONE = 0,
+    AIR_CONTROL_LEGACY_Z_MOMENTUM = 1,        // Keep walking momentum.
+    AIR_CONTROL_LEGACY_Z_ADJUST = 2,
+    AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_ADJUST = 3,
+    AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP = 4
+} e_air_control_legacy_z;
+
 typedef struct
 {
     /*
@@ -2668,25 +2733,28 @@ typedef struct
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
+
     s_dust dust; //Spawn entity during certain actions.
     s_axis_plane_vertical_int size; // Used to set height of player in pixels
     s_axis_principal_float speed;
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
     int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
+    
     float jumpspeed; // normal jump foward speed, default to max(1, speed)
     float jumpheight; // 28-12-2004	Jump height variable added per character
-    int jumpmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
-    int jumpmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
-    int walkoffmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
-    int walkoffmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
+
+    e_air_control air_control; // Mid air control options (turning, moving, etc.). */
+         
     int grabfinish; // wait for grab animation to finish before do other actoins
     int antigrab; // anti-grab factor
     int grabforce; // grab factor, antigrab - grabforce <= 0 means can grab
     e_facing_adjust facing;
     int grabback; // Flag to determine if entities grab images display behind opponenets
     int grabturn;
+
     int paingrab; // Can only be grabbed when in pain
+
     float grabwalkspeed;
     int throwdamage; // 1-14-05  adjust throw damage
     unsigned char  *palette; // original palette for 32/16bit mode
@@ -2728,12 +2796,12 @@ typedef struct
     float pushingfactor; // pushing factor in entity collision
 
     //---------------new A.I. switches-----------
-    int hostile; // specify hostile types
-    int candamage; // specify types that can be damaged by this entity
-    int projectilehit; // specify types that can be hit by this entity if it is thrown
-    unsigned aimove; // move style
+    e_entity_type hostile; // specify hostile types
+    e_entity_type candamage; // specify types that can be damaged by this entity
+    e_entity_type projectilehit; // specify types that can be hit by this entity if it is thrown
     s_sight sight; // Sight range. 2011_04_05, DC: Moved to struct.
-    unsigned aiattack; // attack/defend style
+    unsigned int aimove; // move style
+    unsigned int aiattack; // attack/defend style
 
     //----------------physical system-------------------
     float antigravity;                    //antigravity : gravity * (1- antigravity)
@@ -3321,6 +3389,15 @@ typedef struct ArgList
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
+e_air_control air_control_interpret_from_legacy_jumpmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value);
+e_air_control air_control_interpret_from_legacy_jumpmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value);
+e_air_control air_control_interpret_from_legacy_walkoffmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value);
+e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value);
+e_air_control_legacy_x air_control_interpret_to_legacy_jumpmove_x(e_air_control air_control_value);
+e_air_control_legacy_z air_control_interpret_to_legacy_jumpmove_z(e_air_control air_control_value);
+e_air_control_legacy_x air_control_interpret_to_legacy_walkoffmove_x(e_air_control air_control_value);
+e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_control air_control_value);
+
 int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
@@ -3619,8 +3696,8 @@ void common_prejump();
 void common_preduck();
 void common_idle();
 void recursive_damage_update(entity *target);
-void tryjump(float, float, float, int);
-void dojump(float, float, float, int);
+void tryjump(float, float, float, e_animations);
+void dojump(float, float, float, e_animations);
 void tryduck(entity*);
 void tryduckrise(entity*);
 void tryvictorypose(entity*);

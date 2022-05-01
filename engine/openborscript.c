@@ -4307,13 +4307,14 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_jumpmovex:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovex;
+                
+        (*pretvar)->lVal = (e_air_control_legacy_x)air_control_interpret_to_legacy_jumpmove_x(ent->modeldata.air_control);
         break;
     }
     case _ep_jumpmovez:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovez;
+        (*pretvar)->lVal = (e_air_control_legacy_z)air_control_interpret_to_legacy_jumpmove_z(ent->modeldata.air_control);
         break;
     }
     case _ep_jumpspecial:
@@ -5303,13 +5304,17 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_walkoffmovex:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.walkoffmovex;
+
+        (*pretvar)->lVal = (e_air_control_legacy_x)air_control_interpret_to_legacy_walkoffmove_x(ent->modeldata.air_control);
+
         break;
     }
     case _ep_walkoffmovez:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.walkoffmovez;
+
+        (*pretvar)->lVal = (e_air_control_legacy_x)air_control_interpret_to_legacy_walkoffmove_z(ent->modeldata.air_control);
+
         break;
     }
     case _ep_weapent:
@@ -6282,7 +6287,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jumpmovex = (LONG)ltemp;
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_jumpmove_x(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -6290,7 +6295,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jumpmovez = (LONG)ltemp; // Kratus (10-2021) Fixed the wrong jumpmove reference from x to z
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_jumpmove_x(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -7402,8 +7407,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     case _ep_walkoffmovex:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            ent->modeldata.walkoffmovex = (LONG)ltemp;
+        {            
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_walkoffmove_x(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -7411,7 +7416,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.walkoffmovez = (LONG)ltemp;
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_walkoffmove_z(ent->modeldata.air_control, ltemp);
         }
         break;
     }
