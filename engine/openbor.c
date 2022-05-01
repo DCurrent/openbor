@@ -35374,7 +35374,8 @@ void player_jump_check()
                     self->attacking = ATTACKING_ACTIVE;
 
                     // Kratus (10-2021) Add a option to kill or not the xyz movement
-                    if(!self->modeldata.jumpspecial & 1)
+                    // Kratus (04-2022) Minor fix on the jumpspecial code
+                    if(!(self->modeldata.jumpspecial & 1))
                     {
                         self->velocity.x = self->velocity.z = 0; // Kill movement when the special starts
                         self->velocity.y = 0;
