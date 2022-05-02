@@ -2653,6 +2653,20 @@ typedef struct
     int jump_start; //Jump lift off.
 } s_dust;
 
+/*
+* Caskey, Damon V.
+* 2022-05-02
+* 
+* Properties for icon displayed
+* over player entity when spawned 
+* into game.
+*/
+typedef struct
+{
+    int sprite;
+    s_axis_plane_vertical_int position;
+} s_player_arrow;
+
 typedef struct
 {
     int index;
@@ -2684,7 +2698,9 @@ typedef struct
     e_entity_type type;
     e_entity_type_sub subtype;
     s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
-    int parrow[MAX_PLAYERS][3]; // Image to be displayed when player spawns invincible
+
+    s_player_arrow player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
+    
     int setlayer; // Used for forcing enities to be displayed behind
     int thold; // The entities threshold for block
     s_maps maps; //2011_04_07, DC: Pre defined color map selections and behavior.
@@ -2702,6 +2718,7 @@ typedef struct
     int nopassiveblock; // Don't auto block randomly
     int blockback; // Able to block attacks from behind
     int blockodds; // Odds that an enemy will block an attack (1 : blockodds)
+
     s_edelay edelay; // Entity level delay adjustment.
     float runspeed; // The speed the character runs at
     float runjumpheight; // The height the character jumps when running
@@ -2710,9 +2727,7 @@ typedef struct
     int runupdown; // Flag to determine if a player will continue to run while pressing up or down
     int runhold; // Flag to determine if a player will continue to run if holding down forward when landing
     int remove; // Flag to remove a projectile on contact or not
-    float throwheight; // The height at which an opponent can now be adjusted
-    float throwdist; // The distance an opponent can now be adjusted
-    int throwframewait; // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
+    
     s_com *special; // Stores freespecials
     int specials_loaded; // Stores how many specials have been loaded
     int diesound;
@@ -2737,26 +2752,31 @@ typedef struct
     s_dust dust; //Spawn entity during certain actions.
     s_axis_plane_vertical_int size; // Used to set height of player in pixels
     s_axis_principal_float speed;
-    float grabdistance; // 30-12-2004	grabdistance varirable adder per character
-    float pathfindstep; // UT: how long each step if the entity is trying to find a way
-    int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
     
+    float pathfindstep; // UT: how long each step if the entity is trying to find a way
+        
     float jumpspeed; // normal jump foward speed, default to max(1, speed)
     float jumpheight; // 28-12-2004	Jump height variable added per character
 
-    e_air_control air_control; // Mid air control options (turning, moving, etc.). */
-         
-    int grabfinish; // wait for grab animation to finish before do other actoins
-    int antigrab; // anti-grab factor
-    int grabforce; // grab factor, antigrab - grabforce <= 0 means can grab
-    e_facing_adjust facing;
+    e_air_control air_control; /* Mid air control options (turning, moving, etc.). */
+    
     int grabback; // Flag to determine if entities grab images display behind opponenets
-    int grabturn;
+    int paingrab; // Added to grab resistance when not in pain.
+    int grabfinish; // Cannot take further action until grab animation is complete.
+    int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
+    int grabturn; // Turn with grabbed target using Left/Right (if valid ANI_GRABTURN).
 
-    int paingrab; // Can only be grabbed when in pain
-
+    float grabdistance; // 30-12-2004	grabdistance varirable adder per character    
+    int grab_force; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */
+    int grab_resistance; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */    
     float grabwalkspeed;
     int throwdamage; // 1-14-05  adjust throw damage
+    int throwframewait; // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
+    float throwdist; // The distance an opponent can now be adjusted
+    float throwheight; // The height at which an opponent can now be adjusted    
+
+    e_facing_adjust facing;
+    
     unsigned char  *palette; // original palette for 32/16bit mode
     unsigned char	**colourmap;
     int maps_loaded; // Used for player colourmap selecting

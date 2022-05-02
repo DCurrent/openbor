@@ -3546,8 +3546,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_antigrab:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.antigrab;
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.grab_resistance;
         break;
     }
     case _ep_antigravity:
@@ -4120,7 +4120,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_grabforce:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.grabforce;
+        (*pretvar)->lVal = (LONG)ent->modeldata.grab_force;
         break;
     }
     case _ep_guardpoints:
@@ -5649,7 +5649,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.antigrab = (LONG)ltemp;
+            ent->modeldata.grab_resistance = (LONG)ltemp;
         }
         break;
     }
@@ -6135,7 +6135,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.grabforce = (LONG)ltemp;
+            ent->modeldata.grab_force = (LONG)ltemp;
         }
         break;
     }

@@ -5469,7 +5469,7 @@ void cache_model_sprites(s_model *m, int ld)
     cachesound(m->diesound, ld);
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        cachesprite(m->parrow[i][0], ld);
+        cachesprite(m->player_arrow[i].sprite, ld);
     }
 
     //if(hasFreetype(model, MF_ANIMLIST)){
@@ -11843,18 +11843,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 tempInt = GET_INT_ARG(1);
                 if(tempInt == 2)
                 {
-                    newchar->grabforce = -999999;
+                    newchar->grab_force = -999999;
                 }
                 else
                 {
-                    newchar->antigrab = 1;
+                    newchar->grab_resistance = 1;
                 }
                 break;
-            case CMD_MODEL_ANTIGRAB: // a can grab b: a->antigrab - b->grabforce <=0
-                newchar->antigrab = GET_INT_ARG(1);
+            case CMD_MODEL_ANTIGRAB: // a can grab b: a->grab_resistance - b->grab_force <=0
+                newchar->grab_resistance = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_GRABFORCE:
-                newchar->grabforce = GET_INT_ARG(1);
+                newchar->grab_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_GRABBACK:
                 newchar->grabback = GET_INT_ARG(1);
@@ -12240,28 +12240,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_PARROW:
                 // Image that is displayed when player 1 spawns invincible
                 value = GET_ARG(1);
-                newchar->parrow[0][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[0][1] = GET_INT_ARG(2);
-                newchar->parrow[0][2] = GET_INT_ARG(3);
+                newchar->player_arrow[0].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[0].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[0].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW2:
                 // Image that is displayed when player 2 spawns invincible
                 value = GET_ARG(1);
-                newchar->parrow[1][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[1][1] = GET_INT_ARG(2);
-                newchar->parrow[1][2] = GET_INT_ARG(3);
+                newchar->player_arrow[1].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[1].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[1].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW3:
                 value = GET_ARG(1);
-                newchar->parrow[2][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[2][1] = GET_INT_ARG(2);
-                newchar->parrow[2][2] = GET_INT_ARG(3);
+                newchar->player_arrow[2].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[2].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[2].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW4:
                 value = GET_ARG(1);
-                newchar->parrow[3][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[3][1] = GET_INT_ARG(2);
-                newchar->parrow[3][2] = GET_INT_ARG(3);
+                newchar->player_arrow[3].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[3].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[3].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_ATCHAIN:
                 newchar->chainlength = 0;
@@ -21620,10 +21620,10 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
         ent->modeldata.risetime.rise          = oldmodel->risetime.rise;
     }
     /*
-    if(!ent->modeldata.antigrab)
-    	ent->modeldata.antigrab             = oldmodel->antigrab;
-    if(!ent->modeldata.grabforce)
-    	ent->modeldata.grabforce            = oldmodel->grabforce;
+    if(!ent->modeldata.grab_resistance)
+    	ent->modeldata.grab_resistance             = oldmodel->antigrab;
+    if(!ent->modeldata.grab_force)
+    	ent->modeldata.grab_force            = oldmodel->grabforce;
     if(!ent->modeldata.paingrab)
     	ent->modeldata.paingrab             = oldmodel->paingrab;*/
 
@@ -22198,7 +22198,7 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
     * the target's pain flag is not active.
     */
     
-    grab_resistance = target_entity->modeldata.antigrab;
+    grab_resistance = target_entity->modeldata.grab_resistance;
 
     if (target_entity->modeldata.paingrab)
     {
@@ -22208,7 +22208,7 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
         }
     }
 
-    if (grab_resistance > acting_entity->modeldata.grabforce)
+    if (grab_resistance > acting_entity->modeldata.grab_force)
     {
         return 0;
     }
@@ -26939,9 +26939,9 @@ void display_ents()
 
             if(e->arrowon)    // Display the players image while invincible to indicate player number
             {
-                if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible & INVINCIBLE_INTANGIBLE)
+                if(e->modeldata.player_arrow[(int)e->playerindex].sprite && e->invincible & INVINCIBLE_INTANGIBLE)
                 {
-                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.y - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
+                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.player_arrow[(int)e->playerindex].position.x), (int)(e->position.z - e->position.y - scry + e->modeldata.player_arrow[(int)e->playerindex].position.y), (int)e->position.z, e->modeldata.player_arrow[(int)e->playerindex].sprite, NULL, sortid * 2);
                 }
             }
         }// end of if(ent_list[i]->exists)
