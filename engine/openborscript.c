@@ -996,6 +996,21 @@ static const char *svlist[] =
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
+    "global_sample_beat",
+    "global_sample_beep",
+    "global_sample_beep_2",
+    "global_sample_bike",
+    "global_sample_block",
+    "global_sample_fall",
+    "global_sample_get",
+    "global_sample_get_2",
+    "global_sample_go",
+    "global_sample_indirect",
+    "global_sample_jump",
+    "global_sample_one_up",
+    "global_sample_pause",
+    "global_sample_punch",
+    "global_sample_time_over",
     "healthcheat",
     "hresolution",
     "in_cheat_options",
@@ -8441,6 +8456,82 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gfx_y_offset_adj;
         break;
+
+    case _sv_global_sample_beat:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.beat;
+        break;
+
+    case _sv_global_sample_beep:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.beep;
+        break;
+
+    case _sv_global_sample_beep_2:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.beep_2;
+        break;
+
+    case _sv_global_sample_bike:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.bike;
+        break;
+
+    case _sv_global_sample_block:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.block;
+        break;
+
+    case _sv_global_sample_fall:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.fall;
+        break;
+
+    case _sv_global_sample_get:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.get;
+        break;
+
+    case _sv_global_sample_get_2:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.get_2;
+        break;
+
+    case _sv_global_sample_go:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.go;
+        break;
+
+    case _sv_global_sample_indirect:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.indirect;
+        break;
+
+    case _sv_global_sample_jump:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.jump;
+        break;
+
+    case _sv_global_sample_one_up:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.one_up;
+        break;
+
+    case _sv_global_sample_pause:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.pause;
+        break;
+
+    case _sv_global_sample_punch:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.punch;
+        break;
+
+    case _sv_global_sample_time_over:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.time_over;
+        break;
+
     case _sv_in_selectscreen:
         
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8898,6 +8989,112 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             gfx_y_offset_adj = (LONG)ltemp;
         }
         break;
+
+    case _sv_global_sample_beat:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.beat = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_beep:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.beep = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_beep_2:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.beep_2 = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_bike:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.bike = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_block:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.block = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_fall:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.fall = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_get:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.get = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_get_2:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.get_2 = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_go:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.go = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_indirect:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.indirect = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_jump:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.jump = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_one_up:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.one_up = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_pause:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.pause = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_punch:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.punch = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_time_over:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.time_over = (LONG)ltemp;
+        }
+        break;
+
     case _sv_levelpos:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {

@@ -1714,6 +1714,32 @@ if(n<1) n = 1;
 
 #pragma pack(4)
 
+/*
+* Caskey, Damon V.
+* 2022-05-03
+* 
+* Native hard coded sample IDs.
+*/
+typedef struct s_global_sample
+{    
+    int beat;
+    int beep;
+    int beep_2;
+    int bike;
+    int block;
+    int fall;
+    int get;
+    int get_2;
+    int go;
+    int indirect;
+    int jump;
+    int one_up;
+    int pause;
+    int punch;
+    int time_over;
+
+} s_global_sample;
+
 // Caskey, Damon V.
 // 2020-02-17
 //

@@ -304,21 +304,26 @@ u64 freeram = 0;
 u32 interval = 0;
 //extern u64 seed;
 
-int                 SAMPLE_GO			= SAMPLE_ID_NONE;
-int                 SAMPLE_BEAT			= SAMPLE_ID_NONE;
-int                 SAMPLE_BLOCK		= SAMPLE_ID_NONE;
-int                 SAMPLE_INDIRECT		= SAMPLE_ID_NONE;
-int                 SAMPLE_GET			= SAMPLE_ID_NONE;
-int                 SAMPLE_GET2			= SAMPLE_ID_NONE;
-int                 SAMPLE_FALL			= SAMPLE_ID_NONE;
-int                 SAMPLE_JUMP			= SAMPLE_ID_NONE;
-int                 SAMPLE_PUNCH		= SAMPLE_ID_NONE;
-int                 SAMPLE_1UP			= SAMPLE_ID_NONE;
-int                 SAMPLE_TIMEOVER		= SAMPLE_ID_NONE;
-int                 SAMPLE_BEEP			= SAMPLE_ID_NONE;
-int                 SAMPLE_BEEP2		= SAMPLE_ID_NONE;
-int                 SAMPLE_BIKE			= SAMPLE_ID_NONE;
-int                 SAMPLE_PAUSE		= SAMPLE_ID_NONE;
+/*
+* Hard coded sound sample IDs.
+*/
+s_global_sample global_sample_list = {
+    .beat = SAMPLE_ID_NONE,
+    .beep = SAMPLE_ID_NONE,
+    .beep_2 = SAMPLE_ID_NONE,
+    .bike = SAMPLE_ID_NONE,
+    .block = SAMPLE_ID_NONE,
+    .fall = SAMPLE_ID_NONE,       
+    .get = SAMPLE_ID_NONE,
+    .get_2 = SAMPLE_ID_NONE,
+    .go = SAMPLE_ID_NONE, 
+    .indirect = SAMPLE_ID_NONE,
+    .jump = SAMPLE_ID_NONE,
+    .one_up = SAMPLE_ID_NONE,
+    .pause = SAMPLE_ID_NONE,    
+    .punch = SAMPLE_ID_NONE,    
+    .time_over = SAMPLE_ID_NONE    
+};
 
 // 2016-11-01
 // Caskey, Damon V.
@@ -4582,28 +4587,28 @@ proceed:
 int load_special_sounds()
 {
     sound_unload_all_samples();
-    SAMPLE_GO		= sound_load_sample("data/sounds/go.wav",		packfile,	0);
-    SAMPLE_BEAT		= sound_load_sample("data/sounds/beat1.wav",	packfile,	0);
-    SAMPLE_BLOCK	= sound_load_sample("data/sounds/block.wav",	packfile,	0);
-    SAMPLE_FALL		= sound_load_sample("data/sounds/fall.wav",		packfile,	0);
-    SAMPLE_GET		= sound_load_sample("data/sounds/get.wav",		packfile,	0);
-    SAMPLE_GET2		= sound_load_sample("data/sounds/money.wav",	packfile,	0);
-    SAMPLE_JUMP		= sound_load_sample("data/sounds/jump.wav",		packfile,	0);
-    SAMPLE_INDIRECT	= sound_load_sample("data/sounds/indirect.wav",	packfile,	0);
-    SAMPLE_PUNCH	= sound_load_sample("data/sounds/punch.wav",	packfile,	0);
-    SAMPLE_1UP		= sound_load_sample("data/sounds/1up.wav",		packfile,	0);
-    SAMPLE_TIMEOVER = sound_load_sample("data/sounds/timeover.wav", packfile,	0);
-    SAMPLE_BEEP		= sound_load_sample("data/sounds/beep.wav",		packfile,	0);
-    SAMPLE_BEEP2	= sound_load_sample("data/sounds/beep2.wav",	packfile,	0);
-    SAMPLE_PAUSE	= sound_load_sample("data/sounds/pause.wav",	packfile,	0);
-    SAMPLE_BIKE		= sound_load_sample("data/sounds/bike.wav",		packfile,	0);
+    global_sample_list.go = sound_load_sample("data/sounds/go.wav",		packfile,	0);
+    global_sample_list.beat = sound_load_sample("data/sounds/beat1.wav",	packfile,	0);
+    global_sample_list.block = sound_load_sample("data/sounds/block.wav",	packfile,	0);
+    global_sample_list.fall = sound_load_sample("data/sounds/fall.wav",		packfile,	0);
+    global_sample_list.get = sound_load_sample("data/sounds/get.wav",		packfile,	0);
+    global_sample_list.get_2 = sound_load_sample("data/sounds/money.wav",	packfile,	0);
+    global_sample_list.jump = sound_load_sample("data/sounds/jump.wav",		packfile,	0);
+    global_sample_list.indirect = sound_load_sample("data/sounds/indirect.wav",	packfile,	0);
+    global_sample_list.punch = sound_load_sample("data/sounds/punch.wav",	packfile,	0);
+    global_sample_list.one_up = sound_load_sample("data/sounds/1up.wav",		packfile,	0);
+    global_sample_list.time_over = sound_load_sample("data/sounds/timeover.wav", packfile,	0);
+    global_sample_list.beep = sound_load_sample("data/sounds/beep.wav",		packfile,	0);
+    global_sample_list.beep_2 = sound_load_sample("data/sounds/beep2.wav",	packfile,	0);
+    global_sample_list.pause = sound_load_sample("data/sounds/pause.wav",	packfile,	0);
+    global_sample_list.bike = sound_load_sample("data/sounds/bike.wav",		packfile,	0);
 
-    if ( SAMPLE_PAUSE < 0 ) SAMPLE_PAUSE = SAMPLE_BEEP2;
-    if(SAMPLE_GO < 0 || SAMPLE_BEAT < 0 || SAMPLE_BLOCK < 0 ||
-            SAMPLE_FALL < 0 || SAMPLE_GET < 0 || SAMPLE_GET2 < 0 ||
-            SAMPLE_JUMP < 0 || SAMPLE_INDIRECT < 0 || SAMPLE_PUNCH < 0 ||
-            SAMPLE_1UP < 0 || SAMPLE_TIMEOVER < 0 || SAMPLE_BEEP < 0 ||
-            SAMPLE_BEEP2 < 0 || SAMPLE_PAUSE < 0 || SAMPLE_BIKE < 0)
+    if (global_sample_list.pause < 0 ) global_sample_list.pause = global_sample_list.beep_2;
+    if(global_sample_list.go < 0 || global_sample_list.beat < 0 || global_sample_list.block < 0 ||
+        global_sample_list.fall < 0 || global_sample_list.get < 0 || global_sample_list.get_2 < 0 ||
+        global_sample_list.jump < 0 || global_sample_list.indirect < 0 || global_sample_list.punch < 0 ||
+        global_sample_list.one_up < 0 || global_sample_list.time_over < 0 || global_sample_list.beep < 0 ||
+        global_sample_list.beep_2 < 0 || global_sample_list.pause < 0 || global_sample_list.bike < 0)
     {
         return 0;
     }
@@ -7208,7 +7213,7 @@ s_attack* attack_allocate_object()
     memcpy(result, &emptyattack, sizeof(*result));
 
     /* -- Apply default hit sound effect (for legacy compatability). */
-    result->hitsound = SAMPLE_BEAT;
+    result->hitsound = global_sample_list.beat;
     
     /* -- Apply default drop velocity. */
     result->dropv.x = default_model_dropv.x;
@@ -19625,7 +19630,7 @@ void pausemenu()
         if(newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN))
         {
             pauselector ^= 1;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(newkeys & FLAG_START)
         {
@@ -19640,7 +19645,7 @@ void pausemenu()
             quit = 1;
             sound_pause_music(0);
             sound_pause_sample(0);
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             pauselector = 0;
         }
         if(newkeys & FLAG_ESC)
@@ -19648,7 +19653,7 @@ void pausemenu()
             quit = 1;
             sound_pause_music(0);
             sound_pause_sample(0);
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             pauselector = 0;
         }
         if(newkeys & FLAG_SCREENSHOT)
@@ -19656,7 +19661,7 @@ void pausemenu()
             _pause = 1;
             sound_pause_music(1);
             sound_pause_sample(1);
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             menu_options();
         }
     }
@@ -19832,9 +19837,9 @@ void updatestatus()
             if(gosound == 0 )
             {
 
-                if(SAMPLE_GO >= 0)
+                if(global_sample_list.go >= 0)
                 {
-                    sound_play_sample(SAMPLE_GO, 0, savedata.effectvol, savedata.effectvol, 100);    // 26-12-2004 Play go sample as arrow flashes
+                    sound_play_sample(global_sample_list.go, 0, savedata.effectvol, savedata.effectvol, 100);    // 26-12-2004 Play go sample as arrow flashes
                 }
 
                 gosound = 1;                // 26-12-2004 Sets sample as already played - stops sample repeating too much
@@ -20606,9 +20611,9 @@ void addscore(int playerindex, int add)
     while(s > next1up)
     {
 
-        if(SAMPLE_1UP >= 0)
+        if(global_sample_list.one_up >= 0)
         {
-            sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
         player[playerindex].lives++;
@@ -24995,14 +25000,14 @@ int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int
         {
             sound_index = attack_object->blocksound;
         }
-        else if (SAMPLE_BLOCK >= 0)
+        else if (global_sample_list.block >= 0)
         {
-            sound_index = attack_object->blocksound;            
+            sound_index = global_sample_list.block;
         }
     }
-    else if (attacking_entity->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
+    else if (attacking_entity->projectile & BLAST_ATTACK && global_sample_list.indirect >= 0)
     {
-        sound_index = SAMPLE_INDIRECT;
+        sound_index = global_sample_list.indirect;
     }
     else if (attack_object->hitsound >= 0)
     {
@@ -25389,9 +25394,9 @@ void check_gravity(entity *e)
                             {
                                 level->quake = 4;    // Don't shake if specified
                             }
-                            if(SAMPLE_FALL >= 0)
+                            if(global_sample_list.fall >= 0)
                             {
-                                sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol, savedata.effectvol, 100);
+                                sound_play_sample(global_sample_list.fall, 0, savedata.effectvol, savedata.effectvol, 100);
                             }
                             if(self->modeldata.type & TYPE_PLAYER)
                             {
@@ -33560,7 +33565,7 @@ void common_pickupitem(entity *other)
                 self->energy_state.health_current = self->modeldata.health;
             }
             other->energy_state.health_current = 0;
-            //if(SAMPLE_GET >= 0) sound_play_sample(SAMPLE_GET, 0, savedata.effectvol,savedata.effectvol, 100);
+            //if(global_sample_list.get >= 0) sound_play_sample(global_sample_list.get, 0, savedata.effectvol,savedata.effectvol, 100);
         }
         // else if, TODO: other effects
         // kill that item
@@ -33586,10 +33591,12 @@ int biker_move()
         self->direction = !self->direction;
         self->attack_id_outgoing = 0;
         self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
-        if(SAMPLE_BIKE >= 0)
+        
+        if(global_sample_list.bike >= 0)
         {
-            sound_play_sample(SAMPLE_BIKE, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.bike, 0, savedata.effectvol, savedata.effectvol, 100);
         }
+
         if(self->modeldata.speed.x)
         {
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (self->modeldata.speed.x) : (-self->modeldata.speed.x);
@@ -35499,9 +35506,9 @@ void dojump(float jumpv, float jumpx, float jumpz, e_animations animation_id)
 
     self->takeaction = common_jump;
 
-    if(SAMPLE_JUMP >= 0)
+    if(global_sample_list.jump >= 0)
     {
-        sound_play_sample(SAMPLE_JUMP, 0, savedata.effectvol, savedata.effectvol, 100);
+        sound_play_sample(global_sample_list.jump, 0, savedata.effectvol, savedata.effectvol, 100);
     }
 
     //Spawn jumpstart dust.
@@ -35555,17 +35562,17 @@ void didfind_item(entity *other)
         {
             self->weapent->modeldata.weapon_properties.use_count += other->modeldata.weapon_properties.use_add;
 
-            if(SAMPLE_GET >= 0)
+            if(global_sample_list.get >= 0)
             {
-                sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         else
         {
             addscore(self->playerindex, other->modeldata.score);
-            if(SAMPLE_GET2 >= 0)
+            if(global_sample_list.get_2 >= 0)
             {
-                sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
     }
@@ -35574,9 +35581,9 @@ void didfind_item(entity *other)
     else if(other->modeldata.score)
     {
         addscore(self->playerindex, other->modeldata.score);
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->energy_state.health_current)
@@ -35590,9 +35597,9 @@ void didfind_item(entity *other)
 
         other->energy_state.health_current = 0;
 
-        if(SAMPLE_GET >= 0)
+        if(global_sample_list.get >= 0)
         {
-            sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.mp)
@@ -35605,15 +35612,15 @@ void didfind_item(entity *other)
         }
 
         other->energy_state.mp_current = 0;
-        sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+        sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
     }
     else if(stricmp(other->modeldata.name, "Time") == 0)
     {
         timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
 
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.makeinv)
@@ -35623,9 +35630,9 @@ void didfind_item(entity *other)
         self->invinctime = _time + ABS(other->modeldata.makeinv);
         self->blink = (other->modeldata.makeinv > 0);
 
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.smartbomb)
@@ -35633,9 +35640,9 @@ void didfind_item(entity *other)
         // Damages everything on the screen
         smart_bomb(self, other->modeldata.smartbomb);
 
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.subtype == SUBTYPE_WEAPON)
@@ -35657,9 +35664,9 @@ void didfind_item(entity *other)
             other->modeldata.weapon_properties.weapon_state |= WEAPON_STATE_LIMITED_USE;
         }
 
-        if(SAMPLE_GET >= 0)
+        if(global_sample_list.get >= 0)
         {
-            sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.subtype == SUBTYPE_PROJECTILE)
@@ -35667,9 +35674,9 @@ void didfind_item(entity *other)
         dropweapon(0);
         self->weapent = other;
 
-        if(SAMPLE_GET >= 0)
+        if(global_sample_list.get >= 0)
         {
-            sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.credit)
@@ -35683,9 +35690,9 @@ void didfind_item(entity *other)
             player[self->playerindex].credits++;
         }
 
-        if(SAMPLE_1UP >= 0)
+        if(global_sample_list.one_up >= 0)
         {
-            sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else
@@ -35693,9 +35700,9 @@ void didfind_item(entity *other)
         // Must be a 1up then.
         player[self->playerindex].lives++;
 
-        if(SAMPLE_1UP >= 0)
+        if(global_sample_list.one_up >= 0)
         {
-            sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
 
@@ -36909,9 +36916,9 @@ void player_think()
             self->stalltime = 0;
             self->combostep[0] = 0;
 
-            if(SAMPLE_PUNCH >= 0)
+            if(global_sample_list.punch >= 0)
             {
-                sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.punch, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             if(validanim(self, ANI_CHARGEATTACK))
@@ -37006,9 +37013,9 @@ void player_think()
         }
         else if(perform_atchain())
         {
-            if(SAMPLE_PUNCH >= 0 && self->attacking != ATTACKING_NONE)
+            if(global_sample_list.punch >= 0 && self->attacking != ATTACKING_NONE)
             {
-                sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.punch, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             goto endthinkcheck;
         }
@@ -39254,9 +39261,9 @@ void time_over()
 
         if (!is_total_timeover)
         {
-            if(SAMPLE_TIMEOVER >= 0)
+            if(global_sample_list.time_over >= 0)
             {
-                sound_play_sample(SAMPLE_TIMEOVER, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.time_over, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
@@ -40776,7 +40783,7 @@ void update(int ingame, int usevwait)
         {
             sound_pause_music(1);
             sound_pause_sample(1);
-            sound_play_sample(SAMPLE_PAUSE, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.pause, 0, savedata.effectvol, savedata.effectvol, 100);
             pausemenu();
             return;
         }
@@ -41999,7 +42006,7 @@ void showcomplete(int num)
             if(!finishtime && !(nexttime & 15))
             {
                 sound_stop_sample(chan);
-                chan = sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol / 2, savedata.effectvol / 2, 100);
+                chan = sound_play_sample(global_sample_list.beep, 0, savedata.effectvol / 2, savedata.effectvol / 2, 100);
             }
             nexttime++;
         }
@@ -42747,16 +42754,16 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					player[i].playkeys = 0;
 
 					// Play sound effect.
-					if (SAMPLE_BEEP >= 0)
+					if (global_sample_list.beep >= 0)
 					{
-						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+						sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 				}
 				else if ((player[i].newkeys & FLAG_ANYBUTTON) && example[i]) //Kratus (01-05-21) Moved the "anybutton" code to before of the "left/right" code to fix a bug that makes no character chosen when both are pressed together
 				{
-					if (SAMPLE_BEEP2 >= 0)
+					if (global_sample_list.beep_2 >= 0)
 					{
-						sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+						sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 					// yay you picked me!
 					if (validanim(example[i], ANI_PICK))
@@ -42769,9 +42776,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				else if (player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
 				{
 					// Give player a feedback sound.
-					if (SAMPLE_BEEP >= 0)
+					if (global_sample_list.beep >= 0)
 					{
-						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+						sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 
 					// Get model in use right now.
@@ -43189,17 +43196,17 @@ int menu_difficulty()
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(selector < 0)
@@ -43215,9 +43222,9 @@ int menu_difficulty()
         if(bothnewkeys & FLAG_ANYBUTTON)
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             if(selector == num_difficulties)
@@ -43329,7 +43336,7 @@ int load_saved_game()
                     break;
                 }
             }
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(selector == 0 && (bothnewkeys & FLAG_MOVERIGHT))
         {
@@ -43345,17 +43352,17 @@ int load_saved_game()
                     break;
                 }
             }
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(savedStatus)
         {
@@ -43375,7 +43382,7 @@ int load_saved_game()
 
         if((bothnewkeys & FLAG_ANYBUTTON))
         {
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             switch(selector)
             {
             case 0:
@@ -43418,17 +43425,17 @@ int choose_mode(int *players)
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(selector < 0)
@@ -43442,9 +43449,9 @@ int choose_mode(int *players)
 
         if(bothnewkeys & FLAG_ANYBUTTON)
         {
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             switch(selector)
             {
@@ -43978,7 +43985,7 @@ finish:
             if (k >= 0)
             {
                 safe_set(mapping, setting, k, ok);
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                 // Prevent the newly configured button from counting as "pressed" and starting config again
                 playercontrolpointers[player]->keyflags |= (1 << setting);
@@ -43988,7 +43995,7 @@ finish:
             }
             else if (bothnewkeys & FLAG_ESC)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 50);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 50);
                 setting = -1;
             }
         }
@@ -44008,7 +44015,7 @@ finish:
                     }
                 }
                 while(selector < btnnum && disabledkey[selector]);
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             if(bothnewkeys & FLAG_MOVEDOWN)
             {
@@ -44017,7 +44024,7 @@ finish:
                     if(++selector > btnnum - 1) break;
                 }
                 while(disabledkey[selector]);
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             if(selector < 0)
             {
@@ -44033,14 +44040,14 @@ finish:
             if (selector == OPTIONS_NUM - 3 && (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON)))
             {
                 // TODO: make rumble enable/disable a property of device, not player
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
                 savedata.joyrumble[player] = !savedata.joyrumble[player];
             }
             else
 #endif
             if (bothnewkeys & FLAG_ANYBUTTON)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                 if(selector == OPTIONS_NUM - 2) // OK
                 {
@@ -44168,9 +44175,9 @@ void menu_options_input()
         if (bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if (SAMPLE_BEEP >= 0)
+            if (global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             // skip over invisible configuration entries for non-existent devices
@@ -44188,9 +44195,9 @@ void menu_options_input()
         if (bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if (SAMPLE_BEEP >= 0)
+            if (global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             // skip over invisible device selection entries for non-existent players
@@ -44226,9 +44233,9 @@ void menu_options_input()
                 continue;
             }
 
-            if (SAMPLE_BEEP2 >= 0)
+            if (global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch (selector)
@@ -44329,18 +44336,18 @@ void menu_options_sound()
         {
             --selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(selector < 0)
@@ -44365,9 +44372,9 @@ void menu_options_sound()
                 dir = 1;
             }
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
@@ -44490,18 +44497,18 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
         {
             --selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
 
@@ -44517,9 +44524,9 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
@@ -44658,9 +44665,9 @@ void menu_options_debug()
             {
                 // Play beep if available.
                 // Kratus (04-2022) Moved the BEEP sound to work only with UP/DOWN keys
-                if(SAMPLE_BEEP >= 0)
+                if(global_sample_list.beep >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
 
                 // If we are at the top item, loop
@@ -44678,9 +44685,9 @@ void menu_options_debug()
             {
                 // Play beep if available.
                 // Kratus (04-2022) Moved the BEEP sound to work only with UP/DOWN keys
-                if(SAMPLE_BEEP >= 0)
+                if(global_sample_list.beep >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
 
                 // If we are at the last item
@@ -44703,9 +44710,9 @@ void menu_options_debug()
         // trigger button press.
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             // This is where menu items are executed.
@@ -44859,12 +44866,12 @@ void menu_options_system()
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
         if(selector < 0)
@@ -44891,7 +44898,7 @@ void menu_options_system()
             }
 #endif
 
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                  if (selector==RET) quit = 1;
             else if (selector==SYS_OPT_LOG) savedata.uselog =  !savedata.uselog;
@@ -45112,17 +45119,17 @@ void menu_options_video()
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
@@ -45138,9 +45145,9 @@ void menu_options_video()
                 dir = 1;
             }
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
@@ -45444,9 +45451,9 @@ void menu_options()
             }
             else --selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
@@ -45457,17 +45464,17 @@ void menu_options()
                 selector = VIDEO_OPTION;
             }
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
                 if(selector==BACK_OPTION) quit = 1;
@@ -45668,24 +45675,24 @@ void openborMain(int argc, char **argv)
             if(bothnewkeys & FLAG_MOVEUP)
             {
                 --selector;
-                if(SAMPLE_BEEP >= 0)
+                if(global_sample_list.beep >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
             }
             if(bothnewkeys & FLAG_MOVEDOWN)
             {
                 ++selector;
-                if(SAMPLE_BEEP >= 0)
+                if(global_sample_list.beep >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
             }
             if(bothnewkeys & (FLAG_ANYBUTTON))
             {
-                if(SAMPLE_BEEP2 >= 0)
+                if(global_sample_list.beep_2 >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
                 switch(selector)
                 {
