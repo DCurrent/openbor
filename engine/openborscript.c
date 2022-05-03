@@ -3455,7 +3455,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_animal:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.animal;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL);
         break;
     }
     case _ep_animating:
@@ -5326,13 +5326,13 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_numweapons:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.numweapons;
+        (*pretvar)->lVal = (LONG)ent->modeldata.weapon_properties.weapon_count;
         break;
     }
     case _ep_weapnum:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.weapnum;
+        (*pretvar)->lVal = (LONG)ent->modeldata.weapon_properties.weapon_index;
         break;
     }
     case _ep_weaploss:
@@ -5347,10 +5347,10 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
                 return E_FAIL;
             }
 
-            if (ltemp == 0) (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[0];
-            else (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[1];
+            if (ltemp == 0) (*pretvar)->lVal = (e_weapon_loss_condition_legacy)weapon_loss_condition_interpret_to_legacy(ent->modeldata.weapon_properties.loss_condition);
+            else (*pretvar)->lVal = (LONG)ent->modeldata.weapon_properties.loss_index;
         }
-        else (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[0];
+        else (*pretvar)->lVal = (e_weapon_loss_condition_legacy)weapon_loss_condition_interpret_to_legacy(ent->modeldata.weapon_properties.loss_condition);
 
         break;
     }
@@ -7424,7 +7424,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.weapnum = (LONG)ltemp;
+            ent->modeldata.weapon_properties.weapon_index = (LONG)ltemp;
         }
         break;
     }
@@ -7432,7 +7432,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.weaploss[0] = (LONG)ltemp;
+            ent->modeldata.weapon_properties.loss_condition = (e_weapon_loss_condition)weapon_loss_condition_interpret_from_legacy_weaploss(WEAPON_LOSS_CONDITION_NONE, ltemp);
         }
 
         if(paramCount >= 4)
@@ -7443,7 +7443,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 *pretvar = NULL;
                 return E_FAIL;
             }
-            ent->modeldata.weaploss[1] = (LONG)ltemp2;
+            ent->modeldata.weapon_properties.loss_index = (LONG)ltemp2;
         }
         break;
     }
@@ -7760,7 +7760,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
            break;
         }
 
-        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->numweapons;
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->weapon_properties.weapon_count;
         break;
     }
     case _pp_joining:

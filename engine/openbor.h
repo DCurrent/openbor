@@ -1635,20 +1635,6 @@ typedef enum
     SLOW_MOTION_ON
 } e_slow_motion_enable;
 
-typedef enum
-{
-    /*
-    Weapon loss type enum.
-    Damon V. Caskey
-    2013-12-29
-    */
-
-    WEAPLOSS_TYPE_ANY,         //Weapon lost taking any hit.
-    WEAPLOSS_TYPE_KNOCKDOWN,   //Weapon lost on knockdown.
-    WEAPLOSS_TYPE_DEATH,       //Weapon lost on death.
-    WEAPLOSS_TYPE_CHANGE       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
-} e_weaploss_type;
-
 //macros for drawing menu text, fits different font size
 #define _strmidx(f,s, args...) ((videomodes.hRes-font_string_width((f), s, ##args))/2)
 #define _colx(f,c) ((int)(videomodes.hRes/2+(c)*(fontmonowidth((f))+1)))
@@ -2667,6 +2653,68 @@ typedef struct
     s_axis_plane_vertical_int position;
 } s_player_arrow;
 
+typedef enum
+{
+    /*
+    Weapon loss type enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    WEAPLOSS_TYPE_ANY,         //Weapon lost taking any hit.
+    WEAPLOSS_TYPE_KNOCKDOWN,   //Weapon lost on knockdown.
+    WEAPLOSS_TYPE_DEATH,       //Weapon lost on death.
+    WEAPLOSS_TYPE_CHANGE       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
+} e_weapon_loss_condition_legacy;
+
+/*
+* Weapon loss conditions.
+*/
+typedef enum
+{
+    WEAPON_LOSS_CONDITION_NONE          = 0,
+    WEAPON_LOSS_CONDITION_DAMAGE        = (1 << 0),
+    WEAPON_LOSS_CONDITION_DEATH         = (1 << 1),
+    WEAPON_LOSS_CONDITION_FALL          = (1 << 2),
+    WEAPON_LOSS_CONDITION_GRABBED       = (1 << 3),
+    WEAPON_LOSS_CONDITION_GRABBING       = (1 << 4),
+    WEAPON_LOSS_CONDITION_LAND_DAMAGE   = (1 << 5),
+    WEAPON_LOSS_CONDITION_PAIN          = (1 << 6),
+    WEAPON_LOSS_CONDITION_STAGE         = (1 << 7),
+    WEAPON_LOSS_CONDITION_DEFAULT       = (WEAPON_LOSS_CONDITION_DAMAGE | WEAPON_LOSS_CONDITION_DEATH | WEAPON_LOSS_CONDITION_FALL | WEAPON_LOSS_CONDITION_GRABBED | WEAPON_LOSS_CONDITION_GRABBING | WEAPON_LOSS_CONDITION_LAND_DAMAGE | WEAPON_LOSS_CONDITION_PAIN)
+} e_weapon_loss_condition;
+
+typedef enum e_weapon_state
+{
+    WEAPON_STATE_NONE           = 0,    
+    WEAPON_STATE_ANIMAL         = (1 << 1), // Legacy "Animal". Behaviors to emulate ridable animals from Golden Axe.
+    WEAPON_STATE_DEDUCT_USE     = (1 << 2), // Limited item will deduct a use from count.
+    WEAPON_STATE_HAS_LIST       = (1 << 3), // Has a weapon list.
+    WEAPON_STATE_LIMITED_USE    = (1 << 4)  // Legacy "typeshot". Item is limited use with a remaining count shown in HUD.    
+} e_weapon_state;
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+* 
+* Properties for controlling 
+* weapon and weapon pickup behavior.
+*/
+typedef struct
+{
+    e_weapon_state weapon_state; // Booloean weapon behavior flags.
+
+    e_weapon_loss_condition loss_condition; // What events cause loss of weapon.
+    int loss_count; // Losses remaining before weapon is destroyed.
+    int loss_index; // If >0, switch to this weapon index when current weapon is lost.
+
+    unsigned use_count; // Uses (i.e. ammo) remaining for limited quantity weapon.
+    unsigned use_add; // Item adds this value to use_count if collector has limited use weapon.
+    int weapon_index; // Weapon list entry in use (or collector will use if this is an item).   
+    int* weapon_list; // Weapon model list.
+    int weapon_count; // Number of entries in weapon list.
+} s_weapon;
+
 typedef struct
 {
     int index;
@@ -2681,12 +2729,9 @@ typedef struct
     //unsigned offscreenkillz;
     //unsigned offscreeenkila;
     int mp; // mp's variable for mpbar by tails
-    int counter; // counter of weapons by tails
-    unsigned shootnum; // counter of shots by tails
-    unsigned reload; // reload max shots by tails
-    int deduct_ammo; // Used for setting the "a" at which weapons are spawned
-    int typeshot; // see if weapon is a gun or knife by tails
-    int animal; // see is the weapon is a animal by tails
+    
+    
+    
     int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
     int makeinv; // Option to spawn player invincible >0 blink <0 noblink
     int riseinv; // how many seconds will the character become invincible after rise >0 blink, <0 noblink
@@ -2702,18 +2747,24 @@ typedef struct
     s_player_arrow player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
     
     int setlayer; // Used for forcing enities to be displayed behind
-    int thold; // The entities threshold for block
+    
     s_maps maps; //2011_04_07, DC: Pre defined color map selections and behavior.
     int alpha; // New alpha variable to determine if the entity uses alpha transparency
     int toflip; // Flag to determine if flashes flip or not
+    
+    /* Shadows */
     int shadow;
     int gfxshadow; // use current frame to create a shadow
     int shadowbase;
     int aironly; // Used to determine if shadows will be shown when jumping only
+    
     int nomove; // Flag for static enemies
     int noflip; // Flag to determine if static enemies flip or stay facing the same direction
     int nodrop; // Flag to determine if enemies can be knocked down
     int nodieblink; // Flag to determine if blinking while playing die animation
+    
+    /* Blocking */
+    int thold; // The entities threshold for block
     int holdblock; // Continue the block animation as long as the player holds the button down
     int nopassiveblock; // Don't auto block randomly
     int blockback; // Able to block attacks from behind
@@ -2731,15 +2782,15 @@ typedef struct
     s_com *special; // Stores freespecials
     int specials_loaded; // Stores how many specials have been loaded
     int diesound;
-    int weapnum;
+    
+    s_weapon weapon_properties;
+    
+    /* Availability. */
     int secret;
     int clearcount;
-    int weaploss[2]; // Determines possibility of losing weapon.
-    int ownweapons; // is the weapon list own or share with others
-    int *weapon; // weapon model list
-    int numweapons;
+    
 
-    // these are model id of various stuff
+    /* Projectile model IDs */
     int project;
     int rider; // 7-1-2005 now every "biker" can have a new driver!
     int knife; // 7-1-2005 now every enemy can have their own "knife" projectile
@@ -2750,6 +2801,7 @@ typedef struct
     int bflash; // Flash that plays when an attack is blocked
 
     s_dust dust; //Spawn entity during certain actions.
+
     s_axis_plane_vertical_int size; // Used to set height of player in pixels
     s_axis_principal_float speed;
     
@@ -2760,12 +2812,14 @@ typedef struct
 
     e_air_control air_control; /* Mid air control options (turning, moving, etc.). */
     
+    /* Grab flags. */
     int grabback; // Flag to determine if entities grab images display behind opponenets
     int paingrab; // Added to grab resistance when not in pain.
     int grabfinish; // Cannot take further action until grab animation is complete.
     int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
     int grabturn; // Turn with grabbed target using Left/Right (if valid ANI_GRABTURN).
 
+    /* Grab variables. */
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character    
     int grab_force; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */
     int grab_resistance; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */    
@@ -3073,7 +3127,7 @@ typedef struct entity
 	int					    blocking;							// In blocking state. ~~
 	int					    charging;							// Charging MP. Gain according to chargerate. ~~
 	int					    dead;								// He's dead Jim. ~~
-	int					    deduct_ammo;						// Check for ammo count? ~~
+	e_weapon_state		    weapon_state;						// Check for ammo count? ~~
 	int					    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
 	int					    drop;								// Knocked down. Remains true until rising. ~~
 	int					    exists;								// flag to determine if it is a valid entity. ~~
@@ -3418,6 +3472,8 @@ e_air_control_legacy_z air_control_interpret_to_legacy_jumpmove_z(e_air_control 
 e_air_control_legacy_x air_control_interpret_to_legacy_walkoffmove_x(e_air_control air_control_value);
 e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_control air_control_value);
 
+
+
 int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
@@ -3700,7 +3756,11 @@ void toss(entity *ent, float lift);
 void player_think(void);
 void subtract_shot(void);
 void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, int flag);
+
+e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_weapon_loss_condition weapon_loss_condition_value, e_weapon_loss_condition_legacy legacy_value);
+e_weapon_loss_condition_legacy weapon_loss_condition_interpret_to_legacy(e_weapon_loss_condition weapon_loss_condition_value);
 void dropweapon(int flag);
+
 void biker_drive(void);
 void trap_think(void);
 void steamer_think(void);

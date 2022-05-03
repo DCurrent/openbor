@@ -5540,10 +5540,10 @@ int free_model(s_model *model)
         model->palette = NULL;
     }
     printf(".");
-    if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
+    if(hasFreetype(model, MF_WEAPONS) && model->weapon_properties.weapon_list && model->weapon_properties.weapon_state & WEAPON_STATE_HAS_LIST)
     {
-        free(model->weapon);
-        model->weapon = NULL;
+        free(model->weapon_properties.weapon_list);
+        model->weapon_properties.weapon_list = NULL;
     }
     printf(".");
     if(hasFreetype(model, MF_BRANCH) && model->branch)
@@ -9909,6 +9909,164 @@ void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
 /*
 * Caskey, Damon V.
 * 2022-04-26
+*
+* Backport weapon loss conditions values 
+* to legacy weapon loss for backward
+* compatability.
+*/
+e_weapon_loss_condition_legacy weapon_loss_condition_interpret_to_legacy(e_weapon_loss_condition weapon_loss_condition_value)
+{
+    e_weapon_loss_condition_legacy result = WEAPLOSS_TYPE_ANY;
+
+    if ((weapon_loss_condition_value & WEAPON_LOSS_CONDITION_DEFAULT) == WEAPON_LOSS_CONDITION_DEFAULT)
+    {
+        result |= WEAPLOSS_TYPE_ANY;
+        return result;
+    }
+
+    if (weapon_loss_condition_value & WEAPON_LOSS_CONDITION_DEATH)
+    {
+        result |= WEAPLOSS_TYPE_DEATH;
+        return result;
+    }
+
+    if (weapon_loss_condition_value & WEAPLOSS_TYPE_KNOCKDOWN)
+    {
+        result |= WEAPON_LOSS_CONDITION_FALL;
+        return result;
+    }
+
+    if (weapon_loss_condition_value & WEAPLOSS_TYPE_CHANGE)
+    {
+        result |= WEAPON_LOSS_CONDITION_STAGE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Interpret legacy weaploss commands into
+* weapon loss bits per orginal documentation.
+*/
+e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_weapon_loss_condition weapon_loss_condition_value, e_weapon_loss_condition_legacy legacy_value)
+{
+    switch (legacy_value)
+    {
+    case WEAPLOSS_TYPE_ANY:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_DEFAULT;
+        break;
+
+    case WEAPLOSS_TYPE_KNOCKDOWN:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_FALL;
+        break;
+
+    case WEAPLOSS_TYPE_DEATH:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_PAIN;
+        break;
+
+    case WEAPLOSS_TYPE_CHANGE:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_STAGE;
+        break;
+
+    default:
+        
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_DEFAULT;
+
+        break;
+    }
+
+    return weapon_loss_condition_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+*
+* Accept string input and return
+* matching constant.
+*/
+e_weapon_loss_condition find_weapon_loss_from_string(char* value)
+{
+    e_weapon_loss_condition result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_NONE;
+    }
+    if (stricmp(value, "damage") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_DAMAGE;
+    }
+    else if (stricmp(value, "death") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_DEATH;
+    }
+    else if (stricmp(value, "fall") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_FALL;
+    }
+    else if (stricmp(value, "grabbed") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_GRABBED;
+    }
+    else if (stricmp(value, "grabbing") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_GRABBING;
+    }
+    else if (stricmp(value, "land_damage") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_LAND_DAMAGE;
+    }
+    else if (stricmp(value, "pain") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_PAIN;
+    }
+    else if (stricmp(value, "stage") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_STAGE;
+    }
+    else if (stricmp(value, "default") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_DEFAULT;
+    }
+    else
+    {
+        result = WEAPON_LOSS_CONDITION_DEFAULT;
+        printf("\n\n Unknown weapon loss flag (%s), using 'default'. \n", value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+*
+* Populate weapon loss model property
+* from text arguments.
+*/
+void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
+{
+    int i;
+    char* value;
+    newchar->weapon_properties.loss_condition = WEAPON_LOSS_CONDITION_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        newchar->weapon_properties.loss_condition |= find_weapon_loss_from_string(value);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
 * 
 * Backport air control values to legacy
 * jumpmove for backward compatability.
@@ -10600,40 +10758,50 @@ void lcmHandleCommandAiattack(ArgList *arglist, s_model *newchar, int *aiattacks
 
 void lcmHandleCommandWeapons(ArgList *arglist, s_model *newchar)
 {
-    int weap;
+    int weapon_index = 0;
     char *value;
-    for(weap = 0; ; weap++)
+    
+    for(weapon_index = 0; ; weapon_index++)
     {
-        value = GET_ARGP(weap + 1);
+        value = GET_ARGP(weapon_index + 1);
         if(!value[0])
         {
             break;
         }
     }
 
-    if(!weap)
+    if(!weapon_index)
     {
         return;
     }
 
-    newchar->numweapons = weap;
+    newchar->weapon_properties.weapon_count = weapon_index;
 
-    if(!newchar->weapon)
+    if(!newchar->weapon_properties.weapon_list)
     {
-        newchar->weapon = malloc(sizeof(*newchar->weapon) * newchar->numweapons);
-        memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon)*newchar->numweapons);
-        newchar->ownweapons = 1;
+        newchar->weapon_properties.weapon_list = malloc(sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
+        memset(newchar->weapon_properties.weapon_list, 0xFF, sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
+        newchar->weapon_properties.weapon_state |= WEAPON_STATE_HAS_LIST;
     }
-    for(weap = 0; weap < newchar->numweapons ; weap++)
+
+    /*
+    * Weapon list arguments left to right, until we
+    * reach this model's number of weapons. If none,
+    * populate wiith "none" index. Otherwise we find
+    * a model index to populate with.
+    */
+
+    for(weapon_index = 0; weapon_index < newchar->weapon_properties.weapon_count; weapon_index++)
     {
-        value = GET_ARGP(weap + 1);
+        value = GET_ARGP(weapon_index + 1);
+
         if(stricmp(value, "none") != 0)
         {
-            newchar->weapon[weap] = get_cached_model_index(value);
+            newchar->weapon_properties.weapon_list[weapon_index] = get_cached_model_index(value);
         }
-        else     // make empty weapon slots  2007-2-16
+        else
         {
-            newchar->weapon[weap] = -1;
+            newchar->weapon_properties.weapon_list[weapon_index] = MODEL_INDEX_NONE;
         }
     }
 }
@@ -11100,7 +11268,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->nolife             = 0;			    // default show life = 1 (yes)
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
-    newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
+    newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile
     newchar->aimove             = AIMOVE1_NONE;
     newchar->aiattack           = -1;
     newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
@@ -11139,8 +11307,8 @@ s_model *init_model(int cacheindex, int unload)
     newchar->jugglepoints.current = newchar->jugglepoints.max = 0;
     newchar->guardpoints.current = newchar->guardpoints.max = 0;
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
-    newchar->weaploss[0]                = WEAPLOSS_TYPE_ANY;
-    newchar->weaploss[1]                = -1;
+    newchar->weapon_properties.loss_condition   |= WEAPON_LOSS_CONDITION_DEFAULT;
+    newchar->weapon_properties.loss_index      = MODEL_INDEX_NONE;
     newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
     newchar->candamage                  = -1;
@@ -11684,11 +11852,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
                 // weapons
             case CMD_MODEL_WEAPLOSS:
-                newchar->weaploss[0] = GET_INT_ARG(1);
-                newchar->weaploss[1] = GET_INT_ARG(2);
+                
+                /* Legacy weapon loss. */
+                
+                newchar->weapon_properties.loss_condition = weapon_loss_condition_interpret_from_legacy_weaploss(WEAPON_LOSS_CONDITION_NONE, GET_INT_ARG(1));
+                newchar->weapon_properties.loss_index = GET_INT_ARG(2);
                 break;
+            
+            case CMD_MODEL_WEAPON_LOSS_CONDITION:
+                
+                lcmHandleCommandWeaponLossCondition(&arglist, newchar);
+                break;
+
+            case CMD_MODEL_WEAPON_LOSS_INDEX:
+
+                /* Weapon list entry we revert to when losing weapon. */
+                
+                newchar->weapon_properties.loss_index = GET_INT_ARG(1);
+                
+                break;
+
             case CMD_MODEL_WEAPNUM:
-                newchar->weapnum = GET_INT_ARG(1);
+                newchar->weapon_properties.weapon_index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_PROJECT: // New projectile subtype
                 value = GET_ARG(1);
@@ -11704,20 +11889,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_WEAPONS:
                 lcmHandleCommandWeapons(&arglist, newchar);
                 break;
-            case CMD_MODEL_SHOOTNUM: //here weapons things like shoot rest type of weapon ect..by tails
-                newchar->shootnum = GET_INT_ARG(1);
+            case CMD_MODEL_SHOOTNUM: 
+                newchar->weapon_properties.use_count = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_RELOAD:
-                newchar->reload = GET_INT_ARG(1);
+                newchar->weapon_properties.use_add = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_TYPESHOT:
-                newchar->typeshot = GET_INT_ARG(1);
+                if (GET_INT_ARG(1))
+                {
+                    newchar->weapon_properties.weapon_state |= WEAPON_STATE_LIMITED_USE;
+                }
+                
                 break;
             case CMD_MODEL_COUNTER:
-                newchar->counter = GET_INT_ARG(1);
+                newchar->weapon_properties.loss_count = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ANIMAL:
-                newchar->animal = GET_INT_ARG(1);
+                if (GET_INT_ARG(1))
+                {
+                    newchar->weapon_properties.weapon_state |= WEAPON_STATE_ANIMAL;
+                }
                 break;
             case CMD_MODEL_RIDER:
                 value = GET_ARG(1);
@@ -20049,9 +20241,9 @@ void predrawstatus()
                     spriteq_add_sprite(videomodes.shiftpos[i] + piconw[i][0], savedata.windowpos + piconw[i][1], 10000, player[i].ent->weapent->modeldata.icon.weapon, &drawmethod, 0);
                 }
 
-                if(player[i].ent->weapent->modeldata.typeshot && player[i].ent->weapent->modeldata.shootnum)
+                if(player[i].ent->weapent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE && player[i].ent->weapent->modeldata.weapon_properties.use_count)
                 {
-                    font_printf(videomodes.shiftpos[i] + pshoot[i][0], savedata.windowpos + pshoot[i][1], pshoot[i][2], 0, "%u", player[i].ent->weapent->modeldata.shootnum);
+                    font_printf(videomodes.shiftpos[i] + pshoot[i][0], savedata.windowpos + pshoot[i][1], pshoot[i][2], 0, "%u", player[i].ent->weapent->modeldata.weapon_properties.use_count);
                 }
             }
 
@@ -21457,19 +21649,19 @@ void update_frame(entity *ent, unsigned int f)
 			{
 				__trystar;
 			}
-			self->deduct_ammo = 1;
+			self->weapon_state |= WEAPON_STATE_DEDUCT_USE;
 		}
 
 		if (anim->projectile->shootframe == f)
 		{
 			knife_spawn(self, anim->projectile);
-			self->deduct_ammo = 1;
+			self->weapon_state |= WEAPON_STATE_DEDUCT_USE;
 		}
 
 		if (anim->projectile->tossframe == f)
 		{
 			bomb_spawn(self, anim->projectile);
-			self->deduct_ammo = 1;
+			self->weapon_state |= WEAPON_STATE_DEDUCT_USE;
 		}
 	}
 
@@ -22131,7 +22323,7 @@ int check_canbegrabbed(entity* acting_entity, entity* target_entity)
         return 0;
     }
 
-    if (target_entity->model->animal)
+    if (target_entity->model->weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         return 0;
     }
@@ -27038,8 +27230,8 @@ int normal_test_item(entity *ent, entity *item)
                item->animation->vulnerable[item->animpos] && !item->blink &&
                (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent))) &&
                (
-                   (isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon &&
-                    ent->modeldata.numweapons >= item->modeldata.weapnum && ent->modeldata.weapon[item->modeldata.weapnum - 1] >= 0)
+                   (isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon_properties.weapon_list &&
+                    ent->modeldata.weapon_properties.weapon_count >= item->modeldata.weapon_properties.weapon_index && ent->modeldata.weapon_properties.weapon_list[item->modeldata.weapon_properties.weapon_index - 1] >= 0)
                    || (isSubtypeProjectile(item) && !ent->weapent)
                    || (item->energy_state.health_current && (ent->energy_state.health_current < ent->modeldata.health) && ! isSubtypeProjectile(item) && ! isSubtypeWeapon(item))
                )
@@ -27061,9 +27253,9 @@ int test_item(entity *ent, entity *item)
         return 0;
     }
     if(isSubtypeWeapon(item) &&
-            (ent->weapent || !ent->modeldata.weapon ||
-             ent->modeldata.numweapons < item->modeldata.weapnum ||
-             ent->modeldata.weapon[item->modeldata.weapnum - 1] < 0)
+            (ent->weapent || !ent->modeldata.weapon_properties.weapon_list ||
+             ent->modeldata.weapon_properties.weapon_count < item->modeldata.weapon_properties.weapon_index ||
+             ent->modeldata.weapon_properties.weapon_list[item->modeldata.weapon_properties.weapon_index - 1] < 0)
       )
     {
         return 0;
@@ -27077,14 +27269,17 @@ int player_test_pickable(entity *ent, entity *item)
     {
         return 0;
     }
-    if(isSubtypeWeapon(item) && ent->modeldata.animal == 2)
+    
+    if(isSubtypeWeapon(item) && ent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         return 0;
     }
+
     if(diff(ent->base , item->position.y) > 0.1)
     {
         return 0;
     }
+    
     return test_item(ent, item);
 }
 
@@ -27094,10 +27289,12 @@ int player_test_touch(entity *ent, entity *item)
     {
         return 0;
     }
-    if(isSubtypeWeapon(item) && ent->modeldata.animal == 2)
+
+    if(isSubtypeWeapon(item) && ent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         return 0;
     }
+
     if(diff(ent->base , item->position.y) > 1)
     {
         return 0;
@@ -27680,11 +27877,11 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         // copy the weapon list if model flag is not set to use its own weapon list
         if(!(newmodel->model_flag & MODEL_NO_WEAPON_COPY))
         {
-            newmodel->weapnum = model->weapnum;
-            if(!newmodel->weapon)
+            newmodel->weapon_properties.weapon_index = model->weapon_properties.weapon_index;
+            if(!newmodel->weapon_properties.weapon_list)
             {
-                newmodel->weapon = model->weapon;
-                newmodel->numweapons = model->numweapons;
+                newmodel->weapon_properties.weapon_list = model->weapon_properties.weapon_list;
+                newmodel->weapon_properties.weapon_count = model->weapon_properties.weapon_count;
             }
         }
     }
@@ -27739,9 +27936,9 @@ void set_weapon(entity *ent, int wpnum, int anim_flag) // anim_flag added for sc
     }
 //printf("setweapon: %d \n", wpnum);
 
-    if(ent->modeldata.type & TYPE_PLAYER) // save current weapon for player's weaploss 3
+    if(ent->modeldata.type & TYPE_PLAYER) // save current weapon for player's weaploss WEAPON_LOSS_CONDITION_STAGE
     {
-        if(ent->modeldata.weaploss[0] == WEAPLOSS_TYPE_CHANGE)
+        if(ent->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_STAGE)
         {
             player[(int)ent->playerindex].weapnum = wpnum;
         }
@@ -27751,9 +27948,9 @@ void set_weapon(entity *ent, int wpnum, int anim_flag) // anim_flag added for sc
         }
     }
 
-    if(ent->modeldata.weapon && wpnum > 0 && wpnum <= ent->modeldata.numweapons && ent->modeldata.weapon[wpnum - 1])
+    if(ent->modeldata.weapon_properties.weapon_list && wpnum > 0 && wpnum <= ent->modeldata.weapon_properties.weapon_count && ent->modeldata.weapon_properties.weapon_list[wpnum - 1])
     {
-        set_model_ex(ent, NULL, ent->modeldata.weapon[wpnum - 1], NULL, !anim_flag);
+        set_model_ex(ent, NULL, ent->modeldata.weapon_properties.weapon_list[wpnum - 1], NULL, !anim_flag);
     }
     else
     {
@@ -28377,7 +28574,7 @@ void common_fall()
     }
 
     // Drop Weapon due to Enemy Falling.
-    //if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_KNOCKDOWN) dropweapon(1);
+    //if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_FALL) dropweapon(1);
 
     if(self->boss && level_completed)
     {
@@ -28643,7 +28840,7 @@ void common_grab_check()
         return;
     }
 
-    if(!nolost && self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+    if(!nolost && self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_GRABBING)
     {
         dropweapon(1);
     }
@@ -29317,7 +29514,7 @@ void checkdamagedrop(entity* target_entity, s_attack* attack_object, s_defense* 
     * Legacy behavior. Always fall if in "animal" mode.
     */
     
-    if(target_entity->modeldata.animal)
+    if(target_entity->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         target_entity->drop = 1;
     }
@@ -29947,7 +30144,7 @@ void checkdamageonlanding()
             checkdamagedrop(self, &attack, defense_object);
 
             // Drop Weapon due to being hit.
-            if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+            if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_LAND_DAMAGE)
             {
                 dropweapon(1);
             }
@@ -30218,7 +30415,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         checkdamagedrop(self, attack, defense_object);
 
         // Drop Weapon due to being hit.
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DAMAGE)
         {
             dropweapon(1);
         }
@@ -30313,12 +30510,13 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
     if(self->drop || self->energy_state.health_current <= 0)
     {
         self->takeaction = common_fall;
+        
         // Drop Weapon due to death.
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_DEATH && self->energy_state.health_current <= 0)
+        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DEATH && self->energy_state.health_current <= 0)
         {
             dropweapon(1);
         }
-        else if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_KNOCKDOWN)
+        else if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_FALL)
         {
             dropweapon(1);
         }
@@ -31904,10 +32102,10 @@ void common_attack_proc()
         smart_bomb(self, self->modeldata.smartbomb);
         smartbomber = NULL;
     }
-    if(self->deduct_ammo == 1)
+    if(self->weapon_state & WEAPON_STATE_DEDUCT_USE)
     {
         subtract_shot();
-        self->deduct_ammo = 0;
+        self->weapon_state &= ~WEAPON_STATE_DEDUCT_USE;
     }
     self->attacking = ATTACKING_NONE;
     // end of attack proc
@@ -33309,15 +33507,20 @@ void common_pickupitem(entity *other)
         self->takeaction = common_get;
         dropweapon(0);  //don't bother dropping the previous one though, scine it won't pickup another
         self->weapent = other;
-        set_weapon(self, other->modeldata.weapnum, 0);
+        
+        set_weapon(self, other->modeldata.weapon_properties.weapon_index, 0);
+        
         set_getting(self);
         self->velocity.x = self->velocity.z = 0; //stop moving
-        if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
+
+        /* Move to weapon location if it's an "animal". */
+        if(self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
         {
             self->direction = other->direction;
             self->position.x = other->position.x;
             self->position.z = other->position.z;
         }
+
         other->nextanim = other->nextthink = _time + GAME_SPEED * 999999;
         ent_set_anim(self, ANI_GET, 0);
         pickup = 1;
@@ -34665,7 +34868,7 @@ void player_die()
             }
         }
 
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_CHANGE)
+        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_STAGE)
         {
             player[playerindex].weapnum = level->setweap;
         }
@@ -35333,12 +35536,19 @@ void didfind_item(entity *other)
     // Function that takes care of items when picked up
     set_opponent(self, other);
 
-    //for reload weapons that are guns(no knife) we use this items reload for ours shot at max and shootnum in items for get a amount of shoots by tails
-    if(other->modeldata.reload)
+    /*
+    * Legacy limited use replenish.
+    * 
+    * If item has a use_add value and collecting
+    * entity has a limited use weapon, we add
+    * use_add to uses remaining.
+    */
+
+    if(other->modeldata.weapon_properties.use_add)
     {
-        if(self->weapent && self->weapent->modeldata.typeshot)
+        if(self->weapent && self->weapent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE)
         {
-            self->weapent->modeldata.shootnum += other->modeldata.reload;
+            self->weapent->modeldata.weapon_properties.use_count += other->modeldata.weapon_properties.use_add;
 
             if(SAMPLE_GET >= 0)
             {
@@ -35354,6 +35564,7 @@ void didfind_item(entity *other)
             }
         }
     }
+
     //end of weapons items section
     else if(other->modeldata.score)
     {
@@ -35426,18 +35637,19 @@ void didfind_item(entity *other)
     {
         dropweapon(0);
         self->weapent = other;
-        set_weapon(self, other->modeldata.weapnum, 0);
+        set_weapon(self, other->modeldata.weapon_properties.weapon_index, 0);
 
-        if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
+        /* Move to weapon location if it's an "animal". */
+        if(self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
         {
             self->direction = other->direction;
             self->position.x = other->position.x;
             self->position.z = other->position.z;
         }
 
-        if(!other->modeldata.typeshot && self->modeldata.typeshot)
+        if(!(other->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE) && self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE)
         {
-            other->modeldata.typeshot = 1;
+            other->modeldata.weapon_properties.weapon_state |= WEAPON_STATE_LIMITED_USE;
         }
 
         if(SAMPLE_GET >= 0)
@@ -35529,7 +35741,7 @@ void player_grab_check()
         return;
     }
 
-    if(!nolost && self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+    if(!nolost && self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_GRABBING)
     {
         dropweapon(1);
     }
@@ -37292,91 +37504,107 @@ int is_in_backrun(entity* self)
 //ammo count goes down
 void subtract_shot()
 {
-    if(self->weapent && self->weapent->modeldata.shootnum)
+    if(self->weapent && self->weapent->modeldata.weapon_properties.use_count)
     {
-        self->weapent->modeldata.shootnum--;
-        if(!self->weapent->modeldata.shootnum)
+        self->weapent->modeldata.weapon_properties.use_count--;
+
+        /*
+        * Out of uses? Drop the weapon.
+        */
+
+        if(!self->weapent->modeldata.weapon_properties.use_count)
         {
-            self->weapent->modeldata.counter = 0;
+            self->weapent->modeldata.weapon_properties.loss_count = 0;
             dropweapon(0);
         }
     }
-
 }
 
 
 void dropweapon(int flag)
 {
-    int wall;
+    int wall = 0;
     entity *other = NULL;
+    entity* weapon_entity = NULL;
+    s_weapon* weapon_properties = NULL;
 
 	// If we already have a weapon, we'll need to discard it.
     if(self->weapent)
     {
+        /*
+        * Dump pointers to self's weapon entity and the 
+        * weapon entity's modeldata weapon properties 
+        * into local variables. This is just for eaiser 
+        * reading downstream.
+        */
+
+        weapon_entity = *&self->weapent;
+        weapon_properties = &self->weapent->modeldata.weapon_properties;
+
 		// 2019-09-29 - Not sure about this logic. It appears that only type shot
 		// weapons or weapons with shot ammo are dropped.  Anything else is simply discarded.
 		// Need to evaluate all weapon logic to get the workflow.
-        if(self->weapent->modeldata.typeshot || (!self->weapent->modeldata.typeshot && self->weapent->modeldata.shootnum))
+        if(weapon_properties->weapon_state & WEAPON_STATE_LIMITED_USE || (!(weapon_properties->weapon_state & WEAPON_STATE_LIMITED_USE) && weapon_properties->use_count))
         {            
 			// If the flag is 2 or below, we subtract the flag's
 			// value from weapon counter.
 			if(flag < 2)
             {
-                self->weapent->modeldata.counter -= flag;
+                weapon_properties->loss_count -= flag;
             }
             
 			// We're going to use our own position for the weapon.
-			self->weapent->direction = self->direction;
-			self->weapent->position.z = self->position.z;
-            self->weapent->position.x = self->position.x;
-            self->weapent->position.y = self->position.y;
+            weapon_entity->direction = self->direction;
+            weapon_entity->position.z = self->position.z;
+            weapon_entity->position.x = self->position.x;
+            weapon_entity->position.y = self->position.y;
 
 			// Get any walls and platforms.
-            other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
-            wall = checkwall_index(self->weapent->position.x, self->weapent->position.z);
+            other = check_platform(weapon_entity->position.x, weapon_entity->position.z, self);
+            wall = checkwall_index(weapon_entity->position.x, weapon_entity->position.z);
 
 			// Place onto wall or platform.
-            if(other && other != self->weapent)
+            if(other && other != weapon_entity)
             {
-                self->weapent->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
+                weapon_entity->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
             }
             else if(wall >= 0)
             {
-                self->weapent->base += level->walls[wall].height;
+                weapon_entity->base += level->walls[wall].height;
             }
 
 			// Use the weapon's RESPAWN or SPAWN animations if available, otherwise
 			// go right to idle.
-            if(validanim(self->weapent, ANI_RESPAWN))
+            if(validanim(weapon_entity, ANI_RESPAWN))
             {
-                ent_set_anim(self->weapent, ANI_RESPAWN, 1);
+                ent_set_anim(weapon_entity, ANI_RESPAWN, 1);
             }
-            else if(validanim(self->weapent, ANI_SPAWN))
+            else if(validanim(weapon_entity, ANI_SPAWN))
             {
-                ent_set_anim(self->weapent, ANI_SPAWN, 1);
+                ent_set_anim(weapon_entity, ANI_SPAWN, 1);
             }
             else
             {
-                if(validanim(self->weapent, ANI_IDLE)) ent_set_anim(self->weapent, ANI_IDLE, 1);
+                if(validanim(weapon_entity, ANI_IDLE)) ent_set_anim(weapon_entity, ANI_IDLE, 1);
             }
 
 			// If the weapon's counter is depleted, then weapon is lost for good.
 			// If it is an "animal", then we apply the animal running away logic.
 			// Otherwise the weapon blinks out.
-            if(!self->weapent->modeldata.counter)
+            if(!weapon_properties->loss_count)
             {
-                if(!self->modeldata.animal)
+                if(!(self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL))
                 {
-                    self->weapent->blink = 1;
-                    self->weapent->takeaction = common_lie;
+                    weapon_entity->blink = 1;
+                    weapon_entity->takeaction = common_lie;
                 }
                 else
                 {
-                    self->weapent->modeldata.type = TYPE_NONE;
-                    self->weapent->think = runanimal;
+                    weapon_entity->modeldata.type = TYPE_NONE;
+                    weapon_entity->think = runanimal;
                 }
             }
-            self->weapent->nextthink = _time + 1;
+            weapon_entity->nextthink = _time + 1;
         }
 
 		// Clear our tracking variable that keeps the weapon entity pointer.
@@ -37408,9 +37636,9 @@ void dropweapon(int flag)
 	// Model override. If this is populated, we use its value
 	// to locate a model by index and revert to that instead 
 	// of the default model when a weapon is lost.
-    if(self->modeldata.weaploss[1] > 0)
+    if(self->modeldata.weapon_properties.loss_index != MODEL_INDEX_NONE)
     {
-        set_weapon(self, self->modeldata.weaploss[1], 0);
+        set_weapon(self, self->modeldata.weapon_properties.loss_index, 0);
     }
 }
 
@@ -37464,10 +37692,12 @@ void drop_all_enemies()
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            if(ent_list[i]->modeldata.weaploss[0] != WEAPLOSS_TYPE_CHANGE)
+            
+            if(ent_list[i]->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_STAGE)
             {
                 dropweapon(1);
             }
+
             toss(ent_list[i], 2.5 + randf(1));
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
@@ -38709,7 +38939,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         if(wp)
         {
             //ent_default_init(wp);
-            set_weapon(e, wp->modeldata.weapnum, 0);
+            set_weapon(e, wp->modeldata.weapon_properties.weapon_index, 0);
             e->weapent = wp;
 
             e->weapent->spawntype = SPAWN_TYPE_WEAPON;

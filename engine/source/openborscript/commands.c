@@ -512,6 +512,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_WALKOFFMOVE, "walkoffmove");
     LIST_ADD(CMD_MODEL_WEAPLOSS, "weaploss");
     LIST_ADD(CMD_MODEL_WEAPNUM, "weapnum");
+    LIST_ADD(CMD_MODEL_WEAPON_LOSS_CONDITION, "weapon_loss_condition");
+    LIST_ADD(CMD_MODEL_WEAPON_LOSS_INDEX, "weapon_loss_index");
     LIST_ADD(CMD_MODEL_WEAPONFRAME, "weaponframe");
     LIST_ADD(CMD_MODEL_WEAPONS, "weapons");
 

@@ -56,7 +56,6 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"command_time",
 		"damage_on_landing",
 		"dead",
-		"deduct_ammo",
 		"defense_collection",
 		"destination_x",
 		"destination_z",
@@ -160,7 +159,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"walk_state",
 		"waypoint_collection",
 		"waypoint_count",
-		"weapon_item"
+		"weapon_item",
+		"weapon_state"
     };
 
     // If the minimum argument count
@@ -476,14 +476,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 			(*pretvar)->lVal = (LONG)handle->dead;
 
 			break;
-
-        case _ENTITY_DEDUCT_AMMO:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->deduct_ammo;
-
-            break;
-
+			
 		case _ENTITY_DEFENSE_COLLECTION:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -1217,6 +1210,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
+		case _ENTITY_WEAPON_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->weapon_state;
+
+			break;
+
         default:
 
             printf("Unsupported property.\n");
@@ -1583,15 +1583,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			}
 
 			break;
-
-        case _ENTITY_DEDUCT_AMMO:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->deduct_ammo = temp_int;
-            }
-
-            break;
 
 		case _ENTITY_DEFENSE_COLLECTION:
 
@@ -2448,6 +2439,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 		case _ENTITY_WEAPON_ITEM:
 
 			handle->weapent = (entity *)varlist[ARG_VALUE]->ptrVal;
+
+			break;
+
+		case _ENTITY_WEAPON_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->weapon_state = temp_int;
+			}
 
 			break;
 
