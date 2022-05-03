@@ -8835,6 +8835,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
 }
 
 // change a system variant, used by script
+// Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
 int changesyspropertybyindex(int index, ScriptVariant *value)
 {
     //char* tempstr = NULL;
@@ -8847,6 +8848,12 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             _time = (LONG)ltemp;
+        }
+        break;
+    case _sv_cheats:
+        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            allow_cheats = (LONG)ltemp;
         }
         break;
     case _sv_current_stage:

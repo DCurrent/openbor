@@ -573,6 +573,7 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
+int                 allow_cheats        = -1;                   // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
 int                 forcecheatsoff      = 0;
 int                 nodebugoptions      = 0;
 int                 cheats              = 0;
@@ -19826,6 +19827,8 @@ void updatestatus()
         if(dt < GAME_SPEED / 2)
         {
             showgo = 1;
+            screen_status |= IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
+            
             if(gosound == 0 )
             {
 
@@ -19840,11 +19843,13 @@ void updatestatus()
         else
         {
             showgo = gosound = 0;    //26-12-2004 Resets go sample after loop so it can be played again next time
+            screen_status &= ~IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
         }
     }
     else
     {
         showgo = 0;
+        screen_status &= ~IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
     }
 
 }
@@ -25548,7 +25553,7 @@ int check_in_screen()
     * It should be faster.
     */
 
-    if (screen_status & (IN_SCREEN_BUTTON_CONFIG_MENU | IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_ENGINE_CREDIT | IN_SCREEN_MENU | IN_SCREEN_GAME_START_MENU | IN_SCREEN_NEW_GAME_MENU | IN_SCREEN_LOAD_GAME_MENU | IN_SCREEN_OPTIONS_MENU | IN_SCREEN_CONTROL_OPTIONS_MENU | IN_SCREEN_SOUND_OPTIONS_MENU | IN_SCREEN_VIDEO_OPTIONS_MENU | IN_SCREEN_SYSTEM_OPTIONS_MENU))
+    if (screen_status & (IN_SCREEN_BUTTON_CONFIG_MENU | IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_SHOW_GO_ARROW | IN_SCREEN_ENGINE_CREDIT | IN_SCREEN_MENU | IN_SCREEN_GAME_START_MENU | IN_SCREEN_NEW_GAME_MENU | IN_SCREEN_LOAD_GAME_MENU | IN_SCREEN_OPTIONS_MENU | IN_SCREEN_CONTROL_OPTIONS_MENU | IN_SCREEN_SOUND_OPTIONS_MENU | IN_SCREEN_VIDEO_OPTIONS_MENU | IN_SCREEN_SYSTEM_OPTIONS_MENU))
     {
         return 1;
     }
@@ -36207,7 +36212,8 @@ void player_jump_check()
                     self->attacking = ATTACKING_ACTIVE;
 
                     // Kratus (10-2021) Add a option to kill or not the xyz movement
-                    if(!self->modeldata.jumpspecial & 1)
+                    // Kratus (04-2022) Minor fix on the jumpspecial code
+                    if(!(self->modeldata.jumpspecial & 1))
                     {
                         self->velocity.x = self->velocity.z = 0; // Kill movement when the special starts
                         self->velocity.y = 0;
@@ -44641,12 +44647,6 @@ void menu_options_debug()
         // If user presses up/down or esc, let's act accordingly.
         if(bothnewkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN | FLAG_ESC))
         {
-            // Play beep if available.
-            if(SAMPLE_BEEP >= 0)
-            {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-
             // If user presses escape, then set quit
             // flag immediately. Else wise, increment
             // or decrement selector as needed.
@@ -44656,6 +44656,13 @@ void menu_options_debug()
             }
             else if(bothnewkeys & FLAG_MOVEUP)
             {
+                // Play beep if available.
+                // Kratus (04-2022) Moved the BEEP sound to work only with UP/DOWN keys
+                if(SAMPLE_BEEP >= 0)
+                {
+                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                }
+
                 // If we are at the top item, loop
                 // to last. Otherwise, move one up.
                 if(selector <= MENU_ITEM_FIRST_INDEX)
@@ -44669,6 +44676,13 @@ void menu_options_debug()
             }
             else if(bothnewkeys & FLAG_MOVEDOWN)
             {
+                // Play beep if available.
+                // Kratus (04-2022) Moved the BEEP sound to work only with UP/DOWN keys
+                if(SAMPLE_BEEP >= 0)
+                {
+                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                }
+
                 // If we are at the last item
                 // (which should be "back"), then
                 // loop back to first. Otherwise
@@ -45384,6 +45398,10 @@ void menu_options()
 
     screen_status |= IN_SCREEN_OPTIONS_MENU;
     bothnewkeys = 0;
+
+    // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
+    if(allow_cheats == 0){forcecheatsoff = 1; cheats = 0;}
+    if(allow_cheats == 1){forcecheatsoff = 0;}
 
     if (cheats && !forcecheatsoff)
     {

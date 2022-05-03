@@ -136,6 +136,7 @@ movement restirctions are here!
 * 2022-04-19
 * 
 * Screen status flags.
+* Kratus (04-2022) Added the "showgo" event accessible by script
 */
 typedef enum
 {
@@ -148,14 +149,15 @@ typedef enum
     IN_SCREEN_HALL_OF_FAME          = (1 << 5),
     IN_SCREEN_LOAD_GAME_MENU        = (1 << 6),
     IN_SCREEN_MENU                  = (1 << 7),
-    IN_SCREEN_NEW_GAME_MENU         = (1 << 8),    
-    IN_SCREEN_OPTIONS_MENU          = (1 << 9),    
+    IN_SCREEN_NEW_GAME_MENU         = (1 << 8),
+    IN_SCREEN_OPTIONS_MENU          = (1 << 9),
     IN_SCREEN_SELECT                = (1 << 10),
     IN_SCREEN_SHOW_COMPLETE         = (1 << 11),
-    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 12),
-    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 13),
-    IN_SCREEN_TITLE                 = (1 << 14),
-    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 15)
+    IN_SCREEN_SHOW_GO_ARROW         = (1 << 12),
+    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 13),
+    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 14),
+    IN_SCREEN_TITLE                 = (1 << 15),
+    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 16)
 } e_screen_status;
 
 // Caskey, Damon V.

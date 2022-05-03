@@ -200,7 +200,9 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(IN_PAIN_HIT)
         ICMPCONST(IN_PAIN_NONE)
 
-        /* Screen status. */
+        /* Screen status.
+        *  Kratus (04-2022) Added the "showgo" event accessible by script
+        */
         ICMPCONST(IN_SCREEN_NONE)
         ICMPCONST(IN_SCREEN_BUTTON_CONFIG_MENU)
         ICMPCONST(IN_SCREEN_CONTROL_OPTIONS_MENU)
@@ -214,6 +216,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(IN_SCREEN_OPTIONS_MENU)
         ICMPCONST(IN_SCREEN_SELECT)
         ICMPCONST(IN_SCREEN_SHOW_COMPLETE)
+        ICMPCONST(IN_SCREEN_SHOW_GO_ARROW)
         ICMPCONST(IN_SCREEN_SOUND_OPTIONS_MENU)
         ICMPCONST(IN_SCREEN_SYSTEM_OPTIONS_MENU)
         ICMPCONST(IN_SCREEN_TITLE)
