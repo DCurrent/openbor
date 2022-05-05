@@ -10646,13 +10646,21 @@ e_cheat_options find_cheat_options_from_string(char* value)
     {
         result = CHEAT_OPTIONS_NONE;
     }
-    if (stricmp(value, "credits_active") == 0)
+    else if (stricmp(value, "credits_active") == 0)
     {
         result = CHEAT_OPTIONS_CREDITS_ACTIVE;
     }
     else if (stricmp(value, "credits_menu") == 0)
     {
         result = CHEAT_OPTIONS_CREDITS_MENU;
+    }
+    else if (stricmp(value, "energy_active") == 0)
+    {
+        result = CHEAT_OPTIONS_ENERGY_ACTIVE;
+    }
+    else if (stricmp(value, "energy_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_ENERGY_MENU;
     }
     else if (stricmp(value, "health_active") == 0)
     {
@@ -10682,6 +10690,14 @@ e_cheat_options find_cheat_options_from_string(char* value)
     {
         result = CHEAT_OPTIONS_MULTIHIT_MENU;
     }
+    else if (stricmp(value, "touch_of_death_active") == 0)
+    {
+        result = CHEAT_OPTIONS_TOD_ACTIVE;
+    }
+    else if (stricmp(value, "touch_of_death_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_TOD_MENU;
+    }
     else
     {
         printf("\n\n Unknown cheat option (%s), using 'none'. \n", value);
@@ -10706,7 +10722,7 @@ void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        global_config.cheats |= find_cheat_options_from_string(value);
+        global_config.cheats |= find_cheat_options_from_string(value);    
     }
 }
 
@@ -26173,6 +26189,7 @@ void update_health()
     // this is for restoring mp by _time by tails
     // Cleaning and addition of mpstable by DC, 08172008.
     // stabletype 4 added by OX 12272008
+    
     if(magic_type == 0 && !self->charging)
     {
         if(_time >= self->magictime)
@@ -26243,6 +26260,12 @@ void update_health()
 
     // Active MP charging?
     do_energy_charge(self);
+
+    /* Energy cheat keeps MP at maximum. */
+    if (global_config.cheats & CHEAT_OPTIONS_ENERGY_ACTIVE & self->modeldata.type & TYPE_PLAYER)
+    {
+        self->energy_state.mp_current = self->modeldata.mp;
+    }
 
     if(self->energy_state.mp_current > self->modeldata.mp)
     {
@@ -27265,8 +27288,6 @@ void toss(entity *ent, float lift)
     ent->velocity.y = lift;
     ent->position.y += 0.5;        // Get some altitude (needed for checks)
 }
-
-
 
 entity *findent(int types)
 {
@@ -30166,6 +30187,22 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
     int force = attack_object->attack_force;
     int type = attack_object->attack_type;
    
+    /*
+    * If touch of death cheat is active, boost player damage
+    * to equal the target's hp.
+    * 
+    * This is upstream of damage mitigation by design. Some
+    * games use defense to make entities immortal for special
+    * uses and we don't want to break that.
+    */
+    if (global_config.cheats & CHEAT_OPTIONS_TOD_ACTIVE && attacker->modeldata.type & TYPE_PLAYER)
+    {
+        if (force < target->energy_state.health_current)
+        {
+            force = target->energy_state.health_current;
+        }
+    }
+
     if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
     {
         return 0;    //guardbreak does not deal damage.
@@ -30377,8 +30414,8 @@ int is_attack_type_special(e_attack_types type)
 void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, s_defense* defense_object)
 {    
 	int	force = 0;
-	int	normal_damage = 0;
-    
+	int	normal_damage = 0;    
+
 	/* Get attack damage force after defense is applied. */
     force = calculate_force_damage(target_entity, attacking_entity, attack_object, defense_object);
 
@@ -34786,7 +34823,7 @@ void common_think()
     if(self->dead)
     {
         return;
-    }
+    }    
 
     //if(checkplanned()) return;
 
@@ -44841,109 +44878,129 @@ void menu_options_debug()
     #undef MENU_ITEM_FIRST_INDEX
 }
 
+/*
+* Caskey, Damon V.
+* 2022-05-05
+* 
+* Display cheat options menu and
+* apply player selections.
+*/
 void menu_options_cheats()
 {
 #define MENU_POS_Y              -4
 #define MENU_ITEMS_MARGIN_Y     2
 #define COLUMN_1_POS_X          -11
 #define COLUMN_2_POS_X          COLUMN_1_POS_X + 14
-#define MENU_ITEM_FIRST_INDEX   0
 
-    // Selections enumerator. All
-    // selection items should be placed
-    // here first.
-    typedef enum
-    {        
-        ITEM_CREDITS = MENU_ITEM_FIRST_INDEX,        
-        ITEM_HEALTH,
-        ITEM_LIVES,
-        ITEM_MULTIHIT,
-        ITEM_EXIT
-    } e_selections;
+    typedef struct s_option_list
+    {
+        e_cheat_options active;
+        e_cheat_options menu;
+        char label[20];
+    } s_option_list;
 
-    int option_count = 0;
+    int option_list_count = 6;
+    s_option_list option_list[] = {
+            {.active = CHEAT_OPTIONS_CREDITS_ACTIVE,        .menu = CHEAT_OPTIONS_CREDITS_MENU,         .label = "Infinite Credits" },
+            {.active = CHEAT_OPTIONS_ENERGY_ACTIVE,         .menu = CHEAT_OPTIONS_ENERGY_MENU,          .label = "Infinite Energy" },
+            {.active = CHEAT_OPTIONS_HEALTH_ACTIVE,         .menu = CHEAT_OPTIONS_HEALTH_MENU,          .label = "Infinite Health" },
+            {.active = CHEAT_OPTIONS_LIVES_ACTIVE,          .menu = CHEAT_OPTIONS_LIVES_MENU,           .label = "Infinite Lives" },
+            {.active = CHEAT_OPTIONS_MULTIHIT_ACTIVE,       .menu = CHEAT_OPTIONS_MULTIHIT_MENU,        .label = "Multihit Glitch" },
+            {.active = CHEAT_OPTIONS_TOD_ACTIVE,            .menu = CHEAT_OPTIONS_TOD_MENU,             .label = "Touch of Death" }        
+    };
+    
+    int option_list_cursor = 0;
+    int option_available_count = 0;
+    int option_available_first = 0;
     int pos_y = 0;
     int quit = 0;
-    e_selections selector = 0;
+    int selector = 0;
     
     bothnewkeys = 0;
 
-    screen_status |= IN_SCREEN_CHEAT_OPTIONS_MENU;
-    
+    screen_status |= IN_SCREEN_CHEAT_OPTIONS_MENU;    
+
+    //printf("\n\n menu_options_cheats()");
 
     while (!quit)
     {
-
-        // Display menu title.
+        /* Display menu title. */
         _menutextm(2, MENU_POS_Y, 0, Tr("Cheat Options"));
-
-        // Menu items.
-        // Y position is controlled by a incremented integer.
-        // Integer has a base value of the Menu title Y
-        // plus static offset. Below each item, this Y value
-        // increments by one. We can then add or remove
-        // menu items here and the on screen position will
-        // take care of itself without us needing to mess
-        // with a bunch of hard constants.
-
+                
         /*
-        * Reset menu item position Yand
+        * Reset menu item position Y and
         * valid menu item count.
         */
-        option_count = 0;
+        option_available_count = 0;
+        option_available_first = 0;
         pos_y = MENU_POS_Y + MENU_ITEMS_MARGIN_Y;
 
-        if (global_config.cheats & CHEAT_OPTIONS_CREDITS_MENU)
-        {
-            _menutext((selector == ITEM_CREDITS), COLUMN_1_POS_X, pos_y, Tr("Infinite Credits:"));
-            _menutext((selector == ITEM_CREDITS), COLUMN_2_POS_X, pos_y, (global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE ? Tr("On") : Tr("Off")));
+        /*
+        * Iterate through the option list
+        * array and display available items.
+        * 
+        * At each valid option, increment
+        * option count and Y position.
+        */
 
-            pos_y++;
-            option_count++;
+        for (option_list_cursor = 0; option_list_cursor < option_list_count; option_list_cursor++)
+        {            
+            if (global_config.cheats & option_list[option_list_cursor].menu)
+            {   
+                /* 
+                * If option available count is still 0, this
+                * is the first available option. Record the
+                * index for use downstream.
+                */
+
+                if (!option_available_count)
+                {
+                    option_available_first = option_list_cursor;
+                }
+                
+                /* Print the menu text and on/off status. */
+                _menutext((selector == option_list_cursor), COLUMN_1_POS_X, pos_y, Tr(option_list[option_list_cursor].label));
+                _menutext((selector == option_list_cursor), COLUMN_2_POS_X, pos_y, (global_config.cheats & option_list[option_list_cursor].active ? Tr("On") : Tr("Off")));
+            
+                option_available_count++;
+                pos_y++;
+            }            
         }
 
-        if (global_config.cheats & CHEAT_OPTIONS_HEALTH_MENU)
-        {
-            _menutext((selector == ITEM_HEALTH), COLUMN_1_POS_X, pos_y, Tr("Infinite Health:"));
-            _menutext((selector == ITEM_HEALTH), COLUMN_2_POS_X, pos_y, (global_config.cheats& CHEAT_OPTIONS_HEALTH_ACTIVE ? Tr("On") : Tr("Off")));
-
-            pos_y++;
-            option_count++;
-        }
-
-        if (global_config.cheats & CHEAT_OPTIONS_LIVES_MENU)
-        {
-            _menutext((selector == ITEM_LIVES), COLUMN_1_POS_X, pos_y, Tr("Infinite Lives:"));
-            _menutext((selector == ITEM_LIVES), COLUMN_2_POS_X, pos_y, (global_config.cheats& CHEAT_OPTIONS_LIVES_ACTIVE ? Tr("On") : Tr("Off")));
-
-            pos_y++;
-            option_count++;
-        }
-
-        if (global_config.cheats & CHEAT_OPTIONS_MULTIHIT_MENU)
-        {
-            _menutext((selector == ITEM_MULTIHIT), COLUMN_1_POS_X, pos_y, Tr("Multihit Glitch:"));
-            _menutext((selector == ITEM_MULTIHIT), COLUMN_2_POS_X, pos_y, (global_config.cheats& CHEAT_OPTIONS_MULTIHIT_ACTIVE ? Tr("On") : Tr("Off")));
-
-            pos_y++;
-            option_count++;
-        }      
-
-        if (!option_count)
+        /* No items avaialble. Alert player.  */
+        if (!option_available_count)
         {
             _menutextm(0, pos_y, 0, Tr("No cheats avaialble."));
         }        
 
-        // Display exit title
-        pos_y++;
-        _menutextm((selector == ITEM_EXIT), pos_y, 0, Tr("Back"));
+        /*
+        * Add the exit option. We can use the array size 
+        * for a selector index due to 0 indexing.
+        */
+                
+        pos_y++;        
+        _menutextm((selector == option_list_count), pos_y, 0, Tr("Back"));
 
-        // Run an engine update.
+        /* Run an engine update. */
         update((level != NULL), 0);
                 
-        // If user presses escape, then set quit
-        // flag immediately. Else wise, increment
-        // or decrement selector as needed.
+        /* 
+        * Handle user input and populate selector to
+        * appropriate value. 
+        * 
+        * First we set selector to first item in case 
+        * the first available's index is not 0.
+        * 
+        * Next, handle buttons. ESC quits the menu 
+        * instantly. Up/Down select target item.
+        * Left/Right/Action buttons toggle value.
+        */
+
+        if (!selector && option_available_first)
+        {
+            selector = option_available_first;
+        }
+
         if (bothnewkeys & FLAG_ESC)
         {
             quit = 1;
@@ -44951,16 +45008,16 @@ void menu_options_cheats()
 
         if (bothnewkeys & FLAG_MOVEUP)
         {
-            // Play beep if available.
+            /* Play beep if available. */
             if (global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             /* Wrap around if needed. */
-            if (selector <= MENU_ITEM_FIRST_INDEX)
+            if (selector <= option_available_first)
             {
-                selector = ITEM_EXIT;
+                selector = option_list_count;
             }
             else
             {
@@ -44968,40 +45025,24 @@ void menu_options_cheats()
             }
 
             /* Skip disabled items. */
-
-            if (selector == ITEM_CREDITS && !(global_config.cheats & CHEAT_OPTIONS_CREDITS_MENU))
-            {
+            while (!(global_config.cheats & option_list[selector].menu) && selector > option_available_first)
+            {               
                 selector--;
-            }
-
-            if (selector == ITEM_HEALTH && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_MENU))
-            {
-                selector--;
-            }
-
-            if (selector == ITEM_LIVES && !(global_config.cheats & CHEAT_OPTIONS_LIVES_MENU))
-            {
-                selector--;
-            }
-
-            if (selector == ITEM_MULTIHIT && !(global_config.cheats & CHEAT_OPTIONS_MULTIHIT_MENU))
-            {
-                selector--;
-            }     
+            }            
         }
             
         if (bothnewkeys & FLAG_MOVEDOWN)
         {
-            // Play beep if available.
+            /* Play beep if available. */
             if (global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             /* Wrap around if needed. */
-            if (selector >= ITEM_EXIT)
+            if (selector >= option_list_count)
             {
-                selector = MENU_ITEM_FIRST_INDEX;
+                selector = option_available_first;
             }
             else
             {
@@ -45009,30 +45050,16 @@ void menu_options_cheats()
             }
 
             /* Skip disabled items. */
-
-            if (selector == ITEM_CREDITS && !(global_config.cheats & CHEAT_OPTIONS_CREDITS_MENU))
+            while (!(global_config.cheats & option_list[selector].menu) && selector < option_list_count)
             {
                 selector++;
             }
-
-            if (selector == ITEM_HEALTH && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_MENU))
-            {
-                selector++;
-            }
-
-            if (selector == ITEM_LIVES && !(global_config.cheats & CHEAT_OPTIONS_LIVES_MENU))
-            {
-                selector++;
-            }
-
-            if (selector == ITEM_MULTIHIT && !(global_config.cheats & CHEAT_OPTIONS_MULTIHIT_MENU))
-            {
-                selector++;
-            }           
         }        
 
-        // Toggle selection value on left/right or
-        // trigger button press.
+        /* 
+        * Toggle selection value on left/right or
+        * trigger button press.
+        */
         if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
             if (global_sample_list.beep_2 >= 0)
@@ -45040,36 +45067,36 @@ void menu_options_cheats()
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            // This is where menu items are executed.
-            switch (selector)
+            /*
+            * Take action based on selector.
+            * 
+            * The last option is the exit item, so if that's
+            * our selector value we exit this menu. 
+            *
+            * Otherwise use selector as array key to get the 
+            * bit we want to toggle in our target value.
+            */
+
+            if (selector < option_list_count)
             {
-            case ITEM_CREDITS:
-                global_config.cheats ^= CHEAT_OPTIONS_CREDITS_ACTIVE;
-                break;
-            case ITEM_HEALTH:
-                global_config.cheats ^= CHEAT_OPTIONS_HEALTH_ACTIVE;
-                break;
-            case ITEM_LIVES:
-                global_config.cheats ^= CHEAT_OPTIONS_LIVES_ACTIVE;
-                break;
-            case ITEM_MULTIHIT:
-                global_config.cheats ^= CHEAT_OPTIONS_MULTIHIT_ACTIVE;
-                break;
-            case ITEM_EXIT:
-                quit = 1;
+                global_config.cheats ^= option_list[selector].active;
             }
+            else
+            {
+                quit = 1;
+            }        
         }
     }
-    savesettings();
+    
+    //savesettings();
+    
     bothnewkeys = 0;
-
     screen_status &= ~IN_SCREEN_CHEAT_OPTIONS_MENU;
 
 #undef MENU_POS_Y
 #undef MENU_ITEMS_MARGIN_Y
 #undef COLUMN_1_POS_X
 #undef COLUMN_2_POS_X
-#undef MENU_ITEM_FIRST_INDEX
 }
 
 void menu_options_system()
