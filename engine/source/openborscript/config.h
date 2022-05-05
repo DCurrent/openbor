@@ -346,14 +346,12 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
 
 // Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
-// Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
 enum systemvariant_enum
 {
     _sv_background,
     _sv_blockade,
     _sv_bossescount,
     _sv_branchname,
-    _sv_cheats,
     _sv_count_enemies,
     _sv_count_entities,
     _sv_count_npcs,
@@ -377,6 +375,7 @@ enum systemvariant_enum
     _sv_gfx_x_offset,
     _sv_gfx_y_offset,
     _sv_gfx_y_offset_adj,
+    _sv_global_config_cheats,
     _sv_global_sample_beat,
     _sv_global_sample_beep,
     _sv_global_sample_beep_2,
@@ -392,7 +391,6 @@ enum systemvariant_enum
     _sv_global_sample_pause,
     _sv_global_sample_punch,
     _sv_global_sample_time_over,
-    _sv_healthcheat,
     _sv_hresolution,
     _sv_in_cheat_options,
     _sv_in_control_options,
