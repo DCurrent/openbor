@@ -142,22 +142,23 @@ typedef enum
 {
     IN_SCREEN_NONE                  = 0,
     IN_SCREEN_BUTTON_CONFIG_MENU    = (1 << 0),
-    IN_SCREEN_CONTROL_OPTIONS_MENU  = (1 << 1),
-    IN_SCREEN_ENGINE_CREDIT         = (1 << 2),
-    IN_SCREEN_GAME_OVER             = (1 << 3),
-    IN_SCREEN_GAME_START_MENU       = (1 << 4),
-    IN_SCREEN_HALL_OF_FAME          = (1 << 5),
-    IN_SCREEN_LOAD_GAME_MENU        = (1 << 6),
-    IN_SCREEN_MENU                  = (1 << 7),
-    IN_SCREEN_NEW_GAME_MENU         = (1 << 8),
-    IN_SCREEN_OPTIONS_MENU          = (1 << 9),
-    IN_SCREEN_SELECT                = (1 << 10),
-    IN_SCREEN_SHOW_COMPLETE         = (1 << 11),
-    IN_SCREEN_SHOW_GO_ARROW         = (1 << 12),
-    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 13),
-    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 14),
-    IN_SCREEN_TITLE                 = (1 << 15),
-    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 16)
+    IN_SCREEN_CHEAT_OPTIONS_MENU    = (1 << 1),
+    IN_SCREEN_CONTROL_OPTIONS_MENU  = (1 << 2),
+    IN_SCREEN_ENGINE_CREDIT         = (1 << 3),
+    IN_SCREEN_GAME_OVER             = (1 << 4),
+    IN_SCREEN_GAME_START_MENU       = (1 << 5),
+    IN_SCREEN_HALL_OF_FAME          = (1 << 6),
+    IN_SCREEN_LOAD_GAME_MENU        = (1 << 7),
+    IN_SCREEN_MENU                  = (1 << 8),
+    IN_SCREEN_NEW_GAME_MENU         = (1 << 9),
+    IN_SCREEN_OPTIONS_MENU          = (1 << 10),
+    IN_SCREEN_SELECT                = (1 << 11),
+    IN_SCREEN_SHOW_COMPLETE         = (1 << 12),
+    IN_SCREEN_SHOW_GO_ARROW         = (1 << 13),
+    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 14),
+    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 15),
+    IN_SCREEN_TITLE                 = (1 << 16),
+    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 17)
 } e_screen_status;
 
 // Caskey, Damon V.
@@ -1638,10 +1639,10 @@ typedef enum
 } e_slow_motion_enable;
 
 //macros for drawing menu text, fits different font size
-#define _strmidx(f,s, args...) ((videomodes.hRes-font_string_width((f), s, ##args))/2)
+#define _strmidx(font, s, args...) ((videomodes.hRes-font_string_width((font), s, ##args))/2)
 #define _colx(f,c) ((int)(videomodes.hRes/2+(c)*(fontmonowidth((f))+1)))
-#define _liney(f,l) ((int)(videomodes.vRes/2+(l)*(fontheight((f))+1)))
-#define _menutextm(f, l, shift, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, ##args)
+#define _liney(f,line) ((int)(videomodes.vRes/2+(line)*(fontheight((f))+1)))
+#define _menutextm(font, line, shift, string, args...) font_printf(_strmidx(font,string, ##args)+(int)((shift)*(fontmonowidth((font))+1)), _liney(font,line), (font), 0, string, ##args)
 #define _menutextmshift(f, l, shift, shiftx, shifty, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1))+shiftx, _liney(f,l)+shifty, (f), 0, s, ##args)
 #define _menutext(f, c, l, s, args...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, ##args)
 #define _menutextshift(f, c, l, shiftx, shifty, s, args...) font_printf(_colx(f,c)+shiftx, _liney(f,l)+shifty, (f), 0, s, ##args)
@@ -1713,6 +1714,43 @@ if(n<1) n = 1;
 //#define     MAX_MOVE_STEPS        16
 
 #pragma pack(4)
+
+ /*
+ * Caskey, Damon V.
+ * 2022-05-04
+ *
+ * Cheat options available through menu.
+ */
+typedef enum e_cheat_options
+{
+    CHEAT_OPTIONS_NONE = 0,
+    CHEAT_OPTIONS_CREDITS_ACTIVE = (1 << 0),
+    CHEAT_OPTIONS_CREDITS_MENU = (1 << 1),
+    CHEAT_OPTIONS_HEALTH_ACTIVE = (1 << 2),
+    CHEAT_OPTIONS_HEALTH_MENU = (1 << 3),
+    CHEAT_OPTIONS_MASTER_MENU = (1 << 4),
+    CHEAT_OPTIONS_LIVES_ACTIVE = (1 << 5),
+    CHEAT_OPTIONS_LIVES_MENU = (1 << 6),
+    CHEAT_OPTIONS_MULTIHIT_ACTIVE = (1 << 7),
+    CHEAT_OPTIONS_MULTIHIT_MENU = (1 << 8),
+
+    CHEAT_OPTIONS_ALL_MENU = (CHEAT_OPTIONS_MASTER_MENU | CHEAT_OPTIONS_CREDITS_MENU | CHEAT_OPTIONS_HEALTH_MENU | CHEAT_OPTIONS_LIVES_MENU | CHEAT_OPTIONS_MULTIHIT_MENU)
+
+} e_cheat_options;
+
+/*
+* Caskey, Damon V.
+* 2022-05-03
+*
+* Miscellaneous settings and game 
+* options we don’t want to save 
+* between engines startups.
+*/
+typedef struct s_global_config
+{
+    e_cheat_options cheats;
+
+} s_global_config;
 
 /*
 * Caskey, Damon V.
@@ -4051,8 +4089,6 @@ void menu_options_system();
 void menu_options_video();
 
 void openborMain(int argc, char **argv);
-int is_cheat_actived();
-int is_healthcheat_actived(); // Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);

@@ -100,6 +100,8 @@ extern int            *animbackriseattacks;
 extern int            *animblkpains;
 extern int            *animbackblkpains;
 
+extern s_global_config global_config;
+
 extern int            noshare;
 extern int            credits;
 extern char           musicname[128];
@@ -108,7 +110,6 @@ extern int            musicloop;
 extern u32            musicoffset;
 extern int            models_cached;
 extern int            noaircancel; // Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
-extern int            allow_cheats; // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
 extern int endgame;
 extern int useSave;
 extern int useSet;

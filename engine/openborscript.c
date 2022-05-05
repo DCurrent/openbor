@@ -964,7 +964,6 @@ HRESULT system_string_to_int(ScriptVariant** varlist, ScriptVariant** pretvar, i
 
 // check openborscript.h for systemvariant_enum
 // Kratus (10-2021) Now the "noaircancel" function is accessible/editable by script using "openborvariant"
-// Kratus (10-2021) Now the "healthcheat" option is accessible/readable by script using "openborvariant"
 // arranged list, for searching
 static const char *svlist[] =
 {
@@ -972,7 +971,6 @@ static const char *svlist[] =
     "blockade",
     "bossescount",
     "branchname",
-    "cheats",
     "count_enemies",
     "count_entities",
     "count_npcs",
@@ -996,6 +994,7 @@ static const char *svlist[] =
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
+    "global_config_cheats",
     "global_sample_beat",
     "global_sample_beep",
     "global_sample_beep_2",
@@ -1011,7 +1010,6 @@ static const char *svlist[] =
     "global_sample_pause",
     "global_sample_punch",
     "global_sample_time_over",
-    "healthcheat",
     "hresolution",
     "in_cheat_options",
     "in_control_options",
@@ -8316,11 +8314,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_cheat_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (screen_status & IN_SCREEN_OPTIONS_MENU && is_cheat_actived()) ? 1:0;
-        break;
-    case _sv_cheats:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = is_cheat_actived();
+        var->lVal = (screen_status & IN_SCREEN_CHEAT_OPTIONS_MENU);
         break;
     case _sv_in_control_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8455,6 +8449,11 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         }
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gfx_y_offset_adj;
+        break;
+
+    case _sv_global_config_cheats:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_config.cheats;
         break;
 
     case _sv_global_sample_beat:
@@ -8593,11 +8592,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         }
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = advancey;
-        break;
-    case _sv_healthcheat:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = is_healthcheat_actived();
-        break;
+        break;    
     case _sv_hresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videomodes.hRes;
@@ -8926,7 +8921,6 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
 }
 
 // change a system variant, used by script
-// Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
 int changesyspropertybyindex(int index, ScriptVariant *value)
 {
     //char* tempstr = NULL;
@@ -8939,12 +8933,6 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             _time = (LONG)ltemp;
-        }
-        break;
-    case _sv_cheats:
-        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-        {
-            allow_cheats = (LONG)ltemp;
         }
         break;
     case _sv_current_stage:
@@ -8987,6 +8975,13 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             gfx_y_offset_adj = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_config_cheats:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_config.cheats = (e_cheat_options)ltemp;
         }
         break;
 

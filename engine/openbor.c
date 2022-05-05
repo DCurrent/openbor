@@ -578,15 +578,10 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
-int                 allow_cheats        = -1;                   // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
-int                 forcecheatsoff      = 0;
+
 int                 nodebugoptions      = 0;
-int                 cheats              = 0;
-int                 livescheat          = 0;
+
 int                 keyscriptrate       = 0;
-int                 creditscheat        = 0;
-int                 healthcheat         = 0;
-int                 multihitcheat       = 0;					//Kratus (20-04-21) Flag to enable or disable the multihit glitch option
 int                 showtimeover        = 0;
 int                 sameplayer          = 0;            		// 7-1-2005  flag to determine if players can use the same character
 int                 PLAYER_LIVES        = 3;					// 7-1-2005  default setting for Lives
@@ -624,6 +619,11 @@ float               musicfade[2]        = {0, 0};
 int                 musicloop           = 0;
 u32                 musicoffset         = 0;
 int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a chance
+
+s_global_config global_config =
+{
+    .cheats = CHEAT_OPTIONS_ALL_MENU
+};
 
 s_barstatus loadingbarstatus =
 {
@@ -2454,6 +2454,7 @@ void clearsettings()
     savedata.compatibleversion = COMPATIBLEVERSION;
     savedata.gamma = 0;
     savedata.brightness = 0;
+    global_config.cheats = CHEAT_OPTIONS_ALL_MENU;
     savedata.soundvol = 15;
     savedata.usemusic = 1;
     savedata.musicvol = 100;
@@ -10629,6 +10630,86 @@ void lcmHandleCommandMoveConstraint(ArgList* arglist, s_model* newchar)
     }
 }
 
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Accept string input and return
+* matching constant.
+*/
+e_cheat_options find_cheat_options_from_string(char* value)
+{
+    e_cheat_options result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = CHEAT_OPTIONS_NONE;
+    }
+    if (stricmp(value, "credits_active") == 0)
+    {
+        result = CHEAT_OPTIONS_CREDITS_ACTIVE;
+    }
+    else if (stricmp(value, "credits_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_CREDITS_MENU;
+    }
+    else if (stricmp(value, "health_active") == 0)
+    {
+        result = CHEAT_OPTIONS_HEALTH_ACTIVE;
+    }
+    else if (stricmp(value, "health_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_HEALTH_MENU;
+    }
+    else if (stricmp(value, "master_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_MASTER_MENU;
+    }
+    else if (stricmp(value, "lives_active") == 0)
+    {
+        result = CHEAT_OPTIONS_LIVES_ACTIVE;
+    }
+    else if (stricmp(value, "lives_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_LIVES_MENU;
+    }
+    else if (stricmp(value, "multihit_active") == 0)
+    {
+        result = CHEAT_OPTIONS_MULTIHIT_ACTIVE;
+    }
+    else if (stricmp(value, "multihit_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_MULTIHIT_MENU;
+    }
+    else
+    {
+        printf("\n\n Unknown cheat option (%s), using 'none'. \n", value);
+        result = CHEAT_OPTIONS_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Populate global config cheats 
+* property from text arguments.
+*/
+void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
+{
+    int i;
+    char* value;
+    global_config.cheats = CHEAT_OPTIONS_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        global_config.cheats |= find_cheat_options_from_string(value);
+    }
+}
+
 void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, char *filename)
 {
     char *value = GET_ARGP(1);
@@ -16220,9 +16301,16 @@ int load_models()
                 nocost = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_NOCHEATS:
-                //disable cheat option in menu
-                forcecheatsoff =  GET_INT_ARG(1);
+                
+                /* Disable access to cheats menu. */
+
+                if (GET_INT_ARG(1))
+                {
+                    global_config.cheats &= ~CHEAT_OPTIONS_MASTER_MENU;
+                }
+
                 break;
+
             case CMD_MODELSTXT_NODEBUG:
                 //disable debug option in menu
                 nodebugoptions =  GET_INT_ARG(1);
@@ -16280,6 +16368,11 @@ int load_models()
             case CMD_MODELSTXT_JUMPHEIGHT:
                 default_model_jumpheight =  GET_FLOAT_ARG(1);
                 break;
+            case CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS:
+
+                lcmHandleCommandGlobalConfigCheats(&arglist);
+                break;
+
             case CMD_MODELSTXT_GRABDISTANCE:
                 default_model_grabdistance =  GET_FLOAT_ARG(1);
                 break;
@@ -19776,7 +19869,7 @@ void updatestatus()
                     player[i].credits = CONTINUES;
                 }
 
-                if(!creditscheat)
+                if(!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
                 {
                     if(noshare)
                     {
@@ -24562,7 +24655,7 @@ void do_attack(entity *attacking_entity)
         * Note that function includes exceptions for an attacks 
         * that ignore IDs and the global mutlihit cheat.
         */
-        if (attack_id_check_match(target, attack, current_attack_id, multihitcheat))
+        if (attack_id_check_match(target, attack, current_attack_id, (global_config.cheats & CHEAT_OPTIONS_MULTIHIT_ACTIVE)))
         {
             continue;
         }
@@ -24788,12 +24881,12 @@ void do_attack(entity *attacking_entity)
 
         if(current_anim->energy_cost.cost > 0)
         {
-            // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
-            if(attacking_entity == topowner && nocost && !healthcheat)
+            // well, dont check player or not - UTunnels. TODO: take care of that health cheat
+            if(attacking_entity == topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
             {
                 attacking_entity->tocost = 1;    // Set flag so life is subtracted when animation is finished
             }
-            else if(attacking_entity != topowner && nocost && !healthcheat && !attacking_entity->tocost) // if it is not top, then must be a shot
+            else if(attacking_entity != topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE) && !attacking_entity->tocost) // if it is not top, then must be a shot
             {
                 if(current_anim->energy_cost.mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
                 {
@@ -34771,7 +34864,7 @@ void player_die()
     int playerindex = self->playerindex;
     int i = 0;
 
-    if(!livescheat)
+    if(!(global_config.cheats & CHEAT_OPTIONS_LIVES_ACTIVE))
     {
         --player[playerindex].lives;
     }
@@ -35206,7 +35299,7 @@ int check_special()
         {
             if(!nocost)
             {
-                if(!healthcheat)
+                if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
                 {
                     if(self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost)
                     {
@@ -36200,7 +36293,7 @@ void player_jump_check()
                     }
                     else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost && check_energy(ENERGY_TYPE_HP, ANI_JUMPSPECIAL))
                     {
-                        if(!healthcheat)
+                        if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
                         {
                             self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
                         }
@@ -36451,7 +36544,7 @@ int check_costmove(int s, int fs, int jumphack)
         {
             if(!nocost)
             {
-                if(!healthcheat)
+                if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
                 {
                     if(self->modeldata.animation[s]->energy_cost.cost)
                     {
@@ -37667,7 +37760,7 @@ int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 	// Damage comes from a normal source?
 	normal_damage = (!is_attack_type_special(atk.attack_type));
 
-    if((healthcheat && normal_damage) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
+    if((global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE && normal_damage) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
         atk.attack_force = 0;
     }
@@ -42519,7 +42612,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				if (defaultselect)
 				{
 					player[i].lives = PLAYER_LIVES;
-					if (!creditscheat)
+					if (!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
 					{
 						if (noshare)
 						{
@@ -42591,7 +42684,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 			if (defaultselect)
 			{
 				player[i].lives = PLAYER_LIVES;
-				if (!creditscheat)
+				if (!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
 				{
 					if (noshare)
 					{
@@ -42735,7 +42828,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
 					// Credits cheat = infinite credits. If that's not enabled,
 					// then deduct a credit.
-					if (!creditscheat)
+					if (!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
 					{
 						if (noshare)
 						{
@@ -44748,6 +44841,236 @@ void menu_options_debug()
     #undef MENU_ITEM_FIRST_INDEX
 }
 
+void menu_options_cheats()
+{
+#define MENU_POS_Y              -4
+#define MENU_ITEMS_MARGIN_Y     2
+#define COLUMN_1_POS_X          -11
+#define COLUMN_2_POS_X          COLUMN_1_POS_X + 14
+#define MENU_ITEM_FIRST_INDEX   0
+
+    // Selections enumerator. All
+    // selection items should be placed
+    // here first.
+    typedef enum
+    {        
+        ITEM_CREDITS = MENU_ITEM_FIRST_INDEX,        
+        ITEM_HEALTH,
+        ITEM_LIVES,
+        ITEM_MULTIHIT,
+        ITEM_EXIT
+    } e_selections;
+
+    int option_count = 0;
+    int pos_y = 0;
+    int quit = 0;
+    e_selections selector = 0;
+    
+    bothnewkeys = 0;
+
+    screen_status |= IN_SCREEN_CHEAT_OPTIONS_MENU;
+    
+
+    while (!quit)
+    {
+
+        // Display menu title.
+        _menutextm(2, MENU_POS_Y, 0, Tr("Cheat Options"));
+
+        // Menu items.
+        // Y position is controlled by a incremented integer.
+        // Integer has a base value of the Menu title Y
+        // plus static offset. Below each item, this Y value
+        // increments by one. We can then add or remove
+        // menu items here and the on screen position will
+        // take care of itself without us needing to mess
+        // with a bunch of hard constants.
+
+        /*
+        * Reset menu item position Yand
+        * valid menu item count.
+        */
+        option_count = 0;
+        pos_y = MENU_POS_Y + MENU_ITEMS_MARGIN_Y;
+
+        if (global_config.cheats & CHEAT_OPTIONS_CREDITS_MENU)
+        {
+            _menutext((selector == ITEM_CREDITS), COLUMN_1_POS_X, pos_y, Tr("Infinite Credits:"));
+            _menutext((selector == ITEM_CREDITS), COLUMN_2_POS_X, pos_y, (global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE ? Tr("On") : Tr("Off")));
+
+            pos_y++;
+            option_count++;
+        }
+
+        if (global_config.cheats & CHEAT_OPTIONS_HEALTH_MENU)
+        {
+            _menutext((selector == ITEM_HEALTH), COLUMN_1_POS_X, pos_y, Tr("Infinite Health:"));
+            _menutext((selector == ITEM_HEALTH), COLUMN_2_POS_X, pos_y, (global_config.cheats& CHEAT_OPTIONS_HEALTH_ACTIVE ? Tr("On") : Tr("Off")));
+
+            pos_y++;
+            option_count++;
+        }
+
+        if (global_config.cheats & CHEAT_OPTIONS_LIVES_MENU)
+        {
+            _menutext((selector == ITEM_LIVES), COLUMN_1_POS_X, pos_y, Tr("Infinite Lives:"));
+            _menutext((selector == ITEM_LIVES), COLUMN_2_POS_X, pos_y, (global_config.cheats& CHEAT_OPTIONS_LIVES_ACTIVE ? Tr("On") : Tr("Off")));
+
+            pos_y++;
+            option_count++;
+        }
+
+        if (global_config.cheats & CHEAT_OPTIONS_MULTIHIT_MENU)
+        {
+            _menutext((selector == ITEM_MULTIHIT), COLUMN_1_POS_X, pos_y, Tr("Multihit Glitch:"));
+            _menutext((selector == ITEM_MULTIHIT), COLUMN_2_POS_X, pos_y, (global_config.cheats& CHEAT_OPTIONS_MULTIHIT_ACTIVE ? Tr("On") : Tr("Off")));
+
+            pos_y++;
+            option_count++;
+        }      
+
+        if (!option_count)
+        {
+            _menutextm(0, pos_y, 0, Tr("No cheats avaialble."));
+        }        
+
+        // Display exit title
+        pos_y++;
+        _menutextm((selector == ITEM_EXIT), pos_y, 0, Tr("Back"));
+
+        // Run an engine update.
+        update((level != NULL), 0);
+                
+        // If user presses escape, then set quit
+        // flag immediately. Else wise, increment
+        // or decrement selector as needed.
+        if (bothnewkeys & FLAG_ESC)
+        {
+            quit = 1;
+        }
+
+        if (bothnewkeys & FLAG_MOVEUP)
+        {
+            // Play beep if available.
+            if (global_sample_list.beep >= 0)
+            {
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            /* Wrap around if needed. */
+            if (selector <= MENU_ITEM_FIRST_INDEX)
+            {
+                selector = ITEM_EXIT;
+            }
+            else
+            {
+                selector--;
+            }
+
+            /* Skip disabled items. */
+
+            if (selector == ITEM_CREDITS && !(global_config.cheats & CHEAT_OPTIONS_CREDITS_MENU))
+            {
+                selector--;
+            }
+
+            if (selector == ITEM_HEALTH && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_MENU))
+            {
+                selector--;
+            }
+
+            if (selector == ITEM_LIVES && !(global_config.cheats & CHEAT_OPTIONS_LIVES_MENU))
+            {
+                selector--;
+            }
+
+            if (selector == ITEM_MULTIHIT && !(global_config.cheats & CHEAT_OPTIONS_MULTIHIT_MENU))
+            {
+                selector--;
+            }     
+        }
+            
+        if (bothnewkeys & FLAG_MOVEDOWN)
+        {
+            // Play beep if available.
+            if (global_sample_list.beep >= 0)
+            {
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            /* Wrap around if needed. */
+            if (selector >= ITEM_EXIT)
+            {
+                selector = MENU_ITEM_FIRST_INDEX;
+            }
+            else
+            {
+                selector++;
+            }
+
+            /* Skip disabled items. */
+
+            if (selector == ITEM_CREDITS && !(global_config.cheats & CHEAT_OPTIONS_CREDITS_MENU))
+            {
+                selector++;
+            }
+
+            if (selector == ITEM_HEALTH && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_MENU))
+            {
+                selector++;
+            }
+
+            if (selector == ITEM_LIVES && !(global_config.cheats & CHEAT_OPTIONS_LIVES_MENU))
+            {
+                selector++;
+            }
+
+            if (selector == ITEM_MULTIHIT && !(global_config.cheats & CHEAT_OPTIONS_MULTIHIT_MENU))
+            {
+                selector++;
+            }           
+        }        
+
+        // Toggle selection value on left/right or
+        // trigger button press.
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        {
+            if (global_sample_list.beep_2 >= 0)
+            {
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            // This is where menu items are executed.
+            switch (selector)
+            {
+            case ITEM_CREDITS:
+                global_config.cheats ^= CHEAT_OPTIONS_CREDITS_ACTIVE;
+                break;
+            case ITEM_HEALTH:
+                global_config.cheats ^= CHEAT_OPTIONS_HEALTH_ACTIVE;
+                break;
+            case ITEM_LIVES:
+                global_config.cheats ^= CHEAT_OPTIONS_LIVES_ACTIVE;
+                break;
+            case ITEM_MULTIHIT:
+                global_config.cheats ^= CHEAT_OPTIONS_MULTIHIT_ACTIVE;
+                break;
+            case ITEM_EXIT:
+                quit = 1;
+            }
+        }
+    }
+    savesettings();
+    bothnewkeys = 0;
+
+    screen_status &= ~IN_SCREEN_CHEAT_OPTIONS_MENU;
+
+#undef MENU_POS_Y
+#undef MENU_ITEMS_MARGIN_Y
+#undef COLUMN_1_POS_X
+#undef COLUMN_2_POS_X
+#undef MENU_ITEM_FIRST_INDEX
+}
 
 void menu_options_system()
 {
@@ -44759,7 +45082,6 @@ void menu_options_system()
         SYS_OPT_CHEATS,
         SYS_OPT_DEBUG,
         SYS_OPT_CONFIG,
-        SYS_OPT_PSP_CPUSPEED,
         SYS_OPT_BACK
     };
 
@@ -44767,95 +45089,74 @@ void menu_options_system()
     int selector = 0;
     int col1 = -11;
     int col2 = col1+14;
-    int ex_labels = 0;
-    int RET = SYS_OPT_BACK-1;
-
-#if PSP
-    int dir = 0;
-    int batteryPercentage = 0;
-    int batteryLifeTime = 0;
-    int externalPower = 0;
-#endif
+    int RET = SYS_OPT_BACK;
+    int line = 0;
 
     screen_status |= IN_SCREEN_SYSTEM_OPTIONS_MENU;
     bothnewkeys = 0;
-    if (nodebugoptions) ex_labels = 1;
-    RET -= ex_labels;
 
     while(!quit)
     {
+        line = 0;
+
         _menutextm(2, SYS_OPT_Y_POS-2, 0, Tr("System Options"));
 
-        _menutext(0, col1, SYS_OPT_Y_POS, Tr("Total RAM:"));
-        _menutext(0, col2, SYS_OPT_Y_POS, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
+        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Total RAM:"));
+        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
+        line++;
+        
+        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Used RAM:"));
+        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
+        line++;
 
-        _menutext(0, col1, SYS_OPT_Y_POS+1, Tr("Used RAM:"));
-        _menutext(0, col2, SYS_OPT_Y_POS+1, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
+        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Max Players:"));
+        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%i"), levelsets[current_set].maxplayers);
+        line++;
 
-        _menutext(0, col1, SYS_OPT_Y_POS+2, Tr("Max Players:"));
-        _menutext(0, col2, SYS_OPT_Y_POS+2, Tr("%i"), levelsets[current_set].maxplayers);
+        _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS + line, Tr("File Logging:"));
+        _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS + line, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
+        line++;
 
-        _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS+4, Tr("File Logging:"));
-        _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS+4, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
-
-        _menutext((selector == SYS_OPT_VSDAMAGE), col1, SYS_OPT_Y_POS+5, Tr("Versus Damage:"), 0);
+        _menutext((selector == SYS_OPT_VSDAMAGE), col1, SYS_OPT_Y_POS + line, Tr("Versus Damage:"), 0);
         if(versusdamage == 0)
         {
-            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Disabled by Module"));
+            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Disabled by Module"));
         }
         else if(versusdamage == 1)
         {
-            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Enabled by Module"));
+            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Enabled by Module"));
         }
         else
         {
             if(savedata.mode)
             {
-                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
+                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
             }
             else
             {
-                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
+                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
             }
         }
-
-        _menutext((selector == SYS_OPT_CHEATS), col1, SYS_OPT_Y_POS+6, Tr("Cheats:"));
-        _menutext((selector == SYS_OPT_CHEATS), col2, SYS_OPT_Y_POS+6, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
-        if(!nodebugoptions) _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS+7, Tr("Debug Settings..."));
-
-#ifndef DC
-
-        _menutext((selector == SYS_OPT_CONFIG-ex_labels), col1, SYS_OPT_Y_POS+8-ex_labels, Tr("Config Settings..."));
-
-#endif
-
-#if PSP
-        externalPower = scePowerIsPowerOnline();
-        _menutext((selector == SYS_OPT_PSP_CPUSPEED), col1, 4-ex_labels, Tr("CPU Speed:"));
-        _menutext((selector == SYS_OPT_PSP_CPUSPEED), col2, 4-ex_labels, "%d MHz", scePowerGetCpuClockFrequency());
-        if(!externalPower)
+        line++;
+                    
+        if (global_config.cheats & CHEAT_OPTIONS_MASTER_MENU)
         {
-            batteryPercentage = scePowerGetBatteryLifePercent();
-            batteryLifeTime = scePowerGetBatteryLifeTime();
-            _menutext(0, col1, 5-ex_labels, Tr("Battery:"));
-            if(batteryPercentage < 0 || batteryLifeTime < 0)
-            {
-                _menutext(0, col2, 5-ex_labels, Tr("Calculating..."));
-            }
-            else
-            {
-                _menutext(0, col2, 5-ex_labels, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime / 60, batteryLifeTime - (batteryLifeTime / 60 * 60));
-            }
+            _menutext((selector == SYS_OPT_CHEATS), col1, SYS_OPT_Y_POS + line, Tr("Cheat Options..."));
+            line++;
         }
-        else
-        {
-            _menutext(0, col1, 5-ex_labels, Tr("Charging:"));
-            _menutext(0, col2, 5-ex_labels, Tr("%d%% AC Power"), scePowerGetBatteryLifePercent());
-        }
-        RET = 6-ex_labels;
-#endif
 
-        _menutextm((selector == RET), SYS_OPT_Y_POS+11-ex_labels, 0, Tr("Back"));
+        if (!nodebugoptions)
+        {
+            _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS + line, Tr("Debug Settings..."));
+            line++;
+        }
+
+        _menutext((selector == SYS_OPT_CONFIG), col1, SYS_OPT_Y_POS + line, Tr("Config Settings..."));
+
+        /* Extra lines for spacing. */
+        line += 2;
+
+        _menutextm((selector == RET), SYS_OPT_Y_POS + line, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -44863,14 +45164,42 @@ void menu_options_system()
         {
             quit = 1;
         }
+
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
+
+            /* Skip disabled items. */
+
+            if (selector == SYS_OPT_CHEATS && !(global_config.cheats & CHEAT_OPTIONS_MASTER_MENU))
+            {
+                --selector;
+            }
+
+            if (selector == SYS_OPT_DEBUG && nodebugoptions)
+            {
+                --selector;
+            }
+
             sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
+
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
+
+            /* Skip disabled items. */
+
+            if (selector == SYS_OPT_CHEATS && !(global_config.cheats & CHEAT_OPTIONS_MASTER_MENU))
+            {
+                ++selector;
+            }
+
+            if (selector == SYS_OPT_DEBUG && nodebugoptions)
+            {
+                ++selector;
+            }                        
+
             sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
@@ -44885,19 +45214,6 @@ void menu_options_system()
 
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
-
-#if PSP
-            dir = 0;
-            if(bothnewkeys & FLAG_MOVELEFT)
-            {
-                dir = -1;
-            }
-            else if(bothnewkeys & FLAG_MOVERIGHT)
-            {
-                dir = 1;
-            }
-#endif
-
             sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                  if (selector==RET) quit = 1;
@@ -44916,39 +45232,12 @@ void menu_options_system()
                     }
                 }
             }
-            else if (selector==SYS_OPT_CHEATS) cheats = !cheats;
-            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
-#ifndef DC
-            else if (selector==SYS_OPT_CONFIG-ex_labels) menu_options_config();
-#endif
-
-#ifdef PSP
-            else if (selector==SYS_OPT_PSP_CPUSPEED-ex_labels)
-            {
-                savedata.pspcpuspeed += dir;
-                if(savedata.pspcpuspeed < 0)
-                {
-                    savedata.pspcpuspeed = 2;
-                }
-                if(savedata.pspcpuspeed > 2)
-                {
-                    savedata.pspcpuspeed = 0;
-                }
-
-                switch(savedata.pspcpuspeed)
-                {
-                case 0:
-                    scePowerSetClockFrequency(222, 222, 111);
-                    break;
-                case 1:
-                    scePowerSetClockFrequency(266, 266, 133);
-                    break;
-                case 2:
-                    scePowerSetClockFrequency(333, 333, 166);
-                    break;
-                }
+            else if (selector == SYS_OPT_CHEATS)
+            {                
+                menu_options_cheats();   
             }
-#endif
+            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
+            else if (selector==SYS_OPT_CONFIG) menu_options_config();
             else quit = 1;
         }
     }
@@ -45378,64 +45667,34 @@ void menu_options_video()
 
 void menu_options()
 {
-    #define TOT_CHEATS          4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
     #define OPT_Y_POS          -1
     #define OPT_X_POS          -7
-    #define CHEAT_PAUSE_POSY    4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
-
+    
     typedef enum {
         VIDEO_OPTION,
         SOUND_OPTION,
         CONTROL_OPTION,
         SYSTEM_OPTION,
 
-        LIVES_CHEAT,
-        CREDITS_CHEAT,
-        HEALTH_CHEAT,
-        MULTIHIT_CHEAT, // Kratus (20-04-21) add the multihit glitch option
-
         END_OPTION
     } e_selector;
 
     int quit = 0;
     int y_offset = OPT_Y_POS;
-    int BACK_OPTION = END_OPTION-TOT_CHEATS;
-    int cheat_opt_offset = 0;
+    int BACK_OPTION = END_OPTION;
     e_selector selector = VIDEO_OPTION;
 
     screen_status |= IN_SCREEN_OPTIONS_MENU;
-    bothnewkeys = 0;
-
-    // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
-    if(allow_cheats == 0){forcecheatsoff = 1; cheats = 0;}
-    if(allow_cheats == 1){forcecheatsoff = 0;}
-
-    if (cheats && !forcecheatsoff)
-    {
-        if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
-        y_offset -= TOT_CHEATS;
-        cheat_opt_offset += 1;
-        BACK_OPTION += TOT_CHEATS;
-    }
+    bothnewkeys = 0;    
 
     while(!quit)
-    {
-        if (!cheats || forcecheatsoff) _menutextm(2, y_offset-1, 0, Tr("Options")); else _menutextm(2, y_offset-1, 0, Tr("Cheat Options"));
-
+    {        
         _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
         _menutextm((selector == SOUND_OPTION), y_offset+SOUND_OPTION, 0, Tr("Sound Options..."));
         _menutextm((selector == CONTROL_OPTION), y_offset+CONTROL_OPTION, 0, Tr("Control Options..."));
         _menutextm((selector == SYSTEM_OPTION), y_offset+SYSTEM_OPTION, 0, Tr("System Options..."));
-
-        if (cheats && !forcecheatsoff)
-        {
-            _menutext((selector == LIVES_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
-            _menutext((selector == CREDITS_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
-            _menutext((selector == HEALTH_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
-            _menutext((selector == MULTIHIT_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+MULTIHIT_CHEAT, (multihitcheat)?Tr("Multihit Glitch On"):Tr("Multihit Glitch Off"));    // Kratus (20-04-21) change the multihit glitch option on/off
-        }
-
-        _menutextm((selector == BACK_OPTION), y_offset+cheat_opt_offset+BACK_OPTION+2, 0, Tr("Back"));
+               
+        _menutextm((selector == BACK_OPTION), y_offset+BACK_OPTION+2, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -45478,31 +45737,15 @@ void menu_options()
             }
 
                 if(selector==BACK_OPTION) quit = 1;
-           else if(selector==VIDEO_OPTION) menu_options_video();
-           else if(selector==SOUND_OPTION) menu_options_sound();
-           else if(selector==CONTROL_OPTION) menu_options_input();
-           else if(selector==SYSTEM_OPTION)
-           {
-                menu_options_system();
-                if (cheats && !forcecheatsoff)
-                {
-                    y_offset = OPT_Y_POS-TOT_CHEATS;
-                    if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
-                    cheat_opt_offset = 1;
-                    BACK_OPTION = END_OPTION-TOT_CHEATS+TOT_CHEATS;
-                }
-                else
-                {
-                    y_offset = OPT_Y_POS;
-                    cheat_opt_offset = 0;
-                    BACK_OPTION = END_OPTION-TOT_CHEATS;
-                }
-           }
-           else if(selector==LIVES_CHEAT) livescheat = !livescheat;
-           else if(selector==CREDITS_CHEAT) creditscheat = !creditscheat;
-           else if(selector==HEALTH_CHEAT) healthcheat = !healthcheat;
-           else if(selector==MULTIHIT_CHEAT) multihitcheat = !multihitcheat; // Kratus (20-04-21) selector for the multihit glitch option
-           else quit = 1;
+            else if(selector==VIDEO_OPTION) menu_options_video();
+            else if(selector==SOUND_OPTION) menu_options_sound();
+            else if(selector==CONTROL_OPTION) menu_options_input();
+            else if(selector==SYSTEM_OPTION)
+            {
+                menu_options_system();                
+            }
+            
+            else quit = 1;
         }
     }
     savesettings();
@@ -45795,38 +46038,6 @@ void openborMain(int argc, char **argv)
         update(0, 0);
     }
     borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
-}
-
-int is_cheat_actived()
-{
-    if(!cheats)
-    {
-        return 0;
-    }
-    else
-    {
-        if(!forcecheatsoff)
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-}
-
-// Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
-int is_healthcheat_actived()
-{
-    if(!healthcheat)
-    {
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
 }
 
 #undef GET_ARG
