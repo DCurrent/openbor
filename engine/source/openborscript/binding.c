@@ -27,17 +27,13 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
     {
 		"animation_frame",
 		"animation_id",
-		"animation_match",
-		"direction",
+		"config",
+		"direction_adjust",
 		"meta_data",
 		"meta_tag",
-		"mode_x",
-		"mode_y",
-		"mode_z",
 		"offset_x",
 		"offset_y",
 		"offset_z",
-		"override",
         "sort_id",		
         "target"
     };
@@ -68,13 +64,15 @@ int mapstrings_bind_property(ScriptVariant **varlist, int paramCount)
     #undef ARG_PROPERTY
 }
 
-// Caskey, Damon  V.
-// 2018-03-31
-//
-// Return a binding property. Requires
-// the handle from binding entity
-// property and property name to
-// access.
+/*
+* Caskey, Damon  V.
+* 2018-03-31
+*
+* Return a binding property. Requires
+* the handle from binding entity
+* property and property name to
+* access.
+*/
 HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME       "openbor_get_bind_property(void bind, char property)"
@@ -85,18 +83,24 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     s_bind              *handle     = NULL; // Property handle.
     e_bind_properties	property    = 0;    // Property argument.
 
-    // Clear pass by reference argument used to send
-    // property data back to calling script.     .
-    ScriptVariant_Clear(*pretvar);
+    /* 
+	* Clear pass by reference argument used to send
+    * property data back to calling script.     .
+    */
+	ScriptVariant_Clear(*pretvar);
 	
-	// Map string property name to a
-	// matching integer constant.
+	/*
+	* Map string property name to a
+	* matching integer constant.
+	*/
 	mapstrings_bind_property(varlist, paramCount);
 
-    // Verify arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property constant is accessed.
-    if(paramCount < ARG_MINIMUM
+	/*
+    * Verify arguments. There should at least
+    * be a pointer for the property handle and an integer
+    * to determine which property constant is accessed.
+    */
+	if(paramCount < ARG_MINIMUM
        || varlist[ARG_HANDLE]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
@@ -105,7 +109,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     }
     else
     {
-        // Populate local vars for readability.
+        /* Populate local vars for readability. */
         handle      = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
@@ -126,17 +130,17 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
 			break;
 
-		case _BIND_ANIMATION_MATCH:
+		case _BIND_CONFIG:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->match;
+			(*pretvar)->lVal = (e_bind_config)handle->config;
 
 			break;
 
-        case _BIND_DIRECTION:
+        case _BIND_DIRECTION_ADJUST:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->direction;
+            (*pretvar)->lVal = (e_direction_adjust)handle->direction_adjust;
 
             break;
 
@@ -152,28 +156,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->meta_tag;
 
-			break;
-
-		case _BIND_MODE_X:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->positioning.x;
-
-			break;
-
-		case _BIND_MODE_Y:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->positioning.y;
-
-			break;
-
-		case _BIND_MODE_Z:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->positioning.z;
-
-			break;
+			break;		
 
         case _BIND_OFFSET_X:
 
@@ -194,14 +177,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->offset.z;
 
-			break;
-
-        case _BIND_OVERRIDE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->overriding;
-
-            break;
+			break;			       
 
         case _BIND_SORT_ID:
 
@@ -214,10 +190,10 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
             // If there is no entity bound, we just
             // leave the return var empty.
-            if(handle->ent)
+            if(handle->target)
             {
                 ScriptVariant_ChangeType(*pretvar, VT_PTR);
-                (*pretvar)->ptrVal = (entity *)handle->ent;
+                (*pretvar)->ptrVal = (entity *)handle->target;
             }
 
             break;
@@ -245,13 +221,15 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     #undef ARG_INDEX
 }
 
-// Caskey, Damon  V.
-// 2018-04-01
-//
-// Mutate a binding property. Requires
-// the handle from binding entity
-// property, property name to modify,
-// and the new value.
+/*
+* Caskey, Damon  V.
+* 2018-04-01
+*
+* Mutate a binding property. Requires
+* the handle from binding entity
+* property, property name to modify,
+* and the new value.
+*/
 HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
     #define SELF_NAME           "set_bind_property(void bind, char property, mixed value)"
@@ -264,17 +242,23 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 	s_bind                  *handle = NULL; // Property handle.
 	e_bind_properties    property = 0;    // Property to access.
 
-	// Value carriers to apply on properties after
-	// taken from argument.
+	/*
+	* Value carriers to apply on properties after
+	* taken from argument.
+	*/
 	LONG         temp_int;
 	
-	// Map string property name to a
-	// matching integer constant.
+	/*
+	* Map string property name to a
+	* matching integer constant.
+	*/ 
 	mapstrings_bind_property(varlist, paramCount);
 
-	// Verify incoming arguments. There should at least
-	// be a pointer for the property handle and an integer
-	// to determine which property is accessed.
+	/*
+	* Verify incoming arguments. There should at least
+	* be a pointer for the property handle and an integer
+	* to determine which property is accessed.
+	*/
 	if (paramCount < ARG_MINIMUM
 		|| varlist[ARG_HANDLE]->vt != VT_PTR
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
@@ -283,11 +267,11 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 		goto error_local;
 	}
 
-	// Populate local handle and property vars.
+	/* Populate local handleand property vars. */
 	handle = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
 	property = (LONG)varlist[ARG_PROPERTY]->lVal;
 
-	// Which property to modify?
+	/* Which property to modify ? */
 	switch (property)
 	{
 
@@ -309,20 +293,20 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 
 			break;
 
-		case _BIND_ANIMATION_MATCH:
+		case _BIND_CONFIG:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->match = temp_int;
+				handle->config = temp_int;
 			}
 
 			break;
 
-		case _BIND_DIRECTION:
+		case _BIND_DIRECTION_ADJUST:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->direction = temp_int;
+				handle->direction_adjust = temp_int;
 			}
 
 			break;
@@ -338,33 +322,6 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->meta_tag = temp_int;
-			}
-
-			break;
-
-		case _BIND_MODE_X:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->positioning.x = temp_int;
-			}
-
-			break;
-
-		case _BIND_MODE_Y:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->positioning.y = temp_int;
-			}
-
-			break;
-
-		case _BIND_MODE_Z:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->positioning.z = temp_int;
 			}
 
 			break;
@@ -396,15 +353,6 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 
 			break;
 
-		case _BIND_OVERRIDE:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->overriding = temp_int;
-			}
-
-			break;
-
 		case _BIND_SORT_ID:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -416,7 +364,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 
 		case _BIND_TARGET:
 
-			handle->ent = (entity *)varlist[ARG_VALUE]->ptrVal;
+			handle->target = (entity *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 
@@ -445,10 +393,12 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
     #undef ARG_VALUE
 }
 
-// Caskey, Damon  V.
-// 2018-10-11
-//
-// Run engine's internal bind update function.
+/*
+* Caskey, Damon  V.
+* 2018-10-11
+*
+* Run engine's native bind update function.
+*/
 HRESULT openbor_update_bind(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
 #define SELF_NAME           "update_bind(void entity)"

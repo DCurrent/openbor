@@ -1260,44 +1260,36 @@ typedef enum
 
 typedef enum
 {
-    // These must be kept in the current order
-    // to ensure backward compatibility with
-    // modules that used magic numbers before
-    // constants were available.
-	BIND_ANIMATION_NONE				= 0,
-    BIND_ANIMATION_TARGET			= (1 << 0),
-    BIND_ANIMATION_FRAME_TARGET		= (1 << 1),
-    BIND_ANIMATION_REMOVE			= (1 << 2),
-    BIND_ANIMATION_FRAME_REMOVE		= (1 << 3),
+    BIND_CONFIG_NONE = 0,
 
-	// Following were added post constant availablity, so
-	// order does not matter.
+    /* 
+    * These must be kept in the current order
+    * to ensure legacy compatibility with
+    * modules that used magic numbers before
+    * constants were available.
+	*/
+    BIND_CONFIG_ANIMATION_TARGET			= (1 << 0),
+    BIND_CONFIG_ANIMATION_FRAME_TARGET		= (1 << 1),
+    BIND_CONFIG_ANIMATION_REMOVE			= (1 << 2),
+    BIND_CONFIG_ANIMATION_FRAME_REMOVE		= (1 << 3),
 
-    BIND_ANIMATION_DEFINED			= (1 << 4),
-    BIND_ANIMATION_FRAME_DEFINED	= (1 << 5)
-} e_bind_animation_match;
+	/* End legacy order. */
 
-typedef enum
-{
-    // These must be kept in the current order
-    // to ensure backward compatibility with
-    // modules that used magic numbers before
-    // constants were available.
+    BIND_CONFIG_ANIMATION_DEFINED			= (1 << 4),
+    BIND_CONFIG_ANIMATION_FRAME_DEFINED	    = (1 << 5),
+    BIND_CONFIG_AXIS_X_LEVEL                = (1 << 6),
+    BIND_CONFIG_AXIS_X_TARGET               = (1 << 7),
+    BIND_CONFIG_AXIS_Y_LEVEL                = (1 << 8),
+    BIND_CONFIG_AXIS_Y_TARGET               = (1 << 9),
+    BIND_CONFIG_AXIS_Z_LEVEL                = (1 << 10),
+    BIND_CONFIG_AXIS_Z_TARGET               = (1 << 11),
+    BIND_CONFIG_OVERRIDE_FALL_LAND          = (1 << 12),
+    BIND_CONFIG_OVERRIDE_DROPFRAME          = (1 << 13),
+    BIND_CONFIG_OVERRIDE_LANDFRAME          = (1 << 14),
+    BIND_CONFIG_OVERRIDE_SPECIAL_AI         = (1 << 15),
+    BIND_CONFIG_OVERRIDE_SPECIAL_PLAYER     = (1 << 16)
 
-    BIND_MODE_NONE		= 0,
-    BIND_MODE_TARGET	= (1 << 0),
-    BIND_MODE_LEVEL		= (1 << 1)
-} e_bind_mode;
-
-typedef enum
-{
-    BIND_OVERRIDE_NONE				= 0,
-    BIND_OVERRIDE_FALL_LAND			= (1 << 0),
-	BIND_OVERRIDE_FRAME_SET_DROP	= (1 << 1),
-    BIND_OVERRIDE_FRAME_SET_LAND	= (1 << 2),
-    BIND_OVERRIDE_SPECIAL_AI		= (1 << 3),
-    BIND_OVERRIDE_SPECIAL_PLAYER	= (1 << 4)
-} e_bind_override;
+} e_bind_config;
 
 typedef enum e_move_constraint
 {
@@ -2883,13 +2875,13 @@ typedef struct
     e_air_control air_control; /* Mid air control options (turning, moving, etc.). */
     
     /* Grab flags. */
-    int grabback; // Flag to determine if entities grab images display behind opponenets
-    int paingrab; // Added to grab resistance when not in pain.
+    int grabback; // Flag to determine if entities grab images display behind opponenets    
     int grabfinish; // Cannot take further action until grab animation is complete.
     int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
     int grabturn; // Turn with grabbed target using Left/Right (if valid ANI_GRABTURN).
 
     /* Grab variables. */
+    int paingrab; // Added to grab resistance when not in pain.
     float grabdistance; // 30-12-2004	grabdistance varirable adder per character    
     int grab_force; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */
     int grab_resistance; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */    
@@ -3008,26 +3000,26 @@ typedef struct
     s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
-// Caskey, Damon V.
-// 2013-12-17
-//
-// Binding struct. Control linking
-// of entity to a target entity.
+/* 
+* Caskey, Damon V.
+* 2013-12-17
+*
+* Binding struct. Control linking
+* of entity to a target entity.
+*/
 typedef struct
 {
-    unsigned int            match;			// Animation binding type. ~~
-    int                     sortid;         // Relative binding sortid. Default = -1
-    int                     frame;          // Frame to match (only if requested in matching).
-    e_bind_override			overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
-    e_animations            animation;      // Animation to match (only if requested in matching).
-    s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int    offset;         // x,y,z offset.
-    e_direction_adjust      direction;      // Direction force.
-    struct entity           *ent;           // Entity subject will bind itself to.
+    e_bind_config           config;			    // Animation matching, axis matching, overrides, etc. ~~
+    int                     sortid;             // Relative binding sortid. Default = -1
+    int                     frame;              // Frame to match (only if requested in matching).
+    e_animations            animation;          // Animation to match (only if requested in matching).
+    s_axis_principal_int    offset;             // x,y,z offset.
+    e_direction_adjust      direction_adjust;   // Direction force.
+    struct entity*          target;             // Entity subject will bind itself to.
 
     // Meta data.
-    s_meta_data*            meta_data;      // User defined data.
-    int                     meta_tag;       // user defined int.
+    s_meta_data*            meta_data;          // User defined data.
+    int                     meta_tag;           // user defined int.
 
 } s_bind;
 
@@ -3548,8 +3540,7 @@ int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);
-float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
-int     check_bind_override(entity *ent, e_bind_override overriding);
+int     check_bind_override(entity *ent, e_bind_config bind_config);
 
 /* Defense. */
 int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object);

@@ -3656,7 +3656,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_bound:
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        (*pretvar)->ptrVal = (VOID *)ent->binding.ent;
+        (*pretvar)->ptrVal = (VOID *)ent->binding.target;
         break;
     }
     case _ep_bind:
@@ -13114,7 +13114,7 @@ jumptobranch_error:
     return E_FAIL;
 }
 
-//bindentity(entity, target, x, z, a, direction, binding.matching);
+//bindentity(entity, target, x, z, y, direction, config);
 //bindentity(entity, NULL()); // unbind
 HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -13136,24 +13136,25 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         return S_OK;
     }
 
+    /* Start off with a clean slate for config. */
+    ent->binding.config = BIND_CONFIG_NONE;
+
     other = (entity *)(varlist[1])->ptrVal;
     if(!other)
     {
-        ent->binding.ent = NULL;
-        ent->binding.positioning.x = 0;
-        ent->binding.positioning.z = 0;
-        ent->binding.positioning.y = 0;
+        ent->binding.target = NULL;     
         return S_OK;
     }
 
-    ent->binding.ent = other;
+    ent->binding.target = other;
     ent->binding.sortid = sortid;
 
     if(paramCount < 3)
     {
         goto BIND;
     }
-    // x
+    
+    // X
     arg = varlist[2];
     if(arg->vt != VT_EMPTY)
     {
@@ -13163,13 +13164,16 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         }
 
         ent->binding.offset.x = (int)x;
-        ent->binding.positioning.x = 1;
-    } else ent->binding.positioning.x = 0;
+        ent->binding.config |= BIND_CONFIG_AXIS_X_TARGET;
+    }
+
+
     if(paramCount < 4)
     {
         goto BIND;
     }
-    // z
+    
+    // Z
     arg = varlist[3];
     if(arg->vt != VT_EMPTY)
     {
@@ -13178,13 +13182,15 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.z = (int)z;
-        ent->binding.positioning.z = 1;
-    } else ent->binding.positioning.z = 0;
+        ent->binding.config |= BIND_CONFIG_AXIS_Z_TARGET;
+    }
+    
     if(paramCount < 5)
     {
         goto BIND;
     }
-    // a
+    
+    // Y (a)
     arg = varlist[4];
     if(arg->vt != VT_EMPTY)
     {
@@ -13193,12 +13199,14 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.y = (int)a;
-        ent->binding.positioning.y = 1;
-    } else ent->binding.positioning.y = 0;
+        ent->binding.config = BIND_CONFIG_AXIS_Y_TARGET;
+    }
+
     if(paramCount < 6)
     {
         goto BIND;
     }
+    
     // direction
     arg = varlist[5];
     if(arg->vt != VT_EMPTY)
@@ -13207,12 +13215,14 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->binding.direction = (int)dir;
+        ent->binding.direction_adjust = (e_direction_adjust)dir;
     }
+
     if(paramCount < 7)
     {
         goto BIND;
     }
+    
     // animation
     arg = varlist[6];
     if(arg->vt != VT_EMPTY)
@@ -13221,12 +13231,19 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->binding.match = (int)anim;
+
+        /* 
+        * For legacy compatability, we add anim value
+        * to config instead of direct assignment.
+        */
+        ent->binding.config += (e_bind_config)anim;        
     }
+
     if(paramCount < 8)
     {
         goto BIND;
     }
+    
     // sortid
     arg = varlist[7];
     if(arg->vt != VT_EMPTY)

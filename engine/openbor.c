@@ -22338,9 +22338,9 @@ void kill_entity(entity *victim)
             {
                 self->opponent = NULL;
             }
-            if(self->binding.ent == victim)
+            if(self->binding.target == victim)
             {
-                self->binding.ent = NULL;
+                self->binding.target = NULL;
             }
             if(self->landed_on_platform == victim)
             {
@@ -25203,7 +25203,7 @@ bool check_landframe(entity *ent)
     }
 
     // Can't be bound with a landframe override.
-    if(check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_LAND))
+    if(check_bind_override(ent, BIND_CONFIG_OVERRIDE_LANDFRAME))
     {
         return 0;
     }
@@ -25263,8 +25263,8 @@ bool check_frame_set_drop(entity* ent)
 		return 0;
 	}
 
-	// Can't be bound with a drop frame override.
-	if (check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_DROP))
+	/* Can't be bound with a drop frame override. */
+	if (check_bind_override(ent, BIND_CONFIG_OVERRIDE_DROPFRAME))
 	{
 		return 0;
 	}
@@ -25472,7 +25472,7 @@ void check_gravity(entity *e)
                 if(self->velocity.y <=0)
                 {
                     // No bind target, or binding set to ignore fall lands.
-                    if(!check_bind_override(self, BIND_OVERRIDE_FALL_LAND))
+                    if(!check_bind_override(self, BIND_CONFIG_OVERRIDE_FALL_LAND))
                     {
                         self->position.y = self->base;
                         self->falling = 0;
@@ -26291,168 +26291,190 @@ void update_health()
     }
 }
 
-void adjust_bind(entity *e)
+/*
+* Caskey, Damon V.
+* 2022-05-06
+* 
+* Full rewrite of orginal function by uTunnels
+* and its later modifications by me (Damon).
+*
+* Acting entity binds itself to a target
+* depending on bind property settings. Also 
+* executes bind scripts for acting and target.
+*/
+void adjust_bind(entity* acting_entity)
 {
 	#define ADJUST_BIND_SET_ANIM_RESETABLE 1
-	#define ADJUST_BIND_NO_FRAME_MATCH -1
+	#define ADJUST_BIND_NO_FRAME_MATCH -1   
 
-	// Exit if there is no bind target.
-	if (!e->binding.ent)
+	/* Exit if there is no bind target. */
+	if (!acting_entity->binding.target)
 	{
 		return;
 	}
 
-	// Run bind update script on the bind target.
-	execute_on_bind_update_other_to_self(e->binding.ent, e, &e->binding);
+	/* 
+    * Run bind update scripts for target and
+    * acing entity 
+    */
+	execute_on_bind_update_other_to_self(acting_entity->binding.target, acting_entity, &acting_entity->binding);
 
 	// Run bind update script on *e (entity performing bind).
-	execute_on_bind_update_self_to_other(e, e->binding.ent, &e->binding);
+	execute_on_bind_update_self_to_other(acting_entity, acting_entity->binding.target, &acting_entity->binding);
 
-	if (e->binding.match)
+	if (acting_entity->binding.config)
 	{
 		int				frame;
 		e_animations	animation;
 
-		// If a defined value is requested,
-		// use the binding member value.
-		// Otherwise use target's current value.
-		if (e->binding.match & BIND_ANIMATION_DEFINED)
+		/* 
+        * If a defined value is requested,
+		* use the binding member value.
+		* Otherwise use target's current value.
+		*/
+        if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_DEFINED)
 		{
-			animation = e->binding.animation;
+			animation = acting_entity->binding.animation;
 		}
 		else
 		{
-			animation = e->binding.ent->animnum;
+			animation = acting_entity->binding.target->animnum;
 		}
 
-		// Are we NOT currently playing the target animation?
-		if (e->animnum != animation)
+		/* Are we NOT currently playing the target animation? */
+		if (acting_entity->animnum != animation)
 		{
-			// If we don't have the target animation
-			// and animation kill flag is set, then
-			// we kill ourselves and exit the function.
-			if (!validanim(e, animation))
+			/*
+            * If we don't have the target animation
+			* and animation kill flag is set, then
+			* we kill ourselves and exit the function.
+			*/
+            if (!validanim(acting_entity, animation))
 			{
-				// Don't have the animation? Kill ourself.
-				if (e->binding.match & BIND_ANIMATION_REMOVE)
+				/* Don't have the animation? Kill self. */
+				if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_REMOVE)
 				{
-					kill_entity(e);
+					kill_entity(acting_entity);
 				}
 
-				// Cancel the bind and exit.
-				e->binding.ent = NULL;
+				/* Cancel the bind and exit. */
+                acting_entity->binding.target = NULL;
 				return;
 			}
 
-			// Made it this far, we must have the target
-			// animation, so let's apply it.
-			ent_set_anim(e, animation, ADJUST_BIND_SET_ANIM_RESETABLE);
+			/*
+            * Made it this far, we must have the target
+			* animation, so let's apply it.
+			*/
+            ent_set_anim(acting_entity, animation, ADJUST_BIND_SET_ANIM_RESETABLE);
 		}
 
 		
-		// If a defined value is requested,
-		// use the binding member value.
-		// If target value is requested use
-		// target's current value (duh).
-		// if no frame match at all requested
-		// then set ADJUST_BIND_NO_FRAME_MATCH
-		// so frame matching logic is skipped.		
-		
-		if (e->binding.match & BIND_ANIMATION_FRAME_DEFINED)
+		/*
+        * If a defined value is requested,
+		* use the binding member value.
+		* If target value is requested use
+		* target's current value (duh).
+		* if no frame match at all requested
+		* then set ADJUST_BIND_NO_FRAME_MATCH
+		* so frame matching logic is skipped.		
+		*/
+
+		if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_DEFINED)
 		{
-			frame = e->binding.frame;
+			frame = acting_entity->binding.frame;
 		}
-		else if (e->binding.match & BIND_ANIMATION_FRAME_TARGET)
+		else if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_TARGET)
 		{
-			frame = e->binding.ent->animpos;
+			frame = acting_entity->binding.target->animpos;
 		}
 		else
 		{
 			frame = ADJUST_BIND_NO_FRAME_MATCH;
 		}
 
-		// Any frame match flag set?
-		if (frame != ADJUST_BIND_NO_FRAME_MATCH)
+		/* 
+        * Any frame match flag set?
+		*/
+        if (frame != ADJUST_BIND_NO_FRAME_MATCH)
 		{
-			// Are we NOT currently playing the target frame?
-			if (e->animpos != frame)
+			/* Are we NOT currently playing the target frame ? */
+			if (acting_entity->animpos != frame)
 			{
-				// If we don't have the frame and frame kill flag is
-				// set, kill ourselves.
-				if ((e->animation->numframes -1) < frame)
+				/*
+                * If we don't have the frame and frame kill flag is
+				* set, kill self.
+				*/
+                if ((acting_entity->animation->numframes -1) < frame)
 				{
-
-					if (e->binding.match & BIND_ANIMATION_FRAME_REMOVE)
+					if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_REMOVE)
 					{
-						kill_entity(e);
-
-						// Cancel the bind and exit.
-						e->binding.ent = NULL;
+						kill_entity(acting_entity);
+                        						
 						return;
 					}					
 				}
 
-				// Made it this far, let's try to
-				// apply the frame.
-				update_frame(e, frame);
+				/*
+                * Made it this far, let's try to
+				* apply the frame.
+				*/
+                update_frame(acting_entity, frame);
 			}
 		}
 	}
 
-	// Apply sort ID adjustment.
-	e->sortid = e->binding.ent->sortid + e->binding.sortid;
+	/* Apply sort ID adjustment. */
+    acting_entity->sortid = acting_entity->binding.target->sortid + acting_entity->binding.sortid;
 
-	// Get and apply direction adjustment.
-	e->direction = direction_get_adjustment_result(e->direction, e->binding.ent->direction, e->binding.direction);
+	/* Getand apply direction adjustment. */
+    acting_entity->direction = direction_get_adjustment_result(acting_entity->direction, acting_entity->binding.target->direction, acting_entity->binding.direction_adjust);
 
-	// Run bind positioning function to get an
-	// adjusted (or not) position result we apply 
-	// to each axis. For X axis, we want to adjust 
-	// relative to the bind target's direction, so 
-	// we'll send the function an inverted offset if 
-	// binding target is facing left.
-	e->position.z = binding_position(e->position.z, e->binding.ent->position.z, e->binding.offset.z, e->binding.positioning.z);
-	e->position.y = binding_position(e->position.y, e->binding.ent->position.y, e->binding.offset.y, e->binding.positioning.y);
+    /*
+	* Apply positioning based on config. For
+    * the X axis, we invert adjustment when
+    * target faces left.
+	*/
 
-	if (e->binding.positioning.x == BIND_MODE_TARGET && e->binding.ent->direction == DIRECTION_LEFT)
-	{
-		e->position.x = binding_position(e->position.x, e->binding.ent->position.x, -e->binding.offset.x, e->binding.positioning.x);
-	}
-	else
-	{
-		e->position.x = binding_position(e->position.x, e->binding.ent->position.x, e->binding.offset.x, e->binding.positioning.x);
-	}
-	
+    // X
+    if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_TARGET)
+    {
+        if (acting_entity->binding.target->direction == DIRECTION_LEFT)
+        {
+            acting_entity->binding.target->position.x -= acting_entity->binding.offset.x;
+        }
+        else
+        {
+            acting_entity->binding.target->position.x += acting_entity->binding.offset.x;
+        }
+    }
+    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_LEVEL)
+    {
+        acting_entity->binding.target->position.x = acting_entity->binding.offset.x;
+    }
+    
+    // Y
+    if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_TARGET)
+    {
+        acting_entity->binding.target->position.y += acting_entity->binding.offset.y;
+    }
+    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_LEVEL)
+    {
+        acting_entity->binding.target->position.y = acting_entity->binding.offset.y;
+    }
+
+    // Z
+    if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_TARGET)
+    {
+        acting_entity->binding.target->position.z += acting_entity->binding.offset.z;
+    }
+    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_LEVEL)
+    {
+        acting_entity->binding.target->position.z = acting_entity->binding.offset.z;
+    }
+    	
 	#undef ADJUST_BIND_SET_ANIM_RESETABLE
 	#undef ADJUST_BIND_NO_FRAME_MATCH
-}
-
-// Caskey, Damon V.
-// 2018-10-13
-//
-// Return an adjusted position for binding based
-// on positioning settings, offset, and current position.
-float binding_position(float position_default, float position_target, int offset, e_bind_mode positioning)
-{
-	switch (positioning)
-	{
-		case BIND_MODE_TARGET:
-
-			return position_target + offset;
-			break;
-
-		case BIND_MODE_LEVEL:
-
-			return offset;
-			break;
-
-		case BIND_MODE_NONE:
-		default:
-
-			// Leave position as-is.
-			return position_default;
-			break;
-	}
 }
 
 /*
@@ -26545,16 +26567,18 @@ e_direction direction_get_adjustment_result(e_direction direction_default, e_dir
 	}
 }
 
-// Caskey, Damon V.
-// 2018-09-08
-//
-// Return true if the target entity has a valid
-// bind target and match for the override argument.
-int check_bind_override(entity *ent, e_bind_override overriding)
+/*
+* Caskey, Damon V.
+* 2018-09-08
+*
+* Return true if the target entity has a valid
+* bind target and match for the override argument.
+*/
+int check_bind_override(entity *ent, e_bind_config bind_config)
 {
-    if(ent->binding.ent)
+    if(ent->binding.target)
     {
-        if(ent->binding.overriding & overriding)
+        if(ent->binding.config & bind_config)
         {
             return TRUE;
         }
@@ -35065,14 +35089,14 @@ int check_energy(e_cost_check which, int ani)
     // return false.
     if(type & (TYPE_ENEMY  | TYPE_NPC))
     {
-        if(check_bind_override(self, BIND_OVERRIDE_SPECIAL_AI))
+        if(check_bind_override(self, BIND_CONFIG_OVERRIDE_SPECIAL_AI))
         {
             return FALSE;
         }
     }
     else if(type & TYPE_PLAYER)
     {
-        if(check_bind_override(self, BIND_OVERRIDE_SPECIAL_PLAYER))
+        if(check_bind_override(self, BIND_CONFIG_OVERRIDE_SPECIAL_PLAYER))
         {
             return FALSE;
         }
