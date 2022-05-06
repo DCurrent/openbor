@@ -146,7 +146,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->z1 = temp_int;
+                handle->z_background = temp_int;
             }
 
             break;
@@ -155,7 +155,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->z2 = temp_int;
+                handle->z_foreground = temp_int;
             }
             break;
 
