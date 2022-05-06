@@ -27785,9 +27785,14 @@ int reset_backpain(entity *ent)
 {
     if (ent->normaldamageflipdir >= 0)
     {
-        if (ent->normaldamageflipdir == DIRECTION_RIGHT) ent->direction = DIRECTION_RIGHT;
-        else ent->direction = DIRECTION_LEFT;
-
+        if (ent->normaldamageflipdir == DIRECTION_RIGHT)
+        {
+            ent->direction = DIRECTION_RIGHT;
+        }
+        else 
+        {
+            ent->direction = DIRECTION_LEFT;
+        }
         if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*fabsf(ent->velocity.x);
         else ent->velocity.x = fabsf(ent->velocity.x);
 
@@ -29339,7 +29344,7 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
     /* Debuging info */
     //attack_dump_object(attack_object);
 
-    target_entity->normaldamageflipdir = DIRECTION_ADJUST_OPPOSITE;
+    target_entity->normaldamageflipdir = DIRECTION_RIGHT;
     
     int pain_check = 0;
 
