@@ -304,21 +304,26 @@ u64 freeram = 0;
 u32 interval = 0;
 //extern u64 seed;
 
-int                 SAMPLE_GO			= SAMPLE_ID_NONE;
-int                 SAMPLE_BEAT			= SAMPLE_ID_NONE;
-int                 SAMPLE_BLOCK		= SAMPLE_ID_NONE;
-int                 SAMPLE_INDIRECT		= SAMPLE_ID_NONE;
-int                 SAMPLE_GET			= SAMPLE_ID_NONE;
-int                 SAMPLE_GET2			= SAMPLE_ID_NONE;
-int                 SAMPLE_FALL			= SAMPLE_ID_NONE;
-int                 SAMPLE_JUMP			= SAMPLE_ID_NONE;
-int                 SAMPLE_PUNCH		= SAMPLE_ID_NONE;
-int                 SAMPLE_1UP			= SAMPLE_ID_NONE;
-int                 SAMPLE_TIMEOVER		= SAMPLE_ID_NONE;
-int                 SAMPLE_BEEP			= SAMPLE_ID_NONE;
-int                 SAMPLE_BEEP2		= SAMPLE_ID_NONE;
-int                 SAMPLE_BIKE			= SAMPLE_ID_NONE;
-int                 SAMPLE_PAUSE		= SAMPLE_ID_NONE;
+/*
+* Hard coded sound sample IDs.
+*/
+s_global_sample global_sample_list = {
+    .beat = SAMPLE_ID_NONE,
+    .beep = SAMPLE_ID_NONE,
+    .beep_2 = SAMPLE_ID_NONE,
+    .bike = SAMPLE_ID_NONE,
+    .block = SAMPLE_ID_NONE,
+    .fall = SAMPLE_ID_NONE,       
+    .get = SAMPLE_ID_NONE,
+    .get_2 = SAMPLE_ID_NONE,
+    .go = SAMPLE_ID_NONE, 
+    .indirect = SAMPLE_ID_NONE,
+    .jump = SAMPLE_ID_NONE,
+    .one_up = SAMPLE_ID_NONE,
+    .pause = SAMPLE_ID_NONE,    
+    .punch = SAMPLE_ID_NONE,    
+    .time_over = SAMPLE_ID_NONE    
+};
 
 // 2016-11-01
 // Caskey, Damon V.
@@ -573,14 +578,10 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
-int                 forcecheatsoff      = 0;
+
 int                 nodebugoptions      = 0;
-int                 cheats              = 0;
-int                 livescheat          = 0;
+
 int                 keyscriptrate       = 0;
-int                 creditscheat        = 0;
-int                 healthcheat         = 0;
-int                 multihitcheat       = 0;					//Kratus (20-04-21) Flag to enable or disable the multihit glitch option
 int                 showtimeover        = 0;
 int                 sameplayer          = 0;            		// 7-1-2005  flag to determine if players can use the same character
 int                 PLAYER_LIVES        = 3;					// 7-1-2005  default setting for Lives
@@ -618,6 +619,11 @@ float               musicfade[2]        = {0, 0};
 int                 musicloop           = 0;
 u32                 musicoffset         = 0;
 int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a chance
+
+s_global_config global_config =
+{
+    .cheats = CHEAT_OPTIONS_ALL_MENU
+};
 
 s_barstatus loadingbarstatus =
 {
@@ -2448,6 +2454,7 @@ void clearsettings()
     savedata.compatibleversion = COMPATIBLEVERSION;
     savedata.gamma = 0;
     savedata.brightness = 0;
+    global_config.cheats = CHEAT_OPTIONS_ALL_MENU;
     savedata.soundvol = 15;
     savedata.usemusic = 1;
     savedata.musicvol = 100;
@@ -4581,28 +4588,28 @@ proceed:
 int load_special_sounds()
 {
     sound_unload_all_samples();
-    SAMPLE_GO		= sound_load_sample("data/sounds/go.wav",		packfile,	0);
-    SAMPLE_BEAT		= sound_load_sample("data/sounds/beat1.wav",	packfile,	0);
-    SAMPLE_BLOCK	= sound_load_sample("data/sounds/block.wav",	packfile,	0);
-    SAMPLE_FALL		= sound_load_sample("data/sounds/fall.wav",		packfile,	0);
-    SAMPLE_GET		= sound_load_sample("data/sounds/get.wav",		packfile,	0);
-    SAMPLE_GET2		= sound_load_sample("data/sounds/money.wav",	packfile,	0);
-    SAMPLE_JUMP		= sound_load_sample("data/sounds/jump.wav",		packfile,	0);
-    SAMPLE_INDIRECT	= sound_load_sample("data/sounds/indirect.wav",	packfile,	0);
-    SAMPLE_PUNCH	= sound_load_sample("data/sounds/punch.wav",	packfile,	0);
-    SAMPLE_1UP		= sound_load_sample("data/sounds/1up.wav",		packfile,	0);
-    SAMPLE_TIMEOVER = sound_load_sample("data/sounds/timeover.wav", packfile,	0);
-    SAMPLE_BEEP		= sound_load_sample("data/sounds/beep.wav",		packfile,	0);
-    SAMPLE_BEEP2	= sound_load_sample("data/sounds/beep2.wav",	packfile,	0);
-    SAMPLE_PAUSE	= sound_load_sample("data/sounds/pause.wav",	packfile,	0);
-    SAMPLE_BIKE		= sound_load_sample("data/sounds/bike.wav",		packfile,	0);
+    global_sample_list.go = sound_load_sample("data/sounds/go.wav",		packfile,	0);
+    global_sample_list.beat = sound_load_sample("data/sounds/beat1.wav",	packfile,	0);
+    global_sample_list.block = sound_load_sample("data/sounds/block.wav",	packfile,	0);
+    global_sample_list.fall = sound_load_sample("data/sounds/fall.wav",		packfile,	0);
+    global_sample_list.get = sound_load_sample("data/sounds/get.wav",		packfile,	0);
+    global_sample_list.get_2 = sound_load_sample("data/sounds/money.wav",	packfile,	0);
+    global_sample_list.jump = sound_load_sample("data/sounds/jump.wav",		packfile,	0);
+    global_sample_list.indirect = sound_load_sample("data/sounds/indirect.wav",	packfile,	0);
+    global_sample_list.punch = sound_load_sample("data/sounds/punch.wav",	packfile,	0);
+    global_sample_list.one_up = sound_load_sample("data/sounds/1up.wav",		packfile,	0);
+    global_sample_list.time_over = sound_load_sample("data/sounds/timeover.wav", packfile,	0);
+    global_sample_list.beep = sound_load_sample("data/sounds/beep.wav",		packfile,	0);
+    global_sample_list.beep_2 = sound_load_sample("data/sounds/beep2.wav",	packfile,	0);
+    global_sample_list.pause = sound_load_sample("data/sounds/pause.wav",	packfile,	0);
+    global_sample_list.bike = sound_load_sample("data/sounds/bike.wav",		packfile,	0);
 
-    if ( SAMPLE_PAUSE < 0 ) SAMPLE_PAUSE = SAMPLE_BEEP2;
-    if(SAMPLE_GO < 0 || SAMPLE_BEAT < 0 || SAMPLE_BLOCK < 0 ||
-            SAMPLE_FALL < 0 || SAMPLE_GET < 0 || SAMPLE_GET2 < 0 ||
-            SAMPLE_JUMP < 0 || SAMPLE_INDIRECT < 0 || SAMPLE_PUNCH < 0 ||
-            SAMPLE_1UP < 0 || SAMPLE_TIMEOVER < 0 || SAMPLE_BEEP < 0 ||
-            SAMPLE_BEEP2 < 0 || SAMPLE_PAUSE < 0 || SAMPLE_BIKE < 0)
+    if (global_sample_list.pause < 0 ) global_sample_list.pause = global_sample_list.beep_2;
+    if(global_sample_list.go < 0 || global_sample_list.beat < 0 || global_sample_list.block < 0 ||
+        global_sample_list.fall < 0 || global_sample_list.get < 0 || global_sample_list.get_2 < 0 ||
+        global_sample_list.jump < 0 || global_sample_list.indirect < 0 || global_sample_list.punch < 0 ||
+        global_sample_list.one_up < 0 || global_sample_list.time_over < 0 || global_sample_list.beep < 0 ||
+        global_sample_list.beep_2 < 0 || global_sample_list.pause < 0 || global_sample_list.bike < 0)
     {
         return 0;
     }
@@ -5469,7 +5476,7 @@ void cache_model_sprites(s_model *m, int ld)
     cachesound(m->diesound, ld);
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        cachesprite(m->parrow[i][0], ld);
+        cachesprite(m->player_arrow[i].sprite, ld);
     }
 
     //if(hasFreetype(model, MF_ANIMLIST)){
@@ -5540,10 +5547,10 @@ int free_model(s_model *model)
         model->palette = NULL;
     }
     printf(".");
-    if(hasFreetype(model, MF_WEAPONS) && model->weapon && model->ownweapons)
+    if(hasFreetype(model, MF_WEAPONS) && model->weapon_properties.weapon_list && model->weapon_properties.weapon_state & WEAPON_STATE_HAS_LIST)
     {
-        free(model->weapon);
-        model->weapon = NULL;
+        free(model->weapon_properties.weapon_list);
+        model->weapon_properties.weapon_list = NULL;
     }
     printf(".");
     if(hasFreetype(model, MF_BRANCH) && model->branch)
@@ -7207,7 +7214,7 @@ s_attack* attack_allocate_object()
     memcpy(result, &emptyattack, sizeof(*result));
 
     /* -- Apply default hit sound effect (for legacy compatability). */
-    result->hitsound = SAMPLE_BEAT;
+    result->hitsound = global_sample_list.beat;
     
     /* -- Apply default drop velocity. */
     result->dropv.x = default_model_dropv.x;
@@ -9908,6 +9915,644 @@ void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
 
 /*
 * Caskey, Damon V.
+* 2022-04-26
+*
+* Backport weapon loss conditions values 
+* to legacy weapon loss for backward
+* compatability.
+*/
+e_weapon_loss_condition_legacy weapon_loss_condition_interpret_to_legacy(e_weapon_loss_condition weapon_loss_condition_value)
+{
+    e_weapon_loss_condition_legacy result = WEAPLOSS_TYPE_ANY;
+
+    if ((weapon_loss_condition_value & WEAPON_LOSS_CONDITION_DEFAULT) == WEAPON_LOSS_CONDITION_DEFAULT)
+    {
+        result |= WEAPLOSS_TYPE_ANY;
+        return result;
+    }
+
+    if (weapon_loss_condition_value & WEAPON_LOSS_CONDITION_DEATH)
+    {
+        result |= WEAPLOSS_TYPE_DEATH;
+        return result;
+    }
+
+    if (weapon_loss_condition_value & WEAPLOSS_TYPE_KNOCKDOWN)
+    {
+        result |= WEAPON_LOSS_CONDITION_FALL;
+        return result;
+    }
+
+    if (weapon_loss_condition_value & WEAPLOSS_TYPE_CHANGE)
+    {
+        result |= WEAPON_LOSS_CONDITION_STAGE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Interpret legacy weaploss commands into
+* weapon loss bits per orginal documentation.
+*/
+e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_weapon_loss_condition weapon_loss_condition_value, e_weapon_loss_condition_legacy legacy_value)
+{
+    switch (legacy_value)
+    {
+    case WEAPLOSS_TYPE_ANY:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_DEFAULT;
+        break;
+
+    case WEAPLOSS_TYPE_KNOCKDOWN:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_FALL;
+        break;
+
+    case WEAPLOSS_TYPE_DEATH:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_PAIN;
+        break;
+
+    case WEAPLOSS_TYPE_CHANGE:
+
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_STAGE;
+        break;
+
+    default:
+        
+        weapon_loss_condition_value |= WEAPON_LOSS_CONDITION_DEFAULT;
+
+        break;
+    }
+
+    return weapon_loss_condition_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+*
+* Accept string input and return
+* matching constant.
+*/
+e_weapon_loss_condition find_weapon_loss_from_string(char* value)
+{
+    e_weapon_loss_condition result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_NONE;
+    }
+    if (stricmp(value, "damage") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_DAMAGE;
+    }
+    else if (stricmp(value, "death") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_DEATH;
+    }
+    else if (stricmp(value, "fall") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_FALL;
+    }
+    else if (stricmp(value, "grabbed") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_GRABBED;
+    }
+    else if (stricmp(value, "grabbing") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_GRABBING;
+    }
+    else if (stricmp(value, "land_damage") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_LAND_DAMAGE;
+    }
+    else if (stricmp(value, "pain") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_PAIN;
+    }
+    else if (stricmp(value, "stage") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_STAGE;
+    }
+    else if (stricmp(value, "default") == 0)
+    {
+        result = WEAPON_LOSS_CONDITION_DEFAULT;
+    }
+    else
+    {
+        result = WEAPON_LOSS_CONDITION_DEFAULT;
+        printf("\n\n Unknown weapon loss flag (%s), using 'default'. \n", value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+*
+* Populate weapon loss model property
+* from text arguments.
+*/
+void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
+{
+    int i;
+    char* value;
+    newchar->weapon_properties.loss_condition = WEAPON_LOSS_CONDITION_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        newchar->weapon_properties.loss_condition |= find_weapon_loss_from_string(value);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+* 
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_x air_control_interpret_to_legacy_jumpmove_x(e_air_control air_control_value)
+{
+    e_air_control_legacy_x result = AIR_CONTROL_LEGACY_X_NONE;
+
+    if (air_control_value & AIR_CONTROL_JUMP_TURN)
+    {
+        result |= AIR_CONTROL_LEGACY_X_FLIP;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_X_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_X_ADJUST;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_X_MOVE)
+    {
+        result |= AIR_CONTROL_LEGACY_X_MOVE;
+    }       
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_z air_control_interpret_to_legacy_jumpmove_z(e_air_control air_control_value)
+{
+    e_air_control_legacy_z result = AIR_CONTROL_LEGACY_Z_NONE;
+    
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+    
+    if (air_control_value & AIR_CONTROL_JUMP_Z_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_ADJUST;
+    }
+    
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_TURN && air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result = AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_x air_control_interpret_to_legacy_walkoffmove_x(e_air_control air_control_value)
+{
+    e_air_control_legacy_x result = AIR_CONTROL_LEGACY_X_NONE;
+
+    if (air_control_value & AIR_CONTROL_WALKOFF_TURN)
+    {
+        result |= AIR_CONTROL_LEGACY_X_FLIP;
+    }
+
+    if (air_control_value & AIR_CONTROL_WALKOFF_X_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_X_ADJUST;
+    }
+
+    if (air_control_value & AIR_CONTROL_WALKOFF_X_MOVE)
+    {
+        result |= AIR_CONTROL_LEGACY_X_MOVE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Backport air control values to legacy
+* jumpmove for backward compatability.
+*/
+e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_control air_control_value)
+{
+    e_air_control_legacy_z result = AIR_CONTROL_LEGACY_Z_NONE;
+
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_Z_ADJUST)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_ADJUST;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result |= AIR_CONTROL_LEGACY_Z_MOMENTUM;
+    }
+
+    if (air_control_value & AIR_CONTROL_JUMP_TURN && air_control_value & AIR_CONTROL_JUMP_Z_INITIAL)
+    {
+        result = AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+* 
+* Interpret legacy Jumpmove commands into
+* air control bits per orginal documentaiton.
+*
+* low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move                 
+*/
+e_air_control air_control_interpret_from_legacy_jumpmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_X_NONE:
+
+        air_control_value &= ~(AIR_CONTROL_JUMP_TURN | AIR_CONTROL_JUMP_X_ADJUST | AIR_CONTROL_JUMP_X_MOVE);
+        break;
+
+    case AIR_CONTROL_LEGACY_X_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST:
+
+        air_control_value |= AIR_CONTROL_JUMP_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_JUMP_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_MOVE:
+    case AIR_CONTROL_LEGACY_X_MOVE_ALT:
+
+        air_control_value |= AIR_CONTROL_JUMP_X_MOVE;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP:
+    
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_JUMP_X_MOVE;
+        break;
+
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_X_MOVE_ALT)
+        {
+            air_control_value |= AIR_CONTROL_JUMP_TURN;
+            air_control_value |= AIR_CONTROL_JUMP_X_MOVE;
+        }
+
+        break;
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* See interpret_legacy_jumpmove_x();
+*/ 
+e_air_control air_control_interpret_from_legacy_jumpmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_Z_NONE:
+
+        air_control_value &= ~(AIR_CONTROL_JUMP_TURN | AIR_CONTROL_JUMP_Z_ADJUST | AIR_CONTROL_JUMP_Z_INITIAL);
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM:
+
+        air_control_value |= AIR_CONTROL_JUMP_Z_INITIAL;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_ADJUST:
+    
+        air_control_value |= AIR_CONTROL_JUMP_Z_INITIAL;
+        air_control_value |= AIR_CONTROL_JUMP_Z_ADJUST;
+        break; 
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_ADJUST:
+
+        air_control_value |= AIR_CONTROL_JUMP_Z_INITIAL;
+        air_control_value |= AIR_CONTROL_JUMP_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_JUMP_Z_MOVE;
+
+        break;
+    
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP)
+        {
+            air_control_value |= AIR_CONTROL_JUMP_TURN;
+            air_control_value |= AIR_CONTROL_JUMP_Z_MOVE;
+        }
+
+        break;
+    
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Interpret legacy walkmove commands into
+* air control bits per orginal documentaiton.
+*
+* low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+*/
+e_air_control air_control_interpret_from_legacy_walkoffmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_X_NONE:
+
+        air_control_value &= ~(AIR_CONTROL_WALKOFF_TURN | AIR_CONTROL_WALKOFF_X_ADJUST);
+        break;
+
+    case AIR_CONTROL_LEGACY_X_FLIP:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_TURN;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_ADJUST_AND_FLIP:
+    case AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_TURN;
+        air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_X_MOVE:
+    case AIR_CONTROL_LEGACY_X_MOVE_ALT:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        break;
+
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_X_MOVE_ALT)
+        {
+            air_control_value |= AIR_CONTROL_WALKOFF_TURN;
+            air_control_value |= AIR_CONTROL_WALKOFF_X_ADJUST;
+        }
+
+        break;
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Interpret legacy walkmove commands into
+* air control bits per orginal documentaiton.
+*
+* low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+*/
+e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value)
+{
+    switch (legacy_value)
+    {
+    case AIR_CONTROL_LEGACY_Z_NONE:
+
+        air_control_value &= ~AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_ADJUST:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_ADJUST:
+
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+        break;
+
+    case AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP:
+
+        air_control_value |= AIR_CONTROL_JUMP_TURN;
+        air_control_value |= AIR_CONTROL_WALKOFF_Z_ADJUST;
+
+        break;
+
+    default:
+
+        /*
+        * Handle non-existent duplicate options
+        * listed in the legacy manual.
+        */
+
+        if (legacy_value > AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP)
+        {
+            air_control_value |= AIR_CONTROL_JUMP_TURN;
+            air_control_value |= AIR_CONTROL_JUMP_Z_MOVE;
+        }
+
+        break;
+
+    }
+
+    return air_control_value;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Accept string input and return
+* matching constant.
+*/
+e_air_control find_air_control_from_string(char* value)
+{
+    e_air_control result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = AIR_CONTROL_NONE;
+    }
+    if (stricmp(value, "jump_disable") == 0)
+    {
+        result = AIR_CONTROL_JUMP_DISABLE;
+    }
+    else if (stricmp(value, "jump_turn") == 0)
+    {
+        result = AIR_CONTROL_JUMP_TURN;
+    }
+    else if (stricmp(value, "jump_x_adjust") == 0)
+    {
+        result = AIR_CONTROL_JUMP_X_ADJUST;
+    }
+    else if (stricmp(value, "jump_x_move") == 0)
+    {
+        result = AIR_CONTROL_JUMP_X_MOVE;
+    }
+    else if (stricmp(value, "jump_x_stop") == 0)
+    {
+        result = AIR_CONTROL_JUMP_X_STOP;
+    }
+    else if (stricmp(value, "jump_y_stop") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Y_STOP;
+    }
+    else if (stricmp(value, "jump_z_adjust") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_ADJUST;
+    }
+    else if (stricmp(value, "jump_z_initial") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_INITIAL;
+    }
+    else if (stricmp(value, "jump_z_move") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_MOVE;
+    }
+    else if (stricmp(value, "jump_z_stop") == 0)
+    {
+        result = AIR_CONTROL_JUMP_Z_STOP;
+    }
+    else if (stricmp(value, "walkoff_turn") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_TURN;
+    }
+    else if (stricmp(value, "walkoff_x_adjust") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_X_ADJUST;
+    }
+    else if (stricmp(value, "walkoff_x_move") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_X_MOVE;
+    }
+    else if (stricmp(value, "walkoff_x_stop") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_X_STOP;
+    }
+    else if (stricmp(value, "walkoff_z_adjust") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_Z_ADJUST;
+    }
+    else if (stricmp(value, "walkoff_z_move") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_Z_MOVE;
+    }
+    else if (stricmp(value, "walkoff_z_stop") == 0)
+    {
+        result = AIR_CONTROL_WALKOFF_Z_STOP;
+    }
+    else
+    {
+        printf("\n\n Unknown air move flag (%s), using 'none'. \n", value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Populate air control model property
+* from text arguments.
+*/
+void lcmHandleCommandAirControl(ArgList* arglist, s_model* newchar)
+{
+    int i;
+    char* value;
+    newchar->air_control = AIR_CONTROL_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        newchar->air_control |= find_air_control_from_string(value);
+    }
+}
+
+/*
+* Caskey, Damon V.
 * 2019-11-22
 * 
 * Accept string input and return 
@@ -9982,6 +10627,102 @@ void lcmHandleCommandMoveConstraint(ArgList* arglist, s_model* newchar)
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
         newchar->move_constraint |= find_move_constraint_from_string(value);
+    }
+}
+
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Accept string input and return
+* matching constant.
+*/
+e_cheat_options find_cheat_options_from_string(char* value)
+{
+    e_cheat_options result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = CHEAT_OPTIONS_NONE;
+    }
+    else if (stricmp(value, "credits_active") == 0)
+    {
+        result = CHEAT_OPTIONS_CREDITS_ACTIVE;
+    }
+    else if (stricmp(value, "credits_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_CREDITS_MENU;
+    }
+    else if (stricmp(value, "energy_active") == 0)
+    {
+        result = CHEAT_OPTIONS_ENERGY_ACTIVE;
+    }
+    else if (stricmp(value, "energy_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_ENERGY_MENU;
+    }
+    else if (stricmp(value, "health_active") == 0)
+    {
+        result = CHEAT_OPTIONS_HEALTH_ACTIVE;
+    }
+    else if (stricmp(value, "health_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_HEALTH_MENU;
+    }
+    else if (stricmp(value, "master_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_MASTER_MENU;
+    }
+    else if (stricmp(value, "lives_active") == 0)
+    {
+        result = CHEAT_OPTIONS_LIVES_ACTIVE;
+    }
+    else if (stricmp(value, "lives_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_LIVES_MENU;
+    }
+    else if (stricmp(value, "multihit_active") == 0)
+    {
+        result = CHEAT_OPTIONS_MULTIHIT_ACTIVE;
+    }
+    else if (stricmp(value, "multihit_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_MULTIHIT_MENU;
+    }
+    else if (stricmp(value, "touch_of_death_active") == 0)
+    {
+        result = CHEAT_OPTIONS_TOD_ACTIVE;
+    }
+    else if (stricmp(value, "touch_of_death_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_TOD_MENU;
+    }
+    else
+    {
+        printf("\n\n Unknown cheat option (%s), using 'none'. \n", value);
+        result = CHEAT_OPTIONS_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-04-28
+*
+* Populate global config cheats 
+* property from text arguments.
+*/
+void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
+{
+    int i;
+    char* value;
+    global_config.cheats = CHEAT_OPTIONS_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        global_config.cheats |= find_cheat_options_from_string(value);    
     }
 }
 
@@ -10120,40 +10861,50 @@ void lcmHandleCommandAiattack(ArgList *arglist, s_model *newchar, int *aiattacks
 
 void lcmHandleCommandWeapons(ArgList *arglist, s_model *newchar)
 {
-    int weap;
+    int weapon_index = 0;
     char *value;
-    for(weap = 0; ; weap++)
+    
+    for(weapon_index = 0; ; weapon_index++)
     {
-        value = GET_ARGP(weap + 1);
+        value = GET_ARGP(weapon_index + 1);
         if(!value[0])
         {
             break;
         }
     }
 
-    if(!weap)
+    if(!weapon_index)
     {
         return;
     }
 
-    newchar->numweapons = weap;
+    newchar->weapon_properties.weapon_count = weapon_index;
 
-    if(!newchar->weapon)
+    if(!newchar->weapon_properties.weapon_list)
     {
-        newchar->weapon = malloc(sizeof(*newchar->weapon) * newchar->numweapons);
-        memset(newchar->weapon, 0xFF, sizeof(*newchar->weapon)*newchar->numweapons);
-        newchar->ownweapons = 1;
+        newchar->weapon_properties.weapon_list = malloc(sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
+        memset(newchar->weapon_properties.weapon_list, 0xFF, sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
+        newchar->weapon_properties.weapon_state |= WEAPON_STATE_HAS_LIST;
     }
-    for(weap = 0; weap < newchar->numweapons ; weap++)
+
+    /*
+    * Weapon list arguments left to right, until we
+    * reach this model's number of weapons. If none,
+    * populate wiith "none" index. Otherwise we find
+    * a model index to populate with.
+    */
+
+    for(weapon_index = 0; weapon_index < newchar->weapon_properties.weapon_count; weapon_index++)
     {
-        value = GET_ARGP(weap + 1);
+        value = GET_ARGP(weapon_index + 1);
+
         if(stricmp(value, "none") != 0)
         {
-            newchar->weapon[weap] = get_cached_model_index(value);
+            newchar->weapon_properties.weapon_list[weapon_index] = get_cached_model_index(value);
         }
-        else     // make empty weapon slots  2007-2-16
+        else
         {
-            newchar->weapon[weap] = -1;
+            newchar->weapon_properties.weapon_list[weapon_index] = MODEL_INDEX_NONE;
         }
     }
 }
@@ -10620,7 +11371,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->nolife             = 0;			    // default show life = 1 (yes)
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
-    newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
+    newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile
     newchar->aimove             = AIMOVE1_NONE;
     newchar->aiattack           = -1;
     newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
@@ -10659,8 +11410,8 @@ s_model *init_model(int cacheindex, int unload)
     newchar->jugglepoints.current = newchar->jugglepoints.max = 0;
     newchar->guardpoints.current = newchar->guardpoints.max = 0;
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
-    newchar->weaploss[0]                = WEAPLOSS_TYPE_ANY;
-    newchar->weaploss[1]                = -1;
+    newchar->weapon_properties.loss_condition   |= WEAPON_LOSS_CONDITION_DEFAULT;
+    newchar->weapon_properties.loss_index      = MODEL_INDEX_NONE;
     newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
     newchar->candamage                  = -1;
@@ -11204,11 +11955,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
                 // weapons
             case CMD_MODEL_WEAPLOSS:
-                newchar->weaploss[0] = GET_INT_ARG(1);
-                newchar->weaploss[1] = GET_INT_ARG(2);
+                
+                /* Legacy weapon loss. */
+                
+                newchar->weapon_properties.loss_condition = weapon_loss_condition_interpret_from_legacy_weaploss(WEAPON_LOSS_CONDITION_NONE, GET_INT_ARG(1));
+                newchar->weapon_properties.loss_index = GET_INT_ARG(2);
                 break;
+            
+            case CMD_MODEL_WEAPON_LOSS_CONDITION:
+                
+                lcmHandleCommandWeaponLossCondition(&arglist, newchar);
+                break;
+
+            case CMD_MODEL_WEAPON_LOSS_INDEX:
+
+                /* Weapon list entry we revert to when losing weapon. */
+                
+                newchar->weapon_properties.loss_index = GET_INT_ARG(1);
+                
+                break;
+
             case CMD_MODEL_WEAPNUM:
-                newchar->weapnum = GET_INT_ARG(1);
+                newchar->weapon_properties.weapon_index = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_PROJECT: // New projectile subtype
                 value = GET_ARG(1);
@@ -11224,20 +11992,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_WEAPONS:
                 lcmHandleCommandWeapons(&arglist, newchar);
                 break;
-            case CMD_MODEL_SHOOTNUM: //here weapons things like shoot rest type of weapon ect..by tails
-                newchar->shootnum = GET_INT_ARG(1);
+            case CMD_MODEL_SHOOTNUM: 
+                newchar->weapon_properties.use_count = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_RELOAD:
-                newchar->reload = GET_INT_ARG(1);
+                newchar->weapon_properties.use_add = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_TYPESHOT:
-                newchar->typeshot = GET_INT_ARG(1);
+                if (GET_INT_ARG(1))
+                {
+                    newchar->weapon_properties.weapon_state |= WEAPON_STATE_LIMITED_USE;
+                }
+                
                 break;
             case CMD_MODEL_COUNTER:
-                newchar->counter = GET_INT_ARG(1);
+                newchar->weapon_properties.loss_count = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_ANIMAL:
-                newchar->animal = GET_INT_ARG(1);
+                if (GET_INT_ARG(1))
+                {
+                    newchar->weapon_properties.weapon_state |= WEAPON_STATE_ANIMAL;
+                }
                 break;
             case CMD_MODEL_RIDER:
                 value = GET_ARG(1);
@@ -11363,18 +12138,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 tempInt = GET_INT_ARG(1);
                 if(tempInt == 2)
                 {
-                    newchar->grabforce = -999999;
+                    newchar->grab_force = -999999;
                 }
                 else
                 {
-                    newchar->antigrab = 1;
+                    newchar->grab_resistance = 1;
                 }
                 break;
-            case CMD_MODEL_ANTIGRAB: // a can grab b: a->antigrab - b->grabforce <=0
-                newchar->antigrab = GET_INT_ARG(1);
+            case CMD_MODEL_ANTIGRAB: // a can grab b: a->grab_resistance - b->grab_force <=0
+                newchar->grab_resistance = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_GRABFORCE:
-                newchar->grabforce = GET_INT_ARG(1);
+                newchar->grab_force = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_GRABBACK:
                 newchar->grabback = GET_INT_ARG(1);
@@ -11538,14 +12313,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_JUMPHEIGHT:
                 newchar->jumpheight = GET_FLOAT_ARG(1);
                 break;
+
+            case CMD_MODEL_AIR_CONTROL:
+                
+                lcmHandleCommandAirControl(&arglist, newchar);
+                break;
+
             case CMD_MODEL_JUMPMOVE:
-                newchar->jumpmovex = GET_INT_ARG(1);
-                newchar->jumpmovez = GET_INT_ARG(2);
+                
+                newchar->air_control = air_control_interpret_from_legacy_jumpmove_x(newchar->air_control, GET_INT_ARG(1));
+                newchar->air_control = air_control_interpret_from_legacy_jumpmove_z(newchar->air_control, GET_INT_ARG(2));                
                 break;
+
             case CMD_MODEL_WALKOFFMOVE:
-                newchar->walkoffmovex = GET_INT_ARG(1);
-                newchar->walkoffmovez = GET_INT_ARG(2);
+
+                newchar->air_control = air_control_interpret_from_legacy_walkoffmove_x(newchar->air_control, GET_INT_ARG(1));
+                newchar->air_control = air_control_interpret_from_legacy_walkoffmove_z(newchar->air_control, GET_INT_ARG(2));;
                 break;
+
             case CMD_MODEL_KNOCKDOWNCOUNT:
                 newchar->knockdowncount = GET_FLOAT_ARG(1);
                 break;
@@ -11750,28 +12535,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_PARROW:
                 // Image that is displayed when player 1 spawns invincible
                 value = GET_ARG(1);
-                newchar->parrow[0][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[0][1] = GET_INT_ARG(2);
-                newchar->parrow[0][2] = GET_INT_ARG(3);
+                newchar->player_arrow[0].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[0].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[0].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW2:
                 // Image that is displayed when player 2 spawns invincible
                 value = GET_ARG(1);
-                newchar->parrow[1][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[1][1] = GET_INT_ARG(2);
-                newchar->parrow[1][2] = GET_INT_ARG(3);
+                newchar->player_arrow[1].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[1].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[1].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW3:
                 value = GET_ARG(1);
-                newchar->parrow[2][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[2][1] = GET_INT_ARG(2);
-                newchar->parrow[2][2] = GET_INT_ARG(3);
+                newchar->player_arrow[2].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[2].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[2].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW4:
                 value = GET_ARG(1);
-                newchar->parrow[3][0] = loadsprite(value, 0, 0, pixelformat);
-                newchar->parrow[3][1] = GET_INT_ARG(2);
-                newchar->parrow[3][2] = GET_INT_ARG(3);
+                newchar->player_arrow[3].sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[3].position.x = GET_INT_ARG(2);
+                newchar->player_arrow[3].position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_ATCHAIN:
                 newchar->chainlength = 0;
@@ -15532,9 +16317,16 @@ int load_models()
                 nocost = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_NOCHEATS:
-                //disable cheat option in menu
-                forcecheatsoff =  GET_INT_ARG(1);
+                
+                /* Disable access to cheats menu. */
+
+                if (GET_INT_ARG(1))
+                {
+                    global_config.cheats &= ~CHEAT_OPTIONS_MASTER_MENU;
+                }
+
                 break;
+
             case CMD_MODELSTXT_NODEBUG:
                 //disable debug option in menu
                 nodebugoptions =  GET_INT_ARG(1);
@@ -15592,6 +16384,11 @@ int load_models()
             case CMD_MODELSTXT_JUMPHEIGHT:
                 default_model_jumpheight =  GET_FLOAT_ARG(1);
                 break;
+            case CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS:
+
+                lcmHandleCommandGlobalConfigCheats(&arglist);
+                break;
+
             case CMD_MODELSTXT_GRABDISTANCE:
                 default_model_grabdistance =  GET_FLOAT_ARG(1);
                 break;
@@ -18942,7 +19739,7 @@ void pausemenu()
         if(newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN))
         {
             pauselector ^= 1;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(newkeys & FLAG_START)
         {
@@ -18957,7 +19754,7 @@ void pausemenu()
             quit = 1;
             sound_pause_music(0);
             sound_pause_sample(0);
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             pauselector = 0;
         }
         if(newkeys & FLAG_ESC)
@@ -18965,7 +19762,7 @@ void pausemenu()
             quit = 1;
             sound_pause_music(0);
             sound_pause_sample(0);
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             pauselector = 0;
         }
         if(newkeys & FLAG_SCREENSHOT)
@@ -18973,7 +19770,7 @@ void pausemenu()
             _pause = 1;
             sound_pause_music(1);
             sound_pause_sample(1);
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             menu_options();
         }
     }
@@ -19088,7 +19885,7 @@ void updatestatus()
                     player[i].credits = CONTINUES;
                 }
 
-                if(!creditscheat)
+                if(!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
                 {
                     if(noshare)
                     {
@@ -19144,12 +19941,14 @@ void updatestatus()
         if(dt < GAME_SPEED / 2)
         {
             showgo = 1;
+            screen_status |= IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
+            
             if(gosound == 0 )
             {
 
-                if(SAMPLE_GO >= 0)
+                if(global_sample_list.go >= 0)
                 {
-                    sound_play_sample(SAMPLE_GO, 0, savedata.effectvol, savedata.effectvol, 100);    // 26-12-2004 Play go sample as arrow flashes
+                    sound_play_sample(global_sample_list.go, 0, savedata.effectvol, savedata.effectvol, 100);    // 26-12-2004 Play go sample as arrow flashes
                 }
 
                 gosound = 1;                // 26-12-2004 Sets sample as already played - stops sample repeating too much
@@ -19158,11 +19957,13 @@ void updatestatus()
         else
         {
             showgo = gosound = 0;    //26-12-2004 Resets go sample after loop so it can be played again next time
+            screen_status &= ~IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
         }
     }
     else
     {
         showgo = 0;
+        screen_status &= ~IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
     }
 
 }
@@ -19559,9 +20360,9 @@ void predrawstatus()
                     spriteq_add_sprite(videomodes.shiftpos[i] + piconw[i][0], savedata.windowpos + piconw[i][1], 10000, player[i].ent->weapent->modeldata.icon.weapon, &drawmethod, 0);
                 }
 
-                if(player[i].ent->weapent->modeldata.typeshot && player[i].ent->weapent->modeldata.shootnum)
+                if(player[i].ent->weapent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE && player[i].ent->weapent->modeldata.weapon_properties.use_count)
                 {
-                    font_printf(videomodes.shiftpos[i] + pshoot[i][0], savedata.windowpos + pshoot[i][1], pshoot[i][2], 0, "%u", player[i].ent->weapent->modeldata.shootnum);
+                    font_printf(videomodes.shiftpos[i] + pshoot[i][0], savedata.windowpos + pshoot[i][1], pshoot[i][2], 0, "%u", player[i].ent->weapent->modeldata.weapon_properties.use_count);
                 }
             }
 
@@ -19919,9 +20720,9 @@ void addscore(int playerindex, int add)
     while(s > next1up)
     {
 
-        if(SAMPLE_1UP >= 0)
+        if(global_sample_list.one_up >= 0)
         {
-            sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
         player[playerindex].lives++;
@@ -20967,19 +21768,19 @@ void update_frame(entity *ent, unsigned int f)
 			{
 				__trystar;
 			}
-			self->deduct_ammo = 1;
+			self->weapon_state |= WEAPON_STATE_DEDUCT_USE;
 		}
 
 		if (anim->projectile->shootframe == f)
 		{
 			knife_spawn(self, anim->projectile);
-			self->deduct_ammo = 1;
+			self->weapon_state |= WEAPON_STATE_DEDUCT_USE;
 		}
 
 		if (anim->projectile->tossframe == f)
 		{
 			bomb_spawn(self, anim->projectile);
-			self->deduct_ammo = 1;
+			self->weapon_state |= WEAPON_STATE_DEDUCT_USE;
 		}
 	}
 
@@ -21130,10 +21931,10 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
         ent->modeldata.risetime.rise          = oldmodel->risetime.rise;
     }
     /*
-    if(!ent->modeldata.antigrab)
-    	ent->modeldata.antigrab             = oldmodel->antigrab;
-    if(!ent->modeldata.grabforce)
-    	ent->modeldata.grabforce            = oldmodel->grabforce;
+    if(!ent->modeldata.grab_resistance)
+    	ent->modeldata.grab_resistance             = oldmodel->antigrab;
+    if(!ent->modeldata.grab_force)
+    	ent->modeldata.grab_force            = oldmodel->grabforce;
     if(!ent->modeldata.paingrab)
     	ent->modeldata.paingrab             = oldmodel->paingrab;*/
 
@@ -21537,9 +22338,9 @@ void kill_entity(entity *victim)
             {
                 self->opponent = NULL;
             }
-            if(self->binding.ent == victim)
+            if(self->binding.target == victim)
             {
-                self->binding.ent = NULL;
+                self->binding.target = NULL;
             }
             if(self->landed_on_platform == victim)
             {
@@ -21641,7 +22442,7 @@ int check_canbegrabbed(entity* acting_entity, entity* target_entity)
         return 0;
     }
 
-    if (target_entity->model->animal)
+    if (target_entity->model->weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         return 0;
     }
@@ -21708,7 +22509,7 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
     * the target's pain flag is not active.
     */
     
-    grab_resistance = target_entity->modeldata.antigrab;
+    grab_resistance = target_entity->modeldata.grab_resistance;
 
     if (target_entity->modeldata.paingrab)
     {
@@ -21718,7 +22519,7 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
         }
     }
 
-    if (grab_resistance > acting_entity->modeldata.grabforce)
+    if (grab_resistance > acting_entity->modeldata.grab_force)
     {
         return 0;
     }
@@ -23870,7 +24671,7 @@ void do_attack(entity *attacking_entity)
         * Note that function includes exceptions for an attacks 
         * that ignore IDs and the global mutlihit cheat.
         */
-        if (attack_id_check_match(target, attack, current_attack_id, multihitcheat))
+        if (attack_id_check_match(target, attack, current_attack_id, (global_config.cheats & CHEAT_OPTIONS_MULTIHIT_ACTIVE)))
         {
             continue;
         }
@@ -24096,12 +24897,12 @@ void do_attack(entity *attacking_entity)
 
         if(current_anim->energy_cost.cost > 0)
         {
-            // well, dont check player or not - UTunnels. TODO: take care of that healthcheat
-            if(attacking_entity == topowner && nocost && !healthcheat)
+            // well, dont check player or not - UTunnels. TODO: take care of that health cheat
+            if(attacking_entity == topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
             {
                 attacking_entity->tocost = 1;    // Set flag so life is subtracted when animation is finished
             }
-            else if(attacking_entity != topowner && nocost && !healthcheat && !attacking_entity->tocost) // if it is not top, then must be a shot
+            else if(attacking_entity != topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE) && !attacking_entity->tocost) // if it is not top, then must be a shot
             {
                 if(current_anim->energy_cost.mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
                 {
@@ -24308,14 +25109,14 @@ int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int
         {
             sound_index = attack_object->blocksound;
         }
-        else if (SAMPLE_BLOCK >= 0)
+        else if (global_sample_list.block >= 0)
         {
-            sound_index = attack_object->blocksound;            
+            sound_index = global_sample_list.block;
         }
     }
-    else if (attacking_entity->projectile & BLAST_ATTACK && SAMPLE_INDIRECT >= 0)
+    else if (attacking_entity->projectile & BLAST_ATTACK && global_sample_list.indirect >= 0)
     {
-        sound_index = SAMPLE_INDIRECT;
+        sound_index = global_sample_list.indirect;
     }
     else if (attack_object->hitsound >= 0)
     {
@@ -24402,7 +25203,7 @@ bool check_landframe(entity *ent)
     }
 
     // Can't be bound with a landframe override.
-    if(check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_LAND))
+    if(check_bind_override(ent, BIND_CONFIG_OVERRIDE_LANDFRAME))
     {
         return 0;
     }
@@ -24462,8 +25263,8 @@ bool check_frame_set_drop(entity* ent)
 		return 0;
 	}
 
-	// Can't be bound with a drop frame override.
-	if (check_bind_override(ent, BIND_OVERRIDE_FRAME_SET_DROP))
+	/* Can't be bound with a drop frame override. */
+	if (check_bind_override(ent, BIND_CONFIG_OVERRIDE_DROPFRAME))
 	{
 		return 0;
 	}
@@ -24647,7 +25448,7 @@ void check_gravity(entity *e)
             {
                 execute_onmovea_script(self);    //Move A event.
             }
-
+                       
             if( self->idling && validanim(self, ANI_WALKOFF) && diff(self->position.y, self->base) > T_WALKOFF )
             {
                 entity *cplat = check_platform_below(self->position.x,self->position.z-1.0,self->position.y,self);
@@ -24671,7 +25472,7 @@ void check_gravity(entity *e)
                 if(self->velocity.y <=0)
                 {
                     // No bind target, or binding set to ignore fall lands.
-                    if(!check_bind_override(self, BIND_OVERRIDE_FALL_LAND))
+                    if(!check_bind_override(self, BIND_CONFIG_OVERRIDE_FALL_LAND))
                     {
                         self->position.y = self->base;
                         self->falling = 0;
@@ -24702,9 +25503,9 @@ void check_gravity(entity *e)
                             {
                                 level->quake = 4;    // Don't shake if specified
                             }
-                            if(SAMPLE_FALL >= 0)
+                            if(global_sample_list.fall >= 0)
                             {
-                                sound_play_sample(SAMPLE_FALL, 0, savedata.effectvol, savedata.effectvol, 100);
+                                sound_play_sample(global_sample_list.fall, 0, savedata.effectvol, savedata.effectvol, 100);
                             }
                             if(self->modeldata.type & TYPE_PLAYER)
                             {
@@ -24866,7 +25667,7 @@ int check_in_screen()
     * It should be faster.
     */
 
-    if (screen_status & (IN_SCREEN_BUTTON_CONFIG_MENU | IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_ENGINE_CREDIT | IN_SCREEN_MENU | IN_SCREEN_GAME_START_MENU | IN_SCREEN_NEW_GAME_MENU | IN_SCREEN_LOAD_GAME_MENU | IN_SCREEN_OPTIONS_MENU | IN_SCREEN_CONTROL_OPTIONS_MENU | IN_SCREEN_SOUND_OPTIONS_MENU | IN_SCREEN_VIDEO_OPTIONS_MENU | IN_SCREEN_SYSTEM_OPTIONS_MENU))
+    if (screen_status & (IN_SCREEN_BUTTON_CONFIG_MENU | IN_SCREEN_SELECT | IN_SCREEN_TITLE | IN_SCREEN_HALL_OF_FAME | IN_SCREEN_GAME_OVER | IN_SCREEN_SHOW_COMPLETE | IN_SCREEN_SHOW_GO_ARROW | IN_SCREEN_ENGINE_CREDIT | IN_SCREEN_MENU | IN_SCREEN_GAME_START_MENU | IN_SCREEN_NEW_GAME_MENU | IN_SCREEN_LOAD_GAME_MENU | IN_SCREEN_OPTIONS_MENU | IN_SCREEN_CONTROL_OPTIONS_MENU | IN_SCREEN_SOUND_OPTIONS_MENU | IN_SCREEN_VIDEO_OPTIONS_MENU | IN_SCREEN_SYSTEM_OPTIONS_MENU))
     {
         return 1;
     }
@@ -25388,6 +26189,7 @@ void update_health()
     // this is for restoring mp by _time by tails
     // Cleaning and addition of mpstable by DC, 08172008.
     // stabletype 4 added by OX 12272008
+    
     if(magic_type == 0 && !self->charging)
     {
         if(_time >= self->magictime)
@@ -25459,6 +26261,12 @@ void update_health()
     // Active MP charging?
     do_energy_charge(self);
 
+    /* Energy cheat keeps MP at maximum. */
+    if (global_config.cheats & CHEAT_OPTIONS_ENERGY_ACTIVE & self->modeldata.type & TYPE_PLAYER)
+    {
+        self->energy_state.mp_current = self->modeldata.mp;
+    }
+
     if(self->energy_state.mp_current > self->modeldata.mp)
     {
         self->energy_state.mp_current = self->modeldata.mp;    // Don't want to add more than the max
@@ -25483,168 +26291,190 @@ void update_health()
     }
 }
 
-void adjust_bind(entity *e)
+/*
+* Caskey, Damon V.
+* 2022-05-06
+* 
+* Full rewrite of orginal function by uTunnels
+* and its later modifications by me (Damon).
+*
+* Acting entity binds itself to a target
+* depending on bind property settings. Also 
+* executes bind scripts for acting and target.
+*/
+void adjust_bind(entity* acting_entity)
 {
 	#define ADJUST_BIND_SET_ANIM_RESETABLE 1
-	#define ADJUST_BIND_NO_FRAME_MATCH -1
+	#define ADJUST_BIND_NO_FRAME_MATCH -1   
 
-	// Exit if there is no bind target.
-	if (!e->binding.ent)
+	/* Exit if there is no bind target. */
+	if (!acting_entity->binding.target)
 	{
 		return;
 	}
 
-	// Run bind update script on the bind target.
-	execute_on_bind_update_other_to_self(e->binding.ent, e, &e->binding);
+	/* 
+    * Run bind update scripts for target and
+    * acing entity 
+    */
+	execute_on_bind_update_other_to_self(acting_entity->binding.target, acting_entity, &acting_entity->binding);
 
 	// Run bind update script on *e (entity performing bind).
-	execute_on_bind_update_self_to_other(e, e->binding.ent, &e->binding);
+	execute_on_bind_update_self_to_other(acting_entity, acting_entity->binding.target, &acting_entity->binding);
 
-	if (e->binding.match)
+	if (acting_entity->binding.config)
 	{
 		int				frame;
 		e_animations	animation;
 
-		// If a defined value is requested,
-		// use the binding member value.
-		// Otherwise use target's current value.
-		if (e->binding.match & BIND_ANIMATION_DEFINED)
+		/* 
+        * If a defined value is requested,
+		* use the binding member value.
+		* Otherwise use target's current value.
+		*/
+        if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_DEFINED)
 		{
-			animation = e->binding.animation;
+			animation = acting_entity->binding.animation;
 		}
 		else
 		{
-			animation = e->binding.ent->animnum;
+			animation = acting_entity->binding.target->animnum;
 		}
 
-		// Are we NOT currently playing the target animation?
-		if (e->animnum != animation)
+		/* Are we NOT currently playing the target animation? */
+		if (acting_entity->animnum != animation)
 		{
-			// If we don't have the target animation
-			// and animation kill flag is set, then
-			// we kill ourselves and exit the function.
-			if (!validanim(e, animation))
+			/*
+            * If we don't have the target animation
+			* and animation kill flag is set, then
+			* we kill ourselves and exit the function.
+			*/
+            if (!validanim(acting_entity, animation))
 			{
-				// Don't have the animation? Kill ourself.
-				if (e->binding.match & BIND_ANIMATION_REMOVE)
+				/* Don't have the animation? Kill self. */
+				if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_REMOVE)
 				{
-					kill_entity(e);
+					kill_entity(acting_entity);
 				}
 
-				// Cancel the bind and exit.
-				e->binding.ent = NULL;
+				/* Cancel the bind and exit. */
+                acting_entity->binding.target = NULL;
 				return;
 			}
 
-			// Made it this far, we must have the target
-			// animation, so let's apply it.
-			ent_set_anim(e, animation, ADJUST_BIND_SET_ANIM_RESETABLE);
+			/*
+            * Made it this far, we must have the target
+			* animation, so let's apply it.
+			*/
+            ent_set_anim(acting_entity, animation, ADJUST_BIND_SET_ANIM_RESETABLE);
 		}
 
 		
-		// If a defined value is requested,
-		// use the binding member value.
-		// If target value is requested use
-		// target's current value (duh).
-		// if no frame match at all requested
-		// then set ADJUST_BIND_NO_FRAME_MATCH
-		// so frame matching logic is skipped.		
-		
-		if (e->binding.match & BIND_ANIMATION_FRAME_DEFINED)
+		/*
+        * If a defined value is requested,
+		* use the binding member value.
+		* If target value is requested use
+		* target's current value (duh).
+		* if no frame match at all requested
+		* then set ADJUST_BIND_NO_FRAME_MATCH
+		* so frame matching logic is skipped.		
+		*/
+
+		if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_DEFINED)
 		{
-			frame = e->binding.frame;
+			frame = acting_entity->binding.frame;
 		}
-		else if (e->binding.match & BIND_ANIMATION_FRAME_TARGET)
+		else if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_TARGET)
 		{
-			frame = e->binding.ent->animpos;
+			frame = acting_entity->binding.target->animpos;
 		}
 		else
 		{
 			frame = ADJUST_BIND_NO_FRAME_MATCH;
 		}
 
-		// Any frame match flag set?
-		if (frame != ADJUST_BIND_NO_FRAME_MATCH)
+		/* 
+        * Any frame match flag set?
+		*/
+        if (frame != ADJUST_BIND_NO_FRAME_MATCH)
 		{
-			// Are we NOT currently playing the target frame?
-			if (e->animpos != frame)
+			/* Are we NOT currently playing the target frame ? */
+			if (acting_entity->animpos != frame)
 			{
-				// If we don't have the frame and frame kill flag is
-				// set, kill ourselves.
-				if ((e->animation->numframes -1) < frame)
+				/*
+                * If we don't have the frame and frame kill flag is
+				* set, kill self.
+				*/
+                if ((acting_entity->animation->numframes -1) < frame)
 				{
-
-					if (e->binding.match & BIND_ANIMATION_FRAME_REMOVE)
+					if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_REMOVE)
 					{
-						kill_entity(e);
-
-						// Cancel the bind and exit.
-						e->binding.ent = NULL;
+						kill_entity(acting_entity);
+                        						
 						return;
 					}					
 				}
 
-				// Made it this far, let's try to
-				// apply the frame.
-				update_frame(e, frame);
+				/*
+                * Made it this far, let's try to
+				* apply the frame.
+				*/
+                update_frame(acting_entity, frame);
 			}
 		}
 	}
 
-	// Apply sort ID adjustment.
-	e->sortid = e->binding.ent->sortid + e->binding.sortid;
+	/* Apply sort ID adjustment. */
+    acting_entity->sortid = acting_entity->binding.target->sortid + acting_entity->binding.sortid;
 
-	// Get and apply direction adjustment.
-	e->direction = direction_get_adjustment_result(e->direction, e->binding.ent->direction, e->binding.direction);
+	/* Getand apply direction adjustment. */
+    acting_entity->direction = direction_get_adjustment_result(acting_entity->direction, acting_entity->binding.target->direction, acting_entity->binding.direction_adjust);
 
-	// Run bind positioning function to get an
-	// adjusted (or not) position result we apply 
-	// to each axis. For X axis, we want to adjust 
-	// relative to the bind target's direction, so 
-	// we'll send the function an inverted offset if 
-	// binding target is facing left.
-	e->position.z = binding_position(e->position.z, e->binding.ent->position.z, e->binding.offset.z, e->binding.positioning.z);
-	e->position.y = binding_position(e->position.y, e->binding.ent->position.y, e->binding.offset.y, e->binding.positioning.y);
+    /*
+	* Apply positioning based on config. For
+    * the X axis, we invert adjustment when
+    * target faces left.
+	*/
 
-	if (e->binding.positioning.x == BIND_MODE_TARGET && e->binding.ent->direction == DIRECTION_LEFT)
-	{
-		e->position.x = binding_position(e->position.x, e->binding.ent->position.x, -e->binding.offset.x, e->binding.positioning.x);
-	}
-	else
-	{
-		e->position.x = binding_position(e->position.x, e->binding.ent->position.x, e->binding.offset.x, e->binding.positioning.x);
-	}
-	
+    // X
+    if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_TARGET)
+    {
+        if (acting_entity->binding.target->direction == DIRECTION_LEFT)
+        {
+            acting_entity->binding.target->position.x -= acting_entity->binding.offset.x;
+        }
+        else
+        {
+            acting_entity->binding.target->position.x += acting_entity->binding.offset.x;
+        }
+    }
+    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_LEVEL)
+    {
+        acting_entity->binding.target->position.x = acting_entity->binding.offset.x;
+    }
+    
+    // Y
+    if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_TARGET)
+    {
+        acting_entity->binding.target->position.y += acting_entity->binding.offset.y;
+    }
+    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_LEVEL)
+    {
+        acting_entity->binding.target->position.y = acting_entity->binding.offset.y;
+    }
+
+    // Z
+    if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_TARGET)
+    {
+        acting_entity->binding.target->position.z += acting_entity->binding.offset.z;
+    }
+    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_LEVEL)
+    {
+        acting_entity->binding.target->position.z = acting_entity->binding.offset.z;
+    }
+    	
 	#undef ADJUST_BIND_SET_ANIM_RESETABLE
 	#undef ADJUST_BIND_NO_FRAME_MATCH
-}
-
-// Caskey, Damon V.
-// 2018-10-13
-//
-// Return an adjusted position for binding based
-// on positioning settings, offset, and current position.
-float binding_position(float position_default, float position_target, int offset, e_bind_mode positioning)
-{
-	switch (positioning)
-	{
-		case BIND_MODE_TARGET:
-
-			return position_target + offset;
-			break;
-
-		case BIND_MODE_LEVEL:
-
-			return offset;
-			break;
-
-		case BIND_MODE_NONE:
-		default:
-
-			// Leave position as-is.
-			return position_default;
-			break;
-	}
 }
 
 /*
@@ -25737,16 +26567,18 @@ e_direction direction_get_adjustment_result(e_direction direction_default, e_dir
 	}
 }
 
-// Caskey, Damon V.
-// 2018-09-08
-//
-// Return true if the target entity has a valid
-// bind target and match for the override argument.
-int check_bind_override(entity *ent, e_bind_override overriding)
+/*
+* Caskey, Damon V.
+* 2018-09-08
+*
+* Return true if the target entity has a valid
+* bind target and match for the override argument.
+*/
+int check_bind_override(entity *ent, e_bind_config bind_config)
 {
-    if(ent->binding.ent)
+    if(ent->binding.target)
     {
-        if(ent->binding.overriding & overriding)
+        if(ent->binding.config & bind_config)
         {
             return TRUE;
         }
@@ -26449,9 +27281,9 @@ void display_ents()
 
             if(e->arrowon)    // Display the players image while invincible to indicate player number
             {
-                if(e->modeldata.parrow[(int)e->playerindex][0] && e->invincible & INVINCIBLE_INTANGIBLE)
+                if(e->modeldata.player_arrow[(int)e->playerindex].sprite && e->invincible & INVINCIBLE_INTANGIBLE)
                 {
-                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.parrow[(int)e->playerindex][1]), (int)(e->position.z - e->position.y - scry + e->modeldata.parrow[(int)e->playerindex][2]), (int)e->position.z, e->modeldata.parrow[(int)e->playerindex][0], NULL, sortid * 2);
+                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.player_arrow[(int)e->playerindex].position.x), (int)(e->position.z - e->position.y - scry + e->modeldata.player_arrow[(int)e->playerindex].position.y), (int)e->position.z, e->modeldata.player_arrow[(int)e->playerindex].sprite, NULL, sortid * 2);
                 }
             }
         }// end of if(ent_list[i]->exists)
@@ -26480,8 +27312,6 @@ void toss(entity *ent, float lift)
     ent->velocity.y = lift;
     ent->position.y += 0.5;        // Get some altitude (needed for checks)
 }
-
-
 
 entity *findent(int types)
 {
@@ -26548,8 +27378,8 @@ int normal_test_item(entity *ent, entity *item)
                item->animation->vulnerable[item->animpos] && !item->blink &&
                (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent))) &&
                (
-                   (isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon &&
-                    ent->modeldata.numweapons >= item->modeldata.weapnum && ent->modeldata.weapon[item->modeldata.weapnum - 1] >= 0)
+                   (isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon_properties.weapon_list &&
+                    ent->modeldata.weapon_properties.weapon_count >= item->modeldata.weapon_properties.weapon_index && ent->modeldata.weapon_properties.weapon_list[item->modeldata.weapon_properties.weapon_index - 1] >= 0)
                    || (isSubtypeProjectile(item) && !ent->weapent)
                    || (item->energy_state.health_current && (ent->energy_state.health_current < ent->modeldata.health) && ! isSubtypeProjectile(item) && ! isSubtypeWeapon(item))
                )
@@ -26571,9 +27401,9 @@ int test_item(entity *ent, entity *item)
         return 0;
     }
     if(isSubtypeWeapon(item) &&
-            (ent->weapent || !ent->modeldata.weapon ||
-             ent->modeldata.numweapons < item->modeldata.weapnum ||
-             ent->modeldata.weapon[item->modeldata.weapnum - 1] < 0)
+            (ent->weapent || !ent->modeldata.weapon_properties.weapon_list ||
+             ent->modeldata.weapon_properties.weapon_count < item->modeldata.weapon_properties.weapon_index ||
+             ent->modeldata.weapon_properties.weapon_list[item->modeldata.weapon_properties.weapon_index - 1] < 0)
       )
     {
         return 0;
@@ -26587,14 +27417,17 @@ int player_test_pickable(entity *ent, entity *item)
     {
         return 0;
     }
-    if(isSubtypeWeapon(item) && ent->modeldata.animal == 2)
+    
+    if(isSubtypeWeapon(item) && ent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         return 0;
     }
+
     if(diff(ent->base , item->position.y) > 0.1)
     {
         return 0;
     }
+    
     return test_item(ent, item);
 }
 
@@ -26604,10 +27437,12 @@ int player_test_touch(entity *ent, entity *item)
     {
         return 0;
     }
-    if(isSubtypeWeapon(item) && ent->modeldata.animal == 2)
+
+    if(isSubtypeWeapon(item) && ent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         return 0;
     }
+
     if(diff(ent->base , item->position.y) > 1)
     {
         return 0;
@@ -26950,9 +27785,14 @@ int reset_backpain(entity *ent)
 {
     if (ent->normaldamageflipdir >= 0)
     {
-        if (ent->normaldamageflipdir == DIRECTION_RIGHT) ent->direction = DIRECTION_RIGHT;
-        else ent->direction = DIRECTION_LEFT;
-
+        if (ent->normaldamageflipdir == DIRECTION_RIGHT)
+        {
+            ent->direction = DIRECTION_RIGHT;
+        }
+        else 
+        {
+            ent->direction = DIRECTION_LEFT;
+        }
         if(ent->direction == DIRECTION_RIGHT) ent->velocity.x = -1*fabsf(ent->velocity.x);
         else ent->velocity.x = fabsf(ent->velocity.x);
 
@@ -27190,11 +28030,11 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         // copy the weapon list if model flag is not set to use its own weapon list
         if(!(newmodel->model_flag & MODEL_NO_WEAPON_COPY))
         {
-            newmodel->weapnum = model->weapnum;
-            if(!newmodel->weapon)
+            newmodel->weapon_properties.weapon_index = model->weapon_properties.weapon_index;
+            if(!newmodel->weapon_properties.weapon_list)
             {
-                newmodel->weapon = model->weapon;
-                newmodel->numweapons = model->numweapons;
+                newmodel->weapon_properties.weapon_list = model->weapon_properties.weapon_list;
+                newmodel->weapon_properties.weapon_count = model->weapon_properties.weapon_count;
             }
         }
     }
@@ -27249,9 +28089,9 @@ void set_weapon(entity *ent, int wpnum, int anim_flag) // anim_flag added for sc
     }
 //printf("setweapon: %d \n", wpnum);
 
-    if(ent->modeldata.type & TYPE_PLAYER) // save current weapon for player's weaploss 3
+    if(ent->modeldata.type & TYPE_PLAYER) // save current weapon for player's weaploss WEAPON_LOSS_CONDITION_STAGE
     {
-        if(ent->modeldata.weaploss[0] == WEAPLOSS_TYPE_CHANGE)
+        if(ent->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_STAGE)
         {
             player[(int)ent->playerindex].weapnum = wpnum;
         }
@@ -27261,9 +28101,9 @@ void set_weapon(entity *ent, int wpnum, int anim_flag) // anim_flag added for sc
         }
     }
 
-    if(ent->modeldata.weapon && wpnum > 0 && wpnum <= ent->modeldata.numweapons && ent->modeldata.weapon[wpnum - 1])
+    if(ent->modeldata.weapon_properties.weapon_list && wpnum > 0 && wpnum <= ent->modeldata.weapon_properties.weapon_count && ent->modeldata.weapon_properties.weapon_list[wpnum - 1])
     {
-        set_model_ex(ent, NULL, ent->modeldata.weapon[wpnum - 1], NULL, !anim_flag);
+        set_model_ex(ent, NULL, ent->modeldata.weapon_properties.weapon_list[wpnum - 1], NULL, !anim_flag);
     }
     else
     {
@@ -27887,7 +28727,7 @@ void common_fall()
     }
 
     // Drop Weapon due to Enemy Falling.
-    //if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_KNOCKDOWN) dropweapon(1);
+    //if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_FALL) dropweapon(1);
 
     if(self->boss && level_completed)
     {
@@ -28153,7 +28993,7 @@ void common_grab_check()
         return;
     }
 
-    if(!nolost && self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+    if(!nolost && self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_GRABBING)
     {
         dropweapon(1);
     }
@@ -28504,7 +29344,7 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
     /* Debuging info */
     //attack_dump_object(attack_object);
 
-    target_entity->normaldamageflipdir = -1;
+    target_entity->normaldamageflipdir = DIRECTION_RIGHT;
     
     int pain_check = 0;
 
@@ -28827,7 +29667,7 @@ void checkdamagedrop(entity* target_entity, s_attack* attack_object, s_defense* 
     * Legacy behavior. Always fall if in "animal" mode.
     */
     
-    if(target_entity->modeldata.animal)
+    if(target_entity->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
     {
         target_entity->drop = 1;
     }
@@ -29376,6 +30216,22 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
     int force = attack_object->attack_force;
     int type = attack_object->attack_type;
    
+    /*
+    * If touch of death cheat is active, boost player damage
+    * to equal the target's hp.
+    * 
+    * This is upstream of damage mitigation by design. Some
+    * games use defense to make entities immortal for special
+    * uses and we don't want to break that.
+    */
+    if (global_config.cheats & CHEAT_OPTIONS_TOD_ACTIVE && attacker->modeldata.type & TYPE_PLAYER)
+    {
+        if (force < target->energy_state.health_current)
+        {
+            force = target->energy_state.health_current;
+        }
+    }
+
     if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
     {
         return 0;    //guardbreak does not deal damage.
@@ -29457,7 +30313,7 @@ void checkdamageonlanding()
             checkdamagedrop(self, &attack, defense_object);
 
             // Drop Weapon due to being hit.
-            if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+            if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_LAND_DAMAGE)
             {
                 dropweapon(1);
             }
@@ -29587,8 +30443,8 @@ int is_attack_type_special(e_attack_types type)
 void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, s_defense* defense_object)
 {    
 	int	force = 0;
-	int	normal_damage = 0;
-    
+	int	normal_damage = 0;    
+
 	/* Get attack damage force after defense is applied. */
     force = calculate_force_damage(target_entity, attacking_entity, attack_object, defense_object);
 
@@ -29728,7 +30584,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         checkdamagedrop(self, attack, defense_object);
 
         // Drop Weapon due to being hit.
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DAMAGE)
         {
             dropweapon(1);
         }
@@ -29823,12 +30679,13 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
     if(self->drop || self->energy_state.health_current <= 0)
     {
         self->takeaction = common_fall;
+        
         // Drop Weapon due to death.
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_DEATH && self->energy_state.health_current <= 0)
+        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DEATH && self->energy_state.health_current <= 0)
         {
             dropweapon(1);
         }
-        else if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_KNOCKDOWN)
+        else if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_FALL)
         {
             dropweapon(1);
         }
@@ -31414,10 +32271,10 @@ void common_attack_proc()
         smart_bomb(self, self->modeldata.smartbomb);
         smartbomber = NULL;
     }
-    if(self->deduct_ammo == 1)
+    if(self->weapon_state & WEAPON_STATE_DEDUCT_USE)
     {
         subtract_shot();
-        self->deduct_ammo = 0;
+        self->weapon_state &= ~WEAPON_STATE_DEDUCT_USE;
     }
     self->attacking = ATTACKING_NONE;
     // end of attack proc
@@ -31460,17 +32317,35 @@ int common_attack()
 // return 1 if jump
 int common_try_jump()
 {
-    float xdir, zdir;
-    int wall, j = 0;
-    float rmin, rmax;
+#define COMMON_TRY_JUMP_DEFAULT 1
+#define COMMON_TRY_JUMP_RUN 2
 
-    if(validanim(self, ANI_JUMP)) //Can jump?
+    float xdir = 0.0;
+    float zdir = 0.0;
+    int wall = 0;
+    int to_jump = 0;
+    float rmin = 0.0;
+    float rmax = 0.0;
+    float initial_z_velocity = 0.0;
+
+    e_animations jump_animation = ANI_JUMP;
+
+    /*
+    * If we can't jump at all, return false now.
+    */
+
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE)
     {
-        //Check to see if there is a wall within jumping distance and within a jumping height
+        return 0;
+    }
+
+    if(validanim(self, ANI_JUMP))
+    {        
         xdir = 0;
         wall = -1;
         rmin = (float)self->modeldata.animation[ANI_JUMP]->range.x.min;
         rmax = (float)self->modeldata.animation[ANI_JUMP]->range.x.max;
+        
         if(self->direction == DIRECTION_RIGHT)
         {
             xdir = self->position.x + rmin;
@@ -31479,8 +32354,14 @@ int common_try_jump()
         {
             xdir = self->position.x - rmin;
         }
-        //check z jump
-        if(self->modeldata.jumpmovez)
+
+        /*
+        * If we can Z jump, apply velocity to ZDir.
+        * This means our checks below will have a
+        * bit of lateral (z) range.
+        */
+
+        if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
         {
             zdir = self->position.z + self->velocity.z;
         }
@@ -31489,34 +32370,39 @@ int common_try_jump()
             zdir = self->position.z;
         }
 
+        /* Check for obstruction in range of JUMP. */
+
         if( (wall = checkwall_below(xdir, zdir, T_MAX_CHECK_ALTITUDE)) >= 0 &&
                 level->walls[wall].height <= self->position.y + rmax &&
                 !inair(self) && self->position.y < level->walls[wall].height  )
         {
-            j = 1;
+            to_jump = COMMON_TRY_JUMP_DEFAULT;
         }
         else if(checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) &&
                 checkwall_index(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
                 check_platform (self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir, self) == NULL &&
                 !checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? rmax : -rmax), zdir))
         {
-            j = 1;
+            to_jump = COMMON_TRY_JUMP_DEFAULT;
         }
     }
 
     /*
-    Damon V. Caskey
-    03292010
-    AI can will check its RUNJUMP range if JUMP can't reach. Code is pretty redundant,
-    can probably be moved to a function later.
+    * Caskey, Damon V.
+    * 2010-03-29 
+    * 
+    * AI will check its RUNJUMP range if JUMP 
+    * check failed. Code is pretty redundant, 
+    * should probably move to a function later.
     */
-    if(!j && validanim(self, ANI_RUNJUMP))														//Jump check failed and can run jump?
+
+    if(!to_jump && validanim(self, ANI_RUNJUMP))														
     {
-        //Check for wall in range of RUNJUMP.
         xdir = 0;
         wall = -1;
         rmin = (float)self->modeldata.animation[ANI_RUNJUMP]->range.x.min;
         rmax = (float)self->modeldata.animation[ANI_RUNJUMP]->range.x.max;
+        
         if(self->direction == DIRECTION_RIGHT)
         {
             xdir = self->position.x + rmin;
@@ -31525,8 +32411,14 @@ int common_try_jump()
         {
             xdir = self->position.x - rmin;
         }
-        //check z jump
-        if(self->modeldata.jumpmovez)
+        
+        /* 
+        * If we can Z jump, apply velocity to ZDir.
+        * This means our checks below will have a
+        * bit of lateral (z) range.
+        */ 
+
+        if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
         {
             zdir = self->position.z + self->velocity.z;
         }
@@ -31535,54 +32427,73 @@ int common_try_jump()
             zdir = self->position.z;
         }
 
+        /* Check for obstruction in range of RUNJUMP. */
         if( (wall = checkwall_below(xdir, zdir, T_MAX_CHECK_ALTITUDE)) >= 0 &&
                 level->walls[wall].height <= self->position.y + rmax &&
                 !inair(self) && self->position.y < level->walls[wall].height  )
         {
-            j = 2;																				//Set to perform runjump.
-        }
-        //Check for pit in range of RUNJUMP.
+            to_jump = COMMON_TRY_JUMP_RUN;
+        }        
         else if(checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) &&
                 checkwall_index(self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir) < 0 &&
                 check_platform (self->position.x + (self->direction == DIRECTION_RIGHT ? 2 : -2), zdir, self) == NULL &&
                 !checkhole(self->position.x + (self->direction == DIRECTION_RIGHT ? rmax : -rmax), zdir))
         {
-            j = 2;																				//Set to perform runjump.
+            to_jump = COMMON_TRY_JUMP_RUN;																				
         }
     }
 
-    if(j)
+    /*
+    * Now select the appropriate animation
+    * and send data to tryjump.
+    */
+
+    if(to_jump)
     {
-        if(self->running || j == 2)
+        if(self->running || to_jump == COMMON_TRY_JUMP_RUN)
         {
-            if(validanim(self, ANI_RUNJUMP))														//Running or only within range of RUNJUMP?
+            if(validanim(self, ANI_RUNJUMP))														
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_RUNJUMP);
+                jump_animation = ANI_RUNJUMP;
             }
             else if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
+                jump_animation = ANI_FORWARDJUMP;
             }
             else
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                jump_animation = ANI_JUMP;
             }
         }
         else
         {
             if(validanim(self, ANI_FORWARDJUMP))
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
+                jump_animation = ANI_FORWARDJUMP;
             }
             else
             {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                jump_animation = ANI_JUMP;
             }
         }
+
+        if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
+        {
+            initial_z_velocity = self->velocity.z;
+        }
+        else
+        {
+            initial_z_velocity = 0.0;
+        }
+
+        tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed* self->modeldata.runjumpdist, initial_z_velocity, jump_animation);
 
         return 1;
     }
     return 0;
+
+#undef COMMON_TRY_JUMP_DEFAULT
+#undef COMMON_TRY_JUMP_RUN
 }
 
 //test if direction is available for anim_up
@@ -32765,15 +33676,20 @@ void common_pickupitem(entity *other)
         self->takeaction = common_get;
         dropweapon(0);  //don't bother dropping the previous one though, scine it won't pickup another
         self->weapent = other;
-        set_weapon(self, other->modeldata.weapnum, 0);
+        
+        set_weapon(self, other->modeldata.weapon_properties.weapon_index, 0);
+        
         set_getting(self);
         self->velocity.x = self->velocity.z = 0; //stop moving
-        if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
+
+        /* Move to weapon location if it's an "animal". */
+        if(self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
         {
             self->direction = other->direction;
             self->position.x = other->position.x;
             self->position.z = other->position.z;
         }
+
         other->nextanim = other->nextthink = _time + GAME_SPEED * 999999;
         ent_set_anim(self, ANI_GET, 0);
         pickup = 1;
@@ -32808,7 +33724,7 @@ void common_pickupitem(entity *other)
                 self->energy_state.health_current = self->modeldata.health;
             }
             other->energy_state.health_current = 0;
-            //if(SAMPLE_GET >= 0) sound_play_sample(SAMPLE_GET, 0, savedata.effectvol,savedata.effectvol, 100);
+            //if(global_sample_list.get >= 0) sound_play_sample(global_sample_list.get, 0, savedata.effectvol,savedata.effectvol, 100);
         }
         // else if, TODO: other effects
         // kill that item
@@ -32834,10 +33750,12 @@ int biker_move()
         self->direction = !self->direction;
         self->attack_id_outgoing = 0;
         self->position.z = (float)(PLAYER_MIN_Z + randf((float)(PLAYER_MAX_Z - PLAYER_MIN_Z)));
-        if(SAMPLE_BIKE >= 0)
+        
+        if(global_sample_list.bike >= 0)
         {
-            sound_play_sample(SAMPLE_BIKE, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.bike, 0, savedata.effectvol, savedata.effectvol, 100);
         }
+
         if(self->modeldata.speed.x)
         {
             self->velocity.x = (self->direction == DIRECTION_RIGHT) ? (self->modeldata.speed.x) : (-self->modeldata.speed.x);
@@ -33934,7 +34852,7 @@ void common_think()
     if(self->dead)
     {
         return;
-    }
+    }    
 
     //if(checkplanned()) return;
 
@@ -34012,7 +34930,7 @@ void player_die()
     int playerindex = self->playerindex;
     int i = 0;
 
-    if(!livescheat)
+    if(!(global_config.cheats & CHEAT_OPTIONS_LIVES_ACTIVE))
     {
         --player[playerindex].lives;
     }
@@ -34121,7 +35039,7 @@ void player_die()
             }
         }
 
-        if(self->modeldata.weaploss[0] == WEAPLOSS_TYPE_CHANGE)
+        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_STAGE)
         {
             player[playerindex].weapnum = level->setweap;
         }
@@ -34176,14 +35094,14 @@ int check_energy(e_cost_check which, int ani)
     // return false.
     if(type & (TYPE_ENEMY  | TYPE_NPC))
     {
-        if(check_bind_override(self, BIND_OVERRIDE_SPECIAL_AI))
+        if(check_bind_override(self, BIND_CONFIG_OVERRIDE_SPECIAL_AI))
         {
             return FALSE;
         }
     }
     else if(type & TYPE_PLAYER)
     {
-        if(check_bind_override(self, BIND_OVERRIDE_SPECIAL_PLAYER))
+        if(check_bind_override(self, BIND_CONFIG_OVERRIDE_SPECIAL_PLAYER))
         {
             return FALSE;
         }
@@ -34447,7 +35365,7 @@ int check_special()
         {
             if(!nocost)
             {
-                if(!healthcheat)
+                if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
                 {
                     if(self->modeldata.animation[ANI_SPECIAL]->energy_cost.cost)
                     {
@@ -34718,7 +35636,7 @@ void common_prejump()
 }
 
 
-void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
+void tryjump(float jumpv, float jumpx, float jumpz, e_animations animation_id)
 {
     self->jump.velocity.y = jumpv;
     self->jump.velocity.x = jumpx;
@@ -34741,15 +35659,15 @@ void tryjump(float jumpv, float jumpx, float jumpz, int animation_id)
 }
 
 
-void dojump(float jumpv, float jumpx, float jumpz, int animation_id)
+void dojump(float jumpv, float jumpx, float jumpz, e_animations animation_id)
 {
     entity *dust;
 
     self->takeaction = common_jump;
 
-    if(SAMPLE_JUMP >= 0)
+    if(global_sample_list.jump >= 0)
     {
-        sound_play_sample(SAMPLE_JUMP, 0, savedata.effectvol, savedata.effectvol, 100);
+        sound_play_sample(global_sample_list.jump, 0, savedata.effectvol, savedata.effectvol, 100);
     }
 
     //Spawn jumpstart dust.
@@ -34789,34 +35707,42 @@ void didfind_item(entity *other)
     // Function that takes care of items when picked up
     set_opponent(self, other);
 
-    //for reload weapons that are guns(no knife) we use this items reload for ours shot at max and shootnum in items for get a amount of shoots by tails
-    if(other->modeldata.reload)
-    {
-        if(self->weapent && self->weapent->modeldata.typeshot)
-        {
-            self->weapent->modeldata.shootnum += other->modeldata.reload;
+    /*
+    * Legacy limited use replenish.
+    * 
+    * If item has a use_add value and collecting
+    * entity has a limited use weapon, we add
+    * use_add to uses remaining.
+    */
 
-            if(SAMPLE_GET >= 0)
+    if(other->modeldata.weapon_properties.use_add)
+    {
+        if(self->weapent && self->weapent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE)
+        {
+            self->weapent->modeldata.weapon_properties.use_count += other->modeldata.weapon_properties.use_add;
+
+            if(global_sample_list.get >= 0)
             {
-                sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         else
         {
             addscore(self->playerindex, other->modeldata.score);
-            if(SAMPLE_GET2 >= 0)
+            if(global_sample_list.get_2 >= 0)
             {
-                sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
     }
+
     //end of weapons items section
     else if(other->modeldata.score)
     {
         addscore(self->playerindex, other->modeldata.score);
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->energy_state.health_current)
@@ -34830,9 +35756,9 @@ void didfind_item(entity *other)
 
         other->energy_state.health_current = 0;
 
-        if(SAMPLE_GET >= 0)
+        if(global_sample_list.get >= 0)
         {
-            sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.mp)
@@ -34845,15 +35771,15 @@ void didfind_item(entity *other)
         }
 
         other->energy_state.mp_current = 0;
-        sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+        sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
     }
     else if(stricmp(other->modeldata.name, "Time") == 0)
     {
         timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
 
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.makeinv)
@@ -34863,9 +35789,9 @@ void didfind_item(entity *other)
         self->invinctime = _time + ABS(other->modeldata.makeinv);
         self->blink = (other->modeldata.makeinv > 0);
 
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.smartbomb)
@@ -34873,32 +35799,33 @@ void didfind_item(entity *other)
         // Damages everything on the screen
         smart_bomb(self, other->modeldata.smartbomb);
 
-        if(SAMPLE_GET2 >= 0)
+        if(global_sample_list.get_2 >= 0)
         {
-            sound_play_sample(SAMPLE_GET2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get_2, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.subtype == SUBTYPE_WEAPON)
     {
         dropweapon(0);
         self->weapent = other;
-        set_weapon(self, other->modeldata.weapnum, 0);
+        set_weapon(self, other->modeldata.weapon_properties.weapon_index, 0);
 
-        if(self->modeldata.animal)  // UTunnels: well, ride, not get. :)
+        /* Move to weapon location if it's an "animal". */
+        if(self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL)
         {
             self->direction = other->direction;
             self->position.x = other->position.x;
             self->position.z = other->position.z;
         }
 
-        if(!other->modeldata.typeshot && self->modeldata.typeshot)
+        if(!(other->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE) && self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_LIMITED_USE)
         {
-            other->modeldata.typeshot = 1;
+            other->modeldata.weapon_properties.weapon_state |= WEAPON_STATE_LIMITED_USE;
         }
 
-        if(SAMPLE_GET >= 0)
+        if(global_sample_list.get >= 0)
         {
-            sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.subtype == SUBTYPE_PROJECTILE)
@@ -34906,9 +35833,9 @@ void didfind_item(entity *other)
         dropweapon(0);
         self->weapent = other;
 
-        if(SAMPLE_GET >= 0)
+        if(global_sample_list.get >= 0)
         {
-            sound_play_sample(SAMPLE_GET, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.get, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else if(other->modeldata.credit)
@@ -34922,9 +35849,9 @@ void didfind_item(entity *other)
             player[self->playerindex].credits++;
         }
 
-        if(SAMPLE_1UP >= 0)
+        if(global_sample_list.one_up >= 0)
         {
-            sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
     else
@@ -34932,9 +35859,9 @@ void didfind_item(entity *other)
         // Must be a 1up then.
         player[self->playerindex].lives++;
 
-        if(SAMPLE_1UP >= 0)
+        if(global_sample_list.one_up >= 0)
         {
-            sound_play_sample(SAMPLE_1UP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
     }
 
@@ -34985,7 +35912,7 @@ void player_grab_check()
         return;
     }
 
-    if(!nolost && self->modeldata.weaploss[0] == WEAPLOSS_TYPE_ANY)
+    if(!nolost && self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_GRABBING)
     {
         dropweapon(1);
     }
@@ -35305,7 +36232,10 @@ void player_grab_check()
 
 void player_walkoff_check()
 {
-    if(self->modeldata.walkoffmovex & 1) //flip?
+    /*
+    * Turn. 
+    */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_TURN)
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
@@ -35316,7 +36246,39 @@ void player_walkoff_check()
             self->direction = DIRECTION_RIGHT;
         }
     }
-    if(self->modeldata.walkoffmovex & 2) //move?
+
+    /*
+    * X stop. If not holding a Left or
+    * Right key, kill horizontal momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_WALKOFF_X_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
+        {
+            if (self->velocity.x != 0)
+            {
+                self->velocity.x *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /*
+    * Z stop. If not holding an Up or
+    * Down key, kill lateral momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_WALKOFF_Z_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
+        {
+            if (self->velocity.z != 0)
+            {
+                self->velocity.z *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /* Horizontal move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_X_ADJUST) //move?
     {
         if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
@@ -35324,7 +36286,9 @@ void player_walkoff_check()
             self->velocity.x = -self->velocity.x;
         }
     }
-    if(self->modeldata.walkoffmovex & 4) //Move x if vertical jump?
+
+    /* Horizontal move control (any walkoff). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_X_MOVE)
     {
         if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
@@ -35341,7 +36305,9 @@ void player_walkoff_check()
             self->velocity.x = self->modeldata.speed.x;
         }
     }
-    if(self->modeldata.walkoffmovez & 2) //z move?
+
+    /* Z move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_Z_ADJUST)
     {
         if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
@@ -35349,23 +36315,10 @@ void player_walkoff_check()
             self->velocity.z = -self->velocity.z;
         }
     }
-    if(self->modeldata.walkoffmovez & 4) //Move z if vertical jump?
-    {
-        if((player[self->playerindex].keys & FLAG_MOVELEFT))
-        {
-            self->direction = DIRECTION_LEFT;
-        }
-        else if((player[self->playerindex].keys & FLAG_MOVERIGHT))
-        {
-            self->direction = DIRECTION_RIGHT;
-        }
 
-        if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
-                ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
-        {
-            self->velocity.z = -self->velocity.z;
-        }
-
+    /* Z move control (any walkoff). */
+    if(self->modeldata.air_control & AIR_CONTROL_WALKOFF_Z_MOVE)
+    {        
         if((player[self->playerindex].keys & FLAG_MOVEUP) && (!self->velocity.z))
         {
             self->velocity.z -= (0.5 * self->modeldata.speed.x);
@@ -35406,7 +36359,7 @@ void player_jump_check()
                     }
                     else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost && check_energy(ENERGY_TYPE_HP, ANI_JUMPSPECIAL))
                     {
-                        if(!healthcheat)
+                        if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
                         {
                             self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energy_cost.cost;
                         }
@@ -35425,6 +36378,7 @@ void player_jump_check()
                     self->attacking = ATTACKING_ACTIVE;
 
                     // Kratus (10-2021) Add a option to kill or not the xyz movement
+                    // Kratus (04-2022) Minor fix on the jumpspecial code
                     if(!(self->modeldata.jumpspecial & 1))
                     {
                         self->velocity.x = self->velocity.z = 0; // Kill movement when the special starts
@@ -35464,7 +36418,54 @@ void player_jump_check()
             }
         }//end of jumpattack
     }
-    if(self->modeldata.jumpmovex & 1) //flip?
+
+    /* 
+    * Jump height control. Stop rising if jump
+    * key is inactive.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_Y_STOP)
+    {
+        if (!(player[self->playerindex].keys & FLAG_JUMP))
+        {
+            if (self->velocity.y > 0)
+            {
+                self->velocity.y *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /* 
+    * Jump X stop. If not holding a Left or
+    * Right key, kill horizontal momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_X_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
+        {
+            if (self->velocity.x != 0)
+            {
+                self->velocity.x *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /*
+    * Jump Z stop. If not holding an Up or
+    * Down key, kill lateral momentum.
+    */
+    if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_STOP)
+    {
+        if (!(player[self->playerindex].keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
+        {
+            if (self->velocity.z != 0)
+            {
+                self->velocity.z *= AIR_CONTROL_STOP_FACTOR;
+            }
+        }
+    }
+
+    /* Jump turn control. */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_TURN)
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
@@ -35475,16 +36476,20 @@ void player_jump_check()
             self->direction = DIRECTION_RIGHT;
         }
     }
-    if(self->modeldata.jumpmovex & 2) //move?
+
+    /* Jump horizontal move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_X_ADJUST)
     {
-        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
+        if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0 ) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
         {
             self->velocity.x = -self->velocity.x;
         }
     }
-    if(self->modeldata.jumpmovex & 4) //Move x if vertical jump?
-    {
+    
+    /* Jump horizontal move control (any jump). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_X_MOVE)
+    {        
         if(((player[self->playerindex].keys & FLAG_MOVELEFT) && self->velocity.x > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVERIGHT) && self->velocity.x < 0))
         {
@@ -35500,7 +36505,9 @@ void player_jump_check()
             self->velocity.x = self->modeldata.speed.x;
         }
     }
-    if(self->modeldata.jumpmovez & 2) //z move?
+        
+    /* Jump Z move control (if already moving). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_ADJUST)
     {
         if(((player[self->playerindex].keys & FLAG_MOVEUP) && self->velocity.z > 0) ||
                 ((player[self->playerindex].keys & FLAG_MOVEDOWN) && self->velocity.z < 0))
@@ -35508,7 +36515,9 @@ void player_jump_check()
             self->velocity.z = -self->velocity.z;
         }
     }
-    if(self->modeldata.jumpmovez & 4) //Move z if vertical jump?
+
+    /* Jump Z move control (any jump). */
+    if(self->modeldata.air_control & AIR_CONTROL_JUMP_Z_MOVE)
     {
         if((player[self->playerindex].keys & FLAG_MOVELEFT))
         {
@@ -35601,7 +36610,7 @@ int check_costmove(int s, int fs, int jumphack)
         {
             if(!nocost)
             {
-                if(!healthcheat)
+                if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
                 {
                     if(self->modeldata.animation[s]->energy_cost.cost)
                     {
@@ -35743,11 +36752,16 @@ void player_think()
 {
     int action = 0;		// 1=walking, 2=up, 3=down, 4=running
     int bkwalk = 0;   //backwalk
-    int runx, runz, movex, movez;
-    int t, t2;
+    int runx = 0;
+    int runz = 0;
+    int movex = 0;
+    int movez = 0;
+    int t = 0;
+    int t2 = 0;
     entity *other = NULL;
     float altdiff;
     int notinair;
+    float initial_jump_velocity_z = 0.0;
 
     static int ll[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
     static int rr[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
@@ -36061,9 +37075,9 @@ void player_think()
             self->stalltime = 0;
             self->combostep[0] = 0;
 
-            if(SAMPLE_PUNCH >= 0)
+            if(global_sample_list.punch >= 0)
             {
-                sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.punch, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             if(validanim(self, ANI_CHARGEATTACK))
@@ -36158,9 +37172,9 @@ void player_think()
         }
         else if(perform_atchain())
         {
-            if(SAMPLE_PUNCH >= 0 && self->attacking != ATTACKING_NONE)
+            if(global_sample_list.punch >= 0 && self->attacking != ATTACKING_NONE)
             {
-                sound_play_sample(SAMPLE_PUNCH, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.punch, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             goto endthinkcheck;
         }
@@ -36172,6 +37186,33 @@ void player_think()
     {
         // Added !inair(self) so players can't jump when falling into holes
         pl->playkeys &= ~FLAG_JUMP;
+
+        /*
+        * Z axis control.
+        *
+        * If player can initialize a Z jump
+        * and Up or Down keys are active we'll
+        * get a portion of their jump speed as
+        * a Z velocity. We'll use this value as
+        * the Z parameter for all downstream
+        * jump function calls.
+        */
+
+        if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
+        {
+            if (pl->keys & FLAG_MOVEUP)
+            {
+                initial_jump_velocity_z = -self->modeldata.jumpspeed * 0.5;
+            }
+            else if (pl->keys & FLAG_MOVEDOWN)
+            {
+                initial_jump_velocity_z = self->modeldata.jumpspeed * 0.5;
+            }
+        }
+        else
+        {
+            initial_jump_velocity_z = 0.0;
+        }
 
         if(self->running)
         {
@@ -36185,19 +37226,23 @@ void player_think()
                 self->running = 0;
                 ent_set_anim(self, ANI_RUNSLIDE, 0);
                 goto endthinkcheck;
-            }
+            }           
 
-            if(validanim(self, ANI_RUNJUMP))
+            /* Jumping allowed? */
+            if (!(self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
             {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_RUNJUMP);
-            }
-            else if(validanim(self, ANI_FORWARDJUMP))
-            {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
-            }
-            else if(validanim(self, ANI_JUMP))
-            {
-                tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                if (validanim(self, ANI_RUNJUMP))
+                {
+                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_RUNJUMP);
+                }
+                else if (validanim(self, ANI_FORWARDJUMP))
+                {
+                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_FORWARDJUMP);
+                }
+                else if (validanim(self, ANI_JUMP))
+                {
+                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_JUMP);
+                }
             }
         }
         else
@@ -36214,27 +37259,47 @@ void player_think()
                 goto endthinkcheck;
             }
 
-            if(!(pl->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(self, ANI_JUMP))
+            /* Jumping allowed? */
+            if (!(self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
             {
-                tryjump(self->modeldata.jumpheight, 0, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
-                goto endthinkcheck;
-            }
-            else if((pl->keys & FLAG_MOVELEFT))
-            {
-                self->direction = DIRECTION_LEFT;
-            }
-            else if((pl->keys & FLAG_MOVERIGHT))
-            {
-                self->direction = DIRECTION_RIGHT;
-            }
 
-            if(validanim(self, ANI_FORWARDJUMP))
-            {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_FORWARDJUMP);
-            }
-            else if(validanim(self, ANI_JUMP))
-            {
-                tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, (self->modeldata.jumpmovez) ? self->velocity.z : 0, ANI_JUMP);
+                /*
+                * Handle left/right direction command.
+                *
+                * If left or right key is active,
+                * then switch facing accordingly and
+                * continue on to moving jump logic.
+                *
+                * Otherwise perform a jump with no
+                * horizontal velocity.
+                */
+
+                if (!(pl->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(self, ANI_JUMP))
+                {
+                    tryjump(self->modeldata.jumpheight, 0, initial_jump_velocity_z, ANI_JUMP);
+                    goto endthinkcheck;
+                }
+                else if ((pl->keys & FLAG_MOVELEFT))
+                {
+                    self->direction = DIRECTION_LEFT;
+                }
+                else if ((pl->keys & FLAG_MOVERIGHT))
+                {
+                    self->direction = DIRECTION_RIGHT;
+                }
+
+                /*
+                * Horizontal moving jump.
+                */
+
+                if (validanim(self, ANI_FORWARDJUMP))
+                {
+                    tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, initial_jump_velocity_z, ANI_FORWARDJUMP);
+                }
+                else if (validanim(self, ANI_JUMP))
+                {
+                    tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, initial_jump_velocity_z, ANI_JUMP);
+                }
             }
         }
         return;
@@ -36611,91 +37676,107 @@ int is_in_backrun(entity* self)
 //ammo count goes down
 void subtract_shot()
 {
-    if(self->weapent && self->weapent->modeldata.shootnum)
+    if(self->weapent && self->weapent->modeldata.weapon_properties.use_count)
     {
-        self->weapent->modeldata.shootnum--;
-        if(!self->weapent->modeldata.shootnum)
+        self->weapent->modeldata.weapon_properties.use_count--;
+
+        /*
+        * Out of uses? Drop the weapon.
+        */
+
+        if(!self->weapent->modeldata.weapon_properties.use_count)
         {
-            self->weapent->modeldata.counter = 0;
+            self->weapent->modeldata.weapon_properties.loss_count = 0;
             dropweapon(0);
         }
     }
-
 }
 
 
 void dropweapon(int flag)
 {
-    int wall;
+    int wall = 0;
     entity *other = NULL;
+    entity* weapon_entity = NULL;
+    s_weapon* weapon_properties = NULL;
 
 	// If we already have a weapon, we'll need to discard it.
     if(self->weapent)
     {
+        /*
+        * Dump pointers to self's weapon entity and the 
+        * weapon entity's modeldata weapon properties 
+        * into local variables. This is just for eaiser 
+        * reading downstream.
+        */
+
+        weapon_entity = *&self->weapent;
+        weapon_properties = &self->weapent->modeldata.weapon_properties;
+
 		// 2019-09-29 - Not sure about this logic. It appears that only type shot
 		// weapons or weapons with shot ammo are dropped.  Anything else is simply discarded.
 		// Need to evaluate all weapon logic to get the workflow.
-        if(self->weapent->modeldata.typeshot || (!self->weapent->modeldata.typeshot && self->weapent->modeldata.shootnum))
+        if(weapon_properties->weapon_state & WEAPON_STATE_LIMITED_USE || (!(weapon_properties->weapon_state & WEAPON_STATE_LIMITED_USE) && weapon_properties->use_count))
         {            
 			// If the flag is 2 or below, we subtract the flag's
 			// value from weapon counter.
 			if(flag < 2)
             {
-                self->weapent->modeldata.counter -= flag;
+                weapon_properties->loss_count -= flag;
             }
             
 			// We're going to use our own position for the weapon.
-			self->weapent->direction = self->direction;
-			self->weapent->position.z = self->position.z;
-            self->weapent->position.x = self->position.x;
-            self->weapent->position.y = self->position.y;
+            weapon_entity->direction = self->direction;
+            weapon_entity->position.z = self->position.z;
+            weapon_entity->position.x = self->position.x;
+            weapon_entity->position.y = self->position.y;
 
 			// Get any walls and platforms.
-            other = check_platform(self->weapent->position.x, self->weapent->position.z, self);
-            wall = checkwall_index(self->weapent->position.x, self->weapent->position.z);
+            other = check_platform(weapon_entity->position.x, weapon_entity->position.z, self);
+            wall = checkwall_index(weapon_entity->position.x, weapon_entity->position.z);
 
 			// Place onto wall or platform.
-            if(other && other != self->weapent)
+            if(other && other != weapon_entity)
             {
-                self->weapent->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
+                weapon_entity->base += other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
             }
             else if(wall >= 0)
             {
-                self->weapent->base += level->walls[wall].height;
+                weapon_entity->base += level->walls[wall].height;
             }
 
 			// Use the weapon's RESPAWN or SPAWN animations if available, otherwise
 			// go right to idle.
-            if(validanim(self->weapent, ANI_RESPAWN))
+            if(validanim(weapon_entity, ANI_RESPAWN))
             {
-                ent_set_anim(self->weapent, ANI_RESPAWN, 1);
+                ent_set_anim(weapon_entity, ANI_RESPAWN, 1);
             }
-            else if(validanim(self->weapent, ANI_SPAWN))
+            else if(validanim(weapon_entity, ANI_SPAWN))
             {
-                ent_set_anim(self->weapent, ANI_SPAWN, 1);
+                ent_set_anim(weapon_entity, ANI_SPAWN, 1);
             }
             else
             {
-                if(validanim(self->weapent, ANI_IDLE)) ent_set_anim(self->weapent, ANI_IDLE, 1);
+                if(validanim(weapon_entity, ANI_IDLE)) ent_set_anim(weapon_entity, ANI_IDLE, 1);
             }
 
 			// If the weapon's counter is depleted, then weapon is lost for good.
 			// If it is an "animal", then we apply the animal running away logic.
 			// Otherwise the weapon blinks out.
-            if(!self->weapent->modeldata.counter)
+            if(!weapon_properties->loss_count)
             {
-                if(!self->modeldata.animal)
+                if(!(self->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL))
                 {
-                    self->weapent->blink = 1;
-                    self->weapent->takeaction = common_lie;
+                    weapon_entity->blink = 1;
+                    weapon_entity->takeaction = common_lie;
                 }
                 else
                 {
-                    self->weapent->modeldata.type = TYPE_NONE;
-                    self->weapent->think = runanimal;
+                    weapon_entity->modeldata.type = TYPE_NONE;
+                    weapon_entity->think = runanimal;
                 }
             }
-            self->weapent->nextthink = _time + 1;
+            weapon_entity->nextthink = _time + 1;
         }
 
 		// Clear our tracking variable that keeps the weapon entity pointer.
@@ -36727,9 +37808,9 @@ void dropweapon(int flag)
 	// Model override. If this is populated, we use its value
 	// to locate a model by index and revert to that instead 
 	// of the default model when a weapon is lost.
-    if(self->modeldata.weaploss[1] > 0)
+    if(self->modeldata.weapon_properties.loss_index != MODEL_INDEX_NONE)
     {
-        set_weapon(self, self->modeldata.weaploss[1], 0);
+        set_weapon(self, self->modeldata.weapon_properties.loss_index, 0);
     }
 }
 
@@ -36745,7 +37826,7 @@ int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 	// Damage comes from a normal source?
 	normal_damage = (!is_attack_type_special(atk.attack_type));
 
-    if((healthcheat && normal_damage) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
+    if((global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE && normal_damage) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
         atk.attack_force = 0;
     }
@@ -36783,10 +37864,12 @@ void drop_all_enemies()
             self = ent_list[i];
             ent_unlink(self);
             ent_list[i]->velocity.x = (self->direction == DIRECTION_RIGHT) ? (-1.2) : 1.2;
-            if(ent_list[i]->modeldata.weaploss[0] != WEAPLOSS_TYPE_CHANGE)
+            
+            if(ent_list[i]->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_STAGE)
             {
                 dropweapon(1);
             }
+
             toss(ent_list[i], 2.5 + randf(1));
             ent_list[i]->knockdowncount = ent_list[i]->modeldata.knockdowncount;
 
@@ -38028,7 +39111,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         if(wp)
         {
             //ent_default_init(wp);
-            set_weapon(e, wp->modeldata.weapnum, 0);
+            set_weapon(e, wp->modeldata.weapon_properties.weapon_index, 0);
             e->weapent = wp;
 
             e->weapent->spawntype = SPAWN_TYPE_WEAPON;
@@ -38337,9 +39420,9 @@ void time_over()
 
         if (!is_total_timeover)
         {
-            if(SAMPLE_TIMEOVER >= 0)
+            if(global_sample_list.time_over >= 0)
             {
-                sound_play_sample(SAMPLE_TIMEOVER, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.time_over, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             timeleft = level->settime * COUNTER_SPEED;    // Feb 24, 2005 - This line moved here to set custom time
@@ -39859,7 +40942,7 @@ void update(int ingame, int usevwait)
         {
             sound_pause_music(1);
             sound_pause_sample(1);
-            sound_play_sample(SAMPLE_PAUSE, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.pause, 0, savedata.effectvol, savedata.effectvol, 100);
             pausemenu();
             return;
         }
@@ -41082,7 +42165,7 @@ void showcomplete(int num)
             if(!finishtime && !(nexttime & 15))
             {
                 sound_stop_sample(chan);
-                chan = sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol / 2, savedata.effectvol / 2, 100);
+                chan = sound_play_sample(global_sample_list.beep, 0, savedata.effectvol / 2, savedata.effectvol / 2, 100);
             }
             nexttime++;
         }
@@ -41595,7 +42678,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				if (defaultselect)
 				{
 					player[i].lives = PLAYER_LIVES;
-					if (!creditscheat)
+					if (!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
 					{
 						if (noshare)
 						{
@@ -41667,7 +42750,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 			if (defaultselect)
 			{
 				player[i].lives = PLAYER_LIVES;
-				if (!creditscheat)
+				if (!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
 				{
 					if (noshare)
 					{
@@ -41811,7 +42894,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
 					// Credits cheat = infinite credits. If that's not enabled,
 					// then deduct a credit.
-					if (!creditscheat)
+					if (!(global_config.cheats & CHEAT_OPTIONS_CREDITS_ACTIVE))
 					{
 						if (noshare)
 						{
@@ -41830,16 +42913,16 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					player[i].playkeys = 0;
 
 					// Play sound effect.
-					if (SAMPLE_BEEP >= 0)
+					if (global_sample_list.beep >= 0)
 					{
-						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+						sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 				}
 				else if ((player[i].newkeys & FLAG_ANYBUTTON) && example[i]) //Kratus (01-05-21) Moved the "anybutton" code to before of the "left/right" code to fix a bug that makes no character chosen when both are pressed together
 				{
-					if (SAMPLE_BEEP2 >= 0)
+					if (global_sample_list.beep_2 >= 0)
 					{
-						sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+						sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 					// yay you picked me!
 					if (validanim(example[i], ANI_PICK))
@@ -41852,9 +42935,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				else if (player[i].newkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) && example[i])
 				{
 					// Give player a feedback sound.
-					if (SAMPLE_BEEP >= 0)
+					if (global_sample_list.beep >= 0)
 					{
-						sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+						sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 
 					// Get model in use right now.
@@ -42272,17 +43355,17 @@ int menu_difficulty()
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(selector < 0)
@@ -42298,9 +43381,9 @@ int menu_difficulty()
         if(bothnewkeys & FLAG_ANYBUTTON)
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             if(selector == num_difficulties)
@@ -42412,7 +43495,7 @@ int load_saved_game()
                     break;
                 }
             }
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(selector == 0 && (bothnewkeys & FLAG_MOVERIGHT))
         {
@@ -42428,17 +43511,17 @@ int load_saved_game()
                     break;
                 }
             }
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(savedStatus)
         {
@@ -42458,7 +43541,7 @@ int load_saved_game()
 
         if((bothnewkeys & FLAG_ANYBUTTON))
         {
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             switch(selector)
             {
             case 0:
@@ -42501,17 +43584,17 @@ int choose_mode(int *players)
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(selector < 0)
@@ -42525,9 +43608,9 @@ int choose_mode(int *players)
 
         if(bothnewkeys & FLAG_ANYBUTTON)
         {
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             switch(selector)
             {
@@ -43061,7 +44144,7 @@ finish:
             if (k >= 0)
             {
                 safe_set(mapping, setting, k, ok);
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                 // Prevent the newly configured button from counting as "pressed" and starting config again
                 playercontrolpointers[player]->keyflags |= (1 << setting);
@@ -43071,7 +44154,7 @@ finish:
             }
             else if (bothnewkeys & FLAG_ESC)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 50);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 50);
                 setting = -1;
             }
         }
@@ -43091,7 +44174,7 @@ finish:
                     }
                 }
                 while(selector < btnnum && disabledkey[selector]);
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             if(bothnewkeys & FLAG_MOVEDOWN)
             {
@@ -43100,7 +44183,7 @@ finish:
                     if(++selector > btnnum - 1) break;
                 }
                 while(disabledkey[selector]);
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
             if(selector < 0)
             {
@@ -43116,14 +44199,14 @@ finish:
             if (selector == OPTIONS_NUM - 3 && (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON)))
             {
                 // TODO: make rumble enable/disable a property of device, not player
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
                 savedata.joyrumble[player] = !savedata.joyrumble[player];
             }
             else
 #endif
             if (bothnewkeys & FLAG_ANYBUTTON)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                 if(selector == OPTIONS_NUM - 2) // OK
                 {
@@ -43251,9 +44334,9 @@ void menu_options_input()
         if (bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if (SAMPLE_BEEP >= 0)
+            if (global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             // skip over invisible configuration entries for non-existent devices
@@ -43271,9 +44354,9 @@ void menu_options_input()
         if (bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if (SAMPLE_BEEP >= 0)
+            if (global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             // skip over invisible device selection entries for non-existent players
@@ -43309,9 +44392,9 @@ void menu_options_input()
                 continue;
             }
 
-            if (SAMPLE_BEEP2 >= 0)
+            if (global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch (selector)
@@ -43412,18 +44495,18 @@ void menu_options_sound()
         {
             --selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(selector < 0)
@@ -43448,9 +44531,9 @@ void menu_options_sound()
                 dir = 1;
             }
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
@@ -43573,18 +44656,18 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
         {
             --selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
 
@@ -43600,9 +44683,9 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
@@ -43730,12 +44813,6 @@ void menu_options_debug()
         // If user presses up/down or esc, let's act accordingly.
         if(bothnewkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN | FLAG_ESC))
         {
-            // Play beep if available.
-            if(SAMPLE_BEEP >= 0)
-            {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-
             // If user presses escape, then set quit
             // flag immediately. Else wise, increment
             // or decrement selector as needed.
@@ -43745,6 +44822,13 @@ void menu_options_debug()
             }
             else if(bothnewkeys & FLAG_MOVEUP)
             {
+                // Play beep if available.
+                // Kratus (04-2022) Moved the BEEP sound to work only with UP/DOWN keys
+                if(global_sample_list.beep >= 0)
+                {
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+                }
+
                 // If we are at the top item, loop
                 // to last. Otherwise, move one up.
                 if(selector <= MENU_ITEM_FIRST_INDEX)
@@ -43758,6 +44842,13 @@ void menu_options_debug()
             }
             else if(bothnewkeys & FLAG_MOVEDOWN)
             {
+                // Play beep if available.
+                // Kratus (04-2022) Moved the BEEP sound to work only with UP/DOWN keys
+                if(global_sample_list.beep >= 0)
+                {
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+                }
+
                 // If we are at the last item
                 // (which should be "back"), then
                 // loop back to first. Otherwise
@@ -43778,9 +44869,9 @@ void menu_options_debug()
         // trigger button press.
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             // This is where menu items are executed.
@@ -43816,6 +44907,226 @@ void menu_options_debug()
     #undef MENU_ITEM_FIRST_INDEX
 }
 
+/*
+* Caskey, Damon V.
+* 2022-05-05
+* 
+* Display cheat options menu and
+* apply player selections.
+*/
+void menu_options_cheats()
+{
+#define MENU_POS_Y              -4
+#define MENU_ITEMS_MARGIN_Y     2
+#define COLUMN_1_POS_X          -11
+#define COLUMN_2_POS_X          COLUMN_1_POS_X + 14
+
+    typedef struct s_option_list
+    {
+        e_cheat_options active;
+        e_cheat_options menu;
+        char label[20];
+    } s_option_list;
+
+    int option_list_count = 6;
+    s_option_list option_list[] = {
+            {.active = CHEAT_OPTIONS_CREDITS_ACTIVE,        .menu = CHEAT_OPTIONS_CREDITS_MENU,         .label = "Infinite Credits" },
+            {.active = CHEAT_OPTIONS_ENERGY_ACTIVE,         .menu = CHEAT_OPTIONS_ENERGY_MENU,          .label = "Infinite Energy" },
+            {.active = CHEAT_OPTIONS_HEALTH_ACTIVE,         .menu = CHEAT_OPTIONS_HEALTH_MENU,          .label = "Infinite Health" },
+            {.active = CHEAT_OPTIONS_LIVES_ACTIVE,          .menu = CHEAT_OPTIONS_LIVES_MENU,           .label = "Infinite Lives" },
+            {.active = CHEAT_OPTIONS_MULTIHIT_ACTIVE,       .menu = CHEAT_OPTIONS_MULTIHIT_MENU,        .label = "Multihit Glitch" },
+            {.active = CHEAT_OPTIONS_TOD_ACTIVE,            .menu = CHEAT_OPTIONS_TOD_MENU,             .label = "Touch of Death" }        
+    };
+    
+    int option_list_cursor = 0;
+    int option_available_count = 0;
+    int option_available_first = 0;
+    int pos_y = 0;
+    int quit = 0;
+    int selector = 0;
+    
+    bothnewkeys = 0;
+
+    screen_status |= IN_SCREEN_CHEAT_OPTIONS_MENU;    
+
+    //printf("\n\n menu_options_cheats()");
+
+    while (!quit)
+    {
+        /* Display menu title. */
+        _menutextm(2, MENU_POS_Y, 0, Tr("Cheat Options"));
+                
+        /*
+        * Reset menu item position Y and
+        * valid menu item count.
+        */
+        option_available_count = 0;
+        option_available_first = 0;
+        pos_y = MENU_POS_Y + MENU_ITEMS_MARGIN_Y;
+
+        /*
+        * Iterate through the option list
+        * array and display available items.
+        * 
+        * At each valid option, increment
+        * option count and Y position.
+        */
+
+        for (option_list_cursor = 0; option_list_cursor < option_list_count; option_list_cursor++)
+        {            
+            if (global_config.cheats & option_list[option_list_cursor].menu)
+            {   
+                /* 
+                * If option available count is still 0, this
+                * is the first available option. Record the
+                * index for use downstream.
+                */
+
+                if (!option_available_count)
+                {
+                    option_available_first = option_list_cursor;
+                }
+                
+                /* Print the menu text and on/off status. */
+                _menutext((selector == option_list_cursor), COLUMN_1_POS_X, pos_y, Tr(option_list[option_list_cursor].label));
+                _menutext((selector == option_list_cursor), COLUMN_2_POS_X, pos_y, (global_config.cheats & option_list[option_list_cursor].active ? Tr("On") : Tr("Off")));
+            
+                option_available_count++;
+                pos_y++;
+            }            
+        }
+
+        /* No items avaialble. Alert player.  */
+        if (!option_available_count)
+        {
+            _menutextm(0, pos_y, 0, Tr("No cheats avaialble."));
+        }        
+
+        /*
+        * Add the exit option. We can use the array size 
+        * for a selector index due to 0 indexing.
+        */
+                
+        pos_y++;        
+        _menutextm((selector == option_list_count), pos_y, 0, Tr("Back"));
+
+        /* Run an engine update. */
+        update((level != NULL), 0);
+                
+        /* 
+        * Handle user input and populate selector to
+        * appropriate value. 
+        * 
+        * First we set selector to first item in case 
+        * the first available's index is not 0.
+        * 
+        * Next, handle buttons. ESC quits the menu 
+        * instantly. Up/Down select target item.
+        * Left/Right/Action buttons toggle value.
+        */
+
+        if (!selector && option_available_first)
+        {
+            selector = option_available_first;
+        }
+
+        if (bothnewkeys & FLAG_ESC)
+        {
+            quit = 1;
+        }
+
+        if (bothnewkeys & FLAG_MOVEUP)
+        {
+            /* Play beep if available. */
+            if (global_sample_list.beep >= 0)
+            {
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            /* Wrap around if needed. */
+            if (selector <= option_available_first)
+            {
+                selector = option_list_count;
+            }
+            else
+            {
+                selector--;
+            }
+
+            /* Skip disabled items. */
+            while (!(global_config.cheats & option_list[selector].menu) && selector > option_available_first)
+            {               
+                selector--;
+            }            
+        }
+            
+        if (bothnewkeys & FLAG_MOVEDOWN)
+        {
+            /* Play beep if available. */
+            if (global_sample_list.beep >= 0)
+            {
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            /* Wrap around if needed. */
+            if (selector >= option_list_count)
+            {
+                selector = option_available_first;
+            }
+            else
+            {
+                selector++;
+            }
+
+            /* Skip disabled items. */
+            while (!(global_config.cheats & option_list[selector].menu) && selector < option_list_count)
+            {
+                selector++;
+            }
+        }        
+
+        /* 
+        * Toggle selection value on left/right or
+        * trigger button press.
+        */
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        {
+            if (global_sample_list.beep_2 >= 0)
+            {
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
+            }
+
+            /*
+            * Take action based on selector.
+            * 
+            * The last option is the exit item, so if that's
+            * our selector value we exit this menu. 
+            *
+            * Otherwise use selector as array key to get the 
+            * bit we want to toggle in our target value.
+            */
+
+            if (selector < option_list_count)
+            {
+                global_config.cheats ^= option_list[selector].active;
+            }
+            else
+            {
+                quit = 1;
+            }        
+        }
+    }
+    
+    //savesettings();
+    
+    bothnewkeys = 0;
+    screen_status &= ~IN_SCREEN_CHEAT_OPTIONS_MENU;
+
+#undef MENU_POS_Y
+#undef MENU_ITEMS_MARGIN_Y
+#undef COLUMN_1_POS_X
+#undef COLUMN_2_POS_X
+}
 
 void menu_options_system()
 {
@@ -43827,7 +45138,6 @@ void menu_options_system()
         SYS_OPT_CHEATS,
         SYS_OPT_DEBUG,
         SYS_OPT_CONFIG,
-        SYS_OPT_PSP_CPUSPEED,
         SYS_OPT_BACK
     };
 
@@ -43835,95 +45145,74 @@ void menu_options_system()
     int selector = 0;
     int col1 = -11;
     int col2 = col1+14;
-    int ex_labels = 0;
-    int RET = SYS_OPT_BACK-1;
-
-#if PSP
-    int dir = 0;
-    int batteryPercentage = 0;
-    int batteryLifeTime = 0;
-    int externalPower = 0;
-#endif
+    int RET = SYS_OPT_BACK;
+    int line = 0;
 
     screen_status |= IN_SCREEN_SYSTEM_OPTIONS_MENU;
     bothnewkeys = 0;
-    if (nodebugoptions) ex_labels = 1;
-    RET -= ex_labels;
 
     while(!quit)
     {
+        line = 0;
+
         _menutextm(2, SYS_OPT_Y_POS-2, 0, Tr("System Options"));
 
-        _menutext(0, col1, SYS_OPT_Y_POS, Tr("Total RAM:"));
-        _menutext(0, col2, SYS_OPT_Y_POS, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
+        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Total RAM:"));
+        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getSystemRam(KBYTES)));
+        line++;
+        
+        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Used RAM:"));
+        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
+        line++;
 
-        _menutext(0, col1, SYS_OPT_Y_POS+1, Tr("Used RAM:"));
-        _menutext(0, col2, SYS_OPT_Y_POS+1, Tr("%s KB"), commaprint(getUsedRam(KBYTES)));
+        _menutext(0, col1, SYS_OPT_Y_POS + line, Tr("Max Players:"));
+        _menutext(0, col2, SYS_OPT_Y_POS + line, Tr("%i"), levelsets[current_set].maxplayers);
+        line++;
 
-        _menutext(0, col1, SYS_OPT_Y_POS+2, Tr("Max Players:"));
-        _menutext(0, col2, SYS_OPT_Y_POS+2, Tr("%i"), levelsets[current_set].maxplayers);
+        _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS + line, Tr("File Logging:"));
+        _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS + line, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
+        line++;
 
-        _menutext((selector == SYS_OPT_LOG), col1, SYS_OPT_Y_POS+4, Tr("File Logging:"));
-        _menutext((selector == SYS_OPT_LOG), col2, SYS_OPT_Y_POS+4, (savedata.uselog ? Tr("Enabled") : Tr("Disabled")));
-
-        _menutext((selector == SYS_OPT_VSDAMAGE), col1, SYS_OPT_Y_POS+5, Tr("Versus Damage:"), 0);
+        _menutext((selector == SYS_OPT_VSDAMAGE), col1, SYS_OPT_Y_POS + line, Tr("Versus Damage:"), 0);
         if(versusdamage == 0)
         {
-            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Disabled by Module"));
+            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Disabled by Module"));
         }
         else if(versusdamage == 1)
         {
-            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Enabled by Module"));
+            _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Enabled by Module"));
         }
         else
         {
             if(savedata.mode)
             {
-                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
+                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Disabled"));    //Mode 1 - Players CAN'T attack each other
             }
             else
             {
-                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS+5, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
+                _menutext((selector == SYS_OPT_VSDAMAGE), col2, SYS_OPT_Y_POS + line, Tr("Enabled"));    //Mode 2 - Players CAN attack each other
             }
         }
-
-        _menutext((selector == SYS_OPT_CHEATS), col1, SYS_OPT_Y_POS+6, Tr("Cheats:"));
-        _menutext((selector == SYS_OPT_CHEATS), col2, SYS_OPT_Y_POS+6, forcecheatsoff ? Tr("Disabled by Module") : (cheats ? Tr("On") : Tr("Off")));
-        if(!nodebugoptions) _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS+7, Tr("Debug Settings..."));
-
-#ifndef DC
-
-        _menutext((selector == SYS_OPT_CONFIG-ex_labels), col1, SYS_OPT_Y_POS+8-ex_labels, Tr("Config Settings..."));
-
-#endif
-
-#if PSP
-        externalPower = scePowerIsPowerOnline();
-        _menutext((selector == SYS_OPT_PSP_CPUSPEED), col1, 4-ex_labels, Tr("CPU Speed:"));
-        _menutext((selector == SYS_OPT_PSP_CPUSPEED), col2, 4-ex_labels, "%d MHz", scePowerGetCpuClockFrequency());
-        if(!externalPower)
+        line++;
+                    
+        if (global_config.cheats & CHEAT_OPTIONS_MASTER_MENU)
         {
-            batteryPercentage = scePowerGetBatteryLifePercent();
-            batteryLifeTime = scePowerGetBatteryLifeTime();
-            _menutext(0, col1, 5-ex_labels, Tr("Battery:"));
-            if(batteryPercentage < 0 || batteryLifeTime < 0)
-            {
-                _menutext(0, col2, 5-ex_labels, Tr("Calculating..."));
-            }
-            else
-            {
-                _menutext(0, col2, 5-ex_labels, "%d%% - %02d:%02d", batteryPercentage, batteryLifeTime / 60, batteryLifeTime - (batteryLifeTime / 60 * 60));
-            }
+            _menutext((selector == SYS_OPT_CHEATS), col1, SYS_OPT_Y_POS + line, Tr("Cheat Options..."));
+            line++;
         }
-        else
-        {
-            _menutext(0, col1, 5-ex_labels, Tr("Charging:"));
-            _menutext(0, col2, 5-ex_labels, Tr("%d%% AC Power"), scePowerGetBatteryLifePercent());
-        }
-        RET = 6-ex_labels;
-#endif
 
-        _menutextm((selector == RET), SYS_OPT_Y_POS+11-ex_labels, 0, Tr("Back"));
+        if (!nodebugoptions)
+        {
+            _menutext((selector == SYS_OPT_DEBUG), col1, SYS_OPT_Y_POS + line, Tr("Debug Settings..."));
+            line++;
+        }
+
+        _menutext((selector == SYS_OPT_CONFIG), col1, SYS_OPT_Y_POS + line, Tr("Config Settings..."));
+
+        /* Extra lines for spacing. */
+        line += 2;
+
+        _menutextm((selector == RET), SYS_OPT_Y_POS + line, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -43931,15 +45220,43 @@ void menu_options_system()
         {
             quit = 1;
         }
+
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+
+            /* Skip disabled items. */
+
+            if (selector == SYS_OPT_CHEATS && !(global_config.cheats & CHEAT_OPTIONS_MASTER_MENU))
+            {
+                --selector;
+            }
+
+            if (selector == SYS_OPT_DEBUG && nodebugoptions)
+            {
+                --selector;
+            }
+
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
+
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+
+            /* Skip disabled items. */
+
+            if (selector == SYS_OPT_CHEATS && !(global_config.cheats & CHEAT_OPTIONS_MASTER_MENU))
+            {
+                ++selector;
+            }
+
+            if (selector == SYS_OPT_DEBUG && nodebugoptions)
+            {
+                ++selector;
+            }                        
+
+            sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
         if(selector < 0)
@@ -43953,20 +45270,7 @@ void menu_options_system()
 
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
-
-#if PSP
-            dir = 0;
-            if(bothnewkeys & FLAG_MOVELEFT)
-            {
-                dir = -1;
-            }
-            else if(bothnewkeys & FLAG_MOVERIGHT)
-            {
-                dir = 1;
-            }
-#endif
-
-            sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
                  if (selector==RET) quit = 1;
             else if (selector==SYS_OPT_LOG) savedata.uselog =  !savedata.uselog;
@@ -43984,39 +45288,12 @@ void menu_options_system()
                     }
                 }
             }
-            else if (selector==SYS_OPT_CHEATS) cheats = !cheats;
-            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
-#ifndef DC
-            else if (selector==SYS_OPT_CONFIG-ex_labels) menu_options_config();
-#endif
-
-#ifdef PSP
-            else if (selector==SYS_OPT_PSP_CPUSPEED-ex_labels)
-            {
-                savedata.pspcpuspeed += dir;
-                if(savedata.pspcpuspeed < 0)
-                {
-                    savedata.pspcpuspeed = 2;
-                }
-                if(savedata.pspcpuspeed > 2)
-                {
-                    savedata.pspcpuspeed = 0;
-                }
-
-                switch(savedata.pspcpuspeed)
-                {
-                case 0:
-                    scePowerSetClockFrequency(222, 222, 111);
-                    break;
-                case 1:
-                    scePowerSetClockFrequency(266, 266, 133);
-                    break;
-                case 2:
-                    scePowerSetClockFrequency(333, 333, 166);
-                    break;
-                }
+            else if (selector == SYS_OPT_CHEATS)
+            {                
+                menu_options_cheats();   
             }
-#endif
+            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
+            else if (selector==SYS_OPT_CONFIG) menu_options_config();
             else quit = 1;
         }
     }
@@ -44187,17 +45464,17 @@ void menu_options_video()
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
@@ -44213,9 +45490,9 @@ void menu_options_video()
                 dir = 1;
             }
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
@@ -44446,60 +45723,34 @@ void menu_options_video()
 
 void menu_options()
 {
-    #define TOT_CHEATS          4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
     #define OPT_Y_POS          -1
     #define OPT_X_POS          -7
-    #define CHEAT_PAUSE_POSY    4 // Kratus (20-04-21) increase +1 line to the multihit glitch option
-
+    
     typedef enum {
         VIDEO_OPTION,
         SOUND_OPTION,
         CONTROL_OPTION,
         SYSTEM_OPTION,
 
-        LIVES_CHEAT,
-        CREDITS_CHEAT,
-        HEALTH_CHEAT,
-        MULTIHIT_CHEAT, // Kratus (20-04-21) add the multihit glitch option
-
         END_OPTION
     } e_selector;
 
     int quit = 0;
     int y_offset = OPT_Y_POS;
-    int BACK_OPTION = END_OPTION-TOT_CHEATS;
-    int cheat_opt_offset = 0;
+    int BACK_OPTION = END_OPTION;
     e_selector selector = VIDEO_OPTION;
 
     screen_status |= IN_SCREEN_OPTIONS_MENU;
-    bothnewkeys = 0;
-
-    if (cheats && !forcecheatsoff)
-    {
-        if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
-        y_offset -= TOT_CHEATS;
-        cheat_opt_offset += 1;
-        BACK_OPTION += TOT_CHEATS;
-    }
+    bothnewkeys = 0;    
 
     while(!quit)
-    {
-        if (!cheats || forcecheatsoff) _menutextm(2, y_offset-1, 0, Tr("Options")); else _menutextm(2, y_offset-1, 0, Tr("Cheat Options"));
-
+    {        
         _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
         _menutextm((selector == SOUND_OPTION), y_offset+SOUND_OPTION, 0, Tr("Sound Options..."));
         _menutextm((selector == CONTROL_OPTION), y_offset+CONTROL_OPTION, 0, Tr("Control Options..."));
         _menutextm((selector == SYSTEM_OPTION), y_offset+SYSTEM_OPTION, 0, Tr("System Options..."));
-
-        if (cheats && !forcecheatsoff)
-        {
-            _menutext((selector == LIVES_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+LIVES_CHEAT, (livescheat)?Tr("Infinite Lives On"):Tr("Infinite Lives Off"));
-            _menutext((selector == CREDITS_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+CREDITS_CHEAT, (creditscheat)?Tr("Infinite Credits On"):Tr("Infinite Credits Off"));    // Enemies fall/don't fall down when you respawn
-            _menutext((selector == HEALTH_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+HEALTH_CHEAT, (healthcheat)?Tr("Infinite Health On"):Tr("Infinite Health Off"));    // Enemies fall/don't down when you respawn
-            _menutext((selector == MULTIHIT_CHEAT), OPT_X_POS, y_offset+cheat_opt_offset+MULTIHIT_CHEAT, (multihitcheat)?Tr("Multihit Glitch On"):Tr("Multihit Glitch Off"));    // Kratus (20-04-21) change the multihit glitch option on/off
-        }
-
-        _menutextm((selector == BACK_OPTION), y_offset+cheat_opt_offset+BACK_OPTION+2, 0, Tr("Back"));
+               
+        _menutextm((selector == BACK_OPTION), y_offset+BACK_OPTION+2, 0, Tr("Back"));
 
         update((level != NULL), 0);
 
@@ -44515,9 +45766,9 @@ void menu_options()
             }
             else --selector;
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & FLAG_MOVEDOWN)
@@ -44528,45 +45779,29 @@ void menu_options()
                 selector = VIDEO_OPTION;
             }
 
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
                 if(selector==BACK_OPTION) quit = 1;
-           else if(selector==VIDEO_OPTION) menu_options_video();
-           else if(selector==SOUND_OPTION) menu_options_sound();
-           else if(selector==CONTROL_OPTION) menu_options_input();
-           else if(selector==SYSTEM_OPTION)
-           {
-                menu_options_system();
-                if (cheats && !forcecheatsoff)
-                {
-                    y_offset = OPT_Y_POS-TOT_CHEATS;
-                    if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
-                    cheat_opt_offset = 1;
-                    BACK_OPTION = END_OPTION-TOT_CHEATS+TOT_CHEATS;
-                }
-                else
-                {
-                    y_offset = OPT_Y_POS;
-                    cheat_opt_offset = 0;
-                    BACK_OPTION = END_OPTION-TOT_CHEATS;
-                }
-           }
-           else if(selector==LIVES_CHEAT) livescheat = !livescheat;
-           else if(selector==CREDITS_CHEAT) creditscheat = !creditscheat;
-           else if(selector==HEALTH_CHEAT) healthcheat = !healthcheat;
-           else if(selector==MULTIHIT_CHEAT) multihitcheat = !multihitcheat; // Kratus (20-04-21) selector for the multihit glitch option
-           else quit = 1;
+            else if(selector==VIDEO_OPTION) menu_options_video();
+            else if(selector==SOUND_OPTION) menu_options_sound();
+            else if(selector==CONTROL_OPTION) menu_options_input();
+            else if(selector==SYSTEM_OPTION)
+            {
+                menu_options_system();                
+            }
+            
+            else quit = 1;
         }
     }
     savesettings();
@@ -44739,24 +45974,24 @@ void openborMain(int argc, char **argv)
             if(bothnewkeys & FLAG_MOVEUP)
             {
                 --selector;
-                if(SAMPLE_BEEP >= 0)
+                if(global_sample_list.beep >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
             }
             if(bothnewkeys & FLAG_MOVEDOWN)
             {
                 ++selector;
-                if(SAMPLE_BEEP >= 0)
+                if(global_sample_list.beep >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
             }
             if(bothnewkeys & (FLAG_ANYBUTTON))
             {
-                if(SAMPLE_BEEP2 >= 0)
+                if(global_sample_list.beep_2 >= 0)
                 {
-                    sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
                 switch(selector)
                 {
@@ -44859,38 +46094,6 @@ void openborMain(int argc, char **argv)
         update(0, 0);
     }
     borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
-}
-
-int is_cheat_actived()
-{
-    if(!cheats)
-    {
-        return 0;
-    }
-    else
-    {
-        if(!forcecheatsoff)
-        {
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-}
-
-// Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
-int is_healthcheat_actived()
-{
-    if(!healthcheat)
-    {
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
 }
 
 #undef GET_ARG

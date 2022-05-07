@@ -964,7 +964,6 @@ HRESULT system_string_to_int(ScriptVariant** varlist, ScriptVariant** pretvar, i
 
 // check openborscript.h for systemvariant_enum
 // Kratus (10-2021) Now the "noaircancel" function is accessible/editable by script using "openborvariant"
-// Kratus (10-2021) Now the "healthcheat" option is accessible/readable by script using "openborvariant"
 // arranged list, for searching
 static const char *svlist[] =
 {
@@ -972,7 +971,6 @@ static const char *svlist[] =
     "blockade",
     "bossescount",
     "branchname",
-    "cheats",
     "count_enemies",
     "count_entities",
     "count_npcs",
@@ -996,7 +994,22 @@ static const char *svlist[] =
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
-    "healthcheat",
+    "global_config_cheats",
+    "global_sample_beat",
+    "global_sample_beep",
+    "global_sample_beep_2",
+    "global_sample_bike",
+    "global_sample_block",
+    "global_sample_fall",
+    "global_sample_get",
+    "global_sample_get_2",
+    "global_sample_go",
+    "global_sample_indirect",
+    "global_sample_jump",
+    "global_sample_one_up",
+    "global_sample_pause",
+    "global_sample_punch",
+    "global_sample_time_over",
     "hresolution",
     "in_cheat_options",
     "in_control_options",
@@ -3455,7 +3468,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_animal:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.animal;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.weapon_properties.weapon_state & WEAPON_STATE_ANIMAL);
         break;
     }
     case _ep_animating:
@@ -3546,8 +3559,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_antigrab:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->modeldata.antigrab;
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = (LONG)ent->modeldata.grab_resistance;
         break;
     }
     case _ep_antigravity:
@@ -3643,7 +3656,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_bound:
     {
         ScriptVariant_ChangeType(*pretvar, VT_PTR);
-        (*pretvar)->ptrVal = (VOID *)ent->binding.ent;
+        (*pretvar)->ptrVal = (VOID *)ent->binding.target;
         break;
     }
     case _ep_bind:
@@ -4120,7 +4133,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_grabforce:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.grabforce;
+        (*pretvar)->lVal = (LONG)ent->modeldata.grab_force;
         break;
     }
     case _ep_guardpoints:
@@ -4307,13 +4320,14 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_jumpmovex:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovex;
+                
+        (*pretvar)->lVal = (e_air_control_legacy_x)air_control_interpret_to_legacy_jumpmove_x(ent->modeldata.air_control);
         break;
     }
     case _ep_jumpmovez:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jumpmovez;
+        (*pretvar)->lVal = (e_air_control_legacy_z)air_control_interpret_to_legacy_jumpmove_z(ent->modeldata.air_control);
         break;
     }
     case _ep_jumpspecial:
@@ -5303,13 +5317,17 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_walkoffmovex:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.walkoffmovex;
+
+        (*pretvar)->lVal = (e_air_control_legacy_x)air_control_interpret_to_legacy_walkoffmove_x(ent->modeldata.air_control);
+
         break;
     }
     case _ep_walkoffmovez:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.walkoffmovez;
+
+        (*pretvar)->lVal = (e_air_control_legacy_x)air_control_interpret_to_legacy_walkoffmove_z(ent->modeldata.air_control);
+
         break;
     }
     case _ep_weapent:
@@ -5321,13 +5339,13 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_numweapons:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.numweapons;
+        (*pretvar)->lVal = (LONG)ent->modeldata.weapon_properties.weapon_count;
         break;
     }
     case _ep_weapnum:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.weapnum;
+        (*pretvar)->lVal = (LONG)ent->modeldata.weapon_properties.weapon_index;
         break;
     }
     case _ep_weaploss:
@@ -5342,10 +5360,10 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
                 return E_FAIL;
             }
 
-            if (ltemp == 0) (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[0];
-            else (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[1];
+            if (ltemp == 0) (*pretvar)->lVal = (e_weapon_loss_condition_legacy)weapon_loss_condition_interpret_to_legacy(ent->modeldata.weapon_properties.loss_condition);
+            else (*pretvar)->lVal = (LONG)ent->modeldata.weapon_properties.loss_index;
         }
-        else (*pretvar)->lVal = (LONG)ent->modeldata.weaploss[0];
+        else (*pretvar)->lVal = (e_weapon_loss_condition_legacy)weapon_loss_condition_interpret_to_legacy(ent->modeldata.weapon_properties.loss_condition);
 
         break;
     }
@@ -5644,7 +5662,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.antigrab = (LONG)ltemp;
+            ent->modeldata.grab_resistance = (LONG)ltemp;
         }
         break;
     }
@@ -6130,7 +6148,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.grabforce = (LONG)ltemp;
+            ent->modeldata.grab_force = (LONG)ltemp;
         }
         break;
     }
@@ -6282,7 +6300,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jumpmovex = (LONG)ltemp;
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_jumpmove_x(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -6290,7 +6308,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jumpmovez = (LONG)ltemp; // Kratus (10-2021) Fixed the wrong jumpmove reference from x to z
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_jumpmove_x(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -7402,8 +7420,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     case _ep_walkoffmovex:
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
-        {
-            ent->modeldata.walkoffmovex = (LONG)ltemp;
+        {            
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_walkoffmove_x(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -7411,7 +7429,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.walkoffmovez = (LONG)ltemp;
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_walkoffmove_z(ent->modeldata.air_control, ltemp);
         }
         break;
     }
@@ -7419,7 +7437,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.weapnum = (LONG)ltemp;
+            ent->modeldata.weapon_properties.weapon_index = (LONG)ltemp;
         }
         break;
     }
@@ -7427,7 +7445,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.weaploss[0] = (LONG)ltemp;
+            ent->modeldata.weapon_properties.loss_condition = (e_weapon_loss_condition)weapon_loss_condition_interpret_from_legacy_weaploss(WEAPON_LOSS_CONDITION_NONE, ltemp);
         }
 
         if(paramCount >= 4)
@@ -7438,7 +7456,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 *pretvar = NULL;
                 return E_FAIL;
             }
-            ent->modeldata.weaploss[1] = (LONG)ltemp2;
+            ent->modeldata.weapon_properties.loss_index = (LONG)ltemp2;
         }
         break;
     }
@@ -7755,7 +7773,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
            break;
         }
 
-        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->numweapons;
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->weapon_properties.weapon_count;
         break;
     }
     case _pp_joining:
@@ -8296,11 +8314,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_in_cheat_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = (screen_status & IN_SCREEN_OPTIONS_MENU && is_cheat_actived()) ? 1:0;
-        break;
-    case _sv_cheats:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = is_cheat_actived();
+        var->lVal = (screen_status & IN_SCREEN_CHEAT_OPTIONS_MENU);
         break;
     case _sv_in_control_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8436,6 +8450,87 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = gfx_y_offset_adj;
         break;
+
+    case _sv_global_config_cheats:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_config.cheats;
+        break;
+
+    case _sv_global_sample_beat:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.beat;
+        break;
+
+    case _sv_global_sample_beep:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.beep;
+        break;
+
+    case _sv_global_sample_beep_2:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.beep_2;
+        break;
+
+    case _sv_global_sample_bike:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.bike;
+        break;
+
+    case _sv_global_sample_block:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.block;
+        break;
+
+    case _sv_global_sample_fall:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.fall;
+        break;
+
+    case _sv_global_sample_get:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.get;
+        break;
+
+    case _sv_global_sample_get_2:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.get_2;
+        break;
+
+    case _sv_global_sample_go:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.go;
+        break;
+
+    case _sv_global_sample_indirect:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.indirect;
+        break;
+
+    case _sv_global_sample_jump:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.jump;
+        break;
+
+    case _sv_global_sample_one_up:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.one_up;
+        break;
+
+    case _sv_global_sample_pause:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.pause;
+        break;
+
+    case _sv_global_sample_punch:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.punch;
+        break;
+
+    case _sv_global_sample_time_over:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = global_sample_list.time_over;
+        break;
+
     case _sv_in_selectscreen:
         
         ScriptVariant_ChangeType(var, VT_INTEGER);
@@ -8497,11 +8592,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         }
         ScriptVariant_ChangeType(var, VT_DECIMAL);
         var->dblVal = advancey;
-        break;
-    case _sv_healthcheat:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = is_healthcheat_actived();
-        break;
+        break;    
     case _sv_hresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videomodes.hRes;
@@ -8886,6 +8977,119 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             gfx_y_offset_adj = (LONG)ltemp;
         }
         break;
+
+    case _sv_global_config_cheats:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_config.cheats = (e_cheat_options)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_beat:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.beat = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_beep:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.beep = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_beep_2:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.beep_2 = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_bike:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.bike = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_block:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.block = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_fall:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.fall = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_get:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.get = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_get_2:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.get_2 = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_go:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.go = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_indirect:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.indirect = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_jump:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.jump = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_one_up:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.one_up = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_pause:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.pause = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_punch:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.punch = (LONG)ltemp;
+        }
+        break;
+
+    case _sv_global_sample_time_over:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            global_sample_list.time_over = (LONG)ltemp;
+        }
+        break;
+
     case _sv_levelpos:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
@@ -12910,7 +13114,7 @@ jumptobranch_error:
     return E_FAIL;
 }
 
-//bindentity(entity, target, x, z, a, direction, binding.matching);
+//bindentity(entity, target, x, z, y, direction, config);
 //bindentity(entity, NULL()); // unbind
 HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -12932,24 +13136,25 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         return S_OK;
     }
 
+    /* Start off with a clean slate for config. */
+    ent->binding.config = BIND_CONFIG_NONE;
+
     other = (entity *)(varlist[1])->ptrVal;
     if(!other)
     {
-        ent->binding.ent = NULL;
-        ent->binding.positioning.x = 0;
-        ent->binding.positioning.z = 0;
-        ent->binding.positioning.y = 0;
+        ent->binding.target = NULL;     
         return S_OK;
     }
 
-    ent->binding.ent = other;
+    ent->binding.target = other;
     ent->binding.sortid = sortid;
 
     if(paramCount < 3)
     {
         goto BIND;
     }
-    // x
+    
+    // X
     arg = varlist[2];
     if(arg->vt != VT_EMPTY)
     {
@@ -12959,13 +13164,16 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         }
 
         ent->binding.offset.x = (int)x;
-        ent->binding.positioning.x = 1;
-    } else ent->binding.positioning.x = 0;
+        ent->binding.config |= BIND_CONFIG_AXIS_X_TARGET;
+    }
+
+
     if(paramCount < 4)
     {
         goto BIND;
     }
-    // z
+    
+    // Z
     arg = varlist[3];
     if(arg->vt != VT_EMPTY)
     {
@@ -12974,13 +13182,15 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.z = (int)z;
-        ent->binding.positioning.z = 1;
-    } else ent->binding.positioning.z = 0;
+        ent->binding.config |= BIND_CONFIG_AXIS_Z_TARGET;
+    }
+    
     if(paramCount < 5)
     {
         goto BIND;
     }
-    // a
+    
+    // Y (a)
     arg = varlist[4];
     if(arg->vt != VT_EMPTY)
     {
@@ -12989,12 +13199,14 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.y = (int)a;
-        ent->binding.positioning.y = 1;
-    } else ent->binding.positioning.y = 0;
+        ent->binding.config = BIND_CONFIG_AXIS_Y_TARGET;
+    }
+
     if(paramCount < 6)
     {
         goto BIND;
     }
+    
     // direction
     arg = varlist[5];
     if(arg->vt != VT_EMPTY)
@@ -13003,12 +13215,14 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->binding.direction = (int)dir;
+        ent->binding.direction_adjust = (e_direction_adjust)dir;
     }
+
     if(paramCount < 7)
     {
         goto BIND;
     }
+    
     // animation
     arg = varlist[6];
     if(arg->vt != VT_EMPTY)
@@ -13017,12 +13231,19 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         {
             return E_FAIL;
         }
-        ent->binding.match = (int)anim;
+
+        /* 
+        * For legacy compatability, we add anim value
+        * to config instead of direct assignment.
+        */
+        ent->binding.config += (e_bind_config)anim;        
     }
+
     if(paramCount < 8)
     {
         goto BIND;
     }
+    
     // sortid
     arg = varlist[7];
     if(arg->vt != VT_EMPTY)

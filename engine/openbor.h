@@ -136,26 +136,29 @@ movement restirctions are here!
 * 2022-04-19
 * 
 * Screen status flags.
+* Kratus (04-2022) Added the "showgo" event accessible by script
 */
 typedef enum
 {
     IN_SCREEN_NONE                  = 0,
     IN_SCREEN_BUTTON_CONFIG_MENU    = (1 << 0),
-    IN_SCREEN_CONTROL_OPTIONS_MENU  = (1 << 1),
-    IN_SCREEN_ENGINE_CREDIT         = (1 << 2),
-    IN_SCREEN_GAME_OVER             = (1 << 3),
-    IN_SCREEN_GAME_START_MENU       = (1 << 4),
-    IN_SCREEN_HALL_OF_FAME          = (1 << 5),
-    IN_SCREEN_LOAD_GAME_MENU        = (1 << 6),
-    IN_SCREEN_MENU                  = (1 << 7),
-    IN_SCREEN_NEW_GAME_MENU         = (1 << 8),    
-    IN_SCREEN_OPTIONS_MENU          = (1 << 9),    
-    IN_SCREEN_SELECT                = (1 << 10),
-    IN_SCREEN_SHOW_COMPLETE         = (1 << 11),
-    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 12),
-    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 13),
-    IN_SCREEN_TITLE                 = (1 << 14),
-    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 15)
+    IN_SCREEN_CHEAT_OPTIONS_MENU    = (1 << 1),
+    IN_SCREEN_CONTROL_OPTIONS_MENU  = (1 << 2),
+    IN_SCREEN_ENGINE_CREDIT         = (1 << 3),
+    IN_SCREEN_GAME_OVER             = (1 << 4),
+    IN_SCREEN_GAME_START_MENU       = (1 << 5),
+    IN_SCREEN_HALL_OF_FAME          = (1 << 6),
+    IN_SCREEN_LOAD_GAME_MENU        = (1 << 7),
+    IN_SCREEN_MENU                  = (1 << 8),
+    IN_SCREEN_NEW_GAME_MENU         = (1 << 9),
+    IN_SCREEN_OPTIONS_MENU          = (1 << 10),
+    IN_SCREEN_SELECT                = (1 << 11),
+    IN_SCREEN_SHOW_COMPLETE         = (1 << 12),
+    IN_SCREEN_SHOW_GO_ARROW         = (1 << 13),
+    IN_SCREEN_SOUND_OPTIONS_MENU    = (1 << 14),
+    IN_SCREEN_SYSTEM_OPTIONS_MENU   = (1 << 15),
+    IN_SCREEN_TITLE                 = (1 << 16),
+    IN_SCREEN_VIDEO_OPTIONS_MENU    = (1 << 17)
 } e_screen_status;
 
 // Caskey, Damon V.
@@ -1257,44 +1260,36 @@ typedef enum
 
 typedef enum
 {
-    // These must be kept in the current order
-    // to ensure backward compatibility with
-    // modules that used magic numbers before
-    // constants were available.
-	BIND_ANIMATION_NONE				= 0,
-    BIND_ANIMATION_TARGET			= (1 << 0),
-    BIND_ANIMATION_FRAME_TARGET		= (1 << 1),
-    BIND_ANIMATION_REMOVE			= (1 << 2),
-    BIND_ANIMATION_FRAME_REMOVE		= (1 << 3),
+    BIND_CONFIG_NONE = 0,
 
-	// Following were added post constant availablity, so
-	// order does not matter.
+    /* 
+    * These must be kept in the current order
+    * to ensure legacy compatibility with
+    * modules that used magic numbers before
+    * constants were available.
+	*/
+    BIND_CONFIG_ANIMATION_TARGET			= (1 << 0),
+    BIND_CONFIG_ANIMATION_FRAME_TARGET		= (1 << 1),
+    BIND_CONFIG_ANIMATION_REMOVE			= (1 << 2),
+    BIND_CONFIG_ANIMATION_FRAME_REMOVE		= (1 << 3),
 
-    BIND_ANIMATION_DEFINED			= (1 << 4),
-    BIND_ANIMATION_FRAME_DEFINED	= (1 << 5)
-} e_bind_animation_match;
+	/* End legacy order. */
 
-typedef enum
-{
-    // These must be kept in the current order
-    // to ensure backward compatibility with
-    // modules that used magic numbers before
-    // constants were available.
+    BIND_CONFIG_ANIMATION_DEFINED			= (1 << 4),
+    BIND_CONFIG_ANIMATION_FRAME_DEFINED	    = (1 << 5),
+    BIND_CONFIG_AXIS_X_LEVEL                = (1 << 6),
+    BIND_CONFIG_AXIS_X_TARGET               = (1 << 7),
+    BIND_CONFIG_AXIS_Y_LEVEL                = (1 << 8),
+    BIND_CONFIG_AXIS_Y_TARGET               = (1 << 9),
+    BIND_CONFIG_AXIS_Z_LEVEL                = (1 << 10),
+    BIND_CONFIG_AXIS_Z_TARGET               = (1 << 11),
+    BIND_CONFIG_OVERRIDE_FALL_LAND          = (1 << 12),
+    BIND_CONFIG_OVERRIDE_DROPFRAME          = (1 << 13),
+    BIND_CONFIG_OVERRIDE_LANDFRAME          = (1 << 14),
+    BIND_CONFIG_OVERRIDE_SPECIAL_AI         = (1 << 15),
+    BIND_CONFIG_OVERRIDE_SPECIAL_PLAYER     = (1 << 16)
 
-    BIND_MODE_NONE		= 0,
-    BIND_MODE_TARGET	= (1 << 0),
-    BIND_MODE_LEVEL		= (1 << 1)
-} e_bind_mode;
-
-typedef enum
-{
-    BIND_OVERRIDE_NONE				= 0,
-    BIND_OVERRIDE_FALL_LAND			= (1 << 0),
-	BIND_OVERRIDE_FRAME_SET_DROP	= (1 << 1),
-    BIND_OVERRIDE_FRAME_SET_LAND	= (1 << 2),
-    BIND_OVERRIDE_SPECIAL_AI		= (1 << 3),
-    BIND_OVERRIDE_SPECIAL_PLAYER	= (1 << 4)
-} e_bind_override;
+} e_bind_config;
 
 typedef enum e_move_constraint
 {
@@ -1635,25 +1630,11 @@ typedef enum
     SLOW_MOTION_ON
 } e_slow_motion_enable;
 
-typedef enum
-{
-    /*
-    Weapon loss type enum.
-    Damon V. Caskey
-    2013-12-29
-    */
-
-    WEAPLOSS_TYPE_ANY,         //Weapon lost taking any hit.
-    WEAPLOSS_TYPE_KNOCKDOWN,   //Weapon lost on knockdown.
-    WEAPLOSS_TYPE_DEATH,       //Weapon lost on death.
-    WEAPLOSS_TYPE_CHANGE       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
-} e_weaploss_type;
-
 //macros for drawing menu text, fits different font size
-#define _strmidx(f,s, args...) ((videomodes.hRes-font_string_width((f), s, ##args))/2)
+#define _strmidx(font, s, args...) ((videomodes.hRes-font_string_width((font), s, ##args))/2)
 #define _colx(f,c) ((int)(videomodes.hRes/2+(c)*(fontmonowidth((f))+1)))
-#define _liney(f,l) ((int)(videomodes.vRes/2+(l)*(fontheight((f))+1)))
-#define _menutextm(f, l, shift, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1)), _liney(f,l), (f), 0, s, ##args)
+#define _liney(f,line) ((int)(videomodes.vRes/2+(line)*(fontheight((f))+1)))
+#define _menutextm(font, line, shift, string, args...) font_printf(_strmidx(font,string, ##args)+(int)((shift)*(fontmonowidth((font))+1)), _liney(font,line), (font), 0, string, ##args)
 #define _menutextmshift(f, l, shift, shiftx, shifty, s, args...) font_printf(_strmidx(f,s, ##args)+(int)((shift)*(fontmonowidth((f))+1))+shiftx, _liney(f,l)+shifty, (f), 0, s, ##args)
 #define _menutext(f, c, l, s, args...) font_printf(_colx(f,c), _liney(f,l), (f), 0, s, ##args)
 #define _menutextshift(f, c, l, shiftx, shifty, s, args...) font_printf(_colx(f,c)+shiftx, _liney(f,l)+shifty, (f), 0, s, ##args)
@@ -1725,6 +1706,73 @@ if(n<1) n = 1;
 //#define     MAX_MOVE_STEPS        16
 
 #pragma pack(4)
+
+ /*
+ * Caskey, Damon V.
+ * 2022-05-04
+ *
+ * Cheat options available through menu.
+ */
+typedef enum e_cheat_options
+{
+    CHEAT_OPTIONS_NONE = 0,
+    CHEAT_OPTIONS_CREDITS_ACTIVE = (1 << 0),
+    CHEAT_OPTIONS_CREDITS_MENU = (1 << 1),
+    CHEAT_OPTIONS_ENERGY_ACTIVE = (1 << 2),
+    CHEAT_OPTIONS_ENERGY_MENU = (1 << 3),
+    CHEAT_OPTIONS_HEALTH_ACTIVE = (1 << 4),
+    CHEAT_OPTIONS_HEALTH_MENU = (1 << 5),
+    CHEAT_OPTIONS_MASTER_MENU = (1 << 6),
+    CHEAT_OPTIONS_LIVES_ACTIVE = (1 << 7),
+    CHEAT_OPTIONS_LIVES_MENU = (1 << 8),
+    CHEAT_OPTIONS_MULTIHIT_ACTIVE = (1 << 9),
+    CHEAT_OPTIONS_MULTIHIT_MENU = (1 << 10),
+    CHEAT_OPTIONS_TOD_ACTIVE = (1 << 11),
+    CHEAT_OPTIONS_TOD_MENU = (1 << 12),
+
+    CHEAT_OPTIONS_ALL_MENU = (CHEAT_OPTIONS_MASTER_MENU | CHEAT_OPTIONS_CREDITS_MENU | CHEAT_OPTIONS_ENERGY_MENU | CHEAT_OPTIONS_HEALTH_MENU | CHEAT_OPTIONS_LIVES_MENU | CHEAT_OPTIONS_MULTIHIT_MENU)
+
+} e_cheat_options;
+
+/*
+* Caskey, Damon V.
+* 2022-05-03
+*
+* Miscellaneous settings and game 
+* options we don’t want to save 
+* between engines startups.
+*/
+typedef struct s_global_config
+{
+    e_cheat_options cheats;
+
+} s_global_config;
+
+/*
+* Caskey, Damon V.
+* 2022-05-03
+* 
+* Native hard coded sample IDs.
+*/
+typedef struct s_global_sample
+{    
+    int beat;
+    int beep;
+    int beep_2;
+    int bike;
+    int block;
+    int fall;
+    int get;
+    int get_2;
+    int go;
+    int indirect;
+    int jump;
+    int one_up;
+    int pause;
+    int punch;
+    int time_over;
+
+} s_global_sample;
 
 // Caskey, Damon V.
 // 2020-02-17
@@ -2575,6 +2623,71 @@ typedef struct
 #define NO_QUAKE 1  //do not make screen quake
 #define NO_QUAKEN 2  //do not quake with screen
 
+/*
+* Caskey, Damon V.
+* 2022-04-26
+* 
+* Player control options while jumping.
+*/
+
+#define AIR_CONTROL_STOP_FACTOR 0.95
+
+typedef enum e_air_control
+{
+    AIR_CONTROL_NONE                = 0,
+    AIR_CONTROL_JUMP_DISABLE        = (1 << 0),
+    AIR_CONTROL_JUMP_TURN           = (1 << 1),
+    AIR_CONTROL_JUMP_X_ADJUST       = (1 << 2),
+    AIR_CONTROL_JUMP_X_MOVE         = (1 << 3),
+    AIR_CONTROL_JUMP_X_STOP         = (1 << 4),
+    AIR_CONTROL_JUMP_Y_STOP         = (1 << 5),
+    AIR_CONTROL_JUMP_Z_ADJUST       = (1 << 6),
+    AIR_CONTROL_JUMP_Z_INITIAL      = (1 << 7),
+    AIR_CONTROL_JUMP_Z_MOVE         = (1 << 8),
+    AIR_CONTROL_JUMP_Z_STOP         = (1 << 9),
+    AIR_CONTROL_WALKOFF_TURN        = (1 << 10),
+    AIR_CONTROL_WALKOFF_X_ADJUST    = (1 << 11),
+    AIR_CONTROL_WALKOFF_X_MOVE      = (1 << 12),
+    AIR_CONTROL_WALKOFF_X_STOP      = (1 << 13),
+    AIR_CONTROL_WALKOFF_Z_ADJUST    = (1 << 14),
+    AIR_CONTROL_WALKOFF_Z_MOVE      = (1 << 15),
+    AIR_CONTROL_WALKOFF_Z_STOP      = (1 << 16)
+} e_air_control;
+
+/*
+* Caskey, Damon V.
+* 2022-04-26
+*
+* Used to interpret legacy air 
+* control text. Do not adjust 
+* these values or you will
+* break legacy compatability
+* for air control.
+*/
+typedef enum e_air_control_legacy_x
+{
+    // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+    AIR_CONTROL_LEGACY_X_NONE = 0,
+    AIR_CONTROL_LEGACY_X_FLIP = 1,
+    AIR_CONTROL_LEGACY_X_ADJUST = 2,          // Change velocity during horizontal jump.
+    AIR_CONTROL_LEGACY_X_ADJUST_AND_FLIP = 3, // Change velocity or flip during horizontal jump.
+    AIR_CONTROL_LEGACY_X_MOVE = 4,             // Change velocity during vertical jump.
+    AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP = 5,
+    AIR_CONTROL_LEGACY_X_MOVE_ALT = 6,
+    AIR_CONTROL_LEGACY_X_MOVE_AND_FLIP_ALT = 7
+
+} e_air_control_legacy_x;
+
+typedef enum e_air_control_legacy_z
+{
+    // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
+    AIR_CONTROL_LEGACY_Z_NONE = 0,
+    AIR_CONTROL_LEGACY_Z_MOMENTUM = 1,        // Keep walking momentum.
+    AIR_CONTROL_LEGACY_Z_ADJUST = 2,
+    AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_ADJUST = 3,
+    AIR_CONTROL_LEGACY_Z_MOMENTUM_AND_FLIP = 4
+} e_air_control_legacy_z;
+
 typedef struct
 {
     /*
@@ -2587,6 +2700,82 @@ typedef struct
     int jump_land;  //Jump landing.
     int jump_start; //Jump lift off.
 } s_dust;
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+* 
+* Properties for icon displayed
+* over player entity when spawned 
+* into game.
+*/
+typedef struct
+{
+    int sprite;
+    s_axis_plane_vertical_int position;
+} s_player_arrow;
+
+typedef enum
+{
+    /*
+    Weapon loss type enum.
+    Damon V. Caskey
+    2013-12-29
+    */
+
+    WEAPLOSS_TYPE_ANY,         //Weapon lost taking any hit.
+    WEAPLOSS_TYPE_KNOCKDOWN,   //Weapon lost on knockdown.
+    WEAPLOSS_TYPE_DEATH,       //Weapon lost on death.
+    WEAPLOSS_TYPE_CHANGE       //weapon is lost only when level ends or character is changed during continue. This depends on the level settings and whether players had weapons on start or not.
+} e_weapon_loss_condition_legacy;
+
+/*
+* Weapon loss conditions.
+*/
+typedef enum
+{
+    WEAPON_LOSS_CONDITION_NONE          = 0,
+    WEAPON_LOSS_CONDITION_DAMAGE        = (1 << 0),
+    WEAPON_LOSS_CONDITION_DEATH         = (1 << 1),
+    WEAPON_LOSS_CONDITION_FALL          = (1 << 2),
+    WEAPON_LOSS_CONDITION_GRABBED       = (1 << 3),
+    WEAPON_LOSS_CONDITION_GRABBING       = (1 << 4),
+    WEAPON_LOSS_CONDITION_LAND_DAMAGE   = (1 << 5),
+    WEAPON_LOSS_CONDITION_PAIN          = (1 << 6),
+    WEAPON_LOSS_CONDITION_STAGE         = (1 << 7),
+    WEAPON_LOSS_CONDITION_DEFAULT       = (WEAPON_LOSS_CONDITION_DAMAGE | WEAPON_LOSS_CONDITION_DEATH | WEAPON_LOSS_CONDITION_FALL | WEAPON_LOSS_CONDITION_GRABBED | WEAPON_LOSS_CONDITION_GRABBING | WEAPON_LOSS_CONDITION_LAND_DAMAGE | WEAPON_LOSS_CONDITION_PAIN)
+} e_weapon_loss_condition;
+
+typedef enum e_weapon_state
+{
+    WEAPON_STATE_NONE           = 0,    
+    WEAPON_STATE_ANIMAL         = (1 << 1), // Legacy "Animal". Behaviors to emulate ridable animals from Golden Axe.
+    WEAPON_STATE_DEDUCT_USE     = (1 << 2), // Limited item will deduct a use from count.
+    WEAPON_STATE_HAS_LIST       = (1 << 3), // Has a weapon list.
+    WEAPON_STATE_LIMITED_USE    = (1 << 4)  // Legacy "typeshot". Item is limited use with a remaining count shown in HUD.    
+} e_weapon_state;
+
+/*
+* Caskey, Damon V.
+* 2022-05-02
+* 
+* Properties for controlling 
+* weapon and weapon pickup behavior.
+*/
+typedef struct
+{
+    e_weapon_state weapon_state; // Booloean weapon behavior flags.
+
+    e_weapon_loss_condition loss_condition; // What events cause loss of weapon.
+    int loss_count; // Losses remaining before weapon is destroyed.
+    int loss_index; // If >0, switch to this weapon index when current weapon is lost.
+
+    unsigned use_count; // Uses (i.e. ammo) remaining for limited quantity weapon.
+    unsigned use_add; // Item adds this value to use_count if collector has limited use weapon.
+    int weapon_index; // Weapon list entry in use (or collector will use if this is an item).   
+    int* weapon_list; // Weapon model list.
+    int weapon_count; // Number of entries in weapon list.
+} s_weapon;
 
 typedef struct
 {
@@ -2602,12 +2791,9 @@ typedef struct
     //unsigned offscreenkillz;
     //unsigned offscreeenkila;
     int mp; // mp's variable for mpbar by tails
-    int counter; // counter of weapons by tails
-    unsigned shootnum; // counter of shots by tails
-    unsigned reload; // reload max shots by tails
-    int deduct_ammo; // Used for setting the "a" at which weapons are spawned
-    int typeshot; // see if weapon is a gun or knife by tails
-    int animal; // see is the weapon is a animal by tails
+    
+    
+    
     int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
     int makeinv; // Option to spawn player invincible >0 blink <0 noblink
     int riseinv; // how many seconds will the character become invincible after rise >0 blink, <0 noblink
@@ -2619,24 +2805,33 @@ typedef struct
     e_entity_type type;
     e_entity_type_sub subtype;
     s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
-    int parrow[MAX_PLAYERS][3]; // Image to be displayed when player spawns invincible
+
+    s_player_arrow player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
+    
     int setlayer; // Used for forcing enities to be displayed behind
-    int thold; // The entities threshold for block
+    
     s_maps maps; //2011_04_07, DC: Pre defined color map selections and behavior.
     int alpha; // New alpha variable to determine if the entity uses alpha transparency
     int toflip; // Flag to determine if flashes flip or not
+    
+    /* Shadows */
     int shadow;
     int gfxshadow; // use current frame to create a shadow
     int shadowbase;
     int aironly; // Used to determine if shadows will be shown when jumping only
+    
     int nomove; // Flag for static enemies
     int noflip; // Flag to determine if static enemies flip or stay facing the same direction
     int nodrop; // Flag to determine if enemies can be knocked down
     int nodieblink; // Flag to determine if blinking while playing die animation
+    
+    /* Blocking */
+    int thold; // The entities threshold for block
     int holdblock; // Continue the block animation as long as the player holds the button down
     int nopassiveblock; // Don't auto block randomly
     int blockback; // Able to block attacks from behind
     int blockodds; // Odds that an enemy will block an attack (1 : blockodds)
+
     s_edelay edelay; // Entity level delay adjustment.
     float runspeed; // The speed the character runs at
     float runjumpheight; // The height the character jumps when running
@@ -2645,21 +2840,19 @@ typedef struct
     int runupdown; // Flag to determine if a player will continue to run while pressing up or down
     int runhold; // Flag to determine if a player will continue to run if holding down forward when landing
     int remove; // Flag to remove a projectile on contact or not
-    float throwheight; // The height at which an opponent can now be adjusted
-    float throwdist; // The distance an opponent can now be adjusted
-    int throwframewait; // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
+    
     s_com *special; // Stores freespecials
     int specials_loaded; // Stores how many specials have been loaded
     int diesound;
-    int weapnum;
+    
+    s_weapon weapon_properties;
+    
+    /* Availability. */
     int secret;
     int clearcount;
-    int weaploss[2]; // Determines possibility of losing weapon.
-    int ownweapons; // is the weapon list own or share with others
-    int *weapon; // weapon model list
-    int numweapons;
+    
 
-    // these are model id of various stuff
+    /* Projectile model IDs */
     int project;
     int rider; // 7-1-2005 now every "biker" can have a new driver!
     int knife; // 7-1-2005 now every enemy can have their own "knife" projectile
@@ -2668,27 +2861,38 @@ typedef struct
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
     int flash; // Now each entity can have their own flash
     int bflash; // Flash that plays when an attack is blocked
+
     s_dust dust; //Spawn entity during certain actions.
+
     s_axis_plane_vertical_int size; // Used to set height of player in pixels
     s_axis_principal_float speed;
-    float grabdistance; // 30-12-2004	grabdistance varirable adder per character
+    
     float pathfindstep; // UT: how long each step if the entity is trying to find a way
-    int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
+        
     float jumpspeed; // normal jump foward speed, default to max(1, speed)
     float jumpheight; // 28-12-2004	Jump height variable added per character
-    int jumpmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
-    int jumpmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
-    int walkoffmovex; // low byte: 0 default 1 flip in air, 2 move in air, 3 flip and move
-    int walkoffmovez; // 2nd byte: 0 default 1 zjump with flip(not implemented yet) 2 z jump move in air, 3 1+2
-    int grabfinish; // wait for grab animation to finish before do other actoins
-    int antigrab; // anti-grab factor
-    int grabforce; // grab factor, antigrab - grabforce <= 0 means can grab
-    e_facing_adjust facing;
-    int grabback; // Flag to determine if entities grab images display behind opponenets
-    int grabturn;
-    int paingrab; // Can only be grabbed when in pain
+
+    e_air_control air_control; /* Mid air control options (turning, moving, etc.). */
+    
+    /* Grab flags. */
+    int grabback; // Flag to determine if entities grab images display behind opponenets    
+    int grabfinish; // Cannot take further action until grab animation is complete.
+    int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
+    int grabturn; // Turn with grabbed target using Left/Right (if valid ANI_GRABTURN).
+
+    /* Grab variables. */
+    int paingrab; // Added to grab resistance when not in pain.
+    float grabdistance; // 30-12-2004	grabdistance varirable adder per character    
+    int grab_force; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */
+    int grab_resistance; /* Attacker's grab force must exceed target's grab_resistance to initiate grab. */    
     float grabwalkspeed;
     int throwdamage; // 1-14-05  adjust throw damage
+    int throwframewait; // The frame victim is thrown during ANIM_THROW, added by kbandressen 10/20/06
+    float throwdist; // The distance an opponent can now be adjusted
+    float throwheight; // The height at which an opponent can now be adjusted    
+
+    e_facing_adjust facing;
+    
     unsigned char  *palette; // original palette for 32/16bit mode
     unsigned char	**colourmap;
     int maps_loaded; // Used for player colourmap selecting
@@ -2728,12 +2932,12 @@ typedef struct
     float pushingfactor; // pushing factor in entity collision
 
     //---------------new A.I. switches-----------
-    int hostile; // specify hostile types
-    int candamage; // specify types that can be damaged by this entity
-    int projectilehit; // specify types that can be hit by this entity if it is thrown
-    unsigned aimove; // move style
+    e_entity_type hostile; // specify hostile types
+    e_entity_type candamage; // specify types that can be damaged by this entity
+    e_entity_type projectilehit; // specify types that can be hit by this entity if it is thrown
     s_sight sight; // Sight range. 2011_04_05, DC: Moved to struct.
-    unsigned aiattack; // attack/defend style
+    unsigned int aimove; // move style
+    unsigned int aiattack; // attack/defend style
 
     //----------------physical system-------------------
     float antigravity;                    //antigravity : gravity * (1- antigravity)
@@ -2796,26 +3000,26 @@ typedef struct
     s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
-// Caskey, Damon V.
-// 2013-12-17
-//
-// Binding struct. Control linking
-// of entity to a target entity.
+/* 
+* Caskey, Damon V.
+* 2013-12-17
+*
+* Binding struct. Control linking
+* of entity to a target entity.
+*/
 typedef struct
 {
-    unsigned int            match;			// Animation binding type. ~~
-    int                     sortid;         // Relative binding sortid. Default = -1
-    int                     frame;          // Frame to match (only if requested in matching).
-    e_bind_override			overriding;     // Override specific AI behaviors while in bind (fall land, drop frame, specials, etc).
-    e_animations            animation;      // Animation to match (only if requested in matching).
-    s_axis_principal_int    positioning;    // Toggle binding on X, Y and Z axis.
-    s_axis_principal_int    offset;         // x,y,z offset.
-    e_direction_adjust      direction;      // Direction force.
-    struct entity           *ent;           // Entity subject will bind itself to.
+    e_bind_config           config;			    // Animation matching, axis matching, overrides, etc. ~~
+    int                     sortid;             // Relative binding sortid. Default = -1
+    int                     frame;              // Frame to match (only if requested in matching).
+    e_animations            animation;          // Animation to match (only if requested in matching).
+    s_axis_principal_int    offset;             // x,y,z offset.
+    e_direction_adjust      direction_adjust;   // Direction force.
+    struct entity*          target;             // Entity subject will bind itself to.
 
     // Meta data.
-    s_meta_data*            meta_data;      // User defined data.
-    int                     meta_tag;       // user defined int.
+    s_meta_data*            meta_data;          // User defined data.
+    int                     meta_tag;           // user defined int.
 
 } s_bind;
 
@@ -2985,7 +3189,7 @@ typedef struct entity
 	int					    blocking;							// In blocking state. ~~
 	int					    charging;							// Charging MP. Gain according to chargerate. ~~
 	int					    dead;								// He's dead Jim. ~~
-	int					    deduct_ammo;						// Check for ammo count? ~~
+	e_weapon_state		    weapon_state;						// Check for ammo count? ~~
 	int					    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
 	int					    drop;								// Knocked down. Remains true until rising. ~~
 	int					    exists;								// flag to determine if it is a valid entity. ~~
@@ -3321,12 +3525,22 @@ typedef struct ArgList
 
 #define GET_FRAME_ARG(z) (stricmp(GET_ARG(z), "this")==0?newanim->numframes:GET_INT_ARG(z))
 
+e_air_control air_control_interpret_from_legacy_jumpmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value);
+e_air_control air_control_interpret_from_legacy_jumpmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value);
+e_air_control air_control_interpret_from_legacy_walkoffmove_x(e_air_control air_control_value, e_air_control_legacy_x legacy_value);
+e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_control_value, e_air_control_legacy_z legacy_value);
+e_air_control_legacy_x air_control_interpret_to_legacy_jumpmove_x(e_air_control air_control_value);
+e_air_control_legacy_z air_control_interpret_to_legacy_jumpmove_z(e_air_control air_control_value);
+e_air_control_legacy_x air_control_interpret_to_legacy_walkoffmove_x(e_air_control air_control_value);
+e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_control air_control_value);
+
+
+
 int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 void    adjust_bind(entity *e);
-float	binding_position(float position_default, float position_target, int offset, e_bind_mode positioning);
-int     check_bind_override(entity *ent, e_bind_override overriding);
+int     check_bind_override(entity *ent, e_bind_config bind_config);
 
 /* Defense. */
 int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object);
@@ -3603,7 +3817,11 @@ void toss(entity *ent, float lift);
 void player_think(void);
 void subtract_shot(void);
 void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, int flag);
+
+e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_weapon_loss_condition weapon_loss_condition_value, e_weapon_loss_condition_legacy legacy_value);
+e_weapon_loss_condition_legacy weapon_loss_condition_interpret_to_legacy(e_weapon_loss_condition weapon_loss_condition_value);
 void dropweapon(int flag);
+
 void biker_drive(void);
 void trap_think(void);
 void steamer_think(void);
@@ -3619,8 +3837,8 @@ void common_prejump();
 void common_preduck();
 void common_idle();
 void recursive_damage_update(entity *target);
-void tryjump(float, float, float, int);
-void dojump(float, float, float, int);
+void tryjump(float, float, float, e_animations);
+void dojump(float, float, float, e_animations);
 void tryduck(entity*);
 void tryduckrise(entity*);
 void tryvictorypose(entity*);
@@ -3866,8 +4084,6 @@ void menu_options_system();
 void menu_options_video();
 
 void openborMain(int argc, char **argv);
-int is_cheat_actived();
-int is_healthcheat_actived(); // Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
