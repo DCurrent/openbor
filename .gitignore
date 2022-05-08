@@ -13,5 +13,7 @@ engine/releases/
 engine/resources/OpenBOR.res
 tools/bin/.wget-hsts
 tools/win-sdk/*
+!tools/win-sdk/win-sdk.7z
 tools/psp-sdk/*
 tools/devkitpro/*
+!tools/devkitpro/devkitPro.7z
