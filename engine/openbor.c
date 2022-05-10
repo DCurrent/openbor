@@ -588,7 +588,6 @@ int                 PLAYER_LIVES        = 3;					// 7-1-2005  default setting fo
 int                 CONTINUES           = 5;					// 7-1-2005  default setting for continues
 int                 colourselect		= 0;					// 6-2-2005 Colour select is optional
 int                 autoland			= 0;					// Default set to no autoland and landing is valid with u j combo
-int                 ajspecial			= 0;					// Flag to determine if holding down attack and pressing jump executes special
 int                 nolost				= 0;					// variable to control if drop weapon when grab a enemy by tails
 int                 nocost				= 0;					// If set, special will not cost life unless an enemy is hit
 int                 mpstrict			= 0;					// If current system will check all animation's energy cost when set new animations
@@ -622,6 +621,7 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 
 s_global_config global_config =
 {
+    .ajspecial = AJSPECIAL_KEY_SPECIAL,    
     .cheats = CHEAT_OPTIONS_ALL_MENU
 };
 
@@ -11800,6 +11800,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     newchar->candamage = newchar->hostile = TYPE_PLAYER;
                 }
+                
                 newchar->ground = GET_INT_ARG(2);    // Added to determine if enemies are damaged with mid air projectiles or ground only
                 break;
             case CMD_MODEL_HOSTILE:
@@ -16231,6 +16232,9 @@ int load_models()
     modelstxtCommands cmd;
     int modelLoadCount = 0;
 
+    char* value = NULL;
+    int tempInt = 0;
+
     free_modelcache();
 
     if(isLoadingScreenTypeBg(loadingbg[0].set))
@@ -16309,8 +16313,36 @@ int load_models()
                 nolost = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_AJSPECIAL:
-                // Flag to determine if a + j executes special
-                ajspecial = GET_INT_ARG(1);
+                
+                value = GET_ARG(1);
+
+                if (stricmp(value, "special") == 0)
+                {
+                    tempInt = AJSPECIAL_KEY_SPECIAL;
+                }
+                else if (stricmp(value, "double") == 0)
+                {
+                    tempInt = AJSPECIAL_KEY_DOUBLE;
+                }
+                else if (stricmp(value, "attack2") == 0)
+                {
+                    tempInt = AJSPECIAL_KEY_ATTACK2;
+                }
+                else if (stricmp(value, "attack3") == 0)
+                {
+                    tempInt = AJSPECIAL_KEY_ATTACK3;
+                }
+                else if (stricmp(value, "attack4") == 0)
+                {
+                    tempInt = AJSPECIAL_KEY_ATTACK4;
+                }
+                else
+                {
+                    tempInt = GET_INT_ARG(1);
+                }
+                
+                global_config.ajspecial = tempInt;
+
                 break;
             case CMD_MODELSTXT_NOCOST:
                 // Nocost set in models.txt
@@ -35419,31 +35451,54 @@ int check_special()
 int player_check_special()
 {
     u64 thekey = 0;
-    if((ajspecial == 0 || (ajspecial == 1 && !validanim(self, ANI_BLOCK))) &&
-            (player[self->playerindex].playkeys & FLAG_SPECIAL))
+    e_key_def player_keys = player[self->playerindex].playkeys;
+
+    switch (global_config.ajspecial)
     {
+    case AJSPECIAL_KEY_SPECIAL:
+        
         thekey = FLAG_SPECIAL;
-    }
-    else if(ajspecial == 1 && ((player[self->playerindex].playkeys & FLAG_JUMP) &&
-                          (player[self->playerindex].keys & FLAG_ATTACK)))
-    {
-        thekey = FLAG_JUMP;
-    }
-    else if(ajspecial == 2 && ((player[self->playerindex].keys & FLAG_ATTACK2)))
-    {
-        thekey = FLAG_ATTACK2;
-    }
-    else if(ajspecial == 3 && ((player[self->playerindex].keys & FLAG_ATTACK3)))
-    {
-        thekey = FLAG_ATTACK3;
-    }
-    else if(ajspecial == 4 && ((player[self->playerindex].keys & FLAG_ATTACK4)))
-    {
-        thekey = FLAG_ATTACK4;
-    }
-    else
-    {
+        break;
+
+    case AJSPECIAL_KEY_DOUBLE:
+
+        if (!validanim(self, ANI_BLOCK) && player_keys & FLAG_SPECIAL)
+        {
+            thekey = FLAG_SPECIAL;
+        }
+        else if (player_keys & FLAG_JUMP && player_keys & FLAG_ATTACK)
+        {
+            thekey = FLAG_SPECIAL;
+        }
+        break;
+
+    case AJSPECIAL_KEY_ATTACK2:
+
+        if (player_keys & FLAG_ATTACK2)
+        {
+            thekey = FLAG_SPECIAL;
+        }
+        break;
+
+    case AJSPECIAL_KEY_ATTACK3:
+
+        if (player_keys & FLAG_ATTACK3)
+        {
+            thekey = FLAG_SPECIAL;
+        }
+        break;
+
+    case AJSPECIAL_KEY_ATTACK4:
+
+        if (player_keys & FLAG_ATTACK4)
+        {
+            thekey = FLAG_SPECIAL;
+        }
+        break;
+    
+    default:
         return 0;
+
     }
 
     if(check_special())
@@ -36997,10 +37052,10 @@ void player_think()
     }
 
     // Kratus (10-2021) Added a new flag "2" to use ATTACK2 key as an new alternative
-    if( (ajspecial == 0 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
-        (ajspecial == 2 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
-        (ajspecial == 3 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
-        (ajspecial == 4 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH)))
+    if( (global_config.ajspecial == AJSPECIAL_KEY_SPECIAL && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK2 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK3 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK4 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH)))
     {
         if((pl->keys & FLAG_ATTACK) && notinair)
         {

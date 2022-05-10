@@ -131,6 +131,15 @@ movement restirctions are here!
 
 #define MAP_INDEX_NONE -1
 
+typedef enum e_ajspecial_config
+{
+    AJSPECIAL_KEY_SPECIAL,
+    AJSPECIAL_KEY_DOUBLE,
+    AJSPECIAL_KEY_ATTACK2,
+    AJSPECIAL_KEY_ATTACK3,
+    AJSPECIAL_KEY_ATTACK4
+} e_ajspecial_config;
+
 /*
 * Caskey, Damon V.
 * 2022-04-19
@@ -1744,7 +1753,8 @@ typedef enum e_cheat_options
 */
 typedef struct s_global_config
 {
-    e_cheat_options cheats;
+    e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
+    e_cheat_options cheats;         // Cheat menu config and active cheats.
 
 } s_global_config;
 
@@ -2046,28 +2056,34 @@ typedef struct
 // attacks.
 typedef struct
 {
-    int                 blast;              // Attack box active on hit opponent's fall animation.
-    int                 steal;              // Add damage to owner's hp.
-    int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
-    int                 no_flash;           // Flag to determine if an attack spawns a flash or not
-    int                 no_kill;            // this attack won't kill target (leave 1 HP)
-    int                 no_pain;            // No animation reaction on hit.
+        int                 blast;              // Attack box active on hit opponent's fall animation.
+        int                 steal;              // Add damage to owner's hp.
+        int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
+        int                 no_flash;           // Flag to determine if an attack spawns a flash or not
+        int                 no_kill;            // this attack won't kill target (leave 1 HP)
+        int                 no_pain;            // No animation reaction on hit.
+        int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+        int                 freeze;             // Lock target in place and set freeze time.
+    
+        int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
+        e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+
     int                 attack_drop;        // now be a knock-down factor, how many this attack will knock victim down
     e_attack_types      attack_type;        // Reaction animation, death, etc.
     int                 counterattack;      // Treat other attack boxes as body box.
-    int                 freeze;             // Lock target in place and set freeze time.
+        
     int                 jugglecost;         // cost for juggling a falling ent
     int                 no_block;           // If this is greater than defense block power, make the hit
-    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+        
     int                 seal;               // Disable target's animations with energy_cost > seal.
-    e_otg               otg;                // Over The Ground. Gives ground projectiles the ability to hit lying ents.
+    
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;       // Hit point damage attack inflicts.
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked
     int                 forcemap;           // Set target's palette on hit.
     unsigned int        freezetime;         // Time for target to remain frozen.
-    int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
+    
     int                 guardcost;          // cost for blocking an attack
     int                 hitflash;           // Custom flash for each animation, model id
     int                 hitsound;           // Sound effect to be played when attack hits opponent
@@ -2794,12 +2810,12 @@ typedef struct
     
     
     
-    int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
-    int makeinv; // Option to spawn player invincible >0 blink <0 noblink
+        int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
+        int makeinv; // Option to spawn player invincible >0 blink <0 noblink
     int riseinv; // how many seconds will the character become invincible after rise >0 blink, <0 noblink
-    int dofreeze; // Flag to freeze all enemies/players while special is executed
-    int noquake; // Flag to make the screen shake when entity lands 1 = no, else yes
-    int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground
+        int dofreeze; // Flag to freeze all enemies/players while special is executed
+        int noquake; // Flag to make the screen shake when entity lands 1 = no, else yes
+        int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground
     int multiple; // So you can control how many points are given for hitting opponents
     int bounce; // Flag to determine if bounce/quake is to be used.
     e_entity_type type;
@@ -2875,10 +2891,10 @@ typedef struct
     e_air_control air_control; /* Mid air control options (turning, moving, etc.). */
     
     /* Grab flags. */
-    int grabback; // Flag to determine if entities grab images display behind opponenets    
-    int grabfinish; // Cannot take further action until grab animation is complete.
-    int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
-    int grabturn; // Turn with grabbed target using Left/Right (if valid ANI_GRABTURN).
+        int grabback; // Flag to determine if entities grab images display behind opponenets    
+        int grabfinish; // Cannot take further action until grab animation is complete.
+        int grabflip; // Flip target or not, bit0: grabber, bit1: opponent
+        int grabturn; // Turn with grabbed target using Left/Right (if valid ANI_GRABTURN).
 
     /* Grab variables. */
     int paingrab; // Added to grab resistance when not in pain.
