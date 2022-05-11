@@ -259,6 +259,17 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "set_drawmethod_property";
 	}
 
+    /* Global config properties */
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return "get_global_config_property";
+    }
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return "set_global_config_property";
+    }
+    
+
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -366,6 +377,16 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_set_entity_collision_property))
     {
         return "set_entity_collision_property";
+    }
+
+    /* Global config property. */
+    else if (functionRef == ((void*)openbor_get_global_config_property))
+    {
+        return "get_global_config_property";
+    }
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return "set_global_config_property";
     }
 
     else if (functionRef == ((void *)openbor_tossentity))
@@ -1047,7 +1068,17 @@ void *Script_GetStringMapFunction(void *functionRef)
 	{
 		return (void *)mapstrings_drawmethod;
 	}
-	
+
+    /* Global config properties. */
+    else if (functionRef == ((void*)openbor_get_global_config_property))
+    {
+        return (void*)mapstrings_global_config_property;
+    }
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return (void*)mapstrings_global_config_property;
+    }
+
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
         return (void *)mapstrings_setspawnentry;
@@ -1289,6 +1320,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_entity_property, "get_entity_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_entity_property, "set_entity_property");
+
+    /* Global config properties. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_global_config_property, "get_global_config_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_global_config_property, "set_global_config_property");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeentityproperty, "changeentityproperty");

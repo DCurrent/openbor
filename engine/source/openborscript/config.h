@@ -18,6 +18,7 @@
 #include "drawmethod.h"
 #include "recursive_damage.h"
 #include "entity.h"
+#include "global_config.h"
 
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
@@ -375,7 +376,7 @@ enum systemvariant_enum
     _sv_gfx_x_offset,
     _sv_gfx_y_offset,
     _sv_gfx_y_offset_adj,
-    _sv_global_config_cheats,
+    _sv_global_config,
     _sv_global_sample_beat,
     _sv_global_sample_beep,
     _sv_global_sample_beep_2,

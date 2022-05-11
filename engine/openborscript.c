@@ -994,7 +994,7 @@ static const char *svlist[] =
     "gfx_x_offset",
     "gfx_y_offset",
     "gfx_y_offset_adj",
-    "global_config_cheats",
+    "global_config",
     "global_sample_beat",
     "global_sample_beep",
     "global_sample_beep_2",
@@ -8451,9 +8451,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->lVal = gfx_y_offset_adj;
         break;
 
-    case _sv_global_config_cheats:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = global_config.cheats;
+    case _sv_global_config:
+        
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = &global_config;
         break;
 
     case _sv_global_sample_beat:
@@ -8977,14 +8978,7 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
             gfx_y_offset_adj = (LONG)ltemp;
         }
         break;
-
-    case _sv_global_config_cheats:
-        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-        {
-            global_config.cheats = (e_cheat_options)ltemp;
-        }
-        break;
-
+    
     case _sv_global_sample_beat:
         if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
