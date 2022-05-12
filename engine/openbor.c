@@ -35457,7 +35457,11 @@ int player_check_special()
     {
     case AJSPECIAL_KEY_SPECIAL:
         
-        thekey = FLAG_SPECIAL;
+        if (player_keys & FLAG_SPECIAL)
+        {
+            thekey = FLAG_SPECIAL;
+        }        
+
         break;
 
     case AJSPECIAL_KEY_DOUBLE:
@@ -35497,8 +35501,12 @@ int player_check_special()
         break;
     
     default:
-        return 0;
+        thekey = 0;
+    }
 
+    if (!thekey)
+    {
+        return 0;
     }
 
     if(check_special())
