@@ -26302,7 +26302,7 @@ void update_health()
     do_energy_charge(self);
 
     /* Energy cheat keeps MP at maximum. */
-    if (global_config.cheats & CHEAT_OPTIONS_ENERGY_ACTIVE & self->modeldata.type & TYPE_PLAYER)
+    if (global_config.cheats & CHEAT_OPTIONS_ENERGY_ACTIVE && self->modeldata.type & TYPE_PLAYER)
     {
         self->energy_state.mp_current = self->modeldata.mp;
     }
