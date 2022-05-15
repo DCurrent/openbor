@@ -10670,6 +10670,14 @@ e_cheat_options find_cheat_options_from_string(char* value)
     {
         result = CHEAT_OPTIONS_HEALTH_MENU;
     }
+    else if (stricmp(value, "implacable_active") == 0)
+    {
+        result = CHEAT_OPTIONS_IMPLACABLE_ACTIVE;
+    }
+    else if (stricmp(value, "implacable_menu") == 0)
+    {
+        result = CHEAT_OPTIONS_IMPLACABLE_MENU;
+    }
     else if (stricmp(value, "master_menu") == 0)
     {
         result = CHEAT_OPTIONS_MASTER_MENU;
@@ -39702,6 +39710,7 @@ void update_scroller()
             go_time = _time + 3 * GAME_SPEED;
         }
     }
+
     if(numplay == 0)
     {
         return;
@@ -39709,7 +39718,7 @@ void update_scroller()
 
 
 
-    if(!level->waiting)
+    if(!level->waiting || global_config.cheats & CHEAT_OPTIONS_IMPLACABLE_ACTIVE)
     {
         if(level->scrolldir & SCROLL_RIGHT)
         {
@@ -44991,8 +45000,9 @@ void menu_options_cheats()
         char label[20];
     } s_option_list;
 
-    int option_list_count = 6;
+    int option_list_count = 7;
     s_option_list option_list[] = {
+            {.active = CHEAT_OPTIONS_IMPLACABLE_ACTIVE,     .menu = CHEAT_OPTIONS_IMPLACABLE_MENU,      .label = "Implacable March" },
             {.active = CHEAT_OPTIONS_CREDITS_ACTIVE,        .menu = CHEAT_OPTIONS_CREDITS_MENU,         .label = "Infinite Credits" },
             {.active = CHEAT_OPTIONS_ENERGY_ACTIVE,         .menu = CHEAT_OPTIONS_ENERGY_MENU,          .label = "Infinite Energy" },
             {.active = CHEAT_OPTIONS_HEALTH_ACTIVE,         .menu = CHEAT_OPTIONS_HEALTH_MENU,          .label = "Infinite Health" },
