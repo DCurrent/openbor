@@ -1781,15 +1781,6 @@ void Parser_Unary_expr(Parser *pparser )
         Parser_AddInstructionViaToken(pparser, SAVE, pInstruction->theToken, NULL );
         Parser_AddInstructionViaToken(pparser, LOAD, pInstruction->theToken, NULL );
     }
-    else if (Parser_Check(pparser, TOKEN_BITWISE_NOT ))
-    {
-        Parser_Match(pparser);
-        Parser_Unary_expr( pparser);
-        pInstruction = (Instruction *)List_Retrieve(pparser->pIList);
-        Parser_AddInstructionViaToken(pparser, NEG, (Token *)NULL, NULL );
-        Parser_AddInstructionViaToken(pparser, SAVE, pInstruction->theToken, NULL );
-        Parser_AddInstructionViaToken(pparser, LOAD, pInstruction->theToken, NULL );
-    }
     else if (Parser_Check(pparser, TOKEN_ADD ))
     {
         Parser_Match(pparser);
@@ -1837,6 +1828,22 @@ void Parser_Unary_expr(Parser *pparser )
         else
         {
             Parser_AddInstructionViaToken(pparser, NOT, (Token *)NULL, NULL );
+        }
+    }
+    else if (Parser_Check(pparser, TOKEN_BITWISE_NOT ))
+    {
+        Parser_Match(pparser);
+        Parser_Unary_expr(pparser );
+        pInstruction = (Instruction *)List_Retrieve(pparser->pIList);
+        if(pInstruction->OpCode == CONSTINT)
+        {
+            int constvar = ~(atoi(pInstruction->theToken->theSource));
+            sprintf(buf, "%d", constvar);
+            strcpy(pInstruction->theToken->theSource, buf);
+        }
+        else
+        {
+            Parser_AddInstructionViaToken(pparser, BIT_NOT, (Token *)NULL, NULL );
         }
     }
     else
@@ -1918,15 +1925,6 @@ void Parser_Postfix_expr2(Parser *pparser )
         Parser_Match(pparser);
         Parser_AddInstructionViaToken(pparser, SAVE, pInstruction->theToken, NULL );
         Parser_Postfix_expr2(pparser );
-    }
-    else if (Parser_Check(pparser, TOKEN_BITWISE_NOT ))
-    {
-        Parser_Match(pparser);
-        Parser_Unary_expr(pparser );
-        pInstruction = (Instruction *)List_Retrieve(pparser->pIList);
-        Parser_AddInstructionViaToken(pparser, NEG, (Token *)NULL, NULL );
-        Parser_AddInstructionViaToken(pparser, SAVE, pInstruction->theToken, NULL );
-        Parser_AddInstructionViaToken(pparser, LOAD, pInstruction->theToken, NULL );
     }
     else if (ParserSet_Follow(&(pparser->theParserSet), postfix_expr2, pparser->theNextToken.theType )) {}
     else
