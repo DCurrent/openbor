@@ -1533,8 +1533,8 @@ typedef enum
     2013-12-28
     */
 
-    KOMAP_TYPE_IMMEDIATELY,    //Apply instantly.
-    KOMAP_TYPE_LAST_FALL_FRAME //Apply on last frame of fall.
+    KOMAP_TYPE_INSTANT,    //Apply instantly.
+    KOMAP_TYPE_FINISH       // Apply on last frame of fall.
 } e_komap_type;
 
 typedef enum

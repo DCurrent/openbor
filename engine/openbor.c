@@ -10618,6 +10618,34 @@ e_move_constraint find_move_constraint_from_string(char* value)
     return result;
 }
 
+/*
+* Caskey, Damon V.
+* 2021-08-24
+*
+* Read a text argument for ko map type and 
+* output appropriate constant. If input is 
+* legacy integer, we just pass it on.
+*/
+e_komap_type komap_type_get_value_from_argument(char* filename, char* command, char* value)
+{
+    e_komap_type result = KOMAP_TYPE_INSTANT;
+
+    if (stricmp(value, "instant") == 0)
+    {
+        result = KOMAP_TYPE_INSTANT;
+    }
+    else if (stricmp(value, "finish") == 0)
+    {
+        result = KOMAP_TYPE_FINISH;
+    }
+    else
+    {
+        result = getValidInt(value, filename, command);
+    }
+
+    return result;
+}
+
 void lcmHandleCommandMoveConstraint(ArgList* arglist, s_model* newchar)
 {
     int i;
@@ -11394,7 +11422,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->maps.hide_end = MAP_INDEX_NONE;
     newchar->maps.hide_start = MAP_INDEX_NONE;
     newchar->maps.ko = MAP_INDEX_NONE;
-    newchar->maps.kotype = KOMAP_TYPE_IMMEDIATELY;
+    newchar->maps.kotype = KOMAP_TYPE_INSTANT;
     newchar->maps.shock = MAP_INDEX_NONE;
 
     // Default Attack1 in chain must be referenced if not used.
@@ -12371,7 +12399,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_KOMAP:
                 newchar->maps.ko = GET_INT_ARG(1);  //Remap.
-                newchar->maps.kotype = GET_INT_ARG(2);  //Type: 0 start of fall/death, 1 last frame.
+                newchar->maps.kotype = komap_type_get_value_from_argument(filename, command, GET_ARG(2));
                 break;
             case CMD_MODEL_MAP_BURN_INDEX:
                 newchar->maps.burn = GET_INT_ARG(1);
@@ -12380,7 +12408,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->maps.ko = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MAP_KO_TYPE:
-                newchar->maps.kotype = GET_INT_ARG(1);
+                newchar->maps.kotype = komap_type_get_value_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_MAP_FREEZE_INDEX:
                 newchar->maps.frozen = GET_INT_ARG(1);
@@ -28850,7 +28878,7 @@ void common_lie()
             * apply map immediately.
             */
             
-            if (self->modeldata.maps.kotype == KOMAP_TYPE_IMMEDIATELY || !self->animating)
+            if (self->modeldata.maps.kotype == KOMAP_TYPE_INSTANT || !self->animating)
             {
                 self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);
             }
