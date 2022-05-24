@@ -115,9 +115,19 @@ const s_projectile projectile_default_animation = {
 	.knife = MODEL_INDEX_NONE,
 	.offense = PROJECTILE_OFFENSE_SELF,
 	.placement = PROJECTILE_PLACEMENT_PARENT,
-	.position = {.x = 60.f,
-					.y = 70.f,
-					.z = 0.f},
+
+    /*
+    * X position defaults are different for stars
+    * vs. other projectiles and we want players to 
+    * have 0 as an option, so we start with a silly
+    * value here. If creator doesn't change it, then
+    * we'll apply real defaults in the projectile 
+    * spawn functions.
+    */
+
+	.position = {.x = PROJECTILE_LEGACY_COMPATABILITY_POSITION_X, 
+					.y = PROJECTILE_DEFAULT_POSITION_Y,
+					.z = PROJECTILE_DEFAULT_POSITION_Z},
 	.shootframe = FRAME_NONE,
 	.throwframe = FRAME_NONE,
 	.tossframe = FRAME_NONE,
@@ -9569,6 +9579,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         newchar->type                   = TYPE_ITEM;
         newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
         newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+
     }
     else if(stricmp(value, "obstacle") == 0)
     {
@@ -10068,6 +10079,61 @@ void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
         newchar->weapon_properties.loss_condition |= find_weapon_loss_from_string(value);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-24
+*
+* Read a text argument for model copy flag
+* and output appropriate constant. If input 
+* is legacy integer, we just pass it on.
+*/
+e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value)
+{
+    e_model_copy result = MODEL_COPY_FLAG_NONE;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = MODEL_COPY_FLAG_NONE;
+    }
+    else if (stricmp(value, "no_basic") == 0)
+    {
+        result = MODEL_COPY_FLAG_NO_BASIC;
+    }
+    else if (stricmp(value, "no_weapon") == 0)
+    {
+        result = MODEL_COPY_FLAG_NO_WEAPON;
+    }
+    else if (stricmp(value, "no_script") == 0)
+    {
+        result = MODEL_COPY_FLAG_NO_SCRIPT;
+    }    
+    else
+    {
+        result = getValidInt(value, filename, command);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-24
+*
+* Populate model flag property
+* from text arguments.
+*/
+void lcmHandleCommandModelFlag(ArgList* arglist, s_model* newchar)
+{
+    int i;
+    char* value;
+    newchar->model_flag = MODEL_COPY_FLAG_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        newchar->model_flag |= find_weapon_loss_from_string(value);
     }
 }
 
@@ -11987,8 +12053,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->secret = GET_INT_ARG(1);
                 newchar->clearcount = GET_INT_ARG(2);
                 break;
-            case CMD_MODEL_MODELFLAG: //model copy flag
-                newchar->model_flag = GET_INT_ARG(1);
+            case CMD_MODEL_MODELFLAG: // Model copy flag.
+                
+                lcmHandleCommandModelFlag(&arglist, newchar);
+
                 break;
                 // weapons
             case CMD_MODEL_WEAPLOSS:
@@ -20421,7 +20489,7 @@ void predrawstatus()
             }
 
             if(player[i].ent->weapent)
-            {
+            {                
                 if(player[i].ent->weapent->modeldata.icon.weapon >= 0)
                 {
                     drawmethod.table = player[i].ent->weapent->modeldata.icon.usemap ? player[i].ent->weapent->colourmap : NULL;
@@ -28015,7 +28083,7 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         return;
     }
 
-    if(!(newmodel->model_flag & MODEL_NO_COPY))
+    if(!(newmodel->model_flag & MODEL_COPY_FLAG_NO_BASIC))
     {
         if(!newmodel->speed.x)
         {
@@ -28093,17 +28161,17 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
                 newmodel->animation[i] = model->animation[i];
             }
         }
-		//normalize_anim_models(model, newmodel);
+		//normalize_anim_models(model, newmodel);        
+    }
 
-        // copy the weapon list if model flag is not set to use its own weapon list
-        if(!(newmodel->model_flag & MODEL_NO_WEAPON_COPY))
+    // copy the weapon list if model flag is not set to use its own weapon list
+    if (!(newmodel->model_flag & MODEL_COPY_FLAG_NO_WEAPON))
+    {
+        newmodel->weapon_properties.weapon_index = model->weapon_properties.weapon_index;
+        if (!newmodel->weapon_properties.weapon_list)
         {
-            newmodel->weapon_properties.weapon_index = model->weapon_properties.weapon_index;
-            if(!newmodel->weapon_properties.weapon_list)
-            {
-                newmodel->weapon_properties.weapon_list = model->weapon_properties.weapon_list;
-                newmodel->weapon_properties.weapon_count = model->weapon_properties.weapon_count;
-            }
+            newmodel->weapon_properties.weapon_list = model->weapon_properties.weapon_list;
+            newmodel->weapon_properties.weapon_count = model->weapon_properties.weapon_count;
         }
     }
 
@@ -28125,7 +28193,7 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
 
     ent->modeldata.type = type;
 
-    if((newmodel->model_flag & MODEL_NO_SCRIPT_COPY))
+    if((newmodel->model_flag & MODEL_COPY_FLAG_NO_SCRIPT))
     {
         clear_all_scripts(ent->scripts, 0);
     }
@@ -38214,8 +38282,19 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	// positioning on X axis.
 	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
 
-	// Let's set up the spawn position. Reverse X when parent
-	// faces left.
+    /*
+    * Let's set up the spawn position. Reverse X when
+    * parent faces left.
+    *
+    * Apply default X position if creator did not give
+    * us a value.
+    */
+
+    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
+    {
+        projectile->position.x = PROJECTILE_DEFAULT_POSITION_X;
+    }
+
 	if (direction == DIRECTION_RIGHT)
 	{
 		position.x = parent->position.x + projectile->position.x;
@@ -38459,8 +38538,19 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	// positioning on X axis.
 	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
 
-	// Let's set up the spawn position. Reverse X when parent
-	// faces left.
+	/*
+    * Let's set up the spawn position. Reverse X when 
+    * parent faces left.
+    * 
+    * Apply default X position if creator did not give 
+    * us a value.
+    */
+
+    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
+    {
+        projectile->position.x = PROJECTILE_DEFAULT_POSITION_X;
+    }
+
 	if (direction == DIRECTION_RIGHT)
 	{
 		position.x = parent->position.x + projectile->position.x;
@@ -38634,6 +38724,16 @@ int star_spawn(entity *parent, s_projectile *projectile)
 	// Get result of direction adjustment. We need this before we can handle
 	// positioning on X axis.
 	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
+
+    /*
+    * Apply default X position if 
+    * creator did not give us a value.
+    */
+
+    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
+    {
+        projectile->position.x = PROJECTILE_DEFAULT_STAR_POSITION_X;
+    }
 
 	// Let's set up the spawn position. Reverse X when parent
 	// faces left.

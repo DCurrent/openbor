@@ -329,6 +329,13 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(LEVEL_PROP_WALL_COUNT)
         ICMPCONST(LEVEL_PROP_WEAPON)
 
+        /* Model copy config flags. */
+            
+        ICMPCONST(MODEL_COPY_FLAG_NONE)
+        ICMPCONST(MODEL_COPY_FLAG_NO_BASIC)
+        ICMPCONST(MODEL_COPY_FLAG_NO_WEAPON)
+        ICMPCONST(MODEL_COPY_FLAG_NO_SCRIPT)
+
         // Plane access flags.
         ICMPCONST(PLANE_X)
         ICMPCONST(PLANE_Y)

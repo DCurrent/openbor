@@ -125,10 +125,6 @@ movement restirctions are here!
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
 
-#define		PROJECTILE_DEFAULT_SPEED_X	1
-#define		PROJECTILE_DEFAULT_SPEED_Y	0
-#define		PROJECTILE_DEFAULT_SPEED_Z	0
-
 #define MAP_INDEX_NONE -1
 
 typedef enum e_ajspecial_config
@@ -1560,17 +1556,28 @@ typedef enum
     LS_TYPE_BAR,         //Status bar only.
 } e_loadingScreenType;
 
-typedef enum
-{
-    /*
-    Model copy flag enum.
-    Damon V. Caskey
-    2013-12-28
+/*
+* Caskey, Damon V.  
+* 2013-12-28 
+* 
+* Model copy flags. Mark portions
+* of original model we don't want 
+* copied during a model switch.
+*/
+typedef enum e_model_copy
+{    
+    MODEL_COPY_FLAG_NONE        = 0,        
+    MODEL_COPY_FLAG_NO_BASIC    = (1 << 0), // As of 2022-05-24, animations, icons, and movement speeds. 
+    MODEL_COPY_FLAG_NO_WEAPON   = (1 << 1), 
+    MODEL_COPY_FLAG_NO_SCRIPT   = (1 << 2) 
+
+    /* 
+    * Flags above this line must 
+    * keep current order for legacy
+    * compatability. If you add any 
+    * more flags, place them below. 
     */
 
-    MODEL_NO_COPY           = 0x00000001,   //dont copy anything from original model
-    MODEL_NO_WEAPON_COPY    = 0x00000002,   //dont copy weapon list from original model
-    MODEL_NO_SCRIPT_COPY    = 0x00000004    //don't copy scripts
 } e_model_copy;
 
 typedef enum
@@ -2302,6 +2309,15 @@ typedef enum
 // 2014-01-18
 //
 // Projectile spawning.
+#define PROJECTILE_LEGACY_COMPATABILITY_POSITION_X -2147483648.f
+#define PROJECTILE_DEFAULT_STAR_POSITION_X 50.f
+#define PROJECTILE_DEFAULT_POSITION_X 0.f
+#define PROJECTILE_DEFAULT_POSITION_Y 70.f
+#define PROJECTILE_DEFAULT_POSITION_Z 0.f
+#define	PROJECTILE_DEFAULT_SPEED_X	1.f
+#define	PROJECTILE_DEFAULT_SPEED_Y	0.f
+#define	PROJECTILE_DEFAULT_SPEED_Z	0.f
+
 typedef struct
 {
 	int                     bomb;				// ~ custbomb;
@@ -2962,7 +2978,7 @@ typedef struct
 
     //--------------new property for endlevel item--------
     char *branch; //level branch name
-    int model_flag; //used to judge some copy method when setting new model to an entity
+    e_model_copy model_flag; // Control portions copied from orginal model when entity switches model.
 
     s_defense *defense; //defense related, make a struct to aid copying
     float *offense_factors; //basic offense factors: damage = damage*offense
