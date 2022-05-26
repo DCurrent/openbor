@@ -2415,10 +2415,12 @@ typedef struct s_child_spawn
     s_axis_principal_int position;
     s_axis_principal_float velocity;
     int model_index;
+    int index;
     e_direction_adjust direction_adjust;
     e_color_adjust color_adjust;
     e_launch_type launch_type;
     e_projectile_offense offense_source;
+    struct s_child_spawn* next;
 } s_child_spawn;
 
 #define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
@@ -3787,6 +3789,15 @@ typedef struct
 int addframe(s_addframe_data* data);
 
 int check_in_screen();
+
+/* Child spawn control */
+s_child_spawn* child_spawn_allocate_object();
+s_child_spawn* child_spawn_append_node(struct s_child_spawn* head);
+s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head);
+void           child_spawn_dump_list(s_child_spawn* head);
+s_child_spawn* child_spawn_find_node_index(s_child_spawn* head, int index);
+void           child_spawn_free_list(s_child_spawn* head);
+void           child_spawn_free_node(s_child_spawn* target);
 
 /* Collision and attcking control. */
 

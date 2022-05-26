@@ -5811,6 +5811,152 @@ s_collision_entity **collision_alloc_entity_list()
     return result;
 }
 
+/* **** Child Spawn **** */
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Allocate a blank child spawn object
+* and return its pointer. Does not
+* allocate sub-objects.
+*/
+s_child_spawn* child_spawn_allocate_object()
+{
+    s_child_spawn* result;
+    size_t       alloc_size;
+
+    /* Get amount of memory we'll need. */
+    alloc_size = sizeof(*result);
+
+    /* Allocate memory and get pointer. */
+    result = malloc(alloc_size);
+
+    /*
+    * Make sure the data members are
+    * zero'd and that "next" member
+    * is NULL.
+    */
+
+    memset(result, 0, alloc_size);
+
+    result->next = NULL;
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Allocate new child spawn node and append it to
+* end of child_spawn linked list. If no lists exists
+* yet, the new node becomes head of a new list.
+*
+* First step in adding another child_spawn instance.
+*
+* Returns pointer to new node.
+*/
+s_child_spawn* child_spawn_append_node(struct s_child_spawn* head)
+{
+    /* Allocate node. */
+    struct s_child_spawn* new_node = NULL;
+    struct s_child_spawn* last = NULL;
+
+    /*
+    * Allocate memory and get pointer for 
+    * new node, then default last to head.
+    */
+    new_node = child_spawn_allocate_object();
+    last = head;
+
+    /*
+    * New node is going to be the last node in
+    * list, so set its next as NULL.
+    */
+    new_node->next = NULL;
+
+    /*
+    * If there wasn't already a list, the
+    * new node is our head. We are done and
+    * can return the new node pointer.
+    */
+
+    if (head == NULL)
+    {
+        head = new_node;
+
+        return new_node;
+    }
+
+    /*
+    * If we got here, there was already a
+    * list in place. Iterate to its last
+    * node.
+    */
+
+    while (last->next != NULL)
+    {
+        last = last->next;
+    }
+
+    /*
+    * Populate existing last node's next
+    * with new node pointer. The new node
+    * is now the last node in list.
+    */
+
+    last->next = new_node;
+
+    return new_node;
+}
+
+/*
+* Caskey, Damon V
+* 2022-05-26
+*
+* Allocate new child spawn list with same 
+* values as source. Returns pointer to head 
+* of new list.
+*/
+s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head)
+{
+    s_child_spawn* source_cursor = NULL;
+    s_child_spawn* clone_head = NULL;
+    s_child_spawn* clone_node = NULL;
+
+    /* Head is null? Get out now. */
+    if (source_head == NULL)
+    {
+        return source_cursor;
+    }
+
+    source_cursor = source_head;
+
+    while (source_cursor != NULL)
+    {
+        clone_node = child_spawn_append_node(clone_head);
+
+        /*
+        * Populate head if NULL so we
+        * have one for the next cycle.
+        */
+        if (clone_head == NULL)
+        {
+            clone_head = clone_node;
+        }
+
+        /* Copy the values. */
+        //clone_node->bind = bind_clone_object(source_cursor->bind);
+                
+        clone_node->index = source_cursor->index;
+        //clone_node->meta_data = source_cursor->meta_data;
+        //clone_node->meta_tag = source_cursor->meta_tag;
+
+        source_cursor = source_cursor->next;
+    }
+
+    return clone_head;
+}
+
 /* **** Collision Attack **** */
 
 /*
