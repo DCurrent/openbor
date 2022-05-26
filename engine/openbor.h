@@ -2291,6 +2291,29 @@ typedef struct
     e_follow_condition_logic condition;   // Condition in which follow up will be performed.
 } s_follow;
 
+/*
+* Caskey, Damon V.
+* 2013-12-17
+*
+* Binding struct. Control linking
+* of entity to a target entity.
+*/
+typedef struct
+{
+    e_bind_config           config;			    // Animation matching, axis matching, overrides, etc. ~~
+    int                     sortid;             // Relative binding sortid. Default = -1
+    int                     frame;              // Frame to match (only if requested in matching).
+    e_animations            animation;          // Animation to match (only if requested in matching).
+    s_axis_principal_int    offset;             // x,y,z offset.
+    e_direction_adjust      direction_adjust;   // Direction force.
+    struct entity* target;             // Entity subject will bind itself to.
+
+    // Meta data.
+    s_meta_data* meta_data;          // User defined data.
+    int                     meta_tag;           // user defined int.
+
+} s_bind;
+
 // Caskey, Damon V.
 // 2019-12-17
 //
@@ -2361,7 +2384,42 @@ typedef struct
 	s_axis_principal_float position;
 } s_sub_entity;
 
+/*
+* Caskey, Damon V.
+* 2022-05-26
+* 
+* How child entity spawn is 
+* set in motion (if at all).
+*/
+typedef enum e_launch_type
+{
+    LAUNCH_TYPE_NONE = 0,
+    LAUNCH_TYPE_DISABLE_GRAVITY = (1 << 0),
+    LAUNCH_TYPE_SPAWN = (1 << 1),
+    LAUNCH_TYPE_THROW = (1 << 2),
+    LAUNCH_TYPE_TOSS = (1 << 3)
+} e_launch_type;
 
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Child spawn structure. Used for
+* frame level spawning to replace
+* the legacy projectile and sub-entity
+* functions.
+*/
+typedef struct s_child_spawn
+{
+    s_bind* bind;
+    s_axis_principal_int position;
+    s_axis_principal_float velocity;
+    int model_index;
+    e_direction_adjust direction_adjust;
+    e_color_adjust color_adjust;
+    e_launch_type launch_type;
+    e_projectile_offense offense_source;
+} s_child_spawn;
 
 #define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
 #define ANIMATION_CHARGE_TIME_DEFAULT	2
@@ -2402,6 +2460,7 @@ typedef struct
 	s_sub_entity*				sub_entity_summon;		// Replace legacy "summonframe" - spawn an entity as child we can unsommon later (limited to one). ~~
 	s_projectile*				projectile;             // Sub entity spawn for knives, stars, bombs, hadouken, etc. ~~
 
+    s_child_spawn**             child_spawn;            // Head node for child spawns (frame level spawning for particle effects, projectiles, etc.).
     s_collision_attack**        collision_attack;       // Head node for collision detection (attack).
     s_collision_body**          collision_body;         // Head node for collision detection (body).
 	s_collision_entity_list**	collision_entity;
@@ -3033,29 +3092,6 @@ typedef struct
     e_animations    animation_id;   // Jumping Animation.
     s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
-
-/* 
-* Caskey, Damon V.
-* 2013-12-17
-*
-* Binding struct. Control linking
-* of entity to a target entity.
-*/
-typedef struct
-{
-    e_bind_config           config;			    // Animation matching, axis matching, overrides, etc. ~~
-    int                     sortid;             // Relative binding sortid. Default = -1
-    int                     frame;              // Frame to match (only if requested in matching).
-    e_animations            animation;          // Animation to match (only if requested in matching).
-    s_axis_principal_int    offset;             // x,y,z offset.
-    e_direction_adjust      direction_adjust;   // Direction force.
-    struct entity*          target;             // Entity subject will bind itself to.
-
-    // Meta data.
-    s_meta_data*            meta_data;          // User defined data.
-    int                     meta_tag;           // user defined int.
-
-} s_bind;
 
 typedef struct
 {
