@@ -129,6 +129,16 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_AT_CMD, "@cmd");
     LIST_ADD(CMD_MODEL_AT_SCRIPT, "@script");
     LIST_ADD(CMD_MODEL_ATCHAIN, "atchain");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_CONFIG,              "child_spawn_config");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST,    "child_spawn_direction_adjust");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_INDEX,               "child_spawn_index");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_MODEL,               "child_spawn_model");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_OFFSET_X,            "child_spawn_offset_x");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_OFFSET_Y,            "child_spawn_offset_y");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_OFFSET_Z,            "child_spawn_offset_z");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_VELOCITY_X,          "child_spawn_velocity_x");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_VELOCITY_Y,          "child_spawn_velocity_y");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_VELOCITY_Z,          "child_spawn_velocity_z");
     LIST_ADD(CMD_MODEL_COLLISION, "attack");
     LIST_ADD(CMD_MODEL_COLLISION_BLOCK_COST,                       "attack.block.cost");                       // guardcost
     LIST_ADD(CMD_MODEL_COLLISION_BLOCK_PENETRATE,                  "attack.block.penetrate");                  // no_block

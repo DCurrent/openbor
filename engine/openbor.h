@@ -3616,8 +3616,6 @@ e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_contr
 int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
-void    adjust_bind(entity *e);
-int     check_bind_override(entity *ent, e_bind_config bind_config);
 
 /* Defense. */
 int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object);
@@ -3788,6 +3786,7 @@ typedef struct
     s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
     s_collision_attack*         collision;      // Head node of collision list (attack) for frame.
     s_collision_body*           collision_body; // Head node of collision list (body) for frame. 
+    s_child_spawn*              child_spawn;    // Head node of child spawn list for frame.
     s_model*                    model;          // New model in progress.
 } s_addframe_data;
 
@@ -3795,12 +3794,15 @@ int addframe(s_addframe_data* data);
 
 int check_in_screen();
 
-/* Child spawn control */
+/* Bind control */
+void    adjust_bind(entity* acting_entity);
 s_bind* bind_allocate_object();
 s_bind* bind_clone_object(s_bind* source);
 void    bind_dump_object(s_bind* target);
 void    bind_free_object(s_bind* target);
+int     check_bind_override(entity* ent, e_bind_config bind_config);
 
+/* Child spawn control */
 s_child_spawn* child_spawn_allocate_object();
 s_child_spawn* child_spawn_append_node(struct s_child_spawn* head);
 s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head);
@@ -3808,6 +3810,9 @@ void           child_spawn_dump_list(s_child_spawn* head);
 s_child_spawn* child_spawn_find_node_index(s_child_spawn* head, int index);
 void           child_spawn_free_list(s_child_spawn* head);
 void           child_spawn_free_node(s_child_spawn* target);
+s_child_spawn* child_spawn_upsert_property(s_child_spawn** head, int index);
+s_child_spawn* child_spawn_upsert_index(s_child_spawn* head, int index);
+void           child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
 
 /* Collision and attcking control. */
 

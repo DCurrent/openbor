@@ -5296,6 +5296,12 @@ void free_frames(s_anim *anim)
         anim->collision_body = NULL;
     }
 
+    if (anim->child_spawn)
+    {
+        child_spawn_free_list(*anim->child_spawn);
+        anim->child_spawn = NULL;
+    }
+
     if(anim->collision_entity)
     {
         for(i = 0; i < anim->numframes; i++)
@@ -5945,9 +5951,26 @@ s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head)
             clone_head = clone_node;
         }
 
-        /* Copy the values. */
-        //clone_node->bind = bind_clone_object(source_cursor->bind);
-                
+        /* 
+        * Copy the values. We start with
+        * a memcopy to get most properties
+        * and then manually populate the
+        * rest as needed.
+        */
+
+        //memcpy(clone_node, source_cursor, sizeof(*clone_node));
+        
+        clone_node->bind = source_cursor->bind;
+        clone_node->config = source_cursor->config;
+        clone_node->direction_adjust = source_cursor->direction_adjust;
+        clone_node->model_index = source_cursor->model_index;
+        clone_node->position.x = source_cursor->position.x;
+        clone_node->position.y = source_cursor->position.y;
+        clone_node->position.z = source_cursor->position.z;
+        clone_node->velocity.x = source_cursor->velocity.x;
+        clone_node->velocity.y = source_cursor->velocity.y;
+        clone_node->velocity.z = source_cursor->velocity.z;
+
         clone_node->index = source_cursor->index;
         //clone_node->meta_data = source_cursor->meta_data;
         //clone_node->meta_tag = source_cursor->meta_tag;
@@ -6100,6 +6123,119 @@ void child_spawn_free_node(s_child_spawn* target)
     free(target);
 }
 
+// collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);
+
+
+
+/*
+* 2020-02-23
+* Caskey, Damon V
+*
+* Get pointer to object for modification. Used when
+* loading a model and reading in attack properties.
+*/
+s_child_spawn* child_spawn_upsert_property(s_child_spawn** head, int index)
+{
+    // printf("\n\t child_spawn_upsert_bind_property(%p, %d)", *head, index);
+
+    s_child_spawn* temp_object_current;
+
+    /*
+    * 1. First we need to know index.
+                *  -- temp_collision_index
+
+                * 2. Look for index and get pointer (found or allocated).
+
+                * Get the node we want to work on by searching
+                * for a matched index. In most cases, this will
+                * just be the head node.
+    */
+
+    temp_object_current = child_spawn_upsert_index(*head, index);
+
+    /*
+    * If head is NULL, this must be the first allocated
+    * collision for current frame. Populate head with
+    * current so we have a head for the next pass.
+    */
+
+    if (*head == NULL)
+    {
+        *head = temp_object_current;
+    } 
+
+    /* Return pointer to the attack structure. */
+    return temp_object_current;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-27
+*
+* Find a child spawn node by index, or append a new node
+* with target index if no match is found. Returns pointer
+* to found or appended node.
+*/
+s_child_spawn* child_spawn_upsert_index(s_child_spawn* head, int index)
+{
+    s_child_spawn* result = NULL;
+
+    /* Run index search. */
+    result = child_spawn_find_node_index(head, index);
+
+    /*
+    * If we couldn't find an index match, lets add
+    * a node and apply the index we wanted.
+    */
+    if (!result)
+    {
+        result = child_spawn_append_node(head);
+        result->index = index;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-27
+*
+* Allocate and apply child spawn settings to target frame.
+*/
+void child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame)
+{
+    s_child_spawn* temp_object;
+    size_t memory_size;
+
+    if (!data->child_spawn)
+    {
+        return;
+    }
+    
+    /*
+    * If object is not allocated yet, we need to allocate
+    * an array of object pointers (one element for each
+    * animation frame). If the frame has an object, its
+    * object property is populated with pointer to head
+    * of a linked list of objects.
+    */
+    if (!data->animation->child_spawn)
+    {
+        memory_size = data->framecount * sizeof(*data->animation->child_spawn);
+
+        data->animation->child_spawn = malloc(memory_size);
+        memset(data->animation->child_spawn, 0, memory_size);
+    }
+
+    /*
+    * Clone source list and populate frame's object
+    * property with the pointer to clone list head.
+    */
+    temp_object = child_spawn_clone_list(data->child_spawn);
+        
+    /* Frame object property is head of object list. */
+    data->animation->child_spawn[frame] = temp_object;
+}
 
 
 /* **** Collision Attack **** */
@@ -8345,6 +8481,8 @@ int addframe(s_addframe_data* data)
     collision_attack_initialize_frame_property(data, currentframe);
     collision_body_initialize_frame_property(data, currentframe);
     
+    /* Child spawns. */
+    child_spawn_initialize_frame_property(data, currentframe);
 
     // Drawmethod (graphic settings)
     if(data->drawmethod->flag)
@@ -11903,8 +12041,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int aiattackset = 0;
     int maskindex = -1;
     int nopalette = 0;
-    int temp_collision_index = 0;
-
+    
     size_t size = 0;
     size_t line = 0;
     size_t len = 0;
@@ -11946,15 +12083,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     * Caskey, Damon V.
     * 2021-08-23
     * 
-    * Temporary list heads for collision. As 
-    * we read in commands for collision, functions
+    * Temporary list heads. As we read in commands 
+    * for "mutiple X per frame" properties, functions
     * build a linked list with these variables as 
     * head node. When we add frame to model, the
     * lists are cloned with relevant frame property 
     * as head node. Then we destroy temporary list.
     */
-    s_collision_attack* temp_collision_head = NULL;
-    s_collision_body* temp_collision_body_head = NULL;
+    int temp_collision_index = 0;
+    s_collision_attack* temp_collision_head = NULL;     // Attack boxes.
+    s_collision_body* temp_collision_body_head = NULL;  // Body boxes.
+    
+    int temp_child_spawn_index = 0;
+    s_child_spawn* temp_child_spawn_head = NULL;         // Spawning sub entities.
 
     char* shutdownmessage = NULL;
 
@@ -13410,13 +13551,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * Caskey, Damon V.
                 * 2021-08-23
                 * 
-                * Prepare temporary lists for collision input.
+                * Prepare temporary lists for input.
                 */
                 collision_attack_free_list(temp_collision_head);
                 collision_body_free_list(temp_collision_body_head);
                 temp_collision_head = NULL;
                 temp_collision_body_head = NULL;
                 temp_collision_index = 0;
+
+                child_spawn_free_list(temp_child_spawn_head);
+                temp_child_spawn_head = NULL;
+                temp_child_spawn_index = 0;
 
                 memset(&ebox, 0, sizeof(ebox));
                 memset(&offset, 0, sizeof(offset));
@@ -13560,6 +13705,44 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_CHARGETIME:
                 newanim->charge_time = GET_INT_ARG(1);
+                break;
+
+                /* 2022-05-27
+                * Caskey, Damon V.
+                *
+                * This needs to come before any other child spawn
+                * read in command so we know which object index
+                * we want the child spawn commands to affect.
+                */
+            case CMD_MODEL_CHILD_SPAWN_INDEX:
+                temp_child_spawn_index = GET_INT_ARG(1);                
+                break;
+            case CMD_MODEL_CHILD_SPAWN_CONFIG:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
+                break;
+            case CMD_MODEL_CHILD_SPAWN_MODEL:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->model_index = get_cached_model_index(GET_ARG(1));
+                break;
+            case CMD_MODEL_CHILD_SPAWN_OFFSET_X:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.x = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_OFFSET_Y:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.y = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_OFFSET_Z:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.z = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_VELOCITY_X:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->velocity.x = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_VELOCITY_Y:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->velocity.y = GET_FLOAT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_VELOCITY_Z:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->velocity.z = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_COLLISIONONE:
                 newanim->attack_one = GET_INT_ARG(1);
@@ -15529,12 +15712,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 collision_body_remove_undefined_coordinates(&temp_collision_body_head);
                 
                 /*
-                * Collision heads may have changed, so this needs to
-                * be right before addframe function.
+                * Multiple per frame object heads may have 
+                * changed, so this needs to be right before 
+                * addframe function.
                 */
                 add_frame_data.collision = temp_collision_head;
                 add_frame_data.collision_body = temp_collision_body_head;
+                add_frame_data.child_spawn = temp_child_spawn_head;
 
+                /* 
+                * Send data to frame function so it
+                * can build a new animation frame.
+                */
                 curframe = addframe(&add_frame_data);
                 
                 soundtoplay = SAMPLE_ID_NONE;
@@ -22147,6 +22336,12 @@ void update_frame(entity *ent, unsigned int f)
         }
     }
 
+    /* Child spawn */
+    if (anim->child_spawn && anim->child_spawn[f])
+    {
+        child_spawn_dump_list(anim->child_spawn[f]);
+    }
+
     if(anim->soundtoplay && anim->soundtoplay[f] >= 0)
     {
         sound_play_sample(anim->soundtoplay[f], 0, savedata.effectvol, savedata.effectvol, 100);
@@ -26718,6 +26913,104 @@ void update_health()
     }
 }
 
+/* ***** Binding ***** */
+
+/*
+* Caskey, Damon V.
+* 2022-05-27
+*
+* Allocate a bind property structure and return pointer.
+*/
+s_bind* bind_allocate_object()
+{
+    s_bind* result;
+    size_t alloc_size;
+
+    /* Get amount of memory we'll need. */
+    alloc_size = sizeof(*result);
+
+    /* Allocate memory and get pointer. */
+    result = malloc(alloc_size);
+
+    /*
+    * Make sure the data members are
+    * zero'd out.
+    */
+
+    memset(result, 0, alloc_size);
+          
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-27
+*
+* Allocate new bind object with same values (but not 
+* same pointers) as received object. Returns pointer 
+* to new object.
+*/
+s_bind* bind_clone_object(s_bind* source)
+{
+    s_bind* result = NULL;
+
+    if (!source)
+    {
+        return result;
+    }
+
+    result = bind_allocate_object();
+
+    /*
+    * Rather than do everything piecemeal, we'll memcopy
+    * to get all the basic values, and then overwrite
+    * members individually as needed.
+    */
+
+    memcpy(result, source, sizeof(*result));
+
+    return result;
+}
+
+/*
+* Caskey, Damon V
+* 2022-05-27
+*
+* Send all bind data to log for debugging.
+*/
+void bind_dump_object(s_bind* object)
+{
+    printf("\n\n -- Bind (%p) dump --", object);
+
+    if (object)
+    {
+        printf("\n\t ->animation: %d", object->animation);
+        printf("\n\t ->config: %d", object->config);
+        printf("\n\t ->direction_adjust: %d", object->direction_adjust);
+        printf("\n\t ->frame: %d", object->frame);
+        printf("\n\t ->meta_data: %p", object->meta_data);
+        printf("\n\t ->meta_tag: %d", object->meta_tag);
+        printf("\n\t ->offset.x: %d", object->offset.x);
+        printf("\n\t ->offset.y: %d", object->offset.y);
+        printf("\n\t ->offset.z: %d", object->offset.z);
+        printf("\n\t ->sortid: %d", object->sortid);
+        printf("\n\t ->target: %p", object->target);
+    }
+
+    printf("\n\n -- Bind (%p) dump complete... -- \n", object);
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-27
+*
+* Free bind properties from memory.
+*/
+void bind_free_object(s_bind* object)
+{
+    free(object);
+}
+
 /*
 * Caskey, Damon V.
 * 2022-05-06
@@ -26734,7 +27027,10 @@ void adjust_bind(entity* acting_entity)
 	#define ADJUST_BIND_SET_ANIM_RESETABLE 1
 	#define ADJUST_BIND_NO_FRAME_MATCH -1   
 
-	/* Exit if there is no bind target. */
+	/* 
+    * Exit if there is no bind 
+    * or bind target. 
+    */
 	if (!acting_entity->binding.target)
 	{
 		return;
