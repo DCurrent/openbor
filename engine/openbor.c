@@ -5957,6 +5957,52 @@ s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head)
     return clone_head;
 }
 
+/*
+* Caskey, Damon V
+* 2020-03-10
+*
+* Send all child spawn list data to log for debugging.
+*/
+void child_spawn_dump_list(s_child_spawn* head)
+{
+    printf("\n\n -- Child Spawn List (head: %p) Dump --", head);
+
+    s_child_spawn* cursor;
+    int count = 0;
+
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        count++;
+
+        printf("\n\n\t Node: %p", cursor);
+        printf("\n\t\t ->bind: %p", cursor->bind);
+
+        if (cursor->bind)
+        {
+            //bind_dump_object(cursor->bind);
+        }
+
+        printf("\n\t\t ->config: %d", cursor->config);
+        printf("\n\t\t ->direction_adjust: %d", cursor->direction_adjust);
+        printf("\n\t\t ->index: %d", cursor->index);        
+        printf("\n\t\t ->model_index: %d", cursor->model_index);
+        printf("\n\t\t ->next: %p", cursor->next);
+        printf("\n\t\t ->position.x: %d", cursor->position.x);
+        printf("\n\t\t ->position.y: %d", cursor->position.y);
+        printf("\n\t\t ->position.z: %d", cursor->position.z);
+        printf("\n\t\t ->velocity.x: %f", cursor->velocity.x);
+        printf("\n\t\t ->velocity.y: %f", cursor->velocity.y);
+        printf("\n\t\t ->velocity.z: %f", cursor->velocity.z);        
+
+        cursor = cursor->next;
+    }
+
+    printf("\n\n %d nodes.", count);
+    printf("\n\n -- Child Spawn List (head: %p) dump complete! -- \n", head);
+}
+
 /* **** Collision Attack **** */
 
 /*

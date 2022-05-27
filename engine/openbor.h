@@ -2389,16 +2389,23 @@ typedef struct
 * 2022-05-26
 * 
 * How child entity spawn is 
-* set in motion (if at all).
+* set up.
 */
-typedef enum e_launch_type
+typedef enum e_child_spawn_config
 {
-    LAUNCH_TYPE_NONE = 0,
-    LAUNCH_TYPE_DISABLE_GRAVITY = (1 << 0),
-    LAUNCH_TYPE_SPAWN = (1 << 1),
-    LAUNCH_TYPE_THROW = (1 << 2),
-    LAUNCH_TYPE_TOSS = (1 << 3)
-} e_launch_type;
+    CHILD_SPAWN_CONFIG_NONE                 = 0,
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX   = (1 << 0),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE   = (1 << 1),
+    CHILD_SPAWN_CONFIG_GRAVITY_DISABLE      = (1 << 2),
+    CHILD_SPAWN_CONFIG_THROW                = (1 << 3),
+    CHILD_SPAWN_CONFIG_TOSS                 = (1 << 4),
+    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE    = (1 << 5),
+    CHILD_SPAWN_CONFIG_POSITION_SCROLL      = (1 << 6),
+    CHILD_SPAWN_CONFIG_SET_CHILD            = (1 << 7),
+    CHILD_SPAWN_CONFIG_SET_OWNER            = (1 << 8),
+    CHILD_SPAWN_CONFIG_SET_PARENT           = (1 << 9),
+    CHILD_SPAWN_CONFIG_COPY_OFFENSE         = (1 << 10)
+} e_child_spawn_config;
 
 /*
 * Caskey, Damon V.
@@ -2411,16 +2418,14 @@ typedef enum e_launch_type
 */
 typedef struct s_child_spawn
 {
-    s_bind* bind;
-    s_axis_principal_int position;
-    s_axis_principal_float velocity;
-    int model_index;
-    int index;
-    e_direction_adjust direction_adjust;
-    e_color_adjust color_adjust;
-    e_launch_type launch_type;
-    e_projectile_offense offense_source;
-    struct s_child_spawn* next;
+    s_bind*                 bind;
+    e_child_spawn_config    config;
+    e_direction_adjust      direction_adjust;
+    int                     index;
+    int                     model_index;
+    struct s_child_spawn*   next;
+    s_axis_principal_int    position;
+    s_axis_principal_float  velocity;
 } s_child_spawn;
 
 #define ANIMATION_BOUNCE_FACTOR_DEFAULT	4
