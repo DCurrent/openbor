@@ -5812,6 +5812,7 @@ s_collision_entity **collision_alloc_entity_list()
 }
 
 /* **** Child Spawn **** */
+
 /*
 * Caskey, Damon V.
 * 2022-05-26
@@ -6002,6 +6003,104 @@ void child_spawn_dump_list(s_child_spawn* head)
     printf("\n\n %d nodes.", count);
     printf("\n\n -- Child Spawn List (head: %p) dump complete! -- \n", head);
 }
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Find a child spawn node by index and return 
+* pointer, or NULL if no match found.
+*/
+s_child_spawn* child_spawn_find_node_index(s_child_spawn* head, int index)
+{
+    s_child_spawn* current = NULL;
+
+    /*
+    * Starting from head node, iterate through
+    * all nodes and compare their index
+    * property to index argument.
+    * 
+    * If we found a match, return the node
+    * pointer. 
+    */
+
+    current = head;
+
+    while (current != NULL)
+    {        
+        if (current->index == index)
+        {
+            return current;
+        }
+        
+        current = current->next;
+    }
+
+    /*
+    * If we got here, find failed.
+    * Just return NULL.
+    */
+    return NULL;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Clear a child spawn linked list from memory.
+*/
+void child_spawn_free_list(s_child_spawn* head)
+{
+    s_child_spawn* cursor = NULL;
+    s_child_spawn* next = NULL;
+
+    /*
+    * Starting from head node, iterate through
+    * all nodes and free them.
+    */
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        /*
+        * We still need the next member after we
+        * delete object, so we'll store it in a 
+        * temp var.
+        */
+
+        next = cursor->next;
+
+        /* Free the current object. */
+        child_spawn_free_node(cursor);
+
+        cursor = next;
+    }
+}
+
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Clear a single child spawn object from memory.
+* Note this does NOT remove node from list.
+* Be careful not to create a dangling pointer!
+*/
+void child_spawn_free_node(s_child_spawn* target)
+{
+    /* Free sub objects. */
+
+    if (target->bind)
+    {
+        //bind_free_object(target->bind);
+        //target->attack = NULL;
+    }        
+
+    /* Free the collision structure. */
+    free(target);
+}
+
+
 
 /* **** Collision Attack **** */
 

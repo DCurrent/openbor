@@ -3796,6 +3796,11 @@ int addframe(s_addframe_data* data);
 int check_in_screen();
 
 /* Child spawn control */
+s_bind* bind_allocate_object();
+s_bind* bind_clone_object(s_bind* source);
+void    bind_dump_object(s_bind* target);
+void    bind_free_object(s_bind* target);
+
 s_child_spawn* child_spawn_allocate_object();
 s_child_spawn* child_spawn_append_node(struct s_child_spawn* head);
 s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head);
