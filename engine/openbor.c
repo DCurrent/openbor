@@ -5821,6 +5821,103 @@ s_collision_entity **collision_alloc_entity_list()
 
 /*
 * Caskey, Damon V.
+* 2022-05-27
+*
+* Read a text argument for child spawn config
+* flag and output appropriate constant.
+*/
+e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
+{
+    e_child_spawn_config result = MODEL_COPY_FLAG_NONE;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_NONE;
+    }
+    else if (stricmp(value, "color_parent_index") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX;
+    }
+    else if (stricmp(value, "color_parent_table") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE;
+    }
+    else if (stricmp(value, "explode") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_EXPLODE;
+    }
+    else if (stricmp(value, "gravity_off") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_GRAVITY_OFF;
+    }
+    else if (stricmp(value, "gravity_on") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_GRAVITY_ON;
+    }
+    else if (stricmp(value, "launch_throw") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_LAUNCH_THROW;
+    }
+    else if (stricmp(value, "launch_toss") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_LAUNCH_TOSS;
+    }
+    else if (stricmp(value, "offense_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_OFFENSE_PARENT;
+    }
+    else if (stricmp(value, "position_absolute") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE;
+    }
+    else if (stricmp(value, "position_level") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_POSITION_LEVEL;
+    }
+    else if (stricmp(value, "relationship_child") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD;
+    }
+    else if (stricmp(value, "relationship_owner") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER;
+    }
+    else if (stricmp(value, "relationship_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT;
+    }
+    else
+    {
+        printf("\n\n Unknown child_spawn_config argument (%s). Ignoring.\n", value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-27
+*
+* Read text argument lists, updates bit flags
+* and outputs integer. Accepts existing
+* argument as a default.
+*/
+e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_spawn_config config_current)
+{
+    e_child_spawn_config result = config_current;
+    int i;
+    char* value;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= child_spawn_get_config_bit_from_argument(value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
 * 2022-05-26
 *
 * Allocate a blank child spawn object
@@ -5862,11 +5959,11 @@ s_child_spawn* child_spawn_allocate_object()
 *
 * Returns pointer to new node.
 */
-s_child_spawn* child_spawn_append_node(struct s_child_spawn* head)
+s_child_spawn* child_spawn_append_node(s_child_spawn* head)
 {
     /* Allocate node. */
-    struct s_child_spawn* new_node = NULL;
-    struct s_child_spawn* last = NULL;
+    s_child_spawn* new_node = NULL;
+    s_child_spawn* last = NULL;
 
     /*
     * Allocate memory and get pointer for 
@@ -5941,7 +6038,7 @@ s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head)
     while (source_cursor != NULL)
     {
         clone_node = child_spawn_append_node(clone_head);
-
+        
         /*
         * Populate head if NULL so we
         * have one for the next cycle.
@@ -5954,27 +6051,18 @@ s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head)
         /* 
         * Copy the values. We start with
         * a memcopy to get most properties
-        * and then manually populate the
+        * and then manually update the
         * rest as needed.
         */
 
-        //memcpy(clone_node, source_cursor, sizeof(*clone_node));
+        *clone_node = *source_cursor;
+                
+        /* 
+        * Clear clone's next value.
+        */
+        clone_node->next = NULL;
         
-        clone_node->bind = source_cursor->bind;
-        clone_node->config = source_cursor->config;
-        clone_node->direction_adjust = source_cursor->direction_adjust;
-        clone_node->model_index = source_cursor->model_index;
-        clone_node->position.x = source_cursor->position.x;
-        clone_node->position.y = source_cursor->position.y;
-        clone_node->position.z = source_cursor->position.z;
-        clone_node->velocity.x = source_cursor->velocity.x;
-        clone_node->velocity.y = source_cursor->velocity.y;
-        clone_node->velocity.z = source_cursor->velocity.z;
-
-        clone_node->index = source_cursor->index;
-        //clone_node->meta_data = source_cursor->meta_data;
-        //clone_node->meta_tag = source_cursor->meta_tag;
-
+        
         source_cursor = source_cursor->next;
     }
 
@@ -6001,30 +6089,39 @@ void child_spawn_dump_list(s_child_spawn* head)
         count++;
 
         printf("\n\n\t Node: %p", cursor);
-        printf("\n\t\t ->bind: %p", cursor->bind);
-
-        if (cursor->bind)
-        {
-            //bind_dump_object(cursor->bind);
-        }
-
-        printf("\n\t\t ->config: %d", cursor->config);
-        printf("\n\t\t ->direction_adjust: %d", cursor->direction_adjust);
-        printf("\n\t\t ->index: %d", cursor->index);        
-        printf("\n\t\t ->model_index: %d", cursor->model_index);
-        printf("\n\t\t ->next: %p", cursor->next);
-        printf("\n\t\t ->position.x: %d", cursor->position.x);
-        printf("\n\t\t ->position.y: %d", cursor->position.y);
-        printf("\n\t\t ->position.z: %d", cursor->position.z);
-        printf("\n\t\t ->velocity.x: %f", cursor->velocity.x);
-        printf("\n\t\t ->velocity.y: %f", cursor->velocity.y);
-        printf("\n\t\t ->velocity.z: %f", cursor->velocity.z);        
+              
 
         cursor = cursor->next;
     }
 
     printf("\n\n %d nodes.", count);
     printf("\n\n -- Child Spawn List (head: %p) dump complete! -- \n", head);
+}
+
+void child_spawn_dump_object(s_child_spawn* object)
+{
+    printf("\n\n -- Child Spawn object (%p) Dump --", object);
+
+    printf("\n\t\t ->bind: %p", object->bind);
+
+    if (object->bind)
+    {
+        //bind_dump_object(cursor->bind);
+    }
+
+    printf("\n\t\t ->config: %d", object->config);
+    printf("\n\t\t ->direction_adjust: %d", object->direction_adjust);
+    printf("\n\t\t ->index: %d", object->index);
+    printf("\n\t\t ->model_index: %d", object->model_index);
+    printf("\n\t\t ->next: %p", object->next);
+    printf("\n\t\t ->position.x: %d", object->position.x);
+    printf("\n\t\t ->position.y: %d", object->position.y);
+    printf("\n\t\t ->position.z: %d", object->position.z);
+    printf("\n\t\t ->velocity.x: %f", object->velocity.x);
+    printf("\n\t\t ->velocity.y: %f", object->velocity.y);
+    printf("\n\t\t ->velocity.z: %f", object->velocity.z);
+
+    printf("\n\n -- Child Spawn object (%p) dump complete! -- \n", object);
 }
 
 /*
@@ -6119,13 +6216,9 @@ void child_spawn_free_node(s_child_spawn* target)
         //target->attack = NULL;
     }        
 
-    /* Free the collision structure. */
+    /* Free the structure. */
     free(target);
 }
-
-// collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->guardcost = GET_INT_ARG(1);
-
-
 
 /*
 * 2020-02-23
@@ -6227,6 +6320,10 @@ void child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t fram
         memset(data->animation->child_spawn, 0, memory_size);
     }
 
+    printf("\n\n child_spawn_initialize_frame_property");
+
+    child_spawn_dump_list(data->child_spawn);
+
     /*
     * Clone source list and populate frame's object
     * property with the pointer to clone list head.
@@ -6235,6 +6332,42 @@ void child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t fram
         
     /* Frame object property is head of object list. */
     data->animation->child_spawn[frame] = temp_object;
+
+    
+    printf("\n\t data->animation->child_spawn[%d]: %p \n", frame, data->animation->child_spawn[frame]);
+}
+
+void child_spawn_execute_list(s_child_spawn* head)
+{
+    s_child_spawn* cursor = NULL;
+    s_child_spawn* next = NULL;
+
+    /*
+    * Starting from head node, iterate through
+    * all nodes and free them.
+    */
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        /*
+        * We still need the next member after we
+        * delete object, so we'll store it in a
+        * temp var.
+        */
+
+        next = cursor->next;
+
+        /* Free the current object. */
+        child_spawn_execute_object(cursor);
+
+        cursor = next;
+    }
+}
+
+void child_spawn_execute_object(s_child_spawn* object)
+{
+    child_spawn_dump_object(object);
 }
 
 
@@ -13563,6 +13696,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_child_spawn_head = NULL;
                 temp_child_spawn_index = 0;
 
+                //printf("\n\n anim: %p", newanim);
+                //child_spawn_dump_list(temp_child_spawn_head);
+
                 memset(&ebox, 0, sizeof(ebox));
                 memset(&offset, 0, sizeof(offset));
                 memset(shadow_coords, 0, sizeof(shadow_coords));
@@ -13718,7 +13854,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_child_spawn_index = GET_INT_ARG(1);                
                 break;
             case CMD_MODEL_CHILD_SPAWN_CONFIG:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = GET_INT_ARG(1);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(&arglist, 0);
                 break;
             case CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
@@ -15555,10 +15691,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     shutdownmessage = "Cannot add frame: animation not specified!";
                     goto lCleanup;
-                }
-
-                // Reset index for collision boxes.
-                temp_collision_index = 0;
+                }                
 
                 peek = 0;
                 if(frameset && framecount >= 0)
@@ -15704,13 +15837,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 add_frame_data.model = newchar;                
 
                 /*
-                * Delete collision nodes from collision lists 
-                * that don't have coordinates defined at all 
-                * or the coordinates X/Y/H/W are all 0.
+                * Delete nodes from frame object lists
+                * that don't have valid data (i.e no 
+                * coordinates defined at all or the 
+                * coordinates X/Y/H/W are all 0).
                 */
                 collision_attack_remove_undefined_coordinates(&temp_collision_head);
                 collision_body_remove_undefined_coordinates(&temp_collision_body_head);
-                
+                                
                 /*
                 * Multiple per frame object heads may have 
                 * changed, so this needs to be right before 
@@ -15726,6 +15860,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 */
                 curframe = addframe(&add_frame_data);
                 
+                /* 
+                * Clear any data tha we don't want
+                * retained for the next frame. Also 
+                * reset temp indexes.
+                */
+                                
+                temp_collision_index = 0;
+
+                child_spawn_free_list(temp_child_spawn_head);
+                temp_child_spawn_head = NULL;
+                temp_child_spawn_index = 0;
+
                 soundtoplay = SAMPLE_ID_NONE;
                 frm_id = -1;
             }
@@ -22339,7 +22485,7 @@ void update_frame(entity *ent, unsigned int f)
     /* Child spawn */
     if (anim->child_spawn && anim->child_spawn[f])
     {
-        child_spawn_dump_list(anim->child_spawn[f]);
+        child_spawn_execute_list(anim->child_spawn[f]);
     }
 
     if(anim->soundtoplay && anim->soundtoplay[f] >= 0)

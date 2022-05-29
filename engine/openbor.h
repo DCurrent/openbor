@@ -2396,15 +2396,17 @@ typedef enum e_child_spawn_config
     CHILD_SPAWN_CONFIG_NONE                 = 0,
     CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX   = (1 << 0),
     CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE   = (1 << 1),
-    CHILD_SPAWN_CONFIG_GRAVITY_DISABLE      = (1 << 2),
-    CHILD_SPAWN_CONFIG_THROW                = (1 << 3),
-    CHILD_SPAWN_CONFIG_TOSS                 = (1 << 4),
-    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE    = (1 << 5),
-    CHILD_SPAWN_CONFIG_POSITION_SCROLL      = (1 << 6),
-    CHILD_SPAWN_CONFIG_SET_CHILD            = (1 << 7),
-    CHILD_SPAWN_CONFIG_SET_OWNER            = (1 << 8),
-    CHILD_SPAWN_CONFIG_SET_PARENT           = (1 << 9),
-    CHILD_SPAWN_CONFIG_COPY_OFFENSE         = (1 << 10)
+    CHILD_SPAWN_CONFIG_EXPLODE              = (1 << 2),
+    CHILD_SPAWN_CONFIG_GRAVITY_OFF          = (1 << 3),
+    CHILD_SPAWN_CONFIG_GRAVITY_ON           = (1 << 4),
+    CHILD_SPAWN_CONFIG_LAUNCH_THROW         = (1 << 5),
+    CHILD_SPAWN_CONFIG_LAUNCH_TOSS          = (1 << 6),
+    CHILD_SPAWN_CONFIG_OFFENSE_PARENT       = (1 << 7),
+    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE    = (1 << 8),
+    CHILD_SPAWN_CONFIG_POSITION_LEVEL       = (1 << 9),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD   = (1 << 10),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER   = (1 << 11),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT  = (1 << 12)    
 } e_child_spawn_config;
 
 /*
@@ -3803,16 +3805,23 @@ void    bind_free_object(s_bind* target);
 int     check_bind_override(entity* ent, e_bind_config bind_config);
 
 /* Child spawn control */
-s_child_spawn* child_spawn_allocate_object();
-s_child_spawn* child_spawn_append_node(struct s_child_spawn* head);
-s_child_spawn* child_spawn_clone_list(s_child_spawn* source_head);
-void           child_spawn_dump_list(s_child_spawn* head);
-s_child_spawn* child_spawn_find_node_index(s_child_spawn* head, int index);
-void           child_spawn_free_list(s_child_spawn* head);
-void           child_spawn_free_node(s_child_spawn* target);
-s_child_spawn* child_spawn_upsert_property(s_child_spawn** head, int index);
-s_child_spawn* child_spawn_upsert_index(s_child_spawn* head, int index);
-void           child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_spawn_config config_current);
+e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value);
+
+s_child_spawn*  child_spawn_allocate_object();
+s_child_spawn*  child_spawn_append_node(struct s_child_spawn* head);
+s_child_spawn*  child_spawn_clone_list(s_child_spawn* source_head);
+void            child_spawn_dump_list(s_child_spawn* head);
+void            child_spawn_dump_object(s_child_spawn* object);
+s_child_spawn*  child_spawn_find_node_index(s_child_spawn* head, int index);
+void            child_spawn_free_list(s_child_spawn* head);
+void            child_spawn_free_node(s_child_spawn* target);
+s_child_spawn*  child_spawn_upsert_property(s_child_spawn** head, int index);
+s_child_spawn*  child_spawn_upsert_index(s_child_spawn* head, int index);
+void            child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+
+void            child_spawn_execute_object(s_child_spawn* object);
+void            child_spawn_execute_list(s_child_spawn* head);
 
 /* Collision and attcking control. */
 
