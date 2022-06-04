@@ -458,8 +458,11 @@ typedef enum
 
 typedef enum
 {
-    SPAWN_TYPE_UNDEFINED,
+    SPAWN_TYPE_NONE,
     SPAWN_TYPE_BIKER,
+    SPAWN_TYPE_CHILD_BOMB,
+    SPAWN_TYPE_CHILD_NORMAL,
+    SPAWN_TYPE_CHILD_PROJECTILE,
     SPAWN_TYPE_CMD_SPAWN,
     SPAWN_TYPE_CMD_SUMMON,
 	SPAWN_TYPE_DUST_DROP,
@@ -600,22 +603,22 @@ typedef enum
 // 2013-12-27
 //
 // Movement behavior types.
-typedef enum
+typedef enum e_aimove_1
 {
-	AIMOVE1_NONE = -1,			// No AIMOVE set.
-	AIMOVE1_NORMAL = 0,			// Current default style
-	AIMOVE1_CHASE = (1 << 0),		// alway move towards target, and can run to them if target is farway
-	AIMOVE1_CHASEZ = (1 << 1),		// only try to get close in z direction
-	AIMOVE1_CHASEX = (1 << 2),		// only try to get colse in x direction
-	AIMOVE1_AVOID = (1 << 3),		// try to avoid target
-	AIMOVE1_AVOIDZ = (1 << 4),		// only try to avoid target in z direction
-	AIMOVE1_AVOIDX = (1 << 5),		// only try to avoid target in x direction
-	AIMOVE1_WANDER = (1 << 6),		// ignore the target's position completely, wander everywhere, long idle time
-	AIMOVE1_BIKER = (1 << 7),		// move like a biker
-	AIMOVE1_ARROW = (1 << 8),	// fly like an arrow
-	AIMOVE1_STAR = (1 << 9),	// fly like a star, subject to ground
-	AIMOVE1_BOMB = (1 << 10),	// fly like a bomb, subject to ground/wall etc
-	AIMOVE1_NOMOVE = (1 << 11),	// don't move at all
+	AIMOVE1_NONE    = 0,		    // No AIMOVE set.
+	AIMOVE1_NORMAL  = (1 << 0),	    // Current default style
+	AIMOVE1_CHASE   = (1 << 1),	    // alway move towards target, and can run to them if target is farway
+	AIMOVE1_CHASEZ  = (1 << 2),	    // only try to get close in z direction
+	AIMOVE1_CHASEX  = (1 << 3),	    // only try to get colse in x direction
+	AIMOVE1_AVOID   = (1 << 4),	    // try to avoid target
+	AIMOVE1_AVOIDZ  = (1 << 5),	    // only try to avoid target in z direction
+	AIMOVE1_AVOIDX  = (1 << 6),	    // only try to avoid target in x direction
+	AIMOVE1_WANDER  = (1 << 7),	    // ignore the target's position completely, wander everywhere, long idle time
+	AIMOVE1_BIKER   = (1 << 8),	    // move like a biker
+	AIMOVE1_ARROW   = (1 << 9),	    // fly like an arrow
+	AIMOVE1_STAR    = (1 << 10),    // fly like a star, subject to ground
+	AIMOVE1_BOMB    = (1 << 11),    // fly like a bomb, subject to ground/wall etc
+	AIMOVE1_NOMOVE  = (1 << 12),    // don't move at all
 	MASK_AIMOVE1 = 0x0000FFFF
 } e_aimove_1;
 
@@ -627,10 +630,9 @@ typedef enum
     2013-12-27
     */
 
-    AIMOVE2_NORMAL,                         // Current default style
-    AIMOVE2_IGNOREHOLES     = 0x00010000,   // don't avoid holes
-    AIMOVE2_NOTARGETIDLE    = 0x00020000,   // don't move when there's no target
-    MASK_AIMOVE2            = 0xFFFF0000
+    AIMOVE2_NORMAL          = 0,            // Current default style
+    AIMOVE2_IGNOREHOLES     = (1 << 16),    // 0x00010000,   // don't avoid holes
+    AIMOVE2_NOTARGETIDLE    = (1 << 17),    // 0x00020000,   // don't move when there's no target
 } e_aimove_2;
 
 typedef enum
@@ -2394,19 +2396,25 @@ typedef struct
 typedef enum e_child_spawn_config
 {
     CHILD_SPAWN_CONFIG_NONE                 = 0,
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX   = (1 << 0),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE   = (1 << 1),
-    CHILD_SPAWN_CONFIG_EXPLODE              = (1 << 2),
-    CHILD_SPAWN_CONFIG_GRAVITY_OFF          = (1 << 3),
-    CHILD_SPAWN_CONFIG_GRAVITY_ON           = (1 << 4),
-    CHILD_SPAWN_CONFIG_LAUNCH_THROW         = (1 << 5),
-    CHILD_SPAWN_CONFIG_LAUNCH_TOSS          = (1 << 6),
-    CHILD_SPAWN_CONFIG_OFFENSE_PARENT       = (1 << 7),
-    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE    = (1 << 8),
-    CHILD_SPAWN_CONFIG_POSITION_LEVEL       = (1 << 9),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD   = (1 << 10),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER   = (1 << 11),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT  = (1 << 12)    
+    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION   = (1 << 1),
+    CHILD_SPAWN_CONFIG_AUTOKILL_HIT         = (1 << 2),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB        = (1 << 3),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL      = (1 << 4),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE  = (1 << 5),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE   = (1 << 6),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX   = (1 << 7),
+    CHILD_SPAWN_CONFIG_EXPLODE              = (1 << 8),
+    CHILD_SPAWN_CONFIG_GRAVITY_OFF          = (1 << 9),
+    CHILD_SPAWN_CONFIG_GRAVITY_ON           = (1 << 10),
+    CHILD_SPAWN_CONFIG_LAUNCH_THROW         = (1 << 11),
+    CHILD_SPAWN_CONFIG_LAUNCH_TOSS          = (1 << 12),
+    CHILD_SPAWN_CONFIG_OFFENSE_PARENT       = (1 << 13),
+    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE    = (1 << 14),
+    CHILD_SPAWN_CONFIG_POSITION_LEVEL       = (1 << 15),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD   = (1 << 16),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER   = (1 << 17),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT  = (1 << 18),
+    CHILD_SPAWN_CONFIG_TYPE_TARGET_PARENT   = (1 << 19)
 } e_child_spawn_config;
 
 /*
@@ -2419,7 +2427,8 @@ typedef enum e_child_spawn_config
 * functions.
 */
 typedef struct s_child_spawn
-{
+{    
+    e_autokill_state        autokill;
     s_bind*                 bind;
     e_child_spawn_config    config;
     e_direction_adjust      direction_adjust;
@@ -3796,6 +3805,9 @@ int addframe(s_addframe_data* data);
 
 int check_in_screen();
 
+void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustment);
+void copy_faction_data(entity* ent, entity* source);
+
 /* Bind control */
 void    adjust_bind(entity* acting_entity);
 s_bind* bind_allocate_object();
@@ -3820,8 +3832,8 @@ s_child_spawn*  child_spawn_upsert_property(s_child_spawn** head, int index);
 s_child_spawn*  child_spawn_upsert_index(s_child_spawn* head, int index);
 void            child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
 
-void            child_spawn_execute_object(s_child_spawn* object);
-void            child_spawn_execute_list(s_child_spawn* head);
+entity*         child_spawn_execute_object(s_child_spawn* object, entity* parent);
+void            child_spawn_execute_list(s_child_spawn* head, entity* parent);
 
 /* Collision and attcking control. */
 

@@ -5834,6 +5834,26 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_NONE;
     }
+    else if (stricmp(value, "autokill_animation") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION;
+    }
+    else if (stricmp(value, "autokill_hit") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_AUTOKILL_HIT;
+    }
+    else if (stricmp(value, "behavior_bomb") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB;
+    }
+    else if (stricmp(value, "behavior_normal") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL;
+    }
+    else if (stricmp(value, "behavior_projectile") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE;
+    }
     else if (stricmp(value, "color_parent_index") == 0)
     {
         result = CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX;
@@ -6090,6 +6110,7 @@ void child_spawn_dump_list(s_child_spawn* head)
 
         printf("\n\n\t Node: %p", cursor);
               
+        child_spawn_dump_object(cursor);
 
         cursor = cursor->next;
     }
@@ -6098,6 +6119,12 @@ void child_spawn_dump_list(s_child_spawn* head)
     printf("\n\n -- Child Spawn List (head: %p) dump complete! -- \n", head);
 }
 
+/*
+* Caskey, Damon V
+* 2020-03-10
+*
+* Send child spawn object data to log for debugging.
+*/
 void child_spawn_dump_object(s_child_spawn* object)
 {
     printf("\n\n -- Child Spawn object (%p) Dump --", object);
@@ -6196,7 +6223,6 @@ void child_spawn_free_list(s_child_spawn* head)
         cursor = next;
     }
 }
-
 
 /*
 * Caskey, Damon V.
@@ -6320,7 +6346,7 @@ void child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t fram
         memset(data->animation->child_spawn, 0, memory_size);
     }
 
-    printf("\n\n child_spawn_initialize_frame_property");
+    //printf("\n\n child_spawn_initialize_frame_property");
 
     child_spawn_dump_list(data->child_spawn);
 
@@ -6334,10 +6360,18 @@ void child_spawn_initialize_frame_property(s_addframe_data* data, ptrdiff_t fram
     data->animation->child_spawn[frame] = temp_object;
 
     
-    printf("\n\t data->animation->child_spawn[%d]: %p \n", frame, data->animation->child_spawn[frame]);
+    //printf("\n\t data->animation->child_spawn[%d]: %p \n", frame, data->animation->child_spawn[frame]);
 }
 
-void child_spawn_execute_list(s_child_spawn* head)
+/*
+* Caskey, Damon V.
+* 2022-05-29
+* 
+* Accept head of a lisst of child spawns.
+* Iterate through list and apply properties 
+* to spawn child entities.
+*/
+void child_spawn_execute_list(s_child_spawn* head, entity* parent)
 {
     s_child_spawn* cursor = NULL;
     s_child_spawn* next = NULL;
@@ -6359,15 +6393,201 @@ void child_spawn_execute_list(s_child_spawn* head)
         next = cursor->next;
 
         /* Free the current object. */
-        child_spawn_execute_object(cursor);
+        child_spawn_execute_object(cursor, parent);
 
         cursor = next;
     }
 }
 
-void child_spawn_execute_object(s_child_spawn* object)
+/*
+* Caskey, Damon V.
+* 2022-05-29
+* 
+* Accept pointer to node in list of child
+* spawns. Apply properties to to spawn
+* a child entity. Returns pointer to
+* spawned entity
+*/
+entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
 {
-    child_spawn_dump_object(object);
+    printf("\n\n child_spawn_execute_object(object: %p, parent: %p)", object, parent);
+    
+    int i = 0;
+    entity* child_entity = NULL;
+    s_axis_principal_float position;
+    e_direction direction;
+        
+    if (object->model_index == MODEL_INDEX_NONE || !parent)
+    {
+        return NULL;
+    }  
+    
+    printf("\n\t object->model_index: %d", object->model_index);
+    
+    /*
+    * Let's set up the spawn position. Reverse X when
+    * parent faces left.
+    *
+    * Apply default X position if creator did not give
+    * us a value.
+    */
+    direction = direction_get_adjustment_result(parent->direction, parent->direction, object->direction_adjust);
+
+    printf("\n\t direction: %d", direction);
+    printf("\n\t Parent: x: %f, y: %f, z: %f", parent->position.x, parent->position.y, parent->position.z);
+
+    if (direction == DIRECTION_RIGHT)// && object->config & ~(CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE | CHILD_SPAWN_CONFIG_POSITION_LEVEL))
+    {
+        position.x = parent->position.x + object->position.x;        
+    }
+    else
+    {
+        position.x = parent->position.x - object->position.x;
+    }
+
+    position.y = parent->position.y + object->position.y;
+    position.z = parent->position.z + object->position.z;
+
+    printf("\n\t Child: x: %f, y: %f, z: %f", position.x, position.y, position.z);
+    /*
+    * Spawn entity using model index. If the spawn 
+    * fails then we exit immediately.
+    */
+
+    child_entity = spawn(position.x, position.z, position.y, direction, NULL, object->model_index, NULL);
+
+    printf("\n\t child_entity: %p", child_entity);
+
+    if (!child_entity)
+    {
+        return NULL;
+    }
+
+    /*
+    * Populate relationship properties as
+    * requested.
+    */
+
+    if (object->config & CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD)
+    {
+        parent->subentity = parent;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER)
+    {
+        child_entity->owner = parent;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT)
+    {
+        child_entity->parent = parent;
+    }
+
+    /*
+    * Set up basic behavior packages.
+    */
+
+    if (object->config & CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE)
+    {
+        child_entity->modeldata.aimove = AIMOVE1_ARROW;
+        child_entity->attacking = ATTACKING_ACTIVE;
+        child_entity->takedamage = arrow_takedamage;
+        child_entity->modeldata.aiattack = AIATTACK1_NOATTACK;
+
+        child_entity->spawntype = SPAWN_TYPE_CHILD_PROJECTILE;
+
+        /* Set terrain behavior flags. */
+        child_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        child_entity->modeldata.move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_NO_ADJUST_BASE);
+
+        printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
+        /* Copy speed values from animation projectile settings to model. */
+        child_entity->modeldata.speed = object->velocity;
+        printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
+    }
+
+    /*
+    * Apply initial velcoity.
+    */
+    child_entity->velocity = object->velocity;
+    
+    /*
+    * Copy offense values from parent offense settings
+    * to projectile enity if requested.
+    */ 
+    if (object->config & CHILD_SPAWN_CONFIG_OFFENSE_PARENT)
+    {
+        *child_entity->offense_factors = *parent->offense_factors;
+    }
+    
+    /* Apply color adjustment. */
+    if (object->config & CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX)
+    {        
+        for (i = 0; i < parent->modeldata.maps_loaded; i++)
+        {
+            if (parent->colourmap == parent->modeldata.colourmap[i])
+            {
+                ent_set_colourmap(child_entity, i);
+                break;
+            }
+        }
+    }
+    else if (object->config & CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE)
+    {
+        child_entity->colourmap = parent->colourmap;
+    }        
+
+    /* Populate common behavior flags. */
+    child_entity->nograb = 1;    
+    child_entity->think = common_think;
+    child_entity->nextthink = _time + 1;
+    child_entity->trymove = NULL;    
+    child_entity->takeaction = NULL;
+    child_entity->speedmul = 2;
+
+    /* Populate autokill. */
+    if (object->config & CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION)
+    {
+        child_entity->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_AUTOKILL_HIT)
+    {
+        child_entity->autokill |= AUTOKILL_ATTACK_HIT;
+    }
+
+    /* 
+    * Handle type based damage and hostilty. Copy from
+    * parent on request.
+    * 
+    * If player damage turned off, remove player type.
+    */
+
+    if (object->config & CHILD_SPAWN_CONFIG_TYPE_TARGET_PARENT)
+    {
+        child_entity->modeldata.hostile = parent->modeldata.hostile;
+        child_entity->modeldata.candamage = parent->modeldata.candamage;
+        child_entity->modeldata.projectilehit = parent->modeldata.projectilehit;
+    }
+
+    if ((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
+    {
+        child_entity->modeldata.hostile &= ~TYPE_PLAYER;
+        child_entity->modeldata.candamage &= ~TYPE_PLAYER;
+    }
+
+        
+    /*
+    * Execute event scripts.
+    */
+
+    // execute_on_pre_child_spawn_script(parent, child_entity, object);
+    execute_onspawn_script(child_entity);
+    // execute_on_post_child_spawn_script(parent, child_entity, object);
+
+    printf("\n\t return: %p", child_entity);
+
+    return child_entity;
 }
 
 
@@ -10148,7 +10368,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         newchar->type                   = TYPE_OBSTACLE;
         if(newchar->aimove == AIMOVE1_NONE)
         {
-            newchar->aimove = 0;
+            newchar->aimove = AIMOVE1_NORMAL;
         }
         newchar->aimove |= AIMOVE1_NOMOVE;
         if(newchar->aimove == AIMOVE1_NONE)
@@ -10168,11 +10388,13 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 	{
 		newchar->type |= TYPE_PROJECTILE;
 
-		if (newchar->aimove == AIMOVE1_NONE)
-		{
-			newchar->aimove = AIMOVE1_NORMAL;
-		}
-		newchar->aimove |= AIMOVE1_ARROW;
+        if (newchar->aimove == AIMOVE1_NONE)
+        {
+            newchar->aimove = AIMOVE1_NORMAL;
+        }
+
+        //newchar->aimove |= AIMOVE1_NORMAL;
+        		
 		if (!newchar->offscreenkill)
 		{			
 			newchar->offscreenkill = (int)(videomodes.hRes * 0.5);
@@ -10189,7 +10411,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
         newchar->type = TYPE_SHOT;
         if(newchar->aimove == AIMOVE1_NONE)
         {
-            newchar->aimove = 0;
+            newchar->aimove = AIMOVE1_NORMAL;
         }
         newchar->aimove |= AIMOVE1_ARROW;
         if(!newchar->offscreenkill)
@@ -10247,7 +10469,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         newchar->subtype                                        = SUBTYPE_BIKER;
         if(newchar->aimove == AIMOVE1_NONE)
         {
-            newchar->aimove                 = 0;
+            newchar->aimove                 = AIMOVE1_NORMAL;
         }
         newchar->aimove |= AIMOVE1_BIKER;
         if(!newchar->offscreenkill)
@@ -10269,7 +10491,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
         newchar->subtype = SUBTYPE_ARROW;   // 7-1-2005 Arrow type
         if(newchar->aimove == AIMOVE1_NONE)
         {
-            newchar->aimove = 0;
+            newchar->aimove = AIMOVE1_NORMAL;
         }
         newchar->aimove |= AIMOVE1_ARROW;
         if(!newchar->offscreenkill)
@@ -11390,12 +11612,14 @@ void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
     }
 }
 
+
+
 void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, char *filename)
 {
     char *value = GET_ARGP(1);
     if(!*aimoveset)
     {
-        newchar->aimove = 0;
+        newchar->aimove = AIMOVE1_NORMAL;
         *aimoveset = 1;
     }
 
@@ -11485,6 +11709,7 @@ void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, 
         }
     }
 }
+
 void lcmHandleCommandAiattack(ArgList *arglist, s_model *newchar, int *aiattackset, char *filename)
 {
     char *value = GET_ARGP(1);
@@ -22059,6 +22284,24 @@ void ent_default_init(entity *e)
         e->think = text_think;
         break;
 	case TYPE_PROJECTILE:
+        
+        e->energy_state.health_current = 1;
+        e->nograb = 1;
+        e->nograb_default = e->nograb;
+        e->think = common_think;
+        e->takedamage = arrow_takedamage;
+        e->attacking = ATTACKING_ACTIVE;
+        
+        if (e->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
+        {
+            e->base = 0;
+        }
+        else
+        {
+            e->base = e->position.y;
+        }
+        e->speedmul = 2;
+
     case TYPE_SHOT:
         e->energy_state.health_current = 1;
         e->nograb = 1;
@@ -22485,7 +22728,7 @@ void update_frame(entity *ent, unsigned int f)
     /* Child spawn */
     if (anim->child_spawn && anim->child_spawn[f])
     {
-        child_spawn_execute_list(anim->child_spawn[f]);
+        child_spawn_execute_list(anim->child_spawn[f], ent);
     }
 
     if(anim->soundtoplay && anim->soundtoplay[f] >= 0)
@@ -35166,7 +35409,7 @@ int common_move()
                     common_try_wander(target, 1, 1);
                     ent = target;
                 }
-                else if ( target && (!(self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) || ((self->modeldata.aimove&AIMOVE2_NOTARGETIDLE) && target->animnum != ANI_IDLE)) )
+                else if ( target && (!(self->modeldata.aimove & AIMOVE2_NOTARGETIDLE) || ((self->modeldata.aimove & AIMOVE2_NOTARGETIDLE) && target->animnum != ANI_IDLE)) )
                 {
                     ent = target;
                     pxc = pzc = 0;
