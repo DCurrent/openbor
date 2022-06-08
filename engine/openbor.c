@@ -11612,102 +11612,107 @@ void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
     }
 }
 
-
-
-void lcmHandleCommandAimove(ArgList *arglist, s_model *newchar, int *aimoveset, char *filename)
+/*
+* Caskey, Damon V.
+* 2022-06-08
+*
+* Accept string input and return
+* matching constant.
+*/
+e_aimove get_aimove_constant_from_string(char* value)
 {
-    char *value = GET_ARGP(1);
-    if(!*aimoveset)
+    e_aimove result;
+
+    if (stricmp(value, "none") == 0)
     {
-        newchar->aimove = AIMOVE1_NORMAL;
-        *aimoveset = 1;
+        result = AIMOVE1_NONE;
+    }
+    else if (stricmp(value, "chase") == 0)
+    {
+        result = AIMOVE1_CHASE;
+    }
+    else if (stricmp(value, "chasez") == 0)
+    {
+        result = AIMOVE1_CHASEZ;
+    }
+    else if (stricmp(value, "chasex") == 0)
+    {
+        result = AIMOVE1_CHASEX;
+    }
+    else if (stricmp(value, "avoid") == 0)
+    {
+        result = AIMOVE1_AVOID;
+    }
+    else if (stricmp(value, "avoidz") == 0)
+    {
+        result = AIMOVE1_AVOIDZ;
+    }
+    else if (stricmp(value, "avoidx") == 0)
+    {
+        result = AIMOVE1_AVOIDX;
+    }
+    else if (stricmp(value, "wander") == 0)
+    {
+        result = AIMOVE1_WANDER;
+    }
+    else if (stricmp(value, "biker") == 0)
+    {
+        result = AIMOVE1_BIKER;
+    }
+    else if (stricmp(value, "arrow") == 0)
+    {
+        result = AIMOVE1_ARROW;
+    }
+    else if (stricmp(value, "star") == 0)
+    {
+        result = AIMOVE1_STAR;
+    }
+    else if (stricmp(value, "bomb") == 0)
+    {
+        result = AIMOVE1_BOMB;
+    }
+    else if (stricmp(value, "nomove") == 0)
+    {
+        result = AIMOVE1_NOMOVE;
+    }
+    else if (stricmp(value, "ignoreholes") == 0)
+    {
+        result = AIMOVE2_IGNOREHOLES;
+    }
+    else if (stricmp(value, "notargetidle") == 0)
+    {
+        result = AIMOVE2_NOTARGETIDLE;
+    }
+    else
+    {
+        printf("\n\n Unknown aimove option (%s), using 'none'. \n", value);
+        result = AIMOVE1_NONE;
     }
 
-    //main A.I. move switches
-    if(value && value[0])
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-06-08
+* 
+* Get arguments for Aimove and output final 
+* bitmask. Replaces lcmHandleCommandAiMove 
+* so we can have a reusable function.
+*/
+e_aimove get_aimove_from_arguments(ArgList *arglist, e_aimove default_value)
+{    
+    int i = 0;
+    char* value = "";
+
+    e_aimove result = default_value;
+    
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        if(stricmp(value, "normal") == 0)
-        {
-            newchar->aimove |= AIMOVE1_NORMAL;
-        }
-        else if(stricmp(value, "chase") == 0)
-        {
-            newchar->aimove |= AIMOVE1_CHASE;
-        }
-        else if(stricmp(value, "chasex") == 0)
-        {
-            newchar->aimove |= AIMOVE1_CHASEX;
-        }
-        else if(stricmp(value, "chasez") == 0)
-        {
-            newchar->aimove |= AIMOVE1_CHASEZ;
-        }
-        else if(stricmp(value, "avoid") == 0)
-        {
-            newchar->aimove |= AIMOVE1_AVOID;
-        }
-        else if(stricmp(value, "avoidx") == 0)
-        {
-            newchar->aimove |= AIMOVE1_AVOIDX;
-        }
-        else if(stricmp(value, "avoidz") == 0)
-        {
-            newchar->aimove |= AIMOVE1_AVOIDZ;
-        }
-        else if(stricmp(value, "wander") == 0)
-        {
-            newchar->aimove |= AIMOVE1_WANDER;
-        }
-        else if(stricmp(value, "biker") == 0)
-        {
-            newchar->aimove |= AIMOVE1_BIKER;
-        }
-        else if(stricmp(value, "arrow") == 0)
-        {
-            newchar->aimove |= AIMOVE1_ARROW;
-            if(!newchar->offscreenkill)
-            {
-                newchar->offscreenkill = 200;
-            }
-        }
-        else if(stricmp(value, "star") == 0)
-        {
-            newchar->aimove |= AIMOVE1_STAR;
-        }
-        else if(stricmp(value, "bomb") == 0)
-        {
-            newchar->aimove |= AIMOVE1_BOMB;
-        }
-        else if(stricmp(value, "nomove") == 0)
-        {
-            newchar->aimove |= AIMOVE1_NOMOVE;
-        }
-        else
-        {
-            borShutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
-        }
-    }
-    value = GET_ARGP(2);
-    //sub A.I. move switches
-    if(value && value[0])
-    {
-        if(stricmp(value, "normal") == 0)
-        {
-            newchar->aimove |= AIMOVE2_NORMAL;
-        }
-        else if(stricmp(value, "ignoreholes") == 0)
-        {
-            newchar->aimove |= AIMOVE2_IGNOREHOLES;
-        }
-        else if(stricmp(value, "notargetidle") == 0)
-        {
-            newchar->aimove |= AIMOVE2_NOTARGETIDLE;
-        }
-        else
-        {
-            borShutdown(1, "Model '%s' has invalid A.I. move switch: '%s'", filename, value);
-        }
-    }
+        result |= get_aimove_constant_from_string(value);
+    }    
+
+    return result;
 }
 
 void lcmHandleCommandAiattack(ArgList *arglist, s_model *newchar, int *aiattackset, char *filename)
@@ -12395,7 +12400,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int idle = 0;
     int frameshadow = -1;	// -1 will use default shadow for this entity, otherwise will use this value
     int soundtoplay = SAMPLE_ID_NONE;
-    int aimoveset = 0;
     int aiattackset = 0;
     int maskindex = -1;
     int nopalette = 0;
@@ -12705,7 +12709,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 lcmHandleCommandProjectilehit(&arglist, newchar);
                 break;
             case CMD_MODEL_AIMOVE:
-                lcmHandleCommandAimove(&arglist, newchar, &aimoveset, filename);
+                newchar->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NORMAL);
                 break;
             case CMD_MODEL_AIATTACK:
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);

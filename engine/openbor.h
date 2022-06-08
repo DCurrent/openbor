@@ -599,11 +599,15 @@ typedef enum
 
 //------------reserved for A.I. types-------------------------
 
-// Caskey, Damon V
-// 2013-12-27
-//
-// Movement behavior types.
-typedef enum e_aimove_1
+/* Caskey, Damon V
+* 2013-12-27
+*
+* Movement behavior types. Out of order arrangement 
+* is due to legacy compatibility and original coder 
+* (unknown) misusing the bitmasks by creating separate 
+* lists (aimove1 & aimove2).
+*/
+typedef enum e_aimove
 {
 	AIMOVE1_NONE    = 0,		    // No AIMOVE set.
 	AIMOVE1_NORMAL  = (1 << 0),	    // Current default style
@@ -619,22 +623,20 @@ typedef enum e_aimove_1
 	AIMOVE1_STAR    = (1 << 10),    // fly like a star, subject to ground
 	AIMOVE1_BOMB    = (1 << 11),    // fly like a bomb, subject to ground/wall etc
 	AIMOVE1_NOMOVE  = (1 << 12),    // don't move at all
-	MASK_AIMOVE1 = 0x0000FFFF
-} e_aimove_1;
+	MASK_AIMOVE1 = 0x0000FFFF,
+    AIMOVE2_NORMAL = AIMOVE1_NONE,      // Legacy compatability.
+    AIMOVE2_IGNOREHOLES = (1 << 16),    // 0x00010000,   // don't avoid holes
+    AIMOVE2_NOTARGETIDLE = (1 << 17)    // 0x00020000,   // don't move when there's no target
+} e_aimove;
 
-typedef enum
-{
-    /*
-    A.I move 2 enum: Affect terrain reflect
-    Damon V. Caskey
-    2013-12-27
-    */
-
-    AIMOVE2_NORMAL          = 0,            // Current default style
-    AIMOVE2_IGNOREHOLES     = (1 << 16),    // 0x00010000,   // don't avoid holes
-    AIMOVE2_NOTARGETIDLE    = (1 << 17),    // 0x00020000,   // don't move when there's no target
-} e_aimove_2;
-
+/*
+* Caskey, Damon V.
+* 2013-12-27
+* 
+* A.I. attack1 enum: Affect attacking style. 
+* ToDo: Combine with AIATTACK2. The orginal
+* coder misused bitmasks by creating two lists.
+*/
 typedef enum
 {
     /*
@@ -651,28 +653,33 @@ typedef enum
     MASK_AIATTACK1      = 0x0000FFFF
 } e_aiattack_1;
 
+/*
+* Caskey, Damon V.
+* 2013-12-27
+*
+* A.I. attack1 enum: Affect defending style.
+* Todo: Combine with AIATTACK1. The orginal 
+* coder misused bitmasks by creating two lists.
+*/
 typedef enum
-{
-    /*
-    A.I. attack1 enum: Affect Defending style.
-    Damon V. Caskey
-    2013-12-27
-    */
-
+{    
     AIATTACK2_NORMAL,                   // Current default style, don't dodge at all
     AIATTACK2_DODGE     = 0x00010000,   // Use dodge animation to avoid attack
     AIATTACK2_DODGEMOVE = 0x00020000,   // Try to move in z direction if a jump attack is about to hit him and try to step back if a melee attack is about to hit him.
     MASK_AIATTACK2      = 0xFFFF0000
 } e_aiattack_2;
 
-typedef enum //Animations
+/*
+* Caskey, Damon V.
+* 2013-12-27
+*  
+* Animation constants. Depending on creator 
+* options, several animation categories may 
+* expand dynamically beyond this list. 
+* Example: ANI_ATTACK5, ANI_ATTACK6, ...
+*/
+typedef enum e_animations //Animations
 {
-    /*
-    Animations enum.
-    Damon V. Caskey
-    2013-12-27
-    */
-
     ANI_NONE,               // To indicate a blank or no animation at all.
     ANI_IDLE,
     ANI_WALK,
@@ -3047,7 +3054,7 @@ typedef struct
     e_entity_type candamage; // specify types that can be damaged by this entity
     e_entity_type projectilehit; // specify types that can be hit by this entity if it is thrown
     s_sight sight; // Sight range. 2011_04_05, DC: Moved to struct.
-    unsigned int aimove; // move style
+    e_aimove aimove; // move style
     unsigned int aiattack; // attack/defend style
 
     //----------------physical system-------------------
