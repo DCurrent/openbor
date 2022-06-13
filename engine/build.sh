@@ -182,17 +182,17 @@ function linux {
 # Compile for Linux under various architectures
 function linux_x86 {
   if [ `uname -s | grep -o "Linux"` ]; then
-    linux i.86-.*linux.* x86 LINUX || # try standard 32-bit GCC
+    linux i.86-.*linux.* x86 LINUX || { # try standard 32-bit GCC
     [ `gcc -dumpmachine | grep -o x86_64-.*linux.*` ] && [ `gcc -print-multi-lib | grep -o '@m32'` ] && # check for x86_64 GCC with 32-bit multilib
-    linux x86_64-.*linux.* x86 LINUX  # try 64-bit compiler with multilib
+    linux x86_64-.*linux.* x86 LINUX; }  # try 64-bit compiler with multilib
   fi
 }
 
 function linux_amd64 {
   if [ `uname -s | grep -o "Linux"` ]; then
-    linux x86_64-.*linux.* amd64 LINUX_AMD64 || # try standard 64-bit GCC
+    linux x86_64-.*linux.* amd64 LINUX_AMD64 || { # try standard 64-bit GCC
     [ `gcc -dumpmachine | grep -o i.86-.*linux.*` ] && [ `gcc -print-multi-lib | grep -o '@m64'` ] && # check for x86 GCC with 64-bit multilib
-    linux i.86-.*linux.* amd64 LINUX_AMD64 # try 32-bit compiler with multilib
+    linux i.86-.*linux.* amd64 LINUX_AMD64; } # try 32-bit compiler with multilib
   fi
 }
 
