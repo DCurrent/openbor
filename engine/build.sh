@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # OpenBOR - http://www.ChronoCrash.com
 # -----------------------------------------------------------------------
@@ -6,7 +7,6 @@
 # Copyright (c) 2004 - 2018 OpenBOR Team
 #
 
-#!/bin/bash
 # Building script for all platforms
 # build.sh by SX (SumolX@gmail.com)
 
