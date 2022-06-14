@@ -552,23 +552,23 @@ typedef enum
 // Entity types.
 typedef enum
 {
-	TYPE_UNDELCARED = -1,			
-    TYPE_NONE		= 0,
-    TYPE_PLAYER		= (1 << 0),
-    TYPE_ENEMY		= (1 << 1),
-    TYPE_ITEM		= (1 << 2),
-    TYPE_OBSTACLE	= (1 << 3),
-    TYPE_PROJECTILE	= (1 << 4),		// 2019-12-27: Projectile type for use by any entity that doesn't have all the legacy baggage.
-	TYPE_STEAMER	= (1 << 5),
-    TYPE_SHOT		= (1 << 6),		// 7-1-2005 type to use for player projectiles
-    TYPE_TRAP		= (1 << 7),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
-    TYPE_TEXTBOX	= (1 << 8),		// New textbox type for displaying messages
-    TYPE_ENDLEVEL	= (1 << 9),		// New endlevel type that ends the level when touched
-    TYPE_NPC		= (1 << 10),	// A character can be an ally or enemy.
+	TYPE_UNDELCARED = 0,			
+    TYPE_NONE		= (1 << 0),
+    TYPE_PLAYER		= (1 << 1),
+    TYPE_ENEMY		= (1 << 2),
+    TYPE_ITEM		= (1 << 3),
+    TYPE_OBSTACLE	= (1 << 4),
+    TYPE_PROJECTILE	= (1 << 5),		// 2019-12-27: Projectile type for use by any entity that doesn't have all the legacy baggage.
+	TYPE_STEAMER	= (1 << 6),
+    TYPE_SHOT		= (1 << 7),		// 7-1-2005 type to use for player projectiles
+    TYPE_TRAP		= (1 << 8),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
+    TYPE_TEXTBOX	= (1 << 9),		// New textbox type for displaying messages
+    TYPE_ENDLEVEL	= (1 << 10),		// New endlevel type that ends the level when touched
+    TYPE_NPC		= (1 << 11),	// A character can be an ally or enemy.
     TYPE_PANEL		= (1 << 12),	// Fake panel, scroll with screen using model speed
 	TYPE_UNKNOWN	= (1 << 13),	// Not a real type - probably means something went wrong.
 	TYPE_MAX		= TYPE_UNKNOWN,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
-	TYPE_RESERVED	= 0x40000000    // should not use as a type
+	TYPE_RESERVED	= (1 << 31)     // should not use as a type
 } e_entity_type;
 
 // Caskey, Damon V.
@@ -2402,27 +2402,32 @@ typedef struct
 */
 typedef enum e_child_spawn_config
 {
-    CHILD_SPAWN_CONFIG_NONE                 = 0,
-    CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER     = (1 << 0),
-    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION   = (1 << 1),
-    CHILD_SPAWN_CONFIG_AUTOKILL_HIT         = (1 << 2),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB        = (1 << 3),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL      = (1 << 4),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE  = (1 << 5),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE   = (1 << 6),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX   = (1 << 7),
-    CHILD_SPAWN_CONFIG_EXPLODE              = (1 << 8),
-    CHILD_SPAWN_CONFIG_GRAVITY_OFF          = (1 << 9),
-    CHILD_SPAWN_CONFIG_GRAVITY_ON           = (1 << 10),
-    CHILD_SPAWN_CONFIG_LAUNCH_THROW         = (1 << 11),
-    CHILD_SPAWN_CONFIG_LAUNCH_TOSS          = (1 << 12),
-    CHILD_SPAWN_CONFIG_OFFENSE_PARENT       = (1 << 13),
-    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE    = (1 << 14),
-    CHILD_SPAWN_CONFIG_POSITION_LEVEL       = (1 << 15),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD   = (1 << 16),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER   = (1 << 17),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT  = (1 << 18),
-    CHILD_SPAWN_CONFIG_TYPE_TARGET_PARENT   = (1 << 19)
+    CHILD_SPAWN_CONFIG_NONE                     = 0,
+    CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER         = (1 << 0),
+    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION       = (1 << 1),
+    CHILD_SPAWN_CONFIG_AUTOKILL_HIT             = (1 << 2),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB            = (1 << 3),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL          = (1 << 4),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE      = (1 << 5),
+    CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER      = (1 << 6),
+    CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT         = (1 << 7),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE       = (1 << 8),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX       = (1 << 9),
+    CHILD_SPAWN_CONFIG_EXPLODE                  = (1 << 10),
+    CHILD_SPAWN_CONFIG_GRAVITY_OFF              = (1 << 11),
+    CHILD_SPAWN_CONFIG_GRAVITY_ON               = (1 << 12),
+    CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER        = (1 << 13),
+    CHILD_SPAWN_CONFIG_HOSTILE_PARENT           = (1 << 14),
+    CHILD_SPAWN_CONFIG_LAUNCH_THROW             = (1 << 15),
+    CHILD_SPAWN_CONFIG_LAUNCH_TOSS              = (1 << 16),
+    CHILD_SPAWN_CONFIG_OFFENSE_PARENT           = (1 << 17),
+    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE        = (1 << 18),
+    CHILD_SPAWN_CONFIG_POSITION_LEVEL           = (1 << 19),
+    CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER  = (1 << 20),
+    CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT     = (1 << 21),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD       = (1 << 22),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER       = (1 << 23),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT      = (1 << 24)    
 } e_child_spawn_config;
 
 /*
@@ -2439,12 +2444,15 @@ typedef struct s_child_spawn
     e_aimove                aimove;
     e_autokill_state        autokill;
     s_bind*                 bind;
+    e_entity_type           candamage;
     e_child_spawn_config    config;
     e_direction_adjust      direction_adjust;
+    e_entity_type           hostile;
     int                     index;
     int                     model_index;
     struct s_child_spawn*   next;
     s_axis_principal_int    position;
+    e_entity_type           projectilehit;
     s_axis_principal_float  velocity;
 } s_child_spawn;
 
@@ -4120,7 +4128,7 @@ int common_backwalk_anim(entity *ent);
 void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
-e_entity_type find_entity_type_from_string(char* value);
+e_entity_type get_type_from_string(char* value);
 int bomb_move(entity *ent);
 int arrow_move(void);
 int common_move(void);

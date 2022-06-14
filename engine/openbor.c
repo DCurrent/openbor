@@ -5858,6 +5858,14 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE;
     }
+    else if (stricmp(value, "candamage_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER;
+    }
+    else if (stricmp(value, "candamage_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT;
+    }
     else if (stricmp(value, "color_parent_index") == 0)
     {
         result = CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX;
@@ -5877,6 +5885,14 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     else if (stricmp(value, "gravity_on") == 0)
     {
         result = CHILD_SPAWN_CONFIG_GRAVITY_ON;
+    }
+    else if (stricmp(value, "hostile_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER;
+    }
+    else if (stricmp(value, "hostile_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_HOSTILE_PARENT;
     }
     else if (stricmp(value, "launch_throw") == 0)
     {
@@ -5898,6 +5914,14 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_POSITION_LEVEL;
     }
+    else if (stricmp(value, "projectilehit_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER;
+    }
+    else if (stricmp(value, "projectilehit_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT;
+    }
     else if (stricmp(value, "relationship_child") == 0)
     {
         result = CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD;
@@ -5909,10 +5933,6 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     else if (stricmp(value, "relationship_parent") == 0)
     {
         result = CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT;
-    }
-    else if (stricmp(value, "type_target_parent") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_TYPE_TARGET_PARENT;
     }
     else
     {
@@ -6577,15 +6597,38 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
 
     /* 
     * Handle type based damage and hostilty. Copy from
-    * parent on request.
+    * parent or parameter on request.
     * 
     * If player damage turned off, remove player type.
     */
 
-    if (object->config & CHILD_SPAWN_CONFIG_TYPE_TARGET_PARENT)
+    if (object->config & CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER)
+    {
+        child_entity->modeldata.candamage = object->candamage;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT)
+    {
+        child_entity->modeldata.candamage = parent->modeldata.candamage;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER)
+    {
+        child_entity->modeldata.hostile = object->hostile;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_HOSTILE_PARENT)
     {
         child_entity->modeldata.hostile = parent->modeldata.hostile;
-        child_entity->modeldata.candamage = parent->modeldata.candamage;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER)
+    {
+        child_entity->modeldata.projectilehit = object->projectilehit;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT)
+    {
         child_entity->modeldata.projectilehit = parent->modeldata.projectilehit;
     }
 
@@ -10623,7 +10666,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
 // 2019-11-22
 // 
 // Consolidate parsing string to entity type.
-e_entity_type find_entity_type_from_string(char* value)
+e_entity_type get_type_from_string(char* value)
 {
 	e_entity_type result;
 
@@ -10694,40 +10737,26 @@ e_entity_type find_entity_type_from_string(char* value)
 	return result;
 }
 
-void lcmHandleCommandHostile(ArgList *arglist, s_model *newchar)
+/*
+* Caskey, Damon V.
+* 2022-06-14
+*
+* Get arguments for type and output final
+* bitmask so we can have a reusable function.
+*/
+e_entity_type get_type_from_arguments(ArgList* arglist)
 {
-    int i;
-    char *value;
-    newchar->hostile = 0;
+    int i = 0;
+    char* value = "";
 
-    for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    e_aimove result = TYPE_UNDELCARED;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-		newchar->hostile |= find_entity_type_from_string(value);
+        result |= get_type_from_string(value);
     }
-}
 
-void lcmHandleCommandCandamage(ArgList *arglist, s_model *newchar)
-{
-    int i;
-    char *value;
-    newchar->candamage = 0;
-
-    for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
-		newchar->candamage |= find_entity_type_from_string(value);
-    }
-}
-
-void lcmHandleCommandProjectilehit(ArgList *arglist, s_model *newchar)
-{
-    int i;
-    char *value;
-    newchar->projectilehit = 0;
-
-    for(i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
-		newchar->projectilehit |= find_entity_type_from_string(value);
-    }
+    return result;
 }
 
 /*
@@ -12722,13 +12751,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->ground = GET_INT_ARG(2);    // Added to determine if enemies are damaged with mid air projectiles or ground only
                 break;
             case CMD_MODEL_HOSTILE:
-                lcmHandleCommandHostile(&arglist, newchar);
+                newchar->hostile = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_CANDAMAGE:
-                lcmHandleCommandCandamage(&arglist, newchar);
+                newchar->candamage = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_PROJECTILEHIT:
-                lcmHandleCommandProjectilehit(&arglist, newchar);
+                newchar->projectilehit = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_AIMOVE:
                 newchar->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NORMAL);
