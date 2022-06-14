@@ -2403,6 +2403,7 @@ typedef struct
 typedef enum e_child_spawn_config
 {
     CHILD_SPAWN_CONFIG_NONE                 = 0,
+    CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER     = (1 << 0),
     CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION   = (1 << 1),
     CHILD_SPAWN_CONFIG_AUTOKILL_HIT         = (1 << 2),
     CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB        = (1 << 3),
@@ -2434,7 +2435,8 @@ typedef enum e_child_spawn_config
 * functions.
 */
 typedef struct s_child_spawn
-{    
+{
+    e_aimove                aimove;
     e_autokill_state        autokill;
     s_bind*                 bind;
     e_child_spawn_config    config;

@@ -5834,6 +5834,10 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_NONE;
     }
+    else if (stricmp(value, "aimove_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER;
+    }
     else if (stricmp(value, "autokill_animation") == 0)
     {
         result = CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION;
@@ -5905,6 +5909,10 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     else if (stricmp(value, "relationship_parent") == 0)
     {
         result = CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT;
+    }
+    else if (stricmp(value, "type_target_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_TYPE_TARGET_PARENT;
     }
     else
     {
@@ -6136,6 +6144,7 @@ void child_spawn_dump_object(s_child_spawn* object)
         //bind_dump_object(cursor->bind);
     }
 
+    printf("\n\t\t ->aiflag: %d", object->aimove);
     printf("\n\t\t ->config: %d", object->config);
     printf("\n\t\t ->direction_adjust: %d", object->direction_adjust);
     printf("\n\t\t ->index: %d", object->index);
@@ -6507,6 +6516,16 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     }
 
     /*
+    * If requested, apply AI Flags.
+    */
+    if (object->config & CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER)
+    {
+        child_entity->modeldata.aimove = object->aimove;
+    }
+
+    printf("\n\t child_entity->modeldata.aimove: %d", child_entity->modeldata.aimove);
+
+    /*
     * Apply initial velcoity.
     */
     child_entity->velocity = object->velocity;
@@ -6576,6 +6595,9 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
         child_entity->modeldata.candamage &= ~TYPE_PLAYER;
     }
 
+    printf("\n\t child_entity->modeldata.hostile: %d", child_entity->modeldata.hostile);
+    printf("\n\t child_entity->modeldata.candamage: %d", child_entity->modeldata.candamage);
+    printf("\n\t child_entity->modeldata.projectilehit: %d", child_entity->modeldata.projectilehit);
         
     /*
     * Execute event scripts.
@@ -14081,6 +14103,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 */
             case CMD_MODEL_CHILD_SPAWN_INDEX:
                 temp_child_spawn_index = GET_INT_ARG(1);                
+                break;
+            case CMD_MODEL_CHILD_SPAWN_AIMOVE:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NONE);
                 break;
             case CMD_MODEL_CHILD_SPAWN_CONFIG:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(&arglist, 0);
@@ -34894,7 +34919,7 @@ int arrow_move()
     entity *target = NULL;
 
     // new subtype chase
-    if(self->modeldata.subtype == SUBTYPE_CHASE)
+    if(self->modeldata.subtype == SUBTYPE_CHASE || self->modeldata.aimove & AIMOVE1_CHASE)
     {
         target = homing_find_target(self->modeldata.hostile);
 

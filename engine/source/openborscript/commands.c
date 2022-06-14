@@ -129,6 +129,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_AT_CMD, "@cmd");
     LIST_ADD(CMD_MODEL_AT_SCRIPT, "@script");
     LIST_ADD(CMD_MODEL_ATCHAIN, "atchain");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_AIMOVE,              "child_spawn_aimove");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_CONFIG,              "child_spawn_config");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST,    "child_spawn_direction_adjust");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_INDEX,               "child_spawn_index");
