@@ -6631,7 +6631,7 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     {
         child_entity->modeldata.projectilehit = parent->modeldata.projectilehit;
     }
-
+    
     if ((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
         child_entity->modeldata.hostile &= ~TYPE_PLAYER;
@@ -6641,6 +6641,24 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     printf("\n\t child_entity->modeldata.hostile: %d", child_entity->modeldata.hostile);
     printf("\n\t child_entity->modeldata.candamage: %d", child_entity->modeldata.candamage);
     printf("\n\t child_entity->modeldata.projectilehit: %d", child_entity->modeldata.projectilehit);
+
+    /* 
+    * Apply any move constraints. 
+    */
+
+    if (object->config & CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER)
+    {
+        child_entity->modeldata.move_constraint = object->move_constraint;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT)
+    {
+        child_entity->modeldata.move_constraint = parent->modeldata.move_constraint;
+    }
+
+    printf("\n\t child_entity->modeldata.move_constraint: %d", child_entity->modeldata.move_constraint);
+
+    
         
     /*
     * Execute event scripts.
@@ -10467,6 +10485,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 
 		// Note when using as a projectile, most of these
 		// are modified. See knife_spawn and bomb_spawn.
+
+
 		newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
 		newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
 	}
@@ -11547,18 +11567,28 @@ e_komap_type komap_type_get_value_from_argument(char* filename, char* command, c
     return result;
 }
 
-void lcmHandleCommandMoveConstraint(ArgList* arglist, s_model* newchar)
+/*
+* Caskey, Damon V.
+* 2022-06-14
+*
+* Get arguments for move constraint and 
+* output final bitmask so we can have a 
+* reusable function.
+*/
+e_move_constraint get_move_constraint_from_arguments(ArgList* arglist)
 {
-    int i;
-    char* value;
-    newchar->move_constraint = MOVE_CONSTRAINT_NONE;
+    int i = 0;
+    char* value = "";
+
+    e_move_constraint result = MOVE_CONSTRAINT_NONE;
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        newchar->move_constraint |= find_move_constraint_from_string(value);
+        result |= find_move_constraint_from_string(value);
     }
-}
 
+    return result;
+}
 
 /*
 * Caskey, Damon V.
@@ -12766,7 +12796,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
                 break;
             case CMD_MODEL_MOVE_CONSTRAINT:
-                lcmHandleCommandMoveConstraint(&arglist, newchar);
+                newchar->move_constraint = get_move_constraint_from_arguments(&arglist);
                 break;
             case CMD_MODEL_SUBJECT_TO_BASEMAP:
 
@@ -14126,15 +14156,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 /* 2022-05-27
                 * Caskey, Damon V.
                 *
-                * This needs to come before any other child spawn
+                * Index needs to come before any other child spawn
                 * read in command so we know which object index
                 * we want the child spawn commands to affect.
+                * 
+                * The next in order are presets, so the creator
+                * can use a preset, then customize individual
+                * settings downstream.
                 */
             case CMD_MODEL_CHILD_SPAWN_INDEX:
                 temp_child_spawn_index = GET_INT_ARG(1);                
                 break;
+            case CMD_MODEL_CHILD_SPAWN_PRESET_SHOT:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE | CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_ARROW;
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
+
+                break;         
+            
             case CMD_MODEL_CHILD_SPAWN_AIMOVE:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NONE);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_CANDAMAGE:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_CONFIG:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(&arglist, 0);
@@ -14142,8 +14187,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
                 break;
+            case CMD_MODEL_CHILD_SPAWN_HOSTILE:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_arguments(&arglist);
+                break;
             case CMD_MODEL_CHILD_SPAWN_MODEL:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->model_index = get_cached_model_index(GET_ARG(1));
+                break;
+            case CMD_MODEL_CHILD_SPAWN_MOVE_CONSTRAINT:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = get_move_constraint_from_arguments(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_OFFSET_X:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.x = GET_INT_ARG(1);
@@ -14153,6 +14204,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_CHILD_SPAWN_OFFSET_Z:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.z = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_PROJECTILEHIT:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_VELOCITY_X:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->velocity.x = GET_FLOAT_ARG(1);

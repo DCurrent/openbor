@@ -2402,32 +2402,34 @@ typedef struct
 */
 typedef enum e_child_spawn_config
 {
-    CHILD_SPAWN_CONFIG_NONE                     = 0,
-    CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER         = (1 << 0),
-    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION       = (1 << 1),
-    CHILD_SPAWN_CONFIG_AUTOKILL_HIT             = (1 << 2),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB            = (1 << 3),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL          = (1 << 4),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE      = (1 << 5),
-    CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER      = (1 << 6),
-    CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT         = (1 << 7),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE       = (1 << 8),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX       = (1 << 9),
-    CHILD_SPAWN_CONFIG_EXPLODE                  = (1 << 10),
-    CHILD_SPAWN_CONFIG_GRAVITY_OFF              = (1 << 11),
-    CHILD_SPAWN_CONFIG_GRAVITY_ON               = (1 << 12),
-    CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER        = (1 << 13),
-    CHILD_SPAWN_CONFIG_HOSTILE_PARENT           = (1 << 14),
-    CHILD_SPAWN_CONFIG_LAUNCH_THROW             = (1 << 15),
-    CHILD_SPAWN_CONFIG_LAUNCH_TOSS              = (1 << 16),
-    CHILD_SPAWN_CONFIG_OFFENSE_PARENT           = (1 << 17),
-    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE        = (1 << 18),
-    CHILD_SPAWN_CONFIG_POSITION_LEVEL           = (1 << 19),
-    CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER  = (1 << 20),
-    CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT     = (1 << 21),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD       = (1 << 22),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER       = (1 << 23),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT      = (1 << 24)    
+    CHILD_SPAWN_CONFIG_NONE                         = 0,
+    CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER             = (1 << 0),
+    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION           = (1 << 1),
+    CHILD_SPAWN_CONFIG_AUTOKILL_HIT                 = (1 << 2),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB                = (1 << 3),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL              = (1 << 4),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE          = (1 << 5),
+    CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER          = (1 << 6),
+    CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT             = (1 << 7),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE           = (1 << 8),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX           = (1 << 9),
+    CHILD_SPAWN_CONFIG_EXPLODE                      = (1 << 10),
+    CHILD_SPAWN_CONFIG_GRAVITY_OFF                  = (1 << 11),
+    CHILD_SPAWN_CONFIG_GRAVITY_ON                   = (1 << 12),
+    CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER            = (1 << 13),
+    CHILD_SPAWN_CONFIG_HOSTILE_PARENT               = (1 << 14),
+    CHILD_SPAWN_CONFIG_LAUNCH_THROW                 = (1 << 15),
+    CHILD_SPAWN_CONFIG_LAUNCH_TOSS                  = (1 << 16),
+    CHILD_SPAWN_CONFIG_OFFENSE_PARENT               = (1 << 17),
+    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 18),
+    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 19),
+    CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE            = (1 << 20),
+    CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 21),
+    CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER      = (1 << 22),
+    CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT         = (1 << 23),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 24),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 25),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 26)    
 } e_child_spawn_config;
 
 /*
@@ -2450,6 +2452,7 @@ typedef struct s_child_spawn
     e_entity_type           hostile;
     int                     index;
     int                     model_index;
+    e_move_constraint       move_constraint;
     struct s_child_spawn*   next;
     s_axis_principal_int    position;
     e_entity_type           projectilehit;
