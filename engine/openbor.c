@@ -6435,7 +6435,7 @@ void child_spawn_execute_list(s_child_spawn* head, entity* parent)
 * Accept pointer to node in list of child
 * spawns. Apply properties to to spawn
 * a child entity. Returns pointer to
-* spawned entity
+* spawned entity.
 */
 entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
 {
@@ -6445,13 +6445,17 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     entity* child_entity = NULL;
     s_axis_principal_float position;
     e_direction direction;
-        
+    s_model* child_model = NULL;
+
     if (object->model_index == MODEL_INDEX_NONE || !parent)
     {
         return NULL;
     }  
     
+    child_model = model_cache[object->model_index].model;
+
     printf("\n\t object->model_index: %d", object->model_index);
+    printf("\n\t child_model: %p", child_model);
     
     /*
     * Let's set up the spawn position. Reverse X when
@@ -6478,12 +6482,13 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     position.z = parent->position.z + object->position.z;
 
     printf("\n\t Child: x: %f, y: %f, z: %f", position.x, position.y, position.z);
+    
     /*
-    * Spawn entity using model index. If the spawn 
+    * Spawn entity using model pointer. If the spawn 
     * fails then we exit immediately.
     */
 
-    child_entity = spawn(position.x, position.z, position.y, direction, NULL, object->model_index, NULL);
+    child_entity = spawn(position.x, position.z, position.y, direction, NULL, MODEL_INDEX_NONE, child_model);
 
     printf("\n\t child_entity: %p", child_entity);
 
