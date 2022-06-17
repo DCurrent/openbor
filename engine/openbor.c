@@ -6518,6 +6518,31 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     }
 
     /*
+    * Handle initial velocity. We will start with
+    * an initial velocity. Then may copy velocity
+    * to child's speed settings, or apply a toss 
+    * effect (to throw in an arc assuming gravity).
+    */
+
+    child_entity->velocity = object->velocity;
+        
+    if (object->config & CHILD_SPAWN_CONFIG_LAUNCH_THROW)
+    {
+        /* For throw effect, we copy velocity to child's model speed. */
+        child_entity->modeldata.speed = object->velocity;
+    }
+
+    if (object->config & CHILD_SPAWN_CONFIG_LAUNCH_TOSS && object->velocity.y)
+    {
+        /* To toss, we use toss function with Y velocity. */
+        toss(child_entity, object->velocity.y);
+    }
+
+    printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
+    
+    printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
+
+    /*
     * Set up basic behavior packages.
     */
 
@@ -6527,17 +6552,23 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
         child_entity->attacking = ATTACKING_ACTIVE;
         child_entity->takedamage = arrow_takedamage;
         child_entity->modeldata.aiattack = AIATTACK1_NOATTACK;
-
+        child_entity->nograb = 1;
         child_entity->spawntype = SPAWN_TYPE_CHILD_PROJECTILE;
 
         /* Set terrain behavior flags. */
         child_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        child_entity->modeldata.move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_NO_ADJUST_BASE);
+        child_entity->modeldata.move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_NO_ADJUST_BASE);        
+    }
 
-        printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
-        /* Copy speed values from animation projectile settings to model. */
-        child_entity->modeldata.speed = object->velocity;
-        printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
+    if (object->config & CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB)
+    {
+        child_entity->modeldata.aimove = AIMOVE1_BOMB;
+        child_entity->attacking = ATTACKING_ACTIVE;
+        child_entity->takedamage = common_takedamage;
+        child_entity->modeldata.aiattack = AIATTACK1_NOATTACK;
+        child_entity->nograb = 1;
+        child_entity->spawntype = SPAWN_TYPE_CHILD_BOMB;
+        child_entity->toexplode |= EXPLODE_PREPARED;               
     }
 
     /*
@@ -6550,11 +6581,6 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
 
     printf("\n\t child_entity->modeldata.aimove: %d", child_entity->modeldata.aimove);
 
-    /*
-    * Apply initial velcoity.
-    */
-    child_entity->velocity = object->velocity;
-    
     /*
     * Copy offense values from parent offense settings
     * to projectile enity if requested.
@@ -6582,7 +6608,6 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     }        
 
     /* Populate common behavior flags. */
-    child_entity->nograb = 1;    
     child_entity->think = common_think;
     child_entity->nextthink = _time + 1;
     child_entity->trymove = NULL;    
@@ -6663,8 +6688,6 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
 
     printf("\n\t child_entity->modeldata.move_constraint: %d", child_entity->modeldata.move_constraint);
 
-    
-        
     /*
     * Execute event scripts.
     */
@@ -14173,11 +14196,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_child_spawn_index = GET_INT_ARG(1);                
                 break;
             case CMD_MODEL_CHILD_SPAWN_PRESET_SHOT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE | CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE | CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_ARROW;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
-
+                
                 break;         
             
             case CMD_MODEL_CHILD_SPAWN_AIMOVE:
