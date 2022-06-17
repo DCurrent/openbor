@@ -5850,21 +5850,9 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB;
     }
-    else if (stricmp(value, "behavior_normal") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_BEHAVIOR_NORMAL;
-    }
     else if (stricmp(value, "behavior_projectile") == 0)
     {
         result = CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE;
-    }
-    else if (stricmp(value, "candamage_parameter") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER;
-    }
-    else if (stricmp(value, "candamage_parent") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT;
     }
     else if (stricmp(value, "color_parent_index") == 0)
     {
@@ -5878,21 +5866,41 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_EXPLODE;
     }
+    else if (stricmp(value, "faction_damage_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER;
+    }
+    else if (stricmp(value, "faction_damage_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT;
+    }
+    else if (stricmp(value, "faction_hostile_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER;
+    }
+    else if (stricmp(value, "faction_hostile_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT;
+    }
+    else if (stricmp(value, "faction_indirect_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER;
+    }
+    else if (stricmp(value, "faction_indirect_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT;
+    }
+    else if (stricmp(value, "faction_member_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARAMETER;
+    }
+    else if (stricmp(value, "faction_member_parent") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARENT;
+    }
     else if (stricmp(value, "gravity_off") == 0)
     {
         result = CHILD_SPAWN_CONFIG_GRAVITY_OFF;
-    }
-    else if (stricmp(value, "gravity_on") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_GRAVITY_ON;
-    }
-    else if (stricmp(value, "hostile_parameter") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER;
-    }
-    else if (stricmp(value, "hostile_parent") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_HOSTILE_PARENT;
     }
     else if (stricmp(value, "launch_throw") == 0)
     {
@@ -5906,21 +5914,9 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_OFFENSE_PARENT;
     }
-    else if (stricmp(value, "position_absolute") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE;
-    }
     else if (stricmp(value, "position_level") == 0)
     {
         result = CHILD_SPAWN_CONFIG_POSITION_LEVEL;
-    }
-    else if (stricmp(value, "projectilehit_parameter") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER;
-    }
-    else if (stricmp(value, "projectilehit_parent") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT;
     }
     else if (stricmp(value, "relationship_child") == 0)
     {
@@ -6632,32 +6628,32 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     * If player damage turned off, remove player type.
     */
 
-    if (object->config & CHILD_SPAWN_CONFIG_CANDAMAGE_PARAMETER)
+    if (object->config & CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER)
     {
         child_entity->modeldata.candamage = object->candamage;
     }
 
-    if (object->config & CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT)
+    if (object->config & CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT)
     {
         child_entity->modeldata.candamage = parent->modeldata.candamage;
     }
 
-    if (object->config & CHILD_SPAWN_CONFIG_HOSTILE_PARAMETER)
+    if (object->config & CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER)
     {
         child_entity->modeldata.hostile = object->hostile;
     }
 
-    if (object->config & CHILD_SPAWN_CONFIG_HOSTILE_PARENT)
+    if (object->config & CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT)
     {
         child_entity->modeldata.hostile = parent->modeldata.hostile;
     }
 
-    if (object->config & CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARAMETER)
+    if (object->config & CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER)
     {
         child_entity->modeldata.projectilehit = object->projectilehit;
     }
 
-    if (object->config & CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT)
+    if (object->config & CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT)
     {
         child_entity->modeldata.projectilehit = parent->modeldata.projectilehit;
     }
@@ -14196,7 +14192,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_child_spawn_index = GET_INT_ARG(1);                
                 break;
             case CMD_MODEL_CHILD_SPAWN_PRESET_SHOT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE | CHILD_SPAWN_CONFIG_CANDAMAGE_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_PROJECTILEHIT_PARENT | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_ARROW;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
