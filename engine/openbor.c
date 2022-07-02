@@ -5817,6 +5817,45 @@ s_collision_entity **collision_alloc_entity_list()
     return result;
 }
 
+/*
+* Caskey, Damon V.
+* 2022-06-22
+* 
+* Accept string and return function reference for 
+* damage taking behavior.
+*/
+int (*takedamage_get_reference_from_argument(char* value))(struct entity* attacking_entity, s_attack* attack_object, int fall_flag, s_defense* defense_object)
+{
+    int (*result)(struct entity* attacking_entity, s_attack * attack_object, int fall_flag, s_defense * defense_object) = NULL;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = NULL;
+    }
+    else if (stricmp(value, "arrow") == 0)
+    {
+        result = &arrow_takedamage;
+    }
+    else if (stricmp(value, "biker") == 0)
+    {
+        result = &biker_takedamage;
+    }
+    else if (stricmp(value, "common") == 0)
+    {
+        result = &common_takedamage;
+    }
+    else if (stricmp(value, "obstacle") == 0)
+    {
+        result = &obstacle_takedamage;
+    }
+    else if (stricmp(value, "player") == 0)
+    {
+        result = &player_takedamage;
+    }
+
+    return result;
+}
+
 /* **** Child Spawn **** */
 
 /*
@@ -5850,9 +5889,9 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB;
     }
-    else if (stricmp(value, "behavior_projectile") == 0)
+    else if (stricmp(value, "behavior_shot") == 0)
     {
-        result = CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE;
+        result = CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT;
     }
     else if (stricmp(value, "color_parent_index") == 0)
     {
@@ -5917,6 +5956,10 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     else if (stricmp(value, "position_level") == 0)
     {
         result = CHILD_SPAWN_CONFIG_POSITION_LEVEL;
+    }
+    else if (stricmp(value, "takedamage_parameter") == 0)
+    {
+        result = CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER;
     }
     else if (stricmp(value, "relationship_child") == 0)
     {
@@ -6151,27 +6194,32 @@ void child_spawn_dump_list(s_child_spawn* head)
 */
 void child_spawn_dump_object(s_child_spawn* object)
 {
-    printf("\n\n -- Child Spawn object (%p) Dump --", object);
+    const int space_label = 20;
 
-    printf("\n\t\t ->bind: %p", object->bind);
+    printf("\n\n -- Child Spawn object (%p) Dump --", object);   
+
+    printf("\n\t\t %-*s %d", space_label, "->aimove:", object->aimove);
+    printf("\n\t\t %-*s %d", space_label, "->autokill:", object->autokill);
+    printf("\n\t\t %-*s %p", space_label, "->bind:", object->bind);
 
     if (object->bind)
     {
         //bind_dump_object(cursor->bind);
     }
-
-    printf("\n\t\t ->aiflag: %d", object->aimove);
-    printf("\n\t\t ->config: %d", object->config);
-    printf("\n\t\t ->direction_adjust: %d", object->direction_adjust);
-    printf("\n\t\t ->index: %d", object->index);
-    printf("\n\t\t ->model_index: %d", object->model_index);
-    printf("\n\t\t ->next: %p", object->next);
-    printf("\n\t\t ->position.x: %d", object->position.x);
-    printf("\n\t\t ->position.y: %d", object->position.y);
-    printf("\n\t\t ->position.z: %d", object->position.z);
-    printf("\n\t\t ->velocity.x: %f", object->velocity.x);
-    printf("\n\t\t ->velocity.y: %f", object->velocity.y);
-    printf("\n\t\t ->velocity.z: %f", object->velocity.z);
+    
+    printf("\n\t\t %-*s %d", space_label, "->candamage:", object->candamage);
+    printf("\n\t\t %-*s %d", space_label, "->config:", object->config);
+    printf("\n\t\t %-*s %d", space_label, "->direction_adjust:", object->direction_adjust);
+    printf("\n\t\t %-*s %d", space_label, "->hostile:", object->hostile);
+    printf("\n\t\t %-*s %d", space_label, "->index:", object->index);
+    printf("\n\t\t %-*s %d", space_label, "->model_index:", object->model_index);
+    printf("\n\t\t %-*s %d", space_label, "->move_constraint:", object->move_constraint);
+    printf("\n\t\t %-*s %p", space_label, "->next:", object->next);
+    printf("\n\t\t %-*s %d, %d, %d", space_label, "->position:", object->position.x, object->position.y, object->position.z);
+    printf("\n\t\t %-*s %d", space_label, "->projectilehit:", object->projectilehit);
+    printf("\n\t\t %-*s %p", space_label, "->takedamage:", object->takedamage);
+    printf("\n\t\t %-*s %f, %f, %f", space_label, "->velocity:", object->velocity.x, object->velocity.y, object->velocity.z);
+    
 
     printf("\n\n -- Child Spawn object (%p) dump complete! -- \n", object);
 }
@@ -6493,6 +6541,8 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
         return NULL;
     }
 
+    child_entity->spawntype = SPAWN_TYPE_CHILD;
+
     /*
     * Populate relationship properties as
     * requested.
@@ -6542,30 +6592,29 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     * Set up basic behavior packages.
     */
 
-    if (object->config & CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE)
+    if (object->config & CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT)
     {
         child_entity->modeldata.aimove = AIMOVE1_ARROW;
         child_entity->attacking = ATTACKING_ACTIVE;
-        child_entity->takedamage = arrow_takedamage;
+        //->takedamage = arrow_takedamage;
         child_entity->modeldata.aiattack = AIATTACK1_NOATTACK;
-        child_entity->nograb = 1;
-        child_entity->spawntype = SPAWN_TYPE_CHILD_PROJECTILE;
-
-        /* Set terrain behavior flags. */
-        child_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        child_entity->modeldata.move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_NO_ADJUST_BASE);        
+        child_entity->nograb = 1;                
     }
 
     if (object->config & CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB)
     {
         child_entity->modeldata.aimove = AIMOVE1_BOMB;
         child_entity->attacking = ATTACKING_ACTIVE;
-        child_entity->takedamage = common_takedamage;
+        //child_entity->takedamage = common_takedamage;
         child_entity->modeldata.aiattack = AIATTACK1_NOATTACK;
         child_entity->nograb = 1;
-        child_entity->spawntype = SPAWN_TYPE_CHILD_BOMB;
-        child_entity->toexplode |= EXPLODE_PREPARED;               
+        child_entity->toexplode |= (EXPLODE_PREPARE_TOUCH | EXPLODE_PREPARE_GROUND);               
     }
+
+    //if (object->config & CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER)
+    //{
+    //    child_entity->takedamage = object->takedamage;
+    //}
 
     /*
     * If requested, apply AI Flags.
@@ -14191,13 +14240,32 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_CHILD_SPAWN_INDEX:
                 temp_child_spawn_index = GET_INT_ARG(1);                
                 break;
-            case CMD_MODEL_CHILD_SPAWN_PRESET_SHOT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_ARROW;
+            case CMD_MODEL_CHILD_SPAWN_PRESET_BOMB:
+
+                /*
+                * Shortcut for creator to set up a bomb projectile.
+                */
+
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_TOSS | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_BOMB;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
                 
-                break;         
+                break;
+
+            case CMD_MODEL_CHILD_SPAWN_PRESET_SHOT:
+
+                /*
+                * Shortcut for creator to set up a shot projectile.
+                */
+
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_ARROW;
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->takedamage = arrow_takedamage;
+
+                break;
             
             case CMD_MODEL_CHILD_SPAWN_AIMOVE:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NONE);
@@ -14231,6 +14299,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_CHILD_SPAWN_PROJECTILEHIT:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_arguments(&arglist);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_TAKEDAMAGE:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->takedamage = takedamage_get_reference_from_argument(GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_VELOCITY_X:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->velocity.x = GET_FLOAT_ARG(1);
@@ -22437,6 +22508,7 @@ void ent_default_init(entity *e)
             e->base = e->position.y;
         }
         e->speedmul = 2;
+        e->trymove = common_trymove;
 
     case TYPE_SHOT:
         e->energy_state.health_current = 1;
@@ -24293,16 +24365,18 @@ int checkwall_index(float x, float z)
     int i;
     if(level == NULL)
     {
-        return -1;
+        return WALL_INDEX_NONE;
     }
 
-    for(i = 0; i < level->numwalls; i++)
-        if(testwall(i, x, z))
+    for (i = 0; i < level->numwalls; i++)
+    {
+        if (testwall(i, x, z))
         {
             return i;
         }
+    }
 
-    return -1;
+    return WALL_INDEX_NONE;
 }
 
 /*
@@ -25919,12 +25993,12 @@ void do_attack(entity *attacking_entity)
             
 			// Set bomb projectile to detonate status if it 
 			// hits or takes a hit.
-            if(self->toexplode & EXPLODE_PREPARED)
+            if(self->toexplode & EXPLODE_PREPARE_TOUCH)
             {
                 self->toexplode |= EXPLODE_DETONATE;
             }
            
-            if(attacking_entity->toexplode & EXPLODE_PREPARED)
+            if(attacking_entity->toexplode & EXPLODE_PREPARE_TOUCH)
             {
                 attacking_entity->toexplode |= EXPLODE_DETONATE;
             }
@@ -26916,31 +26990,46 @@ int check_basemap_index(int x, int z)
     return base == T_MIN_BASEMAP ? -1 : index;
 }
 
-void adjust_base(entity *e, entity **pla)
+void adjust_base(entity *acting_entity, entity **pla)
 {
-    int wall = -1, hole = -1;
-    float seta = 0, maxbase = 0;
-    entity *other = NULL, *plat, *tempself;
+    int wall = WALL_INDEX_NONE; 
+    int in_hole = 0;
+    int hole_index = HOLE_INDEX_NONE;
+    float seta = 0; 
+    float maxbase = 0;
+    float base_adjust = 0.0;
+    entity* other = NULL; 
+    entity* platform = NULL;    
 
-    tempself = self;
-    self = e;
-
-    if(self->velocity.y > 0)
+    if(acting_entity->velocity.y > 0)
     {
-        self->landed_on_platform = NULL;
+        acting_entity->landed_on_platform = NULL;
     }
-
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
+        
+    /*
+    * If no platform found below entity
+    * then clear our local platform and
+    * the platform argument. 
+    * 
+    * If entity isn't subject to platform
+    * at all, then clear entity's last
+    * landed platform, platform parameter,
+    * and the local other entity.
+    */
+    if(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
     {
-        other = check_platform_below_entity(self);
-        if(!other && self->landed_on_platform)
+        other = check_platform_below_entity(acting_entity);
+        if(!other && acting_entity->landed_on_platform)
         {
-            *pla = self->landed_on_platform = NULL;
+            *pla = NULL; 
+            acting_entity->landed_on_platform = NULL;
         }
     }
     else
     {
-        *pla = other = self->landed_on_platform = NULL;
+        *pla = NULL;
+        other = NULL; 
+        acting_entity->landed_on_platform = NULL;
     }
 
     if(other && !(other->update_mark & UPDATE_MARK_CHECK_GRAVITY))
@@ -26949,113 +27038,170 @@ void adjust_base(entity *e, entity **pla)
     }
 
     //no longer underneath?
-    if(self->landed_on_platform && !testplatform(self->landed_on_platform, self->position.x, self->position.z, NULL))
+    if(acting_entity->landed_on_platform && !testplatform(acting_entity->landed_on_platform, acting_entity->position.x, acting_entity->position.z, NULL))
     {
-        *pla = self->landed_on_platform = NULL;
+        *pla = acting_entity->landed_on_platform = NULL;
     }
 
-    if(other && !self->landed_on_platform && self->position.y <= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])
+    if(other 
+        && !acting_entity->landed_on_platform 
+        && acting_entity->position.y <= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])
     {
-        self->landed_on_platform = other;
+        acting_entity->landed_on_platform = other;
     }
 
-    if( (plat = self->landed_on_platform) )
+    if( (platform = acting_entity->landed_on_platform) )
     {
-        if(!(plat->update_mark & UPDATE_MARK_CHECK_GRAVITY))
+        if(!(platform->update_mark & UPDATE_MARK_CHECK_GRAVITY))
         {
-            check_gravity(plat);
+            check_gravity(platform);
         }
-        self->position.y = self->base = plat->position.y + plat->animation->platform[plat->animpos][PLATFORM_HEIGHT];
+        acting_entity->position.y = acting_entity->base = platform->position.y + platform->animation->platform[platform->animpos][PLATFORM_HEIGHT];
     }
 
     *pla = other;
 
     // adjust base
-    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE))
+    if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE)
     {
-        seta = (float)((self->animation->move[self->animpos]->base) ? (self->animation->move[self->animpos]->base) : (-1));
+        return;
+    }
 
-        // Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
-        //wall = checkwall_below(self->position.x, self->position.z);
-        //find a wall below us
-        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
-        {
-            wall = checkwall_below(self->position.x, self->position.z, T_MAX_CHECK_ALTITUDE);
-        }
-        else
-        {
-            wall = -1;
-        }
+    if (acting_entity->animation->move[acting_entity->animpos]->base)
+    {
+        seta = (float)acting_entity->animation->move[acting_entity->animpos]->base;
+    }
+    else
+    {
+        seta = -1;
+    }
+        
+    // Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
+    //wall = checkwall_below(acting_entity->position.x, acting_entity->position.z);
+    //find a wall below us
+    if(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
+    {
+        wall = checkwall_below(acting_entity->position.x, acting_entity->position.z, T_MAX_CHECK_ALTITUDE);
+    }
+    else
+    {
+        wall = WALL_INDEX_NONE;
+    }
 
-        //printf("stb:%d\n",self->modeldata.move_constraint);
-        if (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP)
-        {
-            maxbase = check_basemap(self->position.x, self->position.z);
-        }
+    
+    
+    /*
+    * If we can't adjust base, nothing downstream 
+    * matters. Just exit.
+    */
 
-        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE &&
-           ((self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP && maxbase == T_MIN_BASEMAP) || !(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP))
-           )
-        {
-            hole = (wall < 0 && !other) ? checkhole_in(self->position.x, self->position.z, self->position.y) : 0;
-            if ( hole )
-            {
-                int holeind = checkholeindex_in(self->position.x, self->position.z, self->position.y);
-                if (holeind >= 0) execute_inhole_script(self, &level->holes[holeind], holeind);
-            }
+    if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP)
+    {
+        maxbase = check_basemap(acting_entity->position.x, acting_entity->position.z);
+    }
 
-            if(seta < 0 && hole)
-            {
-                self->base = T_MIN_BASEMAP;
-                ent_unlink(self);
-            }
-            else if(!hole && self->base == T_MIN_BASEMAP)
-            {
-                if(self->position.y >= 0)
-                {
-                    self->base = 0;
-                }
-                else
-                {
-                    self->velocity.x = self->velocity.z = 0; // hit the hole border
-                }
-            }
-        }
+    /* 
+    * Fall into a hole?
+    */
 
-        if(self->base != T_MIN_BASEMAP || wall >= 0)
+    if(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE &&
+        ((acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP && maxbase == T_MIN_BASEMAP) || !(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP))
+        )
+    {
+        in_hole = (wall < 0 && !other) ? checkhole_in(acting_entity->position.x, acting_entity->position.z, acting_entity->position.y) : 0;
+        
+        if (in_hole)
         {
-            if(other != NULL && other != self )
+            hole_index = checkholeindex_in(acting_entity->position.x, acting_entity->position.z, acting_entity->position.y);
+            
+            if (hole_index >= 0)
             {
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
-            }
-            else if(wall >= 0)
-            {                
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase) + level->walls[wall].height;
-            }
-            else if(seta >= 0)
-            {
-                self->base = (seta + self->altbase >= 0 ) * (seta + self->altbase);
-            }
-            else if(!self->animation->move[self->animpos]->axis.y || self->animation->move[self->animpos]->axis.y == 0)
-            {
-                // No obstacle/wall or seta, so just set to 0
-                self->base = 0;
+                execute_inhole_script(acting_entity, &level->holes[hole_index], hole_index);
             }
         }
 
-        if(self->base != T_MIN_BASEMAP && maxbase > self->base)
+        if(seta < 0 && in_hole)
         {
-            self->base = maxbase;
-            // White Dragon: fix bug for floating entity on basemaps using a threshold
-            if (self->velocity.y <= 0 && self->position.y - self->base <= T_WALKOFF)
+            acting_entity->base = T_MIN_BASEMAP;
+            ent_unlink(acting_entity);
+        }
+        else if(!in_hole && acting_entity->base == T_MIN_BASEMAP)
+        {
+            if(acting_entity->position.y >= 0)
             {
-                self->position.y = self->base;
+                acting_entity->base = 0;
             }
-            //debug_printf("y:%f maxbase:%f",self->position.y,maxbase);
+            else
+            {
+                acting_entity->velocity.x = acting_entity->velocity.z = 0; // hit the hole border
+            }
         }
     }
 
-    self = tempself;
+    /*
+    * Apply platform, wall, and manual base
+    * adjustments.
+    */
+
+    if(acting_entity->base != T_MIN_BASEMAP || wall >= 0)
+    {       
+        base_adjust = (seta + acting_entity->altbase >= 0) * (seta + acting_entity->altbase);
+        
+        /*
+        * If (wall > position Y)
+        *   Explode.
+        * Else
+        *   Adjust base.
+        */       
+        if(other != NULL && other != acting_entity)
+        {
+            acting_entity->base = base_adjust + other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];            
+        }
+        else if(wall >= 0)
+        {            
+            /*
+            * Bombs normally need to adjust base to control
+            * detonation when landing, but this has a side 
+            * effect: Bombs that hit the side of walls or 
+            * platforms instantly warp to the top of wall
+            * as they detonate. 
+            * 
+            * To fix this, we check to see if wall is higher 
+            * than current position of entities with their
+            * detonation flags on. If so, set the entity to 
+            * use the entity's current height as its base.
+            */
+
+            if (acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE) && level->walls[wall].height > acting_entity->position.y)
+            {
+                acting_entity->base = acting_entity->position.y;
+            }            
+            else
+            {
+                acting_entity->base = base_adjust + level->walls[wall].height;
+            }           
+        }
+        else if(seta >= 0)
+        {
+            acting_entity->base = base_adjust;
+        }
+        else if(!acting_entity->animation->move[acting_entity->animpos]->axis.y)
+        {
+            // No obstacle/wall or seta, so just set to 0
+            acting_entity->base = 0;
+        }
+    }
+
+    if(acting_entity->base != T_MIN_BASEMAP && maxbase > acting_entity->base)
+    {
+        acting_entity->base = maxbase;
+        // White Dragon: fix bug for floating entity on basemaps using a threshold
+        if (acting_entity->velocity.y <= 0 && acting_entity->position.y - acting_entity->base <= T_WALKOFF)
+        {
+            acting_entity->position.y = acting_entity->base;
+        }
+        //debug_printf("y:%f maxbase:%f",acting_entity->position.y,maxbase);
+    }    
 }
 
 // Caskey Damon V.
@@ -35123,29 +35269,166 @@ int arrow_move()
     return 1;
 }
 
+/*
+* Caskey, Damon V.
+* 2022-06-28
+* 
+* Explode (play attack animation and stop) if detonate
+* flag is set and entity meets conditions.
+* 
+* Return 0 if conditions fail. Return 1 if conditions
+* pass or detonation in progress.
+*/
+int bomb_try_detonate(entity* acting_entity)
+{
+    printf("\n %s:", "bomb_try_detonate");
+
+    /*
+    * If not already set to detonate, check if
+    * we are preared for detonation and in air.
+    */
+
+    printf("\n\t %s: %d", "acting_entity->toexplode", acting_entity->toexplode);
+
+    if (!(acting_entity->toexplode & EXPLODE_DETONATE))
+    {
+        if (!(acting_entity->toexplode & (EXPLODE_PREPARE_TOUCH | EXPLODE_PREPARE_GROUND)))
+        {
+            return 0;
+        }
+
+        printf("\n\t %s: %d", "inair(acting_entity)", inair(acting_entity));
+
+        /*
+        * - Touches a wall.
+        * - Touches a platform.
+        * - Touches base 0 and isn't in a hole.
+        */            
+        
+        printf("\n\t %s: %d", "check_block_wall(acting_entity)", check_block_wall(acting_entity));
+
+        if (check_block_wall(acting_entity) == WALL_INDEX_NONE && 
+            !check_block_obstacle(acting_entity)
+            && inair(acting_entity))
+        {
+            return 0;
+        }
+    }
+
+    printf("\n\t %s: %p", "acting_entity->takeaction", acting_entity->takeaction);
+    printf("\n\t %s: %p", "bomb_explode", bomb_explode);
+    printf("\n\t %s: %f, %f, %f, %f", "Position (x,y,z,b):", acting_entity->position.x, acting_entity->position.y, acting_entity->position.z, acting_entity->base);
+
+    /* Already detonated? */
+    if (acting_entity->takeaction == bomb_explode)
+    {
+        return 1;
+    }
+    
+    /*
+    * Set explode action. Entity stays on screen
+    * until explode animation finishes, then kills 
+    * itself.
+    */
+    acting_entity->takeaction = bomb_explode;    
+
+    /*
+    * Stop movement.
+    */
+    if (!checkhole(acting_entity->position.x, acting_entity->position.z)) 
+    {
+        acting_entity->base = acting_entity->position.y;
+        acting_entity->velocity.y = 0;
+        acting_entity->velocity.x = 0;
+        acting_entity->velocity.z = 0;
+    }
+
+    /*
+    * Play die sound if we have it. This can act as 
+    * the explosion sound.
+    */ 
+    if (acting_entity->modeldata.diesound >= 0)
+    {
+        sound_play_sample(acting_entity->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
+    }
+
+    /*
+    * If we hit or got hit, then play ATTACK2. 
+    * If we landed first, play ATTACK1.
+    */ 
+    if (acting_entity->toexplode & EXPLODE_DETONATE && validanim(acting_entity, ANI_ATTACK2))
+    {
+        ent_set_anim(acting_entity, ANI_ATTACK2, 0);
+        acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+    }
+    else if (validanim(acting_entity, ANI_ATTACK1))
+    {
+        ent_set_anim(acting_entity, ANI_ATTACK1, 0);
+        acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+    }
+
+    return 1;
+}
+
 // Caskey, Damon V.
-// 2018-04-07
+// 2019-12-22
 //
-// Find out if there is a wall blocking target entity, and
-// if so return its array key. Returns -1 if no blocking
-// wall is found.
+// Original author unknown. Refactored to stop using global self,
+// and fix bomb falling after detonation.
+int bomb_move(entity* ent)
+{
+    // If in air, and prepared to explode (meaning will detonate on contact), 
+    // but NOT yet set to detonate, then we move using velocity (presumably 
+    // we've been tossed and so any Z and Y momentum is already handled). 
+    //
+    // EXPLODE_DETONATE status is applied by do_attack() if the we touch
+    // ground, hit another entity, or are hit by another entity attack.
+    // In that case, we "explode" by playing an appropriate animation.
+    //if (inair(ent) && ent->toexplode & EXPLODE_PREPARE_TOUCH && !(ent->toexplode & EXPLODE_DETONATE))
+    
+    if (!bomb_try_detonate(ent))
+    {
+        if (ent->direction == DIRECTION_LEFT)
+        {
+            ent->velocity.x = -ent->modeldata.speed.x;
+        }
+        else if (ent->direction == DIRECTION_RIGHT)
+        {
+            ent->velocity.x = ent->modeldata.speed.x;
+        }
+    }
+    
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2018-04-07
+*
+* Find out if there is a wall blocking target entity, and
+* if so return its array key. Returns WALL_INDEX_NONE if 
+* no blocking wall found.
+*/
 int check_block_wall(entity *entity)
 {
-    int wall = -1;
+    int wall = WALL_INDEX_NONE;
 
-    // Target entity affected by walls?
+    /* Target entity affected by walls? */
     if(entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
     {
-        // Get wall number at our X and Z axis (if any).
+        /* Get wall number at our Xand Z axis(if any). */
         wall = checkwall_index(entity->position.x, entity->position.z);
 
-        // Did we find a wall?
+        /* Did we find a wall? */
         if (wall >= 0)
         {
-            // Compare wall height to our current
-            // Y axis position. If the wall is
-            // higher, then it's blocking our way.
-            // We can return the wall number.
+            /*
+            * Compare wall height to our current
+            * Y axis position. If the wall is
+            * higher, then it's blocking our way.
+            * We can return the wall number.
+            */
+           
             if(entity->position.y < level->walls[wall].height)
             {
                 return wall;
@@ -35153,8 +35436,10 @@ int check_block_wall(entity *entity)
         }
     }
 
-    // Got this far? Then there's no wall blocking our way.
-    return wall;
+    /*
+    * Got this far? Then there's no wall blocking our way.
+    */
+    return WALL_INDEX_NONE;
 }
 
 // Caskey, Damon V.
@@ -35268,74 +35553,6 @@ void sort_invert_by_parent(entity *ent, entity *parent)
     {
         ent->sortid = parent->sortid - 1;
     }
-}
-
-// Caskey, Damon V.
-// 2019-12-22
-//
-// Original author unknown. Refactored to stop using global self,
-// and fix bomb falling after detonation.
-int bomb_move(entity *ent)
-{
-	// If in air, and prepared to explode (meaning will detonate on contact), 
-	// but NOT yet set to detonate, then we move using velocity (presumably 
-	// we've been tossed and so any Z and Y momentum is already handled). 
-	//
-	// EXPLODE_DETONATE status is applied by do_attack() if the we touch
-	// ground, hit another entity, or are hit by another entity attack.
-	// In that case, we "explode" by playing an appropriate animation.
-    if(inair(ent) && ent->toexplode & EXPLODE_PREPARED && !(ent->toexplode & EXPLODE_DETONATE))
-    {
-        if(ent->direction == DIRECTION_LEFT)
-        {
-            ent->velocity.x = -ent->modeldata.speed.x;
-        }
-        else if(ent->direction == DIRECTION_RIGHT)
-        {
-            ent->velocity.x = ent->modeldata.speed.x;
-        }
-    }
-	else if (ent->takeaction != bomb_explode)
-	{
-
-		// The bomb action will clear us out when finished exploding or
-		// if we don't have an explode animation and the current
-		// animation is complete.
-		ent->takeaction = bomb_explode;
-
-		// Explosions are subject to most terrain barriers.
-		ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-
-		// Stop movement. We'll still need to turn off gravity
-		// in explosion animation or we'll just start falling
-		// again immediately.
-		if (!checkhole(ent->position.x, ent->position.z)) {
-			
-			ent->base = ent->position.y;
-			ent->velocity.y = 0;
-			ent->velocity.x = 0;
-			ent->velocity.z = 0;
-		}
-
-		// Play die sound if we have it. This can act as the explosion sound.
-		if (ent->modeldata.diesound >= 0)
-		{
-			sound_play_sample(ent->modeldata.diesound, 0, savedata.effectvol, savedata.effectvol, 100);
-		}
-
-		// If we hit or got hit, then play ATTACK2. If we landed first, play ATTACK1.
-		if (ent->toexplode & EXPLODE_DETONATE && validanim(ent, ANI_ATTACK2))
-		{
-			ent_set_anim(ent, ANI_ATTACK2, 0);    // If bomb never reaces the ground, play this
-			ent->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
-		}
-		else if (validanim(ent, ANI_ATTACK1))
-		{
-			ent_set_anim(ent, ANI_ATTACK1, 0);
-			ent->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
-		}		
-	}
-    return 1;
 }
 
 int star_move()
@@ -39766,7 +39983,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
     ent->attacking = ATTACKING_ACTIVE;
     ent->owner = parent;                                                     
     ent->nograb = 1;                                                       
-    ent->toexplode |= EXPLODE_PREPARED;                                    
+    ent->toexplode |= (EXPLODE_PREPARE_TOUCH | EXPLODE_PREPARE_GROUND);
     
         
     ent->think = common_think;
@@ -39790,6 +40007,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	copy_faction_data(ent, parent);
     
 	ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+    //ent->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
 	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
 	
 	// Execute the projectile's on spawn event.

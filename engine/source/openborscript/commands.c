@@ -143,6 +143,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_PRESET_BOMB,         "child_spawn_preset_bomb");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_PRESET_SHOT,         "child_spawn_preset_shot");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_PROJECTILEHIT,       "child_spawn_projectilehit");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_TAKEDAMAGE,          "child_spawn_takedamage");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_VELOCITY_X,          "child_spawn_velocity_x");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_VELOCITY_Y,          "child_spawn_velocity_y");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_VELOCITY_Z,          "child_spawn_velocity_z");

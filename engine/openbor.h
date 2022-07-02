@@ -126,6 +126,8 @@ movement restirctions are here!
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
 
 #define MAP_INDEX_NONE -1
+#define HOLE_INDEX_NONE -1
+#define WALL_INDEX_NONE -1
 
 typedef enum e_ajspecial_config
 {
@@ -226,9 +228,10 @@ typedef enum
 // Flags for legacy bomb projectiles.
 typedef enum
 {
-	EXPLODE_NONE		= 0,
-	EXPLODE_PREPARED	= (1 << 0),
-	EXPLODE_DETONATE	= (1 << 1)
+	EXPLODE_NONE		    = 0,
+    EXPLODE_PREPARE_GROUND  = (1 << 0),
+    EXPLODE_PREPARE_TOUCH	= (1 << 1),
+    EXPLODE_DETONATE	    = (1 << 2)
 } e_explode_state;
 
 // Caskey, Damon V.
@@ -460,9 +463,7 @@ typedef enum
 {
     SPAWN_TYPE_NONE,
     SPAWN_TYPE_BIKER,
-    SPAWN_TYPE_CHILD_BOMB,
-    SPAWN_TYPE_CHILD_NORMAL,
-    SPAWN_TYPE_CHILD_PROJECTILE,
+    SPAWN_TYPE_CHILD,
     SPAWN_TYPE_CMD_SPAWN,
     SPAWN_TYPE_CMD_SUMMON,
 	SPAWN_TYPE_DUST_DROP,
@@ -2407,7 +2408,7 @@ typedef enum e_child_spawn_config
     CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION           = (1 << 1),
     CHILD_SPAWN_CONFIG_AUTOKILL_HIT                 = (1 << 2),
     CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB                = (1 << 3),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_PROJECTILE          = (1 << 4),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT                = (1 << 4),
     CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE           = (1 << 5),
     CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX           = (1 << 6),
     CHILD_SPAWN_CONFIG_EXPLODE                      = (1 << 7),
@@ -2426,9 +2427,10 @@ typedef enum e_child_spawn_config
     CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 20),
     CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 21),
     CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 22),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 23),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 24),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 25)
+    CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER         = (1 << 23),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 24),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 25),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 26)
 } e_child_spawn_config;
 
 /*
@@ -2455,6 +2457,7 @@ typedef struct s_child_spawn
     struct s_child_spawn*   next;
     s_axis_principal_int    position;
     e_entity_type           projectilehit;
+    int						(*takedamage)(struct entity* attacking_entity, s_attack* attack_object, int fall_flag, s_defense* defense_object);
     s_axis_principal_float  velocity;
 } s_child_spawn;
 
@@ -3211,7 +3214,8 @@ typedef struct entity
 	// Floating decimals.
 	float					altbase;							// Altitude affected by movea. ~~
 	float					base;								// Default altitude. ~~
-	float					destx;								// temporary values for ai functions ~~
+    float                   base_old;                           // Base before adjustment (usually by wall/platform).
+    float					destx;								// temporary values for ai functions ~~
 	float					destz;								// ~~
 	float					knockdowncount;						// Attack knockdown force reduces this. Only fall when at 0. ~~
 	float					movex;								// Reposition this many pixels per frame. Used by animation movex command. ~~
