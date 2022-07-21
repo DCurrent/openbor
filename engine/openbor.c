@@ -517,8 +517,7 @@ int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
 	[GRAB_ACTION_SELECT_BACKWARD] = {ANI_GRABBACKWARD, ANI_GRABBACKWARD2},
 	[GRAB_ACTION_SELECT_FORWARD] = {ANI_GRABFORWARD, ANI_GRABFORWARD2},
 	[GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
-	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2},
-	[GRAB_ACTION_SELECT_VAULT] = {ANI_VAULT} //Kratus (10-2021) Added vault animations
+	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}
 };
 
 int                 freespecials[MAX_SPECIALS] =
@@ -36238,8 +36237,9 @@ void player_grab_check()
 	// Kratus (10-2021) Added the vault animation
     else if(player[self->playerindex].playkeys & FLAG_JUMP && validanim(self, ANI_VAULT))
     {
+        // Kratus (07-2022) Fixes the "3-vaults" loop bug, now will execute once as intended
         player[self->playerindex].playkeys &= ~FLAG_JUMP;
-        dograbattack(GRAB_ACTION_SELECT_VAULT);
+        dograbattack(GRAB_ACTION_SELECT_FINISH);
     }
     // grab attack finisher
     else if(player[self->playerindex].playkeys & (FLAG_ATTACK | FLAG_JUMP))

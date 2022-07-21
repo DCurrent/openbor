@@ -1509,14 +1509,12 @@ typedef enum
 	// and that the value GRAB_ACTION_SELECT_FINISH should always 
 	// fall outside of the 0 to GRAB_ACTION_SELECT_MAX range. Order
 	// of the options does not matter otherwise.
-	// Kratus (10-2021) Added vault animations
 	
-	GRAB_ACTION_SELECT_ATTACK,	
+	GRAB_ACTION_SELECT_ATTACK,
 	GRAB_ACTION_SELECT_BACKWARD,
 	GRAB_ACTION_SELECT_FORWARD,
 	GRAB_ACTION_SELECT_DOWN,
 	GRAB_ACTION_SELECT_UP,
-	GRAB_ACTION_SELECT_VAULT,
 	GRAB_ACTION_SELECT_MAX,
 	GRAB_ACTION_SELECT_FINISH
 } e_grab_action_select;
