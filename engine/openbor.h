@@ -194,8 +194,9 @@ typedef enum
 typedef enum
 {
 	AUTOKILL_NONE				= 0,
-	AUTOKILL_ANIMATION_COMPLETE	= (1 << 0),
-	AUTOKILL_ATTACK_HIT			= (1 << 1)
+    AUTOKILL_ANIMATION_COMPLETE	= (1 << 0),
+	AUTOKILL_ATTACK_HIT			= (1 << 1),
+    AUTOKILL_TYPE_DEATH         = (1 << 2)
 } e_autokill_state;
 
 // Caskey, Damon V.
@@ -221,6 +222,21 @@ typedef enum
 	UPDATE_MARK_CHECK_MOVE			= (1 << 2),
 	UPDATE_MARK_UPDATE_ANIMATION	= (1 << 3)	
 } e_update_mark;
+
+/*
+* Caskey, Damon V.
+* 2022-07-02
+* 
+* Behavior when making contact with an
+* attack. Normally for projectiles.
+*/
+typedef enum e_remove_config
+{
+    REMOVE_CONFIG_NONE          = 0,
+    REMOVE_CONFIG_AUTO_KILL     = (1 << 0),
+    REMOVE_CONFIG_INSTANT_KILL  = (1 << 1),
+    REMOVE_CONFIG_DEATH         = (1 << 2)
+} e_remove_config;
 
 // Caskey, Damon V.
 // 2019-02-04
@@ -527,6 +543,7 @@ typedef enum
 */
 typedef enum
 {
+    FLAG_NONE = 0,
     FLAG_MOVEUP = (1 << SDID_MOVEUP),
     FLAG_MOVEDOWN = (1 << SDID_MOVEDOWN),
     FLAG_MOVELEFT = (1 << SDID_MOVELEFT),
@@ -1091,9 +1108,12 @@ typedef enum
     ATK_NORMAL9,
     ATK_NORMAL10,
 
-    // For engine and script use. These are
-    // applied automatically by various
-    // conditions or intended for script logic.
+    /* 
+    * For engine and script use. These are
+    * applied automatically by various
+    * conditions or intended for script logic.
+    */
+    ATK_AUTOKILL,                   // Autokill activates with death flag active (Autokill normally instant kills entity).
     ATK_BOSS_DEATH,					// KO leftover enemies when boss is defeated.
     ATK_ITEM,						// Scripting item logic. Item "attacks" entity that collects it.
     ATK_LAND,						// Touching ground during a damage on landing fall.
@@ -1104,9 +1124,11 @@ typedef enum
 	ATK_SUB_ENTITY_UNSUMMON,		// Used to KO a summon on unsummon frame.
 	ATK_TIMEOVER,					// Players (without lose animation) when level time expires.
     
-	// Default max attack types (must
-    // be below all attack types in enum
-    // to get correct value)
+	/*
+    * Default max attack types. Must
+    * be below all attack types in 
+    * enum to get correct value.
+    */
     MAX_ATKS,
     STA_ATKS       = (MAX_ATKS-1)
 } e_attack_types;
@@ -1308,18 +1330,25 @@ typedef enum
 
 typedef enum e_move_constraint
 {
-    MOVE_CONSTRAINT_NONE                = 0,
-    MOVE_CONSTRAINT_NO_ADJUST_BASE      = (1 << 0),
-    MOVE_CONSTRAINT_NO_HIT_HEAD         = (1 << 1), // True = Pass upward through platforms when entity has valid height set.
-    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 2),
-    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 3),
-    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 4),
-    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 5),
-    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 6),
-    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 7),
-    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 8),
-    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 9),
-    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 10)
+    MOVE_CONSTRAINT_NONE                        = 0,
+    MOVE_CONSTRAINT_NO_ADJUST_BASE              = (1 << 0),
+    MOVE_CONSTRAINT_NO_HIT_HEAD                 = (1 << 1), // True = Pass upward through platforms when entity has valid height set.
+    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP          = (1 << 2),
+    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY          = (1 << 3),
+    MOVE_CONSTRAINT_SUBJECT_TO_HOLE             = (1 << 4),
+    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z            = (1 << 5),
+    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z            = (1 << 6),
+    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE         = (1 << 7),
+    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM         = (1 << 8),
+    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM_BLAST   = (1 << 9),
+    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM_BOUNCE  = (1 << 10),
+    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN           = (1 << 11),
+    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN_BLAST     = (1 << 12),
+    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN_BOUNCE    = (1 << 13),
+    MOVE_CONSTRAINT_SUBJECT_TO_WALL             = (1 << 14),
+    MOVE_CONSTRAINT_SUBJECT_TO_WALL_BLAST       = (1 << 15),
+    MOVE_CONSTRAINT_SUBJECT_TO_WALL_BOUNCE      = (1 << 16)
+    
 } e_move_constraint;
 
 // Caskey, Damon V.
@@ -1409,96 +1438,23 @@ typedef enum
     FACING_ADJUST_LEVEL    //Face according to level scroll direction.
 } e_facing_adjust;
 
-// Caskey, Damon V.
-// 2019-11-24 (refactored from 2014-01-04 version)
-//
-// Legacy values for backward compatability. These are used to 
-// interpret the follow command from author. Then we
-// populate the follow condition with a set of bit values 
-// from e_follow_condition_logic accordingly.
-typedef enum
+typedef enum e_hitwall_condition
 {
-    FOLLOW_CONDITION_CMD_READ_DISABLED,                     //No followup (default).
-    FOLLOW_CONDITION_CMD_READ_ALWAYS,                       //Always perform.
-    FOLLOW_CONDITION_CMD_READ_HOSTILE,                      //Perform if target is hostile.
-    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
-    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
-    FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
-} e_follow_condition_command_read;
-
-// Caskey, Damon V.
-// 2019-11-24
-// 
-// Logic values for follow up condiiton. Must meet all conditions
-// to perform follow up.
-typedef enum
-{
-	FOLLOW_CONDITION_NONE					= 0,		// No conditions.		
-	FOLLOW_CONDITION_ANY					= (1 << 0),	// Always follow up.
-	FOLLOW_CONDITION_BLOCK_FALSE			= (1 << 1),	// Not blocked.
-	FOLLOW_CONDITION_BLOCK_TRUE				= (1 << 2),	// Blocked.
-	FOLLOW_CONDITION_GRAB_FALSE				= (1 << 3),	// Target can not grabbed.
-	FOLLOW_CONDITION_GRAB_TRUE				= (1 << 4),	// Target can be grabbed.
-	FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 5),	// Attacker neutral/friendly.
-	FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 6),	// Attacker hostile to target.
-	FOLLOW_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 7),	// Target neutral/friendly.
-	FOLLOW_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 8),	// Target hostile to attacker.
-	FOLLOW_CONDITION_LETHAL_FALSE			= (1 << 9),	// Target not killed by damage.
-	FOLLOW_CONDITION_LETHAL_TRUE			= (1 << 10)	// Target killed by damage.
-} e_follow_condition_logic;
-
-// Caskey, Damon V.
-// 2019-12-04 (refactored from 2012-12-16 version)
-//
-// Legacy values for backward compatability. These are used to 
-// interpret the counter command from author. Then we
-// populate the counter condition with a set of bit values 
-// from e_follow_condition_logic accordingly.
-typedef enum
-{
-	COUNTER_ACTION_CONDITION_CMD_READ_NONE,						// No counter.
-	COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS,					// Always perform coutner action.
-	COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE,					// Only if attacker is hostile entity.
-	COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE,	// Attacker is hostile, strikes from front, and uses non-freeze attack.
-	COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE,				// Always perform coutner action and if health - attack_damage <= 0, set health to 1
-} e_counter_action_condition_command_read;
-
-typedef enum
-{
-	COUNTER_ACTION_CONDITION_NONE					= 0,			// No conditions.
-	COUNTER_ACTION_CONDITION_ANY					= (1 << 0),		// Always counter.
-	COUNTER_ACTION_CONDITION_BACK_FALSE				= (1 << 1),		// Not from back.
-	COUNTER_ACTION_CONDITION_BACK_TRUE				= (1 << 2),		// ONLY from back.
-	COUNTER_ACTION_CONDITION_BLOCK_FALSE			= (1 << 3),		// No unblockable attacks.
-	COUNTER_ACTION_CONDITION_BLOCK_TRUE				= (1 << 4),		// Only blockable attacks.
-	COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE	= (1 << 5),		// Damage must be non-lethal.
-	COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE		= (1 << 6),		// Damage must be lethal.
-	COUNTER_ACTION_CONDITION_FREEZE_FALSE			= (1 << 7),		// Not against freeze attack.
-	COUNTER_ACTION_CONDITION_FREEZE_TRUE			= (1 << 8),		// Only against freeze attack.
-	COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE	= (1 << 9),		// Attacker neutral/friendly.
-	COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE	= (1 << 10),	// Attacker hostile to target.
-	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE	= (1 << 11),	// Target neutral/friendly.
-	COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE	= (1 << 12)		// Target hostile to attacker.
-} e_counter_action_condition_logic;
+    HITWALL_CONDITION_NONE      = 0,
+    HITWALL_CONDITION_BOUNCE    = (1 << 0), // Hitwall/Hitplatform animations triggerd. 
+    HITWALL_CONDITION_PLATFORM  = (1 << 1), // Pressing against wall.
+    HITWALL_CONDITION_WALL      = (1 << 2)  // Pressing against platform.
+} e_hitwall_condition;
 
 typedef enum
 {
     MAP_TYPE_KO = -4,
     MAP_TYPE_SHOCK = -3,
     MAP_TYPE_BURN = -2,
-    MAP_TYPE_FREEZE = -1,  
+    MAP_TYPE_FREEZE = -1,
     MAP_TYPE_NONE = 0
 } e_maptype;
 
-// Caskey, Damon V.
-// 2012-12-16
-//	 
-// Counteraction damage taking modes.
-typedef enum
-{
-	COUNTER_ACTION_TAKE_DAMAGE_NONE,	// No damage.
-	COUNTER_ACTION_TAKE_DAMAGE_NORMAL	// Normal damage.
-} e_counter_action_take_damage;
 
 // Caskey, Damon V.
 // 2019-05-31
@@ -2197,17 +2153,6 @@ typedef struct
     
 } s_lasthit;
 
-// Caskey, Damon V.
-// 2011-04-01
-//
-// Counter action when taking hit.
-typedef struct
-{
-	e_counter_action_condition_logic condition; // Counter conditions.
-    e_counter_action_take_damage damaged;		// Receive damage from attack.
-    s_metric_range frame;						// Frame range.
-} s_counter_action;
-
 typedef struct
 {
     /*
@@ -2289,17 +2234,161 @@ typedef struct
     s_metric_range range;
 } s_edelay;
 
+// Caskey, Damon V.
+// 2019-11-24 (refactored from 2014-01-04 version)
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the follow command from author. Then we
+// populate the follow condition with a set of bit values 
+// from e_follow_condition accordingly.
+typedef enum
+{
+    FOLLOW_CONDITION_LEGACY_DISABLED,                     //No followup (default).
+    FOLLOW_CONDITION_LEGACY_ALWAYS,                       //Always perform.
+    FOLLOW_CONDITION_LEGACY_HOSTILE,                      //Perform if target is hostile.
+    FOLLOW_CONDITION_LEGACY_HOSTILE_NOKILL_NOBLOCK,       //Perform if target is hostile, will not be killed and didn't block.
+    FOLLOW_CONDITION_LEGACY_HOSTILE_NOKILL_NOBLOCK_NOGRAB, //Perform if target is hostile, will not be killed, didn't block, and cannot be grabbed.
+    FOLLOW_CONDITION_LEGACY_HOSTILE_NOKILL_BLOCK,         //Perform if target is hostile, will not be killed and block.
+} e_follow_condition_legacy;
+
+typedef enum e_follow_action
+{
+    FOLLOW_ACTION_NONE = 0,
+    FOLLOW_ACTION_DAMAGE_NULL = (1 << 0),	    // Don't take damage when hit.
+    FOLLOW_ACTION_VELOCITY_NULL = (1 << 1),	    // Stop moving on follow.
+} e_follow_action;
+
+/*
+* Caskey, Damon V.
+* 2019-11-24
+*
+* Logic values for follow up condiiton. Must meet all conditions
+* to perform follow up.
+*/
+typedef enum e_follow_condition
+{
+    FOLLOW_CONDITION_NONE           = 0,        // No config.    
+    FOLLOW_CONDITION_ATTACK_BLOCKED = (1 << 0),
+    FOLLOW_CONDITION_ATTACK_LETHAL  = (1 << 1),
+    FOLLOW_CONDITION_BLOCK          = (1 << 2),
+    FOLLOW_CONDITION_DEAD           = (1 << 3),
+    FOLLOW_CONDITION_FALL           = (1 << 4),
+    FOLLOW_CONDITION_GRAB           = (1 << 5),
+    FOLLOW_CONDITION_HOSTILE        = (1 << 6),
+    FOLLOW_CONDITION_IDLE           = (1 << 7),
+    FOLLOW_CONDITION_JUMP           = (1 << 8),
+    FOLLOW_CONDITION_PAIN           = (1 << 9),
+    FOLLOW_CONDITION_RANGE          = (1 << 10), // Target in range of new (follow) animation.
+    FOLLOW_CONDITION_RUN            = (1 << 11),
+    FOLLOW_CONDITION_WALK           = (1 << 12)
+} e_follow_condition;
+
+typedef enum e_follow_event
+{
+    FOLLOW_EVENT_NONE       = 0,
+    FOLLOW_EVENT_ATTACK_HIT = (1 << 0), // Attack hits another entity.
+    FOLLOW_EVENT_BODY_HIT   = (1 << 1),	// Takes hit from another entity.
+    FOLLOW_EVENT_FRAME      = (1 << 2),	// Animation starts or updates a frame.
+    FOLLOW_EVENT_PLATFORM   = (1 << 3), // Movement blocked by platform.
+    FOLLOW_EVENT_WALL       = (1 << 4), // Movement blocked by wall.
+    FOLLOW_EVENT_SCREEN     = (1 << 5), // Movement blocked by screen.
+    FOLLOW_EVENT_Z_MIN      = (1 << 6), // Movement blocked by minimum Z area.
+    FOLLOW_EVENT_Z_MAX      = (1 << 7)  // Movement blocked by maximum Z area.
+} e_follow_event;
+
+// Caskey, Damon V.
+// 2019-12-04 (refactored from 2012-12-16 version)
+//
+// Legacy values for backward compatability. These are used to 
+// interpret the counter command from author. Then we
+// populate the counter condition with a set of bit values 
+// from e_follow_condition accordingly.
+typedef enum
+{
+    COUNTER_ACTION_CONDITION_CMD_READ_NONE,						// No counter.
+    COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS,					// Always perform coutner action.
+    COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE,					// Only if attacker is hostile entity.
+    COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE	// Attacker is hostile, strikes from front, and uses non-freeze attack.
+} e_counter_action_condition_command_read;
+
+typedef enum
+{
+    COUNTER_ACTION_CONDITION_NONE = 0,			// No conditions.
+    COUNTER_ACTION_CONDITION_ANY = (1 << 0),		// Always counter.
+    COUNTER_ACTION_CONDITION_BACK_FALSE = (1 << 1),		// Not from back.
+    COUNTER_ACTION_CONDITION_BACK_TRUE = (1 << 2),		// ONLY from back.
+    COUNTER_ACTION_CONDITION_BLOCK_FALSE = (1 << 3),		// No unblockable attacks.
+    COUNTER_ACTION_CONDITION_BLOCK_TRUE = (1 << 4),		// Only blockable attacks.
+    COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE = (1 << 5),		// Damage must be non-lethal.
+    COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_TRUE = (1 << 6),		// Damage must be lethal.
+    COUNTER_ACTION_CONDITION_FREEZE_FALSE = (1 << 7),		// Not against freeze attack.
+    COUNTER_ACTION_CONDITION_FREEZE_TRUE = (1 << 8),		// Only against freeze attack.
+    COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE = (1 << 9),		// Attacker neutral/friendly.
+    COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE = (1 << 10),	// Attacker hostile to target.
+    COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE = (1 << 11),	// Target neutral/friendly.
+    COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE = (1 << 12)		// Target hostile to attacker.
+} e_counter_action_condition_logic;
+
+
+// Caskey, Damon V.
+// 2012-12-16
+//	 
+// Counteraction damage taking modes.
+typedef enum
+{
+    COUNTER_ACTION_TAKE_DAMAGE_NONE,	// No damage.
+    COUNTER_ACTION_TAKE_DAMAGE_NORMAL	// Normal damage.
+} e_counter_action_take_damage;
+
+typedef struct s_follow_condition
+{
+    e_animations        animation_exclude;
+    e_animations        animation_require;
+    e_direction_adjust  direction_exclude;
+    e_direction_adjust  direction_require;
+    e_follow_condition  flag_false;
+    e_follow_condition  flag_true;
+    int                 frame_min;
+    int                 frame_max;
+    int                 height_min;
+    int                 height_max;
+    int                 hp_min;
+    int                 hp_max;
+    float               hp_ratio_min;
+    float               hp_ratio_max;
+    e_key_def           key_require;
+    e_key_def           key_exclude;
+    e_entity_type       type_exclude;
+    e_entity_type       type_require;
+} s_follow_condition;
+
+/*
+* Follow up animation struct.
+*
+* Caskey, Damon V.
+* 2014-01-04
+*/
+typedef struct s_follow
+{
+    e_follow_action     action;
+    unsigned int        animation;          // Follow animation index to perform.
+    s_follow_condition* condition_acting;
+    s_follow_condition* condition_other;
+    e_follow_event      event_config;
+    unsigned int        index;
+    struct s_follow*    next;
+} s_follow;
+
+// Caskey, Damon V.
+// 2011-04-01
+//
+// Counter action when taking hit.
 typedef struct
 {
-    /*
-    Follow up animation struct.
-    Damon V. caskey
-    2014-01-04
-    */
-
-    unsigned int animation;   // Follow animation to perform.
-    e_follow_condition_logic condition;   // Condition in which follow up will be performed.
-} s_follow;
+    e_counter_action_condition_logic condition; // Counter conditions.
+    e_counter_action_take_damage damaged;		// Receive damage from attack.
+    s_metric_range frame;						// Frame range.
+} s_counter_action;
 
 /*
 * Caskey, Damon V.
@@ -2488,7 +2577,7 @@ typedef struct
 	s_counter_action			counter_action;			// Auto counter attack. ~~
 	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
 	s_onframe_set				dropframe;				// if tossv < 0, this frame will be set. ~~
-	s_follow					followup;               // Subsequent animation on hit. ~~
+	s_follow*					followup;               // Subsequent animation on hit. ~~
 	s_onframe_move				jumpframe;				// Jumpframe action. 2011_04_01, DC: moved to struct. ~~
 	s_onframe_set				landframe;				// Landing behavior. ~~
 	s_loop						loop;                   // Animation looping. 2011_03_31, DC: Moved to struct. ~~
@@ -3258,12 +3347,12 @@ typedef struct entity
 	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
 	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
 	unsigned int			escapecount;						// hit count for escapehits. ~~
-	unsigned int			idlemode;							// Force a specfic alternate idle. ~~
+	unsigned int			idlemode;							// Force a specific alternate idle. ~~
 	unsigned int			pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
 	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
 	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
 	unsigned int			numwaypoints;						// Count of waypoints in use. ~~
-	unsigned int			walkmode;							// Force a specfic alternate walk. ~~
+	unsigned int			walkmode;							// Force a specific alternate walk. ~~
 
 	// Signed integers
 	int						last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
@@ -3308,7 +3397,7 @@ typedef struct entity
 	int					    frozen;								// Frozen in place. ~~
 	int					    getting;							// Picking up item. ~~
 	int					    grabwalking;						// Walking while grappling. ~~
-	int					    hitwall;							// Blcoked by wall/platform/obstacle. ~~
+    e_hitwall_condition	    hitwall;							// Blcoked by wall/platform/obstacle. ~~
 	int					    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
 	int					    inpain;								// Hit and block stun. ~~
 	int					    jumping;							// ~~
@@ -3645,7 +3734,7 @@ e_air_control_legacy_z air_control_interpret_to_legacy_jumpmove_z(e_air_control 
 e_air_control_legacy_x air_control_interpret_to_legacy_walkoffmove_x(e_air_control air_control_value);
 e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_control air_control_value);
 
-
+void do_autokill(entity* acting_entity);
 
 int is_attack_type_special(e_attack_types attack_type);
 int is_frozen(entity *e);
@@ -3858,6 +3947,32 @@ void            child_spawn_initialize_frame_property(s_addframe_data* data, ptr
 entity*         child_spawn_execute_object(s_child_spawn* object, entity* parent);
 void            child_spawn_execute_list(s_child_spawn* head, entity* parent);
 
+/* Follow animation control */
+s_follow_condition* condition_allocate_object();
+s_follow_condition* condition_allocate_object_conditionally(s_follow_condition* object);
+void condition_dump_object(s_follow_condition* object, char* prefix);
+void condition_free_object(s_follow_condition* object);
+e_follow_condition condition_flag_get_bit_from_argument(char* value);
+
+s_follow*   follow_allocate_object();
+s_follow*   follow_allocate_object_conditionally(s_follow* head, int index);
+s_follow*   follow_append_node(struct s_follow* head);
+void        follow_dump_list(s_follow* head);
+void        follow_dump_object(s_follow* object, char* prefix);
+s_follow*   follow_find_node_index(s_follow* head, int index);
+void        follow_free_list(s_follow* head);
+void        follow_free_node(s_follow* object);
+int follow_execute_list(entity* acting_entity, entity* target, e_follow_condition trigger_event, int didblock);
+int follow_execute_object(s_follow* object, entity* acting_entity, entity* target, e_follow_condition trigger_event, int didblock);
+entity* follow_find_valid_other(s_follow* follow_object, entity* acting_entity, int blocked);
+int follow_check_condition_flags(s_follow* object, s_follow_condition* condition, entity* acting_entity, entity* other_entity, int blocked);
+int follow_check_condition(s_follow* object, entity* acting_entity, entity* other_entity, int blocked);
+int follow_check_event(s_follow* object, e_follow_condition trigger_event);
+void follow_legacy_setup(s_follow* follow_object, e_follow_condition_legacy value);
+e_follow_condition follow_config_get_bit_from_argument(char* value);
+e_follow_condition condition_flag_get_argument(ArgList* arglist);
+
+
 /* Collision and attcking control. */
 
 /* -- Attack properties. */
@@ -3987,7 +4102,7 @@ void biker_drive(void);
 void ent_default_init(entity *e);
 void ent_spawn_ent(entity *ent);
 void ent_summon_ent(entity *ent);
-void ent_set_anim(entity *ent, int aninum, int resetable);
+int ent_set_anim(entity *ent, int aninum, int resetable);
 void ent_set_colourmap(entity *ent, unsigned int which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
 entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash);
@@ -4032,6 +4147,7 @@ entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);
 int check_lost();
+entity* find_nearest_entity(entity* acting_entity, e_animations animation_id);
 int check_range_target_all(entity *ent, entity *target, e_animations animation_id);
 int check_range_target_base(entity *ent, entity *target, s_anim *animation);
 int check_range_target_x(entity *ent, entity *target, s_anim *animation);

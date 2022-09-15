@@ -11018,7 +11018,7 @@ void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
 * and output appropriate constant. If input 
 * is legacy integer, we just pass it on.
 */
-e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value)
+e_model_copy get_model_flag_from_argument(char* value)
 {
     e_model_copy result = MODEL_COPY_FLAG_NONE;
 
@@ -11040,7 +11040,7 @@ e_model_copy get_model_flag_from_argument(char* filename, char* command, char* v
     }    
     else
     {
-        result = getValidInt(value, filename, command);
+        result = getValidInt(value, NULL, NULL);
     }
 
     return result;
@@ -11061,7 +11061,7 @@ void lcmHandleCommandModelFlag(ArgList* arglist, s_model* newchar)
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        newchar->model_flag |= find_weapon_loss_from_string(value);
+        newchar->model_flag |= get_model_flag_from_argument(value);
     }
 }
 
@@ -12543,6 +12543,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int i = 0;
     int j = 0;
     int tempInt = 0;
+    int tempInt2 = 0;
     int framecount = 0;
     int frameset = 0;
     int peek = 0;
@@ -12606,12 +12607,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     * lists are cloned with relevant frame property 
     * as head node. Then we destroy temporary list.
     */
-    int temp_collision_index = 0;
+    unsigned int temp_collision_index = 0;
     s_collision_attack* temp_collision_head = NULL;     // Attack boxes.
     s_collision_body* temp_collision_body_head = NULL;  // Body boxes.
     
-    int temp_child_spawn_index = 0;
+    unsigned int temp_child_spawn_index = 0;
     s_child_spawn* temp_child_spawn_head = NULL;         // Spawning sub entities.
+
+    unsigned int temp_follow_index = 0;
+    s_follow* temp_follow_object = NULL;
 
     char* shutdownmessage = NULL;
 
@@ -14105,7 +14109,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * This is partialy for legacy compatability.
                 * It works well enough that beginners won't 
                 * know the difference and advanced creators 
-                * will always want to adjust for their specfic 
+                * will always want to adjust for their specific 
                 * needs.
                 */
 
@@ -14128,8 +14132,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
                 newanim->move_constraint        |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
-                newanim->followup.animation     = 0;			// Default disabled
-                newanim->followup.condition     = FOLLOW_CONDITION_NONE;
+                
+                newanim->followup = NULL;
+                //newanim->followup.animation     = 0;			// Default disabled
+                //newanim->followup.condition     = FOLLOW_CONFIG_NONE;
+                
                 newanim->sub_entity_unsummon          = FRAME_NONE;
                 newanim->landframe.frame		= FRAME_NONE;
 				newanim->landframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
@@ -14870,7 +14877,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 break;
 
-            case CMD_MODEL_BBOX:                
+            case CMD_MODEL_BBOX:                                
 
                 collision_body_upsert_property(&temp_collision_body_head, temp_collision_index);
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->x = GET_INT_ARG(1);
@@ -14884,10 +14891,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_BBOX_INDEX:
                 // Nothing yet - for future support of multiple boxes.
                 break;
-            case CMD_MODEL_BBOX_POSITION_X:   
+            case CMD_MODEL_BBOX_POSITION_X:  
 
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->x = GET_INT_ARG(1);
+                /* 
+                * Handle legacy compatability. If no index 
+                * provided we use 0 and the first argument
+                * is our property value.
+                */
+
+                if (arglist.count > 1)
+                {
+                    tempInt = GET_INT_ARG(1);
+                    tempInt2 = GET_INT_ARG(2);
+                }
+                else
+                {
+                    tempInt = 0;
+                    tempInt2 = GET_INT_ARG(1);
+                }
+
+                collision_body_upsert_property(&temp_collision_body_head, tempInt);
+                collision_body_upsert_coordinates_property(&temp_collision_body_head, tempInt)->x = tempInt2;
 
                 break;
             case CMD_MODEL_BBOX_POSITION_Y:
@@ -16328,55 +16352,145 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FLIPFRAME:
                 newanim->flipframe = GET_FRAME_ARG(1);
                 break;
-            case CMD_MODEL_FOLLOWANIM:
-                newanim->followup.animation = GET_INT_ARG(1);
-                if(newanim->followup.animation > max_follows)
-                {
-                    newanim->followup.animation = max_follows;
-                }
+            case CMD_MODEL_FOLLOW_INDEX:
+                temp_follow_index = GET_INT_ARG(1);
                 break;
-            case CMD_MODEL_FOLLOWCOND:
-				
-				// 2019-11-24
-				// Caskey, Damon V.
-				//
-				// Follow up condition is now handled by bitwise logic.
-				// We need to set up our bit flags based on the old int 
-				// arg for backward compatability.
-				
-				// Get legacy style condition arg.
-				tempInt = GET_INT_ARG(1);
-				
-				// Make sure condition is reset.
-				newanim->followup.condition = FOLLOW_CONDITION_NONE;
 
-				switch (tempInt)
-				{
-				default:
-				case FOLLOW_CONDITION_CMD_READ_ALWAYS:
-					newanim->followup.condition |= FOLLOW_CONDITION_ANY;
-					break;
-				case FOLLOW_CONDITION_CMD_READ_HOSTILE:
-					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					break;
-				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK:
-					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_FALSE;
-					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
-					break;
-				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_NOBLOCK_NOGRAB:
-					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_FALSE;
-					newanim->followup.condition |= FOLLOW_CONDITION_GRAB_TRUE;
-					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
-					break;
-				case FOLLOW_CONDITION_CMD_READ_HOSTILE_NOKILL_BLOCK:
-					newanim->followup.condition |= FOLLOW_CONDITION_HOSTILE_TARGET_TRUE;
-					newanim->followup.condition |= FOLLOW_CONDITION_BLOCK_TRUE;
-					newanim->followup.condition |= FOLLOW_CONDITION_LETHAL_FALSE;
-					break;
-				}				
+            case CMD_MODEL_FOLLOW_CONDITION_ACTING_ANIMATION_EXCLUDE:
+
+                value = GET_ARG(1);
+
+                if ((tempInt = translate_ani_id(value, NULL, NULL)) < 0)
+                {
+                    shutdownmessage = "Invalid animation name!";
+                    goto lCleanup;
+                }
+                                
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->condition_acting = condition_allocate_object_conditionally(newanim->followup->condition_acting);
+
+                newanim->followup->condition_acting->animation_exclude = tempInt;
+                    
+                break;
+
+            case CMD_MODEL_FOLLOW_CONDITION_ACTING_ANIMATION_REQUIRE:
+
+                value = GET_ARG(1);
+
+                if ((tempInt = translate_ani_id(value, NULL, NULL)) < 0)
+                {
+                    shutdownmessage = "Invalid animation name!";
+                    goto lCleanup;
+                }
+
+                /*
+                * Allocate new objects if we need them, then set
+                * appropriate value to target property.
+                */
+
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->condition_acting = condition_allocate_object_conditionally(newanim->followup->condition_acting);
+
+                newanim->followup->condition_acting->animation_require = tempInt;
+
+                break;
+
+            case CMD_MODEL_FOLLOW_CONDITION_ACTING_FRAME_MAX:
+
+                value = GET_ARG(1);
+
+                tempInt = stricmp(value, "none") == 0 ? INT_MAX : GET_INT_ARG(1);
+
+                /*
+                * Allocate new objects if we need them, then set
+                * appropriate value to target property.
+                */
+                               
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->condition_acting = condition_allocate_object_conditionally(newanim->followup->condition_acting);
+
+                newanim->followup->condition_acting->frame_max = tempInt;
+
+                break;
+
+            case CMD_MODEL_FOLLOW_CONDITION_ACTING_FRAME_MIN:
+
+                value = GET_ARG(1);
+
+                tempInt = stricmp(value, "none") == 0 ? INT_MIN : GET_INT_ARG(1);
+
+                /*
+                * Allocate new objects if we need them, then set
+                * appropriate value to target property.
+                */
+
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->condition_acting = condition_allocate_object_conditionally(newanim->followup->condition_acting);
+
+                newanim->followup->condition_acting->frame_min = tempInt;
+
+                break;
+
+            case CMD_MODEL_FOLLOW_CONDITION_ACTING_FLAG_FALSE:
+
+                tempInt = condition_flag_get_argument(&arglist);
+
+                /*
+                * Allocate new objects if we need them, then set
+                * appropriate value to target property.
+                */
+
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->condition_acting = condition_allocate_object_conditionally(newanim->followup->condition_acting);
+
+                newanim->followup->condition_acting->flag_false = tempInt;
+
+                break;
+
+            case CMD_MODEL_FOLLOW_CONDITION_ACTING_FLAG_TRUE:
+
+                tempInt = condition_flag_get_argument(&arglist);
+
+                /*
+                * Allocate new objects if we need them, then set
+                * appropriate value to target property.
+                */
+
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->condition_acting = condition_allocate_object_conditionally(newanim->followup->condition_acting);
+
+                newanim->followup->condition_acting->flag_true = tempInt;
+
+                break;
+
+            case CMD_MODEL_FOLLOWANIM:
+
+                tempInt = GET_INT_ARG(1);
                 
+                if (tempInt > max_follows)
+                {
+                    tempInt = max_follows;
+                }
+
+                /*
+                * Allocate new objects if we need them, then set
+                * appropriate value to target property.
+                */
+
+                newanim->followup = follow_allocate_object_conditionally(newanim->followup, temp_follow_index);
+                newanim->followup->animation = tempInt;
+                
+                break;
+
+            case CMD_MODEL_FOLLOWCOND:
+
+                tempInt = GET_INT_ARG(1);
+
+                temp_follow_object = follow_upsert_property(&newanim->followup, temp_follow_index)->config = tempInt;
+
+                //printf("\n\n newanim->followup.condition: %d\n\n", newanim->followup.condition);
+                break;
+
             case CMD_MODEL_COUNTERRANGE:
                 newanim->counter_action.frame.min    = GET_FRAME_ARG(1);
                 newanim->counter_action.frame.max    = GET_FRAME_ARG(2);
@@ -16401,18 +16515,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
 					break;
 				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE:
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
+					newanim->counter_action.condition |= (COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE | COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE);
 					break;
 				case COUNTER_ACTION_CONDITION_CMD_READ_HOSTILE_FRONT_NOFREEZE:
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_BACK_TRUE;
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_BLOCK_TRUE;
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE;
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_FREEZE_FALSE;
-					newanim->counter_action.condition |= COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE;
-					break;
-				case COUNTER_ACTION_CONDITION_CMD_READ_ALWAYS_RAGE:
-					newanim->counter_action.condition ^= FOLLOW_CONDITION_ANY;
+					newanim->counter_action.condition |= (COUNTER_ACTION_CONDITION_BACK_TRUE | COUNTER_ACTION_CONDITION_BLOCK_TRUE | COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE | COUNTER_ACTION_CONDITION_FREEZE_FALSE | COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE);
 					break;
 				}
 
@@ -22819,6 +22925,9 @@ void update_frame(entity *ent, unsigned int f)
     {
         self->nextanim = _time + calculate_edelay(self, f);
         self->pausetime = 0;
+        
+        follow_execute_list(self, NULL, FOLLOW_EVENT_FRAME, 0);
+        
         execute_animation_script(self);
     }
 
@@ -23013,7 +23122,7 @@ uf_interrupted:
 }
 
 
-void ent_set_anim(entity *ent, int aninum, int resetable)
+int ent_set_anim(entity *ent, int aninum, int resetable)
 {
     s_anim *ani = NULL;
     int animpos;
@@ -23021,31 +23130,31 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
     if(!ent)
     {
         //printf("FATAL: tried to set animation with invalid address (no such object)");
-        return;
+        return 0;
     }
 
     if(aninum < 0 || aninum >= max_animations)
     {
         //printf("FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
-        return;
+        return 0;
     }
 
     if(!validanim(ent, aninum))
     {
         //printf("FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
-        return;
+        return 0;
     }
 
     ani = ent->modeldata.animation[aninum];
 
     if(!resetable && ent->animation == ani)
     {
-        return;
+        return 0;
     }
 
     if(ani->numframes == 0)
     {
-        return;
+        return 0;
     }
 
     if(ent->animation && ((resetable & 2) || (ani->sync >= 0 && ent->animation->sync == ani->sync)))
@@ -23075,6 +23184,8 @@ void ent_set_anim(entity *ent, int aninum, int resetable)
 
         update_frame(ent, 0);
     }
+
+    return 1;
 }
 
 unsigned char *model_get_colourmap(s_model *model, unsigned which)
@@ -25277,127 +25388,656 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
     return flash;
 }
 
-/*
-* Caskey, Damon V. 
-* 2019-11-24
-*
-* Check follow up conditions. Return true 
-* if all conditions pass, false otherwise.
-*/
-int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, int blocked)
+/* **** Follow animations (follow up) **** */
+
+s_follow_condition* condition_allocate_object()
 {
-	if (!animation->followup.animation)
-	{
-		return 0;
-	}
+    s_follow_condition* result;
+    size_t       alloc_size;
 
-	/* No follow up allowed. */
- 	
-    if (animation->followup.condition & FOLLOW_CONDITION_NONE)
-	{
-		return 0;
-	}
+    /* Get amount of memory we'll need. */
+    alloc_size = sizeof(*result);
 
-	/* Always do follow up. */
-	
-    if (animation->followup.condition & FOLLOW_CONDITION_ANY)
-	{
-		return 1;
-	}
+    /* Allocate memory and get pointer. */
+    result = malloc(alloc_size);
 
-	/* Block attack. */
-	
-    if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_FALSE)
-	{
-		if (blocked)
-		{
-			return 0;
-		}
-	}
-	
-	if (animation->followup.condition & FOLLOW_CONDITION_BLOCK_TRUE)
-	{
-		if (!blocked)
-		{
-			return 0;
-		}
-	}
+    /*
+    * Set up defaults. We'll zero out
+    * all members and manually set
+    * any that need specific starting
+    * value.
+    */
+    
+    memset(result, 0, alloc_size);
 
-	/* Possible to grab target. */
-	
-    if (animation->followup.condition & FOLLOW_CONDITION_GRAB_FALSE)
-	{
-		if (check_cangrab(ent, target))
-		{
-			return 0;
-		}
-	}
-	
-	if (animation->followup.condition & FOLLOW_CONDITION_GRAB_TRUE)
-	{
-		if (!check_cangrab(ent, target))
-		{
-			return 0;
-		}
-	}
+    result->animation_exclude = ANI_NONE;
+    result->animation_require = ANI_NONE;
+    result->direction_exclude = DIRECTION_ADJUST_NONE;
+    result->direction_require = DIRECTION_ADJUST_NONE;
+    result->frame_max = INT_MAX;
+    result->frame_min = INT_MIN;
+    result->height_max = INT_MAX;
+    result->height_min = INT_MIN;
+    result->hp_max = INT_MAX;
+    result->hp_min = INT_MIN;
+    result->hp_ratio_max = 1.0;
+    result->hp_ratio_min = 0.0;
+    result->key_exclude = FLAG_NONE;
+    result->key_require = FLAG_NONE;
+    result->type_exclude = TYPE_UNDELCARED;
+    result->type_require = TYPE_UNDELCARED;
 
-	/* We are hostile toward target. */
-	
-    if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
-	{
-		if (target->modeldata.type & ent->modeldata.hostile)
-		{
-			return 0;
-		}
-	}
+    return result;
+}
 
-	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE)
-	{
-		if (!(target->modeldata.type & ent->modeldata.hostile))
-		{
-			return 0;
-		}
-	}
+s_follow_condition* condition_allocate_object_conditionally(s_follow_condition* object)
+{
+    if (!object)
+    {
+        object = condition_allocate_object();
+    }
 
-	/* Target is hostile toward us. */
-	
-    if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_FALSE)
-	{
-		if (ent->modeldata.type & target->modeldata.hostile)
-		{
-			return 0;
-		}
-	}
+    return object;
+}
 
-	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_TRUE)
-	{
-		if (!(ent->modeldata.type & target->modeldata.hostile))
-		{
-			return 0;
-		}
-	}
+void condition_dump_object(s_follow_condition* object, char* prefix)
+{
+    const int space_label = 20;
 
-	/* Lethal damage. */
-	
-    if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_FALSE)
-	{
-		if (target->energy_state.health_current <= 0)
-		{
-			return 0;
-		}
-	}
+    printf("\n\n%s -- Condition object (%p) Dump --", prefix, object);
 
-	if (animation->followup.condition & FOLLOW_CONDITION_LETHAL_TRUE)
-	{
-		if (target->energy_state.health_current > 0)
-		{
-			return 0;
-		}
-	}
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->animation_exclue:", object->animation_exclude);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->animation_require:", object->animation_require);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->direction_exclude:", object->direction_exclude);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->direction_require:", object->direction_require);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->flag_false:", object->flag_false);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->flag_true:", object->flag_true);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->frame_max:", object->frame_max);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->frame_min:", object->frame_min);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->height_max:", object->height_max);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->height_min:", object->height_min);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->hp_max:", object->hp_max);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->hp_min:", object->hp_min);
+    printf("\n%s\t\t %-*s %f", prefix, space_label, "->hp_ratio_max:", object->hp_ratio_max);
+    printf("\n%s\t\t %-*s %f", prefix, space_label, "->hp_ratio_min:", object->hp_ratio_min);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->key_exclude:", object->key_exclude);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->key_require:", object->key_require);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->type_exclude:", object->type_exclude);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->type_require:", object->type_require);
 
-	/* If all checks passed, return true. */
-	
-    return 1;
+    printf("\n\n%s--Condition object(%p) dump complete!-- \n", prefix, object);
+}
+
+void condition_free_object(s_follow_condition* object)
+{
+    free(object);
+}
+
+/*
+* Caskey, Damon V.
+* 2022-07-02
+*
+* Read text argument lists, updates bit flags
+* and outputs integer. Accepts existing
+* argument as a default.
+*/
+e_follow_condition condition_flag_get_argument(ArgList* arglist)
+{
+    e_follow_condition result = FOLLOW_CONDITION_NONE;
+    int i;
+    char* value;
+
+    printf("\n\n condition_flag_get_argument(ArgList* %p)", arglist);
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        printf("\n\t value: %s", value);
+        printf("\n\t result (pre): %d", result);
+        result |= condition_flag_get_bit_from_argument(value);
+        printf("\n\t result (post): %d", result);
+    }
+
+    return result;
+}
+
+e_follow_condition condition_flag_get_bit_from_argument(char* value)
+{
+    e_follow_condition result = 25414;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = FOLLOW_CONDITION_NONE;
+    }
+    else if (stricmp(value, "attack_blocked") == 0)
+    {
+        result = FOLLOW_CONDITION_ATTACK_BLOCKED;
+    }
+    else if (stricmp(value, "attack_lethal") == 0)
+    {
+        result = FOLLOW_CONDITION_ATTACK_LETHAL;
+    }
+    else if (stricmp(value, "block") == 0)
+    {
+        result = FOLLOW_CONDITION_BLOCK;
+    }
+    else if (stricmp(value, "dead") == 0)
+    {
+        result = FOLLOW_CONDITION_DEAD;
+    }
+    else if (stricmp(value, "fall") == 0)
+    {
+        result = FOLLOW_CONDITION_FALL;
+    }
+    else if (stricmp(value, "grab") == 0)
+    {
+        result = FOLLOW_CONDITION_GRAB;
+    }
+    else if (stricmp(value, "hostile") == 0)
+    {
+        result = FOLLOW_CONDITION_HOSTILE;
+    }
+    else if (stricmp(value, "idle") == 0)
+    {
+        result = FOLLOW_CONDITION_IDLE;
+    }
+    else if (stricmp(value, "jump") == 0)
+    {
+        result = FOLLOW_CONDITION_JUMP;
+    }
+    else if (stricmp(value, "pain") == 0)
+    {
+        result = FOLLOW_CONDITION_PAIN;
+    }
+    else if (stricmp(value, "range") == 0)
+    {
+        result = FOLLOW_CONDITION_RANGE;
+    }
+    else if (stricmp(value, "run") == 0)
+    {
+        result = FOLLOW_CONDITION_RUN;
+    }
+    else if (stricmp(value, "walk") == 0)
+    {
+        result = FOLLOW_CONDITION_WALK;
+    }
+    else
+    {
+        printf("\n\t ...unknown condition flag. Using none.");
+
+        result = FOLLOW_CONDITION_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-07-02
+*
+* Get bit from string argument. If argument is
+* a legacy integer, pass it through the legacy
+* interpreter first.
+*/
+e_follow_condition follow_event_bit_from_argument(char* value)
+{
+    printf("\n\nfollow_event_get_bit_from_argument");
+    e_follow_condition result = FOLLOW_EVENT_NONE;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = FOLLOW_EVENT_NONE;
+    }
+    else if (stricmp(value, "event_attack_hit") == 0)
+    {
+        result = FOLLOW_EVENT_ATTACK_HIT;
+    }
+    else if (stricmp(value, "event_frame") == 0)
+    {
+        result = FOLLOW_EVENT_FRAME;
+    }
+    else if (stricmp(value, "event_platform") == 0)
+    {
+        result = FOLLOW_EVENT_PLATFORM;
+    }
+    else if (stricmp(value, "event_wall") == 0)
+    {
+        result = FOLLOW_EVENT_WALL;
+    }
+    else if (stricmp(value, "event_screen") == 0)
+    {
+        result = FOLLOW_EVENT_SCREEN;
+    }
+    else if (stricmp(value, "event_z_max") == 0)
+    {
+        result = FOLLOW_EVENT_Z_MAX;
+    }
+    else if (stricmp(value, "event_z_min") == 0)
+    {
+        result = FOLLOW_EVENT_Z_MIN;
+    }
+    else
+    {
+        printf("\n\t ...unknown event flag. Using none.");
+
+        result = FOLLOW_EVENT_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-07-02
+*
+* Accept legacy follow int and return
+* equivalent configuration using current
+* bitmasks.
+*/
+void follow_legacy_setup(s_follow* follow_object, e_follow_condition_legacy value)
+{
+    /*
+    
+    e_follow_condition* conditon_false = &follow_upsert_property_condition_acting(head, index)->flag_false;
+    e_follow_condition* conditon_true = &follow_upsert_property_condition_acting(head, index)->flag_true;
+
+    condition_false = FOLLOW_CONDITION_NONE;
+    condition_true = FOLLOW_CONDITION_NONE;
+    */
+
+    switch (value)
+    {
+    default:
+    case FOLLOW_CONDITION_LEGACY_ALWAYS:
+        follow_object->event_config |= FOLLOW_EVENT_ATTACK_HIT;        
+        break;
+    case FOLLOW_CONDITION_LEGACY_HOSTILE:    
+        follow_object->event_config |= FOLLOW_EVENT_ATTACK_HIT;
+        follow_object->condition_acting->flag_true |= FOLLOW_CONDITION_HOSTILE;
+        
+        break;
+    case FOLLOW_CONDITION_LEGACY_HOSTILE_NOKILL_NOBLOCK:
+        
+        follow_object->event_config |= FOLLOW_EVENT_ATTACK_HIT;
+        follow_object->condition_acting->flag_true |= FOLLOW_CONDITION_HOSTILE;
+        follow_object->condition_acting->flag_false |= FOLLOW_CONDITION_ATTACK_LETHAL;
+        follow_object->condition_acting->flag_false |= FOLLOW_CONDITION_ATTACK_BLOCKED;
+        
+        break;
+    case FOLLOW_CONDITION_LEGACY_HOSTILE_NOKILL_NOBLOCK_NOGRAB:
+
+        follow_object->event_config |= FOLLOW_EVENT_ATTACK_HIT;
+        follow_object->condition_acting->flag_true |= FOLLOW_CONDITION_HOSTILE;
+        follow_object->condition_acting->flag_false |= FOLLOW_CONDITION_ATTACK_LETHAL;
+        follow_object->condition_acting->flag_false |= FOLLOW_CONDITION_ATTACK_BLOCKED;
+        follow_object->condition_acting->flag_false |= FOLLOW_CONDITION_GRAB;
+        
+        break;
+
+    case FOLLOW_CONDITION_LEGACY_HOSTILE_NOKILL_BLOCK:
+
+        follow_object->event_config |= FOLLOW_EVENT_ATTACK_HIT;
+        follow_object->condition_acting->flag_true |= FOLLOW_CONDITION_HOSTILE;
+        follow_object->condition_acting->flag_true |= FOLLOW_CONDITION_ATTACK_BLOCKED;
+        follow_object->condition_acting->flag_false |= FOLLOW_CONDITION_ATTACK_LETHAL;
+        break;
+    }
+    
+}
+
+
+
+/*
+* Caskey, Damon V.
+* 2022-07-22
+*
+* Allocate a blank follow object
+* and return its pointer. Does not
+* allocate sub-objects.
+*/
+s_follow* follow_allocate_object()
+{
+    s_follow* result;
+    size_t       alloc_size;
+
+    /* Get amount of memory we'll need. */
+    alloc_size = sizeof(*result);
+
+    /* Allocate memory and get pointer. */
+    result = malloc(alloc_size);
+
+    /* 
+    * Set up defaults. We'll zero out
+    * all members and manually set
+    * any that need specific starting
+    * value.
+    */
+
+    memset(result, 0, alloc_size);
+    
+    result->next = NULL;
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-07-19
+*
+* Find a follow node by index, or append a new node
+* with target index if no match is found. Returns pointer
+* to found or appended node.
+*/
+s_follow* follow_allocate_object_conditionally(s_follow* head, int index)
+{
+    s_follow* result = NULL;
+
+    /* Run index search. */
+    result = follow_find_node_index(head, index);
+
+    /*
+    * If we couldn't find an index match, lets add
+    * a node and apply the index we wanted.
+    */
+    if (!result)
+    {
+        result = follow_append_node(head);
+        result->index = index;
+    }
+
+    return result;
+}
+
+
+/*
+* Caskey, Damon V.
+* 2022-07-22
+*
+* Allocate new follow node and append it to
+* end of follow linked list. If no lists exists
+* yet, the new node becomes head of a new list.
+*
+* First step in adding another follow instance.
+*
+* Returns pointer to new node.
+*/
+s_follow* follow_append_node(struct s_follow* head)
+{
+    /* Allocate node. */
+    s_follow* new_node = NULL;
+    s_follow* last = NULL;
+
+    /*
+    * Allocate memory and get pointer for
+    * new node, then default last to head.
+    */
+    new_node = follow_allocate_object();
+    last = head;
+
+    /*
+    * New node is going to be the last node in
+    * list, so set its next as NULL.
+    */
+    new_node->next = NULL;
+
+    /*
+    * If there wasn't already a list, the
+    * new node is our head. We are done and
+    * can return the new node pointer.
+    */
+
+    if (head == NULL)
+    {
+        head = new_node;
+
+        return new_node;
+    }
+
+    /*
+    * If we got here, there was already a
+    * list in place. Iterate to its last
+    * node.
+    */
+
+    while (last->next != NULL)
+    {
+        last = last->next;
+    }
+
+    /*
+    * Populate existing last node's next
+    * with new node pointer. The new node
+    * is now the last node in list.
+    */
+
+    last->next = new_node;
+
+    return new_node;
+}
+
+/*
+* Caskey, Damon V
+* 2022-07-22
+*
+* Send all follow list data to log for debugging.
+*/
+void follow_dump_list(s_follow* head)
+{
+    printf("\n\n -- Follow List (head: %p) Dump --", head);
+
+    s_follow* cursor;
+    int count = 0;
+
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        count++;
+
+        printf("\n\n\t Node: %p", cursor);
+
+        follow_dump_object(cursor, "\t");
+
+        cursor = cursor->next;
+    }
+
+    printf("\n\n %d nodes.", count);
+    printf("\n\n -- Follow List (head: %p) dump complete! -- \n", head);
+}
+
+/*
+* Caskey, Damon V
+* 2022-07-22
+*
+* Send follow object data to log for debugging.
+*/
+void follow_dump_object(s_follow* object, char* prefix)
+{
+    const int space_label = 20;
+    char* sub_prefix = strcat("\t", prefix); 
+
+    printf("\n\n%s -- Follow object (%p) Dump --", prefix, object);
+
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->action:", object->animation);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->animation:", object->animation);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->condition_acting:", object->condition_acting);
+
+    if (object->condition_acting)
+    {
+        condition_dump_object(object->condition_acting, sub_prefix);
+    }
+
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->condition_other:", object->condition_other);
+    
+    if (object->condition_other)
+    {
+        condition_dump_object(object->condition_other, sub_prefix);
+    }
+    
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->event_config:", object->event_config);
+    printf("\n%s\t\t %-*s %d", prefix, space_label, "->index:", object->index);
+    printf("\n%s\t\t %-*s %p", prefix, space_label, "->next:", object->next);
+
+    printf("\n\n%s -- Follow object (%p) dump complete! -- \n", prefix, object);
+}
+
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Find a child spawn node by index and return
+* pointer, or NULL if no match found.
+*/
+s_follow* follow_find_node_index(s_follow* head, int index)
+{
+    s_follow* current = NULL;
+
+    /*
+    * Starting from head node, iterate through
+    * all nodes and compare their index
+    * property to index argument.
+    *
+    * If we found a match, return the node
+    * pointer.
+    */
+
+    current = head;
+
+    while (current != NULL)
+    {
+        if (current->index == index)
+        {
+            return current;
+        }
+
+        current = current->next;
+    }
+
+    /*
+    * If we got here, find failed.
+    * Just return NULL.
+    */
+    return NULL;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Clear a follow linked list from memory.
+*/
+void follow_free_list(s_follow* head)
+{
+    s_follow* cursor = NULL;
+    s_follow* next = NULL;
+
+    /*
+    * Starting from head node, iterate through
+    * all nodes and free them.
+    */
+    cursor = head;
+
+    while (cursor != NULL)
+    {
+        /*
+        * We still need the next member after we
+        * delete object, so we'll store it in a
+        * temp var.
+        */
+
+        next = cursor->next;
+
+        /* Free the current object. */
+        follow_free_node(cursor);
+
+        cursor = next;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-26
+*
+* Clear a single follow object from memory.
+* Note this does NOT remove node from list.
+* Be careful not to create a dangling pointer!
+*/
+void follow_free_node(s_follow* target)
+{
+    /* Free sub objects. */
+
+    if (target->condition_acting)
+    {
+        condition_free_object(target->condition_acting);
+        target->condition_acting = NULL;
+    }
+
+    if (target->condition_other)
+    {
+        condition_free_object(target->condition_other);
+        target->condition_other = NULL;
+    }
+
+    /* Free the structure. */
+    free(target);
+}
+
+/*
+* Caskey, Damon V.
+* 2022-07-19
+*
+* Accept head of a list of follows.
+* Iterate through list and attempt 
+* follow ups. If any follow up 
+* succeeds, return true and exit.
+* Return false if no follow up
+* succeeds.
+*/
+int follow_execute_list(entity* acting_entity, entity* target, e_follow_condition trigger_event, int didblock)
+{
+    printf("\n\n follow_execute_list(acting_entity: %p, target: %p, didblock: %d)", acting_entity, target, didblock);
+
+    s_follow* cursor = NULL;
+    s_follow* next = NULL;
+
+    /* 
+    * Exit if current animation 
+    * does not have a follow up.
+    */
+    if (!acting_entity->animation->followup)
+    {
+        return 0;
+    }
+
+    /*
+    * Starting from head node, iterate through
+    * all nodes and execute object action.
+    */
+    cursor = acting_entity->animation->followup;
+
+    while (cursor != NULL)
+    {
+        /*
+        * We still need the next member after we
+        * run object, so we'll store it in a
+        * temp var.
+        */
+
+        next = cursor->next;
+
+        /* 
+        * Run the current object. 
+        * Return true if action succeeds.
+        */
+
+        if (follow_execute_object(cursor, acting_entity, target, trigger_event, didblock))
+        {
+            return 1;
+        }
+
+        cursor = next;
+    }
+
+    return 0;
 }
 
 /*
@@ -25408,36 +26048,515 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 * If successful, sets entity animation to 
 * appropriate follow up and returns true.
 */
-int try_follow_up(entity *ent, entity *target, s_anim *animation, int didblock)
+int follow_execute_object(s_follow* object, entity *acting_entity, entity *target, e_follow_condition trigger_event, int didblock)
 {
+    //printf("\n\n follow_execute_object(object: %p, acting_entity: %p, target: %p, didblock: %d)", object, acting_entity, target, didblock);
+
 	e_animations animation_id = ANI_NONE;
 
-	/* If we don't have a follow action, get out. */
+    /*
+    * Check event trigger vs. trigger config.
+    */
+    if (!follow_check_event(object, trigger_event))
+    {
+        return 0;
+    }
+    
+    /* If we don't have a follow action, get out. */
 	
-    if (!animation->followup.animation)
+    if (!object->animation)
 	{
 		return 0;
 	}
-
+   
 	/* Must meet follow up conditions. */
 	
-    if (!check_follow_up_condition(ent, target, animation, didblock))
+    if (!follow_check_condition(object, acting_entity, target, didblock))
 	{
 		return 0;
-	}
-		
-	/* If we have the animation, then execute it now. */
+	}	
+    
+	/* 
+    * If we have the animation, then execute 
+    * it now and return true. 
+    */
 	
-    animation_id = animfollows[animation->followup.animation - 1];
-	
-	if (validanim(ent, animation_id))
-	{		
-		ent_set_anim(ent, animation_id, 1); 
-
+    animation_id = animfollows[object->animation - 1];	
+    
+	if (ent_set_anim(acting_entity, animation_id, 1))
+	{        
 		return 1;
 	}	
 
-	return 0;
+    return 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-08-04
+* 
+* Compare incomming event constant with
+* trigger bits in follow config. Return 
+* true if there is any match.
+*/
+int follow_check_event(s_follow* object, e_follow_condition trigger_event)
+{
+    printf("\n\n follow_check_event(object: %p, trigger_event: %d)", object, trigger_event);
+    
+    e_follow_condition follow_config = object->event_config;
+
+    printf("\n\n object->config: %d", object->event_config);
+
+    if (follow_config & trigger_event)
+    {
+        return 1;
+    }
+     
+    return 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-08-15
+* 
+* Accept follow object, conditions, and and entities.
+* 
+* When follow triggers, this function runs twice. Once
+* for the entity trying a follow and again for entity
+* the following entity interacts with.
+* 
+* When running on the follow acting entity, send the 
+* condition parameter follow object's condition_other 
+* property. The acting_entity and other_entity are 
+* follow acting entity and entity it interacts with 
+* respectivly. 
+* 
+* When running on the interacting entity, reverse
+* entities sent to acting_entity and other_entitiy
+* parameters. Send condition parameter the follow 
+* object's condition_other property.
+*/
+int follow_check_condition_flags(s_follow* object, s_follow_condition* condition, entity* acting_entity, entity* other_entity, int blocked)
+{
+    e_follow_condition flag_false = condition->flag_false;
+    e_follow_condition flag_true = condition->flag_true;
+
+    if (flag_false & FOLLOW_CONDITION_ATTACK_BLOCKED)
+    {
+        if (blocked)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_ATTACK_BLOCKED)
+    {
+        if (!blocked)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_ATTACK_LETHAL)
+    {
+        if (acting_entity->energy_state.health_current <= 0)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_ATTACK_LETHAL)
+    {
+        if (acting_entity->energy_state.health_current > 0)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_BLOCK)
+    {
+        if (acting_entity->blocking)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_BLOCK)
+    {
+        if (!acting_entity->blocking)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_DEAD)
+    {
+        if (acting_entity->dead)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_DEAD)
+    {
+        if (!acting_entity->dead)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_FALL)
+    {
+        if (acting_entity->falling)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_FALL)
+    {
+        if (!acting_entity->falling)
+        {
+            return 0;
+        }
+    }
+
+    /* Can grab the entity we're testing against? */
+
+    if (flag_false & FOLLOW_CONDITION_GRAB)
+    {
+        if (check_cangrab(acting_entity, other_entity))
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_GRAB)
+    {
+        if (!check_cangrab(acting_entity, other_entity))
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_HOSTILE)
+    {
+        if (other_entity->modeldata.type & acting_entity->modeldata.hostile)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_HOSTILE)
+    {
+        if (!(other_entity->modeldata.type & acting_entity->modeldata.hostile))
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_IDLE)
+    {
+        if (acting_entity->idling)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_IDLE)
+    {
+        if (!acting_entity->idling)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_JUMP)
+    {
+        if (acting_entity->jumping)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_JUMP)
+    {
+        if (!acting_entity->jumping)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_PAIN)
+    {
+        if (acting_entity->inpain)
+        {
+            return 0;
+        }
+    }
+
+    /* Range. */
+    if (flag_false & FOLLOW_CONDITION_RANGE || flag_true & FOLLOW_CONDITION_RANGE)
+    {
+        if (object->animation)
+        {
+            int animation_id = animfollows[object->animation - 1];
+            int in_range = check_range_target_all(acting_entity, other_entity, animation_id);
+
+            if (flag_false & FOLLOW_CONDITION_RANGE && in_range)
+            {
+                return 0;
+            }
+
+            if (flag_true & FOLLOW_CONDITION_RANGE && !in_range)
+            {
+                return 0;
+            }
+        }
+    }
+    
+    if (flag_true & FOLLOW_CONDITION_PAIN)
+    {
+        if (!acting_entity->inpain)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_RUN)
+    {
+        if (acting_entity->running)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_RUN)
+    {
+        if (!acting_entity->running)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_false & FOLLOW_CONDITION_WALK)
+    {
+        if (acting_entity->walking)
+        {
+            return 0;
+        }
+    }
+
+    if (flag_true & FOLLOW_CONDITION_WALK)
+    {
+        if (!acting_entity->walking)
+        {
+            return 0;
+        }
+    }
+
+    /* 
+    * Within frame range? 
+    */
+
+    if (condition->frame_max != FRAME_NONE)
+    {
+        if (acting_entity->animpos > condition->frame_max)
+        {
+            return 0;
+        }
+    }
+
+    if (condition->frame_min != FRAME_NONE)
+    {
+        if (acting_entity->animpos < condition->frame_min)
+        {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2019-11-24
+*
+* Check follow up conditions. Return true
+* if all conditions pass, false otherwise.
+*/
+int follow_check_condition(s_follow* object, entity* acting_entity, entity* other_entity, int blocked)
+{
+    printf("\n\n follow_check_condition(object: %p, acting_entity: %p, other_entity: %p, didblock: %d)", object, acting_entity, other_entity, blocked);
+
+
+    s_follow_condition* condition_acting = object->condition_acting;
+    s_follow_condition* condition_other = object->condition_other;
+
+    printf("\n\t -- condition_acting: %d", condition_acting);
+    printf("\n\t -- condition_other: %d", condition_other);
+        
+    /*
+    * Conditions for the other. 
+    *
+    * If condition_other property has a valid 
+    * pointer then we have at least one condition 
+    * to check vs. the other entity.
+    * 
+    * If we have an other entity supplied we'll
+    * we can check conditions on the other right
+    * away. Otherwise we'll find the the closest
+    * other that meets follow criteria. If we fail 
+    * to locate other at all, then return 0.
+    */
+
+    if (condition_other)
+    {
+        if (other_entity)
+        {
+            if (!follow_check_condition_flags(object, condition_other, other_entity, acting_entity, blocked))
+            {
+                return 0;
+            }
+        }
+        else
+        {
+            /*
+            * Function locates nearest entity that meets
+            * all follow conditions, or rurns a NULL.
+            */
+
+            other_entity = follow_find_valid_other(object, acting_entity, blocked);
+
+            if (!other_entity)
+            {
+                return 0;
+            }
+        }
+    }
+
+    /* Check acting (caller) vs. other. */
+    follow_check_condition_flags(object, condition_acting, acting_entity, other_entity, blocked);
+    
+    /* If all checks passed, return true. */
+
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-08-08
+* 
+* Return pointer to closest entity
+* that passes all criteria. 
+*/
+entity* follow_find_valid_other(s_follow* follow_object, entity* acting_entity, int blocked)
+{
+    int i = 0;
+    entity* target_entity = NULL;
+    entity* found_entity = NULL;
+
+    float distance_x = 0.0;
+    float distance_y = 0.0;
+    float distance_z = 0.0;
+
+    float distance_new = 0.0;
+    float distance_old = 0.0;
+    
+    for (i = 0; i < ent_max; i++)
+    {
+        target_entity = ent_list[i];
+
+        /* Must exist. */
+        if (!target_entity->exists)
+        {
+            continue;
+        }
+
+        /* Can't be self. */
+        if (target_entity == acting_entity)
+        {
+            continue;
+        }      
+
+        /*
+        * Find out if current iteration entity
+        * is closer to acting entity than
+        * previous iteration. We do this by
+        * getting a squared difference of
+        * each axis.
+        * 
+        * We're squaring the differences and
+        * only comparing total sum to previous 
+        * sum, so there's no need for diff()
+        * or sqrt() root functions.
+        * 
+        * If this is the first iteration or 
+        * distance is less than previous, we
+        * record new distance and entity pointer 
+        * for next iteration. 
+        */
+
+        distance_x = acting_entity->position.x - target_entity->position.x;
+        distance_y = acting_entity->position.y - target_entity->position.y;
+        distance_z = acting_entity->position.z - target_entity->position.z;
+
+        distance_x *= distance_x;
+        distance_y *= distance_y;
+        distance_z *= distance_z;
+
+        distance_new = distance_x + distance_y + distance_z;
+
+        if (!distance_old || distance_new < distance_old)
+        {
+            /*
+            * Have to meet all follow conditions
+            * for a target.
+            */
+
+            if (!follow_check_condition_flags(follow_object, follow_object->condition_other, target_entity, acting_entity, blocked))
+            {
+                continue;
+            }
+
+            distance_old = distance_new;
+            found_entity = target_entity;
+        }        
+    }
+
+    /* 
+    * Return the last recorded entity. It's
+    * possible this is NULL if we never found
+    * an entity that passed all criteria.
+    */
+
+    return found_entity;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-08-07
+* 
+* Return total distance between two entites.
+*/
+float find_distance_between_entities(entity* entity_a, entity* entity_b)
+{
+    float distance_x = 0.0;
+    float distance_y = 0.0;
+    float distance_z = 0.0;
+    float result = 0.0;
+
+    distance_x = entity_a->position.x - entity_b->position.x;
+    distance_y = entity_a->position.y - entity_b->position.y;
+    distance_z = entity_a->position.z - entity_b->position.z;
+
+    distance_x *= distance_x;
+    distance_y *= distance_y;
+    distance_z *= distance_z;
+
+    result = sqrt(distance_x + distance_y + distance_z);
+
+    return result;
 }
 
 /*
@@ -25597,12 +26716,14 @@ int try_counter_action(entity* target, entity* attacker, s_attack* attack_object
 	int current_follow_id = 0;
     s_defense* defense_object = NULL;
 
+    return 0;
+
     /*
 	* If we don't have a follow animation to use 
 	* for counter, get out.
 	*/
     
-    if (!target->animation->followup.animation)
+    if (!target->animation->followup->animation)
 	{
 		return 0;
 	}
@@ -25636,7 +26757,7 @@ int try_counter_action(entity* target, entity* attacker, s_attack* attack_object
 
 	/* Set counter animation if we can. */
 	
-    current_follow_id = animfollows[target->animation->followup.animation - 1];
+    current_follow_id = animfollows[target->animation->followup->animation - 1];
 	
     if (validanim(self, current_follow_id))
 	{
@@ -25980,7 +27101,6 @@ void do_attack(entity *attacking_entity)
             didhit = 0;
         }
 
-        // Blocking code section.
         if(didhit)
         {
             if(attack->attack_type == ATK_ITEM)
@@ -26009,22 +27129,25 @@ void do_attack(entity *attacking_entity)
             }
 
             didblock = check_blocking_master(self, attacking_entity, attack, target_body_object);
+                        
+            /*
+            * 
+            */
 
-            // Blocking the attack?
             if(didblock)
             {
                 // Perform the blocking actions.
                 do_passive_block(self, attacking_entity, attack);
             }
             // Counter the attack? 
-           	else if(try_counter_action(self, attacking_entity, attack, target_body_object))
-			{		
+           	//else if(try_counter_action(self, attacking_entity, attack, target_body_object))
+            else if(follow_execute_list(self, attacking_entity, FOLLOW_EVENT_BODY_HIT, didblock))
+            {		
                 /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
                 attack_update_id(self, current_attack_id);
             }
             else if(self->takedamage(attacking_entity, attack, 0, defense_object))
-            {
-                
+            {             
 
                 // This is the block for normal hits. The
                 // hit was not blocked, countered, or
@@ -26079,7 +27202,8 @@ void do_attack(entity *attacking_entity)
             }
             
 			// Attacker executes a follow up animation if it can.
-			try_follow_up(attacking_entity, self, attacking_entity->animation, didblock);
+            printf("\n\n follow_execute_list(acting_entity: %p, target: %p, animation: %p, didblock: %d)", attacking_entity, self, attacking_entity->animation, didblock);
+			follow_execute_list(attacking_entity, self, FOLLOW_EVENT_ATTACK_HIT, didblock);
 
             /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
             attack_update_id(self, current_attack_id);
@@ -26285,7 +27409,7 @@ void do_attack(entity *attacking_entity)
         */
         if(attacking_entity->autokill & AUTOKILL_ATTACK_HIT)
         {
-            kill_entity(attacking_entity);
+            do_autokill(attacking_entity);
         }
     }
 #undef followed
@@ -26605,12 +27729,6 @@ void check_gravity(entity *e)
             heightvar = self->modeldata.size.y;
         }
 
-        // White Dragon: turn-off the hitwall flag if you're not near a obstacle. this help to avoid a hit loop
-        /*if( (self->position.y <= self->base || !inair(self)) && self->velocity.y <= 0)
-        {
-            if ( self->hitwall && !is_obstacle_around(self,1.0) ) self->hitwall = 0;
-        }*/
-
         if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= _time)
         {
             if(heightvar && self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && self->velocity.y > 0)
@@ -26635,6 +27753,7 @@ void check_gravity(entity *e)
             {
                 self->hithead = NULL;
             }
+            
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
             if(!(self->animation->move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY))
@@ -26645,6 +27764,7 @@ void check_gravity(entity *e)
             {
                 gravity = (level ? level->gravity : default_level_gravity) * (1.0 - self->modeldata.antigravity);
             }
+
             if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY)
             {
                 self->velocity.y += gravity * 100.0 / GAME_SPEED;
@@ -26698,8 +27818,9 @@ void check_gravity(entity *e)
                         self->position.y = self->base;
                         self->falling = 0;
 
-                        if ( self->hitwall ) self->hitwall = 0;
-
+                        /* Reset hitwall status. Used for wall bounce and follow ups. */
+                        self->hitwall = HITWALL_CONDITION_NONE;
+                        
                         // cust dust entity
                         if(self->modeldata.dust.fall_land >= 0 && self->velocity.y < -1 && self->drop)
                         {
@@ -27344,7 +28465,7 @@ void update_animation()
 
                 if(self->autokill & AUTOKILL_ANIMATION_COMPLETE)
                 {
-                    kill_entity(self);
+                    do_autokill(self);
                     return;
                 }
             }
@@ -27366,7 +28487,7 @@ void update_animation()
 
                 if(self->autokill & AUTOKILL_ANIMATION_COMPLETE)
                 {
-                    kill_entity(self);
+                    do_autokill(self);
                     return;
                 }
             }
@@ -30994,7 +32115,7 @@ void checkdamageeffects(s_attack *attack)
     }
 
 	// Always knock airborne entities down unless we're freezeing them
-	// or they are specfically immune to in air knockdowns.
+	// or they are specifically immune to in air knockdowns.
     if(inair(self) && !self->frozen && self->modeldata.nodrop < 2)
     {
         self->drop = 1;
@@ -31805,15 +32926,16 @@ int is_attack_type_special(e_attack_types type)
 		return 0;
         break;
 
-	case ATK_BOSS_DEATH:
+    case ATK_AUTOKILL:
+    case ATK_BOSS_DEATH:
 	case ATK_ITEM:
 	case ATK_LIFESPAN:
 	case ATK_LOSE:
-	case ATK_SUB_ENTITY_PARENT_KILL:
+    case ATK_PIT:
+    case ATK_SUB_ENTITY_PARENT_KILL:
 	case ATK_SUB_ENTITY_UNSUMMON:
 	case ATK_TIMEOVER:
-	case ATK_PIT:
-		return 1;
+    	return 1;
         break;
 	}
 }
@@ -33220,10 +34342,18 @@ void check_entity_collision_for(entity* ent)
 
 int common_trymove(float xdir, float zdir)
 {
-    entity *other = NULL, *te = NULL;
-    int wall, heightvar, t, needcheckhole = 0;
-    float x, z, oxdir, ozdir;
-
+    entity* other = NULL;
+    entity* te = NULL;
+    int fall_bounce = 0;
+    int wall = 0;
+    int heightvar = 0;
+    int t = 0; 
+    int needcheckhole = 0;
+    float x = 0.0;
+    float z = 0.0;
+    float oxdir = 0.0;
+    float ozdir = 0.0;
+        
     if(!xdir && !zdir)
     {
         return 0;
@@ -33268,6 +34398,9 @@ int common_trymove(float xdir, float zdir)
         {
             zdir = PLAYER_MIN_Z - self->position.z;
             execute_onblockz_script(self);
+
+            /* Check for any follow ups. */
+            follow_execute_list(self, NULL, FOLLOW_EVENT_Z_MIN, 0);
         }
     }
 
@@ -33277,6 +34410,9 @@ int common_trymove(float xdir, float zdir)
         {
             zdir = PLAYER_MAX_Z - self->position.z;
             execute_onblockz_script(self);
+
+            /* Check for any follow ups. */
+            follow_execute_list(self, NULL, FOLLOW_EVENT_Z_MAX, 0);
         }
     }
 
@@ -33287,11 +34423,15 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = advancex + 10 - self->position.x;
             execute_onblocks_script(self);  //Screen block event.
+
+            follow_execute_list(self, NULL, FOLLOW_EVENT_SCREEN, 0);
         }
         else if(x > advancex + (videomodes.hRes - 10))
         {
             xdir = advancex + (videomodes.hRes - 10) - self->position.x;
             execute_onblocks_script(self);  //Screen block event.
+
+            follow_execute_list(self, NULL, FOLLOW_EVENT_SCREEN, 0);
         }
     }
 
@@ -33306,9 +34446,11 @@ int common_trymove(float xdir, float zdir)
 
     //-------------hole checking ---------------------
     // Don't walk into a hole or walk off platforms into holes
-    if( self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
-            (!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
-            !(self->modeldata.aimove & AIMOVE2_IGNOREHOLES))
+    if( self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE 
+        && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) 
+        && self->idling 
+        && (!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) 
+        && !(self->modeldata.aimove & AIMOVE2_IGNOREHOLES))
     {
 
         needcheckhole = 1;
@@ -33339,7 +34481,7 @@ int common_trymove(float xdir, float zdir)
     //--------------obstacle checking ------------------
     if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE /*&& !inair(self)*/)
     {
-        int hit = 0;
+        fall_bounce = 0;
 
         //TODO, check once instead of twice
         if((other = find_ent_here(self, x, self->position.z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
@@ -33347,7 +34489,7 @@ int common_trymove(float xdir, float zdir)
                 (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
         {
             xdir    = 0;
-            if ( self->falling ) hit |= 1;
+            if ( self->falling ) fall_bounce = 1;
             te = other;
             execute_onblocko_script(self, PLANE_X, other);
         }
@@ -33356,15 +34498,27 @@ int common_trymove(float xdir, float zdir)
                 (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
         {
             zdir    = 0;
-            if ( self->falling ) hit |= 1;
+            
+            if (self->falling)
+            {
+                fall_bounce = 1;
+            }
+
             if(te != other) //just in case they are the same obstacle
             {
                 execute_onblocko_script(self, PLANE_Z, other);
             }
         }
 
-        if ( hit && !self->hitwall && validanim(self, ANI_HITOBSTACLE) ) ent_set_anim(self, ANI_HITOBSTACLE, 0);
-        if ( hit && !self->hitwall ) self->hitwall = 1;
+        if (fall_bounce && !(self->hitwall & HITWALL_CONDITION_BOUNCE))
+        {
+            ent_set_anim(self, ANI_HITOBSTACLE, 0);
+        }
+
+        if (fall_bounce && !(self->hitwall & HITWALL_CONDITION_BOUNCE))
+        {
+            self->hitwall |= HITWALL_CONDITION_BOUNCE;
+        }
     }
 
     if(!xdir && !zdir)
@@ -33390,27 +34544,71 @@ int common_trymove(float xdir, float zdir)
     // Check for obstacles with platform code and adjust base accordingly
     if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
     {
-        int hit = 0;
+        fall_bounce = 0;
 
         //if(xdir>0 ? other->position.x>self->position.x : other->position.x<self->position.x) {xdir = 0; }
         //if(zdir>0 ? other->position.z>self->position.z : other->position.z<self->position.z) {zdir = 0; }
         //temporary fix for thin platforms (i.e, offset is not between left and right side)
         // TODO: find the collision position, merge with wall code
-        if(xdir && (other = check_platform_between(x, self->position.z, self->position.y, self->position.y + heightvar, self))  )
+        if(xdir 
+            && (other = check_platform_between(x, self->position.z, self->position.y, self->position.y + heightvar, self)))
         {
             xdir = 0;
-            if ( self->falling ) hit |= 1;
+            
+            if (self->falling)
+            {
+                fall_bounce = 1;
+            }
+
+            self->hitwall |= HITWALL_CONDITION_PLATFORM;
+
             execute_onblockp_script(self, PLANE_X, other);
         }
-        if(zdir && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self))  )
+
+        if(zdir 
+            && (other = check_platform_between(self->position.x, z, self->position.y, self->position.y + heightvar, self)))
         {
             zdir = 0;
-            if ( self->falling ) hit |= 1;
+            
+            if (self->falling)
+            {
+                fall_bounce = 1;
+            }
+
+            self->hitwall |= HITWALL_CONDITION_PLATFORM;
+
             execute_onblockp_script(self, PLANE_Z, other);
         }
 
-        if ( hit && !self->hitwall && validanim(self, ANI_HITPLATFORM) ) ent_set_anim(self, ANI_HITPLATFORM, 0);
-        if ( hit && !self->hitwall ) self->hitwall = 1;
+        /*
+        * Try a follow up animation and reset the
+        * obstructed flag for next cycle. If we do
+        * perform a follow, then set fall_bounce flag false.
+        * This is so follow ups will override fall_bounce
+        * animations downstream.
+        */
+
+        if (self->hitwall & HITWALL_CONDITION_PLATFORM)
+        {
+            if (follow_execute_list(self, other, FOLLOW_EVENT_PLATFORM, 0))
+            {
+                fall_bounce = 0;
+            }
+
+            self->hitwall &= ~HITWALL_CONDITION_PLATFORM;
+        }
+
+        /*
+        * Bounce off platform if we were falling and set bounce
+        * status to avoid infinite bounce loop.
+        */
+
+        if (fall_bounce && !(self->hitwall & HITWALL_CONDITION_BOUNCE))
+        {
+            ent_set_anim(self, ANI_HITPLATFORM, 0);
+        
+            self->hitwall |= HITWALL_CONDITION_BOUNCE;
+        }        
     }
 
     if(!xdir && !zdir)
@@ -33425,45 +34623,92 @@ int common_trymove(float xdir, float zdir)
     // ------------------ wall checking ---------------------
     if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
     {
-        int hit = 0;
+        fall_bounce = 0;        
 
-        if(xdir && (wall = checkwall_below(x, self->position.z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > self->position.y)
+        if(xdir
+            && (wall = checkwall_below(x, self->position.z, T_MAX_CHECK_ALTITUDE)) >= 0 
+            && level->walls[wall].height > self->position.y)
         {
             xdir = 0;
-            if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
+
+            if (self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)))
+            {
+                fall_bounce = 1;
+            }
+            
+            self->hitwall |= HITWALL_CONDITION_WALL; 
+            
             execute_onblockw_script(self, &level->walls[wall], PLANE_X, wall);
         }
-        if(zdir && (wall = checkwall_below(self->position.x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > self->position.y)
+        
+        if(zdir 
+            && (wall = checkwall_below(self->position.x, z, T_MAX_CHECK_ALTITUDE)) >= 0 
+            && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
-            if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
+                        
+            if (self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)))
+            {
+                fall_bounce = 1;
+            }
+
+            self->hitwall |= HITWALL_CONDITION_WALL;
+
             execute_onblockw_script(self, &level->walls[wall], PLANE_Z, wall);
         }
+        
+        /* 
+        * Try a follow up animation and reset the 
+        * obstructed flag for next cycle. If we do 
+        * perform a follow, then set fall_bounce flag false. 
+        * This is so follow ups will override hitwall
+        * animations downstream.
+        */
 
-        if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
-        if ( hit && !self->hitwall ) self->hitwall = 1;
+        if (self->hitwall & HITWALL_CONDITION_WALL)
+        {
+            if (follow_execute_list(self, NULL, FOLLOW_EVENT_WALL, 0))
+            {
+                fall_bounce = 0;
+            }
+
+            self->hitwall &= ~HITWALL_CONDITION_WALL;
+        }
+
+        /* 
+        * Bounce off wall if we were falling and set bounce 
+        * status to avoid infinite bounce loop.
+        */
+
+        if (fall_bounce && !(self->hitwall & HITWALL_CONDITION_BOUNCE))
+        {
+            self->hitwall |= HITWALL_CONDITION_BOUNCE;
+            
+            ent_set_anim(self, ANI_HITWALL, 0);   
+        }
     }
 
     if(!xdir && !zdir)
     {
         return 0;
     }
+
     x = self->position.x + xdir;
     z = self->position.z + zdir;
     //----------------end of wall checking--------------
 
     /*
-    // Final check to ensure we don't move into other obstacles.
-    // The old logic allows xdir if zdir is block and vice versa,
-    // but has a risk that the new destination is actually blocked
-    // because of multiple obstacle types.
-    //
-    // block  old
-    //    |  /
-    //    | /
-    //    |/__ new
+    * Final check to ensure we don't move into other obstacles.
+    * The old logic allows xdir if zdir is block and vice versa,
+    * but has a risk that the new destination is actually blocked
+    * because of multiple obstacle types.
+    *
+    * block  old
+    *    |  /
+    *    | /
+    *    |/__ new
     */
-    //xdir = zdir = 0;
+    
     // TODO: should we add some checks in testmove to execute those onblockwhatever scripts?
     t = testmove(self, self->position.x, self->position.z, x, z);
     // extra hole check, only avoid hole while idling
@@ -33484,6 +34729,7 @@ int common_trymove(float xdir, float zdir)
     {
         execute_onmovez_script(self);    //Z move event.
     }
+    
     return 2 - (xdir == oxdir && zdir == ozdir); // return 2 for some checks
 }
 
@@ -34530,94 +35776,6 @@ int common_try_chase(entity *target, int dox, int doz)
     return 1;
 }
 
-//may be used many times, so make a function
-// minion follow his owner
-int common_try_follow(entity *target, int dox, int doz)
-{
-    // start chasing the target
-    float dx, dz, distance;
-    int mx, mz;
-    int facing;
-
-    //target = self->parent;
-    if(target == NULL || self->modeldata.nomove)
-    {
-        return 0;
-    }
-    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.x.min : 100);
-
-    if(distance <= 0)
-    {
-        distance = 100.0;
-    }
-
-    facing = (self->direction == DIRECTION_RIGHT ? self->position.x < target->position.x : self->position.x > target->position.x);
-
-    dx = diff(self->position.x, target->position.x);
-    dz = diff(self->position.z, target->position.z);
-
-    if(dox && dx < distance)
-    {
-        self->velocity.x = 0;
-        mx = 0;
-    }
-    else
-    {
-        mx = 1;
-    }
-
-    if(doz && dz < distance / 2)
-    {
-        self->velocity.z = 0;
-        mz = 0;
-    }
-    else
-    {
-        mz = 1;
-    }
-
-    if(dox && mx)
-    {
-        if(facing && dx > 200 && validanim(self, ANI_RUN))
-        {
-            self->velocity.x = self->modeldata.runspeed;
-            self->running = 1;
-        }
-        else
-        {
-            self->velocity.x = self->modeldata.speed.x;
-            self->running = 0;
-        }
-        if(self->position.x > target->position.x)
-        {
-            self->velocity.x = -self->velocity.x;
-        }
-        self->destx = target->position.x;
-    }
-
-    if(doz && mz)
-    {
-        if(facing && dx > 200 && self->modeldata.runupdown && validanim(self, ANI_RUN))
-        {
-            self->velocity.z = self->modeldata.runspeed / 2;
-            self->running = 1;
-        }
-        else
-        {
-            self->velocity.z = self->modeldata.speed.x / 2;
-            self->running = 0; // not right, to be modified
-        }
-        if(self->position.z > target->position.z)
-        {
-            self->velocity.z = -self->velocity.z;
-        }
-        self->destz = target->position.z;
-    }
-
-
-    return 1;
-}
-
 // try to avoid the target
 // used by 'avoid avoidz avoidx
 // Basic logic: the entity walk within a min distance and a max distance from the target
@@ -35578,6 +36736,95 @@ int star_move()
             self->animating = ANIMATING_NONE;
         }
     }
+
+    return 1;
+}
+
+
+//may be used many times, so make a function
+// minion follow his owner
+int common_try_follow(entity* target, int dox, int doz)
+{
+    // start chasing the target
+    float dx, dz, distance;
+    int mx, mz;
+    int facing;
+
+    //target = self->parent;
+    if (target == NULL || self->modeldata.nomove)
+    {
+        return 0;
+    }
+    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.x.min : 100);
+
+    if (distance <= 0)
+    {
+        distance = 100.0;
+    }
+
+    facing = (self->direction == DIRECTION_RIGHT ? self->position.x < target->position.x : self->position.x > target->position.x);
+
+    dx = diff(self->position.x, target->position.x);
+    dz = diff(self->position.z, target->position.z);
+
+    if (dox && dx < distance)
+    {
+        self->velocity.x = 0;
+        mx = 0;
+    }
+    else
+    {
+        mx = 1;
+    }
+
+    if (doz && dz < distance / 2)
+    {
+        self->velocity.z = 0;
+        mz = 0;
+    }
+    else
+    {
+        mz = 1;
+    }
+
+    if (dox && mx)
+    {
+        if (facing && dx > 200 && validanim(self, ANI_RUN))
+        {
+            self->velocity.x = self->modeldata.runspeed;
+            self->running = 1;
+        }
+        else
+        {
+            self->velocity.x = self->modeldata.speed.x;
+            self->running = 0;
+        }
+        if (self->position.x > target->position.x)
+        {
+            self->velocity.x = -self->velocity.x;
+        }
+        self->destx = target->position.x;
+    }
+
+    if (doz && mz)
+    {
+        if (facing && dx > 200 && self->modeldata.runupdown && validanim(self, ANI_RUN))
+        {
+            self->velocity.z = self->modeldata.runspeed / 2;
+            self->running = 1;
+        }
+        else
+        {
+            self->velocity.z = self->modeldata.speed.x / 2;
+            self->running = 0; // not right, to be modified
+        }
+        if (self->position.z > target->position.z)
+        {
+            self->velocity.z = -self->velocity.z;
+        }
+        self->destz = target->position.z;
+    }
+
 
     return 1;
 }
@@ -39957,7 +41204,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	// and knife projectiles. The last part is an extra challenge because 
 	// the default velocity needs for knife and bomb are not compatible. 
 	// To handle all of this this we will set the velocity.y member to 
-	// MODEL_SPEED_NONE specfically when a bomb projectile is requested 
+	// MODEL_SPEED_NONE specifically when a bomb projectile is requested 
 	// by the Throwframe command or "bomb" type from legacy script function 
 	// projectile(). If the author does not modify this value, we know 
 	// to fall back to legacy behavior and use the projectile entity's 
@@ -40880,6 +42127,35 @@ int no_player_alive_to_join()
     no_alive_players = (no_alive_players >= MAX_PLAYERS) ? 1 : 0;
 
     return no_alive_players;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-07-02
+* 
+* Apply appropriate autokill effect to entity.
+*/
+void do_autokill(entity* acting_entity)
+{
+    s_attack attack_object;
+    s_defense* defense_object = NULL;
+     
+    if (acting_entity->autokill & AUTOKILL_TYPE_DEATH)
+    {
+        attack_object = emptyattack;
+        attack_object.attack_type = ATK_AUTOKILL;
+        attack_object.dropv.y = default_model_dropv.y;
+        attack_object.dropv.x = default_model_dropv.x;
+        attack_object.dropv.z = default_model_dropv.z;
+
+        defense_object = defense_find_current_object(acting_entity, NULL, attack_object.attack_type);
+
+        acting_entity->takedamage(acting_entity, &attack_object, 0, defense_object);
+    }
+    else
+    {
+        kill_entity(acting_entity);
+    }    
 }
 
 void kill_all_players_by_timeover()

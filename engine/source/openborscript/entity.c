@@ -877,7 +877,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_OBSTRUCTED:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->hitwall;
+			(*pretvar)->lVal = (e_hitwall_condition)handle->hitwall;
 
 			break;
 

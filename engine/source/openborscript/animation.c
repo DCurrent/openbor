@@ -231,13 +231,13 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 		case _ANIMATION_PROP_FOLLOW_UP_ANIMATION_SELECT:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->followup.animation;
+			//(*pretvar)->lVal = (LONG)handle->followup->animation;
 			break;
 
 		case _ANIMATION_PROP_FOLLOW_UP_CONDITION:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->followup.condition;
+			//(*pretvar)->lVal = (LONG)handle->followup->condition;
 			break;
 
 		case _ANIMATION_PROP_FRAME_COUNT:
@@ -629,14 +629,14 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->followup.animation = (unsigned int)temp_int;
+				//handle->followup->animation = (unsigned int)temp_int;
 			}
 
 		case _ANIMATION_PROP_FOLLOW_UP_CONDITION:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->followup.condition = (e_follow_condition_logic)temp_int;
+				//handle->followup->condition = (e_follow_condition)temp_int;
 			}
 
 		case _ANIMATION_PROP_FRAME_COUNT:

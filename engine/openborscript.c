@@ -4181,7 +4181,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_hitwall:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->hitwall;
+        (*pretvar)->lVal = (e_hitwall_condition)ent->hitwall;
         break;
     }
     case _ep_hmapl:
@@ -6206,7 +6206,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->hitwall = (LONG)ltemp;
+            ent->hitwall = (e_hitwall_condition)ltemp;
         }
         break;
     }
