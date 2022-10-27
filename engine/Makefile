@@ -823,6 +823,6 @@ version:
 	@echo "All rights reserved."
 	@echo "See LICENSE and README within OpenBOR root for details."
 	@echo
-	@echo "Copyright (c) 2004 - 2018 OpenBOR Team"
+	@echo "Copyright (c) 2004 - 2022 OpenBOR Team"
 	@echo "-------------------------------------------------------"
 
