@@ -530,16 +530,16 @@ xbcp -r -y -d -t -f media\*.* $(RemoteDir)media
 			RelativePath="..\control.h">
 		</File>
 		<File
-			RelativePath="..\openbor.c">
+			RelativePath="..\..\openbor.c">
 		</File>
 		<File
-			RelativePath="..\openbor.h">
+			RelativePath="..\..\openbor.h">
 		</File>
 		<File
-			RelativePath="..\openborscript.c">
+			RelativePath="..\..\openborscript.c">
 		</File>
 		<File
-			RelativePath="..\openborscript.h">
+			RelativePath="..\..\openborscript.h">
 		</File>
 		<File
 			RelativePath="..\sblaster.c">
