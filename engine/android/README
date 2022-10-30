@@ -1,40 +1,26 @@
-####################
-# Build instruction
-###################
+##############################################
+# Msmalik681 Windows 64 bit Build instructions
+##############################################
 
-* Download relevant Android SDK and NDK then and set up `ANDROID_HOME`, and `ANDROID_NDK_HOME` environment variables properly.
-* Execute `./gradlew installDebug` it will build and `.apk` then install it on your connected Android device.
+First Download and install JAVA JDK 11. once installed open a command promt window and type "java -version" if it confirms you have java 11 installed.
 
-#############################################
-## Msmalik681 Windows 10 Build instructions
+Now download the Android SDK but be sure to get the "command line tools only" package and extract it to the folder "C:\android\sdk\" if this path is missing make it. Now confirm your have this path "C:\android\sdk\cmdline-tools\bin\sdkmanager.bat" if you have a match your done with this step.
+
+Finally go to the android folder in the source code and run build.bat. If it is the first time it will take time to download everything.
+
+############################################
+# Msmalik681 Linux 64 bit Build instructions
 ############################################
 
-First Download the latest JAVA JDK for windows 10 x64 from Oracle website  and install it. (32-bit windows needs jdk 8 for x86)
+make sure you have java 11 installed check in terminal with "java --version" you can use openjdk 11.
 
-Now you can setup your environment variables use the search bar to search for "advanced system settings" that window will have a button at the bottom for "Environment Variables" now select "New" under "user variable":
+(Optional) Download Android SDK but be sure to get the "command line tools only" and extract to "~/.android" now youo should have the path "~/.android/cmdline-tools/sdkmanager".
 
-"ANDROID_HOME" = "C:\android\sdk"
+Finally go to the android folder in the source code and run ./build.sh it will take a time to download everything if this is the first run.
 
-
-Now setup System Variables -> Path add these lines:
-
-* "C:\Program Files\Java\jdk-13\bin" (note "jdk-13" this folder may be different based on your version installed)
-* "C:\android\sdk\cmdline-tools\version\bin" (for x86 legacy version use
-* "C:\android\sdk\tools\bin")
-* "C:\android\sdk\build-tools\28.0.3"
-* "C:\android\sdk\ndk-bundle"
-
-for windows 7 add them like this ";C:\Program Files\Java\jdk-13\bin\;C:\android\sdk\tools\bin\;C:\android\sdk\build-tools\28.0.3\;C:\android\sdk\ndk-bundle\"
-
-Now download the Android SDK get the "command line tools only" package for windows near the bottom of the page and save it. Extract the bin folder to  "C:\android\sdk\cmdline-tools\version\" folder (if you do not have this path make it).
-
-For the Android command line tools (windows x86) build extract the tools folder to "C:\android\sdk\".
-
-Now you can run the file "sdk-setup.bat" (found in root of openbor android folder) and it should download everything you need (if your sdk folder is in a different location edit the "sdk-setup.bat" to point to yours).  for 32bit windows download the x86 version of the "command line tools" links are below.
-
-Now restart your PC.  To test the NDK open command prompt and type "ndk-build" and for java type "java -version" if they are recognized commands your all set.
-
-Custom Apk instructions
+#########################
+# Custom Apk instructions
+#########################
 
 First ensure you can view file extensions to do this open a file browser window then select "view->options->change folder and search options" next select the tab view then uncheck "hide extensions for known file types" I also like to set "Show hidden files, folders and drives" (but that has nothing to do with the tutorial).
 
@@ -70,7 +56,7 @@ If you create your keystore with another name of keyAlias, then you need to upda
 * (optional) If you put "my-key.jks" to somewhere else, make sure to edit `keystore.properties` file for its `storeFile=` to point to such file path. See the comment in `keystore.properties` for more information.
 * For Windows, now edit the "build.bat" file and make sure it is set to " cmd /k "gradlew.bat clean & gradlew.bat assembleRelease" " ignoring the outer quotes I used here. Run build.bat and if completed successfully your apk will be at "app/build/outputs/apk/release/app-release.apk" your can rename the apk if you want to and now your ready to upload your app. For Linux/Unix, just execute "./gradlew assembleRelease", and you will see the result .apk at the same location.
 
-#################################
+################################
 # Detail on Android Gradle Build
 ################################
 

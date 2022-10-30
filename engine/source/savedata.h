@@ -41,11 +41,7 @@ typedef struct
     float hwscale; // Scale factor for OpenGL
     int hwfilter; // Simple or bilinear scaling
 #endif
-#if PSP
-    int pspcpuspeed; // PSP CPU Speed
-    int overscan[4]; // Control TV Overscan
-    int usetv; // Initilize TV at bootup
-#endif
+
 #if ANDROID
     int is_touchpad_vibration_enabled;
 #endif

@@ -88,5 +88,6 @@ ScriptVariant *ScriptVariant_Dec_Op2(ScriptVariant *svar );
 void ScriptVariant_Pos( ScriptVariant *svar);
 void ScriptVariant_Neg( ScriptVariant *svar);
 void ScriptVariant_Boolean_Not(ScriptVariant *svar );
+void ScriptVariant_Bitwise_Not(ScriptVariant *svar );
 
 #endif

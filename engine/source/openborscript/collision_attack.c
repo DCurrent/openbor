@@ -36,7 +36,7 @@ HRESULT openbor_get_attack_collection(ScriptVariant **varlist, ScriptVariant **p
 
 
     int         result      = S_OK;     // Success or error?
-    s_collision_attack    **handle     = NULL;    // Property handle.
+    s_attack    **handle     = NULL;    // Property handle.
     int         frame       = 0;        // Property argument.
 
     // Clear pass by reference argument used to send
@@ -55,7 +55,7 @@ HRESULT openbor_get_attack_collection(ScriptVariant **varlist, ScriptVariant **p
     }
     else
     {
-        handle  = (s_collision_attack **)varlist[ARG_HANDLE]->ptrVal;
+        handle  = (s_attack **)varlist[ARG_HANDLE]->ptrVal;
         frame   = (LONG)varlist[ARG_FRAME]->lVal;
     }
 
@@ -96,7 +96,7 @@ HRESULT openbor_get_attack_instance(ScriptVariant **varlist, ScriptVariant **pre
     #define ARG_INDEX       1   // Index to access.
 
     int         result     = S_OK; // Success or error?
-    s_collision_attack    *handle    = NULL; // Property handle.
+    s_attack    *handle    = NULL; // Property handle.
     //int         index      = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -115,7 +115,7 @@ HRESULT openbor_get_attack_instance(ScriptVariant **varlist, ScriptVariant **pre
     }
     else
     {
-        handle  = (s_collision_attack *)varlist[ARG_HANDLE]->ptrVal;
+        handle  = (s_attack *)varlist[ARG_HANDLE]->ptrVal;
         //index   = (LONG)varlist[ARG_INDEX]->lVal;
     }
 
@@ -153,7 +153,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     #define ARG_PROPERTY    1   // Property to access.
 
     int                     result      = S_OK; // Success or error?
-    s_collision_attack                *handle     = NULL; // Property handle.
+    s_attack                *handle     = NULL; // Property handle.
     e_attack_properties     property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -172,7 +172,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     }
     else
     {
-        handle      = (s_collision_attack *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_attack *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -401,7 +401,7 @@ HRESULT openbor_get_attack_property(ScriptVariant **varlist, ScriptVariant **pre
         case ATTACK_PROP_TAG:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->tag;
+            (*pretvar)->lVal = (LONG)handle->meta_tag;
             break;
 
         default:
@@ -437,7 +437,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     #define ARG_VALUE           2   // New value to apply.
 
     int                     result      = S_OK; // Success or error?
-    s_collision_attack                *handle     = NULL; // Property handle.
+    s_attack                *handle     = NULL; // Property handle.
     e_attack_properties     property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
@@ -456,7 +456,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
     }
     else
     {
-        handle      = (s_collision_attack *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_attack *)varlist[ARG_HANDLE]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -756,7 +756,7 @@ HRESULT openbor_set_attack_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->tag = temp_int;
+                handle->meta_tag = temp_int;
             }
             break;
 

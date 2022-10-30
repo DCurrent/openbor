@@ -949,5 +949,13 @@ void ScriptVariant_Boolean_Not(ScriptVariant *svar )
 
 }
 
+void ScriptVariant_Bitwise_Not(ScriptVariant *svar )
+{
+    if (svar->vt == VT_INTEGER)
+    {
+        svar->lVal = ~(svar->lVal);
+    }
+}
+
 
 

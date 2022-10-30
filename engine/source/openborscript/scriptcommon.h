@@ -71,20 +71,8 @@ extern int			  PLAYER_MIN_Z;
 extern int			  PLAYER_MAX_Z;
 extern int			  BGHEIGHT;
 extern int            MAX_WALL_HEIGHT;
-extern int			  SAMPLE_GO;
-extern int			  SAMPLE_BEAT;
-extern int			  SAMPLE_BLOCK;
-extern int			  SAMPLE_INDIRECT;
-extern int			  SAMPLE_GET;
-extern int			  SAMPLE_GET2;
-extern int			  SAMPLE_FALL;
-extern int			  SAMPLE_JUMP;
-extern int			  SAMPLE_PUNCH;
-extern int			  SAMPLE_1UP;
-extern int			  SAMPLE_TIMEOVER;
-extern int			  SAMPLE_BEEP;
-extern int			  SAMPLE_BEEP2;
-extern int			  SAMPLE_BIKE;
+
+extern s_global_sample global_sample_list;
 extern int            current_palette;
 extern s_player       player[4];
 extern s_level        *level;
@@ -112,6 +100,8 @@ extern int            *animbackriseattacks;
 extern int            *animblkpains;
 extern int            *animbackblkpains;
 
+extern s_global_config global_config;
+
 extern int            noshare;
 extern int            credits;
 extern char           musicname[128];
@@ -119,6 +109,7 @@ extern float          musicfade[2];
 extern int            musicloop;
 extern u32            musicoffset;
 extern int            models_cached;
+extern int            noaircancel; // Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
 extern int endgame;
 extern int useSave;
 extern int useSet;
@@ -129,7 +120,7 @@ extern s_sprite_map *sprite_map;
 
 extern unsigned char *blendings[MAX_BLENDINGS];
 extern int            current_palette;
-extern s_collision_attack emptyattack;
+extern s_attack emptyattack;
 
 #endif // SCRIPT_COMMON_H
 
