@@ -1,42 +1,45 @@
-Microsoft Visual Studio Solution File, Format Version 8.00
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31605.320
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenBoR", "OpenBoR.vcproj", "{4706D9A1-9595-495C-B98C-E00F6AD44DA8}"
-	ProjectSection(ProjectDependencies) = postProject
-	EndProjectSection
 EndProject
 Global
-	GlobalSection(SolutionConfiguration) = preSolution
-		Debug = Debug
-		Profile = Profile
-		Profile_FastCap = Profile_FastCap
-		Release = Release
-		Release_LTCG = Release_LTCG
-		StaticDebug Win32 = StaticDebug Win32
-		StaticDebug Xbox = StaticDebug Xbox
-		StaticRelease Win32 = StaticRelease Win32
-		StaticRelease Xbox = StaticRelease Xbox
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Default = Debug|Default
+		Profile_FastCap|Default = Profile_FastCap|Default
+		Profile|Default = Profile|Default
+		Release_LTCG|Default = Release_LTCG|Default
+		Release|Default = Release|Default
+		StaticDebug Xbox|Default = StaticDebug Xbox|Default
+		StaticDebug|Default = StaticDebug|Default
+		StaticRelease Xbox|Default = StaticRelease Xbox|Default
+		StaticRelease|Default = StaticRelease|Default
 	EndGlobalSection
-	GlobalSection(ProjectConfiguration) = postSolution
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Debug.ActiveCfg = Debug|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Debug.Build.0 = Debug|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile.ActiveCfg = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile.Build.0 = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile_FastCap.ActiveCfg = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile_FastCap.Build.0 = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release.ActiveCfg = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release.Build.0 = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release_LTCG.ActiveCfg = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release_LTCG.Build.0 = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Win32.ActiveCfg = Debug|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Win32.Build.0 = Debug|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Xbox.ActiveCfg = Debug|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Xbox.Build.0 = Debug|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Win32.ActiveCfg = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Win32.Build.0 = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Xbox.ActiveCfg = Release|Xbox
-		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Xbox.Build.0 = Release|Xbox
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Debug|Default.ActiveCfg = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Debug|Default.Build.0 = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile_FastCap|Default.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile_FastCap|Default.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile|Default.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Profile|Default.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release_LTCG|Default.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release_LTCG|Default.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release|Default.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.Release|Default.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Xbox|Default.ActiveCfg = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug Xbox|Default.Build.0 = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug|Default.ActiveCfg = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticDebug|Default.Build.0 = Debug|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Xbox|Default.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease Xbox|Default.Build.0 = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease|Default.ActiveCfg = Release|Xbox
+		{4706D9A1-9595-495C-B98C-E00F6AD44DA8}.StaticRelease|Default.Build.0 = Release|Xbox
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-	EndGlobalSection
-	GlobalSection(ExtensibilityAddIns) = postSolution
+		SolutionGuid = {AA99D5FB-1C7B-48BA-A8B5-0C720325F978}
 	EndGlobalSection
 EndGlobal

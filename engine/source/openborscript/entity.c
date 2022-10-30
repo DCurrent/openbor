@@ -56,7 +56,6 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"command_time",
 		"damage_on_landing",
 		"dead",
-		"deduct_ammo",
 		"defense_collection",
 		"destination_x",
 		"destination_z",
@@ -160,7 +159,8 @@ int mapstrings_entity_property(ScriptVariant **varlist, int paramCount)
 		"walk_state",
 		"waypoint_collection",
 		"waypoint_count",
-		"weapon_item"
+		"weapon_item",
+		"weapon_state"
     };
 
     // If the minimum argument count
@@ -205,6 +205,10 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
     // Clear pass by reference argument used to send
     // property data back to calling script.
     ScriptVariant_Clear(*pretvar);
+
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_entity_property(varlist, paramCount);
 
     // Verify arguments. There should at least
     // be a pointer for the property handle and an integer
@@ -307,8 +311,8 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
         case _ENTITY_ATTACK_ID_INCOMING:
 
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->attack_id_incoming;
+			ScriptVariant_ChangeType(*pretvar, VT_PTR);
+			(*pretvar)->ptrVal = (void*)handle->attack_id_incoming;
 
             break;
 
@@ -472,14 +476,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 			(*pretvar)->lVal = (LONG)handle->dead;
 
 			break;
-
-        case _ENTITY_DEDUCT_AMMO:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->deduct_ammo;
-
-            break;
-
+			
 		case _ENTITY_DEFENSE_COLLECTION:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -1213,6 +1210,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
+		case _ENTITY_WEAPON_STATE:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (LONG)handle->weapon_state;
+
+			break;
+
         default:
 
             printf("Unsupported property.\n");
@@ -1258,6 +1262,10 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     // taken from argument.
     LONG    temp_int;
     DOUBLE  temp_float;
+
+	// Map string property name to a
+	// matching integer constant.
+	mapstrings_entity_property(varlist, paramCount);
 	
     // Verify incoming arguments. There should at least
     // be a pointer for the property handle and an integer
@@ -1375,7 +1383,11 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->attack_id_incoming = temp_int;
+				/*
+				* 2021- 09-04. Property is now an array, so
+				* so this is read only. Creator can change IDs
+				* by getting pointer and modifying elements.
+				*/ 
             }
 
             break;
@@ -1571,15 +1583,6 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 			}
 
 			break;
-
-        case _ENTITY_DEDUCT_AMMO:
-
-            if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->deduct_ammo = temp_int;
-            }
-
-            break;
 
 		case _ENTITY_DEFENSE_COLLECTION:
 
@@ -2439,6 +2442,15 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 			break;
 
+		case _ENTITY_WEAPON_STATE:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->weapon_state = temp_int;
+			}
+
+			break;
+
         default:
 
             printf("Unsupported property.\n");
@@ -2462,4 +2474,139 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     #undef ARG_HANDLE
     #undef ARG_PROPERTY
     #undef ARG_VALUE
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-04
+*
+* Return an attack ID array element value.
+*/
+HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+#define SELF_NAME       "get_attack_id_value(void handle, int element)"
+#define ARG_MINIMUM     2   // Minimum required arguments.
+#define ARG_HANDLE      0   // Handle (pointer to property structure).
+#define ARG_ELEMENT		1   // Array element to access.
+
+	LONG* handle = NULL; // Property handle.
+	int  element = 0;    // Property argument.
+
+	/*
+	* Clear pass by reference argument used to send
+	* property data back to calling script.
+	*/
+	ScriptVariant_Clear(*pretvar);
+
+	/*
+	* Verify arguments.There should at least
+	* be a pointer for the property handle and an integer
+	* to determine which element of the array is accessed.
+	*/
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_ELEMENT]->vt != VT_INTEGER)
+	{
+		*pretvar = NULL;
+		goto error_local;
+	}
+	else
+	{
+		// Populate local vars for readability.
+		handle = (LONG*)varlist[ARG_HANDLE]->ptrVal;
+		element = (LONG)varlist[ARG_ELEMENT]->lVal;
+	}
+
+	/* Don't allow an out of bounds element. */
+	if (element < 0 || element > MAX_ATTACK_IDS)
+	{
+		element = 0;
+	}
+
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+	(*pretvar)->lVal = (LONG)handle[element];
+
+	return S_OK;
+
+error_local:
+
+	printf("You must provide a valid handle and element: " SELF_NAME "\n");
+	*pretvar = NULL;
+
+	return E_FAIL;
+
+#undef SELF_NAME
+#undef ARG_MINIMUM
+#undef ARG_ELEMENT
+}
+
+/*
+* Caskey, Damon  V.
+* 2018-04-03
+*
+* Mutate an entity property. Requires
+* the entity handle, a string property
+* name, and new value.
+*/
+HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+#define SELF_NAME           "set_attack_id_value(void handle, char property, value)"
+#define ARG_MINIMUM         3   // Minimum required arguments.
+#define ARG_HANDLE          0   // Handle (pointer to property structure).
+#define ARG_ELEMENT        1	// Element to access.
+#define ARG_VALUE           2   // New value to apply.
+
+	int     result = S_OK; // Success or error?
+	LONG*	handle = NULL; // Property handle.
+	int		element = 0;    // Array element to access.
+
+	/*
+	* Value carriers to apply on properties after
+	* taken from argument.
+	*/
+	LONG    temp_int;
+
+	/*
+	* Verify incoming arguments. There should at least
+	* be a pointer for the property handle and an integer
+	* to determine which property is accessed.
+	*/
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_ELEMENT]->vt != VT_INTEGER)
+	{
+		*pretvar = NULL;
+		goto error_local;
+	}
+
+	// Populate local handle and property vars.
+	handle = (LONG*)varlist[ARG_HANDLE]->ptrVal;
+	element = (LONG)varlist[ARG_ELEMENT]->lVal;
+
+	/* Don't allow an out of bounds element. */
+	if (element < 0 || element > MAX_ATTACK_IDS)
+	{
+		element = 0;
+	}
+
+	if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+	{
+		handle[element] = temp_int;
+	}
+
+	return result;
+
+	/* Error trapping. */
+error_local:
+
+	printf("You must provide a valid handle, element, and new value: " SELF_NAME "\n");
+
+	result = E_FAIL;
+	return result;
+
+#undef SELF_NAME
+#undef ARG_MINIMUM
+#undef ARG_HANDLE
+#undef ARG_ELEMENT
+#undef ARG_VALUE
 }

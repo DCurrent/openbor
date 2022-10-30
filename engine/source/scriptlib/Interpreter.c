@@ -524,6 +524,8 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
         case NEG:
             //use the UNARYOP macro to do a logical not
         case NOT:
+            //use the UNARYOP macro to do a bitwise not
+        case BIT_NOT:
             COMPILEUNARYOP;
             break;
 
@@ -1004,6 +1006,12 @@ HRESULT Interpreter_EvalInstruction(Interpreter *pinterpreter)
         case NOT:
             UNARYOP(ScriptVariant_Boolean_Not);
             break;
+
+            //use the UNARYOP macro to do a bitwise not
+        case BIT_NOT:
+            UNARYOP(ScriptVariant_Bitwise_Not);
+            break;
+
 
             //Use the BINARYOP macro to do a multipy
         case MUL:

@@ -12,11 +12,13 @@
 #include "Interpreter.h"
 #include "pp_parser.h"
 
+#include "animation.h"
 #include "axis.h"
 #include "binding.h"
 #include "drawmethod.h"
 #include "recursive_damage.h"
 #include "entity.h"
+#include "global_config.h"
 
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24
@@ -115,6 +117,8 @@ HRESULT system_clearglobalvar(ScriptVariant **varlist , ScriptVariant **pretvar,
 HRESULT system_clearindexedvar(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_free(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT system_typeof(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT system_string_to_float(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT system_string_to_int(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 HRESULT math_sin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT math_ssin(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -146,8 +150,8 @@ HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, in
 // Animation properties.
 HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_get_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_animation_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+
+// Sub entity properties.
 
 // Attack properties
 HRESULT openbor_get_attack_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -269,6 +273,7 @@ HRESULT openbor_key(ScriptVariant **varlist , ScriptVariant **pretvar, int param
 HRESULT openbor_value(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_islast(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_isfirst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_isarray(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 
 HRESULT openbor_allocscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_clearscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
@@ -326,7 +331,7 @@ HRESULT openbor_getrecordingstatus(ScriptVariant **varlist , ScriptVariant **pre
 HRESULT openbor_recordinputs(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getsaveinfo(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
-int mapstrings_animationproperty(ScriptVariant **varlist, int paramCount);
+int mapstrings_animation_property(ScriptVariant **varlist, int paramCount);
 int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount);
@@ -341,14 +346,13 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount);
 
 int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
 
-
+// Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
 enum systemvariant_enum
 {
     _sv_background,
     _sv_blockade,
     _sv_bossescount,
     _sv_branchname,
-    _sv_cheats,
     _sv_count_enemies,
     _sv_count_entities,
     _sv_count_npcs,
@@ -359,6 +363,7 @@ enum systemvariant_enum
     _sv_current_scene,
     _sv_current_set,
     _sv_current_stage,
+    _sv_drawmethod_common,
 	_sv_drawmethod_default,
     _sv_effectvol,
     _sv_elapsed_time,
@@ -371,6 +376,22 @@ enum systemvariant_enum
     _sv_gfx_x_offset,
     _sv_gfx_y_offset,
     _sv_gfx_y_offset_adj,
+    _sv_global_config,
+    _sv_global_sample_beat,
+    _sv_global_sample_beep,
+    _sv_global_sample_beep_2,
+    _sv_global_sample_bike,
+    _sv_global_sample_block,
+    _sv_global_sample_fall,
+    _sv_global_sample_get,
+    _sv_global_sample_get_2,
+    _sv_global_sample_go,
+    _sv_global_sample_indirect,
+    _sv_global_sample_jump,
+    _sv_global_sample_one_up,
+    _sv_global_sample_pause,
+    _sv_global_sample_punch,
+    _sv_global_sample_time_over,
     _sv_hresolution,
     _sv_in_cheat_options,
     _sv_in_control_options,
@@ -414,6 +435,7 @@ enum systemvariant_enum
     _sv_models_cached,
     _sv_models_loaded,
     _sv_musicvol,
+    _sv_noaircancel,
     _sv_nofadeout,
     _sv_nogameover,
     _sv_nohof,
@@ -440,6 +462,7 @@ enum systemvariant_enum
     _sv_player_min_z,
     _sv_porting,
     _sv_sample_play_id,
+    _sv_screen_status,
     _sv_scrollmaxx,
     _sv_scrollmaxz,
     _sv_scrollminx,

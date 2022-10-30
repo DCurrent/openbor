@@ -71,6 +71,7 @@ List *createModelstxtCommandList(void)
     LIST_ADD(CMD_MODELSTXT_DEBUG_NAD, "noatk_duration");
     LIST_ADD(CMD_MODELSTXT_DEBUG_OSNAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODELSTXT_DROPV, "dropv");
+    LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS, "global_config_cheats");
     LIST_ADD(CMD_MODELSTXT_GRABDISTANCE, "grabdistance");
     LIST_ADD(CMD_MODELSTXT_JUMPHEIGHT, "jumpheight");
     LIST_ADD(CMD_MODELSTXT_JUMPSPEED, "jumpspeed");
@@ -114,6 +115,7 @@ List *createModelCommandList(void)
         LIST_ADD(CMD_MODEL_AGGRESSION, "aggression");
     LIST_ADD(CMD_MODEL_AIATTACK, "aiattack");
     LIST_ADD(CMD_MODEL_AIMOVE, "aimove");
+    LIST_ADD(CMD_MODEL_AIR_CONTROL, "air_control");
     LIST_ADD(CMD_MODEL_AIRONLY, "aironly");
     LIST_ADD(CMD_MODEL_ALPHA, "alpha");
     LIST_ADD(CMD_MODEL_ALPHAMASK, "alphamask");
@@ -139,6 +141,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_INDEX,           "attack.damage.recursive.index");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_MODE,            "attack.damage.recursive.mode");
 	LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TAG,			   "attack.damage.recursive.tag");
+    LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TYPE,            "attack.damage.recursive.type");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_EXPIRE,     "attack.damage.recursive.time");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_RECURSIVE_TIME_RATE,       "attack.damage.recursive.rate");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_STEAL,                     "attack.damage.steal");
@@ -149,6 +152,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
     LIST_ADD(CMD_MODEL_COLLISION_GROUND,                           "attack.ground.mode");                       // otg
+    LIST_ADD(CMD_MODEL_COLLISION_INDEX,                            "collision.index");                         // Index to identify mutiple collisions.
     LIST_ADD(CMD_MODEL_COLLISION_MAP_INDEX,                        "attack.map.index");                        // Forcemap.
     LIST_ADD(CMD_MODEL_COLLISION_MAP_TIME,                         "attack.map.time");                         // Forcemap time.
     LIST_ADD(CMD_MODEL_COLLISION_POSITION_X,                       "attack.position.x");
@@ -171,6 +175,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_SIZE_Y,                           "attack.size.y");
     LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_1,                         "attack.size.z.1");
     LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_2,                         "attack.size.z.2");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_BACKGROUND,                "attack.size.z.background");
+    LIST_ADD(CMD_MODEL_COLLISION_SIZE_Z_FOREGROUND,                "attack.size.z.foreground");
     LIST_ADD(CMD_MODEL_COLLISION_STAYDOWN_RISE,                    "attack.staydown.rise.time");
     LIST_ADD(CMD_MODEL_COLLISION_STAYDOWN_RISEATTACK,              "attack.staydown.attack.time");
     LIST_ADD(CMD_MODEL_COLLISION_TAG,                              "attack.tag");
@@ -192,6 +198,7 @@ List *createModelCommandList(void)
         LIST_ADD(CMD_MODEL_COLLISION_ETC, buf);
     }
 
+    // Kratus (12-2021) Added new jumpspecial and noshadow properties, put "noshadow" in alphabetical order
     LIST_ADD(CMD_MODEL_COLLISIONONE, "attackone");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
     LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
@@ -205,6 +212,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_BBOX_SIZE_Y, "bbox.size.y");
     LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_1, "bbox.size.z.1");
     LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_2, "bbox.size.z.2");
+    LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_BACKGROUND, "bbox.size.z.background");
+    LIST_ADD(CMD_MODEL_BBOX_SIZE_Z_FOREGROUND, "bbox.size.z.foreground");
     LIST_ADD(CMD_MODEL_BBOXZ, "bboxz");
     LIST_ADD(CMD_MODEL_BFLASH, "bflash");
     LIST_ADD(CMD_MODEL_BLAST, "blast");
@@ -240,6 +249,13 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_DAMAGEONLANDING, "damageonlanding");
     LIST_ADD(CMD_MODEL_DEATH, "death");
     LIST_ADD(CMD_MODEL_DEFENSE, "defense");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_POWER, "defense.block.power");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_RATIO, "defense.block.ratio");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_THRESHOLD, "defense.block.threshold");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_TYPE, "defense.block.type");
+    LIST_ADD(CMD_MODEL_DEFENSE_FACTOR, "defense.factor");
+    LIST_ADD(CMD_MODEL_DEFENSE_KNOCKDOWN, "defense.knockdown");
+    LIST_ADD(CMD_MODEL_DEFENSE_PAIN, "defense.pain");
     LIST_ADD(CMD_MODEL_DELAY, "delay");
     LIST_ADD(CMD_MODEL_DIDBLOCKSCRIPT, "didblockscript");
     LIST_ADD(CMD_MODEL_DIDHITSCRIPT, "didhitscript");
@@ -263,7 +279,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_EBOXZ, "eboxz");
     LIST_ADD(CMD_MODEL_EDELAY, "edelay");
     LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
-    LIST_ADD(CMD_MODEL_ENERGYCOST, "energycost");
+    LIST_ADD(CMD_MODEL_ENERGY_COST, "energycost");	// Backward compatability.
+	LIST_ADD(CMD_MODEL_ENERGY_COST, "energy_cost");
     LIST_ADD(CMD_MODEL_ENTITYPUSHING, "entitypushing");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");
@@ -322,12 +339,13 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_JUMPFRAME, "jumpframe");
     LIST_ADD(CMD_MODEL_JUMPHEIGHT, "jumpheight");
     LIST_ADD(CMD_MODEL_JUMPMOVE, "jumpmove");
+    LIST_ADD(CMD_MODEL_JUMPSPECIAL, "jumpspecial");
     LIST_ADD(CMD_MODEL_JUMPSPEED, "jumpspeed");
     LIST_ADD(CMD_MODEL_JUMPSPEEDF, "jumpspeedf");
     LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
     LIST_ADD(CMD_MODEL_KNIFE, "knife");
     LIST_ADD(CMD_MODEL_KNOCKDOWNCOUNT, "knockdowncount");
-    LIST_ADD(CMD_MODEL_KOMAP, "komap");
+    LIST_ADD(CMD_MODEL_KOMAP, "komap");    
     LIST_ADD(CMD_MODEL_LANDFRAME, "landframe");
     LIST_ADD(CMD_MODEL_LIFEBARSTATUS, "lifebarstatus");
     LIST_ADD(CMD_MODEL_LIFEPOSITION, "lifeposition");
@@ -336,8 +354,14 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_LOOP, "loop");
     LIST_ADD(CMD_MODEL_LOSE, "lose");
     LIST_ADD(CMD_MODEL_MAKEINV, "makeinv");
+    LIST_ADD(CMD_MODEL_MAP_BURN_INDEX, "palette.burn.index");
+    LIST_ADD(CMD_MODEL_MAP_FREEZE_INDEX, "palette.freeze.index");
+    LIST_ADD(CMD_MODEL_MAP_KO_INDEX, "palette.ko.index");
+    LIST_ADD(CMD_MODEL_MAP_KO_TYPE, "palette.ko.type");
+    LIST_ADD(CMD_MODEL_MAP_SHOCK_INDEX, "palette.shock.index");
     LIST_ADD(CMD_MODEL_MODELFLAG, "modelflag");
     LIST_ADD(CMD_MODEL_MOVE, "move");
+    LIST_ADD(CMD_MODEL_MOVE_CONSTRAINT, "move_constraint");
     LIST_ADD(CMD_MODEL_MOVEA, "movea");
     LIST_ADD(CMD_MODEL_MOVEZ, "movez");
     LIST_ADD(CMD_MODEL_MP, "mp");
@@ -360,6 +384,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_NOPASSIVEBLOCK, "nopassiveblock");
     LIST_ADD(CMD_MODEL_NOQUAKE, "noquake");
     LIST_ADD(CMD_MODEL_NOREFLECT, "noreflect");
+    LIST_ADD(CMD_MODEL_NOSHADOW, "noshadow");
     LIST_ADD(CMD_MODEL_NOTGRAB, "notgrab");
     LIST_ADD(CMD_MODEL_OFFENSE, "offense");
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
@@ -401,6 +426,15 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_PLAYSHOTW, "playshotw");
     LIST_ADD(CMD_MODEL_PRIORITY, "priority");
     LIST_ADD(CMD_MODEL_PROJECT, "project");
+	LIST_ADD(CMD_MODEL_PROJECTILE_COLOR_SET_ADJUST, "projectile_color_set_adjust");
+	LIST_ADD(CMD_MODEL_PROJECTILE_DIRECTION_ADJUST, "projectile_direction_adjust");
+	LIST_ADD(CMD_MODEL_PROJECTILE_OFFENSE, "projectile_offense");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_X, "projectile_position_x");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Y, "projectile_position_y");
+	LIST_ADD(CMD_MODEL_PROJECTILE_POSITION_Z, "projectile_position_z");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_X, "projectile_velocity_x");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_Y, "projectile_velocity_y");
+	LIST_ADD(CMD_MODEL_PROJECTILE_VELOCITY_Z, "projectile_velocity_z");
     LIST_ADD(CMD_MODEL_PROJECTILEHIT, "projectilehit");
     LIST_ADD(CMD_MODEL_PSHOTFRAME, "pshotframe");
     LIST_ADD(CMD_MODEL_PSHOTFRAMENO, "pshotframeno");
@@ -479,6 +513,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_WALKOFFMOVE, "walkoffmove");
     LIST_ADD(CMD_MODEL_WEAPLOSS, "weaploss");
     LIST_ADD(CMD_MODEL_WEAPNUM, "weapnum");
+    LIST_ADD(CMD_MODEL_WEAPON_LOSS_CONDITION, "weapon_loss_condition");
+    LIST_ADD(CMD_MODEL_WEAPON_LOSS_INDEX, "weapon_loss_index");
     LIST_ADD(CMD_MODEL_WEAPONFRAME, "weaponframe");
     LIST_ADD(CMD_MODEL_WEAPONS, "weapons");
 

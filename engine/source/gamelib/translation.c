@@ -87,11 +87,39 @@ static int ob_loadtrans()
     char *tmp = NULL;
     int isid = 0;
     // Read file
+
+    /*
+        Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+        Now the modder can load exported translation files by using "filestream" script functions
+        Useful for creating custom translations without unpack the game
+        The default engine translation location will be maintained for backward compatibility
+        
+        Kratus (11-2021) Inverted the path priority, now the external file will override the internal file
+        Useful to maintain the english translation intact inside the pak file if no other language file is found in the external path
+        Otherwise you will need to rollback the english file every time another language is used and then removed
+        This operation is needed only if the english translation file uses some custom menu texts for english language too
+    */
+    if(buffer_pakfile("translation/translation.txt", &buf, &size) != 1)
+    {
+        goto default_file;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+default_file:
+
     if(buffer_pakfile("data/translation.txt", &buf, &size) != 1)
     {
         return 0;
     }
+    else
+    {
+        goto proceed;
+    }
 
+proceed:
     //printf("Loading translation table\n");
 
     pos = 0;

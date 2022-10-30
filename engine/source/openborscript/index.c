@@ -11,6 +11,7 @@
 //return name of function from pointer to function
 const char *Script_GetFunctionName(void *functionRef)
 {
+
     if (functionRef == ((void *)system_isempty))
     {
         return "isempty";
@@ -62,6 +63,14 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)system_typeof))
     {
         return "typeof";
+    }
+    else if (functionRef == ((void*)system_string_to_float))
+    {
+        return "string_to_float";
+    }
+    else if (functionRef == ((void*)system_string_to_int))
+    {
+        return "string_to_int";
     }
     else if (functionRef == ((void *)math_sin))
     {
@@ -250,6 +259,17 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "set_drawmethod_property";
 	}
 
+    /* Global config properties */
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return "get_global_config_property";
+    }
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return "set_global_config_property";
+    }
+    
+
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -261,6 +281,14 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_getentityproperty))
     {
         return "getentityproperty";
+    }
+    else if (functionRef == ((void*)openbor_get_attack_id_value))
+    {
+    return "get_attack_id_value";
+    }
+    else if (functionRef == ((void*)openbor_set_attack_id_value))
+    {
+    return "set_attack_id_value";
     }
     else if (functionRef == ((void *)openbor_get_entity_property))
     {
@@ -278,7 +306,17 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_animation_property";
     }
-    else if (functionRef == ((void *)openbor_get_attack_collection))
+
+	else if (functionRef == ((void*)openbor_get_sub_entity_property))
+	{
+	return "get_sub_entity_property";
+	}
+	else if (functionRef == ((void*)openbor_set_sub_entity_property))
+	{
+	return "set_sub_entity_property";
+	}
+
+	else if (functionRef == ((void *)openbor_get_attack_collection))
     {
         return "get_attack_collection";
     }
@@ -339,6 +377,16 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_set_entity_collision_property))
     {
         return "set_entity_collision_property";
+    }
+
+    /* Global config property. */
+    else if (functionRef == ((void*)openbor_get_global_config_property))
+    {
+        return "get_global_config_property";
+    }
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return "set_global_config_property";
     }
 
     else if (functionRef == ((void *)openbor_tossentity))
@@ -689,6 +737,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "isfirst";
     }
+    else if (functionRef == ((void*)openbor_isarray))
+    {
+        return "isarray";
+    }
     else if (functionRef == ((void *)openbor_allocscreen))
     {
         return "allocscreen";
@@ -898,15 +950,39 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_systemvariant;
     }
-    else if (functionRef == ((void *)openbor_getentityproperty))
+    
+	// Animation
+	else if (functionRef == ((void*)openbor_get_animation_property))
+	{
+		return (void*)mapstrings_animation_property;
+	}
+	else if (functionRef == ((void*)openbor_set_animation_property))
+	{
+		return (void*)mapstrings_animation_property;
+	}
+
+	// Animation
+	else if (functionRef == ((void*)openbor_get_sub_entity_property))
+	{
+		return (void*)mapstrings_sub_entity_property;
+	}
+	else if (functionRef == ((void*)openbor_set_sub_entity_property))
+	{
+		return (void*)mapstrings_sub_entity_property;
+	}
+
+	// Entity (Legacy)
+	else if (functionRef == ((void *)openbor_getentityproperty))
     {
         return (void *)mapstrings_entityproperty;
     }
     else if (functionRef == ((void *)openbor_changeentityproperty))
     {
         return (void *)mapstrings_entityproperty;
-    }    
-    else if (functionRef == ((void *)openbor_get_entity_property))
+    } 
+	
+	// Entity
+	else if (functionRef == ((void *)openbor_get_entity_property))
     {
         return (void *)mapstrings_entity_property;
     }
@@ -992,7 +1068,17 @@ void *Script_GetStringMapFunction(void *functionRef)
 	{
 		return (void *)mapstrings_drawmethod;
 	}
-	
+
+    /* Global config properties. */
+    else if (functionRef == ((void*)openbor_get_global_config_property))
+    {
+        return (void*)mapstrings_global_config_property;
+    }
+    else if (functionRef == ((void*)openbor_set_global_config_property))
+    {
+        return (void*)mapstrings_global_config_property;
+    }
+
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
         return (void *)mapstrings_setspawnentry;
@@ -1076,6 +1162,10 @@ void Script_LoadSystemFunctions()
                      (void *)system_free, "free");
     List_InsertAfter(&theFunctionList,
                      (void *)system_typeof, "typeof");
+    List_InsertAfter(&theFunctionList,
+                    (void*)system_string_to_float, "string_to_float");
+    List_InsertAfter(&theFunctionList,
+                    (void*)system_string_to_int, "string_to_int");
     List_InsertAfter(&theFunctionList,
                      (void *)math_sin, "sin");
     List_InsertAfter(&theFunctionList,
@@ -1176,10 +1266,18 @@ void Script_LoadSystemFunctions()
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");
-    List_InsertAfter(&theFunctionList,
+    
+	// Animation properties.
+	List_InsertAfter(&theFunctionList,
                      (void *)openbor_get_animation_property, "get_animation_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_animation_property, "set_animation_property");
+
+	// Sub entity properties.
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_get_sub_entity_property, "get_sub_entity_property");
+	List_InsertAfter(&theFunctionList,
+		(void*)openbor_set_sub_entity_property, "set_sub_entity_property");
 
     // Attack properties
     List_InsertAfter(&theFunctionList,
@@ -1222,6 +1320,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_entity_property, "get_entity_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_entity_property, "set_entity_property");
+
+    /* Global config properties. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_global_config_property, "get_global_config_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_global_config_property, "set_global_config_property");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeentityproperty, "changeentityproperty");
@@ -1408,6 +1512,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_islast, "islast");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_isfirst, "isfirst");
+    List_InsertAfter(&theFunctionList,
+                    (void*)openbor_isarray, "isarray");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_allocscreen, "allocscreen");
     List_InsertAfter(&theFunctionList,

@@ -319,7 +319,7 @@ char *casesearch(const char *dir, const char *filepath)
     //if (entry != NULL && entry->d_name != NULL)
     if (entry != NULL)
     {
-        snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
+        strcpy(fullpath, dir); strcat(fullpath, "/"); strcat(fullpath, entry->d_name);
     }
 
     if (closedir(d))
@@ -373,7 +373,7 @@ void packfile_mode(int mode)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#if WIN || LINUX
+#if WIN
 int isRawData()
 {
     DIR *d;
@@ -383,6 +383,29 @@ int isRawData()
     }
     closedir(d);
     return 1;
+}
+#endif
+
+#if LINUX
+int isRawData()
+{//check for data folder without case sensitivity.
+  DIR *d;
+  struct dirent *ep;     
+  d = opendir (".");
+  
+  if (d != NULL)
+  {
+    while( (ep = readdir(d)) ) 
+    {//read though all files and folders in directory.
+  if (strcasecmp("data",ep->d_name) == 0)
+      {//if data folder found.
+        (void) closedir (d);
+        return 1;
+      }
+    }
+  }
+  (void) closedir (d);
+  return 0;
 }
 #endif
 
@@ -434,9 +457,9 @@ int openPackfile(const char *filename, const char *packfilename)
 #endif
 
     packfilepointer[h] = 0;
-	int per = 666;
+	int file_permission = 666;
     // Separate file present?
-    if((handle = open(filename, O_RDONLY | O_BINARY, per)) != -1)
+    if((handle = open(filename, O_RDONLY | O_BINARY, file_permission)) != -1)
     {
         if((packfilesize[h] = lseek(handle, 0, SEEK_END)) == -1)
         {
@@ -463,7 +486,7 @@ int openPackfile(const char *filename, const char *packfilename)
     fspath = casesearch(".", filename);
     if (fspath != NULL)
     {
-        if((handle = open(fspath, O_RDONLY | O_BINARY, per)) != -1)
+        if((handle = open(fspath, O_RDONLY | O_BINARY, file_permission)) != -1)
         {
             if((packfilesize[h] = lseek(handle, 0, SEEK_END)) == -1)
             {
@@ -493,7 +516,7 @@ int openPackfile(const char *filename, const char *packfilename)
 #endif
 
     // Try to open packfile
-    if((handle = open(packfilename, O_RDONLY | O_BINARY, per)) == -1)
+    if((handle = open(packfilename, O_RDONLY | O_BINARY, file_permission)) == -1)
     {
 #ifdef VERBOSE
         printf ("perm err\n");
