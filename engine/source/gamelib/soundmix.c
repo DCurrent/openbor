@@ -56,7 +56,7 @@ Caution: move vorbis headers here otherwise the structs will
 
 
 #define		MIXSHIFT		     3	    // 2 should be OK
-#define		MAXVOLUME		     64	    // 64 for backw. compat.
+#define		MAXVOLUME		     64	    // 64 for backw. compat. Kratus (10-2022) doubled the max volume
 //#define		MAX_SAMPLES		     1024	// Should be well enough
 #define		MAX_CHANNELS	     64	    // Should be well enough
 
@@ -475,8 +475,8 @@ static void mixaudio(unsigned int todo)
 
             // Mix a sample
             lmusic = rmusic = sptr16[FIX_TO_INT(fp_pos)];
-            lmusic = (lmusic * lvolume / MAXVOLUME);
-            rmusic = (rmusic * rvolume / MAXVOLUME);
+            lmusic = (lmusic * lvolume / MAXVOLUME * 2);
+            rmusic = (rmusic * rvolume / MAXVOLUME * 2);
             mixbuf[i++] += lmusic;
             if(musicchannel.channels == SOUND_MONO)
             {
@@ -519,10 +519,10 @@ static void mixaudio(unsigned int todo)
                 for(i = 0; i < (int)todo;)
                 {
                     lmusic = rmusic = sptr8[FIX_TO_INT(fp_pos)];
-                    mixbuf[i++] += ((lmusic << 8) * lvolume / MAXVOLUME) - 0x8000;
+                    mixbuf[i++] += ((lmusic << 8) * lvolume / MAXVOLUME * 2) - 0x8000;
                     if(vchannel[chan].channels == SOUND_MONO)
                     {
-                        mixbuf[i++] += ((rmusic << 8) * rvolume / MAXVOLUME) - 0x8000;
+                        mixbuf[i++] += ((rmusic << 8) * rvolume / MAXVOLUME * 2) - 0x8000;
                     }
                     fp_pos += fp_period;
 
@@ -544,10 +544,10 @@ static void mixaudio(unsigned int todo)
                 for(i = 0; i < (int)todo;)
                 {
                     lmusic = rmusic = (int)(short)SwapLSB16(sptr16[FIX_TO_INT(fp_pos)]);
-                    mixbuf[i++] += (lmusic * lvolume / MAXVOLUME);
+                    mixbuf[i++] += (lmusic * lvolume / MAXVOLUME * 2);
                     if(vchannel[chan].channels == SOUND_MONO)
                     {
-                        mixbuf[i++] += (rmusic * rvolume / MAXVOLUME);
+                        mixbuf[i++] += (rmusic * rvolume / MAXVOLUME * 2);
                     }
                     fp_pos += fp_period;
 
@@ -685,13 +685,13 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
     {
         rvolume = 0;
     }
-    if(lvolume > MAXVOLUME)
+    if(lvolume > MAXVOLUME * 2)
     {
-        lvolume = MAXVOLUME;
+        lvolume = MAXVOLUME * 2;
     }
-    if(rvolume > MAXVOLUME)
+    if(rvolume > MAXVOLUME * 2)
     {
-        rvolume = MAXVOLUME;
+        rvolume = MAXVOLUME * 2;
     }
 
     vchannel[channel].samplenum = samplenum;
@@ -790,13 +790,13 @@ void sound_volume_sample(int channel, int lvolume, int rvolume)
     {
         rvolume = 0;
     }
-    if(lvolume > MAXVOLUME)
+    if(lvolume > MAXVOLUME * 2)
     {
-        lvolume = MAXVOLUME;
+        lvolume = MAXVOLUME * 2;
     }
-    if(rvolume > MAXVOLUME)
+    if(rvolume > MAXVOLUME * 2)
     {
-        rvolume = MAXVOLUME;
+        rvolume = MAXVOLUME * 2;
     }
     vchannel[channel].volume[0] = lvolume;
     vchannel[channel].volume[1] = rvolume;
@@ -1531,13 +1531,13 @@ void sound_volume_music(int left, int right)
     {
         right = 0;
     }
-    if(left > MAXVOLUME * 8)
+    if(left > MAXVOLUME * 16)
     {
-        left = MAXVOLUME * 8;
+        left = MAXVOLUME * 16;
     }
-    if(right > MAXVOLUME * 8)
+    if(right > MAXVOLUME * 16)
     {
-        right = MAXVOLUME * 8;
+        right = MAXVOLUME * 16;
     }
     musicchannel.volume[0] = left;
     musicchannel.volume[1] = right;

@@ -469,7 +469,7 @@ int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
 	[GRAB_ACTION_SELECT_BACKWARD] = {ANI_GRABBACKWARD, ANI_GRABBACKWARD2},
 	[GRAB_ACTION_SELECT_FORWARD] = {ANI_GRABFORWARD, ANI_GRABFORWARD2},
     [GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
-	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}    
+	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}
 };
 
 int                 freespecials[MAX_SPECIALS] =
@@ -523,11 +523,12 @@ int					groupmax            = 0;
 int                 selectScreen        = 0;					// Flag to determine if at select screen (used for setting animations)
 int					titleScreen			= 0;
 int					menuScreen			= 0;
-int					enginecreditsScreen		= 0;								// CRxTRDude - Flag to determine if the credits for the engine is shown.
+int					enginecreditsScreen	= 0;								// CRxTRDude - Flag to determine if the credits for the engine is shown.
 int					hallOfFame			= 0;
 int					optionsMenu			= 0;
 int					newgameMenu			= 0;
 int					loadgameMenu		= 0;
+int					buttonconfigMenu	= 0;					// Kratus (04-2022) Added a new variant to detect the button configuration menu
 int					controloptionsMenu	= 0;
 int					videooptionsMenu	= 0;
 int					soundoptionsMenu	= 0;
@@ -553,6 +554,7 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
+int                 allow_cheats        = -1;                   // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
 int                 forcecheatsoff      = 0;
 int                 nodebugoptions      = 0;
 int                 cheats              = 0;
@@ -574,8 +576,8 @@ int                 mpstrict			= 0;					// If current system will check all anim
 int                 magic_type			= 0;					// use for restore mp by time by tails
 entity             *textbox				= NULL;
 entity             *smartbomber			= NULL;
-entity				*stalker				= NULL;					// an enemy (usually) tries to go behind the player
-entity				*firstplayer			= NULL;
+entity				*stalker			= NULL;					// an enemy (usually) tries to go behind the player
+entity				*firstplayer		= NULL;
 int					stalking			= 0;
 int					nextplan			= 0;
 int                 plife[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
@@ -693,8 +695,8 @@ unsigned int        credscore			= 0;					// Number of points needed to earn a cr
 int                 mpblock				= 0;					// Take chip damage from health or MP first?
 int                 blockratio			= 0;					// Take half-damage while blocking?
 int                 nochipdeath			= 0;					// Prevents entities from dying due to chip damage (damage while blocking)
-int                 noaircancel         = 0;					// Now, you can make jumping attacks uncancellable!
-int                 nomaxrushreset[5]   = {0, 0, 0, 0, 0};
+int                 noaircancel			= 0;					// Now, you can make jumping attacks uncancellable!
+int                 nomaxrushreset[5]	= {0, 0, 0, 0, 0};
 int			        mpbartext[4]		= { -1, 0, 0, 0};			// Array for adjusting MP status text (font, Xpos, Ypos, Display type).
 int			        lbartext[4]			= { -1, 0, 0, 0};			// Array for adjusting HP status text (font, Xpos, Ypos, Display type).
 int                 pmp[4][2]			= {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player mpbar
@@ -2537,8 +2539,8 @@ void clearsettings()
     savedata.brightness = 0;
     savedata.soundvol = 15;
     savedata.usemusic = 1;
-    savedata.musicvol = 100;
-    savedata.effectvol = 120;
+    savedata.musicvol = 120; //Kratus (10-2022) Changed the default music volume
+    savedata.effectvol = 70; //Kratus (10-2022) Changed the default effect volume
     savedata.usejoy = 1;
     savedata.mode = 0;
     savedata.showtitles = 0;
@@ -4552,18 +4554,45 @@ int translate_SDID(char *value)
 
 void load_menu_txt()
 {
-    char *filename = "data/menu.txt";
+    char *filename = "translation/menu.txt";
     int pos, i;
     char *buf, *command;
     size_t size;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
-    // Read file
+    /*
+        Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+        Now the modder can load exported translation files by using "filestream" script functions
+        Useful for creating custom translations without unpack the game
+        The default engine translation location will be maintained for backward compatibility
+
+        Kratus (11-2021) Inverted the path priority, now the external file will override the internal file
+        Useful to maintain the english translation intact inside the pak file if no other language file is found in the external path
+        Otherwise you will need to rollback the english file every time another language is used and then removed
+        This operation is needed only if the english translation file uses some custom menu texts for english language too
+    */
     if(buffer_pakfile(filename, &buf, &size) != 1)
+    {
+        goto default_file;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+default_file:
+
+    if(buffer_pakfile("data/menu.txt", &buf, &size) != 1)
     {
         return;
     }
+    else
+    {
+        goto proceed;
+    }
+
+proceed:
 
     // Now interpret the contents of buf line by line
     pos = 0;
@@ -7315,6 +7344,18 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_GRAB;
     }
+    else if(stricmp(value, "backgrab") == 0) // Kratus (10-2021) Added the new backgrab animation
+    {
+        ani_id = ANI_BACKGRAB;
+    }
+    else if(stricmp(value, "vault") == 0) // Kratus (10-2021) Added the new vault animation
+    {
+        ani_id = ANI_VAULT;
+    }
+    else if(stricmp(value, "vault2") == 0) // Kratus (10-2021) Added the new vault2 animation
+    {
+        ani_id = ANI_VAULT2;
+    }
     else if(stricmp(value, "grabwalk") == 0)
     {
         ani_id = ANI_GRABWALK;
@@ -8711,6 +8752,7 @@ s_model *init_model(int cacheindex, int unload)
     alloc_all_scripts(&newchar->scripts);
 
     newchar->unload             = unload;
+    newchar->jumpspecial        = 0; // Kratus (10-2021) Added new property to kill or not the default jumpspecial movement
     newchar->jumpspeed          = default_model_jumpspeed;
     newchar->jumpheight         = default_model_jumpheight; // 28-12-2004   Set default jump height to 4, if not specified
     newchar->runjumpheight      = default_model_jumpheight; // Default jump height if a player is running
@@ -8725,6 +8767,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.weapon		= -1;			    // No weapon icon set yet
     newchar->diesound           = -1;
     newchar->nolife             = 0;			    // default show life = 1 (yes)
+    newchar->noshadow           = 0; // Kratus (10-2021) Temporarily disable shadow without losing entity's shadow configuration
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
     newchar->counter            = 3;			    // Default 3 times to drop a weapon / projectile
@@ -9434,6 +9477,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 newchar->speed = atof(value);
                 break;
+            case CMD_MODEL_JUMPSPECIAL: // Kratus (10-2021) Added new jumpspecial property
+                newchar->jumpspecial = GET_INT_ARG(1);
+                break;
             case CMD_MODEL_JUMPSPEED:
                 value = GET_ARG(1);
                 newchar->jumpspeed = atof(value);
@@ -9880,6 +9926,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_NOPAIN:
                 newchar->nopain = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_NOSHADOW:
+                newchar->noshadow = GET_INT_ARG(1); // Kratus (10-2021) Added new noshadow property
                 break;
             case CMD_MODEL_ESCAPEHITS:
                 // How many times an enemy can be hit before retaliating
@@ -19676,6 +19725,13 @@ void do_active_block(entity *ent)
 // so on. It does not handle rules for AI blocking.
 int check_blocking_eligible(entity *ent, entity *other, s_collision_attack *attack)
 {
+	// Kratus (10-2021) For safe, confirm if the entity's "BLOCKING" instance was gone or not
+	// This is to avoid the entity to block while in other animations like RISE, PAIN or WALK.
+	if (!ent->blocking)
+	{
+		return 0;
+	}
+
 	// If guardpoints are set, then find out if they've been depleted.
 	if (ent->modeldata.guardpoints.max)
 	{
@@ -19809,9 +19865,11 @@ int check_blocking_decision(entity *ent)
 		}
 	}
 
+	// Kratus (10-2021) Fixed the random blocking chance according with the "blockodds" value defined by the modder
+	// Now it works as intended (1 = block all / 2147483647 = never block)
 	// Run random chance against blockodds. If it
 	// passes, AI will block.
-	if ((rand32()&ent->modeldata.blockodds) == 1)
+	if ((rand32()&ent->modeldata.blockodds) == 0)
 	{
 		return 1;
 	}
@@ -20024,6 +20082,12 @@ entity *spawn_attack_flash(entity *ent, s_collision_attack *attack, int attack_f
 		{
 			flash->direction = (lasthit.position.x > ent->position.x);
 		}
+		else
+		{// Kratus (10-2021) If the flag is 0, the flash will get the same direction as the defender
+		 // This change was made to avoid the "random" direction applied by "toflip 1", because it depends on the "lasthit" position
+		 // Without this line, the flash will never change the direction according to the defender's facing when "toflip" is 0
+			flash->direction = (ent->direction);
+		}
 
 		// Run flash's spawn script.
 		execute_onspawn_script(flash);
@@ -20070,7 +20134,9 @@ void do_attack(entity *e)
     }
 
 	// If any blast active, use projectile hit property.
-    if(e->projectile & BLAST_ATTACK)
+    // Kratus (30-08-2022) Replicated the same bug fix as the global beta does
+    // replacing the "& BLAST_ATTACK" by the "!= BLAST_NONE"
+    if(e->projectile != BLAST_NONE)
     {
         them = e->modeldata.projectilehit;
     }
@@ -22616,90 +22682,183 @@ void display_ents()
                     }
                 }//end of if(f<sprites_loaded)
 
-                if(e->modeldata.gfxshadow == 1 && f < sprites_loaded) //gfx shadow
+                // Kratus (10-2021) Added new "noshadow" property
+                // Used to temporarily disable shadow without changing the previously defined entity's shadow number
+                // Useful to avoid using "shadow 0" and needs to save the previously defined number into a variable
+                // Useful to avoid using "fshadow" at every animation, can be enabled/disabled by script events
+                if(e->modeldata.noshadow != 1)
                 {
-                    useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
-                    //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
-
-                    if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    if(e->modeldata.gfxshadow == 1 && f < sprites_loaded) //gfx shadow
                     {
-                        wall = checkwall_below(e->position.x, e->position.z, e->position.y);
-                        if(wall < 0)
-                        {
-                            alty = (int)e->position.y;
-                            temp1 = -1 * e->position.y * light.x / 256; // xshift
-                            temp2 = (float)(-alty * light.y / 256);               // zshift
-                            qx = (int)(e->position.x - scrx/* + temp1*/);
-                            qy = (int)(e->position.z - scry/* +  temp2*/);
-                        }
-                        else
-                        {
-                            alty = (int)(e->position.y - level->walls[wall].height);
-                            temp1 = -1 * (e->position.y - level->walls[wall].height) * light.x / 256; // xshift
-                            temp2 = (float)(-alty * light.y / 256);               // zshift
-                            qx = (int)(e->position.x - scrx/* + temp1*/);
-                            qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
-                        }
+                        useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
+                        //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
 
-                        wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
-
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1) )
+                        if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
                         {
-                            alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]));
-                            temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])) * light.x / 256; // xshift
-                            temp2 = (float)(-e->position.y * light.y / 256);
-
-                            qx = (int)( e->position.x - scrx );
-                            qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] ); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
-                            //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
-                        }
-
-                        if(basemap > 0 && !(e->modeldata.shadowbase&1))
-                        {
-                            alty = (int)(e->position.y - basemap);
-                            temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
-                            temp2 = (float)(-alty * light.y / 256);               // zshift
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - scry - basemap);
-                        }
-
-                        //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
-                        if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
-                        {
-                            if(wall >= 0 && wall2 >= 0)
+                            wall = checkwall_below(e->position.x, e->position.z, e->position.y);
+                            if(wall < 0)
                             {
-                                alty += (int)(level->walls[wall].height - level->walls[wall2].height);
-                                /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light.x/256;
-                                qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light.y/256;*/
+                                alty = (int)e->position.y;
+                                temp1 = -1 * e->position.y * light.x / 256; // xshift
+                                temp2 = (float)(-alty * light.y / 256);               // zshift
+                                qx = (int)(e->position.x - scrx/* + temp1*/);
+                                qy = (int)(e->position.z - scry/* +  temp2*/);
                             }
-                            else if(wall >= 0)
+                            else
                             {
-                                alty += (int)(level->walls[wall].height);
-                                /*qx += -1*level->walls[wall].height*light.x/256;
-                                qy += level->walls[wall].height - level->walls[wall].height*light.y/256;*/
-                            }
-                            else if(wall2 >= 0)
-                            {
-                                alty -= (int)(level->walls[wall2].height);
-                                /*qx -= -1*level->walls[wall2].height*light.x/256;
-                                qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
+                                alty = (int)(e->position.y - level->walls[wall].height);
+                                temp1 = -1 * (e->position.y - level->walls[wall].height) * light.x / 256; // xshift
+                                temp2 = (float)(-alty * light.y / 256);               // zshift
+                                qx = (int)(e->position.x - scrx/* + temp1*/);
+                                qy = (int)(e->position.z - scry /*+  temp2*/ - level->walls[wall].height);
                             }
 
-                            /*if (other)
+                            wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
+
+                            if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1) )
                             {
-                                alty += (int)(other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
-                            }*/
+                                alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]));
+                                temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])) * light.x / 256; // xshift
+                                temp2 = (float)(-e->position.y * light.y / 256);
 
-                            // set 2D-LIKE shadow
-                            if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
+                                qx = (int)( e->position.x - scrx );
+                                qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] ); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
+                                //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
+                            }
 
-                            sy = (2 * MIRROR_Z - qy) - 2 * scry;
+                            if(basemap > 0 && !(e->modeldata.shadowbase&1))
+                            {
+                                alty = (int)(e->position.y - basemap);
+                                temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
+                                temp2 = (float)(-alty * light.y / 256);               // zshift
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - scry - basemap);
+                            }
 
-                            if ( other && !(e->modeldata.shadowbase&1) ) z = other->position.z + 1;
-                            else z = shadowz;
+                            //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
+                            if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
+                            {
+                                if(wall >= 0 && wall2 >= 0)
+                                {
+                                    alty += (int)(level->walls[wall].height - level->walls[wall2].height);
+                                    /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light.x/256;
+                                    qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light.y/256;*/
+                                }
+                                else if(wall >= 0)
+                                {
+                                    alty += (int)(level->walls[wall].height);
+                                    /*qx += -1*level->walls[wall].height*light.x/256;
+                                    qy += level->walls[wall].height - level->walls[wall].height*light.y/256;*/
+                                }
+                                else if(wall2 >= 0)
+                                {
+                                    alty -= (int)(level->walls[wall2].height);
+                                    /*qx -= -1*level->walls[wall2].height*light.x/256;
+                                    qy -= level->walls[wall2].height - level->walls[wall2].height*light.y/256;*/
+                                }
 
-                            sz = PANEL_Z - HUD_Z;
+                                /*if (other)
+                                {
+                                    alty += (int)(other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]);
+                                }*/
 
+                                // set 2D-LIKE shadow
+                                if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
+
+                                sy = (2 * MIRROR_Z - qy) - 2 * scry;
+
+                                if ( other && !(e->modeldata.shadowbase&1) ) z = other->position.z + 1;
+                                else z = shadowz;
+
+                                sz = PANEL_Z - HUD_Z;
+
+                                if(e->animation->shadow_coords)
+                                {
+                                    if(e->direction == DIRECTION_RIGHT)
+                                    {
+                                        qx += e->animation->shadow_coords[e->animpos][0];
+                                    }
+                                    else
+                                    {
+                                        qx -= e->animation->shadow_coords[e->animpos][0];
+                                    }
+                                    qy += e->animation->shadow_coords[e->animpos][1];
+                                    sy -= e->animation->shadow_coords[e->animpos][1];
+                                }
+                                shadowmethod = plainmethod;
+                                shadowmethod.fillcolor = (shadowcolor > 0 ? shadowcolor : 0);
+                                shadowmethod.alpha = shadowalpha;
+                                shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
+                                shadowmethod.table = drawmethod->table;
+                                shadowmethod.scalex = drawmethod->scalex;
+                                shadowmethod.flipx = drawmethod->flipx;
+                                shadowmethod.scaley = light.y * drawmethod->scaley / 256;
+                                shadowmethod.flipy = drawmethod->flipy;
+                                shadowmethod.centery += alty;
+                                if(shadowmethod.flipy)
+                                {
+                                    shadowmethod.centery = -shadowmethod.centery;
+                                }
+                                if(shadowmethod.scaley < 0)
+                                {
+                                    shadowmethod.scaley = -shadowmethod.scaley;
+                                    shadowmethod.flipy = !shadowmethod.flipy;
+                                }
+                                shadowmethod.rotate = drawmethod->rotate;
+                                shadowmethod.shiftx = drawmethod->shiftx + light.x;
+
+                                spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
+                                if(use_mirror)
+                                {
+                                    shadowmethod.flipy = !shadowmethod.flipy;
+                                    shadowmethod.centery = -shadowmethod.centery;
+                                    spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
+                                }
+                            }
+                        }//end of gfxshadow
+                    }
+                    else //plain shadow
+                    {
+                        useshadow = e->animation->shadow ? e->animation->shadow[e->animpos] : e->modeldata.shadow;
+                        if(useshadow < 0)
+                        {
+                            useshadow = e->modeldata.shadow;
+                        }
+                        if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                        {
+                            if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1))
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
+
+                                z = (int)(other->position.z + 1);
+                                sz = 2 * PANEL_Z - z;
+                            }
+                            else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - level->walls[wall].height - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - level->walls[wall].height - scry);
+                                z = shadowz;
+                                sz = PANEL_Z - HUD_Z;
+                            }
+                            else if(level && basemap > 0 && !(e->modeldata.shadowbase&1))
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - basemap - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - basemap - scry);
+                                z = shadowz;
+                                sz = PANEL_Z - HUD_Z;
+                            }
+                            else
+                            {
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - scry);
+                                sy = (int)((2 * MIRROR_Z - e->position.z) - scry);
+                                z = shadowz;
+                                sz = PANEL_Z - HUD_Z;
+                            }
                             if(e->animation->shadow_coords)
                             {
                                 if(e->direction == DIRECTION_RIGHT)
@@ -22713,104 +22872,18 @@ void display_ents()
                                 qy += e->animation->shadow_coords[e->animpos][1];
                                 sy -= e->animation->shadow_coords[e->animpos][1];
                             }
-                            shadowmethod = plainmethod;
-                            shadowmethod.fillcolor = (shadowcolor > 0 ? shadowcolor : 0);
-                            shadowmethod.alpha = shadowalpha;
-                            shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
-                            shadowmethod.table = drawmethod->table;
-                            shadowmethod.scalex = drawmethod->scalex;
-                            shadowmethod.flipx = drawmethod->flipx;
-                            shadowmethod.scaley = light.y * drawmethod->scaley / 256;
-                            shadowmethod.flipy = drawmethod->flipy;
-                            shadowmethod.centery += alty;
-                            if(shadowmethod.flipy)
-                            {
-                                shadowmethod.centery = -shadowmethod.centery;
-                            }
-                            if(shadowmethod.scaley < 0)
-                            {
-                                shadowmethod.scaley = -shadowmethod.scaley;
-                                shadowmethod.flipy = !shadowmethod.flipy;
-                            }
-                            shadowmethod.rotate = drawmethod->rotate;
-                            shadowmethod.shiftx = drawmethod->shiftx + light.x;
 
-                            spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
+                            shadowmethod = plainmethod;
+                            shadowmethod.alpha = BLEND_MULTIPLY + 1;
+                            shadowmethod.flipx = !e->direction;
+
+                            spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                             if(use_mirror)
                             {
-                                shadowmethod.flipy = !shadowmethod.flipy;
-                                shadowmethod.centery = -shadowmethod.centery;
-                                spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
+                                spriteq_add_sprite(qx, sy, sz, shadowsprites[useshadow - 1], &shadowmethod, 0);
                             }
-                        }
-                    }//end of gfxshadow
-                }
-                else //plain shadow
-                {
-                    useshadow = e->animation->shadow ? e->animation->shadow[e->animpos] : e->modeldata.shadow;
-                    if(useshadow < 0)
-                    {
-                        useshadow = e->modeldata.shadow;
+                        }//end of plan shadow
                     }
-                    if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
-                    {
-                        if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1))
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
-
-                            z = (int)(other->position.z + 1);
-                            sz = 2 * PANEL_Z - z;
-                        }
-                        else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - level->walls[wall].height - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - level->walls[wall].height - scry);
-                            z = shadowz;
-                            sz = PANEL_Z - HUD_Z;
-                        }
-                        else if(level && basemap > 0 && !(e->modeldata.shadowbase&1))
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - basemap - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - basemap - scry);
-                            z = shadowz;
-                            sz = PANEL_Z - HUD_Z;
-                        }
-                        else
-                        {
-                            qx = (int)(e->position.x - scrx);
-                            qy = (int)(e->position.z - scry);
-                            sy = (int)((2 * MIRROR_Z - e->position.z) - scry);
-                            z = shadowz;
-                            sz = PANEL_Z - HUD_Z;
-                        }
-                        if(e->animation->shadow_coords)
-                        {
-                            if(e->direction == DIRECTION_RIGHT)
-                            {
-                                qx += e->animation->shadow_coords[e->animpos][0];
-                            }
-                            else
-                            {
-                                qx -= e->animation->shadow_coords[e->animpos][0];
-                            }
-                            qy += e->animation->shadow_coords[e->animpos][1];
-                            sy -= e->animation->shadow_coords[e->animpos][1];
-                        }
-
-                        shadowmethod = plainmethod;
-                        shadowmethod.alpha = BLEND_MULTIPLY + 1;
-                        shadowmethod.flipx = !e->direction;
-
-                        spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
-                        if(use_mirror)
-                        {
-                            spriteq_add_sprite(qx, sy, sz, shadowsprites[useshadow - 1], &shadowmethod, 0);
-                        }
-                    }//end of plan shadow
                 }
             }// end of blink checking
 
@@ -24469,10 +24542,18 @@ e_animations do_grab_attack_finish(entity *ent, int which)
     // The target entity is already unlinked from
     // grab before this function was called, so in
     // game they are let go with no finishing attack.
+    // Kratus (10-2021) Added the vault animation before attack3
     if(validanim(ent, animation))
     {
         ent_set_anim(ent, animation, 0);
         return animation;
+    }
+    else if(validanim(ent, ANI_VAULT))
+    {
+        // Get the vault animation first.
+        // The modder can disable it by simply not declaring this animation
+        ent_set_anim(ent, ANI_VAULT, 0);
+        return ANI_VAULT;
     }
     else if(validanim(ent, ANI_ATTACK3))
     {
@@ -26352,7 +26433,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
     /* If adjust_grabposition passed (or wasn't needed) perform grab actions. */
     if(pass)
     {
-        if(attacker->model->grabflip & 1)
+        if(attacker->modeldata.grabflip & 1) // Kratus (10-2021) Make grabflip property accessible by script
         {
             attacker->direction = (attacker->position.x < target->position.x);
         }
@@ -26375,7 +26456,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         /* Check for grab animation, otherwise use orginal throwing system. */
         if(validanim(self, ANI_GRAB))
         {
-            if(attacker->model->grabflip & 2)
+            if(attacker->modeldata.grabflip & 2) // Kratus (10-2021) Make grabflip property accessible by script
             {
                 target->direction = !attacker->direction;
             }
@@ -26400,7 +26481,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
             }
             else
             {
-                if(self->model->grabflip & 2)
+                if(self->modeldata.grabflip & 2) // Kratus (10-2021) Make grabflip property accessible by script
                 {
                     target->direction = !attacker->direction;
                 }
@@ -30075,8 +30156,6 @@ int check_range_target_z(entity *ent, entity *target, s_anim *animation)
             && target_z <= animation->range.z.max);
 }
 
-
-
 int check_special()
 {
     entity *e;
@@ -30110,41 +30189,86 @@ int check_special()
             smartbomber = self;    // Freezes the animations of all enemies/players while special is executed
         }
 
-        if(!nocost && !healthcheat)
+        // Kratus (10-2021) Now the "infinite health cheat" affects players only, not enemies or npc
+        // And now the "infinite health cheat" will only work when the cost is HEALTH, will not work when the cost is MP anymore
+        if(self->modeldata.type & TYPE_PLAYER)
         {
-            // Energycost defined?
-            if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+            if(!nocost)
             {
-                if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
+                if(!healthcheat)
                 {
-                    self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                    if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+                    {
+                        if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                        }
+                        else
+                        {
+                            self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                        }
+                    }
                 }
                 else
                 {
-                    self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                    if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+                    {
+                        if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                        }
+                    }
                 }
             }
         }
-
+        else
+        {
+            if(!nocost)
+            {
+                if(self->modeldata.animation[ANI_SPECIAL]->energycost)
+                {
+                    if(check_energy(COST_CHECK_MP, ANI_SPECIAL))
+                    {
+                        self->energy_state.mp_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                    }
+                    else
+                    {
+                        self->energy_state.health_current -= self->modeldata.animation[ANI_SPECIAL]->energycost->cost;
+                    }
+                }
+            }
+        }
         return 1;
     }
     return 0;
 }
 
-
 // Check keys for special move. Used several times, so I func'd it.
+// Kratus (10-2021) Added new flags to use with another ATTACK# keys as an new alternative
 int player_check_special()
 {
     u64 thekey = 0;
-    if((!ajspecial || (ajspecial && !validanim(self, ANI_BLOCK))) &&
+    if((ajspecial == 0 || (ajspecial == 1 && !validanim(self, ANI_BLOCK))) &&
             (player[self->playerindex].playkeys & FLAG_SPECIAL))
     {
         thekey = FLAG_SPECIAL;
     }
-    else if(ajspecial && ((player[self->playerindex].playkeys & FLAG_JUMP) &&
+    else if(ajspecial == 1 && ((player[self->playerindex].playkeys & FLAG_JUMP) &&
                           (player[self->playerindex].keys & FLAG_ATTACK)))
     {
         thekey = FLAG_JUMP;
+    }
+    else if(ajspecial == 2 && ((player[self->playerindex].keys & FLAG_ATTACK2)))
+    {
+        thekey = FLAG_ATTACK2;
+    }
+    else if(ajspecial == 3 && ((player[self->playerindex].keys & FLAG_ATTACK3)))
+    {
+        thekey = FLAG_ATTACK3;
+    }
+    else if(ajspecial == 4 && ((player[self->playerindex].keys & FLAG_ATTACK4)))
+    {
+        thekey = FLAG_ATTACK4;
     }
     else
     {
@@ -30764,10 +30888,16 @@ void player_grab_check()
         player[self->playerindex].playkeys &= ~FLAG_ATTACK;
         dograbattack(GRAB_ACTION_SELECT_ATTACK);
     }
-    // grab attack finisher
-    else if(player[self->playerindex].playkeys & (FLAG_JUMP | FLAG_ATTACK))
+    // Kratus (10-2021) Added the vault animation
+    else if(player[self->playerindex].playkeys & FLAG_JUMP && validanim(self, ANI_VAULT))
     {
-        player[self->playerindex].playkeys &= ~(FLAG_JUMP | FLAG_ATTACK);
+        player[self->playerindex].playkeys &= ~FLAG_JUMP;
+        dograbattack(GRAB_ACTION_SELECT_FINISH); // Kratus (07-2022) Fixes the "3-vaults" loop bug, execute once
+    }
+    // grab attack finisher
+    else if(player[self->playerindex].playkeys & (FLAG_ATTACK | FLAG_JUMP))
+    {
+        player[self->playerindex].playkeys &= ~(FLAG_ATTACK | FLAG_JUMP);
 
         // Perform final blow
         if(validanim(self, ANI_GRABATTACK2) || validanim(self, ANI_ATTACK3))
@@ -31000,42 +31130,55 @@ void player_jump_check()
 {
     int candospecial = 0;
 
-    if(!noaircancel || !self->animating || self->animnum == self->jump.animation_id)
+    // Kratus (10-2021) Fixed the noaircancel function
+    // Now the flag "2" works as intended and completely disables the cancelation between all jumping attacks
+    // In the previous code, both flags 1 and 2 have the same effect and allow the cancelation after last jumpattack is finished
+    if((!noaircancel) || (noaircancel&1 && !self->animating) || (noaircancel&3 && (self->animnum == self->jump.animation_id)))
     {
         //air special, copied and changed from Fugue's code
         if((!level->nospecial || level->nospecial == 3) && player[self->playerindex].playkeys & FLAG_SPECIAL)
         {
-
             if(validanim(self, ANI_JUMPSPECIAL))
             {
-                if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_MP, ANI_JUMPSPECIAL))
+                // Kratus (10-2021) For safe, added an new step to check if the entity is not in the "jumpspecial" animation
+                // Fixes the bug that constantly consumes health or mp if the special button is constantly pressed, even if
+                // the current "jumpspecial" animation cycle is not finished yet
+                if(self->animnum != ANI_JUMPSPECIAL)
                 {
-                    if(!healthcheat)
+                    if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_MP, ANI_JUMPSPECIAL))
                     {
+                        // Kratus (10-2021) Now the "infinite health cheat" will only work when the cost is HEALTH, will not work when the cost is MP anymore
                         self->energy_state.mp_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        candospecial = 1;
                     }
-                    candospecial = 1;
-                }
-                else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_HP, ANI_JUMPSPECIAL))
-                {
-                    if(!healthcheat)
+                    else if(self->modeldata.animation[ANI_JUMPSPECIAL]->energycost && check_energy(COST_CHECK_HP, ANI_JUMPSPECIAL))
                     {
-                        self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        if(!healthcheat)
+                        {
+                            self->energy_state.health_current -= self->modeldata.animation[ANI_JUMPSPECIAL]->energycost->cost;
+                        }
+                        candospecial = 1;
                     }
-                    candospecial = 1;
-                }
-                else if(validanim(self, ANI_JUMPCANT))
-                {
-                    ent_set_anim(self, ANI_JUMPCANT, 0);
-                    self->velocity.y = 0;
+                    else if(validanim(self, ANI_JUMPCANT))
+                    {
+                        ent_set_anim(self, ANI_JUMPCANT, 0);
+                        self->velocity.y = 0;
+                    }
                 }
 
                 if(candospecial)
                 {
                     player[self->playerindex].playkeys &= ~FLAG_SPECIAL;
                     self->attacking = ATTACKING_ACTIVE;
-                    self->velocity.x = self->velocity.z = 0;                         // Kill movement when the special starts
-                    self->velocity.y = 0;
+
+                    // Kratus (10-2021) Add a option to kill or not the xyz movement
+                    // Kratus (04-2022) Minor fix on the jumpspecial code
+                    if(!(self->modeldata.jumpspecial & 1))
+                    {
+                        self->velocity.x = self->velocity.z = 0; // Kill movement when the special starts
+                        self->velocity.y = 0;
+                    }
+
                     ent_set_anim(self, ANI_JUMPSPECIAL, 0);
                 }
             }
@@ -31187,7 +31330,6 @@ void player_charge_check()
     }
 }
 
-
 // make a function so enemies can use
 // UT: jumphack is a temporary fix for jump cancel
 int check_costmove(int s, int fs, int jumphack)
@@ -31200,17 +31342,53 @@ int check_costmove(int s, int fs, int jumphack)
         {
             self->takeaction = common_attack_proc;
         }
-        if(!nocost && !healthcheat)
+
+        // Kratus (10-2021) Now the "infinite health cheat" affects players only, not enemies or npc
+        // And now the "infinite health cheat" will only work when the cost is HEALTH, will not work when the cost is MP anymore
+        if(self->modeldata.type & TYPE_PLAYER)
         {
-            if(self->modeldata.animation[s]->energycost)
+            if(!nocost)
             {
-                if(check_energy(COST_CHECK_MP, s))
+                if(!healthcheat)
                 {
-                    self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
+                    if(self->modeldata.animation[s]->energycost)
+                    {
+                        if(check_energy(COST_CHECK_MP, s))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
+                        }
+                        else
+                        {
+                            self->energy_state.health_current -= self->modeldata.animation[s]->energycost->cost;
+                        }
+                    }
                 }
                 else
                 {
-                    self->energy_state.health_current -= self->modeldata.animation[s]->energycost->cost;
+                    if(self->modeldata.animation[s]->energycost)
+                    {
+                        if(check_energy(COST_CHECK_MP, s))
+                        {
+                            self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            if(!nocost)
+            {
+                if(self->modeldata.animation[s]->energycost)
+                {
+                    if(check_energy(COST_CHECK_MP, s))
+                    {
+                        self->energy_state.mp_current -= self->modeldata.animation[s]->energycost->cost;
+                    }
+                    else
+                    {
+                        self->energy_state.health_current -= self->modeldata.animation[s]->energycost->cost;
+                    }
                 }
             }
         }
@@ -31552,7 +31730,11 @@ void player_think()
         }
     }
 
-    if(!ajspecial && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))
+    // Kratus (10-2021) Added a new flag "2" to use ATTACK2 key as an new alternative
+    if( (ajspecial == 0 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (ajspecial == 2 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (ajspecial == 3 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
+        (ajspecial == 4 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH)))
     {
         if((pl->keys & FLAG_ATTACK) && notinair)
         {
@@ -32299,19 +32481,24 @@ void dropweapon(int flag)
     }
 }
 
-
 int player_takedamage(entity *other, s_collision_attack *attack, int fall_flag)
 {
     s_collision_attack atk = *attack;
     //printf("damaged by: '%s' %d\n", other->name, attack->attack_force);
-    if(healthcheat || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
+
+	// Kratus (10-2021) Now the "infinite health cheat" will check the damage source, it will avoid some "special" damage sources
+	bool normal_damage;
+
+	// Damage comes from a normal source?
+	normal_damage = (attack->attack_type != ATK_LIFESPAN && attack->attack_type != ATK_TIMEOVER && attack->attack_type != ATK_PIT);
+
+    if((healthcheat && (normal_damage)) || (level->nohurt == DAMAGE_FROM_ENEMY_OFF && (other->modeldata.type & TYPE_ENEMY)))
     {
         atk.attack_force = 0;
     }
 
     return common_takedamage(other, &atk, 0);
 }
-
 
 ////////////////////////////////
 
@@ -35444,12 +35631,13 @@ void borShutdown(int status, char *msg, ...)
     getRamStatus(BYTES);
     savesettings();
 
-    enginecreditsScreen = 1;		//entry point for the engine credits screen.
+    //Kratus (09-2022) Disabled the engine credit screen
+    //enginecreditsScreen = 1;		//entry point for the engine credits screen.
 
-    if(status != 2)
-    {
-        display_credits();
-    }
+    // if(status != 2)
+    // {
+    //     display_credits();
+    // }
 
     if(startup_done)
     {
@@ -35696,7 +35884,7 @@ void startup()
 {
     int i;
 
-    printf("FileCaching System Init......\t");
+    printf("FileCaching System Init.......\t");
     if(pak_init())
     {
         printf("Enabled\n");
@@ -35729,7 +35917,6 @@ void startup()
     }
 #endif
 
-    ob_inittrans();
     loadHighScoreFile();
     clearSavedGame();
 
@@ -35739,19 +35926,11 @@ void startup()
         borShutdown(1, "Unable to set video mode: %d x %d!\n", videomodes.hRes, videomodes.vRes);
     }
 
-    printf("Loading menu.txt.............\t");
-    load_menu_txt();
-    printf("Done!\n");
-
-    printf("Loading fonts................\t");
-    load_all_fonts();
-    printf("Done!\n");
-
     printf("Timer init...................\t");
     borTimerInit();
     printf("Done!\n");
 
-    printf("Initialize Sound..............\t");
+    printf("Initialize Sound.............\t");
     if(sound_init(12))
     {
         if(load_special_sounds())
@@ -35807,6 +35986,20 @@ void startup()
     }
     printf("Done!\n");
 
+    // Kratus (10-2021) Moved the translation, menu and font functions to the end of the engine "startup" function,
+    // but before the "control init" function
+    printf("Loading menu.txt.............\t");
+    load_menu_txt();
+    printf("Done!\n");
+
+    printf("Loading fonts................\t");
+    load_all_fonts();
+    printf("Done!\n");
+
+    printf("Loading translation..........\t");
+    ob_inittrans();
+    printf("Done!\n");
+
     printf("Input init...................\t");
     control_init(savedata.usejoy);
     apply_controls();
@@ -35834,8 +36027,8 @@ void startup()
     {
         savedata.logo = 0;
     }
-
-    printf("Save settings so far........\t");
+    
+    printf("Save settings so far.........\t");
     savesettings();
     printf("Done!\n");
 
@@ -37471,19 +37664,23 @@ int menu_difficulty()
             {
                 if(j < maxdisplay)
                 {
+                    // Kratus (10-2021) Added translation feature to the "set" name
+                    // It will get the "set" name in the "levels.txt" file and translate it
+                    // You need to add a new "msgid/msgstr" instance in your "translation.txt" file and put
+                    // the same names as used by all level sets
                     if(bonus >= levelsets[i].ifcomplete)
                     {
-                        _menutextm((selector == i), j, 0, "%s", levelsets[i].name);
+                        _menutextm((selector == i), j, 0, "%s", Tr(levelsets[i].name));
                     }
                     else
                     {
                         if(levelsets[i].ifcomplete > 1)
                         {
-                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game %i Times To UnLock"), levelsets[i].name, levelsets[i].ifcomplete);
+                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game %i Times To UnLock"), Tr(levelsets[i].name), levelsets[i].ifcomplete);
                         }
                         else
                         {
-                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game To UnLock"), levelsets[i].name);
+                            _menutextm((selector == i), j, 0, Tr("%s - Finish Game To UnLock"), Tr(levelsets[i].name));
                         }
                     }
                 }
@@ -38128,7 +38325,7 @@ VIDEOMODES:
 
     if(log)
     {
-        printf("Initialized video.............\t%dx%d (Mode: %d)\n\n", videomodes.hRes, videomodes.vRes, videoMode);
+        printf("Initialized video............\t%dx%d (Mode: %d)\n\n", videomodes.hRes, videomodes.vRes, videoMode);
     }
 }
 
@@ -38154,6 +38351,7 @@ void safe_set(int *arr, int index, int newkey, int oldkey)
 void keyboard_setup(int player)
 {
     const int btnnum = MAX_BTN_NUM;
+    buttonconfigMenu = 1; // Kratus (04-2022) Added a new variant to detect the button configuration menu
     int quit = 0, sdid = 0,
         selector = 0,
         setting = -1,
@@ -38163,7 +38361,7 @@ void keyboard_setup(int player)
     ptrdiff_t voffset, pos;
     char *buf,
          *command,
-         *filename = "data/menu.txt",
+         *filename = "translation/menu.txt",
          buttonnames[btnnum][32];
     size_t size;
     ArgList arglist;
@@ -38193,44 +38391,76 @@ void keyboard_setup(int player)
     savesettings();
     bothnewkeys = 0;
 
-    // Read file
-    if(buffer_pakfile(filename, &buf, &size))
-    {
-        // Now interpret the contents of buf line by line
-        pos = 0;
-        while(pos < size)
-        {
-            ParseArgs(&arglist, buf + pos, argbuf);
-            command = GET_ARG(0);
-            if(command[0])
-            {
-                if(stricmp(command, "disablekey") == 0)
-                {
-                    sdid = translate_SDID(GET_ARG(1));
-                    if(sdid >= 0)
-                    {
-                        disabledkey[sdid] = 1;
-                    }
-                }
-                else if(stricmp(command, "renamekey") == 0)
-                {
-                    sdid = translate_SDID(GET_ARG(1));
-                    if(sdid >= 0)
-                    {
-                        strcpy(buttonnames[sdid], GET_ARG(2));
-                    }
-                }
+    /*
+        Kratus (10-2021) Added an alternative location for the translation file, now it's possible to use in an external folder
+        Now the modder can load exported translation files by using "filestream" script functions
+        Useful for creating custom translations without unpack the game
+        The default engine translation location will be maintained for backward compatibility
 
-            }
-            // Go to next line
-            pos += getNewLineStart(buf + pos);
-        }
-        if(buf != NULL)
-        {
-            free(buf);
-            buf = NULL;
-        }
+        Kratus (11-2021) Inverted the path priority, now the external file will override the internal file
+        Useful to maintain the english translation intact inside the pak file if no other language file is found in the external path
+        Otherwise you will need to rollback the english file every time another language is used and then removed
+        This operation is needed only if the english translation file uses some custom menu texts for english language too
+    */
+    if(buffer_pakfile(filename, &buf, &size) != 1)
+    {
+        goto default_file;
     }
+    else
+    {
+        goto proceed;
+    }
+
+default_file:
+
+    if(buffer_pakfile("data/menu.txt", &buf, &size) != 1)
+    {
+        goto finish;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+proceed:
+
+    // Read file
+    // Now interpret the contents of buf line by line
+    pos = 0;
+    while(pos < size)
+    {
+        ParseArgs(&arglist, buf + pos, argbuf);
+        command = GET_ARG(0);
+        if(command[0])
+        {
+            if(stricmp(command, "disablekey") == 0)
+            {
+                sdid = translate_SDID(GET_ARG(1));
+                if(sdid >= 0)
+                {
+                    disabledkey[sdid] = 1;
+                }
+            }
+            else if(stricmp(command, "renamekey") == 0)
+            {
+                sdid = translate_SDID(GET_ARG(1));
+                if(sdid >= 0)
+                {
+                    strcpy(buttonnames[sdid], GET_ARG(2));
+                }
+            }
+
+        }
+        // Go to next line
+        pos += getNewLineStart(buf + pos);
+    }
+    if(buf != NULL)
+    {
+        free(buf);
+        buf = NULL;
+    }
+
+finish:
 
     while(disabledkey[selector]) if(++selector > btnnum - 1) break;
 
@@ -38331,7 +38561,7 @@ void keyboard_setup(int player)
             {
                 sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                #if SDL || WII || DC
+#if SDL || WII || DC
                 if (selector != OPTIONS_NUM - 3 &&
                     bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
 
@@ -38342,7 +38572,7 @@ void keyboard_setup(int player)
                 else if(selector == OPTIONS_NUM - 2) // OK
                 #else
                 if(selector == OPTIONS_NUM - 2) // OK
-                #endif
+#endif
                 {
                     quit = 2;
                 }
@@ -38359,9 +38589,9 @@ void keyboard_setup(int player)
                     setting = selector;
                     ok = savedata.keys[player][setting];
                     savedata.keys[player][setting] = 0;
-                    #ifndef DC
+#ifndef DC
                     keyboard_getlastkey();
-                    #endif
+#endif
                 }
             }
         }
@@ -38377,7 +38607,7 @@ void keyboard_setup(int player)
         loadsettings();
     }
 
-
+    buttonconfigMenu = 0; // Kratus (04-2022) Added a new variant to detect the button configuration menu
     update(0, 0);
     bothnewkeys = 0;
     printf("Done!\n");
@@ -38396,6 +38626,10 @@ void menu_options_input()
 
     controloptionsMenu = 1;
     bothnewkeys = 0;
+
+    // Kratus (10-2021) Added a second instance of the "control_init" function while in the Control Options
+    // Useful to refresh some text translation if the language is changed "on-the-fly" and re-detect all active controls
+    control_init(savedata.usejoy);
 
     while(!quit)
     {
@@ -38523,10 +38757,9 @@ void menu_options_input()
 }
 
 
-
+// Kratus (10-2022) Readjusted both effectvol / musicvol range and increment
 void menu_options_sound()
 {
-
     int quit = 0;
     int selector = 0;
     int dir;
@@ -38617,14 +38850,14 @@ void menu_options_sound()
                 SB_setvolume(SB_VOICEVOL, savedata.soundvol);
                 break;
             case 1:
-                savedata.effectvol += 4 * dir;
+                savedata.effectvol += 5 * dir;
                 if(savedata.effectvol < 0)
                 {
                     savedata.effectvol = 0;
                 }
-                if(savedata.effectvol > 512)
+                if(savedata.effectvol > 120)
                 {
-                    savedata.effectvol = 512;
+                    savedata.effectvol = 120;
                 }
                 break;
             case 3:
@@ -38644,14 +38877,14 @@ void menu_options_sound()
                 }
                 break;
             case 2:
-                savedata.musicvol += 4 * dir;
+                savedata.musicvol += 5 * dir;
                 if(savedata.musicvol < 0)
                 {
                     savedata.musicvol = 0;
                 }
-                if(savedata.musicvol > 512)
+                if(savedata.musicvol > 240)
                 {
-                    savedata.musicvol = 512;
+                    savedata.musicvol = 240;
                 }
                 sound_volume_music(savedata.musicvol, savedata.musicvol);
                 break;
@@ -38678,13 +38911,14 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
     bothnewkeys = 0;
 
+    // Kratus (11-2021) Removed spaces on the " Done!" text to fix translation
     while(!quit)
     {
         _menutextm(2, -5, 0, Tr("Configuration Settings"));
 
         if(saved == 1)
         {
-            _menutextm((selector == 0), -3, 0, Tr("Save Settings To Default.cfg%s"), Tr("  Done!"));
+            _menutextm((selector == 0), -3, 0, Tr("Save Settings To Default.cfg%s"), Tr(" Done!")); 
         }
         else
         {
@@ -38693,7 +38927,7 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
         if(loaded == 1)
         {
-            _menutextm((selector == 1), -2, 0, Tr("Load Settings From Default.cfg%s"), Tr("  Done!"));
+            _menutextm((selector == 1), -2, 0, Tr("Load Settings From Default.cfg%s"), Tr(" Done!"));
         }
         else
         {
@@ -38702,7 +38936,7 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
 
         if(restored == 1)
         {
-            _menutextm((selector == 2), -1, 0, Tr("Restore OpenBoR Defaults%s"), Tr("  Done!"));
+            _menutextm((selector == 2), -1, 0, Tr("Restore OpenBoR Defaults%s"), Tr(" Done!"));
         }
         else
         {
@@ -38929,6 +39163,7 @@ void menu_options_debug()
             }
         }
 
+
         // Toggle selection value on left/right or
         // trigger button press.
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
@@ -39004,7 +39239,7 @@ void menu_options_system()
     bothnewkeys = 0;
     if (nodebugoptions) ex_labels = 1;
     RET -= ex_labels;
-
+       
     while(!quit)
     {
         _menutextm(2, SYS_OPT_Y_POS-2, 0, Tr("System Options"));
@@ -39139,7 +39374,18 @@ void menu_options_system()
                     }
                 }
             }
-            else if (selector==SYS_OPT_CHEATS) cheats = !cheats;
+            else if (selector==SYS_OPT_CHEATS)
+            {
+                // Kratus (11-2022) Fixed the cheats menu option bug, now it can't be changed when off
+                if(!forcecheatsoff)
+                {
+                    cheats = !cheats;
+                }
+                else
+                {
+                    cheats = 0;
+                }
+            }
             else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
 #ifndef DC
             else if (selector==SYS_OPT_CONFIG-ex_labels) menu_options_config();
@@ -39281,9 +39527,8 @@ void menu_options_video()
 
         _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
         _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
-
-        _menutext((selector == 8), col1, 5, Tr("VSync:"));
-        _menutext((selector == 8), col2, 5, savedata.vsync ? "Enabled" : "Disabled");
+        _menutext((selector == 8), col1, 5, Tr("VSync:")); // Kratus (10-2021) Added "Tr" for translation purpose 
+        _menutext((selector == 8), col2, 5, savedata.vsync ? Tr("Enabled") : Tr("Disabled"));// Kratus (10-2021) Added "Tr" for translation purpose 
 
         if(savedata.fullscreen)
         {
@@ -39629,6 +39874,9 @@ void menu_options()
     optionsMenu = 1;
     bothnewkeys = 0;
 
+    // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
+    if(!allow_cheats){forcecheatsoff = 1; cheats = 0;}else{forcecheatsoff = 0;}
+
     if (cheats && !forcecheatsoff)
     {
         if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
@@ -39723,6 +39971,9 @@ void menu_options()
            else if(selector==MULTIHIT_CHEAT) multihitcheat = !multihitcheat; // Kratus (20-04-21) selector for the multihit glitch option
            else quit = 1;
         }
+        
+        // Kratus (11-2022) Turn off all submenu cheats if the main "cheats" option is disabled
+        if(!cheats){livescheat = 0; creditscheat = 0; healthcheat = 0; multihitcheat = 0;}
     }
     savesettings();
     if(_pause == 1)
@@ -39969,6 +40220,9 @@ void openborMain(int argc, char **argv)
         {
             if(started)
             {
+                // Kratus (10-2021) Added an additional instance of the translation function at menu screen
+                // Used to refresh all text without close and reopen the engine
+                ob_inittrans();
                 menuScreen  = 1;
                 titleScreen = 0;
                 if(custBkgrds != NULL)
@@ -40025,6 +40279,19 @@ int is_cheat_actived()
         {
             return 0;
         }
+    }
+}
+
+// Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
+int is_healthcheat_actived()
+{
+    if(!healthcheat)
+    {
+        return 0;
+    }
+    else
+    {
+        return 1;
     }
 }
 

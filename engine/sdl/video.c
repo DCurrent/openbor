@@ -131,9 +131,11 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 			printf("Error: failed to create window: %s\n", SDL_GetError());
 			return 0;
 		}
-		SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
-		SDL_SetWindowIcon(window, icon);
-		SDL_FreeSurface(icon);
+		
+		// Kratus (11-2022) Disabled the native OpenBOR icon
+		// SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
+		// SDL_SetWindowIcon(window, icon);
+		// SDL_FreeSurface(icon);
 		if(!savedata.fullscreen) SDL_GetWindowPosition(window, &last_x, &last_y);
 	}
 

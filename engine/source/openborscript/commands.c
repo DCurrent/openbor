@@ -192,6 +192,7 @@ List *createModelCommandList(void)
         LIST_ADD(CMD_MODEL_COLLISION_ETC, buf);
     }
 
+    // Kratus (12-2021) Added new jumpspecial and noshadow properties, put "noshadow" in alphabetical order
     LIST_ADD(CMD_MODEL_COLLISIONONE, "attackone");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
     LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
@@ -322,6 +323,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_JUMPFRAME, "jumpframe");
     LIST_ADD(CMD_MODEL_JUMPHEIGHT, "jumpheight");
     LIST_ADD(CMD_MODEL_JUMPMOVE, "jumpmove");
+    LIST_ADD(CMD_MODEL_JUMPSPECIAL, "jumpspecial");
     LIST_ADD(CMD_MODEL_JUMPSPEED, "jumpspeed");
     LIST_ADD(CMD_MODEL_JUMPSPEEDF, "jumpspeedf");
     LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
@@ -360,6 +362,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_NOPASSIVEBLOCK, "nopassiveblock");
     LIST_ADD(CMD_MODEL_NOQUAKE, "noquake");
     LIST_ADD(CMD_MODEL_NOREFLECT, "noreflect");
+    LIST_ADD(CMD_MODEL_NOSHADOW, "noshadow");
     LIST_ADD(CMD_MODEL_NOTGRAB, "notgrab");
     LIST_ADD(CMD_MODEL_OFFENSE, "offense");
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
@@ -481,7 +484,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_WEAPNUM, "weapnum");
     LIST_ADD(CMD_MODEL_WEAPONFRAME, "weaponframe");
     LIST_ADD(CMD_MODEL_WEAPONS, "weapons");
-
 
 #undef LIST_ADD
     return result;

@@ -604,6 +604,9 @@ typedef enum //Animations
     ANI_JUMPATTACK2,
     ANI_GET,
     ANI_GRAB,
+    ANI_BACKGRAB,			// Kratus (10-2021) Added the new backgrab animation
+    ANI_VAULT,				// Kratus (10-2021) Added the new vault animation
+    ANI_VAULT2,				// Kratus (10-2021) Added the new vault2 animation
     ANI_GRABATTACK,
     ANI_GRABATTACK2,
     ANI_THROW,
@@ -1609,8 +1612,9 @@ if(n<1) n = 1;
 
 #define validanim(e, a) ((e)->modeldata.animation[a]&&(e)->modeldata.animation[a]->numframes)
 
+// Kratus (04-2022) Added a new variant to detect the button configuration menu
 #define inScreen ( selectScreen || titleScreen || hallOfFame || gameOver || showComplete || currentScene || enginecreditsScreen || menuScreen || startgameMenu || \
-                  newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu )
+                  newgameMenu || loadgameMenu || optionsMenu || controloptionsMenu || buttonconfigMenu || soundoptionsMenu || videooptionsMenu || systemoptionsMenu )
 
 //#define     MAX_MOVES             16
 //#define     MAX_MOVE_STEPS        16
@@ -2423,6 +2427,11 @@ typedef struct
     int backpain;
     int nohithead; // used to hit or not a platform with head also when you set a height
     int hitwalltype; // wall type to toggle hitwall animations
+
+    //Kratus (12-2021) Moved the new added properties to the end of the list for easy searching
+    int jumpspecial; // 0 default, 1 don't kill the "xyz" movement
+    int noshadow; // 0 default, 1 temporarily disable shadow without losing entity's shadow configuration
+
     e_ModelFreetype freetypes;
     s_scripts *scripts;
 } s_model;
@@ -2614,6 +2623,7 @@ typedef struct entity
 	e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
+	e_idling_state			idling;								// ~~ Kratus (10-2021) Moved from "bool" to the "Enumerated integers" section
 	e_attacking_state		attacking;							// ~~
 	e_autokill_state		autokill;							// Kill entity on condition. ~~
 	e_direction				direction;							//  ~~
@@ -2642,7 +2652,6 @@ typedef struct entity
 	bool					getting;							// Picking up item. ~~
 	bool					grabwalking;						// Walking while grappling. ~~
 	bool					hitwall;							// Blcoked by wall/platform/obstacle. ~~
-	bool					idling;								// ~~
 	bool					inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
 	bool					inpain;								// Hit and block stun. ~~
 	bool					jumping;							// ~~
@@ -3378,6 +3387,7 @@ void menu_options_video();
 
 void openborMain(int argc, char **argv);
 int is_cheat_actived();
+int is_healthcheat_actived(); // Kratus (10-2021) Added the new "healthcheat" option accessible/readable by script using "openborvariant"
 int getValidInt(char *text, char *file, char *cmd);
 float getValidFloat(char *text, char *file, char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);

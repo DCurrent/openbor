@@ -546,13 +546,13 @@ void control_init(int joy_enable)
 
 void set_default_joystick_keynames(int i)
 {
-    int j;
-    for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
-    {
-        if(j) strcpy(joysticks[i].KeyName[j], "DISCONNECTED"); //Kratus (20-04-21) rename all keys when disconnected
-		// if(j) strcpy(joysticks[i].KeyName[j], JoystickKeyName[j + i * JOY_MAX_INPUTS]);
-        // else  strcpy(joysticks[i].KeyName[j], JoystickKeyName[j]);
-    }
+	int j;
+	for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
+	{
+		// Kratus (20-04-21) rename all keys when disconnected
+		// Kratus (10-2021) Added constants and automatic translation for some Joystick status
+		if(j) strcpy(joysticks[i].KeyName[j], JOY_DISCONNECTED_NAME);
+	}
 }
 
 char *control_getkeyname(unsigned int keycode)
@@ -567,8 +567,8 @@ char *control_getkeyname(unsigned int keycode)
 	if(keycode > SDLK_FIRST && keycode < SDLK_LAST)
 		return JOY_GetKeyName(keycode);
 	else
-	if(keycode == CONTROL_NONE) //Kratus (20-04-21) value used to clear all keys
-		return "NONE";
+	if(keycode == CONTROL_NONE) // Kratus (20-04-21) value used to clear all keys
+		return JOY_NONE_NAME; // Kratus (10-2021) Added constants and automatic translation for some Joystick status
 	else
 		return "...";
 }

@@ -25,6 +25,7 @@
 #include <assert.h>
 #ifndef SPK_SUPPORTED
 
+#include "openbor.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,7 +56,7 @@
 // Requirements for Compressed Packfiles.
 //
 #define	MAXPACKHANDLES	8
-#define	PACKMAGIC		0x4B434150
+#define	PACKMAGIC		0x4B434150 //0x7F14111D (sorx)
 #define	PACKVERSION		0x00000000
 static const size_t USED_FLAG = (((size_t) 1) << ((sizeof(size_t) * 8) - 1));
 
@@ -376,6 +377,22 @@ void packfile_mode(int mode)
 #if WIN || LINUX
 int isRawData()
 {
+    // Kratus (11-2022) Disabled the "data" folder, runs only "paks"
+    // Turn on only to compile an .exe for password paks, maintain it off by default
+    
+    // DIR *d;
+    // if ((d = opendir("data")) == NULL)
+    // {
+    //     return 0;
+    // }
+    // else
+    // {
+    //     borShutdown(1, "Data folder conflict, please use only pak files!\n");
+    //     return 0;
+    // }
+    // closedir(d);
+    // return 0;
+
     DIR *d;
     if ((d = opendir("data")) == NULL)
     {
@@ -503,7 +520,9 @@ int openPackfile(const char *filename, const char *packfilename)
 
 
     // Read magic dword ("PACK" identifier)
-    if(read(handle, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
+    // Kratus (12-2022) Temporarily disabled the original "PACK" magic dword
+    // if(read(handle, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
+    if(read(handle, &magic, 4) != 4)
     {
 #ifdef VERBOSE
         printf ("err magic\n");
@@ -1265,7 +1284,9 @@ int pak_init()
     pakfd = open(packfile, O_RDONLY | O_BINARY, per);
 
     // Read magic dword ("PACK")
-    if(read(pakfd, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
+    // Kratus (12-2022) Temporarily disabled the original "PACK" magic dword
+    // if(read(handle, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
+    if(read(pakfd, &magic, 4) != 4)
     {
         close(pakfd);
         return -1;
