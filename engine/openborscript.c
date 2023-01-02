@@ -13193,7 +13193,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
             return E_FAIL;
         }
         ent->binding.offset.y = (int)a;
-        ent->binding.config = BIND_CONFIG_AXIS_Y_TARGET;
+        ent->binding.config |= BIND_CONFIG_AXIS_Y_TARGET;
     }
 
     if(paramCount < 6)

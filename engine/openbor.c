@@ -27698,6 +27698,9 @@ void adjust_bind(entity* acting_entity)
 	#define ADJUST_BIND_SET_ANIM_RESETABLE 1
 	#define ADJUST_BIND_NO_FRAME_MATCH -1   
 
+    int				frame = 0;
+    e_animations	animation = ANI_NONE;
+
 	/* 
     * Exit if there is no bind 
     * or bind target. 
@@ -27709,18 +27712,38 @@ void adjust_bind(entity* acting_entity)
 
 	/* 
     * Run bind update scripts for target and
-    * acing entity 
+    * acting entity. 
     */
-	execute_on_bind_update_other_to_self(acting_entity->binding.target, acting_entity, &acting_entity->binding);
 
-	// Run bind update script on *e (entity performing bind).
-	execute_on_bind_update_self_to_other(acting_entity, acting_entity->binding.target, &acting_entity->binding);
+	execute_on_bind_update_other_to_self(acting_entity->binding.target, acting_entity, &acting_entity->binding); 
+    execute_on_bind_update_self_to_other(acting_entity, acting_entity->binding.target, &acting_entity->binding);
 
-	if (acting_entity->binding.config)
+    /*
+    printf("\n\n adjust_bind(%p)", acting_entity);
+    printf("\n\t Acting Name: %s", acting_entity->name);
+    printf("\n\t acting_entity->binding: %p", &acting_entity->binding);
+    printf("\n\t\t binding.animation: %d", acting_entity->binding.animation);
+    printf("\n\t\t binding.config: %d", acting_entity->binding.config);
+    printf("\n\t\t binding.direction_adjust: %d", acting_entity->binding.direction_adjust);
+    printf("\n\t\t binding.frame: %d", acting_entity->binding.frame);
+    printf("\n\t\t binding.meta_data: %p", &acting_entity->binding.meta_data);
+    printf("\n\t\t binding.meta_tag: %d", acting_entity->binding.meta_tag);
+    printf("\n\t\t binding.offset: %d, %d, %d", acting_entity->binding.offset.x, acting_entity->binding.offset.y, acting_entity->binding.offset.z);
+    printf("\n\t\t binding.sortid: %d", acting_entity->binding.sortid);    
+    
+    if (acting_entity->binding.target)
+    {
+        printf("\n\t\t binding.target: %p (%s)", acting_entity->binding.target, acting_entity->binding.target->name);
+    }
+    else
+    {
+        printf("\n\t\t binding.target: %p (%s)", acting_entity->binding.target, "");
+    }
+    printf("\n\n");
+    */
+
+	if (acting_entity->binding.config & (BIND_CONFIG_ANIMATION_DEFINED | BIND_CONFIG_ANIMATION_TARGET | BIND_CONFIG_ANIMATION_FRAME_DEFINED | BIND_CONFIG_ANIMATION_FRAME_TARGET))
 	{
-		int				frame;
-		e_animations	animation;
-
 		/* 
         * If a defined value is requested,
 		* use the binding member value.
@@ -27835,36 +27858,36 @@ void adjust_bind(entity* acting_entity)
     {
         if (acting_entity->binding.target->direction == DIRECTION_LEFT)
         {
-            acting_entity->binding.target->position.x -= acting_entity->binding.offset.x;
+            acting_entity->position.x = acting_entity->binding.target->position.x - acting_entity->binding.offset.x;            
         }
         else
         {
-            acting_entity->binding.target->position.x += acting_entity->binding.offset.x;
+            acting_entity->position.x = acting_entity->binding.target->position.x + acting_entity->binding.offset.x;
         }
     }
     else if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_LEVEL)
     {
-        acting_entity->binding.target->position.x = acting_entity->binding.offset.x;
+        acting_entity->position.x = acting_entity->binding.offset.x;
     }
     
     // Y
     if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_TARGET)
     {
-        acting_entity->binding.target->position.y += acting_entity->binding.offset.y;
+        acting_entity->position.y = acting_entity->binding.target->position.y + acting_entity->binding.offset.y;
     }
     else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_LEVEL)
     {
-        acting_entity->binding.target->position.y = acting_entity->binding.offset.y;
+        acting_entity->position.y = acting_entity->binding.offset.y;
     }
 
     // Z
     if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_TARGET)
     {
-        acting_entity->binding.target->position.z += acting_entity->binding.offset.z;
+        acting_entity->position.z = acting_entity->binding.target->position.z + acting_entity->binding.offset.z;
     }
     else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_LEVEL)
     {
-        acting_entity->binding.target->position.z = acting_entity->binding.offset.z;
+        acting_entity->position.z = acting_entity->binding.offset.z;
     }
     	
 	#undef ADJUST_BIND_SET_ANIM_RESETABLE
