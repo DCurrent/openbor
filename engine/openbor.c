@@ -38878,12 +38878,6 @@ void menu_options_debug()
         // If user presses up/down or esc, let's act accordingly.
         if(bothnewkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN | FLAG_ESC))
         {
-            // Play beep if available.
-            if(SAMPLE_BEEP >= 0)
-            {
-                sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
-            }
-
             // If user presses escape, then set quit
             // flag immediately. Else wise, increment
             // or decrement selector as needed.
@@ -38893,6 +38887,13 @@ void menu_options_debug()
             }
             else if(bothnewkeys & FLAG_MOVEUP)
             {
+                // Play beep if available.
+                // Kratus (04-2022) Moved the BEEP sound to work for the UP/DOWN keys only
+                if(SAMPLE_BEEP >= 0)
+                {
+                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                }
+
                 // If we are at the top item, loop
                 // to last. Otherwise, move one up.
                 if(selector <= MENU_ITEM_FIRST_INDEX)
@@ -38906,6 +38907,13 @@ void menu_options_debug()
             }
             else if(bothnewkeys & FLAG_MOVEDOWN)
             {
+                // Play beep if available.
+                // Kratus (04-2022) Moved the BEEP sound to work for the UP/DOWN keys only
+                if(SAMPLE_BEEP >= 0)
+                {
+                    sound_play_sample(SAMPLE_BEEP, 0, savedata.effectvol, savedata.effectvol, 100);
+                }
+
                 // If we are at the last item
                 // (which should be "back"), then
                 // loop back to first. Otherwise
@@ -38920,7 +38928,6 @@ void menu_options_debug()
                 }
             }
         }
-
 
         // Toggle selection value on left/right or
         // trigger button press.
