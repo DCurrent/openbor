@@ -3,879 +3,614 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2019 OpenBOR Team
+ * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
 // Generic control stuff (keyboard+joystick)
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include "video.h"
 #include "globals.h"
 #include "control.h"
+#include "stristr.h"
+#include "sblaster.h"
+#include "joysticks.h"
 #include "openbor.h"
-#include "List.h"
 
-#define AXIS_THRESHOLD 7000
-
-typedef enum {
-    DEVICE_TYPE_NONE,
-    DEVICE_TYPE_KEYBOARD,
-    DEVICE_TYPE_CONTROLLER, // XInput compatible controller
-    DEVICE_TYPE_JOYSTICK,   // controller not compatible with XInput
-} DeviceType;
-
-typedef struct {
-    DeviceType deviceType;
-    char name[CONTROL_DEVICE_NAME_SIZE];
-    int mappings[SDID_COUNT];
-    SDL_Haptic *haptic;
-    union {
-        // no extra structure needed for keyboard
-        SDL_GameController *controller;
-        SDL_Joystick *joystick;
-    };
-} InputDevice;
-
-static InputDevice devices[MAX_DEVICES];
-static bool controlInited = false;
-static int keyboardDeviceID = -1;
-static bool altEnterPressed = false;
-
-// if non-null, device is being remapped in the input settings menu
-static InputDevice *remapDevice = NULL;
-static int remapKeycode = -1;
-
-// each list member is an array of SDID_COUNT ints, dynamically allocated
-static List savedMappings;
-static bool savedMappingsInited = false;
+#define T_AXIS 7000
 
 #ifdef ANDROID
-#define MAX_POINTERS 30
-typedef enum
-{
-    TOUCH_STATUS_UP,
-    TOUCH_STATUS_DOWN
-} touch_status;
+#include "jniutils.h"
+#endif
 
-typedef struct TouchStatus {
-    float px[MAX_POINTERS];
-    float py[MAX_POINTERS];
-    SDL_FingerID pid[MAX_POINTERS];
-    touch_status pstatus[MAX_POINTERS];
-} TouchStatus;
+SDL_Joystick *joystick[JOY_LIST_TOTAL];         // SDL struct for joysticks
+SDL_Haptic *joystick_haptic[JOY_LIST_TOTAL];   // SDL haptic for joysticks
+static int usejoy;						        // To be or Not to be used?
+static int numjoy;						        // Number of Joy(s) found
+static int lastkey;						        // Last keyboard key Pressed
+static int lastjoy;                             // Last joystick button/axis/hat input
 
+int sdl_game_started  = 0;
+
+extern int default_keys[MAX_BTN_NUM];
+extern s_playercontrols default_control;
+
+#ifdef ANDROID
 extern int nativeWidth;
 extern int nativeHeight;
 static TouchStatus touch_info;
-
-static void control_update_android_touch(TouchStatus *touch_info, int maxp);
 #endif
 
-// update the mappings for a device in the save data
-static void update_saved_mapping(int deviceID)
+/*
+Here is where we aquiring all joystick events
+and map them to BOR's layout.  Currently support
+up to 4 controllers.
+*/
+void getPads(Uint8* keystate, Uint8* keystate_def)
 {
-    InputDevice *device = &devices[deviceID];
-    if (device->deviceType == DEVICE_TYPE_NONE) return;
-
-    if (List_FindByName(&savedMappings, device->name))
-    {
-        memcpy(List_Retrieve(&savedMappings), device->mappings, SDID_COUNT * sizeof(int));
-    }
-    else
-    {
-        int *mappings = malloc(SDID_COUNT * sizeof(int));
-        memcpy(mappings, device->mappings, SDID_COUNT * sizeof(int));
-        List_InsertAfter(&savedMappings, mappings, device->name);
-    }
-}
-
-// set the mappings for a device to the saved settings
-static void load_from_saved_mapping(int deviceID)
-{
-    InputDevice *device = &devices[deviceID];
-    if (device->deviceType == DEVICE_TYPE_NONE) return;
-
-    if (List_FindByName(&savedMappings, device->name))
-    {
-        memcpy(device->mappings, List_Retrieve(&savedMappings), SDID_COUNT * sizeof(int));
-    }
-    else
-    {
-        control_resetmappings(deviceID);
-    }
-}
-
-static void clear_saved_mappings()
-{
-    if (!savedMappingsInited)
-    {
-        List_Init(&savedMappings);
-        savedMappingsInited = true;
-    }
-
-    int numMappings = List_GetSize(&savedMappings);
-	List_Reset(&savedMappings);
-	for (int i = 0; i < numMappings; i++)
+	int i, j, x, axis;
+	SDL_Event ev;
+	while(SDL_PollEvent(&ev))
 	{
-	    free(List_Retrieve(&savedMappings));
-        List_GotoNext(&savedMappings);
-    }
-    List_Clear(&savedMappings);
+		switch(ev.type)
+		{
+			case SDL_KEYDOWN:
+#ifdef SDL2
+				lastkey = ev.key.keysym.scancode;
+				if((keystate[SDL_SCANCODE_LALT] || keystate[SDL_SCANCODE_RALT]) && (lastkey == SDL_SCANCODE_RETURN))
+				{
+					video_fullscreen_flip();
+					keystate[SDL_SCANCODE_RETURN] = 0;
+				}
+				if(lastkey != SDL_SCANCODE_F10) break;
+#else
+				lastkey = ev.key.keysym.sym;
+				if((keystate[SDLK_LALT] || keystate[SDLK_RALT]) && (lastkey == SDLK_RETURN))
+				{
+					video_fullscreen_flip();
+					keystate[SDLK_RETURN] = 0;
+				}
+				if(lastkey != SDLK_F10) break;
+#endif
+#ifdef ANDROID
+			case SDL_FINGERDOWN:
+			{
+				for(i=0; i<MAX_POINTERS; i++)
+				{
+					if(touch_info.pstatus[i] == TOUCH_STATUS_UP)
+					{
+						touch_info.pid[i] = ev.tfinger.fingerId;
+						touch_info.px[i] = ev.tfinger.x*nativeWidth;
+						touch_info.py[i] = ev.tfinger.y*nativeHeight;
+						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
+
+            // migration for White Dragon's vibration logic from SDLActivity.java
+            if (is_touchpad_vibration_enabled() &&
+                is_touch_area(touch_info.px[i], touch_info.py[i]))
+            {
+              jniutils_vibrate_device();
+            }
+
+						break;
+					}
+				}
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
+			}
+				break;
+			case SDL_FINGERUP:
+			{
+				for(i=0; i<MAX_POINTERS; i++)
+				{
+					if(touch_info.pid[i] == ev.tfinger.fingerId)
+					{
+						touch_info.pstatus[i] = TOUCH_STATUS_UP;
+						break;
+					}
+				}
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
+			}
+				break;
+			case SDL_FINGERMOTION:
+			{
+				for(i=0; i<MAX_POINTERS; i++)
+				{
+					if(touch_info.pid[i] == ev.tfinger.fingerId)
+					{
+						touch_info.px[i] = ev.tfinger.x*nativeWidth;
+						touch_info.py[i] = ev.tfinger.y*nativeHeight;
+						touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
+						break;
+					}
+				}
+				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
+			}
+				break;
+#endif
+#if 0
+			// sdl 1.3 pause hack
+			// we don't need it in sdl 2.0 in theory
+			case SDL_WINDOWEVENT:
+				if(ev.window.event==SDL_WINDOWEVENT_MINIMIZED)
+				{
+					//SDL_PauseAudio(1);
+					SDL_PauseAudioDevice(audio_dev, 1);
+					while(true)
+					{
+						if(SDL_PollEvent(&ev))
+						{
+							if(ev.type==SDL_WINDOWEVENT && ev.window.event==SDL_WINDOWEVENT_RESTORED)
+							{
+								//SDL_PauseAudio(0);
+								SDL_PauseAudioDevice(audio_dev, 0);
+								extern s_videomodes videomodes;
+								video_set_mode(videomodes);
+								//extern SDL_Surface* getSDLScreen();
+								//SDL_Surface* s = getSDLScreen();
+								//printf("screen %d %d   %d %d\n", s->w, s->h, videomodes.hRes, videomodes.vRes);
+								break;
+							}
+						}
+						SDL_Delay(1);
+					}
+				}
+				break;
+#endif
+			case SDL_QUIT:
+				borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
+				break;
+
+			case SDL_JOYBUTTONUP:
+				for(i=0; i<JOY_LIST_TOTAL; i++)
+				{
+					if(ev.jbutton.which == i)
+					{
+						if(joysticks[i].Type == JOY_TYPE_GAMEPARK)
+						{
+							if(ev.jbutton.button == 0 || ev.jbutton.button == 7 || ev.jbutton.button == 1) joysticks[i].Hats &= ~(JoystickBits[1]);
+							if(ev.jbutton.button == 6 || ev.jbutton.button == 5 || ev.jbutton.button == 7) joysticks[i].Hats &= ~(JoystickBits[2]);
+							if(ev.jbutton.button == 4 || ev.jbutton.button == 3 || ev.jbutton.button == 5) joysticks[i].Hats &= ~(JoystickBits[3]);
+							if(ev.jbutton.button == 2 || ev.jbutton.button == 1 || ev.jbutton.button == 3) joysticks[i].Hats &= ~(JoystickBits[4]);
+							if(ev.jbutton.button >= 8 && ev.jbutton.button <= 18) joysticks[i].Buttons &= ~(JoystickBits[ev.jbutton.button - 3]);
+						}
+						/*else
+                        {
+                            // add key flag from event
+                            #ifdef ANDROID
+                            joysticks[i].Buttons &= 0x00 << ev.jbutton.button;
+                            #endif
+                        }*/
+					}
+				}
+				break;
+
+			case SDL_JOYBUTTONDOWN:
+				for(i=0; i<JOY_LIST_TOTAL; i++)
+				{
+					if (SDL_JoystickInstanceID(joystick[i]) == ev.jbutton.which)
+					{
+						//printf("Button down: controller %i, button %i\n", i, ev.jbutton.button);
+						lastjoy = 1 + i * JOY_MAX_INPUTS + ev.jbutton.button;
+
+						// add key flag from event
+						/*#ifdef ANDROID
+						joysticks[i].Buttons |= 0x01 << ev.jbutton.button;
+						#endif*/
+					}
+				}
+				break;
+
+			case SDL_JOYHATMOTION:
+				for(i=0; i<JOY_LIST_TOTAL; i++)
+				{
+					if (SDL_JoystickInstanceID(joystick[i]) == ev.jhat.which)
+					{
+						int hatfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*joysticks[i].NumAxes + 4*ev.jhat.hat;
+						x = (joysticks[i].Hats >> (4*ev.jhat.hat)) & 0x0F; // hat's previous state
+						if(ev.jhat.value & SDL_HAT_UP       && !(x & SDL_HAT_UP))       lastjoy = hatfirst;
+						if(ev.jhat.value & SDL_HAT_RIGHT    && !(x & SDL_HAT_RIGHT))	lastjoy = hatfirst + 1;
+						if(ev.jhat.value & SDL_HAT_DOWN     && !(x & SDL_HAT_DOWN))	    lastjoy = hatfirst + 2;
+						if(ev.jhat.value & SDL_HAT_LEFT     && !(x & SDL_HAT_LEFT))	    lastjoy = hatfirst + 3;
+						//if(lastjoy) fprintf(stderr, "SDL_JOYHATMOTION - Joystick %i Hat %i (Index %i)\n", i, ev.jhat.hat, lastjoy);
+
+						// add key flag from event (0x01 0x02 0x04 0x08)
+						#ifdef ANDROID
+						if(ev.jhat.value & SDL_HAT_UP)      joysticks[i].Hats |= SDL_HAT_UP         << (ev.jhat.hat*4);
+						if(ev.jhat.value & SDL_HAT_RIGHT)   joysticks[i].Hats |= SDL_HAT_RIGHT      << (ev.jhat.hat*4);
+						if(ev.jhat.value & SDL_HAT_DOWN)    joysticks[i].Hats |= SDL_HAT_DOWN       << (ev.jhat.hat*4);
+						if(ev.jhat.value & SDL_HAT_LEFT)    joysticks[i].Hats |= SDL_HAT_LEFT       << (ev.jhat.hat*4);
+						#endif
+					}
+				}
+				break;
+
+			case SDL_JOYAXISMOTION:
+				for(i=0; i<JOY_LIST_TOTAL; i++)
+				{
+					if (SDL_JoystickInstanceID(joystick[i]) == ev.jaxis.which)
+					{
+						int axisfirst = 1 + i * JOY_MAX_INPUTS + joysticks[i].NumButtons + 2*ev.jaxis.axis;
+						x = (joysticks[i].Axes >> (2*ev.jaxis.axis)) & 0x03; // previous state of axis
+						if(ev.jaxis.value <  -1*T_AXIS && !(x & 0x01))		lastjoy = axisfirst;
+						if(ev.jaxis.value >     T_AXIS && !(x & 0x02))		lastjoy = axisfirst + 1;
+						//if(lastjoy) fprintf(stderr, "SDL_JOYAXISMOTION - Joystick %i Axis %i = Position %i (Index %i)\n", i, ev.jaxis.axis, ev.jaxis.value, lastjoy);
+
+						// add key flag from event
+						#ifdef ANDROID
+                        if(ev.jaxis.value < -1*T_AXIS)  { joysticks[i].Axes |= 0x01 << (ev.jaxis.axis*2); }
+                        if(ev.jaxis.value >    T_AXIS)  { joysticks[i].Axes |= 0x02 << (ev.jaxis.axis*2); }
+                        #endif
+					}
+				}
+				break;
+
+            // PLUG AND PLAY
+            case SDL_JOYDEVICEADDED:
+                if (ev.jdevice.which < JOY_LIST_TOTAL)
+                {
+                    int i = ev.jdevice.which;
+                    char buffer[MAX_BUFFER_LEN];
+                    char joy_name[MAX_BUFFER_LEN];
+                    open_joystick(i);
+                    //get_time_string(buffer, MAX_BUFFER_LEN, (time_t)ev.jdevice.timestamp, TIMESTAMP_PATTERN);
+                    get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
+                    numjoy = SDL_NumJoysticks();
+                    strcpy(joy_name,get_joystick_name(joysticks[i].Name));
+                    printf("Joystick: \"%s\" connected at port: %d at %s\n",joy_name,i,buffer);
+                }
+                break;
+
+            case SDL_JOYDEVICEREMOVED:
+                if (ev.jdevice.which < JOY_LIST_TOTAL)
+                {
+                    int i = ev.jdevice.which;
+                    if(joystick[i])
+                    {
+                        char buffer[MAX_BUFFER_LEN];
+                        char joy_name[MAX_BUFFER_LEN];
+                        get_now_string(buffer, MAX_BUFFER_LEN, TIMESTAMP_PATTERN);
+                        //close_joystick(i); //Kratus (20-04-21) disable the entire code to maintain joystick IDs
+                        numjoy = SDL_NumJoysticks();
+                        strcpy(joy_name,get_joystick_name(joysticks[i].Name));
+                        printf("Joystick: \"%s\" disconnected from port: %d at %s\n",joy_name,i,buffer);
+                    }
+                }
+                break;
+
+            default:
+                break;
+		}
+
+	}
+
+	if(joysticks[0].Type != JOY_TYPE_GAMEPARK)
+	{
+		// new PC joystick code - forget about SDL joystick events, just do a state check
+		SDL_JoystickUpdate();
+		for(i = 0; i < JOY_LIST_TOTAL; i++)
+		{
+			// reset state
+			joysticks[i].Axes = joysticks[i].Hats = joysticks[i].Buttons = 0;
+			if (joystick[i] == NULL) continue;
+
+			// check buttons
+			for(j = 0; j < joysticks[i].NumButtons; j++)
+            {
+                joysticks[i].Buttons |= SDL_JoystickGetButton(joystick[i], j) << j;
+            }
+
+			// check axes
+			for(j = 0; j < joysticks[i].NumAxes; j++)
+			{
+				axis = SDL_JoystickGetAxis(joystick[i], j);
+				if(axis < -1*T_AXIS)  { joysticks[i].Axes |= 0x01 << (j*2); }
+				if(axis >    T_AXIS)  { joysticks[i].Axes |= 0x02 << (j*2); }
+			}
+
+			// check hats
+			for(j = 0; j < joysticks[i].NumHats; j++)
+            {
+                //joysticks[i].Hats |= SDL_JoystickGetHat(joystick[i], j) << (j*4);
+
+                Uint8 hat_value = SDL_JoystickGetHat(joystick[i], j);
+                if(hat_value & SDL_HAT_UP)      joysticks[i].Hats |= SDL_HAT_UP     << (j*4);
+                if(hat_value & SDL_HAT_RIGHT)   joysticks[i].Hats |= SDL_HAT_RIGHT  << (j*4);
+                if(hat_value & SDL_HAT_DOWN)    joysticks[i].Hats |= SDL_HAT_DOWN   << (j*4);
+                if(hat_value & SDL_HAT_LEFT)    joysticks[i].Hats |= SDL_HAT_LEFT   << (j*4);
+            }
+
+			// combine axis, hat, and button state into a single value
+			joysticks[i].Data = joysticks[i].Buttons;
+			joysticks[i].Data |= joysticks[i].Axes << joysticks[i].NumButtons;
+			joysticks[i].Data |= joysticks[i].Hats << (joysticks[i].NumButtons + 2*joysticks[i].NumAxes);
+		}
+	}
+
 }
 
-/* If 2 or more of the same type of controller are plugged in, we need to disambiguate them so that a player assigning
-   devices in the options menu can tell them apart. Do this by appending "#2", "#3", etc. to the names. */
-static void set_device_name(int deviceID, const char *name)
+/*
+Convert binary masked data to indexes
+*/
+static int flag_to_index(u64 flag)
 {
-    char fullName[CONTROL_DEVICE_NAME_SIZE];
+	int index = 0;
+	u64 bit = 1;
+	while(!((bit<<index)&flag) && index<JOY_MAX_INPUTS-1) ++index;
+	return index;
+}
 
-    for (int i = 0; i < MAX_DEVICES; i++)
+char* get_joystick_name(const char* name)
+{
+    char lname[strlen(name)];
+
+    if (strlen(name) <= 0) return JOY_UNKNOWN_NAME;
+    strcpy(lname,name);
+    for(int i = 0; lname[i]; i++)
     {
-        bool nameTaken = false;
+        lname[i] = tolower(lname[i]);
+    }
+    if ( strstr(lname, "null") == NULL ) return JOY_UNKNOWN_NAME;
+    return ( (char*)name );
+}
 
-        if (i == 0)
+/*
+Search for usb joysticks. Set
+types, defaults and keynames.
+*/
+void joystick_scan(int scan)
+{
+	//Kratus (20-04-21) new joystick scan, avoid accelerometer detection as buttons in Android
+	int i;
+	int numjoyNoAcc = 0;
+
+	if(!scan) return;
+
+	numjoy = SDL_NumJoysticks();
+	numjoyNoAcc = numjoy;
+
+	if (scan != 2)
+    {
+        for(i = 0; i < numjoy; i++)
         {
-            snprintf(fullName, sizeof(fullName), "%s", name);
+            char real_joy_name[MAX_BUFFER_LEN];
+
+            strcpy(real_joy_name,SDL_JoystickNameForIndex(i));
+            if (strcmp(real_joy_name, "Android Accelerometer") == 0)
+            {
+                --numjoyNoAcc;
+            }
+        }
+        if(numjoyNoAcc <= 0)
+        {
+            printf("No Joystick(s) Found!\n");
+            return;
         }
         else
         {
-            snprintf(fullName, sizeof(fullName), "%s #%i", name, i + 1);
-        }
-
-        for (int j = 0; j < MAX_DEVICES; j++)
-        {
-            if (j != deviceID && devices[j].deviceType != DEVICE_TYPE_NONE)
-            {
-                if (0 == strcmp(devices[j].name, fullName))
-                {
-                    nameTaken = true;
-                    break;
-                }
-            }
-        }
-
-        if (!nameTaken) break;
-    }
-
-    snprintf(devices[deviceID].name, sizeof(devices[deviceID].name), "%s", fullName);
-}
-
-static void setup_joystick(int deviceID, int sdlDeviceID)
-{
-    if (SDL_IsGameController(sdlDeviceID))
-    {
-        devices[deviceID].deviceType = DEVICE_TYPE_CONTROLLER;
-        devices[deviceID].controller = SDL_GameControllerOpen(sdlDeviceID);
-        const char *name = SDL_GameControllerNameForIndex(sdlDeviceID);
-        if (name == NULL)
-        {
-            name = SDL_JoystickNameForIndex(sdlDeviceID);
-            if (name == NULL)
-            {
-                name = "Unknown Controller";
-            }
-        }
-        //snprintf(devices[deviceID].name, sizeof(devices[deviceID].name), "%s", name);
-        set_device_name(deviceID, name);
-        load_from_saved_mapping(deviceID);
-        printf("%s (device #%i, SDL ID %i) is a game controller.\n", devices[deviceID].name, deviceID, sdlDeviceID);
-    }
-    else
-    {
-        devices[deviceID].deviceType = DEVICE_TYPE_JOYSTICK;
-        devices[deviceID].joystick = SDL_JoystickOpen(sdlDeviceID);
-        const char *name = SDL_JoystickNameForIndex(sdlDeviceID);
-        if (name == NULL)
-        {
-            name = "Unknown Controller";
-        }
-        //snprintf(devices[deviceID].name, sizeof(devices[deviceID].name), "%s", name);
-        set_device_name(deviceID, name);
-        load_from_saved_mapping(deviceID);
-        printf("%s (device #%i, SDL ID %i) is not a game controller.\n", devices[deviceID].name, deviceID, sdlDeviceID);
-    }
-
-    devices[deviceID].haptic = SDL_HapticOpen(sdlDeviceID);
-    if (devices[deviceID].haptic != NULL)
-    {
-        // initialize rumble
-        if (SDL_HapticRumbleInit(devices[deviceID].haptic) < 0)
-        {
-            printf("Warning: Unable to initialize rumble for %s! %s\n", devices[deviceID].name, SDL_GetError());
+            printf("\n%d joystick(s) found!\n", numjoyNoAcc);
         }
     }
-}
 
-void control_init()
-{
-    if (controlInited) return;
+	if (numjoyNoAcc > JOY_LIST_TOTAL) numjoy = JOY_LIST_TOTAL; // avoid overflow bug
 
-    if (!savedMappingsInited)
-    {
-        List_Init(&savedMappings);
-        savedMappingsInited = true;
-    }
+	for(i = 0; i < numjoy; i++)
+	{
+	    int joy_idx = i;
+        char real_joy_name[MAX_BUFFER_LEN];
 
-    // initialize all devices to DEVICE_TYPE_NONE
-    memset(devices, 0, sizeof(devices));
+        strcpy(real_joy_name,SDL_JoystickNameForIndex(i));
 
-    int numJoysticks = SDL_NumJoysticks();
-
-    if (numJoysticks >= MAX_DEVICES)
-    {
-        // subtract 1 so we have room for the keyboard later
-        numJoysticks = MAX_DEVICES - 1;
-    }
-
-    int joystickCount = 0;
-    for (int i = 0; i < numJoysticks; i++)
-    {
-        // blacklist the Android accelerometer that SDL counts as a "joystick"
-        if (0 == stricmp("Android Accelerometer", SDL_JoystickNameForIndex(i)))
+        if (strcmp(real_joy_name, "Android Accelerometer") == 0)
         {
             continue;
         }
 
-        setup_joystick(joystickCount, i);
-        joystickCount++;
+        open_joystick(joy_idx);
+
+        if(scan != 2)
+        {
+            int is_rumble_support = (joystick_haptic[i] != NULL && SDL_HapticRumbleSupported(joystick_haptic[i])) ? 1 : 0;
+            char* rumble_support = (is_rumble_support) ? "yes" : "no";
+
+            // print JOY_MAX_INPUTS (64) spaces for alignment
+            if(numjoy == 1)
+            {
+                printf("%s (%s) - %d axes, %d buttons, %d hat(s), rumble support: %s\n",
+                        get_joystick_name(joysticks[joy_idx].Name), SDL_JoystickName(i), joysticks[joy_idx].NumAxes, joysticks[joy_idx].NumButtons, joysticks[joy_idx].NumHats, rumble_support);
+            }
+            else if(numjoy > 1)
+            {
+                if(joy_idx) printf("\n");
+                printf("%d. %s (%s) - %d axes, %d buttons, %d hat(s), rumble support: %s\n", i + 1,
+                        get_joystick_name(joysticks[joy_idx].Name), SDL_JoystickName(i), joysticks[joy_idx].NumAxes, joysticks[joy_idx].NumButtons, joysticks[joy_idx].NumHats, rumble_support);
+            }
+        }
+	}
+}
+
+/*
+Open a single joystick
+*/
+void open_joystick(int i)
+{
+    int j;
+
+    if ( ( joystick[i] = SDL_JoystickOpen(i) ) == NULL )
+    {
+       printf("\nWarning: Unable to initialize joystick in port: %d! SDL Error: %s\n", i, SDL_GetError());
+       return;
+    }
+    joysticks[i].NumHats = SDL_JoystickNumHats(joystick[i]);
+    joysticks[i].NumAxes = SDL_JoystickNumAxes(joystick[i]);
+    joysticks[i].NumButtons = SDL_JoystickNumButtons(joystick[i]);
+
+    strcpy(joysticks[i].Name, SDL_JoystickName(i));
+
+    joystick_haptic[i] = SDL_HapticOpenFromJoystick(joystick[i]);
+    if (joystick_haptic[i] != NULL)
+    {
+        //Get initialize rumble
+        if( SDL_HapticRumbleInit( joystick_haptic[i] ) < 0 )
+        {
+            printf("\nWarning: Unable to initialize rumble for joystick: %s in port: %d! SDL Error: %s\n", joysticks[i].Name, i, SDL_GetError());
+        }
     }
 
-    keyboardDeviceID = joystickCount;
-    devices[joystickCount].deviceType = DEVICE_TYPE_KEYBOARD;
-#ifdef ANDROID
-    snprintf(devices[joystickCount].name, sizeof(devices[joystickCount].name), "%s", "On-Screen Controller");
+    #if GP2X
+    joysticks[i].Type = JOY_TYPE_GAMEPARK;
+    for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
+    {
+        if(j) joysticks[i].KeyName[j] = GameparkKeyName[j + i * JOY_MAX_INPUTS];
+        else joysticks[i].KeyName[j] = GameparkKeyName[j];
+    }
+    #else
+    //SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
+    for(j = 1; j < JOY_MAX_INPUTS + 1; j++)
+    {
+        strcpy(joysticks[i].KeyName[j], PC_GetJoystickKeyName(i, j));
+    }
+    #endif
+
+    return;
+}
+
+void reset_joystick_map(int i)
+{
+	memset(joysticks[i].Name,0,sizeof(joysticks[i].Name));
+	memset(joysticks[i].KeyName,0,sizeof(joysticks[i].KeyName));
+	joysticks[i].Type = 0;
+	joysticks[i].NumHats = 0;
+	joysticks[i].NumAxes = 0;
+	joysticks[i].NumButtons = 0;
+	joysticks[i].Hats = 0;
+	joysticks[i].Axes = 0;
+	joysticks[i].Buttons = 0;
+	joysticks[i].Data = 0;
+    set_default_joystick_keynames(i);
+}
+
+/*
+Reset All data back to Zero and
+destroy all SDL Joystick data.
+*/
+void control_exit()
+{
+	int i;
+	for(i = 0; i < numjoy; i++)
+    {
+		close_joystick(i);
+	}
+	usejoy = 0;
+}
+
+/*
+Reset single joystick
+*/
+void close_joystick(int i)
+{
+	if(joystick[i] != NULL) SDL_JoystickClose(joystick[i]);
+	if(joystick_haptic[i] != NULL) SDL_HapticClose(joystick_haptic[i]);
+	joystick[i] = NULL;
+	joystick_haptic[i] = NULL;
+	reset_joystick_map(i);
+}
+
+/*
+Create default values for joysticks if enabled.
+Then scan for joysticks and update their data.
+*/
+void control_init(int joy_enable)
+{
+	int i;
+
+#ifdef GP2X
+	usejoy = joy_enable ? joy_enable : 1;
 #else
-    snprintf(devices[joystickCount].name, sizeof(devices[joystickCount].name), "%s", "Keyboard");
+	usejoy = joy_enable;
 #endif
-    load_from_saved_mapping(joystickCount);
+
+	//memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
+	for(i = 0; i < JOY_LIST_TOTAL; i++)
+	{
+        joystick[i] = NULL;
+        joystick_haptic[i] = NULL;
+		reset_joystick_map(i);
+	}
+	joystick_scan(usejoy);
 
 #ifdef ANDROID
-    for (int i = 0; i < MAX_POINTERS; i++)
+	for(i = 0; i < MAX_POINTERS; i++)
     {
         touch_info.pstatus[i] = TOUCH_STATUS_UP;
     }
 #endif
-
-    controlInited = true;
 }
 
-void control_exit()
+void set_default_joystick_keynames(int i)
 {
-    if (!controlInited) return;
-
-    clear_saved_mappings();
-
-    for (int i = 0; i < MAX_DEVICES; i++)
+    int j;
+    for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
     {
-        InputDevice *device = &devices[i];
-        if (device->deviceType == DEVICE_TYPE_CONTROLLER)
-        {
-            SDL_GameControllerClose(device->controller);
-            device->controller = NULL;
-        }
-        else if (device->deviceType == DEVICE_TYPE_JOYSTICK)
-        {
-            SDL_JoystickClose(device->joystick);
-            device->joystick = NULL;
-        }
-        if (device->haptic)
-        {
-            SDL_HapticClose(device->haptic);
-            device->haptic = NULL;
-        }
-        device->deviceType = DEVICE_TYPE_NONE;
-    }
-
-    keyboardDeviceID = -1;
-    remapDevice = NULL;
-    remapKeycode = -1;
-    controlInited = false;
-}
-
-static void set_default_keyboard_mappings(InputDevice *device)
-{
-    device->mappings[SDID_MOVEUP]     = SDL_SCANCODE_UP;
-    device->mappings[SDID_MOVEDOWN]   = SDL_SCANCODE_DOWN;
-    device->mappings[SDID_MOVELEFT]   = SDL_SCANCODE_LEFT;
-    device->mappings[SDID_MOVERIGHT]  = SDL_SCANCODE_RIGHT;
-    device->mappings[SDID_ATTACK]     = SDL_SCANCODE_A;
-    device->mappings[SDID_ATTACK2]    = SDL_SCANCODE_S;
-    device->mappings[SDID_ATTACK3]    = SDL_SCANCODE_Z;
-    device->mappings[SDID_ATTACK4]    = SDL_SCANCODE_X;
-    device->mappings[SDID_JUMP]       = SDL_SCANCODE_D;
-    device->mappings[SDID_SPECIAL]    = SDL_SCANCODE_F;
-    device->mappings[SDID_START]      = SDL_SCANCODE_RETURN;
-    device->mappings[SDID_SCREENSHOT] = SDL_SCANCODE_F12;
-    device->mappings[SDID_ESC]        = SDL_SCANCODE_ESCAPE;
-}
-
-static void set_default_controller_mappings(InputDevice *device)
-{
-    device->mappings[SDID_MOVEUP]     = SDL_CONTROLLER_BUTTON_DPAD_UP;
-    device->mappings[SDID_MOVEDOWN]   = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
-    device->mappings[SDID_MOVELEFT]   = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
-    device->mappings[SDID_MOVERIGHT]  = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
-    device->mappings[SDID_ATTACK]     = SDL_CONTROLLER_BUTTON_A;
-    device->mappings[SDID_ATTACK2]    = SDL_CONTROLLER_BUTTON_X;
-    device->mappings[SDID_ATTACK3]    = SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
-    device->mappings[SDID_ATTACK4]    = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
-    device->mappings[SDID_JUMP]       = SDL_CONTROLLER_BUTTON_B;
-    device->mappings[SDID_SPECIAL]    = SDL_CONTROLLER_BUTTON_Y;
-    device->mappings[SDID_START]      = SDL_CONTROLLER_BUTTON_START;
-    device->mappings[SDID_SCREENSHOT] = SDL_CONTROLLER_BUTTON_BACK;
-    device->mappings[SDID_ESC]        = SDL_CONTROLLER_BUTTON_B;
-}
-
-static void set_default_joystick_mappings(InputDevice *device)
-{
-    int numButtons = SDL_JoystickNumButtons(device->joystick);
-
-    device->mappings[SDID_MOVEUP]     = numButtons;
-    device->mappings[SDID_MOVEDOWN]   = numButtons + 1;
-    device->mappings[SDID_MOVELEFT]   = numButtons + 2;
-    device->mappings[SDID_MOVERIGHT]  = numButtons + 3;
-    device->mappings[SDID_ATTACK]     = 0;
-    device->mappings[SDID_ATTACK2]    = 3;
-    device->mappings[SDID_ATTACK3]    = 4;
-    device->mappings[SDID_ATTACK4]    = 5;
-    device->mappings[SDID_JUMP]       = 1;
-    device->mappings[SDID_SPECIAL]    = 2;
-    device->mappings[SDID_START]      = 6;
-    device->mappings[SDID_SCREENSHOT] = 7;
-    device->mappings[SDID_ESC]        = device->mappings[SDID_SPECIAL];
-}
-
-void control_resetmappings(int deviceID)
-{
-    if (deviceID < 0) return;
-
-    InputDevice *device = &devices[deviceID];
-    switch (device->deviceType)
-    {
-        case DEVICE_TYPE_KEYBOARD:
-            set_default_keyboard_mappings(device);
-            break;
-        case DEVICE_TYPE_CONTROLLER:
-            set_default_controller_mappings(device);
-            break;
-        case DEVICE_TYPE_JOYSTICK:
-            set_default_joystick_mappings(device);
-            break;
-        default:
-            memset(device->mappings, 0, sizeof(device->mappings));
-            break;
+        if(j) strcpy(joysticks[i].KeyName[j], "DISCONNECTED"); //Kratus (20-04-21) rename all keys when disconnected
+		// if(j) strcpy(joysticks[i].KeyName[j], JoystickKeyName[j + i * JOY_MAX_INPUTS]);
+        // else  strcpy(joysticks[i].KeyName[j], JoystickKeyName[j]);
     }
 }
 
-static void handle_events()
+char *control_getkeyname(unsigned int keycode)
 {
-    SDL_Event ev;
-    while (SDL_PollEvent(&ev))
-    {
-        switch (ev.type)
-        {
-            case SDL_QUIT:
-            {
-                borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
-                break;
-            }
+	int i;
+	for(i = 0; i < JOY_LIST_TOTAL; i++)
+	{
+		if((keycode >= (JOY_LIST_FIRST + 1 + (i * JOY_MAX_INPUTS))) && (keycode <= JOY_LIST_FIRST + JOY_MAX_INPUTS + (i * JOY_MAX_INPUTS)))
+			return (char*)joysticks[i].KeyName[keycode - (JOY_LIST_FIRST + (i * JOY_MAX_INPUTS))];
+	}
 
-            /* There is also a CONTROLLERDEVICEADDED event, but we can ignore it since this one works for
-               both kinds of controllers/joysticks. */
-            case SDL_JOYDEVICEADDED:
-            {
-                bool already_in_use = false;
-
-                /* We get this event for devices that were plugged in at application start, which we already
-                   initialized in control_init(). So look through the device list to avoid duplicates. */
-                if (SDL_IsGameController(ev.jdevice.which))
-                {
-                    SDL_GameController *controller = SDL_GameControllerOpen(ev.jdevice.which);
-                    for (int i = 0; i < MAX_DEVICES; i++)
-                    {
-                        if (devices[i].deviceType == DEVICE_TYPE_CONTROLLER &&
-                            devices[i].controller == controller)
-                        {
-                            already_in_use = true;
-                            //printf("Already in use as device %i\n", i);
-                            break;
-                        }
-                    }
-                    SDL_GameControllerClose(controller);
-                }
-                else
-                {
-                    SDL_Joystick *joystick = SDL_JoystickOpen(ev.jdevice.which);
-                    for (int i = 0; i < MAX_DEVICES; i++)
-                    {
-                        if (devices[i].deviceType == DEVICE_TYPE_JOYSTICK &&
-                            devices[i].joystick == joystick)
-                        {
-                            already_in_use = true;
-                            //printf("Already in use as device %i\n", i);
-                            break;
-                        }
-                    }
-                    SDL_JoystickClose(joystick);
-                }
-
-                if (already_in_use)
-                {
-                    break;
-                }
-
-                // Okay, it's actually a newly inserted device, not a duplicate. Initialize it.
-                printf("Controller or joystick hotplugged: SDL device ID=%i\n", ev.jdevice.which);
-                for (int i = 0; i < MAX_DEVICES; i++)
-                {
-                    if (devices[i].deviceType == DEVICE_TYPE_NONE)
-                    {
-                        setup_joystick(i, ev.jdevice.which);
-                        printf("Hotplugged %s set as device #%i\n",
-                               devices[i].deviceType == DEVICE_TYPE_CONTROLLER ? "controller" : "joystick",
-                               i);
-                        break;
-                    }
-                }
-                break;
-            }
-
-            /* There is also a CONTROLLERDEVICEREMOVED event, but we can ignore it since this one works for
-               both kinds of controllers/joysticks. */
-            case SDL_JOYDEVICEREMOVED:
-            {
-                for (int i = 0; i < MAX_DEVICES; i++)
-                {
-                    if (devices[i].deviceType == DEVICE_TYPE_CONTROLLER &&
-                        devices[i].controller == SDL_GameControllerFromInstanceID(ev.jdevice.which))
-                    {
-                        SDL_GameControllerClose(devices[i].controller);
-                        devices[i].deviceType = DEVICE_TYPE_NONE;
-                        printf("Controller removed: device #%i (SDL instance ID=%i)\n", i, ev.jdevice.which);
-                        break;
-                    }
-                    else if (devices[i].deviceType == DEVICE_TYPE_JOYSTICK &&
-                             devices[i].joystick == SDL_JoystickFromInstanceID(ev.jdevice.which))
-                    {
-                        SDL_JoystickClose(devices[i].joystick);
-                        devices[i].deviceType = DEVICE_TYPE_NONE;
-                        printf("Joystick removed: device #%i (SDL instance ID=%i)\n", i, ev.jdevice.which);
-                    }
-                }
-                break;
-            }
-
-            case SDL_KEYDOWN:
-            {
-                if (remapDevice && remapDevice->deviceType == DEVICE_TYPE_KEYBOARD)
-                {
-                    remapKeycode = ev.key.keysym.scancode;
-                }
-
-#if 0 // disable Alt+Enter fullscreen toggle for now because it causes problems under X11
-                // Alt+Enter toggles fullscreen
-                if (ev.key.keysym.scancode == SDL_SCANCODE_RETURN && (SDL_GetModState() & KMOD_ALT) && !altEnterPressed)
-                {
-                    fprintf(stderr, "Alt+Enter pressed, repeat=%i\n", ev.key.repeat);
-                    video_fullscreen_flip();
-
-                    /* Force the Enter key to unpressed in the SDL keyboard state so it won't be read by the
-                       is_key_pressed() function if it's mapped to something in-game. */
-                    //((Uint8*)SDL_GetKeyboardState(NULL))[SDL_SCANCODE_RETURN] = 0;
-                    altEnterPressed = true;
-                }
-#endif
-                break;
-            }
-
-#if 0 // disable Alt+Enter fullscreen toggle for now because it causes problems under X11
-            case SDL_KEYUP:
-            {
-                if (ev.key.keysym.scancode == SDL_SCANCODE_RETURN)
-                {
-                    altEnterPressed = false;
-                }
-                break;
-            }
-#endif
-
-            case SDL_CONTROLLERBUTTONDOWN:
-            {
-                if (remapDevice &&
-                    remapDevice->deviceType == DEVICE_TYPE_CONTROLLER &&
-                    SDL_GameControllerFromInstanceID(ev.cbutton.which) == remapDevice->controller)
-                {
-                    remapKeycode = ev.cbutton.button;
-                }
-                break;
-            }
-            case SDL_CONTROLLERAXISMOTION:
-            {
-                if (remapDevice &&
-                    remapDevice->deviceType == DEVICE_TYPE_CONTROLLER &&
-                    SDL_GameControllerFromInstanceID(ev.caxis.which) == remapDevice->controller)
-                {
-                    if (ev.caxis.value > AXIS_THRESHOLD)
-                    {
-                        switch (ev.caxis.axis)
-                        {
-                            case SDL_CONTROLLER_AXIS_LEFTX:
-                            case SDL_CONTROLLER_AXIS_LEFTY:
-                            case SDL_CONTROLLER_AXIS_RIGHTX:
-                            case SDL_CONTROLLER_AXIS_RIGHTY:
-                                remapKeycode = SDL_CONTROLLER_BUTTON_MAX + (ev.caxis.axis * 2) + 1;
-                                break;
-                            case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
-                                remapKeycode = SDL_CONTROLLER_BUTTON_MAX + 8;
-                                break;
-                            case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
-                                remapKeycode = SDL_CONTROLLER_BUTTON_MAX + 9;
-                                break;
-                        }
-                    }
-                    else if (ev.caxis.value < -AXIS_THRESHOLD)
-                    {
-                        // the triggers can't have negative values, so we don't need to handle them here
-                        remapKeycode = SDL_CONTROLLER_BUTTON_MAX + (ev.caxis.axis * 2);
-                    }
-                    break;
-                }
-                break;
-            }
-            case SDL_JOYBUTTONDOWN:
-            {
-                if (remapDevice &&
-                    remapDevice->deviceType == DEVICE_TYPE_JOYSTICK &&
-                    remapDevice->joystick &&
-                    SDL_JoystickFromInstanceID(ev.jbutton.which) == remapDevice->joystick)
-                {
-                    remapKeycode = ev.jbutton.button;
-                }
-                break;
-            }
-            case SDL_JOYHATMOTION:
-            {
-                if (remapDevice &&
-                    remapDevice->deviceType == DEVICE_TYPE_JOYSTICK &&
-                    remapDevice->joystick &&
-                    SDL_JoystickFromInstanceID(ev.jhat.which) == remapDevice->joystick)
-                {
-                    // do nothing if the d-pad is pressed diagonally; wait for a cardinal direction
-                    unsigned int base = SDL_JoystickNumButtons(remapDevice->joystick) + (4 * ev.jhat.hat);
-                    switch (ev.jhat.value)
-                    {
-                        case SDL_HAT_UP:
-                            remapKeycode = base;
-                            break;
-                        case SDL_HAT_DOWN:
-                            remapKeycode = base + 1;
-                            break;
-                        case SDL_HAT_LEFT:
-                            remapKeycode = base + 2;
-                            break;
-                        case SDL_HAT_RIGHT:
-                            remapKeycode = base + 3;
-                            break;
-                    }
-                }
-                break;
-            }
-            case SDL_JOYAXISMOTION:
-            {
-                if (remapDevice &&
-                    remapDevice->deviceType == DEVICE_TYPE_JOYSTICK &&
-                    remapDevice->joystick &&
-                    SDL_JoystickFromInstanceID(ev.jaxis.which) == remapDevice->joystick)
-                {
-                    if (ev.jaxis.value < -AXIS_THRESHOLD || ev.jaxis.value > AXIS_THRESHOLD)
-                    {
-                        remapKeycode = SDL_JoystickNumButtons(remapDevice->joystick) +
-                                       4 * SDL_JoystickNumHats(remapDevice->joystick) +
-                                       2 * ev.jaxis.axis + ((ev.jaxis.value < -AXIS_THRESHOLD) ? 0 : 1);
-                    }
-                }
-                break;
-            }
-
-#ifdef ANDROID
-            case SDL_FINGERDOWN:
-            {
-                for (int i = 0; i < MAX_POINTERS; i++)
-                {
-                    if (touch_info.pstatus[i] == TOUCH_STATUS_UP)
-                    {
-                        touch_info.pid[i] = ev.tfinger.fingerId;
-                        touch_info.px[i] = ev.tfinger.x * nativeWidth;
-                        touch_info.py[i] = ev.tfinger.y * nativeHeight;
-                        touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
-                        break;
-                    }
-                }
-                control_update_android_touch(&touch_info, MAX_POINTERS);
-                break;
-            }
-
-            case SDL_FINGERUP:
-            {
-                for (int i = 0; i < MAX_POINTERS; i++)
-                {
-                    if (touch_info.pid[i] == ev.tfinger.fingerId)
-                    {
-                        touch_info.pstatus[i] = TOUCH_STATUS_UP;
-                        break;
-                    }
-                }
-                control_update_android_touch(&touch_info, MAX_POINTERS);
-                break;
-            }
-
-            case SDL_FINGERMOTION:
-            {
-                for (int i = 0; i < MAX_POINTERS; i++)
-                {
-                    if (touch_info.pid[i] == ev.tfinger.fingerId)
-                    {
-                        touch_info.px[i] = ev.tfinger.x * nativeWidth;
-                        touch_info.py[i] = ev.tfinger.y * nativeHeight;
-                        touch_info.pstatus[i] = TOUCH_STATUS_DOWN;
-                        break;
-                    }
-                }
-                control_update_android_touch(&touch_info, MAX_POINTERS);
-                break;
-            }
-#endif
-        }
-    }
+	if(keycode > SDLK_FIRST && keycode < SDLK_LAST)
+		return JOY_GetKeyName(keycode);
+	else
+	if(keycode == CONTROL_NONE) //Kratus (20-04-21) value used to clear all keys
+		return "NONE";
+	else
+		return "...";
 }
 
-// Returns 1 if key is pressed, 0 if not
-static unsigned int is_key_pressed(InputDevice *device, int keycode)
+/*
+Set global variable, which is used for
+enabling and disabling all joysticks.
+*/
+int control_usejoy(int enable)
 {
-    if (device->deviceType == DEVICE_TYPE_KEYBOARD)
-    {
-        // If Enter was pressed as part of an Alt+Enter to toggle fullscreen, don't count it as an in-game button press.
-        if (keycode == SDL_SCANCODE_RETURN && altEnterPressed)
-        {
-            return 0;
-        }
-
-        return SDL_GetKeyboardState(NULL)[keycode];
-    }
-    else if (device->deviceType == DEVICE_TYPE_CONTROLLER)
-    {
-        SDL_GameController *controller = device->controller;
-        if (keycode < SDL_CONTROLLER_BUTTON_MAX)
-        {
-            return SDL_GameControllerGetButton(controller, keycode);
-        }
-        else
-        {
-            int axisCode = keycode - SDL_CONTROLLER_BUTTON_MAX;
-            switch (axisCode)
-            {
-                case 0: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) < -AXIS_THRESHOLD);
-                case 1: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) > AXIS_THRESHOLD);
-                case 2: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) < -AXIS_THRESHOLD);
-                case 3: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) > AXIS_THRESHOLD);
-                case 4: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX) < -AXIS_THRESHOLD);
-                case 5: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX) > AXIS_THRESHOLD);
-                case 6: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY) < -AXIS_THRESHOLD);
-                case 7: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY) > AXIS_THRESHOLD);
-                case 8: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > AXIS_THRESHOLD);
-                case 9: return (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > AXIS_THRESHOLD);
-            }
-            return 0;
-        }
-    }
-    else if (device->deviceType == DEVICE_TYPE_JOYSTICK)
-    {
-        SDL_Joystick *joystick = device->joystick;
-        if (keycode < SDL_JoystickNumButtons(joystick))
-        {
-            return SDL_JoystickGetButton(joystick, keycode);
-        }
-
-        keycode -= SDL_JoystickNumButtons(joystick);
-        if (keycode < 4 * SDL_JoystickNumHats(joystick))
-        {
-            const int hatMasks[] = {SDL_HAT_UP, SDL_HAT_DOWN, SDL_HAT_LEFT, SDL_HAT_RIGHT};
-            return !!(SDL_JoystickGetHat(joystick, keycode / 4) & hatMasks[keycode % 4]);
-        }
-
-        keycode -= 4 * SDL_JoystickNumHats(joystick);
-        if (keycode < 2 * SDL_JoystickNumAxes(joystick))
-        {
-            Sint16 axisPosition = SDL_JoystickGetAxis(joystick, keycode / 2);
-            if (keycode & 1)
-            {
-                return (axisPosition > AXIS_THRESHOLD);
-            }
-            else
-            {
-                return (axisPosition < -AXIS_THRESHOLD);
-            }
-        }
-    }
-
-    return 0;
+	usejoy = enable;
+	return 0;
 }
 
-void control_update_player(s_playercontrols *playerControls)
-{
-    uint32_t keyflags = 0;
-    InputDevice *device = &devices[playerControls->deviceID];
-
-    for (unsigned int i = 0; i < SDID_COUNT; i++)
-    {
-        keyflags |= (is_key_pressed(device, device->mappings[i]) << i);
-    }
-
-    playerControls->newkeyflags = keyflags & (~playerControls->keyflags);
-    playerControls->keyflags = keyflags;
-}
-
-void control_update(s_playercontrols **playerControls, int numPlayers)
-{
-    handle_events();
-
-    for (int i = 0; i < numPlayers; i++)
-    {
-        control_update_player(playerControls[i]);
-    }
-}
-
-void control_remapdevice(int deviceID)
-{
-    if (deviceID < 0)
-    {
-        // done remapping; reset globals to default values
-        remapDevice = NULL;
-        remapKeycode = -1;
-    }
-    else
-    {
-        assert(devices[deviceID].deviceType != DEVICE_TYPE_NONE);
-        remapDevice = &devices[deviceID];
-        remapKeycode = -1;
-    }
-}
-
-int control_getremappedkey()
-{
-    return remapKeycode;
-}
-
-int *control_getmappings(int deviceID)
-{
-    return devices[deviceID].mappings;
-}
-
-const char *control_getkeyname(int deviceID, int keycode)
-{
-    if (deviceID < 0) return "None";
-
-    if (devices[deviceID].deviceType == DEVICE_TYPE_KEYBOARD)
-    {
-        return SDL_GetKeyName(SDL_GetKeyFromScancode(keycode));
-    }
-    else if (devices[deviceID].deviceType == DEVICE_TYPE_CONTROLLER)
-    {
-        // These are more readable than the button names we get from SDL
-        const char *buttonNames[] = {
-            "A",
-            "B",
-            "X",
-            "Y",
-            "Back",
-            "Guide",
-            "Start",
-            "Left Stick Button",
-            "Right Stick Button",
-            "LB",
-            "RB",
-            "D-Pad Up",
-            "D-Pad Down",
-            "D-Pad Left",
-            "D-Pad Right",
-            "Left Stick Left",
-            "Left Stick Right",
-            "Left Stick Up",
-            "Left Stick Down",
-            "Right Stick Left",
-            "Right Stick Right",
-            "Right Stick Up",
-            "Right Stick Down",
-            "LT",
-            "RT"
-        };
-
-        if (keycode < sizeof(buttonNames) / sizeof(buttonNames[0]))
-        {
-            return buttonNames[keycode];
-        }
-    }
-    else if (devices[deviceID].deviceType == DEVICE_TYPE_JOYSTICK)
-    {
-        static char buttonName[64];
-        SDL_Joystick *joystick = devices[deviceID].joystick;
-        if (keycode < SDL_JoystickNumButtons(joystick))
-        {
-            snprintf(buttonName, sizeof(buttonName), "Button %u", keycode + 1);
-            return buttonName;
-        }
-
-        keycode -= SDL_JoystickNumButtons(joystick);
-        if (keycode < 4 * SDL_JoystickNumHats(joystick))
-        {
-            // omit the hat number because no real device is going to have more than one d-pad
-            const char *directions[] = {"Up", "Down", "Left", "Right"};
-            snprintf(buttonName, sizeof(buttonName), "D-Pad %s", directions[keycode % 4]);
-            return buttonName;
-        }
-
-        keycode -= 4 * SDL_JoystickNumHats(joystick);
-        if (keycode < 2 * SDL_JoystickNumAxes(joystick))
-        {
-            snprintf(buttonName, sizeof(buttonName), "Axis %i %c", (keycode / 2) + 1, (keycode & 1) ? '+' : '-');
-            return buttonName;
-        }
-    }
-
-    return "None";
-}
-
-bool control_isvaliddevice(int deviceID)
-{
-    return deviceID >= 0 && devices[deviceID].deviceType != DEVICE_TYPE_NONE;
-}
-
-const char *control_getdevicename(int deviceID)
-{
-    return devices[deviceID].deviceType == DEVICE_TYPE_NONE ? "None" : devices[deviceID].name;
-}
-
-void control_rumble(int deviceID, int ratio, int msec)
-{
-    if (msec > 0 && devices[deviceID].haptic)
-    {
-        if (SDL_HapticRumblePlay(devices[deviceID].haptic, ratio, msec) != 0)
-        {
-            printf("Warning: Unable to play rumble! %s\n", SDL_GetError());
-        }
-    }
-}
-
-#ifdef ANDROID
+#if ANDROID
 /*
 Get if touchscreen vibration is active
 */
-bool is_touchpad_vibration_enabled()
+int is_touchpad_vibration_enabled()
 {
-    return !!(savedata.is_touchpad_vibration_enabled);
+	return savedata.is_touchpad_vibration_enabled;
+}
+#endif
+
+/*
+Only used in openbor.c to get current status
+of joystick usage.
+*/
+int control_getjoyenabled()
+{
+	return usejoy;
 }
 
+
+void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key)
+{
+	if(!pcontrols) return;
+	pcontrols->settings[flag_to_index(flag)] = key;
+	pcontrols->keyflags = pcontrols->newkeyflags = 0;
+}
+
+#if ANDROID
 /*
 Android touch logic, the rest of the code is in android/jni/video.c,
 maybe they'll be merged someday.
@@ -885,202 +620,171 @@ extern float by[MAXTOUCHB];
 extern float br[MAXTOUCHB];
 extern unsigned touchstates[MAXTOUCHB];
 int hide_t = 5000;
-
-static void control_update_android_touch(TouchStatus *touch_info, int maxp)
+void control_update_android_touch(TouchStatus *touch_info, int maxp, Uint8* keystate, Uint8* keystate_def)
 {
-    #define pc(x) devices[keyboardDeviceID].mappings[x]
-    int i, j;
-    float tx, ty, tr;
-    float r[MAXTOUCHB];
-    float dirx, diry, circlea, circleb, tan;
-    Uint8* keystate = (Uint8*) SDL_GetKeyboardState(NULL);
-    SDL_Event event;
+	int i, j;
+	float tx, ty, tr;
+	float r[MAXTOUCHB];
+	float dirx, diry, circlea, circleb, tan;
 
-    memset(touchstates, 0, sizeof(touchstates));
+	memset(touchstates, 0, sizeof(touchstates));
 
-    for(j=0; j<MAXTOUCHB; j++)
-    {
-        r[j] = br[j]*br[j]*(1.5*1.5);
-    }
-    dirx = (bx[SDID_MOVERIGHT]+bx[SDID_MOVELEFT])/2.0;
-    diry = (by[SDID_MOVEUP]+by[SDID_MOVEDOWN])/2.0;
-    circlea = bx[SDID_MOVERIGHT]-dirx-br[SDID_MOVEUP];
-    circleb = bx[SDID_MOVERIGHT]-dirx+br[SDID_MOVEUP]*1.5;
-    circlea *= circlea;
-    circleb *= circleb;
-    #define tana 0.577350f
-    #define tanb 1.732051f
-    for (i=0; i<maxp; i++)
-    {
-        if(touch_info->pstatus[i] == TOUCH_STATUS_UP) continue;
-
-        event.type = SDL_KEYDOWN;
-        event.key.type = SDL_KEYDOWN;
-        event.key.timestamp = SDL_GetTicks();
-        event.key.state = SDL_PRESSED;
-        event.key.repeat = 0;
-
-        tx = touch_info->px[i]-dirx;
-        ty = touch_info->py[i]-diry;
-        tr = tx*tx + ty*ty;
-
-        //direction button logic is different, check a ring instead of individual buttons
-        if(tr>circlea && tr<=circleb)
-        {
-            if(tx<0)
-            {
-                tan = ty/tx;
-                if(tan>=-tana && tan<=tana)
+	for(j=0; j<MAXTOUCHB; j++)
+	{
+		r[j] = br[j]*br[j]*(1.5*1.5);
+	}
+	dirx = (bx[SDID_MOVERIGHT]+bx[SDID_MOVELEFT])/2.0;
+	diry = (by[SDID_MOVEUP]+by[SDID_MOVEDOWN])/2.0;
+	circlea = bx[SDID_MOVERIGHT]-dirx-br[SDID_MOVEUP];
+	circleb = bx[SDID_MOVERIGHT]-dirx+br[SDID_MOVEUP]*1.5;
+	circlea *= circlea;
+	circleb *= circleb;
+	#define tana 0.577350f
+	#define tanb 1.732051f
+	for (i=0; i<maxp; i++)
+	{
+		if(touch_info->pstatus[i] == TOUCH_STATUS_UP) continue;
+		tx = touch_info->px[i]-dirx;
+		ty = touch_info->py[i]-diry;
+		tr = tx*tx + ty*ty;
+		//direction button logic is different, check a ring instead of individual buttons
+		if(tr>circlea && tr<=circleb)
+		{
+			if(tx<0)
+			{
+				tan = ty/tx;
+				if(tan>=-tana && tan<=tana)
                 {
-                    touchstates[SDID_MOVELEFT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVELEFT);
-                    SDL_PushEvent(&event);
+					touchstates[SDID_MOVELEFT] = 1;
+				}
+				else if(tan<-tanb)
+                {
+					touchstates[SDID_MOVEDOWN] = 1;
+				}
+				else if(tan>tanb)
+				{
+					touchstates[SDID_MOVEUP] = 1;
+				}
+				else if(ty<0)
+				{
+					touchstates[SDID_MOVEUP] = touchstates[SDID_MOVELEFT] = 1;
+				}
+				else
+				{
+					touchstates[SDID_MOVELEFT] = touchstates[SDID_MOVEDOWN] = 1;
                 }
-                else if(tan<-tanb)
+			}
+			else if(tx>0)
+			{
+				tan = ty/tx;
+				if(tan>=-tana && tan<=tana)
                 {
+					touchstates[SDID_MOVERIGHT] = 1;
+				}
+				else if(tan<-tanb)
+				{
+					touchstates[SDID_MOVEUP] = 1;
+				}
+				else if(tan>tanb)
+                {
+					touchstates[SDID_MOVEDOWN] = 1;
+				}
+				else if(ty<0)
+                {
+					touchstates[SDID_MOVEUP] = touchstates[SDID_MOVERIGHT] = 1;
+				}
+				else
+                {
+					touchstates[SDID_MOVERIGHT] = touchstates[SDID_MOVEDOWN] = 1;
+                }
+			}
+			else
+			{
+				if(ty>0)
+				{
                     touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
+				}
+				else
+				{
+				    touchstates[SDID_MOVEUP] = 1;
                 }
-                else if(tan>tanb)
-                {
-                    touchstates[SDID_MOVEUP] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                }
-                else if(ty<0)
-                {
-                    touchstates[SDID_MOVEUP] = touchstates[SDID_MOVELEFT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVELEFT);
-                    SDL_PushEvent(&event);
-                }
-                else
-                {
-                    touchstates[SDID_MOVELEFT] = touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVELEFT);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
-                }
-            }
-            else if(tx>0)
-            {
-                tan = ty/tx;
-                if(tan>=-tana && tan<=tana)
-                {
-                    touchstates[SDID_MOVERIGHT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVERIGHT);
-                    SDL_PushEvent(&event);
-                }
-                else if(tan<-tanb)
-                {
-                    touchstates[SDID_MOVEUP] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                }
-                else if(tan>tanb)
-                {
-                    touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
-                }
-                else if(ty<0)
-                {
-                    touchstates[SDID_MOVEUP] = touchstates[SDID_MOVERIGHT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVERIGHT);
-                    SDL_PushEvent(&event);
-                }
-                else
-                {
-                    touchstates[SDID_MOVERIGHT] = touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVERIGHT);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
-                }
-            }
-            else
-            {
-                if(ty>0)
-                {
-                    touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
-                }
-                else
-                {
-                    touchstates[SDID_MOVEUP] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                }
-            }
-        }
-
-        //rest of the buttons
-        for(j=0; j<MAXTOUCHB; j++)
-        {
-            if(j==SDID_MOVERIGHT || j==SDID_MOVEUP ||
-                j==SDID_MOVELEFT || j==SDID_MOVEDOWN)
-                continue;
-            tx = touch_info->px[i]-bx[j];
-            ty = touch_info->py[i]-by[j];
-            tr = tx*tx + ty*ty;
-            if(tr<=r[j])
+			}
+		}
+		//rest buttons
+		for(j=0; j<MAXTOUCHB; j++)
+		{
+			if(j==SDID_MOVERIGHT || j==SDID_MOVEUP ||
+				j==SDID_MOVELEFT || j==SDID_MOVEDOWN)
+				continue;
+			tx = touch_info->px[i]-bx[j];
+			ty = touch_info->py[i]-by[j];
+			tr = tx*tx + ty*ty;
+			if(tr<=r[j])
             {
                 touchstates[j] = 1;
-                event.key.keysym.scancode = pc(j);
-                SDL_PushEvent(&event);
             }
-        }
-    }
-    #undef tana
-    #undef tanb
+		}
+	}
+	#undef tana
+	#undef tanb
 
-    hide_t = timer_gettick() + 5000;
+	hide_t = timer_gettick() + 5000;
 
-    //map to current user settings
-    assert(keyboardDeviceID >= 0);
-    keystate[pc(SDID_MOVEUP)] = touchstates[SDID_MOVEUP];
-    keystate[pc(SDID_MOVEDOWN)] = touchstates[SDID_MOVEDOWN];
-    keystate[pc(SDID_MOVELEFT)] = touchstates[SDID_MOVELEFT];
-    keystate[pc(SDID_MOVERIGHT)] = touchstates[SDID_MOVERIGHT];
-    keystate[pc(SDID_ATTACK)] = touchstates[SDID_ATTACK];
-    keystate[pc(SDID_ATTACK2)] = touchstates[SDID_ATTACK2];
-    keystate[pc(SDID_ATTACK3)] = touchstates[SDID_ATTACK3];
-    keystate[pc(SDID_ATTACK4)] = touchstates[SDID_ATTACK4];
-    keystate[pc(SDID_JUMP)] = touchstates[SDID_JUMP];
-    keystate[pc(SDID_SPECIAL)] = touchstates[SDID_SPECIAL];
-    keystate[pc(SDID_START)] = touchstates[SDID_START];
-    keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
-    keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
-    keystate[pc(SDID_ESC)] = touchstates[SDID_ESC];
+	//map to current user settings
+	extern s_savedata savedata;
+	#define pc(x) savedata.keys[0][x]
+	keystate[pc(SDID_MOVEUP)] = touchstates[SDID_MOVEUP];
+	keystate[pc(SDID_MOVEDOWN)] = touchstates[SDID_MOVEDOWN];
+	keystate[pc(SDID_MOVELEFT)] = touchstates[SDID_MOVELEFT];
+	keystate[pc(SDID_MOVERIGHT)] = touchstates[SDID_MOVERIGHT];
+	keystate[pc(SDID_ATTACK)] = touchstates[SDID_ATTACK];
+	keystate[pc(SDID_ATTACK2)] = touchstates[SDID_ATTACK2];
+	keystate[pc(SDID_ATTACK3)] = touchstates[SDID_ATTACK3];
+	keystate[pc(SDID_ATTACK4)] = touchstates[SDID_ATTACK4];
+	keystate[pc(SDID_JUMP)] = touchstates[SDID_JUMP];
+	keystate[pc(SDID_SPECIAL)] = touchstates[SDID_SPECIAL];
+	keystate[pc(SDID_START)] = touchstates[SDID_START];
+	keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
+	#undef pc
 
-    #undef pc
+	//use default value for touch key mapping
+    keystate_def[default_keys[SDID_MOVEUP]]    = touchstates[SDID_MOVEUP];
+    keystate_def[default_keys[SDID_MOVEDOWN]]  = touchstates[SDID_MOVEDOWN];
+    keystate_def[default_keys[SDID_MOVELEFT]]  = touchstates[SDID_MOVELEFT];
+    keystate_def[default_keys[SDID_MOVERIGHT]] = touchstates[SDID_MOVERIGHT];
+    keystate_def[default_keys[SDID_ATTACK]]    = touchstates[SDID_ATTACK];
+    keystate_def[default_keys[SDID_ATTACK2]]   = touchstates[SDID_ATTACK2];
+    keystate_def[default_keys[SDID_ATTACK3]]   = touchstates[SDID_ATTACK3];
+    keystate_def[default_keys[SDID_ATTACK4]]   = touchstates[SDID_ATTACK4];
+    keystate_def[default_keys[SDID_JUMP]]      = touchstates[SDID_JUMP];
+    keystate_def[default_keys[SDID_SPECIAL]]   = touchstates[SDID_SPECIAL];
+    keystate_def[default_keys[SDID_START]]     = touchstates[SDID_START];
+    keystate_def[default_keys[SDID_SCREENSHOT]] = touchstates[SDID_SCREENSHOT];
+
+    keystate[CONTROL_ESC] = keystate_def[CONTROL_ESC] = touchstates[SDID_ESC];
+
+    return;
 }
 
 int is_touch_area(float x, float y)
 {
-    int j;
-    float tx, ty, tr;
-    float r[MAXTOUCHB];
-    float dirx, diry, circlea, circleb, tan;
+	int j;
+	float tx, ty, tr;
+	float r[MAXTOUCHB];
+	float dirx, diry, circlea, circleb, tan;
 
-    for(j=0; j<MAXTOUCHB; j++)
-    {
-        r[j] = br[j]*br[j]*(1.5*1.5);
-    }
-    dirx = (bx[SDID_MOVERIGHT]+bx[SDID_MOVELEFT])/2.0;
-    diry = (by[SDID_MOVEUP]+by[SDID_MOVEDOWN])/2.0;
-    circlea = bx[SDID_MOVERIGHT]-dirx-br[SDID_MOVEUP];
-    circleb = bx[SDID_MOVERIGHT]-dirx+br[SDID_MOVEUP]*1.5;
-    circlea *= circlea;
-    circleb *= circleb;
-    #define tana 0.577350f
-    #define tanb 1.732051f
+	for(j=0; j<MAXTOUCHB; j++)
+	{
+		r[j] = br[j]*br[j]*(1.5*1.5);
+	}
+	dirx = (bx[SDID_MOVERIGHT]+bx[SDID_MOVELEFT])/2.0;
+	diry = (by[SDID_MOVEUP]+by[SDID_MOVEDOWN])/2.0;
+	circlea = bx[SDID_MOVERIGHT]-dirx-br[SDID_MOVEUP];
+	circleb = bx[SDID_MOVERIGHT]-dirx+br[SDID_MOVEUP]*1.5;
+	circlea *= circlea;
+	circleb *= circleb;
+	#define tana 0.577350f
+	#define tanb 1.732051f
     tx = x-dirx;
     ty = y-diry;
     tr = tx*tx + ty*ty;
@@ -1161,113 +865,126 @@ int is_touch_area(float x, float y)
             return 1;
         }
     }
-    #undef tana
-    #undef tanb
+	#undef tana
+	#undef tanb
 
-    return 0;
+	return 0;
 }
 #endif
 
-#define MAPPINGS_FILE_SENTINEL 0x9cf232d4
-
-bool control_loadmappings(const char *filename)
+int keyboard_getlastkey()
 {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp)
-    {
-        return false;
-    }
-
-    clear_saved_mappings();
-
-    while (!feof(fp) && !ferror(fp))
-    {
-        char name[CONTROL_DEVICE_NAME_SIZE];
-		int *mapping = malloc(SDID_COUNT * sizeof(int));
-		int sentinel;
-        if (fread(name, 1, sizeof(name), fp) != sizeof(name) ||
-            fread(mapping, sizeof(int), SDID_COUNT, fp) != SDID_COUNT ||
-            fread(&sentinel, sizeof(int), 1, fp) != 1)
-        {
-            free(mapping);
-            break;
-        }
-        else if (sentinel != MAPPINGS_FILE_SENTINEL)
-        {
-            free(mapping);
-            fclose(fp);
-            return false;
-        }
-
-        name[sizeof(name)-1] = '\0'; // just in case
-        printf("Loaded mapping for %s\n", name);
-        List_InsertAfter(&savedMappings, mapping, name);
-    }
-
-    fclose(fp);
-
-    // update all current device mappings with the newly loaded mappings
-    for (int i = 0; i < MAX_DEVICES; i++)
-    {
-        if (devices[i].deviceType != DEVICE_TYPE_NONE)
-        {
-            load_from_saved_mapping(i);
-        }
-    }
-
-    return true;
+		int i, ret = lastkey;
+		lastkey = 0;
+		for(i = 0; i < JOY_LIST_TOTAL; i++) joysticks[i].Buttons = 0;
+		return ret;
 }
 
-bool control_savemappings(const char *filename)
+
+// Scan input for newly-pressed keys.
+// Return value:
+// 0  = no key was pressed
+// >0 = key code for pressed key
+// <0 = error
+int control_scankey()
 {
-    // update savedMappings with all current device mappings
-    for (int i = 0; i < MAX_DEVICES; i++)
-    {
-        if (devices[i].deviceType != DEVICE_TYPE_NONE)
-        {
-            update_saved_mapping(i);
-        }
-    }
+	static unsigned ready = 0;
+	unsigned k = 0, j = 0;
 
-    FILE *fp = fopen(filename, "wb");
-    if (!fp)
-    {
-        return false;
-    }
+	k = keyboard_getlastkey();
+	j = lastjoy;
+	lastjoy = 0;
 
-    int numMappings = List_GetSize(&savedMappings);
-	List_Reset(&savedMappings);
-	for (int i = 0; i < numMappings; i++)
+#if 0
+		 if(joysticks[0].Data) j = 1 + 0 * JOY_MAX_INPUTS + flag_to_index(joysticks[0].Data);
+	else if(joysticks[1].Data) j = 1 + 1 * JOY_MAX_INPUTS + flag_to_index(joysticks[1].Data);
+	else if(joysticks[2].Data) j = 1 + 2 * JOY_MAX_INPUTS + flag_to_index(joysticks[2].Data);
+	else if(joysticks[3].Data) j = 1 + 3 * JOY_MAX_INPUTS + flag_to_index(joysticks[3].Data);
+#endif
+
+	if(ready && (k || j))
 	{
-		char name[CONTROL_DEVICE_NAME_SIZE];
-		snprintf(name, sizeof(name), "%s", List_GetName(&savedMappings));
-		int *mapping = List_Retrieve(&savedMappings);
-		const int sentinel = MAPPINGS_FILE_SENTINEL;
-        if (fwrite(name, 1, sizeof(name), fp) != sizeof(name) ||
-            fwrite(mapping, sizeof(int), SDID_COUNT, fp) != SDID_COUNT ||
-            fwrite(&sentinel, sizeof(int), 1, fp) != 1)
-        {
-            fclose(fp);
-            return false;
-        }
-
-        List_GotoNext(&savedMappings);
-    }
-
-    fclose(fp);
-    return true;
+		ready = 0;
+		if(k) return k;
+		if(j) return JOY_LIST_FIRST+j;
+		else return -1;
+	}
+	ready = (!k || !j);
+	return 0;
 }
 
-void control_clearmappings()
+void control_update(s_playercontrols ** playercontrols, int numplayers)
 {
-    clear_saved_mappings();
+	u64 k;
+	unsigned i;
+	int player;
+	int t;
+	s_playercontrols * pcontrols;
+	Uint8* keystate = (Uint8*)SDL_GetKeyState(NULL); // Here retrieve keyboard state
+	Uint8* keystate_def = (Uint8*)SDL_GetKeyState(NULL); // Here retrieve keyboard state for default
 
-    for (int i = 0; i < MAX_DEVICES; i++)
-    {
-        if (devices[i].deviceType != DEVICE_TYPE_NONE)
+	getPads(keystate,keystate_def);
+
+	for(player = 0; player < numplayers; player++){
+
+		pcontrols = playercontrols[player];
+
+		k = 0;
+
+		for(i = 0; i < JOY_MAX_INPUTS; i++)
+		{
+			t = pcontrols->settings[i];
+			if(t >= SDLK_FIRST && t < SDLK_LAST){
+                if(keystate[t]) k |= (1<<i);
+			}
+		}
+
+        //White Dragon: Set input from default keys overriding previous keys
+        //Default keys are available just if no configured keys are pressed!
+        if (player <= 0 && !k)
         {
-            control_resetmappings(i);
+            for(i = 0; i < JOY_MAX_INPUTS; i++)
+            {
+                t = default_control.settings[i];
+                if(t >= SDLK_FIRST && t < SDLK_LAST){
+                    if(keystate_def[t]) k |= (1<<i);
+                }
+            }
+        }
+
+		if(usejoy)
+		{
+			for(i = 0; i < JOY_MAX_INPUTS; i++)
+			{
+				t = pcontrols->settings[i];
+				if(t >= JOY_LIST_FIRST && t <= JOY_LIST_LAST)
+				{
+					int portnum = (t-JOY_LIST_FIRST-1) / JOY_MAX_INPUTS;
+					int shiftby = (t-JOY_LIST_FIRST-1) % JOY_MAX_INPUTS;
+					if(portnum >= 0 && portnum <= JOY_LIST_TOTAL-1)
+					{
+						if((joysticks[portnum].Data >> shiftby) & 1) k |= (1<<i);
+					}
+				}
+			}
+		}
+		pcontrols->kb_break = 0;
+		pcontrols->newkeyflags = k & (~pcontrols->keyflags);
+		pcontrols->keyflags = k;
+
+		//if (player <= 0) debug_printf("hats: %d, axes: %d, data: %d",joysticks[0].Hats,joysticks[0].Axes,joysticks[0].Data);
+	}
+}
+
+void control_rumble(int port, int ratio, int msec)
+{
+    #if SDL
+    if (joystick[port] != NULL && joystick_haptic[port] != NULL) {
+        if(SDL_HapticRumblePlay(joystick_haptic[port], ratio, msec) != 0)
+        {
+            //printf( "Warning: Unable to play rumble! %s\n", SDL_GetError() );
         }
     }
+    #endif
 }
 
