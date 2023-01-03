@@ -880,13 +880,11 @@ int hide_t = 5000;
 
 static void control_update_android_touch(TouchStatus *touch_info, int maxp)
 {
-    #define pc(x) devices[keyboardDeviceID].mappings[x]
     int i, j;
     float tx, ty, tr;
     float r[MAXTOUCHB];
     float dirx, diry, circlea, circleb, tan;
     Uint8* keystate = (Uint8*) SDL_GetKeyboardState(NULL);
-    SDL_Event event;
 
     memset(touchstates, 0, sizeof(touchstates));
 
@@ -905,17 +903,9 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
     for (i=0; i<maxp; i++)
     {
         if(touch_info->pstatus[i] == TOUCH_STATUS_UP) continue;
-
-        event.type = SDL_KEYDOWN;
-        event.key.type = SDL_KEYDOWN;
-        event.key.timestamp = SDL_GetTicks();
-        event.key.state = SDL_PRESSED;
-        event.key.repeat = 0;
-
         tx = touch_info->px[i]-dirx;
         ty = touch_info->py[i]-diry;
         tr = tx*tx + ty*ty;
-
         //direction button logic is different, check a ring instead of individual buttons
         if(tr>circlea && tr<=circleb)
         {
@@ -925,36 +915,22 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
                 if(tan>=-tana && tan<=tana)
                 {
                     touchstates[SDID_MOVELEFT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVELEFT);
-                    SDL_PushEvent(&event);
                 }
                 else if(tan<-tanb)
                 {
                     touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
                 }
                 else if(tan>tanb)
                 {
                     touchstates[SDID_MOVEUP] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
                 }
                 else if(ty<0)
                 {
                     touchstates[SDID_MOVEUP] = touchstates[SDID_MOVELEFT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVELEFT);
-                    SDL_PushEvent(&event);
                 }
                 else
                 {
                     touchstates[SDID_MOVELEFT] = touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVELEFT);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
                 }
             }
             else if(tx>0)
@@ -963,36 +939,22 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
                 if(tan>=-tana && tan<=tana)
                 {
                     touchstates[SDID_MOVERIGHT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVERIGHT);
-                    SDL_PushEvent(&event);
                 }
                 else if(tan<-tanb)
                 {
                     touchstates[SDID_MOVEUP] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
                 }
                 else if(tan>tanb)
                 {
                     touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
                 }
                 else if(ty<0)
                 {
                     touchstates[SDID_MOVEUP] = touchstates[SDID_MOVERIGHT] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVERIGHT);
-                    SDL_PushEvent(&event);
                 }
                 else
                 {
                     touchstates[SDID_MOVERIGHT] = touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVERIGHT);
-                    SDL_PushEvent(&event);
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
                 }
             }
             else
@@ -1000,19 +962,14 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
                 if(ty>0)
                 {
                     touchstates[SDID_MOVEDOWN] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEDOWN);
-                    SDL_PushEvent(&event);
                 }
                 else
                 {
                     touchstates[SDID_MOVEUP] = 1;
-                    event.key.keysym.scancode = pc(SDID_MOVEUP);
-                    SDL_PushEvent(&event);
                 }
             }
         }
-
-        //rest of the buttons
+        //rest buttons
         for(j=0; j<MAXTOUCHB; j++)
         {
             if(j==SDID_MOVERIGHT || j==SDID_MOVEUP ||
@@ -1024,8 +981,6 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
             if(tr<=r[j])
             {
                 touchstates[j] = 1;
-                event.key.keysym.scancode = pc(j);
-                SDL_PushEvent(&event);
             }
         }
     }
@@ -1036,6 +991,7 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
 
     //map to current user settings
     assert(keyboardDeviceID >= 0);
+    #define pc(x) devices[keyboardDeviceID].mappings[x]
     keystate[pc(SDID_MOVEUP)] = touchstates[SDID_MOVEUP];
     keystate[pc(SDID_MOVEDOWN)] = touchstates[SDID_MOVEDOWN];
     keystate[pc(SDID_MOVELEFT)] = touchstates[SDID_MOVELEFT];
@@ -1050,8 +1006,9 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
     keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
     keystate[pc(SDID_SCREENSHOT)] = touchstates[SDID_SCREENSHOT];
     keystate[pc(SDID_ESC)] = touchstates[SDID_ESC];
-
     #undef pc
+
+    return;
 }
 
 int is_touch_area(float x, float y)
