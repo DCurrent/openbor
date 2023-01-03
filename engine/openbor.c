@@ -2526,6 +2526,7 @@ void savesettings()
     getBasePath(path, "Saves", 0);
     getPakName(tmpname, 4);
     strcat(path, tmpname);
+    printf("save settings to %s\n", path);
     handle = fopen(path, "wb");
     if(handle == NULL)
     {
