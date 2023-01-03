@@ -45705,12 +45705,10 @@ finish:
                 {
                     safe_set(mapping, setting, k, ok);
                     sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
-
-                    // Prevent the newly configured button from counting as "pressed" and starting config again
-                    playercontrolpointers[player]->keyflags |= (1 << setting);
-
                     setting = -1;
                     control_remapdevice(-1);
+                    // Prevent accidental screenshot
+                    bothnewkeys = 0;
                 }
             }
         }
