@@ -45801,20 +45801,6 @@ finish:
     printf("Done!\n");
 }
 
-// Set device safely (with switching)
-static void safe_set_device(int player, int newdevice, int olddevice)
-{
-    int i;
-    for (i = 0; i < levelsets[current_set].maxplayers; i++)
-    {
-        if (playercontrolpointers[i]->deviceID == newdevice)
-        {
-            playercontrolpointers[i]->deviceID = olddevice;
-        }
-    }
-    playercontrolpointers[player]->deviceID = newdevice;
-}
-
 void menu_options_input()
 {
     int quit = 0;
@@ -45976,10 +45962,9 @@ void menu_options_input()
                         }
                     } while (!control_isvaliddevice(selected_device));
                 }
-                else // (bothnewkeys & FLAG_ANYBUTTON)
+                else
                 {
-                    // assign selected device to player
-                    safe_set_device(selector, selected_device, playercontrolpointers[selector]->deviceID);
+                    // TODO: device reassignment
                 }
                 break;
             case 4:
