@@ -45761,7 +45761,7 @@ finish:
             if(bothnewkeys & FLAG_ESC)
             {
                 savedata.keys[player][setting] = ok;
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 50);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 50);
                 setting = -1;
             }
             if(setting > -1)
@@ -45770,7 +45770,7 @@ finish:
                 if(k)
                 {
                     safe_set(savedata.keys[player], setting, k, ok);
-                    sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                    sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
                     setting = -1;
                     // Prevent accidental screenshot
                     bothnewkeys = 0;
@@ -45953,7 +45953,7 @@ void menu_options_input()
         if(bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
@@ -45961,7 +45961,7 @@ void menu_options_input()
         if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
-            if(SAMPLE_BEEP >= 0)
+            if(global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
@@ -45977,9 +45977,9 @@ void menu_options_input()
         if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
         {
 
-            if(SAMPLE_BEEP2 >= 0)
+            if(global_sample_list.beep_2 >= 0)
             {
-                sound_play_sample(SAMPLE_BEEP2, 0, savedata.effectvol, savedata.effectvol, 100);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
             switch(selector)
