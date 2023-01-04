@@ -46836,13 +46836,13 @@ void menu_options_system()
         {
             sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                 if (selector==RET) quit = 1;
-            else if (selector==SYS_OPT_LOG) savedata.uselog =  !savedata.uselog;
-            else if (selector==SYS_OPT_VSDAMAGE)
+            if (selector == RET) quit = 1;
+            else if (selector == SYS_OPT_LOG) savedata.uselog = !savedata.uselog;
+            else if (selector == SYS_OPT_VSDAMAGE)
             {
-                if(versusdamage > 1)
+                if (versusdamage > 1)
                 {
-                    if(savedata.mode)
+                    if (savedata.mode)
                     {
                         savedata.mode = 0;
                     }
@@ -46852,28 +46852,44 @@ void menu_options_system()
                     }
                 }
             }
-            else if (selector==SYS_OPT_CHEATS)
-            {                
+            else if (selector == SYS_OPT_CHEATS)
+            {
+                menu_options_cheats();
             }
-            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
-#ifndef DC
-            else if (selector==SYS_OPT_CONFIG-ex_labels) menu_options_config();
-#endif
+            else if (selector == SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
 
 #ifdef PSP
-            else if (selector==SYS_OPT_PSP_CPUSPEED-ex_labels)
+            else if (selector == SYS_OPT_PSP_CPUSPEED - ex_labels)
             {
                 savedata.pspcpuspeed += dir;
-                if(savedata.pspcpuspeed < 0)
+                if (savedata.pspcpuspeed < 0)
                 {
                     savedata.pspcpuspeed = 2;
                 }
+                if (savedata.pspcpuspeed > 2)
+                {
+                    savedata.pspcpuspeed = 0;
+                }
+
+                switch (savedata.pspcpuspeed)
+                {
+                case 0:
+                    scePowerSetClockFrequency(222, 222, 111);
+                    break;
+                case 1:
+                    scePowerSetClockFrequency(266, 266, 133);
+                    break;
+                case 2:
+                    scePowerSetClockFrequency(333, 333, 166);
+                    break;
+                }
             }
+#endif
             else if (selector == SYS_OPT_CHEATS)
-            {                
-                menu_options_cheats();   
+            {
+                menu_options_cheats();
             }
-            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
+            else if (selector == SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
             else if (selector==SYS_OPT_CONFIG) menu_options_config();
             else quit = 1;
         }
@@ -47384,9 +47400,6 @@ void menu_options()
             
             else quit = 1;
         }
-        
-        // Kratus (11-2022) Turn off all submenu cheats if the main "cheats" option is disabled
-        if(!cheats){livescheat = 0; creditscheat = 0; healthcheat = 0; multihitcheat = 0;}
     }
     savesettings();
     if(_pause == 1)
