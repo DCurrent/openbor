@@ -6,10 +6,16 @@
  * Copyright (c) 2004 - 2014 OpenBOR Team
  */
 
+// Kratus (10-2021) Include the translation file
+#include "translation.h"
+
 #ifndef	JOYSTICKS_H
 #define	JOYSTICKS_H
 
-#define JOY_UNKNOWN_NAME "UNKNOWN"
+// Kratus (10-2021) Added constants and automatic translation for some Joystick status
+#define JOY_UNKNOWN_NAME Tr("Unknown")
+#define JOY_DISCONNECTED_NAME Tr("Disconnected")
+#define JOY_NONE_NAME Tr("None")
 
 #define JOY_TYPE_DEFAULT   0
 #define JOY_TYPE_GAMEPARK  1

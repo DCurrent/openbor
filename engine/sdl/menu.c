@@ -461,9 +461,14 @@ static void initMenu(int type)
 
 	savedata.fullscreen = isFull;
 	video_stretch(savedata.stretch);
-	videomodes.hRes = isWide ? 480 :320;
-	videomodes.vRes = isWide ? 272 :240;
-	videomodes.pixel = pixelbytes[PIXEL_32];
+
+	//Kratus (10-2022) Removed the default BOR logo on Windows version
+	videomodes.hRes = isWide ? 80 :80;
+	videomodes.vRes = isWide ? 60 :60;
+	videomodes.pixel = pixelbytes[PIXEL_8];
+	// videomodes.hRes = isWide ? 480 :320;
+	// videomodes.vRes = isWide ? 272 :240;
+	// videomodes.pixel = pixelbytes[PIXEL_32];
 #ifndef ANDROID
 	videomodes.hScale = 2.0f;
 	videomodes.vScale = 2.0f;

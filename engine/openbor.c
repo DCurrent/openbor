@@ -516,7 +516,7 @@ int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
     [GRAB_ACTION_SELECT_ATTACK] = {ANI_GRABATTACK, ANI_GRABATTACK2},
 	[GRAB_ACTION_SELECT_BACKWARD] = {ANI_GRABBACKWARD, ANI_GRABBACKWARD2},
 	[GRAB_ACTION_SELECT_FORWARD] = {ANI_GRABFORWARD, ANI_GRABFORWARD2},
-	[GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
+    [GRAB_ACTION_SELECT_DOWN] = {ANI_GRABDOWN, ANI_GRABDOWN2},
 	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}
 };
 
@@ -587,7 +587,8 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
-
+int                 allow_cheats        = -1;                   // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
+int                 forcecheatsoff      = 0;
 int                 nodebugoptions      = 0;
 
 int                 keyscriptrate       = 0;
@@ -603,8 +604,8 @@ int                 mpstrict			= 0;					// If current system will check all anim
 int                 magic_type			= 0;					// use for restore mp by time by tails
 entity             *textbox				= NULL;
 entity             *smartbomber			= NULL;
-entity				*stalker				= NULL;					// an enemy (usually) tries to go behind the player
-entity				*firstplayer			= NULL;
+entity				*stalker			= NULL;					// an enemy (usually) tries to go behind the player
+entity				*firstplayer		= NULL;
 int					stalking			= 0;
 int					nextplan			= 0;
 int                 plife[MAX_PLAYERS][2]         = {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player lifebar
@@ -728,8 +729,8 @@ unsigned int        credscore			= 0;					// Number of points needed to earn a cr
 int                 mpblock				= 0;					// Take chip damage from health or MP first?
 int                 blockratio			= 0;					// Take half-damage while blocking?
 int                 nochipdeath			= 0;					// Prevents entities from dying due to chip damage (damage while blocking)
-int                 noaircancel         = 0;					// Now, you can make jumping attacks uncancellable!
-int                 nomaxrushreset[5]   = {0, 0, 0, 0, 0};
+int                 noaircancel			= 0;					// Now, you can make jumping attacks uncancellable!
+int                 nomaxrushreset[5]	= {0, 0, 0, 0, 0};
 int			        mpbartext[4]		= { -1, 0, 0, 0};			// Array for adjusting MP status text (font, Xpos, Ypos, Display type).
 int			        lbartext[4]			= { -1, 0, 0, 0};			// Array for adjusting HP status text (font, Xpos, Ypos, Display type).
 int                 pmp[4][2]			= {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player mpbar
@@ -2573,8 +2574,8 @@ void clearsettings()
     global_config.cheats = CHEAT_OPTIONS_ALL_MENU;
     savedata.soundvol = 15;
     savedata.usemusic = 1;
-    savedata.musicvol = 100;
-    savedata.effectvol = 120;
+    savedata.musicvol = 120; //Kratus (10-2022) Changed the default music volume
+    savedata.effectvol = 70; //Kratus (10-2022) Changed the default effect volume
     savedata.usejoy = 1;
     savedata.mode = 0;
     savedata.showtitles = 0;
@@ -10182,7 +10183,7 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_GRAB;
     }
-	else if(stricmp(value, "backgrab") == 0) // Kratus (10-2021) Added the new backgrab animation
+    else if(stricmp(value, "backgrab") == 0) // Kratus (10-2021) Added the new backgrab animation
     {
         ani_id = ANI_BACKGRAB;
     }
@@ -12487,6 +12488,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.weapon		= -1;			    // No weapon icon set yet
     newchar->diesound           = SAMPLE_ID_NONE;
     newchar->nolife             = 0;			    // default show life = 1 (yes)
+    newchar->noshadow           = 0; // Kratus (10-2021) Temporarily disable shadow without losing entity's shadow configuration
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
     newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile
@@ -13307,6 +13309,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_JUMPSPECIAL: // Kratus (10-2021) Added new jumpspecial property
                 newchar->jumpspecial = GET_INT_ARG(1);
                 break;
+            case CMD_MODEL_JUMPSPECIAL: // Kratus (10-2021) Added new jumpspecial property
+                newchar->jumpspecial = GET_INT_ARG(1);
+                break;
             case CMD_MODEL_JUMPSPEED:
                 value = GET_ARG(1);
                 newchar->jumpspeed = atof(value);
@@ -13708,6 +13713,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_NOPAIN:
                 newchar->nopain = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_NOSHADOW:
+                newchar->noshadow = GET_INT_ARG(1); // Kratus (10-2021) Added new noshadow property
                 break;
             case CMD_MODEL_ESCAPEHITS:
                 // How many times an enemy can be hit before retaliating
@@ -36882,8 +36890,6 @@ int check_range_target_z(entity *ent, entity *target, s_anim *animation)
             && target_z <= animation->range.z.max);
 }
 
-
-
 int check_special()
 {
     entity *e;
@@ -36970,7 +36976,6 @@ int check_special()
     }
     return 0;
 }
-
 
 // Check keys for special move. Used several times, so I func'd it.
 // Kratus (10-2021) Added new flags to use with another ATTACK# keys as an new alternative
@@ -38180,7 +38185,6 @@ void player_charge_check()
         set_idle(self);
     }
 }
-
 
 // make a function so enemies can use
 // UT: jumphack is a temporary fix for jump cancel
@@ -39423,7 +39427,6 @@ int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 
     return common_takedamage(other, &atk, fall_flag, defense_object);
 }
-
 
 ////////////////////////////////
 
@@ -42879,12 +42882,12 @@ void borShutdown(int status, char *msg, ...)
     savesettings();
 
     /* entry point for the engine credits screen. */
-    screen_status |= IN_SCREEN_ENGINE_CREDIT;		
+    //screen_status |= IN_SCREEN_ENGINE_CREDIT;		
 
-    if(status != 2)
-    {
-        display_credits();
-    }
+    // if(status != 2)
+    // {
+    //     display_credits();
+    // }
 
     if(startup_done)
     {        
@@ -43131,7 +43134,7 @@ void startup()
 {
     int i;
 
-    printf("FileCaching System Init......\t");
+    printf("FileCaching System Init.......\t");
     if(pak_init())
     {
         printf("Enabled\n");
@@ -45575,7 +45578,7 @@ VIDEOMODES:
 
     if(log)
     {
-        printf("Initialized video.............\t%dx%d (Mode: %d)\n\n", videomodes.hRes, videomodes.vRes, videoMode);
+        printf("Initialized video............\t%dx%d (Mode: %d)\n\n", videomodes.hRes, videomodes.vRes, videoMode);
     }
 }
 
@@ -45602,6 +45605,8 @@ void keyboard_setup(int player)
 {
     const int btnnum = MAX_BTN_NUM;
     
+    buttonconfigMenu = 1; // Kratus (04-2022) Added a new variant to detect the button configuration menu
+
     int quit = 0; 
     int sdid = 0;
     int selector = 0;
@@ -45823,7 +45828,7 @@ finish:
             {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                #if SDL || WII || DC
+#if SDL || WII || DC
                 if (selector != OPTIONS_NUM - 3 &&
                     bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
 
@@ -45834,7 +45839,7 @@ finish:
                 else if(selector == OPTIONS_NUM - 2) // OK
                 #else
                 if(selector == OPTIONS_NUM - 2) // OK
-                #endif
+#endif
                 {
                     quit = 2;
                 }
@@ -45851,9 +45856,9 @@ finish:
                     setting = selector;
                     ok = savedata.keys[player][setting];
                     savedata.keys[player][setting] = 0;
-                    #ifndef DC
+#ifndef DC
                     keyboard_getlastkey();
-                    #endif
+#endif
                 }
             }
         }
@@ -45869,7 +45874,7 @@ finish:
         loadsettings();
     }
 
-
+    buttonconfigMenu = 0; // Kratus (04-2022) Added a new variant to detect the button configuration menu
     update(0, 0);
     bothnewkeys = 0;
     printf("Done!\n");
@@ -45888,6 +45893,10 @@ void menu_options_input()
 
     screen_status |= IN_SCREEN_CONTROL_OPTIONS_MENU;
     bothnewkeys = 0;
+
+    // Kratus (10-2021) Added a second instance of the "control_init" function while in the Control Options
+    // Useful to refresh some text translation if the language is changed "on-the-fly" and re-detect all active controls
+    control_init(savedata.usejoy);
 
     while(!quit)
     {
@@ -46015,10 +46024,9 @@ void menu_options_input()
 }
 
 
-
+// Kratus (10-2022) Readjusted both effectvol / musicvol range and increment
 void menu_options_sound()
 {
-
     int quit = 0;
     int selector = 0;
     int dir;
@@ -46109,14 +46117,14 @@ void menu_options_sound()
                 SB_setvolume(SB_VOICEVOL, savedata.soundvol);
                 break;
             case 1:
-                savedata.effectvol += 4 * dir;
+                savedata.effectvol += 5 * dir;
                 if(savedata.effectvol < 0)
                 {
                     savedata.effectvol = 0;
                 }
-                if(savedata.effectvol > 512)
+                if(savedata.effectvol > 120)
                 {
-                    savedata.effectvol = 512;
+                    savedata.effectvol = 120;
                 }
                 break;
             case 3:
@@ -46136,14 +46144,14 @@ void menu_options_sound()
                 }
                 break;
             case 2:
-                savedata.musicvol += 4 * dir;
+                savedata.musicvol += 5 * dir;
                 if(savedata.musicvol < 0)
                 {
                     savedata.musicvol = 0;
                 }
-                if(savedata.musicvol > 512)
+                if(savedata.musicvol > 240)
                 {
-                    savedata.musicvol = 512;
+                    savedata.musicvol = 240;
                 }
                 sound_volume_music(savedata.musicvol, savedata.musicvol);
                 break;
@@ -46709,7 +46717,9 @@ void menu_options_system()
 
     screen_status |= IN_SCREEN_SYSTEM_OPTIONS_MENU;
     bothnewkeys = 0;
-
+    if (nodebugoptions) ex_labels = 1;
+    RET -= ex_labels;
+       
     while(!quit)
     {
         line = 0;
@@ -46845,6 +46855,32 @@ void menu_options_system()
                     {
                         savedata.mode = 1;
                     }
+                }
+            }
+            else if (selector==SYS_OPT_CHEATS)
+            {
+                // Kratus (11-2022) Fixed the cheats menu option bug, now it can't be changed when off
+                if(!forcecheatsoff)
+                {
+                    cheats = !cheats;
+                }
+                else
+                {
+                    cheats = 0;
+                }
+            }
+            else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
+#ifndef DC
+            else if (selector==SYS_OPT_CONFIG-ex_labels) menu_options_config();
+#endif
+
+#ifdef PSP
+            else if (selector==SYS_OPT_PSP_CPUSPEED-ex_labels)
+            {
+                savedata.pspcpuspeed += dir;
+                if(savedata.pspcpuspeed < 0)
+                {
+                    savedata.pspcpuspeed = 2;
                 }
             }
             else if (selector == SYS_OPT_CHEATS)
@@ -47302,6 +47338,17 @@ void menu_options()
     screen_status |= IN_SCREEN_OPTIONS_MENU;
     bothnewkeys = 0;    
 
+    // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
+    if(!allow_cheats){forcecheatsoff = 1; cheats = 0;}else{forcecheatsoff = 0;}
+
+    if (cheats && !forcecheatsoff)
+    {
+        if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
+        y_offset -= TOT_CHEATS;
+        cheat_opt_offset += 1;
+        BACK_OPTION += TOT_CHEATS;
+    }
+
     while(!quit)
     {        
         _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
@@ -47362,6 +47409,9 @@ void menu_options()
             
             else quit = 1;
         }
+        
+        // Kratus (11-2022) Turn off all submenu cheats if the main "cheats" option is disabled
+        if(!cheats){livescheat = 0; creditscheat = 0; healthcheat = 0; multihitcheat = 0;}
     }
     savesettings();
     if(_pause == 1)

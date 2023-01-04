@@ -519,7 +519,7 @@ typedef enum modelCommand
     CMD_MODEL_NOPASSIVEBLOCK,
     CMD_MODEL_NOQUAKE,
     CMD_MODEL_NOREFLECT,
-    CMD_MODEL_NOSHADOW, // Kratus (12-2021) Added new noshadow property, put in alphabetical order
+    CMD_MODEL_NOSHADOW, // Kratus (10-2021) Added new noshadow property, put in alphabetical order
     CMD_MODEL_NOTGRAB,
     CMD_MODEL_OFFENSE,
     CMD_MODEL_OFFSCREENKILL,
@@ -653,7 +653,6 @@ typedef enum modelCommand
     CMD_MODEL_WEAPON_LOSS_INDEX,
     CMD_MODEL_WEAPONFRAME,
     CMD_MODEL_WEAPONS,
-
 } modelCommands;
 
 typedef enum

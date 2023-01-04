@@ -536,7 +536,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_WEAPONFRAME, "weaponframe");
     LIST_ADD(CMD_MODEL_WEAPONS, "weapons");
 
-
 #undef LIST_ADD
     return result;
 }
