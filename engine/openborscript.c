@@ -4341,12 +4341,6 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         (*pretvar)->lVal = (LONG)ent->modeldata.jumpspecial;
         break;
     }
-    case _ep_jumpspecial:
-    {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jumpspecial;
-        break;
-    }
     case _ep_jumpspeed:
     {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
@@ -8322,11 +8316,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_in_system_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (screen_status & IN_SCREEN_SYSTEM_OPTIONS_MENU);
-        break;
-    case _sv_in_button_config:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = buttonconfigMenu;
-        break;
+        break;    
     case _sv_in_cheat_options:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (screen_status & IN_SCREEN_CHEAT_OPTIONS_MENU);
@@ -8954,12 +8944,6 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
             _time = (LONG)ltemp;
-        }
-        break;
-    case _sv_cheats:
-        if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
-        {
-            allow_cheats = (LONG)ltemp;
         }
         break;
     case _sv_current_stage:

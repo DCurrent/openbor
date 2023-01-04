@@ -587,8 +587,6 @@ int					nosave				= 0;
 int                 nopause             = 0;                    // OX. If set to 1 , pausing the game will be disabled.
 int                 noscreenshot        = 0;                    // OX. If set to 1 , taking screenshots is disabled.
 int                 endgame             = 0;
-int                 allow_cheats        = -1;                   // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
-int                 forcecheatsoff      = 0;
 int                 nodebugoptions      = 0;
 
 int                 keyscriptrate       = 0;
@@ -13305,10 +13303,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_SPEEDF:
                 value = GET_ARG(1);
                 newchar->speed.x = atof(value);
-                break;
-            case CMD_MODEL_JUMPSPECIAL: // Kratus (10-2021) Added new jumpspecial property
-                newchar->jumpspecial = GET_INT_ARG(1);
-                break;
+                break;           
             case CMD_MODEL_JUMPSPECIAL: // Kratus (10-2021) Added new jumpspecial property
                 newchar->jumpspecial = GET_INT_ARG(1);
                 break;
@@ -45604,8 +45599,6 @@ void safe_set(int *arr, int index, int newkey, int oldkey)
 void keyboard_setup(int player)
 {
     const int btnnum = MAX_BTN_NUM;
-    
-    buttonconfigMenu = 1; // Kratus (04-2022) Added a new variant to detect the button configuration menu
 
     int quit = 0; 
     int sdid = 0;
@@ -45874,7 +45867,8 @@ finish:
         loadsettings();
     }
 
-    buttonconfigMenu = 0; // Kratus (04-2022) Added a new variant to detect the button configuration menu
+    screen_status &= ~IN_SCREEN_BUTTON_CONFIG_MENU;
+
     update(0, 0);
     bothnewkeys = 0;
     printf("Done!\n");
@@ -46712,6 +46706,7 @@ void menu_options_system()
     int selector = 0;
     int col1 = -11;
     int col2 = col1+14;
+    int ex_labels = 0;
     int RET = SYS_OPT_BACK;
     int line = 0;
 
@@ -46858,16 +46853,7 @@ void menu_options_system()
                 }
             }
             else if (selector==SYS_OPT_CHEATS)
-            {
-                // Kratus (11-2022) Fixed the cheats menu option bug, now it can't be changed when off
-                if(!forcecheatsoff)
-                {
-                    cheats = !cheats;
-                }
-                else
-                {
-                    cheats = 0;
-                }
+            {                
             }
             else if (selector==SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
 #ifndef DC
@@ -47337,18 +47323,7 @@ void menu_options()
 
     screen_status |= IN_SCREEN_OPTIONS_MENU;
     bothnewkeys = 0;    
-
-    // Kratus (04-2022) Now the "nocheats" function can be changed by script using the openborvariant "cheats"
-    if(!allow_cheats){forcecheatsoff = 1; cheats = 0;}else{forcecheatsoff = 0;}
-
-    if (cheats && !forcecheatsoff)
-    {
-        if(level != NULL && _pause > 0) y_offset += CHEAT_PAUSE_POSY;
-        y_offset -= TOT_CHEATS;
-        cheat_opt_offset += 1;
-        BACK_OPTION += TOT_CHEATS;
-    }
-
+    
     while(!quit)
     {        
         _menutextm((selector == VIDEO_OPTION), y_offset+VIDEO_OPTION, 0, Tr("Video Options..."));
