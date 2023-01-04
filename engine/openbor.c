@@ -284,7 +284,6 @@ int                 traveltime;
 int                 texttime;
 int					timetoshow;
 int                 is_total_timeover = 0;
-int					showgo;
 float               advancex;
 float               advancey;
 
@@ -629,8 +628,9 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 
 s_global_config global_config =
 {
-    .ajspecial = AJSPECIAL_KEY_SPECIAL,    
-    .cheats = CHEAT_OPTIONS_ALL_MENU
+    .ajspecial = AJSPECIAL_KEY_SPECIAL,
+    .cheats = CHEAT_OPTIONS_ALL_MENU,
+    .showgo = 0
 };
 
 s_barstatus loadingbarstatus =
@@ -21207,7 +21207,7 @@ void updatestatus()
 
         if(dt < GAME_SPEED / 2)
         {
-            showgo = 1;
+            global_config.showgo = 1;
             screen_status |= IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
             
             if(gosound == 0 )
@@ -21223,13 +21223,13 @@ void updatestatus()
         }
         else
         {
-            showgo = gosound = 0;    //26-12-2004 Resets go sample after loop so it can be played again next time
+            global_config.showgo = gosound = 0;    //26-12-2004 Resets go sample after loop so it can be played again next time
             screen_status &= ~IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
         }
     }
     else
     {
-        showgo = 0;
+        global_config.showgo = 0;
         screen_status &= ~IN_SCREEN_SHOW_GO_ARROW; //Kratus (04-2022) Added the "showgo" event accessible by script
     }
 
@@ -21774,7 +21774,7 @@ void predrawstatus()
         font_printf(videomodes.hShift + 113, videomodes.vShift + savedata.windowpos + 110, timeloc[5], 0, Tr("TIME OVER"));
     }
 
-    if(showgo)
+    if(global_config.showgo)
     {
         if(level->scrolldir & SCROLL_LEFT) //TODO: upward and downward go
         {

@@ -1772,6 +1772,7 @@ typedef struct s_global_config
 {
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
     e_cheat_options cheats;         // Cheat menu config and active cheats.
+    int showgo;                     // Enable/disable go arrow.
 
 } s_global_config;
 

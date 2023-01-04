@@ -8816,7 +8816,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         break;
     case _sv_showgo:
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = showgo;
+        var->lVal = global_config.showgo;
         break;
     case _sv_skiptoset:
         ScriptVariant_ChangeType(var, VT_INTEGER);
