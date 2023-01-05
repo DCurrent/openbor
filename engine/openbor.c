@@ -2602,14 +2602,6 @@ void clearsettings()
         #endif
     #endif
 
-    #ifdef PSP
-    savedata.pspcpuspeed = 2;
-    savedata.overscan[0] = 0;
-    savedata.overscan[1] = 0;
-    savedata.overscan[2] = 0;
-    savedata.overscan[3] = 0;
-    #endif
-
     #ifdef ANDROID
     savedata.is_touchpad_vibration_enabled = 0;
     #endif
@@ -21063,11 +21055,9 @@ unsigned getFPS(void)
         // if the frame took 0 ms, act like it was 1 ms instead
         return 1000;
     }
-#ifdef PSP
-    return ((10000000 / framerate) + 9) / 10;
-#else
+
     return round(1.0e6 / framerate);
-#endif
+
 }
 
 void updatestatus()
@@ -21899,9 +21889,7 @@ void update_loading(s_loadingbar *s,  int value, int max)
     int text_x = s->text_position.x + videomodes.hShift;
     int text_y = s->text_position.y + videomodes.vShift;
     unsigned int ticks = timer_gettick();
-#ifdef PSP
-    ticks /= 1000; //temp solution
-#endif
+
     if(ticks - soundtick > 20)
     {
         sound_update_music();
@@ -43139,29 +43127,6 @@ void startup()
         printf("Disabled\n");
     }
 
-#if PSP
-    if(savedata.pspcpuspeed < 0)
-    {
-        savedata.pspcpuspeed = 2;
-    }
-    if(savedata.pspcpuspeed > 2)
-    {
-        savedata.pspcpuspeed = 0;
-    }
-    switch(savedata.pspcpuspeed)
-    {
-    case 0:
-        scePowerSetClockFrequency(222, 222, 111);
-        break;
-    case 1:
-        scePowerSetClockFrequency(266, 266, 133);
-        break;
-    case 2:
-        scePowerSetClockFrequency(333, 333, 166);
-        break;
-    }
-#endif
-
     loadHighScoreFile();
     clearSavedGame();
 
@@ -45324,12 +45289,6 @@ void init_videomodes(int log)
     {
         tryfile("data/video43.txt");
     }
-#elif PSP
-    tryfile("data/videopsp.txt");
-    tryfile("data/video169.txt");
-#elif DC
-    tryfile("data/videodc.txt");
-    tryfile("data/video43.txt");
 #elif WIZ
     tryfile("data/videowiz.txt");
     tryfile("data/video169.txt");
@@ -45895,17 +45854,8 @@ void menu_options_input()
     while(!quit)
     {
         _menutextm(2, x_pos-1, 0, Tr("Control Options"));
-
-        #if PSP
-        if(savedata.usejoy)
-        {
-            _menutext((selector == 0), -4, -2, Tr("Analog Pad Enabled"));
-        }
-        else
-        {
-            _menutext((selector == 0), -4, -2, Tr("Analog Pad Disabled"));
-        }
-        #elif WII
+                
+        #if WII
         if(savedata.usejoy)
         {
             _menutext((selector == 0), -4, -2, Tr("Nunchuk Analog Enabled"));
@@ -46856,35 +46806,10 @@ void menu_options_system()
             {
                 menu_options_cheats();
             }
-            else if (selector == SYS_OPT_DEBUG && !nodebugoptions) menu_options_debug();
-
-#ifdef PSP
-            else if (selector == SYS_OPT_PSP_CPUSPEED - ex_labels)
+            else if (selector == SYS_OPT_DEBUG && !nodebugoptions)
             {
-                savedata.pspcpuspeed += dir;
-                if (savedata.pspcpuspeed < 0)
-                {
-                    savedata.pspcpuspeed = 2;
-                }
-                if (savedata.pspcpuspeed > 2)
-                {
-                    savedata.pspcpuspeed = 0;
-                }
-
-                switch (savedata.pspcpuspeed)
-                {
-                case 0:
-                    scePowerSetClockFrequency(222, 222, 111);
-                    break;
-                case 1:
-                    scePowerSetClockFrequency(266, 266, 133);
-                    break;
-                case 2:
-                    scePowerSetClockFrequency(333, 333, 166);
-                    break;
-                }
+                menu_options_debug();
             }
-#endif
             else if (selector == SYS_OPT_CHEATS)
             {
                 menu_options_cheats();
@@ -47026,31 +46951,6 @@ void menu_options_video()
 #endif
 #endif
 
-#if PSP
-        _menutext((selector == 3), col1, 0, Tr("Screen:"));
-        _menutext((selector == 3), col2, 0, displayFormat[(int)videomodes.mode].name);
-        _menutext((selector == 4), col1, 1, Tr("Filters:"));
-        _menutext((selector == 4), col2, 1, filterName[(int)videomodes.filter]);
-        _menutext((selector == 5), col1, 2, Tr("Display:"));
-        _menutext((selector == 5), col2, 2, displayName[displayMode]);
-        _menutext((selector >= 6 && selector <= 9), col1, 3, Tr("Overscan:"));
-        _menutext((selector >= 6 && selector <= 9), col2 + 1.5, 3, ".");
-        _menutext((selector >= 6 && selector <= 9), col2 + 3.5, 3, ".");
-        _menutext((selector >= 6 && selector <= 9), col2 + 5.5, 3, ".");
-        _menutext((selector == 6), col2, 3, "%02d", savedata.overscan[0]);
-        _menutext((selector == 7), col2 + 2, 3, "%02d", savedata.overscan[1]);
-        _menutext((selector == 8), col2 + 4, 3, "%02d", savedata.overscan[2]);
-        _menutext((selector == 9), col2 + 6, 3, "%02d", savedata.overscan[3]);
-        _menutextm((selector == 10), 6, 0, Tr("Back"));
-        if(selector < 0)
-        {
-            selector = 10;
-        }
-        if(selector > 10)
-        {
-            selector = 0;
-        }
-#endif
 
         update((level != NULL), 0);
 
@@ -47131,7 +47031,7 @@ void menu_options_video()
                     savedata.windowpos = 20;
                 }
                 break;
-#if SDL || PSP || WII
+#if SDL || WII
             case 3:
 #if OPENDINGUX
                 video_fullscreen_flip();
@@ -47144,84 +47044,6 @@ void menu_options_video()
                 break;
 #endif
 
-#if PSP
-                if(videoMode == 0 || videoMode == 1)
-                {
-                    // 320x240 or 480x272
-                    videomodes.mode += dir;
-                    if(videomodes.mode > PSP_DISPLAY_FORMATS - 1)
-                    {
-                        videomodes.mode = 0;
-                    }
-                    if(videomodes.mode < 0)
-                    {
-                        videomodes.mode = PSP_DISPLAY_FORMATS - 1;
-                    }
-                    video_set_mode(videomodes);
-                }
-                break;
-
-            case 4:
-                if(videoMode == 0 || videoMode == 1)
-                {
-                    // 320x240 or 480x272
-                    videomodes.filter += dir;
-                    if(videomodes.filter > PSP_DISPLAY_FILTERS - 1)
-                    {
-                        videomodes.filter = 0;
-                    }
-                    if(videomodes.filter < 0)
-                    {
-                        videomodes.filter = PSP_DISPLAY_FILTERS - 1;
-                    }
-                    savedata.swfilter = videomodes.filter;
-                    video_set_mode(videomodes);
-                }
-                break;
-
-            case 5:
-                displayMode += dir;
-                if(displayMode > PSP_DISPLAY_MODES - 1)
-                {
-                    displayMode = 0;
-                }
-                if(displayMode < 0)
-                {
-                    displayMode = PSP_DISPLAY_MODES - 1;
-                }
-                if(displayMode)
-                {
-                    setGraphicsTVOverScan(savedata.overscan[0], savedata.overscan[1], savedata.overscan[2], savedata.overscan[3]);
-                }
-                else
-                {
-                    setGraphicsTVOverScan(0, 0, 0, 0);
-                }
-                savedata.usetv = displayMode;
-                disableGraphics();
-                initGraphics(savedata.usetv, videomodes.pixel);
-                video_set_mode(videomodes);
-                break;
-            case 6:
-            case 7:
-            case 8:
-            case 9:
-                savedata.overscan[selector - 8] += dir;
-                if(savedata.overscan[selector - 8] > 99)
-                {
-                    savedata.overscan[selector - 8] = 0;
-                }
-                if(savedata.overscan[selector - 8] < 0)
-                {
-                    savedata.overscan[selector - 8] = 99;
-                }
-                if(displayMode)
-                {
-                    setGraphicsTVOverScan(savedata.overscan[0], savedata.overscan[1], savedata.overscan[2], savedata.overscan[3]);
-                    video_set_mode(videomodes);
-                }
-                break;
-#endif
 #endif
 
 

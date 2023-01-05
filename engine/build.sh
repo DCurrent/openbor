@@ -100,36 +100,6 @@ if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
   echo
 }
 
-# PSP Environment && Compile
-function psp {
-  export PATH=$OLD_PATH
-  . ./environ.sh 1
-  if test $PSPDEV; then
-    make clean BUILD_PSP=1
-    make BUILD_PSP=1
-    if test -f "./EBOOT.PBP"; then
-      if test ! -e "./releases/PSP"; then
-        mkdir ./releases/PSP
-        mkdir ./releases/PSP/OpenBOR
-        mkdir ./releases/PSP/OpenBOR/Images
-        mkdir ./releases/PSP/OpenBOR/Logs
-        mkdir ./releases/PSP/OpenBOR/Paks
-        mkdir ./releases/PSP/OpenBOR/Saves
-        mkdir ./releases/PSP/OpenBOR/Modules
-      fi
-      mv EBOOT.PBP ./releases/PSP/OpenBOR/
-      mv OpenBOR.elf ./releases/PSP/OpenBOR/Modules/
-      cp ./psp/dvemgr/dvemgr.prx ./releases/PSP/OpenBOR/Modules/
-      cp ./psp/kernel/kernel.prx ./releases/PSP/OpenBOR/Modules/
-      cp ./psp/control/control.prx ./releases/PSP/OpenBOR/Modules/
-      cp ./psp/exception/exception.prx ./releases/PSP/OpenBOR/Modules/
-      cp ./resources/OpenBOR_Menu_480x272_Sony.png ./releases/PSP/OpenBOR/Images/Menu.png
-      cp ./resources/OpenBOR_Logo_480x272.png ./releases/PSP/OpenBOR/Images/Loading.png
-    fi
-    make clean BUILD_PSP=1
-  fi
-}
-
 # PS Vita Environment && Compile
 function vita {
   export PATH=$OLD_PATH
@@ -312,7 +282,6 @@ function build_all {
   if test -e "buildspec.sh"; then
     . ./buildspec.sh
   else
-    psp
     vita
     linux_x86
     linux_amd64
@@ -321,7 +290,7 @@ function build_all {
     darwin
 	android
   fi
-  distribute
+  #distribute -- 2023-01-04 DC Throws series of errors. Needs a closer look.
 }
 
 function print_help {
@@ -329,7 +298,6 @@ function print_help {
   echo "Run $0 with one of the below targets"
   echo "-------------------------------------------------------"
   echo "    0 = Distribute"
-  echo "    1 = PSP"
   echo "    2 = PS Vita"
   echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
   echo "    5 = Windows"
@@ -346,12 +314,7 @@ case $1 in
     version
     distribute
     ;;
-
-  1)
-    version
-    psp
-    ;;
-
+  
   2)
     version
     vita
