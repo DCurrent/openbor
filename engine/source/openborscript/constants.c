@@ -176,6 +176,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		ICMPCONST(BLAST_TOSS)
 
         /* Cheat menu options and active cheat state. */
+        ICMPCONST(CHEAT_OPTIONS_ALL_MENU)
         ICMPCONST(CHEAT_OPTIONS_CREDITS_ACTIVE)
         ICMPCONST(CHEAT_OPTIONS_CREDITS_MENU)
         ICMPCONST(CHEAT_OPTIONS_ENERGY_ACTIVE)
@@ -189,6 +190,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(CHEAT_OPTIONS_LIVES_MENU)
         ICMPCONST(CHEAT_OPTIONS_MULTIHIT_ACTIVE)
         ICMPCONST(CHEAT_OPTIONS_MULTIHIT_MENU)
+        ICMPCONST(CHEAT_OPTIONS_NONE)
         ICMPCONST(CHEAT_OPTIONS_TOD_ACTIVE)
         ICMPCONST(CHEAT_OPTIONS_TOD_MENU)
 
