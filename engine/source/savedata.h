@@ -36,6 +36,7 @@ typedef struct
     int stretch; // Stretch (1) or preserve aspect ratio (0) in fullscreen mode
     int screen[1][2];
     int vsync; // Sync to monitor refresh (1) or don't (0)
+    int fpslimit; // Kratus (01-2023) Added a FPS limit option in the video settings
 #if SDL
     int usegl; // 1 if OpenGL is preferred over SDL software blitting
     float hwscale; // Scale factor for OpenGL

@@ -2583,6 +2583,7 @@ void clearsettings()
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
     savedata.vsync = 1;
+    savedata.fpslimit = 1; // Kratus (01-2023) Added a FPS limit option in the video settings
 
 	#if WII
     savedata.stretch = 1;
@@ -46929,22 +46930,26 @@ void menu_options_video()
         _menutext((selector == 8), col1, 5, Tr("VSync:"));
         _menutext((selector == 8), col2, 5, savedata.vsync ? Tr("Enabled") : Tr("Disabled")); // Kratus (10-2021) Added "Tr" for translation purpose 
 
+        // Kratus (01-2023) Added a FPS limit option in the video settings
+        _menutext((selector == 9), col1, 6, Tr("FPS Limit:"));
+        _menutext((selector == 9), col2, 6, savedata.fpslimit ? Tr("Enabled") : Tr("Disabled"));
+
         if(savedata.fullscreen)
         {
-            _menutext((selector == 9), col1, 6, Tr("Fullscreen Type:"));
-            _menutext((selector == 9), col2, 6, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+            _menutext((selector == 10), col1, 7, Tr("Fullscreen Type:"));
+            _menutext((selector == 10), col2, 7, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
         }
-        else if(selector == 9)
+        else if(selector == 10)
         {
             selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
         }
 
-        _menutextm((selector == 10), 8, 0, Tr("Back"));
+        _menutextm((selector == 11), 9, 0, Tr("Back"));
         if(selector < 0)
         {
-            selector = 10;
+            selector = 11;
         }
-        if(selector > 10)
+        if(selector > 11)
         {
             selector = 0;
         }
@@ -47125,6 +47130,9 @@ void menu_options_video()
                 video_set_mode(videomodes);
                 break;
             case 9:
+                savedata.fpslimit = !savedata.fpslimit; // Kratus (01-2023) Added a FPS limit option in the video settings
+                break;
+            case 10:
                 video_stretch((savedata.stretch ^= 1));
                 break;
 #endif

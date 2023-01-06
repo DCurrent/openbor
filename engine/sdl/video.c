@@ -13,6 +13,7 @@
 #else
 
 #include "sdlport.h"
+#include "SDL2_framerate.h" // Kratus (01-2023) Added a FPS limit option in the video settings
 #include <math.h>
 #include "types.h"
 #include "video.h"
@@ -29,6 +30,7 @@
 SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
+FPSmanager framerate_manager; // Kratus (01-2023) Added a FPS limit option in the video settings
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
 int yuv_mode = 0;
@@ -66,6 +68,11 @@ void initSDL()
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
 	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
+
+	// Kratus (01-2023) Added a FPS limit option in the video settings
+	int maxFps = 200;
+	SDL_initFramerate(&framerate_manager);
+	SDL_setFramerate(&framerate_manager, maxFps);
 }
 
 void video_set_window_title(const char* title)
@@ -225,6 +232,12 @@ int video_copy_screen(s_screen* src)
 
 	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
 	blit();
+
+	// Kratus (01-2023) Added a FPS limit option in the video settings
+	#if WIN || LINUX
+	if(savedata.fpslimit){SDL_framerateDelay(&framerate_manager);}
+
+	#endif
 
 	return 1;
 }
