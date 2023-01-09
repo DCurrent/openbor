@@ -6954,7 +6954,7 @@ int collision_attack_check_has_coords(s_collision_attack* target)
 * Allocate new collision list with same values as source.
 * Returns pointer to head of new list.
 */
-s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head)
+s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head, int check_coords)
 {
     s_collision_attack* source_cursor = NULL;
     s_collision_attack* clone_head = NULL;
@@ -6966,16 +6966,33 @@ s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head)
         return source_cursor;
     }
 
-    source_cursor = source_head;
+    source_cursor = source_head;    
 
     while (source_cursor != NULL)
     {
-        clone_node = collision_attack_append_node(clone_head);
+        /*
+        * If check coords flag set, we only clone
+        * collisions with valid coordinates.
+        */
 
+        if (check_coords && !collision_attack_check_has_coords(source_cursor))
+        {
+            source_cursor = source_cursor->next;
+            continue;
+        }
+
+        /*
+        * Allocate the clone node we will copy
+        * values to. 
+        */
+
+        clone_node = collision_attack_append_node(clone_head);
+        
         /*
         * Populate head if NULL so we
         * have one for the next cycle.
         */
+
         if (clone_head == NULL)
         {
             clone_head = clone_node;
@@ -6992,7 +7009,7 @@ s_collision_attack* collision_attack_clone_list(s_collision_attack* source_head)
         clone_node->index = source_cursor->index;
         clone_node->meta_data = source_cursor->meta_data;
         clone_node->meta_tag = source_cursor->meta_tag;
-        
+
         source_cursor = source_cursor->next;
     }
 
@@ -7225,7 +7242,7 @@ void collision_attack_initialize_frame_property(s_addframe_data* data, ptrdiff_t
     * Clone source list and populate frame's collision
     * property with the pointer to clone list head.
     */
-    temp_collision = collision_attack_clone_list(data->collision);
+    temp_collision = collision_attack_clone_list(data->collision, 1);
 
     /* Apply final adjustments to any collision coordinates. */
     collision_attack_prepare_coordinates_for_frame(temp_collision, data->model, data);
@@ -7666,7 +7683,7 @@ int collision_body_check_has_coords(s_collision_body* target)
 * Allocate new collision list with same values as source.
 * Returns pointer to head of new list.
 */
-s_collision_body* collision_body_clone_list(s_collision_body* source_head)
+s_collision_body* collision_body_clone_list(s_collision_body* source_head, int check_coords)
 {
     s_collision_body* source_cursor = NULL;
     s_collision_body* clone_head = NULL;
@@ -7682,6 +7699,17 @@ s_collision_body* collision_body_clone_list(s_collision_body* source_head)
 
     while (source_cursor != NULL)
     {
+        /*
+        * If check coords flag set, only
+        * clone nodes with valid coordinates.
+        */
+
+        if (check_coords && !collision_body_check_has_coords(source_cursor))
+        {
+            source_cursor = source_cursor->next;
+            continue;
+        }
+
         clone_node = collision_body_append_node(clone_head);
 
         /*
@@ -7902,7 +7930,7 @@ void collision_body_initialize_frame_property(s_addframe_data* data, ptrdiff_t f
     * Clone source list and populate frame's collision
     * property with the pointer to clone list head.
     */
-    temp_collision = collision_body_clone_list(data->collision_body);
+    temp_collision = collision_body_clone_list(data->collision_body, 1);
 
     /* Apply final adjustments to any collision coordinates. */
     collision_body_prepare_coordinates_for_frame(temp_collision, data->model, data);
@@ -16339,9 +16367,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * that don't have valid data (i.e no 
                 * coordinates defined at all or the 
                 * coordinates X/Y/H/W are all 0).
+                * 
+                * 2023-01-09 - Disabled. Clone functions now
+                * verify coordinates before copying temp 
+                * to frame. This is to preserve legacy behavior
+                * of keeping the read in values frame to frame
+                * even after a collision box is closed.
                 */
-                collision_attack_remove_undefined_coordinates(&temp_collision_head);
-                collision_body_remove_undefined_coordinates(&temp_collision_body_head);
+                //collision_attack_remove_undefined_coordinates(&temp_collision_head);
+                //collision_body_remove_undefined_coordinates(&temp_collision_body_head);
                                 
                 /*
                 * Multiple per frame object heads may have 
