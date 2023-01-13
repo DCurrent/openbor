@@ -23963,6 +23963,17 @@ int check_collision(s_collision_check_data* collision_data)
     {
         distance = collision_data->target_pos->z - collision_data->seeker_pos->z;
     }
+        
+    /*
+    * When items are close on Z axis, we
+    * force the collision to appear in
+    * front of the two entities. This is
+    * so flash spawns and other effects
+    * don't appear behind them.
+    *
+    * If the entities are farther away
+    * then we find the median point.
+    */
 
     if (distance < 10)
     {
@@ -23970,7 +23981,9 @@ int check_collision(s_collision_check_data* collision_data)
     }
     else
     {
-        collision_data->return_overlap->center_z = 1 + collision_data->target_pos->z;
+        collision_data->return_overlap->center_z = (seek_pos.background + detect_pos.foreground) / 2;
+
+        //collision_data->return_overlap->center_z = 1 + collision_data->target_pos->z;
     }
 
 	return TRUE;
