@@ -3914,6 +3914,8 @@ void                    recursive_damage_dump_object(s_damage_recursive* recursi
 /* -- Collision container and list. */
 s_hitbox*               collision_allocate_coords(s_hitbox* coords);
 
+int check_collision(s_collision_check_data* collision_data);
+
 void populate_lasthit(s_collision_check_data* collision_data, s_collision_attack* collision_attack, s_collision_body* detect_collision_body, s_collision_attack* detect_collision_attack);
 
 /* --Legacy */

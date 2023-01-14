@@ -14971,8 +14971,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->y = GET_INT_ARG(2);
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->width = GET_INT_ARG(3);
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->height = GET_INT_ARG(4);
-                collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->z_background = GET_INT_ARG(5);
-                collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->z_foreground = GET_INT_ARG(6);
+                
+                /*
+                * 2023-01-13: If only the first Z depth provided, 
+                * use it for both directions. We verify a numeric
+                * instead of checking for empty because the creator
+                * might intentionally apply a 0 value to foreground
+                * depth and a simple empty check would override it.
+                */
+
+                tempInt = GET_INT_ARG(5);
+
+                collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->z_background = tempInt;
+
+                value = GET_ARG(6);
+
+                if (isNumeric(value))
+                {
+                    tempInt = GET_INT_ARG(6);
+                }                
+
+                collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->z_foreground = tempInt;
 
                 break;
             case CMD_MODEL_BBOX_INDEX:
@@ -23842,23 +23861,27 @@ int check_cangrab(entity* acting_entity, entity* target_entity)
     return 1;    
 }
 
-// Caskey, Damon V.
-// 2020-02-04
-//
-// Test collision between two boxes. If any overlap is found,
-// populates collision_check_data->return_overlap with overlap
-// position and returns true.
+/*
+* Caskey, Damon V.
+* 2020-02-04
+*
+* Test collision between two boxes. If any overlap is found,
+* populates collision_check_data->return_overlap with overlap
+* position and returns true.
+*/
 int check_collision(s_collision_check_data* collision_data)
 {
 	s_box seek_pos;
 	s_box detect_pos;
     int distance = 0;
 
-	// X axis. 
-	//
-	// Before we can check X positions, we need to 
-	// accomidate handle left/right flipping of
-	// both the seeker and target.
+    /*
+	* X axis. 
+	*
+	* Before we can check X positions, we need to 
+	* accomidate handle left/right flipping of
+	* both the seeker and target.
+    */
 
 	if (collision_data->seeker_direction == DIRECTION_LEFT)
 	{
@@ -23888,22 +23911,24 @@ int check_collision(s_collision_check_data* collision_data)
 		return FALSE;
 	}
 
-	// Y axis.
-	//
-	// This looks backwards, but we're not crazy.
-	// 
-	// The text input treats box as starting from
-	// a Y position with a Y size that proceeds
-	// downward, but when checking for collision
-	// we do the opposite. So here the Y position
-	// is our lower coordinate and Y size is the 
-	// top coordinate.
+    /*
+	* Y axis.
+	*
+	* This looks backwards, but we're not crazy.
+	* 
+	* The text input treats box as starting from
+	* a Y position with a Y size that proceeds
+	* downward, but when checking for collision
+	* we do the opposite. So here the Y position
+	* is our lower coordinate and Y size is the 
+	* top coordinate.
+    */
 
 	seek_pos.bottom = collision_data->seeker_pos->y + -(collision_data->seeker_coords->height);
-	seek_pos.top = collision_data->seeker_pos->y + -(collision_data->seeker_coords->y);
+	seek_pos.top = collision_data->seeker_pos->y + - (collision_data->seeker_coords->y);
 
 	detect_pos.bottom = collision_data->target_pos->y + -(collision_data->target_coords->height);
-	detect_pos.top = collision_data->target_pos->y + -(collision_data->target_coords->y);
+	detect_pos.top = collision_data->target_pos->y + - (collision_data->target_coords->y);
 
 	// If we are out of bounds, there's no collision.
 	if (seek_pos.bottom > detect_pos.top || seek_pos.top < detect_pos.bottom)
@@ -23911,23 +23936,23 @@ int check_collision(s_collision_check_data* collision_data)
 		return FALSE;
 	}
 	
-	// Z axis.
-	//
-	// Z axis is fairly simple. We just need to compare
-	// the foreground and background sides of our cubes. 
-	// Same principal as the left and right sides of X 
-	// axis, except we don't have to worry about flipping 
-	// direction.
-	
+    /*
+	* Z axis.
+	*
+	* Z axis is fairly simple. We just need to compare
+	* the foreground and background sides of our cubes. 
+	* Same principal as the left and right sides of X 
+	* axis, except we don't have to worry about flipping 
+	* direction.
+	*/
+
 	seek_pos.background = collision_data->seeker_pos->z - collision_data->seeker_coords->z_background;
 	seek_pos.foreground = collision_data->seeker_pos->z + collision_data->seeker_coords->z_foreground;
 	
 	detect_pos.background = collision_data->target_pos->z - collision_data->target_coords->z_background;
 	detect_pos.foreground = collision_data->target_pos->z + collision_data->target_coords->z_foreground;
 	
-
-	// If Z is out of range, then there's no hit.
-	if (seek_pos.background > detect_pos.foreground || seek_pos.foreground < detect_pos.background)
+    if (seek_pos.background > detect_pos.foreground || seek_pos.foreground < detect_pos.background)
 	{
 		return FALSE;
 	}
@@ -23940,30 +23965,17 @@ int check_collision(s_collision_check_data* collision_data)
 	* box set of coordinates between the attack and detect
 	* boxes. Then we find the center of our third box. This 
 	* gives us a calculated center of the collision detection 
-	* point.
-	*
-	* For center Z, if the entities are with 10 pixels set one 
-    * pixel in front of whichever entity is furthest toward the
-	* foreground. Otherwise we set 1 pixel in front of the target.
+	* point.	
     */
 
 	collision_data->return_overlap->left = seek_pos.left < detect_pos.left ? detect_pos.left : seek_pos.left;
 	collision_data->return_overlap->right = seek_pos.right > detect_pos.right ? detect_pos.right : seek_pos.right;
 	collision_data->return_overlap->bottom = seek_pos.bottom < detect_pos.bottom ? detect_pos.bottom : seek_pos.bottom;
 	collision_data->return_overlap->top = seek_pos.top > detect_pos.top ? detect_pos.top : seek_pos.top;
-
-	collision_data->return_overlap->center_x = (collision_data->return_overlap->left + collision_data->return_overlap->right) / 2;
-	collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
     
-    if (collision_data->seeker_pos->z > collision_data->target_pos->z)
-    {
-        distance = collision_data->seeker_pos->z - collision_data->target_pos->z;
-    }
-    else
-    {
-        distance = collision_data->target_pos->z - collision_data->seeker_pos->z;
-    }
-        
+    collision_data->return_overlap->center_x = (collision_data->return_overlap->left + collision_data->return_overlap->right) / 2;
+	collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
+                
     /*
     * When items are close on Z axis, we
     * force the collision to appear in
@@ -23972,8 +23984,18 @@ int check_collision(s_collision_check_data* collision_data)
     * don't appear behind them.
     *
     * If the entities are farther away
-    * then we find the median point.
+    * then we use the same formula as X 
+    * and Y axis.
     */
+
+    if (collision_data->seeker_pos->z > collision_data->target_pos->z)
+    {
+        distance = collision_data->seeker_pos->z - collision_data->target_pos->z;
+    }
+    else
+    {
+        distance = collision_data->target_pos->z - collision_data->seeker_pos->z;
+    }
 
     if (distance < 10)
     {
@@ -23981,12 +24003,12 @@ int check_collision(s_collision_check_data* collision_data)
     }
     else
     {
-        collision_data->return_overlap->center_z = (seek_pos.background + detect_pos.foreground) / 2;
-
-        //collision_data->return_overlap->center_z = 1 + collision_data->target_pos->z;
+        collision_data->return_overlap->background = seek_pos.background < detect_pos.background ? detect_pos.background : seek_pos.background;
+        collision_data->return_overlap->foreground = seek_pos.foreground > detect_pos.foreground ? detect_pos.foreground : seek_pos.foreground;
+        collision_data->return_overlap->center_z = (collision_data->return_overlap->background + collision_data->return_overlap->foreground) / 2;
     }
 
-	return TRUE;
+	return 1;
 }
 
 /*
