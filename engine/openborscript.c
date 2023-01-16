@@ -107,7 +107,7 @@ extern int shadowopacity;
 extern s_axis_plane_vertical_int light;
 extern int max_attack_types;
 extern int max_animations;
-extern s_projectile projectile_default_animation;
+extern s_projectile projectile_default_config;
 
 static void clear_named_var_list(List *list, int level)
 {
@@ -7522,7 +7522,8 @@ HRESULT openbor_tossentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
     }
 
     ent->velocity.x = (float)speedx;
-    ent->velocity.z = (float)speedz;
+    ent->velocity.z = (float)speedz;   
+
     toss(ent, (float)height);
     return S_OK;
 
@@ -11213,21 +11214,28 @@ HRESULT openbor_spawn(ScriptVariant **varlist , ScriptVariant **pretvar, int par
     return S_OK;
 }
 
-// Caskey, Damon V. 
-// 2019-12-26 (minor refactoring - orginal author uTunnels)
-//
-// Legacy projectile function. Depreciated and authors should avoid using.
-// Refactored work with updated projectile system but otherwise maintains
-// legacy functionality.
-//
-// entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
-//
-// [0/1] = Relative. Semi-optional.  
-// - Any non-zero value: Relative to parent/owner.
-// - Not used: Relative to absolute location.
-// - 0: Same as not used, but does not work as intended. Projectile cannot spawn.
+/*
+* Caskey, Damon V. 
+* 2019-12-26 (minor refactoring - orginal author uTunnels)
+*
+* Legacy projectile function. Depreciated and authors should avoid using.
+* Refactored work with updated projectile system but otherwise maintains
+* legacy functionality.
+*
+* entity * projectile([0/1], char *name, float x, float z, float a, int direction, int pytype, int type, int map);
+*
+*          projectile(weapon, x+dx, z+dz, y+dy, direction, 0, 0, 0);
+    
+* 
+* [0/1] = Relative. Semi-optional.  
+* - Any non-zero value: Relative to parent/owner.
+* - Not used: Relative to absolute location.
+* - 0: Same as not used, but does not work as intended. Projectile cannot spawn.
+*/
 HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
+    //printf("\n openbor_projectile()");
+
     DOUBLE temp = 0;
     LONG ltemp = 0;
     entity *ent;
@@ -11242,24 +11250,26 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 	int model_index = MODEL_INDEX_NONE;
 	int relative = 0;
 
-	s_projectile projectile = projectile_default_animation;
+	s_projectile projectile = projectile_default_config;
 
-	// We are going to return an entity pointer (or NULL).
+	/* We are going to return an entity pointer (or NULL). */
 	ScriptVariant_ChangeType(*pretvar, VT_PTR);
 
-	// DC - 2019-12-26
-	//
-	// Looking at this, it appears to try and adapt to number of arguments
-	// author passes in order to make "relative" parameter optional - but it 
-	// does not work as intended. Instead, if relative argument is any non-zero 
-	// value then relative is 1 (as in relative to parent). If no relative 
-	// argument is passed at all, relative is 0. So far, so good. However, if 
-	// a relative argument of 0 is passed, relative is 0 but the other parameters 
-	// are out of sync. It is therefore impossible to read in the model name 
-	// to launch a projectile, and all the other settings would be mixed up 
-	// even if we could. Since a new projectile function is coming, I am 
-	// leaving this as-is to avoid breaking any legacy compatibility.
-	if (paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
+	/*
+    * DC - 2019-12-26
+	*
+	* Looking at this, it appears to try and adapt to number of arguments
+	* author passes in order to make "relative" parameter optional - but it 
+	* does not work as intended. Instead, if relative argument is any non-zero 
+	* value then relative is 1 (as in relative to parent). If no relative 
+	* argument is passed at all, relative is 0. So far, so good. However, if 
+	* a relative argument of 0 is passed, relative is 0 but the other parameters 
+	* are out of sync. It is therefore impossible to read in the model name 
+	* to launch a projectile, and all the other settings would be mixed up 
+	* even if we could. Since a new projectile function is coming, I am 
+	* leaving this as-is to avoid breaking any legacy compatibility.
+	*/
+    if (paramCount >= 1 && varlist[0]->vt == VT_INTEGER && varlist[0]->lVal)
 	{
 		relative = 1;
 		paramCount--;
@@ -11270,47 +11280,63 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		relative = 0;
 	}
 
-	// Get model index if we can.
+    //printf("\n\t relative: %d", relative);
+
+	/* Get model index if we can. */
 	if(paramCount >= 1 && varlist[0]->vt == VT_STR)
     {
 		name = StrCache_Get(varlist[0]->strVal);		
 		model_index = get_cached_model_index(name);
 	}
 
-	// No model, then nothing more to do.
+    //printf("\n\t name: %s", name);
+    //printf("\n\t model_index: %d", model_index);
+
+	/* No model, then nothing more to do. */
 	if (model_index == MODEL_INDEX_NONE)
 	{
 		return S_OK;
 	}
 	
-	// Caskey, Damon V.
-	// 2019-12-17
-	//
-	// This function is a total mess, and there's no good
-	// way to refactor it to match updated projectile system while 
-	// keeping legacy compatabilty.
-	//
-	// To get around this we will have to do things out of order.
-	// First we will is spawn the projectile with a proper default
-	// setup. Then we'll go back and apply incoming parameters 
-	// and their legacy logic to the projectile entity.
+    /*
+	* Caskey, Damon V.
+	* 2019-12-17
+	*
+    * 
+	* This function is a total mess, and there's no good
+	* way to refactor it to match updated projectile system while 
+	* keeping legacy compatabilty.
+	*
+	* To get around this we will have to do things out of order.
+	* First we will spawn the projectile with a proper default
+	* setup. Then we'll go back and apply incoming parameters 
+	* and their legacy logic to the projectile entity.
 
-	// Type (Spawn as knife or bomb). Out of order, but we need to know
-	// this before doing anything else.
+	* Type (Spawn as knife or bomb). Out of order, but we need to know
+	* this before doing anything else.
+    */ 
 	if (paramCount >= 7 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[6], &ltemp)))
 	{
 		type = (LONG)ltemp;
 	}
+
+    //printf("\n\t type: %d", type);
 
 	// Now spawn the projectile.
 	switch (type)
 	{
 	default:
 	case PROJECTILE_TYPE_KNIFE:
+
+        //printf("\n\t PROJECTILE_TYPE_KNIFE");
+
 		projectile.knife = model_index;
 		ent = knife_spawn(self, &projectile);
 		break;
 	case PROJECTILE_TYPE_BOMB:
+
+        //printf("\n\t PROJECTILE_TYPE_BOMB");
+
 		projectile.bomb = model_index;
 
 		// This is for legacy compatability. See bomb_spawn 
@@ -11321,6 +11347,9 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		break;
 	}
 
+    //printf("\n\t ent: %p", ent);
+    //printf("\n\t projectile.velocity.y: %f", projectile.velocity.y);
+
 	// If we couldn't spawn a projectile entity, then 
 	// exit. Author will get back a NULL value.
 	if (!ent)
@@ -11330,41 +11359,56 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 
 	// X offset.
 	if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
-	{		
-        x = (float)temp;
+	{	
+        //printf("\n\t x = (float)temp");
+        x = (float)temp;        
     }
     else if(relative)
     {
-        x = 0;
+        //printf("\n\t x = 0");
+        x = 0;       
     }
     else
     {
-        x = self->position.x;
+        //printf("\n\t x = self->position.x");
+        x = self->position.x;        
     }
+
+    //printf("\n\t x: %f", x);
 
 	// Z offset.
     if(paramCount >= 3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &temp)))
     {
+        //printf("\n\t z = (float)temp");
         z = (float)temp;
     }
     else if(relative)
     {
+        //printf("\n\t z = 0");
         z = 0;
     }
     else
     {
+        //printf("\n\t z = self->position.z");
         z = self->position.z;
     }
+
+    //printf("\n\t z: %f", z);
 
 	// Y offset.
     if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &temp)))
     {
+        //printf("\n\t a = (float)temp");
+
         a = (float)temp;
     }
     else if(relative)
     {
+        //printf("\n\t if(relative)");
+
 		if (self->animation->projectile)
 		{
+            //printf("\n\t\t a = self->animation->projectile->position.y;");
 			a = self->animation->projectile->position.y;
 		}        
     }
@@ -11372,20 +11416,24 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
 		if (self->animation->projectile)
 		{
+            //printf("\n\t\t a = self->position.y + self->animation->projectile->position.y");
 			a = self->position.y + self->animation->projectile->position.y;
 		}
 		else
 		{
+            //printf("\n\t\t a = projectile.position.y");
+
 			//Use default fromprojectil settings.
 			a = projectile.position.y;
 		}        
     }
 	
+    //printf("\n\t a: %f", a);
 
 	// Direction.
 	//
 	// This logic seems strange. Utunnels wrote it to work in conjunction with
-	// relative logic below. If auother supplies any integer (including 0), then
+	// relative logic below. If auther supplies any integer (including 0), then
 	// that value is used for direction. 
 	//
 	// If NULL() (and only NULL()) is supplied and relative flag is TRUE, direction
@@ -11393,23 +11441,28 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 	// FALSE, then direction is same as parent/owner.
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
+        //printf("\n\t\t direction = (LONG)ltemp");
         direction = (LONG)ltemp;
     }
     else if(relative)
     {
+        //printf("\n\t\t direction = DIRECTION_RIGHT");
         direction  = DIRECTION_RIGHT;
     }
     else
     {
+        //printf("\n\t\t direction = self->direction");
         direction = self->direction;
     }
 
-	// PType
+    //printf("\n\t direction: %d", direction);	
+
     if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
     {
+        //printf("\n\t\t ptype: %d", ltemp);
 
         // Backwards compatibility for modules made before bitwise update
-        // of projectile_prime and expect base vs. floor and moving
+        // of projectile_prime. They will expect base vs. floor and moving
         // behavior to both be tied to a single 0 or 1 value.
         if((LONG)ltemp)
         {
@@ -11422,12 +11475,18 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
             projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
         }
     }	
+
+    //printf("\n\t\t projectile_prime: %d", projectile_prime);
     
 	// Map
 	if(paramCount >= 8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
     {
+        printf("\n\t map (set): %d", ltemp);
+
         map = (LONG)ltemp;
     }
+
+    //printf("\n\t map: %d", map);
 
 	// Reverse X if using relative offset.
     if(relative)
@@ -11446,12 +11505,18 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         a += self->position.y;
     }
 
+    //printf("\n\t direction: %d", direction);    
+
 	// Apply incomming parameters.
 	ent->position.x = x;
 	ent->position.y = a;
 	ent->position.z = z;
 	ent->direction = direction;
-	ent_set_colourmap(ent, map);
+	ent->projectile_prime |= PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION;
+    
+    //printf("\n\t position (x, y, z): %f, %f, %f", ent->position.x, ent->position.y, ent->position.z);
+    
+    ent_set_colourmap(ent, map);
         
     (*pretvar)->ptrVal = (VOID *) ent;
 	

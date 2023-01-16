@@ -106,7 +106,7 @@ const s_drawmethod plainmethod =
 // 2019-12-13
 // Need default values for projectile animation 
 // settings, and projectiles in general.
-const s_projectile projectile_default_animation = {
+const s_projectile projectile_default_config = {
 	
 	.bomb = MODEL_INDEX_NONE,
 	.color_set_adjust = COLOR_SET_ADJUST_NONE,
@@ -6645,10 +6645,6 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
         /* To toss, we use toss function with Y velocity. */
         toss(child_entity, object->velocity.y);
     }
-
-    printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
-    
-    printf("\n\t child_entity->modeldata.speed: %p", &child_entity->modeldata.speed);
 
     /*
     * Set up basic behavior packages.
@@ -21467,6 +21463,8 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
     } draw_coords;
 
     draw_coords box;
+    int far_x = 0;
+    int far_y = 0;
 
     // Get our base offsets from screen vs. location.
     screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
@@ -21495,10 +21493,26 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
 
     box.position.z = pos_z + offset_z;
 
+    
+
     // Add box to que.
     spriteq_add_box(box.position.x, box.position.y, box.size.x, box.size.y, box.position.z, color, drawmethod);
+
+    far_x = box.position.x + (box.size.x - 1);
+    far_y = box.position.y + box.size.y;
+
+    spriteq_add_line(box.position.x, box.position.y, far_x, box.position.y, box.position.z, color, NULL); // Top
+    spriteq_add_line(box.position.x, far_y, far_x, far_y, box.position.z, color, NULL); // Bottom
+    spriteq_add_line(box.position.x, box.position.y, box.position.x, far_y, box.position.z, color, NULL);
+    spriteq_add_line(far_x, box.position.y, far_x, far_y, box.position.z, color, NULL);    
 }
 
+/*
+* Caskey, Damon V.
+* Unknown date ~2018
+* 
+* Draw collision on screen as visual boxes.
+*/
 void draw_visual_debug()
 {
     #define LOCAL_COLOR_BLUE        _makecolour(0, 0, 255)
@@ -23393,7 +23407,7 @@ s_projectile* allocate_projectile()
 	result = malloc(sizeof(*result));
 
 	// Copy default values into new projectile setting.
-	memcpy(result, &projectile_default_animation, sizeof(*result));
+	memcpy(result, &projectile_default_config, sizeof(*result));
 
 	return result;
 }
@@ -35395,7 +35409,12 @@ int arrow_move()
     }
     else
     {
-        // Now projectiles can have custom speeds
+        /*
+        * Apply speed to velocity. If spawned by legacy 
+        * functions, only apply X axis for backward
+        * compatability.
+        */
+
         if(self->direction == DIRECTION_LEFT)
         {
             self->velocity.x = -self->modeldata.speed.x;
@@ -35404,9 +35423,13 @@ int arrow_move()
         {
             self->velocity.x = self->modeldata.speed.x;
         }
-
-		self->velocity.y = self->modeldata.speed.y;
-		self->velocity.z = self->modeldata.speed.z;
+                
+        
+        if (!(self->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION))
+        {
+            self->velocity.y = self->modeldata.speed.y;
+            self->velocity.z = self->modeldata.speed.z;
+        }
     }
 
     if(level)
@@ -35435,14 +35458,14 @@ int arrow_move()
 */
 int bomb_try_detonate(entity* acting_entity)
 {
-    printf("\n %s:", "bomb_try_detonate");
+    //printf("\n %s:", "bomb_try_detonate");
 
     /*
     * If not already set to detonate, check if
     * we are preared for detonation and in air.
     */
 
-    printf("\n\t %s: %d", "acting_entity->toexplode", acting_entity->toexplode);
+    //printf("\n\t %s: %d", "acting_entity->toexplode", acting_entity->toexplode);
 
     if (!(acting_entity->toexplode & EXPLODE_DETONATE))
     {
@@ -35451,7 +35474,7 @@ int bomb_try_detonate(entity* acting_entity)
             return 0;
         }
 
-        printf("\n\t %s: %d", "inair(acting_entity)", inair(acting_entity));
+        //printf("\n\t %s: %d", "inair(acting_entity)", inair(acting_entity));
 
         /*
         * - Touches a wall.
@@ -35459,7 +35482,7 @@ int bomb_try_detonate(entity* acting_entity)
         * - Touches base 0 and isn't in a hole.
         */            
         
-        printf("\n\t %s: %d", "check_block_wall(acting_entity)", check_block_wall(acting_entity));
+        //printf("\n\t %s: %d", "check_block_wall(acting_entity)", check_block_wall(acting_entity));
 
         if (check_block_wall(acting_entity) == WALL_INDEX_NONE && 
             !check_block_obstacle(acting_entity)
@@ -35469,9 +35492,9 @@ int bomb_try_detonate(entity* acting_entity)
         }
     }
 
-    printf("\n\t %s: %p", "acting_entity->takeaction", acting_entity->takeaction);
-    printf("\n\t %s: %p", "bomb_explode", bomb_explode);
-    printf("\n\t %s: %f, %f, %f, %f", "Position (x,y,z,b):", acting_entity->position.x, acting_entity->position.y, acting_entity->position.z, acting_entity->base);
+    //printf("\n\t %s: %p", "acting_entity->takeaction", acting_entity->takeaction);
+    //printf("\n\t %s: %p", "bomb_explode", bomb_explode);
+    //printf("\n\t %s: %f, %f, %f, %f", "Position (x,y,z,b):", acting_entity->position.x, acting_entity->position.y, acting_entity->position.z, acting_entity->base);
 
     /* Already detonated? */
     if (acting_entity->takeaction == bomb_explode)
@@ -35633,14 +35656,16 @@ entity *check_block_obstacle(entity *ent)
     return obstacle;
 }
 
-// Caskey, Damon V
-// 2018-04-06
-//
-// Ricochet a projectile off of walls and platforms.
-// Returns 1 on successful ricochet. 0 otherwise.
-int projectile_wall_deflect(entity *ent)
+/*
+* Caskey, Damon V
+* 2018-04-06
+*
+* Ricochet a projectile off of walls and platforms.
+* Returns 1 on successful ricochet. 0 otherwise.
+*/
+int projectile_wall_deflect(entity *acting_entity)
 {
-    #define FALL_FORCE                  1000    // Knockdown force that will be applied to projectile entity.
+    #define RICHOCHET_FALL_FORCE        10000 
     #define RICHOCHET_VELOCITY_X_FACTOR 0.25    // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
     #define RICHOCHET_VELOCITY_Y        2.5     // Base Y velocity applied when projectile bounces off wall.
     #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
@@ -35648,46 +35673,53 @@ int projectile_wall_deflect(entity *ent)
     float richochet_velocity_x;
     s_attack attack;
 
-    if(validanim(ent, ANI_FALL))
+    if(validanim(acting_entity, ANI_FALL))
     {
         int blocking_wall;
         entity *blocking_obstacle = NULL;
 
-        blocking_wall = check_block_wall(self);
-        blocking_obstacle = check_block_obstacle(self);
+        blocking_wall = check_block_wall(acting_entity);
+        blocking_obstacle = check_block_obstacle(acting_entity);
 
         if(blocking_wall >= 0 || blocking_obstacle) {
 
-            // Use the projectiles speed and our factor to see how
-            // hard it will bounce off wall.
-            richochet_velocity_x = ent->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
+            /*
+            * Use the projectile's speed and our factor to see 
+            * how hard it will bounce off wall.
+            */
+            richochet_velocity_x = acting_entity->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
 
-            ent->takeaction = common_fall;
-            ent->attacking = ATTACKING_NONE;
-            ent->energy_state.health_current = 0;
-            ent->projectile = BLAST_NONE;
-            ent->velocity.x = (ent->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
-            ent->damage_on_landing.attack_force = 0;
-            ent->damage_on_landing.attack_type = ATK_NONE;
-            toss(ent, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
+            acting_entity->takeaction = common_fall;
+            acting_entity->attacking = ATTACKING_NONE;
+            acting_entity->energy_state.health_current = 0;
+            acting_entity->projectile = BLAST_NONE;
+            acting_entity->velocity.x = (acting_entity->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
+            acting_entity->damage_on_landing.attack_force = 0;
+            acting_entity->damage_on_landing.attack_type = ATK_NONE;
+            toss(acting_entity, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
 
-            // Reset base detection
-            ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE);
-            ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
-            ent->base = 0;
+            //self->modeldata.no_adjust_base = 0;
+            //self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
+            //set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
 
-            // Use default attack values.
+            /* Reset base detection */
+            acting_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+            acting_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+            //acting_entity->base = 0;
+
+            /* Use default attack values. */
             attack = emptyattack;
-            set_fall(ent, ent, &attack, 0);
+            attack.attack_drop = RICHOCHET_FALL_FORCE;
+            set_fall(acting_entity, acting_entity, &attack, 0);
 
             return 1;
         }
     }
 
-    // Did not ricochet, so return false.
+    /* Did not ricochet, so return false. */
     return 0;
 
-    #undef FALL_FORCE
+    #undef RICHOCHET_FALL_FORCE
     #undef RICHOCHET_VELOCITY_X_FACTOR
     #undef RICHOCHET_VELOCITY_Y
     #undef RICHOCHET_VELOCITY_Y_RAND
@@ -39871,7 +39903,23 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     {
         return NULL;
     }
-    
+        
+    /* 
+    * Player projectiles are always type "shot", unless 
+    * using the current PROJECTILE type.
+    */
+    if (!(ent->modeldata.type & TYPE_PROJECTILE))
+    {
+        if (parent->modeldata.type & TYPE_PLAYER)
+        {
+            ent->modeldata.type = TYPE_SHOT;
+        }
+        else
+        {
+            ent->modeldata.type = parent->modeldata.type;
+        }
+    }
+
 	// Apply projectile prime flags.
 	ent->projectile_prime = projectile_prime;	
 
@@ -39882,29 +39930,18 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		memcpy(ent->offense_factors, parent->offense_factors, sizeof(*ent->offense_factors) * max_attack_types);
 	}
 
-	// Apply color adjustment.
+	/* Apply color adjustment. */
 	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
-	
-	// Player projectiles are always type "shot", unless 
-	// using the current PROJECTILE type.
-	if (!(ent->modeldata.type & TYPE_PROJECTILE))
-	{
-		if (parent->modeldata.type & TYPE_PLAYER)
-		{
-			ent->modeldata.type = TYPE_SHOT;
-		}
-		else
-		{
-			ent->modeldata.type = parent->modeldata.type;
-		}
-	}
+		
 
-	// If no move, then all speed is 0. Otherwise check for use of
-	// projectile velocity. If player supplied any value other 
-	// than MODEL_SPEED_NONE, we use player's value. If not, fall
-	// back to default values. This is a bit overcomplicated, but
-	// allows players to supply a 0 velocity value on any axis.
-	if (ent->modeldata.nomove)
+    /*
+	* If no move, then all speed is 0. Otherwise check for use of
+	* projectile velocity. If player supplied any value other 
+	* than MODEL_SPEED_NONE, we use player's value. If not, fall
+	* back to default values. This is a bit overcomplicated, but
+	* allows players to supply a 0 velocity value on any axis.
+	*/
+    if (ent->modeldata.nomove)
 	{
 		ent->modeldata.speed.x = 0;
 		ent->modeldata.speed.y = 0;
@@ -39912,7 +39949,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	else
 	{	
-		// Copy speed values from animation projectile settings to model.
+		/* Copy speed values from animation projectile settings to model. */
 		ent->modeldata.speed = projectile->velocity;
 	}
 
@@ -39928,26 +39965,26 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	ent->takeaction = NULL;
 	ent->modeldata.aimove = AIMOVE1_ARROW;
 	ent->speedmul = 2;
-
+    ent->modeldata.aiattack = AIATTACK1_NOATTACK;
+    
     if(!ent->modeldata.offscreenkill)
     {
 		ent->modeldata.offscreenkill = 200;    //default value
-    }
-	ent->modeldata.aiattack = AIATTACK1_NOATTACK;
+    }	
     
-	// Kill self when we hit.
+	/* Kill self when we hit. */
 	if (ent->modeldata.remove)
 	{
 		ent->autokill |= AUTOKILL_ATTACK_HIT;
 	}
 	
-    // Kill self when we finish animation.
+    /* Kill self when we finish animation. */
 	if (ent->modeldata.nomove)
 	{
 		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
 	
-	// Is this a floor or flying projectile? Set base accordingly.
+	/* Is this a floor or flying projectile ? Set base accordingly. */
     if(ent->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
 		ent->base = 0;
@@ -39957,24 +39994,48 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		ent->base = position.y;
     }
 
-	// If projectile entity doesn't already have hostile and
-	// candamage settings, copy them from parent.
-	copy_faction_data(ent, parent);
+    /*
+	* If projectile entity doesn't already have hostile and
+	* candamage settings, copy them from parent.
+	*/
+    copy_faction_data(ent, parent);
 
-	// If player damage turned off, remove player type from
-	// hostile (so homing projectiles leave players alone) and 
-	// from candamage.
+    /*
+	* If player damage turned off, remove player type from
+	* hostile (so homing projectiles leave players alone) and 
+	* from candamage.
+    */
     if((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
 		ent->modeldata.hostile &= ~TYPE_PLAYER;
 		ent->modeldata.candamage &= ~TYPE_PLAYER;
     }
 
-	// Set terrain behavior flags.
-	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-    ent->modeldata.move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_NO_ADJUST_BASE);
+	/*
+    * Set terrain and movement behavior flags. Legacy 
+    * behavior wouldn't allow movement along Y axis
+    * without an arc, but we can't fix this without
+    * breaking compatability, so we'll need a different
+    * setup depending on what function creator used.
+    * 
+    * ent->modeldata.subject_to_wall = ent->modeldata.subject_to_platform = ent->modeldata.subject_to_hole = ent->modeldata.subject_to_gravity = 1;
+    * ent->modeldata.no_adjust_base = 1;
+    */
+
+    ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+    ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+
+    if (ent->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION)
+    {
+        ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+    }
+    else
+    {
+        ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+    }
+
     
-	// Execute the projectile's on spawn event.
+	/* Execute the projectile's on spawn event. */
 	execute_onspawn_script(ent);
 	
 	return ent;

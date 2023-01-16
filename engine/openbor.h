@@ -328,23 +328,29 @@ typedef enum
     PROJECTILE_PRIME_BASE_FLOOR         = (1 << 0),
     PROJECTILE_PRIME_BASE_Y             = (1 << 1),
 
+    /* 
+    * How was projectile set up? 
+    */
+    PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION = (1 << 2),
+
+
     // Movement behavior on launch.
-    PROJECTILE_PRIME_LAUNCH_MOVING      = (1 << 2),
-    PROJECTILE_PRIME_LAUNCH_STATIONARY  = (1 << 3),
+    PROJECTILE_PRIME_LAUNCH_MOVING      = (1 << 3),
+    PROJECTILE_PRIME_LAUNCH_STATIONARY  = (1 << 4),
 	
     // How was projectile model determined?
-	PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE		= (1 << 4),		// Global "Knife".
-	PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT			= (1 << 5),		// Global "Shot".
-	PROJECTILE_PRIME_SOURCE_GLOBAL_STAR			= (1 << 6),		// Global "Shot".
-	PROJECTILE_PRIME_SOURCE_MODEL_BOMB			= (1 << 7),		// Model header property.
-	PROJECTILE_PRIME_SOURCE_MODEL_KNIFE			= (1 << 8),		// Model header property.
-	PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO		= (1 << 9),		// Model header property.
-	PROJECTILE_PRIME_SOURCE_MODEL_STAR			= (1 << 10),	// Model header property.
-	PROJECTILE_PRIME_SOURCE_PROJ_BOMB			= (1 << 11),	// Projectile bomb setting.
-	PROJECTILE_PRIME_SOURCE_PROJ_FLASH			= (1 << 12),	// Projectile flash setting.
-	PROJECTILE_PRIME_SOURCE_PROJ_KNIFE			= (1 << 13),	// Projectile knife/shot setting.
-	PROJECTILE_PRIME_SOURCE_PROJ_STAR			= (1 << 14),	// Projectile star setting.
-	PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE	= (1 << 15)		// From a SUBTYPE_PROJECTLE weapon pickup.
+	PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE		= (1 << 5),		// Global "Knife".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT			= (1 << 6),		// Global "Shot".
+	PROJECTILE_PRIME_SOURCE_GLOBAL_STAR			= (1 << 7),		// Global "Shot".
+	PROJECTILE_PRIME_SOURCE_MODEL_BOMB			= (1 << 8),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_KNIFE			= (1 << 9),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_PSHOTNO		= (1 << 10),		// Model header property.
+	PROJECTILE_PRIME_SOURCE_MODEL_STAR			= (1 << 11),	// Model header property.
+	PROJECTILE_PRIME_SOURCE_PROJ_BOMB			= (1 << 12),	// Projectile bomb setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_FLASH			= (1 << 13),	// Projectile flash setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_KNIFE			= (1 << 14),	// Projectile knife/shot setting.
+	PROJECTILE_PRIME_SOURCE_PROJ_STAR			= (1 << 15),	// Projectile star setting.
+	PROJECTILE_PRIME_SOURCE_WEAPON_PROJECTILE	= (1 << 16)		// From a SUBTYPE_PROJECTLE weapon pickup.
 
 } e_projectile_prime;
 
