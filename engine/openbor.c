@@ -30512,18 +30512,10 @@ e_animations do_grab_attack_finish(entity *ent, int which)
     // The target entity is already unlinked from
     // grab before this function was called, so in
     // game they are let go with no finishing attack.
-    // Kratus (10-2021) Added the vault animation before attack3
     if(validanim(ent, animation))
     {
         ent_set_anim(ent, animation, 0);
         return animation;
-    }
-	else if(validanim(ent, ANI_VAULT))
-    {
-        // Get the vault animation first.
-        // The modder can disable it by simply not declaring this animation
-        ent_set_anim(ent, ANI_VAULT, 0);
-        return ANI_VAULT;
     }
     else if(validanim(ent, ANI_ATTACK3))
     {
@@ -37750,9 +37742,10 @@ void player_grab_check()
 	// Kratus (10-2021) Added the vault animation
     else if(player[self->playerindex].playkeys & FLAG_JUMP && validanim(self, ANI_VAULT))
     {
-        // Kratus (07-2022) Fixes the "3-vaults" loop bug, now will execute once as intended
+        // Kratus (07-2022) Fixed the "3-vaults" loop bug, now will execute once as intended
+        // Kratus (01-2023) Fixed an issue where grabattack2 animation nullifies vault if both are declared
         player[self->playerindex].playkeys &= ~FLAG_JUMP;
-        dograbattack(GRAB_ACTION_SELECT_FINISH);
+        ent_set_anim(self, ANI_VAULT, 0);
     }
     // grab attack finisher
     else if(player[self->playerindex].playkeys & (FLAG_ATTACK | FLAG_JUMP))

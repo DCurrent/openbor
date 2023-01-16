@@ -462,13 +462,9 @@ static void initMenu(int type)
 	savedata.fullscreen = isFull;
 	video_stretch(savedata.stretch);
 
-	//Kratus (10-2022) Removed the default BOR logo on Windows version
-	videomodes.hRes = isWide ? 80 :80;
-	videomodes.vRes = isWide ? 60 :60;
-	videomodes.pixel = pixelbytes[PIXEL_8];
-	// videomodes.hRes = isWide ? 480 :320;
-	// videomodes.vRes = isWide ? 272 :240;
-	// videomodes.pixel = pixelbytes[PIXEL_32];
+	videomodes.hRes = isWide ? 480 :320;
+	videomodes.vRes = isWide ? 272 :240;
+	videomodes.pixel = pixelbytes[PIXEL_32];
 #ifndef ANDROID
 	videomodes.hScale = 2.0f;
 	videomodes.vScale = 2.0f;
@@ -706,11 +702,20 @@ static void drawLogs()
 	drawMenu();
 }
 
+/*
+	Kratus (01-2023) Added a option to skip the OpenBOR logo
+	Simply add an empty txt file named "logoff" inside the "Paks" folder
+	Reduced the logo delay a bit to load faster
+*/
 static void drawLogo()
 {
     int i;
-    int delay = 500;
+    int delay = 200;
+	FILE *logoff;
+    char *path = "paks/logoff.txt";
+    logoff = fopen(path, "rb");
 
+    if(logoff){savedata.logo = 1;}
     if(savedata.logo) return;
 
 	initMenu(0);
