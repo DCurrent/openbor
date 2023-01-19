@@ -1947,20 +1947,29 @@ void execute_ondeath_script(entity *ent, entity *other, s_attack *attack)
     }
 }
 
-void execute_onkill_script(entity *ent)
+void execute_onkill_script(entity *ent, e_kill_entity_trigger trigger)
 {
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onkill_script;
     if(Script_IsInitialized(cs))
     {
         ScriptVariant_Init(&tempvar);
+        
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
+
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self", &tempvar);
+
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+
+        tempvar.lVal = (e_kill_entity_trigger)trigger;
+        Script_Set_Local_Variant(cs, "trigger", &tempvar);
+
         Script_Execute(cs);
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self", &tempvar);
+        Script_Set_Local_Variant(cs, "trigger", &tempvar);
     }
 }
 
@@ -8954,7 +8963,7 @@ void recursive_damage_update(entity* ent)
                     }
                     else
                     {
-                        kill_entity(ent);
+                        kill_entity(ent, KILL_ENTITY_TRIGGER_RECURSIVE_DAMAGE);
                     }
                 }
                 else
@@ -23040,7 +23049,7 @@ void update_frame(entity *ent, unsigned int f)
             }
             else
             {
-                kill_entity(self);
+                kill_entity(self, KILL_ENTITY_TRIGGER_UNSUMMON);
             }
             self = ent; // lol ...
             self->subentity = NULL;
@@ -23473,7 +23482,7 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             e = ent_list[i];
             if(e->exists)
             {
-                kill_entity(e);
+                kill_entity(e, KILL_ENTITY_TRIGGER_SPAWN_OVERRIDE);
             }
             // save these values, or they will loss when memset called
             id      = e->sortid;
@@ -23585,7 +23594,7 @@ void ents_link(entity *e1, entity *e2)
 
 
 
-void kill_entity(entity *victim)
+void kill_entity(entity *victim, e_kill_entity_trigger trigger)
 {
     int i = 0;
     s_attack attack;
@@ -23597,7 +23606,7 @@ void kill_entity(entity *victim)
         return;
     }
 
-    execute_onkill_script(victim);
+    execute_onkill_script(victim, trigger);
 
     ent_unlink(victim);
     victim->weapent = NULL;
@@ -23635,7 +23644,7 @@ void kill_entity(entity *victim)
         }
         else
         {
-            kill_entity(self);
+            kill_entity(self, KILL_ENTITY_TRIGGER_PARENT_KILL_SUMMON);
         }
     }
     victim->subentity = NULL;
@@ -23674,7 +23683,7 @@ void kill_entity(entity *victim)
                     }
                     else
                     {
-                        kill_entity(self);
+                        kill_entity(self, KILL_ENTITY_TRIGGER_PARENT_KILL_ALL);
                     }
                 }
             }
@@ -23727,7 +23736,7 @@ void kill_all()
         e = ent_list[i];
         if (e && e->exists)
         {
-            execute_onkill_script(e);
+            execute_onkill_script(e, KILL_ENTITY_TRIGGER_ALL);
             clear_all_scripts(e->scripts, 1);
         }
         e->exists = 0; // well, no need to use kill function
@@ -26430,7 +26439,7 @@ void do_attack(entity *attacking_entity)
         */
         if(attacking_entity->autokill & AUTOKILL_ATTACK_HIT)
         {
-            kill_entity(attacking_entity);
+            kill_entity(attacking_entity, KILL_ENTITY_TRIGGER_AUTOKILL_ATTACK_HIT);
         }
     }
 #undef followed
@@ -26941,7 +26950,7 @@ int check_lost()
         }
         else
         {
-            kill_entity(self);
+            kill_entity(self, KILL_ENTITY_TRIGGER_OUT_OF_BOUNDS);
         }
         return 1;
     }
@@ -26951,7 +26960,7 @@ int check_lost()
     {
         if(!self->takedamage)
         {
-            kill_entity(self);
+            kill_entity(self, KILL_ENTITY_TRIGGER_PIT);
         }
         else
         {
@@ -26968,7 +26977,7 @@ int check_lost()
     {
         if(!self->takedamage)
         {
-            kill_entity(self);
+            kill_entity(self, KILL_ENTITY_TRIGGER_LIFESPAN);
         }
         else
         {
@@ -27489,7 +27498,7 @@ void update_animation()
 
                 if(self->autokill & AUTOKILL_ANIMATION_COMPLETE)
                 {
-                    kill_entity(self);
+                    kill_entity(self, KILL_ENTITY_TRIGGER_AUTOKILL_ANIMATION_COMPLETE_DEFINED_LOOP_MAX);
                     return;
                 }
             }
@@ -27511,7 +27520,7 @@ void update_animation()
 
                 if(self->autokill & AUTOKILL_ANIMATION_COMPLETE)
                 {
-                    kill_entity(self);
+                    kill_entity(self, KILL_ENTITY_TRIGGER_AUTOKILL_ANIMATION_COMPLETE_UNDEFINED_LOOP_MAX);
                     return;
                 }
             }
@@ -27916,7 +27925,7 @@ void adjust_bind(entity* acting_entity)
 				/* Don't have the animation? Kill self. */
 				if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_REMOVE)
 				{
-					kill_entity(acting_entity);
+					kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BIND_ANIMATION_MATCH);
 				}
 
 				/* Cancel the bind and exit. */
@@ -27971,7 +27980,7 @@ void adjust_bind(entity* acting_entity)
 				{
 					if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_REMOVE)
 					{
-						kill_entity(acting_entity);
+						kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BIND_FRAME_MATCH);
                         						
 						return;
 					}					
@@ -30214,7 +30223,7 @@ void common_drop()
     self->takeaction = NULL;
     if(self->energy_state.health_current <= 0)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_DROP_NO_HEALTH);
     }
 }
 
@@ -31937,7 +31946,7 @@ void checkdamageonlanding()
         }
         else
         {
-            kill_entity(self);
+            kill_entity(self, KILL_ENTITY_TRIGGER_DAMAGE_ON_LANDING);
         }
         if (self)
         {
@@ -32181,7 +32190,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         }
         else
         {
-            kill_entity(self);
+            kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_PIT);
         }
         return 1;
     }
@@ -32274,7 +32283,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
                 }
                 else
                 {
-                    kill_entity(self);
+                    kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_FALL);
                 }
                 return 1;
             }
@@ -35330,7 +35339,7 @@ int arrow_move()
     float dz;
     float maxspeed;
     entity *target = NULL;
-
+    
     // new subtype chase
     if(self->modeldata.subtype == SUBTYPE_CHASE || self->modeldata.aimove & AIMOVE1_CHASE)
     {
@@ -35430,9 +35439,9 @@ int arrow_move()
         projectile_wall_deflect(self);
     }
 
-    if(self->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
+    if(self->projectile_prime & PROJECTILE_PRIME_LAUNCH_STATIONARY)// PROJECTILE_PRIME_BASE_FLOOR)
     {
-        self->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+        //self->autokill |= AUTOKILL_ANIMATION_COMPLETE;
     }
 
     return 1;
@@ -35580,13 +35589,20 @@ int bomb_move(entity* ent)
 */
 int check_block_wall(entity *entity)
 {
+    //printf("\n\n check_block_wall(%p)", entity);
+    //printf("\n entity->modeldata.move_constraint: %d", entity->modeldata.move_constraint);
+
     int wall = WALL_INDEX_NONE;
 
     /* Target entity affected by walls? */
     if(entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
     {
+        //printf("\n\t Has constraint.");
+
         /* Get wall number at our Xand Z axis(if any). */
         wall = checkwall_index(entity->position.x, entity->position.z);
+
+        //printf("\n\t wall: %d", wall);
 
         /* Did we find a wall? */
         if (wall >= 0)
@@ -35665,15 +35681,26 @@ int projectile_wall_deflect(entity *acting_entity)
     float richochet_velocity_x;
     s_attack attack;
 
+    //printf("\n\n projectile_wall_deflect(%p)", acting_entity);
+    //printf("\n model(%s)", acting_entity->model->name);
+    //printf("\n acting_entity->drop: ", acting_entity->drop);
+
     if(validanim(acting_entity, ANI_FALL))
     {
+        //printf("\n\t Has Fall");
+        //printf("\n\t position: %f, %f, %f", acting_entity->position.x, acting_entity->position.y, acting_entity->position.z);
+
         int blocking_wall;
         entity *blocking_obstacle = NULL;
 
         blocking_wall = check_block_wall(acting_entity);
         blocking_obstacle = check_block_obstacle(acting_entity);
 
-        if(blocking_wall >= 0 || blocking_obstacle) {
+        //printf("\n\t wall(%d), obstacle(%p)", blocking_wall, blocking_obstacle);
+
+        if(blocking_wall >= 0 || blocking_obstacle) 
+        {
+            //printf("\n\t Blocked.");
 
             /*
             * Use the projectile's speed and our factor to see 
@@ -35686,6 +35713,7 @@ int projectile_wall_deflect(entity *acting_entity)
             acting_entity->energy_state.health_current = 0;
             acting_entity->projectile = BLAST_NONE;
             acting_entity->velocity.x = (acting_entity->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
+            acting_entity->velocity.z = 0.0;
             acting_entity->damage_on_landing.attack_force = 0;
             acting_entity->damage_on_landing.attack_type = ATK_NONE;
             toss(acting_entity, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
@@ -35697,15 +35725,19 @@ int projectile_wall_deflect(entity *acting_entity)
             /* Reset base detection */
             acting_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
             acting_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
-            //acting_entity->base = 0;
+            acting_entity->base = 0;
 
             /* Use default attack values. */
             attack = emptyattack;
             attack.attack_drop = RICHOCHET_FALL_FORCE;
             set_fall(acting_entity, acting_entity, &attack, 0);
 
+            //printf("\n\t velocity: %f, %f, %f", acting_entity->velocity.x, acting_entity->velocity.y, acting_entity->velocity.z);
+
             return 1;
         }
+
+        //printf("\n\t Not Blocked.");
     }
 
     /* Did not ricochet, so return false. */
@@ -35737,7 +35769,7 @@ int star_move()
 {
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && !self->modeldata.falldie))
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_STAR_OUT_OF_BOUNDS);
         return 0;
     }
 
@@ -36561,7 +36593,7 @@ void suicide()
     }
     level_completed |= self->boss;
     level_completed_defeating_boss |= self->boss;
-    kill_entity(self);
+    kill_entity(self, KILL_ENTITY_TRIGGER_SUICIDE);
 }
 
 
@@ -36595,7 +36627,7 @@ void player_die()
 
     if(self->modeldata.nodieblink != 3)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_PLAYER_DEATH);
     }
     else
     {
@@ -37151,7 +37183,7 @@ void runanimal()
 
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_ANIMAL_RUN_OUT_OF_BOUNDS);
         return;
     }
 
@@ -39647,7 +39679,7 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
                 self->energy_state.health_current -= attack->attack_force;
                 if(self->energy_state.health_current <= 0)
                 {
-                    kill_entity(self);
+                    kill_entity(self, KILL_ENTITY_TRIGGER_SMARTBOMB);
                 }
             }
 
@@ -39680,7 +39712,7 @@ void anything_walk()
 {
     if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80))
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_WALK_OUT_OF_BOUNDS);
         return;
     }
     //self->position.x += self->velocity.x;
@@ -40026,8 +40058,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     {
         ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
     }
-
-    
+        
 	/* Execute the projectile's on spawn event. */
 	execute_onspawn_script(ent);
 	
@@ -40040,7 +40071,7 @@ void bomb_explode()
     {
         return;
     }
-    kill_entity(self);
+    kill_entity(self, KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_COMPLETE);
 }
 
 
@@ -40399,7 +40430,7 @@ void steam_think()
 {
     if(!self->animating)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_STEAM_ANIMATION_COMPLETE);
         return;
     }
 
@@ -40454,7 +40485,7 @@ void text_think()     // New function so text can be displayed
     // wait to suicide
     if(!self->animating)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_TEXT_ANIMATION_COMPLETE);
     }
 }
 
@@ -40532,7 +40563,7 @@ int biker_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* 
     // Fell in a hole
     if(self->position.y < PIT_DEPTH)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_BIKER_PIT);
         return 0;
     }
     if(other != self)
@@ -40593,7 +40624,7 @@ void obstacle_fall()
     self->velocity.x = self->velocity.z = 0;
     if((!self->animating && validanim(self, ANI_DIE)) || !validanim(self, ANI_DIE))
     {
-        kill_entity(self);    // Fixed so ANI_DIE can be used
+        kill_entity(self, KILL_ENTITY_TRIGGER_OBSTACLE_FALL_NO_DEATH_ANIMATION);    // Fixed so ANI_DIE can be used
     }
 }
 
@@ -40604,7 +40635,7 @@ void obstacle_fly()    // Now obstacles can fly when hit like on Simpsons/TMNT
     //self->position.x += self->velocity.x * 4;    // Equivelant of speed 40
     if(self->position.x > advancex + (videomodes.hRes + 200) || self->position.x < advancex - 200)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_OBSTACLE_FLY_OUT_OF_BOUNDS);
     }
 }
 
@@ -40614,7 +40645,7 @@ int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag, s_defens
 {
     if(self->position.y <= PIT_DEPTH)
     {
-        kill_entity(self);
+        kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_OBSTACLE_PIT);
         return 0;
     }
 
@@ -44052,7 +44083,7 @@ int playlevel(char *filename)
                 }
                 if (player[i].ent)
 				{
-					kill_entity(player[i].ent);
+					kill_entity(player[i].ent, KILL_ENTITY_TRIGGER_LEVEL_GAME_OVER);
 					player[i].ent = NULL;
 				}
                 //self = player[i].ent;

@@ -1328,6 +1328,55 @@ typedef enum e_move_constraint
     MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 10)
 } e_move_constraint;
 
+typedef enum e_kill_entity_trigger
+{
+    KILL_ENTITY_TRIGGER_NONE,
+    KILL_ENTITY_TRIGGER_ALL,
+    KILL_ENTITY_TRIGGER_ANIMAL_RUN_OUT_OF_BOUNDS,
+    KILL_ENTITY_TRIGGER_AUTOKILL_ATTACK_HIT,
+    KILL_ENTITY_TRIGGER_AUTOKILL_ANIMATION_COMPLETE_DEFINED_LOOP_MAX,
+    KILL_ENTITY_TRIGGER_AUTOKILL_ANIMATION_COMPLETE_UNDEFINED_LOOP_MAX,
+    KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_COMPLETE,
+    KILL_ENTITY_TRIGGER_BIND_ANIMATION_MATCH,
+    KILL_ENTITY_TRIGGER_BIND_FRAME_MATCH,
+    KILL_ENTITY_TRIGGER_DAMAGE_ON_LANDING,
+    KILL_ENTITY_TRIGGER_DROP_NO_HEALTH,
+    KILL_ENTITY_TRIGGER_LEVEL_GAME_OVER,
+    KILL_ENTITY_TRIGGER_LIFESPAN,
+    KILL_ENTITY_TRIGGER_OBSTACLE_FALL_NO_DEATH_ANIMATION,
+    KILL_ENTITY_TRIGGER_OBSTACLE_FLY_OUT_OF_BOUNDS,
+    KILL_ENTITY_TRIGGER_OUT_OF_BOUNDS,
+    KILL_ENTITY_TRIGGER_RECURSIVE_DAMAGE,
+    KILL_ENTITY_TRIGGER_PARENT_KILL_ALL,
+    KILL_ENTITY_TRIGGER_PARENT_KILL_SUMMON,
+    KILL_ENTITY_TRIGGER_PIT,
+    KILL_ENTITY_TRIGGER_PLAYER_DEATH,
+    KILL_ENTITY_TRIGGER_SCRIPT_DAMAGEENTITY,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_UNDEFINED,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_0,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_1,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_2,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_3,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_4,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_5,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_6,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_7,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_8,
+    KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_USER_9,
+    KILL_ENTITY_TRIGGER_SMARTBOMB,
+    KILL_ENTITY_TRIGGER_SPAWN_OVERRIDE,
+    KILL_ENTITY_TRIGGER_STAR_OUT_OF_BOUNDS,
+    KILL_ENTITY_TRIGGER_STEAM_ANIMATION_COMPLETE,
+    KILL_ENTITY_TRIGGER_SUICIDE,
+    KILL_ENTITY_TRIGGER_TAKE_DAMAGE_BIKER_PIT,
+    KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_FALL,
+    KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_PIT,
+    KILL_ENTITY_TRIGGER_TEXT_ANIMATION_COMPLETE,
+    KILL_ENTITY_TRIGGER_TAKE_DAMAGE_OBSTACLE_PIT,
+    KILL_ENTITY_TRIGGER_UNSUMMON,
+    KILL_ENTITY_TRIGGER_WALK_OUT_OF_BOUNDS
+} e_kill_entity_trigger;
+
 // Caskey, Damon V.
 // 2013-12-16
 //
@@ -3725,7 +3774,7 @@ void    execute_takedamage_script               (entity *ent, entity *other, s_a
 void    execute_on_bind_update_other_to_self    (entity *ent, entity *other, s_bind *bind);
 void    execute_on_bind_update_self_to_other    (entity *ent, entity *other, s_bind *bind);
 void    execute_ondeath_script                  (entity *ent, entity *other, s_attack *attack);
-void    execute_onkill_script                   (entity *ent);
+void    execute_onkill_script                   (entity *ent, e_kill_entity_trigger trigger);
 void    execute_onpain_script                   (entity *ent, int iType, int iReset);
 void    execute_onfall_script                   (entity *ent, entity *other, s_attack *attack);
 void    execute_inhole_script                   (entity *ent, s_terrain *hole, int index);
@@ -4004,7 +4053,7 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
 entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model);
 void ent_unlink(entity *e);
 void ents_link(entity *e1, entity *e2);
-void kill_entity(entity *victim);
+void kill_entity(entity *victim, e_kill_entity_trigger trigger);
 void kill_all();
 
 

@@ -10445,7 +10445,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         ent->energy_state.health_current -= atk.attack_force;
         if(ent->energy_state.health_current <= 0)
         {
-            kill_entity(ent);
+            kill_entity(ent, KILL_ENTITY_TRIGGER_SCRIPT_DAMAGEENTITY);
         }
         (*pretvar)->lVal = (LONG)1;
     }
@@ -10559,7 +10559,7 @@ gcd_error:
 HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     entity *ent = NULL;
-
+    e_kill_entity_trigger trigger = KILL_ENTITY_TRIGGER_SCRIPT_KILLENTITY_UNDEFINED;
     if(paramCount < 1)
     {
         *pretvar = NULL;
@@ -10574,7 +10574,14 @@ HRESULT openbor_killentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         (*pretvar)->lVal = (LONG)0;
         return S_OK;
     }
-    kill_entity(ent);
+
+    // Get the saves directory
+    if (paramCount >= 2)
+    {
+        trigger = (e_kill_entity_trigger)(varlist[1])->lVal; // Reason to kill entity.
+    }
+
+    kill_entity(ent, trigger);
     (*pretvar)->lVal = (LONG)1;
     return S_OK;
 }
