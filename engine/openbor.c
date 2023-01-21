@@ -37776,7 +37776,11 @@ void player_grab_check()
     {
         // Kratus (07-2022) Fixed the "3-vaults" loop bug, now will execute once as intended
         // Kratus (01-2023) Fixed an issue where grabattack2 animation nullifies vault if both are declared
+        // Kratus (01-2023) Added some native behaviours
         player[self->playerindex].playkeys &= ~FLAG_JUMP;
+        self->attacking = ATTACKING_ACTIVE;
+        self->takeaction = common_grabattack;
+        memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_set_anim(self, ANI_VAULT, 0);
     }
     // grab attack finisher
