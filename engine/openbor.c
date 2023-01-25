@@ -43774,9 +43774,10 @@ void hallfame(int addtoscore)
             y += (videomodes.vRes - videomodes.vShift - 56 - 32) / 10; //font_heights[topten[i]] + 6;
         }
 
+        // Kratus (01-2023) Added the "FLAG_ANYBUTTON" to exit the Hall of Fame screen
         update(0, 0);
         done |= (_time > GAME_SPEED * 8);
-        done |= (bothnewkeys & (FLAG_START + FLAG_ESC));
+        done |= (bothnewkeys & (FLAG_START | FLAG_ANYBUTTON | FLAG_ESC));
     }
     unload_background();
     screen_status &= ~IN_SCREEN_HALL_OF_FAME;
