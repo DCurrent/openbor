@@ -11662,6 +11662,14 @@ e_move_constraint find_move_constraint_from_string(char* value)
     {
         result = MOVE_CONSTRAINT_NO_HIT_HEAD;
     }
+    else if (stricmp(value, "projectile_base_die") == 0)
+    {
+        result = MOVE_CONSTRAINT_PROJECTILE_BASE_DIE;
+    }
+    else if (stricmp(value, "projectile_wall_bounce") == 0)
+    {
+        result = MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE;
+    }
     else if (stricmp(value, "subject_to_basemap") == 0)
     {
         result = MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
