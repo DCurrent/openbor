@@ -37807,7 +37807,11 @@ void player_grab_check()
     {
         // Kratus (07-2022) Fixed the "3-vaults" loop bug, now will execute once as intended
         // Kratus (01-2023) Fixed an issue where grabattack2 animation nullifies vault if both are declared
+        // Kratus (01-2023) Added some native behaviours
         player[self->playerindex].playkeys &= ~FLAG_JUMP;
+        self->attacking = ATTACKING_ACTIVE;
+        self->takeaction = common_grabattack;
+        memset(self->combostep, 0, sizeof(*self->combostep) * 5);
         ent_set_anim(self, ANI_VAULT, 0);
     }
     // grab attack finisher
@@ -43813,9 +43817,10 @@ void hallfame(int addtoscore)
             y += (videomodes.vRes - videomodes.vShift - 56 - 32) / 10; //font_heights[topten[i]] + 6;
         }
 
+        // Kratus (01-2023) Added the "FLAG_ANYBUTTON" to exit the Hall of Fame screen
         update(0, 0);
         done |= (_time > GAME_SPEED * 8);
-        done |= (bothnewkeys & (FLAG_START + FLAG_ESC));
+        done |= (bothnewkeys & (FLAG_START | FLAG_ANYBUTTON | FLAG_ESC));
     }
     unload_background();
     screen_status &= ~IN_SCREEN_HALL_OF_FAME;
