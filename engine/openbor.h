@@ -1317,15 +1317,17 @@ typedef enum e_move_constraint
     MOVE_CONSTRAINT_NONE                = 0,
     MOVE_CONSTRAINT_NO_ADJUST_BASE      = (1 << 0),
     MOVE_CONSTRAINT_NO_HIT_HEAD         = (1 << 1), // True = Pass upward through platforms when entity has valid height set.
-    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 2),
-    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 3),
-    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 4),
-    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 5),
-    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 6),
-    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 7),
-    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 8),
-    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 9),
-    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 10)
+    MOVE_CONSTRAINT_PROJECTILE_BASE_DIE = (1 << 2),
+    MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE = (1 << 3),
+    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 4),
+    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 5),
+    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 6),
+    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 7),
+    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 8),
+    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 9),
+    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 10),
+    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 11),
+    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 12)
 } e_move_constraint;
 
 typedef enum e_kill_entity_trigger
@@ -1769,7 +1771,7 @@ if(n<1) n = 1;
 
 #define freezeall        (smartbomber || textbox)
 
-#define is_projectile(e) (e->modeldata.type & TYPE_SHOT || e->model->subtype & SUBTYPE_ARROW || e->owner)
+#define is_projectile(e) (e->modeldata.type & (TYPE_SHOT | TYPE_PROJECTILE) || e->model->subtype & SUBTYPE_ARROW || e->owner)
 
 #define screeny (level?((level->scrolldir == SCROLL_UP || level->scrolldir == SCROLL_DOWN )? 0:advancey ):0)
 #define screenx (level?advancex:0)
@@ -4195,7 +4197,7 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
 void draw_visual_debug();
 e_entity_type get_type_from_string(char* value);
 int bomb_move(entity *ent);
-int arrow_move(void);
+int arrow_move(entity * acting_entity);
 int common_move(void);
 void common_think(void);
 void suicide(void);

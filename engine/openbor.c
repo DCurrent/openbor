@@ -10654,8 +10654,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 		// Note when using as a projectile, most of these
 		// are modified. See knife_spawn and bomb_spawn.
 
-
-		newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+		newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE);
 		newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
 	}
     // my new types   7-1-2005
@@ -22647,6 +22646,7 @@ void ent_default_init(entity *e)
         }
         e->speedmul = 2;
         e->trymove = common_trymove;
+        break;
 
     case TYPE_SHOT:
         e->energy_state.health_current = 1;
@@ -22983,8 +22983,11 @@ void update_frame(entity *ent, unsigned int f)
     }
     else if(!anim->move[0]->base || anim->move[0]->base < 0)
     {
+        
         move.y = (float)(anim->move[f]->axis.y ? anim->move[f]->axis.y : 0);
+                        
         self->base += move.y;
+        
         if(move.y != 0)
         {
             self->altbase += move.y;
@@ -26730,6 +26733,7 @@ int check_edge(entity *ent)
 
 void check_gravity(entity *e)
 {
+
     int heightvar;
     entity *other = NULL, *dust, *tempself, *plat = NULL;
     float gravity;
@@ -26744,7 +26748,6 @@ void check_gravity(entity *e)
     self = e;
 
     adjust_base(self, &plat);
-
     if (self->position.y <= self->base) self->edge = check_edge(self); // && self->idling & IDLING_ACTIVE
     else self->edge = EDGE_NONE;
 
@@ -27061,6 +27064,7 @@ void check_ai()
     if(self->nextthink <= _time && !endgame)
     {
         self->update_mark |= UPDATE_MARK_CHECK_AI; //mark it
+        
         // take actions
         if(self->takeaction)
         {
@@ -27144,6 +27148,8 @@ int check_basemap_index(int x, int z)
     return base == T_MIN_BASEMAP ? -1 : index;
 }
 
+
+
 void adjust_base(entity *acting_entity, entity **pla)
 {
     int wall = WALL_INDEX_NONE; 
@@ -27217,7 +27223,7 @@ void adjust_base(entity *acting_entity, entity **pla)
 
     // adjust base
     if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE)
-    {
+    {        
         return;
     }
 
@@ -27241,9 +27247,6 @@ void adjust_base(entity *acting_entity, entity **pla)
     {
         wall = WALL_INDEX_NONE;
     }
-
-    
-    
     /*
     * If we can't adjust base, nothing downstream 
     * matters. Just exit.
@@ -27320,20 +27323,23 @@ void adjust_base(entity *acting_entity, entity **pla)
             * platforms instantly warp to the top of wall
             * as they detonate. 
             * 
+            * Legacy projectile wall bounce has a similar
+            * issue.
+            * 
             * To fix this, we check to see if wall is higher 
             * than current position of entities with their
             * detonation flags on. If so, set the entity to 
             * use the entity's current height as its base.
             */
-
-            if (acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE) && level->walls[wall].height > acting_entity->position.y)
+                        
+            if ((acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE) || acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE) && level->walls[wall].height > acting_entity->position.y)
             {
                 acting_entity->base = acting_entity->position.y;
             }            
             else
             {
                 acting_entity->base = base_adjust + level->walls[wall].height;
-            }           
+            }    
         }
         else if(seta >= 0)
         {
@@ -30338,15 +30344,18 @@ void common_try_riseattack()
 
 void common_lie()
 {
+   
     // Died?
     if(self->energy_state.health_current <= 0)
-    {
+    {        
         if(self->modeldata.falldie == 2)
         {
+     
             set_death(self, self->last_damage_type, 0);
         }
         if(!self->modeldata.nodieblink || (self->modeldata.nodieblink == 1 && !self->animating))
         {
+            
             // Now have the option to blink or not
             self->takeaction = (self->modeldata.type & TYPE_PLAYER) ? player_blink : suicide;
             self->blink = 1;
@@ -30354,6 +30363,7 @@ void common_lie()
         }
         else if(self->modeldata.nodieblink == 2  && !self->animating)
         {
+            
             self->takeaction = (self->modeldata.type & TYPE_PLAYER) ? player_die : suicide;
 
         }
@@ -30362,7 +30372,6 @@ void common_lie()
             if(self->modeldata.type & TYPE_PLAYER)
             {
                 self->takeaction = player_die;
-
             }
             else
             {
@@ -35333,7 +35342,7 @@ int biker_move()
 }
 
 // for common arrow types
-int arrow_move()
+int arrow_move(entity* acting_entity)
 {
     float dx;
     float dz;
@@ -35341,70 +35350,70 @@ int arrow_move()
     entity *target = NULL;
     
     // new subtype chase
-    if(self->modeldata.subtype == SUBTYPE_CHASE || self->modeldata.aimove & AIMOVE1_CHASE)
+    if(acting_entity->modeldata.subtype == SUBTYPE_CHASE || acting_entity->modeldata.aimove & AIMOVE1_CHASE)
     {
-        target = homing_find_target(self->modeldata.hostile);
+        target = homing_find_target(acting_entity->modeldata.hostile);
 
         if(target)
         {
-            if(!self->modeldata.noflip)
+            if(!acting_entity->modeldata.noflip)
             {
-                self->direction = (target->position.x > self->position.x);
+                acting_entity->direction = (target->position.x > acting_entity->position.x);
             }
             // start chasing the target
-            dx = diff(self->position.x, target->position.x);
-            dz = diff(self->position.z, target->position.z);
-            maxspeed = self->modeldata.speed.x * 1.5;
+            dx = diff(acting_entity->position.x, target->position.x);
+            dz = diff(acting_entity->position.z, target->position.z);
+            maxspeed = acting_entity->modeldata.speed.x * 1.5;
 
             if(!dz && !dx)
             {
-                self->velocity.x = self->velocity.z = 0;
+                acting_entity->velocity.x = acting_entity->velocity.z = 0;
             }
             else
             {
-                self->velocity.x = maxspeed * dx / (dx + dz);
-                self->velocity.z = maxspeed * dz / (dx + dz);
+                acting_entity->velocity.x = maxspeed * dx / (dx + dz);
+                acting_entity->velocity.z = maxspeed * dz / (dx + dz);
             }
-            if(self->direction == DIRECTION_LEFT)
+            if(acting_entity->direction == DIRECTION_LEFT)
             {
-                self->velocity.x = -self->velocity.x;
+                acting_entity->velocity.x = -acting_entity->velocity.x;
             }
-            if(self->position.z > target->position.z)
+            if(acting_entity->position.z > target->position.z)
             {
-                self->velocity.z = -self->velocity.z;
+                acting_entity->velocity.z = -acting_entity->velocity.z;
             }
         }
         else
         {
-            if(!self->velocity.x && !self->velocity.z)
+            if(!acting_entity->velocity.x && !acting_entity->velocity.z)
             {
-                if(self->direction == DIRECTION_LEFT)
+                if(acting_entity->direction == DIRECTION_LEFT)
                 {
-                    self->velocity.x = -self->modeldata.speed.x;
+                    acting_entity->velocity.x = -acting_entity->modeldata.speed.x;
                 }
-                else if(self->direction == DIRECTION_RIGHT)
+                else if(acting_entity->direction == DIRECTION_RIGHT)
                 {
-                    self->velocity.x = self->modeldata.speed.x;
+                    acting_entity->velocity.x = acting_entity->modeldata.speed.x;
                 }
             }
         }
-        if(!self->modeldata.nomove)
+        if(!acting_entity->modeldata.nomove)
         {
-            if(target && self->position.z > target->position.z && validanim(self, ANI_UP))
+            if(target && acting_entity->position.z > target->position.z && validanim(acting_entity, ANI_UP))
             {
-                common_up_anim(self);    //ent_set_anim(self, ANI_UP, 0);
+                common_up_anim(acting_entity);    //ent_set_anim(self, ANI_UP, 0);
             }
-            else if(target && target->position.z > self->position.z && validanim(self, ANI_DOWN))
+            else if(target && target->position.z > acting_entity->position.z && validanim(acting_entity, ANI_DOWN))
             {
-                common_down_anim(self);    //ent_set_anim(self, ANI_DOWN, 0);
+                common_down_anim(acting_entity);    //ent_set_anim(self, ANI_DOWN, 0);
             }
-            else if(validanim(self, ANI_WALK))
+            else if(validanim(acting_entity, ANI_WALK))
             {
-                common_walk_anim(self);    //ent_set_anim(self, ANI_WALK, 0);
+                common_walk_anim(acting_entity);    //ent_set_anim(self, ANI_WALK, 0);
             }
             else
             {
-                if(validanim(self, ANI_IDLE)) ent_set_anim(self, ANI_IDLE, 0);
+                if(validanim(acting_entity, ANI_IDLE)) ent_set_anim(acting_entity, ANI_IDLE, 0);
             }
         }
     }
@@ -35416,32 +35425,51 @@ int arrow_move()
         * compatability.
         */
 
-        if(self->direction == DIRECTION_LEFT)
+        if(acting_entity->direction == DIRECTION_LEFT)
         {
-            self->velocity.x = -self->modeldata.speed.x;
+            acting_entity->velocity.x = -acting_entity->modeldata.speed.x;
         }
-        else if(self->direction == DIRECTION_RIGHT)
+        else if(acting_entity->direction == DIRECTION_RIGHT)
         {
-            self->velocity.x = self->modeldata.speed.x;
+            acting_entity->velocity.x = acting_entity->modeldata.speed.x;
         }
                 
         
-        if (!(self->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION))
+        if (!(acting_entity->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION))
         {
-            self->velocity.y = self->modeldata.speed.y;
-            self->velocity.z = self->modeldata.speed.z;
+            acting_entity->velocity.y = acting_entity->modeldata.speed.y;
+            acting_entity->velocity.z = acting_entity->modeldata.speed.z;
         }
     }
 
     if(level)
     {
         // Bounce off walls or platforms.
-        projectile_wall_deflect(self);
+        projectile_wall_deflect(acting_entity);
+        
+        if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE)
+        {
+
+            if (acting_entity->landed_on_platform || acting_entity->position.y <= acting_entity->base)
+            {
+                acting_entity->takeaction = common_fall;
+                acting_entity->attacking = ATTACKING_NONE;
+                acting_entity->energy_state.health_current = 0;
+                acting_entity->projectile = BLAST_NONE;
+                acting_entity->damage_on_landing.attack_force = 0;
+                acting_entity->damage_on_landing.attack_type = ATK_NONE;
+
+                /* Use default attack values. */
+                s_attack attack = emptyattack;
+                attack.attack_drop = 10000;
+                set_fall(acting_entity, acting_entity, &attack, 0);
+            }
+        }
     }
 
-    if(self->projectile_prime & PROJECTILE_PRIME_LAUNCH_STATIONARY)// PROJECTILE_PRIME_BASE_FLOOR)
+    if(acting_entity->projectile_prime & PROJECTILE_PRIME_LAUNCH_STATIONARY)// PROJECTILE_PRIME_BASE_FLOOR)
     {
-        //self->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+        acting_entity->autokill |= AUTOKILL_ANIMATION_COMPLETE;
     }
 
     return 1;
@@ -35559,7 +35587,7 @@ int bomb_move(entity* ent)
     // but NOT yet set to detonate, then we move using velocity (presumably 
     // we've been tossed and so any Z and Y momentum is already handled). 
     //
-    // EXPLODE_DETONATE status is applied by do_attack() if the we touch
+    // EXPLODE_DETONATE status is applied by do_attack() if we touch
     // ground, hit another entity, or are hit by another entity attack.
     // In that case, we "explode" by playing an appropriate animation.
     //if (inair(ent) && ent->toexplode & EXPLODE_PREPARE_TOUCH && !(ent->toexplode & EXPLODE_DETONATE))
@@ -35706,13 +35734,15 @@ int projectile_wall_deflect(entity *acting_entity)
             * Use the projectile's speed and our factor to see 
             * how hard it will bounce off wall.
             */
-            richochet_velocity_x = acting_entity->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
-
+            richochet_velocity_x = -acting_entity->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
+            
             acting_entity->takeaction = common_fall;
             acting_entity->attacking = ATTACKING_NONE;
             acting_entity->energy_state.health_current = 0;
             acting_entity->projectile = BLAST_NONE;
-            acting_entity->velocity.x = (acting_entity->direction == DIRECTION_RIGHT) ? (-richochet_velocity_x) : richochet_velocity_x;
+                              
+            acting_entity->velocity.x = richochet_velocity_x;
+            
             acting_entity->velocity.z = 0.0;
             acting_entity->damage_on_landing.attack_force = 0;
             acting_entity->damage_on_landing.attack_type = ATK_NONE;
@@ -35725,14 +35755,13 @@ int projectile_wall_deflect(entity *acting_entity)
             /* Reset base detection */
             acting_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
             acting_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+            
             acting_entity->base = 0;
 
             /* Use default attack values. */
             attack = emptyattack;
             attack.attack_drop = RICHOCHET_FALL_FORCE;
             set_fall(acting_entity, acting_entity, &attack, 0);
-
-            //printf("\n\t velocity: %f, %f, %f", acting_entity->velocity.x, acting_entity->velocity.y, acting_entity->velocity.z);
 
             return 1;
         }
@@ -35824,7 +35853,7 @@ int common_move()
     else if(aimove & AIMOVE1_ARROW)
     {
         // for common straight-flying arrow
-        return arrow_move();
+        return arrow_move(self);
     }
     else if(aimove & AIMOVE1_STAR)
     {
@@ -36587,12 +36616,14 @@ void common_think()
 
 void suicide()
 {
+   
     if(_time < self->stalltime)
     {
         return;
     }
     level_completed |= self->boss;
     level_completed_defeating_boss |= self->boss;
+
     kill_entity(self, KILL_ENTITY_TRIGGER_SUICIDE);
 }
 
@@ -39791,32 +39822,36 @@ void copy_faction_data(entity* ent, entity* source)
 	}
 }
 
-// Caskey, Damon  V.
-// 2019-12-18 (refactor)
-//
-// Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
-// and consolidate projectile spawn logic. Spawns an entity and fires it as a projectile. 
-// Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
-// comments in function).
-//
-// Returns pointer of spawned projectile, or NULL on fail.
+/*
+* Caskey, Damon  V.
+* 2019-12-18 (refactor)
+*
+* Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
+* and consolidate projectile spawn logic. Spawns an entity and fires it as a projectile. 
+* Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
+* comments in function).
+*
+* Returns pointer of spawned projectile, or NULL on fail.
+*/
 entity *knife_spawn(entity *parent, s_projectile *projectile)
 {
-    entity *ent = NULL;
+    entity *projectile_entity = NULL;
 
 	s_axis_principal_float position;
 	e_direction direction;
 	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
 	
-	// If there's no projectile or parent setting, exit now.
+	/* If there's no projectile or parent setting, exit now. */
 	if (!projectile || !parent)
 	{
 		return NULL;
 	}
 
-	// Get result of direction adjustment. We need this before we can handle
-	// positioning on X axis.
-	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
+	/*
+    * Get result of direction adjustment. We need this before we can handle
+	* positioning on X axis.
+	*/
+    direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
 
     /*
     * Let's set up the spawn position. Reverse X when
@@ -39843,22 +39878,24 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	position.y = parent->position.y + projectile->position.y;
 	position.z = parent->position.z + projectile->position.z;
 
-	// Now we need to spawn the projectile entity. There are many haphazard legacy 
-	// additions to sift through, so we need to prioritize which model to spawn. 
-	// In general, we work back from most granular to most global.
-	//
-	// From highest to lowest priority:
-	// 
-	// 1. Projectile Knife property.
-	// 2. Projectile Flash property.
-	// 3. Using weapon with model Project property.
-	// 4. Model Knife property.
-	// 5. Model Pshotno property.
-	// 6. Global hardcode model name, "Knife".
-	// 7. Global hardcode model name, "Shot".
-	if (projectile->knife >= 0)
+    /*
+	* Now we need to spawn the projectile entity. There are many haphazard legacy 
+	* additions to sift through, so we need to prioritize which model to spawn. 
+	* In general, we work back from most granular to most global.
+	*
+	* From highest to lowest priority:
+	* 
+	* 1. Projectile Knife property.
+	* 2. Projectile Flash property.
+	* 3. Using weapon with model Project property.
+	* 4. Model Knife property.
+	* 5. Model Pshotno property.
+	* 6. Global hardcode model name, "Knife".
+	* 7. Global hardcode model name, "Shot".
+	*/
+    if (projectile->knife >= 0)
 	{
-		ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->knife, NULL);
+        projectile_entity = spawn(position.x, position.z, position.y, direction, NULL, projectile->knife, NULL);
 		
 		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
@@ -39866,7 +39903,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	else if (projectile->flash >= 0)
 	{
-		ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->flash, NULL);
+        projectile_entity = spawn(position.x, position.z, position.y, direction, NULL, projectile->flash, NULL);
 		
 		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
@@ -39874,7 +39911,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	else if (parent->weapent && parent->weapent->modeldata.project >= 0)
 	{
-		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->weapent->modeldata.project, NULL);
+        projectile_entity = spawn(position.x, position.z, position.y, direction, NULL, parent->weapent->modeldata.project, NULL);
 		
 		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
@@ -39882,7 +39919,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	else if (parent->modeldata.knife >= 0)
 	{
-		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.knife, NULL);
+        projectile_entity = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.knife, NULL);
 		
 		projectile_prime |= PROJECTILE_PRIME_BASE_Y;
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
@@ -39890,7 +39927,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	else if (parent->modeldata.pshotno >= 0)
 	{
-		ent = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.pshotno, NULL);
+        projectile_entity = spawn(position.x, position.z, position.y, direction, NULL, parent->modeldata.pshotno, NULL);
 		
 		projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
@@ -39898,23 +39935,27 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	else
 	{
-		// No model indexes set, so let's fall back to
-		// the legacy hardcode model names.
-
-		// Try hardcode "knife" first. If that fails, we'll try
-		// "shot" next.
-		ent = spawn(position.x, position.z, position.y, direction, "Knife", MODEL_INDEX_NONE, NULL);
+        /*
+		* No model indexes set, so let's fall back to
+		* the legacy hardcode model names.
+        *
+		* Try hardcode "knife" first. If that fails, we'll try
+		* "shot" next.
+        */
+        projectile_entity = spawn(position.x, position.z, position.y, direction, "Knife", MODEL_INDEX_NONE, NULL);
 		
-		if (ent)
+		if (projectile_entity)
 		{
-			// Hardcode knife spawn successful. Mark as legacy knife
-			// and continue.
+            /*
+			* Hardcode knife spawn successful. Mark as legacy knife
+			* and continue.
+            */ 
 			projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_KNIFE;
 		}
 		else 
 		{
-			//  Try "shot".
-			ent = spawn(position.x, position.z, position.y, direction, "Shot", MODEL_INDEX_NONE, NULL);
+			/* Try "shot". */
+            projectile_entity = spawn(position.x, position.z, position.y, direction, "Shot", MODEL_INDEX_NONE, NULL);
 
 			projectile_prime |= PROJECTILE_PRIME_SOURCE_GLOBAL_SHOT;
 		}
@@ -39923,8 +39964,8 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
 	}
 
-	// If we never successfully spawned a projectile entity, exit.
-    if(!ent)
+	/* If we never successfully spawned a projectile entity, exit. */
+    if(!projectile_entity)
     {
         return NULL;
     }
@@ -39933,30 +39974,32 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     * Player projectiles are always type "shot", unless 
     * using the current PROJECTILE type.
     */
-    if (!(ent->modeldata.type & TYPE_PROJECTILE))
+    if (!(projectile_entity->modeldata.type & TYPE_PROJECTILE))
     {
         if (parent->modeldata.type & TYPE_PLAYER)
         {
-            ent->modeldata.type = TYPE_SHOT;
+            projectile_entity->modeldata.type = TYPE_SHOT;
         }
         else
         {
-            ent->modeldata.type = parent->modeldata.type;
+            projectile_entity->modeldata.type = parent->modeldata.type;
         }
     }
 
-	// Apply projectile prime flags.
-	ent->projectile_prime = projectile_prime;	
+	/* Apply projectile prime flags. */
+    projectile_entity->projectile_prime = projectile_prime;
 
-	// Copy offense values from parent offense settings 
-	// to projectile enity if requested.
-	if (projectile->offense == PROJECTILE_OFFENSE_PARENT)
+    /*
+	* Copy offense values from parent offense settings 
+	* to projectile enity if requested.
+	*/
+    if (projectile->offense == PROJECTILE_OFFENSE_PARENT)
 	{
-		memcpy(ent->offense_factors, parent->offense_factors, sizeof(*ent->offense_factors) * max_attack_types);
+		memcpy(projectile_entity->offense_factors, parent->offense_factors, sizeof(*projectile_entity->offense_factors) * max_attack_types);
 	}
 
 	/* Apply color adjustment. */
-	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
+	apply_color_set_adjust(projectile_entity, parent, projectile->color_set_adjust);
 		
 
     /*
@@ -39966,64 +40009,64 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	* back to default values. This is a bit overcomplicated, but
 	* allows players to supply a 0 velocity value on any axis.
 	*/
-    if (ent->modeldata.nomove)
+    if (projectile_entity->modeldata.nomove)
 	{
-		ent->modeldata.speed.x = 0;
-		ent->modeldata.speed.y = 0;
-		ent->modeldata.speed.z = 0;
+        projectile_entity->modeldata.speed.x = 0;
+        projectile_entity->modeldata.speed.y = 0;
+        projectile_entity->modeldata.speed.z = 0;
 	}
 	else
 	{	
 		/* Copy speed values from animation projectile settings to model. */
-		ent->modeldata.speed = projectile->velocity;
+        projectile_entity->modeldata.speed = projectile->velocity;
 	}
 
-	// Set up behavior flags.
-	ent->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
-	ent->owner = parent;
-	ent->nograb = 1;
-	ent->attacking = ATTACKING_ACTIVE;
-	ent->think = common_think;
-	ent->nextthink = _time + 1;
-	ent->trymove = NULL;
-	ent->takedamage = arrow_takedamage;
-	ent->takeaction = NULL;
-	ent->modeldata.aimove = AIMOVE1_ARROW;
-	ent->speedmul = 2;
-    ent->modeldata.aiattack = AIATTACK1_NOATTACK;
+	/* Set up behavior flags. */
+    projectile_entity->spawntype = SPAWN_TYPE_PROJECTILE_NORMAL;
+    projectile_entity->owner = parent;
+    projectile_entity->nograb = 1;
+    projectile_entity->attacking = ATTACKING_ACTIVE;
+    projectile_entity->think = common_think;
+    projectile_entity->nextthink = _time + 1;
+    projectile_entity->trymove = NULL;
+    projectile_entity->takedamage = arrow_takedamage;
+    projectile_entity->takeaction = NULL;
+    projectile_entity->modeldata.aimove = AIMOVE1_ARROW;
+    projectile_entity->speedmul = 2;
+    projectile_entity->modeldata.aiattack = AIATTACK1_NOATTACK;
     
-    if(!ent->modeldata.offscreenkill)
+    if(!projectile_entity->modeldata.offscreenkill)
     {
-		ent->modeldata.offscreenkill = 200;    //default value
+        projectile_entity->modeldata.offscreenkill = 200;    //default value
     }	
     
 	/* Kill self when we hit. */
-	if (ent->modeldata.remove)
+	if (projectile_entity->modeldata.remove)
 	{
-		ent->autokill |= AUTOKILL_ATTACK_HIT;
+        projectile_entity->autokill |= AUTOKILL_ATTACK_HIT;
 	}
 	
     /* Kill self when we finish animation. */
-	if (ent->modeldata.nomove)
+	if (projectile_entity->modeldata.nomove)
 	{
-		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+        projectile_entity->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
 	
 	/* Is this a floor or flying projectile ? Set base accordingly. */
-    if(ent->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
+    if(projectile_entity->projectile_prime & PROJECTILE_PRIME_BASE_FLOOR)
     {
-		ent->base = 0;
+        projectile_entity->base = 0;
     }
     else
     {
-		ent->base = position.y;
+        projectile_entity->base = position.y;
     }
 
     /*
 	* If projectile entity doesn't already have hostile and
 	* candamage settings, copy them from parent.
 	*/
-    copy_faction_data(ent, parent);
+    copy_faction_data(projectile_entity, parent);
 
     /*
 	* If player damage turned off, remove player type from
@@ -40032,8 +40075,8 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     */
     if((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
-		ent->modeldata.hostile &= ~TYPE_PLAYER;
-		ent->modeldata.candamage &= ~TYPE_PLAYER;
+        projectile_entity->modeldata.hostile &= ~TYPE_PLAYER;
+        projectile_entity->modeldata.candamage &= ~TYPE_PLAYER;
     }
 
 	/*
@@ -40046,23 +40089,23 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     * ent->modeldata.subject_to_wall = ent->modeldata.subject_to_platform = ent->modeldata.subject_to_hole = ent->modeldata.subject_to_gravity = 1;
     * ent->modeldata.no_adjust_base = 1;
     */
+    
+    projectile_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_NO_ADJUST_BASE);
+    projectile_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
 
-    ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-    ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
-
-    if (ent->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION)
+    if (projectile_entity->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION)
     {
-        ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        projectile_entity->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
     }
     else
     {
-        ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        projectile_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
     }
         
 	/* Execute the projectile's on spawn event. */
-	execute_onspawn_script(ent);
+	execute_onspawn_script(projectile_entity);
 	
-	return ent;
+	return projectile_entity;
 }
 
 void bomb_explode()

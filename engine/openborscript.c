@@ -11286,18 +11286,13 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 	{
 		relative = 0;
 	}
-
-    //printf("\n\t relative: %d", relative);
-
+        
 	/* Get model index if we can. */
 	if(paramCount >= 1 && varlist[0]->vt == VT_STR)
     {
 		name = StrCache_Get(varlist[0]->strVal);		
 		model_index = get_cached_model_index(name);
 	}
-
-    //printf("\n\t name: %s", name);
-    //printf("\n\t model_index: %d", model_index);
 
 	/* No model, then nothing more to do. */
 	if (model_index == MODEL_INDEX_NONE)
@@ -11327,22 +11322,16 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		type = (LONG)ltemp;
 	}
 
-    //printf("\n\t type: %d", type);
-
 	// Now spawn the projectile.
 	switch (type)
 	{
 	default:
 	case PROJECTILE_TYPE_KNIFE:
 
-        //printf("\n\t PROJECTILE_TYPE_KNIFE");
-
 		projectile.knife = model_index;
 		ent = knife_spawn(self, &projectile);
 		break;
 	case PROJECTILE_TYPE_BOMB:
-
-        //printf("\n\t PROJECTILE_TYPE_BOMB");
 
 		projectile.bomb = model_index;
 
@@ -11354,9 +11343,6 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 		break;
 	}
 
-    //printf("\n\t ent: %p", ent);
-    //printf("\n\t projectile.velocity.y: %f", projectile.velocity.y);
-
 	// If we couldn't spawn a projectile entity, then 
 	// exit. Author will get back a NULL value.
 	if (!ent)
@@ -11366,56 +11352,40 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 
 	// X offset.
 	if(paramCount >= 2 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[1], &temp)))
-	{	
-        //printf("\n\t x = (float)temp");
+	{
         x = (float)temp;        
     }
     else if(relative)
     {
-        //printf("\n\t x = 0");
         x = 0;       
     }
     else
     {
-        //printf("\n\t x = self->position.x");
         x = self->position.x;        
     }
-
-    //printf("\n\t x: %f", x);
 
 	// Z offset.
     if(paramCount >= 3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &temp)))
     {
-        //printf("\n\t z = (float)temp");
         z = (float)temp;
     }
     else if(relative)
     {
-        //printf("\n\t z = 0");
         z = 0;
     }
     else
     {
-        //printf("\n\t z = self->position.z");
         z = self->position.z;
     }
-
-    //printf("\n\t z: %f", z);
-
 	// Y offset.
     if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &temp)))
     {
-        //printf("\n\t a = (float)temp");
-
-        a = (float)temp;
+        a = (float)temp;        
     }
     else if(relative)
     {
-        //printf("\n\t if(relative)");
-
 		if (self->animation->projectile)
 		{
-            //printf("\n\t\t a = self->animation->projectile->position.y;");
 			a = self->animation->projectile->position.y;
 		}        
     }
@@ -11423,19 +11393,14 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
 		if (self->animation->projectile)
 		{
-            //printf("\n\t\t a = self->position.y + self->animation->projectile->position.y");
 			a = self->position.y + self->animation->projectile->position.y;
 		}
 		else
-		{
-            //printf("\n\t\t a = projectile.position.y");
-
-			//Use default fromprojectil settings.
+		{            
+			//Use default from projectile settings.
 			a = projectile.position.y;
 		}        
     }
-	
-    //printf("\n\t a: %f", a);
 
 	// Direction.
 	//
@@ -11448,26 +11413,19 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 	// FALSE, then direction is same as parent/owner.
     if(paramCount >= 5 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
     {
-        //printf("\n\t\t direction = (LONG)ltemp");
-        direction = (LONG)ltemp;
+        direction = (e_direction)ltemp;
     }
     else if(relative)
     {
-        //printf("\n\t\t direction = DIRECTION_RIGHT");
         direction  = DIRECTION_RIGHT;
     }
     else
     {
-        //printf("\n\t\t direction = self->direction");
         direction = self->direction;
     }
 
-    //printf("\n\t direction: %d", direction);	
-
     if(paramCount >= 6 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[5], &ltemp)))
     {
-        //printf("\n\t\t ptype: %d", ltemp);
-
         // Backwards compatibility for modules made before bitwise update
         // of projectile_prime. They will expect base vs. floor and moving
         // behavior to both be tied to a single 0 or 1 value.
@@ -11483,17 +11441,13 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         }
     }	
 
-    //printf("\n\t\t projectile_prime: %d", projectile_prime);
-    
 	// Map
 	if(paramCount >= 8 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[7], &ltemp)))
     {
-        printf("\n\t map (set): %d", ltemp);
+        //printf("\n\t map (set): %d", ltemp);
 
         map = (LONG)ltemp;
     }
-
-    //printf("\n\t map: %d", map);
 
 	// Reverse X if using relative offset.
     if(relative)
@@ -11512,16 +11466,15 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         a += self->position.y;
     }
 
-    //printf("\n\t direction: %d", direction);    
-
 	// Apply incomming parameters.
+    ent->base = self->base;
 	ent->position.x = x;
 	ent->position.y = a;
 	ent->position.z = z;
 	ent->direction = direction;
 	ent->projectile_prime |= PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION;
     
-    //printf("\n\t position (x, y, z): %f, %f, %f", ent->position.x, ent->position.y, ent->position.z);
+    //printf("\n\t position (base, x, y, z): %d, %f, %f, %f", ent->base, ent->position.x, ent->position.y, ent->position.z);
     
     ent_set_colourmap(ent, map);
         
