@@ -5944,10 +5944,6 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     {
         result = CHILD_SPAWN_CONFIG_NONE;
     }
-    else if (stricmp(value, "aimove_parameter") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER;
-    }
     else if (stricmp(value, "autokill_animation") == 0)
     {
         result = CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION;
@@ -6100,6 +6096,8 @@ s_child_spawn* child_spawn_allocate_object()
     */
 
     memset(result, 0, alloc_size);
+
+    result->aimove = AIMOVE_SPECIAL_DEFAULT;
 
     result->next = NULL;
     return result;
@@ -6686,7 +6684,7 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     /*
     * If requested, apply AI Flags.
     */
-    if (object->config & CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER)
+    if (!(object->aimove & AIMOVE_SPECIAL_DEFAULT))
     {
         child_entity->modeldata.aimove = object->aimove;
     }
@@ -10651,11 +10649,11 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 			newchar->offscreenkill = (int)(videomodes.hRes * 0.5);
 		}
 
-		// Note when using as a projectile, most of these
-		// are modified. See knife_spawn and bomb_spawn.
+		// Note when using as a projectile, these may
+		// be modified. See knife_spawn and bomb_spawn.
 
-		newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE);
-		newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+		newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE | MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+		newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_SCREEN);
 	}
     // my new types   7-1-2005
     else if(stricmp(value, "pshot") == 0)
@@ -10673,7 +10671,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 
 		// Note when using as a projectile, most of these
 		// are modified. See knife_spawn and bomb_spawn.
-        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE);
         newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "trap") == 0)
@@ -11030,9 +11028,9 @@ e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_w
 * 2022-05-02
 *
 * Accept string input and return
-* matching constant.
+* matching constant. 
 */
-e_weapon_loss_condition find_weapon_loss_from_string(char* value)
+e_weapon_loss_condition get_weapon_loss_from_argument(char* value)
 {
     e_weapon_loss_condition result;
 
@@ -11077,9 +11075,9 @@ e_weapon_loss_condition find_weapon_loss_from_string(char* value)
         result = WEAPON_LOSS_CONDITION_DEFAULT;
     }
     else
-    {
+    {        
         result = WEAPON_LOSS_CONDITION_DEFAULT;
-        printf("\n\n Unknown weapon loss flag (%s), using 'default'. \n", value);
+        printf("\n\n Unknown weapon loss config value (%s), using 'default'. \n", value);
     }
 
     return result;
@@ -11100,7 +11098,7 @@ void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        newchar->weapon_properties.loss_condition |= find_weapon_loss_from_string(value);
+        newchar->weapon_properties.loss_condition |= get_weapon_loss_from_argument(value);
     }
 }
 
@@ -11134,7 +11132,44 @@ e_model_copy get_model_flag_from_argument(char* filename, char* command, char* v
     }    
     else
     {
+        /*
+        * For legacy compatability. Get integer
+        * value and then change it to current
+        * constants.
+        */
+
         result = getValidInt(value, filename, command);
+        result = get_model_flag_from_legacy_int(result);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-01-30
+* 
+* Accept legacy integer model flag int
+* and output current constant.
+*/
+e_model_copy get_model_flag_from_legacy_int(int legacy_int)
+{
+    e_model_copy result = MODEL_COPY_FLAG_NONE;
+
+    switch (legacy_int)
+    {
+    case 0:
+    default:
+        result = MODEL_COPY_FLAG_NONE;
+    case 1:
+        result = (MODEL_COPY_FLAG_NO_BASIC);
+        break;
+    case 3:
+        result = (MODEL_COPY_FLAG_NO_BASIC | MODEL_COPY_FLAG_NO_WEAPON);
+        break;
+    case 4:
+        result = (MODEL_COPY_FLAG_NO_BASIC | MODEL_COPY_FLAG_NO_WEAPON | MODEL_COPY_FLAG_NO_SCRIPT);
+        break;        
     }
 
     return result;
@@ -11147,7 +11182,7 @@ e_model_copy get_model_flag_from_argument(char* filename, char* command, char* v
 * Populate model flag property
 * from text arguments.
 */
-void lcmHandleCommandModelFlag(ArgList* arglist, s_model* newchar)
+void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar)
 {
     int i;
     char* value;
@@ -11155,7 +11190,7 @@ void lcmHandleCommandModelFlag(ArgList* arglist, s_model* newchar)
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        newchar->model_flag |= find_weapon_loss_from_string(value);
+        newchar->model_flag |= get_model_flag_from_argument(filename, command, value);
     }
 }
 
@@ -11882,6 +11917,10 @@ e_aimove get_aimove_constant_from_string(char* value)
     if (stricmp(value, "none") == 0)
     {
         result = AIMOVE1_NONE;
+    }
+    else if (stricmp(value, "default") == 0)
+    {
+        result = AIMOVE_SPECIAL_DEFAULT;
     }
     else if (stricmp(value, "chase") == 0)
     {
@@ -13104,9 +13143,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->secret = GET_INT_ARG(1);
                 newchar->clearcount = GET_INT_ARG(2);
                 break;
-            case CMD_MODEL_MODELFLAG: // Model copy flag.
+            case CMD_MODEL_MODELFLAG: // Legacy model copy flag.                             
                 
-                lcmHandleCommandModelFlag(&arglist, newchar);
+                
+                lcmHandleCommandModelFlag(filename, command, &arglist, newchar);
 
                 break;
                 // weapons
@@ -13118,7 +13158,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->weapon_properties.loss_index = GET_INT_ARG(2);
                 break;
             
-            case CMD_MODEL_WEAPON_LOSS_CONDITION:
+            case CMD_MODEL_WEAPON_LOSS_CONFIG:
                 
                 lcmHandleCommandWeaponLossCondition(&arglist, newchar);
                 break;
@@ -35584,34 +35624,54 @@ int bomb_try_detonate(entity* acting_entity)
     return 1;
 }
 
-// Caskey, Damon V.
-// 2019-12-22
-//
-// Original author unknown. Refactored to stop using global self,
-// and fix bomb falling after detonation.
-int bomb_move(entity* ent)
+/*
+* Caskey, Damon V.
+* 2019-12-22
+*
+* Original author unknown. Refactored to stop using global self,
+* and fix bomb falling after detonation.
+*/
+int bomb_move(entity* acting_entity)
 {
-    // If in air, and prepared to explode (meaning will detonate on contact), 
-    // but NOT yet set to detonate, then we move using velocity (presumably 
-    // we've been tossed and so any Z and Y momentum is already handled). 
-    //
-    // EXPLODE_DETONATE status is applied by do_attack() if we touch
-    // ground, hit another entity, or are hit by another entity attack.
-    // In that case, we "explode" by playing an appropriate animation.
-    //if (inair(ent) && ent->toexplode & EXPLODE_PREPARE_TOUCH && !(ent->toexplode & EXPLODE_DETONATE))
-    
-    if (!bomb_try_detonate(ent))
+    /*
+    * If in air, and prepared to explode (meaning will detonate on contact), 
+    * but NOT yet set to detonate, then we move using velocity (presumably 
+    * we've been tossed and so any Z and Y momentum is already handled). 
+    *
+    * EXPLODE_DETONATE status is applied by do_attack() if we touch
+    * ground, hit another entity, or are hit by another entity attack.
+    * In that case, we "explode" by playing an appropriate animation.
+    */
+
+    /* 
+    * Bounce off walls or platforms if there 
+    * is a fall animation.
+    */
+
+    if (projectile_wall_deflect(acting_entity))
     {
-        if (ent->direction == DIRECTION_LEFT)
-        {
-            ent->velocity.x = -ent->modeldata.speed.x;
-        }
-        else if (ent->direction == DIRECTION_RIGHT)
-        {
-            ent->velocity.x = ent->modeldata.speed.x;
-        }
+        return 1;
+    }
+
+    /*
+    * Check detonation conditions and
+    * apply accordingly.
+    */
+
+    if (bomb_try_detonate(acting_entity))
+    {
+        return 1;
     }
     
+    if (acting_entity->direction == DIRECTION_LEFT)
+    {
+        acting_entity->velocity.x = -acting_entity->modeldata.speed.x;
+    }
+    else if (acting_entity->direction == DIRECTION_RIGHT)
+    {
+        acting_entity->velocity.x = acting_entity->modeldata.speed.x;
+    }
+
     return 1;
 }
 
@@ -35718,16 +35778,23 @@ int projectile_wall_deflect(entity *acting_entity)
     s_attack attack;
 
     //printf("\n\n projectile_wall_deflect(%p)", acting_entity);
-    //printf("\n model(%s)", acting_entity->model->name);
-    //printf("\n acting_entity->drop: ", acting_entity->drop);
+    //printf("\n\t model(%s)", acting_entity->model->name);
+    //printf("\n\t acting_entity->drop: ", acting_entity->drop);
 
-    if(validanim(acting_entity, ANI_FALL))
+    if(validanim(acting_entity, ANI_FALL) && acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE)
     {
         //printf("\n\t Has Fall");
         //printf("\n\t position: %f, %f, %f", acting_entity->position.x, acting_entity->position.y, acting_entity->position.z);
+        //printf("\n\t velocity: %f, %f, %f", acting_entity->velocity.x, acting_entity->velocity.y, acting_entity->velocity.z);
 
         int blocking_wall;
         entity *blocking_obstacle = NULL;
+
+        /*
+        * Blocked by wall or obstacle? Note these
+        * functions return false if the entity
+        * is not subject to wall/obstacle.
+        */
 
         blocking_wall = check_block_wall(acting_entity);
         blocking_obstacle = check_block_obstacle(acting_entity);
@@ -35736,7 +35803,7 @@ int projectile_wall_deflect(entity *acting_entity)
 
         if(blocking_wall >= 0 || blocking_obstacle) 
         {
-            //printf("\n\t Blocked.");
+            //printf("\n\t Is blocked.");
 
             /*
             * Use the projectile's speed and our factor to see 
@@ -35744,6 +35811,8 @@ int projectile_wall_deflect(entity *acting_entity)
             */
             richochet_velocity_x = -acting_entity->velocity.x * RICHOCHET_VELOCITY_X_FACTOR;
             
+            //printf("\n\t richochet_velocity_x: %f", richochet_velocity_x);
+
             acting_entity->takeaction = common_fall;
             acting_entity->attacking = ATTACKING_NONE;
             acting_entity->energy_state.health_current = 0;
@@ -35755,11 +35824,7 @@ int projectile_wall_deflect(entity *acting_entity)
             acting_entity->damage_on_landing.attack_force = 0;
             acting_entity->damage_on_landing.attack_type = ATK_NONE;
             toss(acting_entity, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
-
-            //self->modeldata.no_adjust_base = 0;
-            //self->modeldata.subject_to_wall = self->modeldata.subject_to_platform = self->modeldata.subject_to_hole = self->modeldata.subject_to_gravity = 1;
-            //set_fall(self, ATK_NORMAL, 0, self, 100000, 0, 0, 0, 0, 0);
-
+                        
             /* Reset base detection */
             acting_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
             acting_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
@@ -35771,10 +35836,12 @@ int projectile_wall_deflect(entity *acting_entity)
             attack.attack_drop = RICHOCHET_FALL_FORCE;
             set_fall(acting_entity, acting_entity, &attack, 0);
 
+            //printf("\n\t velocity: %f, %f, %f", acting_entity->velocity.x, acting_entity->velocity.y, acting_entity->velocity.z);
+
             return 1;
         }
 
-        //printf("\n\t Not Blocked.");
+        //printf("\n\t Not blocked.");
     }
 
     /* Did not ricochet, so return false. */
@@ -40097,12 +40164,9 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     * without an arc, but we can't fix this without
     * breaking compatability, so we'll need a different
     * setup depending on what function creator used.
-    * 
-    * ent->modeldata.subject_to_wall = ent->modeldata.subject_to_platform = ent->modeldata.subject_to_hole = ent->modeldata.subject_to_gravity = 1;
-    * ent->modeldata.no_adjust_base = 1;
     */
     
-    projectile_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_NO_ADJUST_BASE);
+    projectile_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE);
     projectile_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
 
     if (projectile_entity->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION)
@@ -40129,19 +40193,19 @@ void bomb_explode()
     kill_entity(self, KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_COMPLETE);
 }
 
-
-// Caskey, Damon  V.
-// 2019-12-22 (refactor)
-//
-// Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
-// and consolidate projectile spawn logic. Spawns an entity and fires it as a bomb projectile. 
-// Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
-// comments in function).
-//
-// Returns pointer of spawned projectile, or NULL on fail.
+/*
+* Caskey, Damon  V.
+* 2019-12-22 (refactor)
+*
+* Original author unknown (Tails?). Refactored to remove the ever-growing parameter list
+* and consolidate projectile spawn logic. Spawns an entity and fires it as a bomb projectile. 
+* Model used for spawn is determined by a hierarchy of legacy parameters (see detailed 
+* comments in function).
+*
+* Returns pointer of spawned projectile, or NULL on fail.
+*/
 entity *bomb_spawn(entity *parent, s_projectile *projectile)
 {
-
 	entity* ent = NULL;
 	s_axis_principal_float position;
 	e_direction direction;
@@ -40182,16 +40246,18 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	position.y = parent->position.y + projectile->position.y;
 	position.z = parent->position.z + projectile->position.z;
 
-	// Now we need to spawn the projectile entity. There are many haphazard legacy 
-	// additions to sift through, so we need to prioritize which model to spawn. 
-	// In general, we work back from most granular to most global.
-	//
-	// From highest to lowest priority:
-	// 
-	// 1. Projectile Bomb property.
-	// 2. Using weapon with model bomb property.
-	// 3. Model bomb property.
-	    
+    /*
+	* Now we need to spawn the projectile entity. There are many haphazard legacy 
+	* additions to sift through, so we need to prioritize which model to spawn. 
+	* In general, we work back from most granular to most global.
+	*
+	* From highest to lowest priority:
+	* 
+	* 1. Projectile Bomb property.
+	* 2. Using weapon with model bomb property.
+	* 3. Model bomb property.
+	*/
+
     if(projectile->bomb >= 0)
     {
         ent = spawn(position.x, position.z, position.y, direction, NULL, projectile->bomb, NULL);
@@ -40222,11 +40288,14 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 
 	ent->projectile_prime = projectile_prime;
 
-    // If no move, then all speed is 0. Otherwise check for use of
-	// projectile velocity. If player supplied any value other 
-	// than MODEL_SPEED_NONE, we use player's value. If not, fall
-	// back to default values. This is a bit overcomplicated, but
-	// allows players to supply a 0 velocity value on any axis.
+    /*
+    * If no move, then all speed is 0. Otherwise check for use of
+	* projectile velocity. If player supplied any value other 
+	* than MODEL_SPEED_NONE, we use player's value. If not, fall
+	* back to default values. This is a bit overcomplicated, but
+	* allows players to supply a 0 velocity value on any axis.
+    */
+
 	if (ent->modeldata.nomove)
 	{
 		ent->modeldata.speed.x = 0;
@@ -40239,24 +40308,26 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 		ent->modeldata.speed = projectile->velocity;
 	}
 
-	// Toss the bomb entity in an arc.
-	//
-	// We want to handle legacy behavior (use projectile jumpheight 
-	// for Y toss velocity), allow author to apply a 0 value for Y 
-	// velocity, and use the same velocity structure members for bomb 
-	// and knife projectiles. The last part is an extra challenge because 
-	// the default velocity needs for knife and bomb are not compatible. 
-	// To handle all of this this we will set the velocity.y member to 
-	// MODEL_SPEED_NONE specfically when a bomb projectile is requested 
-	// by the Throwframe command or "bomb" type from legacy script function 
-	// projectile(). If the author does not modify this value, we know 
-	// to fall back to legacy behavior and use the projectile entity's 
-	// model jumpheight.  
-	//
-	// If the value is anything other than MODEL_SPEED_NONE, then we know 
-	// the author requested a specific velocity (including 0) and will 
-	// use author value instead of model jumpheight.
-			
+    /*
+	* Toss the bomb entity in an arc.
+	*
+	* We want to handle legacy behavior (use projectile jumpheight 
+	* for Y toss velocity), allow author to apply a 0 value for Y 
+	* velocity, and use the same velocity structure members for bomb 
+	* and knife projectiles. The last part is an extra challenge because 
+	* the default velocity needs for knife and bomb are not compatible. 
+	* To handle all of this this we will set the velocity.y member to 
+	* MODEL_SPEED_NONE specfically when a bomb projectile is requested 
+	* by the Throwframe command or "bomb" type from legacy script function 
+	* projectile(). If the author does not modify this value, we know 
+	* to fall back to legacy behavior and use the projectile entity's 
+	* model jumpheight.  
+	*
+	* If the value is anything other than MODEL_SPEED_NONE, then we know 
+	* the author requested a specific velocity (including 0) and will 
+	* use author value instead of model jumpheight.
+	*/
+
 	if (projectile->velocity.y == MODEL_SPEED_NONE)
 	{
 		toss(ent, ent->modeldata.jumpheight);
@@ -40266,15 +40337,14 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 		toss(ent, projectile->velocity.y);
 	}
 	
-	// Apply color adjustment.
+	/* Apply color adjustment. */
 	apply_color_set_adjust(ent, parent, projectile->color_set_adjust);
 
     ent->spawntype = SPAWN_TYPE_PROJECTILE_BOMB;
     ent->attacking = ATTACKING_ACTIVE;
     ent->owner = parent;                                                     
     ent->nograb = 1;                                                       
-    ent->toexplode |= (EXPLODE_PREPARE_TOUCH | EXPLODE_PREPARE_GROUND);
-    
+    ent->toexplode |= (EXPLODE_PREPARE_TOUCH | EXPLODE_PREPARE_GROUND);    
         
     ent->think = common_think;
     ent->nextthink = _time + 1;
@@ -40297,8 +40367,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	copy_faction_data(ent, parent);
     
 	ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
-    //ent->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
-	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
 	
 	// Execute the projectile's on spawn event.
 	execute_onspawn_script(ent);

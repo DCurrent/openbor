@@ -633,7 +633,8 @@ typedef enum e_aimove
 	MASK_AIMOVE1 = 0x0000FFFF,
     AIMOVE2_NORMAL = AIMOVE1_NONE,      // Legacy compatability.
     AIMOVE2_IGNOREHOLES = (1 << 16),    // 0x00010000,   // don't avoid holes
-    AIMOVE2_NOTARGETIDLE = (1 << 17)    // 0x00020000,   // don't move when there's no target
+    AIMOVE2_NOTARGETIDLE = (1 << 17),    // 0x00020000,   // don't move when there's no target
+    AIMOVE_SPECIAL_DEFAULT = (1 << 18)     // Indicates no change (Ie. child entity spawn's with its default AI if AI parameter is AI_DEFAULT).
 } e_aimove;
 
 /*
@@ -2463,33 +2464,32 @@ typedef struct
 typedef enum e_child_spawn_config
 {
     CHILD_SPAWN_CONFIG_NONE                         = 0,
-    CHILD_SPAWN_CONFIG_AIMOVE_PARAMETER             = (1 << 0),
-    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION           = (1 << 1),
-    CHILD_SPAWN_CONFIG_AUTOKILL_HIT                 = (1 << 2),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB                = (1 << 3),
-    CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT                = (1 << 4),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE           = (1 << 5),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX           = (1 << 6),
-    CHILD_SPAWN_CONFIG_EXPLODE                      = (1 << 7),
-    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER     = (1 << 8),
-    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT        = (1 << 9),
-    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER    = (1 << 10),
-    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT       = (1 << 11),
-    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER   = (1 << 12),
-    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT      = (1 << 13),
-    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARAMETER     = (1 << 14),
-    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARENT        = (1 << 15),
-    CHILD_SPAWN_CONFIG_GRAVITY_OFF                  = (1 << 16),
-    CHILD_SPAWN_CONFIG_LAUNCH_THROW                 = (1 << 17),
-    CHILD_SPAWN_CONFIG_LAUNCH_TOSS                  = (1 << 18),
-    CHILD_SPAWN_CONFIG_OFFENSE_PARENT               = (1 << 19),
-    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 20),
-    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 21),
-    CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 22),
-    CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER         = (1 << 23),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 24),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 25),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 26)
+    CHILD_SPAWN_CONFIG_AUTOKILL_ANIMATION           = (1 << 0),
+    CHILD_SPAWN_CONFIG_AUTOKILL_HIT                 = (1 << 1),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB                = (1 << 2),
+    CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT                = (1 << 3),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE           = (1 << 4),
+    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX           = (1 << 5),
+    CHILD_SPAWN_CONFIG_EXPLODE                      = (1 << 6),
+    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER     = (1 << 7),
+    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT        = (1 << 8),
+    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER    = (1 << 9),
+    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT       = (1 << 10),
+    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER   = (1 << 11),
+    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT      = (1 << 12),
+    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARAMETER     = (1 << 13),
+    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARENT        = (1 << 14),
+    CHILD_SPAWN_CONFIG_GRAVITY_OFF                  = (1 << 15),
+    CHILD_SPAWN_CONFIG_LAUNCH_THROW                 = (1 << 16),
+    CHILD_SPAWN_CONFIG_LAUNCH_TOSS                  = (1 << 17),
+    CHILD_SPAWN_CONFIG_OFFENSE_PARENT               = (1 << 18),
+    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 19),
+    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 20),
+    CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 21),
+    CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER         = (1 << 22),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 23),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 24),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 25)
 } e_child_spawn_config;
 
 /*
@@ -3981,6 +3981,15 @@ s_collision_entity**    collision_alloc_entity_list();
 
 // Meta data control.
 void meta_data_free_list(s_meta_data* head);
+
+/* Model flag control. */
+e_model_copy get_model_flag_from_legacy_int(int legacy_int);
+e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value);
+void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar);
+
+/* Weapon loss control */
+e_weapon_loss_condition get_weapon_loss_from_argument(char* value);
+void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar);
 
 int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int attack_blocked);
 

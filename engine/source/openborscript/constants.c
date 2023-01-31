@@ -534,6 +534,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SUBTYPE_CHASE)
 
         // Ai modes.
+        ICMPCONST(AIMOVE_SPECIAL_DEFAULT)
         ICMPCONST(AIMOVE1_NORMAL)
         ICMPCONST(AIMOVE1_CHASE)
         ICMPCONST(AIMOVE1_CHASEZ)
