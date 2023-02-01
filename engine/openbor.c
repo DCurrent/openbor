@@ -35620,6 +35620,10 @@ int bomb_try_detonate(entity* acting_entity)
         ent_set_anim(acting_entity, ANI_ATTACK1, 0);
         acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
     }
+    else if(acting_entity->modeldata.remove)
+    {
+        kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_UNAVAILABLE);
+    }
 
     return 1;
 }
@@ -40353,7 +40357,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
     ent->modeldata.aimove = AIMOVE1_BOMB;
     ent->modeldata.aiattack = AIATTACK1_NOATTACK;
     ent->takedamage = common_takedamage;
-	ent->autokill &= ~AUTOKILL_ATTACK_HIT;
+	ent->autokill &= ~AUTOKILL_ATTACK_HIT;    
 
 	if (ent->modeldata.nomove)
 	{
