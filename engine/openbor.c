@@ -35610,19 +35610,28 @@ int bomb_try_detonate(entity* acting_entity)
     * If we hit or got hit, then play ATTACK2. 
     * If we landed first, play ATTACK1.
     */ 
-    if (acting_entity->toexplode & EXPLODE_DETONATE && validanim(acting_entity, ANI_ATTACK2))
+    if (acting_entity->toexplode & EXPLODE_DETONATE)
     {
-        ent_set_anim(acting_entity, ANI_ATTACK2, 0);
-        acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        /*
+        * Play explode animation. If we don't have
+        * an explode, then check remove flag like
+        * a non-bomb projectile.
+        */
+
+        if (validanim(acting_entity, ANI_ATTACK2))
+        {
+            ent_set_anim(acting_entity, ANI_ATTACK2, 0);
+            acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        }
+        else if(acting_entity->modeldata.remove)
+        {
+            kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_UNAVAILABLE);
+        }
     }
     else if (validanim(acting_entity, ANI_ATTACK1))
     {
         ent_set_anim(acting_entity, ANI_ATTACK1, 0);
-        acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
-    }
-    else if(acting_entity->modeldata.remove)
-    {
-        kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_UNAVAILABLE);
+        acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;    
     }
 
     return 1;
