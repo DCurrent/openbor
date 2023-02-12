@@ -142,13 +142,27 @@ const s_projectile projectile_default_config = {
 
 const s_defense default_defense =
 {
-    .factor         = 1.f,
-    .pain           = 0.f,
-    .knockdown      = 1.f,
+    .block_damage_adjust = 0,
+    .block_damage_max = MAX_INT,
+    .block_damage_min = MIN_INT,
     .blockpower     = 0.f,
     .blockthreshold = 0.f,
     .blockratio     = 0.f,
-    .blocktype      = BLOCK_TYPE_MP_FIRST
+    .blocktype      = BLOCK_TYPE_MP_FIRST,
+    .damage_adjust  = 0,
+    .damage_max     = MAX_INT,
+    .damage_min     = MIN_INT,
+    .factor         = 1.f,
+    .knockdown      = 1.f,
+    .pain           = 0.f
+};
+
+const s_offense default_offense =
+{
+    .damage_adjust  = 0,
+    .damage_max     = MAX_INT,
+    .damage_min     = MIN_INT,
+    .factor         = 1.f    
 };
 
 const s_hitbox empty_collision_coords = {   .x      = 0,
@@ -5658,10 +5672,10 @@ int free_model(s_model *model)
         model->defense = NULL;
     }
     printf(".");
-    if(hasFreetype(model, MF_OFF_FACTORS) && model->offense_factors)
+    if(hasFreetype(model, MF_OFF_FACTORS) && model->offense)
     {
-        free(model->offense_factors);
-        model->offense_factors = NULL;
+        offense_free_object(model->offense);
+        model->offense = NULL;
     }
     printf(".");
     if(hasFreetype(model, MF_SPECIAL) && model->special)
@@ -5931,6 +5945,34 @@ int (*takedamage_get_reference_from_argument(char* value))(struct entity* attack
 
 /*
 * Caskey, Damon V.
+* 2023-02-01
+*
+* Read a text argument for child color
+* and get constant or color index.
+*/
+int child_spawn_get_color_from_argument(char* filename, char* command, char* value)
+{
+    e_model_copy result = MODEL_COPY_FLAG_NONE;
+
+    if (stricmp(value, "parent_index") == 0)
+    {
+        result = MAP_INDEX_PARENT_INDEX;
+    }
+    else if (stricmp(value, "parent_table") == 0)
+    {
+        result = MAP_INDEX_PARENT_TABLE;
+    }    
+    else
+    {
+        result = getValidInt(value, filename, command);
+    }
+
+    return result;
+}
+
+
+/*
+* Caskey, Damon V.
 * 2022-05-27
 *
 * Read a text argument for child spawn config
@@ -5959,14 +6001,6 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
     else if (stricmp(value, "behavior_shot") == 0)
     {
         result = CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT;
-    }
-    else if (stricmp(value, "color_parent_index") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX;
-    }
-    else if (stricmp(value, "color_parent_table") == 0)
-    {
-        result = CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE;
     }
     else if (stricmp(value, "explode") == 0)
     {
@@ -6277,6 +6311,7 @@ void child_spawn_dump_object(s_child_spawn* object)
     }
     
     printf("\n\t\t %-*s %d", space_label, "->candamage:", object->candamage);
+    printf("\n\t\t %-*s %d", space_label, "->color:", object->color);
     printf("\n\t\t %-*s %d", space_label, "->config:", object->config);
     printf("\n\t\t %-*s %d", space_label, "->direction_adjust:", object->direction_adjust);
     printf("\n\t\t %-*s %d", space_label, "->hostile:", object->hostile);
@@ -6582,7 +6617,7 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     printf("\n\t direction: %d", direction);
     printf("\n\t Parent: x: %f, y: %f, z: %f", parent->position.x, parent->position.y, parent->position.z);
 
-    if (direction == DIRECTION_RIGHT)// && object->config & ~(CHILD_SPAWN_CONFIG_POSITION_ABSOLUTE | CHILD_SPAWN_CONFIG_POSITION_LEVEL))
+    if (direction == DIRECTION_RIGHT && object->config & ~(CHILD_SPAWN_CONFIG_POSITION_LEVEL | CHILD_SPAWN_CONFIG_POSITION_SCREEN))
     {
         position.x = parent->position.x + object->position.x;        
     }
@@ -6697,11 +6732,40 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     */ 
     if (object->config & CHILD_SPAWN_CONFIG_OFFENSE_PARENT)
     {
-        *child_entity->offense_factors = *parent->offense_factors;
+        /*
+        * Parent might not have offense. In that 
+        * case, if the child also has no offense
+        * we can just do nothing and not waste
+        * any memory. If the child does have an
+        * offense, we'll need to overwrite it
+        * with default so it matches parent.
+        */
+        
+        if (!parent->offense)
+        {
+            if (child_entity->offense)
+            {
+                memcpy(child_entity->offense, &default_offense, sizeof(*child_entity->offense) * max_attack_types);
+            }
+        }
+        else
+        {
+            /*
+            * Make sure child has memory allocated.
+            */
+
+            if (!child_entity->offense)
+            {
+                child_entity->offense = offense_allocate_object();
+            }
+                        
+            memcpy(child_entity->offense, parent->offense, sizeof(*child_entity->offense) * max_attack_types);
+            
+        }
     }
     
     /* Apply color adjustment. */
-    if (object->config & CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX)
+    if (object->color == MAP_INDEX_PARENT_INDEX)
     {        
         for (i = 0; i < parent->modeldata.maps_loaded; i++)
         {
@@ -6712,10 +6776,14 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
             }
         }
     }
-    else if (object->config & CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE)
+    else if (object->color == MAP_INDEX_PARENT_TABLE)
     {
         child_entity->colourmap = parent->colourmap;
-    }        
+    }
+    else
+    {
+        ent_set_colourmap(child_entity, object->color);
+    }
 
     /* Populate common behavior flags. */
     child_entity->think = common_think;
@@ -8445,6 +8513,7 @@ void body_dump_object(s_body* body)
     if (body)
     {        
         printf("\n\t ->body_defense: %d", body->defense);
+
     }
 
     printf("\n\n -- Body (%p) dump complete... -- \n", body);
@@ -12536,7 +12605,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->priority = 1;
 
     newchar->defense = defense_allocate_object();
-    newchar->offense_factors        = calloc(max_attack_types + 1, sizeof(*newchar->offense_factors));
+    newchar->offense = offense_allocate_object();
 
     newchar->special                = calloc(1, sizeof(s_com));
 
@@ -12604,6 +12673,10 @@ s_model *init_model(int cacheindex, int unload)
     newchar->weapon_properties.loss_index      = MODEL_INDEX_NONE;
     newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
+    newchar->faction.damage_direct      = FACTION_LEGACY;
+    newchar->faction.damage_indirect    = FACTION_LEGACY;
+    newchar->faction.hostile            = FACTION_LEGACY;
+    newchar->faction.member             = FACTION_LEGACY;
     newchar->candamage                  = -1;
     newchar->hostile                    = -1;
     newchar->projectilehit              = -1;
@@ -12631,19 +12704,13 @@ s_model *init_model(int cacheindex, int unload)
     newchar->rider = get_cached_model_index("K'");
     newchar->flash = newchar->bflash = get_cached_model_index("flash");
 
-    //Default offense/defense values.
-    for(i = 0; i < max_attack_types; i++)
-    {
-        newchar->offense_factors[i]     = 1;        
-    }
-
     //Default sight ranges.
-    newchar->sight.min.x = -9999;
-    newchar->sight.max.x = 9999;
-    newchar->sight.min.y = -9999;
-    newchar->sight.max.y = 9999;
-    newchar->sight.min.z = -9999;
-    newchar->sight.max.z = 9999;
+    newchar->sight.min.x = MIN_INT;
+    newchar->sight.max.x = MAX_INT;
+    newchar->sight.min.y = MIN_INT;
+    newchar->sight.max.y = MAX_INT;
+    newchar->sight.min.z = MIN_INT;
+    newchar->sight.max.z = MAX_INT;
 
     return newchar;
 }
@@ -12676,8 +12743,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     char argbuf[MAX_ARG_LEN + 1] = { "" };
 
     ArgList arglist;
-
-    float tempFloat;
 
     int ani_id = ANI_NONE;
     int script_id = -1;
@@ -13420,7 +13485,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 */
 
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_LEGACY);
-            break;                
+            break;    
+            case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_ADJUST:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST);
+                break;
+            case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MAX:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX);
+                break;
+            case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MIN:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN);
+                break;
             case CMD_MODEL_DEFENSE_BLOCK_POWER:
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_POWER);
                 break;
@@ -13433,6 +13507,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DEFENSE_BLOCK_TYPE:
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_TYPE);
                 break;
+            case CMD_MODEL_DEFENSE_DAMAGE_ADJUST:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_ADJUST);
+                break;
+            case CMD_MODEL_DEFENSE_DAMAGE_MAX:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MAX);
+                break;
+            case CMD_MODEL_DEFENSE_DAMAGE_MIN:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MIN);
+                break;
             case CMD_MODEL_DEFENSE_FACTOR:
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
                 break;
@@ -13443,65 +13526,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_PAIN);
                 break;
             case CMD_MODEL_OFFENSE:
-#define tempoff(x, y, z) \
-					x(stricmp(value, #y)==0)\
-					{\
-					newchar->z[ATK_##y] = GET_FLOAT_ARG(2);\
-					/*newchar->z[ATK_##y] /= 100;*/\
-					}
-            {
-                value = GET_ARG(1);
-                tempoff(if,         NORMAL,     offense_factors)
-                tempoff(else if,    NORMAL2,    offense_factors)
-                tempoff(else if,    NORMAL3,    offense_factors)
-                tempoff(else if,    NORMAL4,    offense_factors)
-                tempoff(else if,    NORMAL5,    offense_factors)
-                tempoff(else if,    NORMAL6,    offense_factors)
-                tempoff(else if,    NORMAL7,    offense_factors)
-                tempoff(else if,    NORMAL8,    offense_factors)
-                tempoff(else if,    NORMAL9,    offense_factors)
-                tempoff(else if,    NORMAL10,   offense_factors)
-                tempoff(else if,    BLAST,      offense_factors)
-                tempoff(else if,    STEAL,      offense_factors)
-                tempoff(else if,    BURN,       offense_factors)
-                tempoff(else if,    SHOCK,      offense_factors)
-                tempoff(else if,    FREEZE,     offense_factors)
+                offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_LEGACY);
+                break;
+            case CMD_MODEL_OFFENSE_DAMAGE_ADJUST:
+                offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_DAMAGE_ADJUST);
+                break;
+            case CMD_MODEL_OFFENSE_DAMAGE_MAX:
+                offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_DAMAGE_MAX);
+                break;
+            case CMD_MODEL_OFFENSE_DAMAGE_MIN:
+                offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_DAMAGE_MIN);
+                break;
+            case CMD_MODEL_OFFENSE_FACTOR:
+                offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_FACTOR);
+                break;
 
-                tempoff(else if,    BOSS_DEATH, offense_factors)
-                tempoff(else if,    ITEM,       offense_factors)
-                tempoff(else if,    LAND,       offense_factors)
-                tempoff(else if,    LIFESPAN,   offense_factors)
-                tempoff(else if,    LOSE,       offense_factors)
-                tempoff(else if,    PIT,        offense_factors)
-				tempoff(else if,	SUB_ENTITY_PARENT_KILL,	offense_factors)
-				tempoff(else if,	SUB_ENTITY_UNSUMMON,	offense_factors)
-                tempoff(else if,    TIMEOVER,   offense_factors)
-
-                else if(starts_with(value, "normal"))
-                {
-                    get_tail_number(tempInt, value, "normal");
-                    newchar->offense_factors[tempInt + STA_ATKS - 1] = GET_FLOAT_ARG(2);
-                }
-                else if(stricmp(value, "ALL") == 0)
-                {
-                    tempFloat = GET_FLOAT_ARG(2);
-
-                    // Loop over all attack types and apply
-                    // the value setting.
-                    for(i = 0; i < max_attack_types; i++)
-                    {
-                        // Skip types that we only intend for
-                        // engine or script logic use.
-						if (is_attack_type_special(i))
-                        {
-                            continue;
-                        }
-
-                        newchar->offense_factors[i] = tempFloat;
-                    }
-                }
-            }
-#undef tempoff
             break;
             case CMD_MODEL_HEIGHT:
                 newchar->size.y = GET_INT_ARG(1);
@@ -14418,6 +14457,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_CHILD_SPAWN_CANDAMAGE:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_arguments(&arglist);
+                break;
+            case CMD_MODEL_CHILD_SPAWN_COLOR:
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->color = child_spawn_get_color_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_CONFIG:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(&arglist, 0);
@@ -22161,10 +22203,10 @@ void free_ent(entity *e)
         defense_free_object(e->defense);
         e->defense = NULL;
     }
-    if(e->offense_factors)
+    if(e->offense)
     {
-        free(e->offense_factors);
-        e->offense_factors = NULL;
+        offense_free_object(e->offense);
+        e->offense = NULL;
     }
 
 	if (e->drawmethod)
@@ -22206,10 +22248,10 @@ entity *alloc_ent()
 {
     entity *ent = malloc(sizeof(*ent));
     memset(ent, 0, sizeof(*ent));
-    ent->defense = malloc(sizeof(*ent->defense) * max_attack_types);
-    memset(ent->defense, 0, sizeof(*ent->defense)*max_attack_types);
-    ent->offense_factors = malloc(sizeof(*ent->offense_factors) * max_attack_types);
-    memset(ent->offense_factors, 0, sizeof(*ent->offense_factors)*max_attack_types);
+    
+    ent->defense = defense_allocate_object();    
+    ent->offense = offense_allocate_object();
+    
     ent->varlist = calloc(1, sizeof(*ent->varlist));
     // memset should be OK by know, because VT_EMPTY is zero by value, or else we should use ScriptVariant_Init
     Varlist_Init(ent->varlist, max_entity_vars);
@@ -22754,6 +22796,12 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         break;
     }
+
+    /* Faction data. */
+    e->faction.damage_direct = e->modeldata.faction.damage_direct;
+    e->faction.damage_indirect = e->modeldata.faction.damage_indirect;
+    e->faction.hostile = e->modeldata.faction.hostile;
+    e->faction.member = e->modeldata.faction.member;
 
     if(!e->animation)
     {
@@ -23314,6 +23362,27 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.aiattack             = oldmodel->aiattack;
     }
+    
+    if (ent->modeldata.faction.damage_direct == FACTION_NONE)
+    {
+        ent->modeldata.faction.damage_direct = oldmodel->faction.damage_direct;
+    }
+    
+    if (ent->modeldata.faction.damage_indirect == FACTION_NONE)
+    {
+        ent->modeldata.faction.damage_indirect = oldmodel->faction.damage_indirect;
+    }
+
+    if (ent->modeldata.faction.hostile == FACTION_NONE)
+    {
+        ent->modeldata.faction.hostile = oldmodel->faction.hostile;
+    }
+
+    if (ent->modeldata.faction.member == FACTION_NONE)
+    {
+        ent->modeldata.faction.member = oldmodel->faction.member;
+    }
+
     if(ent->modeldata.hostile < 0)
     {
         ent->modeldata.hostile              = oldmodel->hostile;
@@ -23494,7 +23563,7 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
     entity *e = NULL;
     int i, id;
     s_defense *dfs;
-    float *ofs;
+    s_offense *ofs;
     Varlist *vars;
     s_scripts *scripts;
 
@@ -23538,11 +23607,14 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             // save these values, or they will loss when memset called
             id      = e->sortid;
             dfs     = e->defense;
-            ofs     = e->offense_factors;
+
+            ofs     = e->offense;
             vars    = e->varlist;
             Varlist_Cleanup(vars);
+
             memcpy(dfs, model->defense, sizeof(*dfs)*max_attack_types);
-            memcpy(ofs, model->offense_factors, sizeof(*ofs)*max_attack_types);
+            memcpy(ofs, model->offense, sizeof(*ofs)*max_attack_types);
+                        
             // clear up
             clear_all_scripts(e->scripts, 1);
             if(e->waypoints)
@@ -23589,11 +23661,13 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             e->speedmul = 1;
             ent_set_colourmap(e, 0);
             e->lifespancountdown = model->lifespan; // new life span countdown
+            
             if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
             {
                 e->modeldata.hostile &= ~TYPE_PLAYER;
-                e->modeldata.candamage &= ~TYPE_PLAYER;
+                e->modeldata.candamage &= ~TYPE_PLAYER;            
             }
+            
             if(e->modeldata.type & TYPE_PLAYER)
             {
                 e->playerindex = currentspawnplayer;
@@ -23608,8 +23682,9 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             // copy back the value
             e->sortid = id;
             e->defense = dfs;
-            e->offense_factors = ofs;
+            e->offense = ofs;
             e->varlist = vars;
+
             ent_default_init(e);
             return e;
         }
@@ -25550,18 +25625,24 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 	
     if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
 	{
-		if (target->modeldata.type & ent->modeldata.hostile)
-		{
-			return 0;
-		}
+        if (ent->faction.hostile & FACTION_LEGACY)
+        {
+            if (target->modeldata.type & ent->modeldata.hostile)
+            {
+                return 0;
+            }
+        }
 	}
 
 	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE)
 	{
-		if (!(target->modeldata.type & ent->modeldata.hostile))
-		{
-			return 0;
-		}
+        if (ent->faction.hostile & FACTION_LEGACY)
+        {
+            if (!(target->modeldata.type & ent->modeldata.hostile))
+            {
+                return 0;
+            }
+        }
 	}
 
 	/* Target is hostile toward us. */
@@ -26196,16 +26277,26 @@ void do_attack(entity *attacking_entity)
                 return;
             }
             
-			// Set bomb projectile to detonate status if it 
-			// hits or takes a hit.
+			/* 
+            * Set bomb projectile to detonate status if it
+            * hits. Set to detonate if it takes a hit and
+            * has the "take hit" detonate animation. 
+            * 
+            * Bombs that don't have detonate animation take
+            * hits normally.
+            */
+
             if(self->toexplode & EXPLODE_PREPARE_TOUCH)
             {
-                self->toexplode |= EXPLODE_DETONATE;
+                if (validanim(self, ANI_ATTACK2))
+                {
+                    self->toexplode |= EXPLODE_DETONATE_DAMAGED;
+                }
             }
            
             if(attacking_entity->toexplode & EXPLODE_PREPARE_TOUCH)
             {
-                attacking_entity->toexplode |= EXPLODE_DETONATE;
+                attacking_entity->toexplode |= EXPLODE_DETONATE_HIT;
             }
 
             if(inair(self))
@@ -26361,111 +26452,85 @@ void do_attack(entity *attacking_entity)
         */
         if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON)
         {
-            /*
-			* If global blockratio or target's defense block ratio is 
-			* in use, then damage is reduced rather than negated.
-            */
-            if(blockratio || defense_object->blockratio)
+            /* Gets total force after defense adjustments. */
+            force = defense_result_damage(defense_object, force, 1);            
+            
+            blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : defense_object->blocktype;
+
+            switch (blocktype)
             {
-                /*
-				* Apply ratio to damage force. Use type specific ratio if target 
-				* has one. Otherwise, use global ratio.
-                */
+                case BLOCK_TYPE_HP:
+                    /* 
+                    * Do nothing. This allows creators to overidde energy_cost 
+                    * mponly 1 with health only. 
+                    */
+                    break;
 
-                if (defense_object->blockratio)
-                {
-                    force = (int)(force * defense_object->blockratio);
-                }
-                else       
-                {
-                    force = force / 4;
-                }
-				               
-                /*
-                * Block type handling. For legacy compatibility if the global
-                * mpblock is enabled we ignore the target entity's defense 
-                * properties and apply BLOCK_TYPE_MP_FIRST logic. Otherwise, 
-                * we use the target's blocktype to determine which blocktype 
-                * logic we'll apply.
-                */ 
-                
-                blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : defense_object->blocktype;
+                case BLOCK_TYPE_MP_ONLY:
 
-                switch (blocktype)
-                {
-                    case BLOCK_TYPE_HP:
-                        /* 
-                        * Do nothing. This allows creators to overidde energy_cost 
-                        * mponly 1 with health only. 
-                        */
-                        break;
+                    def->energy_state.mp_current -= force;
+                    force = 0;
 
-                    case BLOCK_TYPE_MP_ONLY:
+                    if(def->energy_state.mp_current < 0)
+                    {
+                        def->energy_state.mp_current = 0;
+                    }
 
-                        def->energy_state.mp_current -= force;
+                case BLOCK_TYPE_MP_FIRST:
+
+                    def->energy_state.mp_current -= force;
+
+                    /*
+                    * If there isn't enough MP to cover force, subtract remaining 
+					* MP from force and set MP to 0.
+                    */
+                    if(def->energy_state.mp_current < 0)
+                    {
+                        force = -def->energy_state.mp_current;
+                        def->energy_state.mp_current = 0;
+                    }
+                    else
+                    {
                         force = 0;
+                    }
 
-                        if(def->energy_state.mp_current < 0)
-                        {
-                            def->energy_state.mp_current = 0;
-                        }
+                case BLOCK_TYPE_BOTH:
 
-                    case BLOCK_TYPE_MP_FIRST:
+                    def->energy_state.mp_current -= force;
 
-                        def->energy_state.mp_current -= force;
-
-                        /*
-                        * If there isn't enough MP to cover force, subtract remaining 
-						* MP from force and set MP to 0.
-                        */
-                        if(def->energy_state.mp_current < 0)
-                        {
-                            force = -def->energy_state.mp_current;
-                            def->energy_state.mp_current = 0;
-                        }
-                        else
-                        {
-                            force = 0;
-                        }
-
-                    case BLOCK_TYPE_BOTH:
-
-                        def->energy_state.mp_current -= force;
-
-                        if(def->energy_state.mp_current < 0)
-                        {
-                            def->energy_state.mp_current = 0;
-                        }
-                }
-
-				// Apply remaining damage force to HP after blocking calculations.
-				// 
-				// 1. Damage force < HP: Subtract directly - Don't use take 
-				// damage because we don't want a visible reaction in game.
-				//
-				// 2. Damage force > HP, but nochipdeath is enabled (meaning
-				// chip death is not allowed) - Set HP to 1. Again, we don't 
-				// want a reaction.
-				//
-				// 3. Damage force > HP, chip death is allowed - Set take 
-				// damage so engine will apply damage normally and KO the 
-				// entity.
-                if(force < def->energy_state.health_current)
-                {
-                    def->energy_state.health_current -= force;
-                }
-                else if(nochipdeath)
-                {
-                    def->energy_state.health_current = 1;
-                }
-                else
-                {
-                    temp = self;
-                    self = def;
-                    self->takedamage(attacking_entity, attack, 0, defense_object);
-                    self = temp;
-                }
+                    if(def->energy_state.mp_current < 0)
+                    {
+                        def->energy_state.mp_current = 0;
+                    }
             }
+
+			// Apply remaining damage force to HP after blocking calculations.
+			// 
+			// 1. Damage force < HP: Subtract directly - Don't use take 
+			// damage because we don't want a visible reaction in game.
+			//
+			// 2. Damage force > HP, but nochipdeath is enabled (meaning
+			// chip death is not allowed) - Set HP to 1. Again, we don't 
+			// want a reaction.
+			//
+			// 3. Damage force > HP, chip death is allowed - Set take 
+			// damage so engine will apply damage normally and KO the 
+			// entity.
+            if(force < def->energy_state.health_current)
+            {
+                def->energy_state.health_current -= force;
+            }
+            else if(nochipdeath)
+            {
+                def->energy_state.health_current = 1;
+            }
+            else
+            {
+                temp = self;
+                self = def;
+                self->takedamage(attacking_entity, attack, 0, defense_object);
+                self = temp;
+            }            
         }
 
 		// If the attack was not blocked, let's increment the
@@ -26963,7 +27028,7 @@ void check_gravity(entity *e)
                         check_landframe(self);
 
                         // Taking damage on a landing?
-                        checkdamageonlanding();
+                        checkdamageonlanding(self);
 
                         // in case landing, set hithead to NULL
                         self->hithead = NULL;
@@ -27376,13 +27441,13 @@ void adjust_base(entity *acting_entity, entity **pla)
             * 
             * To fix this, we check to see if wall is higher 
             * than current position of entities with their
-            * detonation flags on. If so, set the entity to 
-            * use the entity's current height as its base.
+            * detonation flags on. If so, then reset entity
+            * base.
             */
                         
-            if ((acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE) || acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE) && level->walls[wall].height > acting_entity->position.y)
+            if ((acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE_HIT) || acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE) && level->walls[wall].height > acting_entity->position.y)
             {
-                acting_entity->base = acting_entity->position.y;
+                acting_entity->base = 0;
             }            
             else
             {
@@ -29545,7 +29610,7 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
     s_model *model = NULL;
     entity tempe;
     s_defense *dfs = NULL;
-    float *ofs = NULL;
+    s_offense *ofs = NULL;
     int   i;
     int   type = ent->modeldata.type;
 
@@ -29672,10 +29737,12 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         tempe = *ent;
         dfs = malloc(sizeof(*dfs) * max_attack_types);
         ofs = malloc(sizeof(*ofs) * max_attack_types);
+
         memcpy(dfs, ent->defense, sizeof(*dfs)*max_attack_types);
-        memcpy(ofs, ent->offense_factors, sizeof(*ofs)*max_attack_types);
+        memcpy(ofs, ent->offense, sizeof(*ofs)*max_attack_types);
+        
         tempe.defense = dfs;
-        tempe.offense_factors = ofs;
+        tempe.offense = ofs;
     }
 
     ent_set_model(ent, newmodel->name, anim_flag);
@@ -29688,8 +29755,9 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
     }
 
     copy_all_scripts(newmodel->scripts, ent->scripts, 0);
+
     memcpy(ent->defense, ent->modeldata.defense, sizeof(*ent->defense)*max_attack_types);
-    memcpy(ent->offense_factors, ent->modeldata.offense_factors, sizeof(*ent->offense_factors)*max_attack_types);
+    memcpy(ent->offense, ent->modeldata.offense, sizeof(*ent->offense)*max_attack_types);
 
     ent_set_colourmap(ent, ent->map);
     if(Script_IsInitialized(ent->scripts->onmodelcopy_script))
@@ -31414,6 +31482,9 @@ s_defense* defense_allocate_object()
 */
 void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter)
 {
+    //printf("\n\n defense_apply_setup_to_property(%s, %s, %p, %p, %d)", filename, command, defense, arglist, target_parameter);
+    //printf("\n\t GET_FLOAT_ARGP(2): %f", GET_FLOAT_ARGP(2));
+
     /* 
     * If a NULL pointer gets through, lets
     * get out before we cause a NULL pointer 
@@ -31437,6 +31508,18 @@ void defense_apply_setup_to_property(char* filename, char* command, s_defense* d
 
     switch (target_parameter)
     {
+    case DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST:
+        defense->block_damage_adjust = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX:
+        defense->block_damage_max = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN:
+        defense->block_damage_min = GET_INT_ARGP(2);
+        break;
+
     case DEFENSE_PARAMETER_BLOCK_POWER:
         defense->blockpower = GET_FLOAT_ARGP(2);
         break;
@@ -31451,6 +31534,18 @@ void defense_apply_setup_to_property(char* filename, char* command, s_defense* d
 
     case DEFENSE_PARAMETER_BLOCK_TYPE:
         defense->blocktype = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_DAMAGE_ADJUST:
+        defense->damage_adjust = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_DAMAGE_MAX:
+        defense->damage_max = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_DAMAGE_MIN:
+        defense->damage_min = GET_INT_ARGP(2);
         break;
 
     case DEFENSE_PARAMETER_FACTOR:
@@ -31525,15 +31620,14 @@ void defense_free_object(s_defense* target)
     free(target);
 }
 
-
-///*
-//* Caskey, Damon V.
-//* 2021-09-08
-//* 
-//* Accept animation object and frame. Returns 
-//* the defense object from animation frame's
-//* collision, or NULL if not available.
-//*/
+/*
+* Caskey, Damon V.
+* 2021-09-08
+* 
+* Accept animation object and frame. Returns 
+* the defense object from animation frame's
+* collision, or NULL if not available.
+*/
 //s_defense* defense_get_current_body_defense_from_animation(s_anim* animation_object, int animation_frame)
 //{
 //    s_collision_body* collision_body_object = NULL;
@@ -31610,21 +31704,55 @@ void defense_free_object(s_defense* target)
 
 /*
 * Caskey, Damon V.
+* 2023-02-09
+* 
+* Return final damage output from
+* after offense adjustments.
+*/
+int offense_result_damage(s_offense* offense_object, int attack_force)
+{
+    int result = attack_force;
+
+    if (!offense_object)
+    {
+        return result;
+    }
+    
+    result = (int)(result * offense_object->factor);
+
+    result += offense_object->damage_adjust;
+
+    if (result < offense_object->damage_min)
+    {
+        result = offense_object->damage_min;
+    }
+
+    if (result > offense_object->damage_max)
+    {
+        result = offense_object->damage_max;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
 * 2021-09-08
 * 
-* Get damage after applying defense mutiplier.
+* Get damage after applying defense adjustments.
 * 
 * Note: We send damage separately from attack object
 * as we usually want to get a calculated value
 * without modifying the original property.
 */
-int defense_result_damage(s_attack* attack_object, s_defense* defense_object, int attack_force)
-{    
-    e_attack_types attack_type = attack_object->attack_type;
-    
+int defense_result_damage(s_defense* defense_object, int attack_force, int blocked)
+{   
+    //printf("\n\n defense_result_damage(%p, %p, %d, %d)", defense_object, attack_force, blocked);
+
+    int result = attack_force;
+
     /* 
-    * Make sure attack types are in bounds and defense
-    * object is valid.
+    * Make sure defense object is valid.
     */
 
     if (!defense_object)
@@ -31632,12 +31760,55 @@ int defense_result_damage(s_attack* attack_object, s_defense* defense_object, in
         return attack_force;
     }
 
-    if (attack_type < 0 || attack_type > max_attack_types)
-    {        
-        return attack_force;
+    if (blocked)
+    {
+        if (blockratio || defense_object->blockratio)
+        {
+            /*
+            * Apply ratio to damage force. Use type specific ratio if target
+            * has one. Otherwise, use global ratio.
+            */
+
+            if (defense_object->blockratio)
+            {
+                attack_force = (int)(attack_force * defense_object->blockratio);
+            }
+            else
+            {
+                attack_force = attack_force / 4;
+            }
+        }
+
+        result += defense_object->block_damage_adjust;
+
+        if (result < defense_object->block_damage_min)
+        {
+            result = defense_object->block_damage_min;
+        }
+
+        if (result > defense_object->block_damage_max)
+        {
+            result = defense_object->block_damage_min;
+        }
+    }
+    else
+    {
+        result = (int)(result * defense_object->factor);
+
+        result += defense_object->damage_adjust;
+
+        if (result < defense_object->damage_min)
+        {
+            result = defense_object->damage_min;
+        }
+
+        if (result > defense_object->damage_max)
+        {
+            result = defense_object->damage_max;
+        }
     }
 
-    return (int)(attack_force * defense_object->factor);;
+    return result;
 }
 
 /*
@@ -31716,18 +31887,24 @@ int defense_result_pain(s_attack* attack_object, s_defense* defense_object)
 */
 s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attack_types attack_type)
 {    
+    //printf("\n\n defense_find_current_object(%p, %p, %d)", ent, body_object, attack_type);
+    
      /* Supplied body. */
 
     if (body_object && body_object->defense)
     {   
+        //printf("\n\t &body_object->defense[%d]: %p", attack_type, &body_object->defense[attack_type]);
+
         return &body_object->defense[attack_type];
     }
 
-    /* Model defense */
+    /* Entity defense */
 
     if (ent->defense)
     {
-         return &ent->defense[attack_type];
+        //printf("\n\t ent->defense: %p", &ent->defense[attack_type]);
+
+        return &ent->defense[attack_type];
     }
 
     /* 
@@ -31736,6 +31913,8 @@ s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attac
     * we need to be careful and avoid mutating 
     * any values downstream.
     */
+
+    //printf("\n\t &default_defense: %p", (s_defense*)&default_defense);
 
     return (s_defense *)&default_defense;
 }
@@ -31750,18 +31929,23 @@ s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attac
 */ 
 void defense_setup_from_arg(char* filename, char* command, s_defense* target_defense, ArgList* arglist, e_defense_parameters target_parameter)
 {
+    //printf("\n\n defense_setup_from_arg(%s, %s, %p, %p, %d)", filename, command, target_defense, arglist, target_parameter);
+
     int tempInt = 0;
     int i = 0;
     char* value = GET_ARGP(1);
+    
     /*
     * Now we need to figure out which attack
     * type this defense entry applies to.
     */
 
+    //printf("\n\t value: %s", value);
+
 #define tempdef(x, y) \
-					    x(stricmp(value, #y)==0)\
-					    {\
-                            defense_apply_setup_to_property(filename, command, &target_defense[ATK_##y], arglist, target_parameter);\
+					    x(stricmp(value, #y)==0) \
+					    { \
+                            defense_apply_setup_to_property(filename, command, &target_defense[ATK_##y], arglist, target_parameter); \
 					    }
 
     tempdef(if, NORMAL)
@@ -31791,48 +31975,263 @@ void defense_setup_from_arg(char* filename, char* command, s_defense* target_def
         tempdef(else if, TIMEOVER)
 
         else if (starts_with(value, "normal"))
-    {
-        get_tail_number(tempInt, value, "normal");
-
-        defense_apply_setup_to_property(filename, command, &target_defense[tempInt + STA_ATKS - 1], arglist, target_parameter);
-    }
-        else if (stricmp(value, "ALL") == 0)
-    {
-        /*
-        * "All" is a convenience feature so the creator
-        * doesn't need a defense entry for every type
-        * when they want to set up a generic defense
-        * across all attack types.
-        *
-        * To handle this we want to apply defense on
-        * all the attack types other than special types
-        * not normally used by creator. They may say
-        * �all� but they probably don�t mean get stuck
-        * in a pit forever because they're immune to
-        * pit damage! Loop through all types and type
-        * check function. If the type is special, we
-        * skip to the next. Otherwise apply the temporary
-        * values to that attack type to defense.
-        */
-
-        for (i = 0; i < max_attack_types; i++)
         {
-            if (is_attack_type_special(i))
-            {
-                continue;
-            }
+            get_tail_number(tempInt, value, "normal");
 
-            defense_apply_setup_to_property(filename, command, &target_defense[i], arglist, target_parameter);
+            defense_apply_setup_to_property(filename, command, &target_defense[tempInt + STA_ATKS - 1], arglist, target_parameter);
         }
-    }
+        else if (stricmp(value, "ALL") == 0)
+        {
+            /*
+            * "All" is a convenience feature so the creator
+            * doesn't need a defense entry for every type
+            * when they want to set up a generic defense
+            * across all attack types.
+            *
+            * To handle this we want to apply defense on
+            * all the attack types other than special types
+            * not normally used by creator. They may say
+            * �all� but they probably don�t mean get stuck
+            * in a pit forever because they're immune to
+            * pit damage! Loop through all types and type
+            * check function. If the type is special, we
+            * skip to the next. Otherwise apply the temporary
+            * values to that attack type to defense.
+            */
+
+            for (i = 0; i < max_attack_types; i++)
+            {
+                if (is_attack_type_special(i))
+                {
+                    continue;
+                }
+
+                defense_apply_setup_to_property(filename, command, &target_defense[i], arglist, target_parameter);
+            }
+        }
 
 #undef tempdef
 
 }
 
+/*
+* Caskey, Damon V.
+* 2023-02-07
+* 
+* Dump object data to log.
+*/
+void defense_dump_object(s_defense* object)
+{
+    const int space_label = 20;
+
+    printf("\n\n -- Defense dump object (%p) Dump --\n", object);
+
+    if (object)
+    {
+        printf("\n\t %-*s %d", space_label, "->block_damage_adjust", object->block_damage_adjust);
+        printf("\n\t %-*s %d", space_label, "->block_damage_max", object->block_damage_max);
+        printf("\n\t %-*s %d", space_label, "->block_damage_min", object->block_damage_min);
+        printf("\n\t %-*s %d", space_label, "->blockpower", object->blockpower);
+        printf("\n\t %-*s %f", space_label, "->blockratio", object->blockratio);
+        printf("\n\t %-*s %d", space_label, "->blockthreshold", object->blockthreshold);
+        printf("\n\t %-*s %d", space_label, "->blocktype", object->blocktype);
+        printf("\n\t %-*s %d", space_label, "->damage_adjust", object->damage_adjust);
+        printf("\n\t %-*s %d", space_label, "->damage_max", object->damage_max);
+        printf("\n\t %-*s %d", space_label, "->damage_min", object->damage_min);
+        printf("\n\t %-*s %f", space_label, "->factor", object->factor);
+        printf("\n\t %-*s %f", space_label, "->knockdown", object->knockdown);
+        printf("\n\t %-*s %p", space_label, "->meta_data", object->meta_data);
+        printf("\n\t %-*s %d", space_label, "->meta_tag", object->meta_tag);
+        printf("\n\t %-*s %d", space_label, "->pain", object->pain);
+    }
+
+    printf("\n\n -- Defense dump object (%p) dump complete! -- \n", object);
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-07
+*
+* Allocate an offense object and return pointer.
+*/
+s_offense* offense_allocate_object()
+{
+    int i = 0;
+    s_offense* result;
+
+    /* Allocate memory with 0 values and get the pointer. */
+    result = calloc(max_attack_types + 1, sizeof(*result));
+
+    /*
+    * Default values.
+    *
+    * -- Copy the global default to each attack type.
+    */
+
+    for (i = 0; i < max_attack_types; i++)
+    {
+        result[i] = default_offense;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-07
+*
+* Free offense from memory.
+*/
+void offense_free_object(s_offense* target)
+{
+    if (!target)
+    {
+        return;
+    }
+
+    free(target);
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-07
+*
+* Read first argument in supplied argument list
+* for type, and determines which attack type or
+* attack types to assign an offense value.
+*/
+void offense_setup_from_arg(char* filename, char* command, s_offense* target_offense, ArgList* arglist, e_offense_parameters target_parameter)
+{
+    int tempInt = 0;
+    int i = 0;
+    char* value = GET_ARGP(1);
+    
+    /*
+    * Now we need to figure out which attack
+    * type this offense entry applies to.
+    */
+
+#define tempoff(x, y) \
+					    x(stricmp(value, #y)==0)\
+					    {\
+                            offense_apply_setup_to_property(filename, command, &target_offense[ATK_##y], arglist, target_parameter);\
+					    }
+
+    tempoff(if, NORMAL)
+        tempoff(else if, NORMAL2)
+        tempoff(else if, NORMAL3)
+        tempoff(else if, NORMAL4)
+        tempoff(else if, NORMAL5)
+        tempoff(else if, NORMAL6)
+        tempoff(else if, NORMAL7)
+        tempoff(else if, NORMAL8)
+        tempoff(else if, NORMAL9)
+        tempoff(else if, NORMAL10)
+        tempoff(else if, BLAST)
+        tempoff(else if, STEAL)
+        tempoff(else if, BURN)
+        tempoff(else if, SHOCK)
+        tempoff(else if, FREEZE)
+
+        tempoff(else if, BOSS_DEATH)
+        tempoff(else if, ITEM)
+        tempoff(else if, LAND)
+        tempoff(else if, LIFESPAN)
+        tempoff(else if, LOSE)
+        tempoff(else if, PIT)
+        tempoff(else if, SUB_ENTITY_PARENT_KILL)
+        tempoff(else if, SUB_ENTITY_UNSUMMON)
+        tempoff(else if, TIMEOVER)
+
+        else if (starts_with(value, "normal"))
+        {
+            get_tail_number(tempInt, value, "normal");
+
+            offense_apply_setup_to_property(filename, command, &target_offense[tempInt + STA_ATKS - 1], arglist, target_parameter);
+        }
+        else if (stricmp(value, "ALL") == 0)
+        {
+            /*
+            * "All" is a convenience feature so the creator
+            * doesn't need a defense entry for every type
+            * when they want to set up a generic defense
+            * across all attack types.
+            *
+            * To handle this we want to apply offense on
+            * all the attack types other than special types
+            * not normally used by creator. 
+            */
+
+            for (i = 0; i < max_attack_types; i++)
+            {
+                if (is_attack_type_special(i))
+                {
+                    continue;
+                }
+
+                offense_apply_setup_to_property(filename, command, &target_offense[i], arglist, target_parameter);
+            }
+        }
+
+#undef tempoff
+
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-07
+*
+* Applies value to an attack type element
+* of defense.
+*/
+void offense_apply_setup_to_property(char* filename, char* command, s_offense* offense, ArgList* arglist, e_offense_parameters target_parameter)
+{
+    /*
+    * If a NULL pointer gets through, lets
+    * get out before we cause a NULL pointer
+    * error
+    */
+    if (!offense)
+    {
+        return;
+    }
+
+    /*
+    * As of 2021-08-30, the up to date method
+    * sets one parameter at a time. This is more
+    * readable in the model text files. It also
+    * allows easier debug and expansion in the future.
+    *
+    * Offense is a bit clunky since we have to send
+    * a constant to tell us which parameter to update
+    * but it still beats the legacy method.
+    */
+
+    switch (target_parameter)
+    {
+    case OFFENSE_PARAMETER_DAMAGE_ADJUST:
+        offense->damage_adjust = GET_FLOAT_ARGP(2);
+        break;
+
+    case OFFENSE_PARAMETER_DAMAGE_MAX:
+        offense->damage_max = GET_FLOAT_ARGP(2);
+        break;
+
+    case OFFENSE_PARAMETER_DAMAGE_MIN:
+        offense->damage_min = GET_FLOAT_ARGP(2);
+        break;
+
+    case OFFENSE_PARAMETER_FACTOR:
+    case OFFENSE_PARAMETER_LEGACY:
+        offense->factor = GET_INT_ARGP(2);
+        break;
+    }
+}
 
 int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_object, s_defense* defense_object)
 {
+    //printf("\n\n calculate_force_damage(%p, %p, %p, %p)", target, attacker, attack_object, defense_object);
+
     int force = attack_object->attack_force;
     int type = attack_object->attack_type;
    
@@ -31857,88 +32256,147 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
         return 0;    //guardbreak does not deal damage.
     }
 
-    if(type >= 0 && type < max_attack_types && defense_object)
+    //printf("\n\t force: %d", force);
+
+    if(type >= 0 && type < max_attack_types && attacker->offense)
     {
-        force = (int)(force * attacker->offense_factors[type]);
+        force = offense_result_damage(&attacker->offense[type], force);
     }
 
-    force = defense_result_damage(attack_object, defense_object, force);
+    //printf("\n\t force: %d", force);
+    //printf("\n\t defense_object: %p", defense_object);
+    //printf("\n\t defense_object->factor: %f", defense_object->factor);
+
+    if (!defense_object)
+    {
+        defense_object = target->defense;
+    }
+
+    force = defense_result_damage(defense_object, force, 0);
+
+    //printf("\n\t force: %d", force);
 
     return force;
 }
 
-void checkdamageonlanding()
+void checkdamageonlanding(entity* acting_entity)
 {
+    //printf("\n\n checkdamageonlanding(%p)", acting_entity);
+
     s_defense* defense_object = NULL;
+    s_attack attack = emptyattack;
+    entity* other = NULL;
+    int didhit = 0;
 
-    if (self->energy_state.health_current <= 0) return;
-
-    if( (self->damage_on_landing.attack_force > 0 && !self->dead) )
+    if (acting_entity->energy_state.health_current <= 0)
     {
-        int didhit = 0;
+        return;
+    }
 
+    if((acting_entity->damage_on_landing.attack_force > 0 && !acting_entity->dead))
+    {    
         //##################
-        s_attack attack;
-        entity *other;
-
         attack              = emptyattack;
-        attack.attack_force = self->damage_on_landing.attack_force;
-        if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = self->damage_on_landing.attack_type;
-        else attack.attack_type  = ATK_LAND;
+        attack.attack_force = acting_entity->damage_on_landing.attack_force;
+        
+        /* 
+        * Apply user defined type for damage on landing
+        * if populated. Usually there won't be one and we 
+        * fall back to ATK_LAND.
+        */
 
-        if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->energy_state.health_current > 0) other = self->opponent;
-        else other = self;
+        if (attack.damage_on_landing.attack_type >= 0)
+        {
+            attack.attack_type = acting_entity->damage_on_landing.attack_type;
+        }
+        else
+        {
+            attack.attack_type = ATK_LAND;
+        }
+
+        /*
+        * If we have a valid living opponent, that is 
+        * the entity we take consider the attacker. If 
+        * not, we use ourselves.
+        */
+
+        if (acting_entity->opponent && acting_entity->opponent->exists && !acting_entity->opponent->dead && acting_entity->opponent->energy_state.health_current > 0)
+        {
+            other = acting_entity->opponent;
+        }
+        else
+        {
+            other = acting_entity;
+        }
 
         lasthit.confirm = 1;
         lasthit.attack = &attack;
-        lasthit.position.x = self->position.x;
-        lasthit.position.y = self->position.y;
-        lasthit.position.z = self->position.z;
+        lasthit.position.x = acting_entity->position.x;
+        lasthit.position.y = acting_entity->position.y;
+        lasthit.position.z = acting_entity->position.z;
 
-        defense_object = defense_find_current_object(other, NULL, attack.attack_type);
+        defense_object = defense_find_current_object(acting_entity, NULL, attack.attack_type);
+
+        //defense_dump_object(defense_object);
 
         // Execute the doattack functions before damage is
         // processed.
-        execute_ondoattack_script(self, other, &attack, EXCHANGE_RECIPIANT, other->attack_id_outgoing);
-        execute_ondoattack_script(other, self, &attack, EXCHANGE_CONFERRER, other->attack_id_outgoing);
+        execute_ondoattack_script(acting_entity, other, &attack, EXCHANGE_RECIPIANT, other->attack_id_outgoing);
+        execute_ondoattack_script(other, acting_entity, &attack, EXCHANGE_CONFERRER, other->attack_id_outgoing);
 
+        //printf("\n\tother: %p", other);
+        //printf("\n\tattack.attack_type: %d", attack.attack_type);
+        //printf("\n\tattack.attack_force: %d", attack.attack_force);
+        
         if(lasthit.confirm)
         {
             didhit = 1;
         }
 
-        if(self->dead)
+        /*
+        * Can't take damage if we're dead.
+        */
+
+        if(acting_entity->dead)
         {
             return;
         }
-        if(self->toexplode & EXPLODE_DETONATE)
+
+        /*
+        * Bombs detonante with their own logic when
+        * landing. We don't want them to take damage.
+        */
+
+        if(acting_entity->toexplode & (EXPLODE_DETONATE_HIT | EXPLODE_DETONATE_DAMAGED))
         {
             return;
         }
+
         // fake 'grab', if failed, return as the attack hit nothing
         if(!checkgrab(other, &attack))
         {
             return;    // try to grab but failed, so return 0 means attack missed
         }
 
-        if(self != other)
+        if(acting_entity != other)
         {
-            set_opponent(self, other);
+            set_opponent(acting_entity, other);
         }
+        
         //##################
 
         if (didhit)
         {           
             // pre-check drop
-            checkdamagedrop(self, &attack, defense_object);
+            checkdamagedrop(acting_entity, &attack, defense_object);
 
             // Drop Weapon due to being hit.
-            if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_LAND_DAMAGE)
+            if(acting_entity->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_LAND_DAMAGE)
             {
                 dropweapon(1);
             }
             // check effects, e.g., frozen, blast, steal
-            if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+            if(!(acting_entity->modeldata.guardpoints.max > 0 && acting_entity->modeldata.guardpoints.current <= 0))
             {
                 checkdamageeffects(&attack);
             }
@@ -31953,63 +32411,64 @@ void checkdamageonlanding()
             * we always use model defense or global default 
             * when calculating final damage.
             */
-            checkdamage(self, other, &attack, NULL);
+            checkdamage(acting_entity, other, &attack, defense_object);            
 
             // is it dead now?
             checkdeath();
 
-            execute_didhit_script(other, self, &attack, 0);
+            execute_didhit_script(other, acting_entity, &attack, 0);
         }
 
-        if (self->energy_state.health_current <= 0)
+        if (acting_entity->energy_state.health_current <= 0)
         {
-            self->die_on_landing = 1;
+            acting_entity->die_on_landing = 1;
         }
 
-        self->damage_on_landing.attack_force = 0;
+        acting_entity->damage_on_landing.attack_force = 0;
     }
 
     // takedamage if thrown or basted
-    //if( (self->damage_on_landing.attack_force > 0 && !self->dead) &&
-    if( (self->die_on_landing && !self->dead) &&
-        ((!tobounce(self) && self->modeldata.bounce) || !self->modeldata.bounce) &&
-        (self->velocity.x == 0 && self->velocity.z == 0 && self->velocity.y == 0)
+    //if( (acting_entity->damage_on_landing.attack_force > 0 && !acting_entity->dead) &&
+    if( (acting_entity->die_on_landing && !acting_entity->dead) &&
+        ((!tobounce(acting_entity) && acting_entity->modeldata.bounce) || !acting_entity->modeldata.bounce) &&
+        (acting_entity->velocity.x == 0 && acting_entity->velocity.z == 0 && acting_entity->velocity.y == 0)
       )
     {
-        if(self->takedamage)
+        if(acting_entity->takedamage)
         {
             //##################
             s_attack attack;
             entity *other;
 
             attack              = emptyattack;
-            attack.attack_force = self->damage_on_landing.attack_force;
-            if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = self->damage_on_landing.attack_type;
+            attack.attack_force = acting_entity->damage_on_landing.attack_force;
+            if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = acting_entity->damage_on_landing.attack_type;
             else attack.attack_type  = ATK_LAND;
 
-            if (self->opponent && self->opponent->exists && !self->opponent->dead && self->opponent->energy_state.health_current > 0)
+            if (acting_entity->opponent && acting_entity->opponent->exists && !acting_entity->opponent->dead && acting_entity->opponent->energy_state.health_current > 0)
             {
-                other = self->opponent;
+                other = acting_entity->opponent;
             }
             else
             {
-                other = self;
+                other = acting_entity;
             }
             //##################
 
             defense_object = defense_find_current_object(other, NULL, attack.attack_type);
             
-            self->takedamage(other, &attack, 1, defense_object);
+            acting_entity->takedamage(other, &attack, 1, defense_object);
         }
         else
         {
-            kill_entity(self, KILL_ENTITY_TRIGGER_DAMAGE_ON_LANDING);
+            kill_entity(acting_entity, KILL_ENTITY_TRIGGER_DAMAGE_ON_LANDING);
         }
-        if (self)
+        
+        if (acting_entity)
         {
-            self->damage_on_landing.attack_force = 0;
-            self->damage_on_landing.attack_type = ATK_NONE;
-            self->die_on_landing = 0;
+            acting_entity->damage_on_landing.attack_force = 0;
+            acting_entity->damage_on_landing.attack_type = ATK_NONE;
+            acting_entity->die_on_landing = 0;
         }
     }
 
@@ -32061,7 +32520,9 @@ int is_attack_type_special(e_attack_types type)
 * total damage calculation functions.
 */
 void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, s_defense* defense_object)
-{    
+{ 
+    //printf("\n\n checkdamage(%p, %p, %p, %p)", target_entity, attacking_entity, attack_object, defense_object);
+
 	int	force = 0;
 	int	normal_damage = 0;    
 
@@ -32171,7 +32632,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         return 0;
     }
 
-    if(self->toexplode & EXPLODE_DETONATE)
+    if(self->toexplode & (EXPLODE_DETONATE_HIT | EXPLODE_DETONATE_DAMAGED))
     {
         return 0;
     }    
@@ -35495,9 +35956,8 @@ int arrow_move(entity* acting_entity)
         // Bounce off walls or platforms.
         projectile_wall_deflect(acting_entity);
         
-        if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE)
+        if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_BASE_DIE)
         {
-
             if (acting_entity->landed_on_platform || acting_entity->position.y <= acting_entity->base)
             {
                 acting_entity->takeaction = common_fall;
@@ -35544,7 +36004,7 @@ int bomb_try_detonate(entity* acting_entity)
 
     //printf("\n\t %s: %d", "acting_entity->toexplode", acting_entity->toexplode);
 
-    if (!(acting_entity->toexplode & EXPLODE_DETONATE))
+    if (!(acting_entity->toexplode & (EXPLODE_DETONATE_HIT | EXPLODE_DETONATE_DAMAGED)))
     {
         if (!(acting_entity->toexplode & (EXPLODE_PREPARE_TOUCH | EXPLODE_PREPARE_GROUND)))
         {
@@ -35610,12 +36070,15 @@ int bomb_try_detonate(entity* acting_entity)
     * If we hit or got hit, then play ATTACK2. 
     * If we landed first, play ATTACK1.
     */ 
-    if (acting_entity->toexplode & EXPLODE_DETONATE)
+    if (acting_entity->toexplode & (EXPLODE_DETONATE_HIT | EXPLODE_DETONATE_DAMAGED))
     {
         /*
-        * Play explode animation. If we don't have
-        * an explode, then check remove flag like
-        * a non-bomb projectile.
+        * Play explode animation if we have it.
+        * 
+        * If we do not have explode animation and 
+        * the explode was triggered by hitting, then 
+        * let's behave like a typical projectile and
+        * check the remove flag.
         */
 
         if (validanim(acting_entity, ANI_ATTACK2))
@@ -35623,7 +36086,7 @@ int bomb_try_detonate(entity* acting_entity)
             ent_set_anim(acting_entity, ANI_ATTACK2, 0);
             acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
         }
-        else if(acting_entity->modeldata.remove)
+        else if(acting_entity->modeldata.remove && acting_entity->toexplode & EXPLODE_DETONATE_HIT)
         {
             kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BOMB_EXPLODE_ANIMATION_UNAVAILABLE);
         }
@@ -35651,9 +36114,12 @@ int bomb_move(entity* acting_entity)
     * but NOT yet set to detonate, then we move using velocity (presumably 
     * we've been tossed and so any Z and Y momentum is already handled). 
     *
-    * EXPLODE_DETONATE status is applied by do_attack() if we touch
-    * ground, hit another entity, or are hit by another entity attack.
-    * In that case, we "explode" by playing an appropriate animation.
+    * EXPLODE_DETONATE_HIT status is applied by do_attack() if we touch
+    * ground or hit another entity.
+    *
+    * EXPLODE_DETONATE_DAMAGE set when hit by another entity attack.
+    * 
+    * In either case case, we "explode" by playing an appropriate animation.
     */
 
     /* 
@@ -40087,7 +40553,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	*/
     if (projectile->offense == PROJECTILE_OFFENSE_PARENT)
 	{
-		memcpy(projectile_entity->offense_factors, parent->offense_factors, sizeof(*projectile_entity->offense_factors) * max_attack_types);
+		memcpy(projectile_entity->offense, parent->offense, sizeof(*projectile_entity->offense) * max_attack_types);
 	}
 
 	/* Apply color adjustment. */

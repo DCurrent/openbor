@@ -126,6 +126,8 @@ movement restirctions are here!
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
 
 #define MAP_INDEX_NONE -1
+#define MAP_INDEX_PARENT_INDEX -2   // For child spawn. Use parent's current index.
+#define MAP_INDEX_PARENT_TABLE -3   // For child spawn. Use parent's color table.
 #define HOLE_INDEX_NONE -1
 #define WALL_INDEX_NONE -1
 
@@ -228,10 +230,11 @@ typedef enum
 // Flags for legacy bomb projectiles.
 typedef enum
 {
-	EXPLODE_NONE		    = 0,
-    EXPLODE_PREPARE_GROUND  = (1 << 0),
-    EXPLODE_PREPARE_TOUCH	= (1 << 1),
-    EXPLODE_DETONATE	    = (1 << 2)
+	EXPLODE_NONE		        = 0,
+    EXPLODE_PREPARE_GROUND      = (1 << 0),
+    EXPLODE_PREPARE_TOUCH	    = (1 << 1),
+    EXPLODE_DETONATE_DAMAGED    = (1 << 2), // Damaged by attack.
+    EXPLODE_DETONATE_HIT        = (1 << 3)  // Hit another entity.
 } e_explode_state;
 
 // Caskey, Damon V.
@@ -2078,19 +2081,37 @@ typedef struct
 * work with.
 */
 typedef enum
-{    
+{   
+    DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST,
+    DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX,
+    DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN,
     DEFENSE_PARAMETER_BLOCK_POWER,
     DEFENSE_PARAMETER_BLOCK_RATIO,
     DEFENSE_PARAMETER_BLOCK_THRESHOLD,
     DEFENSE_PARAMETER_BLOCK_TYPE,
+    DEFENSE_PARAMETER_DAMAGE_ADJUST,
+    DEFENSE_PARAMETER_DAMAGE_MAX,
+    DEFENSE_PARAMETER_DAMAGE_MIN,
     DEFENSE_PARAMETER_FACTOR,
     DEFENSE_PARAMETER_KNOCKDOWN,   
     DEFENSE_PARAMETER_LEGACY,
     DEFENSE_PARAMETER_PAIN
 } e_defense_parameters;
 
+typedef enum
+{
+    OFFENSE_PARAMETER_DAMAGE_ADJUST,
+    OFFENSE_PARAMETER_DAMAGE_MAX,
+    OFFENSE_PARAMETER_DAMAGE_MIN,
+    OFFENSE_PARAMETER_FACTOR,
+    OFFENSE_PARAMETER_LEGACY
+} e_offense_parameters;
+
 typedef struct
 {
+    int         block_damage_adjust;    // Arbitrary damage adjustment, when blocking.
+    int         block_damage_max;       // Maximum damage allowed after calculations, when blocking.
+    int         block_damage_min;       // Minimum damage allowed after calculations, when blocking.
     int         blockpower;     // If > unblockable, this attack type is blocked.
     int         blockthreshold; // Strongest attack from this attack type that can be blocked.
     float       blockratio;     // % of damage still taken from this attack type when blocked.
@@ -2098,11 +2119,30 @@ typedef struct
     float       factor;         // Multiplier applied to incoming damage.
     float       knockdown;      // Multiplier applied to incoming knockdown.
     int         pain;           // Pain factor (like nopain) for defense type.
+    int         damage_adjust;  // Arbitrary damage adjustment.
+    int         damage_max;     // Maximum damage allowed after calculations.
+    int         damage_min;     // Minimum damage allowed after calculations.
 
     // Meta data.
     s_meta_data* meta_data;     // User defiend data.
     int			 meta_tag;	    // User defined int.
 } s_defense;
+
+
+/*
+* Caskey, Damon V.
+* 2023-02-07
+* 
+* Structure for offense so we can
+* have additional properties.
+*/
+typedef struct
+{
+    float factor;       // Mutiplier applied to outgoing damage.
+    int damage_adjust;  // Arbitrary damage adjustment.
+    int damage_max;     // Maximum damage allowed after calculations.
+    int damage_min;     // Minimum damage allowed after calculations. 
+} s_offense;
 
 // Caskey, Damon V.
 // 2018-04-10
@@ -2469,28 +2509,27 @@ typedef enum e_child_spawn_config
     CHILD_SPAWN_CONFIG_AUTOKILL_HIT                 = (1 << 1),
     CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB                = (1 << 2),
     CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT                = (1 << 3),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_TABLE           = (1 << 4),
-    CHILD_SPAWN_CONFIG_COLOR_PARENT_INDEX           = (1 << 5),
-    CHILD_SPAWN_CONFIG_EXPLODE                      = (1 << 6),
-    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER     = (1 << 7),
-    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT        = (1 << 8),
-    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER    = (1 << 9),
-    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT       = (1 << 10),
-    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER   = (1 << 11),
-    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT      = (1 << 12),
-    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARAMETER     = (1 << 13),
-    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARENT        = (1 << 14),
-    CHILD_SPAWN_CONFIG_GRAVITY_OFF                  = (1 << 15),
-    CHILD_SPAWN_CONFIG_LAUNCH_THROW                 = (1 << 16),
-    CHILD_SPAWN_CONFIG_LAUNCH_TOSS                  = (1 << 17),
-    CHILD_SPAWN_CONFIG_OFFENSE_PARENT               = (1 << 18),
-    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 19),
-    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 20),
-    CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 21),
-    CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER         = (1 << 22),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 23),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 24),
-    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 25)
+    CHILD_SPAWN_CONFIG_EXPLODE                      = (1 << 4),
+    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER     = (1 << 5),
+    CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT        = (1 << 6),
+    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER    = (1 << 7),
+    CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT       = (1 << 8),
+    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER   = (1 << 9),
+    CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT      = (1 << 10),
+    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARAMETER     = (1 << 11),
+    CHILD_SPAWN_CONFIG_FACTION_MEMBER_PARENT        = (1 << 12),
+    CHILD_SPAWN_CONFIG_GRAVITY_OFF                  = (1 << 13),
+    CHILD_SPAWN_CONFIG_LAUNCH_THROW                 = (1 << 14),
+    CHILD_SPAWN_CONFIG_LAUNCH_TOSS                  = (1 << 15),
+    CHILD_SPAWN_CONFIG_OFFENSE_PARENT               = (1 << 16),
+    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 17),
+    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 18),
+    CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 19),
+    CHILD_SPAWN_CONFIG_POSITION_SCREEN              = (1 << 20),
+    CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER         = (1 << 21),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_CHILD           = (1 << 22),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER           = (1 << 23),
+    CHILD_SPAWN_CONFIG_RELATIONSHIP_PARENT          = (1 << 24)
 } e_child_spawn_config;
 
 /*
@@ -2508,6 +2547,7 @@ typedef struct s_child_spawn
     e_autokill_state        autokill;
     s_bind*                 bind;
     e_entity_type           candamage;
+    int                     color;
     e_child_spawn_config    config;
     e_direction_adjust      direction_adjust;
     e_entity_type           hostile;
@@ -2908,6 +2948,62 @@ typedef struct
     s_axis_plane_vertical_int position;
 } s_player_arrow;
 
+/*
+* Caskey, Damon V.
+* 2023-02-03
+* 
+* Factionc onstants for self-contained
+* faction system. See s_faction struct.
+*/
+typedef enum e_faction
+{
+    FACTION_NONE = 0,
+    FACTION_LEGACY = (1 << 0), // Default faction for all models. Members of this faction use legacy type based faction system.
+    FACTION_A = (1 << 1),
+    FACTION_B = (1 << 2),
+    FACTION_C = (1 << 3),
+    FACTION_D = (1 << 4),
+    FACTION_E = (1 << 5),
+    FACTION_F = (1 << 6),
+    FACTION_G = (1 << 7),
+    FACTION_H = (1 << 8),
+    FACTION_I = (1 << 9),
+    FACTION_J = (1 << 10),
+    FACTION_K = (1 << 11),
+    FACTION_L = (1 << 12),
+    FACTION_M = (1 << 13),
+    FACTION_N = (1 << 14),
+    FACTION_O = (1 << 15),
+    FACTION_P = (1 << 16),
+    FACTION_Q = (1 << 17),
+    FACTION_R = (1 << 18),
+    FACTION_S = (1 << 19),
+    FACTION_T = (1 << 20),
+    FACTION_U = (1 << 21),
+    FACTION_V = (1 << 22),
+    FACTION_W = (1 << 23),
+    FACTION_X = (1 << 24),
+    FACTION_Y = (1 << 25),
+    FACTION_Z = (1 << 26)
+} e_faction;
+
+/*
+* Caskey, Damon V.
+* 2023-02-03
+* 
+* Self-contained faction system to
+* replace using types for controlling
+* what other entities an entity is
+* hostile to and can damage.
+*/
+typedef struct
+{
+    e_faction damage_direct;    // Factions entity can damage with attacks.
+    e_faction damage_indirect;  // Factions entity can damage when thrown/blasted.
+    e_faction hostile;          // Factions entity seeks and attacks.
+    e_faction member;           // Factions entity belongs to.
+} s_faction;
+
 typedef enum
 {
     /*
@@ -3124,10 +3220,16 @@ typedef struct
     int entitypushing; // entity pushing active in entity collision
     float pushingfactor; // pushing factor in entity collision
 
-    //---------------new A.I. switches-----------
+    /* Faction data (hostile to, can hit, etc.). */
+    s_faction faction;
+
+    /* Legacy faction (based on type) */
     e_entity_type hostile; // specify hostile types
     e_entity_type candamage; // specify types that can be damaged by this entity
     e_entity_type projectilehit; // specify types that can be hit by this entity if it is thrown
+
+    //---------------new A.I. switches-----------
+    
     s_sight sight; // Sight range. 2011_04_05, DC: Moved to struct.
     e_aimove aimove; // move style
     unsigned int aiattack; // attack/defend style
@@ -3140,7 +3242,7 @@ typedef struct
     e_model_copy model_flag; // Control portions copied from orginal model when entity switches model.
 
     s_defense *defense; //defense related, make a struct to aid copying
-    float *offense_factors; //basic offense factors: damage = damage*offense
+    s_offense *offense; //basic offense factors: damage = damage*offense
     s_attack *smartbomb;
 
     // e.g., boss
@@ -3236,7 +3338,8 @@ typedef struct entity
 	s_axis_principal_float	position;							// x,y,z location. ~~
 	s_axis_principal_float	velocity;							// x,y,z movement speed. ~~ 
 	s_energy_state			energy_state;						// Health and MP. ~~	
-	s_model					modeldata;							// model data copied here ~~
+    s_faction               faction;                            // Can hit, hostile to, etc.
+    s_model					modeldata;							// model data copied here ~~
 	s_jump					jump;								// Jumping velocity and animationnid. ~~	
 	s_rush					rush;								// Rush combo display. ~~
 
@@ -3246,7 +3349,8 @@ typedef struct entity
 	s_item_properties		*item_properties;					// Properties copied to an item entity when it is dropped. ~~	
 	s_model					*defaultmodel;						// this is the default model ~~
 	s_defense				*defense;							// Resistance or vulnerability to certain attack types. ~~
-	s_model					*model;								// current model ~~
+    s_offense               *offense;					        // Augment or reduce damage output for some attack types.
+    s_model					*model;								// current model ~~
 	s_damage_recursive		*recursive_damage;					// Recursive damage linked list head. ~~
     s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
 	s_scripts				*scripts;							// Loaded scripts. ~~
@@ -3263,10 +3367,7 @@ typedef struct entity
 	struct entity			*parent;							// Its spawner (when a sub entity). ~~
 	struct entity			*subentity;							// Summoned sub entity. ~~
 	struct entity			*weapent;							// Item entity that was picked up as a weapon. ~~
-
-	// Pointers
-	float					*offense_factors;					// Augment or reduce damage output for some attack types. ~~
-
+	
 	unsigned char			*colourmap;							// Colortable in use. ~~
 
 	Varlist					*varlist;							// Entity var collection. ~~
@@ -3352,6 +3453,7 @@ typedef struct entity
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
 	e_update_mark			update_mark;						// Which updates are completed. ~~
     e_move_constraint       move_constraint;                    // Subject to basemap, wall, obstacle, hitting head on platforms, etc.
+    
 
 	// Boolean flags.
     int					    arrowon;							// Display arrow icon (parrow<player>) ~~
@@ -3715,11 +3817,18 @@ void unfrozen(entity *e);
 int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object);
 s_defense* defense_allocate_object();
 void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
+void defense_dump_object(s_defense* target);
 void defense_free_object(s_defense* target);
 s_defense* defense_find_current_object(entity* ent, s_body* body_object, e_attack_types attack_type);
-int defense_result_damage(s_attack* attack_object, s_defense* defense_object, int attack_force);
+int defense_result_damage(s_defense* defense_object, int attack_force, int blocked);
 int defense_result_pain(s_attack* attack_object, s_defense* defense_object);
 void defense_setup_from_arg(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
+
+s_offense* offense_allocate_object();
+void offense_free_object(s_offense* target);
+void offense_apply_setup_to_property(char* filename, char* command, s_offense* offense, ArgList* arglist, e_offense_parameters target_parameter);
+void offense_setup_from_arg(char* filename, char* command, s_offense* target_offense, ArgList* arglist, e_offense_parameters target_parameter);
+int offense_result_damage(s_offense* offense_object, int attack_force);
 
 /* Recursive damage. */
 s_damage_recursive*         recursive_damage_allocate_object();
@@ -3900,6 +4009,7 @@ void    bind_free_object(s_bind* target);
 int     check_bind_override(entity* ent, e_bind_config bind_config);
 
 /* Child spawn control */
+int child_spawn_get_color_from_argument(char* filename, char* command, char* value);
 e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_spawn_config config_current);
 e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value);
 
@@ -4082,7 +4192,7 @@ void checkdamageflip(entity* target_entity, entity* other, s_attack* attack_obje
 void checkmpadd();
 void checkhitscore(entity *other, s_attack *attack);
 void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, s_defense* defense_object);
-void checkdamageonlanding();
+void checkdamageonlanding(entity* acting_entity);
 int checkhit(entity *attacker, entity *target);
 int checkhole(float x, float z);
 int checkhole_index(float x, float z);

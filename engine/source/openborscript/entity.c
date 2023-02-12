@@ -891,7 +891,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 		case _ENTITY_OFFENSE_COLLECTION:
 
 			ScriptVariant_ChangeType(*pretvar, VT_PTR);
-			(*pretvar)->ptrVal = (float *)handle->offense_factors;
+			(*pretvar)->ptrVal = (s_offense *)handle->offense;
 
 			break;
 
@@ -2063,7 +2063,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
 		case _ENTITY_OFFENSE_COLLECTION:
 
-			handle->offense_factors = (float *)varlist[ARG_VALUE]->ptrVal;
+			handle->offense = (s_offense *)varlist[ARG_VALUE]->ptrVal;
 
 			break;
 

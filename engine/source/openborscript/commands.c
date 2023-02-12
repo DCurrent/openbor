@@ -131,6 +131,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ATCHAIN, "atchain");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_AIMOVE,              "child_spawn_aimove");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_CANDAMAGE,           "child_spawn_candamage");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_COLOR,               "child_spawn_color");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_CONFIG,              "child_spawn_config");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST,    "child_spawn_direction_adjust");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_HOSTILE,             "child_spawn_hostile");
@@ -267,10 +268,16 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_DAMAGEONLANDING, "damageonlanding");
     LIST_ADD(CMD_MODEL_DEATH, "death");
     LIST_ADD(CMD_MODEL_DEFENSE, "defense");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_DAMAGE_ADJUST, "defense.block.damage.adjust");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MAX, "defense.block.damage.max");
+    LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MIN, "defense.block.damage.min");
     LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_POWER, "defense.block.power");
     LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_RATIO, "defense.block.ratio");
     LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_THRESHOLD, "defense.block.threshold");
     LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_TYPE, "defense.block.type");
+    LIST_ADD(CMD_MODEL_DEFENSE_DAMAGE_ADJUST, "defense.damage.adjust");
+    LIST_ADD(CMD_MODEL_DEFENSE_DAMAGE_MAX, "defense.damage.max");
+    LIST_ADD(CMD_MODEL_DEFENSE_DAMAGE_MIN, "defense.damage.min");
     LIST_ADD(CMD_MODEL_DEFENSE_FACTOR, "defense.factor");
     LIST_ADD(CMD_MODEL_DEFENSE_KNOCKDOWN, "defense.knockdown");
     LIST_ADD(CMD_MODEL_DEFENSE_PAIN, "defense.pain");
@@ -405,6 +412,10 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_NOSHADOW, "noshadow");
     LIST_ADD(CMD_MODEL_NOTGRAB, "notgrab");
     LIST_ADD(CMD_MODEL_OFFENSE, "offense");
+    LIST_ADD(CMD_MODEL_OFFENSE_DAMAGE_ADJUST, "offense.damage.adjust");
+    LIST_ADD(CMD_MODEL_OFFENSE_DAMAGE_MAX, "offense.damage.max");
+    LIST_ADD(CMD_MODEL_OFFENSE_DAMAGE_MIN, "offense.damage.min");
+    LIST_ADD(CMD_MODEL_OFFENSE_FACTOR, "offense.factor");
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
     LIST_ADD(CMD_MODEL_ONAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODEL_OFFSET, "offset");

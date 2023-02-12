@@ -4790,7 +4790,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             }
         }
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)ent->offense_factors[(LONG)ltemp];
+        (*pretvar)->dblVal = (DOUBLE)ent->offense[(LONG)ltemp].factor;
         break;
     }
     case _ep_offscreen_noatk_factor:
@@ -6714,7 +6714,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ltemp < (LONG)MAX_ATKS && ltemp >= (LONG)0 &&
                 SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
-            ent->offense_factors[(LONG)ltemp] = (DOUBLE)dbltemp;
+            ent->offense[(LONG)ltemp].factor = (DOUBLE)dbltemp;
         }
         break;
     }
