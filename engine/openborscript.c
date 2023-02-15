@@ -6313,7 +6313,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_jumpmove_x(ent->modeldata.air_control, ltemp);
+            ent->modeldata.air_control = (e_air_control)air_control_interpret_from_legacy_jumpmove_z(ent->modeldata.air_control, ltemp);
         }
         break;
     }

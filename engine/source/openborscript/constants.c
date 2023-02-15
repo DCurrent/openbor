@@ -731,7 +731,6 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ANIMATING_NONE)
         ICMPCONST(ANIMATING_REVERSE)
 
-        ICMPCONST(ATK_LOSE)
         ICMPCONST(MAX_ANIS)
 
         // Attacking state.
