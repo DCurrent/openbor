@@ -1,6 +1,7 @@
 /*
  * OpenBOR - http://www.chronocrash.com
  * -----------------------------------------------------------------------
+ * 
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
  * Copyright (c) OpenBOR Team
@@ -178,7 +179,11 @@ const s_collision_body empty_collision_body = { .coords = NULL,
                                             .meta_data = NULL,
                                             .meta_tag = 0 };
 
-const s_body empty_body = { .defense = NULL };
+const s_body empty_body = { .defense = NULL,
+                            .flash_layer_adjust = 0,
+                            .flash_layer_source = 0,
+                            .flash_z_source = 0
+};
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
                                                         .index      = 0,
@@ -212,6 +217,9 @@ const s_attack emptyattack =
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
+    .flash_layer_adjust = 0,
+    .flash_layer_source = 0,
+    .flash_z_source     = 0,
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,
@@ -643,8 +651,11 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 s_global_config global_config =
 {
     .ajspecial = AJSPECIAL_KEY_SPECIAL,
-    .cheats = CHEAT_OPTIONS_ALL_MENU,
-    .showgo = 0
+    .cheats = CHEAT_OPTIONS_ALL_MENU,    
+    .flash_layer_adjust = 1,
+    .flash_layer_source = 255,
+    .flash_z_source = 0,
+    .showgo = 0    
 };
 
 s_barstatus loadingbarstatus =
@@ -7125,7 +7136,7 @@ void collision_attack_dump_list(s_collision_attack* head)
             printf("\n\t\t\t ->z_background: %d", cursor->coords->z_background);
             printf("\n\t\t\t ->z_foreground: %d", cursor->coords->z_foreground);
         }
-
+        
         printf("\n\t\t ->index: %d", cursor->index);
         printf("\n\t\t ->meta_data: %p", cursor->meta_data);
         printf("\n\t\t ->meta_tag: %d", cursor->meta_tag);
@@ -8397,6 +8408,9 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->dropv.x: %f", attack->dropv.x);
         printf("\n\t ->dropv.y: %f", attack->dropv.y);
         printf("\n\t ->dropv.z: %f", attack->dropv.z);
+        printf("\n\t ->flash_layer_adjust: %d", attack->flash_layer_adjust);
+        printf("\n\t ->flash_layer_source: %d", attack->flash_layer_source);
+        printf("\n\t ->flash_z_source: %d", attack->flash_z_source);
         printf("\n\t ->forcemap: %d", attack->forcemap);
         printf("\n\t ->force_direction: %d", attack->force_direction);
         printf("\n\t ->freeze: %d", attack->freeze);
@@ -8513,6 +8527,9 @@ void body_dump_object(s_body* body)
     if (body)
     {        
         printf("\n\t ->body_defense: %d", body->defense);
+        printf("\n\t ->flash_layer_adjust: %d", body->flash_layer_adjust);
+        printf("\n\t ->flash_layer_source: %d", body->flash_layer_source);
+        printf("\n\t ->flash_z_source: %d", body->flash_z_source);
 
     }
 
@@ -15089,7 +15106,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_BBOX_INDEX:
-                // Nothing yet - for future support of multiple boxes.
+                // Does nothing. Do not modify.
+                break;
+            case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_ADJUST:
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_layer_adjust = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_SOURCE:
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_layer_source = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_Z_SOURCE:
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_z_source = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_X:   
 
@@ -15602,6 +15628,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE:
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->no_flash = GET_INT_ARG(1);
+
+                break;
+
+            case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_ADJUST:
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_layer_adjust = GET_INT_ARG(1);
+
+                break;
+           
+            case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_SOURCE:
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_layer_source = GET_INT_ARG(1);
+
+                break;
+
+            case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_Z_SOURCE:
+
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_z_source = GET_INT_ARG(1);
 
                 break;
 
@@ -17795,7 +17839,15 @@ int load_models()
 
                 lcmHandleCommandGlobalConfigCheats(&arglist);
                 break;
-
+            case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
+                global_config.flash_layer_adjust = GET_INT_ARG(1);
+                break;
+            case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
+                global_config.flash_layer_source = GET_INT_ARG(1);
+                break;
+            case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_Z_SOURCE:
+                global_config.flash_z_source = GET_INT_ARG(1);
+                break;
             case CMD_MODELSTXT_GRABDISTANCE:
                 default_model_grabdistance =  GET_FLOAT_ARG(1);
                 break;
@@ -24022,7 +24074,6 @@ int check_collision(s_collision_check_data* collision_data)
 {
 	s_box seek_pos;
 	s_box detect_pos;
-    int distance = 0;
 
     /*
 	* X axis. 
@@ -24057,7 +24108,7 @@ int check_collision(s_collision_check_data* collision_data)
 	// If we are out of bounds, there's no collision.
 	if (seek_pos.left > detect_pos.right || seek_pos.right < detect_pos.left)
 	{
-		return FALSE;
+		return 0;
 	}
 
     /*
@@ -24082,14 +24133,12 @@ int check_collision(s_collision_check_data* collision_data)
 	// If we are out of bounds, there's no collision.
 	if (seek_pos.bottom > detect_pos.top || seek_pos.top < detect_pos.bottom)
 	{
-		return FALSE;
+		return 0;
 	}
 	
     /*
 	* Z axis.
 	*
-	* Z axis is fairly simple. We just need to compare
-	* the foreground and background sides of our cubes. 
 	* Same principal as the left and right sides of X 
 	* axis, except we don't have to worry about flipping 
 	* direction.
@@ -24101,9 +24150,10 @@ int check_collision(s_collision_check_data* collision_data)
 	detect_pos.background = collision_data->target_pos->z - collision_data->target_coords->z_background;
 	detect_pos.foreground = collision_data->target_pos->z + collision_data->target_coords->z_foreground;
 	
+    // If we are out of bounds, there's no collision.
     if (seek_pos.background > detect_pos.foreground || seek_pos.foreground < detect_pos.background)
 	{
-		return FALSE;
+		return 0;
 	}
 
     /*
@@ -24119,44 +24169,16 @@ int check_collision(s_collision_check_data* collision_data)
 
 	collision_data->return_overlap->left = seek_pos.left < detect_pos.left ? detect_pos.left : seek_pos.left;
 	collision_data->return_overlap->right = seek_pos.right > detect_pos.right ? detect_pos.right : seek_pos.right;
-	collision_data->return_overlap->bottom = seek_pos.bottom < detect_pos.bottom ? detect_pos.bottom : seek_pos.bottom;
-	collision_data->return_overlap->top = seek_pos.top > detect_pos.top ? detect_pos.top : seek_pos.top;
-    
     collision_data->return_overlap->center_x = (collision_data->return_overlap->left + collision_data->return_overlap->right) / 2;
-	collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
-                
-    /*
-    * When items are close on Z axis, we
-    * force the collision to appear in
-    * front of the two entities. This is
-    * so flash spawns and other effects
-    * don't appear behind them.
-    *
-    * If the entities are farther away
-    * then we use the same formula as X 
-    * and Y axis.
-    */
-
-    if (collision_data->seeker_pos->z > collision_data->target_pos->z)
-    {
-        distance = collision_data->seeker_pos->z - collision_data->target_pos->z;
-    }
-    else
-    {
-        distance = collision_data->target_pos->z - collision_data->seeker_pos->z;
-    }
-
-    if (distance < 10)
-    {
-        collision_data->return_overlap->center_z = 1 + (collision_data->seeker_pos->z > collision_data->target_pos->z ? collision_data->seeker_pos->z : collision_data->target_pos->z);
-    }
-    else
-    {
-        collision_data->return_overlap->background = seek_pos.background < detect_pos.background ? detect_pos.background : seek_pos.background;
-        collision_data->return_overlap->foreground = seek_pos.foreground > detect_pos.foreground ? detect_pos.foreground : seek_pos.foreground;
-        collision_data->return_overlap->center_z = (collision_data->return_overlap->background + collision_data->return_overlap->foreground) / 2;
-    }
-
+    
+    collision_data->return_overlap->bottom = seek_pos.bottom < detect_pos.bottom ? detect_pos.bottom : seek_pos.bottom;
+	collision_data->return_overlap->top = seek_pos.top > detect_pos.top ? detect_pos.top : seek_pos.top;
+    collision_data->return_overlap->center_y = (collision_data->return_overlap->top + collision_data->return_overlap->bottom) / 2;
+        
+    collision_data->return_overlap->background = seek_pos.background < detect_pos.background ? detect_pos.background : seek_pos.background;
+    collision_data->return_overlap->foreground = seek_pos.foreground > detect_pos.foreground ? detect_pos.foreground : seek_pos.foreground;
+    collision_data->return_overlap->center_z = (collision_data->return_overlap->background + collision_data->return_overlap->foreground) / 2;
+    
 	return 1;
 }
 
@@ -25461,8 +25483,16 @@ void do_passive_block(entity *ent, entity *other, s_attack *attack)
 */
 entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash)
 {
+    //printf("\n\n spawn_attack_flash(%p, %p, %d, %d)", ent, attack, attack_flash, model_flash);
+
 	int model_index = MODEL_INDEX_NONE; // THe model we will spawn as flash entity.
 	entity *flash = NULL;               // Flash entity pointer.
+    float attacker_position_z = lasthit.position.z;
+    float target_position_z = lasthit.position.z;
+    int set_layer = 0;
+    float position_z = 0.0;
+    int flash_layer_source = 0;
+    int flash_z_source = 0;
 
     /*
 	* Flash disabled by attack?
@@ -25500,19 +25530,116 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
 	{
         model_index = model_flash;
 	}
+        
+    /*
+    * Get the attacker and target Z position. 
+    * We are using local variables here just 
+    * in case the attacker or target are not
+    * populated with valid entities.
+    */
 
-	/* Spawn the flash at last hit position. */
-	flash = spawn(lasthit.position.x, lasthit.position.z, lasthit.position.y, DIRECTION_LEFT, NULL, model_index, NULL);
+    if (lasthit.attacker)
+    {
+        attacker_position_z = lasthit.attacker->position.z;        
+    }
+
+    if (ent)
+    {
+        target_position_z = ent->position.z;
+    }
 
     /*
-	* One last check to make sure we
-	* were able to spawn to flash entity.
-	*/
+    * Base Z position. This is the starting Z location
+    * to spawn flash. Start with global config value
+    * then apply adjustments (if any) from collison
+    * objects. Then we determine source for base Z
+    * using the total. 
+    */
+
+    flash_z_source = global_config.flash_z_source;
+    flash_z_source += lasthit.attack ? lasthit.attack->flash_z_source : 0;
+    flash_z_source += lasthit.detect_body ? lasthit.detect_body->flash_z_source : 0;
+
+    if (!flash_z_source)
+    {       
+        position_z = lasthit.position.z;
+    }
+    else if (flash_z_source <= -255)
+    { 
+        position_z = attacker_position_z < target_position_z ? attacker_position_z : target_position_z;
+    }
+    else if (flash_z_source > -255 && flash_z_source < 0)
+    {
+        position_z = attacker_position_z;
+    }
+    else if (flash_z_source > 0 && flash_z_source < 255)
+    {
+        position_z = target_position_z;
+    }
+    else // >= 255
+    {
+        position_z = attacker_position_z > target_position_z ? attacker_position_z : target_position_z;
+    }
+
+	flash = spawn(lasthit.position.x, position_z, lasthit.position.y, DIRECTION_LEFT, NULL, model_index, NULL);
 
     if (!flash)
-	{
+    {
         return NULL;
-	}
+    }
+
+    /*
+    * Adjust the layer (sort id). Combine values
+    * from attack, defense and global adjustment. 
+    * 
+    * Then we decide what to do from the total:
+    * 
+    * 0: Use highest Z (attacker vs. recipient).
+    * <0: Use attacker.
+    * >0: Use defender.
+    * 
+    * Then we combine all static adjustments and
+    * apply to flash model's sort ID.
+    */
+
+    //printf("\n\t global_config.flash_layer_source: %d", global_config.flash_layer_source);
+    
+    flash_layer_source = global_config.flash_layer_source;
+    flash_layer_source += lasthit.attack ? lasthit.attack->flash_layer_source : 0;
+    flash_layer_source += lasthit.detect_body ? lasthit.detect_body->flash_layer_source : 0;
+
+    //printf("\n\t flash_layer_source: %d", flash_layer_source);
+
+    if (!flash_layer_source)
+    {
+        set_layer = position_z;
+    }
+    else if (flash_layer_source <= -255)
+    {
+        set_layer = attacker_position_z < target_position_z ? attacker_position_z : target_position_z;
+    }
+    else if (flash_layer_source > -255 && flash_layer_source < 0)
+    {
+        set_layer = attacker_position_z;
+    }
+    else if (flash_layer_source > 0 && flash_layer_source < 255)
+    {
+        set_layer = target_position_z;
+    }
+    else // >= 255
+    {
+        set_layer = attacker_position_z > target_position_z ? attacker_position_z : target_position_z;
+    }
+
+    //printf("\n\t set_layer: %d", set_layer);
+
+    set_layer += global_config.flash_layer_adjust + lasthit.attack->flash_layer_adjust + lasthit.detect_body->flash_layer_adjust;
+    
+    //printf("\n\t set_layer (adjusted): %d", set_layer);
+
+    flash->modeldata.setlayer = set_layer;
+
+    //printf("\n\t flash->modeldata.setlayer: %d", flash->modeldata.setlayer);
 
     /* 
     * We have a valid flash entity, let's

@@ -30,7 +30,11 @@ int mapstrings_global_config_property(ScriptVariant** varlist, int paramCount)
 	static const char* proplist[] =
 	{
 		"ajspecial",
-		"cheats"
+		"cheats",
+		"flash_layer_adjust",
+		"flash_layer_source",
+		"flash_z_source",
+		"show_go"
 	};
 
 	//printf("\n\n mapstrings_global_config_property(%s)", varlist[ARG_PROPERTY]);
@@ -127,6 +131,34 @@ HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVarian
 
 		break;
 
+	case _GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (int)handle->flash_layer_adjust;
+
+		break;
+
+	case _GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (int)handle->flash_layer_source;
+
+		break;	
+
+	case _GLOBAL_CONFIG_FLASH_Z_SOURCE:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (int)handle->flash_z_source;
+
+		break;
+
+	case _GLOBAL_CONFIG_SHOW_GO:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = (int)handle->showgo;
+
+		break;
+
 	default:
 
 		printf("Unsupported property.\n");
@@ -218,6 +250,42 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->cheats = temp_int;
+		}
+
+		break;
+
+	case _GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->flash_layer_adjust = temp_int;
+		}
+
+		break;
+
+	case _GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->flash_layer_source = temp_int;
+		}
+
+		break;
+
+	case _GLOBAL_CONFIG_FLASH_Z_SOURCE:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->flash_z_source = temp_int;
+		}
+
+		break;
+
+	case _GLOBAL_CONFIG_SHOW_GO:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->showgo = temp_int;
 		}
 
 		break;

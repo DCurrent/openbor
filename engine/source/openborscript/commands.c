@@ -72,6 +72,9 @@ List *createModelstxtCommandList(void)
     LIST_ADD(CMD_MODELSTXT_DEBUG_OSNAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODELSTXT_DROPV, "dropv");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS, "global_config_cheats");
+    LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST, "global_config_flash_layer_adjust");
+    LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_SOURCE, "global_config_flash_layer_source");
+    LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_Z_SOURCE, "global_config_flash_z_source");
     LIST_ADD(CMD_MODELSTXT_GRABDISTANCE, "grabdistance");
     LIST_ADD(CMD_MODELSTXT_JUMPHEIGHT, "jumpheight");
     LIST_ADD(CMD_MODELSTXT_JUMPSPEED, "jumpspeed");
@@ -169,6 +172,9 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_BLOCK_SOUND,               "attack.effect.block.sound.path");
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH,                 "attack.effect.hit.flash.model");
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_DISABLE,         "attack.effect.hit.flash.disable");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_ADJUST,    "attack.effect.hit.flash.layer.adjust");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_SOURCE,    "attack.effect.hit.flash.layer.source");
+    LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_Z_SOURCE,        "attack.effect.hit.flash.z.source");
     LIST_ADD(CMD_MODEL_COLLISION_EFFECT_HIT_SOUND,                 "attack.effect.hit.sound.path");
     LIST_ADD(CMD_MODEL_COLLISION_GROUND,                           "attack.ground.mode");                       // otg
     LIST_ADD(CMD_MODEL_COLLISION_INDEX,                            "collision.index");                         // Index to identify mutiple collisions.
@@ -224,6 +230,9 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_BACKPAIN, "backpain");
     LIST_ADD(CMD_MODEL_BACKPAIN, "nohithead");
     LIST_ADD(CMD_MODEL_BBOX, "bbox");
+    LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_ADJUST, "bbox.effect.hit.flash.layer.adjust");
+    LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_SOURCE, "bbox.effect.hit.flash.layer.source");
+    LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_Z_SOURCE, "bbox.effect.hit.flash.z.source");
     LIST_ADD(CMD_MODEL_BBOX_INDEX, "bbox.index");
     LIST_ADD(CMD_MODEL_BBOX_POSITION_X, "bbox.position.x");
     LIST_ADD(CMD_MODEL_BBOX_POSITION_Y, "bbox.position.y");

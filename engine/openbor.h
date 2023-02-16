@@ -1837,6 +1837,9 @@ typedef struct s_global_config
 {
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
     e_cheat_options cheats;         // Cheat menu config and active cheats.
+    int flash_layer_adjust;         // Adjust Z layer of flash spawn.
+    int flash_layer_source;         // Source of initial inital flash layer. NOT the layer value.
+    int flash_z_source;             // Source of Z position for flash spawn. NOT the Z value.
     int showgo;                     // Enable/disable go arrow.
 
 } s_global_config;
@@ -2200,7 +2203,10 @@ typedef struct
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;       // Hit point damage attack inflicts.
     int                 blockflash;         // Custom bflash for each animation, model id
-    int                 blocksound;         // Custom sound for when an attack is blocked
+    int                 blocksound;         // Custom sound for when an attack is blocked.
+    int                 flash_layer_adjust; // Adjust Z position to spawn flash.
+    int                 flash_layer_source; // Adjustment to source of initial flash layer. NOT a layer value.
+    int                 flash_z_source;     // Adjustment to source of initial flash Z position. NOT a position value.
     int                 forcemap;           // Set target's palette on hit.
     unsigned int        freezetime;         // Time for target to remain frozen.
     
@@ -2260,7 +2266,10 @@ typedef struct s_collision_attack
 */
 typedef struct
 {    
-    s_defense* defense;       // Defense properties for this collision box only.    
+    s_defense*  defense;            // Defense properties for this collision box only. 
+    int        flash_layer_adjust;  // Adjust Z position to spawn flash.
+    int        flash_layer_source;  // Adjustment to source of initial flash layer. NOT a layer value.
+    int        flash_z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
 } s_body;
 
 /*
