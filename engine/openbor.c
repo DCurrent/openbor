@@ -47328,13 +47328,13 @@ void menu_options_cheats()
 
     int option_list_count = 7;
     s_option_list option_list[] = {
-            {.active = CHEAT_OPTIONS_IMPLACABLE_ACTIVE,     .menu = CHEAT_OPTIONS_IMPLACABLE_MENU,      .label = "Implacable March" },
-            {.active = CHEAT_OPTIONS_CREDITS_ACTIVE,        .menu = CHEAT_OPTIONS_CREDITS_MENU,         .label = "Infinite Credits" },
-            {.active = CHEAT_OPTIONS_ENERGY_ACTIVE,         .menu = CHEAT_OPTIONS_ENERGY_MENU,          .label = "Infinite Energy" },
-            {.active = CHEAT_OPTIONS_HEALTH_ACTIVE,         .menu = CHEAT_OPTIONS_HEALTH_MENU,          .label = "Infinite Health" },
-            {.active = CHEAT_OPTIONS_LIVES_ACTIVE,          .menu = CHEAT_OPTIONS_LIVES_MENU,           .label = "Infinite Lives" },
-            {.active = CHEAT_OPTIONS_MULTIHIT_ACTIVE,       .menu = CHEAT_OPTIONS_MULTIHIT_MENU,        .label = "Multihit Glitch" },
-            {.active = CHEAT_OPTIONS_TOD_ACTIVE,            .menu = CHEAT_OPTIONS_TOD_MENU,             .label = "Touch of Death" }        
+            {.active = CHEAT_OPTIONS_IMPLACABLE_ACTIVE,     .menu = CHEAT_OPTIONS_IMPLACABLE_MENU,      .label = "Implacable March:" },
+            {.active = CHEAT_OPTIONS_CREDITS_ACTIVE,        .menu = CHEAT_OPTIONS_CREDITS_MENU,         .label = "Infinite Credits:" },
+            {.active = CHEAT_OPTIONS_ENERGY_ACTIVE,         .menu = CHEAT_OPTIONS_ENERGY_MENU,          .label = "Infinite Energy:" },
+            {.active = CHEAT_OPTIONS_HEALTH_ACTIVE,         .menu = CHEAT_OPTIONS_HEALTH_MENU,          .label = "Infinite Health:" },
+            {.active = CHEAT_OPTIONS_LIVES_ACTIVE,          .menu = CHEAT_OPTIONS_LIVES_MENU,           .label = "Infinite Lives:" },
+            {.active = CHEAT_OPTIONS_MULTIHIT_ACTIVE,       .menu = CHEAT_OPTIONS_MULTIHIT_MENU,        .label = "Multihit Glitch:" },
+            {.active = CHEAT_OPTIONS_TOD_ACTIVE,            .menu = CHEAT_OPTIONS_TOD_MENU,             .label = "Touch of Death:" }
     };
     
     int option_list_cursor = 0;
@@ -47398,7 +47398,7 @@ void menu_options_cheats()
         /* No items avaialble. Alert player.  */
         if (!option_available_count)
         {
-            _menutextm(0, pos_y, 0, Tr("No cheats avaialble."));
+            _menutextm(0, pos_y, 0, Tr("No cheats available."));
         }        
 
         /*
