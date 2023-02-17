@@ -5991,7 +5991,7 @@ int child_spawn_get_color_from_argument(char* filename, char* command, char* val
 */
 e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
 {
-    e_child_spawn_config result = MODEL_COPY_FLAG_NONE;
+    e_child_spawn_config result = CHILD_SPAWN_CONFIG_NONE;
 
     if (stricmp(value, "none") == 0)
     {
@@ -11020,7 +11020,7 @@ e_entity_type get_type_from_arguments(ArgList* arglist)
     int i = 0;
     char* value = "";
 
-    e_aimove result = TYPE_UNDELCARED;
+    e_entity_type result = TYPE_UNDELCARED;
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
@@ -44081,8 +44081,6 @@ void startup()
     }
     printf("Done!\n");
 
-    // Kratus (10-2021) Moved the translation, menu and font functions to the end of the engine "startup" function,
-    // but before the "control init" function
     printf("Loading menu.txt.............\t");
     load_menu_txt();
     printf("Done!\n");
@@ -44091,6 +44089,10 @@ void startup()
     load_all_fonts();
     printf("Done!\n");
 
+    /*
+        Kratus (10-2021) Moved the translation, menu and font functions to the end of the engine "startup" function,
+        but before the "control init" function
+    */
     printf("Loading translation..........\t");
     ob_inittrans();
     printf("Done!\n");
@@ -48361,9 +48363,14 @@ void openborMain(int argc, char **argv)
         {
             if(started)
             {
-                
-                // Kratus (10-2021) Added an additional instance of the translation function at menu screen
-                // Used to refresh all text without close and reopen the engine
+                /* 
+                    Kratus (10-2021) Added an additional instance of the translation function at menu screen
+                    Used to refresh all text without close and reopen the engine
+
+                    Kratus (02-2023) Added an additional instance of the video_mode function at menu screen
+                    Used to refresh the touchscreen properties on Android without restarting
+                */
+                video_set_mode(videomodes);
                 ob_inittrans();
                 
                 screen_status |= IN_SCREEN_MENU;

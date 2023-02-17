@@ -210,10 +210,12 @@ static int setup_touch_txt()
     dirExists(filename, 1);
     sprintf(filename, "%s/%s/touch.txt", savesDir, pakname);
     sprintf(touchfilename, "%s/touch.txt", savesDir);
+    
+    // Kratus (02-2023) Rearranged the touch path order, external first and then the internal pak/data folder
     // Read file
     if( buffer_pakfile(filename, &buf, &size) != 1 &&
-            buffer_pakfile("data/touch.txt", &buf, &size) != 1 &&
-            buffer_pakfile(touchfilename, &buf, &size) != 1)
+        buffer_pakfile(touchfilename, &buf, &size) != 1 &&
+        buffer_pakfile("data/touch.txt", &buf, &size) != 1 )
     {
         return 0;
     }
@@ -501,7 +503,15 @@ void blit()
     for(i = 0, h = 0; i < MAXTOUCHB; i++)
     {
         h += touchstates[i];
-        if(!hide_touch && (i != SDID_SCREENSHOT || touchstates[i]))
+
+        /*
+            Kratus (02-2023) Now the screenshot key will always be shown
+            The modder can simply move or disable it by using the touch.txt file
+            The original code is commented in case any modder wants to use it
+        */
+
+        // if(!hide_touch && (i != SDID_SCREENSHOT || touchstates[i]))
+        if(!hide_touch)
         {
             SDL_SetTextureAlphaMod(buttons, touchstates[i] ? 128 : 64);
             SDL_RenderCopy(renderer, buttons, &btnsrc[i], &btndes[i]);
