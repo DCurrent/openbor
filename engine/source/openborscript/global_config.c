@@ -30,6 +30,8 @@ int mapstrings_global_config_property(ScriptVariant** varlist, int paramCount)
 	static const char* proplist[] =
 	{
 		"ajspecial",
+		"block_ratio",
+		"block_type",
 		"cheats",
 		"flash_layer_adjust",
 		"flash_layer_source",
@@ -121,6 +123,20 @@ HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVarian
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (e_ajspecial_config)handle->ajspecial;
+
+		break;
+
+	case _GLOBAL_CONFIG_BLOCK_RATIO:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = handle->block_ratio;
+
+		break;
+
+	case _GLOBAL_CONFIG_BLOCK_TYPE:
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+		(*pretvar)->lVal = handle->block_type;
 
 		break;
 
@@ -241,6 +257,24 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->ajspecial = temp_int;
+		}
+
+		break;
+
+	case _GLOBAL_CONFIG_BLOCK_RATIO:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->block_ratio = temp_int;
+		}
+
+		break;
+
+	case _GLOBAL_CONFIG_BLOCK_TYPE:
+
+		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+		{
+			handle->block_type = temp_int;
 		}
 
 		break;

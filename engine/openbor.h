@@ -1234,7 +1234,7 @@ typedef enum
     BGT_GENERIC
 } e_bgloldtype;
 
-typedef enum
+typedef enum e_blocktype
 {
     /*
     Blocktype enum. Type of resource drained (if any) when attack is blocked.
@@ -1242,10 +1242,17 @@ typedef enum
     2013-12-28
     */
 
-    BLOCK_TYPE_HP         = -1,   //HP only.
-    BLOCK_TYPE_MP_FIRST   = 1,    //MP until MP is exhuasted, then HP.
-    BLOCK_TYPE_BOTH,              //Both MP and HP.
-    BLOCK_TYPE_MP_ONLY            //Only MP, even if MP is 0.
+    BLOCK_TYPE_HP         = -1,   // HP only.
+    BLOCK_TYPE_GLOBAL     = 0,    // Use global setting.
+    BLOCK_TYPE_MP_FIRST   = 1,    // MP until MP is exhuasted, then HP.
+    BLOCK_TYPE_MP_ONLY,           // Only MP, even if MP is 0.
+    BLOCK_TYPE_BOTH,              // Both MP and HP.
+
+    /*
+    * Entries above must stay in order for
+    * legacy compatability.
+    */
+
 } e_blocktype;
 
 typedef enum
@@ -1836,6 +1843,8 @@ typedef enum e_cheat_options
 typedef struct s_global_config
 {
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
+    int block_ratio;                // Blcoked attacks still cause 0.25 damage?
+    int block_type;	                // Take chip damage from health or MP first?
     e_cheat_options cheats;         // Cheat menu config and active cheats.
     int flash_layer_adjust;         // Adjust Z layer of flash spawn.
     int flash_layer_source;         // Source of initial inital flash layer. NOT the layer value.
@@ -2110,7 +2119,13 @@ typedef enum
     OFFENSE_PARAMETER_LEGACY
 } e_offense_parameters;
 
-typedef struct
+/*
+* Used so defense blockratio can overidde global
+* blockratio with simple value check.
+*/
+#define DEFENSE_BLOCKRATIO_COMPATABILITY_DEFAULT -99999999.0f 
+
+typedef struct s_defense
 {
     int         block_damage_adjust;    // Arbitrary damage adjustment, when blocking.
     int         block_damage_max;       // Maximum damage allowed after calculations, when blocking.

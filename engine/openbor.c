@@ -148,8 +148,8 @@ const s_defense default_defense =
     .block_damage_min = MIN_INT,
     .blockpower     = 0.f,
     .blockthreshold = 0.f,
-    .blockratio     = 0.f,
-    .blocktype      = BLOCK_TYPE_MP_FIRST,
+    .blockratio     = DEFENSE_BLOCKRATIO_COMPATABILITY_DEFAULT,
+    .blocktype      = BLOCK_TYPE_GLOBAL,
     .damage_adjust  = 0,
     .damage_max     = MAX_INT,
     .damage_min     = MIN_INT,
@@ -651,6 +651,7 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 s_global_config global_config =
 {
     .ajspecial = AJSPECIAL_KEY_SPECIAL,
+    .block_type = BLOCK_TYPE_GLOBAL,
     .cheats = CHEAT_OPTIONS_ALL_MENU,    
     .flash_layer_adjust = 1,
     .flash_layer_source = 255,
@@ -749,8 +750,6 @@ int                 holez				= 0;					// Used for setting spawn points
 int                 allow_secret_chars	= 0;
 unsigned int        lifescore			= 50000;				// Number of points needed to earn a 1-up
 unsigned int        credscore			= 0;					// Number of points needed to earn a credit
-int                 mpblock				= 0;					// Take chip damage from health or MP first?
-int                 blockratio			= 0;					// Take half-damage while blocking?
 int                 nochipdeath			= 0;					// Prevents entities from dying due to chip damage (damage while blocking)
 int                 noaircancel			= 0;					// Now, you can make jumping attacks uncancellable!
 int                 nomaxrushreset[5]	= {0, 0, 0, 0, 0};
@@ -17800,11 +17799,10 @@ int load_models()
                 break;
             case CMD_MODELSTXT_MPBLOCK:
                 // Take from MP first?
-                mpblock = GET_INT_ARG(1);
+                global_config.block_type = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_BLOCKRATIO:
-                // Nullify or reduce damage?
-                blockratio = GET_INT_ARG(1);
+                global_config.block_ratio = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_NOCHIPDEATH:
                 nochipdeath = GET_INT_ARG(1);
@@ -26582,10 +26580,29 @@ void do_attack(entity *attacking_entity)
             /* Gets total force after defense adjustments. */
             force = defense_result_damage(defense_object, force, 1);            
             
-            blocktype = mpblock ? BLOCK_TYPE_MP_FIRST : defense_object->blocktype;
+            /*
+            * Handle block type. Global blocktype is a 
+            * legacy true/false set by "mpblock", so If 
+            * our defense object defaults to global we
+            * will need to get the correct constant 
+            * before we run downstream switch statement.
+            *
+            * True = MP then HP.
+            * False = HP.
+            */
+
+            if (defense_object->blocktype == BLOCK_TYPE_GLOBAL)
+            {
+                blocktype = global_config.block_type ? BLOCK_TYPE_MP_FIRST : BLOCK_TYPE_HP;
+            }
+            else
+            {
+                blocktype = defense_object->blocktype;
+            }
 
             switch (blocktype)
             {
+                case BLOCK_TYPE_GLOBAL:
                 case BLOCK_TYPE_HP:
                     /* 
                     * Do nothing. This allows creators to overidde energy_cost 
@@ -26602,6 +26619,8 @@ void do_attack(entity *attacking_entity)
                     {
                         def->energy_state.mp_current = 0;
                     }
+
+                    break;
 
                 case BLOCK_TYPE_MP_FIRST:
 
@@ -26621,6 +26640,8 @@ void do_attack(entity *attacking_entity)
                         force = 0;
                     }
 
+                    break;
+
                 case BLOCK_TYPE_BOTH:
 
                     def->energy_state.mp_current -= force;
@@ -26629,6 +26650,8 @@ void do_attack(entity *attacking_entity)
                     {
                         def->energy_state.mp_current = 0;
                     }
+
+                    break;
             }
 
 			// Apply remaining damage force to HP after blocking calculations.
@@ -31874,68 +31897,104 @@ int offense_result_damage(s_offense* offense_object, int attack_force)
 */
 int defense_result_damage(s_defense* defense_object, int attack_force, int blocked)
 {   
-    //printf("\n\n defense_result_damage(%p, %p, %d, %d)", defense_object, attack_force, blocked);
+#define DEFENSE_GLOBAL_BLOCK_RATIO 0.25
 
+    //printf("\n\n defense_result_damage(%p, %p, %d, %d)", defense_object, attack_force, blocked);
+    
     int result = attack_force;
+    float ratio = 0.0;
+    int damage_adjust = 0;
+    int damage_min = MIN_INT;
+    int damage_max = MAX_INT;
 
     /* 
-    * Make sure defense object is valid.
+    * If there's no defense object, then
+    * fall back to default defense.
     */
 
     if (!defense_object)
     {
-        return attack_force;
+        defense_object = (s_defense*)&default_defense;
     }
+
+    /*
+    * We have a defense object, so get the
+    * ratio and adjustments for hit or block.
+    */
 
     if (blocked)
     {
-        if (blockratio || defense_object->blockratio)
-        {
-            /*
-            * Apply ratio to damage force. Use type specific ratio if target
-            * has one. Otherwise, use global ratio.
-            */
+        /*
+        * We want blockratio to default as 0.0 and 
+        * also override the legacy global blockratio 
+        * setting with local defense values. However,
+        * a value of 0.0 is too ambiguous. We can't 
+        * tell if it was intentional from the creator 
+        * or they just left defense blank. 
+        * 
+        * We could dynamically allocate defense and 
+        * then check for valid pointers, but that would 
+        * add several failure points and increase the
+        * complexity for creators.
+        * 
+        * Instead, we use an impractical default value. 
+        * If that value is still in place here, we know 
+        * the creator did not define defense and we can 
+        * apply a real default of 0.0, or 
+        when the
+        * legacy global blockratio is enabled.
+        */
 
-            if (defense_object->blockratio)
+        if (defense_object->blockratio == DEFENSE_BLOCKRATIO_COMPATABILITY_DEFAULT)
+        {
+            if (global_config.block_ratio)
             {
-                attack_force = (int)(attack_force * defense_object->blockratio);
+                ratio = DEFENSE_GLOBAL_BLOCK_RATIO;
             }
             else
             {
-                attack_force = attack_force / 4;
+                ratio = 0.0;
             }
         }
-
-        result += defense_object->block_damage_adjust;
-
-        if (result < defense_object->block_damage_min)
+        else
         {
-            result = defense_object->block_damage_min;
+            ratio = defense_object->blockratio;
         }
-
-        if (result > defense_object->block_damage_max)
-        {
-            result = defense_object->block_damage_min;
-        }
+               
+        damage_adjust = defense_object->block_damage_adjust;
+        damage_min = defense_object->block_damage_min;
+        damage_max = defense_object->block_damage_max;
     }
     else
     {
-        result = (int)(result * defense_object->factor);
+        ratio = defense_object->factor;
+        damage_adjust = defense_object->damage_adjust;
+        damage_min = defense_object->damage_min;
+        damage_max = defense_object->damage_max;
+    }
 
-        result += defense_object->damage_adjust;
+    /*
+    * Apply ratio, then adjustment, and
+    * cap the result to min/max.
+    */
 
-        if (result < defense_object->damage_min)
-        {
-            result = defense_object->damage_min;
-        }
+    result = (int)(result * ratio);
 
-        if (result > defense_object->damage_max)
-        {
-            result = defense_object->damage_max;
-        }
+    result += damage_adjust;
+
+    if (result < damage_min)
+    {
+        result = damage_min;
+    }
+
+    if (result > damage_max)
+    {
+        result = damage_max;
     }
 
     return result;
+
+#undef DEFENSE_GLOBAL_BLOCK_RATIO
 }
 
 /*
