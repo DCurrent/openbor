@@ -25146,7 +25146,8 @@ void do_active_block(entity *ent)
 int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body) 
 {
     s_defense* defense_object = NULL;
-
+    int temp_block_threshold = 0;
+     
 	/* 
 	* Kratus (10-2021) For safe, confirm if the entity's "BLOCKING" instance was gone or not
 	* This is to avoid the entity to block while in other animations like RISE, PAIN or WALK.
@@ -25179,17 +25180,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 			return 0;
 		}
 	}
-
-	/* Is there a blocking threshold ? Verify it vs.attack force. */
-	
-    if (ent->modeldata.thold)
-	{
-		if (attack->attack_force >= ent->modeldata.thold)
-		{
-			return 0;
-		}
-	}
-    
+        
     /* Need defense object for subsequent checks. */
     defense_object = defense_find_current_object(ent, body, attack->attack_type);
 
@@ -25208,9 +25199,13 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 	* Verify it vs. attack force.
 	*/
     
-    if (defense_object->blockthreshold)
+    /* Is there a blocking threshold ? Verify it vs.attack force. */
+
+    temp_block_threshold = ent->modeldata.thold + defense_object->blockthreshold;
+
+    if (temp_block_threshold)
 	{
-		if (defense_object->blockthreshold > attack->attack_force)
+		if (temp_block_threshold > attack->attack_force)
 		{
 			return 0;
 		}
