@@ -6822,43 +6822,43 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
 
     if (object->config & CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARAMETER)
     {
-        child_entity->modeldata.candamage = object->candamage;
+        child_entity->faction.type_damage_direct = object->candamage;
     }
 
     if (object->config & CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT)
     {
-        child_entity->modeldata.candamage = parent->modeldata.candamage;
+        child_entity->faction.type_damage_direct = parent->faction.type_damage_direct;
     }
 
     if (object->config & CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARAMETER)
     {
-        child_entity->modeldata.hostile = object->hostile;
+        child_entity->faction.type_hostile = object->hostile;
     }
 
     if (object->config & CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT)
     {
-        child_entity->modeldata.hostile = parent->modeldata.hostile;
+        child_entity->faction.type_hostile = parent->faction.type_hostile;
     }
 
     if (object->config & CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARAMETER)
     {
-        child_entity->modeldata.projectilehit = object->projectilehit;
+        child_entity->faction.type_damage_indirect = object->projectilehit;
     }
 
     if (object->config & CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT)
     {
-        child_entity->modeldata.projectilehit = parent->modeldata.projectilehit;
+        child_entity->faction.type_damage_indirect = parent->faction.type_damage_indirect;
     }
     
     if ((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
-        child_entity->modeldata.hostile &= ~TYPE_PLAYER;
-        child_entity->modeldata.candamage &= ~TYPE_PLAYER;
+        child_entity->faction.type_hostile &= ~TYPE_PLAYER;
+        child_entity->faction.type_damage_direct &= ~TYPE_PLAYER;
     }
 
-    printf("\n\t child_entity->modeldata.hostile: %d", child_entity->modeldata.hostile);
-    printf("\n\t child_entity->modeldata.candamage: %d", child_entity->modeldata.candamage);
-    printf("\n\t child_entity->modeldata.projectilehit: %d", child_entity->modeldata.projectilehit);
+    printf("\n\t child_entity->faction.type_hostile: %d", child_entity->faction.type_hostile);
+    printf("\n\t child_entity->faction.type_damage_direct: %d", child_entity->faction.type_damage_direct);
+    printf("\n\t child_entity->faction.type_damage_indirect: %d", child_entity->faction.type_damage_indirect);
 
     /* 
     * Apply any move constraints. 
@@ -12689,13 +12689,13 @@ s_model *init_model(int cacheindex, int unload)
     newchar->weapon_properties.loss_index      = MODEL_INDEX_NONE;
     newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
-    newchar->faction.damage_direct      = FACTION_LEGACY;
-    newchar->faction.damage_indirect    = FACTION_LEGACY;
-    newchar->faction.hostile            = FACTION_LEGACY;
-    newchar->faction.member             = FACTION_LEGACY;
-    newchar->candamage                  = -1;
-    newchar->hostile                    = -1;
-    newchar->projectilehit              = -1;
+    newchar->faction.damage_direct      = FACTION_GROUP_TYPE_INCLUSIVE;
+    newchar->faction.damage_indirect    = FACTION_GROUP_TYPE_INCLUSIVE;
+    newchar->faction.hostile            = FACTION_GROUP_TYPE_INCLUSIVE;
+    newchar->faction.member             = FACTION_GROUP_TYPE_INCLUSIVE;
+    newchar->faction.type_damage_direct = TYPE_UNDELCARED;
+    newchar->faction.type_hostile       = TYPE_UNDELCARED;
+    newchar->faction.type_damage_indirect   = TYPE_UNDELCARED;
     newchar->move_constraint            = MOVE_CONSTRAINT_NONE;
     newchar->pshotno                    = MODEL_INDEX_NONE;
     newchar->project                    = MODEL_INDEX_NONE;
@@ -13067,23 +13067,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(atoi(value) == 1)
                 {
-                    newchar->candamage = newchar->hostile = TYPE_PLAYER | TYPE_ENEMY;
+                    newchar->faction.type_damage_direct = newchar->faction.type_hostile = TYPE_PLAYER | TYPE_ENEMY;
                 }
                 else if(atoi(value) == 2)
                 {
-                    newchar->candamage = newchar->hostile = TYPE_PLAYER;
+                    newchar->faction.type_damage_direct = newchar->faction.type_hostile = TYPE_PLAYER;
                 }
                 
                 newchar->ground = GET_INT_ARG(2);    // Added to determine if enemies are damaged with mid air projectiles or ground only
                 break;
             case CMD_MODEL_HOSTILE:
-                newchar->hostile = get_type_from_arguments(&arglist);
+                newchar->faction.type_hostile = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_CANDAMAGE:
-                newchar->candamage = get_type_from_arguments(&arglist);
+                newchar->faction.type_damage_direct = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_PROJECTILEHIT:
-                newchar->projectilehit = get_type_from_arguments(&arglist);
+                newchar->faction.type_damage_indirect = get_type_from_arguments(&arglist);
                 break;
             case CMD_MODEL_AIMOVE:
                 newchar->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NORMAL);
@@ -16998,7 +16998,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         }
     }
 
-    if(newchar->hostile < 0) // not been initialized, so initialize it
+    if(newchar->faction.type_hostile == TYPE_UNDELCARED) // not been initialized, so initialize it
     {
         switch (newchar->type)
         {
@@ -17006,32 +17006,32 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             //Do nothing.
             break;
         case TYPE_ENEMY:
-            newchar->hostile = TYPE_PLAYER ;
+            newchar->faction.type_hostile = TYPE_PLAYER;
             break;
         case TYPE_PLAYER: // dont really needed, since you don't need A.I. control for players
-            newchar->hostile = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
+            newchar->faction.type_hostile = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
             break;
         case TYPE_TRAP:
-            newchar->hostile  = TYPE_ENEMY | TYPE_PLAYER;
+            newchar->faction.type_hostile = TYPE_ENEMY | TYPE_PLAYER;
         case TYPE_OBSTACLE:
-            newchar->hostile = TYPE_UNDELCARED;
+            newchar->faction.type_hostile = TYPE_UNDELCARED;
             break;
 		case TYPE_PROJECTILE:
 			// We want a clean slate so the projectile 
 			// spawn functions will copy owner settings 
 			// by default.
-			newchar->hostile = TYPE_UNDELCARED;
+			newchar->faction.type_hostile = TYPE_UNDELCARED;
 			break;
         case TYPE_SHOT:  // only target enemies
-            newchar->hostile = TYPE_ENEMY ;
+            newchar->faction.type_hostile = TYPE_ENEMY ;
             break;
         case TYPE_NPC: // default npc behivior
-            newchar->hostile = TYPE_ENEMY ;
+            newchar->faction.type_hostile = TYPE_ENEMY ;
             break;
         }
     }
 
-    if(newchar->candamage < 0) // not been initialized, so initialize it
+    if(newchar->faction.type_damage_direct == TYPE_UNDELCARED) // not been initialized, so initialize it
     {
         switch (newchar->type)
         {
@@ -17039,39 +17039,39 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             //Do nothing.
             break;
         case TYPE_ENEMY:
-            newchar->candamage = TYPE_PLAYER | TYPE_SHOT;
+            newchar->faction.type_damage_direct = TYPE_PLAYER | TYPE_SHOT;
             if(newchar->subtype == SUBTYPE_ARROW)
             {
-                newchar->candamage |= TYPE_OBSTACLE;
+                newchar->faction.type_damage_direct |= TYPE_OBSTACLE;
             }
             break;
         case TYPE_PLAYER:
-            newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
+            newchar->faction.type_damage_direct = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
             break;
         case TYPE_TRAP:
-            newchar->candamage  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_direct = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
         case TYPE_OBSTACLE:
-            newchar->candamage = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
+            newchar->faction.type_damage_direct = TYPE_PLAYER | TYPE_ENEMY | TYPE_OBSTACLE;
             break;
 		case TYPE_PROJECTILE:
 			// We want a clean slate so the projectile 
 			// spawn functions will copy owner settings 
 			// by default.
-			newchar->candamage = TYPE_UNDELCARED;
+			newchar->faction.type_damage_direct = TYPE_UNDELCARED;
 			break;
         case TYPE_SHOT:
-            newchar->candamage = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_direct = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
         case TYPE_NPC:
-            newchar->candamage = TYPE_ENEMY | TYPE_OBSTACLE;
+            newchar->faction.type_damage_direct = TYPE_ENEMY | TYPE_OBSTACLE;
             break;
         case TYPE_ITEM:
-            newchar->candamage = TYPE_PLAYER;
+            newchar->faction.type_damage_direct = TYPE_PLAYER;
             break;
         }
     }
 
-    if(newchar->projectilehit < 0) // not been initialized, so initialize it
+    if(newchar->faction.type_damage_indirect == TYPE_UNDELCARED) // not been initialized, so initialize it
     {
         switch (newchar->type)
         {
@@ -17079,27 +17079,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             //Do nothing.
             break;
         case TYPE_ENEMY:
-            newchar->projectilehit = TYPE_ENEMY | TYPE_OBSTACLE;
+            newchar->faction.type_damage_indirect = TYPE_ENEMY | TYPE_OBSTACLE;
             break;
         case TYPE_PLAYER:
-            newchar->projectilehit = TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_indirect = TYPE_PLAYER | TYPE_OBSTACLE;
             break;
         case TYPE_TRAP: // hmm, don't really needed
-            newchar->projectilehit  = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_indirect = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
         case TYPE_OBSTACLE: // hmm, don't really needed
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_indirect = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
 		case TYPE_PROJECTILE:
 			// We want a clean slate so the projectile 
 			// spawn functions will copy owner settings 
 			// by default.
-			newchar->projectilehit = TYPE_UNDELCARED;
+			newchar->faction.type_damage_indirect = TYPE_UNDELCARED;
 			break;
         case TYPE_SHOT: // hmm, don't really needed
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_indirect = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
         case TYPE_NPC:
-            newchar->projectilehit = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
+            newchar->faction.type_damage_indirect = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
             break;
         }
     }
@@ -22597,6 +22597,7 @@ void ent_default_init(entity *e)
 
     switch(e->modeldata.type)
     {
+    case TYPE_ANY:
 	case TYPE_UNDELCARED:
     case TYPE_RESERVED:
 	case TYPE_UNKNOWN:
@@ -22847,11 +22848,8 @@ void ent_default_init(entity *e)
         break;
     }
 
-    /* Faction data. */
-    e->faction.damage_direct = e->modeldata.faction.damage_direct;
-    e->faction.damage_indirect = e->modeldata.faction.damage_indirect;
-    e->faction.hostile = e->modeldata.faction.hostile;
-    e->faction.member = e->modeldata.faction.member;
+    /* Faction data. */   
+    faction_copy_data(&e->faction, &e->modeldata.faction, 0);
 
     if(!e->animation)
     {
@@ -23408,43 +23406,14 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->modeldata.aimove               = oldmodel->aimove;
     }
-    if(ent->modeldata.aiattack == -1)
+    if (ent->modeldata.aiattack == -1)
     {
-        ent->modeldata.aiattack             = oldmodel->aiattack;
-    }
-    
-    if (ent->modeldata.faction.damage_direct == FACTION_NONE)
-    {
-        ent->modeldata.faction.damage_direct = oldmodel->faction.damage_direct;
-    }
-    
-    if (ent->modeldata.faction.damage_indirect == FACTION_NONE)
-    {
-        ent->modeldata.faction.damage_indirect = oldmodel->faction.damage_indirect;
+        ent->modeldata.aiattack = oldmodel->aiattack;
     }
 
-    if (ent->modeldata.faction.hostile == FACTION_NONE)
-    {
-        ent->modeldata.faction.hostile = oldmodel->faction.hostile;
-    }
+    faction_copy_data(&ent->modeldata.faction, &oldmodel->faction, 1);
+    faction_copy_data(&ent->faction, &oldmodel->faction, 1);
 
-    if (ent->modeldata.faction.member == FACTION_NONE)
-    {
-        ent->modeldata.faction.member = oldmodel->faction.member;
-    }
-
-    if(ent->modeldata.hostile < 0)
-    {
-        ent->modeldata.hostile              = oldmodel->hostile;
-    }
-    if(ent->modeldata.candamage < 0)
-    {
-        ent->modeldata.candamage            = oldmodel->candamage;
-    }
-    if(ent->modeldata.projectilehit < 0)
-    {
-        ent->modeldata.projectilehit        = oldmodel->projectilehit;
-    }
     if(!ent->modeldata.health)
     {
         ent->modeldata.health               = oldmodel->health;
@@ -23714,8 +23683,8 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             
             if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
             {
-                e->modeldata.hostile &= ~TYPE_PLAYER;
-                e->modeldata.candamage &= ~TYPE_PLAYER;            
+                e->faction.type_hostile &= ~TYPE_PLAYER;
+                e->faction.type_damage_direct &= ~TYPE_PLAYER;
             }
             
             if(e->modeldata.type & TYPE_PLAYER)
@@ -25745,23 +25714,17 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 	
     if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_FALSE)
 	{
-        if (ent->faction.hostile & FACTION_LEGACY)
+        if (faction_check_is_hostile(ent, target))
         {
-            if (target->modeldata.type & ent->modeldata.hostile)
-            {
-                return 0;
-            }
+            return 0;
         }
 	}
 
 	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_ATTACKER_TRUE)
 	{
-        if (ent->faction.hostile & FACTION_LEGACY)
+        if (!faction_check_is_hostile(ent, target))
         {
-            if (!(target->modeldata.type & ent->modeldata.hostile))
-            {
-                return 0;
-            }
+            return 0;
         }
 	}
 
@@ -25769,18 +25732,18 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 	
     if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_FALSE)
 	{
-		if (ent->modeldata.type & target->modeldata.hostile)
-		{
-			return 0;
-		}
+        if (faction_check_is_hostile(target, ent))
+        {
+            return 0;
+        }
 	}
 
 	if (animation->followup.condition & FOLLOW_CONDITION_HOSTILE_TARGET_TRUE)
 	{
-		if (!(ent->modeldata.type & target->modeldata.hostile))
-		{
-			return 0;
-		}
+        if (!faction_check_is_hostile(target, ent))
+        {
+            return 0;
+        }
 	}
 
 	/* Lethal damage. */
@@ -25954,35 +25917,35 @@ int check_counter_condition(entity* target, entity* attacker, s_attack* attack_o
 	/* Attacker hostile to us ? */
 	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_FALSE)
 	{
-		if (attacker->modeldata.hostile & target->modeldata.type)
-		{
-			return 0;
-		}
+        if (faction_check_is_hostile(attacker, target))
+        {
+            return 0;
+        }
 	}
 
 	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_ATTACKER_TRUE)
 	{
-		if (!(attacker->modeldata.hostile & target->modeldata.type))
-		{
-			return 0;
-		}
+        if (!faction_check_is_hostile(attacker, target))
+        {
+            return 0;
+        }
 	}
 
 	/* Hostile to attacker ? */
 	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_FALSE)
 	{
-		if (target->modeldata.hostile & attacker->modeldata.type)
-		{
-			return 0;
-		}
+        if (faction_check_is_hostile(target, attacker))
+        {
+            return 0;
+        }
 	}
 
 	if (counter->condition == COUNTER_ACTION_CONDITION_HOSTILE_TARGET_TRUE)
 	{
-		if (!(target->modeldata.hostile & attacker->modeldata.type))
-		{
-			return 0;
-		}
+        if (!faction_check_is_hostile(target, attacker))
+        {
+            return 0;
+        }
 	}
 
 	/* Passed all checks. We can return true. */
@@ -26144,7 +26107,7 @@ int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int at
 
 void do_attack(entity *attacking_entity)
 {
-    int them = 0;
+    int indirect = 0;
     int i = 0;
     int force = 0;
     e_blocktype blocktype       = BLOCK_TYPE_MP_FIRST;
@@ -26178,14 +26141,10 @@ void do_attack(entity *attacking_entity)
         topowner = topowner->owner;
     }
 
-	// If any blast active, use projectile hit property.
+	// If any blast active, use indirect damage downstream.
     if(attacking_entity->projectile != BLAST_NONE)
     {
-        them = attacking_entity->modeldata.projectilehit;
-    }
-    else
-    {
-        them = attacking_entity->modeldata.candamage;
+        indirect = 1;
     }
 
     // Every attack gets a unique ID to make sure no one
@@ -26265,12 +26224,14 @@ void do_attack(entity *attacking_entity)
             }
         }
 
-        // Verify target has a match to
-        // projectile hit or can damage.
-        if(!(target->modeldata.type & them))
+        /*
+        * Verify this is a faction we
+        * can hit.
+        */
+        if (!faction_check_can_damage(attacking_entity, target, indirect))
         {
             continue;
-        }
+        }        
 
         /*
         * Pain time must have expired.
@@ -29198,11 +29159,6 @@ int isSubtypeProjectile(entity *e)
     return e->modeldata.subtype == SUBTYPE_PROJECTILE;
 }
 
-int canBeDamaged(entity *who, entity *bywhom)
-{
-    return (who->modeldata.candamage & bywhom->modeldata.type) == bywhom->modeldata.type;
-}
-
 //check if an item is usable by the entity
 int normal_test_item(entity *ent, entity *item)
 {
@@ -29211,7 +29167,7 @@ int normal_test_item(entity *ent, entity *item)
                (item->modeldata.stealth.hide <= ent->modeldata.stealth.detect) &&
                diff(item->position.x, ent->position.x) + diff(item->position.z, ent->position.z) < videomodes.hRes / 2 &&
                item->animation->vulnerable[item->animpos] && !item->blink &&
-               (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent))) &&
+               (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && faction_check_can_damage(item, ent, 0))) &&
                (
                    (isSubtypeWeapon(item) && !ent->weapent && ent->modeldata.weapon_properties.weapon_list &&
                     ent->modeldata.weapon_properties.weapon_count >= item->modeldata.weapon_properties.weapon_index && ent->modeldata.weapon_properties.weapon_list[item->modeldata.weapon_properties.weapon_index - 1] >= 0)
@@ -29226,7 +29182,7 @@ int test_item(entity *ent, entity *item)
     if (!(
                 isItem(item) &&
                 item->animation->vulnerable[item->animpos] && !item->blink &&
-                (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && canBeDamaged(item, ent)))
+                (validanim(ent, ANI_GET) || (isSubtypeTouch(item) && faction_check_can_damage(item, ent, 0)))
             ))
     {
         return 0;
@@ -29285,7 +29241,7 @@ int player_test_touch(entity *ent, entity *item)
     return test_item(ent, item);
 }
 
-entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *))
+entity *find_ent_here(entity *exclude, float x, float z, e_entity_type types, int (*test)(entity *, entity *))
 {
     int i;
     for(i = 0; i < ent_max; i++)
@@ -29984,7 +29940,7 @@ entity *block_find_target(int anim, int detect_adj)
         attacker = ent_list[i];
 
         if (attacker && attacker->exists && attacker != self // Can't target self
-            && (attacker->modeldata.candamage & self->modeldata.type) // Type is something attacker can damage.
+            && (faction_check_can_damage(attacker, self, 0)) // Type is something attacker can damage.
             && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim))) // Valid animation ID and in range.
             && !attacker->dead // Must be alive.
             && attacker->attacking != ATTACKING_NONE // Must be attacking.
@@ -30053,8 +30009,8 @@ entity *normal_find_target(int anim, int detect_adj)
             continue;
         }
 
-        // Must be hostile.
-        if(!(ent_list[i]->modeldata.type & self->modeldata.hostile))
+        /* Must be hostile toward it. */
+        if (!faction_check_is_hostile(self, ent_list[i]))
         {
             continue;
         }
@@ -33391,7 +33347,8 @@ int common_try_grab(entity *other)
     if( (rand32() & 7) == 0 &&
             (validanim(self, ANI_THROW) ||
              validanim(self, ANI_GRAB)) && self->idling &&
-            (other || (other = find_ent_here(self, self->position.x, self->position.z, self->modeldata.hostile, NULL))) &&
+             faction_check_is_hostile(self, other) &&
+            (other || (other = find_ent_here(self, self->position.x, self->position.z, TYPE_ANY, NULL))) &&
             trygrab(other))
     {
         return 1;
@@ -33445,7 +33402,7 @@ int common_try_upper(entity *target)
 
 int common_try_duckattack(entity *other)
 {
-    int them;
+    int indirect;
     entity *target = NULL;
 
     if(!validanim(self, ANI_DUCKATTACK) || !(self->ducking & DUCK_ACTIVE))
@@ -33460,17 +33417,13 @@ int common_try_duckattack(entity *other)
 
     if(self->projectile != BLAST_NONE)
     {
-        them = self->modeldata.projectilehit;
-    }
-    else
-    {
-        them = self->modeldata.candamage;
+        indirect = 1;
     }
 
     if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0);
     else target = self->custom_target;
 
-    if(target && !(target->modeldata.type & them))
+    if(target && !(faction_check_can_damage(self, target, indirect)))
     {
         return 0;
     }
@@ -34107,7 +34060,7 @@ int common_trymove(float xdir, float zdir)
             (rand32() & 7) == 0 &&
             (validanim(self, ANI_THROW) ||
              validanim(self, ANI_GRAB)) && self->idling &&
-            (other = find_ent_here(self, self->position.x, self->position.z, self->modeldata.hostile, NULL)))
+            (other = find_ent_here(self, self->position.x, self->position.z, self->faction.type_hostile, NULL)))
     {
         if(trygrab(other))
         {
@@ -36042,7 +35995,7 @@ int arrow_move(entity* acting_entity)
     // new subtype chase
     if(acting_entity->modeldata.subtype == SUBTYPE_CHASE || acting_entity->modeldata.aimove & AIMOVE1_CHASE)
     {
-        target = homing_find_target(acting_entity->modeldata.hostile);
+        target = homing_find_target(acting_entity);
 
         if(target)
         {
@@ -37203,7 +37156,7 @@ int ai_check_busy()
 
 int ai_check_ducking()
 {
-    int them;
+    int indirect;
     entity *target = NULL;
     float t_rangex = 60.0f;
     float t_rangez = 30.0f;
@@ -37225,17 +37178,13 @@ int ai_check_ducking()
 
     if(self->projectile & BLAST_ATTACK)
     {
-        them = self->modeldata.projectilehit;
-    }
-    else
-    {
-        them = self->modeldata.candamage;
+        indirect = 1;
     }
 
     if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0);
     else target = self->custom_target;
 
-    if(target && !(target->modeldata.type & them))
+    if(target && !(faction_check_can_damage(self, target, indirect)))
     {
         return 0;
     }
@@ -40407,7 +40356,7 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
     entity *tmpself = NULL;
     s_defense* defense_object = NULL;
 
-    hostile = e->modeldata.hostile;
+    hostile = e->faction.type_hostile;
     if(e->modeldata.type & TYPE_PLAYER)
     {
         hostile &= ~(TYPE_PLAYER);
@@ -40419,7 +40368,7 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
         if( ent_list[i]->exists
                 && ent_list[i] != e
                 && ent_list[i]->energy_state.health_current > 0
-                && (ent_list[i]->modeldata.type & (e->modeldata.hostile)))
+                && faction_check_is_hostile(e, ent_list[i]))
         {
             self = ent_list[i];
             hit = 1; // for nocost, if the bomb doesn't hit, it won't cost energy
@@ -40537,28 +40486,184 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 	}
 }
 
-// Caskey, Damon V.
-//
-// 2019-12-22
-// Copy the faction settings (candamage, hostile, projectilehit) from
-// a source entity.
-void copy_faction_data(entity* ent, entity* source)
+/*
+* Caskey, Damon V.
+*
+* 2019-12-22
+* Copy the faction settings from a 
+* source entity.
+*/ 
+void faction_copy_all(entity* dest, entity* source, int conditional)
 {
-	// Copy the faction data if we don't already have it.
-	if (ent->modeldata.hostile == TYPE_UNDELCARED)
-	{
-		ent->modeldata.hostile = source->modeldata.hostile;
-	}
+    faction_copy_data(&dest->modeldata.faction, &source->faction, conditional);
+    faction_copy_data(&dest->faction, &source->faction, conditional);
+}
 
-	if (ent->modeldata.candamage == TYPE_UNDELCARED)
-	{
-		ent->modeldata.candamage = source->modeldata.candamage;
-	}
+void faction_copy_data(s_faction* dest, s_faction* source, int conditional)
+{  
+    if (!conditional || dest->damage_direct == FACTION_GROUP_NONE)
+    {
+        dest->damage_direct = source->damage_direct;
+    }
 
-	if (ent->modeldata.projectilehit == TYPE_UNDELCARED)
-	{
-		ent->modeldata.candamage = source->modeldata.candamage;
-	}
+    if (!conditional || dest->damage_indirect == FACTION_GROUP_NONE)
+    {
+        dest->damage_indirect = source->damage_indirect;
+    }
+
+    if (!conditional || dest->hostile == FACTION_GROUP_NONE)
+    {
+        dest->hostile = source->hostile;
+    }
+
+    if (!conditional || dest->member == FACTION_GROUP_NONE)
+    {
+        dest->member = source->member;
+    }
+
+    if (!conditional || dest->type_hostile == TYPE_UNDELCARED)
+    {
+        dest->type_hostile = source->type_hostile;
+    }
+
+    if (!conditional || dest->type_damage_direct == TYPE_UNDELCARED)
+    {
+        dest->type_damage_direct = source->type_damage_direct;
+    }
+
+    if (!conditional || dest->type_damage_indirect == TYPE_UNDELCARED)
+    {
+        dest->type_damage_indirect = source->type_damage_indirect;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-26
+*
+* Return true if acting entity can 
+* hit target entity with attacks.
+*/
+int faction_check_can_damage(entity* acting_entity, entity* target_entity, int indirect)
+{
+    e_entity_type acting_type;
+    e_entity_type target_type;
+    e_faction acting_faction;
+    e_faction target_faction;
+
+    if (indirect)
+    {
+        acting_faction = acting_entity->faction.damage_indirect;
+        acting_type = acting_entity->faction.type_damage_indirect;
+    }
+    else
+    {
+        acting_faction = acting_entity->faction.damage_direct;
+        acting_type = acting_entity->faction.type_damage_direct;
+    }
+
+    target_type = target_entity->modeldata.type;
+
+    /*
+    * Exclusvie type checks take priority over faction.
+    */
+
+    if (acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE)
+    {
+        if (acting_type & target_type)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    target_faction = target_entity->faction.member;
+
+    if (acting_faction & target_faction)
+    {
+        /*
+        * Also check type?
+        */
+
+        if (acting_faction & FACTION_GROUP_TYPE_INCLUSIVE)
+        {
+            if (acting_type & target_type)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        return 1;
+    }
+
+    return 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-26
+* 
+* Return true if acting entity is
+* hostile toward target entity.
+*/
+int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
+{
+    e_entity_type acting_type;
+    e_entity_type target_type;
+    e_faction acting_faction;
+    e_faction target_faction;
+
+    acting_faction = acting_entity->faction.hostile;
+    acting_type = acting_entity->faction.type_hostile;
+    target_type = target_entity->modeldata.type;
+
+    /*
+    * Exclusvie type checks take priority over faction.
+    */
+
+    if (acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE)
+    {
+        if (acting_type & target_type)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    target_faction = target_entity->faction.member;
+
+    if (acting_faction & target_faction)
+    {
+        /*
+        * Also check type?
+        */
+
+        if (acting_faction & FACTION_GROUP_TYPE_INCLUSIVE)
+        {
+            if (acting_type & target_type)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        return 1;
+    }
+
+    return 0;
 }
 
 /*
@@ -40805,7 +40910,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	* If projectile entity doesn't already have hostile and
 	* candamage settings, copy them from parent.
 	*/
-    copy_faction_data(projectile_entity, parent);
+    faction_copy_all(projectile_entity, parent, 1);
 
     /*
 	* If player damage turned off, remove player type from
@@ -40814,8 +40919,8 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     */
     if((parent->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
     {
-        projectile_entity->modeldata.hostile &= ~TYPE_PLAYER;
-        projectile_entity->modeldata.candamage &= ~TYPE_PLAYER;
+        projectile_entity->faction.type_hostile &= ~TYPE_PLAYER;
+        projectile_entity->faction.type_damage_direct &= ~TYPE_PLAYER;
     }
 
 	/*
@@ -41024,7 +41129,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 
 	// If projectile entity doesn't already have hostile and
 	// candamage settings, copy them from parent.
-	copy_faction_data(ent, parent);
+	faction_copy_all(ent, parent, 1);
     
 	ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
 	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
@@ -41191,7 +41296,7 @@ int star_spawn(entity *parent, s_projectile *projectile)
         
 		// If projectile entity doesn't already have hostile and
 		// candamage settings, copy them from parent.
-		copy_faction_data(ent, parent);
+		faction_copy_all(ent, parent, 1);
 
 		// Basic terrian property setup.
 		ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
@@ -41277,41 +41382,47 @@ void text_think()     // New function so text can be displayed
 
 //homing arrow find its target
 // type : target type
-entity *homing_find_target(int type)
+entity *homing_find_target(entity* acting_entity)
 {
-    int i, min, max;
-    int index = -1;
+    int i;
+    int min;
+    int max;
+        
+    entity* target_entity = NULL;
+    entity* cursor_entity;
+
     //use the walk animation's range
-    if(validanim(self, ANI_WALK))
+    if(validanim(acting_entity, ANI_WALK))
     {
-        min = self->modeldata.animation[ANI_WALK]->range.x.min;
-        max = self->modeldata.animation[ANI_WALK]->range.x.max;
+        min = acting_entity->modeldata.animation[ANI_WALK]->range.x.min;
+        max = acting_entity->modeldata.animation[ANI_WALK]->range.x.max;
     }
     else
     {
         min = 0;
         max = 999;
     }
+
     //find the 'nearest' one
     for(i = 0; i < ent_max; i++)
     {
-        if( ent_list[i]->exists && ent_list[i] != self //cant target self
-                && (ent_list[i]->modeldata.type & type)
-                && diff(ent_list[i]->position.x, self->position.x) + diff(ent_list[i]->position.z, self->position.z) >= min
-                && diff(ent_list[i]->position.x, self->position.x) + diff(ent_list[i]->position.z, self->position.z) <= max
-                && ent_list[i]->animation->vulnerable[ent_list[i]->animpos]  )
+        cursor_entity = ent_list[i];
+
+        if(cursor_entity->exists && cursor_entity != acting_entity  // cant target self
+                && cursor_entity != acting_entity->owner // Don't go after owner.
+                && faction_check_is_hostile(acting_entity, cursor_entity)
+                && diff(cursor_entity->position.x, acting_entity->position.x) + diff(cursor_entity->position.z, acting_entity->position.z) >= min
+                && diff(cursor_entity->position.x, acting_entity->position.x) + diff(cursor_entity->position.z, acting_entity->position.z) <= max
+                && cursor_entity->animation->vulnerable[cursor_entity->animpos]  )
         {
-            if(index < 0 || diff(ent_list[i]->position.x, self->position.x) + diff(ent_list[i]->position.z, self->position.z) < diff(ent_list[index]->position.x, self->position.x) + diff(ent_list[index]->position.z, self->position.z))
+            if(!target_entity || diff(cursor_entity->position.x, acting_entity->position.x) + diff(cursor_entity->position.z, acting_entity->position.z) < diff(target_entity->position.x, acting_entity->position.x) + diff(target_entity->position.z, acting_entity->position.z))
             {
-                index = i;
+                target_entity = cursor_entity;
             }
         }
     }
-    if( index >= 0)
-    {
-        return ent_list[index];
-    }
-    return NULL;
+    
+    return target_entity;
 }
 
 

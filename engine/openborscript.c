@@ -3673,7 +3673,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_candamage:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.candamage;
+        (*pretvar)->lVal = (e_entity_type)ent->faction.type_damage_direct;
         break;
     }
     case _ep_combostep:
@@ -3715,13 +3715,13 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_hostile:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.hostile;
+        (*pretvar)->lVal = (LONG)ent->faction.type_hostile;
         break;
     }
     case _ep_projectilehit:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.projectilehit;
+        (*pretvar)->lVal = (LONG)ent->faction.type_damage_indirect;
         break;
     }
     case _ep_chargerate:
@@ -5762,7 +5762,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_candamage:
     {
-        ent->modeldata.candamage = 0;
+        ent->faction.type_damage_direct = TYPE_UNDELCARED;
 
         for(i = 2; i < paramCount; i++)
         {
@@ -5775,11 +5775,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 }
                 else if(ltemp & 0x80000000)
                 {
-                    ent->modeldata.candamage |= entitytypes[ltemp & 0x7fffffff];
+                    ent->faction.type_damage_direct |= entitytypes[ltemp & 0x7fffffff];
                 }
                 else
                 {
-                    ent->modeldata.candamage |= ltemp;
+                    ent->faction.type_damage_direct |= ltemp;
                 }
             }
             else
@@ -6233,7 +6233,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_hostile:
     {
-        ent->modeldata.hostile = 0;
+        ent->faction.type_hostile = TYPE_UNDELCARED;
         for(i = 2; i < paramCount; i++)
         {
             if(varlist[i]->vt == VT_INTEGER) // known entity type
@@ -6241,11 +6241,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ltemp = varlist[i]->lVal;
                 if(ltemp & 0x80000000)
                 {
-                    ent->modeldata.hostile |= entitytypes[ltemp & 0x7fffffff];
+                    ent->faction.type_hostile |= entitytypes[ltemp & 0x7fffffff];
                 }
                 else
                 {
-                    ent->modeldata.hostile |= ltemp;
+                    ent->faction.type_hostile |= ltemp;
                 }
             }
             else
@@ -6813,7 +6813,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_projectilehit:
     {
-        ent->modeldata.projectilehit = 0;
+        ent->faction.type_damage_indirect = TYPE_UNDELCARED;
 
         for(i = 2; i < paramCount; i++)
         {
@@ -6822,11 +6822,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ltemp = varlist[i]->lVal;
                 if(ltemp & 0x80000000)
                 {
-                    ent->modeldata.projectilehit |= entitytypes[ltemp & 0x7fffffff];
+                    ent->faction.type_damage_indirect |= entitytypes[ltemp & 0x7fffffff];
                 }
                 else
                 {
-                    ent->modeldata.projectilehit |= ltemp;
+                    ent->faction.type_damage_indirect |= ltemp;
                 }
             }
             else

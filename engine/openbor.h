@@ -560,9 +560,9 @@ typedef enum
 // 2013-12-27
 //
 // Entity types.
-typedef enum
+typedef enum e_entity_type
 {
-	TYPE_UNDELCARED = 0,			
+	TYPE_UNDELCARED = 0,    
     TYPE_NONE		= (1 << 0),
     TYPE_PLAYER		= (1 << 1),
     TYPE_ENEMY		= (1 << 2),
@@ -577,8 +577,9 @@ typedef enum
     TYPE_NPC		= (1 << 11),	// A character can be an ally or enemy.
     TYPE_PANEL		= (1 << 12),	// Fake panel, scroll with screen using model speed
 	TYPE_UNKNOWN	= (1 << 13),	// Not a real type - probably means something went wrong.
-	TYPE_MAX		= TYPE_UNKNOWN,	// For openbor constant check and type hack (i.e., custom hostile and candamage)
-	TYPE_RESERVED	= (1 << 31)     // should not use as a type
+	TYPE_RESERVED	= (1 << 31),     // should not use as a type
+    TYPE_ANY        = TYPE_NONE | TYPE_PLAYER | TYPE_ENEMY | TYPE_ITEM | TYPE_OBSTACLE | TYPE_PROJECTILE | TYPE_STEAMER | TYPE_SHOT | TYPE_TRAP | TYPE_TEXTBOX | TYPE_ENDLEVEL | TYPE_NPC | TYPE_PANEL // Catch all to check for all valid types.
+
 } e_entity_type;
 
 // Caskey, Damon V.
@@ -2981,34 +2982,36 @@ typedef struct
 */
 typedef enum e_faction
 {
-    FACTION_NONE = 0,
-    FACTION_LEGACY = (1 << 0), // Default faction for all models. Members of this faction use legacy type based faction system.
-    FACTION_A = (1 << 1),
-    FACTION_B = (1 << 2),
-    FACTION_C = (1 << 3),
-    FACTION_D = (1 << 4),
-    FACTION_E = (1 << 5),
-    FACTION_F = (1 << 6),
-    FACTION_G = (1 << 7),
-    FACTION_H = (1 << 8),
-    FACTION_I = (1 << 9),
-    FACTION_J = (1 << 10),
-    FACTION_K = (1 << 11),
-    FACTION_L = (1 << 12),
-    FACTION_M = (1 << 13),
-    FACTION_N = (1 << 14),
-    FACTION_O = (1 << 15),
-    FACTION_P = (1 << 16),
-    FACTION_Q = (1 << 17),
-    FACTION_R = (1 << 18),
-    FACTION_S = (1 << 19),
-    FACTION_T = (1 << 20),
-    FACTION_U = (1 << 21),
-    FACTION_V = (1 << 22),
-    FACTION_W = (1 << 23),
-    FACTION_X = (1 << 24),
-    FACTION_Y = (1 << 25),
-    FACTION_Z = (1 << 26)
+    FACTION_GROUP_NONE = 0,
+    FACTION_GROUP_TYPE_EXCLUSIVE = (1 << 0),  // Override other factions with type check.
+    FACTION_GROUP_TYPE_INCLUSIVE = (1 << 1),  // Include type check with faction.
+    FACTION_GROUP_A = (1 << 2),
+    FACTION_GROUP_B = (1 << 3),
+    FACTION_GROUP_C = (1 << 4),
+    FACTION_GROUP_D = (1 << 5),
+    FACTION_GROUP_E = (1 << 6),
+    FACTION_GROUP_F = (1 << 7),
+    FACTION_GROUP_G = (1 << 8),
+    FACTION_GROUP_H = (1 << 9),
+    FACTION_GROUP_I = (1 << 10),
+    FACTION_GROUP_J = (1 << 11),
+    FACTION_GROUP_K = (1 << 12),
+    FACTION_GROUP_L = (1 << 13),
+    FACTION_GROUP_M = (1 << 14),
+    FACTION_GROUP_N = (1 << 15),
+    FACTION_GROUP_O = (1 << 16),
+    FACTION_GROUP_P = (1 << 17),
+    FACTION_GROUP_Q = (1 << 18),
+    FACTION_GROUP_R = (1 << 19),
+    FACTION_GROUP_S = (1 << 20),
+    FACTION_GROUP_T = (1 << 21),
+    FACTION_GROUP_U = (1 << 22),
+    FACTION_GROUP_V = (1 << 23),
+    FACTION_GROUP_W = (1 << 24),
+    FACTION_GROUP_X = (1 << 25),
+    FACTION_GROUP_Y = (1 << 26),
+    FACTION_GROUP_Z = (1 << 27),
+    FACTION_GROUP_ALL = FACTION_GROUP_A | FACTION_GROUP_B | FACTION_GROUP_C | FACTION_GROUP_D | FACTION_GROUP_E | FACTION_GROUP_F | FACTION_GROUP_G | FACTION_GROUP_H | FACTION_GROUP_I | FACTION_GROUP_J | FACTION_GROUP_K | FACTION_GROUP_L | FACTION_GROUP_M | FACTION_GROUP_N | FACTION_GROUP_O | FACTION_GROUP_P | FACTION_GROUP_Q | FACTION_GROUP_R | FACTION_GROUP_S | FACTION_GROUP_T | FACTION_GROUP_U | FACTION_GROUP_V | FACTION_GROUP_W | FACTION_GROUP_X | FACTION_GROUP_Y | FACTION_GROUP_Z
 } e_faction;
 
 /*
@@ -3016,16 +3019,35 @@ typedef enum e_faction
 * 2023-02-03
 * 
 * Self-contained faction system to
-* replace using types for controlling
-* what other entities an entity is
-* hostile to and can damage.
+* determine what other entities an 
+* entity is hostile to and can damage.
 */
 typedef struct
 {
+    /*
+    * Group based factions. Entity can be
+    * a member of any or all factions using
+    * bitwise constants. The other faction
+    * properties verify a match in other
+    * entity's member property.
+    */
+
     e_faction damage_direct;    // Factions entity can damage with attacks.
     e_faction damage_indirect;  // Factions entity can damage when thrown/blasted.
     e_faction hostile;          // Factions entity seeks and attacks.
     e_faction member;           // Factions entity belongs to.
+
+    /*
+    * Type based faction control for legacy 
+    * support and special cases. Note prior 
+    * to OpenBOR 4.0, type based properties 
+    * were part of the model structure and 
+    * the only native form of faction control.
+    */
+
+    e_entity_type type_damage_direct;   // Types entity can damage with attacks.
+    e_entity_type type_damage_indirect; // Types entity can damage when thrown/blasted.
+    e_entity_type type_hostile;         // Types entity seeks and attacks.
 } s_faction;
 
 typedef enum
@@ -3245,12 +3267,7 @@ typedef struct
     float pushingfactor; // pushing factor in entity collision
 
     /* Faction data (hostile to, can hit, etc.). */
-    s_faction faction;
-
-    /* Legacy faction (based on type) */
-    e_entity_type hostile; // specify hostile types
-    e_entity_type candamage; // specify types that can be damaged by this entity
-    e_entity_type projectilehit; // specify types that can be hit by this entity if it is thrown
+    s_faction faction;  
 
     //---------------new A.I. switches-----------
     
@@ -4022,7 +4039,12 @@ int addframe(s_addframe_data* data);
 int check_in_screen();
 
 void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustment);
-void copy_faction_data(entity* ent, entity* source);
+
+/* Faction control .*/
+void faction_copy_all(entity* ent, entity* source, int conditional);
+void faction_copy_data(s_faction* dest, s_faction* source, int conditional);
+int faction_check_can_damage(entity* acting_entity, entity* target_entity, int indirect);
+int faction_check_is_hostile(entity* acting_entity, entity* target_entity);
 
 /* Bind control */
 void    adjust_bind(entity* acting_entity);
@@ -4372,8 +4394,7 @@ void trap_think(void);
 void steam_spawn(float x, float z, float a);
 void steamer_think(void);
 void text_think(void);
-entity *homing_find_target(int type);
-void biker_drive(void);
+entity *homing_find_target(entity* acting_entity);
 void bike_crash(void);
 void obstacle_fall(void);
 void obstacle_fly(void);
