@@ -11014,7 +11014,7 @@ e_entity_type get_type_from_string(char* value)
 * Get arguments for type and output final
 * bitmask so we can have a reusable function.
 */
-e_entity_type get_type_from_arguments(ArgList* arglist)
+e_entity_type get_type_from_arglist(ArgList* arglist)
 {
     int i = 0;
     char* value = "";
@@ -13076,15 +13076,40 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 newchar->ground = GET_INT_ARG(2);    // Added to determine if enemies are damaged with mid air projectiles or ground only
                 break;
+            
+            /* Faction set up. */
+            case CMD_MODEL_FACTION_GROUP_DAMAGE_DIRECT:
+                newchar->faction.damage_direct = faction_get_flags_from_arglist(&arglist);
+                break;
+
+            case CMD_MODEL_FACTION_GROUP_DAMAGE_INDIRECT:
+                newchar->faction.damage_indirect = faction_get_flags_from_arglist(&arglist);
+                break;
+
+            case CMD_MODEL_FACTION_GROUP_HOSTILE:
+                newchar->faction.hostile = faction_get_flags_from_arglist(&arglist);
+                break;
+
+            case CMD_MODEL_FACTION_GROUP_MEMBER:
+                newchar->faction.member = faction_get_flags_from_arglist(&arglist);
+                break;
+
+            /* Legacy type based faction */
+            case CMD_MODEL_FACTION_TYPE_HOSTILE:
             case CMD_MODEL_HOSTILE:
-                newchar->faction.type_hostile = get_type_from_arguments(&arglist);
+                newchar->faction.type_hostile = get_type_from_arglist(&arglist);
                 break;
+
+            case CMD_MODEL_FACTION_TYPE_DAMAGE_DIRECT:
             case CMD_MODEL_CANDAMAGE:
-                newchar->faction.type_damage_direct = get_type_from_arguments(&arglist);
+                newchar->faction.type_damage_direct = get_type_from_arglist(&arglist);
                 break;
+
+            case CMD_MODEL_FACTION_TYPE_DAMAGE_INDIRECT:
             case CMD_MODEL_PROJECTILEHIT:
-                newchar->faction.type_damage_indirect = get_type_from_arguments(&arglist);
+                newchar->faction.type_damage_indirect = get_type_from_arglist(&arglist);
                 break;
+
             case CMD_MODEL_AIMOVE:
                 newchar->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NORMAL);
                 break;
@@ -14472,7 +14497,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NONE);
                 break;
             case CMD_MODEL_CHILD_SPAWN_CANDAMAGE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_arguments(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_arglist(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_COLOR:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->color = child_spawn_get_color_from_argument(filename, command, GET_ARG(1));
@@ -14484,7 +14509,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_HOSTILE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_arguments(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_arglist(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_MODEL:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->model_index = get_cached_model_index(GET_ARG(1));
@@ -14502,7 +14527,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.z = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHILD_SPAWN_PROJECTILEHIT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_arguments(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_arglist(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_TAKEDAMAGE:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->takedamage = takedamage_get_reference_from_argument(GET_ARG(1));
@@ -20107,6 +20132,7 @@ void load_level(char *filename)
         case CMD_LEVEL_FACING:
             level->facing = GET_INT_ARG(1);
             break;
+
         case CMD_LEVEL_ROCK:
             level->rocking = GET_INT_ARG(1);
             break;
@@ -20547,6 +20573,42 @@ void load_level(char *filename)
             level->bossescount += next.boss ? 1 : 0;
             level->numbosses = level->bossescount;
             break;
+
+        case CMD_LEVEL_FACTION_GROUP_DAMAGE_DIRECT:
+
+            next.faction.damage_direct = faction_get_flags_from_arglist(&arglist);
+            break;
+
+        case CMD_LEVEL_FACTION_GROUP_DAMAGE_INDIRECT:
+
+            next.faction.damage_indirect = faction_get_flags_from_arglist(&arglist);
+            break;
+
+        case CMD_LEVEL_FACTION_GROUP_HOSTILE:
+
+            next.faction.hostile = faction_get_flags_from_arglist(&arglist);
+            break;
+
+        case CMD_LEVEL_FACTION_GROUP_MEMBER:
+
+            next.faction.member = faction_get_flags_from_arglist(&arglist);
+            break;
+
+        case CMD_LEVEL_FACTION_TYPE_DAMAGE_DIRECT:
+
+            next.faction.type_damage_direct = get_type_from_arglist(&arglist);
+            break;
+
+        case CMD_LEVEL_FACTION_TYPE_DAMAGE_INDIRECT:
+
+            next.faction.type_damage_indirect = get_type_from_arglist(&arglist);
+            break;
+
+        case CMD_LEVEL_FACTION_TYPE_HOSTILE:
+
+            next.faction.type_hostile = get_type_from_arglist(&arglist);
+            break;
+
         case CMD_LEVEL_FLIP:
             next.flip = GET_INT_ARG(1);
             break;
@@ -22849,7 +22911,7 @@ void ent_default_init(entity *e)
     }
 
     /* Faction data. */   
-    faction_copy_data(&e->faction, &e->modeldata.faction, 0);
+    faction_copy_data(&e->faction, &e->modeldata.faction, FACTION_COPY_CONDITION_NONE);
 
     if(!e->animation)
     {
@@ -23409,10 +23471,10 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     if (ent->modeldata.aiattack == -1)
     {
         ent->modeldata.aiattack = oldmodel->aiattack;
-    }
+    }    
 
-    faction_copy_data(&ent->modeldata.faction, &oldmodel->faction, 1);
-    faction_copy_data(&ent->faction, &oldmodel->faction, 1);
+    faction_copy_data(&ent->modeldata.faction, &oldmodel->faction, FACTION_COPY_CONDITION_DEST_NONE);
+    faction_copy_data(&ent->faction, &oldmodel->faction, FACTION_COPY_CONDITION_DEST_NONE);
 
     if(!ent->modeldata.health)
     {
@@ -26711,7 +26773,7 @@ int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int
             sound_index = global_sample_list.block;
         }
     }
-    else if (attacking_entity->projectile & BLAST_ATTACK && global_sample_list.indirect >= 0)
+    else if (attacking_entity->projectile != BLAST_NONE && global_sample_list.indirect >= 0)
     {
         sound_index = global_sample_list.indirect;
     }
@@ -26737,8 +26799,11 @@ int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int
         else if (playback_speed < PLAYBACK_SPEED_MIN)
         {
             playback_speed = PLAYBACK_SPEED_MIN;
-        }
+        }        
+    }
 
+    if (sound_index != SAMPLE_ID_NONE)
+    {
         sound_play_sample(sound_index, PLAYBACK_PRIORITY, savedata.effectvol, savedata.effectvol, playback_speed);
     }
 
@@ -40493,48 +40558,227 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 * Copy the faction settings from a 
 * source entity.
 */ 
-void faction_copy_all(entity* dest, entity* source, int conditional)
+void faction_copy_all(entity* dest, entity* source, e_faction_copy_condition copy_condition)
 {
-    faction_copy_data(&dest->modeldata.faction, &source->faction, conditional);
-    faction_copy_data(&dest->faction, &source->faction, conditional);
+    faction_copy_data(&dest->modeldata.faction, &source->faction, copy_condition);
+    faction_copy_data(&dest->faction, &source->faction, copy_condition);
 }
 
-void faction_copy_data(s_faction* dest, s_faction* source, int conditional)
-{  
-    if (!conditional || dest->damage_direct == FACTION_GROUP_NONE)
+/*
+* Caskey, Damon V.
+* 2023-02-28
+* 
+* Copy faction properties if 
+* conditions pass.
+*/
+void faction_copy_data(s_faction* dest, s_faction* source, e_faction_copy_condition copy_condition)
+{
+    /*
+    * This is a bit crude, but more clear and
+    * readable than doing a compound conditionals.
+    */
+
+    switch (copy_condition)
     {
+    case FACTION_COPY_CONDITION_NONE:
+        
         dest->damage_direct = source->damage_direct;
-    }
-
-    if (!conditional || dest->damage_indirect == FACTION_GROUP_NONE)
-    {
         dest->damage_indirect = source->damage_indirect;
-    }
-
-    if (!conditional || dest->hostile == FACTION_GROUP_NONE)
-    {
         dest->hostile = source->hostile;
-    }
-
-    if (!conditional || dest->member == FACTION_GROUP_NONE)
-    {
+        dest->damage_direct = source->damage_direct;
         dest->member = source->member;
-    }
-
-    if (!conditional || dest->type_hostile == TYPE_UNDELCARED)
-    {
-        dest->type_hostile = source->type_hostile;
-    }
-
-    if (!conditional || dest->type_damage_direct == TYPE_UNDELCARED)
-    {
         dest->type_damage_direct = source->type_damage_direct;
+        dest->type_damage_indirect = source->type_damage_indirect;
+        dest->type_hostile = source->type_hostile;
+
+        break;
+
+    case FACTION_COPY_CONDITION_DEST_NONE:
+
+        if (dest->damage_direct == FACTION_GROUP_NONE) { dest->damage_direct = source->damage_direct; }
+        if (dest->damage_indirect == FACTION_GROUP_NONE) { dest->damage_indirect = source->damage_indirect; }
+        if (dest->hostile == FACTION_GROUP_NONE) { dest->hostile = source->hostile; }
+        if (dest->member == FACTION_GROUP_NONE) { dest->member = source->member; }
+        if (dest->type_damage_direct == TYPE_UNDELCARED) { dest->type_damage_direct = source->type_damage_direct; }
+        if (dest->type_damage_indirect == TYPE_UNDELCARED) { dest->type_damage_indirect = source->type_damage_indirect; }
+        if (dest->type_hostile == TYPE_UNDELCARED) { dest->type_hostile = source->type_hostile; }
+
+        break;
+
+    case FACTION_COPY_CONDITION_SOURCE_POPULATED:
+
+        if (source->damage_direct != FACTION_GROUP_NONE) { dest->damage_direct = source->damage_direct; }
+        if (source->damage_indirect != FACTION_GROUP_NONE) { dest->damage_indirect = source->damage_indirect; }
+        if (source->hostile != FACTION_GROUP_NONE) { dest->hostile = source->hostile; }
+        if (source->member != FACTION_GROUP_NONE) { dest->member = source->member; }
+        if (source->type_damage_direct != TYPE_UNDELCARED) { dest->type_damage_direct = source->type_damage_direct; }
+        if (source->type_damage_indirect != TYPE_UNDELCARED) { dest->type_damage_indirect = source->type_damage_indirect; }
+        if (source->type_hostile != TYPE_UNDELCARED) { dest->type_hostile = source->type_hostile; }
+
+        break;   
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-24
+*
+* Read a text argument for model copy flag
+* and output appropriate constant. If input
+* is legacy integer, we just pass it on.
+*/
+e_faction_group faction_get_flag_from_string(char* value)
+{
+    e_faction_group result = FACTION_GROUP_NONE;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = FACTION_GROUP_NONE;
+    }
+    else if (stricmp(value, "all") == 0)
+    {
+        result = FACTION_GROUP_ALL_NORMAL;
+    }
+    else if (stricmp(value, "player_verses") == 0)
+    {
+        result = FACTION_GROUP_PLAYER_VERSES;
+    }
+    else if (stricmp(value, "type_exclusive") == 0)
+    {
+        result = FACTION_GROUP_TYPE_EXCLUSIVE;
+    }
+    else if (stricmp(value, "type_inclusive") == 0)
+    {
+        result = FACTION_GROUP_TYPE_INCLUSIVE;
+    }
+    else if (stricmp(value, "a") == 0)
+    {
+        result = FACTION_GROUP_A;
+    }
+    else if (stricmp(value, "b") == 0)
+    {
+        result = FACTION_GROUP_B;
+    }
+    else if (stricmp(value, "c") == 0)
+    {
+        result = FACTION_GROUP_C;
+    }
+    else if (stricmp(value, "d") == 0)
+    {
+        result = FACTION_GROUP_D;
+    }
+    else if (stricmp(value, "e") == 0)
+    {
+        result = FACTION_GROUP_E;
+    }
+    else if (stricmp(value, "f") == 0)
+    {
+        result = FACTION_GROUP_F;
+    }
+    else if (stricmp(value, "g") == 0)
+    {
+        result = FACTION_GROUP_G;
+    }
+    else if (stricmp(value, "h") == 0)
+    {
+        result = FACTION_GROUP_H;
+    }
+    else if (stricmp(value, "i") == 0)
+    {
+        result = FACTION_GROUP_I;
+    }
+    else if (stricmp(value, "j") == 0)
+    {
+        result = FACTION_GROUP_J;
+    }
+    else if (stricmp(value, "k") == 0)
+    {
+        result = FACTION_GROUP_K;
+    }
+    else if (stricmp(value, "l") == 0)
+    {
+        result = FACTION_GROUP_L;
+    }
+    else if (stricmp(value, "m") == 0)
+    {
+        result = FACTION_GROUP_M;
+    }
+    else if (stricmp(value, "n") == 0)
+    {
+        result = FACTION_GROUP_N;
+    }
+    else if (stricmp(value, "o") == 0)
+    {
+        result = FACTION_GROUP_O;
+    }
+    else if (stricmp(value, "p") == 0)
+    {
+        result = FACTION_GROUP_P;
+    }
+    else if (stricmp(value, "q") == 0)
+    {
+        result = FACTION_GROUP_Q;
+    }
+    else if (stricmp(value, "r") == 0)
+    {
+        result = FACTION_GROUP_R;
+    }
+    else if (stricmp(value, "s") == 0)
+    {
+        result = FACTION_GROUP_S;
+    }
+    else if (stricmp(value, "t") == 0)
+    {
+        result = FACTION_GROUP_T;
+    }
+    else if (stricmp(value, "u") == 0)
+    {
+        result = FACTION_GROUP_U;
+    }
+    else if (stricmp(value, "v") == 0)
+    {
+        result = FACTION_GROUP_V;
+    }
+    else if (stricmp(value, "w") == 0)
+    {
+        result = FACTION_GROUP_W;
+    }
+    else if (stricmp(value, "x") == 0)
+    {
+        result = FACTION_GROUP_X;
+    }
+    else if (stricmp(value, "y") == 0)
+    {
+        result = FACTION_GROUP_Y;
+    }
+    else if (stricmp(value, "z") == 0)
+    {
+        result = FACTION_GROUP_Z;
     }
 
-    if (!conditional || dest->type_damage_indirect == TYPE_UNDELCARED)
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2022-05-24
+*
+* Populate faction property from
+* text arguments.
+*/
+e_faction_group faction_get_flags_from_arglist(ArgList* arglist)
+{
+    int i = 0;
+    char* value = "";
+
+    e_faction_group result = FACTION_GROUP_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        dest->type_damage_indirect = source->type_damage_indirect;
+        result |= get_type_from_string(value);
     }
+
+    return result;
 }
 
 /*
@@ -40548,8 +40792,18 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
 {
     e_entity_type acting_type;
     e_entity_type target_type;
-    e_faction acting_faction;
-    e_faction target_faction;
+    e_faction_group acting_faction;
+    e_faction_group target_faction;
+
+    if (!acting_entity || !target_entity)
+    {
+        return 0;
+    }
+
+    /*
+    * We will use different acting faction property
+    * and type if the indirect flag is set.
+    */
 
     if (indirect)
     {
@@ -40562,10 +40816,22 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
         acting_type = acting_entity->faction.type_damage_direct;
     }
 
+    /*
+    * Check player interaction.
+    */
+
+    if (faction_check_player_verses(acting_entity, target_entity, acting_faction))
+    {
+        return 0;
+    }
+
     target_type = target_entity->modeldata.type;
 
     /*
-    * Exclusvie type checks take priority over faction.
+    * If one of the acting factions is the
+    * type exclusive group, then we only
+    * check acting types vs. target type
+    * and ignore other factions.
     */
 
     if (acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE)
@@ -40580,12 +40846,20 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
         }
     }
 
+    /*
+    * Now we compare our acting faction(s) to the
+    * faction(s) target is a member of for any match.
+    */
+
     target_faction = target_entity->faction.member;
 
     if (acting_faction & target_faction)
     {
         /*
-        * Also check type?
+        * If one of the acting factions is
+        * the tye inclusing group, then we
+        * also check acting types vs the
+        * target's type.
         */
 
         if (acting_faction & FACTION_GROUP_TYPE_INCLUSIVE)
@@ -40617,15 +40891,32 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 {
     e_entity_type acting_type;
     e_entity_type target_type;
-    e_faction acting_faction;
-    e_faction target_faction;
+    e_faction_group acting_faction;
+    e_faction_group target_faction;
+
+    if (!acting_entity || !target_entity)
+    {
+        return 0;
+    }
 
     acting_faction = acting_entity->faction.hostile;
     acting_type = acting_entity->faction.type_hostile;
     target_type = target_entity->modeldata.type;
 
     /*
-    * Exclusvie type checks take priority over faction.
+    * Check player interaction. 
+    */
+
+    if (faction_check_player_verses(acting_entity, target_entity, acting_faction))
+    {
+        return 0;
+    }
+
+    /*
+    * If one of the acting factions is the
+    * type exclusive group, then we only
+    * check acting types vs. target type
+    * and ignore other factions.
     */
 
     if (acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE)
@@ -40640,12 +40931,20 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
         }
     }
 
+    /*
+    * Now we compare our acting faction(s) to the
+    * faction(s) target is a member of for any match.
+    */
+
     target_faction = target_entity->faction.member;
 
     if (acting_faction & target_faction)
     {
         /*
-        * Also check type?
+        * If one of the acting factions is
+        * the tye inclusing group, then we
+        * also check acting types vs the
+        * target's type.
         */
 
         if (acting_faction & FACTION_GROUP_TYPE_INCLUSIVE)
@@ -40660,6 +40959,65 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
             }
         }
 
+        return 1;
+    }
+
+    return 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-28
+* 
+* Returs 1 if players are not allowed 
+* vs. interaction on a given faction 
+* property. Ex. Hostile, direct damage, 
+* indirect damage.
+*/
+int faction_check_player_verses(entity* acting_entity, entity* target_entity, e_faction_group faction_property)
+{
+    if (!acting_entity || !target_entity)
+    {
+        return 0;
+    }
+
+    /*
+    * Both entites must be players.
+    */
+
+    if (!(acting_entity->modeldata.type & TYPE_PLAYER))
+    {
+        return 0;
+    }
+
+    if (!(target_entity->modeldata.type & TYPE_PLAYER))
+    {
+        return 0;
+    }
+
+    /*
+    * In faction group to override friendly
+    * fire settings?
+    */
+
+    if (faction_property & FACTION_GROUP_PLAYER_VERSES)
+    {
+        return 0;
+    }
+
+    /*
+    * If VS. mode turned off in options
+    * or level nohit is enabled, then
+    * we are "friendly" toward target.
+    */
+
+    if (savedata.mode)
+    {
+        return 1;           
+    }
+
+    if (level && level->nohit == DAMAGE_FROM_PLAYER_OFF)
+    {
         return 1;
     }
 
@@ -40910,7 +41268,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	* If projectile entity doesn't already have hostile and
 	* candamage settings, copy them from parent.
 	*/
-    faction_copy_all(projectile_entity, parent, 1);
+    faction_copy_all(projectile_entity, parent, FACTION_COPY_CONDITION_DEST_NONE);
 
     /*
 	* If player damage turned off, remove player type from
@@ -41700,6 +42058,9 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
     {
         initialize_item_carry(e, props);
     }
+    
+    faction_copy_data(&e->modeldata.faction, &props->faction, FACTION_COPY_CONDITION_SOURCE_POPULATED);
+    faction_copy_data(&e->faction, &props->faction, FACTION_COPY_CONDITION_SOURCE_POPULATED);
 
     if(props->spawntype)
     {

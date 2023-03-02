@@ -2980,39 +2980,48 @@ typedef struct
 * Factionc onstants for self-contained
 * faction system. See s_faction struct.
 */
-typedef enum e_faction
+typedef enum e_faction_group
 {
     FACTION_GROUP_NONE = 0,
-    FACTION_GROUP_TYPE_EXCLUSIVE = (1 << 0),  // Override other factions with type check.
-    FACTION_GROUP_TYPE_INCLUSIVE = (1 << 1),  // Include type check with faction.
-    FACTION_GROUP_A = (1 << 2),
-    FACTION_GROUP_B = (1 << 3),
-    FACTION_GROUP_C = (1 << 4),
-    FACTION_GROUP_D = (1 << 5),
-    FACTION_GROUP_E = (1 << 6),
-    FACTION_GROUP_F = (1 << 7),
-    FACTION_GROUP_G = (1 << 8),
-    FACTION_GROUP_H = (1 << 9),
-    FACTION_GROUP_I = (1 << 10),
-    FACTION_GROUP_J = (1 << 11),
-    FACTION_GROUP_K = (1 << 12),
-    FACTION_GROUP_L = (1 << 13),
-    FACTION_GROUP_M = (1 << 14),
-    FACTION_GROUP_N = (1 << 15),
-    FACTION_GROUP_O = (1 << 16),
-    FACTION_GROUP_P = (1 << 17),
-    FACTION_GROUP_Q = (1 << 18),
-    FACTION_GROUP_R = (1 << 19),
-    FACTION_GROUP_S = (1 << 20),
-    FACTION_GROUP_T = (1 << 21),
-    FACTION_GROUP_U = (1 << 22),
-    FACTION_GROUP_V = (1 << 23),
-    FACTION_GROUP_W = (1 << 24),
-    FACTION_GROUP_X = (1 << 25),
-    FACTION_GROUP_Y = (1 << 26),
-    FACTION_GROUP_Z = (1 << 27),
-    FACTION_GROUP_ALL = FACTION_GROUP_A | FACTION_GROUP_B | FACTION_GROUP_C | FACTION_GROUP_D | FACTION_GROUP_E | FACTION_GROUP_F | FACTION_GROUP_G | FACTION_GROUP_H | FACTION_GROUP_I | FACTION_GROUP_J | FACTION_GROUP_K | FACTION_GROUP_L | FACTION_GROUP_M | FACTION_GROUP_N | FACTION_GROUP_O | FACTION_GROUP_P | FACTION_GROUP_Q | FACTION_GROUP_R | FACTION_GROUP_S | FACTION_GROUP_T | FACTION_GROUP_U | FACTION_GROUP_V | FACTION_GROUP_W | FACTION_GROUP_X | FACTION_GROUP_Y | FACTION_GROUP_Z
-} e_faction;
+    FACTION_GROUP_PLAYER_VERSES = (1 << 0),     // Ignore nohit and VS. setting.
+    FACTION_GROUP_TYPE_EXCLUSIVE = (1 << 1),    // Override other factions with type check.
+    FACTION_GROUP_TYPE_INCLUSIVE = (1 << 2),    // Include type check with faction.
+    FACTION_GROUP_A = (1 << 3),
+    FACTION_GROUP_B = (1 << 4),
+    FACTION_GROUP_C = (1 << 5),
+    FACTION_GROUP_D = (1 << 6),
+    FACTION_GROUP_E = (1 << 7),
+    FACTION_GROUP_F = (1 << 8),
+    FACTION_GROUP_G = (1 << 9),
+    FACTION_GROUP_H = (1 << 10),
+    FACTION_GROUP_I = (1 << 11),
+    FACTION_GROUP_J = (1 << 12),
+    FACTION_GROUP_K = (1 << 13),
+    FACTION_GROUP_L = (1 << 14),
+    FACTION_GROUP_M = (1 << 15),
+    FACTION_GROUP_N = (1 << 16),
+    FACTION_GROUP_O = (1 << 17),
+    FACTION_GROUP_P = (1 << 18),
+    FACTION_GROUP_Q = (1 << 19),
+    FACTION_GROUP_R = (1 << 20),
+    FACTION_GROUP_S = (1 << 21),
+    FACTION_GROUP_T = (1 << 22),
+    FACTION_GROUP_U = (1 << 23),
+    FACTION_GROUP_V = (1 << 24),
+    FACTION_GROUP_W = (1 << 25),
+    FACTION_GROUP_X = (1 << 26),
+    FACTION_GROUP_Y = (1 << 27),
+    FACTION_GROUP_Z = (1 << 28),
+    FACTION_GROUP_ALL_NORMAL = FACTION_GROUP_A | FACTION_GROUP_B | FACTION_GROUP_C | FACTION_GROUP_D | FACTION_GROUP_E | FACTION_GROUP_F | FACTION_GROUP_G | FACTION_GROUP_H | FACTION_GROUP_I | FACTION_GROUP_J | FACTION_GROUP_K | FACTION_GROUP_L | FACTION_GROUP_M | FACTION_GROUP_N | FACTION_GROUP_O | FACTION_GROUP_P | FACTION_GROUP_Q | FACTION_GROUP_R | FACTION_GROUP_S | FACTION_GROUP_T | FACTION_GROUP_U | FACTION_GROUP_V | FACTION_GROUP_W | FACTION_GROUP_X | FACTION_GROUP_Y | FACTION_GROUP_Z,
+    FACTION_GROUP_ALL = FACTION_GROUP_PLAYER_VERSES | FACTION_GROUP_TYPE_EXCLUSIVE | FACTION_GROUP_TYPE_INCLUSIVE | FACTION_GROUP_ALL_NORMAL
+} e_faction_group;
+
+typedef enum e_faction_copy_condition
+{
+    FACTION_COPY_CONDITION_NONE = 0,
+    FACTION_COPY_CONDITION_DEST_NONE = (1 << 0),
+    FACTION_COPY_CONDITION_SOURCE_POPULATED = (1 << 1)    
+} e_faction_copy_condition;
 
 /*
 * Caskey, Damon V.
@@ -3032,10 +3041,10 @@ typedef struct
     * entity's member property.
     */
 
-    e_faction damage_direct;    // Factions entity can damage with attacks.
-    e_faction damage_indirect;  // Factions entity can damage when thrown/blasted.
-    e_faction hostile;          // Factions entity seeks and attacks.
-    e_faction member;           // Factions entity belongs to.
+    e_faction_group damage_direct;    // Factions entity can damage with attacks.
+    e_faction_group damage_indirect;  // Factions entity can damage when thrown/blasted.
+    e_faction_group hostile;          // Factions entity seeks and attacks.
+    e_faction_group member;           // Factions entity belongs to.
 
     /*
     * Type based faction control for legacy 
@@ -3613,11 +3622,12 @@ typedef struct
     unsigned credit;
     int aggression; // For enemy A.I.
     int spawntype; // Pass 1 when a level spawn.
-    int entitytype; // if it's a enemy, player etc..
+    e_entity_type entitytype; // if it's a enemy, player etc..
     entity *parent;
     char *weapon; // spawn with a weapon, since it should be in the model list, so the model must be loaded, just reference its name
     s_model *weaponmodel;
     Script spawnscript;
+    s_faction faction;
 } s_spawn_entry;
 
 typedef struct
@@ -3797,7 +3807,7 @@ typedef struct
     s_axis_principal_float *spawn; // Used to determine the spawn position of players
     int setweap; // Levels can now specified which weapon will be used by default
     e_facing_adjust facing; // Force the players to face to ...
-//--------------------gravity system-------------------------
+    //--------------------gravity system-------------------------
     float maxfallspeed;
     float maxtossspeed;
     float gravity;
@@ -4041,10 +4051,13 @@ int check_in_screen();
 void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustment);
 
 /* Faction control .*/
-void faction_copy_all(entity* ent, entity* source, int conditional);
-void faction_copy_data(s_faction* dest, s_faction* source, int conditional);
+void faction_copy_all(entity* ent, entity* source, e_faction_copy_condition copy_condition);
+void faction_copy_data(s_faction* dest, s_faction* source, e_faction_copy_condition copy_condition);
 int faction_check_can_damage(entity* acting_entity, entity* target_entity, int indirect);
 int faction_check_is_hostile(entity* acting_entity, entity* target_entity);
+int faction_check_player_verses(entity* acting_entity, entity* target_entity, e_faction_group faction_property);
+e_faction_group faction_get_flags_from_arglist(ArgList* arglist);
+e_faction_group faction_get_flag_from_string(char* value);
 
 /* Bind control */
 void    adjust_bind(entity* acting_entity);

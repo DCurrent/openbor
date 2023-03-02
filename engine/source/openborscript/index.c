@@ -298,6 +298,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_entity_property";
     }
+    else if (functionRef == ((void*)openbor_get_faction_property))
+    {
+        return "get_faction_property";
+    }
+    else if (functionRef == ((void*)openbor_set_faction_property))
+    {
+        return "set_faction_property";
+    }
     else if (functionRef == ((void *)openbor_get_animation_property))
     {
         return "get_animation_property";
@@ -982,15 +990,7 @@ void *Script_GetStringMapFunction(void *functionRef)
     } 
 	
 	// Entity
-	else if (functionRef == ((void *)openbor_get_entity_property))
-    {
-        return (void *)mapstrings_entity_property;
-    }
-    else if (functionRef == ((void *)openbor_set_entity_property))
-    {
-        return (void *)mapstrings_entity_property;
-    }
-    else if (functionRef == ((void *)openbor_getplayerproperty))
+	else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return (void *)mapstrings_playerproperty;
     }
@@ -1320,6 +1320,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_entity_property, "get_entity_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_entity_property, "set_entity_property");
+
+    /* Faction properties. */    
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_faction_property, "get_faction_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_faction_property, "set_faction_property");
 
     /* Global config properties. */
     List_InsertAfter(&theFunctionList,

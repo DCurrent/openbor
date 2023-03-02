@@ -318,6 +318,13 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ENTITYPUSHING, "entitypushing");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");
+    LIST_ADD(CMD_MODEL_FACTION_GROUP_DAMAGE_DIRECT, "faction_group_damage_direct");
+    LIST_ADD(CMD_MODEL_FACTION_GROUP_DAMAGE_INDIRECT, "faction_group_damage_indirect");
+    LIST_ADD(CMD_MODEL_FACTION_GROUP_HOSTILE, "faction_group_hostile");
+    LIST_ADD(CMD_MODEL_FACTION_GROUP_MEMBER, "faction_group_member");
+    LIST_ADD(CMD_MODEL_FACTION_TYPE_DAMAGE_DIRECT, "faction_type_damage_direct");
+    LIST_ADD(CMD_MODEL_FACTION_TYPE_DAMAGE_INDIRECT, "faction_type_damage_indirect");
+    LIST_ADD(CMD_MODEL_FACTION_TYPE_HOSTILE, "faction_type_hostile");
     LIST_ADD(CMD_MODEL_FALLDIE, "falldie");
     LIST_ADD(CMD_MODEL_FASTATTACK, "fastattack");
     LIST_ADD(CMD_MODEL_FIREB, "fireb");
@@ -599,6 +606,13 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_ENDHOLE, "endhole");
     LIST_ADD(CMD_LEVEL_ENDLEVELSCRIPT, "endlevelscript");
     LIST_ADD(CMD_LEVEL_FACING, "facing");
+    LIST_ADD(CMD_LEVEL_FACTION_GROUP_DAMAGE_DIRECT, "faction_group_damage_direct");
+    LIST_ADD(CMD_LEVEL_FACTION_GROUP_DAMAGE_INDIRECT, "faction_group_damage_indirect");
+    LIST_ADD(CMD_LEVEL_FACTION_GROUP_HOSTILE, "faction_group_hostile");
+    LIST_ADD(CMD_LEVEL_FACTION_GROUP_MEMBER, "faction_group_member");
+    LIST_ADD(CMD_LEVEL_FACTION_TYPE_DAMAGE_DIRECT, "faction_type_damage_direct");
+    LIST_ADD(CMD_LEVEL_FACTION_TYPE_DAMAGE_INDIRECT, "faction_type_damage_indirect");
+    LIST_ADD(CMD_LEVEL_FACTION_TYPE_HOSTILE, "faction_type_hostile");
     LIST_ADD(CMD_LEVEL_FGLAYER, "fglayer");
     LIST_ADD(CMD_LEVEL_FLIP, "flip");
     LIST_ADD(CMD_LEVEL_FRONTPANEL, "frontpanel");

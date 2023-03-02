@@ -18,6 +18,7 @@
 #include "drawmethod.h"
 #include "recursive_damage.h"
 #include "entity.h"
+#include "faction.h"
 #include "global_config.h"
 
 #define MAX_GLOBAL_VAR 2048
