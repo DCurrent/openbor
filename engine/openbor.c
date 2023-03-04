@@ -48366,7 +48366,7 @@ void menu_options_video()
         }
         else if(selector == 10)
         {
-            selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 9 : 11;
         }
 
         _menutextm((selector == 11), 9, 0, Tr("Back"));
