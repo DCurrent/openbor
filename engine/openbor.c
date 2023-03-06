@@ -663,7 +663,9 @@ s_barstatus loadingbarstatus =
 {
     .size           = { .x = 0,
                         .y = 10},
-    .offset         = { .x = 0,
+    .graph_position    = { .x = 0,
+                        .y = 0},
+    .name_position = {  .x = 0,
                         .y = 0},
     .type           = PERCENTAGEBAR,
     .orientation    = HORIZONTALBAR,
@@ -680,7 +682,9 @@ s_barstatus lbarstatus, olbarstatus =
 {
     .size           = { .x = 0,
                         .y = 0},
-    .offset         = { .x = 0,
+    .graph_position    = { .x = 0,
+                        .y = 0},
+    .name_position  = { .x = 0,
                         .y = 0},
     .type           = VALUEBAR,
     .orientation    = HORIZONTALBAR,
@@ -697,7 +701,9 @@ s_barstatus mpbarstatus =
 {
     .size           = { .x = 0,
                         .y = 0},
-    .offset         = { .x = 0,
+    .graph_position    = { .x = 0,
+                        .y = 0},
+    .name_position  = { .x = 0,
                         .y = 0},
     .type           = VALUEBAR,
     .orientation    = HORIZONTALBAR,
@@ -11778,9 +11784,17 @@ e_move_constraint find_move_constraint_from_string(char* value)
     {
         result = MOVE_CONSTRAINT_NO_ADJUST_BASE;
     }
+    else if (stricmp(value, "no_flip") == 0)
+    {
+        result = MOVE_CONSTRAINT_NO_FLIP;
+    }
     else if (stricmp(value, "no_hit_head") == 0)
     {
         result = MOVE_CONSTRAINT_NO_HIT_HEAD;
+    }
+    else if (stricmp(value, "no_move") == 0)
+    {
+        result = MOVE_CONSTRAINT_NO_MOVE;
     }
     else if (stricmp(value, "projectile_base_die") == 0)
     {
@@ -12689,13 +12703,21 @@ s_model *init_model(int cacheindex, int unload)
     newchar->weapon_properties.loss_index      = MODEL_INDEX_NONE;
     newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
-    newchar->faction.damage_direct      = FACTION_GROUP_TYPE_INCLUSIVE;
-    newchar->faction.damage_indirect    = FACTION_GROUP_TYPE_INCLUSIVE;
-    newchar->faction.hostile            = FACTION_GROUP_TYPE_INCLUSIVE;
-    newchar->faction.member             = FACTION_GROUP_TYPE_INCLUSIVE;
+    
+    /* 
+    * Faction data. Faction type properties 
+    * get defaults set downstream depending 
+    * on the the model's own type.
+    */
+
+    newchar->faction.damage_direct      = FACTION_GROUP_DEFAULT;
+    newchar->faction.damage_indirect    = FACTION_GROUP_DEFAULT;
+    newchar->faction.hostile            = FACTION_GROUP_DEFAULT;
+    newchar->faction.member             = FACTION_GROUP_DEFAULT;
     newchar->faction.type_damage_direct = TYPE_UNDELCARED;
     newchar->faction.type_hostile       = TYPE_UNDELCARED;
-    newchar->faction.type_damage_indirect   = TYPE_UNDELCARED;
+    newchar->faction.type_damage_indirect = TYPE_UNDELCARED;
+
     newchar->move_constraint            = MOVE_CONSTRAINT_NONE;
     newchar->pshotno                    = MODEL_INDEX_NONE;
     newchar->project                    = MODEL_INDEX_NONE;
@@ -13673,13 +13695,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->noatflash = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NOMOVE:
-                // If set, will be static (speed must be set to 0 or left blank)
-                newchar->nomove = GET_INT_ARG(1);
-                newchar->noflip = GET_INT_ARG(2);    // If set, static will not flip directions
-                if(newchar->nomove)
+                
+                /*
+                * Legacy no move. Set move constraint flags 
+                * to match the old nomove parameters.
+                */
+
+                if (GET_INT_ARG(1))
                 {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_MOVE;
                     newchar->nodrop = 1;
                 }
+
+                if (GET_INT_ARG(2))
+                {
+                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_FLIP;
+                }                
+                
                 break;
             case CMD_MODEL_NODROP:
                 newchar->nodrop = GET_INT_ARG(1);
@@ -13918,18 +13950,33 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->summonkill = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_LIFEPOSITION:
-                if((value = GET_ARG(1))[0])
+
+                /*
+                * Allocate object if we need it first.
+                */
+
+                if (!newchar->show_status)
                 {
-                    newchar->hpx = atoi(value);
+                    newchar->show_status = bar_status_allocate_object();
                 }
-                if((value = GET_ARG(2))[0])
-                {
-                    newchar->hpy = atoi(value);
-                }
+                
+                newchar->show_status->graph_position.x = GET_INT_ARG(1);                
+                newchar->show_status->graph_position.y = GET_INT_ARG(2);
+                
                 break;
             case CMD_MODEL_LIFEBARSTATUS:
-                _readbarstatus(buf + pos, &(newchar->hpbarstatus));
-                newchar->hpbarstatus.colourtable = &hpcolourtable;
+
+                /*
+                * Allocate object if we need it first.
+                */
+
+                if (!newchar->show_status)
+                {
+                    newchar->show_status = bar_status_allocate_object();
+                }
+
+                _readbarstatus(buf + pos, newchar->show_status);
+                newchar->show_status->colourtable = &hpcolourtable;
                 break;
             case CMD_MODEL_ICONPOSITION:
                 if((value = GET_ARG(1))[0])
@@ -13942,13 +13989,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_NAMEPOSITION:
+
+                /*
+                * Allocate object if we need it first.
+                */
+
+                if (!newchar->show_status)
+                {
+                    newchar->show_status = bar_status_allocate_object();
+                }
+
                 if((value = GET_ARG(1))[0])
                 {
-                    newchar->namex = atoi(value);
+                    newchar->show_status->name_position.x = atoi(value);
                 }
                 if((value = GET_ARG(2))[0])
                 {
-                    newchar->namey = atoi(value);
+                    newchar->show_status->name_position.y = atoi(value);
                 }
                 break;
             case CMD_MODEL_COM:
@@ -20553,6 +20610,7 @@ void load_level(char *filename)
                 next.name = tempmodel->name;
                 next.index = get_cached_model_index(next.name);
                 next.spawntype = SPAWN_TYPE_LEVEL;  //2011_03_23, DC; Spawntype SPAWN_TYPE_LEVEL.
+
                 crlf = 1;
             }
             break;
@@ -21053,8 +21111,8 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
     int forex, forey, forew, foreh, bkw, bkh;
     s_drawmethod dm = plainmethod;
 
-    x += pstatus->offset.x;
-    y += pstatus->offset.y;
+    x += pstatus->graph_position.x;
+    y += pstatus->graph_position.y;
 
     if(pstatus->orientation == HORIZONTALBAR)
     {
@@ -22075,15 +22133,34 @@ void predrawstatus()
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2023-03-08
+* 
+* Allocate an object.
+*/
+s_barstatus* bar_status_allocate_object()
+{
+    s_barstatus* result;
+
+    /* Allocate memory with 0 values and get the pointer. */
+    result = calloc(1, sizeof(*result));
+
+    return result;
+}
+
 // draw boss status on screen
 void drawenemystatus(entity *ent)
 {
     s_drawmethod drawmethod;
+    s_barstatus* status;
     int icon;
 
-    if(ent->modeldata.namex > -1000 && ent->modeldata.namey > -1000)
+    status = ent->modeldata.show_status;
+
+    if(status->name_position.x > -1000 && status->name_position.y > -1000)
     {
-        font_printf(ent->modeldata.namex, ent->modeldata.namey, 0, 0, "%s", ent->name);
+        font_printf(status->name_position.x, status->name_position.y, 0, 0, "%s", ent->name);
     }
 
     if(ent->modeldata.icon.position.x > -1000 &&  ent->modeldata.icon.position.y > -1000)
@@ -22113,9 +22190,9 @@ void drawenemystatus(entity *ent)
         }
     }
 
-    if(ent->modeldata.health && ent->modeldata.hpx > -1000 && ent->modeldata.hpy > -1000)
+    if(ent->modeldata.health && status->graph_position.x > -1000 && status->graph_position.y > -1000)
     {
-        bar(ent->modeldata.hpx, ent->modeldata.hpy, ent->energy_state.health_old, ent->modeldata.health, &(ent->modeldata.hpbarstatus));
+        bar(status->graph_position.x, status->graph_position.y, ent->energy_state.health_old, ent->modeldata.health, status);
     }
 }
 
@@ -22660,8 +22737,9 @@ void ent_default_init(entity *e)
     switch(e->modeldata.type)
     {
     case TYPE_ANY:
-	case TYPE_UNDELCARED:
+    case TYPE_NO_COPY:
     case TYPE_RESERVED:
+	case TYPE_UNDELCARED:
 	case TYPE_UNKNOWN:
 		//Do nothing.
         break;
@@ -22734,11 +22812,11 @@ void ent_default_init(entity *e)
         else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
             e->energy_state.health_current = 1;
-            if(!e->modeldata.speed.x && !e->modeldata.nomove)
+            if(!e->modeldata.speed.x && !(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
             {
                 e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
             }
-            else if(e->modeldata.nomove)
+            else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
             {
                 e->modeldata.speed.x = 0;
             }
@@ -22761,11 +22839,11 @@ void ent_default_init(entity *e)
         {
             e->trymove = common_trymove;
             // Must just be a regular enemy, set defaults accordingly
-            if(!e->modeldata.speed.x && !e->modeldata.nomove)
+            if(!e->modeldata.speed.x && !(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
             {
                 e->modeldata.speed.x = 1;
             }
-            else if(e->modeldata.nomove)
+            else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
             {
                 e->modeldata.speed.x = 0;
             }
@@ -22858,11 +22936,11 @@ void ent_default_init(entity *e)
         e->think = common_think;
         e->takedamage = arrow_takedamage;
         e->attacking = ATTACKING_ACTIVE;
-        if(!e->model->speed.x && !e->modeldata.nomove)
+        if(!e->model->speed.x && !(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
         {
             e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
         }
-        else if(e->modeldata.nomove)
+        else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
         {
             e->modeldata.speed.x = 0;
         }
@@ -22911,7 +22989,7 @@ void ent_default_init(entity *e)
     }
 
     /* Faction data. */   
-    faction_copy_data(&e->faction, &e->modeldata.faction, FACTION_COPY_CONDITION_NONE);
+    faction_copy_data(&e->faction, &e->modeldata.faction);
 
     if(!e->animation)
     {
@@ -23473,8 +23551,8 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
         ent->modeldata.aiattack = oldmodel->aiattack;
     }    
 
-    faction_copy_data(&ent->modeldata.faction, &oldmodel->faction, FACTION_COPY_CONDITION_DEST_NONE);
-    faction_copy_data(&ent->faction, &oldmodel->faction, FACTION_COPY_CONDITION_DEST_NONE);
+    faction_copy_data(&ent->modeldata.faction, &oldmodel->faction);
+    faction_copy_data(&ent->faction, &oldmodel->faction);
 
     if(!ent->modeldata.health)
     {
@@ -28694,7 +28772,11 @@ void display_ents()
             }
             //if(!e->exists) continue; // just in case kill is called in the script
 
-            if(e->modeldata.hpbarstatus.size.x)
+            /*
+            * If we have status, draw to screen (ex. boss life).
+            */
+
+            if(e->modeldata.show_status)
             {
                 drawenemystatus(e);
             }
@@ -30260,7 +30342,7 @@ void upper_prepare()
     }
 
     //check if target is behind, so we can perform a turn back animation
-    if(!self->modeldata.noflip)
+    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
     {
         self->direction = (self->position.x < target->position.x);
     }
@@ -30309,7 +30391,7 @@ void normal_prepare()
     }
 
     //check if target is behind, so we can perform a turn back animation
-    if(!self->modeldata.noflip)
+    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
     {
         self->direction = (self->position.x < target->position.x);
     }
@@ -31247,7 +31329,7 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
     }
 
     /* We can't turn. */
-    if (target_entity->modeldata.noflip)
+    if (target_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP)
     {
         return;
     }
@@ -34386,7 +34468,7 @@ void common_runoff()
         return;
     }
 
-    if(!self->modeldata.noflip)
+    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
     {
         self->direction = (self->position.x < target->position.x);
     }
@@ -34476,7 +34558,7 @@ void common_attack_finish()
 
     target = self->opponent;
 
-    if(target && !self->modeldata.nomove && self->ducking == DUCK_NONE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
+    if(target && !(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE) && self->ducking == DUCK_NONE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
     {
         self->takeaction = NULL;//common_runoff;
         self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
@@ -34864,7 +34946,7 @@ int common_try_pick(entity *other)
     float dx = diff(self->position.x, other->position.x);
     float dz = diff(self->position.z, other->position.z);
 
-    if(other == NULL || self->modeldata.nomove)
+    if(other == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
     {
         return 0;
     }
@@ -35206,7 +35288,7 @@ int checkpathblocked()
     int aitype, wpc;
     entity *target;
 	s_axis_plane_lateral_float *wp;
-    if(self->modeldata.nomove)
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
     {
         return 0;
     }
@@ -35341,7 +35423,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     //adjustspeed(self->modeldata.speed.x, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
 
-    if(target == NULL || self->modeldata.nomove)
+    if(target == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
     {
         return 0;
     }
@@ -35426,7 +35508,7 @@ int common_try_follow(entity *target, int dox, int doz)
     int facing;
 
     //target = self->parent;
-    if(target == NULL || self->modeldata.nomove)
+    if(target == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
     {
         return 0;
     }
@@ -35513,7 +35595,7 @@ int common_try_avoid(entity *target, int dox, int doz)
     float maxdz, mindz, maxdx, mindx;
     int randomatk;
 
-    if(target == NULL || self->modeldata.nomove)
+    if(target == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
     {
         return 0;
     }
@@ -35615,7 +35697,7 @@ int common_try_wandercompletely(int dox, int doz)
 {
     int rnum;
 
-    if(self->modeldata.nomove)
+    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
     {
         return 0;
     }
@@ -35766,7 +35848,7 @@ int common_try_wander(entity *target, int dox, int doz)
           mindx, mindz;// don't walk into the target
     int rnum = rand32() & 15, t, randomatk;
 
-    if(!target || self->modeldata.nomove)
+    if(!target || (self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
     {
         return 0;
     }
@@ -36064,7 +36146,7 @@ int arrow_move(entity* acting_entity)
 
         if(target)
         {
-            if(!acting_entity->modeldata.noflip)
+            if(!(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
             {
                 acting_entity->direction = (target->position.x > acting_entity->position.x);
             }
@@ -36105,7 +36187,8 @@ int arrow_move(entity* acting_entity)
                 }
             }
         }
-        if(!acting_entity->modeldata.nomove)
+        
+        if(!(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
         {
             if(target && acting_entity->position.z > target->position.z && validanim(acting_entity, ANI_UP))
             {
@@ -36653,7 +36736,7 @@ int common_move()
         }
 
         // change direction unless the ai pattern ignores target or model has noflip
-        if(!self->modeldata.noflip && !self->running && aimove != AIMOVE1_WANDER)
+        if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP) && !self->running && aimove != AIMOVE1_WANDER)
         {
             if(other)   //try to pick up an item, if possible
             {
@@ -36699,7 +36782,7 @@ int common_move()
             }
         }
 
-        if(self->modeldata.nomove)
+        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
         {
             self->idling = IDLING_PREPARED;
             return 1;
@@ -40339,7 +40422,7 @@ void drop_all_enemies()
                 (ent_list[i]->modeldata.type & TYPE_ENEMY) &&
                 !ent_list[i]->owner &&    // Don't want to knock down a projectile
                 !ent_list[i]->frozen &&    // Don't want to unfreeze a frozen enemy
-                !ent_list[i]->modeldata.nomove &&
+                !(ent_list[i]->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE) &&
                 !ent_list[i]->modeldata.nodrop &&
                 validanim(ent_list[i], ANI_FALL) )
         {
@@ -40558,10 +40641,10 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 * Copy the faction settings from a 
 * source entity.
 */ 
-void faction_copy_all(entity* dest, entity* source, e_faction_copy_condition copy_condition)
+void faction_copy_all(entity* dest, entity* source)
 {
-    faction_copy_data(&dest->modeldata.faction, &source->faction, copy_condition);
-    faction_copy_data(&dest->faction, &source->faction, copy_condition);
+    faction_copy_data(&dest->modeldata.faction, &source->faction);
+    faction_copy_data(&dest->faction, &source->faction);
 }
 
 /*
@@ -40571,51 +40654,58 @@ void faction_copy_all(entity* dest, entity* source, e_faction_copy_condition cop
 * Copy faction properties if 
 * conditions pass.
 */
-void faction_copy_data(s_faction* dest, s_faction* source, e_faction_copy_condition copy_condition)
+void faction_copy_data(s_faction* dest, s_faction* source)
 {
+    
     /*
-    * This is a bit crude, but more clear and
-    * readable than doing a compound conditionals.
+    * Faction groups. Only copy if source or 
+    * destination has a value and does not
+    * have the no copy flag.
+    * 
+    * I'd rather be able to copy empty values 
+    * as well, but that requires inserting 
+    * default values in several differnt 
+    * locations around the code. Better to
+    * keep it here and maintainable. 
     */
 
-    switch (copy_condition)
-    {
-    case FACTION_COPY_CONDITION_NONE:
-        
-        dest->damage_direct = source->damage_direct;
-        dest->damage_indirect = source->damage_indirect;
-        dest->hostile = source->hostile;
-        dest->damage_direct = source->damage_direct;
-        dest->member = source->member;
-        dest->type_damage_direct = source->type_damage_direct;
-        dest->type_damage_indirect = source->type_damage_indirect;
-        dest->type_hostile = source->type_hostile;
+    if (source->damage_direct != FACTION_GROUP_NONE && !(source->damage_direct & FACTION_GROUP_NO_COPY) && !(dest->damage_direct & FACTION_GROUP_NO_COPY))
+    { 
+        dest->damage_direct = source->damage_direct; 
+    }
 
-        break;
+    if (source->damage_indirect != FACTION_GROUP_NONE && !(source->damage_indirect & FACTION_GROUP_NO_COPY) && !(dest->damage_indirect & FACTION_GROUP_NO_COPY))
+    { 
+        dest->damage_indirect = source->damage_indirect; 
+    }
+    
+    if (source->hostile != FACTION_GROUP_NONE && !(source->hostile & FACTION_GROUP_NO_COPY) && !(dest->hostile & FACTION_GROUP_NO_COPY))
+    { 
+        dest->hostile = source->hostile; 
+    }
+    
+    if (source->member != FACTION_GROUP_NONE && !(source->member & FACTION_GROUP_NO_COPY) && !(dest->member & FACTION_GROUP_NO_COPY))
+    { 
+        dest->member = source->member; 
+    }
 
-    case FACTION_COPY_CONDITION_DEST_NONE:
+    /*
+    * Types. Same rule as faction groups.
+    */
 
-        if (dest->damage_direct == FACTION_GROUP_NONE) { dest->damage_direct = source->damage_direct; }
-        if (dest->damage_indirect == FACTION_GROUP_NONE) { dest->damage_indirect = source->damage_indirect; }
-        if (dest->hostile == FACTION_GROUP_NONE) { dest->hostile = source->hostile; }
-        if (dest->member == FACTION_GROUP_NONE) { dest->member = source->member; }
-        if (dest->type_damage_direct == TYPE_UNDELCARED) { dest->type_damage_direct = source->type_damage_direct; }
-        if (dest->type_damage_indirect == TYPE_UNDELCARED) { dest->type_damage_indirect = source->type_damage_indirect; }
-        if (dest->type_hostile == TYPE_UNDELCARED) { dest->type_hostile = source->type_hostile; }
+    if (source->type_damage_direct != TYPE_UNDELCARED && !(source->type_damage_direct & TYPE_NO_COPY) && !(dest->type_damage_direct & TYPE_NO_COPY))
+    { 
+        dest->type_damage_direct = source->type_damage_direct; 
+    }
 
-        break;
+    if (source->type_damage_indirect != TYPE_UNDELCARED && !(source->type_damage_indirect & TYPE_NO_COPY) && !(dest->type_damage_indirect & TYPE_NO_COPY))
+    { 
+        dest->type_damage_indirect = source->type_damage_indirect; 
+    }
 
-    case FACTION_COPY_CONDITION_SOURCE_POPULATED:
-
-        if (source->damage_direct != FACTION_GROUP_NONE) { dest->damage_direct = source->damage_direct; }
-        if (source->damage_indirect != FACTION_GROUP_NONE) { dest->damage_indirect = source->damage_indirect; }
-        if (source->hostile != FACTION_GROUP_NONE) { dest->hostile = source->hostile; }
-        if (source->member != FACTION_GROUP_NONE) { dest->member = source->member; }
-        if (source->type_damage_direct != TYPE_UNDELCARED) { dest->type_damage_direct = source->type_damage_direct; }
-        if (source->type_damage_indirect != TYPE_UNDELCARED) { dest->type_damage_indirect = source->type_damage_indirect; }
-        if (source->type_hostile != TYPE_UNDELCARED) { dest->type_hostile = source->type_hostile; }
-
-        break;   
+    if (source->type_hostile != TYPE_UNDELCARED && !(source->type_hostile & TYPE_NO_COPY) && !(dest->type_hostile & TYPE_NO_COPY))
+    { 
+        dest->type_hostile = source->type_hostile; 
     }
 }
 
@@ -40638,6 +40728,14 @@ e_faction_group faction_get_flag_from_string(char* value)
     else if (stricmp(value, "all") == 0)
     {
         result = FACTION_GROUP_ALL_NORMAL;
+    }
+    else if (stricmp(value, "neutral") == 0)
+    {
+        result = FACTION_GROUP_NEUTRAL;
+    }
+    else if (stricmp(value, "no_copy") == 0)
+    {
+        result = FACTION_GROUP_NO_COPY;
     }
     else if (stricmp(value, "player_verses") == 0)
     {
@@ -40793,6 +40891,7 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
     e_entity_type acting_type;
     e_entity_type target_type;
     e_faction_group acting_faction;
+    e_faction_group acting_faction_filtered;
     e_faction_group target_faction;
 
     if (!acting_entity || !target_entity)
@@ -40815,6 +40914,15 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
         acting_faction = acting_entity->faction.damage_direct;
         acting_type = acting_entity->faction.type_damage_direct;
     }
+
+    acting_faction_filtered = acting_faction;
+
+    /*
+    * Remove special types.
+    */
+
+    acting_faction_filtered &= ~FACTION_GROUP_NO_CHECK;
+    acting_type &= ~TYPE_NO_CHECK;
 
     /*
     * Check player interaction.
@@ -40853,7 +40961,7 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
 
     target_faction = target_entity->faction.member;
 
-    if (acting_faction & target_faction)
+    if (acting_faction_filtered & target_faction)
     {
         /*
         * If one of the acting factions is
@@ -40889,9 +40997,12 @@ int faction_check_can_damage(entity* acting_entity, entity* target_entity, int i
 */
 int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 {
+    //printf("\n\n faction_check_is_hostile(%p, %p)", acting_entity, target_entity);
+
     e_entity_type acting_type;
     e_entity_type target_type;
     e_faction_group acting_faction;
+    e_faction_group filtered_faction;
     e_faction_group target_faction;
 
     if (!acting_entity || !target_entity)
@@ -40899,9 +41010,26 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
         return 0;
     }
 
+    //printf("\n\t acting_entity->name: %s, target_entity->name: %s", acting_entity->name, target_entity->name);
+
     acting_faction = acting_entity->faction.hostile;
+    filtered_faction = acting_faction;
     acting_type = acting_entity->faction.type_hostile;
     target_type = target_entity->modeldata.type;
+
+    //printf("\n\t acting_faction: %d", acting_faction);
+    //printf("\n\t acting_type: %d", acting_type);
+    //printf("\n\t target_type: %d", target_type);
+
+    /*
+    * Remove special types.
+    */
+
+    filtered_faction &= ~FACTION_GROUP_NO_CHECK;
+    acting_type &= ~TYPE_NO_CHECK;
+
+    //printf("\n\t acting_faction: %d", acting_faction);
+    //printf("\n\t acting_type: %d", acting_type);
 
     /*
     * Check player interaction. 
@@ -40909,6 +41037,8 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 
     if (faction_check_player_verses(acting_entity, target_entity, acting_faction))
     {
+        //printf("\n\t PLayer Vs. Return 0");
+
         return 0;
     }
 
@@ -40921,12 +41051,18 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 
     if (acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE)
     {
+        //printf("\n\t\t acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE: %d", acting_faction & FACTION_GROUP_TYPE_EXCLUSIVE);
+
         if (acting_type & target_type)
         {
+            //printf("\n\t\t acting_type & target_type: %d (yes)", acting_type & target_type);
+
             return 1;
         }
         else
         {
+            printf("\n\t\t acting_type & target_type: %d (no)", acting_type & target_type);
+
             return 0;
         }
     }
@@ -40938,7 +41074,7 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 
     target_faction = target_entity->faction.member;
 
-    if (acting_faction & target_faction)
+    if (filtered_faction & target_faction)
     {
         /*
         * If one of the acting factions is
@@ -40949,18 +41085,26 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 
         if (acting_faction & FACTION_GROUP_TYPE_INCLUSIVE)
         {
+            //printf("\n\t\t acting_faction & FACTION_GROUP_TYPE_INCLUSIVE: %d", acting_faction & FACTION_GROUP_TYPE_INCLUSIVE);
+
             if (acting_type & target_type)
             {
+                //printf("\n\t\t acting_type & target_type: %d (yes)", acting_type & target_type);
+
                 return 1;
             }
             else
             {
+                //printf("\n\t\t acting_type & target_type: %d (no)", acting_type & target_type);
+
                 return 0;
             }
         }
 
         return 1;
     }
+
+    //printf("\n\t No match.");
 
     return 0;
 }
@@ -41211,7 +41355,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	* back to default values. This is a bit overcomplicated, but
 	* allows players to supply a 0 velocity value on any axis.
 	*/
-    if (projectile_entity->modeldata.nomove)
+    if (projectile_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
 	{
         projectile_entity->modeldata.speed.x = 0;
         projectile_entity->modeldata.speed.y = 0;
@@ -41249,7 +41393,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	
     /* Kill self when we finish animation. */
-	if (projectile_entity->modeldata.nomove)
+	if (projectile_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
 	{
         projectile_entity->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
@@ -41265,10 +41409,10 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     }
 
     /*
-	* If projectile entity doesn't already have hostile and
-	* candamage settings, copy them from parent.
+	* Copy faction data from parent.
 	*/
-    faction_copy_all(projectile_entity, parent, FACTION_COPY_CONDITION_DEST_NONE);
+
+    faction_copy_all(projectile_entity, parent);
 
     /*
 	* If player damage turned off, remove player type from
@@ -41419,7 +41563,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	* allows players to supply a 0 velocity value on any axis.
     */
 
-	if (ent->modeldata.nomove)
+	if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
 	{
 		ent->modeldata.speed.x = 0;
 		ent->modeldata.speed.y = 0;
@@ -41478,16 +41622,18 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
     ent->takedamage = common_takedamage;
 	ent->autokill &= ~AUTOKILL_ATTACK_HIT;    
 
-	if (ent->modeldata.nomove)
+	if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
 	{
 		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
 	
     ent->speedmul = 2;
 
-	// If projectile entity doesn't already have hostile and
-	// candamage settings, copy them from parent.
-	faction_copy_all(ent, parent, 1);
+	/*
+    * Copy faction data.
+    */
+
+	faction_copy_all(ent, parent);
     
 	ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
 	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
@@ -41652,9 +41798,11 @@ int star_spawn(entity *parent, s_projectile *projectile)
 		ent->base = position.y;
         ent->speedmul = 2;
         
-		// If projectile entity doesn't already have hostile and
-		// candamage settings, copy them from parent.
-		faction_copy_all(ent, parent, 1);
+        /*
+        * Copy faction data.
+        */
+        
+        faction_copy_all(ent, parent);
 
 		// Basic terrian property setup.
 		ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
@@ -42059,8 +42207,8 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         initialize_item_carry(e, props);
     }
     
-    faction_copy_data(&e->modeldata.faction, &props->faction, FACTION_COPY_CONDITION_SOURCE_POPULATED);
-    faction_copy_data(&e->faction, &props->faction, FACTION_COPY_CONDITION_SOURCE_POPULATED);
+    faction_copy_data(&e->modeldata.faction, &props->faction);
+    faction_copy_data(&e->faction, &props->faction);
 
     if(props->spawntype)
     {
@@ -42188,6 +42336,7 @@ void spawnplayer(int index)
     p.weaponindex = -1;
     p.colourmap = player[index].colourmap;
     p.spawnplayer_count = -1;
+    p.spawntype = SPAWN_TYPE_PLAYER_MAIN;
 
     if(level->scrolldir & SCROLL_LEFT)
     {
@@ -42312,7 +42461,7 @@ void spawnplayer(int index)
     }
 
     player[index].ent->playerindex = index;
-    player[index].ent->spawntype = SPAWN_TYPE_PLAYER_MAIN;
+
     if(nomaxrushreset[4] >= 1)
     {
         player[index].ent->rush.count.max = nomaxrushreset[index];

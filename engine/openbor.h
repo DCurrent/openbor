@@ -564,21 +564,23 @@ typedef enum e_entity_type
 {
 	TYPE_UNDELCARED = 0,    
     TYPE_NONE		= (1 << 0),
-    TYPE_PLAYER		= (1 << 1),
-    TYPE_ENEMY		= (1 << 2),
-    TYPE_ITEM		= (1 << 3),
-    TYPE_OBSTACLE	= (1 << 4),
-    TYPE_PROJECTILE	= (1 << 5),		// 2019-12-27: Projectile type for use by any entity that doesn't have all the legacy baggage.
-	TYPE_STEAMER	= (1 << 6),
-    TYPE_SHOT		= (1 << 7),		// 7-1-2005 type to use for player projectiles
-    TYPE_TRAP		= (1 << 8),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
-    TYPE_TEXTBOX	= (1 << 9),		// New textbox type for displaying messages
-    TYPE_ENDLEVEL	= (1 << 10),		// New endlevel type that ends the level when touched
-    TYPE_NPC		= (1 << 11),	// A character can be an ally or enemy.
-    TYPE_PANEL		= (1 << 12),	// Fake panel, scroll with screen using model speed
-	TYPE_UNKNOWN	= (1 << 13),	// Not a real type - probably means something went wrong.
+    TYPE_NO_COPY    = (1 << 1),     // Don't copy type data to/from another model.
+    TYPE_PLAYER		= (1 << 2),
+    TYPE_ENEMY		= (1 << 3),
+    TYPE_ITEM		= (1 << 4),
+    TYPE_OBSTACLE	= (1 << 5),
+    TYPE_PROJECTILE	= (1 << 6),		// 2019-12-27: Projectile type for use by any entity that doesn't have all the legacy baggage.
+	TYPE_STEAMER	= (1 << 7),
+    TYPE_SHOT		= (1 << 8),		// 7-1-2005 type to use for player projectiles
+    TYPE_TRAP		= (1 << 9),		// 7-1-2005 lets face it enemies are going to just let you storm in without setting a trap or two!
+    TYPE_TEXTBOX	= (1 << 10),		// New textbox type for displaying messages
+    TYPE_ENDLEVEL	= (1 << 11),		// New endlevel type that ends the level when touched
+    TYPE_NPC		= (1 << 12),	// A character can be an ally or enemy.
+    TYPE_PANEL		= (1 << 13),	// Fake panel, scroll with screen using model speed
+	TYPE_UNKNOWN	= (1 << 14),	// Not a real type - probably means something went wrong.
 	TYPE_RESERVED	= (1 << 31),     // should not use as a type
-    TYPE_ANY        = TYPE_NONE | TYPE_PLAYER | TYPE_ENEMY | TYPE_ITEM | TYPE_OBSTACLE | TYPE_PROJECTILE | TYPE_STEAMER | TYPE_SHOT | TYPE_TRAP | TYPE_TEXTBOX | TYPE_ENDLEVEL | TYPE_NPC | TYPE_PANEL // Catch all to check for all valid types.
+    TYPE_ANY        = TYPE_NONE | TYPE_PLAYER | TYPE_ENEMY | TYPE_ITEM | TYPE_OBSTACLE | TYPE_PROJECTILE | TYPE_STEAMER | TYPE_SHOT | TYPE_TRAP | TYPE_TEXTBOX | TYPE_ENDLEVEL | TYPE_NPC | TYPE_PANEL, // Catch all to check for all valid types.
+    TYPE_NO_CHECK   = TYPE_NO_COPY // Ignore in type checks.
 
 } e_entity_type;
 
@@ -1328,18 +1330,22 @@ typedef enum e_move_constraint
 {
     MOVE_CONSTRAINT_NONE                = 0,
     MOVE_CONSTRAINT_NO_ADJUST_BASE      = (1 << 0),
-    MOVE_CONSTRAINT_NO_HIT_HEAD         = (1 << 1), // True = Pass upward through platforms when entity has valid height set.
-    MOVE_CONSTRAINT_PROJECTILE_BASE_DIE = (1 << 2),
-    MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE = (1 << 3),
-    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 4),
-    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 5),
-    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 6),
-    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 7),
-    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 8),
-    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 9),
-    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 10),
-    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 11),
-    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 12)
+    MOVE_CONSTRAINT_NO_COPY_FROM        = (1 << 1),
+    MOVE_CONSTRAINT_NO_COPY_TO          = (1 << 2),
+    MOVE_CONSTRAINT_NO_FLIP             = (1 << 3),
+    MOVE_CONSTRAINT_NO_HIT_HEAD         = (1 << 4), // True = Pass upward through platforms when entity has valid height set.
+    MOVE_CONSTRAINT_NO_MOVE             = (1 << 5),
+    MOVE_CONSTRAINT_PROJECTILE_BASE_DIE = (1 << 6),
+    MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE = (1 << 7),
+    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 8),
+    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 9),
+    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 10),
+    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 11),
+    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 12),
+    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 13),
+    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 14),
+    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 15),
+    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 16)
 } e_move_constraint;
 
 typedef enum e_kill_entity_trigger
@@ -2750,7 +2756,8 @@ typedef struct {
 
 typedef struct
 {
-    s_axis_plane_vertical_int offset;
+    s_axis_plane_vertical_int graph_position;
+    s_axis_plane_vertical_int name_position;
     s_axis_plane_vertical_int size;
     e_bartype type;
     e_barorient orientation;
@@ -2762,6 +2769,8 @@ typedef struct
     int shadowlayer;
     int (*colourtable)[11]; //0 default backfill 1-10 foreground colours
 } s_barstatus;
+
+s_barstatus* bar_status_allocate_object();
 
 typedef struct
 {
@@ -2982,46 +2991,43 @@ typedef struct
 */
 typedef enum e_faction_group
 {
-    FACTION_GROUP_NONE = 0,
-    FACTION_GROUP_PLAYER_VERSES = (1 << 0),     // Ignore nohit and VS. setting.
-    FACTION_GROUP_TYPE_EXCLUSIVE = (1 << 1),    // Override other factions with type check.
-    FACTION_GROUP_TYPE_INCLUSIVE = (1 << 2),    // Include type check with faction.
-    FACTION_GROUP_A = (1 << 3),
-    FACTION_GROUP_B = (1 << 4),
-    FACTION_GROUP_C = (1 << 5),
-    FACTION_GROUP_D = (1 << 6),
-    FACTION_GROUP_E = (1 << 7),
-    FACTION_GROUP_F = (1 << 8),
-    FACTION_GROUP_G = (1 << 9),
-    FACTION_GROUP_H = (1 << 10),
-    FACTION_GROUP_I = (1 << 11),
-    FACTION_GROUP_J = (1 << 12),
-    FACTION_GROUP_K = (1 << 13),
-    FACTION_GROUP_L = (1 << 14),
-    FACTION_GROUP_M = (1 << 15),
-    FACTION_GROUP_N = (1 << 16),
-    FACTION_GROUP_O = (1 << 17),
-    FACTION_GROUP_P = (1 << 18),
-    FACTION_GROUP_Q = (1 << 19),
-    FACTION_GROUP_R = (1 << 20),
-    FACTION_GROUP_S = (1 << 21),
-    FACTION_GROUP_T = (1 << 22),
-    FACTION_GROUP_U = (1 << 23),
-    FACTION_GROUP_V = (1 << 24),
-    FACTION_GROUP_W = (1 << 25),
-    FACTION_GROUP_X = (1 << 26),
-    FACTION_GROUP_Y = (1 << 27),
-    FACTION_GROUP_Z = (1 << 28),
+    FACTION_GROUP_NONE = 0,                     // No value. Factions with no value don't copy by default.
+    FACTION_GROUP_NEUTRAL = (1 << 0),           // No effect. Use as an inert faction.
+    FACTION_GROUP_NO_COPY = (1 << 1),           // Don't copy to child model (spawning, projectile, weapon, etc.).
+    FACTION_GROUP_PLAYER_VERSES = (1 << 2),     // Ignore nohit and VS. setting.
+    FACTION_GROUP_TYPE_EXCLUSIVE = (1 << 3),    // Override other factions with type check.
+    FACTION_GROUP_TYPE_INCLUSIVE = (1 << 4),    // Include type check with faction.
+    FACTION_GROUP_A = (1 << 5),
+    FACTION_GROUP_B = (1 << 6),
+    FACTION_GROUP_C = (1 << 7),
+    FACTION_GROUP_D = (1 << 8),
+    FACTION_GROUP_E = (1 << 9),
+    FACTION_GROUP_F = (1 << 10),
+    FACTION_GROUP_G = (1 << 11),
+    FACTION_GROUP_H = (1 << 12),
+    FACTION_GROUP_I = (1 << 13),
+    FACTION_GROUP_J = (1 << 14),
+    FACTION_GROUP_K = (1 << 15),
+    FACTION_GROUP_L = (1 << 16),
+    FACTION_GROUP_M = (1 << 17),
+    FACTION_GROUP_N = (1 << 18),
+    FACTION_GROUP_O = (1 << 19),
+    FACTION_GROUP_P = (1 << 20),
+    FACTION_GROUP_Q = (1 << 21),
+    FACTION_GROUP_R = (1 << 22),
+    FACTION_GROUP_S = (1 << 23),
+    FACTION_GROUP_T = (1 << 24),
+    FACTION_GROUP_U = (1 << 25),
+    FACTION_GROUP_V = (1 << 26),
+    FACTION_GROUP_W = (1 << 27),
+    FACTION_GROUP_X = (1 << 28),
+    FACTION_GROUP_Y = (1 << 29),
+    FACTION_GROUP_Z = (1 << 30),
     FACTION_GROUP_ALL_NORMAL = FACTION_GROUP_A | FACTION_GROUP_B | FACTION_GROUP_C | FACTION_GROUP_D | FACTION_GROUP_E | FACTION_GROUP_F | FACTION_GROUP_G | FACTION_GROUP_H | FACTION_GROUP_I | FACTION_GROUP_J | FACTION_GROUP_K | FACTION_GROUP_L | FACTION_GROUP_M | FACTION_GROUP_N | FACTION_GROUP_O | FACTION_GROUP_P | FACTION_GROUP_Q | FACTION_GROUP_R | FACTION_GROUP_S | FACTION_GROUP_T | FACTION_GROUP_U | FACTION_GROUP_V | FACTION_GROUP_W | FACTION_GROUP_X | FACTION_GROUP_Y | FACTION_GROUP_Z,
-    FACTION_GROUP_ALL = FACTION_GROUP_PLAYER_VERSES | FACTION_GROUP_TYPE_EXCLUSIVE | FACTION_GROUP_TYPE_INCLUSIVE | FACTION_GROUP_ALL_NORMAL
+    FACTION_GROUP_ALL = FACTION_GROUP_PLAYER_VERSES | FACTION_GROUP_TYPE_EXCLUSIVE | FACTION_GROUP_TYPE_INCLUSIVE | FACTION_GROUP_ALL_NORMAL,
+    FACTION_GROUP_DEFAULT = FACTION_GROUP_A | FACTION_GROUP_TYPE_INCLUSIVE,
+    FACTION_GROUP_NO_CHECK = FACTION_GROUP_NEUTRAL | FACTION_GROUP_NO_COPY | FACTION_GROUP_PLAYER_VERSES | FACTION_GROUP_TYPE_EXCLUSIVE | FACTION_GROUP_TYPE_INCLUSIVE
 } e_faction_group;
-
-typedef enum e_faction_copy_condition
-{
-    FACTION_COPY_CONDITION_NONE = 0,
-    FACTION_COPY_CONDITION_DEST_NONE = (1 << 0),
-    FACTION_COPY_CONDITION_SOURCE_POPULATED = (1 << 1)    
-} e_faction_copy_condition;
 
 /*
 * Caskey, Damon V.
@@ -3123,15 +3129,15 @@ typedef struct
 
 typedef struct
 {
-    int index;
-    char *name;
-    char *path; // Path, so scripts can dynamically get files, sprites, sounds, etc.
-    unsigned score;
-    int health;
-    float scroll; // Autoscroll like panel entity.
-    unsigned offscreenkill;                  // for biker, arrow, etc
-    float offscreen_noatk_factor;
-    int	priority;
+    int index;      // Assign on model read. ~~
+    char *name;     // Model name and default entity name. ~~
+    char *path;     // Path, so scripts can dynamically get files, sprites, sounds, etc. ~~
+    unsigned score; // Points given to player when defeated or collected as item. ~~
+    int health;     // Starting and maximum hit points. ~~ hp
+    float scroll;   // Autoscroll like panel entity. ~~
+    unsigned offscreenkill; // Distance allowed out of screen until killed. ~~
+    float offscreen_noatk_factor; // Subtracted from chance to attack if entity is 10 or more pixels off screen. ~~
+    int	priority; // Kill first existing entity with lower priority when trying to spawn while at max allowed. ~~
     //unsigned offscreenkillz;
     //unsigned offscreeenkila;
     int mp; // mp's variable for mpbar by tails
@@ -3164,8 +3170,6 @@ typedef struct
     int shadowbase;
     int aironly; // Used to determine if shadows will be shown when jumping only
     
-    int nomove; // Flag for static enemies
-    int noflip; // Flag to determine if static enemies flip or stay facing the same direction
     int nodrop; // Flag to determine if enemies can be knocked down
     int nodieblink; // Flag to determine if blinking while playing die animation
     
@@ -3296,11 +3300,7 @@ typedef struct
     s_attack *smartbomb;
 
     // e.g., boss
-    s_barstatus hpbarstatus;
-    int hpx;
-    int hpy;
-    int namex;
-    int namey;
+    s_barstatus* show_status;
 
     /* Movement restriction flags. Subject to screen, wall, hole, hit head, etc. */
     e_move_constraint move_constraint;
@@ -3501,9 +3501,7 @@ typedef struct entity
 	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
-	e_update_mark			update_mark;						// Which updates are completed. ~~
-    e_move_constraint       move_constraint;                    // Subject to basemap, wall, obstacle, hitting head on platforms, etc.
-    
+	e_update_mark			update_mark;						// Which updates are completed. ~~    
 
 	// Boolean flags.
     int					    arrowon;							// Display arrow icon (parrow<player>) ~~
@@ -4051,8 +4049,8 @@ int check_in_screen();
 void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustment);
 
 /* Faction control .*/
-void faction_copy_all(entity* ent, entity* source, e_faction_copy_condition copy_condition);
-void faction_copy_data(s_faction* dest, s_faction* source, e_faction_copy_condition copy_condition);
+void faction_copy_all(entity* ent, entity* source);
+void faction_copy_data(s_faction* dest, s_faction* source);
 int faction_check_can_damage(entity* acting_entity, entity* target_entity, int indirect);
 int faction_check_is_hostile(entity* acting_entity, entity* target_entity);
 int faction_check_player_verses(entity* acting_entity, entity* target_entity, e_faction_group faction_property);

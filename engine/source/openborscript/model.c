@@ -64,11 +64,17 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
             break;
 
         case MODEL_PROPERTY_FACTION:
-
             
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
             (*pretvar)->ptrVal = (s_faction*)&handle->faction;
 		
+            break;
+
+        case MODEL_PROPERTY_HP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->health;
+
             break;
 
 		case MODEL_PROPERTY_INDEX:
@@ -82,6 +88,62 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->move_constraint;
+
+            break;
+
+        case MODEL_PROPERTY_MP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->mp;
+
+            break;
+
+        case MODEL_PROPERTY_NAME:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
+            
+            break;     
+
+        case MODEL_PROPERTY_OFF_SCREEN_KILL:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->offscreenkill;
+
+            break;
+
+        case MODEL_PROPERTY_OFF_SCREEN_NO_ATTACK:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->offscreen_noatk_factor;
+
+            break;
+
+        case MODEL_PROPERTY_PATH:
+
+            ScriptVariant_ChangeType(*pretvar, VT_STR);
+            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->path);
+
+            break;
+
+        case MODEL_PROPERTY_PRIORITY:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->priority;
+
+            break;
+
+        case MODEL_PROPERTY_SCORE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->score;
+
+            break;
+
+        case MODEL_PROPERTY_SCROLL:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->scroll;
 
             break;
 
@@ -182,6 +244,13 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
 
             break;
 
+        case MODEL_PROPERTY_HP:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->health = temp_int;
+            }
+
 		case MODEL_PROPERTY_INDEX:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -191,12 +260,78 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
 
         case MODEL_PROPERTY_MOVE_CONSTRAINT:
 
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->move_constraint = temp_float;
+                handle->move_constraint = temp_int;
             }
 
             break;
+
+        case MODEL_PROPERTY_MP:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->mp = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_NAME:
+
+            if (varlist[ARG_VALUE]->vt == VT_STR)
+            {
+                strcpy(handle->name, (char*)StrCache_Get(varlist[ARG_VALUE]->strVal));
+            }
+
+            break;
+
+        case MODEL_PROPERTY_OFF_SCREEN_KILL:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->offscreenkill = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_OFF_SCREEN_NO_ATTACK:
+
+            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            {
+                handle->offscreen_noatk_factor = temp_float;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_PATH:
+
+            if (varlist[ARG_VALUE]->vt == VT_STR)
+            {
+                strcpy(handle->path, (char*)StrCache_Get(varlist[ARG_VALUE]->strVal));
+            }
+
+            break;
+
+        case MODEL_PROPERTY_PRIORITY:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->priority = temp_int;
+            }
+
+        case MODEL_PROPERTY_SCORE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->score = temp_int;
+            }
+
+        case MODEL_PROPERTY_SCROLL:
+
+            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            {
+                handle->scroll = temp_float;
+            }
 
         case MODEL_PROPERTY_WEAPON:
 
