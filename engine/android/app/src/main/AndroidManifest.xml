@@ -33,8 +33,12 @@
     <!-- CRxTRDude - Allows the use of a wake lock -->
 	<uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Kratus (02-2023) - Added custom a style.xml to show a png image as splash screen -->
+    <!-- Kratus (03-2023) - Added the "CutoutMode" in the style.xml to adjust both screen/touch automatically -->
+    <!-- Kratus (03-2023) - Upgraded the icon system to adaptive method -->
     <application android:label="@string/app_name"
-                 android:icon="@drawable/icon"
+                 android:icon="@mipmap/ic_launcher"
+                 android:roundIcon="@mipmap/ic_launcher_round"
                  android:allowBackup="true"
 				 android:hardwareAccelerated="true"
                  android:requestLegacyExternalStorage="true"
