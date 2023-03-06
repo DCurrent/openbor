@@ -598,6 +598,16 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(MODEL_COPY_FLAG_NO_WEAPON)
         ICMPCONST(MODEL_COPY_FLAG_NO_SCRIPT)
 
+        /* Model property access. */
+        
+        ICMPCONST(MODEL_PROPERTY_AIR_CONTROL)
+        ICMPCONST(MODEL_PROPERTY_ANTI_GRAVITY)
+        ICMPCONST(MODEL_PROPERTY_FACTION)
+        ICMPCONST(MODEL_PROPERTY_INDEX)
+        ICMPCONST(MODEL_PROPERTY_MOVE_CONSTRAINT)
+        ICMPCONST(MODEL_PROPERTY_WEAPON)
+        ICMPCONST(MODEL_PROPERTY_END)
+
         /* Move constraint flags. */
 
         ICMPCONST(MOVE_CONSTRAINT_NONE)

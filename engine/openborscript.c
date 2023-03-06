@@ -2966,6 +2966,8 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     const char *eps;
     int prop, i, ep, t;
 
+
+
     static const char *proplist_defense[] =
     {
         "blockpower",
@@ -3313,7 +3315,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
 
     ScriptVariant_Clear(*pretvar);
-    mapstrings_entityproperty(varlist, paramCount);
+    //mapstrings_entityproperty(varlist, paramCount);
 
     arg = varlist[0];
     if(arg->vt != VT_PTR && arg->vt != VT_EMPTY)

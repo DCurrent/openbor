@@ -383,6 +383,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/layer.o                                                      \
                   source/openborscript/level.o                                                      \
                   source/openborscript/math.o                                                       \
+                  source/openborscript/model.o                                                      \
 				  source/openborscript/recursive_damage.o											\
                   source/openborscript/string.o
 RAM             = source/ramlib/ram.o

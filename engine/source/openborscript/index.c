@@ -306,6 +306,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_faction_property";
     }
+    else if (functionRef == ((void*)openbor_get_model_property))
+    {
+    return "get_model_property";
+    }
+    else if (functionRef == ((void*)openbor_set_model_property))
+    {
+    return "set_model_property";
+    }
     else if (functionRef == ((void *)openbor_get_animation_property))
     {
         return "get_animation_property";
@@ -1332,6 +1340,13 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_global_config_property, "get_global_config_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_global_config_property, "set_global_config_property");
+
+    /* Model properties. */
+    // Entity properties.
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_model_property, "get_model_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_model_property, "set_model_property");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_changeentityproperty, "changeentityproperty");
