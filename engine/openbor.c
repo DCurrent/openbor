@@ -2609,10 +2609,10 @@ void clearsettings()
     savedata.gamma = 0;
     savedata.brightness = 0;
     global_config.cheats = CHEAT_OPTIONS_ALL_MENU;
-    savedata.soundvol = 15;
+    savedata.soundvol = 100; //Kratus (02-2023) Changed the default master volume
     savedata.usemusic = 1;
-    savedata.musicvol = 120; //Kratus (10-2022) Changed the default music volume
-    savedata.effectvol = 70; //Kratus (10-2022) Changed the default effect volume
+    savedata.musicvol = 100; //Kratus (02-2023) Changed the default music volume
+    savedata.effectvol = 100; //Kratus (02-2023) Changed the default effect volume
     savedata.usejoy = 1;
     savedata.mode = 0;
     savedata.showtitles = 0;
@@ -44715,7 +44715,7 @@ void startup()
         {
             printf("Warning: can't play sound!\n");
         }
-        SB_setvolume(SB_MASTERVOL, 15);
+        SB_setvolume(SB_MASTERVOL, savedata.soundvol);
         SB_setvolume(SB_VOICEVOL, savedata.soundvol);
     }
     else
@@ -47531,7 +47531,14 @@ void menu_options_input()
 }
 
 
-// Kratus (10-2022) Readjusted both effectvol / musicvol range and increment
+/*
+    Kratus (02-2023) Readjusted the master / effectvol / musicvol range and increment
+    Round values like 100 by default make more sense than some like 70/120
+    So, I transferred the hardcoded volume adjustment to the "soundmix" code instead of changing the default volumes
+    Master now goes from 0 to 100 and default to 100
+    Effects (samples) now goes from 0 to 100 and default to 100
+    Music now goes from 0 to 200 and default to 100
+*/
 void menu_options_sound()
 {
     int quit = 0;
@@ -47546,9 +47553,9 @@ void menu_options_sound()
     while(!quit)
     {
         _menutextm(2, -5, 0, Tr("Sound Options"));
-        _menutext((selector == 0), col1, -2, Tr("Sound Volume:"));
+        _menutext((selector == 0), col1, -2, Tr("Master Volume:")); // Kratus (02-2023) Renamed from Sound to Master volume
         _menutext((selector == 0), col2, -2, "%i", savedata.soundvol);
-        _menutext((selector == 1), col1, -1, Tr("SFX Volume:"));
+        _menutext((selector == 1), col1, -1, Tr("Effects Volume:")); // Kratus (02-2023) Renamed from SFX to Effects volume
         _menutext((selector == 1), col2, -1, "%i", savedata.effectvol);
         _menutext((selector == 2), col1, 0, Tr("Music Volume:"));
         _menutext((selector == 2), col2, 0, "%i", savedata.musicvol);
@@ -47609,19 +47616,24 @@ void menu_options_sound()
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
+            // Kratus (02-2023) Reworked the old and unuseful "soundvol" to act as the Master Volume for both sound/music
             switch(selector)
             {
             case 0:
-                savedata.soundvol += dir;
+                savedata.soundvol += 5 * dir;
                 if(savedata.soundvol < 0)
                 {
                     savedata.soundvol = 0;
                 }
-                if(savedata.soundvol > 15)
+                if(savedata.soundvol > 100)
                 {
-                    savedata.soundvol = 15;
+                    savedata.soundvol = 100;
                 }
                 SB_setvolume(SB_VOICEVOL, savedata.soundvol);
+
+                // Kratus (02-2023) Synchronize sound/music volumes to master
+                savedata.effectvol = savedata.soundvol;
+                savedata.musicvol = savedata.soundvol;
                 break;
             case 1:
                 savedata.effectvol += 5 * dir;
@@ -47629,9 +47641,9 @@ void menu_options_sound()
                 {
                     savedata.effectvol = 0;
                 }
-                if(savedata.effectvol > 120)
+                if(savedata.effectvol > 100)
                 {
-                    savedata.effectvol = 120;
+                    savedata.effectvol = 100;
                 }
                 break;
             case 3:
@@ -47656,9 +47668,9 @@ void menu_options_sound()
                 {
                     savedata.musicvol = 0;
                 }
-                if(savedata.musicvol > 240)
+                if(savedata.musicvol > 200)
                 {
-                    savedata.musicvol = 240;
+                    savedata.musicvol = 200;
                 }
                 sound_volume_music(savedata.musicvol, savedata.musicvol);
                 break;
@@ -48503,7 +48515,7 @@ void menu_options_video()
         }
         else if(selector == 10)
         {
-            selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 9 : 11;
         }
 
         _menutextm((selector == 11), 9, 0, Tr("Back"));
