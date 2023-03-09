@@ -13079,8 +13079,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->bounce = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NOQUAKE:  // Mar 12, 2005 - Flag to determine if entity shakes screen
-                newchar->noquake |= GET_INT_ARG(1) ? NO_QUAKE : 0;
-                newchar->noquake |= GET_INT_ARG(2) ? NO_QUAKEN : 0;
+                newchar->quake_config |= GET_INT_ARG(1) ? QUAKE_CONFIG_DISABLE_SCREEN : 0;
+                newchar->quake_config |= GET_INT_ARG(2) ? QUAKE_CONFIG_DISABLE_SELF : 0;
                 break;
             case CMD_MODEL_BLOCKBACK:	// Flag to determine if attacks can be blocked from behind
                 newchar->blockback = GET_INT_ARG(1);
@@ -21660,8 +21660,8 @@ void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmetho
 	}
 
     // Get our base offsets from screen vs. location.
-    screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
-    screen_offset.y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+    screen_offset.x = screenx - ((entity->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SELF) ? 0 : gfx_x_offset);
+    screen_offset.y = screeny - ((entity->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SELF) ? 0 : gfx_y_offset);
 
     // Get entity position with screen offsets.
     base_pos.x = entity->position.x - screen_offset.x;
@@ -21735,8 +21735,8 @@ void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int siz
     int far_y = 0;
 
     // Get our base offsets from screen vs. location.
-    screen_offset.x = screenx - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
-    screen_offset.y = screeny - ((entity->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+    screen_offset.x = screenx - ((entity->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SELF) ? 0 : gfx_x_offset);
+    screen_offset.y = screeny - ((entity->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SELF) ? 0 : gfx_y_offset);
 
     // Get entity position with screen offsets.
     base_pos.x = entity->position.x - screen_offset.x;
@@ -27239,7 +27239,7 @@ void check_gravity(entity *e)
                             self->velocity.x /= self->animation->bounce_factor;
                             self->velocity.z /= self->animation->bounce_factor;
                             toss(self, (-self->velocity.y) / self->animation->bounce_factor);
-                            if(level && !(self->modeldata.noquake & NO_QUAKE))
+                            if(level && !(self->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SCREEN))
                             {
                                 level->quake = 4;    // Don't shake if specified
                             }
@@ -28782,8 +28782,8 @@ void display_ents()
             }
             
 			sortid = e->sortid;
-            scrx = o_scrx - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_x_offset);
-            scry = o_scry - ((e->modeldata.noquake & NO_QUAKEN) ? 0 : gfx_y_offset);
+            scrx = o_scrx - ((e->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SELF) ? 0 : gfx_x_offset);
+            scry = o_scry - ((e->modeldata.quake_config & QUAKE_CONFIG_DISABLE_SELF) ? 0 : gfx_y_offset);
             
 			if(freezeall || !(e->blink && (_time % (GAME_SPEED / 10)) < (GAME_SPEED / 20)))
             {

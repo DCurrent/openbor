@@ -2886,9 +2886,19 @@ typedef struct
     //int (*function)(); //reserved
 } s_com;
 
-//UT: new bit flags for noquake property
-#define NO_QUAKE 1  //do not make screen quake
-#define NO_QUAKEN 2  //do not quake with screen
+
+/*
+* Caskey, Damon V.
+* 2023-03-09
+* 
+* Flags for quaking the screen.
+*/
+typedef enum e_quake_config
+{
+    QUAKE_CONFIG_NONE = 0,
+    QUAKE_CONFIG_DISABLE_SCREEN = (1 << 0),
+    QUAKE_CONFIG_DISABLE_SELF   = (1 << 1)
+} e_quake_config;
 
 /*
 * Caskey, Damon V.
@@ -3138,18 +3148,17 @@ typedef struct
     unsigned offscreenkill; // Distance allowed out of screen until killed. ~~
     float offscreen_noatk_factor; // Subtracted from chance to attack if entity is 10 or more pixels off screen. ~~
     int	priority; // Kill first existing entity with lower priority when trying to spawn while at max allowed. ~~
-    //unsigned offscreenkillz;
-    //unsigned offscreeenkila;
+    
     int mp; // mp's variable for mpbar by tails
-    
-    
-    
-        int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes
-        int makeinv; // Option to spawn player invincible >0 blink <0 noblink
-    int riseinv; // how many seconds will the character become invincible after rise >0 blink, <0 noblink
-        int dofreeze; // Flag to freeze all enemies/players while special is executed
-        int noquake; // Flag to make the screen shake when entity lands 1 = no, else yes
+    int nolife; // Feb 25, 2005 - Variable flag to show life 0 = no, else yes. ~~ 
+    int makeinv; // Option to spawn player invincible >0 blink <0 noblink. ~~
+    int riseinv; // how many seconds will the character become invincible after rise >0 blink, <0 noblink. ~~
+    int dofreeze; // Flag to freeze all enemies/players while special is executed. ~~
+
+    e_quake_config quake_config; // Configure screen shaking. ~~
+
         int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground
+    
     int multiple; // So you can control how many points are given for hitting opponents
     int bounce; // Flag to determine if bounce/quake is to be used.
     e_entity_type type;

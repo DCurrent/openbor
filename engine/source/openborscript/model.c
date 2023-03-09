@@ -6,7 +6,7 @@
  * Copyright (c) 2004 OpenBOR Team
  */
 
- #include "scriptcommon.h"
+#include "scriptcommon.h"
 
 /*
 * Caskey, Damon  V.
@@ -49,6 +49,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 	
     switch(property)
     {
+        case MODEL_PROPERTY_ACTION_FREEZE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->dofreeze;
+
+            break;
+
         case MODEL_PROPERTY_AIR_CONTROL:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -77,12 +84,26 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_HUD_DISABLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->nolife;
+
+            break;
+
 		case MODEL_PROPERTY_INDEX:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 			(*pretvar)->lVal = (LONG)handle->index;
 
 			break;
+
+        case MODEL_PROPERTY_MAKE_INVINCIBLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->makeinv;
+
+            break;
 
         case MODEL_PROPERTY_MOVE_CONSTRAINT:
 
@@ -130,6 +151,20 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->priority;
+
+            break;
+
+        case MODEL_PROPERTY_QUAKE_CONFIG:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_quake_config)handle->quake_config;
+
+            break;
+
+        case MODEL_PROPERTY_RISE_INVINCIBLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->riseinv;
 
             break;
 
@@ -220,6 +255,15 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
     // Which property to modify?
     switch(property)
     {
+        case MODEL_PROPERTY_ACTION_FREEZE:
+
+            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            {
+                handle->dofreeze = temp_float;
+            }
+
+            break;
+
         case MODEL_PROPERTY_AIR_CONTROL:
 
             if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
@@ -251,12 +295,28 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
                 handle->health = temp_int;
             }
 
+        case MODEL_PROPERTY_HUD_DISABLE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->nolife = temp_int;
+            }
+
 		case MODEL_PROPERTY_INDEX:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->index = temp_int;
 			}
+
+        case MODEL_PROPERTY_MAKE_INVINCIBLE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->makeinv = temp_int;
+            }
+
+            break;
 
         case MODEL_PROPERTY_MOVE_CONSTRAINT:
 
@@ -301,7 +361,7 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
                 handle->offscreen_noatk_factor = temp_float;
             }
 
-            break;
+            break;        
 
         case MODEL_PROPERTY_PATH:
 
@@ -318,6 +378,22 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             {
                 handle->priority = temp_int;
             }
+
+        case MODEL_PROPERTY_QUAKE_CONFIG:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->quake_config = temp_int;
+            }
+
+        case MODEL_PROPERTY_RISE_INVINCIBLE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->riseinv = temp_int;
+            }
+
+            break;
 
         case MODEL_PROPERTY_SCORE:
 
