@@ -9393,7 +9393,7 @@ int get_cached_model_index(char *name)
             return i;
         }
     }
-    return -1;
+    return MODEL_INDEX_NONE;
 }
 
 char *get_cached_model_path(char *name)
@@ -13960,9 +13960,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->show_status = bar_status_allocate_object();
                 }
                 
-                newchar->show_status->graph_position.x = GET_INT_ARG(1);                
-                newchar->show_status->graph_position.y = GET_INT_ARG(2);
-                
+                if ((value = GET_ARG(1))[0])
+                {
+                    newchar->show_status->graph_position.x = atoi(value);
+                }
+                if ((value = GET_ARG(2))[0])
+                {
+                    newchar->show_status->graph_position.y = atoi(value);
+                }
+
                 break;
             case CMD_MODEL_LIFEBARSTATUS:
 
@@ -33488,14 +33494,23 @@ int common_try_jumpattack(entity *target)
 
 int common_try_grab(entity *other)
 {
+    //printf("\n\t common_try_grab(%p)", other);
+
     int trygrab(entity * t);
+
+    /*
+    * Note order does matter in the 
+    * checks below. usually we don't 
+    * have an "other" until it is
+    * populated by find_ent_here.
+    */
 
     // old rand()
     if( (rand32() & 7) == 0 &&
-            (validanim(self, ANI_THROW) ||
-             validanim(self, ANI_GRAB)) && self->idling &&
-             faction_check_is_hostile(self, other) &&
+            (validanim(self, ANI_THROW) || validanim(self, ANI_GRAB)) && 
+            self->idling &&            
             (other || (other = find_ent_here(self, self->position.x, self->position.z, TYPE_ANY, NULL))) &&
+            faction_check_is_hostile(self, other) &&
             trygrab(other))
     {
         return 1;
