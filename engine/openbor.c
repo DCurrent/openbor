@@ -21116,10 +21116,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
     int max = 100, len, alphabg = 0, bgindex, colourindex;
     int forex, forey, forew, foreh, bkw, bkh;
     s_drawmethod dm = plainmethod;
-
-    x += pstatus->graph_position.x;
-    y += pstatus->graph_position.y;
-
+        
     if(pstatus->orientation == HORIZONTALBAR)
     {
         max = pstatus->size.x;
