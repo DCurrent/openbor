@@ -77,6 +77,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 		
             break;
 
+        case MODEL_PROPERTY_GROUND:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->ground;
+
+            break;
+
         case MODEL_PROPERTY_HP:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -116,6 +123,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->mp;
+
+            break;
+
+        case MODEL_PROPERTY_MULTIPLE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->multiple;
 
             break;
 
@@ -288,12 +302,23 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
 
             break;
 
+        case MODEL_PROPERTY_GROUND:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->ground = temp_int;
+            }
+
+            break;
+
         case MODEL_PROPERTY_HP:
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->health = temp_int;
             }
+
+            break;
 
         case MODEL_PROPERTY_HUD_DISABLE:
 
@@ -302,12 +327,16 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
                 handle->nolife = temp_int;
             }
 
+            break;
+
 		case MODEL_PROPERTY_INDEX:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->index = temp_int;
 			}
+
+            break;
 
         case MODEL_PROPERTY_MAKE_INVINCIBLE:
 
@@ -332,6 +361,15 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->mp = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_MULTIPLE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->multiple = temp_int;
             }
 
             break;
@@ -379,12 +417,16 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
                 handle->priority = temp_int;
             }
 
+            break;
+
         case MODEL_PROPERTY_QUAKE_CONFIG:
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->quake_config = temp_int;
             }
+
+            break;
 
         case MODEL_PROPERTY_RISE_INVINCIBLE:
 
@@ -402,12 +444,16 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
                 handle->score = temp_int;
             }
 
+            break;
+
         case MODEL_PROPERTY_SCROLL:
 
             if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->scroll = temp_float;
             }
+
+            break;
 
         case MODEL_PROPERTY_WEAPON:
 

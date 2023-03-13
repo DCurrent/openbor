@@ -3157,9 +3157,9 @@ typedef struct
 
     e_quake_config quake_config; // Configure screen shaking. ~~
 
-        int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground
+    int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground. ~~
     
-    int multiple; // So you can control how many points are given for hitting opponents
+    int multiple; // Score for hitting this entity = Damage * mutiple. ~~
     int bounce; // Flag to determine if bounce/quake is to be used.
     e_entity_type type;
     e_entity_type_sub subtype;
