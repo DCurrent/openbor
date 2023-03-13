@@ -3165,7 +3165,7 @@ typedef struct
     e_entity_type_sub subtype;
     s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
 
-    s_player_arrow player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
+    s_player_arrow** player_arrow; // Image to be displayed when player spawns invincible
     
     int setlayer; // Used for forcing enities to be displayed behind
     
@@ -3887,6 +3887,9 @@ void offense_free_object(s_offense* target);
 void offense_apply_setup_to_property(char* filename, char* command, s_offense* offense, ArgList* arglist, e_offense_parameters target_parameter);
 void offense_setup_from_arg(char* filename, char* command, s_offense* target_offense, ArgList* arglist, e_offense_parameters target_parameter);
 int offense_result_damage(s_offense* offense_object, int attack_force);
+
+/* Player arrow (on spawn) */
+s_player_arrow** player_arrow_allocate_list();
 
 /* Recursive damage. */
 s_damage_recursive*         recursive_damage_allocate_object();

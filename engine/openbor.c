@@ -5591,9 +5591,13 @@ void cache_model_sprites(s_model *m, int ld)
     cachesprite(m->icon.pain, ld);
     cachesprite(m->icon.weapon, ld);
     cachesound(m->diesound, ld);
-    for(i = 0; i < MAX_PLAYERS; i++)
+    
+    if (m->player_arrow)
     {
-        cachesprite(m->player_arrow[i].sprite, ld);
+        for (i = 0; i < MAX_PLAYERS; i++)
+        {
+            cachesprite(m->player_arrow[i]->sprite, ld);
+        }
     }
 
     //if(hasFreetype(model, MF_ANIMLIST)){
@@ -13843,28 +13847,52 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_PARROW:
                 // Image that is displayed when player 1 spawns invincible
                 value = GET_ARG(1);
-                newchar->player_arrow[0].sprite = loadsprite(value, 0, 0, pixelformat);
-                newchar->player_arrow[0].position.x = GET_INT_ARG(2);
-                newchar->player_arrow[0].position.y = GET_INT_ARG(3);
+
+                if(!newchar->player_arrow)
+                { 
+                    newchar->player_arrow = player_arrow_allocate_list();
+                }
+
+                newchar->player_arrow[0]->sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[0]->position.x = GET_INT_ARG(2);
+                newchar->player_arrow[0]->position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW2:
                 // Image that is displayed when player 2 spawns invincible
                 value = GET_ARG(1);
-                newchar->player_arrow[1].sprite = loadsprite(value, 0, 0, pixelformat);
-                newchar->player_arrow[1].position.x = GET_INT_ARG(2);
-                newchar->player_arrow[1].position.y = GET_INT_ARG(3);
+                
+                if (!newchar->player_arrow)
+                {
+                    newchar->player_arrow = player_arrow_allocate_list();
+                }
+                
+                newchar->player_arrow[1]->sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[1]->position.x = GET_INT_ARG(2);
+                newchar->player_arrow[1]->position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW3:
                 value = GET_ARG(1);
-                newchar->player_arrow[2].sprite = loadsprite(value, 0, 0, pixelformat);
-                newchar->player_arrow[2].position.x = GET_INT_ARG(2);
-                newchar->player_arrow[2].position.y = GET_INT_ARG(3);
+
+                if (!newchar->player_arrow)
+                {
+                    newchar->player_arrow = player_arrow_allocate_list();
+                }
+
+                newchar->player_arrow[2]->sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[2]->position.x = GET_INT_ARG(2);
+                newchar->player_arrow[2]->position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_PARROW4:
                 value = GET_ARG(1);
-                newchar->player_arrow[3].sprite = loadsprite(value, 0, 0, pixelformat);
-                newchar->player_arrow[3].position.x = GET_INT_ARG(2);
-                newchar->player_arrow[3].position.y = GET_INT_ARG(3);
+
+                if (!newchar->player_arrow)
+                {
+                    newchar->player_arrow = player_arrow_allocate_list();
+                }
+
+                newchar->player_arrow[3]->sprite = loadsprite(value, 0, 0, pixelformat);
+                newchar->player_arrow[3]->position.x = GET_INT_ARG(2);
+                newchar->player_arrow[3]->position.y = GET_INT_ARG(3);
                 break;
             case CMD_MODEL_ATCHAIN:
                 newchar->chainlength = 0;
@@ -21105,6 +21133,21 @@ lCleanup:
 }
 
 
+/*
+* Caskey, Damon V.
+* 2023-03-12
+*
+* Allocate an object.
+*/
+s_player_arrow** player_arrow_allocate_list()
+{
+    s_player_arrow** result;
+
+    /* Allocate memory with 0 values and get the pointer. */
+    result = calloc(MAX_PLAYERS, sizeof(*result));
+
+    return result;
+}
 
 
 
@@ -29225,11 +29268,11 @@ void display_ents()
                 }
             }// end of blink checking
 
-            if(e->arrowon)    // Display the players image while invincible to indicate player number
+            if(e->arrowon && e->modeldata.player_arrow)    // Display the players image while invincible to indicate player number
             {
-                if(e->modeldata.player_arrow[(int)e->playerindex].sprite && e->invincible & INVINCIBLE_INTANGIBLE)
+                if(e->modeldata.player_arrow[e->playerindex]->sprite && e->invincible & INVINCIBLE_INTANGIBLE)
                 {
-                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.player_arrow[(int)e->playerindex].position.x), (int)(e->position.z - e->position.y - scry + e->modeldata.player_arrow[(int)e->playerindex].position.y), (int)e->position.z, e->modeldata.player_arrow[(int)e->playerindex].sprite, NULL, sortid * 2);
+                    spriteq_add_sprite((int)(e->position.x - scrx + e->modeldata.player_arrow[e->playerindex]->position.x), (int)(e->position.z - e->position.y - scry + e->modeldata.player_arrow[e->playerindex]->position.y), (int)e->position.z, e->modeldata.player_arrow[e->playerindex]->sprite, NULL, sortid * 2);
                 }
             }
         }// end of if(ent_list[i]->exists)
