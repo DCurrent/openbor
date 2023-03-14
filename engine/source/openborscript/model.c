@@ -12,9 +12,9 @@
 * Caskey, Damon  V.
 * 2023-03-03
 *
-* Return a model property. Requires
-* a model pointer and property name to
-* access.
+* Return a property. Requires
+* a object pointer and property 
+* constant to access.
 */ 
 HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
@@ -70,6 +70,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_BOUNCE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->bounce;
+
+            break;
+
         case MODEL_PROPERTY_FACTION:
             
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -95,6 +102,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->nolife;
+
+            break;
+
+        case MODEL_PROPERTY_ICON:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (s_icon*)&handle->icon;
 
             break;
 
@@ -196,6 +210,20 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_SUBTYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_entity_type_sub)handle->subtype;
+
+            break;
+
+        case MODEL_PROPERTY_TYPE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_entity_type)handle->type;
+
+            break;
+
         case MODEL_PROPERTY_WEAPON:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -271,18 +299,18 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
     {
         case MODEL_PROPERTY_ACTION_FREEZE:
 
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->dofreeze = temp_float;
+                handle->dofreeze = temp_int;
             }
 
             break;
 
         case MODEL_PROPERTY_AIR_CONTROL:
 
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->air_control = temp_float;
+                handle->air_control = temp_int;
             }
 
             break;
@@ -292,6 +320,15 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->antigravity = temp_float;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_BOUNCE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->bounce = temp_int;
             }
 
             break;
@@ -326,6 +363,12 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             {
                 handle->nolife = temp_int;
             }
+
+            break;
+
+        case MODEL_PROPERTY_ICON:
+
+            printf("\n\n Warning: Model Icon is a read only pointer. Use the appropriate sub property function to modify values. \n");
 
             break;
 
@@ -451,6 +494,24 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->scroll = temp_float;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_SUBTYPE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->subtype = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_TYPE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->type = temp_int;
             }
 
             break;
