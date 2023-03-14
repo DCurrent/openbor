@@ -3160,7 +3160,7 @@ typedef struct
     int ground; // Flag to determine if enemy projectiles only hit the enemy when hitting the ground. ~~
     
     int multiple; // Score for hitting this entity = Damage * mutiple. ~~
-    int bounce; // Flag to determine if bounce/quake is to be used.
+    int bounce; // Flag to determine if bounce/quake is to be used. ~~
     e_entity_type type;
     e_entity_type_sub subtype;
     s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.

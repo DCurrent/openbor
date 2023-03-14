@@ -306,13 +306,21 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_faction_property";
     }
+    else if (functionRef == ((void*)openbor_get_icon_property))
+    {
+        return "get_icon_property";
+    }
+    else if (functionRef == ((void*)openbor_set_icon_property))
+    {
+        return "set_icon_property";
+    }
     else if (functionRef == ((void*)openbor_get_model_property))
     {
-    return "get_model_property";
+        return "get_model_property";
     }
     else if (functionRef == ((void*)openbor_set_model_property))
     {
-    return "set_model_property";
+        return "set_model_property";
     }
     else if (functionRef == ((void *)openbor_get_animation_property))
     {
@@ -1341,8 +1349,13 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_global_config_property, "set_global_config_property");
 
+    /* Icon properties */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_icon_property, "get_icon_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_icon_property, "set_icon_property");
+
     /* Model properties. */
-    // Entity properties.
     List_InsertAfter(&theFunctionList,
         (void*)openbor_get_model_property, "get_model_property");
     List_InsertAfter(&theFunctionList,

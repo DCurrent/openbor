@@ -19,6 +19,7 @@
 #include "entity.h"
 #include "faction.h"
 #include "global_config.h"
+#include "icon.h"
 #include "model.h"
 #include "recursive_damage.h"
 
