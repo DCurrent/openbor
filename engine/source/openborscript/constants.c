@@ -759,6 +759,12 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SPAWN_TYPE_STEAM)
         ICMPCONST(SPAWN_TYPE_WEAPON)
 
+        /* Spawn hud (player arrow) */
+        ICMPCONST(SPAWN_HUD_PROPERTY_POSITION_X)
+        ICMPCONST(SPAWN_HUD_PROPERTY_POSITION_Y)
+        ICMPCONST(SPAWN_HUD_PROPERTY_SPRITE)
+        ICMPCONST(SPAWN_HUD_PROPERTY_END)
+
         /* Status dial (ex. Name and hitpoint meter) */
         ICMPCONST(STATUS_DIAL_PROPERTY_BACK_LAYER)
         ICMPCONST(STATUS_DIAL_PROPERTY_BORDER_LAYER)

@@ -322,6 +322,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_model_property";
     }
+    else if (functionRef == ((void*)openbor_get_spawn_hud_property))
+    {
+        return "get_spawn_hud_property";
+        }
+    else if (functionRef == ((void*)openbor_set_spawn_hud_property))
+    {
+        return "set_spawn_hud_property";
+        }
     else if (functionRef == ((void*)openbor_get_status_dial_property))
     {
         return "get_status_dial_property";
@@ -1368,6 +1376,12 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_model_property, "get_model_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_model_property, "set_model_property");
+
+    /* Spawn HUD properties. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_spawn_hud_property, "get_spawn_hud_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_spawn_hud_property, "set_spawn_hud_property");
 
     /* Status Popup properties. */
     List_InsertAfter(&theFunctionList,

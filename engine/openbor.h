@@ -2973,7 +2973,7 @@ typedef struct
 {
     int sprite;
     s_axis_plane_vertical_int position;
-} s_player_arrow;
+} s_spawn_hud;
 
 /*
 * Caskey, Damon V.
@@ -3148,7 +3148,7 @@ typedef struct
     e_entity_type_sub subtype; // ~~
     s_icon icon; // In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct. ~~
 
-    s_player_arrow player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
+    s_spawn_hud player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
     
     int setlayer; // Used for forcing enities to be displayed behind
     
@@ -3291,8 +3291,7 @@ typedef struct
     s_offense *offense; //basic offense factors: damage = damage*offense
     s_attack *smartbomb;
 
-    // e.g., boss
-    s_barstatus* hud_popup;
+    s_barstatus* hud_popup; // HUD always on when entity is active (Ex. Boss HUD). ~~
 
     /* Movement restriction flags. Subject to screen, wall, hole, hit head, etc. */
     e_move_constraint move_constraint;

@@ -385,6 +385,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/level.o                                                      \
                   source/openborscript/math.o                                                       \
                   source/openborscript/model.o                                                      \
+                  source/openborscript/spawn_hud.o                                                  \
                   source/openborscript/status_dial.o                                               \
 				  source/openborscript/recursive_damage.o											\
                   source/openborscript/string.o

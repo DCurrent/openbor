@@ -145,7 +145,7 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
     #undef SELF_NAME
     #undef ARG_MINIMUM
     #undef ARG_HANDLE
-    #undef ARG_INDEX
+    #undef ARG_PROPERTY
 }
 
 /*

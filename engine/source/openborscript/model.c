@@ -105,6 +105,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_HUD_POPUP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (s_barstatus*)&handle->hud_popup;
+
+            break;
+
         case MODEL_PROPERTY_ICON:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -210,6 +217,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_SPAWN_HUD:
+
+            ScriptVariant_ChangeType(*pretvar, VT_PTR);
+            (*pretvar)->ptrVal = (s_spawn_hud*)&handle->player_arrow;
+
+            break;
+
         case MODEL_PROPERTY_SUBTYPE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -251,7 +265,7 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
     #undef SELF_NAME
     #undef ARG_MINIMUM
     #undef ARG_HANDLE
-    #undef ARG_INDEX
+    #undef ARG_PROPERTY
 }
 
 /*
@@ -363,6 +377,12 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             {
                 handle->nolife = temp_int;
             }
+
+            break;
+
+        case MODEL_PROPERTY_HUD_POPUP:
+
+            printf("\n\n Warning: Model HUD Popup is a read only pointer. Use the appropriate sub property function to modify values. \n");
 
             break;
 
@@ -495,6 +515,12 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             {
                 handle->scroll = temp_float;
             }
+
+            break;
+
+        case MODEL_PROPERTY_SPAWN_HUD:
+
+            printf("\n\n Warning: Model Spawn HUD is a read only pointer. Use the appropriate sub property function to modify values. \n");
 
             break;
 
