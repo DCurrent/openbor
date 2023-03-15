@@ -108,6 +108,12 @@ extern s_axis_plane_vertical_int light;
 extern int max_attack_types;
 extern int max_animations;
 extern s_projectile projectile_default_config;
+extern s_barstatus lbarstatus;
+extern s_barstatus loadingbarstatus;
+extern s_barstatus mpbarstatus;
+extern s_barstatus olbarstatus; 
+
+
 
 static void clear_named_var_list(List *list, int level)
 {
@@ -1014,6 +1020,10 @@ static const char *svlist[] =
     "global_sample_punch",
     "global_sample_time_over",
     "hresolution",
+    "hud_common_opponent",
+    "hud_common_main",
+    "hud_common_mp",
+    "hud_loading",
     "in_button_config",
     "in_cheat_options",
     "in_control_options",
@@ -8612,6 +8622,27 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videomodes.hRes;
         break;
+
+    case _sv_hud_common_opponent:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = &olbarstatus;
+        break;
+
+    case _sv_hud_common_main:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = &lbarstatus;
+        break;    
+
+    case _sv_hud_common_mp:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = &mpbarstatus;
+        break;    
+
+    case _sv_hud_load:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = &loadingbarstatus;
+        break;
+
     case _sv_vresolution:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = videomodes.vRes;
