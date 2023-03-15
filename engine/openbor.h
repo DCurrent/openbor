@@ -1204,30 +1204,6 @@ typedef enum
 
 typedef enum
 {
-    /*
-    Status bar direction enum.
-    Damon V. Caskey
-    2013-12-29
-    */
-
-    BARSTATUS_DIR_NORMAL,  //Left to Right or Up to Down.
-    BARSTATUS_DIR_INVERT   //Right to Left or Down to Up.
-} e_bar_dir;
-
-typedef enum
-{
-    HORIZONTALBAR,
-    VERTICALBAR
-} e_barorient;
-
-typedef enum
-{
-    VALUEBAR,
-    PERCENTAGEBAR
-} e_bartype;
-
-typedef enum
-{
     BGT_BGLAYER,
     BGT_FGLAYER,
     BGT_PANEL,
@@ -2754,15 +2730,22 @@ typedef struct {
 
 } s_collision_check_data;
 
+typedef enum e_status_config
+{
+    STATUS_CONFIG_NONE = 0,
+    STATUS_CONFIG_BORDER_DISABLE = (1 << 0),
+    STATUS_CONFIG_GRAPH_INVERT = (1 << 1),
+    STATUS_CONFIG_GRAPH_RATIO = (1 << 2),
+    STATUS_CONFIG_GRAPH_VERTICAL = (1 << 3),
+    STATUS_CONFIG_DEFAULT = STATUS_CONFIG_NONE
+}e_status_config;
+
 typedef struct
 {
     s_axis_plane_vertical_int graph_position;
     s_axis_plane_vertical_int name_position;
     s_axis_plane_vertical_int size;
-    e_bartype type;
-    e_barorient orientation;
-    int noborder;
-    e_bar_dir direction;
+    e_status_config config_flags;
     int barlayer;
     int backlayer;
     int borderlayer;

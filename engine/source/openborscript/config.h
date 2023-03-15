@@ -22,6 +22,7 @@
 #include "icon.h"
 #include "model.h"
 #include "recursive_damage.h"
+#include "status_dial.h"
 
 #define MAX_GLOBAL_VAR 2048
 #define MAX_KEY_LEN    24

@@ -667,10 +667,7 @@ s_barstatus loadingbarstatus =
                         .y = 0},
     .name_position = {  .x = 0,
                         .y = 0},
-    .type           = PERCENTAGEBAR,
-    .orientation    = HORIZONTALBAR,
-    .noborder       = 0,
-    .direction      = BARSTATUS_DIR_NORMAL,
+    .config_flags   = STATUS_CONFIG_GRAPH_RATIO,
     .barlayer       = 0,
     .backlayer      = 0,
     .borderlayer    = 0,
@@ -686,10 +683,7 @@ s_barstatus lbarstatus, olbarstatus =
                         .y = 0},
     .name_position  = { .x = 0,
                         .y = 0},
-    .type           = VALUEBAR,
-    .orientation    = HORIZONTALBAR,
-    .noborder       = 0,
-    .direction      = BARSTATUS_DIR_NORMAL,
+    .config_flags   = STATUS_CONFIG_DEFAULT,
     .barlayer       = 0,
     .backlayer      = 0,
     .borderlayer    = 0,
@@ -705,10 +699,7 @@ s_barstatus mpbarstatus =
                         .y = 0},
     .name_position  = { .x = 0,
                         .y = 0},
-    .type           = VALUEBAR,
-    .orientation    = HORIZONTALBAR,
-    .noborder       = 0,
-    .direction      = BARSTATUS_DIR_NORMAL,
+    .config_flags   = STATUS_CONFIG_DEFAULT,
     .barlayer       = 0,
     .backlayer      = 0,
     .borderlayer    = 0,
@@ -18247,7 +18238,10 @@ static void _readbarstatus(char *buf, s_barstatus *pstatus)
     }
     if((value = GET_ARG(3))[0])
     {
-        pstatus->noborder    = atoi(value);
+        if (atoi(value))
+        {
+            pstatus->config_flags |= STATUS_CONFIG_BORDER_DISABLE;
+        }
     }
     else
     {
@@ -18255,7 +18249,10 @@ static void _readbarstatus(char *buf, s_barstatus *pstatus)
     }
     if((value = GET_ARG(4))[0])
     {
-        pstatus->type        = atoi(value);
+        if (atoi(value))
+        {
+            pstatus->config_flags |= STATUS_CONFIG_GRAPH_RATIO;
+        }
     }
     else
     {
@@ -18263,7 +18260,10 @@ static void _readbarstatus(char *buf, s_barstatus *pstatus)
     }
     if((value = GET_ARG(5))[0])
     {
-        pstatus->orientation = atoi(value);
+        if (atoi(value))
+        {
+            pstatus->config_flags |= STATUS_CONFIG_GRAPH_VERTICAL;
+        }
     }
     else
     {
@@ -18403,7 +18403,8 @@ void load_levelorder()
     lbarstatus.size.x  = mpbarstatus.size.x = 100;
     lbarstatus.size.y  = 5;
     mpbarstatus.size.y = 3;
-    lbarstatus.noborder = mpbarstatus.noborder = 0;
+    lbarstatus.config_flags = STATUS_CONFIG_DEFAULT;
+    mpbarstatus.config_flags = STATUS_CONFIG_DEFAULT;
 
     // Show Complete Default Values
     scomplete[0] = 75;
@@ -21156,21 +21157,26 @@ s_player_arrow** player_arrow_allocate_list()
 /////////////////////////////////////////////////////////////////////////////
 void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
 {
-    int max = 100, len, alphabg = 0, bgindex, colourindex;
-    int forex, forey, forew, foreh, bkw, bkh;
+    int max = 100;
+    int len;
+    int alphabg = 0;
+    int bgindex;
+    int colourindex;
+    int forex;
+    int forey;
+    int forew; 
+    int foreh; 
+    int bkw; 
+    int bkh;
     s_drawmethod dm = plainmethod;
         
-    if(pstatus->orientation == HORIZONTALBAR)
-    {
-        max = pstatus->size.x;
-    }
-    else if(pstatus->orientation == VERTICALBAR)
+    if(pstatus->config_flags & STATUS_CONFIG_GRAPH_VERTICAL)
     {
         max = pstatus->size.y;
     }
     else
     {
-        return;
+        max = pstatus->size.x;
     }
 
     if (value > maxvalue)
@@ -21178,25 +21184,36 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
         value = maxvalue;
     }
 
-    if(pstatus->type == VALUEBAR)
+    if(pstatus->config_flags & STATUS_CONFIG_GRAPH_RATIO)
     {
-        if(max > maxvalue)
+        colourindex = colorbars ? (value * 5 / maxvalue + 1) : 2;
+        bgindex = colorbars ? 8 : 1;
+        len = value * max / maxvalue;
+        if (!len && value)
+        {
+            len = 1;
+        }
+        alphabg = BLEND_MULTIPLY + 1;
+    }
+    else
+    {
+        if (max > maxvalue)
         {
             max = maxvalue;
         }
-        if(colorbars)
+        if (colorbars)
         {
-            if(value <= max / 4)
+            if (value <= max / 4)
             {
                 bgindex = 0;
                 colourindex = 1;
             }
-            else if(value <= max / 2)
+            else if (value <= max / 2)
             {
                 bgindex = 0;
                 colourindex = 2;
             }
-            else if(value <= max)
+            else if (value <= max)
             {
                 bgindex = 0;
                 colourindex = 3;
@@ -21206,7 +21223,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
                 colourindex = value / (max + 1) + 3;
                 bgindex = colourindex - 1;
             }
-            if(colourindex > 10)
+            if (colourindex > 10)
             {
                 colourindex = bgindex = 10;
             }
@@ -21218,47 +21235,28 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
         }
 
         len = value % max;
-        if(!len && value)
+        if (!len && value)
         {
             len = max;
         }
-        alphabg = value > max ? 0 : (BLEND_MULTIPLY + 1);
-    }
-    else if(pstatus->type == PERCENTAGEBAR)
-    {
-        colourindex = colorbars ? (value * 5 / maxvalue + 1) : 2;
-        bgindex = colorbars ? 8 : 1;
-        len = value * max / maxvalue;
-        if(!len && value)
-        {
-            len = 1;
-        }
-        alphabg = BLEND_MULTIPLY + 1;
-    }
-    else
-    {
-        return;
+        alphabg = value > max ? 0 : (BLEND_MULTIPLY + 1);        
     }
 
-    if(pstatus->orientation == HORIZONTALBAR)
-    {
-        forex = pstatus->direction == BARSTATUS_DIR_INVERT ? (x + max - len) : x;
-        forey = y;
-        forew = len;
-        bkw = max;
-        bkh = foreh = pstatus->size.y;
-    }
-    else if(pstatus->orientation == VERTICALBAR)
+    if(pstatus->config_flags & STATUS_CONFIG_GRAPH_VERTICAL)
     {
         forex = x;
-        forey = pstatus->direction == BARSTATUS_DIR_INVERT ? y : (y + max - len);
+        forey = pstatus->config_flags & STATUS_CONFIG_GRAPH_INVERT ? y : (y + max - len);
         bkw = forew = pstatus->size.x;
         foreh = len;
         bkh = max;
     }
     else
     {
-        return;
+        forex = pstatus->config_flags & STATUS_CONFIG_GRAPH_INVERT ? (x + max - len) : x;
+        forey = y;
+        forew = len;
+        bkw = max;
+        bkh = foreh = pstatus->size.y;
     }
 
     if(!pstatus->colourtable)
@@ -21270,7 +21268,7 @@ void bar(int x, int y, int value, int maxvalue, s_barstatus *pstatus)
     spriteq_add_box(x + 1, y + 1, bkw, bkh, HUD_Z + 1 + pstatus->backlayer, (*pstatus->colourtable)[bgindex], &dm);
     spriteq_add_box(forex + 1, forey + 1, forew, foreh, HUD_Z + 2 + pstatus->barlayer, (*pstatus->colourtable)[colourindex], NULL);
 
-    if(pstatus->noborder == 0)
+    if(!(pstatus->config_flags & STATUS_CONFIG_BORDER_DISABLE))
     {
         spriteq_add_line(x, y, x + bkw + 1, y, HUD_Z + 3 + pstatus->borderlayer, color_white, NULL); //Top border.
         spriteq_add_line(x, y + bkh + 1, x + bkw + 1, y + bkh + 1, HUD_Z + 3 + pstatus->borderlayer, color_white, NULL); //Bottom border.
