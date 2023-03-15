@@ -6392,15 +6392,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_lifeposition:
     {
-        if (ent->modeldata.show_status)
+        if (ent->modeldata.hud_popup)
         {
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
             {
-                ent->modeldata.show_status->graph_position.x = (LONG)ltemp;
+                ent->modeldata.hud_popup->graph_position.x = (LONG)ltemp;
             }
             if (paramCount > 3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
             {
-                ent->modeldata.show_status->graph_position.y = (LONG)ltemp;
+                ent->modeldata.hud_popup->graph_position.y = (LONG)ltemp;
             }
         }
         break;
@@ -6591,15 +6591,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_nameposition:
     {
-        if (ent->modeldata.show_status)
+        if (ent->modeldata.hud_popup)
         {
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
             {
-                ent->modeldata.show_status->name_position.x = (LONG)ltemp;
+                ent->modeldata.hud_popup->name_position.x = (LONG)ltemp;
             }
             if (paramCount > 3 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
             {
-                ent->modeldata.show_status->name_position.y = (LONG)ltemp;
+                ent->modeldata.hud_popup->name_position.y = (LONG)ltemp;
             }
         }
         break;

@@ -3144,9 +3144,9 @@ typedef struct
     
     int multiple; // Score for hitting this entity = Damage * mutiple. ~~
     int bounce; // Flag to determine if bounce/quake is to be used. ~~
-    e_entity_type type;
-    e_entity_type_sub subtype;
-    s_icon icon; //In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct.
+    e_entity_type type; // ~~
+    e_entity_type_sub subtype; // ~~
+    s_icon icon; // In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct. ~~
 
     s_player_arrow player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
     
@@ -3292,7 +3292,7 @@ typedef struct
     s_attack *smartbomb;
 
     // e.g., boss
-    s_barstatus* show_status;
+    s_barstatus* hud_popup;
 
     /* Movement restriction flags. Subject to screen, wall, hole, hit head, etc. */
     e_move_constraint move_constraint;

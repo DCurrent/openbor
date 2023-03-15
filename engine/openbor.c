@@ -13946,18 +13946,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * Allocate object if we need it first.
                 */
 
-                if (!newchar->show_status)
+                if (!newchar->hud_popup)
                 {
-                    newchar->show_status = bar_status_allocate_object();
+                    newchar->hud_popup = bar_status_allocate_object();
                 }
                 
                 if ((value = GET_ARG(1))[0])
                 {
-                    newchar->show_status->graph_position.x = atoi(value);
+                    newchar->hud_popup->graph_position.x = atoi(value);
                 }
                 if ((value = GET_ARG(2))[0])
                 {
-                    newchar->show_status->graph_position.y = atoi(value);
+                    newchar->hud_popup->graph_position.y = atoi(value);
                 }
 
                 break;
@@ -13967,13 +13967,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * Allocate object if we need it first.
                 */
 
-                if (!newchar->show_status)
+                if (!newchar->hud_popup)
                 {
-                    newchar->show_status = bar_status_allocate_object();
+                    newchar->hud_popup = bar_status_allocate_object();
                 }
 
-                _readbarstatus(buf + pos, newchar->show_status);
-                newchar->show_status->colourtable = &hpcolourtable;
+                _readbarstatus(buf + pos, newchar->hud_popup);
+                newchar->hud_popup->colourtable = &hpcolourtable;
                 break;
             case CMD_MODEL_ICONPOSITION:
                 if((value = GET_ARG(1))[0])
@@ -13991,18 +13991,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * Allocate object if we need it first.
                 */
 
-                if (!newchar->show_status)
+                if (!newchar->hud_popup)
                 {
-                    newchar->show_status = bar_status_allocate_object();
+                    newchar->hud_popup = bar_status_allocate_object();
                 }
 
                 if((value = GET_ARG(1))[0])
                 {
-                    newchar->show_status->name_position.x = atoi(value);
+                    newchar->hud_popup->name_position.x = atoi(value);
                 }
                 if((value = GET_ARG(2))[0])
                 {
-                    newchar->show_status->name_position.y = atoi(value);
+                    newchar->hud_popup->name_position.y = atoi(value);
                 }
                 break;
             case CMD_MODEL_COM:
@@ -22157,7 +22157,7 @@ void drawenemystatus(entity *ent)
     s_barstatus* status;
     int icon;
 
-    status = ent->modeldata.show_status;
+    status = ent->modeldata.hud_popup;
 
     if(status->name_position.x > -1000 && status->name_position.y > -1000)
     {
@@ -28777,7 +28777,7 @@ void display_ents()
             * If we have status, draw to screen (ex. boss life).
             */
 
-            if(e->modeldata.show_status)
+            if(e->modeldata.hud_popup)
             {
                 drawenemystatus(e);
             }

@@ -137,7 +137,7 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
 
     error_local:
 
-    printf("You must provide a valid pointer and property constant: " SELF_NAME "\n");
+    printf("\nYou must provide a valid pointer and property constant: " SELF_NAME "\n");
     *pretvar = NULL;
 
     return E_FAIL;
@@ -302,7 +302,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
     // Error trapping.
     error_local:
 
-    printf("You must provide a valid pointer, property, and new value: " SELF_NAME "\n");
+    printf("\nYou must provide a valid pointer, property constant, and new value: " SELF_NAME "\n");
 
     result = E_FAIL;
     return result;

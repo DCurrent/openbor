@@ -16,7 +16,7 @@
 // access.
 HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME       "openbor_get_entity_property(void handle, int property)"
+    #define SELF_NAME       "openbor_get_entity_property(void entity, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
     #define ARG_HANDLE      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
@@ -1055,7 +1055,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
     error_local:
 
-    printf("You must provide a valid handle and property constant: " SELF_NAME "\n");
+    printf("\nYou must provide a valid pointer and property constant: " SELF_NAME "\n");
     *pretvar = NULL;
 
     return E_FAIL;
@@ -1074,7 +1074,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 // name, and new value.
 HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-    #define SELF_NAME           "openbor_set_entity_property(void handle, int property, value)"
+    #define SELF_NAME           "openbor_set_entity_property(void entity, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
     #define ARG_HANDLE          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
@@ -2292,7 +2292,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     // Error trapping.
     error_local:
 
-    printf("You must provide a valid handle, property, and new value: " SELF_NAME "\n");
+    printf("\nYou must provide a valid pointer, property constant, and new value: " SELF_NAME "\n");
 
     result = E_FAIL;
     return result;
@@ -2358,7 +2358,7 @@ HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 
 error_local:
 
-	printf("You must provide a valid handle and element: " SELF_NAME "\n");
+	printf("\nYou must provide a valid handle and element: " SELF_NAME "\n");
 	*pretvar = NULL;
 
 	return E_FAIL;
@@ -2427,7 +2427,7 @@ HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 	/* Error trapping. */
 error_local:
 
-	printf("You must provide a valid handle, element, and new value: " SELF_NAME "\n");
+	printf("\nYou must provide a valid handle, element, and new value: " SELF_NAME "\n");
 
 	result = E_FAIL;
 	return result;

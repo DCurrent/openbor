@@ -535,7 +535,7 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
     // Error trapping.
     error_local:
 
-    printf("You must provide a valid pointer, property, and new value: " SELF_NAME "\n");
+    printf("\nYou must provide a valid pointer, property constant, and new value: " SELF_NAME "\n");
 
     result = E_FAIL;
     return result;
