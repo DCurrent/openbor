@@ -775,7 +775,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(STATUS_DIAL_PROPERTY_END)
 
         /* Status dial config flags. */
-        ICMPCONST(STATUS_CONFIG_NONE),
+        ICMPCONST(STATUS_CONFIG_NONE)
         ICMPCONST(STATUS_CONFIG_BORDER_DISABLE)
         ICMPCONST(STATUS_CONFIG_GRAPH_INVERT)
         ICMPCONST(STATUS_CONFIG_GRAPH_RATIO)
