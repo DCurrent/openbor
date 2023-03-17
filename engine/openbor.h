@@ -99,13 +99,14 @@ movement restirctions are here!
 */
 
 #define		FRONTPANEL_Z		(PLAYER_MAX_Z+50)
-#define     HUD_Z               (FRONTPANEL_Z+10000)
+#define     HUD_Z               (FRONTPANEL_Z+10000) 
 #define		HOLE_Z				(PLAYER_MIN_Z-46)
 #define		SHADOW_Z			(PLAYER_MIN_Z-47)
 #define		NEONPANEL_Z			(PLAYER_MIN_Z-48)
 #define		SCREENPANEL_Z		(PLAYER_MIN_Z-49)
 #define		PANEL_Z				(PLAYER_MIN_Z-50)
 #define		MIRROR_Z			(PLAYER_MIN_Z-5)
+
 #define		PIT_DEPTH			-250
 #define		P2_STATS_DIST		180
 #define		CONTACT_DIST_H		30					// Distance to make contact
@@ -3150,7 +3151,7 @@ typedef struct
 
     s_spawn_hud player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible. ~~
     
-    int setlayer; // Used for forcing enities to be displayed behind
+    int setlayer; // Used for forcing enities to be displayed behind. ~~
     
     s_maps maps; //2011_04_07, DC: Pre defined color map selections and behavior.
     int alpha; // New alpha variable to determine if the entity uses alpha transparency

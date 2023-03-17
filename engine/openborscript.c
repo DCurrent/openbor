@@ -997,6 +997,7 @@ static const char *svlist[] =
     "ent_max",
     "fps",
     "freeram",
+    "front_panel_z",
     "game_paused",
     "game_speed",
     "game_time",
@@ -1019,11 +1020,13 @@ static const char *svlist[] =
     "global_sample_pause",
     "global_sample_punch",
     "global_sample_time_over",
+    "hole_z",
     "hresolution",
     "hud_common_opponent",
     "hud_common_main",
     "hud_common_mp",
     "hud_loading",
+    "hud_z",
     "in_button_config",
     "in_cheat_options",
     "in_control_options",
@@ -1064,9 +1067,11 @@ static const char *svlist[] =
     "maxplayers",
     "maxscriptvars",
     "maxsoundchannels",
+    "mirror_z",
     "models_cached",
     "models_loaded",
     "musicvol",
+    "neon_panel_z",
     "noaircancel",
     "nofadeout",
     "nogameover",
@@ -1083,6 +1088,7 @@ static const char *svlist[] =
     "numpalettes",
     "numwalls",
     "pakname",
+    "panel_z",
     "pause",
     "pixelformat",
     "player",
@@ -1094,6 +1100,7 @@ static const char *svlist[] =
     "player_min_z",
     "porting",
     "sample_play_id",
+    "screen_panel_z",
     "screen_status",
     "scrollmaxx",
     "scrollmaxz",
@@ -1101,6 +1108,7 @@ static const char *svlist[] =
     "scrollminz",
     "self",
     "sets_count",
+    "shadow_z",
     "shadowalpha",
     "shadowcolor",
     "shadowopacity",
@@ -8305,6 +8313,18 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = ent_max;
         break;
+    case _sv_front_panel_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = FRONTPANEL_Z;
+        break;
+    case _sv_hole_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = HOLE_Z;
+        break;
+    case _sv_hud_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = HUD_Z;
+        break;
     case _sv_in_level:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (level != NULL);
@@ -8364,10 +8384,6 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (screen_status & IN_SCREEN_LOAD_GAME_MENU);
         break;
-    case _sv_sets_count:
-        ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = num_difficulties;
-        break;
     case _sv_in_showcomplete:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (screen_status & IN_SCREEN_SHOW_COMPLETE);
@@ -8380,14 +8396,39 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = (screen_status & IN_SCREEN_HALL_OF_FAME);
         break;
+    case _sv_mirror_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = MIRROR_Z;
+        break;
+    case _sv_neon_panel_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = NEONPANEL_Z;
+        break;
+    case _sv_panel_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = PANEL_Z;
+        break;
     case _sv_sample_play_id:
         ScriptVariant_ChangeType(var, VT_INTEGER);
 		var->lVal = sample_play_id;
 		break;
+    case _sv_screen_panel_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = SCREENPANEL_Z;
+        break;
     case _sv_screen_status:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = screen_status;
         break;
+    case _sv_sets_count:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = num_difficulties;
+        break;
+    case _sv_shadow_z:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = SHADOW_Z;
+        break;
+
     case _sv_effectvol:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = savedata.effectvol;
