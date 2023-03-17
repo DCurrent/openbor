@@ -1,24 +1,22 @@
 
 typedef enum
 {
-	_BIND_ANIMATION_FRAME,
-	_BIND_ANIMATION_ID,
-	_BIND_CONFIG,
-	_BIND_DIRECTION_ADJUST,
-	_BIND_META_DATA,
-	_BIND_META_TAG,
-	_BIND_OFFSET_X,
-	_BIND_OFFSET_Y,
-	_BIND_OFFSET_Z,
-	_BIND_SORT_ID,
-	_BIND_TARGET,
-	_BIND_END,
+	BIND_PROPERTY_ANIMATION_FRAME,
+	BIND_PROPERTY_ANIMATION_ID,
+	BIND_PROPERTY_CONFIG,
+	BIND_PROPERTY_DIRECTION_ADJUST,
+	BIND_PROPERTY_META_DATA,
+	BIND_PROPERTY_META_TAG,
+	BIND_PROPERTY_OFFSET_X,
+	BIND_PROPERTY_OFFSET_Y,
+	BIND_PROPERTY_OFFSET_Z,
+	BIND_PROPERTY_SORT_ID,
+	BIND_PROPERTY_TARGET,
+	BIND_PROPERTY_END,
 } e_bind_properties;
 
 // Binding properties.
 HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_bind_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_update_bind(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-
-int mapstrings_bind_property(ScriptVariant **varlist, int paramCount);
 

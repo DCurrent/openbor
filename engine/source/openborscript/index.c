@@ -1081,16 +1081,6 @@ void *Script_GetStringMapFunction(void *functionRef)
         return (void *)mapstrings_axis_principal_property;
     }
 
-    // Binding
-    else if (functionRef == ((void *)openbor_get_bind_property))
-    {
-        return (void *)mapstrings_bind_property;
-    }
-    else if (functionRef == ((void *)openbor_set_bind_property))
-    {
-        return (void *)mapstrings_bind_property;
-    }
-
 	// Drawmethod
 	else if (functionRef == ((void *)openbor_get_drawmethod_property))
 	{

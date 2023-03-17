@@ -3148,7 +3148,7 @@ typedef struct
     e_entity_type_sub subtype; // ~~
     s_icon icon; // In game icons added 2005_01_20. 2011_04_05, DC: Moved to struct. ~~
 
-    s_spawn_hud player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible
+    s_spawn_hud player_arrow[MAX_PLAYERS]; // Image to be displayed when player spawns invincible. ~~
     
     int setlayer; // Used for forcing enities to be displayed behind
     
