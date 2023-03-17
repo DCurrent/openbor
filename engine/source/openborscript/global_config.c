@@ -80,7 +80,7 @@ HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVarian
 {
 #define SELF_NAME       "get_global_config_property(void global_config, char property)"
 #define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_HANDLE      0   // Handle (pointer to property structure).
+#define ARG_OBJECT      0   // Handle (pointer to property structure).
 #define ARG_PROPERTY    1   // Property to access.
 
 	s_global_config* handle = NULL; // Property handle.
@@ -104,7 +104,7 @@ HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVarian
 	* to determine which property constant is accessed.
 	*/
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -113,7 +113,7 @@ HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVarian
 	else
 	{
 		/* Populate local vars for readability. */
-		handle = (s_global_config*)varlist[ARG_HANDLE]->ptrVal;
+		handle = (s_global_config*)varlist[ARG_OBJECT]->ptrVal;
 		property = (e_global_config_properties)varlist[ARG_PROPERTY]->lVal;
 	}
 
@@ -194,7 +194,7 @@ error_local:
 
 #undef SELF_NAME
 #undef ARG_MINIMUM
-#undef ARG_HANDLE
+#undef ARG_OBJECT
 #undef ARG_INDEX
 }
 
@@ -211,7 +211,7 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 {
 #define SELF_NAME           "set_global_config_property(void global_config, char property, mixed value)"
 #define ARG_MINIMUM         3   // Minimum required arguments.
-#define ARG_HANDLE          0   // Handle (pointer to property structure).
+#define ARG_OBJECT          0   // Handle (pointer to property structure).
 #define ARG_PROPERTY        1   // Property to access.
 #define ARG_VALUE           2   // New value to apply.
 
@@ -237,7 +237,7 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 	* to determine which property is accessed.
 	*/
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -245,7 +245,7 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 	}
 
 	/* Populate local handleand property vars. */
-	handle = (s_global_config*)varlist[ARG_HANDLE]->ptrVal;
+	handle = (s_global_config*)varlist[ARG_OBJECT]->ptrVal;
 	property = (e_global_config_properties)varlist[ARG_PROPERTY]->lVal;
 
 	/* Which property to modify ? */
@@ -344,7 +344,7 @@ error_local:
 
 #undef SELF_NAME
 #undef ARG_MINIMUM
-#undef ARG_HANDLE
+#undef ARG_OBJECT
 #undef ARG_PROPERTY
 #undef ARG_VALUE
 }

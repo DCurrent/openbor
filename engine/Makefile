@@ -375,6 +375,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/collision_attack.o                                           \
                   source/openborscript/collision_body.o                                             \
 				  source/openborscript/collision_entity.o                                           \
+                  source/openborscript/colorset.o                                                   \
                   source/openborscript/constants.o                                                  \
                   source/openborscript/entity.o                                                   	\
                   source/openborscript/faction.o                                                   	\

@@ -18,7 +18,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 {
     #define SELF_NAME       "openbor_get_entity_property(void entity, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     entity                  *handle     = NULL; // Property handle.
@@ -32,7 +32,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -41,7 +41,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
     else
     {
         // Populate local vars for readability.
-        handle      = (entity *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (entity *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 	
@@ -1062,7 +1062,7 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -1076,7 +1076,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 {
     #define SELF_NAME           "openbor_set_entity_property(void entity, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -1093,7 +1093,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -1101,7 +1101,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
     }
 
     // Populate local handle and property vars.
-    handle      = (entity *)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (entity *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to modify?
@@ -2299,7 +2299,7 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -2314,7 +2314,7 @@ HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 {
 #define SELF_NAME       "get_attack_id_value(void handle, int element)"
 #define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_HANDLE      0   // Handle (pointer to property structure).
+#define ARG_OBJECT      0   // Handle (pointer to property structure).
 #define ARG_ELEMENT		1   // Array element to access.
 
 	LONG* handle = NULL; // Property handle.
@@ -2332,7 +2332,7 @@ HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 	* to determine which element of the array is accessed.
 	*/
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_ELEMENT]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -2341,7 +2341,7 @@ HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 	else
 	{
 		// Populate local vars for readability.
-		handle = (LONG*)varlist[ARG_HANDLE]->ptrVal;
+		handle = (LONG*)varlist[ARG_OBJECT]->ptrVal;
 		element = (LONG)varlist[ARG_ELEMENT]->lVal;
 	}
 
@@ -2380,7 +2380,7 @@ HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 {
 #define SELF_NAME           "set_attack_id_value(void handle, char property, value)"
 #define ARG_MINIMUM         3   // Minimum required arguments.
-#define ARG_HANDLE          0   // Handle (pointer to property structure).
+#define ARG_OBJECT          0   // Handle (pointer to property structure).
 #define ARG_ELEMENT        1	// Element to access.
 #define ARG_VALUE           2   // New value to apply.
 
@@ -2400,7 +2400,7 @@ HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 	* to determine which property is accessed.
 	*/
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_ELEMENT]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -2408,7 +2408,7 @@ HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pre
 	}
 
 	// Populate local handle and property vars.
-	handle = (LONG*)varlist[ARG_HANDLE]->ptrVal;
+	handle = (LONG*)varlist[ARG_OBJECT]->ptrVal;
 	element = (LONG)varlist[ARG_ELEMENT]->lVal;
 
 	/* Don't allow an out of bounds element. */
@@ -2434,7 +2434,7 @@ error_local:
 
 #undef SELF_NAME
 #undef ARG_MINIMUM
-#undef ARG_HANDLE
+#undef ARG_OBJECT
 #undef ARG_ELEMENT
 #undef ARG_VALUE
 }

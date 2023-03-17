@@ -16,6 +16,7 @@
 #include "axis.h"
 #include "binding.h"
 #include "drawmethod.h"
+#include "colorset.h"
 #include "entity.h"
 #include "faction.h"
 #include "global_config.h"

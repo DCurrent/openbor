@@ -83,7 +83,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
 {
     #define SELF_NAME       "get_set_property(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
 
@@ -99,7 +99,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -107,7 +107,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     }
     else
     {
-        handle      = (s_set_entry *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_set_entry *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -238,7 +238,7 @@ HRESULT openbor_get_set_property(ScriptVariant **varlist, ScriptVariant **pretva
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
 }
 
@@ -253,7 +253,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
 {
     #define SELF_NAME           "set_set_property(void handle, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -270,7 +270,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     // pointer for the animation handle, an integer
     // property, and a new value to apply.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -278,7 +278,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
     }
     else
     {
-        handle      = (s_set_entry *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_set_entry *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -311,7 +311,7 @@ HRESULT openbor_set_set_property(ScriptVariant **varlist, ScriptVariant **pretva
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -327,7 +327,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 {
     #define SELF_NAME       "get_level_property(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
 
@@ -357,13 +357,13 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
     // completed to conserve memory. The handle argument
     // is in place for future compatibility in case this
     // ever changes.
-    if(varlist[ARG_HANDLE]->vt != VT_PTR)
+    if(varlist[ARG_OBJECT]->vt != VT_PTR)
     {
         handle = level;
     }
     else
     {
-        handle = (s_level *)varlist[ARG_HANDLE]->ptrVal;
+        handle = (s_level *)varlist[ARG_OBJECT]->ptrVal;
     }
 
     // Get the property argument.
@@ -901,7 +901,7 @@ HRESULT openbor_get_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
 }
 
@@ -916,7 +916,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
 {
     #define SELF_NAME           "set_level_property(void handle, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -935,7 +935,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     // to determine which property is accessed and a
     // new value to apply.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -943,7 +943,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
     }
     else
     {
-        handle      = (s_level *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_level *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
         arg_value   = varlist[ARG_VALUE];
     }
@@ -1675,7 +1675,7 @@ HRESULT openbor_set_level_property(ScriptVariant **varlist, ScriptVariant **pret
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }

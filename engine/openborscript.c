@@ -4212,13 +4212,13 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_hmapl:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.maps.hide_start;
+        (*pretvar)->lVal = (LONG)ent->modeldata.colorsets.hide_start;
         break;
     }
     case _ep_hmapu:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.maps.hide_end;
+        (*pretvar)->lVal = (LONG)ent->modeldata.colorsets.hide_end;
         break;
     }
     case _ep_icon:
@@ -4422,7 +4422,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         }
 
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.maps.ko;
+        (*pretvar)->lVal = (LONG)ent->modeldata.colorsets.ko;
         break;
     }
     case _ep_landframe:
@@ -4589,31 +4589,31 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         case _ep_maps_frozen:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)(ent->modeldata.maps.frozen);
+            (*pretvar)->lVal = (LONG)(ent->modeldata.colorsets.frozen);
             break;
         }
         case _ep_maps_hide_end:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)(ent->modeldata.maps.hide_end);
+            (*pretvar)->lVal = (LONG)(ent->modeldata.colorsets.hide_end);
             break;
         }
         case _ep_maps_hide_start:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)(ent->modeldata.maps.hide_start);
+            (*pretvar)->lVal = (LONG)(ent->modeldata.colorsets.hide_start);
             break;
         }
         case _ep_maps_ko:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)(ent->modeldata.maps.ko);
+            (*pretvar)->lVal = (LONG)(ent->modeldata.colorsets.ko);
             break;
         }
         case _ep_maps_kotype:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)(ent->modeldata.maps.kotype);
+            (*pretvar)->lVal = (LONG)(ent->modeldata.colorsets.kotype);
             break;
         }
         case _ep_maps_table:
@@ -6239,7 +6239,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.maps.hide_start = ltemp;
+            ent->modeldata.colorsets.hide_start = ltemp;
         }
         break;
     }
@@ -6247,7 +6247,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.maps.hide_end = ltemp;
+            ent->modeldata.colorsets.hide_end = ltemp;
         }
         break;
     }
@@ -6400,11 +6400,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.maps.ko = (LONG)ltemp;
+            ent->modeldata.colorsets.ko = (LONG)ltemp;
         }
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[3], &ltemp)))
         {
-            ent->modeldata.maps.kotype = (LONG)ltemp;
+            ent->modeldata.colorsets.kotype = (LONG)ltemp;
         }
         break;
     }
@@ -7867,7 +7867,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
            break;
         }
 
-        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->maps.hide_start;
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->colorsets.hide_start;
         break;
     }
     case _pp_hmapu:
@@ -7889,7 +7889,7 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
            break;
         }
 
-        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->maps.hide_end;
+        (*pretvar)->lVal = (LONG)model_cache[cacheindex].model->colorsets.hide_end;
         break;
     }
     case _pp_mapcount:

@@ -20,10 +20,10 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
 {
     #define SELF_NAME       "openbor_get_icon_property(void icon, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
-    s_icon*               handle     = NULL; // Property handle.
+    s_icon*               object     = NULL; // Property object.
     e_icon_properties	   property    = 0;    // Property argument.
 
     // Clear pass by reference argument used to send
@@ -31,10 +31,10 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
     ScriptVariant_Clear(*pretvar);
 
     // Verify arguments. There should at least
-    // be a pointer for the property handle and an integer
+    // be a pointer for the property object and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -43,7 +43,7 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
     else
     {
         // Populate local vars for readability.
-        handle      = (s_icon *)varlist[ARG_HANDLE]->ptrVal;
+        object      = (s_icon *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 	
@@ -52,77 +52,77 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
         case ICON_PROPERTY_DEFAULT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->def;
+            (*pretvar)->lVal = (LONG)object->def;
 
             break;
 
         case ICON_PROPERTY_DIE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->die;
+            (*pretvar)->lVal = (LONG)object->die;
 
             break;
 
         case ICON_PROPERTY_GET:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->get;
+            (*pretvar)->lVal = (LONG)object->get;
 
             break;
 
         case ICON_PROPERTY_MP_HIGH:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->mphigh;
+            (*pretvar)->lVal = (LONG)object->mphigh;
 
             break;
 
         case ICON_PROPERTY_MP_LOW:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->mplow;
+            (*pretvar)->lVal = (LONG)object->mplow;
 
             break;
 
         case ICON_PROPERTY_MP_MEDIUM:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->mpmed;
+            (*pretvar)->lVal = (LONG)object->mpmed;
 
             break;
 
         case ICON_PROPERTY_PAIN:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->pain;
+            (*pretvar)->lVal = (LONG)object->pain;
 
             break;
 
         case ICON_PROPERTY_POSITION_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->position.x;
+            (*pretvar)->lVal = (LONG)object->position.x;
 
             break;
 
         case ICON_PROPERTY_POSITION_Y:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->position.y;
+            (*pretvar)->lVal = (LONG)object->position.y;
 
             break;
 
         case ICON_PROPERTY_USE_MAP:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->usemap;
+            (*pretvar)->lVal = (LONG)object->usemap;
 
             break;
 
         case ICON_PROPERTY_WEAPON:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->weapon;
+            (*pretvar)->lVal = (LONG)object->weapon;
 
             break;
         default:
@@ -144,7 +144,7 @@ HRESULT openbor_get_icon_property(ScriptVariant **varlist , ScriptVariant **pret
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
 }
 
@@ -160,12 +160,12 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 {
     #define SELF_NAME           "openbor_set_icon_property(void icon, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
     int                 result      = S_OK; // Success or error?
-    s_icon*             handle     = NULL; // Property handle.
+    s_icon*             object     = NULL; // Property object.
     e_icon_properties	property    = 0;    // Property to access.
 
     // Value carriers to apply on properties after
@@ -173,18 +173,18 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
     LONG    temp_int;
 		
     // Verify incoming arguments. There should at least
-    // be a pointer for the property handle and an integer
+    // be a pointer for the property object and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
         goto error_local;
     }
 
-    // Populate local handle and property vars.
-    handle      = (s_icon *)varlist[ARG_HANDLE]->ptrVal;
+    // Populate local object and property vars.
+    object      = (s_icon *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to modify?
@@ -194,7 +194,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->def = temp_int;
+                object->def = temp_int;
             }
 
             break;
@@ -203,7 +203,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->die = temp_int;
+                object->die = temp_int;
             }
 
             break;
@@ -212,7 +212,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->get = temp_int;
+                object->get = temp_int;
             }
 
             break;
@@ -221,7 +221,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->mphigh = temp_int;
+                object->mphigh = temp_int;
             }
 
             break;
@@ -230,7 +230,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->mplow = temp_int;
+                object->mplow = temp_int;
             }
 
             break;
@@ -239,7 +239,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->mpmed = temp_int;
+                object->mpmed = temp_int;
             }
 
             break;
@@ -248,7 +248,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->pain = temp_int;
+                object->pain = temp_int;
             }
 
             break;
@@ -257,7 +257,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->position.x = temp_int;
+                object->position.x = temp_int;
             }
 
             break;
@@ -266,7 +266,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->position.y = temp_int;
+                object->position.y = temp_int;
             }
 
             break;
@@ -275,7 +275,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->usemap = temp_int;
+                object->usemap = temp_int;
             }
 
             break;
@@ -284,7 +284,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->weapon = temp_int;
+                object->weapon = temp_int;
             }
 
             break;
@@ -309,7 +309,7 @@ HRESULT openbor_set_icon_property(ScriptVariant **varlist, ScriptVariant **pretv
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }

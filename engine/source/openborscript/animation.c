@@ -113,7 +113,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 {
     #define SELF_NAME       "get_animation_property(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     int                     result      = S_OK; // Success or error?
@@ -128,7 +128,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -136,7 +136,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
     }
     else
     {
-        handle      = (s_anim *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_anim *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -454,7 +454,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
 }
 
@@ -469,7 +469,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 {
     #define SELF_NAME           "set_animation_property(void handle, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -486,7 +486,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     // pointer for the animation handle, an integer
     // property, and a new value to apply.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -494,7 +494,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
     }
     else
     {
-        handle      = (s_anim *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_anim *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -940,7 +940,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -1068,7 +1068,7 @@ HRESULT openbor_get_sub_entity_property(ScriptVariant** varlist, ScriptVariant**
 {
 #define SELF_NAME       "get_sub_entity_property(void handle, int property)"
 #define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_HANDLE      0   // Handle (pointer to property structure).
+#define ARG_OBJECT      0   // Handle (pointer to property structure).
 #define ARG_PROPERTY    1   // Property to access.
 
 	int                     result = S_OK; // Success or error?
@@ -1083,7 +1083,7 @@ HRESULT openbor_get_sub_entity_property(ScriptVariant** varlist, ScriptVariant**
 	// be a pointer for the property handle and an integer
 	// to determine which property is accessed.
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -1091,7 +1091,7 @@ HRESULT openbor_get_sub_entity_property(ScriptVariant** varlist, ScriptVariant**
 	}
 	else
 	{
-		handle = (s_sub_entity*)varlist[ARG_HANDLE]->ptrVal;
+		handle = (s_sub_entity*)varlist[ARG_OBJECT]->ptrVal;
 		property = (e_sub_entity_properties)varlist[ARG_PROPERTY]->lVal;
 	}
 
@@ -1147,7 +1147,7 @@ error_local:
 
 #undef SELF_NAME
 #undef ARG_MINIMUM
-#undef ARG_HANDLE
+#undef ARG_OBJECT
 #undef ARG_PROPERTY
 }
 
@@ -1161,7 +1161,7 @@ HRESULT openbor_set_sub_entity_property(ScriptVariant** varlist, ScriptVariant**
 {
 #define SELF_NAME           "set_sub_entity_property(void handle, int property, value)"
 #define ARG_MINIMUM         3   // Minimum required arguments.
-#define ARG_HANDLE          0   // Handle (pointer to property structure).
+#define ARG_OBJECT          0   // Handle (pointer to property structure).
 #define ARG_PROPERTY        1   // Property to access.
 #define ARG_VALUE           2   // New value to apply.
 
@@ -1178,7 +1178,7 @@ HRESULT openbor_set_sub_entity_property(ScriptVariant** varlist, ScriptVariant**
 	// pointer for the animation handle, an integer
 	// property, and a new value to apply.
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -1186,7 +1186,7 @@ HRESULT openbor_set_sub_entity_property(ScriptVariant** varlist, ScriptVariant**
 	}
 	else
 	{
-		handle = (s_sub_entity*)varlist[ARG_HANDLE]->ptrVal;
+		handle = (s_sub_entity*)varlist[ARG_OBJECT]->ptrVal;
 		property = (e_sub_entity_properties)varlist[ARG_PROPERTY]->lVal;
 	}
 
@@ -1258,7 +1258,7 @@ error_local:
 
 #undef SELF_NAME
 #undef ARG_MINIMUM
-#undef ARG_HANDLE
+#undef ARG_OBJECT
 #undef ARG_PROPERTY
 #undef ARG_VALUE
 }

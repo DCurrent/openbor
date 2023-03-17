@@ -290,6 +290,14 @@ const char *Script_GetFunctionName(void *functionRef)
     {
     return "set_attack_id_value";
     }
+    else if (functionRef == ((void*)openbor_get_colorset_property))
+    {
+        return "get_colorset_property";
+    }
+    else if (functionRef == ((void*)openbor_set_colorset_property))
+    {
+        return "set_colorset_property";
+    }
     else if (functionRef == ((void *)openbor_get_entity_property))
     {
         return "get_entity_property";
@@ -1326,6 +1334,12 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_get_body_collision_property, "get_body_collision_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_set_body_collision_property, "set_body_collision_property");
+
+    // Entity properties.
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_colorset_property, "get_colorset_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_colorset_property, "set_colorset_property");
 
     // Entity collision (ebox) properties.
     List_InsertAfter(&theFunctionList,

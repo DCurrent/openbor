@@ -1590,9 +1590,9 @@ typedef enum
     2013-12-28
     */
 
-    KOMAP_TYPE_INSTANT,    //Apply instantly.
-    KOMAP_TYPE_FINISH       // Apply on last frame of fall.
-} e_komap_type;
+    KO_COLORSET_CONFIG_INSTANT,    //Apply instantly.
+    KO_COLORSET_CONFIG_COMPLETE       // Apply on last frame of fall.
+} e_ko_colorset_config;
 
 typedef enum
 {
@@ -2834,8 +2834,8 @@ typedef struct
     int hide_end;           //End range for maps hidden during character selection.
     int hide_start;         //Start range for maps hidden during character selection.
     int ko;                 //Health depleted.
-    e_komap_type kotype;   //KO map application.
-} s_maps;
+    e_ko_colorset_config kotype;   //KO map application.
+} s_colorset;
 
 typedef struct
 {
@@ -3153,7 +3153,7 @@ typedef struct
     
     int setlayer; // Used for forcing enities to be displayed behind. ~~
     
-    s_maps maps; //2011_04_07, DC: Pre defined color map selections and behavior.
+    s_colorset colorsets; //2011_04_07, DC: Pre defined color map selections and behavior.
     int alpha; // New alpha variable to determine if the entity uses alpha transparency
     int toflip; // Flag to determine if flashes flip or not
     

@@ -25,7 +25,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 {
     #define SELF_NAME       "openbor_get_bind_property(void bind, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_bind              *object     = NULL; // Property object.
@@ -43,7 +43,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     * to determine which property constant is accessed.
     */
 	if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -52,7 +52,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
     else
     {
         /* Populate local vars for readability. */
-        object      = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
+        object      = (s_bind *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -159,7 +159,7 @@ HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pret
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -176,7 +176,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 {
     #define SELF_NAME           "set_bind_property(void bind, int property, mixed value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -196,7 +196,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 	* to determine which property is accessed.
 	*/
 	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_HANDLE]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
 	{
 		*pretvar = NULL;
@@ -204,7 +204,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 	}
 
 	/* Populate local objectand property vars. */
-	object = (s_bind *)varlist[ARG_HANDLE]->ptrVal;
+	object = (s_bind *)varlist[ARG_OBJECT]->ptrVal;
 	property = (LONG)varlist[ARG_PROPERTY]->lVal;
 
 	/* Which property to modify ? */
@@ -324,7 +324,7 @@ HRESULT openbor_set_bind_property(ScriptVariant **varlist, ScriptVariant **pretv
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }

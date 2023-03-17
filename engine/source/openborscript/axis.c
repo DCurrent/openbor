@@ -140,7 +140,7 @@ HRESULT openbor_get_axis_plane_lateral_float_property(ScriptVariant **varlist , 
 {
     #define SELF_NAME       "openbor_get_axis_plane_lateral_float_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_axis_plane_lateral_float      *handle     = NULL; // Property handle.
@@ -158,7 +158,7 @@ HRESULT openbor_get_axis_plane_lateral_float_property(ScriptVariant **varlist , 
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -167,7 +167,7 @@ HRESULT openbor_get_axis_plane_lateral_float_property(ScriptVariant **varlist , 
     else
     {
         // Populate local vars for readability.
-        handle      = (s_axis_plane_lateral_float *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_axis_plane_lateral_float *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -207,7 +207,7 @@ HRESULT openbor_get_axis_plane_lateral_float_property(ScriptVariant **varlist , 
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -222,7 +222,7 @@ HRESULT openbor_get_axis_plane_lateral_int_property(ScriptVariant **varlist , Sc
 {
     #define SELF_NAME       "openbor_get_axis_plane_lateral_int_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_axis_plane_lateral_int        *handle     = NULL; // Property handle.
@@ -240,7 +240,7 @@ HRESULT openbor_get_axis_plane_lateral_int_property(ScriptVariant **varlist , Sc
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -249,7 +249,7 @@ HRESULT openbor_get_axis_plane_lateral_int_property(ScriptVariant **varlist , Sc
     else
     {
         // Populate local vars for readability.
-        handle      = (s_axis_plane_lateral_int *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_axis_plane_lateral_int *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -289,7 +289,7 @@ HRESULT openbor_get_axis_plane_lateral_int_property(ScriptVariant **varlist , Sc
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -303,7 +303,7 @@ HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , Scri
 {
     #define SELF_NAME       "openbor_get_axis_principal_float_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_axis_principal_float      *handle     = NULL; // Property handle.
@@ -321,7 +321,7 @@ HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , Scri
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -330,7 +330,7 @@ HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , Scri
     else
     {
         // Populate local vars for readability.
-        handle      = (s_axis_principal_float *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_axis_principal_float *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -376,7 +376,7 @@ HRESULT openbor_get_axis_principal_float_property(ScriptVariant **varlist , Scri
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -390,7 +390,7 @@ HRESULT openbor_get_axis_principal_int_property(ScriptVariant **varlist , Script
 {
     #define SELF_NAME       "openbor_get_axis_principal_int_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_axis_principal_int        *handle     = NULL; // Property handle.
@@ -408,7 +408,7 @@ HRESULT openbor_get_axis_principal_int_property(ScriptVariant **varlist , Script
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -417,7 +417,7 @@ HRESULT openbor_get_axis_principal_int_property(ScriptVariant **varlist , Script
     else
     {
         // Populate local vars for readability.
-        handle      = (s_axis_principal_int *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_axis_principal_int *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -463,7 +463,7 @@ HRESULT openbor_get_axis_principal_int_property(ScriptVariant **varlist , Script
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -477,7 +477,7 @@ HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , S
 {
     #define SELF_NAME       "openbor_get_axis_plane_vertical_int_property(void handle, char property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     s_axis_plane_vertical_int        *handle     = NULL; // Property handle.
@@ -495,7 +495,7 @@ HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , S
     // be a pointer for the property handle and an integer
     // to determine which property constant is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -504,7 +504,7 @@ HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , S
     else
     {
         // Populate local vars for readability.
-        handle      = (s_axis_plane_vertical_int *)varlist[ARG_HANDLE]->ptrVal;
+        handle      = (s_axis_plane_vertical_int *)varlist[ARG_OBJECT]->ptrVal;
         property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     }
 
@@ -544,7 +544,7 @@ HRESULT openbor_get_axis_plane_vertical_int_property(ScriptVariant **varlist , S
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -558,7 +558,7 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
 {
     #define SELF_NAME           "openbor_set_axis_plane_lateral_float_property(void handle, char property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -578,7 +578,7 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -586,7 +586,7 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
     }
 
     // Populate local handle and property vars.
-    handle      = (s_axis_plane_lateral_float *)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_axis_plane_lateral_float *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // All values are same type for this property set,
@@ -632,7 +632,7 @@ HRESULT openbor_set_axis_plane_lateral_float_property(ScriptVariant **varlist, S
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -647,7 +647,7 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
 {
     #define SELF_NAME           "openbor_set_axis_plane_lateral_float_property(void handle, char property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -667,7 +667,7 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -675,7 +675,7 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
     }
 
     // Populate local handle and property vars.
-    handle      = (s_axis_plane_lateral_int *)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_axis_plane_lateral_int *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // All values are same type for this property set,
@@ -721,7 +721,7 @@ HRESULT openbor_set_axis_plane_lateral_int_property(ScriptVariant **varlist, Scr
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -736,7 +736,7 @@ HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist, Scrip
 {
     #define SELF_NAME           "openbor_set_axis_principal_float_property(void handle, char property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -756,7 +756,7 @@ HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist, Scrip
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -764,7 +764,7 @@ HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist, Scrip
     }
 
     // Populate local handle and property vars.
-    handle      = (s_axis_principal_float *)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_axis_principal_float *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // All values are same type for this property set,
@@ -816,7 +816,7 @@ HRESULT openbor_set_axis_principal_float_property(ScriptVariant **varlist, Scrip
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -831,7 +831,7 @@ HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist, ScriptV
 {
     #define SELF_NAME           "openbor_set_axis_principal_int_property(void handle, char property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -851,7 +851,7 @@ HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist, ScriptV
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -859,7 +859,7 @@ HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist, ScriptV
     }
 
     // Populate local handle and property vars.
-    handle      = (s_axis_principal_int *)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_axis_principal_int *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // All values are same type for this property set,
@@ -911,7 +911,7 @@ HRESULT openbor_set_axis_principal_int_property(ScriptVariant **varlist, ScriptV
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }
@@ -926,7 +926,7 @@ HRESULT openbor_set_axis_plane_vertical_int_property(ScriptVariant **varlist, Sc
 {
     #define SELF_NAME           "openbor_set_axis_plane_vertical_int_property(void handle, char property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -946,7 +946,7 @@ HRESULT openbor_set_axis_plane_vertical_int_property(ScriptVariant **varlist, Sc
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -954,7 +954,7 @@ HRESULT openbor_set_axis_plane_vertical_int_property(ScriptVariant **varlist, Sc
     }
 
     // Populate local handle and property vars.
-    handle      = (s_axis_plane_vertical_int *)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_axis_plane_vertical_int *)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // All values are same type for this property set,
@@ -1000,7 +1000,7 @@ HRESULT openbor_set_axis_plane_vertical_int_property(ScriptVariant **varlist, Sc
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }

@@ -175,6 +175,16 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 		ICMPCONST(BLAST_NONE)
 		ICMPCONST(BLAST_TOSS)
 
+        /* Colorset property access. */
+        ICMPCONST(COLORSET_PROPERTY_BURN)
+        ICMPCONST(COLORSET_PROPERTY_FROZEN)
+        ICMPCONST(COLORSET_PROPERTY_HIDE_END)
+        ICMPCONST(COLORSET_PROPERTY_HIDE_START)
+        ICMPCONST(COLORSET_PROPERTY_KO)
+        ICMPCONST(COLORSET_PROPERTY_KO_CONFIG)
+        ICMPCONST(COLORSET_PROPERTY_SHOCK)
+        ICMPCONST(COLORSET_PROPERTY_END)
+
         /* Cheat menu options and active cheat state. */
         ICMPCONST(CHEAT_OPTIONS_ALL_MENU)
         ICMPCONST(CHEAT_OPTIONS_CREDITS_ACTIVE)
@@ -536,8 +546,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
 
         /* How komap applies. */
-        ICMPCONST(KOMAP_TYPE_INSTANT)
-        ICMPCONST(KOMAP_TYPE_FINISH)
+        ICMPCONST(KO_COLORSET_CONFIG_INSTANT)
+        ICMPCONST(KO_COLORSET_CONFIG_COMPLETE)
 
         // Level properties
         ICMPCONST(LEVEL_PROP_AUTO_SCROLL_DIRECTION)

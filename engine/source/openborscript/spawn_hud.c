@@ -20,7 +20,7 @@ HRESULT openbor_get_spawn_hud_property(ScriptVariant **varlist , ScriptVariant *
 {
     #define SELF_NAME       "openbor_get_spawn_hud_property(void spawn_hud, int player_index, int property)"
     #define ARG_MINIMUM     3   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_INDEX       1   // Element to access.
     #define ARG_PROPERTY    2   // Property to access.
 
@@ -41,7 +41,7 @@ HRESULT openbor_get_spawn_hud_property(ScriptVariant **varlist , ScriptVariant *
     * a property constant.
     */
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_INDEX]->vt != VT_INTEGER
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
@@ -53,7 +53,7 @@ HRESULT openbor_get_spawn_hud_property(ScriptVariant **varlist , ScriptVariant *
     * Populate local vars for readability.
     */
 
-    handle      = (s_spawn_hud **)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_spawn_hud **)varlist[ARG_OBJECT]->ptrVal;
     index       = (LONG)varlist[ARG_INDEX]->lVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
     
@@ -109,7 +109,7 @@ HRESULT openbor_get_spawn_hud_property(ScriptVariant **varlist , ScriptVariant *
     #undef SELF_NAME
     #undef ARG_MINIMUM
     #undef ARG_PROPERTY
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -125,7 +125,7 @@ HRESULT openbor_set_spawn_hud_property(ScriptVariant **varlist, ScriptVariant **
 {
     #define SELF_NAME           "openbor_set_spawn_hud_property(void spawn_hud, int player_index, int property, value)"
     #define ARG_MINIMUM     4   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_INDEX       1   // Element to access.
     #define ARG_PROPERTY    2   // Property to access.
     #define ARG_VALUE       3   // New value to apply.
@@ -154,7 +154,7 @@ HRESULT openbor_set_spawn_hud_property(ScriptVariant **varlist, ScriptVariant **
     * a property constant.
     */
     if (paramCount < ARG_MINIMUM
-        || varlist[ARG_HANDLE]->vt != VT_PTR
+        || varlist[ARG_OBJECT]->vt != VT_PTR
         || varlist[ARG_INDEX]->vt != VT_INTEGER
         || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
@@ -166,7 +166,7 @@ HRESULT openbor_set_spawn_hud_property(ScriptVariant **varlist, ScriptVariant **
     * Populate local vars for readability.
     */
 
-    handle = (s_spawn_hud**)varlist[ARG_HANDLE]->ptrVal;
+    handle = (s_spawn_hud**)varlist[ARG_OBJECT]->ptrVal;
     index = (LONG)varlist[ARG_INDEX]->lVal;
     property = (LONG)varlist[ARG_PROPERTY]->lVal;
 
@@ -230,7 +230,7 @@ HRESULT openbor_set_spawn_hud_property(ScriptVariant **varlist, ScriptVariant **
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
     #undef ARG_PROPERTY
     #undef ARG_VALUE

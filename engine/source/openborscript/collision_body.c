@@ -23,7 +23,7 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
 {
     #define SELF_NAME       "get_body_collision_collection(void handle, int frame)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_FRAME       1   // Frame to access.
 
 
@@ -39,7 +39,7 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
     // be a pointer for the property handle and an integer
     // to determine which frame is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_FRAME]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -47,7 +47,7 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
     }
 
     // Populate local handle and frame vars.
-    handle  = (s_collision_body**)varlist[ARG_HANDLE]->ptrVal;
+    handle  = (s_collision_body**)varlist[ARG_OBJECT]->ptrVal;
     frame   = (LONG)varlist[ARG_FRAME]->lVal;
 
     // If this frame has property, send value back to user.
@@ -69,7 +69,7 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist, ScriptVar
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_FRAME
 }
 
@@ -78,7 +78,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
 {
     #define SELF_NAME       "get_body_collision_instance(void handle, int index)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_INDEX       1   // Index to access.
 
     int                 result      = S_OK; // Success or error?
@@ -93,7 +93,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     // be a pointer for the property handle and an integer
     // to determine which frame is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_INDEX]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -101,7 +101,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
     }
 
     // Populate local handle and property vars.
-    handle  = (s_collision_body**)varlist[ARG_HANDLE]->ptrVal;
+    handle  = (s_collision_body**)varlist[ARG_OBJECT]->ptrVal;
     index   = (LONG)varlist[ARG_INDEX]->lVal;
 
     // If this index has property, send value back to user.
@@ -123,7 +123,7 @@ HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist, ScriptVaria
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_INDEX
 }
 
@@ -132,7 +132,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
 {
     #define SELF_NAME       "get_body_collision_property(void handle, int property)"
     #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_HANDLE      0   // Handle (pointer to property structure).
+    #define ARG_OBJECT      0   // Handle (pointer to property structure).
     #define ARG_PROPERTY    1   // Property to access.
 
     int                         result      = S_OK; // Success or error?
@@ -147,7 +147,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -155,7 +155,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
     }
 
     // Populate local handle and property vars.
-    handle      = (s_collision_body*)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_collision_body*)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to get?
@@ -209,7 +209,7 @@ HRESULT openbor_get_body_collision_property(ScriptVariant **varlist, ScriptVaria
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
 }
 
@@ -218,7 +218,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
 {
     #define SELF_NAME           "set_body_collision_property(void handle, int property, value)"
     #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_HANDLE          0   // Handle (pointer to property structure).
+    #define ARG_OBJECT          0   // Handle (pointer to property structure).
     #define ARG_PROPERTY        1   // Property to access.
     #define ARG_VALUE           2   // New value to apply.
 
@@ -234,7 +234,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     // be a pointer for the property handle and an integer
     // to determine which property is accessed.
     if(paramCount < ARG_MINIMUM
-       || varlist[ARG_HANDLE]->vt != VT_PTR
+       || varlist[ARG_OBJECT]->vt != VT_PTR
        || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
     {
         *pretvar = NULL;
@@ -242,7 +242,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
     }
 
     // Populate local handle and property vars.
-    handle      = (s_collision_body*)varlist[ARG_HANDLE]->ptrVal;
+    handle      = (s_collision_body*)varlist[ARG_OBJECT]->ptrVal;
     property    = (LONG)varlist[ARG_PROPERTY]->lVal;
 
     // Which property to modify?
@@ -287,7 +287,7 @@ HRESULT openbor_set_body_collision_property(ScriptVariant **varlist, ScriptVaria
 
     #undef SELF_NAME
     #undef ARG_MINIMUM
-    #undef ARG_HANDLE
+    #undef ARG_OBJECT
     #undef ARG_PROPERTY
     #undef ARG_VALUE
 }

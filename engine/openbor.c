@@ -4728,18 +4728,18 @@ int is_map_hidden(s_model *model, int map_index)
 {
 	// Have frozen map and it isn't same as default?
 	// If we do and it matches, return true.
-	if (model->maps.frozen > 0)
+	if (model->colorsets.frozen > 0)
 	{
-		if (map_index == model->maps.frozen)
+		if (map_index == model->colorsets.frozen)
 		{
 			return 1;
 		}
 	}
 
 	// Check KO map. Same logic as frozen.
-	if (model->maps.ko > 0)
+	if (model->colorsets.ko > 0)
 	{
-		if (map_index == model->maps.ko)
+		if (map_index == model->colorsets.ko)
 		{
 			return 1;
 		}
@@ -4749,11 +4749,11 @@ int is_map_hidden(s_model *model, int map_index)
 	// something other than default. If 
 	// they are and map index is in range
 	// we return true.
-	if (model->maps.hide_start > 0 
-		&& model->maps.hide_end > 0)
+	if (model->colorsets.hide_start > 0
+		&& model->colorsets.hide_end > 0)
 	{
-		if (map_index >= model->maps.hide_start
-			&& map_index <= model->maps.hide_end)
+		if (map_index >= model->colorsets.hide_start
+			&& map_index <= model->colorsets.hide_end)
 		{
 			return 1;
 		}
@@ -4813,19 +4813,19 @@ int nextcolourmapn(s_model *model, int map_index, int player_index)
 		}
 
         // Deduct hidden maps from map count.
-		if (model->maps.frozen > 0)
+		if (model->colorsets.frozen > 0)
 		{
 			--maps_count;
 		}
 
-		if (model->maps.ko > 0)
+		if (model->colorsets.ko > 0)
 		{
 			--maps_count;
 		}
 
-		if (model->maps.hide_start > 0)
+		if (model->colorsets.hide_start > 0)
 		{
-			maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+			maps_count -= model->colorsets.hide_end - model->colorsets.hide_start + 1;
 		}
 
         // This logic attempts to populate used_colors_map array with
@@ -4932,19 +4932,19 @@ int prevcolourmapn(s_model *model, int map_index, int player_index)
 		}
 
 		// Deduct hidden maps from map count.
-		if (model->maps.frozen > 0)
+		if (model->colorsets.frozen > 0)
 		{
 			--maps_count;
 		}
 
-		if (model->maps.ko > 0)
+		if (model->colorsets.ko > 0)
 		{
 			--maps_count;
 		}
 
-		if (model->maps.hide_start > 0)
+		if (model->colorsets.hide_start > 0)
 		{
-			maps_count -= model->maps.hide_end - model->maps.hide_start + 1;
+			maps_count -= model->colorsets.hide_end - model->colorsets.hide_start + 1;
 		}
 
 		// This logic attempts to populate used_colors_map array with
@@ -11847,17 +11847,17 @@ e_move_constraint find_move_constraint_from_string(char* value)
 * output appropriate constant. If input is 
 * legacy integer, we just pass it on.
 */
-e_komap_type komap_type_get_value_from_argument(char* filename, char* command, char* value)
+e_ko_colorset_config komap_type_get_value_from_argument(char* filename, char* command, char* value)
 {
-    e_komap_type result = KOMAP_TYPE_INSTANT;
+    e_ko_colorset_config result = KO_COLORSET_CONFIG_INSTANT;
 
     if (stricmp(value, "instant") == 0)
     {
-        result = KOMAP_TYPE_INSTANT;
+        result = KO_COLORSET_CONFIG_INSTANT;
     }
     else if (stricmp(value, "finish") == 0)
     {
-        result = KOMAP_TYPE_FINISH;
+        result = KO_COLORSET_CONFIG_COMPLETE;
     }
     else
     {
@@ -12661,13 +12661,13 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
-    newchar->maps.burn = MAP_INDEX_NONE;
-    newchar->maps.frozen = MAP_INDEX_NONE;
-    newchar->maps.hide_end = MAP_INDEX_NONE;
-    newchar->maps.hide_start = MAP_INDEX_NONE;
-    newchar->maps.ko = MAP_INDEX_NONE;
-    newchar->maps.kotype = KOMAP_TYPE_INSTANT;
-    newchar->maps.shock = MAP_INDEX_NONE;
+    newchar->colorsets.burn = MAP_INDEX_NONE;
+    newchar->colorsets.frozen = MAP_INDEX_NONE;
+    newchar->colorsets.hide_end = MAP_INDEX_NONE;
+    newchar->colorsets.hide_start = MAP_INDEX_NONE;
+    newchar->colorsets.ko = MAP_INDEX_NONE;
+    newchar->colorsets.kotype = KO_COLORSET_CONFIG_INSTANT;
+    newchar->colorsets.shock = MAP_INDEX_NONE;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -13647,30 +13647,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->aironly = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_FMAP:	// Map that corresponds with the remap when a character is frozen
-                newchar->maps.frozen = GET_INT_ARG(1);
+                newchar->colorsets.frozen = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_KOMAP:
-                newchar->maps.ko = GET_INT_ARG(1);  //Remap.
-                newchar->maps.kotype = komap_type_get_value_from_argument(filename, command, GET_ARG(2));
+                newchar->colorsets.ko = GET_INT_ARG(1);  //Remap.
+                newchar->colorsets.kotype = komap_type_get_value_from_argument(filename, command, GET_ARG(2));
                 break;
             case CMD_MODEL_MAP_BURN_INDEX:
-                newchar->maps.burn = GET_INT_ARG(1);
+                newchar->colorsets.burn = GET_INT_ARG(1);
                 break;            
             case CMD_MODEL_MAP_KO_INDEX:
-                newchar->maps.ko = GET_INT_ARG(1);
+                newchar->colorsets.ko = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MAP_KO_TYPE:
-                newchar->maps.kotype = komap_type_get_value_from_argument(filename, command, GET_ARG(1));
+                newchar->colorsets.kotype = komap_type_get_value_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_MAP_FREEZE_INDEX:
-                newchar->maps.frozen = GET_INT_ARG(1);
+                newchar->colorsets.frozen = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_MAP_SHOCK_INDEX:
-                newchar->maps.shock = GET_INT_ARG(1);
+                newchar->colorsets.shock = GET_INT_ARG(1);
                 break;            
             case CMD_MODEL_HMAP:	// Maps range unavailable to player in select screen.
-                newchar->maps.hide_start = GET_INT_ARG(1); //First unavailable map.
-                newchar->maps.hide_end = GET_INT_ARG(2); //Last unavailable map.
+                newchar->colorsets.hide_start = GET_INT_ARG(1); //First unavailable map.
+                newchar->colorsets.hide_end = GET_INT_ARG(2); //Last unavailable map.
                 break;
             case CMD_MODEL_SETLAYER:
                 newchar->setlayer = GET_INT_ARG(1);
@@ -30748,16 +30748,16 @@ void common_lie()
         /*
         * Apply KO (death) map if we have one.
         */
-        if (self->modeldata.maps.ko != MAP_INDEX_NONE)
+        if (self->modeldata.colorsets.ko != MAP_INDEX_NONE)
         {   
             /* 
             * Wait for animation to finish unless type is set to
             * apply map immediately.
             */
             
-            if (self->modeldata.maps.kotype == KOMAP_TYPE_INSTANT || !self->animating)
+            if (self->modeldata.colorsets.kotype == KO_COLORSET_CONFIG_INSTANT || !self->animating)
             {
-                self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);
+                self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.ko);
             }
         }
 
@@ -31457,9 +31457,9 @@ void checkdamageeffects(s_attack *attack)
 		//
 		// If opponents frozen map = -1 or only stun, then don't change the color map.
 
-        if(_remap == -1 && self->modeldata.maps.frozen != -1)
+        if(_remap == -1 && self->modeldata.colorsets.frozen != -1)
         {
-            self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.frozen);    
+            self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.frozen);
         }
 
         self->drop = 0;
@@ -31488,27 +31488,27 @@ void checkdamageeffects(s_attack *attack)
         switch (_remap)
         {
             case MAP_TYPE_BURN:
-                if (self->modeldata.maps.burn != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.burn != MAP_INDEX_NONE)
                 {
-                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.burn);
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.burn);
                 }
                 break;
             case MAP_TYPE_FREEZE:
-                if (self->modeldata.maps.frozen != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.frozen != MAP_INDEX_NONE)
                 {
-                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.frozen);
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.frozen);
                 }
                 break;
             case MAP_TYPE_KO:
-                if (self->modeldata.maps.ko != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.ko != MAP_INDEX_NONE)
                 {
-                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.ko);
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.ko);
                 }
                 break;
             case MAP_TYPE_SHOCK:
-                if (self->modeldata.maps.shock != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.shock != MAP_INDEX_NONE)
                 {
-                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.maps.shock);
+                    self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.shock);
                 }
                 break;
             default:
