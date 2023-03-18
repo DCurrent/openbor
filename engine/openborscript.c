@@ -102,7 +102,7 @@ extern s_screen *background;
 extern int skiptoset;
 extern s_slow_motion    slowmotion;
 extern int shadowcolor;
-extern int shadowalpha;
+extern e_blend_mode shadowalpha;
 extern int shadowopacity;
 extern s_axis_plane_vertical_int light;
 extern int max_attack_types;
@@ -977,6 +977,7 @@ HRESULT system_string_to_int(ScriptVariant** varlist, ScriptVariant** pretvar, i
 static const char *svlist[] =
 {
     "background",
+    "background_height",
     "blockade",
     "bossescount",
     "branchname",
@@ -1059,6 +1060,7 @@ static const char *svlist[] =
     "levelwidth",
     "lightx",
     "lightz",
+    "max_wall_height",
     "maxanimations",
     "maxattacktypes",
     "maxentityvars",
@@ -1390,7 +1392,8 @@ HRESULT openbor_drawboxtoscreen(ScriptVariant **varlist , ScriptVariant **pretva
 {
     int i;
     s_screen *s;
-    LONG value[5], l;
+    LONG value[5];
+    e_blend_mode l;
     *pretvar = NULL;
     s_drawmethod dm;
 
@@ -1453,7 +1456,8 @@ drawbox_error:
 HRESULT openbor_drawline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int i;
-    LONG value[6], l;
+    LONG value[6];
+    e_blend_mode l;
     *pretvar = NULL;
     s_drawmethod dm;
 
@@ -1508,7 +1512,8 @@ drawline_error:
 HRESULT openbor_drawlinetoscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int i;
-    LONG value[5], l;
+    LONG value[5]; 
+    e_blend_mode l;
     s_screen *s;
     *pretvar = NULL;
     s_drawmethod dm;
@@ -1661,7 +1666,8 @@ drawsprite_error:
 HRESULT openbor_drawdot(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int i;
-    LONG value[4], l;
+    LONG value[4];
+    e_blend_mode l;
     *pretvar = NULL;
     s_drawmethod dm;
 
@@ -1716,7 +1722,8 @@ drawdot_error:
 HRESULT openbor_drawdottoscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int i;
-    LONG value[3], l;
+    LONG value[3];
+    e_blend_mode l;
     s_screen *s;
     *pretvar = NULL;
     s_drawmethod dm;
@@ -1781,7 +1788,8 @@ drawdot_error:
 HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     int i;
-    LONG value[3], l;
+    LONG value[3];
+    e_blend_mode l;
     s_screen *s;
     s_drawmethod screenmethod;
     *pretvar = NULL;
@@ -3487,7 +3495,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_alpha:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.alpha;
+        (*pretvar)->lVal = (e_blend_mode)ent->modeldata.alpha;
         break;
     }
     case _ep_animal:
@@ -8285,6 +8293,14 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
 
     switch(index)
     {
+    case _sv_background:
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = background;
+        break;
+    case _sv_background_height:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = BGHEIGHT;
+        break;
     case _sv_count_enemies:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = count_ents(TYPE_ENEMY);
@@ -8871,6 +8887,10 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = PLAYER_MIN_Z;
         break;
+    case _sv_max_wall_height:
+        ScriptVariant_ChangeType(var, VT_INTEGER);
+        var->lVal = MAX_WALL_HEIGHT;
+        break;
     case _sv_lightx:
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = light.x;
@@ -8930,11 +8950,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case _sv_textbox:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = textbox;
-        break;
-    case _sv_background:
-        ScriptVariant_ChangeType(var, VT_PTR);
-        var->ptrVal = background;
-        break;
+        break;    
     case _sv_vscreen:
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = vscreen;
@@ -9021,6 +9037,13 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
 
     switch(index)
     {
+    case _sv_background_height:
+        if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
+        {
+            BGHEIGHT = (LONG)ltemp;
+        }
+        break;
+
     case _sv_elapsed_time:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
@@ -9238,7 +9261,7 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
     case _sv_shadowalpha:
         if(SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            shadowalpha = (LONG)ltemp;
+            shadowalpha = (e_blend_mode)ltemp;
         }
         break;
     case _sv_shadowopacity:
@@ -11136,7 +11159,7 @@ HRESULT openbor_setspawnentry(ScriptVariant **varlist, ScriptVariant **pretvar, 
     case _sse_alpha:
         if(SUCCEEDED(ScriptVariant_IntegerValue(arg, &ltemp)))
         {
-            spawnentry.alpha = (LONG)ltemp;
+            spawnentry.alpha = (e_blend_mode)ltemp;
         }
         else
         {
@@ -12202,9 +12225,10 @@ changelight_error:
 // alpha default to 2, <=0 means no alpha effect
 HRESULT openbor_changeshadowcolor(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG c, a;
+    LONG c;
+    e_blend_mode a;
     extern int            shadowcolor;
-    extern int            shadowalpha;
+    extern e_blend_mode   shadowalpha;
 
     *pretvar = NULL;
     if(paramCount < 1)
@@ -12225,7 +12249,7 @@ HRESULT openbor_changeshadowcolor(ScriptVariant **varlist , ScriptVariant **pret
         {
             goto changeshadowcolor_error;
         }
-        shadowalpha = (int)a;
+        shadowalpha = (e_blend_mode)a;
     }
 
     return S_OK;
@@ -12703,7 +12727,7 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
     case _glp_alpha:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)layer->drawmethod.alpha;
+        (*pretvar)->lVal = (e_blend_mode)layer->drawmethod.alpha;
         break;
     }
     case _glp_amplitude:
@@ -12824,7 +12848,7 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
 
 HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
 {
-    LONG temp;
+    e_blend_mode temp;
     DOUBLE temp2;
     switch(propind)
     {
@@ -14275,7 +14299,7 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
     switch(varlist[1]->lVal)
     {
         case _dm_alpha:
-            (*pretvar)->lVal = (int)pmethod->alpha;
+            (*pretvar)->lVal = (e_blend_mode)pmethod->alpha;
             break;
         case _dm_amplitude:
             (*pretvar)->lVal = (int)pmethod->water.amplitude;
@@ -14464,7 +14488,7 @@ HRESULT openbor_setdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
     pmethod->flipx = (int)value[3];
     pmethod->flipy = (int)value[4];
     pmethod->shiftx = (int)value[5];
-    pmethod->alpha = (int)value[6];
+    pmethod->alpha = (e_blend_mode)value[6];
     pmethod->remap = (int)value[7];
     pmethod->fillcolor = (int)value[8];
     pmethod->rotate = ((int)value[9]) % 360;

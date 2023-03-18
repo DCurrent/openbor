@@ -76,6 +76,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_BLEND_MODE:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_blend_mode)handle->alpha;
+
+            break;
+
         case MODEL_PROPERTY_BOUNCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -363,6 +370,15 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->antigravity = temp_float;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_BLEND_MODE:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->alpha = temp_int;
             }
 
             break;

@@ -47,38 +47,38 @@ HRESULT openbor_get_collision_coordinates_property(ScriptVariant **varlist, Scri
     // Which property to access?
     switch(property)
     {
-        case COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND:
+        case COLLISION_COORDINATES_PROPERTY_DEPTH_BACKGROUND:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->z_background;
 
             break;
 
-        case COLLISION_COORDINATES_PROP_DEPTH_FOREGROUND:
+        case COLLISION_COORDINATES_PROPERTY_DEPTH_FOREGROUND:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->z_foreground;
             break;
 
-        case COLLISION_COORDINATES_PROP_HEIGHT:
+        case COLLISION_COORDINATES_PROPERTY_HEIGHT:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->height;
             break;
 
-        case COLLISION_COORDINATES_PROP_WIDTH:
+        case COLLISION_COORDINATES_PROPERTY_WIDTH:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->width;
             break;
 
-        case COLLISION_COORDINATES_PROP_X:
+        case COLLISION_COORDINATES_PROPERTY_X:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->x;
             break;
 
-        case COLLISION_COORDINATES_PROP_Y:
+        case COLLISION_COORDINATES_PROPERTY_Y:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (LONG)handle->y;
@@ -142,7 +142,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
     // Which property to modify?
     switch(property)
     {
-        case COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND:
+        case COLLISION_COORDINATES_PROPERTY_DEPTH_BACKGROUND:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -151,7 +151,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
 
             break;
 
-        case COLLISION_COORDINATES_PROP_DEPTH_FOREGROUND:
+        case COLLISION_COORDINATES_PROPERTY_DEPTH_FOREGROUND:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -159,7 +159,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
             }
             break;
 
-        case COLLISION_COORDINATES_PROP_HEIGHT:
+        case COLLISION_COORDINATES_PROPERTY_HEIGHT:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -167,7 +167,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
             }
             break;
 
-        case COLLISION_COORDINATES_PROP_WIDTH:
+        case COLLISION_COORDINATES_PROPERTY_WIDTH:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -175,7 +175,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
             }
             break;
 
-        case COLLISION_COORDINATES_PROP_X:
+        case COLLISION_COORDINATES_PROPERTY_X:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
@@ -183,7 +183,7 @@ HRESULT openbor_set_collision_coordinates_property(ScriptVariant **varlist, Scri
             }
             break;
 
-        case COLLISION_COORDINATES_PROP_Y:
+        case COLLISION_COORDINATES_PROPERTY_Y:
 
             if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {

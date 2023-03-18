@@ -358,6 +358,7 @@ int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
 enum systemvariant_enum
 {
     _sv_background,
+    _sv_background_height,
     _sv_blockade,
     _sv_bossescount,
     _sv_branchname,
@@ -440,6 +441,7 @@ enum systemvariant_enum
     _sv_levelwidth,
     _sv_lightx,
     _sv_lightz,
+    _sv_max_wall_height,
     _sv_maxanimations,
     _sv_maxattacktypes,
     _sv_maxentityvars,

@@ -110,7 +110,7 @@ const s_drawmethod plainmethod =
 const s_projectile projectile_default_config = {
 	
 	.bomb = MODEL_INDEX_NONE,
-	.color_set_adjust = COLOR_SET_ADJUST_NONE,
+	.color_set_adjust = COLORSET_ADJUST_NONE,
 	.direction_adjust = DIRECTION_ADJUST_SAME,
 	.flash = MODEL_INDEX_NONE,
 	.knife = MODEL_INDEX_NONE,
@@ -5963,11 +5963,11 @@ int child_spawn_get_color_from_argument(char* filename, char* command, char* val
 
     if (stricmp(value, "parent_index") == 0)
     {
-        result = MAP_INDEX_PARENT_INDEX;
+        result = COLORSET_INDEX_PARENT_INDEX;
     }
     else if (stricmp(value, "parent_table") == 0)
     {
-        result = MAP_INDEX_PARENT_TABLE;
+        result = COLORSET_INDEX_PARENT_TABLE;
     }    
     else
     {
@@ -6772,7 +6772,7 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     }
     
     /* Apply color adjustment. */
-    if (object->color == MAP_INDEX_PARENT_INDEX)
+    if (object->color == COLORSET_INDEX_PARENT_INDEX)
     {        
         for (i = 0; i < parent->modeldata.maps_loaded; i++)
         {
@@ -6783,7 +6783,7 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
             }
         }
     }
-    else if (object->color == MAP_INDEX_PARENT_TABLE)
+    else if (object->color == COLORSET_INDEX_PARENT_TABLE)
     {
         child_entity->colourmap = parent->colourmap;
     }
@@ -12661,13 +12661,13 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
-    newchar->colorsets.burn = MAP_INDEX_NONE;
-    newchar->colorsets.frozen = MAP_INDEX_NONE;
-    newchar->colorsets.hide_end = MAP_INDEX_NONE;
-    newchar->colorsets.hide_start = MAP_INDEX_NONE;
-    newchar->colorsets.ko = MAP_INDEX_NONE;
+    newchar->colorsets.burn = COLORSET_INDEX_NONE;
+    newchar->colorsets.frozen = COLORSET_INDEX_NONE;
+    newchar->colorsets.hide_end = COLORSET_INDEX_NONE;
+    newchar->colorsets.hide_start = COLORSET_INDEX_NONE;
+    newchar->colorsets.ko = COLORSET_INDEX_NONE;
     newchar->colorsets.kotype = KO_COLORSET_CONFIG_INSTANT;
-    newchar->colorsets.shock = MAP_INDEX_NONE;
+    newchar->colorsets.shock = COLORSET_INDEX_NONE;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -14720,15 +14720,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
 				if (stricmp(value, "none") == 0)
 				{
-					tempInt = COLOR_SET_ADJUST_NONE;
+					tempInt = COLORSET_ADJUST_NONE;
 				}
 				else if (stricmp(value, "parent_index") == 0)
 				{
-					tempInt = COLOR_SET_ADJUST_PARENT_INDEX;
+					tempInt = COLORSET_ADJUST_PARENT_INDEX;
 				}
 				else if (stricmp(value, "parent_table") == 0)
 				{
-					tempInt = COLOR_SET_ADJUST_PARENT_TABLE;
+					tempInt = COLORSET_ADJUST_PARENT_TABLE;
 				}
 				else
 				{
@@ -30748,7 +30748,7 @@ void common_lie()
         /*
         * Apply KO (death) map if we have one.
         */
-        if (self->modeldata.colorsets.ko != MAP_INDEX_NONE)
+        if (self->modeldata.colorsets.ko != COLORSET_INDEX_NONE)
         {   
             /* 
             * Wait for animation to finish unless type is set to
@@ -31488,25 +31488,25 @@ void checkdamageeffects(s_attack *attack)
         switch (_remap)
         {
             case MAP_TYPE_BURN:
-                if (self->modeldata.colorsets.burn != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.burn != COLORSET_INDEX_NONE)
                 {
                     self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.burn);
                 }
                 break;
             case MAP_TYPE_FREEZE:
-                if (self->modeldata.colorsets.frozen != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.frozen != COLORSET_INDEX_NONE)
                 {
                     self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.frozen);
                 }
                 break;
             case MAP_TYPE_KO:
-                if (self->modeldata.colorsets.ko != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.ko != COLORSET_INDEX_NONE)
                 {
                     self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.ko);
                 }
                 break;
             case MAP_TYPE_SHOCK:
-                if (self->modeldata.colorsets.shock != MAP_INDEX_NONE)
+                if (self->modeldata.colorsets.shock != COLORSET_INDEX_NONE)
                 {
                     self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.shock);
                 }
@@ -40614,12 +40614,12 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 		ent_set_colourmap(ent, adjustment);
 		break;
 	
-	case COLOR_SET_ADJUST_NONE:
+	case COLORSET_ADJUST_NONE:
 		
 		// Do nothing.		
 		break;
 	
-	case COLOR_SET_ADJUST_PARENT_INDEX:
+	case COLORSET_ADJUST_PARENT_INDEX:
 
 		// Locate parent's current color set index. Then
 		// set our color set by that index.
@@ -40634,7 +40634,7 @@ void apply_color_set_adjust(entity* ent, entity* parent, e_color_adjust adjustme
 		}
 		break;
 
-	case COLOR_SET_ADJUST_PARENT_TABLE:
+	case COLORSET_ADJUST_PARENT_TABLE:
 		
 		// Use parent's color table.
 
@@ -42756,9 +42756,9 @@ void update_scroller()
             else if(level->spawnpoints[current_spawn].shadowalpha)  // change color for gfxshadow
             {
                 shadowalpha = level->spawnpoints[current_spawn].shadowalpha;
-                if(shadowalpha == -1)
+                if(shadowalpha == BLEND_MODE_MODEL)
                 {
-                    shadowalpha = 0;
+                    shadowalpha = BLEND_MODE_NONE;
                 }
             }
             else if(level->spawnpoints[current_spawn].shadowopacity)  // change color for gfxshadow

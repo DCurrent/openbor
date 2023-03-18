@@ -126,9 +126,9 @@ movement restirctions are here!
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
 
-#define MAP_INDEX_NONE -1
-#define MAP_INDEX_PARENT_INDEX -2   // For child spawn. Use parent's current index.
-#define MAP_INDEX_PARENT_TABLE -3   // For child spawn. Use parent's color table.
+#define COLORSET_INDEX_NONE -1
+#define COLORSET_INDEX_PARENT_INDEX -2   // For child spawn. Use parent's current index.
+#define COLORSET_INDEX_PARENT_TABLE -3   // For child spawn. Use parent's color table.
 #define HOLE_INDEX_NONE -1
 #define WALL_INDEX_NONE -1
 
@@ -970,98 +970,98 @@ typedef enum
 
 typedef enum
 {
-    LEVEL_PROP_AUTO_SCROLL_DIRECTION,           // int bgdir;
-    LEVEL_PROP_AUTO_SCROLL_X,                   // float bgspeed;
-    LEVEL_PROP_AUTO_SCROLL_Y,                   // float vbgspeed;
-    LEVEL_PROP_BASEMAP_COLLECTION,              // s_basemap *basemaps;
-    LEVEL_PROP_BASEMAP_COUNT,                   // int numbasemaps;
-    LEVEL_PROP_BOSS_COUNT,                      // int bossescount;
-    LEVEL_PROP_BOSS_MUSIC_NAME,                 // char bossmusic[256];
-    LEVEL_PROP_BOSS_MUSIC_OFFSET,               // unsigned bossmusic_offset;
-    LEVEL_PROP_BOSS_SLOW,                       // int boss_slow;
-    LEVEL_PROP_CAMERA_OFFSET_X,                 // int cameraxoffset;
-    LEVEL_PROP_CAMERA_OFFSET_Z,                 // int camerazoffset;
-    LEVEL_PROP_COMPLETE_FORCE,                  // int force_finishlevel;
-    LEVEL_PROP_GAMEOVER,                        // int force_gameover;
-    LEVEL_PROP_DAMAGE_FROM_ENEMY,               // int nohurt;
-    LEVEL_PROP_DAMAGE_FROM_PLAYER,              // int nohit;
-    LEVEL_PROP_FACING,                          // e_facing_adjust facing;
-    LEVEL_PROP_GRAVITY,                         // float gravity;
-    LEVEL_PROP_HOLE_COLLECTION,                 // s_terrain *holes;
-    LEVEL_PROP_HOLE_COUNT,                      // int numholes;
-    LEVEL_PROP_LAYER_BACKGROUND_DEFAULT_HANDLE, // s_layer *background;
-    LEVEL_PROP_LAYER_BACKGROUND_COLLECTION,     // s_layer **bglayers;
-    LEVEL_PROP_LAYER_BACKGROUND_COUNT,          // int numbglayers;
-    LEVEL_PROP_LAYER_COLLECTION,                // s_layer *layers;
-    LEVEL_PROP_LAYER_COUNT,                     // int numlayers;
-    LEVEL_PROP_LAYER_FOREGROUND_COLLECTION,     // s_layer **fglayers;
-    LEVEL_PROP_LAYER_FOREGROUND_COUNT,          // int numfglayers;
-    LEVEL_PROP_LAYER_FRONTPANEL_COLLECTION,     // s_layer **frontpanels;
-    LEVEL_PROP_LAYER_FRONTPANEL_COUNT,          // int numfrontpanels;
-    LEVEL_PROP_LAYER_GENERIC_COLLECTION,        // s_layer **genericlayers;
-    LEVEL_PROP_LAYER_GENERIC_COUNT,             // int numgenericlayers;
-    LEVEL_PROP_LAYER_PANEL_COLLECTION,          // s_layer *(*panels)[3]; //normal neon screen
-    LEVEL_PROP_LAYER_PANEL_COUNT,               // int numpanels;
-    LEVEL_PROP_LAYER_REF_COLLECTION,            // s_layer *layersref;
-    LEVEL_PROP_LAYER_REF_COUNT,                 // int numlayersref;
-    LEVEL_PROP_LAYER_WATER_COLLECTION,          // s_layer **waters;
-    LEVEL_PROP_LAYER_WATER_COUNT,               // int numwaters;
-    LEVEL_PROP_MAX_FALL_VELOCITY,               // float maxfallspeed;
-    LEVEL_PROP_MAX_TOSS_VELOCITY,               // float maxtossspeed;
-    LEVEL_PROP_MIRROR,                          // int mirror;
-    LEVEL_PROP_NAME,                            // char *name;
-    LEVEL_PROP_NUM_BOSSES,                      // int numbosses;
-    LEVEL_PROP_PALETTE_BLENDING_COLLECTION,     // unsigned char *(*blendings)[MAX_BLENDINGS];
-    LEVEL_PROP_PALETTE_COLLECTION,              // unsigned char (*palettes)[1024];
-    LEVEL_PROP_PALETTE_COUNT,                   // int numpalettes;
-    LEVEL_PROP_POSITION_X,                      // int pos;
-    LEVEL_PROP_QUAKE,                           // int quake;
-    LEVEL_PROP_QUAKE_TIME,                      // u32 quaketime;
-    LEVEL_PROP_ROCKING,                         // int rocking;
-    LEVEL_PROP_SCRIPT_LEVEL_END,                // Script endlevel_script;
-    LEVEL_PROP_SCRIPT_LEVEL_START,              // Script level_script;
-    LEVEL_PROP_SCRIPT_KEY,                      // Script key_script;
-    LEVEL_PROP_SCRIPT_UPDATE,                   // Script update_script;
-    LEVEL_PROP_SCRIPT_UPDATED,                  // Script updated_script;
-    LEVEL_PROP_SCROLL_DIRECTION,                // int scrolldir;
-    LEVEL_PROP_SCROLL_VELOCITY,                 // float scrollspeed;
-    LEVEL_PROP_SIZE_X,                          // int width;
-    LEVEL_PROP_SPAWN_COLLECTION,                // s_spawn_entry *spawnpoints;
-    LEVEL_PROP_SPAWN_COUNT,                     // int numspawns;
-    LEVEL_PROP_SPAWN_PLAYER_COLLECTION,         // s_axis_principal_float spawn[MAX_PLAYERS];
-    LEVEL_PROP_SPECIAL_DISABLE,                 // int nospecial;
-    LEVEL_PROP_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
-    LEVEL_PROP_TEXT_OBJECT_COUNT,               // int numtextobjs;
-    LEVEL_PROP_TIME_ADVANCE,                    // u32 advancetime;
-    LEVEL_PROP_TIME_DISPLAY,                    // int notime;
-    LEVEL_PROP_TIME_RESET,                      // int noreset;
-    LEVEL_PROP_TIME_SET,                        // int settime;
-    LEVEL_PROP_TYPE,                            // int type;
-    LEVEL_PROP_WAITING,                         // int waiting;
-    LEVEL_PROP_WALL_COLLECTION,                 // s_terrain *walls;
-    LEVEL_PROP_WALL_COUNT,                      // int numwalls;
-    LEVEL_PROP_WEAPON                           // int setweap;
+    LEVEL_PROPERTY_AUTO_SCROLL_DIRECTION,           // int bgdir;
+    LEVEL_PROPERTY_AUTO_SCROLL_X,                   // float bgspeed;
+    LEVEL_PROPERTY_AUTO_SCROLL_Y,                   // float vbgspeed;
+    LEVEL_PROPERTY_BASEMAP_COLLECTION,              // s_basemap *basemaps;
+    LEVEL_PROPERTY_BASEMAP_COUNT,                   // int numbasemaps;
+    LEVEL_PROPERTY_BOSS_COUNT,                      // int bossescount;
+    LEVEL_PROPERTY_BOSS_MUSIC_NAME,                 // char bossmusic[256];
+    LEVEL_PROPERTY_BOSS_MUSIC_OFFSET,               // unsigned bossmusic_offset;
+    LEVEL_PROPERTY_BOSS_SLOW,                       // int boss_slow;
+    LEVEL_PROPERTY_CAMERA_OFFSET_X,                 // int cameraxoffset;
+    LEVEL_PROPERTY_CAMERA_OFFSET_Z,                 // int camerazoffset;
+    LEVEL_PROPERTY_COMPLETE_FORCE,                  // int force_finishlevel;
+    LEVEL_PROPERTY_GAMEOVER,                        // int force_gameover;
+    LEVEL_PROPERTY_DAMAGE_FROM_ENEMY,               // int nohurt;
+    LEVEL_PROPERTY_DAMAGE_FROM_PLAYER,              // int nohit;
+    LEVEL_PROPERTY_FACING,                          // e_facing_adjust facing;
+    LEVEL_PROPERTY_GRAVITY,                         // float gravity;
+    LEVEL_PROPERTY_HOLE_COLLECTION,                 // s_terrain *holes;
+    LEVEL_PROPERTY_HOLE_COUNT,                      // int numholes;
+    LEVEL_PROPERTY_LAYER_BACKGROUND_DEFAULT_HANDLE, // s_layer *background;
+    LEVEL_PROPERTY_LAYER_BACKGROUND_COLLECTION,     // s_layer **bglayers;
+    LEVEL_PROPERTY_LAYER_BACKGROUND_COUNT,          // int numbglayers;
+    LEVEL_PROPERTY_LAYER_COLLECTION,                // s_layer *layers;
+    LEVEL_PROPERTY_LAYER_COUNT,                     // int numlayers;
+    LEVEL_PROPERTY_LAYER_FOREGROUND_COLLECTION,     // s_layer **fglayers;
+    LEVEL_PROPERTY_LAYER_FOREGROUND_COUNT,          // int numfglayers;
+    LEVEL_PROPERTY_LAYER_FRONTPANEL_COLLECTION,     // s_layer **frontpanels;
+    LEVEL_PROPERTY_LAYER_FRONTPANEL_COUNT,          // int numfrontpanels;
+    LEVEL_PROPERTY_LAYER_GENERIC_COLLECTION,        // s_layer **genericlayers;
+    LEVEL_PROPERTY_LAYER_GENERIC_COUNT,             // int numgenericlayers;
+    LEVEL_PROPERTY_LAYER_PANEL_COLLECTION,          // s_layer *(*panels)[3]; //normal neon screen
+    LEVEL_PROPERTY_LAYER_PANEL_COUNT,               // int numpanels;
+    LEVEL_PROPERTY_LAYER_REF_COLLECTION,            // s_layer *layersref;
+    LEVEL_PROPERTY_LAYER_REF_COUNT,                 // int numlayersref;
+    LEVEL_PROPERTY_LAYER_WATER_COLLECTION,          // s_layer **waters;
+    LEVEL_PROPERTY_LAYER_WATER_COUNT,               // int numwaters;
+    LEVEL_PROPERTY_MAX_FALL_VELOCITY,               // float maxfallspeed;
+    LEVEL_PROPERTY_MAX_TOSS_VELOCITY,               // float maxtossspeed;
+    LEVEL_PROPERTY_MIRROR,                          // int mirror;
+    LEVEL_PROPERTY_NAME,                            // char *name;
+    LEVEL_PROPERTY_NUM_BOSSES,                      // int numbosses;
+    LEVEL_PROPERTY_PALETTE_BLENDING_COLLECTION,     // unsigned char *(*blendings)[MAX_BLENDINGS];
+    LEVEL_PROPERTY_PALETTE_COLLECTION,              // unsigned char (*palettes)[1024];
+    LEVEL_PROPERTY_PALETTE_COUNT,                   // int numpalettes;
+    LEVEL_PROPERTY_POSITION_X,                      // int pos;
+    LEVEL_PROPERTY_QUAKE,                           // int quake;
+    LEVEL_PROPERTY_QUAKE_TIME,                      // u32 quaketime;
+    LEVEL_PROPERTY_ROCKING,                         // int rocking;
+    LEVEL_PROPERTY_SCRIPT_LEVEL_END,                // Script endlevel_script;
+    LEVEL_PROPERTY_SCRIPT_LEVEL_START,              // Script level_script;
+    LEVEL_PROPERTY_SCRIPT_KEY,                      // Script key_script;
+    LEVEL_PROPERTY_SCRIPT_UPDATE,                   // Script update_script;
+    LEVEL_PROPERTY_SCRIPT_UPDATED,                  // Script updated_script;
+    LEVEL_PROPERTY_SCROLL_DIRECTION,                // int scrolldir;
+    LEVEL_PROPERTY_SCROLL_VELOCITY,                 // float scrollspeed;
+    LEVEL_PROPERTY_SIZE_X,                          // int width;
+    LEVEL_PROPERTY_SPAWN_COLLECTION,                // s_spawn_entry *spawnpoints;
+    LEVEL_PROPERTY_SPAWN_COUNT,                     // int numspawns;
+    LEVEL_PROPERTY_SPAWN_PLAYER_COLLECTION,         // s_axis_principal_float spawn[MAX_PLAYERS];
+    LEVEL_PROPERTY_SPECIAL_DISABLE,                 // int nospecial;
+    LEVEL_PROPERTY_TEXT_OBJECT_COLLECTION,          // s_textobj *textobjs;
+    LEVEL_PROPERTY_TEXT_OBJECT_COUNT,               // int numtextobjs;
+    LEVEL_PROPERTY_TIME_ADVANCE,                    // u32 advancetime;
+    LEVEL_PROPERTY_TIME_DISPLAY,                    // int notime;
+    LEVEL_PROPERTY_TIME_RESET,                      // int noreset;
+    LEVEL_PROPERTY_TIME_SET,                        // int settime;
+    LEVEL_PROPERTY_TYPE,                            // int type;
+    LEVEL_PROPERTY_WAITING,                         // int waiting;
+    LEVEL_PROPERTY_WALL_COLLECTION,                 // s_terrain *walls;
+    LEVEL_PROPERTY_WALL_COUNT,                      // int numwalls;
+    LEVEL_PROPERTY_WEAPON                           // int setweap;
 } e_level_properties;
 
 typedef enum
 {
-    SET_PROP_COMPLETE_FLAG,         // int ifcomplete;
-    SET_PROP_COMPLETE_SKIP,         // int noshowcomplete;
-    SET_PROP_CONTINUE_SCORE_TYPE,   // int continuescore;
-    SET_PROP_CREDITS,               // int credits;
-    SET_PROP_GAME_OVER_SKIP,        // int noshowgameover;
-    SET_PROP_HOF_DISABLE,           // int noshowhof;
-    SET_PROP_LEVELSET_COLLECTION,   // s_level_entry *levelorder;
-    SET_PROP_LEVELSET_COUNT,        // int numlevels;
-    SET_PROP_LIVES,                 // int lives;
-    SET_PROP_MP_RECOVER_TYPE,       // int typemp;
-    SET_PROP_MUSIC_FADE_TIME,       // int custfade;
-    SET_PROP_MUSIC_OVERLAP,         // int musicoverlap;
-    SET_PROP_NAME,                  // char *name;
-    SET_PROP_PLAYER_MAX,            // int maxplayers;
-    SET_PROP_SAVE_TYPE,             // int saveflag;
-    SET_PROP_SELECT_DISABLE,        // int noselect;
-    SET_PROP_SELECT_NO_SAME         // int nosame;
+    SET_PROPERTY_COMPLETE_FLAG,         // int ifcomplete;
+    SET_PROPERTY_COMPLETE_SKIP,         // int noshowcomplete;
+    SET_PROPERTY_CONTINUE_SCORE_TYPE,   // int continuescore;
+    SET_PROPERTY_CREDITS,               // int credits;
+    SET_PROPERTY_GAME_OVER_SKIP,        // int noshowgameover;
+    SET_PROPERTY_HOF_DISABLE,           // int noshowhof;
+    SET_PROPERTY_LEVELSET_COLLECTION,   // s_level_entry *levelorder;
+    SET_PROPERTY_LEVELSET_COUNT,        // int numlevels;
+    SET_PROPERTY_LIVES,                 // int lives;
+    SET_PROPERTY_MP_RECOVER_TYPE,       // int typemp;
+    SET_PROPERTY_MUSIC_FADE_TIME,       // int custfade;
+    SET_PROPERTY_MUSIC_OVERLAP,         // int musicoverlap;
+    SET_PROPERTY_NAME,                  // char *name;
+    SET_PROPERTY_PLAYER_MAX,            // int maxplayers;
+    SET_PROPERTY_SAVE_TYPE,             // int saveflag;
+    SET_PROPERTY_SELECT_DISABLE,        // int noselect;
+    SET_PROPERTY_SELECT_NO_SAME         // int nosame;
 } e_set_properties;
 
 typedef enum
@@ -1130,45 +1130,45 @@ typedef enum
 // 2016-10-26
 typedef enum
 {
-    ATTACK_PROP_BLOCK_COST,
-    ATTACK_PROP_BLOCK_PENETRATE,
-    ATTACK_PROP_COORDINATES,
-    ATTACK_PROP_COUNTER,
-    ATTACK_PROP_DAMAGE_FORCE,
-    ATTACK_PROP_DAMAGE_LAND_FORCE,
-    ATTACK_PROP_DAMAGE_LAND_MODE,
-    ATTACK_PROP_DAMAGE_LETHAL_DISABLE,
-    ATTACK_PROP_DAMAGE_RECURSIVE_FORCE,
-    ATTACK_PROP_DAMAGE_RECURSIVE_INDEX,
-    ATTACK_PROP_DAMAGE_RECURSIVE_MODE,
-    ATTACK_PROP_DAMAGE_RECURSIVE_TIME_RATE,
-    ATTACK_PROP_DAMAGE_RECURSIVE_TIME_EXPIRE,
-    ATTACK_PROP_DAMAGE_STEAL,
-    ATTACK_PROP_DAMAGE_TYPE,
-    ATTACK_PROP_EFFECT_BLOCK_FLASH,
-    ATTACK_PROP_EFFECT_BLOCK_SOUND,
-    ATTACK_PROP_EFFECT_HIT_FLASH,
-    ATTACK_PROP_EFFECT_HIT_FLASH_DISABLE,
-    ATTACK_PROP_EFFECT_HIT_SOUND,
-    ATTACK_PROP_INDEX,
-    ATTACK_PROP_GROUND,
-    ATTACK_PROP_MAP_INDEX,
-    ATTACK_PROP_MAP_TIME,
-    ATTACK_PROP_REACTION_FALL_FORCE,
-    ATTACK_PROP_REACTION_FALL_VELOCITY,
-    ATTACK_PROP_REACTION_FREEZE_MODE,
-    ATTACK_PROP_REACTION_FREEZE_TIME,
-    ATTACK_PROP_REACTION_INVINCIBLE_TIME,
-    ATTACK_PROP_REACTION_REPOSITION_DIRECTION,
-    ATTACK_PROP_REACTION_REPOSITION_DISTANCE,
-    ATTACK_PROP_REACTION_REPOSITION_MODE,
-    ATTACK_PROP_REACTION_PAIN_SKIP,
-    ATTACK_PROP_REACTION_PAUSE_TIME,
-    ATTACK_PROP_SEAL_COST,
-    ATTACK_PROP_SEAL_TIME,
-    ATTACK_PROP_STAYDOWN_RISE,
-    ATTACK_PROP_STAYDOWN_RISEATTACK,
-    ATTACK_PROP_TAG
+    ATTACK_PROPERTY_BLOCK_COST,
+    ATTACK_PROPERTY_BLOCK_PENETRATE,
+    ATTACK_PROPERTY_COORDINATES,
+    ATTACK_PROPERTY_COUNTER,
+    ATTACK_PROPERTY_DAMAGE_FORCE,
+    ATTACK_PROPERTY_DAMAGE_LAND_FORCE,
+    ATTACK_PROPERTY_DAMAGE_LAND_MODE,
+    ATTACK_PROPERTY_DAMAGE_LETHAL_DISABLE,
+    ATTACK_PROPERTY_DAMAGE_RECURSIVE_FORCE,
+    ATTACK_PROPERTY_DAMAGE_RECURSIVE_INDEX,
+    ATTACK_PROPERTY_DAMAGE_RECURSIVE_MODE,
+    ATTACK_PROPERTY_DAMAGE_RECURSIVE_TIME_RATE,
+    ATTACK_PROPERTY_DAMAGE_RECURSIVE_TIME_EXPIRE,
+    ATTACK_PROPERTY_DAMAGE_STEAL,
+    ATTACK_PROPERTY_DAMAGE_TYPE,
+    ATTACK_PROPERTY_EFFECT_BLOCK_FLASH,
+    ATTACK_PROPERTY_EFFECT_BLOCK_SOUND,
+    ATTACK_PROPERTY_EFFECT_HIT_FLASH,
+    ATTACK_PROPERTY_EFFECT_HIT_FLASH_DISABLE,
+    ATTACK_PROPERTY_EFFECT_HIT_SOUND,
+    ATTACK_PROPERTY_INDEX,
+    ATTACK_PROPERTY_GROUND,
+    ATTACK_PROPERTY_MAP_INDEX,
+    ATTACK_PROPERTY_MAP_TIME,
+    ATTACK_PROPERTY_REACTION_FALL_FORCE,
+    ATTACK_PROPERTY_REACTION_FALL_VELOCITY,
+    ATTACK_PROPERTY_REACTION_FREEZE_MODE,
+    ATTACK_PROPERTY_REACTION_FREEZE_TIME,
+    ATTACK_PROPERTY_REACTION_INVINCIBLE_TIME,
+    ATTACK_PROPERTY_REACTION_REPOSITION_DIRECTION,
+    ATTACK_PROPERTY_REACTION_REPOSITION_DISTANCE,
+    ATTACK_PROPERTY_REACTION_REPOSITION_MODE,
+    ATTACK_PROPERTY_REACTION_PAIN_SKIP,
+    ATTACK_PROPERTY_REACTION_PAUSE_TIME,
+    ATTACK_PROPERTY_SEAL_COST,
+    ATTACK_PROPERTY_SEAL_TIME,
+    ATTACK_PROPERTY_STAYDOWN_RISE,
+    ATTACK_PROPERTY_STAYDOWN_RISEATTACK,
+    ATTACK_PROPERTY_TAG
 } e_attack_properties;
 
 // Body collision (bbox) properties.
@@ -1188,12 +1188,12 @@ typedef enum
 // collision box position and dimensions.
 typedef enum
 {
-    COLLISION_COORDINATES_PROP_DEPTH_BACKGROUND,
-    COLLISION_COORDINATES_PROP_DEPTH_FOREGROUND,
-    COLLISION_COORDINATES_PROP_HEIGHT,
-    COLLISION_COORDINATES_PROP_WIDTH,
-    COLLISION_COORDINATES_PROP_X,
-    COLLISION_COORDINATES_PROP_Y
+    COLLISION_COORDINATES_PROPERTY_DEPTH_BACKGROUND,
+    COLLISION_COORDINATES_PROPERTY_DEPTH_FOREGROUND,
+    COLLISION_COORDINATES_PROPERTY_HEIGHT,
+    COLLISION_COORDINATES_PROPERTY_WIDTH,
+    COLLISION_COORDINATES_PROPERTY_X,
+    COLLISION_COORDINATES_PROPERTY_Y
 } e_collision_coordinates;
 
 // Entity collision (ebox) properties.
@@ -1596,9 +1596,9 @@ typedef enum
 
 typedef enum
 {
-	COLOR_SET_ADJUST_NONE			= -1,	// Don't adjust color.
-	COLOR_SET_ADJUST_PARENT_INDEX	= -2,	// Match parent/owner index.
-	COLOR_SET_ADJUST_PARENT_TABLE	= -3	// Match parent/owner table.
+	COLORSET_ADJUST_NONE			= -1,	// Don't adjust color.
+	COLORSET_ADJUST_PARENT_INDEX	= -2,	// Match parent/owner index.
+	COLORSET_ADJUST_PARENT_TABLE	= -3	// Match parent/owner table.
 } e_color_adjust;
 
 typedef enum
@@ -3153,8 +3153,8 @@ typedef struct
     
     int setlayer; // Used for forcing enities to be displayed behind. ~~
     
-    s_colorset colorsets; //2011_04_07, DC: Pre defined color map selections and behavior.
-    int alpha; // New alpha variable to determine if the entity uses alpha transparency
+    s_colorset colorsets; //2011_04_07, DC: Pre defined color map selections and behavior. ~~
+    e_blend_mode alpha; // New alpha variable to determine if the entity uses alpha transparency
     int toflip; // Flag to determine if flashes flip or not
     
     /* Shadows */
@@ -3364,7 +3364,7 @@ typedef struct
 // entity uses for item pickups.
 typedef struct
 {
-    int alpha;                      // int itemmap alpha effect of item
+    e_blend_mode alpha;                      // int itemmap alpha effect of item
     int colorset;                   // int itemmap; // Now items spawned can have their properties changed
     int health;                     // int itemhealth; // Now items spawned can have their properties changed
     int index;                      // int itemindex; // item model index
@@ -3582,7 +3582,7 @@ typedef struct
     int blockade; //limit how far you can go back
     s_axis_plane_vertical_int light; // light direction, for gfx shadow
     int shadowcolor; // -1 no shadow
-    int shadowalpha;
+    e_blend_mode shadowalpha;
     int shadowopacity;
     char music[MAX_BUFFER_LEN];
     float musicfade;
