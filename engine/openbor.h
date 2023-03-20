@@ -3121,6 +3121,20 @@ typedef struct
     int weapon_count; // Number of entries in weapon list.
 } s_weapon;
 
+typedef enum e_shadow_config_flags
+{
+    SHADOW_CONFIG_NONE = 0,
+    SHADOW_CONFIG_BASE_STATIC = (1 << 0),
+    SHADOW_CONFIG_BASE_PLATFORM = (1 << 1),
+    SHADOW_CONFIG_GRAPHIC_REPLICA_AIR = (1 << 2),
+    SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND = (1 << 3),
+    SHADOW_CONFIG_GRAPHIC_STATIC_AIR = (1 << 4),
+    SHADOW_CONFIG_GRAPHIC_STATIC_GROUND = (1 << 5),
+    SHADOW_CONFIG_DEFAULT = SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND,
+    SHADOW_CONFIG_GRAPHIC_ALL = SHADOW_CONFIG_GRAPHIC_REPLICA_AIR | SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND,
+    SHADOW_CONFIG_BASE_ALL = SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM
+} e_shadow_config_flags;
+
 typedef struct
 {
     int index;      // Assign on model read. ~~
@@ -3154,14 +3168,12 @@ typedef struct
     int setlayer; // Used for forcing enities to be displayed behind. ~~
     
     s_colorset colorsets; //2011_04_07, DC: Pre defined color map selections and behavior. ~~
-    e_blend_mode alpha; // New alpha variable to determine if the entity uses alpha transparency
+    e_blend_mode alpha; // New alpha variable to determine if the entity uses alpha transparency. ~~
     int toflip; // Flag to determine if flashes flip or not
     
     /* Shadows */
+    e_shadow_config_flags shadow_config_flags; // ~~
     int shadow;
-    int gfxshadow; // use current frame to create a shadow
-    int shadowbase;
-    int aironly; // Used to determine if shadows will be shown when jumping only
     
     int nodrop; // Flag to determine if enemies can be knocked down
     int nodieblink; // Flag to determine if blinking while playing die animation
@@ -3305,8 +3317,7 @@ typedef struct
     int hitwalltype; // wall type to toggle hitwall animations
 
     //Kratus (12-2021) Moved the new added properties to the end of the list for easy searching
-    int jumpspecial; // 0 default, 1 don't kill the "xyz" movement
-    int noshadow; // 0 default, 1 temporarily disable shadow without losing entity's shadow configuration
+    int jumpspecial; // 0 default, 1 don't kill the "xyz" movement.
 
     e_ModelFreetype freetypes;
     s_scripts *scripts;
@@ -3493,7 +3504,8 @@ typedef struct entity
 	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
-	e_update_mark			update_mark;						// Which updates are completed. ~~    
+    e_shadow_config_flags   shadow_config_flags;                // Shadow display parameters.
+    e_update_mark			update_mark;						// Which updates are completed. ~~    
 
 	// Boolean flags.
     int					    arrowon;							// Display arrow icon (parrow<player>) ~~
@@ -4138,6 +4150,11 @@ void populate_lasthit(s_collision_check_data* collision_data, s_collision_attack
 /* --Legacy */
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
+
+/* Shadows (handle legacy inputs) */
+e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);
+e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value);
+e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, int legacy_value);
 
 // Meta data control.
 void meta_data_free_list(s_meta_data* head);

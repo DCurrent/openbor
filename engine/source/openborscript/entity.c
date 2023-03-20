@@ -896,6 +896,13 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
 			break;
 
+		case ENTITY_PROPERTY_SHADOW_CONFIG_FLAGS:
+
+			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			(*pretvar)->lVal = (e_shadow_config_flags)handle->shadow_config_flags;
+
+			break;
+
 		case ENTITY_PROPERTY_SLEEP_TIME:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -2088,13 +2095,22 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 				handle->seal = temp_int;
 			}
 
-			break;
+			break;	
 
 		case ENTITY_PROPERTY_SEAL_TIME:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
 				handle->sealtime = temp_int;
+			}
+
+			break;
+
+		case ENTITY_PROPERTY_SHADOW_CONFIG_FLAGS:
+
+			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+			{
+				handle->shadow_config_flags = temp_int;
 			}
 
 			break;

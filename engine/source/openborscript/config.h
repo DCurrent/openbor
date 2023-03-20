@@ -26,14 +26,11 @@
 #include "spawn_hud.h"
 #include "status_dial.h"
 
-#define MAX_GLOBAL_VAR 2048
-#define MAX_KEY_LEN    24
 
 //osc
 #define script_magic ((int)0x73636f)
 //vlst
 #define varlist_magic ((int)0x74736c76)
-
 
 
 typedef enum
@@ -352,9 +349,6 @@ int mapstrings_levelproperty(ScriptVariant **varlist, int paramCount);
 
 int mapstrings_attackproperty(ScriptVariant **varlist, int paramCount);
 
-// Kratus (10-2021) Now the "noaircancel" function is accessible by script using "openborvariant"
-// Kratus (04-2022) New openborvariant "showgo" accessible by script
-// Kratus (04-2022) New openborvariant "in_button_config" accessible by script
 enum systemvariant_enum
 {
     SYSTEM_PROPERTY_BACKGROUND,

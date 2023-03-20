@@ -104,6 +104,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_FLIP:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->toflip;
+
+            break;
+
         case MODEL_PROPERTY_GROUND:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -241,6 +248,20 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
             (*pretvar)->dblVal = (DOUBLE)handle->scroll;
+
+            break;
+
+        case MODEL_PROPERTY_SHADOW_CONFIG_FLAGS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_shadow_config_flags)handle->shadow_config_flags;
+
+            break;
+
+        case MODEL_PROPERTY_SHADOW_INDEX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->shadow;
 
             break;
 
@@ -401,6 +422,15 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
         case MODEL_PROPERTY_FACTION:
 
             printf("\n\n Warning: Model Faction is a read only pointer. Use the appropriate sub property function to modify values. \n");
+
+            break;
+
+        case MODEL_PROPERTY_FLIP:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->toflip = temp_int;
+            }
 
             break;
 
@@ -574,6 +604,24 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
             {
                 handle->scroll = temp_float;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_SHADOW_CONFIG_FLAGS:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->shadow_config_flags = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_SHADOW_INDEX:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->shadow = temp_int;
             }
 
             break;

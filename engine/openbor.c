@@ -12648,7 +12648,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.weapon		= -1;			    // No weapon icon set yet
     newchar->diesound           = SAMPLE_ID_NONE;
     newchar->nolife             = 0;			    // default show life = 1 (yes)
-    newchar->noshadow           = 0; // Kratus (10-2021) Temporarily disable shadow without losing entity's shadow configuration
+    newchar->shadow_config_flags = SHADOW_CONFIG_DEFAULT;
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
     newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile
@@ -13637,14 +13637,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SHADOW:
                 newchar->shadow = GET_INT_ARG(1);
-                newchar->shadowbase = GET_INT_ARG(2);
+                
+                tempInt= GET_INT_ARG(2);
+
+                newchar->shadow_config_flags = shadow_get_config_from_legacy_shadowbase(newchar->shadow_config_flags, tempInt);
+
                 break;
             case CMD_MODEL_GFXSHADOW:
-                newchar->gfxshadow = GET_INT_ARG(1);
-                newchar->shadowbase = GET_INT_ARG(2);
+
+                /* Gfxshadow. */
+                tempInt = GET_INT_ARG(1);
+                newchar->shadow_config_flags = shadow_get_config_from_legacy_gfxshadow(newchar->shadow_config_flags, tempInt);
+
+                /* Shadowbase. */
+                tempInt = GET_INT_ARG(2);
+                newchar->shadow_config_flags = shadow_get_config_from_legacy_shadowbase(newchar->shadow_config_flags, tempInt);
+
                 break;
+
             case CMD_MODEL_AIRONLY:	// Shadows display in air only?
-                newchar->aironly = GET_INT_ARG(1);
+
+                tempInt = GET_INT_ARG(1);
+
+                newchar->shadow_config_flags = shadow_get_config_from_legacy_aironly(newchar->shadow_config_flags, tempInt);
+                
                 break;
             case CMD_MODEL_FMAP:	// Map that corresponds with the remap when a character is frozen
                 newchar->colorsets.frozen = GET_INT_ARG(1);
@@ -13884,9 +13900,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_NOPAIN:
                 newchar->nopain = GET_INT_ARG(1);
-                break;
-            case CMD_MODEL_NOSHADOW:
-                newchar->noshadow = GET_INT_ARG(1); // Kratus (10-2021) Added new noshadow property
                 break;
             case CMD_MODEL_ESCAPEHITS:
                 // How many times an enemy can be hit before retaliating
@@ -17194,7 +17207,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         {
             blendfx[newchar->alpha - 1] = 1;
         }
-        if(newchar->gfxshadow || newchar->shadow)
+        if(newchar->shadow_config_flags & SHADOW_CONFIG_GRAPHIC_ALL || newchar->shadow)
         {
             blendfx[BLEND_MULTIPLY] = 1;
         }
@@ -23583,6 +23596,8 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
     {
         ent->energy_state.mp_current = ent->modeldata.mp;
     }
+
+    ent->shadow_config_flags = ent->modeldata.shadow_config_flags;
 }
 
 
@@ -23815,6 +23830,7 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
             e->position.x = x;
             e->position.z = z;
             e->position.y = a;
+            e->shadow_config_flags = e->modeldata.shadow_config_flags;
             e->direction = direction;
             e->nextthink = _time + 1;
             e->nextmove = _time + 1;
@@ -28736,7 +28752,12 @@ void display_ents()
     int i, z, wall = 0, wall2;
     entity *e = NULL;
     entity *other = NULL;
-    int qx, qy, sy, sz, alty;
+    int qx; 
+    int qy;
+    int sy;
+    int sz;
+    int alty;
+    int in_air;
     int sortid;
     float basemap;
     float temp1, temp2;
@@ -29016,23 +29037,23 @@ void display_ents()
                     {
                         spriteq_add_sprite((int)(e->position.x - scrx), (int)((2 * MIRROR_Z - e->position.z) - e->position.y - scry), 2 * PANEL_Z - z , f, drawmethod, ent_list_size * 100 - sortid);
                     }
-                }//end of if(f<sprites_loaded)
+                }//end of if(f<sprites_loaded)                
                 
-                // Kratus (10-2021) Added new "noshadow" property
-                // Used to temporarily disable shadow without changing the previously defined entity's shadow number
-                // Useful to avoid using "shadow 0" and needs to save the previously defined number into a variable
-                // Useful to avoid using "fshadow" at every animation, can be enabled/disabled by script events
-                if(e->modeldata.noshadow != 1)
-                {
-                    if(e->modeldata.gfxshadow == 1 && f < sprites_loaded) //gfx shadow
-                    {
-                        useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
-                        //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
+                
 
-                        if(useshadow && e->position.y >= 0 && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                if(e->shadow_config_flags & (SHADOW_CONFIG_GRAPHIC_REPLICA_AIR | SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND) && f < sprites_loaded) //gfx shadow
+                {
+                    useshadow = (e->animation->shadow ? e->animation->shadow[e->animpos] : 1) && shadowcolor && light.y;
+                    //printf("\n %d, %d, %d\n", shadowcolor, light.x, light.y);
+
+                    if(useshadow && e->position.y >= 0)
+                    {
+                        in_air = inair(e);
+
+                        if ((e->shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND && !in_air) || (e->shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_AIR && in_air))
                         {
                             wall = checkwall_below(e->position.x, e->position.z, e->position.y);
-                            if(wall < 0)
+                            if (wall < 0)
                             {
                                 alty = (int)e->position.y;
                                 temp1 = -1 * e->position.y * light.x / 256; // xshift
@@ -29051,18 +29072,18 @@ void display_ents()
 
                             wall2 = checkwall_below(e->position.x + temp1, e->position.z + temp2, e->position.y); // check if the shadow drop into a hole or fall on another wall
 
-                            if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1) )
+                            if (other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->shadow_config_flags & SHADOW_CONFIG_BASE_STATIC))
                             {
                                 alty = (int)(e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT]));
                                 temp1 = -1 * (e->position.y - (other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT])) * light.x / 256; // xshift
                                 temp2 = (float)(-e->position.y * light.y / 256);
 
-                                qx = (int)( e->position.x - scrx );
-                                qy = (int)( e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] ); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
+                                qx = (int)(e->position.x - scrx);
+                                qy = (int)(e->position.z - scry - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT]); // + (other->animation->platform[other->animpos][PLATFORM_DEPTH]/2)
                                 //qy = (int)( e->position.z - e->position.y - scry + (e->position.y-e->base) );
                             }
 
-                            if(basemap > 0 && !(e->modeldata.shadowbase&1))
+                            if (basemap > 0 && !(e->shadow_config_flags & SHADOW_CONFIG_BASE_STATIC))
                             {
                                 alty = (int)(e->position.y - basemap);
                                 temp1 = -1 * (e->position.y - basemap) * light.x / 256; // xshift
@@ -29072,21 +29093,21 @@ void display_ents()
                             }
 
                             //TODO check platforms, don't want to go through the entity list again right now // && !other after wall2
-                            if(!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other) ) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
+                            if (!(checkhole(e->position.x + temp1, e->position.z + temp2) && wall2 < 0 && !other)) //&& !(wall>=0 && level->walls[wall].height>e->position.y))
                             {
-                                if(wall >= 0 && wall2 >= 0)
+                                if (wall >= 0 && wall2 >= 0)
                                 {
                                     alty += (int)(level->walls[wall].height - level->walls[wall2].height);
                                     /*qx += -1*(level->walls[wall].height-level->walls[wall2].height)*light.x/256;
                                     qy += (level->walls[wall].height-level->walls[wall2].height) - (level->walls[wall].height-level->walls[wall2].height)*light.y/256;*/
                                 }
-                                else if(wall >= 0)
+                                else if (wall >= 0)
                                 {
                                     alty += (int)(level->walls[wall].height);
                                     /*qx += -1*level->walls[wall].height*light.x/256;
                                     qy += level->walls[wall].height - level->walls[wall].height*light.y/256;*/
                                 }
-                                else if(wall2 >= 0)
+                                else if (wall2 >= 0)
                                 {
                                     alty -= (int)(level->walls[wall2].height);
                                     /*qx -= -1*level->walls[wall2].height*light.x/256;
@@ -29099,18 +29120,18 @@ void display_ents()
                                 }*/
 
                                 // set 2D-LIKE shadow
-                                if ( (e->modeldata.shadowbase&2) ) alty = temp1 = temp2 = 0;
+                                if ((e->shadow_config_flags & SHADOW_CONFIG_BASE_PLATFORM)) alty = temp1 = temp2 = 0;
 
                                 sy = (2 * MIRROR_Z - qy) - 2 * scry;
 
-                                if ( other && !(e->modeldata.shadowbase&1) ) z = other->position.z + 1;
+                                if (other && !(e->shadow_config_flags & SHADOW_CONFIG_BASE_STATIC)) z = other->position.z + 1;
                                 else z = shadowz;
 
                                 sz = PANEL_Z - HUD_Z;
 
-                                if(e->animation->shadow_coords)
+                                if (e->animation->shadow_coords)
                                 {
-                                    if(e->direction == DIRECTION_RIGHT)
+                                    if (e->direction == DIRECTION_RIGHT)
                                     {
                                         qx += e->animation->shadow_coords[e->animpos][0];
                                     }
@@ -29131,11 +29152,11 @@ void display_ents()
                                 shadowmethod.scaley = light.y * drawmethod->scaley / 256;
                                 shadowmethod.flipy = drawmethod->flipy;
                                 shadowmethod.centery += alty;
-                                if(shadowmethod.flipy)
+                                if (shadowmethod.flipy)
                                 {
                                     shadowmethod.centery = -shadowmethod.centery;
                                 }
-                                if(shadowmethod.scaley < 0)
+                                if (shadowmethod.scaley < 0)
                                 {
                                     shadowmethod.scaley = -shadowmethod.scaley;
                                     shadowmethod.flipy = !shadowmethod.flipy;
@@ -29144,34 +29165,42 @@ void display_ents()
                                 shadowmethod.shiftx = drawmethod->shiftx + light.x;
 
                                 spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
-                                if(use_mirror)
+                                if (use_mirror)
                                 {
                                     shadowmethod.flipy = !shadowmethod.flipy;
                                     shadowmethod.centery = -shadowmethod.centery;
                                     spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
                                 }
                             }
-                        }//end of gfxshadow
-                    }
-                    else //plain shadow
-                    {
-                        useshadow = e->animation->shadow ? e->animation->shadow[e->animpos] : e->modeldata.shadow;
-                        if(useshadow < 0)
-                        {
-                            useshadow = e->modeldata.shadow;
                         }
-                        if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0) && (!e->modeldata.aironly || (e->modeldata.aironly && inair(e))))
+                    }//end of gfxshadow
+                }
+                
+                /* Plain (sprite) shadow. */
+                if(e->shadow_config_flags & (SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND))
+                {
+                    useshadow = e->animation->shadow ? e->animation->shadow[e->animpos] : e->modeldata.shadow;
+                    if(useshadow < 0)
+                    {
+                        useshadow = e->modeldata.shadow;
+                    }
+                    if(useshadow && e->position.y >= 0 && !(checkhole(e->position.x, e->position.z) && checkwall_below(e->position.x, e->position.z, e->position.y) < 0))
+                    {
+                        in_air = inair(e);
+
+                        if ((e->shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND && !in_air) || (e->shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_AIR && in_air))
                         {
-                            if(other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->modeldata.shadowbase&1))
+
+                            if (other && other != e && e->position.y >= other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT] && !(e->shadow_config_flags & SHADOW_CONFIG_BASE_STATIC))
                             {
                                 qx = (int)(e->position.x - scrx);
-                                qy =                 (int)(e->position.z  - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
+                                qy = (int)(e->position.z - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
                                 sy = (int)((2 * MIRROR_Z - e->position.z) - other->position.y - other->animation->platform[other->animpos][PLATFORM_HEIGHT] - scry);
 
                                 z = (int)(other->position.z + 1);
                                 sz = 2 * PANEL_Z - z;
                             }
-                            else if(level && wall >= 0)// && e->position.y >= level->walls[wall].height)
+                            else if (level && wall >= 0)// && e->position.y >= level->walls[wall].height)
                             {
                                 qx = (int)(e->position.x - scrx);
                                 qy = (int)(e->position.z - level->walls[wall].height - scry);
@@ -29179,7 +29208,7 @@ void display_ents()
                                 z = shadowz;
                                 sz = PANEL_Z - HUD_Z;
                             }
-                            else if(level && basemap > 0 && !(e->modeldata.shadowbase&1))
+                            else if (level && basemap > 0 && !(e->shadow_config_flags & SHADOW_CONFIG_BASE_STATIC))
                             {
                                 qx = (int)(e->position.x - scrx);
                                 qy = (int)(e->position.z - basemap - scry);
@@ -29195,9 +29224,9 @@ void display_ents()
                                 z = shadowz;
                                 sz = PANEL_Z - HUD_Z;
                             }
-                            if(e->animation->shadow_coords)
+                            if (e->animation->shadow_coords)
                             {
-                                if(e->direction == DIRECTION_RIGHT)
+                                if (e->direction == DIRECTION_RIGHT)
                                 {
                                     qx += e->animation->shadow_coords[e->animpos][0];
                                 }
@@ -29214,13 +29243,14 @@ void display_ents()
                             shadowmethod.flipx = !e->direction;
 
                             spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
-                            if(use_mirror)
+                            if (use_mirror)
                             {
                                 spriteq_add_sprite(qx, sy, sz, shadowsprites[useshadow - 1], &shadowmethod, 0);
                             }
-                        }//end of plan shadow
-                    }
+                        }
+                    }//end of plan shadow
                 }
+                
             }// end of blink checking
 
             if(e->arrowon)    // Display the players image while invincible to indicate player number
@@ -31693,6 +31723,130 @@ void checkhitscore(entity *other, s_attack *attack)
         addscore(opp->playerindex, attack->attack_force);
     }
 }
+
+/*
+* Caskey, Damon V.
+* 2023-03-19
+* 
+* Accept current shadow config
+* state and a legacy air only
+* property. Returns appropriate
+* shadow config value.
+*/
+e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value)
+{
+    e_shadow_config_flags result = shadow_config_flags;    
+
+    if (!legacy_value)
+    {
+        return result;
+    }
+
+    if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND)
+    {
+        result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
+        result |= SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+    }
+
+    if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
+    {
+        result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+        result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-19
+*
+* Accept current shadow config
+* state and a legacy gfxshadow
+* property. Returns appropriate
+* shadow config value.
+*/
+e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value)
+{
+    e_shadow_config_flags result = shadow_config_flags;
+
+    if (!legacy_value)
+    {
+        return result;
+    }
+
+    /*
+    * If no shadow at all set, creator expects 
+    * gfxshadow to set up replica shadow. Let's
+    * initialize the flags here.
+    */
+    if (!(shadow_config_flags & SHADOW_CONFIG_GRAPHIC_ALL))
+    {
+        result |= (SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_REPLICA_AIR);
+    }
+
+    /*
+    * If flags are set, legacy "air only" might
+    * have been read upstream. We'll only override
+    * active flags.
+    */
+
+    if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
+    {
+        result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+        result |= SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
+    }
+
+    if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_AIR)
+    {
+        result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
+        result |= SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-19
+*
+* Accept current shadow config
+* state and a legacy property. 
+* Returns appropriate shadow 
+* config value.
+*/
+e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, int legacy_value)
+{
+    e_shadow_config_flags result = shadow_config_flags;
+    
+    result &= ~SHADOW_CONFIG_BASE_ALL;
+
+    switch (legacy_value)
+    {
+    default:
+
+        break;
+
+    case 1:
+
+        result |= SHADOW_CONFIG_BASE_STATIC;
+        break;
+
+    case 2:
+
+        result |= SHADOW_CONFIG_BASE_PLATFORM;
+        break;
+
+    case 3:
+
+        result |= (SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM);
+        break;
+    }
+
+    return result;
+}
+
+
 
 /*
 * Caskey, Damon V.
