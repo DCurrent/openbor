@@ -3690,19 +3690,36 @@ int parsecolor(const char *string)
 }
 
 // ltb 1-17-05   new function for lifebar colors
+/*
+    Kratus (03-2023) Added an alternative location for the lifebar file, now it's possible to use in the external "saves" folder
+    Now the modder can load exported lifebar files by using "filestream" script functions
+    Useful for creating custom lifebar colors according to certain script functions without unpacking the game
+    The default engine lifebar location will be maintained for backward compatibility
+    Don't forget that the external file will bypass the internal file!!
+*/
 void lifebar_colors()
 {
-    char *filename = "data/lifebar.txt";
+    char *filename = "saves/lifebar.txt";
     char *buf;
     size_t size;
     int pos;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
-
     char *command;
 
     if(buffer_pakfile(filename, &buf, &size) != 1)
+    {
+        goto default_file;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+default_file:
+
+    if(buffer_pakfile("data/lifebar.txt", &buf, &size) != 1)
     {
         color_black = 0;
         color_red = 0;
@@ -3720,6 +3737,12 @@ void lifebar_colors()
         shadowopacity = 255;
         return;
     }
+    else
+    {
+        goto proceed;
+    }
+
+proceed:
 
     pos = 0;
     colorbars = 1;
@@ -3805,7 +3828,6 @@ void lifebar_colors()
     }
 }
 // ltb 1-17-05 end new lifebar colors
-
 
 void init_colourtable()
 {
