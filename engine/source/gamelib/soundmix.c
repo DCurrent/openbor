@@ -64,7 +64,7 @@ Caution: move vorbis headers here otherwise the structs will
 */ 
 #define		MAXVOLUME		     64	    // 64 for backw. compat
 //#define		MAX_SAMPLES		     1024	// Should be well enough
-#define		MAX_CHANNELS	     64	    // Should be well enough
+#define		MAX_CHANNELS	     256    
 
 // Hardware settings for SoundBlaster (change only if latency is too big)
 #define		SB_BUFFER_SIZE		 0x8000
