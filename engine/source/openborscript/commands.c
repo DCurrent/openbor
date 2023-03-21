@@ -509,6 +509,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_SETA, "seta");
     LIST_ADD(CMD_MODEL_SETLAYER, "setlayer");
     LIST_ADD(CMD_MODEL_SHADOW, "shadow");
+    LIST_ADD(CMD_MODEL_SHADOW_CONFIG, "shadow_config");
     LIST_ADD(CMD_MODEL_SHADOWCOORDS, "shadowcoords");
     LIST_ADD(CMD_MODEL_SHOCK, "shock");
     LIST_ADD(CMD_MODEL_SHOOTFRAME, "shootframe");

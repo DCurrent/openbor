@@ -3174,11 +3174,12 @@ typedef struct
     
     /* Shadows */
     e_shadow_config_flags shadow_config_flags; // ~~
-    int shadow;
+    int shadow; // Shadow index. ~~
     
     int nodrop; // Flag to determine if enemies can be knocked down
     int nodieblink; // Flag to determine if blinking while playing die animation
-    
+    int falldie; // Play die animation?
+
     /* Blocking */
     int thold; // The entities threshold for block
     int holdblock; // Continue the block animation as long as the player holds the button down
@@ -3251,7 +3252,7 @@ typedef struct
     unsigned char	**colourmap;
     int maps_loaded; // Used for player colourmap selecting
     int unload; // Unload model after level completed?
-    int falldie; // Play die animation?
+    
     int globalmap; // use global palette for its colour map in 24bit mode
     int nopain;
     int summonkill; // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
@@ -4152,10 +4153,12 @@ void populate_lasthit(s_collision_check_data* collision_data, s_collision_attack
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
 
-/* Shadows (handle legacy inputs) */
+/* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, int legacy_value);
+e_shadow_config_flags shadow_get_config_flag_from_string(char* value);
+e_shadow_config_flags shadow_get_config_flags_from_arguments(ArgList* arglist);
 
 // Meta data control.
 void meta_data_free_list(s_meta_data* head);

@@ -13665,6 +13665,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->shadow_config_flags = shadow_get_config_from_legacy_shadowbase(newchar->shadow_config_flags, tempInt);
 
                 break;
+            case CMD_MODEL_SHADOW_CONFIG:                
+
+                newchar->shadow_config_flags = shadow_get_config_flags_from_arguments(&arglist);
+
+                break;
             case CMD_MODEL_GFXSHADOW:
 
                 /* Gfxshadow. */
@@ -31746,6 +31751,84 @@ void checkhitscore(entity *other, s_attack *attack)
     {
         addscore(opp->playerindex, attack->attack_force);
     }
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-20
+*
+* Accept string input and return
+* matching constant.
+*/
+e_shadow_config_flags shadow_get_config_flag_from_string(char* value)
+{
+    e_shadow_config_flags result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = SHADOW_CONFIG_NONE;
+    }
+    else if (stricmp(value, "default") == 0)
+    {
+        result = SHADOW_CONFIG_DEFAULT;
+    }
+    else if (stricmp(value, "base_platform") == 0)
+    {
+        result = SHADOW_CONFIG_BASE_PLATFORM;
+    }
+    else if (stricmp(value, "base_static") == 0)
+    {
+        result = SHADOW_CONFIG_BASE_STATIC;
+    }
+    else if (stricmp(value, "disabled") == 0)
+    {
+        result = SHADOW_CONFIG_DISABLED;
+    }
+    else if (stricmp(value, "replica_air") == 0)
+    {
+        result = SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+    }
+    else if (stricmp(value, "replica_ground") == 0)
+    {
+        result = SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
+    }
+    else if (stricmp(value, "static_air") == 0)
+    {
+        result = SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
+    }
+    else if (stricmp(value, "static_ground") == 0)
+    {
+        result = SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+    }    
+    else
+    {
+        printf("\n\n Unknown shadow config option (%s), using 'default'. \n", value);
+        result = SHADOW_CONFIG_DEFAULT;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-20
+*
+* Get arguments foroutput final
+* bitmask.
+*/
+e_shadow_config_flags shadow_get_config_flags_from_arguments(ArgList* arglist)
+{
+    int i = 0;
+    char* value = "";
+
+    e_shadow_config_flags result = SHADOW_CONFIG_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= shadow_get_config_flag_from_string(value);
+    }
+
+    return result;
 }
 
 /*
