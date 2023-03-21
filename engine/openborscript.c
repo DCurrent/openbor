@@ -6165,7 +6165,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->shadow_config_flags = shadow_get_config_from_legacy_gfxshadow(ent->shadow_config_flags, ltemp);
+            ent->shadow_config_flags = shadow_get_config_from_legacy_gfxshadow(0, ltemp);
         }
         break;
     }
@@ -6973,7 +6973,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->shadow_config_flags = shadow_get_config_from_legacy_shadowbase(ent->shadow_config_flags, ltemp);
+            ent->shadow_config_flags = shadow_get_config_from_legacy_shadowbase(0, ltemp);
         }
         break;
     }
