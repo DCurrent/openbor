@@ -31846,6 +31846,18 @@ e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flag
 
     if (!legacy_value)
     {
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND)
+        {
+            result |= SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
+            result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+        }
+
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
+        {
+            result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+            result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+        }
+
         return result;
     }
 
@@ -31877,25 +31889,32 @@ e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_fl
 {
     e_shadow_config_flags result = shadow_config_flags;
 
+    /*
+    * Creator wants to turn off "gfx", so swap any
+    * existing replica flags for static.
+    */
+
     if (!legacy_value)
-    {
+    {  
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
+        {
+            result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+            result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
+        }
+
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_AIR)
+        {
+            result |= SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
+            result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+        }
+
         return result;
     }
+        
 
     /*
-    * If no shadow at all set, creator expects 
-    * gfxshadow to set up replica shadow. Let's
-    * initialize the flags here.
-    */
-    if (!(shadow_config_flags & SHADOW_CONFIG_GRAPHIC_ALL))
-    {
-        result |= (SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_REPLICA_AIR);
-    }
-
-    /*
-    * If flags are set, legacy "air only" might
-    * have been read upstream. We'll only override
-    * active flags.
+    * Creator wants to turn on "gfx", so swap any
+    * existing static flags for replica.
     */
 
     if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
@@ -31908,6 +31927,16 @@ e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_fl
     {
         result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
         result |= SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+    }
+
+    /*
+    * If no shadow at all set, creator expects
+    * gfxshadow to set up replica shadow. Let's
+    * initialize the flags here.
+    */
+    if (!(shadow_config_flags & SHADOW_CONFIG_GRAPHIC_ALL))
+    {
+        result |= (SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_REPLICA_AIR);
     }
 
     return result;
@@ -31925,13 +31954,14 @@ e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_fl
 e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, int legacy_value)
 {
     e_shadow_config_flags result = shadow_config_flags;
-    
-    result &= ~SHADOW_CONFIG_BASE_ALL;
+        
 
     switch (legacy_value)
     {
     default:
-
+    case 0:
+        
+        result &= ~SHADOW_CONFIG_BASE_ALL;
         break;
 
     case 1:
