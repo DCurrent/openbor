@@ -29083,7 +29083,7 @@ void display_ents()
                 }//end of if(f<sprites_loaded)                
                 
                 
-                if (!(e->shadow_config_flags & SHADOW_CONFIG_DISABLE))
+                if (!(e->shadow_config_flags & SHADOW_CONFIG_DISABLED))
                 {
                     if (e->shadow_config_flags & (SHADOW_CONFIG_GRAPHIC_REPLICA_AIR | SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND) && f < sprites_loaded) //gfx shadow
                     {
@@ -32029,7 +32029,7 @@ e_shadow_config_flags shadow_get_config_flag_from_string(char* value)
     }
     else if (stricmp(value, "disabled") == 0)
     {
-        result = SHADOW_CONFIG_DISABLE;
+        result = SHADOW_CONFIG_DISABLED;
     }
     else if (stricmp(value, "replica_air") == 0)
     {
