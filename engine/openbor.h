@@ -2066,59 +2066,6 @@ typedef struct
 
 /*
 * Caskey, Damon V.
-* 2023-03-21
-*
-* On death behavior.
-*/
-typedef enum e_death_config_flags
-{
-    DEATH_CONFIG_NONE = 0,
-    DEATH_CONFIG_CORPSE_BLINK_COMPLETE = (1 << 0),
-    DEATH_CONFIG_CORPSE_BLINK_LIE = (1 << 1),
-    DEATH_CONFIG_CORPSE_REMOVE_COMPLETE = (1 << 2),
-    DEATH_CONFIG_CORPSE_REMOVE_DEATH = (1 << 3),
-    DEATH_CONFIG_CORPSE_REMOVE_LIE = (1 << 4),
-    DEATH_CONFIG_CORPSE_REMAIN = (1 << 5),
-    DEATH_CONFIG_SEQUENCE_COMPLETE = (1 << 6),
-    DEATH_CONFIG_SEQUENCE_LIE = (1 << 7),
-    DEATH_CONFIG_SEQUENCE_DEATH_AIR = (1 << 8),
-    DEATH_CONFIG_SEQUENCE_DEATH_GROUND = (1 << 9),
-    DEATH_CONFIG_SOURCE_MODEL = (1 << 10),
-
-    DEATH_CONFIG_CORPSE_ALL = DEATH_CONFIG_CORPSE_BLINK_COMPLETE | DEATH_CONFIG_CORPSE_BLINK_LIE | DEATH_CONFIG_CORPSE_REMOVE_COMPLETE | DEATH_CONFIG_CORPSE_REMOVE_DEATH | DEATH_CONFIG_CORPSE_REMOVE_LIE | DEATH_CONFIG_CORPSE_REMAIN,
-    DEATH_CONFIG_SEQUENCE_ALL = DEATH_CONFIG_SEQUENCE_COMPLETE | DEATH_CONFIG_SEQUENCE_LIE | DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND,
-    DEATH_CONFIG_DEFAULT = DEATH_CONFIG_CORPSE_BLINK_LIE | DEATH_CONFIG_SOURCE_MODEL
-} e_death_config_flags;
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Legacy nodieblink flags.
-*/
-typedef enum e_legacy_nodieblink
-{
-    NODIEBLINK_BLINK_LIE = 0,
-    NODIEBLINK_BLINK_COMPLETE = 1,
-    NODIEBLINK_REMOVE_COMPLETE = 2,
-    NODIEBLINK_REMAIN = 3
-} e_legacy_nodieblink;
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Legacy falldie flags.
-*/
-typedef enum e_legacy_dalldie
-{
-    FALLDIE_NONE = 0,           // No death animation.
-    FALLDIE_SEQUENCE_DEATH = 1, // Play death on finishing hit.
-    FALLDIE_SEQUENCE_LIE = 2,   // Play death after lying.
-} e_legacy_falldie;
-
-/*
-* Caskey, Damon V.
 * 2021-08-29
 * 
 * Used by model read in functions to
@@ -2141,7 +2088,6 @@ typedef enum
     DEFENSE_PARAMETER_DAMAGE_ADJUST,
     DEFENSE_PARAMETER_DAMAGE_MAX,
     DEFENSE_PARAMETER_DAMAGE_MIN,
-    DEFENSE_PARAMETER_DEATH_CONFIG,
     DEFENSE_PARAMETER_FACTOR,
     DEFENSE_PARAMETER_KNOCKDOWN,   
     DEFENSE_PARAMETER_LEGACY,
@@ -2165,20 +2111,20 @@ typedef enum
 
 typedef struct s_defense
 {
-    int                     block_damage_adjust;    // Arbitrary damage adjustment, when blocking.
-    int                     block_damage_max;       // Maximum damage allowed after calculations, when blocking.
-    int                     block_damage_min;       // Minimum damage allowed after calculations, when blocking.
-    int                     blockpower;             // If > unblockable, this attack type is blocked.
-    int                     blockthreshold;         // Strongest attack from this attack type that can be blocked.
-    float                   blockratio;             // % of damage still taken from this attack type when blocked.
-    e_blocktype             blocktype;              // Resource drained when attack is blocked.
-    float                   factor;                 // Multiplier applied to incoming damage.
-    float                   knockdown;              // Multiplier applied to incoming knockdown.
-    int                     pain;                   // Pain factor (like nopain) for defense type.
-    int                     damage_adjust;          // Arbitrary damage adjustment.
-    int                     damage_max;             // Maximum damage allowed after calculations.
-    int                     damage_min;             // Minimum damage allowed after calculations.
-    e_death_config_flags    death_config_flags;     // Behavior when killed by attack.
+    int         block_damage_adjust;    // Arbitrary damage adjustment, when blocking.
+    int         block_damage_max;       // Maximum damage allowed after calculations, when blocking.
+    int         block_damage_min;       // Minimum damage allowed after calculations, when blocking.
+    int         blockpower;     // If > unblockable, this attack type is blocked.
+    int         blockthreshold; // Strongest attack from this attack type that can be blocked.
+    float       blockratio;     // % of damage still taken from this attack type when blocked.
+    e_blocktype blocktype;      // Resource drained when attack is blocked.
+    float       factor;         // Multiplier applied to incoming damage.
+    float       knockdown;      // Multiplier applied to incoming knockdown.
+    int         pain;           // Pain factor (like nopain) for defense type.
+    int         damage_adjust;  // Arbitrary damage adjustment.
+    int         damage_max;     // Maximum damage allowed after calculations.
+    int         damage_min;     // Minimum damage allowed after calculations.
+
     // Meta data.
     s_meta_data* meta_data;     // User defiend data.
     int			 meta_tag;	    // User defined int.
@@ -3195,6 +3141,58 @@ typedef enum e_shadow_config_flags
     SHADOW_CONFIG_GRAPHIC_ALL = SHADOW_CONFIG_GRAPHIC_REPLICA_AIR | SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND,
     SHADOW_CONFIG_BASE_ALL = SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM
 } e_shadow_config_flags;
+
+/*
+* Caskey, Damon V.
+* 2023-03-21
+* 
+* On death behavior.
+*/
+typedef enum e_death_config_flags
+{
+    DEATH_CONFIG_NONE = 0,
+    DEATH_CONFIG_CORPSE_BLINK_COMPLETE = (1 << 0),
+    DEATH_CONFIG_CORPSE_BLINK_LIE = (1 << 1),
+    DEATH_CONFIG_CORPSE_REMOVE_COMPLETE = (1 << 2),
+    DEATH_CONFIG_CORPSE_REMOVE_DEATH = (1 << 3),
+    DEATH_CONFIG_CORPSE_REMOVE_LIE = (1 << 4),    
+    DEATH_CONFIG_CORPSE_REMAIN = (1 << 5),
+    DEATH_CONFIG_SEQUENCE_COMPLETE = (1 << 6),
+    DEATH_CONFIG_SEQUENCE_LIE = (1 << 7),
+    DEATH_CONFIG_SEQUENCE_DEATH_AIR = (1 << 8),
+    DEATH_CONFIG_SEQUENCE_DEATH_GROUND = (1 << 9),
+
+    DEATH_CONFIG_CORPSE_ALL = DEATH_CONFIG_CORPSE_BLINK_COMPLETE | DEATH_CONFIG_CORPSE_BLINK_LIE | DEATH_CONFIG_CORPSE_REMOVE_COMPLETE | DEATH_CONFIG_CORPSE_REMOVE_DEATH | DEATH_CONFIG_CORPSE_REMOVE_LIE | DEATH_CONFIG_CORPSE_REMAIN,
+    DEATH_CONFIG_SEQUENCE_ALL = DEATH_CONFIG_SEQUENCE_COMPLETE | DEATH_CONFIG_SEQUENCE_LIE | DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND,
+    DEATH_CONFIG_DEFAULT = DEATH_CONFIG_CORPSE_BLINK_LIE
+} e_death_config_flags;
+
+/*
+* Caskey, Damon V.
+* 2023-03-22
+*
+* Legacy nodieblink flags.
+*/
+typedef enum e_legacy_nodieblink
+{
+    NODIEBLINK_BLINK_LIE = 0,
+    NODIEBLINK_BLINK_COMPLETE = 1,
+    NODIEBLINK_REMOVE_COMPLETE = 2,
+    NODIEBLINK_REMAIN = 3
+} e_legacy_nodieblink;
+
+/*
+* Caskey, Damon V.
+* 2023-03-22
+*
+* Legacy falldie flags.
+*/
+typedef enum e_legacy_dalldie
+{
+    FALLDIE_NONE = 0,           // No death animation.
+    FALLDIE_SEQUENCE_DEATH = 1, // Play death on finishing hit.
+    FALLDIE_SEQUENCE_LIE = 2,   // Play death after lying.
+} e_legacy_falldie;
 
 typedef struct
 {
@@ -4215,7 +4213,7 @@ s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *prop
 s_collision_entity**    collision_alloc_entity_list();
 
 /* Death and damage reaction control. */
-e_death_config_flags death_config_get_config_flags_from_arguments(ArgList* arglist, int starting_position);
+e_death_config_flags death_config_get_config_flags_from_arguments(ArgList* arglist);
 e_death_config_flags death_config_get_config_flag_from_string(char* value);
 e_death_config_flags death_config_get_config_from_legacy_nodieblink(e_death_config_flags death_config_flags, e_legacy_nodieblink value);
 e_legacy_nodieblink death_config_get_legacy_nodieblink_from_config(e_death_config_flags death_config_flags);
@@ -4415,6 +4413,7 @@ void common_jump();
 void common_spawn(void);
 void common_drop(void);
 void common_walkoff(void);
+void common_jumpattack();
 void common_turn();
 void common_fall();
 void common_lie();

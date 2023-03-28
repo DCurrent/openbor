@@ -287,7 +287,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_DEFENSE_DAMAGE_ADJUST, "defense.damage.adjust");
     LIST_ADD(CMD_MODEL_DEFENSE_DAMAGE_MAX, "defense.damage.max");
     LIST_ADD(CMD_MODEL_DEFENSE_DAMAGE_MIN, "defense.damage.min");
-    LIST_ADD(CMD_MODEL_DEFENSE_DEATH_CONFIG, "defense.death.config");
     LIST_ADD(CMD_MODEL_DEFENSE_FACTOR, "defense.factor");
     LIST_ADD(CMD_MODEL_DEFENSE_KNOCKDOWN, "defense.knockdown");
     LIST_ADD(CMD_MODEL_DEFENSE_PAIN, "defense.pain");
