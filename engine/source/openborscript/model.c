@@ -97,13 +97,6 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 		
             break;
 
-        case MODEL_PROPERTY_DEATH_CONFIG:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_death_config_flags)handle->death_config_flags;
-
-            break;
-
         case MODEL_PROPERTY_FACTION:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -423,15 +416,6 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
         case MODEL_PROPERTY_COLORSET:
 
             printf("\n\n Warning: Model Colorset is a read only pointer. Use the appropriate sub property function to modify values. \n");
-
-            break;
-
-        case MODEL_PROPERTY_DEATH_CONFIG:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->death_config_flags = temp_int;
-            }
 
             break;
 

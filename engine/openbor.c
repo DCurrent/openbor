@@ -12654,16 +12654,6 @@ s_model *init_model(int cacheindex, int unload)
 
     alloc_all_scripts(&newchar->scripts);
 
-    newchar->aimove = AIMOVE1_NONE;
-    newchar->aiattack = AIATTACK1_NONE;
-    newchar->colorsets.burn         = COLORSET_INDEX_NONE;
-    newchar->colorsets.frozen       = COLORSET_INDEX_NONE;
-    newchar->colorsets.hide_end     = COLORSET_INDEX_NONE;
-    newchar->colorsets.hide_start   = COLORSET_INDEX_NONE;
-    newchar->colorsets.ko           = COLORSET_INDEX_NONE;
-    newchar->colorsets.kotype       = KO_COLORSET_CONFIG_INSTANT;
-    newchar->colorsets.shock        = COLORSET_INDEX_NONE;
-    newchar->death_config_flags = DEATH_CONFIG_DEFAULT;
     newchar->unload             = unload;
     newchar->jumpspecial        = 0; // Kratus (10-2021) Added new property to kill or not the default jumpspecial movement
     newchar->jumpspeed          = default_model_jumpspeed;
@@ -12683,7 +12673,9 @@ s_model *init_model(int cacheindex, int unload)
     newchar->shadow_config_flags = SHADOW_CONFIG_DEFAULT;
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
-    newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile    
+    newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile
+    newchar->aimove             = AIMOVE1_NONE;
+    newchar->aiattack           = -1;
     newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
     newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
     newchar->icon.mphigh        = -1;               //No mphigh icon yet.
@@ -12691,7 +12683,13 @@ s_model *init_model(int cacheindex, int unload)
     newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
-    
+    newchar->colorsets.burn = COLORSET_INDEX_NONE;
+    newchar->colorsets.frozen = COLORSET_INDEX_NONE;
+    newchar->colorsets.hide_end = COLORSET_INDEX_NONE;
+    newchar->colorsets.hide_start = COLORSET_INDEX_NONE;
+    newchar->colorsets.ko = COLORSET_INDEX_NONE;
+    newchar->colorsets.kotype = KO_COLORSET_CONFIG_INSTANT;
+    newchar->colorsets.shock = COLORSET_INDEX_NONE;
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -13501,15 +13499,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_FALLDIE:
             case CMD_MODEL_DEATH:
-
-                tempInt = GET_INT_ARG(1);
-
-                newchar->death_config_flags = death_config_get_config_from_legacy_falldie(newchar->death_config_flags, tempInt);
-
-                break;
-            case CMD_MODEL_DEATH_CONFIG:
-                
-                newchar->death_config_flags = death_config_get_config_flags_from_arguments(&arglist);
+                newchar->falldie = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_SPEED:
                 value = GET_ARG(1);
@@ -13732,10 +13722,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->toflip = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NODIEBLINK:
-                
-                tempInt = GET_INT_ARG(1);
-                newchar->death_config_flags = death_config_get_config_from_legacy_nodieblink(newchar->death_config_flags, tempInt);
-
+                // Added to determine if dying animation blinks or not
+                newchar->nodieblink = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NOATFLASH:	 // Flag to determine if an opponents attack spawns their flash or not
                 newchar->noatflash = GET_INT_ARG(1);
@@ -29332,7 +29320,9 @@ entity *findent(int types)
 {
     int i;
     for(i = 0; i < ent_max; i++)
-    {        
+    {
+        // 2007-12-18, remove all nodieblink checking, because dead corpse with nodieblink 3 will be changed to TYPE_NONE
+        // so if it is "dead" and TYPE_NONE, it must be a corpse
         if(ent_list[i]->exists && (ent_list[i]->modeldata.type & types) && !(ent_list[i]->dead && ent_list[i]->modeldata.type == TYPE_NONE))
         {
             return ent_list[i];
@@ -29349,6 +29339,8 @@ int count_ents(int types)
     int count = 0;
     for(i = 0; i < ent_max; i++)
     {
+        // 2007-12-18, remove all nodieblink checking, because dead corpse with nodieblink 3 will be changed to TYPE_NONE
+        // so if it is "dead" and TYPE_NONE, it must be a corpse
         count += (ent_list[i]->exists && (ent_list[i]->modeldata.type & types) );
     }
     return count;
@@ -30780,14 +30772,12 @@ void common_lie()
     // Died?
     if(self->energy_state.health_current <= 0)
     {        
-        /* Death animation? */
-        if(self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_LIE || (self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_COMPLETE && !self->animating))
-        {     
+        if(self->modeldata.falldie == 2)
+        {
+     
             set_death(self, self->last_damage_type, 0);
         }
-
-        /* Blink? */
-        if(self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_BLINK_LIE || (self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_BLINK_COMPLETE && !self->animating))
+        if(!self->modeldata.nodieblink || (self->modeldata.nodieblink == 1 && !self->animating))
         {
             
             // Now have the option to blink or not
@@ -30795,13 +30785,13 @@ void common_lie()
             self->blink = 1;
             self->stalltime  = _time + GAME_SPEED * 2;
         }
-        else if(self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_REMOVE_COMPLETE && !self->animating)
+        else if(self->modeldata.nodieblink == 2  && !self->animating)
         {
             
             self->takeaction = (self->modeldata.type & TYPE_PLAYER) ? player_die : suicide;
 
         }
-        else if(self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_REMAIN && !self->animating)
+        else if(self->modeldata.nodieblink == 3  && !self->animating)
         {
             if(self->modeldata.type & TYPE_PLAYER)
             {
@@ -31765,227 +31755,6 @@ void checkhitscore(entity *other, s_attack *attack)
 
 /*
 * Caskey, Damon V.
-* 2023-03-22
-*
-* Accept string input and return
-* matching constant.
-*/
-e_death_config_flags death_config_get_config_flag_from_string(char* value)
-{
-    e_death_config_flags result;
-
-    if (stricmp(value, "none") == 0)
-    {
-        result = DEATH_CONFIG_NONE;
-    }
-    else if (stricmp(value, "default") == 0)
-    {
-        result = DEATH_CONFIG_DEFAULT;
-    }
-    else if (stricmp(value, "blink_complete") == 0)
-    {
-        result = DEATH_CONFIG_CORPSE_BLINK_COMPLETE;
-    }
-    else if (stricmp(value, "blink_lie") == 0)
-    {
-        result = DEATH_CONFIG_CORPSE_BLINK_LIE;
-    }
-    else if (stricmp(value, "remove_death") == 0)
-    {
-        result = DEATH_CONFIG_CORPSE_REMOVE_DEATH;
-    }
-    else if (stricmp(value, "remove_complete") == 0)
-    {
-        result = DEATH_CONFIG_CORPSE_REMOVE_COMPLETE;
-    }
-    else if (stricmp(value, "remove_lie") == 0)
-    {
-        result = DEATH_CONFIG_CORPSE_REMOVE_LIE;
-    }
-    else if (stricmp(value, "remain") == 0)
-    {
-        result = DEATH_CONFIG_CORPSE_REMAIN;
-    }
-    else if (stricmp(value, "sequence_complete") == 0)
-    {
-        result = DEATH_CONFIG_SEQUENCE_COMPLETE;
-    }
-    else if (stricmp(value, "sequence_death_air") == 0)
-    {
-        result = DEATH_CONFIG_SEQUENCE_DEATH_AIR;
-    }
-    else if (stricmp(value, "sequence_death_ground") == 0)
-    {
-        result = DEATH_CONFIG_SEQUENCE_DEATH_GROUND;
-    }
-    else if (stricmp(value, "sequence_lie") == 0)
-    {
-        result = DEATH_CONFIG_SEQUENCE_LIE;
-    }
-    else
-    {
-        printf("\n\n Unknown shadow config option (%s), using 'default'. \n", value);
-        result = DEATH_CONFIG_DEFAULT;
-    }
-
-    return result;
-}
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Get arguments to output final
-* bitmask.
-*/
-e_death_config_flags death_config_get_config_flags_from_arguments(ArgList* arglist)
-{
-    int i = 0;
-    char* value = "";
-
-    e_death_config_flags result = DEATH_CONFIG_NONE;
-
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
-        result |= death_config_get_config_flag_from_string(value);
-    }
-
-    return result;
-}
-
-/*
-* Caskey, Damon V.
-* 2023-03-21
-*
-* Accept legacy nodieblink input and return
-* acceptable death_config_flags value.
-*/
-e_death_config_flags death_config_get_config_from_legacy_nodieblink(e_death_config_flags death_config_flags, e_legacy_nodieblink value)
-{
-    e_death_config_flags result = death_config_flags;
-
-    result &= ~DEATH_CONFIG_CORPSE_ALL;
-
-    switch (value)
-    {
-
-    default:
-    case NODIEBLINK_BLINK_LIE:
-
-        result |= DEATH_CONFIG_CORPSE_BLINK_LIE;
-        break;
-
-    case NODIEBLINK_BLINK_COMPLETE:
-
-        result |= DEATH_CONFIG_CORPSE_BLINK_COMPLETE;
-        break;
-
-    case NODIEBLINK_REMOVE_COMPLETE:
-
-        result |= DEATH_CONFIG_CORPSE_REMOVE_COMPLETE;
-        break;
-
-    case NODIEBLINK_REMAIN:
-
-        result |= DEATH_CONFIG_CORPSE_REMAIN;
-        break;
-    }
-
-    return result;
-}
-
-/*
-* Caskey, Damon V.
-* 2023-03-21
-*
-* Return legacy nodieblink value from
-* death_config_flags.
-*/
-e_legacy_nodieblink death_config_get_legacy_nodieblink_from_config(e_death_config_flags death_config_flags)
-{
-
-    e_legacy_nodieblink result = NODIEBLINK_BLINK_LIE;
-
-    if (death_config_flags & DEATH_CONFIG_CORPSE_REMAIN)
-    {
-        result = NODIEBLINK_REMAIN;
-    }
-    else if (death_config_flags & DEATH_CONFIG_CORPSE_REMOVE_COMPLETE)
-    {
-        result = NODIEBLINK_REMOVE_COMPLETE;
-    }
-    else if (death_config_flags & DEATH_CONFIG_CORPSE_BLINK_COMPLETE)
-    {
-        result = NODIEBLINK_BLINK_COMPLETE;
-    }
-    else
-    {
-        result = NODIEBLINK_BLINK_LIE;
-    }
-
-    return result;
-}
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Accept legacy falldie input and return
-* acceptable death_config_flags value.
-*/
-e_death_config_flags death_config_get_config_from_legacy_falldie(e_death_config_flags death_config_flags, e_legacy_falldie value)
-{
-    e_death_config_flags result = death_config_flags;
-
-    result &= ~DEATH_CONFIG_SEQUENCE_ALL;
-
-    switch (value)
-    {
-
-    default:
-    case FALLDIE_NONE:
-        /* Do nothing. */
-        break;
-
-    case FALLDIE_SEQUENCE_DEATH:
-
-        result |= DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND;
-        break;
-
-    case FALLDIE_SEQUENCE_LIE:
-
-        result |= DEATH_CONFIG_SEQUENCE_LIE;
-        break;
-    }
-
-    return result;
-}
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Return legacy falldie value from
-* death_config_flags.
-*/
-e_legacy_falldie death_config_get_legacy_falldie_from_config(e_death_config_flags death_config_flags)
-{
-    e_legacy_falldie result = FALLDIE_NONE;
-
-    if (death_config_flags & DEATH_CONFIG_SEQUENCE_LIE)
-    {
-        result = FALLDIE_SEQUENCE_LIE;
-    }
-    else if (death_config_flags & (DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND))
-    {
-        result = FALLDIE_SEQUENCE_DEATH;
-    }    
-
-    return result;
-}
-
-/*
-* Caskey, Damon V.
 * 2023-03-20
 *
 * Accept string input and return
@@ -32127,13 +31896,13 @@ e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_fl
 
     if (!legacy_value)
     {  
-        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND)
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
         {
             result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
             result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
         }
 
-        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_AIR)
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_AIR)
         {
             result |= SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
             result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
@@ -33433,8 +33202,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 {   
     
     int pain_check = 0; // React with pain animations (1) or ignore (0);
-    int in_air;
-
+    
     if(self->dead)
     {
         return 0;
@@ -33534,8 +33302,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
 	// White Dragon: fix damage_on_landing bug
 	if(self->die_on_landing && self->energy_state.health_current <= 0)
 	{
-        self->modeldata.death_config_flags &= ~DEATH_CONFIG_SEQUENCE_ALL;
-        self->modeldata.death_config_flags |= DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND;
+		self->modeldata.falldie = 1;
 	}
 
     // unlink due to being hit
@@ -33580,39 +33347,10 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
             dropweapon(1);
         }
 
-        /*
-        * DC 2023-03-22 - Lots of redundant checks. The compiler 
-        * probably optimizes it away, but would still be nice to 
-        * clean it up here.
-        */
-
-        in_air = inair(self);
-
-        if(self->energy_state.health_current <= 0 
-            && ((self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_DEATH_GROUND && !in_air) || (self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_DEATH_AIR && in_air) 
-                || self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_REMOVE_DEATH)
-            )
+        if(self->energy_state.health_current <= 0 && self->modeldata.falldie == 1)
         {
-            /* Poof! Gone isntantly on death? */
-            if (self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_REMOVE_DEATH)
-            {
-                if (self->modeldata.type & TYPE_PLAYER)
-                {
-                    player_die();
-                }
-                else
-                {
-                    kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_FALL);
-                }
-                return 1;
-            }               
-
-            /* Play death animations? */
-            if((self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_DEATH_GROUND && !in_air) || (self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_DEATH_AIR && in_air))
-            {
-                self->velocity.x = self->velocity.z = self->velocity.y = 0;
-                set_death(self, attack->attack_type, 0);
-            }
+            self->velocity.x = self->velocity.z = self->velocity.y = 0;
+            set_death(self, attack->attack_type, 0);
         }
         else
         {
@@ -33644,7 +33382,6 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
                 return 1;
             }
         }
-
         if(self->modeldata.type & TYPE_PLAYER)
         {
             if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, attack->attack_force * 3);
@@ -37196,7 +36933,7 @@ void sort_invert_by_parent(entity *ent, entity *parent)
 
 int star_move()
 {
-    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && !(self->modeldata.death_config_flags & DEATH_CONFIG_SEQUENCE_ALL)))
+    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && !self->modeldata.falldie))
     {
         kill_entity(self, KILL_ENTITY_TRIGGER_STAR_OUT_OF_BOUNDS);
         return 0;
@@ -37212,7 +36949,7 @@ int star_move()
     {
         self->takeaction = common_lie;
         self->energy_state.health_current = 0;
-        if(self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_BLINK_COMPLETE)
+        if(self->modeldata.nodieblink == 2)
         {
             self->animating = ANIMATING_NONE;
         }
@@ -38052,7 +37789,7 @@ void player_die()
     player[playerindex].spawnhealth = self->modeldata.health;
     player[playerindex].spawnmp = self->modeldata.mp;
 
-    if(!(self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_REMAIN))
+    if(self->modeldata.nodieblink != 3)
     {
         kill_entity(self, KILL_ENTITY_TRIGGER_PLAYER_DEATH);
     }
@@ -42662,7 +42399,7 @@ int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag, s_defens
                 ent_set_anim(self, ANI_FALL, 0);
             }
 
-            if(!(self->modeldata.death_config_flags & DEATH_CONFIG_CORPSE_ALL))
+            if(!self->modeldata.nodieblink)
             {
                 self->blink = 1;
             }
@@ -43126,14 +42863,11 @@ void kill_all_players_by_timeover()
                 attack_lose.dropv.y = default_model_dropv.y;
                 attack_lose.dropv.x = default_model_dropv.x;
                 attack_lose.dropv.z = default_model_dropv.z;
-                
-                self->modeldata.death_config_flags &= ~DEATH_CONFIG_SEQUENCE_ALL;
-                self->modeldata.death_config_flags |= DEATH_CONFIG_SEQUENCE_LIE;
+                self->modeldata.falldie = 2;
             }
             else
             {
-                self->modeldata.death_config_flags &= ~DEATH_CONFIG_SEQUENCE_ALL;
-                self->modeldata.death_config_flags |= DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND;
+                self->modeldata.falldie = 1;
             }
 
             defense_object = defense_find_current_object(self, NULL, attack_lose.attack_type);

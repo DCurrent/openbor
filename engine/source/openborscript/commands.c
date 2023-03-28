@@ -275,7 +275,6 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_CUSTSTAR, "custstar");
     LIST_ADD(CMD_MODEL_DAMAGEONLANDING, "damageonlanding");
     LIST_ADD(CMD_MODEL_DEATH, "death");
-    LIST_ADD(CMD_MODEL_DEATH_CONFIG, "death_config");
     LIST_ADD(CMD_MODEL_DEFENSE, "defense");
     LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_DAMAGE_ADJUST, "defense.block.damage.adjust");
     LIST_ADD(CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MAX, "defense.block.damage.max");

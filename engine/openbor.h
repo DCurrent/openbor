@@ -659,8 +659,8 @@ typedef enum
     Damon V. Caskey
     2013-12-27
     */
-    AIATTACK1_NONE      = -1,
-    AIATTACK1_NORMAL    = 0x00000000,   // Current default style
+
+    AIATTACK1_NORMAL,                   // Current default style
     AIATTACK1_LONG      = 0x00000001,   // Long range first, not used
     AIATTACK1_MELEE     = 0x00000002,   // Melee attack first, not used
     AIATTACK1_NOATTACK  = 0x00000004,   // dont attack at all
@@ -3121,12 +3121,6 @@ typedef struct
     int weapon_count; // Number of entries in weapon list.
 } s_weapon;
 
-/*
-* Caskey, Damon V.
-* 2023-03-20
-* 
-* Shadow configuration.
-*/ 
 typedef enum e_shadow_config_flags
 {
     SHADOW_CONFIG_NONE = 0,
@@ -3141,58 +3135,6 @@ typedef enum e_shadow_config_flags
     SHADOW_CONFIG_GRAPHIC_ALL = SHADOW_CONFIG_GRAPHIC_REPLICA_AIR | SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND,
     SHADOW_CONFIG_BASE_ALL = SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM
 } e_shadow_config_flags;
-
-/*
-* Caskey, Damon V.
-* 2023-03-21
-* 
-* On death behavior.
-*/
-typedef enum e_death_config_flags
-{
-    DEATH_CONFIG_NONE = 0,
-    DEATH_CONFIG_CORPSE_BLINK_COMPLETE = (1 << 0),
-    DEATH_CONFIG_CORPSE_BLINK_LIE = (1 << 1),
-    DEATH_CONFIG_CORPSE_REMOVE_COMPLETE = (1 << 2),
-    DEATH_CONFIG_CORPSE_REMOVE_DEATH = (1 << 3),
-    DEATH_CONFIG_CORPSE_REMOVE_LIE = (1 << 4),    
-    DEATH_CONFIG_CORPSE_REMAIN = (1 << 5),
-    DEATH_CONFIG_SEQUENCE_COMPLETE = (1 << 6),
-    DEATH_CONFIG_SEQUENCE_LIE = (1 << 7),
-    DEATH_CONFIG_SEQUENCE_DEATH_AIR = (1 << 8),
-    DEATH_CONFIG_SEQUENCE_DEATH_GROUND = (1 << 9),
-
-    DEATH_CONFIG_CORPSE_ALL = DEATH_CONFIG_CORPSE_BLINK_COMPLETE | DEATH_CONFIG_CORPSE_BLINK_LIE | DEATH_CONFIG_CORPSE_REMOVE_COMPLETE | DEATH_CONFIG_CORPSE_REMOVE_DEATH | DEATH_CONFIG_CORPSE_REMOVE_LIE | DEATH_CONFIG_CORPSE_REMAIN,
-    DEATH_CONFIG_SEQUENCE_ALL = DEATH_CONFIG_SEQUENCE_COMPLETE | DEATH_CONFIG_SEQUENCE_LIE | DEATH_CONFIG_SEQUENCE_DEATH_AIR | DEATH_CONFIG_SEQUENCE_DEATH_GROUND,
-    DEATH_CONFIG_DEFAULT = DEATH_CONFIG_CORPSE_BLINK_LIE
-} e_death_config_flags;
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Legacy nodieblink flags.
-*/
-typedef enum e_legacy_nodieblink
-{
-    NODIEBLINK_BLINK_LIE = 0,
-    NODIEBLINK_BLINK_COMPLETE = 1,
-    NODIEBLINK_REMOVE_COMPLETE = 2,
-    NODIEBLINK_REMAIN = 3
-} e_legacy_nodieblink;
-
-/*
-* Caskey, Damon V.
-* 2023-03-22
-*
-* Legacy falldie flags.
-*/
-typedef enum e_legacy_dalldie
-{
-    FALLDIE_NONE = 0,           // No death animation.
-    FALLDIE_SEQUENCE_DEATH = 1, // Play death on finishing hit.
-    FALLDIE_SEQUENCE_LIE = 2,   // Play death after lying.
-} e_legacy_falldie;
 
 typedef struct
 {
@@ -3234,10 +3176,9 @@ typedef struct
     e_shadow_config_flags shadow_config_flags; // ~~
     int shadow; // Shadow index. ~~
     
-    int nopain;
-    int nodrop; // Flag to determine if enemies can be knocked down.
-    
-    e_death_config_flags death_config_flags; // Disable pain/fall, handle corpse behavior (blinking).
+    int nodrop; // Flag to determine if enemies can be knocked down
+    int nodieblink; // Flag to determine if blinking while playing die animation
+    int falldie; // Play die animation?
 
     /* Blocking */
     int thold; // The entities threshold for block
@@ -3313,7 +3254,7 @@ typedef struct
     int unload; // Unload model after level completed?
     
     int globalmap; // use global palette for its colour map in 24bit mode
-    
+    int nopain;
     int summonkill; // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
     int combostyle;
     int blockpain;
@@ -4211,14 +4152,6 @@ void populate_lasthit(s_collision_check_data* collision_data, s_collision_attack
 /* --Legacy */
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
-
-/* Death and damage reaction control. */
-e_death_config_flags death_config_get_config_flags_from_arguments(ArgList* arglist);
-e_death_config_flags death_config_get_config_flag_from_string(char* value);
-e_death_config_flags death_config_get_config_from_legacy_nodieblink(e_death_config_flags death_config_flags, e_legacy_nodieblink value);
-e_legacy_nodieblink death_config_get_legacy_nodieblink_from_config(e_death_config_flags death_config_flags);
-e_death_config_flags death_config_get_config_from_legacy_falldie(e_death_config_flags death_config_flags, e_legacy_falldie value);
-e_legacy_falldie death_config_get_legacy_falldie_from_config(e_death_config_flags death_config_flags);
 
 /* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);
