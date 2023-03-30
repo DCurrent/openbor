@@ -3136,6 +3136,55 @@ typedef enum e_shadow_config_flags
     SHADOW_CONFIG_BASE_ALL = SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM
 } e_shadow_config_flags;
 
+typedef enum e_death_sequence_config
+{
+    DEATH_SEQUENCE_NONE             = 0,        // No death sequence at all.
+    DEATH_SEQUENCE_DEATH_AIR        = (1 << 0), // Play death animation if killed in the air.
+    DEATH_SEQUENCE_DEATH_GROUND     = (1 << 1), // Play death animation if killed at base height.
+    DEATH_SEQUENCE_FALL_LAND_AIR    = (1 << 2), // Fall if killd in the air.
+    DEATH_SEQUENCE_FALL_LAND_GROUND = (1 << 3), // Fall if killed at base height.
+    DEATH_SEQUENCE_FALL_LIE_AIR     = (1 << 4), // Fall and play entire animation if killed in air.
+    DEATH_SEQUENCE_FALL_LIE_GROUND  = (1 << 5), // Fall and play entire animation if killed at base height.
+    DEATH_SEQUENCE_SOURCE_MODEL     = (1 << 6), // No effect at model level. If used in another level (ex. defense death sequence), force use of model level instead.
+
+    DEATH_SEQUENCE_MACRO_DEFAULT            = DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND | DEATH_SEQUENCE_SOURCE_MODEL,
+    DEATH_SEQUENCE_MACRO_FALL               = DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND | DEATH_SEQUENCE_FALL_LIE_AIR | DEATH_SEQUENCE_FALL_LIE_GROUND,
+    DEATH_SEQUENCE_MACRO_DEATH              = DEATH_SEQUENCE_DEATH_AIR | DEATH_SEQUENCE_DEATH_GROUND,
+    DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND    = DEATH_SEQUENCE_DEATH_AIR | DEATH_SEQUENCE_DEATH_GROUND | DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND,
+    DEATH_SEQUENCE_MACRO_DEATH_FALL_ALL     = DEATH_SEQUENCE_MACRO_DEATH | DEATH_SEQUENCE_MACRO_FALL
+} e_death_sequence_config;
+
+
+
+/*
+* Caskey, Damon V.
+* 2023-03-29
+*
+* Death status flags.
+*/
+typedef enum e_death_state
+{
+    DEATH_STATE_NONE = 0,        // No death status (alive and well).
+    DEATH_STATE_AIR = (1 << 0), // Last killed while above base height.
+    DEATH_STATE_BACK = (1 << 1), // Last killed from behind.
+    DEATH_STATE_CORPSE = (1 << 2), // Corpse left on screen.
+    DEATH_STATE_DEAD = (1 << 3)  // He's dead Jim.
+} e_death_state;
+
+/*
+* Caskey, Damon V 
+* 2023-03-27
+* 
+* Legacy falldie options.
+*/
+typedef enum e_falldie_config
+{    
+    /* Keep orginal order. */
+    FALLDIE_CONFIG_NONE,
+    FALLDIE_CONFIG_DEATH_INSTANT,
+    FALLDIE_CONFIG_DEATH_FALL
+}e_falldie_config;
+
 typedef struct
 {
     int index;      // Assign on model read. ~~
@@ -3178,7 +3227,7 @@ typedef struct
     
     int nodrop; // Flag to determine if enemies can be knocked down
     int nodieblink; // Flag to determine if blinking while playing die animation
-    int falldie; // Play die animation?
+    e_death_sequence_config falldie; // Play die animation?
 
     /* Blocking */
     int thold; // The entities threshold for block
@@ -3515,7 +3564,7 @@ typedef struct entity
 	int					    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
 	int					    blocking;							// In blocking state. ~~
 	int					    charging;							// Charging MP. Gain according to chargerate. ~~
-	int					    dead;								// He's dead Jim. ~~
+	e_death_state		    death_state;						// Dead? ~~
 	e_weapon_state		    weapon_state;						// Check for ammo count? ~~
 	int					    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
 	int					    drop;								// Knocked down. Remains true until rising. ~~
@@ -4152,6 +4201,18 @@ void populate_lasthit(s_collision_check_data* collision_data, s_collision_attack
 /* --Legacy */
 s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *properties);
 s_collision_entity**    collision_alloc_entity_list();
+
+/* Death sequence control */
+e_falldie_config death_sequence_get_legacy_from_value(e_death_sequence_config acting_value);
+e_death_sequence_config death_sequence_get_value_from_legacy(e_death_sequence_config current_value, e_falldie_config acting_value);
+
+typedef enum e_death_sequence_acting_event
+{
+    DEATH_TRY_SEQUENCE_ACTING_EVENT_DAMAGE,
+    DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE,
+} e_death_sequence_acting_event;
+
+int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config death_sequence, e_death_sequence_acting_event acting_event);
 
 /* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);

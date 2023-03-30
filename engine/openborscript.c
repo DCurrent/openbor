@@ -3400,7 +3400,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         switch(ltemp)
         {
         case _ep_aiflag_dead:
-            (*pretvar)->lVal = (LONG)ent->dead;
+            (*pretvar)->lVal = (LONG)(ent->death_state & DEATH_STATE_DEAD);
             break;
         case _ep_aiflag_jumpid:
             (*pretvar)->lVal = (LONG)ent->jump.animation_id;
@@ -3778,7 +3778,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_dead:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->dead;
+        (*pretvar)->lVal = (LONG)(ent->death_state & DEATH_STATE_DEAD);
         break;
     }
     case _ep_defaultmodel:
@@ -4073,7 +4073,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_falldie:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.falldie;
+        (*pretvar)->lVal = death_sequence_get_legacy_from_value((e_death_sequence_config)ent->modeldata.falldie);
         break;
     }
     case _ep_flash:
@@ -5571,7 +5571,16 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             switch(varlist[2]->lVal)
             {
             case _ep_aiflag_dead:
-                ent->dead = (LONG)ltemp;
+
+                if (ltemp)
+                {
+                    ent->death_state |= DEATH_STATE_DEAD;
+                }
+                else
+                {
+                    ent->death_state &= ~DEATH_STATE_DEAD;
+                }
+
                 break;
             case _ep_aiflag_jumpid:
                 ent->jump.animation_id = (LONG)ltemp;
@@ -5877,7 +5886,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->dead = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->death_state |= DEATH_STATE_DEAD;
+            }
+            else
+            {
+                ent->death_state &= ~DEATH_STATE_DEAD;
+            }
         }
         break;
     }
@@ -6125,7 +6141,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.falldie = (LONG)ltemp;
+            ent->modeldata.falldie = death_sequence_get_value_from_legacy(ent->modeldata.falldie, (e_falldie_config)ltemp);
         }
         break;
     }

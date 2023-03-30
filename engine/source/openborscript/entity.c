@@ -289,10 +289,10 @@ HRESULT openbor_get_entity_property(ScriptVariant **varlist , ScriptVariant **pr
 
             break;
 
-		case ENTITY_PROPERTY_DEAD:
+		case ENTITY_PROPERTY_DEATH_STATE:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->dead;
+			(*pretvar)->lVal = (e_death_state)handle->death_state;
 
 			break;
 			
@@ -1404,11 +1404,11 @@ HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pre
 
             break;
 
-		case ENTITY_PROPERTY_DEAD:
+		case ENTITY_PROPERTY_DEATH_STATE:
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->dead = temp_int;
+				handle->death_state = temp_int;
 			}
 
 			break;
