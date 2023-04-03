@@ -339,7 +339,7 @@ static int flag_to_index(u64 flag)
 
 char* get_joystick_name(const char* name)
 {
-    char lname[strlen(name)];
+    char lname[strlen(name) + 1];
 
     if (strlen(name) <= 0) return JOY_UNKNOWN_NAME;
     strcpy(lname,name);
