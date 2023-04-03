@@ -4073,7 +4073,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_falldie:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = death_sequence_get_legacy_from_value((e_death_sequence_config)ent->modeldata.falldie);
+        (*pretvar)->lVal = death_config_get_falldie_from_value((e_death_config_flags)ent->modeldata.death_config_flags);
         break;
     }
     case _ep_flash:
@@ -4764,7 +4764,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_nodieblink:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.nodieblink;
+        (*pretvar)->lVal = death_config_get_nodieblink_from_value((e_death_config_flags)ent->modeldata.death_config_flags);
         break;
     }
     case _ep_nodrop:
@@ -6141,7 +6141,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.falldie = death_sequence_get_value_from_legacy(ent->modeldata.falldie, (e_falldie_config)ltemp);
+            ent->modeldata.death_config_flags = death_config_get_value_from_falldie(ent->modeldata.death_config_flags, (e_falldie_config)ltemp);
         }
         break;
     }
@@ -6706,7 +6706,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.nodieblink = (LONG)ltemp;
+            ent->modeldata.death_config_flags = death_config_get_value_from_nodieblink(ent->modeldata.death_config_flags, (e_nodieblink_config)ltemp);
         }
         break;
     }

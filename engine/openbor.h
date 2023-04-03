@@ -2066,6 +2066,91 @@ typedef struct
 
 /*
 * Caskey, Damon V.
+* 2023-04-01
+* 
+* Death behavior flags.
+*/
+typedef enum e_death_config_flags
+{
+    DEATH_CONFIG_NONE                   = 0,        // No death sequence at all.
+    DEATH_CONFIG_BLINK_DEATH_AIR        = (1 << 0), // Blink at start of death animation if killed in air.
+    DEATH_CONFIG_BLINK_DEATH_GROUND     = (1 << 1), // Blink at start of death animation if killed at base.
+    DEATH_CONFIG_BLINK_FALL_AIR         = (1 << 2), // Blink at start of fall if killed in air.
+    DEATH_CONFIG_BLINK_FALL_GROUND      = (1 << 3), // Blink at start of fall if killed at base.
+    DEATH_CONFIG_BLINK_REMOVE_AIR       = (1 << 4), // Blink at start of removal if killed in ait. 
+    DEATH_CONFIG_BLINK_REMOVE_GROUND    = (1 << 5), // Blinka t start of removal if killed on ground.
+    DEATH_CONFIG_DEATH_AIR              = (1 << 6), // Play death animation if killed in the air.
+    DEATH_CONFIG_DEATH_GROUND           = (1 << 7), // Play death animation if killed at base height.
+    DEATH_CONFIG_FALL_LAND_AIR          = (1 << 8), // Fall if killd in the air.
+    DEATH_CONFIG_FALL_LAND_GROUND       = (1 << 9), // Fall if killed at base.
+    DEATH_CONFIG_FALL_LIE_AIR           = (1 << 10), // Fall and play entire animation if killed in air.
+    DEATH_CONFIG_FALL_LIE_GROUND        = (1 << 11), // Fall and play entire animation if killed at base height.
+    DEATH_CONFIG_REMOVE_CORPSE_AIR      = (1 << 12), // Entity is out of play, but remains on screen if killed in air.
+    DEATH_CONFIG_REMOVE_CORPSE_GROUND   = (1 << 13), // Entity is out of play, but remains on screen if killed at base.
+    DEATH_CONFIG_REMOVE_VANISH_AIR      = (1 << 14), // Remove with no trace if killed in air.
+    DEATH_CONFIG_REMOVE_VANISH_GROUND   = (1 << 15), // Remove with no trace if killed on ground.
+    DEATH_CONFIG_SOURCE_MODEL           = (1 << 16), // Always use model elvel property.
+    /*
+    * Combined flags. Make sure to update
+    * these if any new flags are added.
+    */
+
+    DEATH_CONFIG_MACRO_DEFAULT = DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND | DEATH_CONFIG_SOURCE_MODEL,
+    DEATH_CONFIG_MACRO_BLINK = DEATH_CONFIG_BLINK_DEATH_AIR | DEATH_CONFIG_BLINK_DEATH_GROUND | DEATH_CONFIG_BLINK_FALL_AIR | DEATH_CONFIG_BLINK_FALL_GROUND | DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND,
+    DEATH_CONFIG_MACRO_FALL = DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND,
+    DEATH_CONFIG_MACRO_DEATH = DEATH_CONFIG_DEATH_AIR | DEATH_CONFIG_DEATH_GROUND,
+    DEATH_CONFIG_MACRO_DEATH_FALL_LAND = DEATH_CONFIG_MACRO_DEATH | DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND,
+    DEATH_CONFIG_MACRO_DEATH_FALL_ALL = DEATH_CONFIG_MACRO_DEATH | DEATH_CONFIG_MACRO_FALL,
+    DEATH_CONFIG_MACRO_REMOVE = DEATH_CONFIG_REMOVE_CORPSE_AIR | DEATH_CONFIG_REMOVE_CORPSE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND
+} e_death_config_flags;
+
+/*
+* Caskey, Damon V.
+* 2023-03-29
+*
+* Death status flags.
+*/
+typedef enum e_death_state
+{
+    DEATH_STATE_NONE = 0,        // No death status (alive and well).
+    DEATH_STATE_AIR = (1 << 0), // Last killed while above base height.
+    DEATH_STATE_BACK = (1 << 1), // Last killed from behind.
+    DEATH_STATE_CORPSE = (1 << 2), // Corpse left on screen.
+    DEATH_STATE_DEAD = (1 << 3)  // He's dead Jim.
+} e_death_state;
+
+/*
+* Caskey, Damon V
+* 2023-03-27
+*
+* Legacy falldie options.
+*/
+typedef enum e_falldie_config
+{
+    /* Keep orginal order. */
+    FALLDIE_CONFIG_NONE,
+    FALLDIE_CONFIG_DEATH_INSTANT,
+    FALLDIE_CONFIG_DEATH_FALL
+}e_falldie_config;
+
+/*
+* Caskey, Damon V
+* 2023-03-27
+*
+* Legacy nodieblink options.
+*/
+typedef enum e_nodieblink_config
+{
+    /* Keep orginal order. */
+    NODIEBLINK_CONFIG_NONE,
+    NODIEBLINK_CONFIG_FALL_LIE_BLINK,
+    NODIEBLINK_CONFIG_FALL_LIE_VANISH,
+    NODIEBLINK_CONFIG_FALL_LIE_CORPSE
+
+}e_nodieblink_config;
+
+/*
+* Caskey, Damon V.
 * 2021-08-29
 * 
 * Used by model read in functions to
@@ -2088,6 +2173,7 @@ typedef enum
     DEFENSE_PARAMETER_DAMAGE_ADJUST,
     DEFENSE_PARAMETER_DAMAGE_MAX,
     DEFENSE_PARAMETER_DAMAGE_MIN,
+    DEFENSE_PARAMETER_DEATH_CONFIG,
     DEFENSE_PARAMETER_FACTOR,
     DEFENSE_PARAMETER_KNOCKDOWN,   
     DEFENSE_PARAMETER_LEGACY,
@@ -2118,6 +2204,7 @@ typedef struct s_defense
     int         blockthreshold; // Strongest attack from this attack type that can be blocked.
     float       blockratio;     // % of damage still taken from this attack type when blocked.
     e_blocktype blocktype;      // Resource drained when attack is blocked.
+    e_death_config_flags death_config_flags; // Death behavior (blinking, death animation, etc.).
     float       factor;         // Multiplier applied to incoming damage.
     float       knockdown;      // Multiplier applied to incoming knockdown.
     int         pain;           // Pain factor (like nopain) for defense type.
@@ -3121,6 +3208,12 @@ typedef struct
     int weapon_count; // Number of entries in weapon list.
 } s_weapon;
 
+/*
+* Caskey, Damon V.
+* 2023-03-19
+* 
+* Shadow behavior flags.
+*/
 typedef enum e_shadow_config_flags
 {
     SHADOW_CONFIG_NONE = 0,
@@ -3136,54 +3229,7 @@ typedef enum e_shadow_config_flags
     SHADOW_CONFIG_BASE_ALL = SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM
 } e_shadow_config_flags;
 
-typedef enum e_death_sequence_config
-{
-    DEATH_SEQUENCE_NONE             = 0,        // No death sequence at all.
-    DEATH_SEQUENCE_DEATH_AIR        = (1 << 0), // Play death animation if killed in the air.
-    DEATH_SEQUENCE_DEATH_GROUND     = (1 << 1), // Play death animation if killed at base height.
-    DEATH_SEQUENCE_FALL_LAND_AIR    = (1 << 2), // Fall if killd in the air.
-    DEATH_SEQUENCE_FALL_LAND_GROUND = (1 << 3), // Fall if killed at base height.
-    DEATH_SEQUENCE_FALL_LIE_AIR     = (1 << 4), // Fall and play entire animation if killed in air.
-    DEATH_SEQUENCE_FALL_LIE_GROUND  = (1 << 5), // Fall and play entire animation if killed at base height.
-    DEATH_SEQUENCE_SOURCE_MODEL     = (1 << 6), // No effect at model level. If used in another level (ex. defense death sequence), force use of model level instead.
 
-    DEATH_SEQUENCE_MACRO_DEFAULT            = DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND | DEATH_SEQUENCE_SOURCE_MODEL,
-    DEATH_SEQUENCE_MACRO_FALL               = DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND | DEATH_SEQUENCE_FALL_LIE_AIR | DEATH_SEQUENCE_FALL_LIE_GROUND,
-    DEATH_SEQUENCE_MACRO_DEATH              = DEATH_SEQUENCE_DEATH_AIR | DEATH_SEQUENCE_DEATH_GROUND,
-    DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND    = DEATH_SEQUENCE_DEATH_AIR | DEATH_SEQUENCE_DEATH_GROUND | DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND,
-    DEATH_SEQUENCE_MACRO_DEATH_FALL_ALL     = DEATH_SEQUENCE_MACRO_DEATH | DEATH_SEQUENCE_MACRO_FALL
-} e_death_sequence_config;
-
-
-
-/*
-* Caskey, Damon V.
-* 2023-03-29
-*
-* Death status flags.
-*/
-typedef enum e_death_state
-{
-    DEATH_STATE_NONE = 0,        // No death status (alive and well).
-    DEATH_STATE_AIR = (1 << 0), // Last killed while above base height.
-    DEATH_STATE_BACK = (1 << 1), // Last killed from behind.
-    DEATH_STATE_CORPSE = (1 << 2), // Corpse left on screen.
-    DEATH_STATE_DEAD = (1 << 3)  // He's dead Jim.
-} e_death_state;
-
-/*
-* Caskey, Damon V 
-* 2023-03-27
-* 
-* Legacy falldie options.
-*/
-typedef enum e_falldie_config
-{    
-    /* Keep orginal order. */
-    FALLDIE_CONFIG_NONE,
-    FALLDIE_CONFIG_DEATH_INSTANT,
-    FALLDIE_CONFIG_DEATH_FALL
-}e_falldie_config;
 
 typedef struct
 {
@@ -3226,8 +3272,7 @@ typedef struct
     int shadow; // Shadow index. ~~
     
     int nodrop; // Flag to determine if enemies can be knocked down
-    int nodieblink; // Flag to determine if blinking while playing die animation
-    e_death_sequence_config falldie; // Play die animation?
+    e_death_config_flags death_config_flags; // Playing death animations, blinking, removal, etc.
 
     /* Blocking */
     int thold; // The entities threshold for block
@@ -4203,8 +4248,12 @@ s_collision_entity*     collision_alloc_entity_instance(s_collision_entity *prop
 s_collision_entity**    collision_alloc_entity_list();
 
 /* Death sequence control */
-e_falldie_config death_sequence_get_legacy_from_value(e_death_sequence_config acting_value);
-e_death_sequence_config death_sequence_get_value_from_legacy(e_death_sequence_config current_value, e_falldie_config acting_value);
+e_falldie_config death_config_get_falldie_from_value(e_death_config_flags acting_value);
+e_death_config_flags death_config_get_value_from_falldie(e_death_config_flags current_value, e_falldie_config acting_value);
+e_death_config_flags death_config_get_value_from_nodieblink(e_death_config_flags current_value, e_nodieblink_config acting_value);
+e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags acting_value);
+e_death_config_flags death_get_config_flags_from_arguments(ArgList* arglist, int start_position);
+e_death_config_flags death_get_config_flag_from_string(char* value);
 
 typedef enum e_death_sequence_acting_event
 {
@@ -4212,7 +4261,7 @@ typedef enum e_death_sequence_acting_event
     DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE,
 } e_death_sequence_acting_event;
 
-int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config death_sequence, e_death_sequence_acting_event acting_event);
+int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_sequence, e_death_sequence_acting_event acting_event);
 
 /* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);

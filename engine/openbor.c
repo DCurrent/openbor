@@ -143,19 +143,20 @@ const s_projectile projectile_default_config = {
 
 const s_defense default_defense =
 {
-    .block_damage_adjust = 0,
-    .block_damage_max = MAX_INT,
-    .block_damage_min = MIN_INT,
-    .blockpower     = 0.f,
-    .blockthreshold = 0.f,
-    .blockratio     = DEFENSE_BLOCKRATIO_COMPATABILITY_DEFAULT,
-    .blocktype      = BLOCK_TYPE_GLOBAL,
-    .damage_adjust  = 0,
-    .damage_max     = MAX_INT,
-    .damage_min     = MIN_INT,
-    .factor         = 1.f,
-    .knockdown      = 1.f,
-    .pain           = 0.f
+    .block_damage_adjust    = 0,
+    .block_damage_max       = MAX_INT,
+    .block_damage_min       = MIN_INT,
+    .blockpower             = 0.f,
+    .blockthreshold         = 0.f,
+    .blockratio             = DEFENSE_BLOCKRATIO_COMPATABILITY_DEFAULT,
+    .blocktype              = BLOCK_TYPE_GLOBAL,
+    .death_config_flags     = DEATH_CONFIG_MACRO_DEFAULT,
+    .damage_adjust          = 0,
+    .damage_max             = MAX_INT,
+    .damage_min             = MIN_INT,
+    .factor                 = 1.f,
+    .knockdown              = 1.f,
+    .pain                   = 0.f
 };
 
 const s_offense default_offense =
@@ -12654,7 +12655,7 @@ s_model *init_model(int cacheindex, int unload)
 
     alloc_all_scripts(&newchar->scripts);
 
-    newchar->falldie            = DEATH_SEQUENCE_MACRO_DEFAULT;
+    newchar->death_config_flags = DEATH_CONFIG_MACRO_DEFAULT;
     newchar->unload             = unload;
     newchar->jumpspecial        = 0; // Kratus (10-2021) Added new property to kill or not the default jumpspecial movement
     newchar->jumpspeed          = default_model_jumpspeed;
@@ -13500,8 +13501,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_FALLDIE:
             case CMD_MODEL_DEATH:
-                newchar->falldie = GET_INT_ARG(1);
+
+                tempInt = GET_INT_ARG(1);
+
+                newchar->death_config_flags = death_config_get_value_from_falldie(newchar->death_config_flags, tempInt);
+
                 break;
+
+            case CMD_MODEL_DEATH_CONFIG:
+
+                newchar->death_config_flags = death_get_config_flags_from_arguments(&arglist, 1);
+                break;
+
             case CMD_MODEL_SPEED:
                 value = GET_ARG(1);
                 newchar->speed.x = atof(value);
@@ -13592,6 +13603,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_MIN:
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MIN);
+                break;
+            case CMD_MODEL_DEFENSE_DEATH_CONFIG:
+                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DEATH_CONFIG);
                 break;
             case CMD_MODEL_DEFENSE_FACTOR:
                 defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
@@ -13724,7 +13738,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_NODIEBLINK:
                 // Added to determine if dying animation blinks or not
-                newchar->nodieblink = GET_INT_ARG(1);
+
+                tempInt = GET_INT_ARG(1);
+
+                newchar->death_config_flags = death_config_get_value_from_nodieblink(newchar->death_config_flags, tempInt);
+
                 break;
             case CMD_MODEL_NOATFLASH:	 // Flag to determine if an opponents attack spawns their flash or not
                 newchar->noatflash = GET_INT_ARG(1);
@@ -29339,10 +29357,9 @@ int count_ents(int types)
     int i;
     int count = 0;
     for(i = 0; i < ent_max; i++)
-    {
-        // 2007-12-18, remove all nodieblink checking, because dead corpse with nodieblink 3 will be changed to TYPE_NONE
-        // so if it is "dead" and TYPE_NONE, it must be a corpse
-        count += (ent_list[i]->exists && (ent_list[i]->modeldata.type & types) );
+    {           
+
+        count += (ent_list[i]->exists && (ent_list[i]->modeldata.type & types) && !(ent_list[i]->death_state & DEATH_STATE_CORPSE));
     }
     return count;
 }
@@ -30773,25 +30790,40 @@ void common_try_riseattack()
 * 
 * Run death sequece (if any) for entity.
 */
-int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config death_sequence, e_death_sequence_acting_event acting_event)
+int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_sequence, e_death_sequence_acting_event acting_event)
 {
     int result = 0;
     e_attack_types attack_type = acting_entity->last_damage_type;
     e_death_state death_state = acting_entity->death_state;
-
-    //int in_air = inair(acting_entity);
     
     if (death_state & DEATH_STATE_AIR)
     {
-        if ((death_sequence & DEATH_SEQUENCE_FALL_LAND_AIR && acting_event != DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE) || (death_sequence & DEATH_SEQUENCE_FALL_LIE_AIR && acting_entity->animating))
+        /* 
+        * Fall first? This works by just turning
+        * control back over to the damage function 
+        * and letting it handle fall routines.
+        */
+        if ((death_sequence & DEATH_CONFIG_FALL_LAND_AIR && acting_event != DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE) || (death_sequence & DEATH_CONFIG_FALL_LIE_AIR && acting_entity->animating))
         {
+            /* Turn on blinking? */
+            if (death_sequence & DEATH_CONFIG_BLINK_FALL_AIR)
+            {
+                acting_entity->blink = 1;
+            }
+
             result = 0;
             return result;
         }
 
         /* Play death animation? */
-        if (death_sequence & DEATH_SEQUENCE_DEATH_AIR)
+        if (death_sequence & DEATH_CONFIG_DEATH_AIR)
         {
+            /* Turn on blinking? */
+            if (death_sequence & DEATH_CONFIG_BLINK_DEATH_AIR)
+            {
+                acting_entity->blink = 1;
+            }
+
             acting_entity->velocity.x = 0;
             acting_entity->velocity.y = 0;
             acting_entity->velocity.z = 0;
@@ -30799,25 +30831,41 @@ int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config dea
             set_death(acting_entity, attack_type, 0);
 
             result = 1;
+
+            /* Allow death animation to finish. */
+            if (acting_entity->animating)
+            {
+                return result;
+            }
         } 
 
-
-        if ((!acting_entity->modeldata.nodieblink && acting_event == DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE) || (acting_entity->modeldata.nodieblink == 1 && !acting_entity->animating))
+        /*
+        * Remove entity from the screen?
+        */
+        if (death_sequence & DEATH_CONFIG_REMOVE_VANISH_AIR)
         {
-
-            // Now have the option to blink or not
             acting_entity->takeaction = (acting_entity->modeldata.type & TYPE_PLAYER) ? player_blink : suicide;
-            acting_entity->blink = 1;
-            acting_entity->stalltime = _time + GAME_SPEED * 2;
-        }
-        else if (acting_entity->modeldata.nodieblink == 2 && !acting_entity->animating)
-        {
 
-            acting_entity->takeaction = (acting_entity->modeldata.type & TYPE_PLAYER) ? player_die : suicide;
-
+            /* 
+            * If blink requested, we turn on blink
+            * effect and set a delay before killing
+            * self.
+            */
+            if (death_sequence & DEATH_CONFIG_BLINK_REMOVE_AIR)
+            {                
+                acting_entity->blink = 1;
+                acting_entity->stalltime = _time + GAME_SPEED * 2;
+            }
         }
-        else if (acting_entity->modeldata.nodieblink == 3 && !acting_entity->animating)
+        else if (death_sequence & DEATH_CONFIG_REMOVE_CORPSE_AIR)
         {
+            /* Turn on blinking? */
+            if (death_sequence & DEATH_CONFIG_BLINK_REMOVE_AIR)
+            {
+                acting_entity->blink = 1;
+            }
+
+            /* Set corpse flag and disable AI control. */
             if (acting_entity->modeldata.type & TYPE_PLAYER)
             {
                 acting_entity->takeaction = player_die;
@@ -30831,15 +30879,21 @@ int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config dea
     }
     else
     {
-        if ((death_sequence & DEATH_SEQUENCE_FALL_LAND_GROUND && acting_event != DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE) || (death_sequence & DEATH_SEQUENCE_FALL_LIE_GROUND && acting_entity->animating))
+        if ((death_sequence & DEATH_CONFIG_FALL_LAND_GROUND && acting_event != DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE) || (death_sequence & DEATH_CONFIG_FALL_LIE_GROUND && acting_entity->animating))
         {
             result = 0;
             return result;
         }
 
         /* Play death animation? */
-        if (death_sequence & DEATH_SEQUENCE_DEATH_GROUND)
+        if (death_sequence & DEATH_CONFIG_DEATH_GROUND)
         {
+            /* Turn on blinking? */
+            if (death_sequence & DEATH_CONFIG_BLINK_DEATH_GROUND)
+            {
+                acting_entity->blink = 1;
+            }
+
             acting_entity->velocity.x = 0;
             acting_entity->velocity.y = 0;
             acting_entity->velocity.z = 0;
@@ -30847,25 +30901,41 @@ int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config dea
             set_death(acting_entity, attack_type, 0);
 
             result = 1;
+
+            /* Allow death animation to finish. */
+            if (acting_entity->animating)
+            {
+                return result;
+            }
         }
 
-
-        if ((!acting_entity->modeldata.nodieblink && acting_event == DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE) || (acting_entity->modeldata.nodieblink == 1 && !acting_entity->animating))
+        /*
+        * Remove entity from the screen?
+        */
+        if (death_sequence & DEATH_CONFIG_REMOVE_VANISH_GROUND)
         {
-
-            // Now have the option to blink or not
             acting_entity->takeaction = (acting_entity->modeldata.type & TYPE_PLAYER) ? player_blink : suicide;
-            acting_entity->blink = 1;
-            acting_entity->stalltime = _time + GAME_SPEED * 2;
-        }
-        else if (acting_entity->modeldata.nodieblink == 2 && !acting_entity->animating)
-        {
 
-            acting_entity->takeaction = (acting_entity->modeldata.type & TYPE_PLAYER) ? player_die : suicide;
-
+            /*
+            * If blink requested, we turn on blink
+            * effect and set a delay before killing
+            * self.
+            */
+            if (death_sequence & DEATH_CONFIG_BLINK_REMOVE_GROUND)
+            {
+                acting_entity->blink = 1;
+                acting_entity->stalltime = _time + GAME_SPEED * 2;
+            }
         }
-        else if (acting_entity->modeldata.nodieblink == 3 && !acting_entity->animating)
+        else if (death_sequence & DEATH_CONFIG_REMOVE_CORPSE_GROUND)
         {
+            /* Turn on blinking? */
+            if (death_sequence & DEATH_CONFIG_BLINK_REMOVE_GROUND)
+            {
+                acting_entity->blink = 1;
+            }
+
+            /* Set corpse flag and disable AI control. */
             if (acting_entity->modeldata.type & TYPE_PLAYER)
             {
                 acting_entity->takeaction = player_die;
@@ -30883,37 +30953,49 @@ int death_try_sequence_damage(entity* acting_entity, e_death_sequence_config dea
 
 void common_lie()
 {
-   
+    entity* acting_entity = self;
+    e_death_config_flags death_config;
+    s_defense* defense_object;
+
     // Died?
-    if(self->energy_state.health_current <= 0)
+    if(acting_entity->energy_state.health_current <= 0)
     {        
-        death_try_sequence_damage(self, self->modeldata.falldie, DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE);
+        defense_object = defense_find_current_object(acting_entity, NULL, acting_entity->last_damage_type);
+        
+        death_config = defense_object->death_config_flags;
+
+        if (death_config & DEATH_CONFIG_SOURCE_MODEL)
+        {
+            death_config = acting_entity->modeldata.death_config_flags;
+        }
+
+        death_try_sequence_damage(acting_entity, death_config, DEATH_TRY_SEQUENCE_ACTING_EVENT_LIE);
 
         /*
         * Apply KO (death) map if we have one.
         */
-        if (self->modeldata.colorsets.ko != COLORSET_INDEX_NONE)
+        if (acting_entity->modeldata.colorsets.ko != COLORSET_INDEX_NONE)
         {   
             /* 
             * Wait for animation to finish unless type is set to
             * apply map immediately.
             */
             
-            if (self->modeldata.colorsets.kotype == KO_COLORSET_CONFIG_INSTANT || !self->animating)
+            if (acting_entity->modeldata.colorsets.kotype == KO_COLORSET_CONFIG_INSTANT || !acting_entity->animating)
             {
-                self->colourmap = model_get_colourmap(&(self->modeldata), self->modeldata.colorsets.ko);
+                acting_entity->colourmap = model_get_colourmap(&(acting_entity->modeldata), acting_entity->modeldata.colorsets.ko);
             }
         }
 
         return;
     }
 
-    if(_time < self->stalltime || self->position.y != self->base || self->velocity.y)
+    if(_time < acting_entity->stalltime || acting_entity->position.y != acting_entity->base || acting_entity->velocity.y)
     {
         return;
     }
 
-    set_rise(self, self->last_damage_type, 0);
+    set_rise(acting_entity, acting_entity->last_damage_type, 0);
 }
 
 // rise proc
@@ -31851,25 +31933,151 @@ void checkhitscore(entity *other, s_attack *attack)
     }
 }
 
-e_death_sequence_config death_sequence_get_value_from_legacy(e_death_sequence_config current_value, e_falldie_config acting_value)
+/*
+* Caskey, Damon V.
+* 2023-04-03
+*
+* Accept string input and return
+* matching constant.
+*/
+e_death_config_flags death_get_config_flag_from_string(char* value)
 {
-    //printf("\n\n death_sequence_get_value_from_legacy(%d)", acting_value);
+    e_death_config_flags result;
+       
+    if (stricmp(value, "none") == 0)
+    {
+        result = DEATH_CONFIG_NONE;
+    }
+    else if (stricmp(value, "default") == 0)
+    {
+        result = DEATH_CONFIG_MACRO_DEFAULT;
+    }
+    else if (stricmp(value, "blink_death_air") == 0)
+    {
+        result = DEATH_CONFIG_BLINK_DEATH_AIR;
+    }
+    else if (stricmp(value, "blink_death_ground") == 0)
+    {
+        result = DEATH_CONFIG_BLINK_DEATH_GROUND;
+    }
+    else if (stricmp(value, "blink_fall_air") == 0)
+    {
+        result = DEATH_CONFIG_BLINK_FALL_AIR;
+    }
+    else if (stricmp(value, "blink_fall_ground") == 0)
+    {
+        result = DEATH_CONFIG_BLINK_FALL_GROUND;
+    }
+    else if (stricmp(value, "blink_remove_air") == 0)
+    {
+        result = DEATH_CONFIG_BLINK_REMOVE_AIR;
+    }
+    else if (stricmp(value, "blink_remove_ground") == 0)
+    {
+        result = DEATH_CONFIG_BLINK_REMOVE_GROUND;
+    }
+    else if (stricmp(value, "death_air") == 0)
+    {
+        result = DEATH_CONFIG_DEATH_AIR;
+    }
+    else if (stricmp(value, "death_ground") == 0)
+    {
+        result = DEATH_CONFIG_DEATH_GROUND;
+    }
+    else if (stricmp(value, "fall_land_air") == 0)
+    {
+        result = DEATH_CONFIG_FALL_LAND_AIR;
+    }
+    else if (stricmp(value, "fall_land_ground") == 0)
+    {
+        result = DEATH_CONFIG_FALL_LAND_GROUND;
+    }
+    else if (stricmp(value, "fall_lie_air") == 0)
+    {
+        result = DEATH_CONFIG_FALL_LIE_AIR;
+    }
+    else if (stricmp(value, "fall_lie_ground") == 0)
+    {
+        result = DEATH_CONFIG_FALL_LIE_GROUND;
+    }
+    else if (stricmp(value, "remove_corpse_air") == 0)
+    {
+        result = DEATH_CONFIG_REMOVE_CORPSE_AIR;
+    }
+    else if (stricmp(value, "remove_corpse_ground") == 0)
+    {
+        result = DEATH_CONFIG_REMOVE_CORPSE_GROUND;
+    }
+    else if (stricmp(value, "remove_vanish_air") == 0)
+    {
+        result = DEATH_CONFIG_REMOVE_VANISH_AIR;
+    }
+    else if (stricmp(value, "remove_vanish_ground") == 0)
+    {
+        result = DEATH_CONFIG_REMOVE_VANISH_GROUND;
+    }
+    else if (stricmp(value, "source_model") == 0)
+    {
+        result = DEATH_CONFIG_SOURCE_MODEL;
+    }
+    else
+    {
+        printf("\n\n Unknown death config option (%s). \n", value);
+        result = DEATH_CONFIG_NONE;
+    }
 
-    e_death_sequence_config result = (current_value &= ~DEATH_SEQUENCE_MACRO_DEATH_FALL_ALL);
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-20
+*
+* Get arguments foroutput final
+* bitmask.
+*/
+e_death_config_flags death_get_config_flags_from_arguments(ArgList* arglist, int start_position)
+{
+    int i = 0;
+    char* value = "";
+
+    e_death_config_flags result = DEATH_CONFIG_NONE;
+
+    for (i = start_position; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= death_get_config_flag_from_string(value);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-20
+* 
+* Accept current value and a legacy falldie.
+* Returns appropriate config flags to match
+* expected legacy behavior.
+*/
+e_death_config_flags death_config_get_value_from_falldie(e_death_config_flags current_value, e_falldie_config acting_value)
+{
+    //printf("\n\n death_config_get_value_from_falldie(%d, %d)", current_value, acting_value);
+
+    e_death_config_flags result = (current_value &= ~DEATH_CONFIG_MACRO_DEATH_FALL_ALL);
 
     switch (acting_value)
     {
 
     case FALLDIE_CONFIG_NONE:
-        result |= DEATH_SEQUENCE_MACRO_DEFAULT;
+        result |= DEATH_CONFIG_MACRO_DEFAULT;
         break;
 
     case FALLDIE_CONFIG_DEATH_INSTANT:
-        result |= DEATH_SEQUENCE_MACRO_DEATH | DEATH_SEQUENCE_SOURCE_MODEL;
+        result |= DEATH_CONFIG_MACRO_DEATH | DEATH_CONFIG_SOURCE_MODEL;
         break;
 
     case FALLDIE_CONFIG_DEATH_FALL:
-        result |= DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND | DEATH_SEQUENCE_SOURCE_MODEL;
+        result |= DEATH_CONFIG_MACRO_DEATH_FALL_LAND | DEATH_CONFIG_SOURCE_MODEL;
         break;
     }
 
@@ -31878,33 +32086,106 @@ e_death_sequence_config death_sequence_get_value_from_legacy(e_death_sequence_co
     return result;
 }
 
-e_falldie_config death_sequence_get_legacy_from_value(e_death_sequence_config acting_value)
+/*
+* Caskey, Damon V.
+* 2023-03-20
+*
+* Accept current value. Returns a legacy
+* value based on active flags.
+*/
+e_falldie_config death_config_get_falldie_from_value(e_death_config_flags acting_value)
 {
-    //printf("\n\n death_sequence_get_legacy_from_value(%d)", acting_value);
+    //printf("\n\n death_config_get_falldie_from_value(%d)", acting_value);
+    e_falldie_config result = FALLDIE_CONFIG_NONE;     
 
-    e_falldie_config result = FALLDIE_CONFIG_NONE;
-
-    /* 
-    * Default will contain this flag, but
-    * we don't want to use it in checks below.
-    */
-    acting_value &= ~DEATH_SEQUENCE_SOURCE_MODEL;
-
-    if ((acting_value & DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND) == DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND)
+    if ((acting_value & DEATH_CONFIG_MACRO_DEATH_FALL_LAND) == DEATH_CONFIG_MACRO_DEATH_FALL_LAND)
     {
         result = FALLDIE_CONFIG_DEATH_FALL;
     }
-    else if ((acting_value & DEATH_SEQUENCE_MACRO_DEATH) == DEATH_SEQUENCE_MACRO_DEATH)
+    else if ((acting_value & DEATH_CONFIG_MACRO_DEATH) == DEATH_CONFIG_MACRO_DEATH)
     {
         result = FALLDIE_CONFIG_DEATH_INSTANT;
     }
-    else if ((acting_value & (DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND)) == (DEATH_SEQUENCE_FALL_LAND_AIR | DEATH_SEQUENCE_FALL_LAND_GROUND))
+    else if ((acting_value & (DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND)) == (DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND))
     {
         result = FALLDIE_CONFIG_NONE;
     }
 
     //printf("\n\t result: %d", result);
     
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-20
+*
+* Accept current value and a legacy falldie.
+* Returns appropriate config flags to match
+* expected legacy behavior.
+*/
+e_death_config_flags death_config_get_value_from_nodieblink(e_death_config_flags current_value, e_nodieblink_config acting_value)
+{
+    //printf("\n\n death_config_get_value_from_nodieblink(%d, %d)", current_value, acting_value);
+
+    e_death_config_flags result = (current_value &= ~(DEATH_CONFIG_MACRO_BLINK | DEATH_CONFIG_MACRO_FALL | DEATH_CONFIG_MACRO_REMOVE));
+
+    switch (acting_value)
+    {
+
+    case NODIEBLINK_CONFIG_NONE:
+        result |= DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND;
+        break;
+
+    case NODIEBLINK_CONFIG_FALL_LIE_BLINK:
+        result |= DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND;
+        break;
+
+    case NODIEBLINK_CONFIG_FALL_LIE_CORPSE:
+        result |= DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_CORPSE_AIR | DEATH_CONFIG_REMOVE_CORPSE_GROUND;
+        break;
+
+    case NODIEBLINK_CONFIG_FALL_LIE_VANISH:
+        result |= DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND;
+        break;
+    }
+
+    //printf("\n\t result: %d", result);
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-03-20
+*
+* Accept current value. Returns a legacy
+* value based on active flags.
+*/
+e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags acting_value)
+{
+    //printf("\n\n death_config_get_falldie_from_value(%d)", acting_value);
+    e_nodieblink_config result = NODIEBLINK_CONFIG_NONE;
+
+    if ((acting_value & (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND)) == (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND))
+    {
+        result = NODIEBLINK_CONFIG_FALL_LIE_VANISH;
+    }
+    else if ((acting_value & (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_CORPSE_AIR | DEATH_CONFIG_REMOVE_CORPSE_GROUND)) == (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_CORPSE_AIR | DEATH_CONFIG_REMOVE_CORPSE_GROUND))
+    {
+        result = NODIEBLINK_CONFIG_FALL_LIE_CORPSE;
+    }
+    else if ((acting_value & (DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND)) == (DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND))
+    {
+        result = NODIEBLINK_CONFIG_FALL_LIE_BLINK;
+    }
+    else if ((acting_value & (DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND)) == (DEATH_CONFIG_BLINK_REMOVE_AIR | DEATH_CONFIG_BLINK_REMOVE_GROUND | DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND))
+    {
+        result = NODIEBLINK_CONFIG_NONE;
+    }
+
+    //printf("\n\t result: %d", result);
+
     return result;
 }
 
@@ -31957,8 +32238,8 @@ e_shadow_config_flags shadow_get_config_flag_from_string(char* value)
     }    
     else
     {
-        printf("\n\n Unknown shadow config option (%s), using 'default'. \n", value);
-        result = SHADOW_CONFIG_DEFAULT;
+        printf("\n\n Unknown shadow config option (%s). \n", value);
+        result = SHADOW_CONFIG_NONE;
     }
 
     return result;
@@ -32241,6 +32522,10 @@ void defense_apply_setup_to_property(char* filename, char* command, s_defense* d
 
     case DEFENSE_PARAMETER_DAMAGE_MIN:
         defense->damage_min = GET_INT_ARGP(2);
+        break;
+
+    case DEFENSE_PARAMETER_DEATH_CONFIG:
+        defense->death_config_flags = death_get_config_flags_from_arguments(arglist, 2);
         break;
 
     case DEFENSE_PARAMETER_FACTOR:
@@ -32769,6 +33054,7 @@ void defense_dump_object(s_defense* object)
         printf("\n\t %-*s %d", space_label, "->damage_adjust", object->damage_adjust);
         printf("\n\t %-*s %d", space_label, "->damage_max", object->damage_max);
         printf("\n\t %-*s %d", space_label, "->damage_min", object->damage_min);
+        printf("\n\t %-*s %d", space_label, "->death_config_flags", object->death_config_flags);
         printf("\n\t %-*s %f", space_label, "->factor", object->factor);
         printf("\n\t %-*s %f", space_label, "->knockdown", object->knockdown);
         printf("\n\t %-*s %p", space_label, "->meta_data", object->meta_data);
@@ -33355,15 +33641,17 @@ int arrow_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* 
 
 int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object)
 {   
-    
+    entity* acting_entity = self;
+
     int pain_check = 0; // React with pain animations (1) or ignore (0);
+    e_death_config_flags death_config;
     
-    if(self->death_state & DEATH_STATE_DEAD)
+    if(acting_entity->death_state & DEATH_STATE_DEAD)
     {
         return 0;
     }
 
-    if(self->toexplode & (EXPLODE_DETONATE_HIT | EXPLODE_DETONATE_DAMAGED))
+    if(acting_entity->toexplode & (EXPLODE_DETONATE_HIT | EXPLODE_DETONATE_DAMAGED))
     {
         return 0;
     }    
@@ -33375,45 +33663,45 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
     }
    
     // set oppoent
-    if(self != other)
+    if(acting_entity != other)
     {
-        set_opponent(self, other);
+        set_opponent(acting_entity, other);
     }
     
     // adjust type
     if(attack->attack_type >= 0 && attack->attack_type < max_attack_types)
     {
-        self->last_damage_type = attack->attack_type;
+        acting_entity->last_damage_type = attack->attack_type;
     }
     else
     {
-        self->last_damage_type = ATK_NORMAL;
+        acting_entity->last_damage_type = ATK_NORMAL;
     }
 
-    if (!self->die_on_landing)
+    if (!acting_entity->die_on_landing)
     {        
         // pre-check drop
-        checkdamagedrop(self, attack, defense_object);
+        checkdamagedrop(acting_entity, attack, defense_object);
 
         // Drop Weapon due to being hit.
-        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DAMAGE)
+        if(acting_entity->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DAMAGE)
         {
             dropweapon(1);
         }
         // check effects, e.g., frozen, blast, steal
-        if(!(self->modeldata.guardpoints.max > 0 && self->modeldata.guardpoints.current <= 0))
+        if(!(acting_entity->modeldata.guardpoints.max > 0 && acting_entity->modeldata.guardpoints.current <= 0))
         {
             checkdamageeffects(attack);
         }
     }
 
     // check backpain
-    check_backpain(other,self);
+    check_backpain(other,acting_entity);
     
     /* Check and apply direction flip. */
-    checkdamageflip(self, other, attack, defense_object);
+    checkdamageflip(acting_entity, other, attack, defense_object);
 
-    if (!self->die_on_landing)
+    if (!acting_entity->die_on_landing)
     {
         // mprate can also control the MP recovered per hit.
         checkmpadd();
@@ -33421,63 +33709,63 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         checkhitscore(other, attack);        
         
         // check damage, cost hp.
-        checkdamage(self, other, attack, defense_object);
+        checkdamage(acting_entity, other, attack, defense_object);
 
         // is it dead now?
         checkdeath();
     }
 
-    if(self->modeldata.type & TYPE_PLAYER)
+    if(acting_entity->modeldata.type & TYPE_PLAYER)
     {
-        if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, attack->attack_force * 3);
+        if (savedata.joyrumble[acting_entity->playerindex]) control_rumble(acting_entity->playerindex, 1, attack->attack_force * 3);
     }
-    if(self->position.y <= PIT_DEPTH && self->death_state & DEATH_STATE_DEAD)
+    if(acting_entity->position.y <= PIT_DEPTH && acting_entity->death_state & DEATH_STATE_DEAD)
     {
-        if(self->modeldata.type & TYPE_PLAYER)
+        if(acting_entity->modeldata.type & TYPE_PLAYER)
         {
             player_die();
         }
         else
         {
-            kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_PIT);
+            kill_entity(acting_entity, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_PIT);
         }
         return 1;
     }
 
     // fall to the ground so don't fall again
-    /*if(self->damage_on_landing.attack_force)
+    /*if(acting_entity->damage_on_landing.attack_force)
     {
-        self->damage_on_landing.attack_force = 0;
+        acting_entity->damage_on_landing.attack_force = 0;
         return 1;
     }*/
     // reset damageonlanding
-    self->damage_on_landing.attack_force = 0;
-    self->damage_on_landing.attack_type = ATK_NONE;
+    acting_entity->damage_on_landing.attack_force = 0;
+    acting_entity->damage_on_landing.attack_type = ATK_NONE;
 
 	// White Dragon: fix damage_on_landing bug
-	if(self->die_on_landing && self->energy_state.health_current <= 0)
+	if(acting_entity->die_on_landing && acting_entity->energy_state.health_current <= 0)
 	{
-		self->modeldata.falldie |= DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND;
+		acting_entity->modeldata.death_config_flags |= DEATH_CONFIG_MACRO_DEATH_FALL_LAND;
 	}
 
     // unlink due to being hit
-    if((self->opponent && self->opponent->grabbing != self) // Have an opponent, but opponent is not grabbing me. 
-		|| self->death_state & DEATH_STATE_DEAD				// Dead.
-		|| self->frozen										// Frozen. 
-		|| self->drop)										// Knocked down.
+    if((acting_entity->opponent && acting_entity->opponent->grabbing != acting_entity) // Have an opponent, but opponent is not grabbing me. 
+		|| acting_entity->death_state & DEATH_STATE_DEAD				// Dead.
+		|| acting_entity->frozen										// Frozen. 
+		|| acting_entity->drop)										// Knocked down.
     {
-        ent_unlink(self);
+        ent_unlink(acting_entity);
     }
     // Enemies can now use SPECIAL2 to escape cheap attack strings!
-    if(self->modeldata.escapehits)
+    if(acting_entity->modeldata.escapehits)
     {
-        if(self->drop)
+        if(acting_entity->drop)
         {
-            self->escapecount = 0;
+            acting_entity->escapecount = 0;
         }
         else
         {
-            self->escapecount++;
+            acting_entity->escapecount++;
         }
     }
 
@@ -33488,69 +33776,77 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
     */
     pain_check = defense_result_pain(attack, defense_object);
     
-    if(self->drop || self->energy_state.health_current <= 0)
+    if(acting_entity->drop || acting_entity->energy_state.health_current <= 0)
     {
-        self->takeaction = common_fall;
+        acting_entity->takeaction = common_fall;
         
         // Drop Weapon due to death.
-        if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DEATH && self->energy_state.health_current <= 0)
+        if(acting_entity->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_DEATH && acting_entity->energy_state.health_current <= 0)
         {
             dropweapon(1);
         }
-        else if(self->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_FALL)
+        else if(acting_entity->modeldata.weapon_properties.loss_condition & WEAPON_LOSS_CONDITION_FALL)
         {
             dropweapon(1);
+        }
+
+        death_config = defense_object->death_config_flags;
+
+        if (death_config & DEATH_CONFIG_SOURCE_MODEL)
+        {
+            death_config = acting_entity->modeldata.death_config_flags;
         }
 
         /* We're alive, or death sequence wants us to handle falling. */
-        if(self->energy_state.health_current > 0 || !death_try_sequence_damage(self, self->modeldata.falldie, DEATH_TRY_SEQUENCE_ACTING_EVENT_DAMAGE))
+        if(acting_entity->energy_state.health_current > 0 || !death_try_sequence_damage(acting_entity, death_config, DEATH_TRY_SEQUENCE_ACTING_EVENT_DAMAGE))
         {
             if (fall_flag >= 1) return 1;
-            self->velocity.x = attack->dropv.x;
-            self->velocity.z = attack->dropv.z;
-            if(self->direction == DIRECTION_RIGHT)
+            acting_entity->velocity.x = attack->dropv.x;
+            acting_entity->velocity.z = attack->dropv.z;
+            if(acting_entity->direction == DIRECTION_RIGHT)
             {
-                self->velocity.x = -self->velocity.x;
+                acting_entity->velocity.x = -acting_entity->velocity.x;
             }
-            if(self->inbackpain) self->velocity.x *= -1;
-            toss(self, attack->dropv.y);
-            self->damage_on_landing.attack_force = attack->damage_on_landing.attack_force;
-            self->damage_on_landing.attack_type = attack->damage_on_landing.attack_type;
-            self->knockdowncount = self->modeldata.knockdowncount; // reset the knockdowncount
-            self->knockdowntime = 0;
+            if(acting_entity->inbackpain) acting_entity->velocity.x *= -1;
+            toss(acting_entity, attack->dropv.y);
+            acting_entity->damage_on_landing.attack_force = attack->damage_on_landing.attack_force;
+            acting_entity->damage_on_landing.attack_type = attack->damage_on_landing.attack_type;
+            acting_entity->knockdowncount = acting_entity->modeldata.knockdowncount; // reset the knockdowncount
+            acting_entity->knockdowntime = 0;
 
             // If no fall/die animations exist, entity simply disappears.
-            if(!set_fall(self, other, attack, 1))
+            if(!set_fall(acting_entity, other, attack, 1))
             {
-                if(self->modeldata.type & TYPE_PLAYER)
+                if(acting_entity->modeldata.type & TYPE_PLAYER)
                 {
                     player_die();
                 }
                 else
                 {
-                    kill_entity(self, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_FALL);
+                    kill_entity(acting_entity, KILL_ENTITY_TRIGGER_TAKE_DAMAGE_COMMON_FALL);
                 }
                 return 1;
             }
         }
-        if(self->modeldata.type & TYPE_PLAYER)
+
+        if(acting_entity->modeldata.type & TYPE_PLAYER)
         {
-            if (savedata.joyrumble[self->playerindex]) control_rumble(self->playerindex, 1, attack->attack_force * 3);
+            if (savedata.joyrumble[acting_entity->playerindex]) control_rumble(acting_entity->playerindex, 1, attack->attack_force * 3);
         }
     }
     else if(attack->grab && !attack->no_pain)
     {
-        self->takeaction = common_pain;
+        acting_entity->takeaction = common_pain;
         other->takeaction = common_grabattack;
         other->stalltime = _time + GRAB_STALL;
-        self->releasetime = _time + (GAME_SPEED / 2);
-        set_pain(self, self->last_damage_type, 0);
+        acting_entity->releasetime = _time + (GAME_SPEED / 2);
+        set_pain(acting_entity, acting_entity->last_damage_type, 0);
     }
     // Don't change to pain animation if frozen
-    else if(!self->frozen && !self->modeldata.nopain && !attack->no_pain && pain_check)
+    else if(!acting_entity->frozen && !acting_entity->modeldata.nopain && !attack->no_pain && pain_check)
     {
-        self->takeaction = common_pain;
-        set_pain(self, self->last_damage_type, 1);
+        acting_entity->takeaction = common_pain;
+        set_pain(acting_entity, acting_entity->last_damage_type, 1);
     }
 
     return 1;
@@ -37084,7 +37380,7 @@ void sort_invert_by_parent(entity *ent, entity *parent)
 
 int star_move()
 {
-    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && (self->modeldata.falldie & DEATH_SEQUENCE_MACRO_DEATH)))
+    if(self->position.x < advancex - 80 || self->position.x > advancex + (videomodes.hRes + 80) || (self->position.y <= self->base && (self->modeldata.death_config_flags & DEATH_CONFIG_MACRO_DEATH)))
     {
         kill_entity(self, KILL_ENTITY_TRIGGER_STAR_OUT_OF_BOUNDS);
         return 0;
@@ -37100,7 +37396,7 @@ int star_move()
     {
         self->takeaction = common_lie;
         self->energy_state.health_current = 0;
-        if(self->modeldata.nodieblink == 2)
+        if((self->modeldata.death_config_flags & (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND)) == (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND))
         {
             self->animating = ANIMATING_NONE;
         }
@@ -37940,7 +38236,7 @@ void player_die()
     player[playerindex].spawnhealth = self->modeldata.health;
     player[playerindex].spawnmp = self->modeldata.mp;
 
-    if(self->modeldata.nodieblink != 3)
+    if(self->modeldata.death_config_flags & ~(DEATH_CONFIG_REMOVE_CORPSE_AIR | DEATH_CONFIG_REMOVE_CORPSE_GROUND))
     {
         kill_entity(self, KILL_ENTITY_TRIGGER_PLAYER_DEATH);
     }
@@ -37948,7 +38244,7 @@ void player_die()
     {
         self->think = NULL;
         self->takeaction = NULL;
-        self->modeldata.type = TYPE_NONE;
+        self->death_state |= DEATH_STATE_CORPSE;
     }
 
     if(player[playerindex].lives <= 0)
@@ -42550,7 +42846,7 @@ int obstacle_takedamage(entity *other, s_attack *attack, int fall_flag, s_defens
                 ent_set_anim(self, ANI_FALL, 0);
             }
 
-            if(!self->modeldata.nodieblink)
+            if(self->modeldata.death_config_flags & DEATH_CONFIG_MACRO_BLINK)
             {
                 self->blink = 1;
             }
@@ -42619,7 +42915,7 @@ entity *smartspawn(s_spawn_entry *props)      // 7-1-2005 Entire section replace
         return NULL;
     }
 
-    // Now you can make it so enemies/obstacles/etc only spawn if there are 2 players
+    /* Spawn item based on number of active players. */
     if(props->spawnplayer_count >= (playercount = MAX(1, count_ents(TYPE_PLAYER))))
     {
         if(props->boss && level != NULL)
@@ -43014,11 +43310,11 @@ void kill_all_players_by_timeover()
                 attack_lose.dropv.y = default_model_dropv.y;
                 attack_lose.dropv.x = default_model_dropv.x;
                 attack_lose.dropv.z = default_model_dropv.z;
-                self->modeldata.falldie |= DEATH_SEQUENCE_MACRO_DEATH_FALL_LAND;
+                self->modeldata.death_config_flags |= DEATH_CONFIG_MACRO_DEATH_FALL_LAND;
             }
             else
             {
-                self->modeldata.falldie |= DEATH_SEQUENCE_MACRO_DEATH;
+                self->modeldata.death_config_flags |= DEATH_CONFIG_MACRO_DEATH;
             }
 
             defense_object = defense_find_current_object(self, NULL, attack_lose.attack_type);
