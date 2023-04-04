@@ -97,7 +97,7 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 		
             break;
 
-        case MODEL_PROPERTY_DEATH_CONFIG:
+        case MODEL_PROPERTY_DEATH_CONFIG_FLAGS:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
             (*pretvar)->lVal = (e_death_config_flags)handle->death_config_flags;
@@ -426,7 +426,7 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
 
             break;
 
-        case MODEL_PROPERTY_DEATH_CONFIG:
+        case MODEL_PROPERTY_DEATH_CONFIG_FLAGS:
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {

@@ -9232,12 +9232,14 @@ int addframe(s_addframe_data* data)
     if(data->frameshadow >= 0 && !data->animation->shadow)
     {
         data->animation->shadow = malloc(data->framecount * sizeof(*data->animation->shadow));
-        memset(data->animation->shadow, -1, data->framecount * sizeof(*data->animation->shadow)); //default to -1
+        memset(data->animation->shadow, FRAME_SHADOW_NONE, data->framecount * sizeof(*data->animation->shadow));
     }
+
     if(data->animation->shadow)
     {
         data->animation->shadow[currentframe] = data->frameshadow;    // shadow index for each frame
     }
+
     if(data->shadow_coords[0] || data->shadow_coords[1])
     {
         if(!data->animation->shadow_coords)
@@ -12812,7 +12814,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int errorVal = 0;
     int shadow_set = 0;
     int idle = 0;
-    int frameshadow = -1;	// -1 will use default shadow for this entity, otherwise will use this value
+    int frameshadow = FRAME_SHADOW_NONE;    // FRAME_SHADOW_NONE will use default shadow for this entity, otherwise will use this value.
     int soundtoplay = SAMPLE_ID_NONE;
     int aiattackset = 0;
     int maskindex = -1;
@@ -14188,7 +14190,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         value2 = "Failed to create colourmap. Image Used Twice!";
                         break;
                     case -1: //should not happen now
-                        value2 = "Failed to create colourmap. Color maps full error (color maps are unlimited by engine - check memory limits of console!";
+                        value2 = "Failed to create colourmap. Color maps full error (color maps are unlimited by engine - check memory limits of console)!";
                         break;
                     case -2:
                         value2 = "Failed to create colourmap. Failed to allocate memory!";
@@ -14435,7 +14437,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 move.axis.x                     = 0;
                 move.axis.y                     = 0;
                 move.axis.z                     = 0;
-                frameshadow                     = -1;
+                frameshadow                     = FRAME_SHADOW_NONE;
                 soundtoplay                     = SAMPLE_ID_NONE;
 
                 /*
@@ -16457,7 +16459,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 move.axis.z = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_FSHADOW:
-                frameshadow = GET_INT_ARG(1);
+
+                value = GET_ARG(1);
+                if (stricmp(value, "none") == 0)
+                {
+                    tempInt = FRAME_SHADOW_NONE;
+                }
+                else
+                {
+                    tempInt = GET_INT_ARG(1);
+                }
+                frameshadow = tempInt;
                 break;
             case CMD_MODEL_RANGE:
                 if(!newanim)
@@ -32282,20 +32294,20 @@ e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flag
 
     if (!legacy_value)
     {
-        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND)
-        {
-            result |= SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
-            result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
-        }
-
-        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
-        {
-            result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
-            result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
-        }
+        /* 
+        * Don't do anything. Text "aironly 0" doesn't
+        * mean no air shadows, and fortunatly there
+        * is no legacy aironly script access, so
+        * we don't need to worry about that.
+        */
 
         return result;
     }
+
+    /*
+    * If either type of ground shadow is turned on,
+    * then disable it here.
+    */
 
     if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND)
     {
@@ -32306,7 +32318,7 @@ e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flag
     if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
     {
         result &= ~SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
-        result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+        result |= SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
     }
 
     return result;
@@ -32387,30 +32399,32 @@ e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_fl
 * Returns appropriate shadow 
 * config value.
 */
-e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, int legacy_value)
+e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, e_shadowbase_config legacy_value)
 {
     e_shadow_config_flags result = shadow_config_flags;
         
+    /* Remove all existing base flags.*/
+    result &= ~SHADOW_CONFIG_BASE_ALL;
 
     switch (legacy_value)
     {
     default:
-    case 0:
-        
-        result &= ~SHADOW_CONFIG_BASE_ALL;
+    case SHADOWBASE_CONFIG_NONE:
+
+        /* Do nothing. */
         break;
 
-    case 1:
+    case SHADOWBASE_CONFIG_NO_CHANGE:
 
         result |= SHADOW_CONFIG_BASE_STATIC;
         break;
 
-    case 2:
+    case SHADOWBASE_CONFIG_PLATFORM:
 
         result |= SHADOW_CONFIG_BASE_PLATFORM;
         break;
 
-    case 3:
+    case SHADOWBASE_COMBINE:
 
         result |= (SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM);
         break;
@@ -32418,7 +32432,6 @@ e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_f
 
     return result;
 }
-
 
 
 /*
@@ -37395,8 +37408,9 @@ int star_move()
     if(self->landed_on_platform || self->position.y <= self->base)
     {
         self->takeaction = common_lie;
+        self->death_state |= DEATH_STATE_DEAD;
         self->energy_state.health_current = 0;
-        if((self->modeldata.death_config_flags & (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND)) == (DEATH_CONFIG_FALL_LIE_AIR | DEATH_CONFIG_FALL_LIE_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND))
+        if((self->modeldata.death_config_flags & (DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND)) == (DEATH_CONFIG_FALL_LAND_AIR | DEATH_CONFIG_FALL_LAND_GROUND | DEATH_CONFIG_REMOVE_VANISH_AIR | DEATH_CONFIG_REMOVE_VANISH_GROUND))
         {
             self->animating = ANIMATING_NONE;
         }

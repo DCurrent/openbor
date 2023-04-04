@@ -122,6 +122,7 @@ movement restirctions are here!
 #define		FRAME_NONE			-1	// Lot of things use frames 0+, and this value to mean they are disabled.
 #define		MODEL_INDEX_NONE	-1	// No model/disabled.
 #define		SAMPLE_ID_NONE	    -1	// No sound sameple/disabled.
+#define     FRAME_SHADOW_NONE   -1  // Use the model level instead.
 
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
@@ -2090,6 +2091,7 @@ typedef enum e_death_config_flags
     DEATH_CONFIG_REMOVE_VANISH_AIR      = (1 << 14), // Remove with no trace if killed in air.
     DEATH_CONFIG_REMOVE_VANISH_GROUND   = (1 << 15), // Remove with no trace if killed on ground.
     DEATH_CONFIG_SOURCE_MODEL           = (1 << 16), // Always use model elvel property.
+    
     /*
     * Combined flags. Make sure to update
     * these if any new flags are added.
@@ -3216,19 +3218,36 @@ typedef struct
 */
 typedef enum e_shadow_config_flags
 {
-    SHADOW_CONFIG_NONE = 0,
-    SHADOW_CONFIG_BASE_STATIC = (1 << 0),
-    SHADOW_CONFIG_BASE_PLATFORM = (1 << 1),
-    SHADOW_CONFIG_DISABLED = (1 << 2),
-    SHADOW_CONFIG_GRAPHIC_REPLICA_AIR = (1 << 3),
-    SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND = (1 << 4),
-    SHADOW_CONFIG_GRAPHIC_STATIC_AIR = (1 << 5),
-    SHADOW_CONFIG_GRAPHIC_STATIC_GROUND = (1 << 6),
+    SHADOW_CONFIG_NONE                      = 0,
+    SHADOW_CONFIG_BASE_STATIC               = (1 << 0),
+    SHADOW_CONFIG_BASE_PLATFORM             = (1 << 1),
+    SHADOW_CONFIG_DISABLED                  = (1 << 2),
+    SHADOW_CONFIG_GRAPHIC_REPLICA_AIR       = (1 << 3),
+    SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND    = (1 << 4),
+    SHADOW_CONFIG_GRAPHIC_STATIC_AIR        = (1 << 5),
+    SHADOW_CONFIG_GRAPHIC_STATIC_GROUND     = (1 << 6),
+
     SHADOW_CONFIG_DEFAULT = SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND,
     SHADOW_CONFIG_GRAPHIC_ALL = SHADOW_CONFIG_GRAPHIC_REPLICA_AIR | SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND | SHADOW_CONFIG_GRAPHIC_STATIC_AIR | SHADOW_CONFIG_GRAPHIC_STATIC_GROUND,
     SHADOW_CONFIG_BASE_ALL = SHADOW_CONFIG_BASE_STATIC | SHADOW_CONFIG_BASE_PLATFORM
 } e_shadow_config_flags;
 
+/*
+* Caskey, Damon V.
+* 2023-03-19
+*
+* Legacy shadowbase flags.
+*/
+typedef enum e_shadowbase_config
+{
+    /*
+    * Keep orginal order.
+    */
+    SHADOWBASE_CONFIG_NONE,
+    SHADOWBASE_CONFIG_NO_CHANGE,
+    SHADOWBASE_CONFIG_PLATFORM,
+    SHADOWBASE_COMBINE
+}e_shadowbase_config;
 
 
 typedef struct
@@ -3272,7 +3291,7 @@ typedef struct
     int shadow; // Shadow index. ~~
     
     int nodrop; // Flag to determine if enemies can be knocked down
-    e_death_config_flags death_config_flags; // Playing death animations, blinking, removal, etc.
+    e_death_config_flags death_config_flags; // Playing death animations, blinking, removal, etc. ~~
 
     /* Blocking */
     int thold; // The entities threshold for block
@@ -4266,7 +4285,7 @@ int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_
 /* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value);
-e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, int legacy_value);
+e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, e_shadowbase_config legacy_value);
 e_shadow_config_flags shadow_get_config_flag_from_string(char* value);
 e_shadow_config_flags shadow_get_config_flags_from_arguments(ArgList* arglist);
 
