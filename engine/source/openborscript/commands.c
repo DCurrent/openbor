@@ -244,6 +244,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_BBOXZ, "bboxz");
     LIST_ADD(CMD_MODEL_BFLASH, "bflash");
     LIST_ADD(CMD_MODEL_BLAST, "blast");
+    LIST_ADD(CMD_MODEL_BLOCK_CONFIG, "block_config");
     LIST_ADD(CMD_MODEL_BLOCKBACK, "blockback");
     LIST_ADD(CMD_MODEL_BLOCKFLASH, "blockflash");
     LIST_ADD(CMD_MODEL_BLOCKFX, "blockfx");

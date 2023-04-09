@@ -3656,7 +3656,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_blockback:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.blockback;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.block_config_flags & BLOCK_CONFIG_BACK);
         break;
     }
     case _ep_blockodds:
@@ -5769,7 +5769,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.blockback = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.block_config_flags |= BLOCK_CONFIG_BACK;
+            }
+            else
+            {
+                ent->modeldata.block_config_flags &= ~BLOCK_CONFIG_BACK;
+            }
         }
         break;
     }
@@ -6181,7 +6188,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->shadow_config_flags = shadow_get_config_from_legacy_gfxshadow(0, ltemp);
+            ent->shadow_config_flags = shadow_get_config_from_legacy_gfxshadow(ent->shadow_config_flags, ltemp);
         }
         break;
     }

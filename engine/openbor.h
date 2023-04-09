@@ -3249,6 +3249,29 @@ typedef enum e_shadowbase_config
     SHADOWBASE_COMBINE
 }e_shadowbase_config;
 
+/*
+* Caskey, Damon V.
+* 2023-04-05
+*
+* Blocking behavior flags.
+*/
+typedef enum e_block_config_flags
+{
+    BLOCK_CONFIG_NONE           = 0,
+    BLOCK_CONFIG_ACTIVE         = (1 << 0), // AI blocks like human. 
+    BLOCK_CONFIG_BACK           = (1 << 1), // Can block attacks from behind.
+    BLOCK_CONFIG_DISABLED       = (1 << 2), // No blocking.
+    BLOCK_CONFIG_HOLD_IMPACT    = (1 << 3), // Maintain block by holding button until impact.
+    BLOCK_CONFIG_HOLD_INFINITE  = (1 << 4)  // Maintain block by holding button indefinitely.
+} e_block_config_flags;
+
+typedef enum e_pain_config_flags
+{
+    PAIN_CONFIG_NONE        = 0,
+    PAIN_CONFIG_PAIN        = (1 << 0),
+    PAIN_CONFIG_PAIN_BACK   = (1 << 1),
+    PAIN_CONFIG_FALL        = (1 << 2)
+} e_pain_config_flags;
 
 typedef struct
 {
@@ -3290,14 +3313,15 @@ typedef struct
     e_shadow_config_flags shadow_config_flags; // ~~
     int shadow; // Shadow index. ~~
     
-    int nodrop; // Flag to determine if enemies can be knocked down
+    int nodrop; // Flag to determine if enemies can be knocked down.
+    int nopain; 
+    int blockpain;
+
     e_death_config_flags death_config_flags; // Playing death animations, blinking, removal, etc. ~~
 
     /* Blocking */
+    e_block_config_flags block_config_flags; // ~~
     int thold; // The entities threshold for block
-    int holdblock; // Continue the block animation as long as the player holds the button down
-    int nopassiveblock; // Don't auto block randomly
-    int blockback; // Able to block attacks from behind
     int blockodds; // Odds that an enemy will block an attack (1 : blockodds)
 
     s_edelay edelay; // Entity level delay adjustment.
@@ -3367,10 +3391,10 @@ typedef struct
     int unload; // Unload model after level completed?
     
     int globalmap; // use global palette for its colour map in 24bit mode
-    int nopain;
+    
     int summonkill; // kill it's summoned entity when died;  0. dont kill 1. kill summoned only 2. kill all spawned entity
     int combostyle;
-    int blockpain;
+    
     int atchain[MAX_ATCHAIN];
     int chainlength;
     s_anim **animation;
@@ -4010,6 +4034,8 @@ e_damage_recursive_logic    recursive_damage_get_mode_setup_from_arg_list(ArgLis
 e_damage_recursive_logic    recursive_damage_get_mode_setup_from_legacy_argument(e_damage_recursive_cmd_read value);
 
 /* Blocking logic. */
+e_block_config_flags block_get_config_flags_from_arguments(ArgList* arglist);
+e_block_config_flags block_get_config_flag_from_string(char* value);
 int     check_blocking_decision(entity *ent);
 int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
 int     check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);

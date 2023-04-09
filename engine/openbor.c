@@ -10688,7 +10688,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "player") == 0)
     {
         newchar->type = TYPE_PLAYER;
-        newchar->nopassiveblock = 1;
+        newchar->block_config_flags |= BLOCK_CONFIG_ACTIVE;
+
         for(i = 0; i < MAX_ATCHAIN; i++)
         {
             if(i < 2 || i > 3)
@@ -10700,6 +10701,7 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
                 newchar->atchain[i] = i;
             }
         }
+
         newchar->chainlength            = 4;
         newchar->bounce                 = 1;
         newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
@@ -13099,8 +13101,26 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->quake_config |= GET_INT_ARG(1) ? QUAKE_CONFIG_DISABLE_SCREEN : 0;
                 newchar->quake_config |= GET_INT_ARG(2) ? QUAKE_CONFIG_DISABLE_SELF : 0;
                 break;
-            case CMD_MODEL_BLOCKBACK:	// Flag to determine if attacks can be blocked from behind
-                newchar->blockback = GET_INT_ARG(1);
+            case CMD_MODEL_BLOCK_CONFIG:
+
+                newchar->block_config_flags = block_get_config_flags_from_arguments(&arglist);
+                break;
+
+            case CMD_MODEL_BLOCKBACK:
+                
+                /* Legacy value to bitmask. */
+
+                tempInt = GET_INT_ARG(1);
+
+                if (tempInt)
+                {
+                    newchar->block_config_flags |= BLOCK_CONFIG_BACK;
+                }
+                else
+                {
+                    newchar->block_config_flags &= ~BLOCK_CONFIG_BACK;
+                }
+
                 break;
             case CMD_MODEL_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
                 value = GET_ARG(1);
@@ -13804,13 +13824,41 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->blockodds = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_HOLDBLOCK:
-                newchar->holdblock = GET_INT_ARG(1);
+                
+                tempInt = GET_INT_ARG(1);
+
+                newchar->block_config_flags &= ~(BLOCK_CONFIG_HOLD_IMPACT | BLOCK_CONFIG_HOLD_INFINITE);
+
+                switch (tempInt)
+                {
+                default:
+                case 0:
+                    /* Do nothing. */
+                    break;
+                case 1:
+                    newchar->block_config_flags |= BLOCK_CONFIG_HOLD_IMPACT;
+                    break;
+                case 2:
+                    newchar->block_config_flags |= (BLOCK_CONFIG_HOLD_IMPACT | BLOCK_CONFIG_HOLD_INFINITE);
+                    break;
+                }
+                
                 break;
             case CMD_MODEL_BLOCKPAIN:
                 newchar->blockpain = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NOPASSIVEBLOCK:
-                newchar->nopassiveblock = GET_INT_ARG(1);
+                tempInt = GET_INT_ARG(1);
+
+                if (tempInt)
+                {
+                    newchar->block_config_flags |= BLOCK_CONFIG_ACTIVE;
+                }
+                else
+                {
+                    newchar->block_config_flags &= ~BLOCK_CONFIG_ACTIVE;
+                }
+
                 break;
             case CMD_MODEL_EDELAY:
                 newchar->edelay.mode        = GET_INT_ARG(1);
@@ -25279,6 +25327,72 @@ void set_opponent(entity *ent, entity *other)
 
 }
 
+/*
+* Caskey, Damon V.
+* 2023-04-05
+*
+* Accept string input and return
+* matching constant.
+*/
+e_block_config_flags block_get_config_flag_from_string(char* value)
+{
+    e_death_config_flags result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = BLOCK_CONFIG_NONE;
+    }
+    else if (stricmp(value, "active") == 0)
+    {
+        result = BLOCK_CONFIG_ACTIVE;
+    }
+    else if (stricmp(value, "back") == 0)
+    {
+        result = BLOCK_CONFIG_BACK;
+    }
+    else if (stricmp(value, "disabled") == 0)
+    {
+        result = BLOCK_CONFIG_DISABLED;
+    }
+    else if (stricmp(value, "hold_impact") == 0)
+    {
+        result = BLOCK_CONFIG_HOLD_IMPACT;
+    }
+    else if (stricmp(value, "hold_infinite") == 0)
+    {
+        result = BLOCK_CONFIG_HOLD_INFINITE;
+    }    
+    else
+    {
+        printf("\n\n Unknown block config option (%s). \n", value);
+        result = BLOCK_CONFIG_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-04-05
+*
+* Get arguments and output final
+* bitmask.
+*/
+e_block_config_flags block_get_config_flags_from_arguments(ArgList * arglist)
+{
+    int i = 0;
+    char* value = "";
+
+    e_block_config_flags result = BLOCK_CONFIG_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= block_get_config_flag_from_string(value);
+    }
+
+    return result;
+}
+
 /* 
 * Caskey, Damon V.
 * 2018-12-31
@@ -25286,7 +25400,7 @@ void set_opponent(entity *ent, entity *other)
 * Initialize appropriate block animation and flags. Called when 
 * entity blocks actively (blocking before attack hits). Used 
 * by all player controlled entities or AI controlled entities 
-* with nopassiveblock enabled. 
+* with active block enabled. 
 */
 void do_active_block(entity *ent)
 {
@@ -25354,12 +25468,12 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
     
     /*
 	* Attack from behind? Can't block that if
-	* we don't have blockback flag enabled.
+	* we don't have block back flag enabled.
 	*/
     
     if (ent->direction == other->direction)
 	{
-		if (!ent->modeldata.blockback)
+		if (!(ent->modeldata.block_config_flags & BLOCK_CONFIG_BACK))
 		{
 			return 0;
 		}
@@ -25472,10 +25586,10 @@ int check_blocking_rules(entity *ent)
 // a block.
 int check_blocking_decision(entity *ent)
 {
-	// If we have nopassiveblock enabled and we're
+	// If we have active block enabled and we're
 	// already blocking, then we want the AI to
 	// keep blocking (like most players would).
-	if (ent->modeldata.nopassiveblock)
+	if (ent->modeldata.block_config_flags & BLOCK_CONFIG_ACTIVE)
 	{
 		if (ent->blocking)
 		{
@@ -25507,6 +25621,11 @@ int check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body *
 	e_entity_type entity_type;
 
 	entity_type = ent->modeldata.type;
+
+    if (ent->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED)
+    {
+        return 0;
+    }
 
 	// Check AI or player blocking rules.
 	if (entity_type & TYPE_PLAYER)
@@ -31267,9 +31386,9 @@ void common_block()
 {
 	// Player type with holdblock, also not in pain 
 	// or has post blockpain holdblock ability.
-    int player_hold_block_eligible = self->modeldata.holdblock
+    int player_hold_block_eligible = self->modeldata.block_config_flags & (BLOCK_CONFIG_HOLD_IMPACT | BLOCK_CONFIG_HOLD_INFINITE)
 		&& (self->modeldata.type & TYPE_PLAYER) 
-		&& (self->inpain == IN_PAIN_NONE || (self->modeldata.holdblock & 2));
+		&& (self->inpain == IN_PAIN_NONE || (self->modeldata.block_config_flags & BLOCK_CONFIG_HOLD_INFINITE));
     
 	// Controlling player is holding special key.
 	int player_holding_special = ((player + self->playerindex)->keys & FLAG_SPECIAL);
@@ -31299,7 +31418,7 @@ void common_block()
     */
 
     if(self->inpain & IN_PAIN_BLOCK
-		&& (self->modeldata.holdblock & 2) 
+		&& (self->modeldata.block_config_flags & BLOCK_CONFIG_HOLD_INFINITE)
 		&& !self->animating 
 		&& validanim(self, ANI_BLOCK))
     {
@@ -31945,6 +32064,8 @@ void checkhitscore(entity *other, s_attack *attack)
     }
 }
 
+
+
 /*
 * Caskey, Damon V.
 * 2023-04-03
@@ -32344,16 +32465,27 @@ e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_fl
 
     if (!legacy_value)
     {  
-        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)
-        {
-            result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
-            result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
-        }
-
-        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_STATIC_AIR)
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_AIR)
         {
             result |= SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
             result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
+        }
+
+        if (shadow_config_flags & SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND)
+        {
+            result |= SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
+            result &= ~SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
+        }       
+
+        /*
+        * If no shadow at all set, creator expects
+        * gfxshadow 0 to set up static shadow. Let's
+        * initialize the flags here.
+        */
+
+        if (!(shadow_config_flags & SHADOW_CONFIG_GRAPHIC_ALL))
+        {
+            result |= (SHADOW_CONFIG_GRAPHIC_STATIC_GROUND | SHADOW_CONFIG_GRAPHIC_STATIC_AIR);
         }
 
         return result;
@@ -33893,7 +34025,7 @@ int common_try_runattack(entity *target)
     return 0;
 }
 
-// Active blocking (nopassiveblock enabled). 
+// Active blocking enabled. 
 //
 // AI can behave more like players when blocking. Normally AI
 // blocking is passive. IOW, it can only choose to block attacks
@@ -33902,10 +34034,10 @@ int common_try_runattack(entity *target)
 // 
 // AI blocks if following conditions are met:
 //
-// 1. Entity has nopassiveblock enabled.
+// 1. Entity has active block enabled.
 // 2. Target is within range of BLOCK animation.
 // 3. Target is actively attacking.
-// 4. Blocking chance passes (same rules as passive blocking).
+// 4. Blocking chance passes (same rules as active blocking).
 int common_try_block(entity *target)
 {
 	// Must have block animation.
@@ -33915,7 +34047,7 @@ int common_try_block(entity *target)
 	}
 
 	// Exit if we choose not to block. This function includes 
-	// the check for passive blocking flag.
+	// the check for active blocking flag.
 	if (!check_blocking_decision(self))
 	{	
 		return 0;
@@ -40378,7 +40510,7 @@ void player_think()
         }
 
 		// Blocking.
-        if(validanim(self, ANI_BLOCK) && notinair)
+        if(validanim(self, ANI_BLOCK) && notinair && !(self->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED))
         {
             pl->playkeys &= ~FLAG_SPECIAL;
 

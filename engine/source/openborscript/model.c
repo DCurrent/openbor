@@ -83,6 +83,27 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_BLOCK_CONFIG_FLAGS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_block_config_flags)handle->block_config_flags;
+
+            break;
+
+        case MODEL_PROPERTY_BLOCK_ODDS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->blockodds;
+
+            break;
+
+        case MODEL_PROPERTY_BLOCK_THRESHOLD:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->thold;
+
+            break;
+
         case MODEL_PROPERTY_BOUNCE:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -407,6 +428,33 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->alpha = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_BLOCK_CONFIG_FLAGS:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->block_config_flags = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_BLOCK_ODDS:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->blockodds = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_BLOCK_THRESHOLD:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->thold = temp_int;
             }
 
             break;
