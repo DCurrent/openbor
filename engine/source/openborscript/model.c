@@ -237,6 +237,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_PAIN_CONFIG_FLAGS:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (e_pain_config_flags)handle->pain_config_flags;
+
+            break;
+
         case MODEL_PROPERTY_PATH:
 
             ScriptVariant_ChangeType(*pretvar, VT_STR);
@@ -616,7 +623,16 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
                 handle->offscreen_noatk_factor = temp_float;
             }
 
-            break;        
+            break;    
+
+        case MODEL_PROPERTY_PAIN_CONFIG_FLAGS:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->pain_config_flags = temp_int;
+            }
+
+            break;
 
         case MODEL_PROPERTY_PATH:
 

@@ -3267,10 +3267,11 @@ typedef enum e_block_config_flags
 
 typedef enum e_pain_config_flags
 {
-    PAIN_CONFIG_NONE        = 0,
-    PAIN_CONFIG_PAIN        = (1 << 0),
-    PAIN_CONFIG_PAIN_BACK   = (1 << 1),
-    PAIN_CONFIG_FALL        = (1 << 2)
+    PAIN_CONFIG_NONE                = 0,
+    PAIN_CONFIG_BACK_PAIN           = (1 << 0),
+    PAIN_CONFIG_PAIN_DISABLE        = (1 << 1),
+    PAIN_CONFIG_FALL_DISABLE        = (1 << 2),
+    PAIN_CONFIG_FALL_DISABLE_AIR    = (1 << 3)
 } e_pain_config_flags;
 
 typedef struct
@@ -3307,22 +3308,22 @@ typedef struct
     
     s_colorset colorsets; //2011_04_07, DC: Pre defined color map selections and behavior. ~~
     e_blend_mode alpha; // New alpha variable to determine if the entity uses alpha transparency. ~~
-    int toflip; // Flag to determine if flashes flip or not
+    int toflip; // Flag to determine if flashes flip or not. ~~
     
     /* Shadows */
     e_shadow_config_flags shadow_config_flags; // ~~
     int shadow; // Shadow index. ~~
     
-    int nodrop; // Flag to determine if enemies can be knocked down.
-    int nopain; 
+    e_pain_config_flags pain_config_flags; // ~~
+
     int blockpain;
 
     e_death_config_flags death_config_flags; // Playing death animations, blinking, removal, etc. ~~
 
     /* Blocking */
     e_block_config_flags block_config_flags; // ~~
-    int thold; // The entities threshold for block
-    int blockodds; // Odds that an enemy will block an attack (1 : blockodds)
+    int thold; // The entities threshold for block ~~
+    int blockodds; // Odds that an enemy will block an attack (1 : blockodds) ~~
 
     s_edelay edelay; // Entity level delay adjustment.
     float runspeed; // The speed the character runs at
@@ -3451,7 +3452,6 @@ typedef struct
     int instantitemdeath; // no delay before item suicides
     int	hasPlatforms;
     int isSubclassed;
-    int backpain;
     
     int hitwalltype; // wall type to toggle hitwall animations
 
@@ -4322,6 +4322,10 @@ void meta_data_free_list(s_meta_data* head);
 e_model_copy get_model_flag_from_legacy_int(int legacy_int);
 e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value);
 void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar);
+
+/* Pain and fall (model) */
+e_pain_config_flags pain_get_config_flags_from_arguments(ArgList* arglist);
+e_pain_config_flags pain_get_config_flag_from_string(char* value);
 
 /* Weapon loss control */
 e_weapon_loss_condition get_weapon_loss_from_argument(char* value);

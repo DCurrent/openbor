@@ -226,8 +226,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISIONONE, "attackone");
     LIST_ADD(CMD_MODEL_ATTACKTHROTTLE, "attackthrottle");
     LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
-    LIST_ADD(CMD_MODEL_BACKPAIN, "backpain");
-    LIST_ADD(CMD_MODEL_BACKPAIN, "nohithead");
+    LIST_ADD(CMD_MODEL_NOHITHEAD, "nohithead");
     LIST_ADD(CMD_MODEL_BBOX, "bbox");
     LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_ADJUST, "bbox.effect.hit.flash.layer.adjust");
     LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_SOURCE, "bbox.effect.hit.flash.layer.source");
@@ -457,6 +456,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ONPAINSCRIPT, "onpainscript");
     LIST_ADD(CMD_MODEL_ONSPAWNSCRIPT, "onspawnscript");
     LIST_ADD(CMD_MODEL_OTG, "otg");
+    LIST_ADD(CMD_MODEL_PAIN_BACK, "backpain");
+    LIST_ADD(CMD_MODEL_PAIN_CONFIG, "pain_config");
     LIST_ADD(CMD_MODEL_PAINGRAB, "paingrab");
     LIST_ADD(CMD_MODEL_PALETTE, "palette");
     LIST_ADD(CMD_MODEL_PARROW, "parrow");

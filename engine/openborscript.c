@@ -4770,7 +4770,20 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_nodrop:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.nodrop;
+
+        if ((ent->modeldata.pain_config_flags & (PAIN_CONFIG_FALL_DISABLE | PAIN_CONFIG_FALL_DISABLE_AIR)) == (PAIN_CONFIG_FALL_DISABLE | PAIN_CONFIG_FALL_DISABLE_AIR))
+        {
+            (*pretvar)->lVal = (LONG)2;
+        }
+        else if (ent->modeldata.pain_config_flags & PAIN_CONFIG_FALL_DISABLE)
+        {
+            (*pretvar)->lVal = (LONG)1;
+        }
+        else
+        {
+            (*pretvar)->lVal = (LONG)0;
+        }
+        
         break;
     }
     case _ep_nograb:
@@ -4794,7 +4807,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_nopain:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.nopain;
+        (*pretvar)->lVal = (LONG)(ent->modeldata.pain_config_flags & PAIN_CONFIG_PAIN_DISABLE);
         break;
     }
     case _ep_offense:
@@ -6721,7 +6734,16 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.nodrop = (LONG)ltemp;
+            ent->modeldata.pain_config_flags &= ~(PAIN_CONFIG_FALL_DISABLE | PAIN_CONFIG_FALL_DISABLE_AIR);
+
+            if (ltemp == 1)
+            {
+                ent->modeldata.pain_config_flags |= PAIN_CONFIG_FALL_DISABLE;
+            }
+            else if (ltemp > 1)
+            {
+                ent->modeldata.pain_config_flags |= (PAIN_CONFIG_FALL_DISABLE | PAIN_CONFIG_FALL_DISABLE_AIR);
+            }
         }
         break;
     }
@@ -6760,7 +6782,14 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.nopain = (LONG)ltemp;
+            if (ltemp)
+            {
+                ent->modeldata.pain_config_flags |= PAIN_CONFIG_PAIN_DISABLE;
+            }
+            else
+            {
+                ent->modeldata.pain_config_flags &= ~PAIN_CONFIG_PAIN_DISABLE;
+            }
         }
         break;
     }    

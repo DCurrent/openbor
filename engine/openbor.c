@@ -13013,11 +13013,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             //if (cmd != CMD_MODEL_FRAME) framenum = 0;
 
             switch(cmd)
-            {
-            case CMD_MODEL_BACKPAIN:
-                value = GET_ARG(1);
-                newchar->backpain = atoi(value);
-                break;
+            {            
             case CMD_MODEL_SUBCLASS:
                 //inherit everything from an existing, cached model
                 tempmodel = findmodel(GET_ARG(1));
@@ -13779,7 +13775,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if (GET_INT_ARG(1))
                 {
                     newchar->move_constraint |= MOVE_CONSTRAINT_NO_MOVE;
-                    newchar->nodrop = 1;
+                    newchar->pain_config_flags |= PAIN_CONFIG_FALL_DISABLE;
                 }
 
                 if (GET_INT_ARG(2))
@@ -13789,7 +13785,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 break;
             case CMD_MODEL_NODROP:
-                newchar->nodrop = GET_INT_ARG(1);
+
+                tempInt = GET_INT_ARG(1);                
+
+                newchar->pain_config_flags &= ~(PAIN_CONFIG_FALL_DISABLE | PAIN_CONFIG_FALL_DISABLE_AIR);
+
+                switch (tempInt)
+                {
+                default:
+                case 0:                    
+                    break;
+                case 1:
+                    newchar->pain_config_flags |= PAIN_CONFIG_FALL_DISABLE;
+                    break;
+                case 2:
+                    newchar->pain_config_flags |= (PAIN_CONFIG_FALL_DISABLE | PAIN_CONFIG_FALL_DISABLE_AIR);
+                    break;
+                }
+
                 break;
             case CMD_MODEL_THOLD:
                 // Threshold for enemies/players block
@@ -13868,6 +13881,29 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->edelay.range.min   = GET_INT_ARG(5);
                 newchar->edelay.range.max   = GET_INT_ARG(6);
                 break;
+
+            case CMD_MODEL_PAIN_BACK:
+
+                tempInt = GET_INT_ARG(1);
+
+                if (tempInt)
+                {
+                    newchar->pain_config_flags |= PAIN_CONFIG_BACK_PAIN;
+                }
+                else
+                {
+                    newchar->pain_config_flags &= ~PAIN_CONFIG_BACK_PAIN;
+                }               
+
+                break;
+            case CMD_MODEL_PAIN_CONFIG:
+
+                tempInt = GET_INT_ARG(1);
+
+                newchar->pain_config_flags = pain_get_config_flags_from_arguments(&arglist);
+
+                break;
+
             case CMD_MODEL_PAINGRAB:
                 newchar->paingrab = GET_INT_ARG(1);
                 break;
@@ -13995,7 +14031,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->credit = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_NOPAIN:
-                newchar->nopain = GET_INT_ARG(1);
+                tempInt = GET_INT_ARG(1);
+
+                if (tempInt)
+                {
+                    newchar->pain_config_flags |= PAIN_CONFIG_PAIN_DISABLE;
+                }
+                else
+                {
+                    newchar->pain_config_flags &= ~PAIN_CONFIG_PAIN_DISABLE;
+                }
+
                 break;
             case CMD_MODEL_ESCAPEHITS:
                 // How many times an enemy can be hit before retaliating
@@ -25329,6 +25375,69 @@ void set_opponent(entity *ent, entity *other)
 
 /*
 * Caskey, Damon V.
+* 2023-04-10
+*
+* Accept string input and return
+* matching constant.
+*/
+e_pain_config_flags pain_get_config_flag_from_string(char* value)
+{
+    e_pain_config_flags result;
+
+    if (stricmp(value, "none") == 0)
+    {
+        result = PAIN_CONFIG_NONE;
+    }
+    else if (stricmp(value, "back_pain") == 0)
+    {
+        result = PAIN_CONFIG_BACK_PAIN;
+    }
+    else if (stricmp(value, "fall_disable") == 0)
+    {
+        result = PAIN_CONFIG_FALL_DISABLE;
+    }
+    else if (stricmp(value, "fall_disable_air") == 0)
+    {
+        result = PAIN_CONFIG_FALL_DISABLE_AIR;
+    }
+    else if (stricmp(value, "pain_disable") == 0)
+    {
+        result = PAIN_CONFIG_PAIN_DISABLE;
+    }
+    else
+    {
+        printf("\n\n Unknown pain config option (%s). \n", value);
+        result = PAIN_CONFIG_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-04-10
+*
+* Get arguments and output final
+* bitmask.
+*/
+e_pain_config_flags pain_get_config_flags_from_arguments(ArgList* arglist)
+{
+    int i = 0;
+    char* value = "";
+
+    e_pain_config_flags result = PAIN_CONFIG_NONE;
+
+    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= pain_get_config_flag_from_string(value);
+    }
+
+    return result;
+}
+
+
+/*
+* Caskey, Damon V.
 * 2023-04-05
 *
 * Accept string input and return
@@ -29950,7 +30059,7 @@ int reset_backpain(entity *ent)
 }
 
 int check_backpain(entity* attacker, entity* defender) {
-    if ( !defender->modeldata.backpain ) return 0;
+    if ( !(defender->modeldata.pain_config_flags & PAIN_CONFIG_BACK_PAIN)) return 0;
     if ( defender->inpain & IN_PAIN_HIT) return 0;
     if ( defender->falling ) return 0;
     if ( defender->death_state & DEATH_STATE_DEAD) return 0;
@@ -31680,7 +31789,7 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
             return;
         }
 
-        if (target_entity->modeldata.nopain)
+        if (target_entity->modeldata.pain_config_flags & PAIN_CONFIG_PAIN_DISABLE)
         {
             return;
         }
@@ -31901,14 +32010,14 @@ void checkdamageeffects(s_attack *attack)
 	recursive_damage_check_apply(self, opp, attack);
 
 	// Static enemies/nodrop enemies cannot be knocked down
-    if(self->modeldata.nodrop)
+    if(self->modeldata.pain_config_flags & PAIN_CONFIG_FALL_DISABLE)
     {
         self->drop = 0;    
     }
 
 	// Always knock airborne entities down unless we're freezeing them
 	// or they are specfically immune to in air knockdowns.
-    if(inair(self) && !self->frozen && self->modeldata.nodrop < 2)
+    if(inair(self) && !self->frozen && !(self->modeldata.pain_config_flags & PAIN_CONFIG_FALL_DISABLE_AIR))
     {
         self->drop = 1;
     }
@@ -33988,7 +34097,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
         set_pain(acting_entity, acting_entity->last_damage_type, 0);
     }
     // Don't change to pain animation if frozen
-    else if(!acting_entity->frozen && !acting_entity->modeldata.nopain && !attack->no_pain && pain_check)
+    else if(!acting_entity->frozen && !(acting_entity->modeldata.pain_config_flags & PAIN_CONFIG_PAIN_DISABLE) && !attack->no_pain && pain_check)
     {
         acting_entity->takeaction = common_pain;
         set_pain(acting_entity, acting_entity->last_damage_type, 1);
@@ -41317,7 +41426,7 @@ void drop_all_enemies()
                 !ent_list[i]->owner &&    // Don't want to knock down a projectile
                 !ent_list[i]->frozen &&    // Don't want to unfreeze a frozen enemy
                 !(ent_list[i]->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE) &&
-                !ent_list[i]->modeldata.nodrop &&
+                !(ent_list[i]->modeldata.pain_config_flags & PAIN_CONFIG_FALL_DISABLE) &&
                 validanim(ent_list[i], ANI_FALL) )
         {
             ent_list[i]->attacking = ATTACKING_NONE;
