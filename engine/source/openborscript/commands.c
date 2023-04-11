@@ -386,10 +386,12 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_JUGGLEPOINTS, "jugglepoints");
     LIST_ADD(CMD_MODEL_JUMPFRAME, "jumpframe");
     LIST_ADD(CMD_MODEL_JUMPHEIGHT, "jumpheight");
+    LIST_ADD(CMD_MODEL_JUMPHEIGHT, "jump_height");
     LIST_ADD(CMD_MODEL_JUMPMOVE, "jumpmove");
     LIST_ADD(CMD_MODEL_JUMPSPECIAL, "jumpspecial");
     LIST_ADD(CMD_MODEL_JUMPSPEED, "jumpspeed");
     LIST_ADD(CMD_MODEL_JUMPSPEEDF, "jumpspeedf");
+    LIST_ADD(CMD_MODEL_JUMPSPEEDF, "jump_speed");
     LIST_ADD(CMD_MODEL_KEYSCRIPT, "keyscript");
     LIST_ADD(CMD_MODEL_KNIFE, "knife");
     LIST_ADD(CMD_MODEL_KNOCKDOWNCOUNT, "knockdowncount");

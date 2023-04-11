@@ -97,6 +97,13 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_BLOCK_PAIN:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->blockpain;
+
+            break;
+
         case MODEL_PROPERTY_BLOCK_THRESHOLD:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -495,6 +502,15 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->blockodds = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_BLOCK_PAIN:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->blockpain = temp_int;
             }
 
             break;

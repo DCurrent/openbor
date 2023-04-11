@@ -12658,7 +12658,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->special                = calloc(1, sizeof(s_com));
 
     alloc_all_scripts(&newchar->scripts);
-
+        
     newchar->death_config_flags = DEATH_CONFIG_MACRO_DEFAULT;
     newchar->edelay.cap.max     = MAX_INT;
     newchar->edelay.range.max   = MAX_INT;
@@ -25885,16 +25885,9 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 // should trigger it.
 int check_blocking_pain(entity *ent, s_attack *attack)
 {
-	// If we don't have blockpain,
-	// nothing else to do!
-	if (!self->modeldata.blockpain)
-	{
-		return 0;
-	}
-
 	// If blockpain is greater than attack
 	// force, we don't apply it.
-	if (self->modeldata.blockpain > attack->attack_force)
+	if (attack->attack_force >= self->modeldata.blockpain)
 	{
 		return 0;
 	}

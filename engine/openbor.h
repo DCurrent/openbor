@@ -3320,25 +3320,29 @@ typedef struct
     
     e_pain_config_flags pain_config_flags; // ~~
 
-    int blockpain;
+    
 
     e_death_config_flags death_config_flags; // Playing death animations, blinking, removal, etc. ~~
 
     /* Blocking */
     e_block_config_flags block_config_flags; // ~~
-    int thold; // The entities threshold for block ~~
+    int thold; // The entity's threshold for block ~~
     int blockodds; // Odds that an enemy will block an attack (1 : blockodds) ~~
+    int blockpain; // Threshold before using blockpain animation.
 
     s_edelay edelay; // Entity level delay adjustment. ~~
 
     float runspeed; // The speed the character runs at
     float runjumpheight; // The height the character jumps when running
     float runjumpdist; // The distance the character jumps when running
-    int noatflash; // Flag to determine if attacking characters attack spawns a flash
     int runupdown; // Flag to determine if a player will continue to run while pressing up or down
     int runhold; // Flag to determine if a player will continue to run if holding down forward when landing
-    int remove; // Flag to remove a projectile on contact or not
     
+    int remove; // Flag to remove a projectile on contact or not
+    int noatflash; // Flag to determine if attacking characters attack spawns a flash
+
+
+
     s_com *special; // Stores freespecials
     int specials_loaded; // Stores how many specials have been loaded
     int diesound;
