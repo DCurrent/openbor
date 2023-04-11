@@ -133,6 +133,8 @@ movement restirctions are here!
 #define HOLE_INDEX_NONE -1
 #define WALL_INDEX_NONE -1
 
+#define DELAY_INFINITE MIN_INT  // Animation never moves to next frame without outside influence.
+
 typedef enum e_ajspecial_config
 {
     AJSPECIAL_KEY_SPECIAL,
@@ -2474,16 +2476,18 @@ typedef struct
     s_metric_range z;
 } s_range;
 
+/*
+* Caskey, Damon V. 
+* (unknown date) revised 2013-12-16.
+* 
+* Enhanced delay. Model/entity level 
+* delay modifier.
+*/
 typedef struct
-{
-    /*
-    Model/entity level delay modifier.
-    Damon V. Caskey
-    (unknown date) revised 2013-12-16.
-    */
+{    
     s_metric_range cap;
     float factor;
-    e_edelay_mode mode;
+    int modifier;
     s_metric_range range;
 } s_edelay;
 
@@ -3325,7 +3329,8 @@ typedef struct
     int thold; // The entities threshold for block ~~
     int blockodds; // Odds that an enemy will block an attack (1 : blockodds) ~~
 
-    s_edelay edelay; // Entity level delay adjustment.
+    s_edelay edelay; // Entity level delay adjustment. ~~
+
     float runspeed; // The speed the character runs at
     float runjumpheight; // The height the character jumps when running
     float runjumpdist; // The distance the character jumps when running

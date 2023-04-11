@@ -125,6 +125,48 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
+        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->edelay.cap.max;
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->edelay.cap.min;
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->edelay.modifier;
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER:
+
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = (DOUBLE)handle->edelay.factor;
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->edelay.range.max;
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN:
+
+            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+            (*pretvar)->lVal = (LONG)handle->edelay.range.min;
+
+            break;        
+
         case MODEL_PROPERTY_FACTION:
 
             ScriptVariant_ChangeType(*pretvar, VT_PTR);
@@ -486,6 +528,60 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
                 handle->death_config_flags = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->edelay.cap.max = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->edelay.cap.min = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->edelay.modifier = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER:
+
+            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
+            {
+                handle->edelay.factor = temp_float;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->edelay.range.max = temp_int;
+            }
+
+            break;
+
+        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN:
+
+            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
+            {
+                handle->edelay.range.min = temp_int;
             }
 
             break;

@@ -12660,6 +12660,9 @@ s_model *init_model(int cacheindex, int unload)
     alloc_all_scripts(&newchar->scripts);
 
     newchar->death_config_flags = DEATH_CONFIG_MACRO_DEFAULT;
+    newchar->edelay.cap.max     = MAX_INT;
+    newchar->edelay.range.max   = MAX_INT;
+    newchar->edelay.factor      = 1.0f;
     newchar->unload             = unload;
     newchar->jumpspecial        = 0; // Kratus (10-2021) Added new property to kill or not the default jumpspecial movement
     newchar->jumpspeed          = default_model_jumpspeed;
@@ -13874,13 +13877,52 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_EDELAY:
-                newchar->edelay.mode        = GET_INT_ARG(1);
-                newchar->edelay.factor      = GET_FLOAT_ARG(2);
+                tempInt = GET_INT_ARG(1);
+
+                if (tempInt == EDELAY_MODE_MULTIPLY)
+                {
+                    newchar->edelay.factor = GET_FLOAT_ARG(2);
+                }
+                else
+                {
+                    newchar->edelay.modifier = GET_INT_ARG(2);
+                }
+                
                 newchar->edelay.cap.min     = GET_INT_ARG(3);
                 newchar->edelay.cap.max     = GET_INT_ARG(4);
                 newchar->edelay.range.min   = GET_INT_ARG(5);
                 newchar->edelay.range.max   = GET_INT_ARG(6);
                 break;
+
+            case CMD_MODEL_ENHANCED_DELAY_CAP_MAX:
+
+                newchar->edelay.cap.max = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_ENHANCED_DELAY_CAP_MIN:
+
+                newchar->edelay.cap.min = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_ENHANCED_DELAY_MODIFIER:
+
+                newchar->edelay.modifier = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_ENHANCED_DELAY_MULTIPLIER:
+
+                newchar->edelay.factor = GET_FLOAT_ARG(1);
+                break;
+
+            case CMD_MODEL_ENHANCED_DELAY_RANGE_MAX:
+
+                newchar->edelay.range.max = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_ENHANCED_DELAY_RANGE_MIN:
+
+                newchar->edelay.range.min = GET_INT_ARG(1);
+                break;           
 
             case CMD_MODEL_PAIN_BACK:
 
@@ -14608,7 +14650,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->sync = translate_ani_id(GET_ARG(1), NULL, NULL);
                 break;
             case CMD_MODEL_DELAY:
-                delay = GET_INT_ARG(1);
+
+                value = GET_ARG(1);
+                
+                if (stricmp(value, "infinite") == 0)
+                {
+                    delay = DELAY_INFINITE;
+                }
+                else
+                {
+                    delay = GET_INT_ARG(1);
+                }
+
                 break;
             case CMD_MODEL_OFFSET:
                 offset.x = GET_INT_ARG(1);
@@ -23282,43 +23335,47 @@ void ent_summon_ent(entity *ent)
     }
 }
 
-int calculate_edelay(entity *ent, int f)
+/*
+* Caskey, Damon V.
+* Unknown date (~2008)
+* 
+* Get final delay.
+*/
+int calculate_edelay(entity *ent, int frame)
 {
-    int iDelay, iED_Mode, iED_Capmin, iED_CapMax, iED_RangeMin, iED_RangeMax;
-    float fED_Factor;
+    int result;
+    int cap_min;
+    int cap_max; 
+    int range_min;
+    int range_max;
+
     s_anim *anim = ent->animation;
 
-    iDelay          = anim->delay[f];
-    iED_Mode        = ent->modeldata.edelay.mode;
-    fED_Factor      = ent->modeldata.edelay.factor;
-    iED_Capmin      = ent->modeldata.edelay.cap.min;
-    iED_CapMax      = ent->modeldata.edelay.cap.max;
-    iED_RangeMin    = ent->modeldata.edelay.range.min;
-    iED_RangeMax    = ent->modeldata.edelay.range.max;
+    range_min = ent->modeldata.edelay.range.min;
+    range_max = ent->modeldata.edelay.range.max;
 
-    if (iDelay >= iED_RangeMin && iDelay <= iED_RangeMax) //Regular delay within ignore ranges?
+    result = anim->delay[frame];
+
+    if (result >= range_min && result <= range_max) //Regular delay within ignore ranges?
     {
-        switch(iED_Mode)
-        {
-        case EDELAY_MODE_MULTIPLY:
-            iDelay = (int)(iDelay * fED_Factor);
-            break;
-        case EDELAY_MODE_ADD:
-        default:
-            iDelay += (int)fED_Factor;
-            break;
-        }
+        result = (int)(result * ent->modeldata.edelay.factor);
+        result += ent->modeldata.edelay.modifier;            
 
-        if (iED_Capmin && iDelay < iED_Capmin)
+        cap_min = ent->modeldata.edelay.cap.min;
+        cap_max = ent->modeldata.edelay.cap.max;
+
+        if (result < cap_min)
         {
-            iDelay = iED_Capmin;
+            result = cap_min;
         }
-        if (iED_CapMax && iDelay > iED_CapMax)
+        
+        if (result > cap_max)
         {
-            iDelay = iED_CapMax;
+            result = cap_max;
         }
     }
-    return iDelay;
+
+    return result;
 }
 
 // Caskey, Damon V.
@@ -23405,7 +23462,8 @@ void update_frame(entity *ent, unsigned int f)
 
     if(self->animating)
     {
-        self->nextanim = _time + calculate_edelay(self, f);
+        if (self->nextanim != DELAY_INFINITE) { self->nextanim = _time + calculate_edelay(self, f); }
+
         self->pausetime = 0;
         execute_animation_script(self);
     }
@@ -23780,7 +23838,10 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
         {
             ent->animpos = ent->animation->numframes - 1;
         }
-        ent->nextanim = _time + calculate_edelay(ent, ent->animpos);
+
+        if (ent->nextanim != DELAY_INFINITE) { ent->nextanim = calculate_edelay(ent, ent->animpos); }
+
+        
         //update_frame(ent, ent->animpos);
     }
     else
@@ -26869,13 +26930,18 @@ void do_attack(entity *attacking_entity)
                     // Adds pause to the current animation
                     attacking_entity->toss_time += attack->pause_add;      // So jump height pauses in midair
                     attacking_entity->nextmove += attack->pause_add;      // xdir, zdir
-                    attacking_entity->nextanim += attack->pause_add;       //Pause animation for a bit
+                   
+                    if (attacking_entity->nextanim != DELAY_INFINITE) { attacking_entity->nextanim += attack->pause_add; }
+
                     attacking_entity->nextthink += attack->pause_add;      // So anything that auto moves will pause
                     attacking_entity->pausetime = _time + attack->pause_add ; //UT: temporary solution
                 }
 
                 self->toss_time += attack->pause_add;       // So jump height pauses in midair
                 self->nextmove += attack->pause_add;      // xdir, zdir
+
+                if (self->nextanim != DELAY_INFINITE) { self->nextanim += attack->pause_add; }
+
                 self->nextanim += attack->pause_add;        //Pause animation for a bit
                 self->nextthink += attack->pause_add;       // So anything that auto moves will pause
 
@@ -28136,7 +28202,7 @@ void update_animation()
         self->escapecount = 0;
     }
 
-    if(self->nextanim == _time ||
+    if((self->nextanim == _time && self->nextanim != DELAY_INFINITE) ||
             ((self->modeldata.type & TYPE_TEXTBOX) && self->modeldata.subtype != SUBTYPE_NOSKIP &&
              (bothnewkeys & (FLAG_JUMP | FLAG_ATTACK | FLAG_ATTACK2 | FLAG_ATTACK3 | FLAG_ATTACK4 | FLAG_SPECIAL)))) // Textbox will autoupdate if a valid player presses an action button
     {
@@ -37054,7 +37120,12 @@ void common_pickupitem(entity *other)
             self->position.z = other->position.z;
         }
 
-        other->nextanim = other->nextthink = _time + GAME_SPEED * 999999;
+        if (other->nextanim != DELAY_INFINITE)
+        {
+            other->nextanim = _time + GAME_SPEED * 999999;
+        }
+            
+        other->nextthink = _time + GAME_SPEED * 999999;
         ent_set_anim(self, ANI_GET, 0);
         pickup = 1;
     }
@@ -37066,7 +37137,10 @@ void common_pickupitem(entity *other)
         self->weapent = other;
         set_getting(self);
         self->velocity.x = self->velocity.z = 0; //stop moving
-        other->nextanim = other->nextthink = _time + GAME_SPEED * 999999;
+        if (other->nextanim != DELAY_INFINITE) { other->nextanim = _time + GAME_SPEED * 999999; }
+            
+            
+        other->nextthink = _time + GAME_SPEED * 999999;
         ent_set_anim(self, ANI_GET, 0);
         pickup = 1;
     }
@@ -39444,7 +39518,8 @@ void didfind_item(entity *other)
     }
     else
     {
-        other->nextthink = other->nextanim = _time + GAME_SPEED * 999999;
+        if (other->nextanim != DELAY_INFINITE) { other->nextanim = _time + GAME_SPEED * 999999; }
+        other->nextthink = _time + GAME_SPEED * 999999;
     }
     other->position.z = ITEM_HIDE_POSITION_Z;
 }

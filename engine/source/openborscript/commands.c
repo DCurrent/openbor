@@ -316,6 +316,12 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_EDGERANGE, "edgerange");
     LIST_ADD(CMD_MODEL_ENERGY_COST, "energycost");	// Backward compatability.
 	LIST_ADD(CMD_MODEL_ENERGY_COST, "energy_cost");
+    LIST_ADD(CMD_MODEL_ENHANCED_DELAY_CAP_MAX, "enhanced_delay_cap_max");
+    LIST_ADD(CMD_MODEL_ENHANCED_DELAY_CAP_MIN, "enhanced_delay_cap_min");
+    LIST_ADD(CMD_MODEL_ENHANCED_DELAY_MODIFIER, "enhanced_delay_modifer");
+    LIST_ADD(CMD_MODEL_ENHANCED_DELAY_MULTIPLIER, "enhanced_delay_multiplier");
+    LIST_ADD(CMD_MODEL_ENHANCED_DELAY_RANGE_MAX, "enhanced_delay_range_max");
+    LIST_ADD(CMD_MODEL_ENHANCED_DELAY_RANGE_MIN, "enhanced_delay_range_min");
     LIST_ADD(CMD_MODEL_ENTITYPUSHING, "entitypushing");
     LIST_ADD(CMD_MODEL_ESCAPEHITS, "escapehits");
     LIST_ADD(CMD_MODEL_FACING, "facing");

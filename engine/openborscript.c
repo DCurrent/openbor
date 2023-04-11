@@ -3925,7 +3925,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_edelay_mode:
         {
-            (*pretvar)->lVal = (LONG)ent->modeldata.edelay.mode;
+            (*pretvar)->lVal = 0;
             break;
         }
         case _ep_edelay_factor:
@@ -6008,12 +6008,27 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.edelay.mode = (LONG)ltemp;
+            //           
         }
-        if(paramCount >= 3 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+
+        if(paramCount >= 3)
         {
-            ent->modeldata.edelay.factor = (DOUBLE)dbltemp;
+            if (ltemp == EDELAY_MODE_MULTIPLY)
+            {
+                if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
+                {
+                    ent->modeldata.edelay.factor = (DOUBLE)dbltemp;
+                }
+            }
+            else
+            {
+                if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp2)))
+                {
+                    ent->modeldata.edelay.modifier = (LONG)ltemp2;
+                }
+            }
         }
+
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_IntegerValue(varlist[4], &ltemp)))
         {
             ent->modeldata.edelay.cap.min = (LONG)ltemp;
