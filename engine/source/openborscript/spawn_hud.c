@@ -61,7 +61,7 @@ HRESULT openbor_get_spawn_hud_property(ScriptVariant **varlist , ScriptVariant *
     * Catch out of bounds indexes.
     */
 
-    if (index < 0 || MAX_PLAYERS - 1)
+    if (index < 0 || index > (MAX_PLAYERS - 1))
     {
         printf("\n Index (%d) out of bounds (min 0, max %d).\n", index, MAX_PLAYERS - 1);
         goto error_local;

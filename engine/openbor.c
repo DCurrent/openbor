@@ -25506,7 +25506,7 @@ e_pain_config_flags pain_get_config_flags_from_arguments(ArgList* arglist)
 */
 e_block_config_flags block_get_config_flag_from_string(char* value)
 {
-    e_death_config_flags result;
+    e_block_config_flags result;
 
     if (stricmp(value, "none") == 0)
     {
