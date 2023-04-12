@@ -10956,79 +10956,53 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     }
 }
 
-// Caskey, Damon V.
-// 2019-11-22
-// 
-// Consolidate parsing string to entity type.
-e_entity_type get_type_from_string(char* value)
+/*
+* Caskey, Damon V.
+* 2019-11-22
+* 
+* Return type flag from string input.
+*/
+e_entity_type get_type_from_string(const char* value)
 {
-	e_entity_type result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"end_level", TYPE_ENDLEVEL},
+        {"enemy", TYPE_ENEMY},
+        {"item", TYPE_ITEM},
+        {"no_copy", TYPE_NO_COPY},
+        {"none", TYPE_NONE},
+        {"npc", TYPE_NPC},
+        {"obstacle", TYPE_OBSTACLE},
+        {"playa", TYPE_PLAYER}, // :)
+        {"player", TYPE_PLAYER},
+        {"projectile", TYPE_PROJECTILE},
+        {"shot", TYPE_SHOT},
+        {"steamer", TYPE_TEXTBOX},
+        {"text_box", DEATH_CONFIG_FALL_LAND_AIR},
+        {"trap", TYPE_TRAP},
+    };
 
-	if (stricmp(value, "end_level") == 0)
-	{
-		result = TYPE_ENEMY;
-	}
-	else if (stricmp(value, "enemy") == 0)
-	{
-		result = TYPE_ENEMY;
-	}
-	else if (stricmp(value, "item") == 0)
-	{
-		result = TYPE_ITEM;
-	}
-	else if (stricmp(value, "none") == 0)
-	{
-		result = TYPE_NONE;
-	}
-	else if (stricmp(value, "npc") == 0)
-	{
-		result = TYPE_NPC;
-	}
-	else if (stricmp(value, "obstacle") == 0)
-	{
-		result = TYPE_OBSTACLE;
-	}
-	else if (stricmp(value, "panel") == 0)
-	{
-		result = TYPE_PANEL;
-	}
-	else if (stricmp(value, "player") == 0)
-	{
-		result = TYPE_PLAYER;
-	}
-	else if (stricmp(value, "projectile") == 0)
-	{
-		result = TYPE_PROJECTILE;
-	}
-	else if (stricmp(value, "shot") == 0)
-	{
-		result = TYPE_SHOT;
-	}
-	else if (stricmp(value, "steamer") == 0)
-	{
-		result = TYPE_STEAMER;
-	}
-	else if (stricmp(value, "text_box") == 0)
-	{
-		result = TYPE_TEXTBOX;
-	}
-	else if (stricmp(value, "trap") == 0)
-	{
-		result = TYPE_TRAP;
-	}
-	else if (stricmp(value, "npc") == 0)
-	{
-		result = TYPE_NPC;
-	}
-	else
-	{
-		// This is not a real type. Just here to let us know
-		// we couldn't find a correct value.
-		result = TYPE_UNKNOWN;
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
 
-	}
+    for (size_t i = 0; i < list_count; i++)
+    {
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
+    }
 
-	return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n Unknown type (%s). \n", value);
+    return TYPE_UNKNOWN;
 }
 
 /*
@@ -11680,88 +11654,51 @@ e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_
 * Accept string input and return
 * matching constant.
 */
-e_air_control find_air_control_from_string(char* value)
+e_air_control find_air_control_from_string(const char* value)
 {
-    e_air_control result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"none", AIR_CONTROL_NONE},
+        {"jump_disable", AIR_CONTROL_JUMP_DISABLE},
+        {"jump_turn", AIR_CONTROL_JUMP_TURN},
+        {"jump_x_adjust", AIR_CONTROL_JUMP_X_ADJUST},
+        {"jump_x_move", AIR_CONTROL_JUMP_X_MOVE},
+        {"jump_x_stop", AIR_CONTROL_JUMP_X_STOP},
+        {"jump_y_stop", AIR_CONTROL_JUMP_Y_STOP},
+        {"jump_z_adjust", AIR_CONTROL_JUMP_Z_ADJUST},
+        {"jump_z_initial", AIR_CONTROL_JUMP_Z_INITIAL},
+        {"jump_z_move", AIR_CONTROL_JUMP_Z_MOVE},
+        {"jump_z_stop", AIR_CONTROL_JUMP_Z_STOP},
+        {"walkoff_turn", AIR_CONTROL_WALKOFF_TURN},
+        {"walkoff_x_adjust", AIR_CONTROL_WALKOFF_X_ADJUST},
+        {"walkoff_x_move", AIR_CONTROL_WALKOFF_X_MOVE},
+        {"walkoff_x_stop", AIR_CONTROL_WALKOFF_X_STOP},
+        {"walkoff_z_adjust", AIR_CONTROL_WALKOFF_Z_ADJUST},
+        {"walkoff_z_move", AIR_CONTROL_WALKOFF_Z_MOVE},
+        {"walkoff_z_stop", AIR_CONTROL_WALKOFF_Z_STOP},
+    };
 
-    if (stricmp(value, "none") == 0)
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
     {
-        result = AIR_CONTROL_NONE;
-    }
-    if (stricmp(value, "jump_disable") == 0)
-    {
-        result = AIR_CONTROL_JUMP_DISABLE;
-    }
-    else if (stricmp(value, "jump_turn") == 0)
-    {
-        result = AIR_CONTROL_JUMP_TURN;
-    }
-    else if (stricmp(value, "jump_x_adjust") == 0)
-    {
-        result = AIR_CONTROL_JUMP_X_ADJUST;
-    }
-    else if (stricmp(value, "jump_x_move") == 0)
-    {
-        result = AIR_CONTROL_JUMP_X_MOVE;
-    }
-    else if (stricmp(value, "jump_x_stop") == 0)
-    {
-        result = AIR_CONTROL_JUMP_X_STOP;
-    }
-    else if (stricmp(value, "jump_y_stop") == 0)
-    {
-        result = AIR_CONTROL_JUMP_Y_STOP;
-    }
-    else if (stricmp(value, "jump_z_adjust") == 0)
-    {
-        result = AIR_CONTROL_JUMP_Z_ADJUST;
-    }
-    else if (stricmp(value, "jump_z_initial") == 0)
-    {
-        result = AIR_CONTROL_JUMP_Z_INITIAL;
-    }
-    else if (stricmp(value, "jump_z_move") == 0)
-    {
-        result = AIR_CONTROL_JUMP_Z_MOVE;
-    }
-    else if (stricmp(value, "jump_z_stop") == 0)
-    {
-        result = AIR_CONTROL_JUMP_Z_STOP;
-    }
-    else if (stricmp(value, "walkoff_turn") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_TURN;
-    }
-    else if (stricmp(value, "walkoff_x_adjust") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_X_ADJUST;
-    }
-    else if (stricmp(value, "walkoff_x_move") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_X_MOVE;
-    }
-    else if (stricmp(value, "walkoff_x_stop") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_X_STOP;
-    }
-    else if (stricmp(value, "walkoff_z_adjust") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_Z_ADJUST;
-    }
-    else if (stricmp(value, "walkoff_z_move") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_Z_MOVE;
-    }
-    else if (stricmp(value, "walkoff_z_stop") == 0)
-    {
-        result = AIR_CONTROL_WALKOFF_Z_STOP;
-    }
-    else
-    {
-        printf("\n\n Unknown air move flag (%s), using 'none'. \n", value);
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
     }
 
-    return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n  Unknown air control flag (%s). \n", value);
+    return AIR_CONTROL_NONE;
 }
 
 /*
@@ -11771,7 +11708,7 @@ e_air_control find_air_control_from_string(char* value)
 * Populate air control model property
 * from text arguments.
 */
-void lcmHandleCommandAirControl(ArgList* arglist, s_model* newchar)
+void lcmHandleCommandAirControl(const ArgList* arglist, s_model* newchar)
 {
     int i;
     char* value;
@@ -11790,80 +11727,49 @@ void lcmHandleCommandAirControl(ArgList* arglist, s_model* newchar)
 * Accept string input and return 
 * matching constant.
 */
-e_move_config_flags find_move_config_flags_from_string(char* value)
+e_move_config_flags find_move_config_flags_from_string(const char* value)
 {
-    e_move_config_flags result;        
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"none", MOVE_CONFIG_NONE},
+        {"no_adjust_base", MOVE_CONFIG_NO_ADJUST_BASE},
+        {"no_flip", MOVE_CONFIG_NO_FLIP},
+        {"no_hit_head", MOVE_CONFIG_NO_HIT_HEAD},
+        {"no_move", MOVE_CONFIG_NO_MOVE},
+        {"projectile_base_die", MOVE_CONFIG_PROJECTILE_BASE_DIE},
+        {"projectile_wall_bounce", MOVE_CONFIG_PROJECTILE_WALL_BOUNCE},
+        {"subject_to_basemap", MOVE_CONFIG_SUBJECT_TO_BASEMAP},
+        {"subject_to_gravity", MOVE_CONFIG_SUBJECT_TO_GRAVITY},
+        {"subject_to_hole", MOVE_CONFIG_SUBJECT_TO_HOLE},
+        {"subject_to_max_z", MOVE_CONFIG_SUBJECT_TO_MAX_Z},
+        {"subject_to_min_z", MOVE_CONFIG_SUBJECT_TO_MIN_Z},
+        {"subject_to_obstacle", MOVE_CONFIG_SUBJECT_TO_OBSTACLE},
+        {"subject_to_platform", MOVE_CONFIG_SUBJECT_TO_PLATFORM},
+        {"subject_to_screen", MOVE_CONFIG_SUBJECT_TO_SCREEN},
+        {"subject_to_wall", MOVE_CONFIG_SUBJECT_TO_WALL}
+    };
 
-    if(stricmp(value, "none") == 0)
-    {
-        result = MOVE_CONFIG_NONE;
-    }
-    if (stricmp(value, "no_adjust_base") == 0)
-    {
-        result = MOVE_CONFIG_NO_ADJUST_BASE;
-    }
-    else if (stricmp(value, "no_flip") == 0)
-    {
-        result = MOVE_CONFIG_NO_FLIP;
-    }
-    else if (stricmp(value, "no_hit_head") == 0)
-    {
-        result = MOVE_CONFIG_NO_HIT_HEAD;
-    }
-    else if (stricmp(value, "no_move") == 0)
-    {
-        result = MOVE_CONFIG_NO_MOVE;
-    }
-    else if (stricmp(value, "projectile_base_die") == 0)
-    {
-        result = MOVE_CONFIG_PROJECTILE_BASE_DIE;
-    }
-    else if (stricmp(value, "projectile_wall_bounce") == 0)
-    {
-        result = MOVE_CONFIG_PROJECTILE_WALL_BOUNCE;
-    }
-    else if (stricmp(value, "subject_to_basemap") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_BASEMAP;
-    }
-    else if (stricmp(value, "subject_to_gravity") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_GRAVITY;
-    }
-    else if (stricmp(value, "subject_to_hole") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_HOLE;
-    }
-    else if (stricmp(value, "subject_to_max_z") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_MAX_Z;
-    }
-    else if (stricmp(value, "subject_to_min_z") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_MIN_Z;
-    }
-    else if (stricmp(value, "subject_to_obstacle") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_OBSTACLE;
-    }
-    else if (stricmp(value, "subject_to_platform") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_PLATFORM;
-    }
-    else if (stricmp(value, "subject_to_screen") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_SCREEN;
-    }
-    else if (stricmp(value, "subject_to_wall") == 0)
-    {
-        result = MOVE_CONFIG_SUBJECT_TO_WALL;
-    }
-    else
-    {
-        printf("\n\n Unknown move constraint flag (%s), using 'none'. \n", value);
-    }    
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
 
-    return result;
+    for (size_t i = 0; i < list_count; i++)
+    {
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
+    }
+
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n  Unknown move config flag (%s). \n", value);
+    return MOVE_CONFIG_NONE;
 }
 
 /*
@@ -11924,81 +11830,50 @@ e_move_config_flags get_move_config_flags_from_arguments(ArgList* arglist)
 * Accept string input and return
 * matching constant.
 */
-e_cheat_options find_cheat_options_from_string(char* value)
+e_cheat_options find_cheat_options_from_string(const char* value)
 {
-    e_cheat_options result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"none", CHEAT_OPTIONS_NONE},
+        {"credits_active", CHEAT_OPTIONS_CREDITS_ACTIVE},
+        {"credits_menu", CHEAT_OPTIONS_CREDITS_MENU},
+        {"energy_active", CHEAT_OPTIONS_ENERGY_ACTIVE},
+        {"energy_menu", CHEAT_OPTIONS_ENERGY_MENU},
+        {"health_active", CHEAT_OPTIONS_HEALTH_ACTIVE},
+        {"health_menu", CHEAT_OPTIONS_HEALTH_MENU},
+        {"implacable_active", CHEAT_OPTIONS_IMPLACABLE_ACTIVE},
+        {"implacable_menu", CHEAT_OPTIONS_IMPLACABLE_MENU},
+        {"master_menu", CHEAT_OPTIONS_MASTER_MENU},
+        {"lives_active", CHEAT_OPTIONS_LIVES_ACTIVE},
+        {"lives_menu", CHEAT_OPTIONS_LIVES_MENU},
+        {"multihit_active", CHEAT_OPTIONS_MULTIHIT_ACTIVE},
+        {"multihit_menu", CHEAT_OPTIONS_MULTIHIT_MENU},
+        {"touch_of_death_active", CHEAT_OPTIONS_TOD_ACTIVE},
+        {"touch_of_death_menu", CHEAT_OPTIONS_TOD_MENU}
+    };
 
-    if (stricmp(value, "none") == 0)
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
     {
-        result = CHEAT_OPTIONS_NONE;
-    }
-    else if (stricmp(value, "credits_active") == 0)
-    {
-        result = CHEAT_OPTIONS_CREDITS_ACTIVE;
-    }
-    else if (stricmp(value, "credits_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_CREDITS_MENU;
-    }
-    else if (stricmp(value, "energy_active") == 0)
-    {
-        result = CHEAT_OPTIONS_ENERGY_ACTIVE;
-    }
-    else if (stricmp(value, "energy_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_ENERGY_MENU;
-    }
-    else if (stricmp(value, "health_active") == 0)
-    {
-        result = CHEAT_OPTIONS_HEALTH_ACTIVE;
-    }
-    else if (stricmp(value, "health_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_HEALTH_MENU;
-    }
-    else if (stricmp(value, "implacable_active") == 0)
-    {
-        result = CHEAT_OPTIONS_IMPLACABLE_ACTIVE;
-    }
-    else if (stricmp(value, "implacable_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_IMPLACABLE_MENU;
-    }
-    else if (stricmp(value, "master_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_MASTER_MENU;
-    }
-    else if (stricmp(value, "lives_active") == 0)
-    {
-        result = CHEAT_OPTIONS_LIVES_ACTIVE;
-    }
-    else if (stricmp(value, "lives_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_LIVES_MENU;
-    }
-    else if (stricmp(value, "multihit_active") == 0)
-    {
-        result = CHEAT_OPTIONS_MULTIHIT_ACTIVE;
-    }
-    else if (stricmp(value, "multihit_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_MULTIHIT_MENU;
-    }
-    else if (stricmp(value, "touch_of_death_active") == 0)
-    {
-        result = CHEAT_OPTIONS_TOD_ACTIVE;
-    }
-    else if (stricmp(value, "touch_of_death_menu") == 0)
-    {
-        result = CHEAT_OPTIONS_TOD_MENU;
-    }
-    else
-    {
-        printf("\n\n Unknown cheat option (%s), using 'none'. \n", value);
-        result = CHEAT_OPTIONS_NONE;
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
     }
 
-    return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n  Unknown cheat option (%s). \n", value);
+    return CHEAT_OPTIONS_NONE;
+
 }
 
 /*
@@ -12027,81 +11902,50 @@ void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
 * Accept string input and return
 * matching constant.
 */
-e_aimove get_aimove_constant_from_string(char* value)
+e_aimove get_aimove_constant_from_string(const char* value)
 {
-    e_aimove result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"none", AIMOVE1_NONE},
+        {"default", AIMOVE_SPECIAL_DEFAULT},
+        {"chase", AIMOVE1_CHASE},
+        {"chasez", AIMOVE1_CHASEZ},
+        {"chasex", AIMOVE1_CHASEX},
+        {"avoid", AIMOVE1_AVOID},
+        {"avoidz", AIMOVE1_AVOIDZ},
+        {"avoidx", AIMOVE1_AVOIDX},
+        {"wander", AIMOVE1_WANDER},
+        {"biker", AIMOVE1_BIKER},
+        {"arrow", AIMOVE1_ARROW},
+        {"star", AIMOVE1_STAR},
+        {"bomb", AIMOVE1_BOMB},
+        {"nomove", AIMOVE1_NOMOVE},
+        {"ignoreholes", AIMOVE2_IGNOREHOLES},
+        {"notargetidle", AIMOVE2_NOTARGETIDLE}
+    };
 
-    if (stricmp(value, "none") == 0)
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
     {
-        result = AIMOVE1_NONE;
-    }
-    else if (stricmp(value, "default") == 0)
-    {
-        result = AIMOVE_SPECIAL_DEFAULT;
-    }
-    else if (stricmp(value, "chase") == 0)
-    {
-        result = AIMOVE1_CHASE;
-    }
-    else if (stricmp(value, "chasez") == 0)
-    {
-        result = AIMOVE1_CHASEZ;
-    }
-    else if (stricmp(value, "chasex") == 0)
-    {
-        result = AIMOVE1_CHASEX;
-    }
-    else if (stricmp(value, "avoid") == 0)
-    {
-        result = AIMOVE1_AVOID;
-    }
-    else if (stricmp(value, "avoidz") == 0)
-    {
-        result = AIMOVE1_AVOIDZ;
-    }
-    else if (stricmp(value, "avoidx") == 0)
-    {
-        result = AIMOVE1_AVOIDX;
-    }
-    else if (stricmp(value, "wander") == 0)
-    {
-        result = AIMOVE1_WANDER;
-    }
-    else if (stricmp(value, "biker") == 0)
-    {
-        result = AIMOVE1_BIKER;
-    }
-    else if (stricmp(value, "arrow") == 0)
-    {
-        result = AIMOVE1_ARROW;
-    }
-    else if (stricmp(value, "star") == 0)
-    {
-        result = AIMOVE1_STAR;
-    }
-    else if (stricmp(value, "bomb") == 0)
-    {
-        result = AIMOVE1_BOMB;
-    }
-    else if (stricmp(value, "nomove") == 0)
-    {
-        result = AIMOVE1_NOMOVE;
-    }
-    else if (stricmp(value, "ignoreholes") == 0)
-    {
-        result = AIMOVE2_IGNOREHOLES;
-    }
-    else if (stricmp(value, "notargetidle") == 0)
-    {
-        result = AIMOVE2_NOTARGETIDLE;
-    }
-    else
-    {
-        printf("\n\n Unknown aimove option (%s), using 'none'. \n", value);
-        result = AIMOVE1_NONE;
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
     }
 
-    return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n  Unknown AIMove flag (%s). \n", value);
+    return AIMOVE1_NONE;
+    
 }
 
 /*
@@ -12112,7 +11956,7 @@ e_aimove get_aimove_constant_from_string(char* value)
 * bitmask. Replaces lcmHandleCommandAiMove 
 * so we can have a reusable function.
 */
-e_aimove get_aimove_from_arguments(ArgList *arglist, e_aimove default_value)
+e_aimove get_aimove_from_arguments(const ArgList *arglist, e_aimove default_value)
 {    
     int i = 0;
     char* value = "";
@@ -25471,37 +25315,38 @@ void set_opponent(entity *ent, entity *other)
 * Accept string input and return
 * matching constant.
 */
-e_pain_config_flags pain_get_config_flag_from_string(char* value)
+e_pain_config_flags pain_get_config_flag_from_string(const char* value)
 {
-    e_pain_config_flags result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"none", PAIN_CONFIG_NONE},
+        {"back_pain", PAIN_CONFIG_BACK_PAIN},
+        {"fall_disable", PAIN_CONFIG_FALL_DISABLE},
+        {"fall_disable_air", PAIN_CONFIG_FALL_DISABLE_AIR},
+        {"pain_disable", PAIN_CONFIG_PAIN_DISABLE}
+    };
 
-    if (stricmp(value, "none") == 0)
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
     {
-        result = PAIN_CONFIG_NONE;
-    }
-    else if (stricmp(value, "back_pain") == 0)
-    {
-        result = PAIN_CONFIG_BACK_PAIN;
-    }
-    else if (stricmp(value, "fall_disable") == 0)
-    {
-        result = PAIN_CONFIG_FALL_DISABLE;
-    }
-    else if (stricmp(value, "fall_disable_air") == 0)
-    {
-        result = PAIN_CONFIG_FALL_DISABLE_AIR;
-    }
-    else if (stricmp(value, "pain_disable") == 0)
-    {
-        result = PAIN_CONFIG_PAIN_DISABLE;
-    }
-    else
-    {
-        printf("\n\n Unknown pain config option (%s). \n", value);
-        result = PAIN_CONFIG_NONE;
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
     }
 
-    return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n  Unknown pain config flag (%s). \n", value);
+    return PAIN_CONFIG_NONE;    
 }
 
 /*
@@ -25511,7 +25356,7 @@ e_pain_config_flags pain_get_config_flag_from_string(char* value)
 * Get arguments and output final
 * bitmask.
 */
-e_pain_config_flags pain_get_config_flags_from_arguments(ArgList* arglist)
+e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist)
 {
     int i = 0;
     char* value = "";
@@ -25534,41 +25379,39 @@ e_pain_config_flags pain_get_config_flags_from_arguments(ArgList* arglist)
 * Accept string input and return
 * matching constant.
 */
-e_block_config_flags block_get_config_flag_from_string(char* value)
+e_block_config_flags block_get_config_flag_from_string(const char* value)
 {
-    e_block_config_flags result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } item_lookup_table[] = {
+        {"none", BLOCK_CONFIG_NONE},
+        {"active", BLOCK_CONFIG_ACTIVE},
+        {"back", BLOCK_CONFIG_BACK},
+        {"disabled", BLOCK_CONFIG_DISABLED},
+        {"hold_impact", BLOCK_CONFIG_HOLD_IMPACT},
+        {"hold_infinite", BLOCK_CONFIG_HOLD_INFINITE}
+    };
 
-    if (stricmp(value, "none") == 0)
+    const size_t list_count = sizeof(item_lookup_table) / sizeof(*item_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
     {
-        result = BLOCK_CONFIG_NONE;
-    }
-    else if (stricmp(value, "active") == 0)
-    {
-        result = BLOCK_CONFIG_ACTIVE;
-    }
-    else if (stricmp(value, "back") == 0)
-    {
-        result = BLOCK_CONFIG_BACK;
-    }
-    else if (stricmp(value, "disabled") == 0)
-    {
-        result = BLOCK_CONFIG_DISABLED;
-    }
-    else if (stricmp(value, "hold_impact") == 0)
-    {
-        result = BLOCK_CONFIG_HOLD_IMPACT;
-    }
-    else if (stricmp(value, "hold_infinite") == 0)
-    {
-        result = BLOCK_CONFIG_HOLD_INFINITE;
-    }    
-    else
-    {
-        printf("\n\n Unknown block config option (%s). \n", value);
-        result = BLOCK_CONFIG_NONE;
+        if (stricmp(value, item_lookup_table[i].text_name) == 0)
+        {
+            return item_lookup_table[i].flag;
+        }
     }
 
-    return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * unknown flag.
+    */
+
+    printf("\n\n  Unknown block config flag (%s). \n", value);
+    return BLOCK_CONFIG_NONE;
 }
 
 /*
@@ -25578,7 +25421,7 @@ e_block_config_flags block_get_config_flag_from_string(char* value)
 * Get arguments and output final
 * bitmask.
 */
-e_block_config_flags block_get_config_flags_from_arguments(ArgList * arglist)
+e_block_config_flags block_get_config_flags_from_arguments(const ArgList * arglist)
 {
     int i = 0;
     char* value = "";
@@ -32264,8 +32107,6 @@ void checkhitscore(entity *other, s_attack *attack)
     }
 }
 
-
-
 /*
 * Caskey, Damon V.
 * 2023-04-03
@@ -32273,103 +32114,62 @@ void checkhitscore(entity *other, s_attack *attack)
 * Accept string input and return
 * matching constant.
 */
-e_death_config_flags death_get_config_flag_from_string(char* value)
-{
-    e_death_config_flags result;
-       
-    if (stricmp(value, "none") == 0)
+e_death_config_flags death_get_config_flag_from_string(const char* value)
+{    
+    static const struct 
     {
-        result = DEATH_CONFIG_NONE;
-    }
-    else if (stricmp(value, "default") == 0)
-    {
-        result = DEATH_CONFIG_MACRO_DEFAULT;
-    }
-    else if (stricmp(value, "blink_death_air") == 0)
-    {
-        result = DEATH_CONFIG_BLINK_DEATH_AIR;
-    }
-    else if (stricmp(value, "blink_death_ground") == 0)
-    {
-        result = DEATH_CONFIG_BLINK_DEATH_GROUND;
-    }
-    else if (stricmp(value, "blink_fall_air") == 0)
-    {
-        result = DEATH_CONFIG_BLINK_FALL_AIR;
-    }
-    else if (stricmp(value, "blink_fall_ground") == 0)
-    {
-        result = DEATH_CONFIG_BLINK_FALL_GROUND;
-    }
-    else if (stricmp(value, "blink_remove_air") == 0)
-    {
-        result = DEATH_CONFIG_BLINK_REMOVE_AIR;
-    }
-    else if (stricmp(value, "blink_remove_ground") == 0)
-    {
-        result = DEATH_CONFIG_BLINK_REMOVE_GROUND;
-    }
-    else if (stricmp(value, "death_air") == 0)
-    {
-        result = DEATH_CONFIG_DEATH_AIR;
-    }
-    else if (stricmp(value, "death_ground") == 0)
-    {
-        result = DEATH_CONFIG_DEATH_GROUND;
-    }
-    else if (stricmp(value, "fall_land_air") == 0)
-    {
-        result = DEATH_CONFIG_FALL_LAND_AIR;
-    }
-    else if (stricmp(value, "fall_land_ground") == 0)
-    {
-        result = DEATH_CONFIG_FALL_LAND_GROUND;
-    }
-    else if (stricmp(value, "fall_lie_air") == 0)
-    {
-        result = DEATH_CONFIG_FALL_LIE_AIR;
-    }
-    else if (stricmp(value, "fall_lie_ground") == 0)
-    {
-        result = DEATH_CONFIG_FALL_LIE_GROUND;
-    }
-    else if (stricmp(value, "remove_corpse_air") == 0)
-    {
-        result = DEATH_CONFIG_REMOVE_CORPSE_AIR;
-    }
-    else if (stricmp(value, "remove_corpse_ground") == 0)
-    {
-        result = DEATH_CONFIG_REMOVE_CORPSE_GROUND;
-    }
-    else if (stricmp(value, "remove_vanish_air") == 0)
-    {
-        result = DEATH_CONFIG_REMOVE_VANISH_AIR;
-    }
-    else if (stricmp(value, "remove_vanish_ground") == 0)
-    {
-        result = DEATH_CONFIG_REMOVE_VANISH_GROUND;
-    }
-    else if (stricmp(value, "source_model") == 0)
-    {
-        result = DEATH_CONFIG_SOURCE_MODEL;
-    }
-    else
-    {
-        printf("\n\n Unknown death config option (%s). \n", value);
-        result = DEATH_CONFIG_NONE;
-    }
+        const char* text_name;
+        e_death_config_flags flag;
+    } flag_lookup_table[] = {
+        {"none", DEATH_CONFIG_NONE},
+        {"default", DEATH_CONFIG_MACRO_DEFAULT},
+        {"blink_death_air", DEATH_CONFIG_BLINK_DEATH_AIR},
+        {"blink_death_ground", DEATH_CONFIG_BLINK_DEATH_GROUND},
+        {"blink_fall_air", DEATH_CONFIG_BLINK_FALL_AIR},
+        {"blink_fall_ground", DEATH_CONFIG_BLINK_FALL_GROUND},
+        {"blink_remove_air", DEATH_CONFIG_BLINK_REMOVE_AIR},
+        {"blink_remove_ground", DEATH_CONFIG_BLINK_REMOVE_GROUND},
+        {"death_air", DEATH_CONFIG_DEATH_AIR},
+        {"death_ground", DEATH_CONFIG_DEATH_GROUND},
+        {"fall_land_air", DEATH_CONFIG_FALL_LAND_AIR},
+        {"fall_land_ground", DEATH_CONFIG_FALL_LAND_GROUND},
+        {"fall_lie_air", DEATH_CONFIG_FALL_LIE_AIR},
+        {"fall_lie_ground", DEATH_CONFIG_FALL_LIE_GROUND},
+        {"remove_corpse_air", DEATH_CONFIG_REMOVE_CORPSE_AIR},
+        {"remove_corpse_ground", DEATH_CONFIG_REMOVE_CORPSE_GROUND},
+        {"remove_vanish_air", DEATH_CONFIG_REMOVE_VANISH_AIR},
+        {"remove_vanish_ground", DEATH_CONFIG_REMOVE_VANISH_GROUND},
+        {"source_model", DEATH_CONFIG_SOURCE_MODEL},
+    };
 
-    return result;
+    const size_t list_count = sizeof(flag_lookup_table) / sizeof(*flag_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
+    {
+        if (stricmp(value, flag_lookup_table[i].text_name) == 0)
+        {
+            return flag_lookup_table[i].flag;
+        }
+    }
+       
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * none flag.
+    */
+
+    printf("\n\n Unknown death config option (%s). \n", value);
+    return DEATH_CONFIG_NONE;
 }
 
 /*
 * Caskey, Damon V.
 * 2023-03-20
 *
-* Get arguments foroutput final
+* Get arguments to output final
 * bitmask.
 */
-e_death_config_flags death_get_config_flags_from_arguments(ArgList* arglist, int start_position)
+e_death_config_flags death_get_config_flags_from_arguments(const ArgList* arglist, int start_position)
 {
     int i = 0;
     char* value = "";
@@ -32396,7 +32196,7 @@ e_death_config_flags death_config_get_value_from_falldie(e_death_config_flags cu
 {
     //printf("\n\n death_config_get_value_from_falldie(%d, %d)", current_value, acting_value);
 
-    e_death_config_flags result = (current_value &= ~DEATH_CONFIG_MACRO_DEATH_FALL_ALL);
+    e_death_config_flags result = current_value & ~DEATH_CONFIG_MACRO_DEATH_FALL_ALL;
 
     switch (acting_value)
     {
@@ -32529,53 +32329,42 @@ e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags 
 * Accept string input and return
 * matching constant.
 */
-e_shadow_config_flags shadow_get_config_flag_from_string(char* value)
+e_shadow_config_flags shadow_get_config_flag_from_string(const char* value)
 {
-    e_shadow_config_flags result;
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } flag_lookup_table[] = {
+        {"none", SHADOW_CONFIG_NONE},
+        {"default", SHADOW_CONFIG_DEFAULT},
+        {"base_platform", SHADOW_CONFIG_BASE_PLATFORM},
+        {"base_static", SHADOW_CONFIG_BASE_STATIC},
+        {"disabled", SHADOW_CONFIG_DISABLED},
+        {"replica_air", SHADOW_CONFIG_GRAPHIC_REPLICA_AIR},
+        {"replica_ground", SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND},
+        {"static_air", SHADOW_CONFIG_GRAPHIC_STATIC_AIR},
+        {"static_ground", SHADOW_CONFIG_GRAPHIC_STATIC_GROUND}
+    };
 
-    if (stricmp(value, "none") == 0)
+    const size_t list_count = sizeof(flag_lookup_table) / sizeof(*flag_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
     {
-        result = SHADOW_CONFIG_NONE;
-    }
-    else if (stricmp(value, "default") == 0)
-    {
-        result = SHADOW_CONFIG_DEFAULT;
-    }
-    else if (stricmp(value, "base_platform") == 0)
-    {
-        result = SHADOW_CONFIG_BASE_PLATFORM;
-    }
-    else if (stricmp(value, "base_static") == 0)
-    {
-        result = SHADOW_CONFIG_BASE_STATIC;
-    }
-    else if (stricmp(value, "disabled") == 0)
-    {
-        result = SHADOW_CONFIG_DISABLED;
-    }
-    else if (stricmp(value, "replica_air") == 0)
-    {
-        result = SHADOW_CONFIG_GRAPHIC_REPLICA_AIR;
-    }
-    else if (stricmp(value, "replica_ground") == 0)
-    {
-        result = SHADOW_CONFIG_GRAPHIC_REPLICA_GROUND;
-    }
-    else if (stricmp(value, "static_air") == 0)
-    {
-        result = SHADOW_CONFIG_GRAPHIC_STATIC_AIR;
-    }
-    else if (stricmp(value, "static_ground") == 0)
-    {
-        result = SHADOW_CONFIG_GRAPHIC_STATIC_GROUND;
-    }    
-    else
-    {
-        printf("\n\n Unknown shadow config option (%s). \n", value);
-        result = SHADOW_CONFIG_NONE;
+        if (stricmp(value, flag_lookup_table[i].text_name) == 0)
+        {
+            return flag_lookup_table[i].flag;
+        }
     }
 
-    return result;
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * none flag.
+    */
+
+    printf("\n\n Unknown death config option (%s). \n", value);
+    return SHADOW_CONFIG_NONE;
 }
 
 /*
@@ -32585,7 +32374,7 @@ e_shadow_config_flags shadow_get_config_flag_from_string(char* value)
 * Get arguments foroutput final
 * bitmask.
 */
-e_shadow_config_flags shadow_get_config_flags_from_arguments(ArgList* arglist)
+e_shadow_config_flags shadow_get_config_flags_from_arguments(const ArgList* arglist)
 {
     int i = 0;
     char* value = "";
@@ -41029,21 +40818,29 @@ void player_think()
         }
         
         else if(self->modeldata.runupdown & 4)
-        {
+        {            
             if(!movex && !movez)
             {
+                /* No key command? */
+
                 self->running = 0;
             }
             else if(movex && !movez && runx == -movex)
             {
+                /* X Key, No Z key, run opposite of X key? */
+
                 self->running = 0;
             }
             else if(movez && !movex && runz == -movez)
             {
+                /* Z key, no X Key, run opposite of Z key? */
+
                 self->running = 0;
             }
             else if(movex && movez && diff(movex, runx) + diff(movez, runz) > 2)
             {
+                /* X key, Z key, */
+
                 self->running = 0;
             }
         }
@@ -41823,144 +41620,67 @@ void faction_copy_data(s_faction* dest, s_faction* source)
 * and output appropriate constant. If input
 * is legacy integer, we just pass it on.
 */
-e_faction_group faction_get_flag_from_string(char* value)
-{
-    e_faction_group result = FACTION_GROUP_NONE;
+e_faction_group faction_get_flag_from_string(const char* value)
+{   
+    static const struct 
+    {
+        const char* text_name;
+        e_faction_group flag;
 
-    if (stricmp(value, "none") == 0)
-    {
-        result = FACTION_GROUP_NONE;
-    }
-    else if (stricmp(value, "all") == 0)
-    {
-        result = FACTION_GROUP_ALL_NORMAL;
-    }
-    else if (stricmp(value, "neutral") == 0)
-    {
-        result = FACTION_GROUP_NEUTRAL;
-    }
-    else if (stricmp(value, "no_copy") == 0)
-    {
-        result = FACTION_GROUP_NO_COPY;
-    }
-    else if (stricmp(value, "player_verses") == 0)
-    {
-        result = FACTION_GROUP_PLAYER_VERSES;
-    }
-    else if (stricmp(value, "type_exclusive") == 0)
-    {
-        result = FACTION_GROUP_TYPE_EXCLUSIVE;
-    }
-    else if (stricmp(value, "type_inclusive") == 0)
-    {
-        result = FACTION_GROUP_TYPE_INCLUSIVE;
-    }
-    else if (stricmp(value, "a") == 0)
-    {
-        result = FACTION_GROUP_A;
-    }
-    else if (stricmp(value, "b") == 0)
-    {
-        result = FACTION_GROUP_B;
-    }
-    else if (stricmp(value, "c") == 0)
-    {
-        result = FACTION_GROUP_C;
-    }
-    else if (stricmp(value, "d") == 0)
-    {
-        result = FACTION_GROUP_D;
-    }
-    else if (stricmp(value, "e") == 0)
-    {
-        result = FACTION_GROUP_E;
-    }
-    else if (stricmp(value, "f") == 0)
-    {
-        result = FACTION_GROUP_F;
-    }
-    else if (stricmp(value, "g") == 0)
-    {
-        result = FACTION_GROUP_G;
-    }
-    else if (stricmp(value, "h") == 0)
-    {
-        result = FACTION_GROUP_H;
-    }
-    else if (stricmp(value, "i") == 0)
-    {
-        result = FACTION_GROUP_I;
-    }
-    else if (stricmp(value, "j") == 0)
-    {
-        result = FACTION_GROUP_J;
-    }
-    else if (stricmp(value, "k") == 0)
-    {
-        result = FACTION_GROUP_K;
-    }
-    else if (stricmp(value, "l") == 0)
-    {
-        result = FACTION_GROUP_L;
-    }
-    else if (stricmp(value, "m") == 0)
-    {
-        result = FACTION_GROUP_M;
-    }
-    else if (stricmp(value, "n") == 0)
-    {
-        result = FACTION_GROUP_N;
-    }
-    else if (stricmp(value, "o") == 0)
-    {
-        result = FACTION_GROUP_O;
-    }
-    else if (stricmp(value, "p") == 0)
-    {
-        result = FACTION_GROUP_P;
-    }
-    else if (stricmp(value, "q") == 0)
-    {
-        result = FACTION_GROUP_Q;
-    }
-    else if (stricmp(value, "r") == 0)
-    {
-        result = FACTION_GROUP_R;
-    }
-    else if (stricmp(value, "s") == 0)
-    {
-        result = FACTION_GROUP_S;
-    }
-    else if (stricmp(value, "t") == 0)
-    {
-        result = FACTION_GROUP_T;
-    }
-    else if (stricmp(value, "u") == 0)
-    {
-        result = FACTION_GROUP_U;
-    }
-    else if (stricmp(value, "v") == 0)
-    {
-        result = FACTION_GROUP_V;
-    }
-    else if (stricmp(value, "w") == 0)
-    {
-        result = FACTION_GROUP_W;
-    }
-    else if (stricmp(value, "x") == 0)
-    {
-        result = FACTION_GROUP_X;
-    }
-    else if (stricmp(value, "y") == 0)
-    {
-        result = FACTION_GROUP_Y;
-    }
-    else if (stricmp(value, "z") == 0)
-    {
-        result = FACTION_GROUP_Z;
-    }
+    } flag_lookup_table[] = {
+        { "none", FACTION_GROUP_NONE },
+        { "all", FACTION_GROUP_ALL_NORMAL },
+        { "neutral", FACTION_GROUP_NEUTRAL },
+        { "no_copy", FACTION_GROUP_NO_COPY },
+        { "player_verses", FACTION_GROUP_PLAYER_VERSES },
+        { "type_exclusive", FACTION_GROUP_TYPE_EXCLUSIVE },
+        { "type_inclusive", FACTION_GROUP_TYPE_INCLUSIVE },
+        { "a", FACTION_GROUP_A },
+        { "b", FACTION_GROUP_B },
+        { "c", FACTION_GROUP_C },
+        { "d", FACTION_GROUP_D },
+        { "e", FACTION_GROUP_E },
+        { "f", FACTION_GROUP_F },
+        { "g", FACTION_GROUP_G },
+        { "h", FACTION_GROUP_H },
+        { "i", FACTION_GROUP_I },
+        { "j", FACTION_GROUP_J },
+        { "k", FACTION_GROUP_K },
+        { "l", FACTION_GROUP_L },
+        { "m", FACTION_GROUP_M },
+        { "n", FACTION_GROUP_N },
+        { "o", FACTION_GROUP_O },
+        { "p", FACTION_GROUP_P },
+        { "q", FACTION_GROUP_Q },
+        { "r", FACTION_GROUP_R },
+        { "s", FACTION_GROUP_S },
+        { "t", FACTION_GROUP_T },
+        { "u", FACTION_GROUP_U },
+        { "v", FACTION_GROUP_V },
+        { "w", FACTION_GROUP_W },
+        { "x", FACTION_GROUP_X },
+        { "y", FACTION_GROUP_Y },
+        { "z", FACTION_GROUP_Z }
+    };
 
-    return result;
+    const size_t list_count = sizeof(flag_lookup_table) / sizeof(*flag_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
+    {
+        if (stricmp(value, flag_lookup_table[i].text_name) == 0)
+        {
+            return flag_lookup_table[i].flag;
+        }
+    }
+    
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * none flag.
+    */
+
+    printf("\n\n Unknown faction (%s). \n", value);    
+    return FACTION_GROUP_NONE;
 }
 
 /*
@@ -41970,7 +41690,7 @@ e_faction_group faction_get_flag_from_string(char* value)
 * Populate faction property from
 * text arguments.
 */
-e_faction_group faction_get_flags_from_arglist(ArgList* arglist)
+e_faction_group faction_get_flags_from_arglist(const ArgList* arglist)
 {
     int i = 0;
     char* value = "";
@@ -41979,7 +41699,7 @@ e_faction_group faction_get_flags_from_arglist(ArgList* arglist)
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        result |= get_type_from_string(value);
+        result |= faction_get_flag_from_string(value);
     }
 
     return result;

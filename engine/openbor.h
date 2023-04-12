@@ -4044,8 +4044,8 @@ e_damage_recursive_logic    recursive_damage_get_mode_setup_from_arg_list(ArgLis
 e_damage_recursive_logic    recursive_damage_get_mode_setup_from_legacy_argument(e_damage_recursive_cmd_read value);
 
 /* Blocking logic. */
-e_block_config_flags block_get_config_flags_from_arguments(ArgList* arglist);
-e_block_config_flags block_get_config_flag_from_string(char* value);
+e_block_config_flags block_get_config_flags_from_arguments(const ArgList* arglist);
+e_block_config_flags block_get_config_flag_from_string(const char* value);
 int     check_blocking_decision(entity *ent);
 int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
 int     check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
@@ -4209,8 +4209,8 @@ void faction_copy_data(s_faction* dest, s_faction* source);
 int faction_check_can_damage(entity* acting_entity, entity* target_entity, int indirect);
 int faction_check_is_hostile(entity* acting_entity, entity* target_entity);
 int faction_check_player_verses(entity* acting_entity, entity* target_entity, e_faction_group faction_property);
-e_faction_group faction_get_flags_from_arglist(ArgList* arglist);
-e_faction_group faction_get_flag_from_string(char* value);
+e_faction_group faction_get_flags_from_arglist(const ArgList* arglist);
+e_faction_group faction_get_flag_from_string(const char* value);
 
 /* Bind control */
 void    adjust_bind(entity* acting_entity);
@@ -4307,8 +4307,8 @@ e_falldie_config death_config_get_falldie_from_value(e_death_config_flags acting
 e_death_config_flags death_config_get_value_from_falldie(e_death_config_flags current_value, e_falldie_config acting_value);
 e_death_config_flags death_config_get_value_from_nodieblink(e_death_config_flags current_value, e_nodieblink_config acting_value);
 e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags acting_value);
-e_death_config_flags death_get_config_flags_from_arguments(ArgList* arglist, int start_position);
-e_death_config_flags death_get_config_flag_from_string(char* value);
+e_death_config_flags death_get_config_flags_from_arguments(const ArgList* arglist, int start_position);
+e_death_config_flags death_get_config_flag_from_string(const char* value);
 
 typedef enum e_death_sequence_acting_event
 {
@@ -4322,8 +4322,8 @@ int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, e_shadowbase_config legacy_value);
-e_shadow_config_flags shadow_get_config_flag_from_string(char* value);
-e_shadow_config_flags shadow_get_config_flags_from_arguments(ArgList* arglist);
+e_shadow_config_flags shadow_get_config_flag_from_string(const char* value);
+e_shadow_config_flags shadow_get_config_flags_from_arguments(const ArgList* arglist);
 
 // Meta data control.
 void meta_data_free_list(s_meta_data* head);
@@ -4334,8 +4334,8 @@ e_model_copy get_model_flag_from_argument(char* filename, char* command, char* v
 void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar);
 
 /* Pain and fall (model) */
-e_pain_config_flags pain_get_config_flags_from_arguments(ArgList* arglist);
-e_pain_config_flags pain_get_config_flag_from_string(char* value);
+e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist);
+e_pain_config_flags pain_get_config_flag_from_string(const char* value);
 
 /* Weapon loss control */
 e_weapon_loss_condition get_weapon_loss_from_argument(char* value);
@@ -4554,7 +4554,7 @@ int common_backwalk_anim(entity *ent);
 void draw_properties_entity(entity *entity, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_box_on_entity(entity *entity, int pos_x, int pos_y, int pos_z, int size_w, int size_h, int offset_z, int color, s_drawmethod *drawmethod);
 void draw_visual_debug();
-e_entity_type get_type_from_string(char* value);
+e_entity_type get_type_from_string(const char* value);
 int bomb_move(entity *ent);
 int arrow_move(entity * acting_entity);
 int common_move(void);
