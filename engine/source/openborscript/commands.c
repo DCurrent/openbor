@@ -140,7 +140,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_HOSTILE,             "child_spawn_hostile");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_INDEX,               "child_spawn_index");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_MODEL,               "child_spawn_model");
-    LIST_ADD(CMD_MODEL_CHILD_SPAWN_MOVE_CONSTRAINT,     "child_spawn_move_constraint");
+    LIST_ADD(CMD_MODEL_CHILD_SPAWN_MOVE_CONSTRAINT,     "child_spawn_move_config");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_OFFSET_X,            "child_spawn_offset_x");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_OFFSET_Y,            "child_spawn_offset_y");
     LIST_ADD(CMD_MODEL_CHILD_SPAWN_OFFSET_Z,            "child_spawn_offset_z");
@@ -411,7 +411,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_MAP_SHOCK_INDEX, "palette.shock.index");
     LIST_ADD(CMD_MODEL_MODELFLAG, "modelflag");
     LIST_ADD(CMD_MODEL_MOVE, "move");
-    LIST_ADD(CMD_MODEL_MOVE_CONSTRAINT, "move_constraint");
+    LIST_ADD(CMD_MODEL_MOVE_CONFIG, "move_config");
     LIST_ADD(CMD_MODEL_MOVEA, "movea");
     LIST_ADD(CMD_MODEL_MOVEZ, "movez");
     LIST_ADD(CMD_MODEL_MP, "mp");

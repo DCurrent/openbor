@@ -1306,27 +1306,29 @@ typedef enum
 
 } e_bind_config;
 
-typedef enum e_move_constraint
+typedef enum e_move_config_flags
 {
-    MOVE_CONSTRAINT_NONE                = 0,
-    MOVE_CONSTRAINT_NO_ADJUST_BASE      = (1 << 0),
-    MOVE_CONSTRAINT_NO_COPY_FROM        = (1 << 1),
-    MOVE_CONSTRAINT_NO_COPY_TO          = (1 << 2),
-    MOVE_CONSTRAINT_NO_FLIP             = (1 << 3),
-    MOVE_CONSTRAINT_NO_HIT_HEAD         = (1 << 4), // True = Pass upward through platforms when entity has valid height set.
-    MOVE_CONSTRAINT_NO_MOVE             = (1 << 5),
-    MOVE_CONSTRAINT_PROJECTILE_BASE_DIE = (1 << 6),
-    MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE = (1 << 7),
-    MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP  = (1 << 8),
-    MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY  = (1 << 9),
-    MOVE_CONSTRAINT_SUBJECT_TO_HOLE     = (1 << 10),
-    MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z    = (1 << 11),
-    MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z    = (1 << 12),
-    MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE = (1 << 13),
-    MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM = (1 << 14),
-    MOVE_CONSTRAINT_SUBJECT_TO_SCREEN   = (1 << 15),
-    MOVE_CONSTRAINT_SUBJECT_TO_WALL     = (1 << 16)
-} e_move_constraint;
+    MOVE_CONFIG_NONE                = 0,
+    MOVE_CONFIG_NO_ADJUST_BASE      = (1 << 0),
+    MOVE_CONFIG_NO_COPY_FROM        = (1 << 1),
+    MOVE_CONFIG_NO_COPY_TO          = (1 << 2),
+    MOVE_CONFIG_NO_FLIP             = (1 << 3),
+    MOVE_CONFIG_NO_HIT_HEAD         = (1 << 4), // True = Pass upward through platforms when entity has valid height set.
+    MOVE_CONFIG_NO_MOVE             = (1 << 5),
+    MOVE_CONFIG_PROJECTILE_BASE_DIE = (1 << 6),
+    MOVE_CONFIG_PROJECTILE_WALL_BOUNCE = (1 << 7),
+    MOVE_CONFIG_RUN_LAND               = (1 << 8),
+    MOVE_CONFIG_RUN_Z               = (1 << 9),
+    MOVE_CONFIG_SUBJECT_TO_BASEMAP  = (1 << 10),
+    MOVE_CONFIG_SUBJECT_TO_GRAVITY  = (1 << 11),
+    MOVE_CONFIG_SUBJECT_TO_HOLE     = (1 << 12),
+    MOVE_CONFIG_SUBJECT_TO_MAX_Z    = (1 << 13),
+    MOVE_CONFIG_SUBJECT_TO_MIN_Z    = (1 << 14),
+    MOVE_CONFIG_SUBJECT_TO_OBSTACLE = (1 << 15),
+    MOVE_CONFIG_SUBJECT_TO_PLATFORM = (1 << 16),
+    MOVE_CONFIG_SUBJECT_TO_SCREEN   = (1 << 17),
+    MOVE_CONFIG_SUBJECT_TO_WALL     = (1 << 18)
+} e_move_config_flags;
 
 typedef enum e_kill_entity_trigger
 {
@@ -2623,8 +2625,8 @@ typedef enum e_child_spawn_config
     CHILD_SPAWN_CONFIG_LAUNCH_THROW                 = (1 << 14),
     CHILD_SPAWN_CONFIG_LAUNCH_TOSS                  = (1 << 15),
     CHILD_SPAWN_CONFIG_OFFENSE_PARENT               = (1 << 16),
-    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT       = (1 << 17),
-    CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER    = (1 << 18),
+    CHILD_SPAWN_CONFIG_MOVE_CONFIG_PARENT       = (1 << 17),
+    CHILD_SPAWN_CONFIG_MOVE_CONFIG_PARAMETER    = (1 << 18),
     CHILD_SPAWN_CONFIG_POSITION_LEVEL               = (1 << 19),
     CHILD_SPAWN_CONFIG_POSITION_SCREEN              = (1 << 20),
     CHILD_SPAWN_CONFIG_TAKEDAMAGE_PARAMETER         = (1 << 21),
@@ -2654,7 +2656,7 @@ typedef struct s_child_spawn
     e_entity_type           hostile;
     int                     index;
     int                     model_index;
-    e_move_constraint       move_constraint;
+    e_move_config_flags       move_config_flags;
     struct s_child_spawn*   next;
     s_axis_principal_int    position;
     e_entity_type           projectilehit;
@@ -2724,7 +2726,7 @@ typedef struct
 
 	// Enumerated integers
 	e_anim_cancel				cancel;                 // Cancel anims with freespecial. ~~
-    e_move_constraint           move_constraint;        // Subject to gravity, walls, etc.
+    e_move_config_flags           move_config_flags;        // Subject to gravity, walls, etc.
 
 	// Integers
 	unsigned int				charge_time;            // charge time for an animation. ~~
@@ -3455,8 +3457,7 @@ typedef struct
 
     s_barstatus* hud_popup; // HUD always on when entity is active (Ex. Boss HUD). ~~
 
-    /* Movement restriction flags. Subject to screen, wall, hole, hit head, etc. */
-    e_move_constraint move_constraint;
+    e_move_config_flags move_config_flags; // Running, terrian limits, etc.
         
     int instantitemdeath; // no delay before item suicides
     int	hasPlatforms;

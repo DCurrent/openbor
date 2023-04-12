@@ -244,10 +244,10 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
 
             break;
 
-        case MODEL_PROPERTY_MOVE_CONSTRAINT:
+        case MODEL_PROPERTY_MOVE_CONFIG_FLAGS:
 
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->move_constraint;
+            (*pretvar)->lVal = (LONG)handle->move_config_flags;
 
             break;
 
@@ -683,11 +683,11 @@ HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pret
 
             break;
 
-        case MODEL_PROPERTY_MOVE_CONSTRAINT:
+        case MODEL_PROPERTY_MOVE_CONFIG_FLAGS:
 
             if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
             {
-                handle->move_constraint = temp_int;
+                handle->move_config_flags = temp_int;
             }
 
             break;

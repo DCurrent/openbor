@@ -4752,7 +4752,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_no_adjust_base:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_NO_ADJUST_BASE);
         break;
     }
     case _ep_noaicontrol:
@@ -4795,7 +4795,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_nohithead:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_HIT_HEAD);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_NO_HIT_HEAD);
         break;
     }
     case _ep_nolife:
@@ -5263,55 +5263,55 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_subject_to_basemap:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_BASEMAP);
         break;
     }
     case _ep_subject_to_gravity:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY);
         break;
     }
     case _ep_subject_to_hole:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_HOLE);
         break;
     }
     case _ep_subject_to_maxz:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z);
         break;
     }
     case _ep_subject_to_minz:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z);
         break;
     }
     case _ep_subject_to_obstacle:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_OBSTACLE);
         break;
     }
     case _ep_subject_to_platform:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM);
         break;
     }
     case _ep_subject_to_screen:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_SCREEN);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_SCREEN);
         break;
     }
     case _ep_subject_to_wall:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        (*pretvar)->lVal = (LONG)(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_WALL);
         break;
     }
     case _ep_subtype:
@@ -6720,11 +6720,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             /* Legacy code allowed -1 or 0 for False.  */
             if (ltemp > 0)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_NO_ADJUST_BASE;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
             }
         }
         break;
@@ -6776,11 +6776,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_HIT_HEAD;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_NO_HIT_HEAD;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_HIT_HEAD;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_HIT_HEAD;
             }
         }
         break;
@@ -7240,11 +7240,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             /* Legacy code allowed -1 or 0 for False.  */
             if (ltemp > 0)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_BASEMAP;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_BASEMAP;
             }            
         }
         break;
@@ -7256,11 +7256,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             /* Legacy code allowed -1 or 0 for False.  */
             if (ltemp > 0)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
             }
         }
         break;
@@ -7271,11 +7271,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {            
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_HOLE;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_HOLE;
             }
         }
         break;
@@ -7286,11 +7286,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_MAX_Z;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_MAX_Z;
             }
         }
         break;
@@ -7301,11 +7301,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_MIN_Z;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_MIN_Z;
             }
         }
         break;
@@ -7316,11 +7316,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_OBSTACLE;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_OBSTACLE;
             }
         }
         
@@ -7332,11 +7332,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_PLATFORM;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_PLATFORM;
             }
         }
         
@@ -7348,11 +7348,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_SCREEN;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_SCREEN;
             }
         }
         break;
@@ -7363,11 +7363,11 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         {
             if (ltemp)
             {
-                ent->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+                ent->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_WALL;
             }
             else
             {
-                ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+                ent->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_WALL;
             }
         }
         break;

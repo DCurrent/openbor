@@ -6347,7 +6347,7 @@ void child_spawn_dump_object(s_child_spawn* object)
     printf("\n\t\t %-*s %d", space_label, "->hostile:", object->hostile);
     printf("\n\t\t %-*s %d", space_label, "->index:", object->index);
     printf("\n\t\t %-*s %d", space_label, "->model_index:", object->model_index);
-    printf("\n\t\t %-*s %d", space_label, "->move_constraint:", object->move_constraint);
+    printf("\n\t\t %-*s %d", space_label, "->move_config_flags:", object->move_config_flags);
     printf("\n\t\t %-*s %p", space_label, "->next:", object->next);
     printf("\n\t\t %-*s %d, %d, %d", space_label, "->position:", object->position.x, object->position.y, object->position.z);
     printf("\n\t\t %-*s %d", space_label, "->projectilehit:", object->projectilehit);
@@ -6884,17 +6884,17 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     * Apply any move constraints. 
     */
 
-    if (object->config & CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER)
+    if (object->config & CHILD_SPAWN_CONFIG_MOVE_CONFIG_PARAMETER)
     {
-        child_entity->modeldata.move_constraint = object->move_constraint;
+        child_entity->modeldata.move_config_flags = object->move_config_flags;
     }
 
-    if (object->config & CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARENT)
+    if (object->config & CHILD_SPAWN_CONFIG_MOVE_CONFIG_PARENT)
     {
-        child_entity->modeldata.move_constraint = parent->modeldata.move_constraint;
+        child_entity->modeldata.move_config_flags = parent->modeldata.move_config_flags;
     }
 
-    printf("\n\t child_entity->modeldata.move_constraint: %d", child_entity->modeldata.move_constraint);
+    printf("\n\t child_entity->modeldata.move_config_flags: %d", child_entity->modeldata.move_config_flags);
 
     /*
     * Execute event scripts.
@@ -10704,21 +10704,21 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 
         newchar->chainlength            = 4;
         newchar->bounce                 = 1;
-        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        newchar->move_constraint         &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        newchar->move_config_flags        |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_SCREEN | MOVE_CONFIG_SUBJECT_TO_WALL);
+        newchar->move_config_flags         &= ~MOVE_CONFIG_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "enemy") == 0)
     {
         newchar->type                   = TYPE_ENEMY;
         newchar->bounce                 = 1;
-        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        newchar->move_config_flags        |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+        newchar->move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "item") == 0)
     {
         newchar->type                   = TYPE_ITEM;
-        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        newchar->move_config_flags        |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+        newchar->move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
 
     }
     else if(stricmp(value, "obstacle") == 0)
@@ -10734,8 +10734,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
             newchar->aiattack = 0;
         }
         newchar->aimove |= AIATTACK1_NOATTACK;
-        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        newchar->move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+        newchar->move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "steamer") == 0)
     {
@@ -10761,8 +10761,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 		// Note when using as a projectile, these may
 		// be modified. See knife_spawn and bomb_spawn.
 
-		newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE | MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-		newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_SCREEN);
+		newchar->move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_PROJECTILE_WALL_BOUNCE | MOVE_CONFIG_PROJECTILE_BASE_DIE | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+		newchar->move_config_flags &= ~(MOVE_CONFIG_SUBJECT_TO_SCREEN);
 	}
     // my new types   7-1-2005
     else if(stricmp(value, "pshot") == 0)
@@ -10780,38 +10780,38 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
 
 		// Note when using as a projectile, most of these
 		// are modified. See knife_spawn and bomb_spawn.
-        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE);
-        newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_PROJECTILE_WALL_BOUNCE);
+        newchar->move_config_flags &= ~(MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_SCREEN | MOVE_CONFIG_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "trap") == 0)
     {
         newchar->type                   = TYPE_TRAP;
-        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        newchar->move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+        newchar->move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "text") == 0)   // Used for displaying text/images and freezing the screen
     {
         newchar->type                   = TYPE_TEXTBOX;
-        newchar->move_constraint        &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
-        newchar->move_constraint        |= (MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
+        newchar->move_config_flags        &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+        newchar->move_config_flags        |= (MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z);
     }
     else if(stricmp(value, "endlevel") == 0)   // Used for ending the level when the players reach a certain point
     {
         newchar->type               = TYPE_ENDLEVEL;
-        newchar->move_constraint    |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_config_flags    |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "npc") == 0)   // NPC type
     {
         newchar->type                   = TYPE_NPC;
         newchar->bounce                 = 1;
-        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-        newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        newchar->move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+        newchar->move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
     }
     else if(stricmp(value, "panel") == 0)   // NPC type
     {
         newchar->type                   = TYPE_PANEL;
         newchar->antigravity            = 1.0; //float type
-        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY);
+        newchar->move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
     }
     else
     {
@@ -10842,8 +10842,8 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
             newchar->defense[i].factor = 2.f;
         }
 
-        newchar->move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
-        newchar->move_constraint &= ~(MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z);
+        newchar->move_config_flags &= ~(MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_SCREEN | MOVE_CONFIG_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "arrow") == 0) // 7-1-2005 Arrow type
     {
@@ -10858,8 +10858,8 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
             newchar->offscreenkill = 200;
         }
         
-        newchar->move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z);
-        newchar->move_constraint &= ~(MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_SCREEN | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+        newchar->move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z);
+        newchar->move_config_flags &= ~(MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_SCREEN | MOVE_CONFIG_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "notgrab") == 0)
     {
@@ -11790,73 +11790,73 @@ void lcmHandleCommandAirControl(ArgList* arglist, s_model* newchar)
 * Accept string input and return 
 * matching constant.
 */
-e_move_constraint find_move_constraint_from_string(char* value)
+e_move_config_flags find_move_config_flags_from_string(char* value)
 {
-    e_move_constraint result;        
+    e_move_config_flags result;        
 
     if(stricmp(value, "none") == 0)
     {
-        result = MOVE_CONSTRAINT_NONE;
+        result = MOVE_CONFIG_NONE;
     }
     if (stricmp(value, "no_adjust_base") == 0)
     {
-        result = MOVE_CONSTRAINT_NO_ADJUST_BASE;
+        result = MOVE_CONFIG_NO_ADJUST_BASE;
     }
     else if (stricmp(value, "no_flip") == 0)
     {
-        result = MOVE_CONSTRAINT_NO_FLIP;
+        result = MOVE_CONFIG_NO_FLIP;
     }
     else if (stricmp(value, "no_hit_head") == 0)
     {
-        result = MOVE_CONSTRAINT_NO_HIT_HEAD;
+        result = MOVE_CONFIG_NO_HIT_HEAD;
     }
     else if (stricmp(value, "no_move") == 0)
     {
-        result = MOVE_CONSTRAINT_NO_MOVE;
+        result = MOVE_CONFIG_NO_MOVE;
     }
     else if (stricmp(value, "projectile_base_die") == 0)
     {
-        result = MOVE_CONSTRAINT_PROJECTILE_BASE_DIE;
+        result = MOVE_CONFIG_PROJECTILE_BASE_DIE;
     }
     else if (stricmp(value, "projectile_wall_bounce") == 0)
     {
-        result = MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE;
+        result = MOVE_CONFIG_PROJECTILE_WALL_BOUNCE;
     }
     else if (stricmp(value, "subject_to_basemap") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+        result = MOVE_CONFIG_SUBJECT_TO_BASEMAP;
     }
     else if (stricmp(value, "subject_to_gravity") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        result = MOVE_CONFIG_SUBJECT_TO_GRAVITY;
     }
     else if (stricmp(value, "subject_to_hole") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+        result = MOVE_CONFIG_SUBJECT_TO_HOLE;
     }
     else if (stricmp(value, "subject_to_max_z") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+        result = MOVE_CONFIG_SUBJECT_TO_MAX_Z;
     }
     else if (stricmp(value, "subject_to_min_z") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+        result = MOVE_CONFIG_SUBJECT_TO_MIN_Z;
     }
     else if (stricmp(value, "subject_to_obstacle") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+        result = MOVE_CONFIG_SUBJECT_TO_OBSTACLE;
     }
     else if (stricmp(value, "subject_to_platform") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+        result = MOVE_CONFIG_SUBJECT_TO_PLATFORM;
     }
     else if (stricmp(value, "subject_to_screen") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+        result = MOVE_CONFIG_SUBJECT_TO_SCREEN;
     }
     else if (stricmp(value, "subject_to_wall") == 0)
     {
-        result = MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+        result = MOVE_CONFIG_SUBJECT_TO_WALL;
     }
     else
     {
@@ -11902,16 +11902,16 @@ e_ko_colorset_config komap_type_get_value_from_argument(char* filename, char* co
 * output final bitmask so we can have a 
 * reusable function.
 */
-e_move_constraint get_move_constraint_from_arguments(ArgList* arglist)
+e_move_config_flags get_move_config_flags_from_arguments(ArgList* arglist)
 {
     int i = 0;
     char* value = "";
 
-    e_move_constraint result = MOVE_CONSTRAINT_NONE;
+    e_move_config_flags result = MOVE_CONFIG_NONE;
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
-        result |= find_move_constraint_from_string(value);
+        result |= find_move_config_flags_from_string(value);
     }
 
     return result;
@@ -12740,7 +12740,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->faction.type_hostile       = TYPE_UNDELCARED;
     newchar->faction.type_damage_indirect = TYPE_UNDELCARED;
 
-    newchar->move_constraint            = MOVE_CONSTRAINT_NONE;
+    newchar->move_config_flags            = MOVE_CONFIG_NONE;
     newchar->pshotno                    = MODEL_INDEX_NONE;
     newchar->project                    = MODEL_INDEX_NONE;
     newchar->dust.fall_land             = MODEL_INDEX_NONE;
@@ -13174,19 +13174,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_AIATTACK:
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
                 break;
-            case CMD_MODEL_MOVE_CONSTRAINT:
-                newchar->move_constraint = get_move_constraint_from_arguments(&arglist);
+            case CMD_MODEL_MOVE_CONFIG:
+                newchar->move_config_flags = get_move_config_flags_from_arguments(&arglist);
                 break;
             case CMD_MODEL_SUBJECT_TO_BASEMAP:
 
                 /* Legacy code allowed -1 or 0 for False.  */
                 if (GET_INT_ARG(1) > 0)
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_BASEMAP;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_BASEMAP;
                 }
                 
                 break;
@@ -13194,11 +13194,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_WALL;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_WALL;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_WALL;
                 }
 
                 break;
@@ -13206,11 +13206,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_HOLE;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_HOLE;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_HOLE;
                 }
 
                 break;
@@ -13218,11 +13218,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_PLATFORM;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_PLATFORM;
                 }
 
                 break;
@@ -13230,11 +13230,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_OBSTACLE;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_OBSTACLE;
                 }
 
                 break;
@@ -13243,11 +13243,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 /* Legacy code allowed -1 or 0 for False.  */
                 if (GET_INT_ARG(1) > 0)
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
                 }
 
                 break;
@@ -13255,11 +13255,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_SCREEN;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_SCREEN;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_SCREEN;
                 }
 
                 break;
@@ -13267,11 +13267,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_MIN_Z;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_MIN_Z;
                 }
 
                 break;
@@ -13279,11 +13279,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+                    newchar->move_config_flags |= MOVE_CONFIG_SUBJECT_TO_MAX_Z;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_MAX_Z;
                 }
 
                 break;
@@ -13292,11 +13292,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 /* Legacy code allowed -1 or 0 for False.  */
                 if (GET_INT_ARG(1) > 0)
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
+                    newchar->move_config_flags |= MOVE_CONFIG_NO_ADJUST_BASE;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
                 }
 
                 break;
@@ -13777,13 +13777,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_MOVE;
+                    newchar->move_config_flags |= MOVE_CONFIG_NO_MOVE;
                     newchar->pain_config_flags |= PAIN_CONFIG_FALL_DISABLE;
                 }
 
                 if (GET_INT_ARG(2))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_FLIP;
+                    newchar->move_config_flags |= MOVE_CONFIG_NO_FLIP;
                 }                
                 
                 break;
@@ -13817,7 +13817,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->runspeed /= 10;
                 newchar->runjumpheight = GET_FLOAT_ARG(2);    // The height at which a player jumps when running
                 newchar->runjumpdist = GET_FLOAT_ARG(3);    // The distance a player jumps when running
+                
+                /*
+                tempInt = GET_INT_ARG(4);
+                
+                if (tempInt)
+                {
+                    newchar->move_config_flags |= MOVE_CONFIG_RUN_Z;
+                }
+                else
+                {
+                    newchar->move_config_flags &= ~MOVE_CONFIG_RUN_Z;
+                }
+                */
+
                 newchar->runupdown = GET_INT_ARG(4);
+                
+                
                 newchar->runhold = GET_INT_ARG(5);
                 break;
             case CMD_MODEL_RUNNING_CONTINUE:
@@ -13833,7 +13849,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->runspeed = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_RUNNING_Z_MOVE:
-                newchar->runupdown = GET_FLOAT_ARG(1);
+                newchar->runupdown = GET_INT_ARG(1);
+
+                /*
+                tempInt =  GET_INT_ARG(1);
+
+                if (tempInt)
+                {
+                    newchar->move_config_flags |= MOVE_CONFIG_RUN_Z;
+                }
+                else
+                {
+                    newchar->move_config_flags &= ~MOVE_CONFIG_RUN_Z;
+                }
+                */
+
                 break;
             case CMD_MODEL_BLOCKODDS:
                 // Odds that an attack will hit an enemy (1 : blockodds)
@@ -14604,7 +14634,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				newanim->projectile				= NULL;
 				newanim->flipframe              = FRAME_NONE;
                 newanim->attack_one             = 0;
-                newanim->move_constraint        |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                newanim->move_config_flags        |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
                 newanim->followup.animation     = 0;			// Default disabled
                 newanim->followup.condition     = FOLLOW_CONDITION_NONE;
                 newanim->sub_entity_unsummon          = FRAME_NONE;
@@ -14734,10 +14764,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * Shortcut for creator to set up a bomb projectile.
                 */
 
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_TOSS | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_BOMB | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_LAUNCH_TOSS | CHILD_SPAWN_CONFIG_MOVE_CONFIG_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_BOMB;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_PLATFORM);
                 
                 break;
 
@@ -14747,10 +14777,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * Shortcut for creator to set up a shot projectile.
                 */
 
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_MOVE_CONSTRAINT_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = (CHILD_SPAWN_CONFIG_AUTOKILL_HIT | CHILD_SPAWN_CONFIG_BEHAVIOR_SHOT | CHILD_SPAWN_CONFIG_FACTION_DAMAGE_PARENT | CHILD_SPAWN_CONFIG_FACTION_HOSTILE_PARENT | CHILD_SPAWN_CONFIG_FACTION_INDIRECT_PARENT | CHILD_SPAWN_CONFIG_GRAVITY_OFF | CHILD_SPAWN_CONFIG_LAUNCH_THROW | CHILD_SPAWN_CONFIG_MOVE_CONFIG_PARAMETER | CHILD_SPAWN_CONFIG_RELATIONSHIP_OWNER);
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = AIMOVE1_ARROW;
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = DIRECTION_ADJUST_SAME;
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z | MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_PLATFORM);
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->takedamage = arrow_takedamage;
 
                 break;
@@ -14777,7 +14807,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->model_index = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_MOVE_CONSTRAINT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_constraint = get_move_constraint_from_arguments(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = get_move_config_flags_from_arguments(&arglist);
                 break;
             case CMD_MODEL_CHILD_SPAWN_OFFSET_X:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.x = GET_INT_ARG(1);
@@ -15046,7 +15076,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 				// Legacy dive attacks. Turn off animation level subject_to_gravity
 				// and then use jumpframe to fly down at an angle.
             case CMD_MODEL_DIVE: 
-                newanim->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                newanim->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
 
                 // Use jumpframe it to set movement.
 				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -15057,7 +15087,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE1:
-                newanim->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                newanim->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
 
                 // Use jumpframe to set movement.
 				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -15067,7 +15097,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->jumpframe.ent = MODEL_INDEX_NONE;
                 break;
             case CMD_MODEL_DIVE2:
-                newanim->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+                newanim->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
 
 				// Use jumpframe to set movement.
 				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -17024,11 +17054,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 if (GET_INT_ARG(1))
                 {
-                    newchar->move_constraint |= MOVE_CONSTRAINT_NO_HIT_HEAD;
+                    newchar->move_config_flags |= MOVE_CONFIG_NO_HIT_HEAD;
                 }
                 else
                 {
-                    newchar->move_constraint &= ~MOVE_CONSTRAINT_NO_HIT_HEAD;
+                    newchar->move_config_flags &= ~MOVE_CONFIG_NO_HIT_HEAD;
                 }
 
                 break;
@@ -23031,11 +23061,11 @@ void ent_default_init(entity *e)
         else if(e->modeldata.subtype == SUBTYPE_ARROW)
         {
             e->energy_state.health_current = 1;
-            if(!e->modeldata.speed.x && !(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
+            if(!e->modeldata.speed.x && !(e->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE))
             {
                 e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
             }
-            else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+            else if(e->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
             {
                 e->modeldata.speed.x = 0;
             }
@@ -23058,11 +23088,11 @@ void ent_default_init(entity *e)
         {
             e->trymove = common_trymove;
             // Must just be a regular enemy, set defaults accordingly
-            if(!e->modeldata.speed.x && !(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
+            if(!e->modeldata.speed.x && !(e->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE))
             {
                 e->modeldata.speed.x = 1;
             }
-            else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+            else if(e->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
             {
                 e->modeldata.speed.x = 0;
             }
@@ -23155,11 +23185,11 @@ void ent_default_init(entity *e)
         e->think = common_think;
         e->takedamage = arrow_takedamage;
         e->attacking = ATTACKING_ACTIVE;
-        if(!e->model->speed.x && !(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
+        if(!e->model->speed.x && !(e->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE))
         {
             e->modeldata.speed.x = 2;    // Set default speed to 2 for arrows
         }
-        else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+        else if(e->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
         {
             e->modeldata.speed.x = 0;
         }
@@ -23178,7 +23208,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         
         //e->base=e->position.y; //complained?
-        e->modeldata.move_constraint |= (MOVE_CONSTRAINT_NO_ADJUST_BASE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY);
+        e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
 
         if(validanim(e, ANI_WALK))
         {
@@ -23220,11 +23250,11 @@ void ent_default_init(entity *e)
         e->modeldata.multiple = 0;
     }
 
-    if(e->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && (other = check_platform_below(e->position.x, e->position.z, e->position.y, e)))
+    if(e->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && (other = check_platform_below(e->position.x, e->position.z, e->position.y, e)))
     {
         e->base = other->position.y + other->animation->platform[other->animpos][PLATFORM_HEIGHT];
     }
-    else if(e->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL && (wall = checkwall_below(e->position.x, e->position.z, T_MAX_CHECK_ALTITUDE)) >= 0)
+    else if(e->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_WALL && (wall = checkwall_below(e->position.x, e->position.z, T_MAX_CHECK_ALTITUDE)) >= 0)
     {
         if(level->walls[wall].height > MAX_WALL_HEIGHT)
         {
@@ -23764,7 +23794,7 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
         ent->modeldata.multiple             = oldmodel->multiple;
     }
 
-    ent->modeldata.move_constraint = oldmodel->move_constraint;
+    ent->modeldata.move_config_flags = oldmodel->move_config_flags;
       
     if(ent->modeldata.aimove == AIMOVE1_NONE)
     {
@@ -25306,7 +25336,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
 
     // -----------bounds checking---------------
     // Subjec to Z and out of bounds? Return to level!
-    if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z)
+    if (ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z)
     {
         if(zdir && z < PLAYER_MIN_Z)
         {
@@ -25314,7 +25344,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
         }
     }
 
-    if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z)
+    if (ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z)
     {
         if(zdir && z > PLAYER_MAX_Z)
         {
@@ -25326,7 +25356,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     // Kratus (29-04-21) Reduced the "screen checking" range from 10 to 5 to avoid the entities to stuck in the edge of the screen
     // This change was made because the "common_trymove" function also has another "screen checking" with a range of 10 too
     // If the "testmove" function has a equal or bigger range than the "common_trymove" function, sometimes the entities will stuck
-    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_SCREEN)
+    if(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_SCREEN)
     {
         if(x < advancex + 5)
         {
@@ -25340,7 +25370,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of bounds checking-----------
 
     //-------------hole checking ---------------------
-    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE)
+    if(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_HOLE)
     {
         if(checkhole(x, z) && checkwall_index(x, z) < 0 && !check_platform_below(x, z, ent->position.y, ent))
         {
@@ -25350,7 +25380,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of hole checking---------------
 
     //--------------obstacle checking ------------------
-    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE)
+    if(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_OBSTACLE)
     {
         if((other = find_ent_here(ent, x, z, (TYPE_OBSTACLE | TYPE_TRAP), NULL)) &&
                 (!other->animation->platform || !other->animation->platform[other->animpos][PLATFORM_HEIGHT]))
@@ -25372,7 +25402,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     }
 
     // Check for obstacles with platform code and adjust base accordingly
-    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && (other = check_platform_between(x, z, ent->position.y, ent->position.y + heightvar, ent)) )
+    if(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && (other = check_platform_between(x, z, ent->position.y, ent->position.y + heightvar, ent)) )
     {
         platbelow = check_platform_below(x, z, ent->position.y+T_WALKOFF, ent);
         if ( !platbelow ) return 0;
@@ -25385,7 +25415,7 @@ int testmove(entity *ent, float sx, float sz, float x, float z)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL && (wall = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > ent->position.y)
+    if(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_WALL && (wall = checkwall_below(x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > ent->position.y)
     {
         if(validanim(ent, ANI_JUMP) && sz < level->walls[wall].z && sz > level->walls[wall].z - level->walls[wall].depth) //Can jump?
         {
@@ -27494,7 +27524,7 @@ void check_gravity(entity *e)
 
         if((self->falling || self->velocity.y || self->position.y != self->base) && self->toss_time <= _time)
         {
-            if(heightvar && self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && self->velocity.y > 0)
+            if(heightvar && self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && self->velocity.y > 0)
             {
                 other = check_platform_above_entity(self);
             }
@@ -27503,7 +27533,7 @@ void check_gravity(entity *e)
                 other = NULL;
             }
 
-            if( other && other->position.y <= self->position.y + heightvar && !(other->modeldata.move_constraint & MOVE_CONSTRAINT_NO_HIT_HEAD))
+            if( other && other->position.y <= self->position.y + heightvar && !(other->modeldata.move_config_flags & MOVE_CONFIG_NO_HIT_HEAD))
             {
                 if(self->hithead == NULL) // bang! Hit the ceiling.
                 {
@@ -27518,7 +27548,7 @@ void check_gravity(entity *e)
             }
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
-            if(!(self->animation->move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY))
+            if(!(self->animation->move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY))
             {
                 gravity = 0;
             }
@@ -27526,7 +27556,7 @@ void check_gravity(entity *e)
             {
                 gravity = (level ? level->gravity : default_level_gravity) * (1.0 - self->modeldata.antigravity);
             }
-            if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY)
+            if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY)
             {
                 self->velocity.y += gravity * 100.0 / GAME_SPEED;
             }
@@ -27814,7 +27844,7 @@ void check_ai()
 
         // Used so all entities can have a spawn animation, and then just changes to the idle animation when done
         // move here to so players wont get stuck
-        if((self->animation == self->modeldata.animation[ANI_SPAWN] || self->animation == self->modeldata.animation[ANI_RESPAWN]) && !self->animating /*&& (!inair(self)||!(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY))*/)
+        if((self->animation == self->modeldata.animation[ANI_SPAWN] || self->animation == self->modeldata.animation[ANI_RESPAWN]) && !self->animating /*&& (!inair(self)||!(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY))*/)
         {
             set_idle(self);
         }
@@ -27900,7 +27930,7 @@ void adjust_base(entity *acting_entity, entity **pla)
     * landed platform, platform parameter,
     * and the local other entity.
     */
-    if(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
+    if(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM)
     {
         other = check_platform_below_entity(acting_entity);
         if(!other && acting_entity->landed_on_platform)
@@ -27946,7 +27976,7 @@ void adjust_base(entity *acting_entity, entity **pla)
     *pla = other;
 
     // adjust base
-    if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_ADJUST_BASE)
+    if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_ADJUST_BASE)
     {        
         return;
     }
@@ -27963,7 +27993,7 @@ void adjust_base(entity *acting_entity, entity **pla)
     // Checks to see if entity is over a wall and or obstacle, and adjusts the base accordingly
     //wall = checkwall_below(acting_entity->position.x, acting_entity->position.z);
     //find a wall below us
-    if(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
+    if(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_WALL)
     {
         wall = checkwall_below(acting_entity->position.x, acting_entity->position.z, T_MAX_CHECK_ALTITUDE);
     }
@@ -27976,7 +28006,7 @@ void adjust_base(entity *acting_entity, entity **pla)
     * matters. Just exit.
     */
 
-    if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP)
+    if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_BASEMAP)
     {
         maxbase = check_basemap(acting_entity->position.x, acting_entity->position.z);
     }
@@ -27985,8 +28015,8 @@ void adjust_base(entity *acting_entity, entity **pla)
     * Fall into a hole?
     */
 
-    if(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE &&
-        ((acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP && maxbase == T_MIN_BASEMAP) || !(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP))
+    if(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_HOLE &&
+        ((acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_BASEMAP && maxbase == T_MIN_BASEMAP) || !(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_BASEMAP))
         )
     {
         in_hole = (wall < 0 && !other) ? checkhole_in(acting_entity->position.x, acting_entity->position.z, acting_entity->position.y) : 0;
@@ -28056,7 +28086,7 @@ void adjust_base(entity *acting_entity, entity **pla)
             * base.
             */
                         
-            if ((acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE_HIT) || acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE) && level->walls[wall].height > acting_entity->position.y)
+            if ((acting_entity->toexplode & (EXPLODE_PREPARE_GROUND | EXPLODE_DETONATE_HIT) || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_PROJECTILE_WALL_BOUNCE) && level->walls[wall].height > acting_entity->position.y)
             {
                 acting_entity->base = 0;
             }            
@@ -29176,7 +29206,7 @@ void display_ents()
                 other = check_platform_below(e->position.x, e->position.z, e->position.y+eheight, e);
                 wall = checkwall_index(e->position.x, e->position.z);
 
-                if (e->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP)
+                if (e->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_BASEMAP)
                 {
                     basemap = check_basemap(e->position.x, e->position.z);
                 }
@@ -30264,6 +30294,8 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
 
     if(!(newmodel->model_flag & MODEL_COPY_FLAG_NO_BASIC))
     {
+        newmodel->move_config_flags = model->move_config_flags;
+
         if(!newmodel->speed.x)
         {
             newmodel->speed.x = model->speed.x;
@@ -30272,7 +30304,7 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         {
             newmodel->runspeed = model->runspeed;
             newmodel->runjumpheight = model->runjumpheight;
-            newmodel->runjumpdist = model->runjumpdist;
+            newmodel->runjumpdist = model->runjumpdist; 
             newmodel->runupdown = model->runupdown;
             newmodel->runhold = model->runhold;
         }
@@ -30719,7 +30751,7 @@ void upper_prepare()
     }
 
     //check if target is behind, so we can perform a turn back animation
-    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
+    if(!(self->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP))
     {
         self->direction = (self->position.x < target->position.x);
     }
@@ -30768,7 +30800,7 @@ void normal_prepare()
     }
 
     //check if target is behind, so we can perform a turn back animation
-    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
+    if(!(self->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP))
     {
         self->direction = (self->position.x < target->position.x);
     }
@@ -31868,7 +31900,7 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
     }
 
     /* We can't turn. */
-    if (target_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP)
+    if (target_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP)
     {
         return;
     }
@@ -33942,8 +33974,8 @@ int checkgrab(entity *other, s_attack *attack)
 
 int arrow_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense* defense_object)
 {
-    self->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
-    self->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+    self->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
+    self->modeldata.move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
 
     if( common_takedamage(other, attack, 0, defense_object) && self->death_state & DEATH_STATE_DEAD)
     {
@@ -35291,7 +35323,7 @@ int common_trymove(float xdir, float zdir)
     z = self->position.z + zdir;
     // -----------bounds checking---------------
     // Subjec to Z and out of bounds? Return to level!
-    if (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z)
+    if (self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z)
     {
         if(z < PLAYER_MIN_Z)
         {
@@ -35300,7 +35332,7 @@ int common_trymove(float xdir, float zdir)
         }
     }
 
-    if (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z)
+    if (self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z)
     {
         if(z > PLAYER_MAX_Z)
         {
@@ -35310,7 +35342,7 @@ int common_trymove(float xdir, float zdir)
     }
 
     // screen checking
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_SCREEN)
+    if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_SCREEN)
     {
         if(x < advancex + 10)
         {
@@ -35335,7 +35367,7 @@ int common_trymove(float xdir, float zdir)
 
     //-------------hole checking ---------------------
     // Don't walk into a hole or walk off platforms into holes
-    if( self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_HOLE && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
+    if( self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_HOLE && !inair(self) && !(self->modeldata.type & TYPE_PLAYER) && self->idling &&
             (!self->animation->move[self->animpos]->base || self->animation->move[self->animpos]->base < 0) &&
             !(self->modeldata.aimove & AIMOVE2_IGNOREHOLES))
     {
@@ -35366,7 +35398,7 @@ int common_trymove(float xdir, float zdir)
     //-----------end of hole checking---------------
 
     //--------------obstacle checking ------------------
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_OBSTACLE /*&& !inair(self)*/)
+    if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_OBSTACLE /*&& !inair(self)*/)
     {
         int hit = 0;
 
@@ -35417,7 +35449,7 @@ int common_trymove(float xdir, float zdir)
     }
 
     // Check for obstacles with platform code and adjust base accordingly
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
+    if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM)
     {
         int hit = 0;
 
@@ -35452,7 +35484,7 @@ int common_trymove(float xdir, float zdir)
     //-----------end of platform checking------------------
 
     // ------------------ wall checking ---------------------
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
+    if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_WALL)
     {
         int hit = 0;
 
@@ -35529,7 +35561,7 @@ void common_runoff()
         return;
     }
 
-    if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
+    if(!(self->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP))
     {
         self->direction = (self->position.x < target->position.x);
     }
@@ -35619,7 +35651,7 @@ void common_attack_finish()
 
     target = self->opponent;
 
-    if(target && !(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE) && self->ducking == DUCK_NONE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
+    if(target && !(self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE) && self->ducking == DUCK_NONE && diff(self->position.x, target->position.x) < 80 && (rand32() & 3))
     {
         self->takeaction = NULL;//common_runoff;
         self->destx = self->position.x > target->position.x ? MIN(self->position.x + 40, target->position.x + 80) : MAX(self->position.x - 40, target->position.x - 80);
@@ -36007,7 +36039,7 @@ int common_try_pick(entity *other)
     float dx = diff(self->position.x, other->position.x);
     float dz = diff(self->position.z, other->position.z);
 
-    if(other == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if(other == NULL || self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36349,7 +36381,7 @@ int checkpathblocked()
     int aitype, wpc;
     entity *target;
 	s_axis_plane_lateral_float *wp;
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if(self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36362,8 +36394,8 @@ int checkpathblocked()
         }
 
         //be moo tolerable to PLAYER_MAX_Z and PLAYER_MIN_Z
-        if((self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->position.z > PLAYER_MAX_Z) ||
-                (self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->position.z < PLAYER_MIN_Z) )
+        if((self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z && self->velocity.z > 0 && !self->velocity.x && self->velocity.z + self->position.z > PLAYER_MAX_Z) ||
+                (self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z && self->velocity.z < 0 && !self->velocity.x && self->velocity.z + self->position.z < PLAYER_MIN_Z) )
         {
             self->velocity.z = -self->velocity.z;
             self->pathblocked = 0;
@@ -36484,7 +36516,7 @@ int common_try_chase(entity *target, int dox, int doz)
 
     //adjustspeed(self->modeldata.speed.x, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
 
-    if(target == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if(target == NULL || self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36569,7 +36601,7 @@ int common_try_follow(entity *target, int dox, int doz)
     int facing;
 
     //target = self->parent;
-    if(target == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if(target == NULL || self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36656,7 +36688,7 @@ int common_try_avoid(entity *target, int dox, int doz)
     float maxdz, mindz, maxdx, mindx;
     int randomatk;
 
-    if(target == NULL || self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if(target == NULL || self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36758,7 +36790,7 @@ int common_try_wandercompletely(int dox, int doz)
 {
     int rnum;
 
-    if(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if(self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36909,7 +36941,7 @@ int common_try_wander(entity *target, int dox, int doz)
           mindx, mindz;// don't walk into the target
     int rnum = rand32() & 15, t, randomatk;
 
-    if(!target || (self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
+    if(!target || (self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE))
     {
         return 0;
     }
@@ -37215,7 +37247,7 @@ int arrow_move(entity* acting_entity)
 
         if(target)
         {
-            if(!(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP))
+            if(!(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP))
             {
                 acting_entity->direction = (target->position.x > acting_entity->position.x);
             }
@@ -37257,7 +37289,7 @@ int arrow_move(entity* acting_entity)
             }
         }
         
-        if(!(acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE))
+        if(!(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE))
         {
             if(target && acting_entity->position.z > target->position.z && validanim(acting_entity, ANI_UP))
             {
@@ -37307,7 +37339,7 @@ int arrow_move(entity* acting_entity)
         // Bounce off walls or platforms.
         projectile_wall_deflect(acting_entity);
         
-        if (acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_BASE_DIE)
+        if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_PROJECTILE_BASE_DIE)
         {
             if (acting_entity->landed_on_platform || acting_entity->position.y <= acting_entity->base)
             {
@@ -37435,7 +37467,7 @@ int bomb_try_detonate(entity* acting_entity)
         if (validanim(acting_entity, ANI_ATTACK2))
         {
             ent_set_anim(acting_entity, ANI_ATTACK2, 0);
-            acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+            acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
         }
         else if(acting_entity->modeldata.remove && acting_entity->toexplode & EXPLODE_DETONATE_HIT)
         {
@@ -37445,7 +37477,7 @@ int bomb_try_detonate(entity* acting_entity)
     else if (validanim(acting_entity, ANI_ATTACK1))
     {
         ent_set_anim(acting_entity, ANI_ATTACK1, 0);
-        acting_entity->animation->move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;    
+        acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;    
     }
 
     return 1;
@@ -37516,12 +37548,12 @@ int bomb_move(entity* acting_entity)
 int check_block_wall(entity *entity)
 {
     //printf("\n\n check_block_wall(%p)", entity);
-    //printf("\n entity->modeldata.move_constraint: %d", entity->modeldata.move_constraint);
+    //printf("\n entity->modeldata.move_config_flags: %d", entity->modeldata.move_config_flags);
 
     int wall = WALL_INDEX_NONE;
 
     /* Target entity affected by walls? */
-    if(entity->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_WALL)
+    if(entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_WALL)
     {
         //printf("\n\t Has constraint.");
 
@@ -37565,7 +37597,7 @@ entity *check_block_obstacle(entity *ent)
     int height;
 
     // Target entity affected by obstacles?
-    if(ent->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM)
+    if(ent->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM)
     {
         // Get the height. if entity does not have an
         // animation height defined, then use its
@@ -37611,7 +37643,7 @@ int projectile_wall_deflect(entity *acting_entity)
     //printf("\n\t model(%s)", acting_entity->model->name);
     //printf("\n\t acting_entity->drop: ", acting_entity->drop);
 
-    if(validanim(acting_entity, ANI_FALL) && acting_entity->modeldata.move_constraint & MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE)
+    if(validanim(acting_entity, ANI_FALL) && acting_entity->modeldata.move_config_flags & MOVE_CONFIG_PROJECTILE_WALL_BOUNCE)
     {
         //printf("\n\t Has Fall");
         //printf("\n\t position: %f, %f, %f", acting_entity->position.x, acting_entity->position.y, acting_entity->position.z);
@@ -37656,8 +37688,8 @@ int projectile_wall_deflect(entity *acting_entity)
             toss(acting_entity, RICHOCHET_VELOCITY_Y + randf(RICHOCHET_VELOCITY_Y_RAND));
                         
             /* Reset base detection */
-            acting_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-            acting_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+            acting_entity->modeldata.move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+            acting_entity->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
             
             acting_entity->base = 0;
 
@@ -37806,7 +37838,7 @@ int common_move()
         }
 
         // change direction unless the ai pattern ignores target or model has noflip
-        if(!(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_FLIP) && !self->running && aimove != AIMOVE1_WANDER)
+        if(!(self->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP) && !self->running && aimove != AIMOVE1_WANDER)
         {
             if(other)   //try to pick up an item, if possible
             {
@@ -37852,7 +37884,7 @@ int common_move()
             }
         }
 
-        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+        if(self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
         {
             self->idling = IDLING_PREPARED;
             return 1;
@@ -38023,11 +38055,11 @@ int common_move()
         }
 
         //fix 2d level panic, or should this be moved to the very beginning?
-        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MIN_Z && self->destz < PLAYER_MIN_Z)
+        if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z && self->destz < PLAYER_MIN_Z)
         {
             self->destz = PLAYER_MIN_Z;
         }
-        if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_MAX_Z && self->destz > PLAYER_MAX_Z)
+        if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z && self->destz > PLAYER_MAX_Z)
         {
             self->destz = PLAYER_MAX_Z;
         }
@@ -40521,7 +40553,7 @@ void player_think()
 
 
     // Check if entity is under a platform
-    /*if(self->modeldata.move_constraint & MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
+    /*if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
             validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
     {
         self->idling = IDLING_NONE;
@@ -40986,6 +41018,8 @@ void player_think()
                 runx++;
             }
         }
+        
+        /* No run Z */
         if(!self->modeldata.runupdown)
         {
             if(movez || !movex)
@@ -40993,6 +41027,7 @@ void player_think()
                 self->running = 0;
             }
         }
+        
         else if(self->modeldata.runupdown & 4)
         {
             if(!movex && !movez)
@@ -41493,7 +41528,7 @@ void drop_all_enemies()
                 (ent_list[i]->modeldata.type & TYPE_ENEMY) &&
                 !ent_list[i]->owner &&    // Don't want to knock down a projectile
                 !ent_list[i]->frozen &&    // Don't want to unfreeze a frozen enemy
-                !(ent_list[i]->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE) &&
+                !(ent_list[i]->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE) &&
                 !(ent_list[i]->modeldata.pain_config_flags & PAIN_CONFIG_FALL_DISABLE) &&
                 validanim(ent_list[i], ANI_FALL) )
         {
@@ -42426,7 +42461,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	* back to default values. This is a bit overcomplicated, but
 	* allows players to supply a 0 velocity value on any axis.
 	*/
-    if (projectile_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+    if (projectile_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
 	{
         projectile_entity->modeldata.speed.x = 0;
         projectile_entity->modeldata.speed.y = 0;
@@ -42464,7 +42499,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	}
 	
     /* Kill self when we finish animation. */
-	if (projectile_entity->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+	if (projectile_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
 	{
         projectile_entity->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
@@ -42504,16 +42539,16 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     * setup depending on what function creator used.
     */
     
-    projectile_entity->modeldata.move_constraint |= (MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE);
-    projectile_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+    projectile_entity->modeldata.move_config_flags |= (MOVE_CONFIG_PROJECTILE_BASE_DIE | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL | MOVE_CONFIG_PROJECTILE_WALL_BOUNCE);
+    projectile_entity->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
 
     if (projectile_entity->projectile_prime & PROJECTILE_PRIME_INITIALIZE_LEGACY_PROJECTILE_FUNCTION)
     {
-        projectile_entity->modeldata.move_constraint |= MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        projectile_entity->modeldata.move_config_flags |= MOVE_CONFIG_SUBJECT_TO_GRAVITY;
     }
     else
     {
-        projectile_entity->modeldata.move_constraint &= ~MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY;
+        projectile_entity->modeldata.move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
     }
         
 	/* Execute the projectile's on spawn event. */
@@ -42634,7 +42669,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	* allows players to supply a 0 velocity value on any axis.
     */
 
-	if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+	if (ent->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
 	{
 		ent->modeldata.speed.x = 0;
 		ent->modeldata.speed.y = 0;
@@ -42693,7 +42728,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
     ent->takedamage = common_takedamage;
 	ent->autokill &= ~AUTOKILL_ATTACK_HIT;    
 
-	if (ent->modeldata.move_constraint & MOVE_CONSTRAINT_NO_MOVE)
+	if (ent->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
 	{
 		ent->autokill |= AUTOKILL_ANIMATION_COMPLETE;
 	}
@@ -42706,8 +42741,8 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 
 	faction_copy_all(ent, parent);
     
-	ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
-	ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_PROJECTILE_BASE_DIE | MOVE_CONSTRAINT_PROJECTILE_WALL_BOUNCE | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
+	ent->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
+	ent->modeldata.move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_PROJECTILE_BASE_DIE | MOVE_CONFIG_PROJECTILE_WALL_BOUNCE | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
 	
 	// Execute the projectile's on spawn event.
 	execute_onspawn_script(ent);
@@ -42876,8 +42911,8 @@ int star_spawn(entity *parent, s_projectile *projectile)
         faction_copy_all(ent, parent);
 
 		// Basic terrian property setup.
-		ent->modeldata.move_constraint |= (MOVE_CONSTRAINT_SUBJECT_TO_BASEMAP | MOVE_CONSTRAINT_SUBJECT_TO_GRAVITY | MOVE_CONSTRAINT_SUBJECT_TO_HOLE | MOVE_CONSTRAINT_SUBJECT_TO_PLATFORM | MOVE_CONSTRAINT_SUBJECT_TO_WALL);
-		ent->modeldata.move_constraint &= ~MOVE_CONSTRAINT_NO_ADJUST_BASE;
+		ent->modeldata.move_config_flags |= (MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_GRAVITY | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_WALL);
+		ent->modeldata.move_config_flags &= ~MOVE_CONFIG_NO_ADJUST_BASE;
 
         ent->spawntype = SPAWN_TYPE_PROJECTILE_STAR;
 		ent->projectile_prime = projectile_prime;
@@ -42929,7 +42964,7 @@ void steam_spawn(float x, float z, float a)
 
     e->spawntype = SPAWN_TYPE_STEAM;
     e->base = a;
-    e->modeldata.move_constraint |= MOVE_CONSTRAINT_NO_ADJUST_BASE;
+    e->modeldata.move_config_flags |= MOVE_CONFIG_NO_ADJUST_BASE;
     e->think = steam_think;
 
 	// Execute the steams's on spawn event.
