@@ -10980,8 +10980,8 @@ e_entity_type get_type_from_string(const char* value)
         {"player", TYPE_PLAYER},
         {"projectile", TYPE_PROJECTILE},
         {"shot", TYPE_SHOT},
-        {"steamer", TYPE_TEXTBOX},
-        {"text_box", DEATH_CONFIG_FALL_LAND_AIR},
+        {"steamer", TYPE_STEAMER},
+        {"text_box", TYPE_TEXTBOX},
         {"trap", TYPE_TRAP},
     };
 
