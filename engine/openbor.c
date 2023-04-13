@@ -40771,23 +40771,25 @@ void player_think()
     //dang long run checking logic
     if(self->running)
     {
-        runx = runz = movex = movez = 0;
-        if(pl->keys & FLAG_MOVEUP)
-        {
-            movez--;
-        }
-        if(pl->keys & FLAG_MOVEDOWN)
-        {
-            movez++;
-        }
-        if(pl->keys & FLAG_MOVELEFT)
-        {
-            movex--;
-        }
-        if(pl->keys & FLAG_MOVERIGHT)
-        {
-            movex++;
-        }
+        runx = 0;
+        runz = 0;
+        movex = 0;
+        movez = 0;
+
+        /*
+        * Check keys and set up local move 
+        * command flag accordingly. 
+        * 
+        * Move Up:  movez = -1;
+        * Move Down: movez = 1;
+        * Move Left: movex = -1;
+        * Move Right: movez = 1;
+        */
+
+        movez += ((pl->keys & FLAG_MOVEUP) ? -1 : 0) + ((pl->keys & FLAG_MOVEDOWN) ? 1 : 0);
+        movex += ((pl->keys & FLAG_MOVELEFT) ? -1 : 0) + ((pl->keys & FLAG_MOVERIGHT) ? 1 : 0);
+
+
         if(oldrunning)
         {
             if(self->velocity.z < 0)
@@ -40798,6 +40800,7 @@ void player_think()
             {
                 runz++;
             }
+
             if(self->velocity.x < 0)
             {
                 runx--;
@@ -40808,50 +40811,33 @@ void player_think()
             }
         }
         
-        /* No run Z */
-        if(!self->modeldata.runupdown)
+        /*
+        * No Z running ability, movex is opposite
+        * of running direction, or movex is neutral.
+        */
+        self->running = (!self->modeldata.runupdown || (!movex || movex == -runx)) ? 0 : self->running;
+
+        /*
+        * Do we have full Z running ability? 
+        * If so, we only stop under a combination
+        * of conditions. See if conditions block.
+        * 
+        * If we don't have Z running ability
+        * then stop if move X is neutral or
+        * a Z move command is pressed.
+        */
+        if ((self->modeldata.runupdown & 4) 
+            && ((!movex && !movez) // No direction command at all.
+                || (movex && !movez && runx == -movex)  // No Move Z, Move X is opposite running direction. */
+                || (movez && !movex && runz == -movez)  // No Move X, Move Z is opposite running direction. */
+                || (movex && movez && diff(movex, runx) + diff(movez, runz) > 2))) // Diagonal move command, either move command opposite of running direction. 
         {
-            if(movez || !movex)
-            {
-                self->running = 0;
-            }
+            self->running = 0;
         }
-        
-        else if(self->modeldata.runupdown & 4)
-        {            
-            if(!movex && !movez)
-            {
-                /* No key command? */
-
-                self->running = 0;
-            }
-            else if(movex && !movez && runx == -movex)
-            {
-                /* X Key, No Z key, run opposite of X key? */
-
-                self->running = 0;
-            }
-            else if(movez && !movex && runz == -movez)
-            {
-                /* Z key, no X Key, run opposite of Z key? */
-
-                self->running = 0;
-            }
-            else if(movex && movez && diff(movex, runx) + diff(movez, runz) > 2)
-            {
-                /* X key, Z key, */
-
-                self->running = 0;
-            }
-        }
-        else if(self->modeldata.runupdown)
+        else if (!self->modeldata.runupdown && (movez || !movex))
         {
-            if(!movex || movex == -runx)
-            {
-                self->running = 0;
-            }
-        }
-
+            self->running = 0;
+        }        
     }
 
     if(PLAYER_MIN_Z != PLAYER_MAX_Z && self->ducking == DUCK_NONE)
