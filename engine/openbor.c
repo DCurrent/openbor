@@ -23713,7 +23713,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
             ent->animpos = ent->animation->numframes - 1;
         }
 
-        if (ent->nextanim != DELAY_INFINITE) { ent->nextanim = calculate_edelay(ent, ent->animpos); }
+        if (ent->nextanim != DELAY_INFINITE) { ent->nextanim = _time + calculate_edelay(ent, ent->animpos); }
 
         
         //update_frame(ent, ent->animpos);
@@ -26805,9 +26805,6 @@ void do_attack(entity *attacking_entity)
 
                 self->toss_time += attack->pause_add;       // So jump height pauses in midair
                 self->nextmove += attack->pause_add;      // xdir, zdir
-
-                if (self->nextanim != DELAY_INFINITE) { self->nextanim += attack->pause_add; }
-
                 self->nextanim += attack->pause_add;        //Pause animation for a bit
                 self->nextthink += attack->pause_add;       // So anything that auto moves will pause
 
