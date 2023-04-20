@@ -31364,6 +31364,18 @@ void common_grab_check()
         }
         return;
     }
+
+    // Kratus (04-2023) Implemented vault animation to all A.I. controlled characters
+    if(validanim(self, ANI_VAULT) && rnum < 6)
+    {
+        player[self->playerindex].playkeys &= ~FLAG_JUMP;
+        self->attacking = ATTACKING_ACTIVE;
+        self->takeaction = common_grabattack;
+        memset(self->combostep, 0, sizeof(*self->combostep) * 5);
+        ent_set_anim(self, ANI_VAULT, 0);
+        return;
+    }
+
     //grab finisher
     if(rnum < 4)
     {
