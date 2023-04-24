@@ -47,7 +47,7 @@ typedef enum
 	ENTITY_PROPERTY_COMMAND_TIME,
 	ENTITY_PROPERTY_DAMAGE_ON_LANDING,
 	ENTITY_PROPERTY_DEATH_STATE,
-	ENTITY_PROPERTY_DEFENSE_COLLECTION,
+	ENTITY_PROPERTY_DEFENSE,
 	ENTITY_PROPERTY_DESTINATION_X,
 	ENTITY_PROPERTY_DESTINATION_Z,
 	ENTITY_PROPERTY_DIE_ON_LANDING,
@@ -106,7 +106,7 @@ typedef enum
 	ENTITY_PROPERTY_NOGRAB_DEFAULT,
 	ENTITY_PROPERTY_OBSTRUCTED,
 	ENTITY_PROPERTY_OBSTRUCTION_OVERHEAD,
-	ENTITY_PROPERTY_OFFENSE_COLLECTION,
+	ENTITY_PROPERTY_OFFENSE,
 	ENTITY_PROPERTY_OPPONENT,
 	ENTITY_PROPERTY_OWNER,
 	ENTITY_PROPERTY_PARENT,
@@ -129,7 +129,7 @@ typedef enum
 	ENTITY_PROPERTY_RISE_STATE,
 	ENTITY_PROPERTY_RUN_STATE,
 	ENTITY_PROPERTY_RUSH,
-	ENTITY_PROPERTY_SCRIPT_COLLECTION,
+	ENTITY_PROPERTY_SCRIPT,
 	ENTITY_PROPERTY_SEAL_ENERGY,
 	ENTITY_PROPERTY_SEAL_TIME,
 	ENTITY_PROPERTY_SHADOW_CONFIG_FLAGS,
@@ -150,15 +150,15 @@ typedef enum
 	ENTITY_PROPERTY_VELOCITY_Y,
 	ENTITY_PROPERTY_VELOCITY_Z,
 	ENTITY_PROPERTY_WALK_STATE,
-	ENTITY_PROPERTY_WAYPOINT_COLLECTION,
+	ENTITY_PROPERTY_WAYPOINT,
 	ENTITY_PROPERTY_WAYPOINT_COUNT,
 	ENTITY_PROPERTY_WEAPON_ITEM,
 	ENTITY_PROPERTY_WEAPON_STATE,
 	ENTITY_PROPERTY_END,
 } e_entity_properties;
 
-HRESULT openbor_get_entity_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_entity_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_entity_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_entity_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);
 
 HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);

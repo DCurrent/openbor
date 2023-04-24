@@ -1,16 +1,14 @@
 #
-# OpenBOR - http://www.ChronoCrash.com
+# OpenBOR - https://www.ChronoCrash.com
 # ---------------------------------------------------------------------------------------------------
 # All rights reserved, see LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 - 2018 OpenBOR Team
+# Copyright (c) 2004 OpenBOR Team
 #
 
 #----------------------------------------------------------------------------------------------------
 #
 #               	OpenBOR Makefile for ALL TARGET_PLATFORMs
-#
-#             PSP, PS3, Wii, Pandora, Windows, Darwin & Linux
 #
 #----------------------------------------------------------------------------------------------------
 
@@ -373,6 +371,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
 				  source/openborscript/binding.o                                           			\
 				  source/openborscript/drawmethod.o                                           		\
                   source/openborscript/collision_attack.o                                           \
+                  source/openborscript/common_property.o                                            \
                   source/openborscript/collision_body.o                                             \
 				  source/openborscript/collision_entity.o                                           \
                   source/openborscript/colorset.o                                                   \
@@ -826,11 +825,11 @@ endif
 
 version:
 	@echo "-------------------------------------------------------"
-	@echo "OpenBOR $(VERSION) - http://www.ChronoCrash.com"
+	@echo "OpenBOR $(VERSION) - https://www.ChronoCrash.com"
 	@echo
 	@echo "All rights reserved."
 	@echo "See LICENSE and README within OpenBOR root for details."
 	@echo
-	@echo "Copyright (c) 2004 - 2018 OpenBOR Team"
+	@echo "Copyright (c) 2004 OpenBOR Team"
 	@echo "-------------------------------------------------------"
 

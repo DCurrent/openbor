@@ -6,10 +6,12 @@
  * Copyright (c) 2004 OpenBOR Team
  */
 
-// Model Properties
-// 2023-03-03
-// Caskey, Damon V.
-
+/*
+* Caskey, Damon V.*
+* 2023-03-03
+* 
+* Model Properties
+*/
 typedef enum e_model_properties
 {
 	MODEL_PROPERTY_ACTION_FREEZE,
@@ -29,7 +31,6 @@ typedef enum e_model_properties
 	MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER,
 	MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX,
 	MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN,
-	MODEL_PROPERTY_EDELAY_CONFIG_FLAGS,
 	MODEL_PROPERTY_FACTION,
 	MODEL_PROPERTY_FLIP,
 	MODEL_PROPERTY_GROUND,
@@ -59,8 +60,11 @@ typedef enum e_model_properties
 	MODEL_PROPERTY_SUBTYPE,
 	MODEL_PROPERTY_TYPE,
 	MODEL_PROPERTY_WEAPON,
+	MODEL_PROPERTY_TEST_FIXED,
+	MODEL_PROPERTY_TEST_POINTER,
 	MODEL_PROPERTY_END
 } e_model_properties;
 
-HRESULT openbor_get_model_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+
+HRESULT openbor_get_model_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant** const pretvar, const int paramCount);

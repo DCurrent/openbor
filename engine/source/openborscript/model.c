@@ -8,6 +8,363 @@
 
 #include "scriptcommon.h"
 
+
+const s_property_access_map model_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
+{
+    s_property_access_map property_map;
+    const s_model* acting_object = acting_object_param;
+    const e_model_properties property_index = property_index_param;
+
+    switch (property_index)
+    {
+    case MODEL_PROPERTY_ACTION_FREEZE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->dofreeze;
+        property_map.id_string = "MODEL_PROPERTY_ACTION_FREEZE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_AIR_CONTROL:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->air_control;
+        property_map.id_string = "MODEL_PROPERTY_AIR_CONTROL";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_ANTI_GRAVITY:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->antigravity;
+        property_map.id_string = "MODEL_PROPERTY_ANTI_GRAVITY";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case MODEL_PROPERTY_BLEND_MODE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->alpha;
+        property_map.id_string = "MODEL_PROPERTY_BLEND_MODE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_BLOCK_CONFIG_FLAGS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->block_config_flags;
+        property_map.id_string = "MODEL_PROPERTY_BLOCK_CONFIG_FLAGS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_BLOCK_ODDS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->blockodds;
+        property_map.id_string = "MODEL_PROPERTY_BLOCK_ODDS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_BLOCK_PAIN:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->blockpain;
+        property_map.id_string = "MODEL_PROPERTY_BLOCK_PAIN";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_BLOCK_THRESHOLD:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->thold;
+        property_map.id_string = "MODEL_PROPERTY_BLOCK_THRESHOLD";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_BOUNCE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->bounce;
+        property_map.id_string = "MODEL_PROPERTY_BOUNCE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_COLORSET:
+        property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
+        property_map.field = &acting_object->colorsets;
+        property_map.id_string = "MODEL_PROPERTY_COLORSET";
+        property_map.type = VT_PTR;
+        break;
+
+    case MODEL_PROPERTY_DEATH_CONFIG_FLAGS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->death_config_flags;
+        property_map.id_string = "MODEL_PROPERTY_DEATH_CONFIG_FLAGS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->edelay.cap.max;
+        property_map.id_string = "MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->edelay.cap.min;
+        property_map.id_string = "MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->edelay.modifier;
+        property_map.id_string = "MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->edelay.factor;
+        property_map.id_string = "MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->edelay.range.max;
+        property_map.id_string = "MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->edelay.range.min;
+        property_map.id_string = "MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_FACTION:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->faction;
+        property_map.id_string = "MODEL_PROPERTY_FACTION";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_FLIP:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->toflip;
+        property_map.id_string = "MODEL_PROPERTY_FLIP";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_GROUND:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->ground;
+        property_map.id_string = "MODEL_PROPERTY_GROUND";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_HP:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->health;
+        property_map.id_string = "MODEL_PROPERTY_HP";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_HUD_DISABLE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->nolife;
+        property_map.id_string = "MODEL_PROPERTY_HUD_DISABLE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_HUD_POPUP:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->hud_popup;
+        property_map.id_string = "MODEL_PROPERTY_HUD_POPUP";
+        property_map.type = VT_PTR;
+        break;
+
+    case MODEL_PROPERTY_ICON:
+        property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
+        property_map.field = &acting_object->icon;
+        property_map.id_string = "MODEL_PROPERTY_ICON";
+        property_map.type = VT_PTR;
+        break;
+
+    case MODEL_PROPERTY_INDEX:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->index;
+        property_map.id_string = "MODEL_PROPERTY_INDEX";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_LAYER:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->setlayer;
+        property_map.id_string = "MODEL_PROPERTY_LAYER";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_MAKE_INVINCIBLE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->makeinv;
+        property_map.id_string = "MODEL_PROPERTY_MAKE_INVINCIBLE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_MOVE_CONFIG_FLAGS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->move_config_flags;
+        property_map.id_string = "MODEL_PROPERTY_MOVE_CONFIG_FLAGS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_MP:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->mp;
+        property_map.id_string = "MODEL_PROPERTY_MP";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_MULTIPLE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->multiple;
+        property_map.id_string = "MODEL_PROPERTY_MULTIPLE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_NAME:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->name;
+        property_map.id_string = "MODEL_PROPERTY_NAME";
+        property_map.type = VT_STR;
+        break;
+
+    case MODEL_PROPERTY_TEST_FIXED:
+        property_map.config_flags = (PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT | PROPERTY_ACCESS_CONFIG_STATIC_LENGTH);
+        property_map.field = &acting_object->test_fixed;
+        property_map.id_string = "MODEL_PROPERTY_TEST_FIXED";
+        property_map.type = VT_STR;
+        break;
+
+    case MODEL_PROPERTY_TEST_POINTER:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->test_pointer;
+        property_map.id_string = "MODEL_PROPERTY_TEST_POINTER";
+        property_map.type = VT_STR;
+        break;
+
+    case MODEL_PROPERTY_OFF_SCREEN_KILL:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->offscreenkill;
+        property_map.id_string = "MODEL_PROPERTY_OFF_SCREEN_KILL";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_OFF_SCREEN_NO_ATTACK:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->offscreen_noatk_factor;
+        property_map.id_string = "MODEL_PROPERTY_OFF_SCREEN_NO_ATTACK";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case MODEL_PROPERTY_PAIN_CONFIG_FLAGS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->pain_config_flags;
+        property_map.id_string = "MODEL_PROPERTY_PAIN_CONFIG_FLAGS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_PATH:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->path;
+        property_map.id_string = "MODEL_PROPERTY_PATH";
+        property_map.type = VT_STR;
+        break;
+
+    case MODEL_PROPERTY_PRIORITY:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->priority;
+        property_map.id_string = "MODEL_PROPERTY_PRIORITY";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_QUAKE_CONFIG:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->quake_config;
+        property_map.id_string = "MODEL_PROPERTY_QUAKE_CONFIG";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_RISE_INVINCIBLE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->riseinv;
+        property_map.id_string = "MODEL_PROPERTY_RISE_INVINCIBLE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_SCORE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->score;
+        property_map.id_string = "MODEL_PROPERTY_SCORE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_SCROLL:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->scroll;
+        property_map.id_string = "MODEL_PROPERTY_SCROLL";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case MODEL_PROPERTY_SHADOW_CONFIG_FLAGS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->shadow_config_flags;
+        property_map.id_string = "MODEL_PROPERTY_SHADOW_CONFIG_FLAGS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_SHADOW_INDEX:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->shadow;
+        property_map.id_string = "MODEL_PROPERTY_SHADOW_INDEX";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_SPAWN_HUD:
+        property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
+        property_map.field = &acting_object->player_arrow;
+        property_map.id_string = "MODEL_PROPERTY_SPAWN_HUD";
+        property_map.type = VT_PTR;
+        break;
+
+    case MODEL_PROPERTY_SUBTYPE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->subtype;
+        property_map.id_string = "MODEL_PROPERTY_SUBTYPE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_TYPE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->type;
+        property_map.id_string = "MODEL_PROPERTY_TYPE";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_WEAPON:
+        property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
+        property_map.field = &acting_object->weapon_properties;
+        property_map.id_string = "MODEL_PROPERTY_WEAPON";
+        property_map.type = VT_PTR;
+        break;
+
+    case MODEL_PROPERTY_END:
+    default:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
+        property_map.field = NULL;
+        property_map.id_string = "Model";
+        property_map.type = VT_EMPTY;
+        break;
+
+    }
+    return property_map;
+}
+
 /*
 * Caskey, Damon  V.
 * 2023-03-03
@@ -16,16 +373,12 @@
 * a object pointer and property 
 * constant to access.
 */ 
-HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_get_model_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-    #define SELF_NAME       "openbor_get_model_property(void model, int property)"
-    #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_OBJECT      0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY    1   // Property to access.
-
-    s_model*               handle     = NULL; // Property handle.
-    e_model_properties	   property    = 0;    // Property argument.
-
+    const char* SELF_NAME = "openbor_get_model_property(void model, int property)";
+    const unsigned int ARG_OBJECT    = 0; // Handle (pointer to property structure).
+    const unsigned int ARG_PROPERTY  = 1; // Property to access.
+    
     /*
     * Clear pass by reference argument used to send
     * property data back to calling script.
@@ -33,842 +386,130 @@ HRESULT openbor_get_model_property(ScriptVariant **varlist , ScriptVariant **pre
     ScriptVariant_Clear(*pretvar);
 
     /*
-    * Verify arguments. There should at least
-    * be a pointer for the property object and an integer
-    * to determine which property constant is accessed.
+    * Should at least be a pointer to the 
+    * acting object and a  property id.
     */
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_OBJECT]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
-        *pretvar = NULL;
-        goto error_local;
+    if(varlist[ARG_OBJECT]->vt != VT_PTR
+       || varlist[ARG_PROPERTY]->vt != VT_INTEGER){
+        printf("\n\n Script error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
+        return E_FAIL;
     }
     
     /*
-    * We use local variables for downstream
-    * readability. Populate them here.
+    * Now let's make sure the object type is
+    * correct (ex. entity vs. model) so we
+    * can shut down gracefully if there's
+    * a mismatch.
     */
-    handle      = (s_model *)varlist[ARG_OBJECT]->ptrVal;
-    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-   
-	
-    switch(property)
-    {
-        case MODEL_PROPERTY_ACTION_FREEZE:
 
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->dofreeze;
-
-            break;
-
-        case MODEL_PROPERTY_AIR_CONTROL:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->air_control;
-
-            break;
-
-        case MODEL_PROPERTY_ANTI_GRAVITY:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->antigravity;
-
-            break;
-
-        case MODEL_PROPERTY_BLEND_MODE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_blend_mode)handle->alpha;
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_CONFIG_FLAGS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_block_config_flags)handle->block_config_flags;
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_ODDS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->blockodds;
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_PAIN:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->blockpain;
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_THRESHOLD:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->thold;
-
-            break;
-
-        case MODEL_PROPERTY_BOUNCE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->bounce;
-
-            break;      
-
-        case MODEL_PROPERTY_COLORSET:
-            
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (s_colorset*)&handle->colorsets;
-		
-            break;
-
-        case MODEL_PROPERTY_DEATH_CONFIG_FLAGS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_death_config_flags)handle->death_config_flags;
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->edelay.cap.max;
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->edelay.cap.min;
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->edelay.modifier;
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->edelay.factor;
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->edelay.range.max;
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->edelay.range.min;
-
-            break;        
-
-        case MODEL_PROPERTY_FACTION:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (s_faction*)&handle->faction;
-
-            break;
-
-        case MODEL_PROPERTY_FLIP:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->toflip;
-
-            break;
-
-        case MODEL_PROPERTY_GROUND:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->ground;
-
-            break;
-
-        case MODEL_PROPERTY_HP:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->health;
-
-            break;
-
-        case MODEL_PROPERTY_HUD_DISABLE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->nolife;
-
-            break;
-
-        case MODEL_PROPERTY_HUD_POPUP:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (s_barstatus*)&handle->hud_popup;
-
-            break;
-
-        case MODEL_PROPERTY_ICON:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (s_icon*)&handle->icon;
-
-            break;
-
-		case MODEL_PROPERTY_INDEX:
-
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->index;
-
-			break;
-
-        case MODEL_PROPERTY_LAYER:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->setlayer;
-
-            break;
-
-        case MODEL_PROPERTY_MAKE_INVINCIBLE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->makeinv;
-
-            break;
-
-        case MODEL_PROPERTY_MOVE_CONFIG_FLAGS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->move_config_flags;
-
-            break;
-
-        case MODEL_PROPERTY_MP:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->mp;
-
-            break;
-
-        case MODEL_PROPERTY_MULTIPLE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->multiple;
-
-            break;
-
-        case MODEL_PROPERTY_NAME:
-
-            ScriptVariant_ChangeType(*pretvar, VT_STR);
-            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->name);
-            
-            break;     
-
-        case MODEL_PROPERTY_OFF_SCREEN_KILL:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->offscreenkill;
-
-            break;
-
-        case MODEL_PROPERTY_OFF_SCREEN_NO_ATTACK:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->offscreen_noatk_factor;
-
-            break;
-
-        case MODEL_PROPERTY_PAIN_CONFIG_FLAGS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_pain_config_flags)handle->pain_config_flags;
-
-            break;
-
-        case MODEL_PROPERTY_PATH:
-
-            ScriptVariant_ChangeType(*pretvar, VT_STR);
-            (*pretvar)->strVal = StrCache_CreateNewFrom(handle->path);
-
-            break;
-
-        case MODEL_PROPERTY_PRIORITY:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->priority;
-
-            break;
-
-        case MODEL_PROPERTY_QUAKE_CONFIG:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_quake_config)handle->quake_config;
-
-            break;
-
-        case MODEL_PROPERTY_RISE_INVINCIBLE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->riseinv;
-
-            break;
-
-        case MODEL_PROPERTY_SCORE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->score;
-
-            break;
-
-        case MODEL_PROPERTY_SCROLL:
-
-            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-            (*pretvar)->dblVal = (DOUBLE)handle->scroll;
-
-            break;
-
-        case MODEL_PROPERTY_SHADOW_CONFIG_FLAGS:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_shadow_config_flags)handle->shadow_config_flags;
-
-            break;
-
-        case MODEL_PROPERTY_SHADOW_INDEX:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)handle->shadow;
-
-            break;
-
-        case MODEL_PROPERTY_SPAWN_HUD:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (s_spawn_hud*)&handle->player_arrow;
-
-            break;
-
-        case MODEL_PROPERTY_SUBTYPE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_entity_type_sub)handle->subtype;
-
-            break;
-
-        case MODEL_PROPERTY_TYPE:
-
-            ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (e_entity_type)handle->type;
-
-            break;
-
-        case MODEL_PROPERTY_WEAPON:
-
-            ScriptVariant_ChangeType(*pretvar, VT_PTR);
-            (*pretvar)->ptrVal = (s_weapon*)&handle->weapon_properties;
-
-            break;
-
-        default:
-
-            printf("Unknwon property.\n");
-            goto error_local;
-
-            break;
+    const s_model* const acting_object = (const s_model* const)varlist[ARG_OBJECT]->ptrVal;
+
+    if (acting_object->object_type != OBJECT_TYPE_MODEL) {
+        printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+    const e_model_properties property_id = (e_model_properties)(property_id_param);
+    const s_property_access_map property_map = model_get_property_map(acting_object, property_id);
+
+    /*
+    * If property id is in range, we send
+    * the property map and return parameter
+    * for population, then ext.
+    */
+
+    if (property_id_param >= 0 && property_id_param < MODEL_PROPERTY_END) {
+        property_access_get_member(&property_map, *pretvar);
+        return S_OK;
+    }
+    
+    /*
+    * Is this a dump request? If not, then
+    * the property id is invalid.
+    */
+
+    if (property_id_param == PROPERTY_ACCESS_DUMP) {
+        property_access_dump_members(model_get_property_map, MODEL_PROPERTY_END, acting_object);
+    }
+    else {
+        printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+        return E_FAIL;
     }
 
     return S_OK;
-
-    error_local:
-
-    printf("You must provide a valid pointer and property constant: " SELF_NAME "\n");
-    *pretvar = NULL;
-
-    return E_FAIL;
-
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_OBJECT
-    #undef ARG_PROPERTY
 }
+
 
 /*
 * Caskey, Damon  V.
 * 2018-04-03
 *
-* Mutate a model property. Requires
-* the model pointer, a string property
-* name, and new value.
+* Mutate a property. Requires
+* the object pointer, a property
+* id, and new value.
 */ 
-HRESULT openbor_set_model_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_set_model_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-    #define SELF_NAME           "openbor_set_model_property(void model, int property, value)"
-    #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_OBJECT          0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY        1   // Property to access.
-    #define ARG_VALUE           2   // New value to apply.
-
-    int                 result      = S_OK; // Success or error?
-    s_model*            handle     = NULL; // Property handle.
-    e_model_properties	property    = 0;    // Property to access.
-
-    /* 
-    * Value carriers to apply on properties after
-    * taken from argument.
-    */
-
-    LONG    temp_int;
-    DOUBLE  temp_float;
-		
+    const char* SELF_NAME = "openbor_set_model_property(void model, int property, <mixed> value)";
+    const unsigned int ARG_OBJECT = 0;
+    const unsigned int ARG_PROPERTY = 1;
+    const unsigned int ARG_VALUE = 2;
+    const unsigned int ARG_MINIMUM = 3;
+    
     /*
-    * Verify incoming arguments.There should at least
-    * be a pointer for the property object and an integer
-    * to determine which property is accessed.
+    * Should at least be a pointer to the
+    * acting object, a property id, and 
+    * a new value.
     */
 
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_OBJECT]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
+    if (varlist[ARG_OBJECT]->vt != VT_PTR
+        || varlist[ARG_PROPERTY]->vt != VT_INTEGER
+        || paramCount < ARG_MINIMUM) {
+        printf("\n\n Script error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
         *pretvar = NULL;
-        goto error_local;
+        return E_FAIL;
     }
 
     /*
-    * We use local variables for downstream
-    * readability. Populate them here.
+    * Now let's make sure the object type is
+    * correct (ex. entity vs. model) so we
+    * can shut down gracefully if there's
+    * a mismatch.
     */
 
-    handle      = (s_model *)varlist[ARG_OBJECT]->ptrVal;
-    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-
-    switch(property)
-    {
-        case MODEL_PROPERTY_ACTION_FREEZE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->dofreeze = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_AIR_CONTROL:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->air_control = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ANTI_GRAVITY:
-
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->antigravity = temp_float;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_BLEND_MODE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->alpha = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_CONFIG_FLAGS:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->block_config_flags = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_ODDS:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->blockodds = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_PAIN:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->blockpain = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_BLOCK_THRESHOLD:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->thold = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_BOUNCE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->bounce = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_COLORSET:
-
-            printf("\n\n Warning: Model Colorset is a read only pointer. Use the appropriate sub property function to modify values. \n");
-
-            break;
-
-        case MODEL_PROPERTY_DEATH_CONFIG_FLAGS:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->death_config_flags = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->edelay.cap.max = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->edelay.cap.min = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->edelay.modifier = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER:
-
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->edelay.factor = temp_float;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->edelay.range.max = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->edelay.range.min = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_FACTION:
-
-            printf("\n\n Warning: Model Faction is a read only pointer. Use the appropriate sub property function to modify values. \n");
-
-            break;
-
-        case MODEL_PROPERTY_FLIP:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->toflip = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_GROUND:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->ground = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_HP:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->health = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_HUD_DISABLE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->nolife = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_HUD_POPUP:
-
-            printf("\n\n Warning: Model HUD Popup is a read only pointer. Use the appropriate sub property function to modify values. \n");
-
-            break;
-
-        case MODEL_PROPERTY_ICON:
-
-            printf("\n\n Warning: Model Icon is a read only pointer. Use the appropriate sub property function to modify values. \n");
-
-            break;
-
-		case MODEL_PROPERTY_INDEX:
-
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
-				handle->index = temp_int;
-			}
-
-            break;
-
-        case MODEL_PROPERTY_LAYER:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->setlayer = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_MAKE_INVINCIBLE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->makeinv = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_MOVE_CONFIG_FLAGS:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->move_config_flags = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_MP:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->mp = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_MULTIPLE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->multiple = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_NAME:
-
-            if (varlist[ARG_VALUE]->vt == VT_STR)
-            {
-                strcpy(handle->name, (char*)StrCache_Get(varlist[ARG_VALUE]->strVal));
-            }
-
-            break;
-
-        case MODEL_PROPERTY_OFF_SCREEN_KILL:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->offscreenkill = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_OFF_SCREEN_NO_ATTACK:
-
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->offscreen_noatk_factor = temp_float;
-            }
-
-            break;    
-
-        case MODEL_PROPERTY_PAIN_CONFIG_FLAGS:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->pain_config_flags = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_PATH:
-
-            if (varlist[ARG_VALUE]->vt == VT_STR)
-            {
-                strcpy(handle->path, (char*)StrCache_Get(varlist[ARG_VALUE]->strVal));
-            }
-
-            break;
-
-        case MODEL_PROPERTY_PRIORITY:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->priority = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_QUAKE_CONFIG:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->quake_config = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_RISE_INVINCIBLE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->riseinv = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_SCORE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->score = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_SCROLL:
-
-            if (SUCCEEDED(ScriptVariant_DecimalValue(varlist[ARG_VALUE], &temp_float)))
-            {
-                handle->scroll = temp_float;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_SHADOW_CONFIG_FLAGS:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->shadow_config_flags = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_SHADOW_INDEX:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->shadow = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_SPAWN_HUD:
-
-            printf("\n\n Warning: Model Spawn HUD is a read only pointer. Use the appropriate sub property function to modify values. \n");
-
-            break;
-
-        case MODEL_PROPERTY_SUBTYPE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->subtype = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_TYPE:
-
-            if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-            {
-                handle->type = temp_int;
-            }
-
-            break;
-
-        case MODEL_PROPERTY_WEAPON:
-
-            printf("\n\n Warning: Model Weapon is a read only pointer. Use the appropriate sub property function to modify values.\n");
-
-            break;
-
-        default:
-
-            printf("Unsupported property.\n");
-            goto error_local;
-
-            break;
+    const s_model* const acting_object = (const s_model* const)varlist[ARG_OBJECT]->ptrVal;  
+
+    if (acting_object->object_type != OBJECT_TYPE_MODEL) {
+        printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+    
+    const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+    const e_model_properties property_id = (e_model_properties)(property_id_param);
+
+    if (property_id_param < 0 && property_id_param >= MODEL_PROPERTY_END) {
+        printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+        return E_FAIL;
     }
 
-    return result;
+    /*
+    * Get map of property. This is a struct
+    * that contains the property variable
+    * type, reference to the acting object's
+    * appropriate data member, text name, 
+    * read only, etc.
+    */    
+    
+    const s_property_access_map property_map = model_get_property_map(acting_object, property_id);
 
-    // Error trapping.
-    error_local:
+    /*
+    * Populate the property value on
+    * acting object and return OK/FAIL.
+    */
 
-    printf("\nYou must provide a valid pointer, property constant, and new value: " SELF_NAME "\n");
-
-    result = E_FAIL;
-    return result;
-
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_OBJECT
-    #undef ARG_PROPERTY
-    #undef ARG_VALUE
+    return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
 }
+

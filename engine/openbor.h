@@ -134,6 +134,7 @@ movement restirctions are here!
 #define WALL_INDEX_NONE -1
 
 #define DELAY_INFINITE MIN_INT  // Animation never moves to next frame without outside influence.
+#define PROPERTY_ACCESS_DUMP MAX_INT // If passed to a property access "get" function, all the properties dump to log instead.
 
 typedef enum e_ajspecial_config
 {
@@ -2031,9 +2032,9 @@ typedef struct
 // riseattack can take place.
 typedef struct
 {
-    unsigned int rise;               // Time modifier before rise.
-    unsigned int riseattack;         // Time modifier before riseattack.
-    unsigned int riseattack_stall;   // Total stalltime before riseattack.
+    unsigned long rise;               // Time modifier before rise.
+    unsigned long riseattack;         // Time modifier before riseattack.
+    unsigned long riseattack_stall;   // Total stalltime before riseattack.
 } s_staydown;
 
 // Caskey, Damon V.
@@ -2046,11 +2047,11 @@ typedef struct s_damage_recursive
 {
     int							force;  // Damage force per tick.
     int							index;  // Index.
-	e_damage_recursive_logic			mode;   // Mode.
-    int							rate;   // Tick delay.
-    unsigned int				tick;   // Time of next tick.
-    unsigned int				time;   // Time to expire.
-	int							type;	// Attack type.
+	e_damage_recursive_logic	mode;   // Mode.
+    unsigned int				rate;   // Tick delay.
+    unsigned long   			tick;   // Time of next tick.
+    unsigned long				time;   // Time to expire.
+	e_attack_types				type;	// Attack type.
 	struct entity				*owner;	// Entity that caused the recursive damage.
 	struct s_damage_recursive	*next;	// Next node of linked list.
 
@@ -3280,8 +3281,18 @@ typedef enum e_pain_config_flags
     PAIN_CONFIG_FALL_DISABLE_AIR    = (1 << 3)
 } e_pain_config_flags;
 
+typedef enum e_object_type
+{
+    OBJECT_TYPE_NONE,
+    OBJECT_TYPE_ENTITY,
+    OBJECT_TYPE_MODEL
+} e_object_type;
+
 typedef struct
 {
+    /* For pointer verification. */
+    e_object_type object_type;
+
     int index;      // Assign on model read. ~~
     char *name;     // Model name and default entity name. ~~
     char *path;     // Path, so scripts can dynamically get files, sprites, sounds, etc. ~~
@@ -3475,6 +3486,9 @@ typedef struct
     s_meta_data*    meta_data;      // User defined data.
     int             meta_tag;       // user defined int.
 
+    char					test_fixed[MAX_NAME_LEN];
+    char*					test_pointer;
+
 } s_model;
 
 typedef struct
@@ -3534,6 +3548,9 @@ typedef struct
 
 typedef struct entity
 {
+    /* For pointer verification. */
+    e_object_type object_type;
+
 	// Sub structures.
 	s_damage_on_landing		damage_on_landing;					// ~~
 	s_bind					binding;							// Binding self to another entity. ~~
@@ -3586,29 +3603,29 @@ typedef struct entity
 	float					speedmul;							// Final multiplier for movement/velocity. ~~
 
     // Size defined ints (for time).
-	u32						combotime;							// If not expired, continue to next attack in series combo. ~~
-	u32						guardtime;							// Next time to auto adjust guardpoints. ~~
-	u32						freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
-	u32						invinctime;							// Used to set time for invincibility to expire. ~~
-	u32						knockdowntime;						// When knockdown count is expired. ~~
-	u32						magictime;							// Next time to auto adjust MP. ~~
-	u32						maptime;							// When forcemap expires. ~~
-	u32						movetime;							// For special moves. Grace time between player inputs. ~~
-	u32						mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
-	u32						next_hit_time;						// When temporary invincibility after getting hit expires. ~~
-	u32						nextanim;							// Time for next frame (or to mark animation finished). ~~
-	u32						nextattack;							// Time for next chance to attack. ~~
-	u32						nextmove;							// Same as tosstime, but for X, Z movement. ~~
-	u32						nextthink;							// Time for next main AI update. ~~
-	u32						pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
-	u32						releasetime;						// Delay letting go of grab when holding away command. ~~
-	u32						sealtime;							// When seal expires. ~~    
-	u32						sleeptime;							// When to start the SLEEP animation. ~~
-	u32						stalltime;							// AI waits to perform actions. ~~
+    unsigned long	        combotime;							// If not expired, continue to next attack in series combo. ~~
+	unsigned long			guardtime;							// Next time to auto adjust guardpoints. ~~
+	unsigned long			freezetime;							// Used to store at what point the a frozen entity becomes unfrozen. ~~
+	unsigned long			invinctime;							// Used to set time for invincibility to expire. ~~
+	unsigned long			knockdowntime;						// When knockdown count is expired. ~~
+	unsigned long			magictime;							// Next time to auto adjust MP. ~~
+	unsigned long			maptime;							// When forcemap expires. ~~
+	unsigned long			movetime;							// For special moves. Grace time between player inputs. ~~
+	unsigned long			mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
+	unsigned long			next_hit_time;						// When temporary invincibility after getting hit expires. ~~
+	unsigned long			nextanim;							// Time for next frame (or to mark animation finished). ~~
+	unsigned long			nextattack;							// Time for next chance to attack. ~~
+	unsigned long			nextmove;							// Same as tosstime, but for X, Z movement. ~~
+	unsigned long			nextthink;							// Time for next main AI update. ~~
+	unsigned long			pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
+	unsigned long			releasetime;						// Delay letting go of grab when holding away command. ~~
+	unsigned long			sealtime;							// When seal expires. ~~    
+	unsigned long			sleeptime;							// When to start the SLEEP animation. ~~
+	unsigned long			stalltime;							// AI waits to perform actions. ~~
 	s_staydown				staydown;							// Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct. ~~
-	u32						timestamp;							// Elasped time assigned when spawned. ~~
-    u32						toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
-    u32						turntime;							// Time when entity can switch direction. ~~
+	unsigned long			timestamp;							// Elasped time assigned when spawned. ~~
+    unsigned long			toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
+    unsigned long			turntime;							// Time when entity can switch direction. ~~
     // -------------------------end of times ------------------------------
 	
 	// Unsigned integers
@@ -3657,37 +3674,36 @@ typedef struct entity
     e_update_mark			update_mark;						// Which updates are completed. ~~    
 
 	// Boolean flags.
-    int					    arrowon;							// Display arrow icon (parrow<player>) ~~
-	int					    blink;								// Toggle flash effect. ~~
-	int					    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
-	int					    blocking;							// In blocking state. ~~
-	int					    charging;							// Charging MP. Gain according to chargerate. ~~
+    unsigned int		    arrowon;							// Display arrow icon (parrow<player>) ~~
+    unsigned int		    blink;								// Toggle flash effect. ~~
+    unsigned int		    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+    unsigned int		    blocking;							// In blocking state. ~~
+    unsigned int		    charging;							// Charging MP. Gain according to chargerate. ~~
 	e_death_state		    death_state;						// Dead? ~~
 	e_weapon_state		    weapon_state;						// Check for ammo count? ~~
-	int					    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
-	int					    drop;								// Knocked down. Remains true until rising. ~~
-	int					    exists;								// flag to determine if it is a valid entity. ~~
-	int					    falling;							// Knocked down and haven't landed. ~~
-	int					    frozen;								// Frozen in place. ~~
-	int					    getting;							// Picking up item. ~~
-	int					    grabwalking;						// Walking while grappling. ~~
-	int					    hitwall;							// Blcoked by wall/platform/obstacle. ~~
-	int					    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
-	int					    inpain;								// Hit and block stun. ~~
-	int					    jumping;							// ~~
-	int					    noaicontrol;						// No AI or automated control. ~~
-	int					    running;							// ~~
-	int					    tocost;								// Cost life on hit with special. ~~
-	int					    turning;							// Turning around. ~~
-	int					    walking;							// ~~
+    unsigned int		    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
+    unsigned int		    drop;								// Knocked down. Remains true until rising. ~~
+    unsigned int		    exists;								// flag to determine if it is a valid entity. ~~
+    unsigned int		    falling;							// Knocked down and haven't landed. ~~
+    unsigned int		    frozen;								// Frozen in place. ~~
+    unsigned int		    getting;							// Picking up item. ~~
+    unsigned int		    grabwalking;						// Walking while grappling. ~~
+    unsigned int		    hitwall;							// Blcoked by wall/platform/obstacle. ~~
+    unsigned int		    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
+    unsigned int		    inpain;								// Hit and block stun. ~~
+    unsigned int		    jumping;							// ~~
+    unsigned int		    noaicontrol;						// No AI or automated control. ~~
+    unsigned int		    running;							// ~~
+    unsigned int		    tocost;								// Cost life on hit with special. ~~
+    unsigned int		    turning;							// Turning around. ~~
+    unsigned int		    walking;							// ~~
 	
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
        
     // Function pointers.
 	void					(*takeaction)();					// Take an action (lie, attack, etc.). ~~
-	void					(*think)();							// Entity thinks. ~~
-    
+	void					(*think)();							// Entity thinks. ~~    
 	int						(*takedamage)(struct entity* attacking_entity, s_attack* attack_object, int fall_flag, s_defense* defense_object);	// Entity applies damage to itself when hit, thrown, and so on. ~~
     int						(*trymove)(float, float);			// Attempts to move. Container for most movement logic. ~~
 

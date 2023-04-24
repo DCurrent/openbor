@@ -230,7 +230,7 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter)
         if(FAILED(hr))
         {
             List_Includes(pinterpreter->ptheFunctionList, currentCall->functionRef);
-            printf("Script function '%s' returned an exception, check the manual for details.\n", List_GetName(pinterpreter->ptheFunctionList));
+            printf("Script function '%s' returned an exception. See any preceding error messages above for details.\n", List_GetName(pinterpreter->ptheFunctionList));
             if(currentCall->theRef->lVal)
             {
                 printf(" parameters: ");

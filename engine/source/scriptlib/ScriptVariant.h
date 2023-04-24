@@ -34,6 +34,21 @@ typedef struct ScriptVariant
     VARTYPE vt;//variatn type
 } ScriptVariant;
 
+/*
+* Caskey, Damon V.
+* 2023-04-17
+* 
+* Keep meta data about a variant type
+* for debugging output.
+*/
+typedef struct s_script_variant_meta
+{
+    const char* id_string;
+    const char* print_format;
+} s_script_variant_meta;
+
+extern const s_script_variant_meta script_variant_meta_list[];
+
 #pragma pack()
 
 //clear the string cache

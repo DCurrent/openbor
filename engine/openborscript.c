@@ -663,7 +663,7 @@ int Script_Execute(Script *pscript)
     pcurrentscript = temp;
     if(!result)
     {
-        borShutdown(1, "There's an exception while executing script '%s' %s", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
+        borShutdown(1, "There's an exception while executing script '%s' %s. Please review log to locate the exception alert(s). \n\n", pscript->pinterpreter->theSymbolTable.name, pscript->comment ? pscript->comment : "");
     }
     return result;
 }

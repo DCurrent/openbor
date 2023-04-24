@@ -14,6 +14,40 @@
 
 #define STRCACHE_INC      64
 
+/*
+* Caskey, Damon V.
+* 2023-04-17
+* 
+* Populate a list of metadata for
+* each variant type.
+*/
+const s_script_variant_meta script_variant_meta_list[] = {
+    [VT_EMPTY] = {        
+        .id_string = "VT_EMPTY",
+        .print_format = "%s",
+    },
+
+    [VT_INTEGER] = {
+        .id_string = "VT_INTEGER",
+        .print_format = "%d",
+    },
+
+    [VT_DECIMAL] = {        
+        .id_string = "VT_DECIMAL",
+        .print_format = "%f",
+    },
+
+    [VT_PTR] = {
+        .id_string = "VT_PTR",
+        .print_format = "%p",
+    },
+
+    [VT_STR] = {
+        .id_string = "VT_STR",
+        .print_format = "%s",
+    },
+};
+
 typedef struct
 {
     int len;

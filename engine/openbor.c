@@ -12489,6 +12489,10 @@ s_model *init_model(int cacheindex, int unload)
     {
         borShutdown(1, (char *)E_OUT_OF_MEMORY);
     }
+    newchar->object_type = OBJECT_TYPE_MODEL;
+    newchar->test_pointer = model_cache[cacheindex].name;    
+    strcpy(newchar->test_fixed, model_cache[cacheindex].name);
+
     newchar->name = model_cache[cacheindex].name; // well give it a name for sort method
     newchar->index = cacheindex;
     newchar->isSubclassed = 0;
@@ -22531,6 +22535,7 @@ entity *alloc_ent()
     entity *ent = malloc(sizeof(*ent));
     memset(ent, 0, sizeof(*ent));
     
+    ent->object_type = OBJECT_TYPE_ENTITY;
     ent->defense = defense_allocate_object();    
     ent->offense = offense_allocate_object();
     
@@ -23826,6 +23831,7 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
     int i, id;
     s_defense *dfs;
     s_offense *ofs;
+    e_object_type object_type;
     Varlist *vars;
     s_scripts *scripts;
 
@@ -23867,6 +23873,7 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
                 kill_entity(e, KILL_ENTITY_TRIGGER_SPAWN_OVERRIDE);
             }
             // save these values, or they will loss when memset called
+            object_type = e->object_type;
             id      = e->sortid;
             dfs     = e->defense;
 
@@ -23943,6 +23950,7 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
 
             strncpy(e->name, e->modeldata.name, MAX_NAME_LEN - 1);
             // copy back the value
+            e->object_type = object_type;
             e->sortid = id;
             e->defense = dfs;
             e->offense = ofs;
@@ -41290,7 +41298,7 @@ int player_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
     {
         atk.attack_force = 0;
     }
-
+    
     return common_takedamage(other, &atk, fall_flag, defense_object);
 }
 
