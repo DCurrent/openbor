@@ -10967,7 +10967,7 @@ e_entity_type get_type_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_entity_type flag;
     } item_lookup_table[] = {
         {"end_level", TYPE_ENDLEVEL},
         {"enemy", TYPE_ENEMY},
@@ -11659,7 +11659,7 @@ e_air_control find_air_control_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_air_control flag;
     } item_lookup_table[] = {
         {"none", AIR_CONTROL_NONE},
         {"jump_disable", AIR_CONTROL_JUMP_DISABLE},
@@ -11732,7 +11732,7 @@ e_move_config_flags find_move_config_flags_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_move_config_flags flag;
     } item_lookup_table[] = {
         {"none", MOVE_CONFIG_NONE},
         {"no_adjust_base", MOVE_CONFIG_NO_ADJUST_BASE},
@@ -11835,7 +11835,7 @@ e_cheat_options find_cheat_options_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_cheat_options flag;
     } item_lookup_table[] = {
         {"none", CHEAT_OPTIONS_NONE},
         {"credits_active", CHEAT_OPTIONS_CREDITS_ACTIVE},
@@ -11907,7 +11907,7 @@ e_aimove get_aimove_constant_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_aimove flag;
     } item_lookup_table[] = {
         {"none", AIMOVE1_NONE},
         {"default", AIMOVE_SPECIAL_DEFAULT},
@@ -23718,7 +23718,7 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
             ent->animpos = ent->animation->numframes - 1;
         }
 
-        if (ent->nextanim != DELAY_INFINITE) { ent->nextanim = calculate_edelay(ent, ent->animpos); }
+        if (ent->nextanim != DELAY_INFINITE) { ent->nextanim = _time + calculate_edelay(ent, ent->animpos); }
 
         
         //update_frame(ent, ent->animpos);
@@ -25328,7 +25328,7 @@ e_pain_config_flags pain_get_config_flag_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_pain_config_flags flag;
     } item_lookup_table[] = {
         {"none", PAIN_CONFIG_NONE},
         {"back_pain", PAIN_CONFIG_BACK_PAIN},
@@ -25392,7 +25392,7 @@ e_block_config_flags block_get_config_flag_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_block_config_flags flag;
     } item_lookup_table[] = {
         {"none", BLOCK_CONFIG_NONE},
         {"active", BLOCK_CONFIG_ACTIVE},
@@ -26813,9 +26813,6 @@ void do_attack(entity *attacking_entity)
 
                 self->toss_time += attack->pause_add;       // So jump height pauses in midair
                 self->nextmove += attack->pause_add;      // xdir, zdir
-
-                if (self->nextanim != DELAY_INFINITE) { self->nextanim += attack->pause_add; }
-
                 self->nextanim += attack->pause_add;        //Pause animation for a bit
                 self->nextthink += attack->pause_add;       // So anything that auto moves will pause
 
@@ -31375,6 +31372,17 @@ void common_grab_check()
         }
         return;
     }
+
+    // Kratus (04-2023) Implemented vault animation to all A.I. controlled characters
+    if(validanim(self, ANI_VAULT) && rnum < 6)
+    {
+        self->attacking = ATTACKING_ACTIVE;
+        self->takeaction = common_grabattack;
+        memset(self->combostep, 0, sizeof(*self->combostep) * 5);
+        ent_set_anim(self, ANI_VAULT, 0);
+        return;
+    }
+
     //grab finisher
     if(rnum < 4)
     {
@@ -32342,7 +32350,7 @@ e_shadow_config_flags shadow_get_config_flag_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_shadow_config_flags flag;
     } flag_lookup_table[] = {
         {"none", SHADOW_CONFIG_NONE},
         {"default", SHADOW_CONFIG_DEFAULT},
