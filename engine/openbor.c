@@ -22080,22 +22080,22 @@ void predrawstatus()
             font_printf(videomodes.shiftpos[i] + plifeX[i][0], savedata.windowpos + plifeX[i][1], plifeX[i][2], 0, "x");
             font_printf(videomodes.shiftpos[i] + plifeN[i][0], savedata.windowpos + plifeN[i][1], plifeN[i][2], 0, "%i", player[i].lives);
 
-            if(rush[0] && player[i].ent->rush.count.current > 1 && _time <= player[i].ent->rush.time)
+            if(rush[0] && player[i].ent->rush.count > 1 && _time <= player[i].ent->rush.time)
             {
                 font_printf(videomodes.shiftpos[i] + prush[i][0], prush[i][1], rush[2], 0, "%s", rush_names[0]);
-                font_printf(videomodes.shiftpos[i] + prush[i][2], prush[i][3], rush[3], 0, "%i", player[i].ent->rush.count.current);
+                font_printf(videomodes.shiftpos[i] + prush[i][2], prush[i][3], rush[3], 0, "%i", player[i].ent->rush.count);
 
                 if(rush[0] != 2)
                 {
                     font_printf(videomodes.shiftpos[i] + prush[i][4], prush[i][5], rush[4], 0, "%s", rush_names[1]);
-                    font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush.count.max);
+                    font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush.max);
                 }
             }
 
             if(rush[0] == 2)
             {
                 font_printf(videomodes.shiftpos[i] + prush[i][4], prush[i][5], rush[4], 0, "%s", rush_names[1]);
-                font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush.count.max);
+                font_printf(videomodes.shiftpos[i] + prush[i][6], prush[i][7], rush[5], 0, "%i", player[i].ent->rush.max);
             }
 
             if(player[i].ent->opponent && !player[i].ent->opponent->modeldata.nolife)
@@ -27024,10 +27024,10 @@ void do_attack(entity *attacking_entity)
         if(!didblock)
         {
             topowner->rush.time = _time + (GAME_SPEED * rush[1]);
-            topowner->rush.count.current++;
-            if(topowner->rush.count.current > topowner->rush.count.max && topowner->rush.count.current > 1)
+            topowner->rush.count++;
+            if(topowner->rush.count > topowner->rush.max && topowner->rush.count > 1)
             {
-                topowner->rush.count.max = topowner->rush.count.current;
+                topowner->rush.max = topowner->rush.count;
             }
         }
 
@@ -38389,7 +38389,7 @@ void player_die()
 
     if(nomaxrushreset[4] >= 1)
     {
-        nomaxrushreset[playerindex] = player[playerindex].ent->rush.count.max;
+        nomaxrushreset[playerindex] = player[playerindex].ent->rush.max;
     }
     player[playerindex].ent = NULL;
     player[playerindex].spawnhealth = self->modeldata.health;
@@ -40147,7 +40147,7 @@ int check_costmove(int s, int fs, int jumphack)
     return 0;
 }
 
-int match_combo(int a[], s_player *p, int l)
+int match_combo(const e_key_def sequence[], s_player *p, const int l)
 {
     int j, step;
 
@@ -40157,7 +40157,7 @@ int match_combo(int a[], s_player *p, int l)
         step = (step + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
 
         // old: !(a[l - 1 - j]&p->combokey[step])
-        if( ((a[l - 1 - j]&p->combokey[step]) ^ a[l - 1 - j]) ) // if input&combokey == 0 then not good btn
+        if( ((sequence[l - 1 - j]&p->combokey[step]) ^ sequence[l - 1 - j]) ) // if input&combokey == 0 then not good btn
         {
             return 0;
         }
@@ -40242,11 +40242,11 @@ void player_think()
     int notinair;
     float initial_jump_velocity_z = 0.0;
 
-    static int ll[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
-    static int rr[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
-    static int uu[] = {FLAG_MOVEUP, FLAG_MOVEUP};
-    static int dd[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
-    static int ba[] = {FLAG_BACKWARD, FLAG_ATTACK};
+    static const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
+    static const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
+    static const e_key_def sequence_up_up[] = {FLAG_MOVEUP, FLAG_MOVEUP};
+    static const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
+    static const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
 
     int oldrunning = self->running;
     int pli = self->playerindex;
@@ -40295,7 +40295,7 @@ void player_think()
 
     if(_time > self->rush.time)
     {
-        self->rush.count.current = 0;
+        self->rush.count = 0;
         self->rush.time = 0;
     }
 
@@ -40373,7 +40373,7 @@ void player_think()
 
     if(pl->playkeys & FLAG_MOVEUP)
     {
-        t = (notinair && match_combo(uu, pl, 2));
+        t = (notinair && match_combo(sequence_up_up, pl, 2));
         if(t && (self->modeldata.runupdown & 2) && validanim(self, ANI_RUN))
         {
             pl->playkeys &= ~FLAG_MOVEUP;
@@ -40409,7 +40409,7 @@ void player_think()
 
     if(pl->playkeys & FLAG_MOVEDOWN)
     {
-        t = (notinair && match_combo(dd, pl, 2));
+        t = (notinair && match_combo(sequence_down_down, pl, 2));
         if(t && (self->modeldata.runupdown & 2) && validanim(self, ANI_RUN))
         {
             pl->playkeys &= ~FLAG_MOVEDOWN;
@@ -40447,8 +40447,8 @@ void player_think()
     {
         int t3;
 
-        t = (notinair && ((self->direction == DIRECTION_RIGHT && match_combo(rr, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(ll, pl, 2))));
-        t3 = (notinair && self->modeldata.facing && ((self->direction == DIRECTION_RIGHT && match_combo(ll, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(rr, pl, 2))));
+        t = (notinair && ((self->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(sequence_left_left, pl, 2))));
+        t3 = (notinair && self->modeldata.facing && ((self->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(sequence_right_right, pl, 2))));
 
         if(t && validanim(self, ANI_RUN))
         {
@@ -40598,7 +40598,7 @@ void player_think()
             goto endthinkcheck;
         }
 
-        if(validanim(self, ANI_ATTACKBACKWARD) && match_combo(ba, pl, 2))
+        if(validanim(self, ANI_ATTACKBACKWARD) && match_combo(sequence_back_attack, pl, 2))
         {
             t = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             t2 = (pl->combostep - 2 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
@@ -43292,11 +43292,11 @@ void spawnplayer(int index)
 
     if(nomaxrushreset[4] >= 1)
     {
-        player[index].ent->rush.count.max = nomaxrushreset[index];
+        player[index].ent->rush.max = nomaxrushreset[index];
     }
     else
     {
-        player[index].ent->rush.count.max = 0;
+        player[index].ent->rush.max = 0;
     }
 
     memset(player[index].combokey, 0, sizeof(*player[index].combokey)*MAX_SPECIAL_INPUTS);
@@ -46276,7 +46276,7 @@ int playlevel(char *filename)
             player[i].joining = 0;
             player[i].hasplayed = 1;
             spawnplayer(i);
-            player[i].ent->rush.count.max = 0;
+            player[i].ent->rush.max = 0;
         }
     }
 
@@ -46351,7 +46351,7 @@ int playlevel(char *filename)
     {
         if(player[i].ent)
         {
-            nomaxrushreset[i] = player[i].ent->rush.count.max;
+            nomaxrushreset[i] = player[i].ent->rush.max;
             player[i].spawnhealth = player[i].ent->energy_state.health_current;
             player[i].spawnmp = player[i].ent->energy_state.mp_current;
         }

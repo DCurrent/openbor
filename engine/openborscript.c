@@ -5013,13 +5013,13 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_rush_count:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->rush.count.current;
+        (*pretvar)->lVal = (LONG)ent->rush.count;
         break;
     }
     case _ep_rush_tally:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->rush.count.max;
+        (*pretvar)->lVal = (LONG)ent->rush.max;
         break;
     }
     case _ep_rush_time:
@@ -6968,7 +6968,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->rush.count.current = (LONG)ltemp;
+            ent->rush.count = (LONG)ltemp;
         }
         break;
     }
@@ -6976,7 +6976,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->rush.count.max = (LONG)ltemp;
+            ent->rush.max = (LONG)ltemp;
         }
         break;
     }

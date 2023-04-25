@@ -1830,17 +1830,15 @@ typedef enum e_cheat_options
 * options we don’t want to save 
 * between engines startups.
 */
-typedef struct s_global_config
-{
+typedef struct s_global_config {
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
-    int block_ratio;                // Blcoked attacks still cause 0.25 damage?
-    int block_type;	                // Take chip damage from health or MP first?
+    unsigned int block_ratio;       // Blcoked attacks still cause 0.25 damage?
+    e_blocktype block_type;         // Take chip damage from health or MP first?
     e_cheat_options cheats;         // Cheat menu config and active cheats.
     int flash_layer_adjust;         // Adjust Z layer of flash spawn.
     int flash_layer_source;         // Source of initial inital flash layer. NOT the layer value.
     int flash_z_source;             // Source of Z position for flash spawn. NOT the Z value.
-    int showgo;                     // Enable/disable go arrow.
-
+    unsigned int showgo;            // Enable/disable go arrow.
 } s_global_config;
 
 /*
@@ -1849,8 +1847,7 @@ typedef struct s_global_config
 * 
 * Native hard coded sample IDs.
 */
-typedef struct s_global_sample
-{    
+typedef struct s_global_sample {    
     int beat;
     int beep;
     int beep_2;
@@ -1866,7 +1863,6 @@ typedef struct s_global_sample
     int pause;
     int punch;
     int time_over;
-
 } s_global_sample;
 
 // Caskey, Damon V.
@@ -1951,30 +1947,30 @@ typedef struct
     float z;
 } s_edge_range;
 
-typedef struct
-{
-    /*
-    Min/max cap for integer measurements.
-    2013-12-10
-    Damon Caskey
-    */
-
-    int max;    //max value.
-    int min;    //min value.
+/*
+* Caskey, Damon V.
+* 2013-12-10
+* 
+* Common Min/max cap for 
+* common integer measurements.
+*/
+typedef struct s_metric_range {
+    int max;
+    int min;
 } s_metric_range;
 
-typedef struct
-{
-    /*
-    Min/current/max cap for integer measurements.
-    2014-01-20
-    Damon Caskey
-    */
-
-    int current;    //Current.
-    int max;    //max value.
-    int min;    //min value.
-} s_metric_range_current;
+/*
+* Caskey, Damon V.
+* 2014-01-20
+* 
+* Values for jugglepoints and
+* guardpoints system.
+*/
+typedef struct s_status_points {
+    unsigned int current;
+    unsigned int max;
+    unsigned int min;
+} s_status_points;
 
 typedef struct
 {
@@ -2955,7 +2951,7 @@ typedef struct
 // WIP
 typedef struct
 {
-    int input[MAX_SPECIAL_INPUTS];
+    e_key_def input[MAX_SPECIAL_INPUTS];
     int	steps;
     int numkeys; // num keys pressed
     int anim;
@@ -3281,16 +3277,37 @@ typedef enum e_pain_config_flags
     PAIN_CONFIG_FALL_DISABLE_AIR    = (1 << 3)
 } e_pain_config_flags;
 
-typedef enum e_object_type
-{
+
+/*
+* Caskey, Damon V.
+* 2023-04-25
+* 
+* Identify object type so we can
+* verify a pointer to an object
+* is valid.
+*
+* Each object has an object type
+* member with identical member name
+* (object_type). We populate the
+* member with an appropriate value
+* from this list on allocation.
+*/
+typedef enum e_object_type {
     OBJECT_TYPE_NONE,
     OBJECT_TYPE_ENTITY,
     OBJECT_TYPE_MODEL
 } e_object_type;
 
+typedef enum e_run_config_flags {
+    RUN_CONFIG_NONE = 0,
+    RUN_CONFIG_LAND = (1 << 0),
+    RUN_CONFIG_Z_DOWN = (1 << 1),
+    RUN_CONFIG_Z_UP = (1 << 2)
+} e_run_config_flags;
+
 typedef struct
 {
-    /* For pointer verification. */
+    /* For pointer verification. ~~ */
     e_object_type object_type;
 
     int index;      // Assign on model read. ~~
@@ -3344,6 +3361,8 @@ typedef struct
     int blockpain; // Threshold before using blockpain animation.
 
     s_edelay edelay; // Entity level delay adjustment. ~~
+
+    e_run_config_flags run_config_flags; 
 
     float runspeed; // The speed the character runs at
     float runjumpheight; // The height the character jumps when running
@@ -3433,8 +3452,8 @@ typedef struct
     s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
-    s_metric_range_current jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_metric_range_current guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_status_points jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    s_status_points guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
@@ -3511,16 +3530,16 @@ typedef struct
     s_axis_principal_float        velocity;       // x,a,z velocity setting.
 } s_jump;
 
-typedef struct
-{
-    /*
-    Rush combo struct.
-    Damon V. Caskey
-    2013-12-17
-    */
-
-    s_metric_range_current count;   //Hits counter.
-    unsigned long time;           //Time to perform combo.
+/*
+* Caskey, Damon V.
+* 2013-12-17
+* 
+* Combo meter display.
+*/
+typedef struct s_rush {
+    unsigned int count;
+    unsigned int max;   
+    unsigned long time;
 } s_rush;
 
 typedef struct
@@ -3547,10 +3566,7 @@ typedef struct
 } s_item_properties;
 
 typedef struct entity
-{
-    /* For pointer verification. */
-    e_object_type object_type;
-
+{    
 	// Sub structures.
 	s_damage_on_landing		damage_on_landing;					// ~~
 	s_bind					binding;							// Binding self to another entity. ~~
@@ -3646,7 +3662,6 @@ typedef struct entity
 	unsigned int			walkmode;							// Force a specfic alternate walk. ~~
 
 	// Signed integers
-	int						last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
 	int						lifespancountdown;					// Life span count down. ~~
 	int						map;								// Stores the colourmap for restoring purposes. ~~
 	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
@@ -3656,7 +3671,9 @@ typedef struct entity
 	int						sortid;								// Drawing order (sprite queue sort id). ~~
 
 	// Enumerated integers.
-	e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
+    e_death_state		    death_state;						// Dead? ~~
+    e_attack_types			last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
+    e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
 	e_idling_state			idling;								// ~~ Kratus (10-2021) Moved from "bool" to the "Enumerated integers" section
@@ -3667,11 +3684,13 @@ typedef struct entity
 	e_edge_state			edge;								// At an edge (unbalanced).
 	e_invincible_state		invincible;							// Attack invulnerability. ~~
 	e_direction				normaldamageflipdir;				// Used to reset backpain direction. ~~
-	e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
+    e_object_type           object_type;                        // Used to validate pointer to this object.
+    e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
     e_shadow_config_flags   shadow_config_flags;                // Shadow display parameters.
     e_update_mark			update_mark;						// Which updates are completed. ~~    
+    e_weapon_state		    weapon_state;						// Check for ammo count? ~~
 
 	// Boolean flags.
     unsigned int		    arrowon;							// Display arrow icon (parrow<player>) ~~
@@ -3679,9 +3698,7 @@ typedef struct entity
     unsigned int		    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
     unsigned int		    blocking;							// In blocking state. ~~
     unsigned int		    charging;							// Charging MP. Gain according to chargerate. ~~
-	e_death_state		    death_state;						// Dead? ~~
-	e_weapon_state		    weapon_state;						// Check for ammo count? ~~
-    unsigned int		    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
+	unsigned int		    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
     unsigned int		    drop;								// Knocked down. Remains true until rising. ~~
     unsigned int		    exists;								// flag to determine if it is a valid entity. ~~
     unsigned int		    falling;							// Knocked down and haven't landed. ~~
