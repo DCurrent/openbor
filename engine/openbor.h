@@ -270,13 +270,13 @@ typedef enum
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
-    u64 keys[MAX_PLAYERS];
-    u64 newkeys[MAX_PLAYERS];
-    u64 releasekeys[MAX_PLAYERS];
-    u64 playkeys[MAX_PLAYERS];
-    u32 time;
-    u32 interval;
-    u32 synctime;
+    unsigned long long keys[MAX_PLAYERS];
+    unsigned long long newkeys[MAX_PLAYERS];
+    unsigned long long releasekeys[MAX_PLAYERS];
+    unsigned long long playkeys[MAX_PLAYERS];
+    unsigned long time;
+    unsigned long interval;
+    unsigned long synctime;
 } RecKeys;
 
 typedef enum
@@ -292,11 +292,11 @@ typedef struct PlayRecStatus {
   char path[MAX_ARG_LEN];
   int status; // 0 = stop / 1 = rec / 2 = play
   int begin;
-  u32 starttime;
-  u32 endtime;
-  u32 synctime; // used to sync rec time with game time
-  u32 totsynctime;
-  u32 cseed;
+  unsigned long starttime;
+  unsigned long endtime;
+  unsigned long synctime; // used to sync rec time with game time
+  unsigned long totsynctime;
+  unsigned long cseed;
   unsigned long seed;
   unsigned ticks;
   FILE *handle;
@@ -3520,7 +3520,7 @@ typedef struct
     */
 
     s_metric_range_current count;   //Hits counter.
-    u32 time;           //Time to perform combo.
+    unsigned long time;           //Time to perform combo.
 } s_rush;
 
 typedef struct
@@ -3721,14 +3721,14 @@ typedef struct
     unsigned lives;
     unsigned credits;
     entity *ent;
-    u64 keys;
-    u64 newkeys;
-    u64 playkeys;
-    u64 releasekeys;
-    u32 combokey[MAX_SPECIAL_INPUTS];
-    u32 inputtime[MAX_SPECIAL_INPUTS];
-    u64 disablekeys;
-    u64 prevkeys; // used for play/rec mode
+    unsigned long long keys;
+    unsigned long long newkeys;
+    unsigned long long playkeys;
+    unsigned long long releasekeys;
+    unsigned long combokey[MAX_SPECIAL_INPUTS];
+    unsigned long inputtime[MAX_SPECIAL_INPUTS];
+    unsigned long long disablekeys;
+    unsigned long long prevkeys; // used for play/rec mode
     int combostep;
     int spawnhealth;
     int spawnmp;
@@ -3763,7 +3763,7 @@ typedef struct
     int shadowopacity;
     char music[MAX_BUFFER_LEN];
     float musicfade;
-    u32 musicoffset;
+    unsigned long musicoffset;
     char *name; // must be a name in the model list, so just reference
     int index; // model index
     int weaponindex; // the spawned entity with an weapon item, this is the index of the item model
@@ -3863,7 +3863,7 @@ typedef struct
 
     int font;           //Font index.
     s_axis_principal_int position;  //x,y,z location on screen.
-    u32 time;           //Time to expire.
+    unsigned long time;           //Time to expire.
     char *text;         //Text to display.
     
     // Meta data.
@@ -3985,8 +3985,8 @@ typedef struct
     Script level_script;
     Script endlevel_script;
     int pos;
-    u32 advancetime;
-    u32 quaketime;
+    unsigned long advancetime;
+    unsigned long quaketime;
     int quake;
     int waiting;
 
