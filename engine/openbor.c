@@ -40831,7 +40831,7 @@ void player_think()
         * No Z running ability, movex is opposite
         * of running direction, or movex is neutral.
         */
-        self->running = (!self->modeldata.runupdown || (!movex || movex == -runx)) ? 0 : self->running;
+        self->running = (self->modeldata.runupdown && (!movex || movex == -runx)) ? 0 : self->running;
 
         /*
         * Do we have full Z running ability? 
