@@ -3278,7 +3278,7 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
     // map subproperties of Staydown
     case _ep_staydown:
     {
-        MAPSTRINGS(varlist[2], proplist_staydown, _ep_running_the_end,
+        MAPSTRINGS(varlist[2], proplist_staydown, _ep_staydown_the_end,
                    _is_not_a_known_subproperty_of_, eps);
         break;
     }
