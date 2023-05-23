@@ -123,6 +123,7 @@ movement restirctions are here!
 #define		MODEL_INDEX_NONE	-1	// No model/disabled.
 #define		SAMPLE_ID_NONE	    -1	// No sound sameple/disabled.
 #define     FRAME_SHADOW_NONE   -1  // Use the model level instead.
+#define     ICON_NONE           -1  // No icon.
 
 #define		ITEM_HIDE_POSITION_Z 100000		// Weapon items in use are still in play, but we need them out of the way and unseen.
 #define		MODEL_SPEED_NONE			9999999	// Many legacy calculations are set to up to override a 0 value with some default - but we would like to have a 0 option for authors. We can use this as a "didn't populate the value" instead.
@@ -3298,12 +3299,48 @@ typedef enum e_object_type {
     OBJECT_TYPE_MODEL
 } e_object_type;
 
+/*
+* Caskey, Damon V.
+* 2023-04-25
+*
+* Running options.
+*/ 
 typedef enum e_run_config_flags {
     RUN_CONFIG_NONE = 0,
-    RUN_CONFIG_LAND = (1 << 0),
-    RUN_CONFIG_Z_DOWN = (1 << 1),
-    RUN_CONFIG_Z_UP = (1 << 2)
+    RUN_CONFIG_LAND                     = (1 << 0),
+    RUN_CONFIG_X_LEFT_DASH_COMMAND      = (1 << 1),
+    RUN_CONFIG_X_LEFT_DASH_FIXED        = (1 << 2),
+    RUN_CONFIG_X_LEFT_ENABLED           = (1 << 3),
+    RUN_CONFIG_X_LEFT_INITIAL           = (1 << 4),
+    RUN_CONFIG_X_RIGHT_DASH_COMMAND     = (1 << 5),
+    RUN_CONFIG_X_RIGHT_DASH_FIXED       = (1 << 6),
+    RUN_CONFIG_X_RIGHT_ENABLED          = (1 << 7),
+    RUN_CONFIG_X_RIGHT_INITIAL          = (1 << 8),
+    RUN_CONFIG_Z_DOWN_DASH_COMMAND      = (1 << 9),
+    RUN_CONFIG_Z_DOWN_DASH_FIXED        = (1 << 10),    
+    RUN_CONFIG_Z_DOWN_ENABLED           = (1 << 11),
+    RUN_CONFIG_Z_DOWN_INITIAL           = (1 << 12),
+    RUN_CONFIG_Z_UP_DASH_COMMAND        = (1 << 13),
+    RUN_CONFIG_Z_UP_DASH_FIXED          = (1 << 14),    
+    RUN_CONFIG_Z_UP_ENABLED             = (1 << 15),
+    RUN_CONFIG_Z_UP_INITIAL             = (1 << 16),
 } e_run_config_flags;
+
+typedef enum e_run_state {
+    RUN_STATE_NONE,
+    RUN_STATE_START_X = (1 << 0),  // Player or AI initialized running on the X axis.
+    RUN_STATE_START_Z = (1 << 1)   // Player or AI initialized running on Z axis.
+} e_run_state;
+
+typedef struct s_child_follow
+{
+    e_direction_adjust direction_adjust_config;
+    s_range direction_adjust_range;
+    s_axis_principal_int offset;
+    s_range follow_range;
+    s_range recall_range;
+    s_range run_range;
+} s_child_follow;
 
 typedef struct
 {
@@ -3362,12 +3399,14 @@ typedef struct
 
     s_edelay edelay; // Entity level delay adjustment. ~~
 
+    s_child_follow child_follow;
+
     e_run_config_flags run_config_flags; 
 
     float runspeed; // The speed the character runs at
     float runjumpheight; // The height the character jumps when running
     float runjumpdist; // The distance the character jumps when running
-    int runupdown; // Flag to determine if a player will continue to run while pressing up or down
+    int runupdown; // Flag to determine if a player will continue to run while pressing up or down; 1 = Enabled. 2 = Can intialize a run up/up, down/down, 4 = Can hold only Z.
     int runhold; // Flag to determine if a player will continue to run if holding down forward when landing
     
     int remove; // Flag to remove a projectile on contact or not
@@ -3688,6 +3727,7 @@ typedef struct entity
     e_blasted_state			projectile;							// Blasted or tossed (bowl over other entities in fall). ~~
 	e_rising_state			rising;								// Rise/Rise attacking. ~~
 	e_explode_state			toexplode;							// Bomb projectiles prepared or time to detonate. ~~
+    e_run_state		        running;							// ~~
     e_shadow_config_flags   shadow_config_flags;                // Shadow display parameters.
     e_update_mark			update_mark;						// Which updates are completed. ~~    
     e_weapon_state		    weapon_state;						// Check for ammo count? ~~
@@ -3710,7 +3750,6 @@ typedef struct entity
     unsigned int		    inpain;								// Hit and block stun. ~~
     unsigned int		    jumping;							// ~~
     unsigned int		    noaicontrol;						// No AI or automated control. ~~
-    unsigned int		    running;							// ~~
     unsigned int		    tocost;								// Cost life on hit with special. ~~
     unsigned int		    turning;							// Turning around. ~~
     unsigned int		    walking;							// ~~
@@ -4351,6 +4390,10 @@ typedef enum e_death_sequence_acting_event
 
 int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_sequence, e_death_sequence_acting_event acting_event);
 
+/* Running */
+e_run_config_flags run_get_config_flag_from_string(const char* value);
+e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const unsigned int start_position);
+
 /* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value);
@@ -4485,11 +4528,11 @@ entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);
 int check_lost();
-int check_range_target_all(entity *ent, entity *target, e_animations animation_id);
-int check_range_target_base(entity *ent, entity *target, s_anim *animation);
-int check_range_target_x(entity *ent, entity *target, s_anim *animation);
-int check_range_target_y(entity *ent, entity *target, s_anim *animation);
-int check_range_target_z(entity *ent, entity *target, s_anim *animation);
+int check_range_target_all(const entity *ent, const entity *target, const e_animations animation_id);
+int check_range_target_base(const entity * acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
+int check_range_target_x(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
+int check_range_target_y(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
+int check_range_target_z(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
 void check_entity_collision_for(entity* ent);
 int check_entity_collision(entity *ent, entity *target);
 
@@ -4577,8 +4620,8 @@ entity *common_find_target();
 int common_attack(void);
 int common_try_jump(void);
 int common_try_pick(entity *other);
-int common_try_chase(entity *target, int dox, int doz);
-int common_try_follow(entity *target, int dox, int doz);
+int common_try_chase(entity* acting_entity, const entity *target, const bool dox, const bool doz);
+int common_try_follow(entity* acting_entity, const entity* target, const bool axis_x, const bool axis_z);
 int common_try_avoid(entity *target, int dox, int doz);
 int common_try_wandercompletely(int dox, int doz);
 int common_try_wander(entity *target, int dox, int doz);

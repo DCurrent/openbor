@@ -802,7 +802,8 @@ int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
 
 s_player            player[MAX_PLAYERS];
-u64                 bothkeys, bothnewkeys;
+unsigned long long  bothkeys;
+unsigned long long  bothnewkeys;
 
 s_playercontrols    playercontrols1;
 s_playercontrols    playercontrols2;
@@ -12506,11 +12507,45 @@ s_model *init_model(int cacheindex, int unload)
     newchar->special                = calloc(1, sizeof(s_com));
 
     alloc_all_scripts(&newchar->scripts);
-        
+    
+    newchar->child_follow = (s_child_follow){
+        .direction_adjust_config = DIRECTION_ADJUST_NONE,
+        .direction_adjust_range = {
+            .x = {.max = -1, .min = 0 },
+            .y = {.max = -1, .min = 0 },
+            .z = {.max = -1, .min = 0 }
+        },
+        .recall_range = {
+            .x = {.max = (int)videomodes.hRes * 1.1, .min = (int)videomodes.hRes * -1.1 },
+            .y = {.max = (int)videomodes.vRes * 1.1, .min = (int)videomodes.vRes * -1.1 },
+            .z = {.max = (int)videomodes.vRes * 1.1, .min = (int)videomodes.vRes * -1.1 }
+        },
+        .follow_range = {
+            .x = {.max = (int)videomodes.hRes * 0.30, .min = (int)videomodes.hRes * -0.30 },
+            .y = {.max = (int)videomodes.vRes * 0.45, .min = (int)videomodes.vRes * -0.45 },
+            .z = {.max = (int)videomodes.vRes * 0.15, .min = (int)videomodes.vRes * -0.15 }
+        },
+        .run_range = {
+            .x = {.max = (int)videomodes.hRes * 0.60, .min = (int)videomodes.hRes * -0.60 },
+            .y = {.max = (int)videomodes.vRes * 0.90, .min = (int)videomodes.vRes * -0.90 },
+            .z = {.max = (int)videomodes.vRes * 0.30, .min = (int)videomodes.vRes * -0.30 }
+        }
+    };
+
     newchar->death_config_flags = DEATH_CONFIG_MACRO_DEFAULT;
-    newchar->edelay.cap.max     = MAX_INT;
-    newchar->edelay.range.max   = MAX_INT;
-    newchar->edelay.factor      = 1.0f;
+
+    newchar->edelay = (s_edelay){
+        .cap = {
+            .max = MAX_INT,
+            .min = 0
+        },
+        .range = {
+            .max = MAX_INT,
+            .min = 0
+        },
+        .factor = 1.0f
+    };
+
     newchar->unload             = unload;
     newchar->jumpspecial        = 0; // Kratus (10-2021) Added new property to kill or not the default jumpspecial movement
     newchar->jumpspeed          = default_model_jumpspeed;
@@ -12520,33 +12555,39 @@ s_model *init_model(int cacheindex, int unload)
     newchar->grabdistance       = default_model_grabdistance; //  30-12-2004 Default grabdistance is same as originally set
     newchar->grabflip		    = 3;
     newchar->throwdamage        = 21; //21 // default throw damage
-    newchar->icon.def			= -1;
-    newchar->icon.die           = -1;
-    newchar->icon.pain          = -1;
-    newchar->icon.get           = -1;
-    newchar->icon.weapon		= -1;			    // No weapon icon set yet
+    
+    newchar->icon = (s_icon){
+        .def = ICON_NONE,
+        .die = ICON_NONE,
+        .get = ICON_NONE,
+        .mphigh = ICON_NONE,
+        .mplow = ICON_NONE,
+        .mpmed = ICON_NONE,
+        .pain = ICON_NONE,
+        .weapon = ICON_NONE
+    };
+
     newchar->diesound           = SAMPLE_ID_NONE;
     newchar->nolife             = 0;			    // default show life = 1 (yes)
     newchar->shadow_config_flags = SHADOW_CONFIG_DEFAULT;
     newchar->remove             = 1;			    // Flag set to weapons are removed upon hitting an opponent
     newchar->throwdist          = default_model_jumpheight * 0.625f;
-    newchar->weapon_properties.loss_count = 3;  // Default 3 times to drop a weapon / projectile
     newchar->aimove             = AIMOVE1_NONE;
     newchar->aiattack           = -1;
     newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
     newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
-    newchar->icon.mphigh        = -1;               //No mphigh icon yet.
-    newchar->icon.mplow         = -1;               //No mplow icon yet.
-    newchar->icon.mpmed         = -1;               //No mpmed icon yet.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
-    newchar->colorsets.burn = COLORSET_INDEX_NONE;
-    newchar->colorsets.frozen = COLORSET_INDEX_NONE;
-    newchar->colorsets.hide_end = COLORSET_INDEX_NONE;
-    newchar->colorsets.hide_start = COLORSET_INDEX_NONE;
-    newchar->colorsets.ko = COLORSET_INDEX_NONE;
-    newchar->colorsets.kotype = KO_COLORSET_CONFIG_INSTANT;
-    newchar->colorsets.shock = COLORSET_INDEX_NONE;
+
+    newchar->colorsets = (s_colorset){
+        .burn = COLORSET_INDEX_NONE,
+        .frozen = COLORSET_INDEX_NONE,
+        .hide_end = COLORSET_INDEX_NONE,
+        .hide_start = COLORSET_INDEX_NONE,
+        .ko = COLORSET_INDEX_NONE,
+        .kotype = KO_COLORSET_CONFIG_INSTANT,
+        .shock = COLORSET_INDEX_NONE
+    };
 
     // Default Attack1 in chain must be referenced if not used.
     for(i = 0; i < MAX_ATCHAIN; i++)
@@ -12566,11 +12607,27 @@ s_model *init_model(int cacheindex, int unload)
     newchar->chargerate = newchar->guardrate = 2;
     newchar->risetime.rise              = -1;
     newchar->sleepwait                  = 1000;
-    newchar->jugglepoints.current = newchar->jugglepoints.max = 0;
-    newchar->guardpoints.current = newchar->guardpoints.max = 0;
+
+    newchar->jugglepoints = (s_status_points){
+        .current = 0,
+        .max = 0,
+        .min = 0
+    };
+
+    newchar->guardpoints = (s_status_points){
+        .current = 0,
+        .max = 0,
+        .min = 0
+    };
+
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
-    newchar->weapon_properties.loss_condition   |= WEAPON_LOSS_CONDITION_DEFAULT;
-    newchar->weapon_properties.loss_index      = MODEL_INDEX_NONE;
+    
+    newchar->weapon_properties = (s_weapon){
+        .loss_condition = WEAPON_LOSS_CONDITION_DEFAULT,
+        .loss_count = 3, // Default 3 times to drop a weapon / projectile
+        .loss_index = MODEL_INDEX_NONE
+    };
+    
     newchar->lifespan                   = LIFESPAN_DEFAULT;
     newchar->summonkill                 = 1;
     
@@ -12580,20 +12637,26 @@ s_model *init_model(int cacheindex, int unload)
     * on the the model's own type.
     */
 
-    newchar->faction.damage_direct      = FACTION_GROUP_DEFAULT;
-    newchar->faction.damage_indirect    = FACTION_GROUP_DEFAULT;
-    newchar->faction.hostile            = FACTION_GROUP_DEFAULT;
-    newchar->faction.member             = FACTION_GROUP_DEFAULT;
-    newchar->faction.type_damage_direct = TYPE_UNDELCARED;
-    newchar->faction.type_hostile       = TYPE_UNDELCARED;
-    newchar->faction.type_damage_indirect = TYPE_UNDELCARED;
+    newchar->faction = (s_faction){
+        .damage_direct = FACTION_GROUP_DEFAULT,
+        .damage_indirect = FACTION_GROUP_DEFAULT,
+        .hostile = FACTION_GROUP_DEFAULT,
+        .member = FACTION_GROUP_DEFAULT,
+        .type_damage_direct = TYPE_UNDELCARED,
+        .type_damage_indirect = TYPE_UNDELCARED,
+        .type_hostile = TYPE_UNDELCARED
+    };
 
     newchar->move_config_flags            = MOVE_CONFIG_NONE;
     newchar->pshotno                    = MODEL_INDEX_NONE;
     newchar->project                    = MODEL_INDEX_NONE;
-    newchar->dust.fall_land             = MODEL_INDEX_NONE;
-    newchar->dust.jump_land             = MODEL_INDEX_NONE;
-    newchar->dust.jump_start            = MODEL_INDEX_NONE;
+    
+    newchar->dust = (s_dust){
+        .fall_land = MODEL_INDEX_NONE,
+        .jump_land = MODEL_INDEX_NONE,
+        .jump_start = MODEL_INDEX_NONE
+    };
+    
     newchar->bomb                       = MODEL_INDEX_NONE;
     newchar->star                       = MODEL_INDEX_NONE;
     newchar->knife                      = MODEL_INDEX_NONE;
@@ -12969,6 +13032,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 break;
+
+            case CMD_MODEL_CHILD_FOLLOW_OFFSET_X:
+                newchar->child_follow.offset.x = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_CHILD_FOLLOW_OFFSET_Y:
+                newchar->child_follow.offset.y = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_CHILD_FOLLOW_OFFSET_Z:
+                newchar->child_follow.offset.z = GET_INT_ARG(1);
+                break;
+
             case CMD_MODEL_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
                 value = GET_ARG(1);
                 if(atoi(value) == 1)
@@ -13659,6 +13735,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Threshold for enemies/players block
                 newchar->thold = GET_INT_ARG(1);
                 break;
+
+            case CMD_MODEL_RUN_CONFIG:
+                newchar->run_config_flags = run_get_config_flags_from_arguments(&arglist, 1);
+                break;
             case CMD_MODEL_RUNNING:
                 // The speed at which the player runs
                 newchar->runspeed = GET_FLOAT_ARG(1);
@@ -13666,21 +13746,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->runjumpheight = GET_FLOAT_ARG(2);    // The height at which a player jumps when running
                 newchar->runjumpdist = GET_FLOAT_ARG(3);    // The distance a player jumps when running
                 
-                /*
                 tempInt = GET_INT_ARG(4);
-                
+
+                newchar->run_config_flags |= (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL | RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL);
+                                
                 if (tempInt)
                 {
-                    newchar->move_config_flags |= MOVE_CONFIG_RUN_Z;
+                    newchar->run_config_flags |= (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
                 }
                 else
                 {
-                    newchar->move_config_flags &= ~MOVE_CONFIG_RUN_Z;
+                    newchar->run_config_flags &= ~(RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
                 }
-                */
-
-                newchar->runupdown = GET_INT_ARG(4);
-                
                 
                 newchar->runhold = GET_INT_ARG(5);
                 break;
@@ -13697,20 +13774,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->runspeed = GET_FLOAT_ARG(1);
                 break;
             case CMD_MODEL_RUNNING_Z_MOVE:
-                newchar->runupdown = GET_INT_ARG(1);
-
-                /*
-                tempInt =  GET_INT_ARG(1);
+                tempInt = GET_INT_ARG(1);
 
                 if (tempInt)
                 {
-                    newchar->move_config_flags |= MOVE_CONFIG_RUN_Z;
+                    newchar->run_config_flags |= (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
                 }
                 else
                 {
-                    newchar->move_config_flags &= ~MOVE_CONFIG_RUN_Z;
+                    newchar->run_config_flags &= ~(RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
                 }
-                */
 
                 break;
             case CMD_MODEL_BLOCKODDS:
@@ -14590,7 +14663,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_CHARGETIME:
                 newanim->charge_time = GET_INT_ARG(1);
-                break;
+                break;            
 
                 /* 2022-05-27
                 * Caskey, Damon V.
@@ -30152,9 +30225,8 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         {
             newmodel->runspeed = model->runspeed;
             newmodel->runjumpheight = model->runjumpheight;
-            newmodel->runjumpdist = model->runjumpdist; 
-            newmodel->runupdown = model->runupdown;
-            newmodel->runhold = model->runhold;
+            newmodel->runjumpdist = model->runjumpdist;
+            newmodel->run_config_flags = model->run_config_flags;
         }
         if(newmodel->icon.def           <   0)
         {
@@ -30781,7 +30853,7 @@ void common_jump()
 
         if(!self->modeldata.runhold)
         {
-            self->running = 0;
+            self->running = RUN_STATE_NONE;
         }
 
         self->velocity.z = self->velocity.x = 0;
@@ -32337,6 +32409,83 @@ e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags 
 
     return result;
 }
+
+/*
+* Caskey, Damon V.
+* 2023-04-03
+*
+* Accept string input and return
+* matching constant.
+*/
+e_run_config_flags run_get_config_flag_from_string(const char* value)
+{
+    static const struct
+    {
+        const char* text_name;
+        e_death_config_flags flag;
+    } flag_lookup_table[] = {
+        {"none", RUN_CONFIG_NONE},
+        {"land", RUN_CONFIG_LAND},
+        {"x_left_dash_command", RUN_CONFIG_X_LEFT_DASH_COMMAND},
+        {"x_left_dash_fixed", RUN_CONFIG_X_LEFT_DASH_FIXED},
+        {"x_left_enabled", RUN_CONFIG_X_LEFT_ENABLED},
+        {"x_left_initial", RUN_CONFIG_X_LEFT_INITIAL},
+        {"x_right_dash_command", RUN_CONFIG_X_RIGHT_DASH_COMMAND},
+        {"x_right_dash_fixed", RUN_CONFIG_X_RIGHT_DASH_FIXED},
+        {"x_right_enabled", RUN_CONFIG_X_RIGHT_ENABLED},
+        {"x_right_initial", RUN_CONFIG_X_RIGHT_INITIAL},
+        {"z_down_dash_command", RUN_CONFIG_Z_DOWN_DASH_COMMAND},
+        {"z_down_dash_fixed", RUN_CONFIG_Z_DOWN_DASH_FIXED},
+        {"z_down_enabled", RUN_CONFIG_Z_DOWN_ENABLED},
+        {"z_down_initial", RUN_CONFIG_Z_DOWN_INITIAL},
+        {"z_up_dash_command", RUN_CONFIG_Z_UP_DASH_COMMAND},
+        {"z_up_dash_fixed", RUN_CONFIG_Z_UP_DASH_FIXED},
+        {"z_up_enabled", RUN_CONFIG_Z_UP_ENABLED},
+        {"z_up_initial", RUN_CONFIG_Z_UP_INITIAL},
+    };
+
+    const size_t list_count = sizeof(flag_lookup_table) / sizeof(*flag_lookup_table);
+
+    for (size_t i = 0; i < list_count; i++)
+    {
+        if (stricmp(value, flag_lookup_table[i].text_name) == 0)
+        {
+            return flag_lookup_table[i].flag;
+        }
+    }
+
+    /*
+    * Couldn't find a match in the lookup
+    * table. Send alert to log and return
+    * none flag.
+    */
+
+    printf("\n\n Unknown run config option (%s). \n", value);
+    return RUN_CONFIG_NONE;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-04-26
+*
+* Get arguments to output final
+* bitmask.
+*/
+e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const unsigned int start_position)
+{
+    int i = 0;
+    char* value = "";
+
+    e_run_config_flags result = RUN_CONFIG_NONE;
+
+    for (i = start_position; (value = GET_ARGP(i)) && value[0]; i++)
+    {
+        result |= run_get_config_flag_from_string(value);
+    }
+
+    return result;
+}
+
 
 /*
 * Caskey, Damon V.
@@ -34521,7 +34670,7 @@ int normal_attack()
         common_try_normalattack(NULL) ||
         common_try_jumpattack(NULL) )
     {
-        self->running = 0;
+        self->running = RUN_STATE_NONE;
         return 1;
     }
 
@@ -34614,7 +34763,7 @@ void common_throw_wait()
 
 void common_prethrow()
 {
-    self->running = 0;    // Quits running if grabbed by opponent
+    self->running = RUN_STATE_NONE;    // Quits running if grabbed by opponent
 
     // Just check if we're still grabbed...
     if(self->link)
@@ -34750,7 +34899,7 @@ int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck)
         ents_link(attacker, target);
         target->attacking = ATTACKING_NONE;
         attacker->idling = IDLING_NONE;
-        attacker->running = 0;
+        attacker->running = RUN_STATE_NONE;
         attacker->ducking = DUCK_NONE;
         attacker->inbackpain = 0;
 
@@ -35414,7 +35563,7 @@ void common_runoff()
         set_attacking(self);
         self->velocity.x = self->velocity.z = 0;
         self->combostep[0] = 0;
-        self->running = 0;
+        self->running = RUN_STATE_NONE;
         ent_set_anim(self, ANI_DUCKATTACK, 0);
         return;
     }
@@ -35425,7 +35574,7 @@ void common_runoff()
         set_attacking(self);
         self->velocity.x = self->velocity.z = 0;
         self->combostep[0] = 0;
-        self->running = 0;
+        self->running = RUN_STATE_NONE;
         ent_set_anim(self, ANI_SLIDE, 0);
         return;
     }
@@ -35871,7 +36020,7 @@ int common_try_pick(entity *other)
         self->velocity.z = -self->velocity.z;
     }
 
-    self->running = 0;
+    self->running = RUN_STATE_NONE;
 
     adjust_walk_animation(other);
 
@@ -36270,7 +36419,7 @@ int checkpathblocked()
                 self->velocity.z = (1.0f - randf(2)) * self->modeldata.speed.x / 2;
                 self->velocity.x = (1.0f - randf(2)) * self->modeldata.speed.x;
             }
-            self->running = 0; // TODO: re-adjust walk speed
+            self->running = RUN_STATE_NONE; // TODO: re-adjust walk speed
             self->stalltime = _time + GAME_SPEED / 2;
             adjust_walk_animation(NULL);
             self->pathblocked = 0;
@@ -36311,17 +36460,17 @@ int checkpathblocked()
 // this is the most aggressive aimove pattern
 // the entity will try get in and attack at anytime
 // though the range depends on what attack you setup
-int common_try_chase(entity *target, int dox, int doz)
+int common_try_chase(entity* acting_entity, const entity *target, const bool axis_x, const bool axis_z)
 {
     // start chasing the target
     float dx, dz, range;
     int randomatk;
 
-    self->running = 0;
+    acting_entity->running = RUN_STATE_NONE;
 
-    //adjustspeed(self->modeldata.speed.x, self->position.x, self->position.z, self->position.x + self->velocity.x, self->position.z + self->velocity.z, &self->velocity.x, &self->velocity.z);
+    //adjustspeed(acting_entity->modeldata.speed.x, acting_entity->position.x, acting_entity->position.z, acting_entity->position.x + acting_entity->velocity.x, acting_entity->position.z + acting_entity->velocity.z, &acting_entity->velocity.x, &acting_entity->velocity.z);
 
-    if(target == NULL || self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
+    if(target == NULL || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36330,11 +36479,11 @@ int common_try_chase(entity *target, int dox, int doz)
 
     if(randomatk >= 0)
     {
-        range = (self->modeldata.animation[randomatk]->range.x.min + self->modeldata.animation[randomatk]->range.x.max) / 2;
+        range = (acting_entity->modeldata.animation[randomatk]->range.x.min + acting_entity->modeldata.animation[randomatk]->range.x.max) / 2;
         //printf("range picked: ani %d, range %f\n", randomatk, range);
         if(range < 0)
         {
-            range = self->modeldata.grabdistance;
+            range = acting_entity->modeldata.grabdistance;
         }
         else if(range > videomodes.hRes / 4)
         {
@@ -36343,53 +36492,60 @@ int common_try_chase(entity *target, int dox, int doz)
     }
     else
     {
-        range = self->modeldata.grabdistance;
+        range = acting_entity->modeldata.grabdistance;
     }
 
-    if(dox)
+    if(axis_x)
     {
-        if(self->position.x > target->position.x)
+        if(acting_entity->position.x > target->position.x)
         {
-            self->destx = target->position.x + range - 1;
+            acting_entity->destx = target->position.x + range - 1;
         }
         else
         {
-            self->destx = target->position.x - range + 1;
+            acting_entity->destx = target->position.x - range + 1;
         }
-        dx = diff(self->position.x, self->destx);
+        dx = diff(acting_entity->position.x, acting_entity->destx);
 
-        if(dx > 150 && validanim(self, ANI_RUN))
+        if(dx > 150 && validanim(acting_entity, ANI_RUN))
         {
-            self->velocity.x = self->modeldata.runspeed;
-            self->running = 1;
+            acting_entity->velocity.x = acting_entity->modeldata.runspeed;
+            acting_entity->running &= ~RUN_STATE_START_Z;
+            acting_entity->running |= RUN_STATE_START_X;
         }
         else
         {
-            self->velocity.x = self->modeldata.speed.x;
+            acting_entity->velocity.x = acting_entity->modeldata.speed.x;
         }
-        if(self->destx < self->position.x)
+        if(acting_entity->destx < acting_entity->position.x)
         {
-            self->velocity.x = -self->velocity.x;
+            acting_entity->velocity.x = -acting_entity->velocity.x;
         }
+
+        ////////////
+
+
+
     }
 
-    if(doz)
+    if(axis_z)
     {
-        self->destz = target->position.z ;
-        dz = diff(self->position.z, self->destz);
+        acting_entity->destz = target->position.z ;
+        dz = diff(acting_entity->position.z, acting_entity->destz);
 
-        if(dz > 100 && self->modeldata.runupdown && validanim(self, ANI_RUN))
+        if(dz > 100 && acting_entity->modeldata.runupdown && validanim(acting_entity, ANI_RUN))
         {
-            self->velocity.z = self->modeldata.runspeed / 2;
-            self->running = 1;
+            acting_entity->velocity.z = acting_entity->modeldata.runspeed / 2;
+            acting_entity->running &= ~RUN_STATE_START_X;
+            acting_entity->running |= RUN_STATE_START_Z;
         }
         else
         {
-            self->velocity.z = self->modeldata.speed.x / 2;
+            acting_entity->velocity.z = acting_entity->modeldata.speed.x / 2;
         }
-        if(self->destz < self->position.z)
+        if(acting_entity->destz < acting_entity->position.z)
         {
-            self->velocity.z = -self->velocity.z;
+            acting_entity->velocity.z = -acting_entity->velocity.z;
         }
     }
 
@@ -36398,88 +36554,259 @@ int common_try_chase(entity *target, int dox, int doz)
 
 //may be used many times, so make a function
 // minion follow his owner
-int common_try_follow(entity *target, int dox, int doz)
-{
-    // start chasing the target
-    float dx, dz, distance;
-    int mx, mz;
-    int facing;
-
-    //target = self->parent;
-    if(target == NULL || self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
+int common_try_follow(entity* acting_entity, const entity *target, const bool axis_x, const bool axis_z)
+{    
+    if(acting_entity == NULL || target == NULL || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
-    distance = (float)((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.x.min : 100);
 
-    if(distance <= 0)
+    enum e_follow_state
     {
-        distance = 100.0;
-    }
+        FOLLOW_STATE_NONE = 0,
+        FOLLOW_STATE_RUN_X = (1 << 0),
+        FOLLOW_STATE_RUN_Z = (1 << 1),
+        FOLLOW_STATE_X = (1 << 2),
+        FOLLOW_STATE_Z = (1 << 3)
+    } follow_state = FOLLOW_STATE_NONE;
 
-    facing = (self->direction == DIRECTION_RIGHT ? self->position.x < target->position.x : self->position.x > target->position.x);
+    float follow_speed = 0;
+    e_run_state run_state = RUN_STATE_NONE;
+    
+    /*
+    * Target positon, distance to acting
+    * entity, and if acting entity is 
+    * facing the target.
+    */
 
-    dx = diff(self->position.x, target->position.x);
-    dz = diff(self->position.z, target->position.z);
+    const s_axis_principal_float target_pos = {
+        .x = target->position.x + (target->direction == DIRECTION_RIGHT ? acting_entity->modeldata.child_follow.offset.x : -acting_entity->modeldata.child_follow.offset.x),
+        .y = target->position.y + acting_entity->modeldata.child_follow.offset.y,
+        .z = target->position.z + acting_entity->modeldata.child_follow.offset.z
+    };
+    
+    const float distance_x = diff(acting_entity->position.x, target_pos.x);
+    const float distance_z = diff(acting_entity->position.z, target_pos.z);
 
-    if(dox && dx < distance)
-    {
-        self->velocity.x = 0;
-        mx = 0;
-    }
-    else
-    {
-        mx = 1;
-    }
+    const bool facing_target = (acting_entity->direction == DIRECTION_RIGHT ? acting_entity->position.x < target_pos.x : acting_entity->position.x > target_pos.x);
 
-    if(doz && dz < distance / 2)
-    {
-        self->velocity.z = 0;
-        mz = 0;
-    }
-    else
-    {
-        mz = 1;
-    }
+    /*
+    * Follow/run ranges.
+    */
 
-    if(dox && mx)
+    const s_metric_range follow_range_x = {
+        .max = acting_entity->modeldata.child_follow.follow_range.x.max,
+        .min = acting_entity->modeldata.child_follow.follow_range.x.min
+    };
+
+    const s_metric_range run_range_x = {
+        .max = acting_entity->modeldata.child_follow.run_range.x.max,
+        .min = acting_entity->modeldata.child_follow.run_range.x.min
+    };
+
+    const s_metric_range follow_range_z = {
+        .max = acting_entity->modeldata.child_follow.follow_range.z.max,
+        .min = acting_entity->modeldata.child_follow.follow_range.z.min
+    };
+
+    const s_metric_range run_range_z = {
+        .max = acting_entity->modeldata.child_follow.run_range.z.max,
+        .min = acting_entity->modeldata.child_follow.run_range.z.min
+    };        
+
+    /*
+    * Let's try to follow on each axis. If ranges
+    * are not reversed, then we check to see if
+    * target is OUTSIDE the range, and if so, then
+    * set a flag to run downstream movement logic
+    * to pursue target. We do this for both walking 
+    * and running.
+    */
+
+    if (axis_x)
     {
-        if(facing && dx > 200 && validanim(self, ANI_RUN))
-        {
-            self->velocity.x = self->modeldata.runspeed;
-            self->running = 1;
+        if ((follow_range_x.min <= follow_range_x.max)
+            && !check_range_target_x(acting_entity, target, NULL, follow_range_x.min, follow_range_x.max)) {
+
+            follow_state |= FOLLOW_STATE_X;
         }
-        else
-        {
-            self->velocity.x = self->modeldata.speed.x;
-            self->running = 0;
-        }
-        if(self->position.x > target->position.x)
-        {
-            self->velocity.x = -self->velocity.x;
-        }
-        self->destx = target->position.x;
+
+        if (validanim(acting_entity, ANI_RUN)
+            && facing_target
+            && (run_range_x.min <= run_range_x.max)
+            && !check_range_target_x(acting_entity, target, NULL, run_range_x.min, run_range_x.max)) {
+
+            follow_state |= (FOLLOW_STATE_X | FOLLOW_STATE_RUN_X);
+        }        
     }
 
-    if(doz && mz)
+    if (axis_z)
     {
-        if(facing && dx > 200 && self->modeldata.runupdown && validanim(self, ANI_RUN))
-        {
-            self->velocity.z = self->modeldata.runspeed / 2;
-            self->running = 1;
+        if ((follow_range_z.min <= follow_range_z.max)
+            && !check_range_target_z(acting_entity, target, NULL, follow_range_z.min, follow_range_z.max)) {
+
+            follow_state |= FOLLOW_STATE_Z;
         }
-        else
-        {
-            self->velocity.z = self->modeldata.speed.x / 2;
-            self->running = 0; // not right, to be modified
+
+        if (validanim(acting_entity, ANI_RUN)            
+            && (run_range_z.min <= run_range_z.max)
+            && !check_range_target_z(acting_entity, target, NULL, run_range_z.min, run_range_z.max)) {
+
+            follow_state |= (FOLLOW_STATE_Z | FOLLOW_STATE_RUN_Z);
         }
-        if(self->position.z > target->position.z)
-        {
-            self->velocity.z = -self->velocity.z;
-        }
-        self->destz = target->position.z;
     }
 
+    //printf("\n\n acting_entity: %p", acting_entity);
+    //printf("\n target_pos.x: %f", target_pos.x);
+    //printf("\n target_pos.z: %f", target_pos.z);
+    //printf("\n distance_x: %f", distance_x);
+    //printf("\n distance_max: %f", distance_max);
+    //printf("\n distance_x: %f", distance_x);
+    //printf("\n distance_z: %f", distance_z);      
+    
+    printf("\n follow_state: %d", follow_state);
+    printf("\n axis_x: %d", axis_x);
+    printf("\n axis_z: %d", axis_z);
+
+    /*
+    * If we are farther from target on the 
+    * X axis than the Z axis, we will try 
+    * to initialize running toward target 
+    * on X and veer toward target on Z. If 
+    * we are farther on Z axis, then we'll 
+    * do the opposite.
+    */
+
+    if (distance_x > distance_z) {
+
+        if (follow_state & FOLLOW_STATE_X) {
+
+            if (follow_state & FOLLOW_STATE_RUN_X) {
+
+                if (acting_entity->direction == DIRECTION_LEFT                    
+                    && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_LEFT_INITIAL | RUN_CONFIG_X_LEFT_ENABLED)) == (RUN_CONFIG_X_LEFT_INITIAL | RUN_CONFIG_X_LEFT_ENABLED)) {
+                    follow_speed = -acting_entity->modeldata.runspeed;
+                    run_state |= RUN_STATE_START_X;
+                }
+                else if (acting_entity->direction == DIRECTION_RIGHT
+                    && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_INITIAL | RUN_CONFIG_X_RIGHT_ENABLED)) == (RUN_CONFIG_X_RIGHT_INITIAL | RUN_CONFIG_X_RIGHT_ENABLED)) {
+                    follow_speed = acting_entity->modeldata.runspeed;
+                    run_state |= RUN_STATE_START_X;
+                }
+            }
+            else {
+                follow_speed = acting_entity->modeldata.speed.x;
+            }
+
+            /* Reverse speed if target is to our left. */
+            if (acting_entity->position.x > target_pos.x)
+            {
+                follow_speed = -follow_speed;
+            }
+
+            acting_entity->velocity.x = follow_speed;
+            acting_entity->running = run_state;
+            acting_entity->destx = target_pos.x;
+        }
+
+        follow_speed = 0;
+        
+        if (follow_state & FOLLOW_STATE_Z) {
+            /*
+            * If we're running and have Z running enabled, let's
+            * veer ourselves toward the target.
+            */
+
+            if (follow_state & FOLLOW_STATE_RUN_Z) {
+
+                if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED) {
+                    follow_speed = acting_entity->modeldata.runspeed / 2;                    
+                }
+                else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED) {
+                    follow_speed = -acting_entity->modeldata.runspeed / 2;
+                }
+            }
+            else {
+                follow_speed = acting_entity->modeldata.speed.x / 2;                
+            }
+            
+            /* Reverse speed if target is behind our Z position. */
+            if (acting_entity->position.z > target_pos.z) {
+                follow_speed = -follow_speed;
+            }
+
+            acting_entity->velocity.z = follow_speed;
+            acting_entity->running = run_state;
+            acting_entity->destz = target_pos.z;
+        }
+    }
+    else {
+
+        if (follow_state & FOLLOW_STATE_Z)
+        {
+            if (follow_state & FOLLOW_STATE_RUN_Z)
+            {
+                if (acting_entity->position.z < target_pos.z
+                    && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_INITIAL | RUN_CONFIG_Z_DOWN_ENABLED)) == (RUN_CONFIG_Z_DOWN_INITIAL | RUN_CONFIG_Z_DOWN_ENABLED)) {
+
+                    follow_speed = acting_entity->modeldata.runspeed;
+                    run_state = RUN_STATE_START_Z;
+                }
+                else if (acting_entity->position.z > target_pos.z
+                    && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_UP_INITIAL | RUN_CONFIG_Z_UP_ENABLED)) == (RUN_CONFIG_Z_UP_INITIAL | RUN_CONFIG_Z_UP_ENABLED)) {
+
+                    follow_speed = -acting_entity->modeldata.runspeed;
+                    run_state = RUN_STATE_START_Z;
+                }                
+            }
+            else {
+                follow_speed = acting_entity->modeldata.speed.x;
+            }
+
+            acting_entity->velocity.z = follow_speed;
+            acting_entity->running = run_state;
+            acting_entity->destz = target_pos.z;
+        }
+
+        follow_speed = 0;
+
+        if (follow_state & FOLLOW_STATE_X) {
+            /*
+            * If we're running and have Z running enabled, let's
+            * veer ourselves toward the target.
+            */
+
+            if (follow_state & FOLLOW_STATE_RUN_X) {
+
+                if (acting_entity->direction == DIRECTION_LEFT
+                    && acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED) {
+                    follow_speed = -acting_entity->modeldata.runspeed / 2;
+                }
+                else if (acting_entity->direction == DIRECTION_RIGHT
+                    && acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED) {
+                    follow_speed = acting_entity->modeldata.runspeed / 2;
+                }
+            }
+            else {
+                follow_speed = acting_entity->modeldata.speed.x / 2;
+            }
+
+            /* Reverse speed if target is behind our Z position. */
+            if (acting_entity->position.z > target_pos.z) {
+                follow_speed = -follow_speed;
+            }
+
+            acting_entity->velocity.z = follow_speed;
+            acting_entity->running = run_state;
+            acting_entity->destz = target_pos.z;
+        }
+    }
+
+    printf("\n acting_entity->running : %d", acting_entity->running);
+    printf("\n acting_entity->destx: %f", acting_entity->destx);
+    printf("\n acting_entity->destz: %f", acting_entity->destz);
+    printf("\n acting_entity->velocity.x: %f", acting_entity->velocity.x);
+    printf("\n acting_entity->velocity.z: %f", acting_entity->velocity.z);
 
     return 1;
 }
@@ -37569,24 +37896,35 @@ int star_move()
 //root function for aimove
 int common_move()
 {
-    int aimove, makestop = 0, reachx, reachz;
-    int air = inair(self);
+    entity* acting_entity = self;
+    e_aimove aimove;
+    int makestop = 0;
+    int reachx;
+    int reachz;
+    int air = inair(acting_entity);
     entity *other = NULL; //item
     entity *target = NULL;//hostile target
     entity *owner = NULL;
     entity *ent = NULL;
-    int predir, stall;
-    int patx[5], pxc, px, patz[5], pzc, pz, fz; //move pattern in z and x
+    e_direction predir; 
+    long stall;
+    int patx[5];
+    int pxc;
+    int px;
+    int patz[5];
+    int pzc;
+    int pz;
+    int fz;
 
-    if(self->modeldata.aimove == -1)
+    if(acting_entity->modeldata.aimove == -1)
     {
         return 0;    // invalid value
     }
 
     // get move pattern
-    aimove = self->modeldata.aimove & MASK_AIMOVE1;
+    aimove = acting_entity->modeldata.aimove & MASK_AIMOVE1;
 
-//if(stricmp(self->name, "os")==0) printf("%d\n", aimove);
+//if(stricmp(acting_entity->name, "os")==0) printf("%d\n", aimove);
     // old and outdated patterns, but MUST be kept anyway
     if(aimove & AIMOVE1_BIKER)
     {
@@ -37596,7 +37934,7 @@ int common_move()
     else if(aimove & AIMOVE1_ARROW)
     {
         // for common straight-flying arrow
-        return arrow_move(self);
+        return arrow_move(acting_entity);
     }
     else if(aimove & AIMOVE1_STAR)
     {
@@ -37606,7 +37944,7 @@ int common_move()
     else if(aimove & AIMOVE1_BOMB)
     {
         // for a bomb, travel in a arc
-        return bomb_move(self);
+        return bomb_move(acting_entity);
     }
     else if(aimove & AIMOVE1_NOMOVE)
     {
@@ -37619,98 +37957,118 @@ int common_move()
 
         // skip if the entity is in air,
         // removing this and entity might be spawned walking in air
-        if(air)
+        if (air)
         {
             return 0;
         }
 
         // store this for turning checking
-        predir = self->direction;
+        predir = acting_entity->direction;
 
         // find all possible entities for target
         // bad for optimization, but makes better sense
-        if(self->custom_target == NULL || !self->custom_target->exists ) target = normal_find_target(-1, 0); // confirm the target again
-        else target = self->custom_target;
+        if (acting_entity->custom_target == NULL || !acting_entity->custom_target->exists) target = normal_find_target(-1, 0); // confirm the target again
+        else target = acting_entity->custom_target;
 
-        other = ( (_time / GAME_SPEED + self->energy_state.health_current / 3 + 1000) % 15 < 10) ? normal_find_item() : NULL; // find an item
-        owner = self->parent;
+        other = ((_time / GAME_SPEED + acting_entity->energy_state.health_current / 3 + 1000) % 15 < 10) ? normal_find_item() : NULL; // find an item
+        owner = acting_entity->parent;
 
         // temporary solution to turn off running if xdir is not set
         // unless one day vertical running logic is written
-        if(!self->velocity.x)
+        if (!acting_entity->velocity.x)
         {
-            self->running = 0;
+            acting_entity->running = RUN_STATE_NONE;
         }
 
         // change direction unless the ai pattern ignores target or model has noflip
-        if(!(self->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP) && !self->running && aimove != AIMOVE1_WANDER)
+        if (!(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_FLIP) && !acting_entity->running && aimove != AIMOVE1_WANDER)
         {
-            if(other)   //try to pick up an item, if possible
+            if (other)   //try to pick up an item, if possible
             {
-                self->direction = (self->position.x < other->position.x);
+                acting_entity->direction = (acting_entity->position.x < other->position.x) ? DIRECTION_RIGHT : DIRECTION_LEFT;
             }
-            else if(target)
+            else if (target)
             {
-                self->direction = (self->position.x < target->position.x);
+                acting_entity->direction = (acting_entity->position.x < target->position.x) ? DIRECTION_RIGHT : DIRECTION_LEFT;;
             }
-            else if(owner)
+            else if (owner)
             {
-                self->direction = (self->position.x < owner->position.x);
+                /*
+                * If we're following a parent, then check to see
+                * if we are in direction adjust range and if so
+                * we'll apply the direction adjustment. Otherwise
+                * we just face parent.
+                * 
+                * Any range with min > max is true.
+                */                
+
+                const s_child_follow* child_follow = &acting_entity->modeldata.child_follow;
+
+                if ((child_follow->direction_adjust_range.x.min <= child_follow->direction_adjust_range.x.max && check_range_target_x(acting_entity, owner, NULL, child_follow->direction_adjust_range.x.min, child_follow->direction_adjust_range.x.max))
+                    && (child_follow->direction_adjust_range.z.min <= child_follow->direction_adjust_range.z.max && check_range_target_z(acting_entity, owner, NULL, child_follow->direction_adjust_range.z.min, child_follow->direction_adjust_range.z.max))
+                    && (child_follow->direction_adjust_range.y.min <= child_follow->direction_adjust_range.y.max && check_range_target_y(acting_entity, owner, NULL, child_follow->direction_adjust_range.y.min, child_follow->direction_adjust_range.y.max))) {
+                    
+                    acting_entity->direction = direction_get_adjustment_result(acting_entity->direction, owner->direction, child_follow->direction_adjust_config);
+                }
+                else {
+                    acting_entity->direction = (acting_entity->position.x < owner->position.x) ? DIRECTION_RIGHT : DIRECTION_LEFT;
+                }
             }
         }
-        else if(aimove == AIMOVE1_WANDER)
+        else if (aimove == AIMOVE1_WANDER)
         {
-            if(self->velocity.x)
+            if (acting_entity->velocity.x)
             {
-                self->direction = (self->velocity.x > 0);
+                acting_entity->direction = (acting_entity->velocity.x > 0) ? DIRECTION_RIGHT : DIRECTION_LEFT;
             }
         }
 
         //turn back if we have a turn animation
         // TODO, make a function for ai script
-        if(self->direction != predir && validanim(self, ANI_TURN) && self->ducking == DUCK_NONE)
+        if (acting_entity->direction != predir && validanim(acting_entity, ANI_TURN) && acting_entity->ducking == DUCK_NONE)
         {
-            self->takeaction = common_turn;
-            self->direction = !self->direction;
-            self->velocity.x = self->velocity.z = 0;
-            ent_set_anim(self, ANI_TURN, 0);
+            acting_entity->takeaction = common_turn;
+            acting_entity->direction = (acting_entity->direction == DIRECTION_RIGHT) ? DIRECTION_LEFT : DIRECTION_RIGHT;
+            acting_entity->velocity.x = 0;
+            acting_entity->velocity.z = 0;
+            ent_set_anim(acting_entity, ANI_TURN, 0);
             return 1;
         }
 
         //pick up the item if possible
-        if(other && diff(other->position.x, self->position.x) < (self->modeldata.grabdistance * 0.83333)
-                && diff(other->position.z, self->position.z) < (self->modeldata.grabdistance / 3) &&
-                other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
+        if (other && diff(other->position.x, acting_entity->position.x) < (acting_entity->modeldata.grabdistance * 0.83333)
+            && diff(other->position.z, acting_entity->position.z) < (acting_entity->modeldata.grabdistance / 3) &&
+            other->animation->vulnerable[other->animpos])//won't pickup an item that is not previous one
         {
-            if(diff(self->base, other->position.y) < 0.1)
+            if (diff(acting_entity->base, other->position.y) < 0.1)
             {
                 common_pickupitem(other);
                 return 1;
             }
         }
 
-        if(self->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
+        if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
         {
-            self->idling = IDLING_PREPARED;
+            acting_entity->idling = IDLING_PREPARED;
             return 1;
         }
 
-        if(common_try_jump())
+        if (common_try_jump())
         {
-            self->numwaypoints = 0;
+            acting_entity->numwaypoints = 0;
             return 1;  //need to jump? so quit
         }
 
-        if(checkpathblocked())
+        if (checkpathblocked())
         {
             return 1;    // handle path blocked logic
         }
 
         // judge next move if stalltime is expired
         // skip if waypoints presents (passive move)
-        if(self->stalltime < _time && !self->waypoints)
+        if (acting_entity->stalltime < _time && !acting_entity->waypoints)
         {
-            if(other)
+            if (other)
             {
                 // try walking to the item
                 common_try_pick(other);
@@ -37718,65 +38076,65 @@ int common_move()
             }
             else
             {
-                if(target && (self->modeldata.subtype == SUBTYPE_CHASE ||
-                              ((self->modeldata.type & TYPE_NPC) && self->parent)))
+                if (target && (acting_entity->modeldata.subtype == SUBTYPE_CHASE ||
+                    ((acting_entity->modeldata.type & TYPE_NPC) && acting_entity->parent)))
                     // try chase a target
                 {
                     aimove |= AIMOVE1_CHASE;
                 }
 
-                if(aimove & AIMOVE1_CHASE)
+                if (aimove & AIMOVE1_CHASE)
                 {
                     aimove |= AIMOVE1_CHASEX | AIMOVE1_CHASEZ;
                 }
-                if(aimove & AIMOVE1_AVOID)
+                if (aimove & AIMOVE1_AVOID)
                 {
                     aimove |= AIMOVE1_AVOIDX | AIMOVE1_AVOIDZ;
                 }
 
-                if(other != ent)
+                if (other != ent)
                 {
-                    self->velocity.x = self->velocity.z = 0;
+                    acting_entity->velocity.x = acting_entity->velocity.z = 0;
                 }
 
-                if(!aimove && target)
+                if (!aimove && target)
                 {
                     common_try_wander(target, 1, 1);
                     ent = target;
                 }
-                else if ( target && (!(self->modeldata.aimove & AIMOVE2_NOTARGETIDLE) || ((self->modeldata.aimove & AIMOVE2_NOTARGETIDLE) && target->animnum != ANI_IDLE)) )
+                else if (target && (!(acting_entity->modeldata.aimove & AIMOVE2_NOTARGETIDLE) || ((acting_entity->modeldata.aimove & AIMOVE2_NOTARGETIDLE) && target->animnum != ANI_IDLE)))
                 {
                     ent = target;
                     pxc = pzc = 0;
 
-                    if(aimove & AIMOVE1_WANDER)
+                    if (aimove & AIMOVE1_WANDER)
                     {
                         patx[pxc++] = AIMOVE1_WANDER;
                         patx[pxc++] = AIMOVE1_WANDER;
                         patz[pzc++] = AIMOVE1_WANDER;
                         patz[pzc++] = AIMOVE1_WANDER;
                     }
-                    if(aimove & AIMOVE1_CHASEX)
+                    if (aimove & AIMOVE1_CHASEX)
                     {
                         patx[pxc++] = AIMOVE1_CHASEX;
                     }
-                    if(aimove & AIMOVE1_AVOIDX)
+                    if (aimove & AIMOVE1_AVOIDX)
                     {
                         patx[pxc++] = AIMOVE1_AVOIDX;
                     }
-                    if(aimove & AIMOVE1_CHASEZ)
+                    if (aimove & AIMOVE1_CHASEZ)
                     {
                         patz[pzc++] = AIMOVE1_CHASEZ;
                     }
-                    if(aimove & AIMOVE1_AVOIDZ)
+                    if (aimove & AIMOVE1_AVOIDZ)
                     {
                         patz[pzc++] = AIMOVE1_AVOIDZ;
                     }
-                    if(!pxc)
+                    if (!pxc)
                     {
                         patx[pxc++] = AIMOVE1_WANDER;
                     }
-                    if(!pzc)
+                    if (!pzc)
                     {
                         patz[pzc++] = AIMOVE1_WANDER;
                     }
@@ -37785,10 +38143,10 @@ int common_move()
 
                     fz = 0;
 
-                    aimove = (self->modeldata.aimove & MASK_AIMOVE1);
+                    aimove = (acting_entity->modeldata.aimove & MASK_AIMOVE1);
 
                     //valid types: avoidx, aviodz, chasex, chasez, wander
-                    if(px == AIMOVE1_WANDER)
+                    if (px == AIMOVE1_WANDER)
                     {
                         if (pz == AIMOVE1_WANDER && aimove == AIMOVE1_WANDER)
                         {
@@ -37801,9 +38159,9 @@ int common_move()
                         }
 
                     }
-                    else if(px == AIMOVE1_CHASEX)
+                    else if (px == AIMOVE1_CHASEX)
                     {
-                        common_try_chase(target, 1, (pz == AIMOVE1_CHASEZ));
+                        common_try_chase(acting_entity, target, 1, (pz == AIMOVE1_CHASEZ));
                         fz = (pz == AIMOVE1_CHASEZ);
                     }
                     else if (px == AIMOVE1_AVOIDX)
@@ -37811,15 +38169,15 @@ int common_move()
                         common_try_avoid(target, 1, (pz == AIMOVE1_AVOIDZ));
                         fz = (pz == AIMOVE1_AVOIDZ);
                     }
-                    if(!fz)
+                    if (!fz)
                     {
-                        if(pz == AIMOVE1_WANDER)
+                        if (pz == AIMOVE1_WANDER)
                         {
                             common_try_wander(target, 0, 1);
                         }
-                        else if(pz == AIMOVE1_CHASEZ)
+                        else if (pz == AIMOVE1_CHASEZ)
                         {
-                            common_try_chase(target, 0, 1);
+                            common_try_chase(acting_entity, target, 0, 1);
                         }
                         else if (pz == AIMOVE1_AVOIDZ)
                         {
@@ -37828,7 +38186,7 @@ int common_move()
                     }
 
                 }
-                else if(!common_try_follow(owner, 1, 1) && !(self->modeldata.aimove & AIMOVE2_NOTARGETIDLE) )
+                else if (!common_try_follow(acting_entity, owner, 1, 1) && !(acting_entity->modeldata.aimove & AIMOVE2_NOTARGETIDLE))
                 {
                     common_try_wandercompletely(1, 1);
                     ent = NULL;
@@ -37840,106 +38198,123 @@ int common_move()
             }
             //end of if
 
-        }//if(self->stalltime < _time )
+        }//if(acting_entity->stalltime < _time )
         else
         {
             ent = other;
-            if(!ent)
+            if (!ent)
             {
                 ent = target;
             }
-            if(!ent)
+            if (!ent)
             {
                 ent = owner;
             }
         }
-        if(self->numwaypoints == 0 && self->waypoints)
+        if (acting_entity->numwaypoints == 0 && acting_entity->waypoints)
         {
-            free(self->waypoints);
-            self->waypoints = NULL;
+            free(acting_entity->waypoints);
+            acting_entity->waypoints = NULL;
         }
 
         //fix 2d level panic, or should this be moved to the very beginning?
-        if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z && self->destz < PLAYER_MIN_Z)
+        if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MIN_Z && acting_entity->destz < PLAYER_MIN_Z)
         {
-            self->destz = PLAYER_MIN_Z;
+            acting_entity->destz = PLAYER_MIN_Z;
         }
-        if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z && self->destz > PLAYER_MAX_Z)
+        if (acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_MAX_Z && acting_entity->destz > PLAYER_MAX_Z)
         {
-            self->destz = PLAYER_MAX_Z;
+            acting_entity->destz = PLAYER_MAX_Z;
         }
 
         // don't run in passive move mode. The path could be complex and running may look bad.
-        if(self->waypoints)
+        if (acting_entity->waypoints)
         {
-            self->running = 0;
+            acting_entity->running = RUN_STATE_NONE;
         }
 
-        if(self->direction == (self->destx < self->position.x))
+        if (acting_entity->direction == (acting_entity->destx < acting_entity->position.x))
         {
-            self->running = 0;
+            acting_entity->running = RUN_STATE_NONE;
         }
 
         // make the entity walks in a straight path instead of flickering here and there
         // acceleration can be added easily based on this logic, if necessary
-        adjustspeed(self->running ? self->modeldata.runspeed : self->modeldata.speed.x,
-                                                    self->position.x, self->position.z,
-                                                    self->destx, self->destz,
-                                                    &self->velocity.x,
-                                                    &self->velocity.z);
+        adjustspeed(acting_entity->running ? acting_entity->modeldata.runspeed : acting_entity->modeldata.speed.x,
+            acting_entity->position.x, acting_entity->position.z,
+            acting_entity->destx, acting_entity->destz,
+            &acting_entity->velocity.x,
+            &acting_entity->velocity.z);
 
-        // fix running animation, if the model doesn't allow running updown then set zdir to 0
-        if(self->running && !self->modeldata.runupdown)
-        {
-            self->velocity.z = 0;
-            self->destz = self->position.z;
+        /*
+        * If we can't run on a different axis
+        * then stay on the rails.
+        */
+
+        if (acting_entity->running & RUN_STATE_START_X) {
+            if ((acting_entity->velocity.z < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
+                || (acting_entity->velocity.z > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))
+                || (acting_entity->velocity.x < 0 && acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_DASH_FIXED)
+                || (acting_entity->velocity.x > 0 && acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED)) {
+                acting_entity->velocity.z = 0;
+                acting_entity->destz = acting_entity->position.z;
+            }
+        }
+        else if (acting_entity->running & RUN_STATE_START_Z) {
+            if ((acting_entity->velocity.x < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
+                || (acting_entity->velocity.x > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))
+                || (acting_entity->velocity.z < 0 && acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_DASH_FIXED)
+                || (acting_entity->velocity.z > 0 && acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_DASH_FIXED)) {
+                acting_entity->velocity.x = 0;
+                acting_entity->destz = acting_entity->position.x;
+            }
         }
 
         // check destination point to make a stop or pop a waypoint from the stack
-        reachx = (diff(self->position.x, self->destx) < MAX(1, ABS(self->velocity.x)));
-        reachz = (diff(self->position.z, self->destz) < MAX(1, ABS(self->velocity.z)));
+        reachx = (diff(acting_entity->position.x, acting_entity->destx) < MAX(1, ABS(acting_entity->velocity.x)));
+        reachz = (diff(acting_entity->position.z, acting_entity->destz) < MAX(1, ABS(acting_entity->velocity.z)));
 
         // check destination point to make a stop or pop a waypoint from the stack
         if(reachx && reachz)
         {
-            if(self->waypoints && self->numwaypoints)
+            if(acting_entity->waypoints && acting_entity->numwaypoints)
             {
-                self->destx = self->waypoints[self->numwaypoints - 1].x;
-                self->destz = self->waypoints[self->numwaypoints - 1].z;
-                self->numwaypoints--;
+                acting_entity->destx = acting_entity->waypoints[acting_entity->numwaypoints - 1].x;
+                acting_entity->destz = acting_entity->waypoints[acting_entity->numwaypoints - 1].z;
+                acting_entity->numwaypoints--;
             }
-            else if(self->velocity.x || self->velocity.z)
+            else if(acting_entity->velocity.x || acting_entity->velocity.z)
             {
                 makestop = 1;
             }
         }
 
-        if(!self->waypoints || !self->numwaypoints)
+        if(!acting_entity->waypoints || !acting_entity->numwaypoints)
         {
             if(reachx)
             {
-                self->velocity.x = 0;
-                self->destx = self->position.x;
+                acting_entity->velocity.x = 0;
+                acting_entity->destx = acting_entity->position.x;
             }
             if(reachz)
             {
-                self->velocity.z = 0;
-                self->destz = self->position.z;
+                acting_entity->velocity.z = 0;
+                acting_entity->destz = acting_entity->position.z;
             }
         }
 
         // IMPORTANT: stoped so play idle, preventinng funny stepping bug, but may cause flickering
-        if(!self->velocity.x && !self->velocity.z && !self->waypoints)
+        if(!acting_entity->velocity.x && !acting_entity->velocity.z && !acting_entity->waypoints)
         {
-            set_idle(self);
+            set_idle(acting_entity);
             if(makestop)
             {
-                stall = (GAME_SPEED - self->modeldata.aggression) / 2;
+                stall = (GAME_SPEED - acting_entity->modeldata.aggression) / 2;
                 if(stall < GAME_SPEED / 5)
                 {
                     stall = GAME_SPEED / 5;
                 }
-                self->stalltime = _time + MAX(0, stall);
+                acting_entity->stalltime = _time + MAX(0, stall);
             }
         }
         else
@@ -37949,34 +38324,34 @@ int common_move()
             // give proper stalltime if destination point is not reached
             // if the destination point is not reachable,
             // it should be already handled in checkpathblocked
-            if(_time > self->stalltime)
+            if(_time > acting_entity->stalltime)
             {
-                if(ABS(self->velocity.x) > ABS(self->velocity.z))
+                if(ABS(acting_entity->velocity.x) > ABS(acting_entity->velocity.z))
                 {
-                    stall = diff(self->destx, self->position.x) / ABS(self->velocity.x) * 2;
+                    stall = diff(acting_entity->destx, acting_entity->position.x) / ABS(acting_entity->velocity.x) * 2;
                 }
-                else if(self->velocity.z)
+                else if(acting_entity->velocity.z)
                 {
-                    stall = diff(self->destz, self->position.z) / ABS(self->velocity.z) * 2;
+                    stall = diff(acting_entity->destz, acting_entity->position.z) / ABS(acting_entity->velocity.z) * 2;
                 }
                 else
                 {
                     stall = GAME_SPEED / 2;
                 }
-                self->stalltime = _time + MAX(0, stall);
+                acting_entity->stalltime = _time + MAX(0, stall);
             }
         }
 
         //target is moving?  readjust destination sooner
-        if(aimove != AIMOVE1_WANDER && !self->waypoints && ent && (self->velocity.x || self->velocity.z) && (ent->velocity.x || ent->velocity.z))
+        if(aimove != AIMOVE1_WANDER && !acting_entity->waypoints && ent && (acting_entity->velocity.x || acting_entity->velocity.z) && (ent->velocity.x || ent->velocity.z))
         {
-            if(self->running && self->stalltime > _time + GAME_SPEED / 2)
+            if(acting_entity->running && acting_entity->stalltime > _time + GAME_SPEED / 2)
             {
-                self->stalltime = _time + GAME_SPEED / 2;
+                acting_entity->stalltime = _time + GAME_SPEED / 2;
             }
-            else if(!self->running && self->stalltime > _time + GAME_SPEED / 5)
+            else if(!acting_entity->running && acting_entity->stalltime > _time + GAME_SPEED / 5)
             {
-                self->stalltime = _time + GAME_SPEED / 5;
+                acting_entity->stalltime = _time + GAME_SPEED / 5;
             }
         }
 
@@ -38056,7 +38431,7 @@ void plan()
 void checkstalker()
 {
     float maxspeed;
-    int running;
+    e_run_state running = RUN_STATE_NONE;
 
     if(self != stalker)
     {
@@ -38079,9 +38454,12 @@ void checkstalker()
         return;
     }
 
-    running = validanim(self, ANI_RUN);
+    if (validanim(self, ANI_RUN))
+    {
+        running |= RUN_STATE_START_X;
+    }
 
-    maxspeed = running ? self->modeldata.runspeed : self->modeldata.speed.x;
+    maxspeed = (running & RUN_STATE_START_X) ? self->modeldata.runspeed : self->modeldata.speed.x;
 
     self->velocity.x = maxspeed;
     self->velocity.z = 0;
@@ -38600,10 +38978,8 @@ int check_energy(e_cost_check which, int ani)
 // Replaces unreadable check_range() macro. Runs individual
 // check range functions for each axis and returns true
 // if target is within range of ALL.
-int check_range_target_all(entity *ent, entity *target, e_animations animation_id)
+int check_range_target_all(const entity *ent, const entity *target, const e_animations animation_id)
 {
-    s_anim *animation; // Current animation
-
     // Must have a valid target entity.
     if(!target)
     {
@@ -38611,24 +38987,24 @@ int check_range_target_all(entity *ent, entity *target, e_animations animation_i
     }
 
     // Get pointer to animation.
-    animation = ent->modeldata.animation[animation_id];
+    const s_anim *animation = ent->modeldata.animation[animation_id];
 
-    if (!check_range_target_x(ent, target, animation))
+    if (!check_range_target_x(ent, target, animation, 0, 0))
     {
         return 0;
     }
 
-    if (!check_range_target_y(ent, target, animation))
+    if (!check_range_target_y(ent, target, animation, 0, 0))
     {
         return 0;
     }
 
-    if (!check_range_target_z(ent, target, animation))
+    if (!check_range_target_z(ent, target, animation, 0, 0))
     {
         return 0;
     }
 
-    if (!check_range_target_base(ent, target, animation))
+    if (!check_range_target_base(ent, target, animation, 0, 0))
     {
         return 0;
     }
@@ -38641,19 +39017,30 @@ int check_range_target_all(entity *ent, entity *target, e_animations animation_i
 //
 // Return true if target is within Base range
 // of entity's animation.
-int check_range_target_base(entity *ent, entity *target, s_anim *animation)
+int check_range_target_base(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max)
 {
     int ent_base;
     int target_base;
 
+    s_metric_range range;
+
     // Must have a target.
-    if(!target)
+    if(!acting_entity || !target)
     {
         return 0;
     }
 
+    range.max = range_max;
+    range.min = range_min;
+
+    if (animation)
+    {
+        range.max += animation->range.base.max;
+        range.min += animation->range.base.min;
+    }
+
     // Get positions cast as integers.
-    ent_base       = (int)ent->base;
+    ent_base       = (int)acting_entity->base;
     target_base    = (int)target->base;
 
     // Subtract entity Base position from target position.
@@ -38661,8 +39048,8 @@ int check_range_target_base(entity *ent, entity *target, s_anim *animation)
 
     // Return true if final target location is
     // within range min and max.
-    return (target_base >= animation->range.base.min
-            && target_base <= animation->range.base.max);
+    return (target_base >= range.min
+            && target_base <= range.max);
 }
 
 // Caskey, Damon V.
@@ -38670,41 +39057,48 @@ int check_range_target_base(entity *ent, entity *target, s_anim *animation)
 //
 // Return true if target is within X range
 // of entity's animation.
-int check_range_target_x(entity *ent, entity *target, s_anim *animation)
+int check_range_target_x(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max)
 {
-    int ent_x;
-    int target_x;
-    s_metric_range range;
-
-    // Must have a target.
-    if(!target)
+    // Must have entities.
+    if(!acting_entity || !target)
     {
         return 0;
     }
 
     // Get positions cast as integers.
-    ent_x       = (int)ent->position.x;
-    target_x    = (int)target->position.x;
+    const int ent_x       = (int)acting_entity->position.x;
+    const int target_x    = (int)target->position.x;
+
+    s_metric_range range;
+
+    range.max = range_max;
+    range.min = range_min;
+
+    if (animation)
+    {
+        range.max += animation->range.x.max;
+        range.min += animation->range.x.min;
+    }
 
     // Return true if final target location is
     // within range X min and max. Range comparison
     // is reversed when entity faces left.
-    if(ent->direction == DIRECTION_RIGHT)
+    if(acting_entity->direction == DIRECTION_RIGHT)
     {
-        // Add animation range to entity X position
+        // Add range to entity X position
         // for final X range coordinates.
-        range.min = ent_x + animation->range.x.min;
-        range.max = ent_x + animation->range.x.max;
+        range.min = ent_x + range.min;
+        range.max = ent_x + range.max;
 
         return (target_x >= range.min
                 && target_x <= range.max);
     }
     else
     {
-        // Subtract animation range from entity X
+        // Subtract range from entity X
         // position for final X range coordinates.
-        range.min = ent_x - animation->range.x.min;
-        range.max = ent_x - animation->range.x.max;
+        range.min = ent_x - range.min;
+        range.max = ent_x - range.max;
 
         return (target_x <= range.min
                 && target_x >= range.max);
@@ -38716,28 +39110,33 @@ int check_range_target_x(entity *ent, entity *target, s_anim *animation)
 //
 // Return true if target is within Y range
 // of entity's animation.
-int check_range_target_y(entity *ent, entity *target, s_anim *animation)
+int check_range_target_y(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max)
 {
-    int ent_y;
-    int target_y;
-
     // Must have a target.
-    if(!target)
+    if(!acting_entity || !target)
     {
         return 0;
     }
 
-    // Get positions cast as integers.
-    ent_y       = (int)ent->position.y;
-    target_y    = (int)target->position.y;
+    s_metric_range range;
 
-    // Subtract entity Y position from target position.
-    target_y -= ent_y;
+    range.max = range_max;
+    range.min = range_min;
+
+    if (animation)
+    {
+        range.max += animation->range.y.max;
+        range.min += animation->range.y.min;
+    }
+
+    // Get positions cast as integers.
+    const int ent_y = (int)acting_entity->position.y;
+    const int target_y = (int)target->position.y - ent_y;
 
     // Return true if final target location is
     // within range min and max.
-    return (target_y >= animation->range.y.min
-            && target_y <= animation->range.y.max);
+    return (target_y >= range.min
+            && target_y <= range.max);
 }
 
 // Caskey, Damon V.
@@ -38745,28 +39144,33 @@ int check_range_target_y(entity *ent, entity *target, s_anim *animation)
 //
 // Return true if target is within Z range
 // of entity's animation.
-int check_range_target_z(entity *ent, entity *target, s_anim *animation)
+int check_range_target_z(const entity * acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max)
 {
-    int ent_z;
-    int target_z;
-
     // Must have a target.
-    if(!target)
+    if(!acting_entity || !target)
     {
         return 0;
     }
 
-    // Get positions cast as integers.
-    ent_z       = (int)ent->position.z;
-    target_z    = (int)target->position.z;
+    s_metric_range range;
 
-    // Subtract entity Z position from target position.
-    target_z -= ent_z;
+    range.min = range_min;
+    range.max = range_max;
+
+    if (animation)
+    {
+        range.max += animation->range.z.max;
+        range.min += animation->range.z.min;
+    }
+
+    // Get positions cast as integers.
+    const int ent_z = (int)acting_entity->position.z;
+    const int target_z = (int)target->position.z - ent_z;
 
     // Return true if final target location is
     // within range min and max.
-    return (target_z >= animation->range.z.min
-            && target_z <= animation->range.z.max);
+    return (target_z >= range.min
+            && target_z <= range.max);
 }
 
 int check_special()
@@ -38793,7 +39197,7 @@ int check_special()
             smart_bomb(self, self->modeldata.smartbomb); // do smartbomb immediately if it doesn't freeze screen
         }
 
-        self->running = 0;    // If special is executed while running, ceases to run
+        self->running = RUN_STATE_NONE;    // If special is executed while running, ceases to run
         self->velocity.x = self->velocity.z = 0;
         ent_set_anim(self, ANI_SPECIAL, 0);
 
@@ -39053,7 +39457,7 @@ void common_idle()
 
 void tryduck(entity *ent)
 {
-    ent->running = 0;
+    ent->running = RUN_STATE_NONE;
     if(validanim(ent, ANI_DUCKING))
     {
         ent->takeaction = common_preduck;
@@ -39071,7 +39475,7 @@ void tryduck(entity *ent)
 
 void tryduckrise(entity *ent)
 {
-    ent->running = 0;
+    ent->running = RUN_STATE_NONE;
     if(validanim(ent, ANI_DUCKRISE))
     {
         ent->takeaction = common_idle;
@@ -40133,7 +40537,7 @@ int check_costmove(int s, int fs, int jumphack)
             }
         }
 
-		self->running = 0;
+		self->running = RUN_STATE_NONE;
         self->velocity.x = self->velocity.z = 0;
         set_attacking(self);
         self->inpain = IN_PAIN_NONE;
@@ -40229,18 +40633,25 @@ int player_preinput()
 
 void player_think()
 {
-    int action = 0;		// 1=walking, 2=up, 3=down, 4=running
+    typedef enum e_local_action_flags
+    {
+        ACTION_NONE,
+        ACTION_WALK,
+        ACTION_UP,
+        ACTION_DOWN,
+        ACTION_RUN
+    } e_local_action_flags;
+
+    e_local_action_flags action = 0;
     int bkwalk = 0;   //backwalk
-    int runx = 0;
-    int runz = 0;
-    int movex = 0;
-    int movez = 0;
     int t = 0;
-    int t2 = 0;
+    int t2 = 0;    
     entity *other = NULL;
     float altdiff;
     int notinair;
     float initial_jump_velocity_z = 0.0;
+
+    entity* acting_entity = self;
 
     static const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
     static const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
@@ -40248,18 +40659,17 @@ void player_think()
     static const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
     static const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
 
-    int oldrunning = self->running;
-    int pli = self->playerindex;
-    s_player *pl = player + pli;
+    int oldrunning = acting_entity->running;
+    int pli = acting_entity->playerindex;
+    s_player *acting_player = player + pli;
 
-
-    if(pl->ent != self || self->death_state & DEATH_STATE_DEAD)
+    if(acting_player->ent != acting_entity || acting_entity->death_state & DEATH_STATE_DEAD)
     {
         return;
     }
 
     // check endlevel item
-    if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ENDLEVEL, NULL)) && diff(self->position.y, other->position.y) <= 0.1)
+    if((other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ENDLEVEL, NULL)) && diff(acting_entity->position.y, other->position.y) <= 0.1)
     {
         int no_reached_flag = 0, sum_reached = 0;;
         int i;
@@ -40293,10 +40703,10 @@ void player_think()
         }
     }
 
-    if(_time > self->rush.time)
+    if(_time > acting_entity->rush.time)
     {
-        self->rush.count = 0;
-        self->rush.time = 0;
+        acting_entity->rush.count = 0;
+        acting_entity->rush.time = 0;
     }
 
     if(player_preinput())
@@ -40304,46 +40714,46 @@ void player_think()
         goto endthinkcheck;
     }
 
-    if(self->charging)
+    if(acting_entity->charging)
     {
         player_charge_check();
         goto endthinkcheck;
     }
 
-    if(self->inpain & ~IN_PAIN_NONE || (self->link && !self->grabbing))
+    if(acting_entity->inpain & ~IN_PAIN_NONE || (acting_entity->link && !acting_entity->grabbing))
     {
         player_pain_check();
         goto endthinkcheck;
     }
 
     // falling? check for landing
-    if(self->projectile & BLAST_TOSS)
+    if(acting_entity->projectile & BLAST_TOSS)
     {
         player_fall_check();
         goto endthinkcheck;
     }
 
     // grab section, dont move if still animating
-    if(self->grabbing && self->attacking == ATTACKING_NONE && self->takeaction != common_throw_wait)
+    if(acting_entity->grabbing && acting_entity->attacking == ATTACKING_NONE && acting_entity->takeaction != common_throw_wait)
     {
         player_grab_check();
         goto endthinkcheck;
     }
 
     // jump section
-    if(self->jumping)
+    if(acting_entity->jumping)
     {
         player_jump_check();
         goto endthinkcheck;
     }
 
-    if(self->animnum == ANI_WALKOFF)
+    if(acting_entity->animnum == ANI_WALKOFF)
     {
         player_walkoff_check();
         goto endthinkcheck;
     }
 
-    if(self->drop && self->position.y == self->base && !self->velocity.y)
+    if(acting_entity->drop && acting_entity->position.y == acting_entity->base && !acting_entity->velocity.y)
     {
         player_lie_check();
         goto endthinkcheck;
@@ -40351,307 +40761,341 @@ void player_think()
 
 
     // cant do anything if busy
-    if(!self->idling && !(self->animation->idle && self->animation->idle[self->animpos]))
+    if(!acting_entity->idling && !(acting_entity->animation->idle && acting_entity->animation->idle[acting_entity->animpos]))
     {
         goto endthinkcheck;
     }
 
 
     // Check if entity is under a platform
-    /*if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && (heightvar = self->animation->size.y ? self->animation->size.y : self->modeldata.size.y) &&
-            validanim(self, ANI_DUCK) && check_platform_between(self->position.x, self->position.z, self->position.y, self->position.y + heightvar, self))
+    /*if(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && (heightvar = acting_entity->animation->size.y ? acting_entity->animation->size.y : acting_entity->modeldata.size.y) &&
+            validanim(acting_entity, ANI_DUCK) && check_platform_between(acting_entity->position.x, acting_entity->position.z, acting_entity->position.y, acting_entity->position.y + heightvar, acting_entity))
     {
-        self->idling = IDLING_NONE;
-        self->ducking = DUCK_ACTIVE;
-        self->takeaction = common_stuck_underneath;
-        ent_set_anim(self, ANI_DUCK, 0);
+        acting_entity->idling = IDLING_NONE;
+        acting_entity->ducking = DUCK_ACTIVE;
+        acting_entity->takeaction = common_stuck_underneath;
+        ent_set_anim(acting_entity, ANI_DUCK, 0);
         goto endthinkcheck;
     }*/
 
-    altdiff = diff(self->position.y, self->base);
-    notinair = (self->landed_on_platform ? altdiff < 5 : altdiff < 2);
+    altdiff = diff(acting_entity->position.y, acting_entity->base);
+    notinair = (acting_entity->landed_on_platform ? altdiff < 5 : altdiff < 2);
 
-    if(pl->playkeys & FLAG_MOVEUP)
+    if(acting_player->playkeys & FLAG_MOVEUP)
     {
-        t = (notinair && match_combo(sequence_up_up, pl, 2));
-        if(t && (self->modeldata.runupdown & 2) && validanim(self, ANI_RUN))
+        t = (notinair && match_combo(sequence_up_up, acting_player, 2));
+        if(t && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL)) == (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL) && validanim(acting_entity, ANI_RUN))
         {
-            pl->playkeys &= ~FLAG_MOVEUP;
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            self->running = 1;    // Player begins to run
+            acting_player->playkeys &= ~FLAG_MOVEUP;
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
-        else if(t && validanim(self, ANI_ATTACKUP))
+        else if(t && validanim(acting_entity, ANI_ATTACKUP))
         {
             // New u u combo attack
-            pl->playkeys &= ~FLAG_MOVEUP;
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->combostep[0] = 0;
-            self->velocity.x = self->velocity.z = 0;
-            ent_set_anim(self, ANI_ATTACKUP, 0);
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS; // this workaround deals default freespecial2
+            acting_player->playkeys &= ~FLAG_MOVEUP;
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->combostep[0] = 0;
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            ent_set_anim(acting_entity, ANI_ATTACKUP, 0);
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS; // this workaround deals default freespecial2
             goto endthinkcheck;
         }
-        else if(t && validanim(self, ANI_DODGE))
+        else if(t && validanim(acting_entity, ANI_DODGE))
         {
             // New dodge move like on SOR3
-            pl->playkeys &= ~FLAG_MOVEUP;
-            self->takeaction = common_dodge;
-            self->combostep[0] = 0;
-            self->idling = IDLING_NONE;
-            self->velocity.z = -self->modeldata.speed.x * 1.75;
-            self->velocity.x = 0;// OK you can use jumpframe to modify this anyway
-            ent_set_anim(self, ANI_DODGE, 0);
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->playkeys &= ~FLAG_MOVEUP;
+            acting_entity->takeaction = common_dodge;
+            acting_entity->combostep[0] = 0;
+            acting_entity->idling = IDLING_NONE;
+            acting_entity->velocity.z = -acting_entity->modeldata.speed.x * 1.75;
+            acting_entity->velocity.x = 0;// OK you can use jumpframe to modify this anyway
+            ent_set_anim(acting_entity, ANI_DODGE, 0);
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             goto endthinkcheck;
         }
     }
 
-    if(pl->playkeys & FLAG_MOVEDOWN)
+    if(acting_player->playkeys & FLAG_MOVEDOWN)
     {
-        t = (notinair && match_combo(sequence_down_down, pl, 2));
-        if(t && (self->modeldata.runupdown & 2) && validanim(self, ANI_RUN))
+        t = (notinair && match_combo(sequence_down_down, acting_player, 2));
+        if(t && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL)) == (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL) && validanim(acting_entity, ANI_RUN))
         {
-            pl->playkeys &= ~FLAG_MOVEDOWN;
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            self->running = 1;    // Player begins to run
+            acting_player->playkeys &= ~FLAG_MOVEDOWN;
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_entity->running |= RUN_STATE_START_Z;    // Player begins to run
         }
-        else if(t && validanim(self, ANI_ATTACKDOWN))
+        else if(t && validanim(acting_entity, ANI_ATTACKDOWN))
         {
             // New d d combo attack
-            pl->playkeys &= ~FLAG_MOVEDOWN;
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->velocity.x = self->velocity.z = 0;
-            self->combostep[0] = 0;
-            ent_set_anim(self, ANI_ATTACKDOWN, 0);
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->playkeys &= ~FLAG_MOVEDOWN;
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            acting_entity->combostep[0] = 0;
+            ent_set_anim(acting_entity, ANI_ATTACKDOWN, 0);
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             goto endthinkcheck;
         }
-        else if(t && validanim(self, ANI_DODGE))
+        else if(t && validanim(acting_entity, ANI_DODGE))
         {
             // New dodge move like on SOR3
-            pl->playkeys &= ~FLAG_MOVEDOWN;
-            self->takeaction = common_dodge;
-            self->combostep[0] = 0;
-            self->idling = IDLING_NONE;
-            self->velocity.z = self->modeldata.speed.x * 1.75;
-            self->velocity.x = 0;
-            ent_set_anim(self, ANI_DODGE, 0);
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->playkeys &= ~FLAG_MOVEDOWN;
+            acting_entity->takeaction = common_dodge;
+            acting_entity->combostep[0] = 0;
+            acting_entity->idling = IDLING_NONE;
+            acting_entity->velocity.z = acting_entity->modeldata.speed.x * 1.75;
+            acting_entity->velocity.x = 0;
+            ent_set_anim(acting_entity, ANI_DODGE, 0);
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             goto endthinkcheck;
         }
     }
 
-    if((pl->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
+    if((acting_player->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
     {
         int t3;
+        const unsigned int command_match_left = (notinair && (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2)));
+        const unsigned int command_match_right = (notinair && (acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)));
 
-        t = (notinair && ((self->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(sequence_left_left, pl, 2))));
-        t3 = (notinair && self->modeldata.facing && ((self->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, pl, 2)) || (self->direction == DIRECTION_LEFT && match_combo(sequence_right_right, pl, 2))));
+        t = (notinair && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)) || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2))));
+        t3 = (notinair && acting_entity->modeldata.facing && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, acting_player, 2)) || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_right_right, acting_player, 2))));
 
-        if(t && validanim(self, ANI_RUN))
-        {
-            pl->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            self->running = 1;    // Player begins to run
+        if (command_match_left && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL)) == (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
+
+            acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
-        else if(t3 && validanim(self, ANI_BACKRUN))
-        {
-            pl->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            self->running = 1;    // Player begins to run
+        else if(command_match_right && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL)) == (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
+            
+            acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
-        else if(t && validanim(self, ANI_ATTACKFORWARD))
+        else if(t3 && validanim(acting_entity, ANI_BACKRUN))
         {
-            pl->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT);
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->velocity.x = self->velocity.z = 0;
-            self->combostep[0] = 0;
-            ent_set_anim(self, ANI_ATTACKFORWARD, 0);
-            pl->combostep = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
+        }
+        else if(t && validanim(acting_entity, ANI_ATTACKFORWARD))
+        {
+            acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT);
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            acting_entity->combostep[0] = 0;
+            ent_set_anim(acting_entity, ANI_ATTACKFORWARD, 0);
+            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             goto endthinkcheck;
         }
     }
 
-    // Kratus (10-2021) Added a new flag "2" to use ATTACK2 key as an new alternative
-    if( (global_config.ajspecial == AJSPECIAL_KEY_SPECIAL && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
-        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK2 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
-        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK3 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH))||
-        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK4 && (pl->playkeys & FLAG_JUMP) && validanim(self, ANI_ATTACKBOTH)))
+    /*
+    * Attack both. Attack + Key mapped
+    * by ajspecial.
+    */
+
+    if( (global_config.ajspecial == AJSPECIAL_KEY_SPECIAL && (acting_player->playkeys & FLAG_JUMP) && validanim(acting_entity, ANI_ATTACKBOTH))||
+        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK2 && (acting_player->playkeys & FLAG_JUMP) && validanim(acting_entity, ANI_ATTACKBOTH))||
+        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK3 && (acting_player->playkeys & FLAG_JUMP) && validanim(acting_entity, ANI_ATTACKBOTH))||
+        (global_config.ajspecial == AJSPECIAL_KEY_ATTACK4 && (acting_player->playkeys & FLAG_JUMP) && validanim(acting_entity, ANI_ATTACKBOTH)))
     {
-        if((pl->keys & FLAG_ATTACK) && notinair)
+        if((acting_player->keys & FLAG_ATTACK) && notinair)
         {
-            pl->playkeys &= ~FLAG_JUMP;
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->velocity.x = self->velocity.z = 0;
-            self->combostep[0] = 0;
-            self->stalltime = 0;    // If attack is pressed, holding down attack to execute attack3 is no longer valid
-            ent_set_anim(self, ANI_ATTACKBOTH, 0);
+            acting_player->playkeys &= ~FLAG_JUMP;
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            acting_entity->combostep[0] = 0;
+            acting_entity->stalltime = 0;    // If attack is pressed, holding down attack to execute attack3 is no longer valid
+            ent_set_anim(acting_entity, ANI_ATTACKBOTH, 0);
             goto endthinkcheck;
         }
     }
 
-    if((pl->playkeys & FLAG_JUMP) &&  validanim(self, ANI_CHARGE))
+    /*
+    * Command MP Charge.
+    */
+
+    if((acting_player->playkeys & FLAG_JUMP) &&  validanim(acting_entity, ANI_CHARGE))
     {
-        if((pl->keys & FLAG_SPECIAL) && notinair)
+        if((acting_player->keys & FLAG_SPECIAL) && notinair)
         {
-            pl->playkeys &= ~FLAG_JUMP;
-            self->takeaction = common_charge;
-            self->combostep[0] = 0;
-            self->velocity.x = self->velocity.z = 0;
-            self->stalltime = 0;
-            set_charging(self);
-            ent_set_anim(self, ANI_CHARGE, 0);
+            acting_player->playkeys &= ~FLAG_JUMP;
+            acting_entity->takeaction = common_charge;
+            acting_entity->combostep[0] = 0;
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            acting_entity->stalltime = 0;
+            set_charging(acting_entity);
+            ent_set_anim(acting_entity, ANI_CHARGE, 0);
             goto endthinkcheck;
         }
     }
 
-    if(pl->playkeys & FLAG_SPECIAL)    //    The special button can now be used for freespecials
+    /*
+    * Handle special key. Check for part of a 
+    * freespecial command, and then blocking.
+    */
+
+    if(acting_player->playkeys & FLAG_SPECIAL)    //    The special button can now be used for freespecials
     {
-        if( validanim(self, ANI_SPECIAL2) && notinair &&
-                (self->direction == DIRECTION_LEFT ?
-                 (pl->keys & FLAG_MOVELEFT) :
-                 (pl->keys & FLAG_MOVERIGHT))  )
+        if( validanim(acting_entity, ANI_SPECIAL2) && notinair &&
+                (acting_entity->direction == DIRECTION_LEFT ?
+                 (acting_player->keys & FLAG_MOVELEFT) :
+                 (acting_player->keys & FLAG_MOVERIGHT))  )
         {
             if(check_costmove(ANI_SPECIAL2, 0, 0))
             {
-                pl->playkeys &= ~FLAG_SPECIAL;
+                acting_player->playkeys &= ~FLAG_SPECIAL;
                 goto endthinkcheck;
             }
         }
 
 		// Blocking.
-        if(validanim(self, ANI_BLOCK) && notinair && !(self->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED))
+        if(validanim(acting_entity, ANI_BLOCK) && notinair && !(acting_entity->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED))
         {
-            pl->playkeys &= ~FLAG_SPECIAL;
+            acting_player->playkeys &= ~FLAG_SPECIAL;
 
 			// Set up flags, action, and block animations.
-			do_active_block(self);
+			do_active_block(acting_entity);
 
 			goto endthinkcheck;
         }
     }
+
+    /*
+    * Breakout special.
+    */
 
     if(notinair && player_check_special())
     {
         goto endthinkcheck;    // So you don't perform specials falling off the edge
     }
 
-    if((pl->releasekeys & FLAG_ATTACK))
-    {
-        if(self->stalltime && notinair &&
-                ((validanim(self, ANI_CHARGEATTACK) && self->stalltime + (GAME_SPEED * self->modeldata.animation[ANI_CHARGEATTACK]->charge_time) < _time) ||
-                 (!validanim(self, ANI_CHARGEATTACK) && validanim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1])
-                  && self->modeldata.chainlength > 0 && self->stalltime + (GAME_SPEED * self->modeldata.animation[animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]]->charge_time) < _time)))
-        {
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->velocity.x = self->velocity.z = 0;
+    /*
+    * Charge attack (hold Attack & release).
+    */
 
-            self->stalltime = 0;
-            self->combostep[0] = 0;
+    if((acting_player->releasekeys & FLAG_ATTACK))
+    {
+        if(acting_entity->stalltime && notinair &&
+                ((validanim(acting_entity, ANI_CHARGEATTACK) && acting_entity->stalltime + (GAME_SPEED * acting_entity->modeldata.animation[ANI_CHARGEATTACK]->charge_time) < _time) ||
+                 (!validanim(acting_entity, ANI_CHARGEATTACK) && validanim(acting_entity, animattacks[acting_entity->modeldata.atchain[acting_entity->modeldata.chainlength - 1] - 1])
+                  && acting_entity->modeldata.chainlength > 0 && acting_entity->stalltime + (GAME_SPEED * acting_entity->modeldata.animation[animattacks[acting_entity->modeldata.atchain[acting_entity->modeldata.chainlength - 1] - 1]]->charge_time) < _time)))
+        {
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+
+            acting_entity->stalltime = 0;
+            acting_entity->combostep[0] = 0;
 
             if(global_sample_list.punch >= 0)
             {
                 sound_play_sample(global_sample_list.punch, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            if(validanim(self, ANI_CHARGEATTACK))
+            if(validanim(acting_entity, ANI_CHARGEATTACK))
             {
-                ent_set_anim(self, ANI_CHARGEATTACK, 0);
+                ent_set_anim(acting_entity, ANI_CHARGEATTACK, 0);
             }
-            else if(validanim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1]))
+            else if(validanim(acting_entity, animattacks[acting_entity->modeldata.atchain[acting_entity->modeldata.chainlength - 1] - 1]))
             {
-                ent_set_anim(self, animattacks[self->modeldata.atchain[self->modeldata.chainlength - 1] - 1], 0);
+                ent_set_anim(acting_entity, animattacks[acting_entity->modeldata.atchain[acting_entity->modeldata.chainlength - 1] - 1], 0);
             }
             goto endthinkcheck;
         }
-        self->stalltime = 0;
+        acting_entity->stalltime = 0;
     }
 
-    if((pl->playkeys & FLAG_ATTACK) && notinair)
+    /*
+    * Attack button. Handle basic attack 
+    * button actions (attack, get, etc.).
+    */
+
+    if((acting_player->playkeys & FLAG_ATTACK) && notinair)
     {
-        pl->playkeys &= ~FLAG_ATTACK;
-        self->stalltime = 0;    // Disable the attack3 stalltime
+        acting_player->playkeys &= ~FLAG_ATTACK;
+        acting_entity->stalltime = 0;    // Disable the attack3 stalltime
 
-        if((self->ducking & DUCK_ACTIVE) && validanim(self, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z) //pl->keys & FLAG_MOVEDOWN
+        if((acting_entity->ducking & DUCK_ACTIVE) && validanim(acting_entity, ANI_DUCKATTACK) && PLAYER_MIN_Z == PLAYER_MAX_Z) //acting_player->keys & FLAG_MOVEDOWN
         {
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->velocity.x = self->velocity.z = 0;
-            self->combostep[0] = 0;
-            ent_set_anim(self, ANI_DUCKATTACK, 0);
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            acting_entity->combostep[0] = 0;
+            ent_set_anim(acting_entity, ANI_DUCKATTACK, 0);
             goto endthinkcheck;
         }
 
-        if(self->running && validanim(self, ANI_RUNATTACK))   // New run attack code section
+        if(acting_entity->running && validanim(acting_entity, ANI_RUNATTACK))   // New run attack code section
         {
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            self->velocity.x = self->velocity.z = 0;
-            self->combostep[0] = 0;
-            self->running = 0;
-            ent_set_anim(self, ANI_RUNATTACK, 0);
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            acting_entity->combostep[0] = 0;
+            acting_entity->running = RUN_STATE_NONE;
+            ent_set_anim(acting_entity, ANI_RUNATTACK, 0);
             goto endthinkcheck;
         }
 
-        if(validanim(self, ANI_ATTACKBACKWARD) && match_combo(sequence_back_attack, pl, 2))
+        if(validanim(acting_entity, ANI_ATTACKBACKWARD) && match_combo(sequence_back_attack, acting_player, 2))
         {
-            t = (pl->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            t2 = (pl->combostep - 2 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            if(pl->inputtime[t] - pl->inputtime[t2] < GAME_SPEED / 10)
+            t = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            t2 = (acting_player->combostep - 2 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            if(acting_player->inputtime[t] - acting_player->inputtime[t2] < GAME_SPEED / 10)
             {
-                self->takeaction = common_attack_proc;
-                set_attacking(self);
-                self->velocity.x = self->velocity.z = 0;
-                if(self->direction == DIRECTION_LEFT && (pl->combokey[t2]&FLAG_MOVELEFT))
+                acting_entity->takeaction = common_attack_proc;
+                set_attacking(acting_entity);
+                acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                if(acting_entity->direction == DIRECTION_LEFT && (acting_player->combokey[t2]&FLAG_MOVELEFT))
                 {
-                    self->direction = DIRECTION_RIGHT;
+                    acting_entity->direction = DIRECTION_RIGHT;
                 }
-                else if(self->direction == DIRECTION_RIGHT && (pl->combokey[t2]&FLAG_MOVERIGHT))
+                else if(acting_entity->direction == DIRECTION_RIGHT && (acting_player->combokey[t2]&FLAG_MOVERIGHT))
                 {
-                    self->direction = DIRECTION_LEFT;
+                    acting_entity->direction = DIRECTION_LEFT;
                 }
-                self->combostep[0] = 0;
-                ent_set_anim(self, ANI_ATTACKBACKWARD, 0);
+                acting_entity->combostep[0] = 0;
+                ent_set_anim(acting_entity, ANI_ATTACKBACKWARD, 0);
                 goto endthinkcheck;
             }
         }
 
-        if( validanim(self, ANI_GET) && (other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_pickable)) )
+        if( validanim(acting_entity, ANI_GET) && (other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ITEM, player_test_pickable)) )
         {
-            self->velocity.x = self->velocity.z = 0;
-            set_getting(self);
-            self->takeaction = common_get;
-            ent_set_anim(self, ANI_GET, 0);
+            acting_entity->velocity.x = acting_entity->velocity.z = 0;
+            set_getting(acting_entity);
+            acting_entity->takeaction = common_get;
+            ent_set_anim(acting_entity, ANI_GET, 0);
 
             // Item "attacks" collector to make it
             // easy to script actions on item pick up.
-            do_item_script(self, other);
+            do_item_script(acting_entity, other);
 
             didfind_item(other);
             goto endthinkcheck;
         }
 
         // Use stalltime to charge end-move
-        self->stalltime = _time;
-        self->velocity.x = self->velocity.z = 0;
+        acting_entity->stalltime = _time;
+        acting_entity->velocity.x = acting_entity->velocity.z = 0;
 
-        if( self->weapent &&
-                self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
-                validanim(self, ANI_THROWATTACK)  )
+        if( acting_entity->weapent &&
+                acting_entity->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
+                validanim(acting_entity, ANI_THROWATTACK)  )
         {
-            self->takeaction = common_attack_proc;
-            set_attacking(self);
-            ent_set_anim(self, ANI_THROWATTACK, 0);
+            acting_entity->takeaction = common_attack_proc;
+            set_attacking(acting_entity);
+            ent_set_anim(acting_entity, ANI_THROWATTACK, 0);
             goto endthinkcheck;
         }
         else if(perform_atchain())
         {
-            if(global_sample_list.punch >= 0 && self->attacking != ATTACKING_NONE)
+            if(global_sample_list.punch >= 0 && acting_entity->attacking != ATTACKING_NONE)
             {
                 sound_play_sample(global_sample_list.punch, 0, savedata.effectvol, savedata.effectvol, 100);
             }
@@ -40659,12 +41103,15 @@ void player_think()
         }
 
     }
-    // 7-1-2005 spawn projectile end
+    
+    /*
+    * Jumping contorl.
+    */
 
-    if(pl->playkeys & FLAG_JUMP && notinair)
+    if(acting_player->playkeys & FLAG_JUMP && notinair)
     {
-        // Added !inair(self) so players can't jump when falling into holes
-        pl->playkeys &= ~FLAG_JUMP;
+        // Added !inair(acting_entity) so players can't jump when falling into holes
+        acting_player->playkeys &= ~FLAG_JUMP;
 
         /*
         * Z axis control.
@@ -40677,15 +41124,15 @@ void player_think()
         * jump function calls.
         */
 
-        if (self->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
+        if (acting_entity->modeldata.air_control & AIR_CONTROL_JUMP_Z_INITIAL)
         {
-            if (pl->keys & FLAG_MOVEUP)
+            if (acting_player->keys & FLAG_MOVEUP)
             {
-                initial_jump_velocity_z = -self->modeldata.jumpspeed * 0.5;
+                initial_jump_velocity_z = -acting_entity->modeldata.jumpspeed * 0.5;
             }
-            else if (pl->keys & FLAG_MOVEDOWN)
+            else if (acting_player->keys & FLAG_MOVEDOWN)
             {
-                initial_jump_velocity_z = self->modeldata.jumpspeed * 0.5;
+                initial_jump_velocity_z = acting_entity->modeldata.jumpspeed * 0.5;
             }
         }
         else
@@ -40693,53 +41140,53 @@ void player_think()
             initial_jump_velocity_z = 0.0;
         }
 
-        if(self->running)
+        if(acting_entity->running)
         {
             //Slide
-            if((pl->keys & FLAG_MOVEDOWN) && validanim(self, ANI_RUNSLIDE))
+            if((acting_player->keys & FLAG_MOVEDOWN) && validanim(acting_entity, ANI_RUNSLIDE))
             {
-                self->takeaction = common_attack_proc;
-                set_attacking(self);
-                self->velocity.x = self->velocity.z = 0;
-                self->combostep[0] = 0;
-                self->running = 0;
-                ent_set_anim(self, ANI_RUNSLIDE, 0);
+                acting_entity->takeaction = common_attack_proc;
+                set_attacking(acting_entity);
+                acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                acting_entity->combostep[0] = 0;
+                acting_entity->running = RUN_STATE_NONE;
+                ent_set_anim(acting_entity, ANI_RUNSLIDE, 0);
                 goto endthinkcheck;
             }           
 
             /* Jumping allowed? */
-            if (!(self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
+            if (!(acting_entity->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
             {
-                if (validanim(self, ANI_RUNJUMP))
+                if (validanim(acting_entity, ANI_RUNJUMP))
                 {
-                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_RUNJUMP);
+                    tryjump(acting_entity->modeldata.runjumpheight, acting_entity->modeldata.jumpspeed * acting_entity->modeldata.runjumpdist, initial_jump_velocity_z, ANI_RUNJUMP);
                 }
-                else if (validanim(self, ANI_FORWARDJUMP))
+                else if (validanim(acting_entity, ANI_FORWARDJUMP))
                 {
-                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_FORWARDJUMP);
+                    tryjump(acting_entity->modeldata.runjumpheight, acting_entity->modeldata.jumpspeed * acting_entity->modeldata.runjumpdist, initial_jump_velocity_z, ANI_FORWARDJUMP);
                 }
-                else if (validanim(self, ANI_JUMP))
+                else if (validanim(acting_entity, ANI_JUMP))
                 {
-                    tryjump(self->modeldata.runjumpheight, self->modeldata.jumpspeed * self->modeldata.runjumpdist, initial_jump_velocity_z, ANI_JUMP);
+                    tryjump(acting_entity->modeldata.runjumpheight, acting_entity->modeldata.jumpspeed * acting_entity->modeldata.runjumpdist, initial_jump_velocity_z, ANI_JUMP);
                 }
             }
         }
         else
         {
             //Slide
-            if((pl->keys & FLAG_MOVEDOWN) && validanim(self, ANI_SLIDE))
+            if((acting_player->keys & FLAG_MOVEDOWN) && validanim(acting_entity, ANI_SLIDE))
             {
-                self->takeaction = common_attack_proc;
-                set_attacking(self);
-                self->velocity.x = self->velocity.z = 0;
-                self->combostep[0] = 0;
-                self->running = 0;
-                ent_set_anim(self, ANI_SLIDE, 0);
+                acting_entity->takeaction = common_attack_proc;
+                set_attacking(acting_entity);
+                acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                acting_entity->combostep[0] = 0;
+                acting_entity->running = RUN_STATE_NONE;
+                ent_set_anim(acting_entity, ANI_SLIDE, 0);
                 goto endthinkcheck;
             }
 
             /* Jumping allowed? */
-            if (!(self->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
+            if (!(acting_entity->modeldata.air_control & AIR_CONTROL_JUMP_DISABLE))
             {
 
                 /*
@@ -40753,310 +41200,362 @@ void player_think()
                 * horizontal velocity.
                 */
 
-                if (!(pl->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(self, ANI_JUMP))
+                if (!(acting_player->keys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) && validanim(acting_entity, ANI_JUMP))
                 {
-                    tryjump(self->modeldata.jumpheight, 0, initial_jump_velocity_z, ANI_JUMP);
+                    tryjump(acting_entity->modeldata.jumpheight, 0, initial_jump_velocity_z, ANI_JUMP);
                     goto endthinkcheck;
                 }
-                else if ((pl->keys & FLAG_MOVELEFT))
+                else if ((acting_player->keys & FLAG_MOVELEFT))
                 {
-                    self->direction = DIRECTION_LEFT;
+                    acting_entity->direction = DIRECTION_LEFT;
                 }
-                else if ((pl->keys & FLAG_MOVERIGHT))
+                else if ((acting_player->keys & FLAG_MOVERIGHT))
                 {
-                    self->direction = DIRECTION_RIGHT;
+                    acting_entity->direction = DIRECTION_RIGHT;
                 }
 
                 /*
                 * Horizontal moving jump.
                 */
 
-                if (validanim(self, ANI_FORWARDJUMP))
+                if (validanim(acting_entity, ANI_FORWARDJUMP))
                 {
-                    tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, initial_jump_velocity_z, ANI_FORWARDJUMP);
+                    tryjump(acting_entity->modeldata.jumpheight, acting_entity->modeldata.jumpspeed, initial_jump_velocity_z, ANI_FORWARDJUMP);
                 }
-                else if (validanim(self, ANI_JUMP))
+                else if (validanim(acting_entity, ANI_JUMP))
                 {
-                    tryjump(self->modeldata.jumpheight, self->modeldata.jumpspeed, initial_jump_velocity_z, ANI_JUMP);
+                    tryjump(acting_entity->modeldata.jumpheight, acting_entity->modeldata.jumpspeed, initial_jump_velocity_z, ANI_JUMP);
                 }
             }
         }
         return;
     }
 
-    //dang long run checking logic
-    if(self->running)
-    {
-        runx = 0;
-        runz = 0;
-        movex = 0;
-        movez = 0;
+    /*
+    * Run stop.
+    */
 
+    if (acting_entity->running)
+    { 
         /*
-        * Check keys and set up local move 
-        * command flag accordingly. 
-        * 
-        * Move Up:  movez = -1;
-        * Move Down: movez = 1;
-        * Move Left: movex = -1;
-        * Move Right: movez = 1;
+        * Get player directional input
+        * from key status.
         */
 
-        movez += ((pl->keys & FLAG_MOVEUP) ? -1 : 0) + ((pl->keys & FLAG_MOVEDOWN) ? 1 : 0);
-        movex += ((pl->keys & FLAG_MOVELEFT) ? -1 : 0) + ((pl->keys & FLAG_MOVERIGHT) ? 1 : 0);
+        const int movez = (acting_player->keys & FLAG_MOVEUP) ? -1 : (acting_player->keys & FLAG_MOVEDOWN) ? 1 : 0;
+        const int movex = (acting_player->keys & FLAG_MOVELEFT) ? -1 : (acting_player->keys & FLAG_MOVERIGHT) ? 1 : 0;
 
+        /*
+        * Gun a running direction from
+        * velocity.
+        */
 
-        if(oldrunning)
-        {
-            if(self->velocity.z < 0)
-            {
-                runz--;
-            }
-            else if(self->velocity.z > 0)
-            {
-                runz++;
-            }
+        const int running_z = oldrunning ? ((acting_entity->velocity.z < 0) ? -1 : (acting_entity->velocity.z > 0) ? 1 : 0) : 0;
+        const int running_x = oldrunning ? ((acting_entity->velocity.x < 0) ? -1 : (acting_entity->velocity.x > 0) ? 1 : 0) : 0;
 
-            if(self->velocity.x < 0)
-            {
-                runx--;
+        /*
+        * Stop running? 
+        * 
+        * 1. X axis direction.
+        * 2. Able to run in X direction?
+        * 3. Fixed dash? Fixed dashes stop 
+        * when the animation completes. They
+        * ignore releasing the key and do not
+        * stop on a perpendicular axis command
+        * even if we can't move on the other
+        * axis. Note the other axis is ignored
+        * by logic downstream.
+        * 
+        * 4. Stop on following:
+        * - No direction command.
+        * - Direction command opposes current direction.
+        * - Perpendicular axis command when we don't have the flag enabled.
+        * 
+        * Repeat check for opposite direction
+        * and for Z axis. 
+        */
+
+        if (running_x < 0) {
+            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED)) {
+                acting_entity->running = RUN_STATE_NONE;
             }
-            else if(self->velocity.x > 0)
-            {
-                runx++;
+            else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_DASH_FIXED) {
+                if (!acting_entity->animating) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+            }
+            else if ((!movex || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_DASH_COMMAND && !acting_entity->animating))
+                || diff(movex, running_x)
+                || (movez < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
+                || (movez > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
+                acting_entity->running = RUN_STATE_NONE;
             }
         }
-        
-        /*
-        * No Z running ability, movex is opposite
-        * of running direction, or movex is neutral.
-        */
-        self->running = (!self->modeldata.runupdown || (!movex || movex == -runx)) ? 0 : self->running;
-
-        /*
-        * Do we have full Z running ability? 
-        * If so, we only stop under a combination
-        * of conditions. See if conditions block.
-        * 
-        * If we don't have Z running ability
-        * then stop if move X is neutral or
-        * a Z move command is pressed.
-        */
-        if ((self->modeldata.runupdown & 4) 
-            && ((!movex && !movez) // No direction command at all.
-                || (movex && !movez && runx == -movex)  // No Move Z, Move X is opposite running direction. */
-                || (movez && !movex && runz == -movez)  // No Move X, Move Z is opposite running direction. */
-                || (movex && movez && diff(movex, runx) + diff(movez, runz) > 2))) // Diagonal move command, either move command opposite of running direction. 
-        {
-            self->running = 0;
+        else if (running_x > 0) {
+            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED)) {
+                acting_entity->running = RUN_STATE_NONE;
+            }
+            else if ((acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED)) {
+                if (!acting_entity->animating) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+            }
+            else if ((!movex || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_COMMAND && !acting_entity->animating))
+                || diff(movex, running_x)
+                || (movez < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
+                || (movez > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
+                acting_entity->running = RUN_STATE_NONE;
+            }
         }
-        else if (!self->modeldata.runupdown && (movez || !movex))
+
+        if (running_z < 0)
         {
-            self->running = 0;
-        }        
+            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED)) {
+                acting_entity->running = RUN_STATE_NONE;
+            }
+            else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_DASH_FIXED) {
+                if (!acting_entity->animating) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+            }
+            else if ((!movez || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_DASH_COMMAND && !acting_entity->animating))
+                || diff(movez, running_z)
+                || (movex < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
+                || (movex > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
+                acting_entity->running = RUN_STATE_NONE;
+            }
+        }
+        else if (running_z > 0) {
+            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED)) {
+                acting_entity->running = RUN_STATE_NONE;
+            }
+            else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_DASH_FIXED) {
+                if (!acting_entity->animating) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+            }
+            else if ((!movez || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_DASH_COMMAND && !acting_entity->animating))
+                || diff(movez, running_z)
+                || (movex < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
+                || (movex > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
+                acting_entity->running = RUN_STATE_NONE;
+            }
+        }
     }
 
-    if(PLAYER_MIN_Z != PLAYER_MAX_Z && self->ducking == DUCK_NONE)
+    if(PLAYER_MIN_Z != PLAYER_MAX_Z && acting_entity->ducking == DUCK_NONE)
     {
         // More of a platform feel
-        if(pl->keys & FLAG_MOVEUP)
-        {
-            //if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses up (or the up animation exists
-
-            if(validanim(self, ANI_UP) && !self->running)
+        if(acting_player->keys & FLAG_MOVEUP)
+        {            
+            if(validanim(acting_entity, ANI_UP) && acting_entity->running == RUN_STATE_NONE)
             {
-                action = 2;
-                self->velocity.z = -self->modeldata.speed.x / 2;  // Used for up animation
+                action = ACTION_UP;
+                acting_entity->velocity.z = -acting_entity->modeldata.speed.x / 2;  // Used for up animation
             }
-            else if(self->running)
+            else if(acting_entity->running & RUN_STATE_START_X)
             {
-                action = 4;
-                self->velocity.z = -self->modeldata.runspeed / 2;  // Moves up at a faster rate running
+                action = ACTION_RUN;
+
+                if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED 
+                    && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED)) {
+                    acting_entity->velocity.z = 0.0;
+                }
+                else
+                {
+                    acting_entity->velocity.z = -acting_entity->modeldata.runspeed / 2;  // Moves up at a faster rate running
+                }
             }
             else
             {
-                action = 1;
-                self->velocity.z = -self->modeldata.speed.x / 2;
+                action = ACTION_WALK;
+                acting_entity->velocity.z = -acting_entity->modeldata.speed.x / 2;
             }
         }
-        else if(pl->keys & FLAG_MOVEDOWN)
-        {
-            //if(!self->modeldata.runupdown ) self->running = 0;    // Quits running if player presses down (or the down animation exists
-
-            if(validanim(self, ANI_DOWN) && !self->running )
+        else if(acting_player->keys & FLAG_MOVEDOWN)
+        {            
+            if(validanim(acting_entity, ANI_DOWN) && acting_entity->running == RUN_STATE_NONE)
             {
-                action = 3;
-                self->velocity.z = self->modeldata.speed.x / 2;  // Used for down animation
+                action = ACTION_DOWN;
+                acting_entity->velocity.z = acting_entity->modeldata.speed.x / 2;  // Used for down animation
             }
-            else if(self->running)
+            else if(acting_entity->running & RUN_STATE_START_X)
             {
-                action = 4;
-                self->velocity.z = self->modeldata.runspeed / 2;  // Moves down at a faster rate running
+                action = ACTION_RUN;
+
+                if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED
+                    && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED)) {
+                    acting_entity->velocity.z = 0.0;
+                }
+                else
+                {
+                    acting_entity->velocity.z = acting_entity->modeldata.runspeed / 2;  // Moves up at a faster rate running
+                }
             }
             else
             {
-                action = 1;
-                self->velocity.z = self->modeldata.speed.x / 2;
+                action = ACTION_WALK;
+                acting_entity->velocity.z = acting_entity->modeldata.speed.x / 2;
             }
         }
-        else if(!(pl->keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
+        else if(!(acting_player->keys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
         {
-            self->velocity.z = 0;
+            acting_entity->velocity.z = 0;
         }
     }
-    else if(self->ducking == DUCK_NONE && validanim(self, ANI_DUCK) && pl->keys & FLAG_MOVEDOWN && notinair)
+    else if(acting_entity->ducking == DUCK_NONE && validanim(acting_entity, ANI_DUCK) && acting_player->keys & FLAG_MOVEDOWN && notinair)
     {
-        tryduck(self);
+        tryduck(acting_entity);
         goto endthinkcheck;
     }
 
-    if(pl->keys & FLAG_MOVELEFT && self->ducking == DUCK_NONE)
+    if(acting_player->keys & FLAG_MOVELEFT && acting_entity->ducking == DUCK_NONE)
     {
-        if(self->direction == DIRECTION_RIGHT)
+        if(acting_entity->direction == DIRECTION_RIGHT)
         {
-            //self->running = 0;    // Quits running if player changes direction
-            if(self->modeldata.turndelay && !self->turntime)
+            //acting_entity->running = RUN_STATE_NONE;    // Quits running if player changes direction
+            if(acting_entity->modeldata.turndelay && !acting_entity->turntime)
             {
-                self->turntime = _time + self->modeldata.turndelay;
+                acting_entity->turntime = _time + acting_entity->modeldata.turndelay;
             }
-            else if(self->turntime && _time >= self->turntime)
+            else if(acting_entity->turntime && _time >= acting_entity->turntime)
             {
-                self->turntime = 0;
-                if(validanim(self, ANI_TURN))
+                acting_entity->turntime = 0;
+                if(validanim(acting_entity, ANI_TURN))
                 {
-                    self->takeaction = common_turn;
-                    set_turning(self);
-                    self->velocity.x = self->velocity.z = 0;
-                    ent_set_anim(self, ANI_TURN, 0);
+                    acting_entity->takeaction = common_turn;
+                    set_turning(acting_entity);
+                    acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                    ent_set_anim(acting_entity, ANI_TURN, 0);
                     goto endthinkcheck;
                 }
-                self->direction = DIRECTION_LEFT;
+                acting_entity->direction = DIRECTION_LEFT;
             }
-            else if(!self->modeldata.turndelay && validanim(self, ANI_TURN))
+            else if(!acting_entity->modeldata.turndelay && validanim(acting_entity, ANI_TURN))
             {
-                self->takeaction = common_turn;
-                set_turning(self);
-                self->velocity.x = self->velocity.z = 0;
-                ent_set_anim(self, ANI_TURN, 0);
+                acting_entity->takeaction = common_turn;
+                set_turning(acting_entity);
+                acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                ent_set_anim(acting_entity, ANI_TURN, 0);
                 goto endthinkcheck;
             }
-            else if(!self->turntime)
+            else if(!acting_entity->turntime)
             {
-                self->direction = DIRECTION_LEFT;
+                acting_entity->direction = DIRECTION_LEFT;
             }
         }
         else
         {
-            self->turntime = 0;
+            acting_entity->turntime = 0;
         }
 
-        if(self->running)
+        if(acting_entity->running)
         {
-            action = 4;
-            self->velocity.x = -self->modeldata.runspeed;    // If running, player moves at a faster rate
+            action = ACTION_RUN;
+            acting_entity->velocity.x = -acting_entity->modeldata.runspeed;    // If running, player moves at a faster rate
         }
-        else if(action != 2 && action != 3)
+        else if(action != ACTION_UP && action != ACTION_DOWN)
         {
-            action = 1;
-            self->velocity.x = -self->modeldata.speed.x;
+            action = ACTION_WALK;
+            acting_entity->velocity.x = -acting_entity->modeldata.speed.x;
         }
         else
         {
-            self->velocity.x = -self->modeldata.speed.x;
+            acting_entity->velocity.x = -acting_entity->modeldata.speed.x;
         }
     }
-    else if(pl->keys & FLAG_MOVERIGHT && self->ducking == DUCK_NONE)
+    else if(acting_player->keys & FLAG_MOVERIGHT && acting_entity->ducking == DUCK_NONE)
     {
-        if(self->direction == DIRECTION_LEFT)
+        if(acting_entity->direction == DIRECTION_LEFT)
         {
-            //self->running = 0;    // Quits running if player changes direction
-            if(self->modeldata.turndelay && !self->turntime)
+            //acting_entity->running = RUN_STATE_NONE;    // Quits running if player changes direction
+            if(acting_entity->modeldata.turndelay && !acting_entity->turntime)
             {
-                self->turntime = _time + self->modeldata.turndelay;
+                acting_entity->turntime = _time + acting_entity->modeldata.turndelay;
             }
-            else if(self->turntime && _time >= self->turntime)
+            else if(acting_entity->turntime && _time >= acting_entity->turntime)
             {
-                self->turntime = 0;
-                if(validanim(self, ANI_TURN))
+                acting_entity->turntime = 0;
+                if(validanim(acting_entity, ANI_TURN))
                 {
-                    self->takeaction = common_turn;
-                    set_turning(self);
-                    self->velocity.x = self->velocity.z = 0;
-                    ent_set_anim(self, ANI_TURN, 0);
+                    acting_entity->takeaction = common_turn;
+                    set_turning(acting_entity);
+                    acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                    ent_set_anim(acting_entity, ANI_TURN, 0);
                     goto endthinkcheck;
                 }
-                self->direction = DIRECTION_RIGHT;
+                acting_entity->direction = DIRECTION_RIGHT;
             }
-            else if(!self->modeldata.turndelay && validanim(self, ANI_TURN))
+            else if(!acting_entity->modeldata.turndelay && validanim(acting_entity, ANI_TURN))
             {
-                self->takeaction = common_turn;
-                set_turning(self);
-                self->velocity.x = self->velocity.z = 0;
-                ent_set_anim(self, ANI_TURN, 0);
+                acting_entity->takeaction = common_turn;
+                set_turning(acting_entity);
+                acting_entity->velocity.x = acting_entity->velocity.z = 0;
+                ent_set_anim(acting_entity, ANI_TURN, 0);
                 goto endthinkcheck;
             }
-            else if(!self->turntime)
+            else if(!acting_entity->turntime)
             {
-                self->direction = DIRECTION_RIGHT;
+                acting_entity->direction = DIRECTION_RIGHT;
             }
         }
         else
         {
-            self->turntime = 0;
+            acting_entity->turntime = 0;
         }
 
-        if(self->running)
+        if(acting_entity->running)
         {
-            action = 4;
-            self->velocity.x = self->modeldata.runspeed;    // If running, player moves at a faster rate
+            action = ACTION_RUN;
+            acting_entity->velocity.x = acting_entity->modeldata.runspeed;    // If running, player moves at a faster rate
         }
-        else if(action != 2 && action != 3)
+        else if(action != ACTION_UP && action != ACTION_DOWN)
         {
-            action = 1;
-            self->velocity.x = self->modeldata.speed.x;
+            action = ACTION_WALK;
+            acting_entity->velocity.x = acting_entity->modeldata.speed.x;
         }
         else
         {
-            self->velocity.x = self->modeldata.speed.x;
+            acting_entity->velocity.x = acting_entity->modeldata.speed.x;
         }
     }
-    else if(!((pl->keys & FLAG_MOVELEFT) ||
-              (pl->keys & FLAG_MOVERIGHT)) )
+    else if(!((acting_player->keys & FLAG_MOVELEFT) ||
+              (acting_player->keys & FLAG_MOVERIGHT)) )
     {
-        //self->running = 0;    // Player let go of left/right and so quits running
-        self->velocity.x = 0;
-        self->turntime = 0;
+        //acting_entity->running = RUN_STATE_NONE;    // Player let go of left/right and so quits running
+        acting_entity->velocity.x = 0;
+        acting_entity->turntime = 0;
     }
 
-    if((other = find_ent_here(self, self->position.x, self->position.z, TYPE_ITEM, player_test_touch))  )
+    if((other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ITEM, player_test_touch))  )
     {
-        do_item_script(self, other);
+        do_item_script(acting_entity, other);
         didfind_item(other);    // Added function to clean code up a bit
     }
 
-    if (self->ducking & DUCK_ACTIVE)
+    if (acting_entity->ducking & DUCK_ACTIVE)
     {
-        if (!(pl->keys & FLAG_MOVEDOWN))
+        if (!(acting_player->keys & FLAG_MOVEDOWN))
         {
-            tryduckrise(self);
+            tryduckrise(acting_entity);
             goto endthinkcheck;
         }
-        if(pl->keys & FLAG_MOVELEFT)
+        if(acting_player->keys & FLAG_MOVELEFT)
         {
-            if(self->direction == DIRECTION_RIGHT)
+            if(acting_entity->direction == DIRECTION_RIGHT)
             {
-                self->direction = DIRECTION_LEFT;
+                acting_entity->direction = DIRECTION_LEFT;
             }
         }
-        else if(pl->keys & FLAG_MOVERIGHT)
+        else if(acting_player->keys & FLAG_MOVERIGHT)
         {
-            if(self->direction == DIRECTION_LEFT)
+            if(acting_entity->direction == DIRECTION_LEFT)
             {
-                self->direction = DIRECTION_RIGHT;
+                acting_entity->direction = DIRECTION_RIGHT;
             }
         }
     }
-    if (self->ducking)
+    if (acting_entity->ducking)
     {
         goto endthinkcheck;
     }
@@ -41065,70 +41564,70 @@ void player_think()
     //White Dragon: prepare for idling animations...
     if(action)
     {
-        self->takeaction = NULL;
-        self->idling = IDLING_PREPARED;
+        acting_entity->takeaction = NULL;
+        acting_entity->idling = IDLING_PREPARED;
     }
 
     switch(action)
     {
-    case 1:
+    case ACTION_WALK:
         // back walk feature
-        if(level && validanim(self, ANI_BACKWALK))
+        if(level && validanim(acting_entity, ANI_BACKWALK))
         {
-            if(self->modeldata.facing == FACING_ADJUST_RIGHT || level->facing == FACING_ADJUST_RIGHT)
+            if(acting_entity->modeldata.facing == FACING_ADJUST_RIGHT || level->facing == FACING_ADJUST_RIGHT)
             {
-                bkwalk = !self->direction;
+                bkwalk = !acting_entity->direction;
             }
-            else if(self->modeldata.facing == FACING_ADJUST_LEFT || level->facing == FACING_ADJUST_RIGHT)
+            else if(acting_entity->modeldata.facing == FACING_ADJUST_LEFT || level->facing == FACING_ADJUST_RIGHT)
             {
-                bkwalk = self->direction;
+                bkwalk = acting_entity->direction;
             }
-            else if((self->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_LEFT) && self->direction == DIRECTION_LEFT)
-            {
-                bkwalk = 1;
-            }
-            else if((self->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_RIGHT) && self->direction == DIRECTION_RIGHT)
+            else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_LEFT) && acting_entity->direction == DIRECTION_LEFT)
             {
                 bkwalk = 1;
             }
-            else if(self->turntime && self->modeldata.turndelay)
+            else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_RIGHT) && acting_entity->direction == DIRECTION_RIGHT)
+            {
+                bkwalk = 1;
+            }
+            else if(acting_entity->turntime && acting_entity->modeldata.turndelay)
             {
                 bkwalk = 1;
             }
             if(bkwalk)
             {
-                common_backwalk_anim(self);    //ent_set_anim(self, ANI_BACKWALK, 0);
+                common_backwalk_anim(acting_entity);    //ent_set_anim(acting_entity, ANI_BACKWALK, 0);
             }
             else
             {
-                common_walk_anim(self);    //ent_set_anim(self, ANI_WALK, 0);    // If neither up nor down exist, set to walk
+                common_walk_anim(acting_entity);    //ent_set_anim(acting_entity, ANI_WALK, 0);    // If neither up nor down exist, set to walk
             }
         }
         else
         {
-            common_walk_anim(self);    //ent_set_anim(self, ANI_WALK, 0);    // If neither up nor down exist, set to walk
+            common_walk_anim(acting_entity);    //ent_set_anim(acting_entity, ANI_WALK, 0);    // If neither up nor down exist, set to walk
         }
         break;
-    case 2:
-        common_up_anim(self); //ent_set_anim(self, ANI_UP, 0);    // Set to up animation if exists
+    case ACTION_UP:
+        common_up_anim(acting_entity); //ent_set_anim(acting_entity, ANI_UP, 0);    // Set to up animation if exists
         break;
-    case 3:
-        common_down_anim(self); //ent_set_anim(self, ANI_DOWN, 0);    // Set to down animation if exists
+    case ACTION_DOWN:
+        common_down_anim(acting_entity); //ent_set_anim(acting_entity, ANI_DOWN, 0);    // Set to down animation if exists
         break;
-    case 4:
-        if (validanim(self, ANI_BACKRUN))
+    case ACTION_RUN:
+        if (validanim(acting_entity, ANI_BACKRUN))
         {
-            if (is_in_backrun(self)) ent_set_anim(self, ANI_BACKRUN, 0);
-            else ent_set_anim(self, ANI_RUN, 0);
+            if (is_in_backrun(acting_entity)) ent_set_anim(acting_entity, ANI_BACKRUN, 0);
+            else ent_set_anim(acting_entity, ANI_RUN, 0);
         }
-        else ent_set_anim(self, ANI_RUN, 0); // Set to run animation if exists
+        else ent_set_anim(acting_entity, ANI_RUN, 0); // Set to run animation if exists
 
         break;
     default:
 
-        if(self->idling)
+        if(acting_entity->idling)
         {
-            common_idle_anim(self);
+            common_idle_anim(acting_entity);
         }
         break;
     }

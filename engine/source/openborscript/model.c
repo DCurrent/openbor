@@ -297,6 +297,34 @@ const s_property_access_map model_get_property_map(const void* acting_object_par
         property_map.type = VT_INTEGER;
         break;
 
+    case MODEL_PROPERTY_RUN_CONFIG_FLAGS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->run_config_flags;
+        property_map.id_string = "MODEL_PROPERTY_RUN_CONFIG_FLAGS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_RUN_JUMP_HEIGHT:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->runjumpheight;
+        property_map.id_string = "MODEL_PROPERTY_RUN_JUMP_HEIGHT";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case MODEL_PROPERTY_RUN_JUMP_LENGTH:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->runjumpdist;
+        property_map.id_string = "MODEL_PROPERTY_RUN_JUMP_LENGTH";
+        property_map.type = VT_DECIMAL;
+        break;
+
+    case MODEL_PROPERTY_RUN_SPEED:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->runspeed;
+        property_map.id_string = "MODEL_PROPERTY_RUN_SPEED";
+        property_map.type = VT_DECIMAL;
+        break;
+
     case MODEL_PROPERTY_SCORE:
         property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
         property_map.field = &acting_object->score;
