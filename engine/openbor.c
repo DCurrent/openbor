@@ -12516,14 +12516,26 @@ s_model *init_model(int cacheindex, int unload)
             .z = {.max = -1, .min = 0 }
         },
         .recall_range = {
-            .x = {.max = (int)videomodes.hRes * 1.1, .min = (int)videomodes.hRes * -1.1 },
-            .y = {.max = (int)videomodes.vRes * 1.1, .min = (int)videomodes.vRes * -1.1 },
-            .z = {.max = (int)videomodes.vRes * 1.1, .min = (int)videomodes.vRes * -1.1 }
+
+            /*
+            * X and Z  min / max defaults are overwritten 
+            * by Idle range X max for legacy compatability.
+            */
+
+            .x = {.max = MAX_INT, .min = MIN_INT }, 
+            .y = {.max = MAX_INT, .min = MIN_INT },
+            .z = {.max = MAX_INT, .min = MIN_INT }
         },
         .follow_range = {
-            .x = {.max = (int)videomodes.hRes * 0.30, .min = (int)videomodes.hRes * -0.30 },
-            .y = {.max = (int)videomodes.vRes * 0.45, .min = (int)videomodes.vRes * -0.45 },
-            .z = {.max = (int)videomodes.vRes * 0.15, .min = (int)videomodes.vRes * -0.15 }
+
+            /*
+            * X and Z  min / max defaults are overwritten
+            * by Idle range X min for legacy compatability.
+            */
+
+            .x = {.max = MAX_INT, .min = MIN_INT },
+            .y = {.max = MAX_INT, .min = MIN_INT },
+            .z = {.max = MAX_INT, .min = MIN_INT }
         },
         .run_range = {
             .x = {.max = (int)videomodes.hRes * 0.60, .min = (int)videomodes.hRes * -0.60 },
@@ -12574,7 +12586,7 @@ s_model *init_model(int cacheindex, int unload)
     newchar->throwdist          = default_model_jumpheight * 0.625f;
     newchar->aimove             = AIMOVE1_NONE;
     newchar->aiattack           = -1;
-    newchar->throwframewait     = -1;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
+    newchar->throwframewait     = FRAME_NONE;               // makes sure throw animations run normally unless throwfram is specified, added by kbandressen 10/20/06
     newchar->path               = model_cache[cacheindex].path;         // Record path, so script can get it without looping the whole model collection.
     newchar->edgerange.x        = 0;
     newchar->edgerange.z        = 0;
@@ -12624,7 +12636,7 @@ s_model *init_model(int cacheindex, int unload)
     
     newchar->weapon_properties = (s_weapon){
         .loss_condition = WEAPON_LOSS_CONDITION_DEFAULT,
-        .loss_count = 3, // Default 3 times to drop a weapon / projectile
+        .loss_count = 3,
         .loss_index = MODEL_INDEX_NONE
     };
     
@@ -12676,12 +12688,10 @@ s_model *init_model(int cacheindex, int unload)
     newchar->flash = newchar->bflash = get_cached_model_index("flash");
 
     //Default sight ranges.
-    newchar->sight.min.x = MIN_INT;
-    newchar->sight.max.x = MAX_INT;
-    newchar->sight.min.y = MIN_INT;
-    newchar->sight.max.y = MAX_INT;
-    newchar->sight.min.z = MIN_INT;
-    newchar->sight.max.z = MAX_INT;
+    newchar->sight = (s_sight){
+        .max = {.x = MAX_INT, .y = MAX_INT, .z = MAX_INT },
+        .min = {.x = MIN_INT, .y = MIN_INT, .z = MIN_INT }
+    };
 
     return newchar;
 }
@@ -36555,7 +36565,10 @@ int common_try_chase(entity* acting_entity, const entity *target, const bool axi
 //may be used many times, so make a function
 // minion follow his owner
 int common_try_follow(entity* acting_entity, const entity *target, const bool axis_x, const bool axis_z)
-{    
+{   
+
+    printf("\n\n common_try_follow(%p, %p, %d, %d)", acting_entity, target, axis_x, axis_z);
+
     if(acting_entity == NULL || target == NULL || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
@@ -36594,25 +36607,42 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
     * Follow/run ranges.
     */
 
+    /*  
+    * If incoming follow range X values are default, 
+    * replace them with legacy fallbacks: 
+    *
+    *   1. Idle animation valid? Use its range X min.
+    *   2. Idle animation unavialable: 100.
+    *
+    * If min X is default, populate it with inverted
+    * max value.
+    */
+
     const s_metric_range follow_range_x = {
-        .max = acting_entity->modeldata.child_follow.follow_range.x.max,
-        .min = acting_entity->modeldata.child_follow.follow_range.x.min
+        .max = (acting_entity->modeldata.child_follow.follow_range.x.max == MAX_INT) ? ((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.x.min : 100) : acting_entity->modeldata.child_follow.follow_range.x.max,
+        .min = (acting_entity->modeldata.child_follow.follow_range.x.min == MIN_INT) ? -follow_range_x.max : acting_entity->modeldata.child_follow.follow_range.x.min
+    };
+
+    const s_metric_range follow_range_z = {
+        .max = (acting_entity->modeldata.child_follow.follow_range.z.max == MAX_INT) ? (int)follow_range_x.max * 0.5 : acting_entity->modeldata.child_follow.follow_range.z.max,
+        .min = (acting_entity->modeldata.child_follow.follow_range.z.min == MIN_INT) ? (int)follow_range_x.min * 0.5 : acting_entity->modeldata.child_follow.follow_range.z.min
     };
 
     const s_metric_range run_range_x = {
         .max = acting_entity->modeldata.child_follow.run_range.x.max,
         .min = acting_entity->modeldata.child_follow.run_range.x.min
-    };
-
-    const s_metric_range follow_range_z = {
-        .max = acting_entity->modeldata.child_follow.follow_range.z.max,
-        .min = acting_entity->modeldata.child_follow.follow_range.z.min
-    };
+    };    
 
     const s_metric_range run_range_z = {
         .max = acting_entity->modeldata.child_follow.run_range.z.max,
         .min = acting_entity->modeldata.child_follow.run_range.z.min
-    };        
+    };    
+
+    //printf("\n\t follow_range_x.min: %d", follow_range_x.min);
+    //printf("\n\t follow_range_x.max: %d", follow_range_x.max);
+    //printf("\n\t follow_range_z.min: %d", follow_range_z.min);
+    //printf("\n\t follow_range_z.max: %d", follow_range_z.max);
+    
 
     /*
     * Let's try to follow on each axis. If ranges
@@ -36664,9 +36694,9 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
     //printf("\n distance_x: %f", distance_x);
     //printf("\n distance_z: %f", distance_z);      
     
-    printf("\n follow_state: %d", follow_state);
-    printf("\n axis_x: %d", axis_x);
-    printf("\n axis_z: %d", axis_z);
+    //printf("\n\t follow_state: %d", follow_state);
+    //printf("\n\t axis_x: %d", axis_x);
+    //printf("\n\t axis_z: %d", axis_z);
 
     /*
     * If we are farther from target on the 
@@ -36802,11 +36832,11 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
         }
     }
 
-    printf("\n acting_entity->running : %d", acting_entity->running);
-    printf("\n acting_entity->destx: %f", acting_entity->destx);
-    printf("\n acting_entity->destz: %f", acting_entity->destz);
-    printf("\n acting_entity->velocity.x: %f", acting_entity->velocity.x);
-    printf("\n acting_entity->velocity.z: %f", acting_entity->velocity.z);
+    //printf("\n\t acting_entity->running : %d", acting_entity->running);
+    //printf("\n\t acting_entity->destx: %f", acting_entity->destx);
+    //printf("\n\t acting_entity->destz: %f", acting_entity->destz);
+    //printf("\n\t acting_entity->velocity.x: %f", acting_entity->velocity.x);
+    //printf("\n\t acting_entity->velocity.z: %f", acting_entity->velocity.z);
 
     return 1;
 }
