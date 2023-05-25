@@ -12515,6 +12515,7 @@ s_model *init_model(int cacheindex, int unload)
             .y = {.max = -1, .min = 0 },
             .z = {.max = -1, .min = 0 }
         },
+        .recall_animation = ANI_RESPAWN,
         .recall_range = {
 
             /*
@@ -12522,6 +12523,7 @@ s_model *init_model(int cacheindex, int unload)
             * by Idle range X max for legacy compatability.
             */
 
+            .base = {.max = MAX_INT, .min = MIN_INT },
             .x = {.max = MAX_INT, .min = MIN_INT }, 
             .y = {.max = MAX_INT, .min = MIN_INT },
             .z = {.max = MAX_INT, .min = MIN_INT }
@@ -12533,11 +12535,13 @@ s_model *init_model(int cacheindex, int unload)
             * by Idle range X min for legacy compatability.
             */
 
+            .base = {.max = MAX_INT, .min = MIN_INT },
             .x = {.max = MAX_INT, .min = MIN_INT },
             .y = {.max = MAX_INT, .min = MIN_INT },
             .z = {.max = MAX_INT, .min = MIN_INT }
         },
-        .run_range = {
+        .follow_run_range = {
+            .base = {.max = MAX_INT, .min = MIN_INT },
             .x = {.max = (int)videomodes.hRes * 0.60, .min = (int)videomodes.hRes * -0.60 },
             .y = {.max = (int)videomodes.vRes * 0.90, .min = (int)videomodes.vRes * -0.90 },
             .z = {.max = (int)videomodes.vRes * 0.30, .min = (int)videomodes.vRes * -0.30 }
@@ -13044,15 +13048,15 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_X:
-                newchar->child_follow.offset.x = GET_INT_ARG(1);
+                newchar->child_follow.follow_offset.x = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_Y:
-                newchar->child_follow.offset.y = GET_INT_ARG(1);
+                newchar->child_follow.follow_offset.y = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_Z:
-                newchar->child_follow.offset.z = GET_INT_ARG(1);
+                newchar->child_follow.follow_offset.z = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
@@ -30427,7 +30431,7 @@ entity *block_find_target(int anim, int detect_adj)
 
         if (attacker && attacker->exists && attacker != self // Can't target self
             && (faction_check_can_damage(attacker, self, 0)) // Type is something attacker can damage.
-            && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim))) // Valid animation ID and in range.
+            && (anim < 0 || (anim >= 0 && check_range_target_all(self, attacker, anim, 0, 0))) // Valid animation ID and in range.
             && !(attacker->death_state & DEATH_STATE_DEAD) // Must be alive.
             && attacker->attacking != ATTACKING_NONE // Must be attacking.
             && collision_attack_find_no_block_on_frame(attacker->animation, attacker->animpos, 1) != NULL // Valid blockable attack.
@@ -30505,7 +30509,7 @@ entity *normal_find_target(int anim, int detect_adj)
         // in range of animation.
         if(anim >= 0)
         {
-            if(!check_range_target_all(self, ent_list[i], anim))
+            if(!check_range_target_all(self, ent_list[i], anim, 0, 0))
             {
                 continue;
             }
@@ -30752,7 +30756,7 @@ void normal_prepare()
     // let go the projectile, well
     if( self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
             validanim(self, ANI_THROWATTACK) &&
-            check_range_target_all(self, target, ANI_THROWATTACK))
+            check_range_target_all(self, target, ANI_THROWATTACK, 0, 0))
     {
         self->takeaction = common_attack_proc;
         set_attacking(self);
@@ -30767,7 +30771,7 @@ void normal_prepare()
         if(validanim(self, animspecials[i]) &&
                 (check_energy(ENERGY_TYPE_MP, animspecials[i]) ||
                  check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
-                check_range_target_all(self, target, animspecials[i]))
+                check_range_target_all(self, target, animspecials[i], 0, 0))
         {
             atkchoices[found++] = animspecials[i];
         }
@@ -30801,7 +30805,7 @@ void normal_prepare()
         for(i = 0; i < max_attacks; i++)
         {
             if( validanim(self, animattacks[i]) &&
-                    check_range_target_all(self, target, animattacks[i]))
+                    check_range_target_all(self, target, animattacks[i], 0, 0))
             {
                 // a trick to make attack 1 has a greater chance to be chosen
                 // 6 5 4 3 2 1 1 1 1 1 ....
@@ -34252,7 +34256,7 @@ int pick_random_attack(entity *target, int testonly)
     for(i = 0; i < max_attacks; i++) // TODO: recheck range for attacks chains
     {
         if(validanim(self, animattacks[i]) &&
-                (!target || check_range_target_all(self, target, animattacks[i])))
+                (!target || check_range_target_all(self, target, animattacks[i], 0, 0)))
         {
             for(j = ((5 - i) >= 0 ? (5 - i) : 0) * 3; j >= 0; j--)
             {
@@ -34265,14 +34269,14 @@ int pick_random_attack(entity *target, int testonly)
         if(validanim(self, animspecials[i]) &&
                 (check_energy(ENERGY_TYPE_MP, animspecials[i]) ||
                  check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
-                (!target || check_range_target_all(self, target, animspecials[i])))
+                (!target || check_range_target_all(self, target, animspecials[i], 0, 0)))
         {
             atkchoices[found++] = animspecials[i];
         }
     }
     if( validanim(self, ANI_THROWATTACK) &&
             self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
-            (!target || check_range_target_all(self, target, ANI_THROWATTACK) ))
+            (!target || check_range_target_all(self, target, ANI_THROWATTACK, 0, 0) ))
     {
         atkchoices[found++] = ANI_THROWATTACK;
     }
@@ -34287,7 +34291,7 @@ int pick_random_attack(entity *target, int testonly)
     }
 
     if( validanim(self, ANI_JUMPATTACK) &&
-            (!target || check_range_target_all(self, target, ANI_JUMPATTACK)) )
+            (!target || check_range_target_all(self, target, ANI_JUMPATTACK, 0, 0)) )
     {
         if(testonly)
         {
@@ -34296,7 +34300,7 @@ int pick_random_attack(entity *target, int testonly)
         atkchoices[found++] = ANI_JUMPATTACK;
     }
     if( validanim(self, ANI_UPPER) &&
-            (!target || check_range_target_all(self, target, ANI_UPPER)) )
+            (!target || check_range_target_all(self, target, ANI_UPPER, 0, 0)) )
     {
         if(testonly)
         {
@@ -34786,29 +34790,43 @@ void common_prethrow()
     set_idle(self);
 }
 
-// warp to its parent entity, just like skeletons in Diablo 2
-void npc_warp()
+/*
+* Caskey, Damon V.
+* 2023-05-24 (rewrite of orginal function by Utunnels, unknown date)
+* 
+* Reposition entity to its parent's location
+* and play appropriate animation.
+*/
+void npc_recall()
 {
-    if(!self->parent)
+    entity* const acting_entity = self;
+
+    if(!acting_entity->parent)
     {
         return;
     }
-    self->position.z = self->parent->position.z;
-    self->position.x = self->parent->position.x;
-    self->position.y = self->parent->position.y;
-    self->velocity.x = self->velocity.z = 0;
-    self->base = self->parent->base;
-    self->velocity.y = 0;
 
-    if(validanim(self, ANI_RESPAWN))
+    acting_entity->base = acting_entity->parent->base;
+    acting_entity->position.x = acting_entity->parent->position.x + acting_entity->modeldata.child_follow.recall_offset.x;
+    acting_entity->position.y = acting_entity->parent->position.y + acting_entity->modeldata.child_follow.recall_offset.y;
+    acting_entity->position.z = acting_entity->parent->position.z + acting_entity->modeldata.child_follow.recall_offset.z;  
+    
+    acting_entity->velocity.x = 0;
+    acting_entity->velocity.y = 0;
+    acting_entity->velocity.z = 0;
+
+    if (acting_entity->modeldata.child_follow.recall_animation != ANI_NONE)
     {
-        self->takeaction = common_spawn;
-        ent_set_anim(self, ANI_RESPAWN, 0);
-    }
-    else if(validanim(self, ANI_SPAWN))
-    {
-        self->takeaction = common_spawn;
-        ent_set_anim(self, ANI_SPAWN, 0);
+        if (validanim(acting_entity, acting_entity->modeldata.child_follow.recall_animation))
+        {
+            acting_entity->takeaction = common_spawn;
+            ent_set_anim(acting_entity, acting_entity->modeldata.child_follow.recall_animation, 0);
+        }
+        else if (validanim(acting_entity, ANI_SPAWN))
+        {
+            acting_entity->takeaction = common_spawn;
+            ent_set_anim(acting_entity, ANI_SPAWN, 0);
+        }
     }
 }
 
@@ -36562,14 +36580,20 @@ int common_try_chase(entity* acting_entity, const entity *target, const bool axi
     return 1;
 }
 
-//may be used many times, so make a function
-// minion follow his owner
-int common_try_follow(entity* acting_entity, const entity *target, const bool axis_x, const bool axis_z)
+/*
+* Caskey, Damon V.
+* 2023-05-24 - Rewrite of orginal function by uTunnels, unknown date.
+* 
+* Acting entity attempts to follow
+* target entity allong allowed axis.
+*/
+int common_try_follow(entity* const acting_entity, const entity *target, const bool axis_x, const bool axis_z)
 {   
+    //printf("\n\n common_try_follow(%p, %p, %d, %d)", acting_entity, target, axis_x, axis_z);
 
-    printf("\n\n common_try_follow(%p, %p, %d, %d)", acting_entity, target, axis_x, axis_z);
+    const s_child_follow* const child_follow = &acting_entity->modeldata.child_follow;
 
-    if(acting_entity == NULL || target == NULL || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
+    if(acting_entity == NULL || target == NULL || !child_follow || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
         return 0;
     }
@@ -36593,9 +36617,9 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
     */
 
     const s_axis_principal_float target_pos = {
-        .x = target->position.x + (target->direction == DIRECTION_RIGHT ? acting_entity->modeldata.child_follow.offset.x : -acting_entity->modeldata.child_follow.offset.x),
-        .y = target->position.y + acting_entity->modeldata.child_follow.offset.y,
-        .z = target->position.z + acting_entity->modeldata.child_follow.offset.z
+        .x = target->position.x + (target->direction == DIRECTION_RIGHT ? acting_entity->modeldata.child_follow.follow_offset.x : -acting_entity->modeldata.child_follow.follow_offset.x),
+        .y = target->position.y + acting_entity->modeldata.child_follow.follow_offset.y,
+        .z = target->position.z + acting_entity->modeldata.child_follow.follow_offset.z
     };
     
     const float distance_x = diff(acting_entity->position.x, target_pos.x);
@@ -36604,44 +36628,42 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
     const bool facing_target = (acting_entity->direction == DIRECTION_RIGHT ? acting_entity->position.x < target_pos.x : acting_entity->position.x > target_pos.x);
 
     /*
-    * Follow/run ranges.
+    * Set up follow/run ranges. The use of 
+    * idle range min value for min/max range 
+    * defaults is for legacy compatability.
     */
 
-    /*  
-    * If incoming follow range X values are default, 
-    * replace them with legacy fallbacks: 
-    *
-    *   1. Idle animation valid? Use its range X min.
-    *   2. Idle animation unavialable: 100.
-    *
-    * If min X is default, populate it with inverted
-    * max value.
-    */
+    const bool valid_idle = validanim(acting_entity, ANI_IDLE);
+    const int follow_range_default_x = (valid_idle) ? acting_entity->modeldata.animation[ANI_IDLE]->range.x.min : 100;
+    const int follow_range_default_z = (int)follow_range_default_x * 0.5;
 
-    const s_metric_range follow_range_x = {
-        .max = (acting_entity->modeldata.child_follow.follow_range.x.max == MAX_INT) ? ((validanim(self, ANI_IDLE)) ? self->modeldata.animation[ANI_IDLE]->range.x.min : 100) : acting_entity->modeldata.child_follow.follow_range.x.max,
-        .min = (acting_entity->modeldata.child_follow.follow_range.x.min == MIN_INT) ? -follow_range_x.max : acting_entity->modeldata.child_follow.follow_range.x.min
+    const s_range follow_range = {
+        .x = {
+            .max = (child_follow->follow_range.x.max == MAX_INT && valid_idle) ? follow_range_default_x : child_follow->follow_range.x.max,
+            .min = (child_follow->follow_range.x.min == MIN_INT && valid_idle) ? -follow_range_default_x : child_follow->follow_range.x.min
+        },
+        .z = {
+            .max = (child_follow->follow_range.z.max == MAX_INT && valid_idle) ? follow_range_default_z : child_follow->follow_range.z.max,
+            .min = (child_follow->follow_range.z.min == MIN_INT && valid_idle) ? -follow_range_default_z : child_follow->follow_range.z.min
+        }
     };
 
-    const s_metric_range follow_range_z = {
-        .max = (acting_entity->modeldata.child_follow.follow_range.z.max == MAX_INT) ? (int)follow_range_x.max * 0.5 : acting_entity->modeldata.child_follow.follow_range.z.max,
-        .min = (acting_entity->modeldata.child_follow.follow_range.z.min == MIN_INT) ? (int)follow_range_x.min * 0.5 : acting_entity->modeldata.child_follow.follow_range.z.min
+    const s_range follow_run_range = {
+        .x = {
+            .max = child_follow->follow_run_range.x.max,
+            .min = child_follow->follow_run_range.x.min
+        },        
+
+        .z = {
+            .max = child_follow->follow_run_range.z.max,
+            .min = child_follow->follow_run_range.z.min
+        }
     };
 
-    const s_metric_range run_range_x = {
-        .max = acting_entity->modeldata.child_follow.run_range.x.max,
-        .min = acting_entity->modeldata.child_follow.run_range.x.min
-    };    
-
-    const s_metric_range run_range_z = {
-        .max = acting_entity->modeldata.child_follow.run_range.z.max,
-        .min = acting_entity->modeldata.child_follow.run_range.z.min
-    };    
-
-    //printf("\n\t follow_range_x.min: %d", follow_range_x.min);
-    //printf("\n\t follow_range_x.max: %d", follow_range_x.max);
-    //printf("\n\t follow_range_z.min: %d", follow_range_z.min);
-    //printf("\n\t follow_range_z.max: %d", follow_range_z.max);
+    //printf("\n\t follow_range.x.min: %d", follow_range.x.min);
+    //printf("\n\t follow_range.x.max: %d", follow_range.x.max);
+    //printf("\n\t follow_range.z.min: %d", follow_range.z.min);
+    //printf("\n\t follow_range.z.max: %d", follow_range.z.max);
     
 
     /*
@@ -36655,16 +36677,16 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
 
     if (axis_x)
     {
-        if ((follow_range_x.min <= follow_range_x.max)
-            && !check_range_target_x(acting_entity, target, NULL, follow_range_x.min, follow_range_x.max)) {
+        if ((follow_range.x.min <= follow_range.x.max)
+            && !check_range_target_x(acting_entity, target, NULL, follow_range.x.min, follow_range.x.max)) {
 
             follow_state |= FOLLOW_STATE_X;
         }
 
         if (validanim(acting_entity, ANI_RUN)
             && facing_target
-            && (run_range_x.min <= run_range_x.max)
-            && !check_range_target_x(acting_entity, target, NULL, run_range_x.min, run_range_x.max)) {
+            && (follow_run_range.x.min <= follow_run_range.x.max)
+            && !check_range_target_x(acting_entity, target, NULL, follow_run_range.x.min, follow_run_range.x.max)) {
 
             follow_state |= (FOLLOW_STATE_X | FOLLOW_STATE_RUN_X);
         }        
@@ -36672,15 +36694,15 @@ int common_try_follow(entity* acting_entity, const entity *target, const bool ax
 
     if (axis_z)
     {
-        if ((follow_range_z.min <= follow_range_z.max)
-            && !check_range_target_z(acting_entity, target, NULL, follow_range_z.min, follow_range_z.max)) {
+        if ((follow_range.z.min <= follow_range.z.max)
+            && !check_range_target_z(acting_entity, target, NULL, follow_range.z.min, follow_range.z.max)) {
 
             follow_state |= FOLLOW_STATE_Z;
         }
 
         if (validanim(acting_entity, ANI_RUN)            
-            && (run_range_z.min <= run_range_z.max)
-            && !check_range_target_z(acting_entity, target, NULL, run_range_z.min, run_range_z.max)) {
+            && (follow_run_range.z.min <= follow_run_range.z.max)
+            && !check_range_target_z(acting_entity, target, NULL, follow_run_range.z.min, follow_run_range.z.max)) {
 
             follow_state |= (FOLLOW_STATE_Z | FOLLOW_STATE_RUN_Z);
         }
@@ -38515,19 +38537,62 @@ int checkplanned()
     return 0;
 }
 
-
-int ai_check_warp()
+/*
+* Caskey, Damon V.
+* 2023-05-24 (rewrite of orginal function by Utunnels, unknown date)
+*
+* Check if entity is outside of recall
+* location, and if so, trigger the
+* recall function.
+*/
+int ai_check_recall()
 {
-    if(self->link)
+    entity* const acting_entity = self;
+    const s_child_follow* const child_follow = &acting_entity->modeldata.child_follow;
+
+    if(!child_follow || acting_entity->link)
     {
         return 0;
     }
 
-    if(self->modeldata.subtype == SUBTYPE_FOLLOW && self->parent && validanim(self, ANI_IDLE) &&
-            (diff(self->position.z, self->parent->position.z) > self->modeldata.animation[ANI_IDLE]->range.x.max ||
-             diff(self->position.x, self->parent->position.x) > self->modeldata.animation[ANI_IDLE]->range.x.max) )
+    /*
+    * Set up recall range. X and Z using the
+    * idle range x max when supplied values
+    * are MIN/MAX is for legacy compatability.
+    */
+
+    const bool valid_idle = validanim(acting_entity, ANI_IDLE);
+    const int default_range = (valid_idle) ? acting_entity->modeldata.animation[ANI_IDLE]->range.x.max : 0;
+
+    const s_range recall_range = {
+        .x = {
+            .max = (child_follow->recall_range.x.max == MAX_INT && valid_idle) ? default_range : child_follow->recall_range.x.max,
+            .min = (child_follow->recall_range.x.min == MIN_INT && valid_idle) ? -default_range : child_follow->recall_range.x.min
+        },
+
+        .y = {
+            .max = child_follow->recall_range.y.max,
+            .min = child_follow->recall_range.y.min
+        },
+
+        .z = {
+            .max = (child_follow->recall_range.z.max == MAX_INT && valid_idle) ? default_range : child_follow->recall_range.z.max,
+            .min = (child_follow->recall_range.z.min == MIN_INT && valid_idle) ? -default_range : child_follow->recall_range.z.min
+        },
+
+        .base = {
+            .max = child_follow->recall_range.base.max,
+            .min = child_follow->recall_range.base.min
+        }
+    };    
+    
+    if(acting_entity->modeldata.subtype == SUBTYPE_FOLLOW && acting_entity->parent &&
+            (!check_range_target_x(acting_entity, acting_entity->parent, NULL, recall_range.x.min, recall_range.x.max) ||
+                !check_range_target_z(acting_entity, acting_entity->parent, NULL, recall_range.z.min, recall_range.z.max) ||
+                !check_range_target_y(acting_entity, acting_entity->parent, NULL, recall_range.y.min, recall_range.y.max) ||
+                !check_range_target_base(acting_entity, acting_entity->parent, NULL, recall_range.base.min, recall_range.base.max)))
     {
-        self->takeaction = npc_warp;
+        acting_entity->takeaction = npc_recall;
         return 1;
     }
     return 0;
@@ -38655,7 +38720,7 @@ int ai_check_ducking()
     if ((self->ducking & DUCK_ACTIVE) && self->animnum == ANI_DUCK)
     {
         if ( !target || inair(target) || !(target->ducking & DUCK_ACTIVE) ||
-             (!check_range_target_all(self,target,ANI_DUCK) &&
+             (!check_range_target_all(self,target,ANI_DUCK, 0, 0) &&
                 diff(self->position.x, target->position.x) > t_rangex && diff(self->position.z, target->position.z) > t_rangez) )
         {
             self->velocity.x = self->velocity.z = 0;
@@ -38676,7 +38741,7 @@ int ai_check_ducking()
         }
         else
         {
-            int range_flag = check_range_target_all(self,target,ANI_DUCK);
+            int range_flag = check_range_target_all(self,target,ANI_DUCK, 0, 0);
             if (!range_flag)
             {
                 if ( diff(self->position.x, target->position.x) <= t_rangex &&
@@ -38708,7 +38773,7 @@ void common_think()
     //if(checkplanned()) return;
 
     // too far away , do a warp
-    if(ai_check_warp())
+    if(ai_check_recall())
     {
         return;
     }
@@ -39008,7 +39073,7 @@ int check_energy(e_cost_check which, int ani)
 // Replaces unreadable check_range() macro. Runs individual
 // check range functions for each axis and returns true
 // if target is within range of ALL.
-int check_range_target_all(const entity *ent, const entity *target, const e_animations animation_id)
+int check_range_target_all(const entity *ent, const entity *target, const e_animations animation_id, const int range_min, const int range_max)
 {
     // Must have a valid target entity.
     if(!target)
@@ -39019,22 +39084,22 @@ int check_range_target_all(const entity *ent, const entity *target, const e_anim
     // Get pointer to animation.
     const s_anim *animation = ent->modeldata.animation[animation_id];
 
-    if (!check_range_target_x(ent, target, animation, 0, 0))
+    if (!check_range_target_x(ent, target, animation, range_min, range_max))
     {
         return 0;
     }
 
-    if (!check_range_target_y(ent, target, animation, 0, 0))
+    if (!check_range_target_y(ent, target, animation, range_min, range_max))
     {
         return 0;
     }
 
-    if (!check_range_target_z(ent, target, animation, 0, 0))
+    if (!check_range_target_z(ent, target, animation, range_min, range_max))
     {
         return 0;
     }
 
-    if (!check_range_target_base(ent, target, animation, 0, 0))
+    if (!check_range_target_base(ent, target, animation, range_min, range_max))
     {
         return 0;
     }

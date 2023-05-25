@@ -3333,13 +3333,15 @@ typedef enum e_run_state {
 } e_run_state;
 
 typedef struct s_child_follow
-{
+{    
     e_direction_adjust direction_adjust_config;
     s_range direction_adjust_range;
-    s_axis_principal_int offset;
+    s_axis_principal_int follow_offset;
     s_range follow_range;
+    s_range follow_run_range;
+    e_animations recall_animation;
     s_range recall_range;
-    s_range run_range;
+    s_axis_principal_int recall_offset;
 } s_child_follow;
 
 typedef struct
@@ -4528,7 +4530,7 @@ entity *check_block_obstacle(entity *entity);
 int check_block_wall(entity *entity);
 int colorset_timed_expire(entity *ent);
 int check_lost();
-int check_range_target_all(const entity *ent, const entity *target, const e_animations animation_id);
+int check_range_target_all(const entity *ent, const entity *target, const e_animations animation_id, const int range_min, const int range_max);
 int check_range_target_base(const entity * acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
 int check_range_target_x(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
 int check_range_target_y(const entity *acting_entity, const entity *target, const s_anim *animation, const int range_min, const int range_max);
@@ -4609,7 +4611,7 @@ int normal_attack();
 void common_throw(void);
 void common_throw_wait(void);
 void common_prethrow(void);
-void npc_warp();
+void npc_recall();
 int checkpathblocked();
 int common_trymove(float xdir, float zdir);
 void normal_runoff();
@@ -4621,7 +4623,7 @@ int common_attack(void);
 int common_try_jump(void);
 int common_try_pick(entity *other);
 int common_try_chase(entity* acting_entity, const entity *target, const bool dox, const bool doz);
-int common_try_follow(entity* acting_entity, const entity* target, const bool axis_x, const bool axis_z);
+int common_try_follow(entity* const acting_entity, const entity* target, const bool axis_x, const bool axis_z);
 int common_try_avoid(entity *target, int dox, int doz);
 int common_try_wandercompletely(int dox, int doz);
 int common_try_wander(entity *target, int dox, int doz);
@@ -4679,7 +4681,7 @@ void apply_controls();
 void plan();
 int is_in_backrun(entity*);
 int ai_check_ducking();
-int ai_check_warp();
+int ai_check_recall();
 int ai_check_lie();
 int ai_check_grabbed();
 int ai_check_grab();

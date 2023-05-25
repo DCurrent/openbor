@@ -2966,7 +2966,7 @@ enum cep_takeaction_enum
     _ep_ta_common_spawn,
     _ep_ta_common_turn,
     _ep_ta_normal_prepare,
-    _ep_ta_npc_warp,
+    _ep_ta_npc_recall,
     _ep_ta_player_blink,
     _ep_ta_suicide,
     _ep_ta_the_end,
@@ -3139,7 +3139,7 @@ int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount)
         "common_spawn",
         "common_turn",
         "normal_prepare",
-        "npc_warp",
+        "npc_recall",
         "player_blink",
         "suicide",
     };
@@ -5488,7 +5488,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         common_spawn,
         common_turn,
         normal_prepare,
-        npc_warp,
+        npc_recall,
         player_blink,
         suicide,
     };
@@ -11313,7 +11313,7 @@ HRESULT openbor_checkrange(ScriptVariant **varlist , ScriptVariant **pretvar, in
         goto checkrange_error;
     }
 
-    (*pretvar)->lVal = check_range_target_all(ent, target, ani);
+    (*pretvar)->lVal = check_range_target_all(ent, target, ani, 0, 0);
 
     return S_OK;
 
