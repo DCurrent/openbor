@@ -267,7 +267,7 @@ HRESULT openbor_get_animation_property(ScriptVariant **varlist, ScriptVariant **
 		case _ANIMATION_PROP_JUMP_MODEL_INDEX:
 
 			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (LONG)handle->jumpframe.ent;
+			(*pretvar)->lVal = (LONG)handle->jumpframe.model_index;
 			break;
 
 		case _ANIMATION_PROP_JUMP_VELOCITY_X:
@@ -679,7 +679,7 @@ HRESULT openbor_set_animation_property(ScriptVariant **varlist, ScriptVariant **
 
 			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 			{
-				handle->jumpframe.ent = (int)temp_int;
+				handle->jumpframe.model_index = (int)temp_int;
 			}
 
 			break;

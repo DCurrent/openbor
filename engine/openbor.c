@@ -5722,6 +5722,13 @@ int free_model(s_model *model)
     }
     printf(".");
 
+    if (hasFreetype(model, MF_CHILD_FOLLOW) && model->child_follow)
+    {
+        free(model->child_follow);
+        model->child_follow = NULL;
+    }
+    printf(".");
+
     if(hasFreetype(model, MF_SCRIPTS))
     {
         clear_all_scripts(model->scripts, 2);
@@ -5972,6 +5979,70 @@ int (*takedamage_get_reference_from_argument(char* value))(struct entity* attack
     return result;
 }
 
+/* **** Child Follow **** */
+s_child_follow* child_follow_getsert_property(s_child_follow** acting_object)
+{
+    if (!(*acting_object))
+    {
+        *acting_object = child_follow_allocate_object();
+    }
+
+    return *acting_object;
+}
+
+
+s_child_follow* child_follow_allocate_object()
+{
+    s_child_follow* result;
+    const size_t alloc_size = sizeof(*result);
+
+    /* Allocate memory and get pointer. */
+    result = calloc(1, alloc_size);
+
+    *result = (s_child_follow){
+        .direction_adjust_config = DIRECTION_ADJUST_NONE,
+        .direction_adjust_range = {
+            .base = {.max = -1, .min = 0 },
+            .x = {.max = -1, .min = 0 },
+            .y = {.max = -1, .min = 0 },
+            .z = {.max = -1, .min = 0 }
+        },
+        .recall_animation = ANI_RESPAWN,
+        .recall_range = {
+
+            /*
+            * X and Z  min / max defaults are overwritten
+            * by Idle range X max for legacy compatability.
+            */
+
+            .base = {.max = MAX_INT, .min = MIN_INT },
+            .x = {.max = MAX_INT, .min = MIN_INT },
+            .y = {.max = MAX_INT, .min = MIN_INT },
+            .z = {.max = MAX_INT, .min = MIN_INT }
+        },
+        .follow_range = {
+
+            /*
+            * X and Z  min / max defaults are overwritten
+            * by Idle range X min for legacy compatability.
+            */
+
+            .base = {.max = MAX_INT, .min = MIN_INT },
+            .x = {.max = MAX_INT, .min = MIN_INT },
+            .y = {.max = MAX_INT, .min = MIN_INT },
+            .z = {.max = MAX_INT, .min = MIN_INT }
+        },
+        .follow_run_range = {
+            .base = {.max = MAX_INT, .min = MIN_INT },
+            .x = {.max = (int)videomodes.hRes * 0.60, .min = (int)videomodes.hRes * -0.60 },
+            .y = {.max = (int)videomodes.vRes * 0.90, .min = (int)videomodes.vRes * -0.90 },
+            .z = {.max = (int)videomodes.vRes * 0.30, .min = (int)videomodes.vRes * -0.30 }
+        }
+    };
+
+    return result;
+}
+
 /* **** Child Spawn **** */
 
 /*
@@ -6135,6 +6206,8 @@ e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_s
     return result;
 }
 
+
+
 /*
 * Caskey, Damon V.
 * 2022-05-26
@@ -6146,21 +6219,10 @@ e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_s
 s_child_spawn* child_spawn_allocate_object()
 {
     s_child_spawn* result;
-    size_t       alloc_size;
-
-    /* Get amount of memory we'll need. */
-    alloc_size = sizeof(*result);
+    const size_t alloc_size = sizeof(*result);
 
     /* Allocate memory and get pointer. */
-    result = malloc(alloc_size);
-
-    /*
-    * Make sure the data members are
-    * zero'd and that "next" member
-    * is NULL.
-    */
-
-    memset(result, 0, alloc_size);
+    result = calloc(1, alloc_size);
 
     result->aimove = AIMOVE_SPECIAL_DEFAULT;
 
@@ -6183,15 +6245,8 @@ s_child_spawn* child_spawn_allocate_object()
 s_child_spawn* child_spawn_append_node(s_child_spawn* head)
 {
     /* Allocate node. */
-    s_child_spawn* new_node = NULL;
-    s_child_spawn* last = NULL;
-
-    /*
-    * Allocate memory and get pointer for 
-    * new node, then default last to head.
-    */
-    new_node = child_spawn_allocate_object();
-    last = head;
+    s_child_spawn* new_node = child_spawn_allocate_object();
+    s_child_spawn* last = head;
 
     /*
     * New node is going to be the last node in
@@ -10894,6 +10949,7 @@ void lcmHandleCommandSubtype(ArgList *arglist, s_model *newchar, char *filename)
     else if(stricmp(value, "follow") == 0)
     {
         newchar->subtype = SUBTYPE_FOLLOW;
+        child_follow_getsert_property(&newchar->child_follow);
     }
     else if(stricmp(value, "chase") == 0)
     {
@@ -12480,12 +12536,12 @@ size_t lcmScriptDeleteMain(char **buf)
 
 //alloc a new model, and everything thats required,
 //set all values to defaults
-s_model *init_model(int cacheindex, int unload)
+s_model *init_model(const int cacheindex, const int unload)
 {
     //to free: newchar, newchar->offense_factors, newchar->special, newchar->animation - OK
     int i;
 
-    s_model *newchar = calloc(1, sizeof(*newchar));
+    s_model* const newchar = calloc(1, sizeof(*newchar));
     if(!newchar)
     {
         borShutdown(1, (char *)E_OUT_OF_MEMORY);
@@ -12508,45 +12564,7 @@ s_model *init_model(int cacheindex, int unload)
 
     alloc_all_scripts(&newchar->scripts);
     
-    newchar->child_follow = (s_child_follow){
-        .direction_adjust_config = DIRECTION_ADJUST_NONE,
-        .direction_adjust_range = {
-            .x = {.max = -1, .min = 0 },
-            .y = {.max = -1, .min = 0 },
-            .z = {.max = -1, .min = 0 }
-        },
-        .recall_animation = ANI_RESPAWN,
-        .recall_range = {
-
-            /*
-            * X and Z  min / max defaults are overwritten 
-            * by Idle range X max for legacy compatability.
-            */
-
-            .base = {.max = MAX_INT, .min = MIN_INT },
-            .x = {.max = MAX_INT, .min = MIN_INT }, 
-            .y = {.max = MAX_INT, .min = MIN_INT },
-            .z = {.max = MAX_INT, .min = MIN_INT }
-        },
-        .follow_range = {
-
-            /*
-            * X and Z  min / max defaults are overwritten
-            * by Idle range X min for legacy compatability.
-            */
-
-            .base = {.max = MAX_INT, .min = MIN_INT },
-            .x = {.max = MAX_INT, .min = MIN_INT },
-            .y = {.max = MAX_INT, .min = MIN_INT },
-            .z = {.max = MAX_INT, .min = MIN_INT }
-        },
-        .follow_run_range = {
-            .base = {.max = MAX_INT, .min = MIN_INT },
-            .x = {.max = (int)videomodes.hRes * 0.60, .min = (int)videomodes.hRes * -0.60 },
-            .y = {.max = (int)videomodes.vRes * 0.90, .min = (int)videomodes.vRes * -0.90 },
-            .z = {.max = (int)videomodes.vRes * 0.30, .min = (int)videomodes.vRes * -0.30 }
-        }
-    };
+    
 
     newchar->death_config_flags = DEATH_CONFIG_MACRO_DEFAULT;
 
@@ -13048,15 +13066,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_X:
-                newchar->child_follow.follow_offset.x = GET_INT_ARG(1);
+
+                child_follow_getsert_property(&newchar->child_follow)->follow_offset.x = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_Y:
-                newchar->child_follow.follow_offset.y = GET_INT_ARG(1);
+                child_follow_getsert_property(&newchar->child_follow)->follow_offset.y = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_Z:
-                newchar->child_follow.follow_offset.z = GET_INT_ARG(1);
+                child_follow_getsert_property(&newchar->child_follow)->follow_offset.z = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
@@ -14551,17 +14570,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * needs.
                 */
 
-                if(!newanim->range.x.min)
-                {
-                    newanim->range.x.min = -10;
-                }
-                newanim->range.x.max            = (int)newchar->jumpheight * 20;		
-                newanim->range.z.min            = (int) - newchar->grabdistance / 3;	
-                newanim->range.z.max            = (int)newchar->grabdistance / 3;		
-                newanim->range.y.min            = (int) - newchar->jumpheight * 10;		
-				newanim->range.y.max			= (int)newchar->jumpheight * 20;
-                newanim->range.base.min         = (int) - newchar->jumpheight * 10;						
-				newanim->range.base.max			= (int)newchar->jumpheight * 20;		
+                const int range_default_grabdistance = (int)newchar->grabdistance / 3;
+                const int range_default_jumpheight_max = (int)newchar->jumpheight * 20;
+                const int range_default_jumpheight_min = (int)newchar->jumpheight * 10;
+
+                newanim->range = (s_range){
+                    .base = {.max = range_default_jumpheight_max, .min = -range_default_jumpheight_min },
+                    .x = {.max = range_default_jumpheight_max, .min = (newanim->range.x.min) ? newanim->range.x.min : -10 },
+                    .y = {.max = range_default_jumpheight_max, .min = -range_default_jumpheight_min },
+                    .z = {.max = range_default_grabdistance, .min = -range_default_grabdistance }
+                };
+
+                		
                 newanim->energy_cost.cost       = 0;
 				newanim->energy_cost.disable	= 0;
 				newanim->energy_cost.mponly		= COST_TYPE_MP_THEN_HP;
@@ -14575,9 +14595,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->sub_entity_unsummon          = FRAME_NONE;
                 newanim->landframe.frame		= FRAME_NONE;
 				newanim->landframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
-                newanim->jumpframe.frame        = FRAME_NONE;
-				newanim->jumpframe.ent			= MODEL_INDEX_NONE;
-				newanim->jumpframe.velocity		= default_model_dropv;
+                
+                newanim->jumpframe = (s_onframe_move){
+                    .frame = FRAME_NONE,
+                    .model_index = MODEL_INDEX_NONE,
+                    .velocity = default_model_dropv
+                };
+                
                 newanim->dropframe.frame        = FRAME_NONE;
 				newanim->dropframe.model_index	= FRAME_SET_MODEL_INDEX_DEFAULT;
                 newanim->cancel                 = ANIMATION_CANCEL_DISABLED;  // OX. For cancelling anims into a freespecial.
@@ -15013,34 +15037,31 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_DIVE: 
                 newanim->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
 
-                // Use jumpframe it to set movement.
-				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
-
-				newanim->jumpframe.frame = 0;
-                newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(2);
-                newanim->jumpframe.ent = MODEL_INDEX_NONE;
+                newanim->jumpframe = (s_onframe_move){
+                    .frame = 0,
+                    .model_index = MODEL_INDEX_NONE,
+                    .velocity = {.x = GET_FLOAT_ARG(1), .y = -GET_FLOAT_ARG(2), .z = 0 }
+                };
                 break;
+
             case CMD_MODEL_DIVE1:
                 newanim->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
 
-                // Use jumpframe to set movement.
-				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
-
-				newanim->jumpframe.frame = 0;
-				newanim->jumpframe.velocity.x = GET_FLOAT_ARG(1);
-                newanim->jumpframe.ent = MODEL_INDEX_NONE;
+                newanim->jumpframe = (s_onframe_move){
+                    .frame = 0,
+                    .model_index = MODEL_INDEX_NONE,
+                    .velocity = {.x = GET_FLOAT_ARG(1), .y = 0, .z = 0 }
+                };
                 break;
             case CMD_MODEL_DIVE2:
                 newanim->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
 
-				// Use jumpframe to set movement.
-				memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
-
-				newanim->jumpframe.frame = 0;
-				newanim->jumpframe.velocity.y = -GET_FLOAT_ARG(1);
-				newanim->jumpframe.ent = MODEL_INDEX_NONE; 
-				break;
+                newanim->jumpframe = (s_onframe_move){
+                    .frame = 0,
+                    .model_index = MODEL_INDEX_NONE,
+                    .velocity = {.x = 0, .y = -GET_FLOAT_ARG(2), .z = 0 }
+                };
+                break;
             case CMD_MODEL_JUMPFRAME:
             {
                 memset(&newanim->jumpframe.velocity, 0, sizeof(s_axis_principal_float));
@@ -15087,11 +15108,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(5);
                 if(value[0])
                 {
-                    newanim->jumpframe.ent = get_cached_model_index(value);
+                    newanim->jumpframe.model_index = get_cached_model_index(value);
                 }
                 else
                 {
-                    newanim->jumpframe.ent = MODEL_INDEX_NONE;
+                    newanim->jumpframe.model_index = MODEL_INDEX_NONE;
                 }
             }
             break;
@@ -23344,20 +23365,23 @@ int calculate_edelay(entity *ent, int frame)
     return result;
 }
 
-// Caskey, Damon V.
-// 2018-04-20
-//
-// Set up jumping velocity for an animation
-// that has jump frame defined and is at the
-// designated jump frame. Also spawns effect
-// entity if one is defined.
-bool check_jumpframe(entity *ent, unsigned int frame)
+/*
+* Caskey, Damon V.
+* 2018-04-20
+*
+* Set up jumping velocity for an animation
+* that has jump frame defined and is at the
+* designated jump frame. Also spawns effect
+* entity if one is defined.
+*/
+bool check_jumpframe(entity * const acting_entity, const unsigned int frame)
 {
-    entity *effect;
+    if (!acting_entity || !acting_entity->animation)
+    {
+        return 0;
+    }
 
-	s_onframe_move* jump;
-
-	jump = &ent->animation->jumpframe;
+    const s_onframe_move* jump = &acting_entity->animation->jumpframe;
 
     // Must have jump frame allocated.
     if(jump->frame == FRAME_NONE)
@@ -23372,32 +23396,33 @@ bool check_jumpframe(entity *ent, unsigned int frame)
     }
 
     // Chuck entity into the air.
-    toss(ent, jump->velocity.y);
+    toss(acting_entity, jump->velocity.y);
 
     // Set left or right horizontal velocity depending on
     // current direction.
-    if(ent->direction == DIRECTION_RIGHT)
+    if(acting_entity->direction == DIRECTION_RIGHT)
     {
-        ent->velocity.x = jump->velocity.x;
+        acting_entity->velocity.x = jump->velocity.x;
     }
     else
     {
-        ent->velocity.x = -jump->velocity.x;
+        acting_entity->velocity.x = -jump->velocity.x;
     }
 
     // Lateral velocity.
-    ent->velocity.z = jump->velocity.z;
+    acting_entity->velocity.z = jump->velocity.z;
 
     // Spawn an effect entity if defined.
-    if(jump->ent >= 0)
+    if(jump->model_index != MODEL_INDEX_NONE)
     {
-        effect = spawn(ent->position.x, ent->position.z, ent->position.y, ent->direction, NULL, jump->ent, NULL);
-        if(effect)
+        entity* const effect_entity = spawn(acting_entity->position.x, acting_entity->position.z, acting_entity->position.y, acting_entity->direction, NULL, jump->model_index, NULL);
+        
+        if(effect_entity)
         {
-            effect->spawntype = SPAWN_TYPE_DUST_JUMP;
-            effect->base = ent->position.y;
-            effect->autokill |= AUTOKILL_ANIMATION_COMPLETE;
-            execute_onspawn_script(effect);
+            effect_entity->spawntype = SPAWN_TYPE_DUST_JUMP;
+            effect_entity->base = acting_entity->position.y;
+            effect_entity->autokill |= AUTOKILL_ANIMATION_COMPLETE;
+            execute_onspawn_script(effect_entity);
         }
     }
 
@@ -34801,26 +34826,28 @@ void npc_recall()
 {
     entity* const acting_entity = self;
 
-    if(!acting_entity->parent)
+    const s_child_follow* const child_follow = acting_entity->modeldata.child_follow;
+
+    if(!child_follow || !acting_entity->parent)
     {
         return;
     }
 
     acting_entity->base = acting_entity->parent->base;
-    acting_entity->position.x = acting_entity->parent->position.x + acting_entity->modeldata.child_follow.recall_offset.x;
-    acting_entity->position.y = acting_entity->parent->position.y + acting_entity->modeldata.child_follow.recall_offset.y;
-    acting_entity->position.z = acting_entity->parent->position.z + acting_entity->modeldata.child_follow.recall_offset.z;  
+    acting_entity->position.x = acting_entity->parent->position.x + child_follow->recall_offset.x;
+    acting_entity->position.y = acting_entity->parent->position.y + child_follow->recall_offset.y;
+    acting_entity->position.z = acting_entity->parent->position.z + child_follow->recall_offset.z;
     
     acting_entity->velocity.x = 0;
     acting_entity->velocity.y = 0;
     acting_entity->velocity.z = 0;
 
-    if (acting_entity->modeldata.child_follow.recall_animation != ANI_NONE)
+    if (child_follow->recall_animation != ANI_NONE)
     {
-        if (validanim(acting_entity, acting_entity->modeldata.child_follow.recall_animation))
+        if (validanim(acting_entity, child_follow->recall_animation))
         {
             acting_entity->takeaction = common_spawn;
-            ent_set_anim(acting_entity, acting_entity->modeldata.child_follow.recall_animation, 0);
+            ent_set_anim(acting_entity, child_follow->recall_animation, 0);
         }
         else if (validanim(acting_entity, ANI_SPAWN))
         {
@@ -36591,7 +36618,7 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
 {   
     //printf("\n\n common_try_follow(%p, %p, %d, %d)", acting_entity, target, axis_x, axis_z);
 
-    const s_child_follow* const child_follow = &acting_entity->modeldata.child_follow;
+    const s_child_follow* const child_follow = acting_entity->modeldata.child_follow;
 
     if(acting_entity == NULL || target == NULL || !child_follow || acting_entity->modeldata.move_config_flags & MOVE_CONFIG_NO_MOVE)
     {
@@ -36617,9 +36644,9 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
     */
 
     const s_axis_principal_float target_pos = {
-        .x = target->position.x + (target->direction == DIRECTION_RIGHT ? acting_entity->modeldata.child_follow.follow_offset.x : -acting_entity->modeldata.child_follow.follow_offset.x),
-        .y = target->position.y + acting_entity->modeldata.child_follow.follow_offset.y,
-        .z = target->position.z + acting_entity->modeldata.child_follow.follow_offset.z
+        .x = target->position.x + (target->direction == DIRECTION_RIGHT ? child_follow->follow_offset.x : -child_follow->follow_offset.x),
+        .y = target->position.y + child_follow->follow_offset.y,
+        .z = target->position.z + child_follow->follow_offset.z
     };
     
     const float distance_x = diff(acting_entity->position.x, target_pos.x);
@@ -38054,9 +38081,10 @@ int common_move()
                 * Any range with min > max is true.
                 */                
 
-                const s_child_follow* child_follow = &acting_entity->modeldata.child_follow;
+                const s_child_follow* const child_follow = acting_entity->modeldata.child_follow;
 
-                if ((child_follow->direction_adjust_range.x.min <= child_follow->direction_adjust_range.x.max && check_range_target_x(acting_entity, owner, NULL, child_follow->direction_adjust_range.x.min, child_follow->direction_adjust_range.x.max))
+                if (child_follow && 
+                    (child_follow->direction_adjust_range.x.min <= child_follow->direction_adjust_range.x.max && check_range_target_x(acting_entity, owner, NULL, child_follow->direction_adjust_range.x.min, child_follow->direction_adjust_range.x.max))
                     && (child_follow->direction_adjust_range.z.min <= child_follow->direction_adjust_range.z.max && check_range_target_z(acting_entity, owner, NULL, child_follow->direction_adjust_range.z.min, child_follow->direction_adjust_range.z.max))
                     && (child_follow->direction_adjust_range.y.min <= child_follow->direction_adjust_range.y.max && check_range_target_y(acting_entity, owner, NULL, child_follow->direction_adjust_range.y.min, child_follow->direction_adjust_range.y.max))) {
                     
@@ -38548,7 +38576,7 @@ int checkplanned()
 int ai_check_recall()
 {
     entity* const acting_entity = self;
-    const s_child_follow* const child_follow = &acting_entity->modeldata.child_follow;
+    const s_child_follow* const child_follow = acting_entity->modeldata.child_follow;
 
     if(!child_follow || acting_entity->link)
     {

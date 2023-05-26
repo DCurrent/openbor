@@ -1650,19 +1650,20 @@ typedef enum e_model_copy
 
 typedef enum
 {
-    MF_NONE,
-    MF_ANIMLIST,
-    MF_COLOURMAP,
-    MF_PALETTE              = 4,
-    MF_WEAPONS              = 8,
-    MF_BRANCH               = 16,
-    MF_ANIMATION            = 32,
-    MF_DEFENSE              = 64,
-    MF_OFF_FACTORS          = 128,
-    MF_SPECIAL              = 256,
-    MF_SMARTBOMB            = 512,
-    MF_SCRIPTS              = 1024,
-    MF_ALL                  = 0x7ff
+    MF_NONE = 0,
+    MF_ANIMLIST = (1 << 0),
+    MF_COLOURMAP = (1 << 1),
+    MF_PALETTE = (1 << 2),
+    MF_WEAPONS = (1 << 3),
+    MF_BRANCH = (1 << 4),
+    MF_ANIMATION = (1 << 5),
+    MF_DEFENSE = (1 << 6),
+    MF_OFF_FACTORS = (1 << 7),
+    MF_SPECIAL = (1 << 8),
+    MF_SMARTBOMB = (1 << 9),
+    MF_SCRIPTS = (1 << 10),
+    MF_CHILD_FOLLOW = (1 << 11),
+    MF_ALL = (MF_ANIMLIST | MF_COLOURMAP | MF_PALETTE | MF_WEAPONS | MF_BRANCH | MF_ANIMATION | MF_DEFENSE | MF_OFF_FACTORS | MF_SPECIAL | MF_SMARTBOMB | MF_SCRIPTS | MF_CHILD_FOLLOW)
 } e_ModelFreetype;
 
 typedef enum
@@ -2421,14 +2422,16 @@ typedef struct
     e_cost_type mponly; //MPonly type. 0 = MP while available, then HP. 1 = MP only. 2 = HP only.
 } s_energy_cost;
 
-// Caskey, Damon V.
-// 2011-04-01
-//
-// On frame movement (slide, jump, dive, etc.).
+/*
+* Caskey, Damon V.
+* 2011-04-01
+*
+* On frame movement (slide, jump, dive, etc.).
+*/
 typedef struct
 {
     unsigned int  frame;      // Frame to perform action.
-    int                 ent;        // Index of entity to spawn.
+    int                 model_index;        // Model to spawn.
     s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
 
@@ -3401,7 +3404,7 @@ typedef struct
 
     s_edelay edelay; // Entity level delay adjustment. ~~
 
-    s_child_follow child_follow;
+    s_child_follow* child_follow;
 
     e_run_config_flags run_config_flags; 
 
@@ -4293,6 +4296,10 @@ s_bind* bind_clone_object(s_bind* source);
 void    bind_dump_object(s_bind* target);
 void    bind_free_object(s_bind* target);
 int     check_bind_override(entity* ent, e_bind_config bind_config);
+
+/* Child follow behavior */
+s_child_follow* child_follow_getsert_property(s_child_follow** acting_object);
+s_child_follow* child_follow_allocate_object();
 
 /* Child spawn control */
 int child_spawn_get_color_from_argument(char* filename, char* command, char* value);
