@@ -23937,9 +23937,9 @@ s_sub_entity *allocate_sub_entity()
 	return result;
 }
 
-entity *spawn(float x, float z, float a, e_direction direction, char *name, int index, s_model *model)
+entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_direction direction, char *model_name, const int model_index, s_model* model_pointer)
 {
-    entity *e = NULL;
+    entity *acting_entity = NULL;
     int i, id;
     s_defense *dfs;
     s_offense *ofs;
@@ -23947,26 +23947,31 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
     Varlist *vars;
     s_scripts *scripts;
 
-    if(!model)
+    /*
+    * Prioritize parameter we use to 
+    * spawn: 
+    * 
+    * 1. model_pointer.
+    * 2. model_index.
+    * 3. model_name.
+    */
+
+    s_model* spawn_model = model_pointer;
+
+    if(!spawn_model)
     {
-        if(index >= 0)
+        if(model_index >= 0)
         {
-            model = model_cache[index].model;
+            spawn_model = model_cache[model_index].model;
         }
-        else if(name)
+        else if(model_name)
         {
-            model = findmodel(name);
+            spawn_model = findmodel(model_name);
         }
     }
-
-    // Be a bit more tolerant...
-    if(model == NULL)
+        
+    if(spawn_model == NULL)
     {
-        /*
-        if(index>=0)
-        	printf("FATAL: attempt to spawn object with invalid model cache id (%d)!\n", index);
-        else if(name)
-        	printf("FATAL: attempt to spawn object with invalid model name (%s)!\n", name);*/
         return NULL;
     }
 
@@ -23977,99 +23982,99 @@ entity *spawn(float x, float z, float a, e_direction direction, char *name, int 
 
     for(i = 0; i < ent_list_size; i++)
     {
-        if(!ent_list[i]->exists || (ent_count >= spawnoverride && ent_list[i]->modeldata.priority < 0 && ent_list[i]->modeldata.priority <= model->priority))
+        if(!ent_list[i]->exists || (ent_count >= spawnoverride && ent_list[i]->modeldata.priority < 0 && ent_list[i]->modeldata.priority <= spawn_model->priority))
         {
-            e = ent_list[i];
-            if(e->exists)
+            acting_entity = ent_list[i];
+            if(acting_entity->exists)
             {
-                kill_entity(e, KILL_ENTITY_TRIGGER_SPAWN_OVERRIDE);
+                kill_entity(acting_entity, KILL_ENTITY_TRIGGER_SPAWN_OVERRIDE);
             }
             // save these values, or they will loss when memset called
-            object_type = e->object_type;
-            id      = e->sortid;
-            dfs     = e->defense;
+            object_type = acting_entity->object_type;
+            id      = acting_entity->sortid;
+            dfs     = acting_entity->defense;
 
-            ofs     = e->offense;
-            vars    = e->varlist;
+            ofs     = acting_entity->offense;
+            vars    = acting_entity->varlist;
             Varlist_Cleanup(vars);
 
-            memcpy(dfs, model->defense, sizeof(*dfs)*max_attack_types);
-            memcpy(ofs, model->offense, sizeof(*ofs)*max_attack_types);
+            memcpy(dfs, spawn_model->defense, sizeof(*dfs)*max_attack_types);
+            memcpy(ofs, spawn_model->offense, sizeof(*ofs)*max_attack_types);
                         
             // clear up
-            clear_all_scripts(e->scripts, 1);
-            if(e->waypoints)
+            clear_all_scripts(acting_entity->scripts, 1);
+            if(acting_entity->waypoints)
             {
-                free(e->waypoints);
+                free(acting_entity->waypoints);
             }
 
-            scripts = e->scripts;
-            memset(e, 0, sizeof(*e));
+            scripts = acting_entity->scripts;
+            memset(acting_entity, 0, sizeof(*acting_entity));
             
 			// e->drawmethod = plainmethod;
-			e->drawmethod = allocate_drawmethod();
+            acting_entity->drawmethod = allocate_drawmethod();
 
-            e->drawmethod->flag = 0;
+            acting_entity->drawmethod->flag = 0;
 
             // add to list and count current entities
-            e->exists = 1;
+            acting_entity->exists = 1;
             ent_count++;
 
-            e->modeldata = *model; // copy the entir model data here
-            e->model = model;
-            e->defaultmodel = model;
+            acting_entity->modeldata = *spawn_model; // copy the entir model data here
+            acting_entity->model = spawn_model;
+            acting_entity->defaultmodel = spawn_model;
 
-            e->scripts = scripts;
+            acting_entity->scripts = scripts;
             // copy from model a fresh script
 
-            copy_all_scripts(model->scripts, e->scripts, 1);
+            copy_all_scripts(spawn_model->scripts, acting_entity->scripts, 1);
 
             if(ent_count > ent_max)
             {
                 ent_max = ent_count;
             }
-            e->timestamp = _time; // log time so update function will ignore it if it is new
+            acting_entity->timestamp = _time; // log time so update function will ignore it if it is new
 
-            e->energy_state.health_current = e->modeldata.health;
-            e->energy_state.mp_current = e->modeldata.mp;
-            e->knockdowncount = e->modeldata.knockdowncount;
-            e->position.x = x;
-            e->position.z = z;
-            e->position.y = a;
-            e->shadow_config_flags = e->modeldata.shadow_config_flags;
-            e->direction = direction;
-            e->nextthink = _time + 1;
-            e->nextmove = _time + 1;
-            e->speedmul = 1;
-            ent_set_colourmap(e, 0);
-            e->lifespancountdown = model->lifespan; // new life span countdown
+            acting_entity->energy_state.health_current = acting_entity->modeldata.health;
+            acting_entity->energy_state.mp_current = acting_entity->modeldata.mp;
+            acting_entity->knockdowncount = acting_entity->modeldata.knockdowncount;
+            acting_entity->position.x = pos_x;
+            acting_entity->position.z = pos_z;
+            acting_entity->position.y = pos_y;
+            acting_entity->shadow_config_flags = acting_entity->modeldata.shadow_config_flags;
+            acting_entity->direction = direction;
+            acting_entity->nextthink = _time + 1;
+            acting_entity->nextmove = _time + 1;
+            acting_entity->speedmul = 1;
+            ent_set_colourmap(acting_entity, 0);
+            acting_entity->lifespancountdown = spawn_model->lifespan; // new life span countdown
             
-            if((e->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
+            if((acting_entity->modeldata.type & TYPE_PLAYER) && ((level && level->nohit == DAMAGE_FROM_PLAYER_OFF) || savedata.mode))
             {
-                e->faction.type_hostile &= ~TYPE_PLAYER;
-                e->faction.type_damage_direct &= ~TYPE_PLAYER;
+                acting_entity->faction.type_hostile &= ~TYPE_PLAYER;
+                acting_entity->faction.type_damage_direct &= ~TYPE_PLAYER;
             }
             
-            if(e->modeldata.type & TYPE_PLAYER)
+            if(acting_entity->modeldata.type & TYPE_PLAYER)
             {
-                e->playerindex = currentspawnplayer;
+                acting_entity->playerindex = currentspawnplayer;
             }
 
-            if(e->modeldata.type & TYPE_TEXTBOX)
+            if(acting_entity->modeldata.type & TYPE_TEXTBOX)
             {
-                textbox = e;
+                textbox = acting_entity;
             }
 
-            strncpy(e->name, e->modeldata.name, MAX_NAME_LEN - 1);
+            strncpy(acting_entity->name, acting_entity->modeldata.name, MAX_NAME_LEN - 1);
             // copy back the value
-            e->object_type = object_type;
-            e->sortid = id;
-            e->defense = dfs;
-            e->offense = ofs;
-            e->varlist = vars;
+            acting_entity->object_type = object_type;
+            acting_entity->sortid = id;
+            acting_entity->defense = dfs;
+            acting_entity->offense = ofs;
+            acting_entity->varlist = vars;
 
-            ent_default_init(e);
-            return e;
+            ent_default_init(acting_entity);
+            return acting_entity;
         }
     }
     return NULL;
