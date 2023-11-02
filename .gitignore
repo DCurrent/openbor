@@ -18,3 +18,4 @@ tools/psp-sdk/*
 tools/devkitpro/*
 !tools/devkitpro/devkitPro.7z
 engine/android/app/src/main/assets/bor.pak
+/openbor_vs
