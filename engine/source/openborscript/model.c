@@ -80,6 +80,13 @@ const s_property_access_map model_get_property_map(const void* acting_object_par
         property_map.type = VT_INTEGER;
         break;
 
+    case MODEL_PROPERTY_CHILD_FOLLOW:
+        property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
+        property_map.field = &acting_object->child_follow;
+        property_map.id_string = "MODEL_PROPERTY_CHILD_FOLLOW";
+        property_map.type = VT_PTR;
+        break;
+
     case MODEL_PROPERTY_COLORSET:
         property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
         property_map.field = &acting_object->colorsets;

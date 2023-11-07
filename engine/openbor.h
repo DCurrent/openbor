@@ -3404,7 +3404,7 @@ typedef struct
 
     s_edelay edelay; // Entity level delay adjustment. ~~
 
-    s_child_follow* child_follow;
+    s_child_follow* child_follow; // Child follow (NPC follow distance) properties.
 
     e_run_config_flags run_config_flags; 
 
