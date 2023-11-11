@@ -36583,9 +36583,6 @@ int common_try_chase(entity* acting_entity, const entity *target, const bool axi
         }
 
         ////////////
-
-
-
     }
 
     if(axis_z)
@@ -36603,6 +36600,7 @@ int common_try_chase(entity* acting_entity, const entity *target, const bool axi
         {
             acting_entity->velocity.z = acting_entity->modeldata.speed.x / 2;
         }
+
         if(acting_entity->destz < acting_entity->position.z)
         {
             acting_entity->velocity.z = -acting_entity->velocity.z;
@@ -36643,7 +36641,7 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
     e_run_state run_state = RUN_STATE_NONE;
     
     /*
-    * Target positon, distance to acting
+    * Target positon, distance to target 
     * entity, and if acting entity is 
     * facing the target.
     */
@@ -41365,21 +41363,36 @@ void player_think()
 
     if (acting_entity->running)
     { 
+        typedef enum e_RunXDirection {
+            RUN_DIR_X_LEFT = -1,
+            RUN_DIR_X_RIGHT = 1,
+            RUN_DIR_X_NONE = 0
+        } e_RunXDirection; 
+        
+        typedef enum e_RunZDirection {
+            RUN_DIR_Z_UP = -1,
+            RUN_DIR_Z_DOWN = 1,
+            RUN_DIR_Z_NONE = 0
+        } e_RunZDirection;
+        
         /*
         * Get player directional input
         * from key status.
         */
 
-        const int movez = (acting_player->keys & FLAG_MOVEUP) ? -1 : (acting_player->keys & FLAG_MOVEDOWN) ? 1 : 0;
-        const int movex = (acting_player->keys & FLAG_MOVELEFT) ? -1 : (acting_player->keys & FLAG_MOVERIGHT) ? 1 : 0;
+        const e_RunZDirection movez = (acting_player->keys & FLAG_MOVEUP) ? RUN_DIR_Z_UP : (acting_player->keys & FLAG_MOVEDOWN) ? RUN_DIR_Z_DOWN : RUN_DIR_Z_NONE;
+        const e_RunXDirection movex = (acting_player->keys & FLAG_MOVELEFT) ? RUN_DIR_X_LEFT : (acting_player->keys & FLAG_MOVERIGHT) ? RUN_DIR_X_RIGHT : RUN_DIR_X_NONE;
 
         /*
-        * Gun a running direction from
+        * Get a running direction from
         * velocity.
         */
 
-        const int running_z = oldrunning ? ((acting_entity->velocity.z < 0) ? -1 : (acting_entity->velocity.z > 0) ? 1 : 0) : 0;
-        const int running_x = oldrunning ? ((acting_entity->velocity.x < 0) ? -1 : (acting_entity->velocity.x > 0) ? 1 : 0) : 0;
+        const e_RunZDirection running_z = oldrunning ? ((acting_entity->velocity.z < 0) ? RUN_DIR_Z_UP : (acting_entity->velocity.z > 0) ? RUN_DIR_Z_DOWN : RUN_DIR_Z_NONE) : RUN_DIR_Z_NONE;
+        const e_RunXDirection running_x = oldrunning ? ((acting_entity->velocity.x < 0) ? RUN_DIR_X_LEFT : (acting_entity->velocity.x > 0) ? RUN_DIR_X_RIGHT : RUN_DIR_X_NONE) : RUN_DIR_X_NONE;
+
+        /* Just for readability below. */
+        const e_run_config_flags acting_run_config_flags = acting_entity->modeldata.run_config_flags;
 
         /*
         * Stop running? 
@@ -41403,71 +41416,93 @@ void player_think()
         * and for Z axis. 
         */
 
-        if (running_x < 0) {
-            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED)) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
-            else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_DASH_FIXED) {
-                if (!acting_entity->animating) {
+        switch(running_x)
+        {
+            case RUN_DIR_X_LEFT:
+
+                if (!(acting_run_config_flags & RUN_CONFIG_X_LEFT_ENABLED)) {
                     acting_entity->running = RUN_STATE_NONE;
                 }
-            }
-            else if ((!movex || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_DASH_COMMAND && !acting_entity->animating))
-                || diff(movex, running_x)
-                || (movez < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
-                || (movez > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
-        }
-        else if (running_x > 0) {
-            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED)) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
-            else if ((acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED)) {
-                if (!acting_entity->animating) {
+                else if (acting_run_config_flags & RUN_CONFIG_X_LEFT_DASH_FIXED) {
+                    if (!acting_entity->animating) {
+                        acting_entity->running = RUN_STATE_NONE;
+                    }
+                }
+                else if ((movex == RUN_DIR_X_NONE || (acting_run_config_flags & RUN_CONFIG_X_LEFT_DASH_COMMAND && !acting_entity->animating))
+                    || diff(movex, running_x)
+                    || (movez == RUN_DIR_Z_UP && !(acting_run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
+                    || (movez == RUN_DIR_Z_DOWN && !(acting_run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
                     acting_entity->running = RUN_STATE_NONE;
                 }
-            }
-            else if ((!movex || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_DASH_COMMAND && !acting_entity->animating))
-                || diff(movex, running_x)
-                || (movez < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
-                || (movez > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
+
+                break;
+
+            case RUN_DIR_X_RIGHT:
+
+                if (!(acting_run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED)) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+                else if ((acting_run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED)) {
+                    if (!acting_entity->animating) {
+                        acting_entity->running = RUN_STATE_NONE;
+                    }
+                }
+                else if ((movex == RUN_DIR_X_NONE || (acting_run_config_flags & RUN_CONFIG_X_RIGHT_DASH_COMMAND && !acting_entity->animating))
+                    || diff(movex, running_x)
+                    || (movez == RUN_DIR_Z_UP && !(acting_run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
+                    || (movez == RUN_DIR_Z_DOWN && !(acting_run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+
+                break;
+
+            case RUN_DIR_X_NONE:
+                break;
         }
 
-        if (running_z < 0)
+        switch(running_z)
         {
-            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_ENABLED)) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
-            else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_DASH_FIXED) {
-                if (!acting_entity->animating) {
+            case RUN_DIR_Z_UP:
+                
+                if (!(acting_run_config_flags & RUN_CONFIG_Z_UP_ENABLED)) {
                     acting_entity->running = RUN_STATE_NONE;
                 }
-            }
-            else if ((!movez || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_UP_DASH_COMMAND && !acting_entity->animating))
-                || diff(movez, running_z)
-                || (movex < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
-                || (movex > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
-        }
-        else if (running_z > 0) {
-            if (!(acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED)) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
-            else if (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_DASH_FIXED) {
-                if (!acting_entity->animating) {
+                else if (acting_run_config_flags & RUN_CONFIG_Z_UP_DASH_FIXED) {
+                    if (!acting_entity->animating) {
+                        acting_entity->running = RUN_STATE_NONE;
+                    }
+                }
+                else if ((!movez || (acting_run_config_flags & RUN_CONFIG_Z_UP_DASH_COMMAND && !acting_entity->animating))
+                    || diff(movez, running_z)
+                    || (movex == RUN_DIR_X_LEFT && !(acting_run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
+                    || (movex == RUN_DIR_X_RIGHT && !(acting_run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
                     acting_entity->running = RUN_STATE_NONE;
                 }
-            }
-            else if ((!movez || (acting_entity->modeldata.run_config_flags & RUN_CONFIG_Z_DOWN_DASH_COMMAND && !acting_entity->animating))
-                || diff(movez, running_z)
-                || (movex < 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
-                || (movex > 0 && !(acting_entity->modeldata.run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
-                acting_entity->running = RUN_STATE_NONE;
-            }
+
+                break;
+
+            case RUN_DIR_Z_DOWN:
+
+                if (!(acting_run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED)) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+                else if (acting_run_config_flags & RUN_CONFIG_Z_DOWN_DASH_FIXED) {
+                    if (!acting_entity->animating) {
+                        acting_entity->running = RUN_STATE_NONE;
+                    }
+                }
+                else if ((!movez || (acting_run_config_flags & RUN_CONFIG_Z_DOWN_DASH_COMMAND && !acting_entity->animating))
+                    || diff(movez, running_z)
+                    || (movex == RUN_DIR_X_LEFT && !(acting_run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
+                    || (movex == RUN_DIR_X_RIGHT && !(acting_run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
+                    acting_entity->running = RUN_STATE_NONE;
+                }
+
+                break;
+
+            case RUN_DIR_Z_NONE:
+                break;
+                
         }
     }
 

@@ -6944,6 +6944,13 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(SUCCEEDED(ScriptVariant_DecimalValue(varlist[2], &dbltemp)))
         {
             ent->modeldata.runspeed = (DOUBLE)dbltemp;
+
+            // For backward compatability.
+            if (ent->modeldata.runspeed)
+            {
+                ent->modeldata.run_config_flags |= (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL | RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL);
+            }
+
         }
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
@@ -6960,6 +6967,12 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
         if(paramCount >= 7 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
         {
             ent->modeldata.runupdown = (int)dbltemp;
+
+            /* For backward compatability. */
+            if (ent->modeldata.runupdown)
+            {
+                ent->modeldata.run_config_flags |= (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
+            }
         }
 
         break;
