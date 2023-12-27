@@ -15347,7 +15347,20 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 break;
 
-            case CMD_MODEL_BBOX:                
+            case CMD_MODEL_BBOX:   
+
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index);
+
+                value = GET_ARG(1);
+                if (stricmp(value, "none") == 0)
+                {
+                    collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->x = 0;
+                    collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->y = 0;
+                    collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->width = 0;
+                    collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->height = 0;
+
+                    break;
+                }
 
                 collision_body_upsert_property(&temp_collision_body_head, temp_collision_index);
                 collision_body_upsert_coordinates_property(&temp_collision_body_head, temp_collision_index)->x = GET_INT_ARG(1);
@@ -16135,6 +16148,18 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // 2020-03-08, 
 
                 collision_attack_upsert_property(&temp_collision_head, temp_collision_index);
+
+                value = GET_ARG(1);
+                if (stricmp(value, "none") == 0)
+                {
+                    collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = 0;
+                    collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = 0;
+                    collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = 0;
+                    collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->height = 0;
+
+                    break;
+                }
+               
                 collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->x = GET_INT_ARG(1);
                 collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->y = GET_INT_ARG(2);
                 collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->width = GET_INT_ARG(3);
@@ -16147,7 +16172,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 // -- Not a typo - legacy Z sets identical value to back/fore.
                 collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_background = GET_INT_ARG(10);
-                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(10);         
+                collision_attack_upsert_coordinates_property(&temp_collision_head, temp_collision_index)->z_foreground = GET_INT_ARG(10);
+               
+                       
 
                 switch(cmd)
                 {
