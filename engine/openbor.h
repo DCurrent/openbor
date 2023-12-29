@@ -3335,6 +3335,18 @@ typedef enum e_run_state {
     RUN_STATE_START_Z = (1 << 1)   // Player or AI initialized running on Z axis.
 } e_run_state;
 
+typedef enum e_RunXDirection {
+    RUN_DIR_X_LEFT = -1,
+    RUN_DIR_X_RIGHT = 1,
+    RUN_DIR_X_NONE = 0
+} e_RunXDirection;
+
+typedef enum e_RunZDirection {
+    RUN_DIR_Z_UP = -1,
+    RUN_DIR_Z_DOWN = 1,
+    RUN_DIR_Z_NONE = 0
+} e_RunZDirection;
+
 typedef struct s_child_follow
 {    
     e_direction_adjust direction_adjust_config;
@@ -4402,6 +4414,9 @@ int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_
 /* Running */
 e_run_config_flags run_get_config_flag_from_string(const char* value);
 e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const unsigned int start_position);
+void run_try_runstop_player(entity* acting_entity, const s_player* acting_player);
+void run_try_runstop_check(entity* acting_entity, const e_RunXDirection movex, const e_RunZDirection movez, const e_RunXDirection running_x, const e_RunZDirection running_z, const int runConfigFlags, const int dashCommandFlag, const int dashFixedFlag, const int enabledFlag, const int stopStateFlag);
+
 
 /* Shadows */
 e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flags shadow_config_flags, int legacy_value);

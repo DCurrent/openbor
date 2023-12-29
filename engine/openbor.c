@@ -40784,6 +40784,111 @@ int player_preinput()
     return 0;
 }
 
+
+/*
+* Caskey, Damon V.
+* 2023-12-29    
+* 
+* Stop running if player
+* no longer inputs direction
+* that started the run.
+*/
+void run_try_runstop_check(entity* acting_entity, const e_RunXDirection movex, const e_RunZDirection movez, const e_RunXDirection running_x, const e_RunZDirection running_z, const int runConfigFlags, const int dashCommandFlag, const int dashFixedFlag, const int enabledFlag, const int stopStateFlag) {
+    if (!(runConfigFlags & enabledFlag)        
+        || (dashFixedFlag && !acting_entity->animating)
+        || ((dashCommandFlag && !acting_entity->animating)
+            || (diff(movex, running_x) && (movez == RUN_DIR_Z_NONE || acting_entity->running & RUN_STATE_START_X))
+            || (diff(movez, running_z) && (movex == RUN_DIR_X_NONE || acting_entity->running & RUN_STATE_START_Z)))) {
+        acting_entity->running = stopStateFlag;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2023-12-29
+* 
+* Check player input and run stop
+* function if needed.
+*/
+void run_try_runstop_player(entity* acting_entity, const s_player* acting_player)
+{   
+    const e_run_state run_state = acting_entity->running;
+
+    if (run_state == RUN_STATE_NONE)
+    {
+        return;
+    }
+
+    /*
+    * Get player directional input
+    * from key status.
+    */
+
+    const e_RunZDirection movez = (acting_player->keys & FLAG_MOVEUP) ? RUN_DIR_Z_UP : (acting_player->keys & FLAG_MOVEDOWN) ? RUN_DIR_Z_DOWN : RUN_DIR_Z_NONE;
+    const e_RunXDirection movex = (acting_player->keys & FLAG_MOVELEFT) ? RUN_DIR_X_LEFT : (acting_player->keys & FLAG_MOVERIGHT) ? RUN_DIR_X_RIGHT : RUN_DIR_X_NONE;
+
+    /*
+    * Get a running direction from
+    * velocity.
+    */
+
+    const e_RunZDirection running_z = run_state ? ((acting_entity->velocity.z < 0) ? RUN_DIR_Z_UP : (acting_entity->velocity.z > 0) ? RUN_DIR_Z_DOWN : RUN_DIR_Z_NONE) : RUN_DIR_Z_NONE;
+    const e_RunXDirection running_x = run_state ? ((acting_entity->velocity.x < 0) ? RUN_DIR_X_LEFT : (acting_entity->velocity.x > 0) ? RUN_DIR_X_RIGHT : RUN_DIR_X_NONE) : RUN_DIR_X_NONE;
+
+    /* Just for readability below. */
+    const e_run_config_flags acting_run_config_flags = acting_entity->modeldata.run_config_flags;
+
+    /*
+    * Stop running?
+    *
+    * 1. X axis direction.
+    * 2. Able to run in X direction?
+    * 3. Fixed dash? Fixed dashes stop
+    * when the animation completes. They
+    * ignore releasing the key and do not
+    * stop on a perpendicular axis command
+    * even if we can't move on the other
+    * axis. Note the other axis is ignored
+    * by logic downstream.
+    *
+    * 4. Stop on following:
+    * - No direction command.
+    * - Direction command opposes current direction.
+    * - Perpendicular axis command when we don't have the flag enabled.
+    *
+    * Repeat check for opposite direction
+    * and for Z axis.
+    */
+
+    switch (running_x) {
+    case RUN_DIR_X_LEFT:
+        run_try_runstop_check(acting_entity, movex, movez, running_x, running_z, acting_run_config_flags, RUN_CONFIG_X_LEFT_DASH_COMMAND, RUN_CONFIG_X_LEFT_DASH_FIXED, RUN_CONFIG_X_LEFT_ENABLED, RUN_STATE_NONE);
+        break;
+
+    case RUN_DIR_X_RIGHT:
+        run_try_runstop_check(acting_entity, movex, movez, running_x, running_z, acting_run_config_flags, RUN_CONFIG_X_RIGHT_DASH_COMMAND, RUN_CONFIG_X_RIGHT_DASH_FIXED, RUN_CONFIG_X_RIGHT_ENABLED, RUN_STATE_NONE);
+        break;
+
+    case RUN_DIR_X_NONE:
+        break;
+    }
+
+    switch (running_z) {
+    case RUN_DIR_Z_UP:
+        run_try_runstop_check(acting_entity, movex, movez, running_x, running_z, acting_run_config_flags, RUN_CONFIG_Z_UP_DASH_COMMAND, RUN_CONFIG_Z_UP_DASH_FIXED, RUN_CONFIG_Z_UP_ENABLED, RUN_STATE_NONE);
+        break;
+
+    case RUN_DIR_Z_DOWN:
+        run_try_runstop_check(acting_entity, movex, movez, running_x, running_z, acting_run_config_flags, RUN_CONFIG_Z_DOWN_DASH_COMMAND, RUN_CONFIG_Z_DOWN_DASH_FIXED, RUN_CONFIG_Z_DOWN_ENABLED, RUN_STATE_NONE);
+        break;
+
+    case RUN_DIR_Z_NONE:
+        break;
+    }
+}
+
+
+
 void player_think()
 {
     typedef enum e_local_action_flags
@@ -40812,7 +40917,7 @@ void player_think()
     static const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
     static const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
 
-    int oldrunning = acting_entity->running;
+    
     int pli = acting_entity->playerindex;
     s_player *acting_player = player + pli;
 
@@ -41387,151 +41492,10 @@ void player_think()
     /*
     * Run stop.
     */
+    run_try_runstop_player(acting_entity, acting_player);
 
-    if (acting_entity->running)
-    { 
-        typedef enum e_RunXDirection {
-            RUN_DIR_X_LEFT = -1,
-            RUN_DIR_X_RIGHT = 1,
-            RUN_DIR_X_NONE = 0
-        } e_RunXDirection; 
-        
-        typedef enum e_RunZDirection {
-            RUN_DIR_Z_UP = -1,
-            RUN_DIR_Z_DOWN = 1,
-            RUN_DIR_Z_NONE = 0
-        } e_RunZDirection;
-        
-        /*
-        * Get player directional input
-        * from key status.
-        */
-
-        const e_RunZDirection movez = (acting_player->keys & FLAG_MOVEUP) ? RUN_DIR_Z_UP : (acting_player->keys & FLAG_MOVEDOWN) ? RUN_DIR_Z_DOWN : RUN_DIR_Z_NONE;
-        const e_RunXDirection movex = (acting_player->keys & FLAG_MOVELEFT) ? RUN_DIR_X_LEFT : (acting_player->keys & FLAG_MOVERIGHT) ? RUN_DIR_X_RIGHT : RUN_DIR_X_NONE;
-
-        /*
-        * Get a running direction from
-        * velocity.
-        */
-
-        const e_RunZDirection running_z = oldrunning ? ((acting_entity->velocity.z < 0) ? RUN_DIR_Z_UP : (acting_entity->velocity.z > 0) ? RUN_DIR_Z_DOWN : RUN_DIR_Z_NONE) : RUN_DIR_Z_NONE;
-        const e_RunXDirection running_x = oldrunning ? ((acting_entity->velocity.x < 0) ? RUN_DIR_X_LEFT : (acting_entity->velocity.x > 0) ? RUN_DIR_X_RIGHT : RUN_DIR_X_NONE) : RUN_DIR_X_NONE;
-
-        /* Just for readability below. */
-        const e_run_config_flags acting_run_config_flags = acting_entity->modeldata.run_config_flags;
-
-        /*
-        * Stop running? 
-        * 
-        * 1. X axis direction.
-        * 2. Able to run in X direction?
-        * 3. Fixed dash? Fixed dashes stop 
-        * when the animation completes. They
-        * ignore releasing the key and do not
-        * stop on a perpendicular axis command
-        * even if we can't move on the other
-        * axis. Note the other axis is ignored
-        * by logic downstream.
-        * 
-        * 4. Stop on following:
-        * - No direction command.
-        * - Direction command opposes current direction.
-        * - Perpendicular axis command when we don't have the flag enabled.
-        * 
-        * Repeat check for opposite direction
-        * and for Z axis. 
-        */
-
-        switch(running_x)
-        {
-            case RUN_DIR_X_LEFT:
-
-                if (!(acting_run_config_flags & RUN_CONFIG_X_LEFT_ENABLED)) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-                else if (acting_run_config_flags & RUN_CONFIG_X_LEFT_DASH_FIXED) {
-                    if (!acting_entity->animating) {
-                        acting_entity->running = RUN_STATE_NONE;
-                    }
-                }
-                else if ((movex == RUN_DIR_X_NONE || (acting_run_config_flags & RUN_CONFIG_X_LEFT_DASH_COMMAND && !acting_entity->animating))
-                    || diff(movex, running_x)
-                    || (movez == RUN_DIR_Z_UP && !(acting_run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
-                    || (movez == RUN_DIR_Z_DOWN && !(acting_run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-
-                break;
-
-            case RUN_DIR_X_RIGHT:
-
-                if (!(acting_run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED)) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-                else if ((acting_run_config_flags & RUN_CONFIG_X_RIGHT_DASH_FIXED)) {
-                    if (!acting_entity->animating) {
-                        acting_entity->running = RUN_STATE_NONE;
-                    }
-                }
-                else if ((movex == RUN_DIR_X_NONE || (acting_run_config_flags & RUN_CONFIG_X_RIGHT_DASH_COMMAND && !acting_entity->animating))
-                    || diff(movex, running_x)
-                    || (movez == RUN_DIR_Z_UP && !(acting_run_config_flags & RUN_CONFIG_Z_UP_ENABLED))
-                    || (movez == RUN_DIR_Z_DOWN && !(acting_run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED))) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-
-                break;
-
-            case RUN_DIR_X_NONE:
-                break;
-        }
-
-        switch(running_z)
-        {
-            case RUN_DIR_Z_UP:
-                
-                if (!(acting_run_config_flags & RUN_CONFIG_Z_UP_ENABLED)) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-                else if (acting_run_config_flags & RUN_CONFIG_Z_UP_DASH_FIXED) {
-                    if (!acting_entity->animating) {
-                        acting_entity->running = RUN_STATE_NONE;
-                    }
-                }
-                else if ((!movez || (acting_run_config_flags & RUN_CONFIG_Z_UP_DASH_COMMAND && !acting_entity->animating))
-                    || diff(movez, running_z)
-                    || (movex == RUN_DIR_X_LEFT && !(acting_run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
-                    || (movex == RUN_DIR_X_RIGHT && !(acting_run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-
-                break;
-
-            case RUN_DIR_Z_DOWN:
-
-                if (!(acting_run_config_flags & RUN_CONFIG_Z_DOWN_ENABLED)) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-                else if (acting_run_config_flags & RUN_CONFIG_Z_DOWN_DASH_FIXED) {
-                    if (!acting_entity->animating) {
-                        acting_entity->running = RUN_STATE_NONE;
-                    }
-                }
-                else if ((!movez || (acting_run_config_flags & RUN_CONFIG_Z_DOWN_DASH_COMMAND && !acting_entity->animating))
-                    || diff(movez, running_z)
-                    || (movex == RUN_DIR_X_LEFT && !(acting_run_config_flags & RUN_CONFIG_X_LEFT_ENABLED))
-                    || (movex == RUN_DIR_X_RIGHT && !(acting_run_config_flags & RUN_CONFIG_X_RIGHT_ENABLED))) {
-                    acting_entity->running = RUN_STATE_NONE;
-                }
-
-                break;
-
-            case RUN_DIR_Z_NONE:
-                break;
-                
-        }
-    }
+    /*
+    */
 
     if(PLAYER_MIN_Z != PLAYER_MAX_Z && acting_entity->ducking == DUCK_NONE)
     {
