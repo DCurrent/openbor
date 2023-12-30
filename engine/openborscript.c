@@ -4998,7 +4998,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         case _ep_running_land:
         {
             ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-            (*pretvar)->lVal = (LONG)ent->modeldata.runhold;
+            (*pretvar)->lVal = (LONG)(ent->modeldata.run_config_flags & RUN_CONFIG_LAND);
+
             break;
         }
         case _ep_running_movez:
@@ -6950,7 +6951,6 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             {
                 ent->modeldata.run_config_flags |= (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL | RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL);
             }
-
         }
         if(paramCount >= 4 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[3], &dbltemp)))
         {
@@ -6961,8 +6961,15 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             ent->modeldata.runjumpdist = (DOUBLE)dbltemp;
         }
         if(paramCount >= 6 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[5], &dbltemp)))
-        {
-            ent->modeldata.runhold = (int)dbltemp;
+        {            
+            if ((int)dbltemp)
+            {
+                ent->modeldata.run_config_flags |= RUN_CONFIG_LAND;
+            }
+            else
+            {
+                ent->modeldata.run_config_flags &= ~RUN_CONFIG_LAND;
+            }
         }
         if(paramCount >= 7 && SUCCEEDED(ScriptVariant_DecimalValue(varlist[6], &dbltemp)))
         {
@@ -6972,6 +6979,10 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
             if (ent->modeldata.runupdown)
             {
                 ent->modeldata.run_config_flags |= (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
+            }
+            else
+            {
+                ent->modeldata.run_config_flags &= ~(RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
             }
         }
 

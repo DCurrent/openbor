@@ -13791,11 +13791,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 {
                     newchar->run_config_flags &= ~(RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_UP_ENABLED);
                 }
-                
-                newchar->runhold = GET_INT_ARG(5);
+                                
+                tempInt = GET_INT_ARG(5);
+
+                if (tempInt)
+                {
+                    newchar->run_config_flags |= RUN_CONFIG_LAND;
+                }
+                else
+                {
+                    newchar->run_config_flags &= ~RUN_CONFIG_LAND;
+                }
+
                 break;
             case CMD_MODEL_RUNNING_CONTINUE:
-                newchar->runhold = GET_FLOAT_ARG(1);
+                tempInt = GET_INT_ARG(1);
+
+                if (tempInt)
+                {
+                    newchar->run_config_flags |= RUN_CONFIG_LAND;
+                }
+                else
+                {
+                    newchar->run_config_flags &= ~RUN_CONFIG_LAND;
+                }
                 break;
             case CMD_MODEL_RUNNING_JUMP_VELOCITY_X:
                 newchar->runjumpdist = GET_FLOAT_ARG(1);
@@ -30922,10 +30941,11 @@ void common_jump()
         self->ducking = DUCK_NONE;
         self->attacking = ATTACKING_NONE;
 
-        if(!self->modeldata.runhold)
+        if (!(self->modeldata.run_config_flags & RUN_CONFIG_LAND))
         {
             self->running = RUN_STATE_NONE;
         }
+
 
         self->velocity.z = self->velocity.x = 0;
 
@@ -36682,7 +36702,7 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
     const float distance_x = diff(acting_entity->position.x, target_pos.x);
     const float distance_z = diff(acting_entity->position.z, target_pos.z);
 
-    const bool facing_target = (acting_entity->direction == DIRECTION_RIGHT ? acting_entity->position.x < target_pos.x : acting_entity->position.x > target_pos.x);
+    const int facing_target = (acting_entity->direction == DIRECTION_RIGHT ? acting_entity->position.x < target_pos.x : acting_entity->position.x > target_pos.x);
 
     /*
     * Set up follow/run ranges. The use of 
@@ -36690,7 +36710,7 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
     * defaults is for legacy compatability.
     */
 
-    const bool valid_idle = validanim(acting_entity, ANI_IDLE);
+    const int valid_idle = validanim(acting_entity, ANI_IDLE);
     const int follow_range_default_x = (valid_idle) ? acting_entity->modeldata.animation[ANI_IDLE]->range.x.min : 100;
     const int follow_range_default_z = (int)follow_range_default_x * 0.5;
 

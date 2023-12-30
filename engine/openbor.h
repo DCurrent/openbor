@@ -3424,7 +3424,6 @@ typedef struct
     float runjumpheight; // The height the character jumps when running
     float runjumpdist; // The distance the character jumps when running
     int runupdown; // Flag to determine if a player will continue to run while pressing up or down; 1 = Enabled. 2 = Can intialize a run up/up, down/down, 4 = Can hold only Z.
-    int runhold; // Flag to determine if a player will continue to run if holding down forward when landing
     
     int remove; // Flag to remove a projectile on contact or not
     int noatflash; // Flag to determine if attacking characters attack spawns a flash
