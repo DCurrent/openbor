@@ -1399,13 +1399,13 @@ typedef enum
 // Direction adjustment enum. Used for binding and changing direction of defender when hit.
 typedef enum
 {
-    
-
-    DIRECTION_ADJUST_NONE,             //Leave as is.
-    DIRECTION_ADJUST_SAME,             //Same as attacker/bind/etc.
-    DIRECTION_ADJUST_OPPOSITE  = -1,   //Opposite attacker/bind/etc.
-    DIRECTION_ADJUST_RIGHT     = 2,    //Always right.
-    DIRECTION_ADJUST_LEFT      = -2    //Always left.
+    DIRECTION_ADJUST_NONE,             // Leave as is.
+    DIRECTION_ADJUST_SAME,             // Same as attacker/bind/etc.
+    DIRECTION_ADJUST_OPPOSITE  = -1,   // Opposite attacker/bind/etc.
+    DIRECTION_ADJUST_RIGHT     = 2,    // Always right.
+    DIRECTION_ADJUST_LEFT      = -2,   // Always left.
+    DIRECTION_ADJUST_TOWARD    = 3,    // Away from target/bind/etc. 
+    DIRECTION_ADJUST_AWAY      = 4     // Toward target/bind/etc.
 } e_direction_adjust;
 
 typedef enum
@@ -4169,7 +4169,7 @@ size_t  ParseArgs								(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex					(ScriptVariant *var, int index);
 int     changesyspropertybyindex				(int index, ScriptVariant *value);
 e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* command, char* value);
-e_direction	direction_get_adjustment_result				(e_direction direction_default, e_direction direction_target, e_direction_adjust adjustment);
+e_direction	direction_get_adjustment_result	    (entity* acting_entity, const entity* target_entity, e_direction_adjust adjustment);
 int     load_script								(Script *script, char *path);
 void    init_scripts();
 void    load_scripts();

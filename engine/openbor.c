@@ -6000,12 +6000,12 @@ s_child_follow* child_follow_allocate_object()
     result = calloc(1, alloc_size);
 
     *result = (s_child_follow){
-        .direction_adjust_config = DIRECTION_ADJUST_NONE,
+        .direction_adjust_config = DIRECTION_ADJUST_TOWARD,
         .direction_adjust_range = {
-            .base = {.max = -1, .min = 0 },
-            .x = {.max = -1, .min = 0 },
-            .y = {.max = -1, .min = 0 },
-            .z = {.max = -1, .min = 0 }
+            .base = {.max = MAX_INT, .min = MIN_INT },
+            .x = {.max = MAX_INT, .min = MIN_INT },
+            .y = {.max = MAX_INT, .min = MIN_INT },
+            .z = {.max = MAX_INT, .min = MIN_INT }
         },
         .recall_animation = ANI_RESPAWN,
         .recall_range = {
@@ -6034,9 +6034,9 @@ s_child_follow* child_follow_allocate_object()
         },
         .follow_run_range = {
             .base = {.max = MAX_INT, .min = MIN_INT },
-            .x = {.max = (int)videomodes.hRes * 0.60, .min = (int)videomodes.hRes * -0.60 },
-            .y = {.max = (int)videomodes.vRes * 0.90, .min = (int)videomodes.vRes * -0.90 },
-            .z = {.max = (int)videomodes.vRes * 0.30, .min = (int)videomodes.vRes * -0.30 }
+            .x = {.max = MAX_INT, .min = MIN_INT },
+            .y = {.max = MAX_INT, .min = MIN_INT },
+            .z = {.max = MAX_INT, .min = MIN_INT }
         }
     };
 
@@ -6678,7 +6678,7 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     int i = 0;
     entity* child_entity = NULL;
     s_axis_principal_float position;
-    e_direction direction;
+    e_direction direction = DIRECTION_RIGHT;
     s_model* child_model = NULL;
 
     if (object->model_index == MODEL_INDEX_NONE || !parent)
@@ -6691,27 +6691,8 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     printf("\n\t object->model_index: %d", object->model_index);
     printf("\n\t child_model: %p", child_model);
     
-    /*
-    * Let's set up the spawn position. Reverse X when
-    * parent faces left.
-    *
-    * Apply default X position if creator did not give
-    * us a value.
-    */
-    direction = direction_get_adjustment_result(parent->direction, parent->direction, object->direction_adjust);
-
-    printf("\n\t direction: %d", direction);
-    printf("\n\t Parent: x: %f, y: %f, z: %f", parent->position.x, parent->position.y, parent->position.z);
-
-    if (direction == DIRECTION_RIGHT && object->config & ~(CHILD_SPAWN_CONFIG_POSITION_LEVEL | CHILD_SPAWN_CONFIG_POSITION_SCREEN))
-    {
-        position.x = parent->position.x + object->position.x;        
-    }
-    else
-    {
-        position.x = parent->position.x - object->position.x;
-    }
-
+    
+    position.x = parent->position.x;
     position.y = parent->position.y + object->position.y;
     position.z = parent->position.z + object->position.z;
 
@@ -6730,6 +6711,31 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     {
         return NULL;
     }
+
+    /*
+    * Let's set up the spawn position. Reverse X when
+    * parent faces left.
+    *
+    * Apply default X position if creator did not give
+    * us a value.
+    */
+    direction = direction_get_adjustment_result(child_entity, parent, object->direction_adjust);
+
+    printf("\n\t direction: %d", direction);
+    printf("\n\t Parent: x: %f, y: %f, z: %f", parent->position.x, parent->position.y, parent->position.z);
+
+    if (direction == DIRECTION_RIGHT && object->config & ~(CHILD_SPAWN_CONFIG_POSITION_LEVEL | CHILD_SPAWN_CONFIG_POSITION_SCREEN))
+    {
+        position.x = parent->position.x + object->position.x;
+    }
+    else
+    {
+        position.x = parent->position.x - object->position.x;
+    }
+
+    child_entity->direction = direction;
+    child_entity->position.x = position.x;
+    
 
     child_entity->spawntype = SPAWN_TYPE_CHILD;
 
@@ -13065,17 +13071,130 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
 
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_CONFIG:
+
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_config = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_BASE_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.base.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_BASE_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.base.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_X_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.x.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_X_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.x.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_Y_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.y.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_Y_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.y.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_Z_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.z.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_DIRECTION_ADJUST_RANGE_Z_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->direction_adjust_range.z.min = GET_INT_ARG(1);
+                break;
+
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_X:
 
                 child_follow_getsert_property(&newchar->child_follow)->follow_offset.x = GET_INT_ARG(1);
                 break;
-
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_Y:
                 child_follow_getsert_property(&newchar->child_follow)->follow_offset.y = GET_INT_ARG(1);
                 break;
-
             case CMD_MODEL_CHILD_FOLLOW_OFFSET_Z:
                 child_follow_getsert_property(&newchar->child_follow)->follow_offset.z = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_BASE_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.base.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_BASE_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.base.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_X_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.x.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_X_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.x.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_Y_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.y.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_Y_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.y.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_Z_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.z.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RECALL_Z_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->recall_range.z.min = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_BASE_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.base.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_BASE_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.base.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_X_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.x.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_X_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.x.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_Y_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.y.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_Y_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.y.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_Z_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.z.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_RUN_Z_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_run_range.z.min = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_BASE_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.base.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_BASE_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.base.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_X_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.x.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_X_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.x.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_Y_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.y.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_Y_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.y.min = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_Z_MAX:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.z.max = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RANGE_Z_MIN:
+                child_follow_getsert_property(&newchar->child_follow)->follow_range.z.min = GET_INT_ARG(1);
+                break;
+
+            case CMD_MODEL_CHILD_FOLLOW_RECALL_OFFSET_X:
+
+                child_follow_getsert_property(&newchar->child_follow)->recall_offset.x = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RECALL_OFFSET_Y:
+                child_follow_getsert_property(&newchar->child_follow)->recall_offset.y = GET_INT_ARG(1);
+                break;
+            case CMD_MODEL_CHILD_FOLLOW_RECALL_OFFSET_Z:
+                child_follow_getsert_property(&newchar->child_follow)->recall_offset.z = GET_INT_ARG(1);
                 break;
 
             case CMD_MODEL_HITENEMY:	// Flag to determine if an enemy projectile will hit enemies
@@ -28770,7 +28889,7 @@ void adjust_bind(entity* acting_entity)
     acting_entity->sortid = acting_entity->binding.target->sortid + acting_entity->binding.sortid;
 
 	/* Getand apply direction adjustment. */
-    acting_entity->direction = direction_get_adjustment_result(acting_entity->direction, acting_entity->binding.target->direction, acting_entity->binding.direction_adjust);
+    acting_entity->direction = direction_get_adjustment_result(acting_entity, acting_entity->binding.target, acting_entity->binding.direction_adjust);
 
     /*
 	* Apply positioning based on config. For
@@ -28851,6 +28970,14 @@ e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* 
     {
         result = DIRECTION_ADJUST_SAME;
     }
+    else if (stricmp(value, "toward") == 0)
+    {
+        result = DIRECTION_ADJUST_TOWARD;
+    }
+    else if (stricmp(value, "away") == 0)
+    {
+        result = DIRECTION_ADJUST_AWAY;
+    }
     else
     {
         result = getValidInt(value, filename, command);
@@ -28865,8 +28992,19 @@ e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* 
 // Return an adjusted entity direction based 
 // on original direction, target direction
 // and direction adjust setting.
-e_direction direction_get_adjustment_result(e_direction direction_default, e_direction direction_target, e_direction_adjust adjustment)
+e_direction direction_get_adjustment_result(entity* acting_entity, const entity* target_entity, const e_direction_adjust adjustment)
 {
+    if (!acting_entity || !target_entity)
+    {
+        borShutdown(1, "direction_get_adjustment_result() was passed a NULL pointer.");
+    }
+
+    const e_direction acting_direction = acting_entity->direction;
+    const e_direction target_direction = target_entity->direction;
+
+    const float acting_position_x = acting_entity->position.x;
+    const float target_position_x = target_entity->position.x;
+
 	// Apply direction adjustment.
 	switch (adjustment)
 	{
@@ -28874,19 +29012,19 @@ e_direction direction_get_adjustment_result(e_direction direction_default, e_dir
 		case DIRECTION_ADJUST_NONE:
 
 			// Use original direction.
-			return direction_default;
+			return acting_direction;
 			break;
 
 		case DIRECTION_ADJUST_SAME:
 
 			// Same as target direction.
-			return direction_target;
+			return target_direction;
 			break;
 
 		case DIRECTION_ADJUST_OPPOSITE:
 
 			// Opposite of target direction.
-			if (direction_target == DIRECTION_LEFT)
+			if (target_direction == DIRECTION_LEFT)
 			{
 				return DIRECTION_RIGHT;
 			}
@@ -28906,6 +29044,40 @@ e_direction direction_get_adjustment_result(e_direction direction_default, e_dir
 
 			return DIRECTION_LEFT;
 			break;
+
+        case DIRECTION_ADJUST_TOWARD:
+
+            if (acting_position_x < target_position_x)
+            {
+                return DIRECTION_RIGHT;
+            }
+            else if (acting_position_x > target_position_x)
+            {
+                return DIRECTION_LEFT;
+            }
+            else
+            {
+                return acting_direction;
+            }
+
+            break;
+
+        case DIRECTION_ADJUST_AWAY:
+
+            if (acting_position_x < target_position_x)
+            {
+                return DIRECTION_LEFT;
+            }
+            else if (acting_position_x > target_position_x)
+            {
+                return DIRECTION_RIGHT;
+            }
+            else
+            {
+                return acting_direction;
+            }
+
+            break;
 	}
 }
 
@@ -31934,6 +32106,40 @@ void checkdamageflip(entity* target_entity, entity *other, s_attack *attack_obje
 
     switch(attack_object->force_direction)
     {
+        case DIRECTION_ADJUST_TOWARD:
+
+            if (other->position.x < target_entity->position.x)
+            {
+                target_entity->direction = DIRECTION_RIGHT;
+            }
+            else if (other->position.x > target_entity->position.x)
+            {
+                target_entity->direction = DIRECTION_LEFT;
+            }
+            else
+            {
+                // target_entity->direction = target_entity->direction;
+            }
+
+            break;
+
+        case DIRECTION_ADJUST_AWAY:
+
+            if (other->position.x < target_entity->position.x)
+            {
+                target_entity->direction = DIRECTION_LEFT;
+            }
+            else if (other->position.x > target_entity->position.x)
+            {
+                target_entity->direction = DIRECTION_RIGHT;
+            }
+            else
+            {
+                //target_entity->direction = target_entity->direction;
+            }
+
+            break;
+
         case DIRECTION_ADJUST_NONE:
 
             //printf("\n\t DIRECTION_ADJUST_NONE");
@@ -34886,7 +35092,7 @@ void npc_recall()
     }
 
     acting_entity->base = acting_entity->parent->base;
-    acting_entity->position.x = acting_entity->parent->position.x + child_follow->recall_offset.x;
+    acting_entity->position.x = acting_entity->parent->position.x + (acting_entity->parent->direction == DIRECTION_RIGHT ? child_follow->follow_offset.x : -child_follow->follow_offset.x);
     acting_entity->position.y = acting_entity->parent->position.y + child_follow->recall_offset.y;
     acting_entity->position.z = acting_entity->parent->position.z + child_follow->recall_offset.z;
     
@@ -36713,6 +36919,7 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
     const int valid_idle = validanim(acting_entity, ANI_IDLE);
     const int follow_range_default_x = (valid_idle) ? acting_entity->modeldata.animation[ANI_IDLE]->range.x.min : 100;
     const int follow_range_default_z = (int)follow_range_default_x * 0.5;
+    const int follow_range_default_run = follow_range_default_x + 100;
 
     const s_range follow_range = {
         .x = {
@@ -36727,13 +36934,18 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
 
     const s_range follow_run_range = {
         .x = {
-            .max = child_follow->follow_run_range.x.max,
-            .min = child_follow->follow_run_range.x.min
+            .max = child_follow->follow_run_range.x.max == MAX_INT ? follow_range_default_run : child_follow->follow_run_range.x.max,
+            .min = child_follow->follow_run_range.x.min == MIN_INT ? -follow_range_default_run : child_follow->follow_run_range.x.min
         },        
 
+        //.y = 
+        //    .max = child_follow->follow_run_range.y.max == MAX_INT ? (int)videomodes.vRes * 0.90 : child_follow->follow_run_range.y.max,
+        //    .min = child_follow->follow_run_range.y.min == MIN_INT ? (int)videomodes.vRes * -0.90 : child_follow->follow_run_range.y.min
+        //},
+
         .z = {
-            .max = child_follow->follow_run_range.z.max,
-            .min = child_follow->follow_run_range.z.min
+            .max = child_follow->follow_run_range.z.max == MAX_INT ? follow_range_default_run : child_follow->follow_run_range.z.max,
+            .min = child_follow->follow_run_range.z.min == MIN_INT ? -follow_range_default_run : child_follow->follow_run_range.z.min
         }
     };
 
@@ -36760,12 +36972,13 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
             follow_state |= FOLLOW_STATE_X;
         }
 
-        if (validanim(acting_entity, ANI_RUN)
+        /* Following and able to run? */
+        if (follow_state & FOLLOW_STATE_X && validanim(acting_entity, ANI_RUN)
             && facing_target
             && (follow_run_range.x.min <= follow_run_range.x.max)
             && !check_range_target_x(acting_entity, target, NULL, follow_run_range.x.min, follow_run_range.x.max)) {
 
-            follow_state |= (FOLLOW_STATE_X | FOLLOW_STATE_RUN_X);
+            follow_state |= FOLLOW_STATE_RUN_X;
         }        
     }
 
@@ -36777,11 +36990,13 @@ int common_try_follow(entity* const acting_entity, const entity *target, const b
             follow_state |= FOLLOW_STATE_Z;
         }
 
-        if (validanim(acting_entity, ANI_RUN)            
+        /* Following and able to run? */
+        if (follow_state & FOLLOW_STATE_Z && validanim(acting_entity, ANI_RUN)
+            && facing_target
             && (follow_run_range.z.min <= follow_run_range.z.max)
             && !check_range_target_z(acting_entity, target, NULL, follow_run_range.z.min, follow_run_range.z.max)) {
 
-            follow_state |= (FOLLOW_STATE_Z | FOLLOW_STATE_RUN_Z);
+            follow_state |= FOLLOW_STATE_RUN_Z;
         }
     }
 
@@ -38133,15 +38348,12 @@ int common_move()
 
                 const s_child_follow* const child_follow = acting_entity->modeldata.child_follow;
 
-                if (child_follow && 
-                    (child_follow->direction_adjust_range.x.min <= child_follow->direction_adjust_range.x.max && check_range_target_x(acting_entity, owner, NULL, child_follow->direction_adjust_range.x.min, child_follow->direction_adjust_range.x.max))
+                if (child_follow  
+                    && (child_follow->direction_adjust_range.x.min <= child_follow->direction_adjust_range.x.max && check_range_target_x(acting_entity, owner, NULL, child_follow->direction_adjust_range.x.min, child_follow->direction_adjust_range.x.max))
                     && (child_follow->direction_adjust_range.z.min <= child_follow->direction_adjust_range.z.max && check_range_target_z(acting_entity, owner, NULL, child_follow->direction_adjust_range.z.min, child_follow->direction_adjust_range.z.max))
                     && (child_follow->direction_adjust_range.y.min <= child_follow->direction_adjust_range.y.max && check_range_target_y(acting_entity, owner, NULL, child_follow->direction_adjust_range.y.min, child_follow->direction_adjust_range.y.max))) {
                     
-                    acting_entity->direction = direction_get_adjustment_result(acting_entity->direction, owner->direction, child_follow->direction_adjust_config);
-                }
-                else {
-                    acting_entity->direction = (acting_entity->position.x < owner->position.x) ? DIRECTION_RIGHT : DIRECTION_LEFT;
+                    acting_entity->direction = direction_get_adjustment_result(acting_entity, owner, child_follow->direction_adjust_config);
                 }
             }
         }
@@ -38639,8 +38851,8 @@ int ai_check_recall()
     * are MIN/MAX is for legacy compatability.
     */
 
-    const bool valid_idle = validanim(acting_entity, ANI_IDLE);
-    const int default_range = (valid_idle) ? acting_entity->modeldata.animation[ANI_IDLE]->range.x.max : 0;
+    const int valid_idle = validanim(acting_entity, ANI_IDLE);
+    const int default_range = (valid_idle) ? acting_entity->modeldata.animation[ANI_IDLE]->range.x.max : MAX_INT;
 
     const s_range recall_range = {
         .x = {
@@ -42685,7 +42897,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     entity *projectile_entity = NULL;
 
 	s_axis_principal_float position;
-	e_direction direction;
+	e_direction direction = DIRECTION_RIGHT;
 	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
 	
 	/* If there's no projectile or parent setting, exit now. */
@@ -42694,34 +42906,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 		return NULL;
 	}
 
-	/*
-    * Get result of direction adjustment. We need this before we can handle
-	* positioning on X axis.
-	*/
-    direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
-
-    /*
-    * Let's set up the spawn position. Reverse X when
-    * parent faces left.
-    *
-    * Apply default X position if creator did not give
-    * us a value.
-    */
-
-    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
-    {
-        projectile->position.x = PROJECTILE_DEFAULT_POSITION_X;
-    }
-
-	if (direction == DIRECTION_RIGHT)
-	{
-		position.x = parent->position.x + projectile->position.x;
-	}
-	else
-	{
-		position.x = parent->position.x - projectile->position.x;
-	}
-
+    position.x = parent->position.x;
 	position.y = parent->position.y + projectile->position.y;
 	position.z = parent->position.z + projectile->position.z;
 
@@ -42816,6 +43001,37 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
     {
         return NULL;
     }
+
+    /*
+    * Get result of direction adjustment. We need this before we can handle
+    * positioning on X axis.
+    */
+    direction = direction_get_adjustment_result(projectile_entity, parent, projectile->direction_adjust);
+
+    /*
+    * Let's set up the spawn position. Reverse X when
+    * parent faces left.
+    *
+    * Apply default X position if creator did not give
+    * us a value.
+    */
+
+    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
+    {
+        projectile->position.x = PROJECTILE_DEFAULT_POSITION_X;
+    }
+
+    if (direction == DIRECTION_RIGHT)
+    {
+        position.x = parent->position.x + projectile->position.x;
+    }
+    else
+    {
+        position.x = parent->position.x - projectile->position.x;
+    }
+
+    projectile_entity->direction = direction;
+    projectile_entity->position.x = position.x;
         
     /* 
     * Player projectiles are always type "shot", unless 
@@ -42976,7 +43192,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 {
 	entity* ent = NULL;
 	s_axis_principal_float position;
-	e_direction direction;
+	e_direction direction = DIRECTION_RIGHT;
 	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
 
 	// If there's no projectile or parent setting, exit now.
@@ -42984,33 +43200,8 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	{
 		return NULL;
 	}
-
-	// Get result of direction adjustment. We need this before we can handle
-	// positioning on X axis.
-	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
-
-	/*
-    * Let's set up the spawn position. Reverse X when 
-    * parent faces left.
-    * 
-    * Apply default X position if creator did not give 
-    * us a value.
-    */
-
-    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
-    {
-        projectile->position.x = PROJECTILE_DEFAULT_POSITION_X;
-    }
-
-	if (direction == DIRECTION_RIGHT)
-	{
-		position.x = parent->position.x + projectile->position.x;
-	}
-	else
-	{
-		position.x = parent->position.x - projectile->position.x;
-	}
-
+    	
+    position.x = parent->position.x;
 	position.y = parent->position.y + projectile->position.y;
 	position.z = parent->position.z + projectile->position.z;
 
@@ -43053,6 +43244,38 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
     {
         return NULL;
     }
+
+    /*
+    * Get result of direction adjustment. We need this before we can handle
+    * positioning on X axis.
+    */
+    direction = direction_get_adjustment_result(ent, parent, projectile->direction_adjust);
+
+    /*
+    * Let's set up the spawn position. Reverse X when
+    * parent faces left.
+    *
+    * Apply default X position if creator did not give
+    * us a value.
+    */
+
+    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
+    {
+        projectile->position.x = PROJECTILE_DEFAULT_POSITION_X;
+    }
+
+    if (direction == DIRECTION_RIGHT)
+    {
+        position.x = parent->position.x + projectile->position.x;
+    }
+    else
+    {
+        position.x = parent->position.x - projectile->position.x;
+    }
+
+    ent->direction = direction;
+    ent->position.x = position.x;
+
 
 	ent->projectile_prime = projectile_prime;
 
@@ -43171,7 +43394,7 @@ int star_spawn(entity *parent, s_projectile *projectile)
     int first_sortid = 0;
 
 	s_axis_principal_float position;
-	e_direction direction;
+	e_direction direction = DIRECTION_RIGHT;
 	e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
 
 	// If there's no projectile or parent setting, exit now.
@@ -43179,32 +43402,8 @@ int star_spawn(entity *parent, s_projectile *projectile)
 	{
 		return FALSE;
 	}
-
-	// Get result of direction adjustment. We need this before we can handle
-	// positioning on X axis.
-	direction = direction_get_adjustment_result(parent->direction, parent->direction, projectile->direction_adjust);
-
-    /*
-    * Apply default X position if 
-    * creator did not give us a value.
-    */
-
-    if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
-    {
-        projectile->position.x = PROJECTILE_DEFAULT_STAR_POSITION_X;
-    }
-
-	// Let's set up the spawn position. Reverse X when parent
-	// faces left.
-	if (direction == DIRECTION_RIGHT)
-	{
-		position.x = parent->position.x + projectile->position.x;
-	}
-	else
-	{
-		position.x = parent->position.x - projectile->position.x;
-	}
-
+	
+    position.x = parent->position.x;
 	position.y = parent->position.y + projectile->position.y;
 	position.z = parent->position.z + projectile->position.z;
 
@@ -43248,8 +43447,35 @@ int star_spawn(entity *parent, s_projectile *projectile)
         ent = spawn(position.x, position.z, position.y, direction, NULL, index, NULL);
         if(ent == NULL)
         {
-            return FALSE;
+            return 0;
         }
+
+        // Get result of direction adjustment. We need this before we can handle
+        // positioning on X axis.
+        direction = direction_get_adjustment_result(ent, parent, projectile->direction_adjust);
+
+        /*
+        * Apply default X position if
+        * creator did not give us a value.
+        */
+
+        if (projectile->position.x == PROJECTILE_LEGACY_COMPATABILITY_POSITION_X)
+        {
+            projectile->position.x = PROJECTILE_DEFAULT_STAR_POSITION_X;
+        }
+
+        // Reverse X when parent faces left.
+        if (direction == DIRECTION_RIGHT)
+        {
+            position.x = parent->position.x + projectile->position.x;
+        }
+        else
+        {
+            position.x = parent->position.x - projectile->position.x;
+        }
+
+        ent->position.x = position.x;
+        ent->direction = direction;
 
 		// 2019-12-17 DC - Not sure why we set attacking off, but
 		// leaving it here for legacy behavior.
