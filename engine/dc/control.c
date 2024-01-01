@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 OpenBOR Team
+ * Copyright (c) OpenBOR Team
  */
 
 #include "kos.h"

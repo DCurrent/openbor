@@ -1,9 +1,9 @@
 @rem
-@rem OpenBOR - http://www.LavaLit.com
+@rem OpenBOR - https://www.chronocrash.com
 @rem -----------------------------------------------------------------------
 @rem Licensed under the BSD license, see LICENSE in OpenBOR root for details.
 @rem
-@rem Copyright (c) 2004 - 2011 OpenBOR Team
+@rem Copyright (c)  OpenBOR Team
 @rem
 
 @rem ----------------------- Bash NIX Shell Scripts ------------------------

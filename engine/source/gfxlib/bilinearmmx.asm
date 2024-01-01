@@ -2,7 +2,7 @@
 ; ----------------------------------------------------------------------
 ; All rights reserved, see LICENSE in OpenBOR root for details.
 ;
-; Copyright (c) 2004 - 2012 OpenBOR Team
+; Copyright (c)  OpenBOR Team
 
 ; Scales images by 2x using bilinear filtering.  This implementation uses the
 ; SIMD capabilities of MMX to operate on four source pixels at a time.  The

@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * Licensed under a BSD-style license, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2017 OpenBOR Team
+ * Copyright (c)  OpenBOR Team
  */
 
 #ifndef	CONTROL_H

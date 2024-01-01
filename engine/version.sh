@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------
 # All rights reserved. See LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 - 2014 OpenBOR Team
+# Copyright (c) OpenBOR Team
 #
 
 #!/bin/bash
@@ -46,7 +46,7 @@ function read_version {
 check_git
 get_revnum
 VERSION_NAME="OpenBOR"
-VERSION_MAJOR=3
+VERSION_MAJOR=4
 VERSION_MINOR=0
 VERSION_DATE=`date '+%Y%m%d%H%M%S'`
 
@@ -66,7 +66,7 @@ echo "/*
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2014 OpenBOR Team
+ * Copyright (c) OpenBOR Team
  */
 
 #ifndef VERSION_H

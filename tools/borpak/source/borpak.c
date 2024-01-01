@@ -108,10 +108,10 @@ int main(int argc, char *argv[]) {
 		"\n"
 		"Updated to v0.2 by SX\n"
 		"e-mail: sumolx@gmail.com\n"
-		"web:    http://www.lavalit.com\n"
+		"web:    https://www.chronocrash.com\n"
 		"\n"
 		"Updated to v0.3 by Plombo\n"
-		"web:    http://www.lavalit.com\n"
+		"web:    https://www.chronocrash.com\n"
 		"\n", stdout);
 
 	if(argc < 2) {

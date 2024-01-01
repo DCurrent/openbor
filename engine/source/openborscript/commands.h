@@ -1,10 +1,10 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - https://www.chronocrash.com
  * -
  ----------------------------------------------------------------------
  * Licensed under the BSD license, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2011 OpenBOR Team
+ * Copyright (c)  OpenBOR Team
  */
 
 #ifndef _COMMANDS_H_

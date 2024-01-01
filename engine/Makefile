@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------------------
 # All rights reserved, see LICENSE in OpenBOR root for details.
 #
-# Copyright (c) 2004 OpenBOR Team
+# Copyright (c) OpenBOR Team
 #
 
 #----------------------------------------------------------------------------------------------------
@@ -830,6 +830,6 @@ version:
 	@echo "All rights reserved."
 	@echo "See LICENSE and README within OpenBOR root for details."
 	@echo
-	@echo "Copyright (c) 2004 OpenBOR Team"
+	@echo "Copyright (c) OpenBOR Team"
 	@echo "-------------------------------------------------------"
 

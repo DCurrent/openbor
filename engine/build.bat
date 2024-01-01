@@ -3,7 +3,7 @@
 @rem -----------------------------------------------------------------------
 @rem All rights reserved, see LICENSE in OpenBOR root for details.
 @rem
-@rem Copyright (c) 2004 - 2014 OpenBOR Team
+@rem Copyright (c) OpenBOR Team
 @rem
 
 

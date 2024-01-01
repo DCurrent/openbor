@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved. See LICENSE in OpenBOR root for license details.
  *
- * Copyright (c) 2004 - 2018 OpenBOR Team
+ * Copyright (c)  OpenBOR Team
  */
 
  #include "scriptcommon.h"

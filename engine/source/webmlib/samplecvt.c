@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2015 OpenBOR Team
+ * Copyright (c)  OpenBOR Team
  */
 
 /* This code was derived from code carrying the following copyright notice:

@@ -1,10 +1,10 @@
 #include "../version.h"
-#define BUILD "3.0 Build " VERSION_BUILD " (" VERSION_COMMIT ")"
+#define BUILD "4.0 Build " VERSION_BUILD " (" VERSION_COMMIT ")"
 
 A ICON "A.ico"
 
 1 VERSIONINFO
-FILEVERSION     3,0,VERSION_BUILD_INT,0
+FILEVERSION     4,0,VERSION_BUILD_INT,0
 BEGIN
   BLOCK "StringFileInfo"
   BEGIN

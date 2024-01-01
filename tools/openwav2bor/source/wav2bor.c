@@ -1,9 +1,9 @@
 /*
- * OpenWav2Bor 1.1 - http://www.LavaLit.com
+ * OpenWav2Bor 1.1 - https://www.chronocrash.com
  * -----------------------------------------------------------------------
  * Licensed under a BSD-style license, see LICENSE file for details.
  *
- * Copyright (c) 2004 - 2010 OpenBOR Team
+ * Copyright (c)  OpenBOR Team
  * Copyright (c) 2010 - 2011 Bryan Cain
  * 
  * This program was written by Bryan Cain (Plombo), but it reuses some code from 

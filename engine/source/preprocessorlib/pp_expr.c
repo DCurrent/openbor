@@ -1,9 +1,9 @@
 /*
- * OpenBOR - http://www.LavaLit.com
+ * OpenBOR - https://www.chronocrash.com
  * -----------------------------------------------------------------------
  * All rights reserved, see LICENSE in OpenBOR root for details.
  *
- * Copyright (c) 2004 - 2013 OpenBOR Team
+ * Copyright (c)  OpenBOR Team
  */
 
 /**
