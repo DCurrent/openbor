@@ -30,6 +30,8 @@ To find out more, stop into the OpenBOR community at [ChronoCrash.com](https://w
 
 * **2021 -** Development continues on OpenBOR 4.0, with various internal source cleanups, a more object centric script engine, and fixes for long standing issues.
 
+* **2024 -** After an extended development cycle, the first official 4.0 build drops. Development continues to refine and fill requests that did not make the initial 4.0 release deadline.
+
 ## Platforms
 OpenBOR has a very modular and portable design inherited from Beats of Rage - several ports have been made available.
 
@@ -40,12 +42,12 @@ These platforms are actively supported and may be compiled with the latest OpenB
 * Windows
 * Linux
 * Wii
-* PSP
 
 ### Discontinued
 
 The following platforms are still available as legacy binaries but are no longer supported and may not be compatible with current iterations of OpenBOR.
 
+* PSP
 * Dreamcast
 * GP2X
 * GP2X Wiz
