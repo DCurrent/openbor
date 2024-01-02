@@ -23330,7 +23330,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         
         //e->base=e->position.y; //complained?
-        e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
+        //e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
 
         if(validanim(e, ANI_WALK))
         {
