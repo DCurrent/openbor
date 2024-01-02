@@ -27676,6 +27676,7 @@ void check_gravity(entity *e)
             {
                 self->hithead = NULL;
             }
+            
             // gravity, antigravity factors
             self->position.y += self->velocity.y * 100.0 / GAME_SPEED;
             if(!(self->animation->move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY))
@@ -27686,6 +27687,7 @@ void check_gravity(entity *e)
             {
                 gravity = (level ? level->gravity : default_level_gravity) * (1.0 - self->modeldata.antigravity);
             }
+            
             if(self->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_GRAVITY)
             {
                 self->velocity.y += gravity * 100.0 / GAME_SPEED;

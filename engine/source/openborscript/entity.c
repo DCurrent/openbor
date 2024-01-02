@@ -1084,7 +1084,7 @@ const s_property_access_map entity_get_property_map(const void* acting_object_pa
 
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
 		property_map.field = &acting_object->update_mark;
-		property_map.id_string = "ENTITY_PROPERTY_TURN_TIME";
+		property_map.id_string = "ENTITY_PROPERTY_UPDATE_MARK";
 		property_map.type = VT_INTEGER;
 		break;
 
