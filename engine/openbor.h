@@ -4164,7 +4164,8 @@ int		nextcolourmapn							(s_model *model, int map_index, int player_index);
 int		prevcolourmap							(s_model *model, int map_index);
 int		prevcolourmapn							(s_model *model, int map_index, int player_index);	
 
-int     buffer_pakfile							(char *filename, char **pbuffer, size_t *psize);
+int     buffer_pakfile							(const char *filename, char **pbuffer, size_t *psize);
+
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex					(ScriptVariant *var, int index);
 int     changesyspropertybyindex				(int index, ScriptVariant *value);
@@ -4742,8 +4743,8 @@ void menu_options_system();
 void menu_options_video();
 
 void openborMain(int argc, char **argv);
-int getValidInt(char *text, char *file, char *cmd);
-float getValidFloat(char *text, char *file, char *cmd);
+int getValidInt(const char *text, const char *file, const char *cmd);
+float getValidFloat(const char *text, const char *file, const char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
 int stopRecordInputs(void);
 int recordInputs(void);

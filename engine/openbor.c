@@ -890,8 +890,7 @@ char *fill_s_loadingbar(s_loadingbar *s, e_loadingScreenType set, int bx, int by
     return NULL;
 }
 
-
-static int buffer_file(char *filename, char **pbuffer, size_t *psize)
+static int buffer_file(const char *filename, char **pbuffer, size_t *psize)
 {
     FILE *handle;
     *psize = 0;
@@ -939,7 +938,7 @@ static int buffer_file(char *filename, char **pbuffer, size_t *psize)
 
 
 // returns: 1 - succeeded 0 - failed
-int buffer_pakfile(char *filename, char **pbuffer, size_t *psize)
+int buffer_pakfile(const char *filename, char **pbuffer, size_t *psize)
 {
     int handle;
     *psize = 0;
@@ -3139,9 +3138,9 @@ void check_music()
 // ----------------------- General ------------------------------
 // atof and atoi return a valid number, if only the first char is one.
 // so we only check that.
-int isNumeric(char *text)
+int isNumeric(const char *text)
 {
-    char *p = text;
+    const char *p = text;
     assert(p);
     if(!*p)
     {
@@ -3176,7 +3175,7 @@ int isNumeric(char *text)
 }
 
 
-int getValidInt(char *text, char *file, char *cmd)
+int getValidInt(const char *text, const char *file, const char *cmd)
 {
     static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
@@ -3195,7 +3194,7 @@ int getValidInt(char *text, char *file, char *cmd)
 
 }
 
-float getValidFloat(char *text, char *file, char *cmd)
+float getValidFloat(const char *text, const char *file, const char *cmd)
 {
     static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
@@ -3701,132 +3700,114 @@ int parsecolor(const char *string)
 */
 void lifebar_colors()
 {
-    char *filename = "saves/lifebar.txt";
-    char *buf;
+    char *filename;
+    char *buffer;
     size_t size;
-    int pos;
+    int position;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
     char *command;
 
-    if(buffer_pakfile(filename, &buf, &size) != 1)
-    {
-        goto default_file;
-    }
-    else
-    {
-        goto proceed;
-    }
+    /*
+    * Try getting buffer from saves. If that fails
+    * we check the data folder. If that also fails
+    * then creator didn't provide values. Use the
+    * defaults and exit.
+    * 
+    * The variable "filename" seems superflous, but
+    * macros below expect it.
+    */
+    
+    filename = "saves/lifebar.txt";
 
-default_file:
-
-    if(buffer_pakfile("data/lifebar.txt", &buf, &size) != 1)
+    if(buffer_pakfile(filename, &buffer, &size) != 1)
     {
-        color_black = 0;
-        color_red = 0;
-        color_orange = 0;
-        color_yellow = 0;
-        color_white = 0;
-        color_blue = 0;
-        color_green = 0;
-        color_pink = 0;
-        color_purple = 0;
-        color_magic = 0;
-        color_magic2 = 0;
-        shadowcolor = 0;
-        shadowalpha = BLEND_MULTIPLY + 1;
-        shadowopacity = 255;
-        return;
-    }
-    else
-    {
-        goto proceed;
-    }
+        filename = "data/lifebar.txt";
 
-proceed:
-
-    pos = 0;
-    colorbars = 1;
-    while(pos < size)
-    {
-        if(ParseArgs(&arglist, buf + pos, argbuf))
+        if (buffer_pakfile(filename, &buffer, &size) != 1)
         {
+            color_black = 0;
+            color_red = 0;
+            color_orange = 0;
+            color_yellow = 0;
+            color_white = 0;
+            color_blue = 0;
+            color_green = 0;
+            color_pink = 0;
+            color_purple = 0;
+            color_magic = 0;
+            color_magic2 = 0;
+            shadowcolor = 0;
+            shadowalpha = BLEND_MULTIPLY + 1;
+            shadowopacity = 255;
+            return;
+        }
+    }    
+
+    /*
+    * 2024-01-04 DC, not sure what this global 
+    * assignment does does yet. Leaving as-is for now.
+    */
+    colorbars = 1;
+    
+
+    // Lookup table for color commands
+    struct ColorCommand {
+        const char* name;
+        int* color;
+    };
+
+    const struct ColorCommand colorCommands[] = {
+        {"blackbox", &color_black},
+        {"color25", &color_red},
+        {"color50", &color_yellow},
+        {"color100", &color_green},
+        {"color200", &color_blue},
+        {"color300", &color_orange},
+        {"color400", &color_pink},
+        {"color500", &color_purple},
+        {"colormagic", &color_magic},
+        {"colormagic2", &color_magic2},
+        {"shadowcolor", &shadowcolor},
+        {"whitebox", &color_white},
+        {NULL, NULL} // Null terminator for the lookup table
+    };    
+    
+    position = 0;
+    while (position < size) {
+        if (ParseArgs(&arglist, buffer + position, argbuf)) {
             command = GET_ARG(0);
-            if(command && command[0])
-            {
-                if(stricmp(command, "blackbox") == 0)
-                {
-                    color_black = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+
+            if (command && command[0]) {
+                
+                // Search for the command in the lookup table
+                const struct ColorCommand* entry = colorCommands;
+
+                while (entry->name != NULL) {
+                    if (stricmp(command, entry->name) == 0) {
+                        // Found a matching command in the lookup table
+                        *(entry->color) = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+                        break;
+                    }
+                    entry++;
                 }
-                else if(stricmp(command, "whitebox") == 0)
-                {
-                    color_white = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color300") == 0)
-                {
-                    color_orange = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color25") == 0)
-                {
-                    color_red = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color50") == 0)
-                {
-                    color_yellow = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color100") == 0)
-                {
-                    color_green = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color200") == 0)
-                {
-                    color_blue = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color400") == 0)
-                {
-                    color_pink = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color500") == 0)
-                {
-                    color_purple = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                //magic bars color declarations by tails
-                else if(stricmp(command, "colormagic") == 0)
-                {
-                    color_magic = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "colormagic2") == 0)
-                {
-                    color_magic2 = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                //end of magic bars color declarations by tails
-                else if(stricmp(command, "shadowcolor") == 0)
-                {
-                    shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "shadowalpha") == 0) //gfxshadow alpha
-                {
-                    shadowalpha = GET_INT_ARG(1);
-                }
-                else if(stricmp(command, "shadowopacity") == 0)
-                {
-                    shadowopacity = GET_INT_ARG(1);
-                }
-                else if(command && command[0])
-                {
+
+                // Check if the command was not found in the lookup table
+                if (entry->name == NULL) {
                     printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
                 }
             }
         }
 
         // Go to next line
-        pos += getNewLineStart(buf + pos);
-    }
-    if(buf != NULL)
+        position += getNewLineStart(buffer + position);
+    }   
+
+    if(buffer != NULL)
     {
-        free(buf);
-        buf = NULL;
+        free(buffer);
+        buffer = NULL;
     }
 }
 // ltb 1-17-05 end new lifebar colors
