@@ -2905,9 +2905,11 @@ typedef struct
     int def; //Default icon.
     int die; //Health depleted.
     int get; //Retrieving item.
-    int mphigh; //MP bar icon; at 66% or more (default if other mp icons not used).
-    int mplow; //MP bar icon; at or between 0% and 32%.
-    int mpmed; //MP bar icon; at or between 33% and 65%.
+    int mphigh; // MP bar icon; 75%+ or default if other mp icons not used.
+    int mplow; // MP bar icon; >0%+.
+    int mpmed; // MP bar icon; 25%+.
+    int mpmax; // MP bar icon; 100%+.
+    int mpnone; // MP bar icon; 0%.
     int pain; //Taking damage.
     int usemap;
     int weapon; //Weapon model.

@@ -5581,9 +5581,11 @@ void cache_model_sprites(s_model *m, int ld)
     cachesprite(m->icon.def, ld);
     cachesprite(m->icon.die, ld);
     cachesprite(m->icon.get, ld);
+    cachesprite(m->icon.mpmax, ld);
     cachesprite(m->icon.mphigh, ld);
     cachesprite(m->icon.mplow, ld);
     cachesprite(m->icon.mpmed, ld);
+    cachesprite(m->icon.mpnone, ld);
     cachesprite(m->icon.pain, ld);
     cachesprite(m->icon.weapon, ld);
     cachesound(m->diesound, ld);
@@ -12583,7 +12585,9 @@ s_model *init_model(const int cacheindex, const int unload)
         .get = ICON_NONE,
         .mphigh = ICON_NONE,
         .mplow = ICON_NONE,
+        .mpmax = ICON_NONE,
         .mpmed = ICON_NONE,
+        .mpnone = ICON_NONE,
         .pain = ICON_NONE,
         .weapon = ICON_NONE
     };
@@ -14112,17 +14116,25 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 newchar->icon.weapon = loadsprite(value, 0, 0, pixelformat);
                 break;
-            case CMD_MODEL_ICONMPHIGH:
-                value = GET_ARG(1);
-                newchar->icon.mphigh = loadsprite(value, 0, 0, pixelformat);
-                break;
             case CMD_MODEL_ICONMPHALF:
                 value = GET_ARG(1);
                 newchar->icon.mpmed = loadsprite(value, 0, 0, pixelformat);
                 break;
+            case CMD_MODEL_ICONMPHIGH:
+                value = GET_ARG(1);
+                newchar->icon.mphigh = loadsprite(value, 0, 0, pixelformat);
+                break;
             case CMD_MODEL_ICONMPLOW:
                 value = GET_ARG(1);
                 newchar->icon.mplow = loadsprite(value, 0, 0, pixelformat);
+                break;
+            case CMD_MODEL_ICONMPMAX:
+                value = GET_ARG(1);
+                newchar->icon.mpmax = loadsprite(value, 0, 0, pixelformat);
+                break;
+            case CMD_MODEL_ICONMPNONE:
+                value = GET_ARG(1);
+                newchar->icon.mpnone = loadsprite(value, 0, 0, pixelformat);
                 break;
             case CMD_MODEL_PARROW:
                 // Image that is displayed when player 1 spawns invincible
@@ -22310,24 +22322,41 @@ void predrawstatus()
                 }
             }
 
-            if(player[i].ent->modeldata.mp)
-            {
+            /*
+            * If the player has MP, let's try to generate
+            * icons as well.
+            */
+
+            if (player[i].ent->modeldata.mp) {
+
                 drawmethod.table = player[i].ent->modeldata.icon.usemap ? player[i].ent->colourmap : NULL;
-                if(player[i].ent->modeldata.icon.mphigh > 0 && (player[i].ent->energy_state.mp_old >= (player[i].ent->modeldata.mp * .66)))
-                {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
+
+                const float mp_percentage = (float)player[i].ent->energy_state.mp_old / player[i].ent->modeldata.mp;
+                
+                int mp_icon_sprite = ICON_NONE;
+
+                if (mp_percentage <= 0.0 && player[i].ent->modeldata.icon.mpnone != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mpnone;
                 }
-                else if(player[i].ent->modeldata.icon.mpmed > 0 && (player[i].ent->energy_state.mp_old >= (player[i].ent->modeldata.mp * .33) && player[i].ent->energy_state.mp_old < (player[i].ent->modeldata.mp * .66)))
-                {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mpmed, &drawmethod, 0);
+                else if (mp_percentage < 0.25 && player[i].ent->modeldata.icon.mplow != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mplow;
                 }
-                else if(player[i].ent->modeldata.icon.mplow > 0 && (player[i].ent->energy_state.mp_old >= 0 && player[i].ent->energy_state.mp_old < (player[i].ent->modeldata.mp * .33)))
-                {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mplow, &drawmethod, 0);
+                else if (mp_percentage < 0.75 && player[i].ent->modeldata.icon.mpmed != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mpmed;
                 }
-                else if(player[i].ent->modeldata.icon.mphigh > 0 && player[i].ent->modeldata.icon.mpmed == -1 && player[i].ent->modeldata.icon.mplow == -1)
+                else if (mp_percentage < 1.0 && player[i].ent->modeldata.icon.mphigh != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mphigh;
+                }
+                else if (mp_percentage >= 1.0 && player[i].ent->modeldata.icon.mpmax != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mpmax;
+                }               
+
+                /*
+                * Draw an icon if we found one.
+                */
+                if (mp_icon_sprite > 0)
                 {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
+                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, mp_icon_sprite, &drawmethod, 0);
                 }
             }
 
@@ -39315,11 +39344,10 @@ int check_energy(e_cost_check which, int ani)
                 || (energy_cost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
         {
             // No seal or seal is less/same as energy cost?
-            if(!self->seal || self->seal >= energy_cost.cost)
+            if (!self->seal || self->seal >= energy_cost.cost)
             {
                 if((which == ENERGY_TYPE_MP && (energy_cost.mponly != COST_TYPE_HP_ONLY) && (self->energy_state.mp_current >= energy_cost.cost)) 
-					||
-                   (which == ENERGY_TYPE_HP && (energy_cost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energy_cost.cost)))
+					|| (which == ENERGY_TYPE_HP && (energy_cost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energy_cost.cost)))
                 {
                     result = TRUE;
                 }
