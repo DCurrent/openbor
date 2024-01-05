@@ -10746,6 +10746,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     if(stricmp(value, "none") == 0)
     {
         newchar->type = TYPE_NONE;
+        newchar->move_config_flags        |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
+        newchar->move_config_flags        &= ~(MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_SCREEN | MOVE_CONFIG_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "player") == 0)
     {
@@ -23330,7 +23332,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         
         //e->base=e->position.y; //complained?
-        e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
+        //e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
 
         if(validanim(e, ANI_WALK))
         {
@@ -37945,7 +37947,7 @@ int bomb_try_detonate(entity* acting_entity)
         if (validanim(acting_entity, ANI_ATTACK2))
         {
             ent_set_anim(acting_entity, ANI_ATTACK2, 0);
-            acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+            //acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
         }
         else if(acting_entity->modeldata.remove && acting_entity->toexplode & EXPLODE_DETONATE_HIT)
         {
@@ -37955,7 +37957,7 @@ int bomb_try_detonate(entity* acting_entity)
     else if (validanim(acting_entity, ANI_ATTACK1))
     {
         ent_set_anim(acting_entity, ANI_ATTACK1, 0);
-        acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;    
+        //acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;    
     }
 
     return 1;
