@@ -39344,7 +39344,7 @@ int check_energy(e_cost_check which, int ani)
                 || (energy_cost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
         {
             // No seal or seal is less/same as energy cost?
-            if (!self->seal || self->seal >= energy_cost.cost)
+            if (!self->seal || self->seal <= energy_cost.cost)
             {
                 if((which == ENERGY_TYPE_MP && (energy_cost.mponly != COST_TYPE_HP_ONLY) && (self->energy_state.mp_current >= energy_cost.cost)) 
 					|| (which == ENERGY_TYPE_HP && (energy_cost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energy_cost.cost)))
