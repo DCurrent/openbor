@@ -43094,7 +43094,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	else
 	{	
 		/* Copy speed values from animation projectile settings to model. */
-        projectile_entity->modeldata.speed = projectile->velocity;
+        projectile->velocity = projectile_entity->modeldata.speed;
 	}
 
 	/* Set up behavior flags. */
@@ -43309,7 +43309,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	else
 	{		
 		// Copy speed values from animation projectile settings to model.
-		ent->modeldata.speed = projectile->velocity;
+		projectile->velocity.x = ent->modeldata.speed.x;
 	}
 
     /*
