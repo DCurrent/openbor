@@ -651,6 +651,7 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 
 s_global_config global_config =
 {
+    .object_type = OBJECT_TYPE_GLOBAL_CONFIG,
     .ajspecial = AJSPECIAL_KEY_SPECIAL,
     .block_type = BLOCK_TYPE_GLOBAL,
     .cheats = CHEAT_OPTIONS_ALL_MENU,    

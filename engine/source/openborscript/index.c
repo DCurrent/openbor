@@ -1098,16 +1098,7 @@ void *Script_GetStringMapFunction(void *functionRef)
 	{
 		return (void *)mapstrings_drawmethod;
 	}
-
-    /* Global config properties. */
-    else if (functionRef == ((void*)openbor_get_global_config_property))
-    {
-        return (void*)mapstrings_global_config_property;
-    }
-    else if (functionRef == ((void*)openbor_set_global_config_property))
-    {
-        return (void*)mapstrings_global_config_property;
-    }
+    
 
     else if (functionRef == ((void *)openbor_setspawnentry))
     {

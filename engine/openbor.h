@@ -1842,6 +1842,7 @@ typedef enum e_object_type {
     OBJECT_TYPE_NONE,
     OBJECT_TYPE_BIND,
     OBJECT_TYPE_ENTITY,
+    OBJECT_TYPE_GLOBAL_CONFIG,
     OBJECT_TYPE_MODEL
 } e_object_type;
 
@@ -1854,6 +1855,7 @@ typedef enum e_object_type {
 * between engines startups.
 */
 typedef struct s_global_config {
+    e_object_type object_type;      // Identifies object so functions can verify correct pointer type.
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
     unsigned int block_ratio;       // Blcoked attacks still cause 0.25 damage?
     e_blocktype block_type;         // Take chip damage from health or MP first?

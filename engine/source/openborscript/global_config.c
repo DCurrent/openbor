@@ -14,337 +14,228 @@
 
 #include "scriptcommon.h"
 
-/* 
-* Use string property argument to find an
-* integer property constant and populate
-* varlist->lval.
-*/ 
-int mapstrings_global_config_property(ScriptVariant** varlist, int paramCount)
+
+const s_property_access_map global_config_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
 {
-#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
-#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
+	s_property_access_map property_map;
+	const s_global_config* acting_object = acting_object_param;
+	const e_global_config_properties property_index = property_index_param;
 
-	char* propname = NULL;  // Placeholder for string property name from varlist.
-	int prop = 0;           // Placeholder for integer constant located by string.
-
-	static const char* proplist[] =
+	switch (property_index)
 	{
-		"ajspecial",
-		"block_ratio",
-		"block_type",
-		"cheats",
-		"flash_layer_adjust",
-		"flash_layer_source",
-		"flash_z_source",
-		"show_go"
-	};
+	case GLOBAL_CONFIG_PROPERTY_AJSPECIAL:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->ajspecial;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_AJSPECIAL";
+		property_map.type = VT_INTEGER;
+		break;
 
-	//printf("\n\n mapstrings_global_config_property(%s)", varlist[ARG_PROPERTY]);
+	case GLOBAL_CONFIG_PROPERTY_BLOCK_RATIO:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->block_ratio;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_BLOCK_RATIO";
+		property_map.type = VT_INTEGER;
+		break;
 
-	/*
-	* If the minimum argument count
-	* was not passed, then there is
-	* nothing to map. Return true - we'll
-	* catch the mistake in property access
-	* functions.
-	*/
-	if (paramCount < ARG_MINIMUM)
-	{
-		return 1;
+	case GLOBAL_CONFIG_PROPERTY_BLOCK_TYPE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->block_type;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_BLOCK_TYPE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case GLOBAL_CONFIG_PROPERTY_CHEATS:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->cheats;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_CHEATS";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case GLOBAL_CONFIG_PROPERTY_FLASH_LAYER_ADJUST:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->flash_layer_adjust;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_FLASH_LAYER_ADJUST";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case GLOBAL_CONFIG_PROPERTY_FLASH_LAYER_SOURCE:
+		property_map.config_flags = GLOBAL_CONFIG_PROPERTY_FLASH_LAYER_SOURCE;
+		property_map.field = &acting_object->flash_layer_source;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_FLASH_LAYER_SOURCE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case GLOBAL_CONFIG_PROPERTY_FLASH_Z_SOURCE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->flash_z_source;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_FLASH_Z_SOURCE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case GLOBAL_CONFIG_PROPERTY_SHOW_GO:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->showgo;
+		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_SHOW_GO";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case GLOBAL_CONFIG_PROPERTY_END:
+	default:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
+		property_map.field = NULL;
+		property_map.id_string = "Global Config";
+		property_map.type = VT_EMPTY;
+		break;
+
 	}
-
-	/* See macro - will return 0 on fail. */
-	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, _GLOBAL_CONFIG_END,
-		"Property name '%s' is not supported by global config.\n");
-
-	//const char *eps = (varlist[ARG_PROPERTY]->lVal < _GLOBAL_CONFIG_END && varlist[ARG_PROPERTY]->lVal >= 0) ? proplist[varlist[ARG_PROPERTY]->lVal] : "";
-	//printf("\Global Config arg: %s\n", eps);
-
-	/* If we made it this far everything should be OK. */
-	return 1;
-
-#undef ARG_MINIMUM
-#undef ARG_PROPERTY
+	return property_map;
 }
+
 
 /*
 * Caskey, Damon  V.
-* 2022-05-10
+* 2023-03-03
 *
-* Return a global config property. 
-* Requires the handle from global 
-* config variant and property name 
-* to access.
+* Return a property. Requires
+* a object pointer and property
+* constant to access.
 */
-HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-#define SELF_NAME       "get_global_config_property(void global_config, char property)"
-#define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_OBJECT      0   // Handle (pointer to property structure).
-#define ARG_PROPERTY    1   // Property to access.
-
-	s_global_config* handle = NULL; // Property handle.
-	e_global_config_properties	property = 0;    // Property argument.
+	const char* SELF_NAME = "openbor_get_global_config_property(void global_config, int property)";
+	const unsigned int ARG_OBJECT = 0; // Handle (pointer to property structure).
+	const unsigned int ARG_PROPERTY = 1; // Property to access.
 
 	/*
 	* Clear pass by reference argument used to send
-	* property data back to calling script.     .
+	* property data back to calling script.
 	*/
 	ScriptVariant_Clear(*pretvar);
 
 	/*
-	* Map string property name to a
-	* matching integer constant.
+	* Should at least be a pointer to the
+	* acting object and a  property id.
 	*/
-	mapstrings_global_config_property(varlist, paramCount);
+	if (varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
+		printf("\n\n Script error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
+		return E_FAIL;
+	}
 
 	/*
-	* Verify arguments. There should at least
-	* be a pointer for the property handle and an integer
-	* to determine which property constant is accessed.
+	* Now let's make sure the object type is
+	* correct (ex. entity vs. model) so we
+	* can shut down gracefully if there's
+	* a mismatch.
 	*/
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-	{
+
+	const s_global_config* const acting_object = (const s_global_config* const)varlist[ARG_OBJECT]->ptrVal;
+
+	if (acting_object->object_type != OBJECT_TYPE_GLOBAL_CONFIG) {
+		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
 		*pretvar = NULL;
-		goto error_local;
-	}
-	else
-	{
-		/* Populate local vars for readability. */
-		handle = (s_global_config*)varlist[ARG_OBJECT]->ptrVal;
-		property = (e_global_config_properties)varlist[ARG_PROPERTY]->lVal;
+		return E_FAIL;
 	}
 
-	switch (property)
-	{
-	case _GLOBAL_CONFIG_AJSPECIAL:
+	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+	const e_global_config_properties property_id = (e_global_config_properties)(property_id_param);
+	const s_property_access_map property_map = global_config_get_property_map(acting_object, property_id);
 
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (e_ajspecial_config)handle->ajspecial;
+	/*
+	* If property id is in range, we send
+	* the property map and return parameter
+	* for population, then ext.
+	*/
 
-		break;
+	if (property_id_param >= 0 && property_id_param < GLOBAL_CONFIG_PROPERTY_END) {
+		property_access_get_member(&property_map, *pretvar);
+		return S_OK;
+	}
 
-	case _GLOBAL_CONFIG_BLOCK_RATIO:
+	/*
+	* Is this a dump request? If not, then
+	* the property id is invalid.
+	*/
 
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = handle->block_ratio;
-
-		break;
-
-	case _GLOBAL_CONFIG_BLOCK_TYPE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = handle->block_type;
-
-		break;
-
-	case _GLOBAL_CONFIG_CHEATS:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (e_cheat_options)handle->cheats;
-
-		break;
-
-	case _GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (int)handle->flash_layer_adjust;
-
-		break;
-
-	case _GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (int)handle->flash_layer_source;
-
-		break;	
-
-	case _GLOBAL_CONFIG_FLASH_Z_SOURCE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (int)handle->flash_z_source;
-
-		break;
-
-	case _GLOBAL_CONFIG_SHOW_GO:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (int)handle->showgo;
-
-		break;
-
-	default:
-
-		printf("Unsupported property.\n");
-		goto error_local;
-
-		break;
+	if (property_id_param == PROPERTY_ACCESS_DUMP) {
+		property_access_dump_members(global_config_get_property_map, GLOBAL_CONFIG_PROPERTY_END, acting_object);
+	}
+	else {
+		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+		return E_FAIL;
 	}
 
 	return S_OK;
-
-error_local:
-
-	printf("\nYou must provide a valid pointer and property name: " SELF_NAME "\n");
-	*pretvar = NULL;
-
-	return E_FAIL;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_OBJECT
-#undef ARG_INDEX
 }
+
 
 /*
 * Caskey, Damon  V.
-* 2022-05-10
+* 2018-04-03
 *
-* Mutate a global config property. 
-* Requires the handle from global 
-* config, property name to modify,
-* and the new value.
+* Mutate a property. Requires
+* the object pointer, a property
+* id, and new value.
 */
-HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-#define SELF_NAME           "set_global_config_property(void global_config, char property, mixed value)"
-#define ARG_MINIMUM         3   // Minimum required arguments.
-#define ARG_OBJECT          0   // Handle (pointer to property structure).
-#define ARG_PROPERTY        1   // Property to access.
-#define ARG_VALUE           2   // New value to apply.
-
-	int                     result = S_OK; // Success or error?
-	s_global_config* handle = NULL; // Property handle.
-	e_global_config_properties    property = 0;    // Property to access.
+	const char* SELF_NAME = "openbor_set_global_config_property(void global_config, int property, <mixed> value)";
+	const unsigned int ARG_OBJECT = 0;
+	const unsigned int ARG_PROPERTY = 1;
+	const unsigned int ARG_VALUE = 2;
+	const unsigned int ARG_MINIMUM = 3;
 
 	/*
-	* Value carriers to apply on properties after
-	* taken from argument.
+	* Should at least be a pointer to the
+	* acting object, a property id, and
+	* a new value.
 	*/
-	LONG         temp_int;
 
-	/*
-	* Map string property name to a
-	* matching integer constant.
-	*/
-	mapstrings_global_config_property(varlist, paramCount);
-
-	/*
-	* Verify incoming arguments. There should at least
-	* be a pointer for the property handle and an integer
-	* to determine which property is accessed.
-	*/
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-	{
+	if (varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER
+		|| paramCount < ARG_MINIMUM) {
+		printf("\n\n Script error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
 		*pretvar = NULL;
-		goto error_local;
+		return E_FAIL;
 	}
 
-	/* Populate local handleand property vars. */
-	handle = (s_global_config*)varlist[ARG_OBJECT]->ptrVal;
-	property = (e_global_config_properties)varlist[ARG_PROPERTY]->lVal;
+	/*
+	* Now let's make sure the object type is
+	* correct (ex. entity vs. model) so we
+	* can shut down gracefully if there's
+	* a mismatch.
+	*/
 
-	/* Which property to modify ? */
-	switch (property)
-	{
+	const s_global_config* const acting_object = (const s_global_config* const)varlist[ARG_OBJECT]->ptrVal;
 
-	case _GLOBAL_CONFIG_AJSPECIAL:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->ajspecial = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_BLOCK_RATIO:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->block_ratio = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_BLOCK_TYPE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->block_type = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_CHEATS:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->cheats = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->flash_layer_adjust = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->flash_layer_source = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_FLASH_Z_SOURCE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->flash_z_source = temp_int;
-		}
-
-		break;
-
-	case _GLOBAL_CONFIG_SHOW_GO:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->showgo = temp_int;
-		}
-
-		break;
-
-	default:
-
-		printf("Unsupported property.\n");
-		goto error_local;
-
-		break;
+	if (acting_object->object_type != OBJECT_TYPE_GLOBAL_CONFIG) {
+		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
 	}
 
-	return result;
+	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+	const e_global_config_properties property_id = (e_model_properties)(property_id_param);
 
-	// Error trapping.
-error_local:
+	if (property_id_param < 0 && property_id_param >= GLOBAL_CONFIG_PROPERTY_END) {
+		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+		return E_FAIL;
+	}
 
-	printf("\nYou must provide a valid pointer, property name, and new value: " SELF_NAME "\n");
+	/*
+	* Get map of property. This is a struct
+	* that contains the property variable
+	* type, reference to the acting object's
+	* appropriate data member, text name,
+	* read only, etc.
+	*/
 
-	result = E_FAIL;
-	return result;
+	const s_property_access_map property_map = global_config_get_property_map(acting_object, property_id);
 
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_OBJECT
-#undef ARG_PROPERTY
-#undef ARG_VALUE
+	/*
+	* Populate the property value on
+	* acting object and return OK/FAIL.
+	*/
+
+	return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
 }
