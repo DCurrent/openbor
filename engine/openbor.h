@@ -1826,6 +1826,27 @@ typedef enum e_cheat_options
 
 /*
 * Caskey, Damon V.
+* 2023-04-25
+*
+* Identify object type so we can
+* verify a pointer to an object
+* is valid.
+*
+* Each object has an object type
+* member with identical member name
+* (object_type). We populate the
+* member with an appropriate value
+* from this list on allocation.
+*/
+typedef enum e_object_type {
+    OBJECT_TYPE_NONE,
+    OBJECT_TYPE_BIND,
+    OBJECT_TYPE_ENTITY,
+    OBJECT_TYPE_MODEL
+} e_object_type;
+
+/*
+* Caskey, Damon V.
 * 2022-05-03
 *
 * Miscellaneous settings and game 
@@ -2513,6 +2534,7 @@ typedef struct
     // Meta data.
     s_meta_data* meta_data;          // User defined data.
     int                     meta_tag;           // user defined int.
+    e_object_type           object_type;
 
 } s_bind;
 
@@ -3271,25 +3293,7 @@ typedef enum e_pain_config_flags
 } e_pain_config_flags;
 
 
-/*
-* Caskey, Damon V.
-* 2023-04-25
-* 
-* Identify object type so we can
-* verify a pointer to an object
-* is valid.
-*
-* Each object has an object type
-* member with identical member name
-* (object_type). We populate the
-* member with an appropriate value
-* from this list on allocation.
-*/
-typedef enum e_object_type {
-    OBJECT_TYPE_NONE,
-    OBJECT_TYPE_ENTITY,
-    OBJECT_TYPE_MODEL
-} e_object_type;
+
 
 /*
 * Caskey, Damon V.

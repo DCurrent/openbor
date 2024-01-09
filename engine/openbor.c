@@ -23108,6 +23108,7 @@ void ent_default_init(entity *e)
     e->guardpoints = e->modeldata.guardpoints;
     e->jugglepoints = e->modeldata.jugglepoints;
 
+    e->binding.object_type = OBJECT_TYPE_BIND;
 
     switch(e->modeldata.type)
     {
@@ -28678,6 +28679,8 @@ s_bind* bind_allocate_object()
     */
 
     memset(result, 0, alloc_size);
+
+    result->object_type = OBJECT_TYPE_BIND;
           
     return result;
 }

@@ -16,7 +16,7 @@ typedef enum
 } e_bind_properties;
 
 // Binding properties.
-HRESULT openbor_get_bind_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_bind_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_bind_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_bind_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);
 HRESULT openbor_update_bind(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 
