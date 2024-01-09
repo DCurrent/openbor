@@ -1961,19 +1961,6 @@ typedef struct s_metric_range {
     int min;
 } s_metric_range;
 
-/*
-* Caskey, Damon V.
-* 2014-01-20
-* 
-* Values for jugglepoints and
-* guardpoints system.
-*/
-typedef struct s_status_points {
-    unsigned int current;
-    unsigned int max;
-    unsigned int min;
-} s_status_points;
-
 typedef struct
 {
     unsigned compatibleversion;
@@ -3509,8 +3496,10 @@ typedef struct
     s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
-    s_status_points jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_status_points guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    int jugglepoints;   // Juggle limiting system.
+    int guardpoints;    // guardbreak system.
+    //s_status_points jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    //s_status_points guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
@@ -3719,6 +3708,8 @@ typedef struct entity
 	unsigned int			walkmode;							// Force a specfic alternate walk. ~~
 
 	// Signed integers
+    int                     guardpoints;                        // Remaining value before guardbreak.
+    int                     jugglepoints;                       // Remaining value before juggling this entity is impossible.
 	int						lifespancountdown;					// Life span count down. ~~
 	int						map;								// Stores the colourmap for restoring purposes. ~~
 	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~

@@ -4169,7 +4169,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_guardpoints:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.current;
+        (*pretvar)->lVal = (LONG)ent->guardpoints;
         break;
     }
     case _ep_hasplatforms:
@@ -4338,7 +4338,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_jugglepoints:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.current;
+        (*pretvar)->lVal = (LONG)ent->jugglepoints;
         break;
     }
     case _ep_jumpheight:
@@ -4644,7 +4644,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_maxguardpoints:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.guardpoints.max;
+        (*pretvar)->lVal = (LONG)ent->modeldata.guardpoints;
         break;
     }
     case _ep_maxhealth:
@@ -4656,7 +4656,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_maxjugglepoints:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints.max;
+        (*pretvar)->lVal = (LONG)ent->modeldata.jugglepoints;
         break;
     }
     case _ep_maxmp:
@@ -6249,7 +6249,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.guardpoints.current = (LONG)ltemp;
+            ent->guardpoints = (LONG)ltemp;
         }
         break;
     }
@@ -6377,7 +6377,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jugglepoints.current = (LONG)ltemp;
+            ent->jugglepoints = (LONG)ltemp;
         }
         break;
     }
@@ -6535,7 +6535,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.guardpoints.max = (LONG)ltemp;
+            ent->modeldata.guardpoints = (LONG)ltemp;
         }
         break;
     }
@@ -6555,7 +6555,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     {
         if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
         {
-            ent->modeldata.jugglepoints.max = (LONG)ltemp;
+            ent->modeldata.jugglepoints = (LONG)ltemp;
         }
         break;
     }

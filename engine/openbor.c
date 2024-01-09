@@ -12635,17 +12635,8 @@ s_model *init_model(const int cacheindex, const int unload)
     newchar->risetime.rise              = -1;
     newchar->sleepwait                  = 1000;
 
-    newchar->jugglepoints = (s_status_points){
-        .current = 0,
-        .max = 0,
-        .min = 0
-    };
-
-    newchar->guardpoints = (s_status_points){
-        .current = 0,
-        .max = 0,
-        .min = 0
-    };
+    newchar->guardpoints = 0;
+    newchar->jugglepoints = 0;
 
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
     
@@ -13637,8 +13628,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_JUGGLEPOINTS:
                 value = GET_ARG(1);
-                newchar->jugglepoints.current = atoi(value);
-                newchar->jugglepoints.max = atoi(value);
+                newchar->jugglepoints = atoi(value);
                 break;
             case CMD_MODEL_RISEATTACKTYPE:
                 value = GET_ARG(1);
@@ -13646,8 +13636,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_GUARDPOINTS:
                 value = GET_ARG(1);
-                newchar->guardpoints.current = atoi(value);
-                newchar->guardpoints.max = atoi(value);
+                newchar->guardpoints = atoi(value);
                 break;
             case CMD_MODEL_DEFENSE:
 
@@ -23116,6 +23105,9 @@ void ent_default_init(entity *e)
     }
 
     e->nograb_default = 0; // init all entities to 0 by default
+    e->guardpoints = e->modeldata.guardpoints;
+    e->jugglepoints = e->modeldata.jugglepoints;
+
 
     switch(e->modeldata.type)
     {
@@ -25803,9 +25795,9 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 
 	/* If guardpoints are set, then find out if they've been depleted. */
 	
-    if (ent->modeldata.guardpoints.max)
+    if (ent->modeldata.guardpoints)
 	{
-		if (ent->modeldata.guardpoints.current <= 0)
+		if (ent->guardpoints <= 0)
 		{
 			return 0;
 		}
@@ -26038,9 +26030,9 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
     ent->velocity.z = 0;
 
 	/* If we have guardpoints, then reduce them here. */
-	if (ent->modeldata.guardpoints.max > 0)
+	if (ent->modeldata.guardpoints > 0)
 	{
-		ent->modeldata.guardpoints.current -= attack->guardcost;
+		ent->guardpoints -= attack->guardcost;
 	}
 
 	/* 
@@ -26953,13 +26945,17 @@ void do_attack(entity *attacking_entity)
             {
                 continue;
             }
-        }
+        }    
 
-        // If in the air, then check the juggle cost.
+        printf("\n\n Check");
+
         if(inair(target))
         {
-            if(attack->jugglecost > target->modeldata.jugglepoints.current)
+            printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
+
+            if(attack->jugglecost > target->jugglepoints)
             {
+                printf("\n\n Continue.");
                 continue;
             }
         }
@@ -27052,9 +27048,12 @@ void do_attack(entity *attacking_entity)
                 attacking_entity->toexplode |= EXPLODE_DETONATE_HIT;
             }
 
+            /*
+            * Reduce available juggle points.
+            */
             if(inair(self))
             {
-                self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
+                self->jugglepoints -= attack->jugglecost;
             }
 
             didblock = check_blocking_master(self, attacking_entity, attack, target_body_object);
@@ -28512,26 +28511,38 @@ int do_energy_charge(entity *ent)
 
 void update_health()
 {
-    //12/30/2008: Guardrate by OX. Guardpoints increase over time.
-    if(self->modeldata.guardpoints.max > 0 && _time >= self->guardtime) // If this is > 0 then guardpoints are set..
+    /*
+    * 12/30/2008: Guardrate by OX. Guardpoints increase over time.
+    *
+    * 2024-01-08, DC: Split max/current between model and
+    * entity. Remove some redudant code.
+    * 
+    * Only bother recovering if guardpoints are set in
+    * the first place (model has guardpoint value > 0).
+    */ 
+    if(self->modeldata.guardpoints > 0 && _time >= self->guardtime)
     {
+        /* 
+        * Recover guardpoints. Half rate if
+        * blocking.
+        */
         if(self->blocking)
         {
-            self->modeldata.guardpoints.current += (self->modeldata.guardrate / 2);
-            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.max)
-            {
-                self->modeldata.guardpoints.current = self->modeldata.guardpoints.max;
-            }
+            self->guardpoints += (self->modeldata.guardrate / 2);            
         }
         else
         {
-            self->modeldata.guardpoints.current += self->modeldata.guardrate;
-            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.max)
-            {
-                self->modeldata.guardpoints.current = self->modeldata.guardpoints.max;
-            }
+            self->guardpoints += self->modeldata.guardrate;            
         }
-        self->guardtime = _time + GAME_SPEED;    //Reset guardtime.
+
+        /* Cap to maximum. */
+        if (self->guardpoints > self->modeldata.guardpoints)
+        {
+            self->guardpoints = self->modeldata.guardpoints;
+        }
+
+        /* Reset guardtime. */
+        self->guardtime = _time + GAME_SPEED;    
     }
 
     //Damage over time.
@@ -30199,7 +30210,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->projectile = BLAST_NONE;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
-    iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.max; //reset jugglepoints
+    iRise->jugglepoints = iRise->modeldata.jugglepoints; //reset jugglepoints
     return 1;
 }
 
@@ -30256,7 +30267,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->rising |= RISING_ATTACK;
     iRiseattack->drop = 0;
     iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
-    iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
+    iRiseattack->jugglepoints = iRiseattack->modeldata.jugglepoints; //reset jugglepoints
     return 1;
 }
 
@@ -30363,10 +30374,10 @@ int set_pain(entity *iPain, int type, int reset)
     int pain = 0;
 
     iPain->velocity.x = iPain->velocity.z = iPain->velocity.y = 0; // stop the target
-    if(iPain->modeldata.guardpoints.max > 0 && iPain->modeldata.guardpoints.current <= 0)
+    if(iPain->modeldata.guardpoints > 0 && iPain->guardpoints <= 0)
     {
         pain = ANI_GUARDBREAK;
-        iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.max;
+        iPain->guardpoints = iPain->modeldata.guardpoints;
     }
     else if(type == -1 || type >= max_attack_types)
     {
@@ -32423,7 +32434,7 @@ void checkdamagedrop(entity* target_entity, s_attack* attack_object, s_defense* 
     
     /* Make sure guard break doesn't knock target down. */
     
-    if(target_entity->modeldata.guardpoints.max > 0 && target_entity->modeldata.guardpoints.current <= 0)
+    if(target_entity->modeldata.guardpoints > 0 && target_entity->guardpoints <= 0)
     {
         attack_drop = 0;
     } 
@@ -33878,7 +33889,7 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
         }
     }
 
-    if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
+    if(target->modeldata.guardpoints > 0 && target->guardpoints <= 0)
     {
         return 0;    //guardbreak does not deal damage.
     }
@@ -34023,7 +34034,7 @@ void checkdamageonlanding(entity* acting_entity)
                 dropweapon(1);
             }
             // check effects, e.g., frozen, blast, steal
-            if(!(acting_entity->modeldata.guardpoints.max > 0 && acting_entity->modeldata.guardpoints.current <= 0))
+            if(!(acting_entity->modeldata.guardpoints > 0 && acting_entity->guardpoints <= 0))
             {
                 checkdamageeffects(&attack);
             }
@@ -34299,7 +34310,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
             dropweapon(1);
         }
         // check effects, e.g., frozen, blast, steal
-        if(!(acting_entity->modeldata.guardpoints.max > 0 && acting_entity->modeldata.guardpoints.current <= 0))
+        if(!(acting_entity->modeldata.guardpoints > 0 && acting_entity->guardpoints <= 0))
         {
             checkdamageeffects(attack);
         }
