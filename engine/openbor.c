@@ -26949,7 +26949,7 @@ void do_attack(entity *attacking_entity)
             }
         }    
 
-        printf("\n\n Check");
+        //printf("\n\n Check");
 
         if(inair(target))
         {
