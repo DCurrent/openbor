@@ -9686,7 +9686,7 @@ int changesyspropertybyindex(int index, ScriptVariant *value)
 
         if (SUCCEEDED(ScriptVariant_IntegerValue(value, &ltemp)))
         {
-            level->pos = (LONG)MAX_WALL_HEIGHT;
+            MAX_WALL_HEIGHT = (LONG)ltemp; //Kratus (01-2024) Turned into a changeable variant
         }
         break;
 

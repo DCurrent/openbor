@@ -21,9 +21,10 @@
 // 20:12 fixed-point conversion macros.
 // The maximum size of a sound is linked directly
 // to the range of the fixed-point variables!
-#define		INT_TO_FIX(i)		((unsigned int)i<<12)
-#define		FIX_TO_INT(f)		((unsigned int)f>>12)
-#define		MAX_SOUND_LEN		0xFFFFF
+// Kratus (01-2024) Increased the length limit for samples, from 8 seconds to 1 minute
+#define		INT_TO_FIX(i)		((unsigned int)i<<8)
+#define		FIX_TO_INT(f)		((unsigned int)f>>8)
+#define		MAX_SOUND_LEN		0x4ffffb
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
 #define		MUSIC_NUM_BUFFERS	4

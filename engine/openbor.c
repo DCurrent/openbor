@@ -27814,7 +27814,11 @@ void check_gravity(entity *e)
                         check_landframe(self);
 
                         // Taking damage on a landing?
-                        checkdamageonlanding(self);
+                        // Kratus (01-2024) Now the damage_on_landing is affected by infinite health cheat
+                        if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
+                        {
+                            checkdamageonlanding(self);
+                        }
 
                         // in case landing, set hithead to NULL
                         self->hithead = NULL;
