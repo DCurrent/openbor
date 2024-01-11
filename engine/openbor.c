@@ -26953,7 +26953,7 @@ void do_attack(entity *attacking_entity)
 
         if(inair(target))
         {
-            printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
+            //printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
 
             if(attack->jugglecost > target->jugglepoints)
             {
