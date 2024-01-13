@@ -26985,11 +26985,11 @@ void do_attack(entity *attacking_entity)
             }
         }    
 
-        printf("\n\n Check");
+        //printf("\n\n Check");
 
         if(inair(target))
         {
-            printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
+            //printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
 
             if(attack->jugglecost > target->jugglepoints)
             {
@@ -27850,7 +27850,11 @@ void check_gravity(entity *e)
                         check_landframe(self);
 
                         // Taking damage on a landing?
-                        checkdamageonlanding(self);
+                        // Kratus (01-2024) Now the damage_on_landing is affected by infinite health cheat
+                        if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
+                        {
+                            checkdamageonlanding(self);
+                        }
 
                         // in case landing, set hithead to NULL
                         self->hithead = NULL;
@@ -30194,6 +30198,7 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
     ent->attacking = ATTACKING_NONE;
     ent->blocking = 0;
     ent->nograb = 1;
+    ent->running = RUN_STATE_NONE; //Kratus (01-2024) Resets the aiflag running when falling
 
     if(ent->frozen)
     {
