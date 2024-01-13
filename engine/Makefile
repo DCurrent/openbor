@@ -378,6 +378,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/constants.o                                                  \
                   source/openborscript/entity.o                                                   	\
                   source/openborscript/faction.o                                                   	\
+                  source/openborscript/flash.o                                             	        \
                   source/openborscript/global_config.o                                             	\
                   source/openborscript/icon.o                                                       \
                   source/openborscript/index.o                                                      \

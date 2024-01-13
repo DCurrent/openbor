@@ -259,17 +259,6 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "set_drawmethod_property";
 	}
 
-    /* Global config properties */
-    else if (functionRef == ((void*)openbor_set_global_config_property))
-    {
-        return "get_global_config_property";
-    }
-    else if (functionRef == ((void*)openbor_set_global_config_property))
-    {
-        return "set_global_config_property";
-    }
-    
-
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -425,6 +414,16 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_set_entity_collision_property))
     {
         return "set_entity_collision_property";
+    }
+
+    /* Flash config properties */
+    else if (functionRef == ((void*)openbor_get_flash_property))
+    {
+        return "get_flash_property";
+        }
+    else if (functionRef == ((void*)openbor_set_flash_property))
+    {
+        return "set_flash_property";
     }
 
     /* Global config property. */
@@ -1353,6 +1352,12 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_faction_property, "get_faction_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_faction_property, "set_faction_property");
+
+    /* Flash config properties. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_flash_property, "get_flash_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_flash_property, "set_flash_property");
 
     /* Global config properties. */
     List_InsertAfter(&theFunctionList,

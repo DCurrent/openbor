@@ -1824,27 +1824,13 @@ typedef enum e_cheat_options
     CHEAT_OPTIONS_ALL_MENU = (CHEAT_OPTIONS_MASTER_MENU | CHEAT_OPTIONS_CREDITS_MENU | CHEAT_OPTIONS_ENERGY_MENU | CHEAT_OPTIONS_HEALTH_MENU | CHEAT_OPTIONS_IMPLACABLE_MENU | CHEAT_OPTIONS_LIVES_MENU | CHEAT_OPTIONS_MULTIHIT_MENU | CHEAT_OPTIONS_TOD_MENU)
 } e_cheat_options;
 
-/*
-* Caskey, Damon V.
-* 2023-04-25
-*
-* Identify object type so we can
-* verify a pointer to an object
-* is valid.
-*
-* Each object has an object type
-* member with identical member name
-* (object_type). We populate the
-* member with an appropriate value
-* from this list on allocation.
-*/
-typedef enum e_object_type {
-    OBJECT_TYPE_NONE,
-    OBJECT_TYPE_BIND,
-    OBJECT_TYPE_ENTITY,
-    OBJECT_TYPE_GLOBAL_CONFIG,
-    OBJECT_TYPE_MODEL
-} e_object_type;
+typedef struct s_flash_properties
+{
+    int layer_adjust;  // Adjust Z position to spawn flash.
+    int layer_source;  // Adjustment to source of initial flash layer. NOT a layer value.
+    int z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
+    e_object_type object_type;
+} s_flash_properties;
 
 /*
 * Caskey, Damon V.
@@ -1860,9 +1846,7 @@ typedef struct s_global_config {
     unsigned int block_ratio;       // Blcoked attacks still cause 0.25 damage?
     e_blocktype block_type;         // Take chip damage from health or MP first?
     e_cheat_options cheats;         // Cheat menu config and active cheats.
-    int flash_layer_adjust;         // Adjust Z layer of flash spawn.
-    int flash_layer_source;         // Source of initial inital flash layer. NOT the layer value.
-    int flash_z_source;             // Source of Z position for flash spawn. NOT the Z value.
+    s_flash_properties flash;           // Flash config properties.
     unsigned int showgo;            // Enable/disable go arrow.
 } s_global_config;
 
@@ -2305,9 +2289,7 @@ typedef struct
     int                 attack_force;       // Hit point damage attack inflicts.
     int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked.
-    int                 flash_layer_adjust; // Adjust Z position to spawn flash.
-    int                 flash_layer_source; // Adjustment to source of initial flash layer. NOT a layer value.
-    int                 flash_z_source;     // Adjustment to source of initial flash Z position. NOT a position value.
+    s_flash_properties      flash;              // Flash config properties.
     int                 forcemap;           // Set target's palette on hit.
     unsigned int        freezetime;         // Time for target to remain frozen.
     
@@ -2367,10 +2349,8 @@ typedef struct s_collision_attack
 */
 typedef struct
 {    
-    s_defense*  defense;            // Defense properties for this collision box only. 
-    int        flash_layer_adjust;  // Adjust Z position to spawn flash.
-    int        flash_layer_source;  // Adjustment to source of initial flash layer. NOT a layer value.
-    int        flash_z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
+    s_defense*  defense;    // Defense properties for this collision box only. 
+    s_flash_properties flash;   // Flash configuration properties.
 } s_body;
 
 /*

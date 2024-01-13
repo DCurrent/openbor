@@ -19,6 +19,7 @@
 #include "colorset.h"
 #include "entity.h"
 #include "faction.h"
+#include "flash.h"
 #include "global_config.h"
 #include "icon.h"
 #include "model.h"

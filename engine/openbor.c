@@ -72,6 +72,7 @@ int atkchoices[MAX_ANIS]; //tempory values for ai functions, should be well enou
 //see types.h
 const s_drawmethod plainmethod =
 {
+    .object_type = OBJECT_TYPE_DRAWMETHOD,
     .table      = NULL,
     .fillcolor  = 0,
     .flag       = 1,
@@ -181,9 +182,11 @@ const s_collision_body empty_collision_body = { .coords = NULL,
                                             .meta_tag = 0 };
 
 const s_body empty_body = { .defense = NULL,
-                            .flash_layer_adjust = 0,
-                            .flash_layer_source = 0,
-                            .flash_z_source = 0
+                            .flash = {
+                                .object_type = OBJECT_TYPE_FLASH,
+                                .layer_adjust = 0,
+                                .layer_source = 0,
+                                .z_source = 0}
 };
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
@@ -218,9 +221,11 @@ const s_attack emptyattack =
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
-    .flash_layer_adjust = 0,
-    .flash_layer_source = 0,
-    .flash_z_source     = 0,
+    .flash = {
+        .object_type = OBJECT_TYPE_FLASH,
+        .layer_adjust = 0,
+        .layer_source = 0,
+        .z_source = 0, },
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,
@@ -654,10 +659,12 @@ s_global_config global_config =
     .object_type = OBJECT_TYPE_GLOBAL_CONFIG,
     .ajspecial = AJSPECIAL_KEY_SPECIAL,
     .block_type = BLOCK_TYPE_GLOBAL,
-    .cheats = CHEAT_OPTIONS_ALL_MENU,    
-    .flash_layer_adjust = 1,
-    .flash_layer_source = 255,
-    .flash_z_source = 0,
+    .cheats = CHEAT_OPTIONS_ALL_MENU,
+    .flash = {
+        .object_type = OBJECT_TYPE_FLASH,
+        .layer_adjust = 1,
+        .layer_source = 255,
+        .z_source = 0},
     .showgo = 0    
 };
 
@@ -3575,35 +3582,64 @@ int convert_map_to_palette(s_model *model, unsigned mapflag[])
 //load a 256 colors' palette
 int load_palette(unsigned char *palette, char *filename)
 {
+    enum {
+        RGB_RED = 0,
+        RGB_GREEN = 1,
+        RGB_BLUE = 2,
+        RGB_ELEMENT_COUNT = 3
+    };
+
     char *fileext;
-    int handle, i;
-    unsigned *dp;
-    unsigned char tpal[3];
+    int file_id, i;
+    unsigned int *acting_palette;
+    unsigned char rgb_temp[RGB_ELEMENT_COUNT];
+
+    //printf("\n\nfileext: %s", filename);
 
     // Determine whether the author is using an .act or image file, and
     // verify the file content is valid to load a color table from.
     fileext = strrchr(filename, '.');
     if(fileext != NULL && stricmp(fileext, ".act") == 0)
-    {
-        handle = openpackfile(filename, packfile);
-        if(handle < 0)
+    {        
+
+        file_id = openpackfile(filename, packfile);
+        if(file_id < 0)
         {
             return 0;
         }
+
+        /* 
+        * Reset the palette. 
+        */
         memset(palette, 0, MAX_PAL_SIZE);
-        dp = (unsigned *)palette;
+
+
+        acting_palette = (unsigned *)palette;
+
+        
         for(i = 0; i < MAX_PAL_SIZE / 4; i++)
         {
-            if(readpackfile(handle, tpal, 3) != 3)
+            //printf("\n\t i: %d", i);
+
+
+            if(readpackfile(file_id, rgb_temp, 3) != 3)
             {
-                closepackfile(handle);
+                closepackfile(file_id);
                 return 0;
             }
-            dp[i] = colour32(tpal[0], tpal[1], tpal[2]);
 
-        }
-        closepackfile(handle);
-        dp[0] = 0;
+            //printf("\n\t tpal[RGB_RED]: %d, tpal[RGB_GREEN]: %d, tpal[2]: %d", rgb_temp[RGB_RED], rgb_temp[RGB_GREEN], rgb_temp[RGB_BLUE]);
+            //printf("\n\t colour32: %d", colour32(rgb_temp[RGB_RED], rgb_temp[RGB_GREEN], rgb_temp[RGB_BLUE]));
+            
+            acting_palette[i] = colour32(rgb_temp[RGB_RED], rgb_temp[RGB_GREEN], rgb_temp[RGB_BLUE]);
+            
+
+            //printf("\n\t\t acting_palette[%d]: %d", i, acting_palette[i]);
+        }                
+
+        closepackfile(file_id);
+        
+        acting_palette[0] = colour32(255, 0, 0);
 
         return 1;
     }
@@ -8473,9 +8509,9 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->dropv.x: %f", attack->dropv.x);
         printf("\n\t ->dropv.y: %f", attack->dropv.y);
         printf("\n\t ->dropv.z: %f", attack->dropv.z);
-        printf("\n\t ->flash_layer_adjust: %d", attack->flash_layer_adjust);
-        printf("\n\t ->flash_layer_source: %d", attack->flash_layer_source);
-        printf("\n\t ->flash_z_source: %d", attack->flash_z_source);
+        printf("\n\t ->flash.layer_adjust: %d", attack->flash.layer_adjust);
+        printf("\n\t ->flash.layer_source: %d", attack->flash.layer_source);
+        printf("\n\t ->flash.z_source: %d", attack->flash.z_source);
         printf("\n\t ->forcemap: %d", attack->forcemap);
         printf("\n\t ->force_direction: %d", attack->force_direction);
         printf("\n\t ->freeze: %d", attack->freeze);
@@ -8592,9 +8628,9 @@ void body_dump_object(s_body* body)
     if (body)
     {        
         printf("\n\t ->body_defense: %d", body->defense);
-        printf("\n\t ->flash_layer_adjust: %d", body->flash_layer_adjust);
-        printf("\n\t ->flash_layer_source: %d", body->flash_layer_source);
-        printf("\n\t ->flash_z_source: %d", body->flash_z_source);
+        printf("\n\t ->flash.layer_adjust: %d", body->flash.layer_adjust);
+        printf("\n\t ->flash.layer_source: %d", body->flash.layer_source);
+        printf("\n\t ->flash.z_source: %d", body->flash.z_source);
 
     }
 
@@ -14467,7 +14503,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(newchar->palette == NULL)
                 {
 
-                    // Command title for log. Details will be added blow accordingly.
+                    // Command title for log. Details will be added below accordingly.
                     // Forced character length is to line up with Alternatepal logs.
                     //printf("\t\t\tPalette: \t");
 
@@ -15517,13 +15553,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Does nothing. Do not modify.
                 break;
             case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_ADJUST:
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_layer_adjust = GET_INT_ARG(1);
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash.layer_adjust = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_SOURCE:
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_layer_source = GET_INT_ARG(1);
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash.layer_source = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_Z_SOURCE:
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_z_source = GET_INT_ARG(1);
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash.z_source = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_X:   
 
@@ -16041,19 +16077,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_ADJUST:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_layer_adjust = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.layer_adjust = GET_INT_ARG(1);
 
                 break;
            
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_SOURCE:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_layer_source = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.layer_source = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_Z_SOURCE:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_z_source = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.z_source = GET_INT_ARG(1);
 
                 break;
 
@@ -18271,13 +18307,13 @@ int load_models()
                 lcmHandleCommandGlobalConfigCheats(&arglist);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
-                global_config.flash_layer_adjust = GET_INT_ARG(1);
+                global_config.flash.layer_adjust = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
-                global_config.flash_layer_source = GET_INT_ARG(1);
+                global_config.flash.layer_source = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_Z_SOURCE:
-                global_config.flash_z_source = GET_INT_ARG(1);
+                global_config.flash.z_source = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_GRABDISTANCE:
                 default_model_grabdistance =  GET_FLOAT_ARG(1);
@@ -26184,9 +26220,9 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
     * using the total. 
     */
 
-    flash_z_source = global_config.flash_z_source;
-    flash_z_source += lasthit.attack ? lasthit.attack->flash_z_source : 0;
-    flash_z_source += lasthit.detect_body ? lasthit.detect_body->flash_z_source : 0;
+    flash_z_source = global_config.flash.z_source;
+    flash_z_source += lasthit.attack ? lasthit.attack->flash.z_source : 0;
+    flash_z_source += lasthit.detect_body ? lasthit.detect_body->flash.z_source : 0;
 
     if (!flash_z_source)
     {       
@@ -26232,9 +26268,9 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
 
     //printf("\n\t global_config.flash_layer_source: %d", global_config.flash_layer_source);
     
-    flash_layer_source = global_config.flash_layer_source;
-    flash_layer_source += lasthit.attack ? lasthit.attack->flash_layer_source : 0;
-    flash_layer_source += lasthit.detect_body ? lasthit.detect_body->flash_layer_source : 0;
+    flash_layer_source = global_config.flash.layer_source;
+    flash_layer_source += lasthit.attack ? lasthit.attack->flash.layer_source : 0;
+    flash_layer_source += lasthit.detect_body ? lasthit.detect_body->flash.layer_source : 0;
 
     //printf("\n\t flash_layer_source: %d", flash_layer_source);
 
@@ -26261,7 +26297,7 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
 
     //printf("\n\t set_layer: %d", set_layer);
 
-    set_layer += global_config.flash_layer_adjust + lasthit.attack->flash_layer_adjust + lasthit.detect_body->flash_layer_adjust;
+    set_layer += global_config.flash.layer_adjust + lasthit.attack->flash.layer_adjust + lasthit.detect_body->flash.layer_adjust;
     
     //printf("\n\t set_layer (adjusted): %d", set_layer);
 

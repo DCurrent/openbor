@@ -94,6 +94,30 @@ typedef unsigned long long u64;
 //scr
 #define screen_magic ((int)0x726373)
 
+/*
+* Caskey, Damon V.
+* 2023-04-25
+*
+* Identify object type so we can
+* verify a pointer to an object
+* is valid.
+*
+* Each object has an object type
+* member with identical member name
+* (object_type). We populate the
+* member with an appropriate value
+* from this list on allocation.
+*/
+typedef enum e_object_type {
+    OBJECT_TYPE_NONE,
+    OBJECT_TYPE_BIND,
+    OBJECT_TYPE_DRAWMETHOD,
+    OBJECT_TYPE_ENTITY,
+    OBJECT_TYPE_FLASH,
+    OBJECT_TYPE_GLOBAL_CONFIG,
+    OBJECT_TYPE_MODEL
+} e_object_type;
+
 typedef struct
 {
     int magic;
@@ -247,7 +271,7 @@ typedef struct
 {
     unsigned char *table;	// ~~
     //void *fp;
-    unsigned fillcolor;		// ~~
+    unsigned int fillcolor;		// ~~
     int flag;				// When 0, the global plainmethod is used. ~~
     int alpha;				// ~~				
     int remap;				// ~~
@@ -276,6 +300,7 @@ typedef struct
     int cliph;				// ~~
     water_transform water;	
 	int tag;				// ~~
+    e_object_type object_type;
 } s_drawmethod;
 extern const s_drawmethod plainmethod;
 void drawmethod_global_init(s_drawmethod *drawmethod);

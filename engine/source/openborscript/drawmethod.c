@@ -12,6 +12,105 @@
 
 #include "scriptcommon.h"
 
+const s_property_access_map drawmethod_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
+{
+	s_property_access_map property_map;
+	const s_drawmethod* acting_object = acting_object_param;
+	const e_drawmethod_properties property_index = property_index_param;
+
+	switch (property_index)
+	{
+	case DRAWMETHOD_PROPERTY_ALPHA:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->alpha;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_ALPHA";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->transbg;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CENTER_X:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->centerx;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CENTER_X";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CENTER_Y:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->centery;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CENTER_Y";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CHANNEL_BLUE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->channelb;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CHANNEL_BLUE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CHANNEL_GREEN:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->channelg;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CHANNEL_GREEN";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CHANNEL_RED:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->channelr;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CHANNEL_RED";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CLIP_POSITION_X:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->clipx;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CLIP_POSITION_X";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CLIP_POSITION_Y:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->clipy;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CLIP_POSITION_Y";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CLIP_SIZE_X:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->clipw;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CLIP_SIZE_X";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CLIP_SIZE_Y:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->cliph;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CLIP_SIZE_Y";
+		property_map.type = VT_INTEGER;
+		break;
+
+
+
+	case DRAWMETHOD_PROPERTY_END:
+	default:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
+		property_map.field = NULL;
+		property_map.id_string = "Drawmethod";
+		property_map.type = VT_EMPTY;
+		break;
+
+	}
+	return property_map;
+}
+
 // Use string property argument to find an
 // integer property constant and populate
 // varlist->lval.

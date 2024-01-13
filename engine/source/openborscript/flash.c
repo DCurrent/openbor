@@ -15,58 +15,36 @@
 #include "scriptcommon.h"
 
 
-const s_property_access_map global_config_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
+const s_property_access_map flash_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
 {
 	s_property_access_map property_map;
-	const s_global_config* acting_object = acting_object_param;
-	const e_global_config_properties property_index = property_index_param;
+	const s_flash_properties* acting_object = acting_object_param;
+	const e_flash_properties property_index = property_index_param;
 
 	switch (property_index)
 	{
-	case GLOBAL_CONFIG_PROPERTY_AJSPECIAL:
+	case FLASH_PROPERTY_LAYER_ADJUST:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->ajspecial;
-		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_AJSPECIAL";
+		property_map.field = &acting_object->layer_adjust;
+		property_map.id_string = "FLASH_PROPERTY_LAYER_ADJUST";
 		property_map.type = VT_INTEGER;
 		break;
 
-	case GLOBAL_CONFIG_PROPERTY_BLOCK_RATIO:
+	case FLASH_PROPERTY_LAYER_SOURCE:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->block_ratio;
-		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_BLOCK_RATIO";
+		property_map.field = &acting_object->layer_source;
+		property_map.id_string = "FLASH_PROPERTY_LAYER_SOURCE";
 		property_map.type = VT_INTEGER;
 		break;
 
-	case GLOBAL_CONFIG_PROPERTY_BLOCK_TYPE:
+	case FLASH_PROPERTY_Z_SOURCE:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->block_type;
-		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_BLOCK_TYPE";
+		property_map.field = &acting_object->z_source;
+		property_map.id_string = "FLASH_PROPERTY_Z_SOURCE";
 		property_map.type = VT_INTEGER;
 		break;
 
-	case GLOBAL_CONFIG_PROPERTY_CHEATS:
-		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->cheats;
-		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_CHEATS";
-		property_map.type = VT_INTEGER;
-		break;
-
-	case GLOBAL_CONFIG_PROPERTY_FLASH:
-
-		property_map.config_flags = (PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER);
-		property_map.field = &acting_object->flash;
-		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_FLASH";
-		property_map.type = VT_PTR;
-		break;
-
-	case GLOBAL_CONFIG_PROPERTY_SHOW_GO:
-		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->showgo;
-		property_map.id_string = "GLOBAL_CONFIG_PROPERTY_SHOW_GO";
-		property_map.type = VT_INTEGER;
-		break;
-
-	case GLOBAL_CONFIG_PROPERTY_END:
+	case FLASH_PROPERTY_END:
 	default:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
 		property_map.field = NULL;
@@ -87,9 +65,9 @@ const s_property_access_map global_config_get_property_map(const void* acting_ob
 * a object pointer and property
 * constant to access.
 */
-HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
+HRESULT openbor_get_flash_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	const char* SELF_NAME = "openbor_get_global_config_property(void global_config, int property)";
+	const char* SELF_NAME = "openbor_get_flash_property(void flash, int property)";
 	const unsigned int ARG_OBJECT = 0; // Handle (pointer to property structure).
 	const unsigned int ARG_PROPERTY = 1; // Property to access.
 
@@ -116,7 +94,7 @@ HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, 
 	* a mismatch.
 	*/
 
-	const s_global_config* const acting_object = (const s_global_config* const)varlist[ARG_OBJECT]->ptrVal;
+	const s_flash_properties* const acting_object = (const s_flash_properties* const)varlist[ARG_OBJECT]->ptrVal;
 
 	if (acting_object->object_type != OBJECT_TYPE_GLOBAL_CONFIG) {
 		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
@@ -125,8 +103,8 @@ HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, 
 	}
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
-	const e_global_config_properties property_id = (e_global_config_properties)(property_id_param);
-	const s_property_access_map property_map = global_config_get_property_map(acting_object, property_id);
+	const e_flash_properties property_id = (e_flash_properties)(property_id_param);
+	const s_property_access_map property_map = flash_get_property_map(acting_object, property_id);
 
 	/*
 	* If property id is in range, we send
@@ -134,7 +112,7 @@ HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, 
 	* for population, then ext.
 	*/
 
-	if (property_id_param >= 0 && property_id_param < GLOBAL_CONFIG_PROPERTY_END) {
+	if (property_id_param >= 0 && property_id_param < FLASH_PROPERTY_END) {
 		property_access_get_member(&property_map, *pretvar);
 		return S_OK;
 	}
@@ -145,7 +123,7 @@ HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, 
 	*/
 
 	if (property_id_param == PROPERTY_ACCESS_DUMP) {
-		property_access_dump_members(global_config_get_property_map, GLOBAL_CONFIG_PROPERTY_END, acting_object);
+		property_access_dump_members(flash_get_property_map, FLASH_PROPERTY_END, acting_object);
 	}
 	else {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
@@ -164,9 +142,9 @@ HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, 
 * the object pointer, a property
 * id, and new value.
 */
-HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
+HRESULT openbor_set_flash_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	const char* SELF_NAME = "openbor_set_global_config_property(void global_config, int property, <mixed> value)";
+	const char* SELF_NAME = "openbor_set_flash_property(void flash, int property, <mixed> value)";
 	const unsigned int ARG_OBJECT = 0;
 	const unsigned int ARG_PROPERTY = 1;
 	const unsigned int ARG_VALUE = 2;
@@ -193,7 +171,7 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 	* a mismatch.
 	*/
 
-	const s_global_config* const acting_object = (const s_global_config* const)varlist[ARG_OBJECT]->ptrVal;
+	const s_flash_properties* const acting_object = (const s_flash_properties* const)varlist[ARG_OBJECT]->ptrVal;
 
 	if (acting_object->object_type != OBJECT_TYPE_GLOBAL_CONFIG) {
 		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
@@ -202,9 +180,9 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 	}
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
-	const e_global_config_properties property_id = (e_model_properties)(property_id_param);
+	const e_flash_properties property_id = (e_model_properties)(property_id_param);
 
-	if (property_id_param < 0 && property_id_param >= GLOBAL_CONFIG_PROPERTY_END) {
+	if (property_id_param < 0 && property_id_param >= FLASH_PROPERTY_END) {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
 		return E_FAIL;
 	}
@@ -217,7 +195,7 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 	* read only, etc.
 	*/
 
-	const s_property_access_map property_map = global_config_get_property_map(acting_object, property_id);
+	const s_property_access_map property_map = flash_get_property_map(acting_object, property_id);
 
 	/*
 	* Populate the property value on
