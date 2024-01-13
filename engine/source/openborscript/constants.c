@@ -937,6 +937,8 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         /* Global configuration. */
         ICMPCONST(FLASH_PROPERTY_LAYER_ADJUST)
         ICMPCONST(FLASH_PROPERTY_LAYER_SOURCE)
+        ICMPCONST(FLASH_PROPERTY_MODEL_BLOCK)
+        ICMPCONST(FLASH_PROPERTY_MODEL_HIT)
         ICMPCONST(FLASH_PROPERTY_Z_SOURCE)
 
         /* Follow condition logic. */

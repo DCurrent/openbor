@@ -4092,12 +4092,12 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
         {
         case _ep_flash_block:
         {
-            i = ent->modeldata.bflash;
+            i = ent->modeldata.flash.model_block;
             break;
         }
         case _ep_flash_def:
         {
-            i = ent->modeldata.flash;
+            i = ent->modeldata.flash.model_hit;
             break;
         }
         case _ep_flash_noattack:

@@ -168,6 +168,16 @@ const s_offense default_offense =
     .factor         = 1.f    
 };
 
+const s_flash_properties empty_flash = {
+
+        .object_type = OBJECT_TYPE_FLASH,
+        .layer_adjust = 0,
+        .layer_source = 0,
+        .model_block = MODEL_INDEX_NONE,
+        .model_hit = MODEL_INDEX_NONE,
+        .z_source = 0
+};
+
 const s_hitbox empty_collision_coords = {   .x      = 0,
                                             .y      = 0,
                                             .width  = 0,
@@ -182,11 +192,8 @@ const s_collision_body empty_collision_body = { .coords = NULL,
                                             .meta_tag = 0 };
 
 const s_body empty_body = { .defense = NULL,
-                            .flash = {
-                                .object_type = OBJECT_TYPE_FLASH,
-                                .layer_adjust = 0,
-                                .layer_source = 0,
-                                .z_source = 0}
+                            .flash = empty_flash
+                                
 };
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
@@ -213,7 +220,6 @@ const s_attack emptyattack =
     .attack_force       = 0,
     .attack_type        = ATK_NORMAL,
     .blast              = 0,
-    .blockflash         = MODEL_INDEX_NONE,
     .blocksound         = SAMPLE_ID_NONE,
     .counterattack      = 0,
     .damage_on_landing.attack_force =  0,
@@ -221,11 +227,7 @@ const s_attack emptyattack =
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
-    .flash = {
-        .object_type = OBJECT_TYPE_FLASH,
-        .layer_adjust = 0,
-        .layer_source = 0,
-        .z_source = 0, },
+    .flash = empty_flash,
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,
@@ -233,7 +235,6 @@ const s_attack emptyattack =
     .grab               = 0,
     .grab_distance      = 0,
     .guardcost          = 0,
-    .hitflash           = MODEL_INDEX_NONE,
     .hitsound           = SAMPLE_ID_NONE,
     .jugglecost         = 0,
     .maptime            = 0,
@@ -8501,7 +8502,6 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->attack_drop: %d", attack->attack_drop);
         printf("\n\t ->attack_force: %d", attack->attack_force);
         printf("\n\t ->attack_type: %d", attack->attack_type);
-        printf("\n\t ->blockflash: %d", attack->blockflash);
         printf("\n\t ->blocksound: %d", attack->blocksound);
         printf("\n\t ->counterattack: %d", attack->counterattack);
         printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
@@ -8511,6 +8511,8 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->dropv.z: %f", attack->dropv.z);
         printf("\n\t ->flash.layer_adjust: %d", attack->flash.layer_adjust);
         printf("\n\t ->flash.layer_source: %d", attack->flash.layer_source);
+        printf("\n\t ->flash.model_hit: %d", attack->flash.model_block);
+        printf("\n\t ->flash.model_hit: %d", attack->flash.model_hit);
         printf("\n\t ->flash.z_source: %d", attack->flash.z_source);
         printf("\n\t ->forcemap: %d", attack->forcemap);
         printf("\n\t ->force_direction: %d", attack->force_direction);
@@ -8519,7 +8521,6 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->grab: %d", attack->grab);
         printf("\n\t ->grab_distance: %d", attack->grab_distance);
         printf("\n\t ->guardcost: %d", attack->guardcost);
-        printf("\n\t ->hitflash: %d", attack->hitflash);
         printf("\n\t ->hitsound: %d", attack->hitsound);
         printf("\n\t ->jugglecost: %d", attack->jugglecost);
         printf("\n\t ->maptime: %d", attack->maptime);
@@ -12728,7 +12729,7 @@ s_model *init_model(const int cacheindex, const int unload)
 
     // default string value, only by reference
     newchar->rider = get_cached_model_index("K'");
-    newchar->flash = newchar->bflash = get_cached_model_index("flash");
+    newchar->flash.model_hit = newchar->flash.model_block = get_cached_model_index("flash");
 
     //Default sight ranges.
     newchar->sight = (s_sight){
@@ -13528,22 +13529,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->flash = MODEL_INDEX_NONE;
+                    newchar->flash.model_hit = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    newchar->flash = get_cached_model_index(value);
+                    newchar->flash.model_hit = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_BFLASH:	// Flash that is spawned if an attack is blocked
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->bflash = MODEL_INDEX_NONE;
+                    newchar->flash.model_block = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    newchar->bflash = get_cached_model_index(value);
+                    newchar->flash.model_block = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_DUST:	// Spawned when hitting the ground to "kick up dust"
@@ -15449,11 +15450,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (!newanim && newchar->smartbomb)
                 {
-                    newchar->smartbomb->hitflash = tempInt;
+                    newchar->smartbomb->flash.model_hit = tempInt;
                 }
                 else
                 {                    
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = tempInt;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_hit = tempInt;
                 }
 
                 break;
@@ -15464,11 +15465,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = get_cached_model_index(value);
                 }
 
                 break;
@@ -16031,11 +16032,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = get_cached_model_index(value);
                 }
 
                 break;
@@ -16061,11 +16062,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_hit = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_hit = get_cached_model_index(value);
                 }
                 break;
 
@@ -26128,7 +26129,7 @@ void do_passive_block(entity *ent, entity *other, s_attack *attack)
 	set_blocking_animation(ent, attack);
 	
 	// Spawn the blocking flash.
-	spawn_attack_flash(ent, attack, attack->blockflash, ent->modeldata.bflash);	
+	spawn_attack_flash(ent, attack, attack->flash.model_block, ent->modeldata.flash.model_block);
 
 	// Run blocking actions and scripts.
 	set_blocking_action(ent, other, attack);
@@ -26719,7 +26720,7 @@ int try_counter_action(entity* target, entity* attacker, s_attack* attack_object
 	}
 
 	/* Flash spawn. */
-	spawn_attack_flash(target, attack_object, attack_object->blockflash, target->modeldata.bflash);
+	spawn_attack_flash(target, attack_object, attack_object->flash.model_block, target->modeldata.flash.model_block);
 
 	return 1;
 }
@@ -27124,7 +27125,7 @@ void do_attack(entity *attacking_entity)
                 attacking_entity->lasthit = self;
 
                 // Flash spawn.
-                spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
+                spawn_attack_flash(self, attack, attack->flash.model_hit, self->modeldata.flash.model_hit);
 
 				// Add to owner's combo time.
                 topowner->combotime = _time + combodelay; 
@@ -30596,13 +30597,13 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         {
             newmodel->star          = model->star;
         }
-        if(newmodel->flash          <   0)
+        if(newmodel->flash.model_hit < 0)
         {
-            newmodel->flash         = model->flash;
+            newmodel->flash.model_hit = model->flash.model_hit;
         }
-        if(newmodel->bflash         <   0)
+        if(newmodel->flash.model_block <  0)
         {
-            newmodel->bflash        = model->bflash;
+            newmodel->flash.model_block = model->flash.model_block;
         }
         if(newmodel->dust.fall_land        <   0)
         {
@@ -42409,7 +42410,7 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
                 }
             }
 
-            spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
+            spawn_attack_flash(self, attack, attack->flash.model_hit, self->modeldata.flash.model_block);
             
         }
     }

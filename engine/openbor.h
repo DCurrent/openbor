@@ -1825,9 +1825,11 @@ typedef enum e_cheat_options
 } e_cheat_options;
 
 typedef struct s_flash_properties
-{
+{       
     int layer_adjust;  // Adjust Z position to spawn flash.
     int layer_source;  // Adjustment to source of initial flash layer. NOT a layer value.
+    int model_block;   // Model ID to spawn when attack blocked.
+    int model_hit;     // Model ID to spawn when attack hits.
     int z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
     e_object_type object_type;
 } s_flash_properties;
@@ -2287,14 +2289,11 @@ typedef struct
     
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;       // Hit point damage attack inflicts.
-    int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked.
-    s_flash_properties      flash;              // Flash config properties.
+    s_flash_properties  flash;              // Flash config properties.
     int                 forcemap;           // Set target's palette on hit.
     unsigned int        freezetime;         // Time for target to remain frozen.
-    
     int                 guardcost;          // cost for blocking an attack
-    int                 hitflash;           // Custom flash for each animation, model id
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     unsigned int        maptime;            // Time for forcemap to remain in effect.
@@ -3423,8 +3422,8 @@ typedef struct
     int pshotno; // 7-1-2005 now every enemy can have their own "knife" projectile
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
-    int flash; // Now each entity can have their own flash
-    int bflash; // Flash that plays when an attack is blocked
+    
+    s_flash_properties flash; // model level flash properties.
 
     s_dust dust; //Spawn entity during certain actions.
 

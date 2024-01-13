@@ -37,6 +37,20 @@ const s_property_access_map flash_get_property_map(const void* acting_object_par
 		property_map.type = VT_INTEGER;
 		break;
 
+	case FLASH_PROPERTY_MODEL_BLOCK:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->model_block;
+		property_map.id_string = "FLASH_PROPERTY_MODEL_BLOCK";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case FLASH_PROPERTY_MODEL_HIT:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->model_hit;
+		property_map.id_string = "FLASH_PROPERTY_MODEL_HIT";
+		property_map.type = VT_INTEGER;
+		break;
+
 	case FLASH_PROPERTY_Z_SOURCE:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
 		property_map.field = &acting_object->z_source;
