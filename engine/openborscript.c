@@ -668,7 +668,8 @@ int Script_Execute(Script *pscript)
     return result;
 }
 
-static s_attack attack;
+
+static s_attack attack = { .flash.object_type = OBJECT_TYPE_FLASH };
 
 //////////////////////////////////////////////////////////
 ////////////   system functions
@@ -11025,10 +11026,6 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
         }
         atk.attack_type = type;
     }
-    else
-    {
-        atk = attack;
-    }
 
     if(!ent->takedamage)
     {
@@ -11062,7 +11059,7 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     entity *defender = NULL;
     entity *attacker = NULL;
     LONG force, drop, type;
-    s_attack atk;
+    s_attack atk = emptyattack;
     s_defense* defense_object = NULL;
 
     if(paramCount < 3)
@@ -11113,7 +11110,6 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
         }
     }
 
-    atk = emptyattack;
     atk.attack_force = force;
     atk.attack_drop = drop;
     if(drop)

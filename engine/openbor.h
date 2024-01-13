@@ -1831,7 +1831,7 @@ typedef struct s_flash_properties
     int model_block;   // Model ID to spawn when attack blocked.
     int model_hit;     // Model ID to spawn when attack hits.
     int z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
-    e_object_type object_type;
+    e_object_type object_type; // Object type, always OBJECT_TYPE_FLASH. Should be const, but we do too many object copies.
 } s_flash_properties;
 
 /*

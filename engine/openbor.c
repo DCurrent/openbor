@@ -10996,8 +10996,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     //smartbomb now use a normal attack box
     if(!newchar->smartbomb)
     {
-        newchar->smartbomb = malloc(sizeof(*newchar->smartbomb));
-        *(newchar->smartbomb) = emptyattack;
+        newchar->smartbomb = attack_allocate_object();
     }
     else
     {
@@ -23642,7 +23641,7 @@ bool check_jumpframe(entity * const acting_entity, const unsigned int frame)
 void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
-    s_attack attack;
+    s_attack attack = emptyattack;
     s_defense* defense_object = NULL;
     s_axis_principal_float move;
     s_anim *anim = ent->animation;
@@ -23748,7 +23747,6 @@ void update_frame(entity *ent, unsigned int f)
         if(self->subentity)
         {
             self = self->subentity;
-            attack = emptyattack;
             attack.dropv = default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type = ATK_SUB_ENTITY_UNSUMMON;
@@ -24012,19 +24010,20 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
 
 //if syncAnim is set, only change animation reference
 void ent_set_model(entity *ent, char *modelname, int syncAnim)
-{
-    s_model *m = NULL;
-    s_model oldmodel;
+{    
     if(ent == NULL)
     {
         borShutdown(1, "FATAL: tried to change model of invalid object");
     }
-    m = findmodel(modelname);
+
+    s_model* m = findmodel(modelname);
+
     if(m == NULL)
     {
         borShutdown(1, "Model not found: '%s'", modelname);
     }
-    oldmodel = ent->modeldata;
+
+    s_model oldmodel = ent->modeldata;
     ent->model = m;
     ent->modeldata = *m;
     ent_copy_uninit(ent, &oldmodel);
@@ -24319,7 +24318,7 @@ void ents_link(entity *e1, entity *e2)
 void kill_entity(entity *victim, e_kill_entity_trigger trigger)
 {
     int i = 0;
-    s_attack attack;
+    s_attack attack = emptyattack;
     s_defense* defense_object = NULL;
     entity *tempent = self;
 
@@ -24346,7 +24345,6 @@ void kill_entity(entity *victim, e_kill_entity_trigger trigger)
     victim->parent = NULL;
     if(victim->modeldata.summonkill)
     {
-        attack = emptyattack;
         attack.attack_type = ATK_SUB_ENTITY_PARENT_KILL;
         attack.dropv = default_model_dropv;
     }
@@ -27879,7 +27877,7 @@ void check_gravity(entity *e)
 int check_lost()
 {
     s_defense* defense_object = NULL;
-    s_attack attack;
+    s_attack attack = emptyattack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
@@ -27907,7 +27905,6 @@ int check_lost()
         }
         else
         {
-            attack          = emptyattack;
             attack.dropv	= default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_PIT;
@@ -27924,8 +27921,7 @@ int check_lost()
         }
         else
         {
-            attack          = emptyattack;
-			attack.dropv	= default_model_dropv;
+            attack.dropv	= default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_LIFESPAN;
             defense_object = defense_find_current_object(self, NULL, attack.attack_type);
@@ -33980,7 +33976,6 @@ void checkdamageonlanding(entity* acting_entity)
     if((acting_entity->damage_on_landing.attack_force > 0 && !(acting_entity->death_state & DEATH_STATE_DEAD)))
     {    
         //##################
-        attack              = emptyattack;
         attack.attack_force = acting_entity->damage_on_landing.attack_force;
         
         /* 
@@ -34121,10 +34116,9 @@ void checkdamageonlanding(entity* acting_entity)
         if(acting_entity->takedamage)
         {
             //##################
-            s_attack attack;
+            s_attack attack = emptyattack;
             entity *other;
 
-            attack              = emptyattack;
             attack.attack_force = acting_entity->damage_on_landing.attack_force;
             if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = acting_entity->damage_on_landing.attack_type;
             else attack.attack_type  = ATK_LAND;
@@ -35062,7 +35056,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
-    s_attack attack;
+    s_attack attack = emptyattack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -35102,7 +35096,6 @@ void dothrow()
     self->takeaction = common_throw;
 
     // Use default attack values.
-    attack = emptyattack;
     set_fall(other, self, &attack, 0);
     ent_set_anim(self, ANI_THROW, 0);
 }
@@ -37661,8 +37654,7 @@ int common_try_wander(entity *target, int dox, int doz)
 // to allow easy item scripting.
 void do_item_script(entity *ent, entity *item)
 {
-    s_attack attack;
-    attack = emptyattack;
+    s_attack attack = emptyattack;
     attack.attack_type = ATK_ITEM;
 
     execute_didhit_script(item, ent, &attack, 0);
@@ -38184,7 +38176,7 @@ int projectile_wall_deflect(entity *acting_entity)
     #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
-    s_attack attack;
+    s_attack attack = emptyattack;
 
     //printf("\n\n projectile_wall_deflect(%p)", acting_entity);
     //printf("\n\t model(%s)", acting_entity->model->name);
@@ -38241,7 +38233,6 @@ int projectile_wall_deflect(entity *acting_entity)
             acting_entity->base = 0;
 
             /* Use default attack values. */
-            attack = emptyattack;
             attack.attack_drop = RICHOCHET_FALL_FORCE;
             set_fall(acting_entity, acting_entity, &attack, 0);
 
@@ -42273,7 +42264,7 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
-    s_attack attack;
+    s_attack attack = emptyattack;
 
     for(i = 0; i < ent_max; i++)
     {
@@ -42305,8 +42296,6 @@ void drop_all_enemies()
 
             ent_list[i]->knockdowntime = 0;
 
-            // Use default attack values.
-            attack = emptyattack;
             set_fall(ent_list[i], self, &attack, 1);
         }
     }
@@ -42319,10 +42308,9 @@ void drop_all_enemies()
 void kill_all_enemies()
 {
     int i;
-    s_attack attack;
+    s_attack attack = emptyattack;
     entity *tmpself = NULL;
 
-    attack = emptyattack;
 	attack.attack_type = ATK_BOSS_DEATH;
 	attack.dropv = default_model_dropv;
 
@@ -44322,16 +44310,15 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_attack attack_timeover, attack_lose;
+    s_attack attack_timeover = emptyattack;
+    s_attack attack_lose = emptyattack;
     s_defense* defense_object = NULL;
 
-    attack_timeover = emptyattack;
     attack_timeover.attack_type = ATK_TIMEOVER;
     attack_timeover.dropv.y = default_model_dropv.y;
     attack_timeover.dropv.x = default_model_dropv.x;
     attack_timeover.dropv.z = default_model_dropv.z;
 
-    attack_lose = emptyattack;
     attack_lose.attack_type = ATK_LOSE;
     
 
