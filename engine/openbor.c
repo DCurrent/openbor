@@ -30162,6 +30162,7 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
     ent->attacking = ATTACKING_NONE;
     ent->blocking = 0;
     ent->nograb = 1;
+    ent->running = RUN_STATE_NONE; //Kratus (01-2024) Resets the aiflag running when falling
 
     if(ent->frozen)
     {
