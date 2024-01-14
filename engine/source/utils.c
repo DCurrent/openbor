@@ -34,6 +34,11 @@
 #include <sys/stat.h>
 #endif
 
+#ifdef DARWIN
+#include <mach/task.h>
+#include <mach/mach_init.h>
+#endif
+
 #ifdef DC
 #include "dcport.h"
 #endif
@@ -299,12 +304,21 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
 {
     if (size > 0 && ptr == NULL)
     {
+#ifdef DARWIN
+        struct task_basic_info t_info;
+        mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
+        task_info(current_task(), TASK_BASIC_INFO, (task_info_t)&t_info, &t_info_count);
+        unsigned int usage = t_info.virtual_size;
+#else
+        unsigned int usage = mallinfo().arena;
+#endif
+
         writeToLogFile("\n\n********** An Error Occurred **********"
                        "\n*            Shutting Down            *\n\n");
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
 #ifndef WIN
-        writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
+        writeToLogFile("Memory usage at exit: %u\n", usage);
 #elif LINUX
         writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
 #endif

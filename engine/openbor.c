@@ -20,6 +20,15 @@
 
 #define NaN 0xAAAAAAAA
 
+#define EMPTY_FLASH {\
+        .object_type = OBJECT_TYPE_FLASH,\
+        .layer_adjust = 0,\
+        .layer_source = 0,\
+        .model_block = MODEL_INDEX_NONE,\
+        .model_hit = MODEL_INDEX_NONE,\
+        .z_source = 0\
+}
+
 static const char *E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
 
@@ -168,15 +177,7 @@ const s_offense default_offense =
     .factor         = 1.f    
 };
 
-const s_flash_properties empty_flash = {
-
-        .object_type = OBJECT_TYPE_FLASH,
-        .layer_adjust = 0,
-        .layer_source = 0,
-        .model_block = MODEL_INDEX_NONE,
-        .model_hit = MODEL_INDEX_NONE,
-        .z_source = 0
-};
+const s_flash_properties empty_flash = EMPTY_FLASH;
 
 const s_hitbox empty_collision_coords = {   .x      = 0,
                                             .y      = 0,
@@ -192,7 +193,7 @@ const s_collision_body empty_collision_body = { .coords = NULL,
                                             .meta_tag = 0 };
 
 const s_body empty_body = { .defense = NULL,
-                            .flash = empty_flash
+    .flash = EMPTY_FLASH
                                 
 };
 
@@ -227,7 +228,7 @@ const s_attack emptyattack =
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
-    .flash = empty_flash,
+    .flash = EMPTY_FLASH,
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,

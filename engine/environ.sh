@@ -445,6 +445,9 @@ case $1 in
        export SDKPATH=/Developer/SDKs/MacOSX10.6.sdk
      fi
      export PATH=$PATH:DWNDEV/bin
+   elif test -e "$(command -v brew)"; then
+     export DWNDEV=$(brew --prefix)
+     export SDKPATH=$(xcrun --sdk macosx --show-sdk-path)
    fi
    if test $DWNDEV; then
      echo "-------------------------------------------------------"

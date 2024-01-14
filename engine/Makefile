@@ -159,16 +159,23 @@ BUILD_SDL_IO    = 1
 BUILD_OPENGL    = 1
 BUILD_LOADGL    = 1
 BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
 BUILDING        = 1
 YASM            = yasm
 CC              = $(PREFIX)gcc
 OBJTYPE         = macho
 INCLUDES        = $(DWNDEV)/include \
-                  $(DWNDEV)/include/SDL \
+                  $(DWNDEV)/include/SDL2 \
                   $(SDKPATH)/usr/include/malloc
 LIBRARIES       = $(DWNDEV)/lib
 ifeq ($(findstring darwin10, $(PREFIX)), darwin10)
 ARCHFLAGS       = -arch i386 -arch x86_64
+else ifeq ($(MACHINENAME), x86_64)
+TARGET_ARCH     = x86_64
+ARCHFLAGS       = -arch x86_64
+else ifeq ($(MACHINENAME), arm64)
+#TARGET_ARCH     = arm
+ARCHFLAGS       = -arch arm64
 else
 BUILD_MMX       = 1
 TARGET_ARCH     = x86
@@ -499,18 +506,22 @@ OBJS            = $(MAIN)                                                       
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
-CFLAGS 	       += -g -Wall -Werror -Wno-format-truncation -Wno-stringop-truncation -fsigned-char -std=gnu99
+CFLAGS 	       += -g -Wall -fsigned-char -std=gnu99
 
+ifndef BUILD_DARWIN
+CFLAGS         +=-Werror -Wno-format-truncation -Wno-stringop-truncation
+endif
 
 ifndef BUILD_DARWIN
 ifdef BUILD_LINUX
 CFLAGS         += -Wno-unused-result `pkg-config sdl2 --cflags`
 endif
+ENABLE_REORDER_BLOCKS=-freorder-blocks
 endif
 
 ifndef BUILD_DEBUG
 CFLAGS 	       += -O2
-CFLAGS 	       += -fno-ident -freorder-blocks
+CFLAGS 	       += -fno-ident $(ENABLE_REORDER_BLOCKS)
 ifndef BUILD_AMD64
 CFLAGS         += -fomit-frame-pointer
 endif
@@ -533,7 +544,7 @@ endif
 
 
 ifdef BUILD_DARWIN
-CFLAGS 	       += -DLINUX -headerpad_max_install_names -isysroot $(SDKPATH)
+CFLAGS 	       += -DLINUX -isysroot $(SDKPATH)
 endif
 
 
@@ -616,7 +627,7 @@ LIBS           += -Wl,-syslibroot,$(SDKPATH) \
                   -framework Carbon \
                   -framework AudioUnit \
                   -framework IOKit \
-                  -lSDLmain
+                  -lSDL2main
 endif
 
 
