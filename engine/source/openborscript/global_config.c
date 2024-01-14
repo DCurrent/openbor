@@ -202,7 +202,7 @@ HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVarian
 	}
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
-	const e_global_config_properties property_id = (e_model_properties)(property_id_param);
+	const e_global_config_properties property_id = (e_global_config_properties)(property_id_param);
 
 	if (property_id_param < 0 && property_id_param >= GLOBAL_CONFIG_PROPERTY_END) {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);

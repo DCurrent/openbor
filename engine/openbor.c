@@ -32786,7 +32786,7 @@ e_run_config_flags run_get_config_flag_from_string(const char* value)
     static const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_run_config_flags flag;
     } flag_lookup_table[] = {
         {"none", RUN_CONFIG_NONE},
         {"land", RUN_CONFIG_LAND},
