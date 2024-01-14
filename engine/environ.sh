@@ -428,7 +428,10 @@ case $1 in
 #                                                                          #
 ############################################################################
 10)
-   if test -e "/opt/mac"; then
+   if test -e "$(command -v brew)"; then
+     export DWNDEV=$(brew --prefix)
+     export SDKPATH=$(xcrun --sdk macosx --show-sdk-path)
+   elif test -e "/opt/mac"; then
      export DWNDEV=/opt/mac
      export SDKPATH=$DWNDEV/SDKs/MacOSX10.4u.sdk
      export PREFIX=i686-apple-darwin8-
@@ -445,9 +448,6 @@ case $1 in
        export SDKPATH=/Developer/SDKs/MacOSX10.6.sdk
      fi
      export PATH=$PATH:DWNDEV/bin
-   elif test -e "$(command -v brew)"; then
-     export DWNDEV=$(brew --prefix)
-     export SDKPATH=$(xcrun --sdk macosx --show-sdk-path)
    fi
    if test $DWNDEV; then
      echo "-------------------------------------------------------"
