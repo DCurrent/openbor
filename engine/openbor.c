@@ -29776,9 +29776,11 @@ void display_ents()
                                     shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
                                     shadowmethod.table = drawmethod->table;
                                     shadowmethod.scalex = drawmethod->scalex;
+                                    shadowmethod.scaley = light.y * drawmethod->scaley / 256;
                                     shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X);
                                     shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y);
                                     shadowmethod.centery += alty;
+                                    
                                     if (shadowmethod.config & DRAWMETHOD_CONFIG_FLIP_X)
                                     {
                                         shadowmethod.centery = -shadowmethod.centery;
