@@ -48172,7 +48172,18 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
         if(current_level >= set->numlevels)
         {
+            /*
+                Kratus (01-2024) Reset level/stage values when a game is finished before saving it.
+                It will automatically erase the current game progress but only after the ending.
+                However, it will maintain the "times_completed" intact.
+                Without this fix the player can increase the "times_completed" infinitely by
+                just finishing the game once and loading the ending directly how many times he want.
+            */
             bonus += save->times_completed++;
+            current_level = 0;
+            current_stage = 1;
+            save->level = current_level;
+            save->stage = current_stage;
             saveGameFile();
             if(!nofadeout)
             {
@@ -48362,7 +48373,11 @@ int load_saved_game()
             _menutext(0, col2, -2, Tr("Not Found!"));
             _menutextm(1, 6, 0, Tr("Back"));
 
-            selector = 2;
+            /*
+                Kratus (01-2024) Minor fix in the selector number if no save is found.
+                There's no selector "2" in this menu, only 0 (load) or 1 (back).
+            */
+            selector = 1;
         }
         else
         {
