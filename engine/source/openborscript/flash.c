@@ -194,7 +194,7 @@ HRESULT openbor_set_flash_property(ScriptVariant** varlist, ScriptVariant** cons
 	}
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
-	const e_flash_properties property_id = (e_model_properties)(property_id_param);
+	const e_flash_properties property_id = (e_flash_properties)(property_id_param);
 
 	if (property_id_param < 0 && property_id_param >= FLASH_PROPERTY_END) {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);

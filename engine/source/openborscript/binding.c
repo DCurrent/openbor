@@ -237,7 +237,7 @@ HRESULT openbor_set_bind_property(ScriptVariant** varlist, ScriptVariant** const
     }
 
     const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
-    const e_bind_properties property_id = (e_model_properties)(property_id_param);
+    const e_bind_properties property_id = (e_bind_properties)(property_id_param);
 
     if (property_id_param < 0 && property_id_param >= BIND_PROPERTY_END) {
         printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
