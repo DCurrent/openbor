@@ -668,8 +668,7 @@ int Script_Execute(Script *pscript)
     return result;
 }
 
-
-static s_attack attack = { .flash.object_type = OBJECT_TYPE_FLASH };
+static s_attack attack = {.flash.object_type = OBJECT_TYPE_FLASH };
 
 //////////////////////////////////////////////////////////
 ////////////   system functions
@@ -1370,7 +1369,7 @@ HRESULT openbor_drawbox(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     {
         l %= MAX_BLENDINGS + 1;
     }
-    if(drawmethod.flag)
+    if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
     {
         dm = drawmethod;
     }
@@ -1434,7 +1433,7 @@ HRESULT openbor_drawboxtoscreen(ScriptVariant **varlist , ScriptVariant **pretva
     {
         l %= MAX_BLENDINGS + 1;
     }
-    if(drawmethod.flag)
+    if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
     {
         dm = drawmethod;
     }
@@ -1491,7 +1490,7 @@ HRESULT openbor_drawline(ScriptVariant **varlist , ScriptVariant **pretvar, int 
     {
         l %= MAX_BLENDINGS + 1;
     }
-    if(drawmethod.flag)
+    if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
     {
         dm = drawmethod;
     }
@@ -1555,7 +1554,7 @@ HRESULT openbor_drawlinetoscreen(ScriptVariant **varlist , ScriptVariant **pretv
     {
         l %= MAX_BLENDINGS + 1;
     }
-    if(drawmethod.flag)
+    if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
     {
         dm = drawmethod;
     }
@@ -1701,7 +1700,7 @@ HRESULT openbor_drawdot(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     {
         l %= MAX_BLENDINGS + 1;
     }
-    if(drawmethod.flag)
+    if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
     {
         dm = drawmethod;
     }
@@ -1765,7 +1764,7 @@ HRESULT openbor_drawdottoscreen(ScriptVariant **varlist , ScriptVariant **pretva
     {
         l %= MAX_BLENDINGS + 1;
     }
-    if(drawmethod.flag)
+    if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
     {
         dm = drawmethod;
     }
@@ -1839,7 +1838,7 @@ HRESULT openbor_drawscreen(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         screenmethod = plainmethod;
         screenmethod.alpha = l;
-        screenmethod.transbg = 1;
+        screenmethod.config |= DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY;
     }
 
     spriteq_add_screen((int)value[0], (int)value[1], (int)value[2], s, &screenmethod, 0);
@@ -13246,7 +13245,7 @@ HRESULT _getlayerproperty(s_layer *layer, int propind, ScriptVariant **pretvar)
     case _glp_transparency:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)layer->drawmethod.transbg;
+        (*pretvar)->lVal = (LONG)(layer->drawmethod.config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
         break;
     }
     case _glp_watermode:
@@ -13395,7 +13394,8 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
         {
             return E_FAIL;
         }
-        layer->drawmethod.transbg = temp;
+        layer->drawmethod.config = temp ? (drawmethod.config | DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) : (drawmethod.config & ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
+
         break;
     }
     case _glp_watermode:
@@ -14549,7 +14549,8 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
         {
             return E_FAIL;
         }
-        pmethod->flag = (int)temp;
+        pmethod->config = (int)temp ? (pmethod->config | DRAWMETHOD_CONFIG_ENABLED) : (pmethod->config & ~DRAWMETHOD_CONFIG_ENABLED);
+
         break;
     case _dm_endsize:
         if(FAILED(ScriptVariant_DecimalValue(varlist[2], &ftemp)))
@@ -14570,21 +14571,23 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
         {
             return E_FAIL;
         }
-        pmethod->fliprotate = (int)temp;
+        pmethod->config = (int)temp ? (pmethod->config | DRAWMETHOD_CONFIG_FLIP_ROTATE) : (pmethod->config & ~DRAWMETHOD_CONFIG_FLIP_ROTATE);
+
         break;
     case _dm_flipx:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
         {
             return E_FAIL;
         }
-        pmethod->flipx = (int)temp;
+        pmethod->config = (int)temp ? (pmethod->config | DRAWMETHOD_CONFIG_FLIP_X) : (pmethod->config & ~DRAWMETHOD_CONFIG_FLIP_X);
+
         break;
     case _dm_flipy:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
         {
             return E_FAIL;
         }
-        pmethod->flipy = (int)temp;
+        pmethod->config = (int)temp ? (pmethod->config | DRAWMETHOD_CONFIG_FLIP_Y) : (pmethod->config & ~DRAWMETHOD_CONFIG_FLIP_Y);
         break;
     case _dm_perspective:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
@@ -14664,7 +14667,8 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
         {
             return E_FAIL;
         }
-        pmethod->transbg = (int)temp;
+        pmethod->config = (int)temp ? (pmethod->config | DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) : (pmethod->config & ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
+
         break;
     case _dm_watermode:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
@@ -14826,13 +14830,13 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
             (*pretvar)->lVal = (int)pmethod->fillcolor;
             break;
         case _dm_fliprotate:
-            (*pretvar)->lVal = (int)pmethod->fliprotate;
+            (*pretvar)->lVal = (int)(pmethod->config & DRAWMETHOD_CONFIG_FLIP_ROTATE);
             break;
         case _dm_flipx:
-            (*pretvar)->lVal = (int)pmethod->flipx;
+            (*pretvar)->lVal = (int)(pmethod->config & DRAWMETHOD_CONFIG_FLIP_X);
             break;
         case _dm_flipy:
-            (*pretvar)->lVal = (int)pmethod->flipy;
+            (*pretvar)->lVal = (int)(pmethod->config & DRAWMETHOD_CONFIG_FLIP_Y);
             break;
         case _dm_perspective:
             (*pretvar)->lVal = (int)pmethod->water.perspective;
@@ -14863,7 +14867,7 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
             (*pretvar)->lVal = (int)pmethod->tintcolor;
             break;
         case _dm_transbg:
-            (*pretvar)->lVal = (int)pmethod->transbg;
+            (*pretvar)->lVal = (int)(pmethod->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
             break;
         case _dm_watermode:
             (*pretvar)->lVal = (int)pmethod->water.watermode;
@@ -14894,7 +14898,7 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
         default:
         case _dm_enabled:
         case _dm_flag:
-            (*pretvar)->lVal = (int)pmethod->flag;
+            (*pretvar)->lVal = (int)(pmethod->config & DRAWMETHOD_CONFIG_ENABLED);
             break;
     }
 
@@ -14965,18 +14969,22 @@ HRESULT openbor_setdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
         }
     }
 
-    pmethod->flag = (int)value[0];
+    pmethod->config = (int)value[0] ? (pmethod->config | DRAWMETHOD_CONFIG_ENABLED) : (pmethod->config & ~DRAWMETHOD_CONFIG_ENABLED);
+
+    
     pmethod->scalex = (int)value[1];
-    pmethod->scaley = (int)value[2];
-    pmethod->flipx = (int)value[3];
-    pmethod->flipy = (int)value[4];
+    pmethod->scaley = (int)value[2];    
+    pmethod->config = (int)value[3] ? (pmethod->config | DRAWMETHOD_CONFIG_FLIP_X) : (pmethod->config & ~DRAWMETHOD_CONFIG_FLIP_X);
+    pmethod->config = (int)value[4] ? (pmethod->config | DRAWMETHOD_CONFIG_FLIP_Y) : (pmethod->config & ~DRAWMETHOD_CONFIG_FLIP_Y);    
     pmethod->shiftx = (int)value[5];
     pmethod->alpha = (e_blend_mode)value[6];
     pmethod->remap = (int)value[7];
     pmethod->fillcolor = (int)value[8];
-    pmethod->rotate = ((int)value[9]) % 360;
-    pmethod->fliprotate = (int)value[10];
-    pmethod->transbg = (int)value[11];
+    pmethod->rotate = ((int)value[9]) % 360;    
+    pmethod->config = (int)value[10] ? (pmethod->config | DRAWMETHOD_CONFIG_FLIP_ROTATE) : (pmethod->config & ~DRAWMETHOD_CONFIG_FLIP_ROTATE);
+    pmethod->config = (int)value[11] ? (pmethod->config | DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) : (pmethod->config & ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
+
+    
     if(paramCount >= 14)
     {
         pmethod->table = (unsigned char *)varlist[13]->ptrVal;

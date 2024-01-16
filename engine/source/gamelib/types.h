@@ -246,6 +246,17 @@ typedef enum
 	WATER_PERSPECTIVE_STRETCH
 } e_water_perspective;
 
+typedef enum e_drawmethod_config
+{
+    DRAWMETHOD_CONFIG_NONE                      = 0,
+    DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY   = (1 << 1),
+    DRAWMETHOD_CONFIG_ENABLED                   = (1 << 2),
+    DRAWMETHOD_CONFIG_FLIP_ROTATE               = (1 << 3),
+    DRAWMETHOD_CONFIG_FLIP_X                    = (1 << 4),
+    DRAWMETHOD_CONFIG_FLIP_Y                    = (1 << 5)
+    
+} e_drawmethod_config;
+
 typedef struct
 {
     union
@@ -272,13 +283,14 @@ typedef struct
     unsigned char *table;	// ~~
     //void *fp;
     unsigned int fillcolor;		// ~~
-    int flag;				// When 0, the global plainmethod is used. ~~
+    e_drawmethod_config config;
+        //int flag;				// When 0, the global plainmethod is used. ~~
     int alpha;				// ~~				
     int remap;				// ~~
-    int flipx;				// ~~
-    int flipy;				// ~~
-    int transbg;			// ~~
-    int fliprotate;			// entity only, whether the flip is affected by the entity's facing(not the sprite's flip ) ~~
+        //int flipx;				// ~~
+        //int flipy;				// ~~
+        //int transbg;			// ~~
+        //int fliprotate;			// entity only, whether the flip is affected by the entity's facing(not the sprite's flip ) ~~
     float rotate;			// 360 degrees ~~
     int scalex;				// ~~
     int scaley;				// ~~

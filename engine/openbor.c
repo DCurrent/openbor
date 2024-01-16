@@ -75,13 +75,9 @@ const s_drawmethod plainmethod =
     .object_type = OBJECT_TYPE_DRAWMETHOD,
     .table      = NULL,
     .fillcolor  = 0,
-    .flag       = 1,
+    .config     = DRAWMETHOD_CONFIG_ENABLED,
     .alpha      = BLEND_MODE_MODEL,
     .remap      = -1,
-    .flipx      = 0,
-    .flipy      = 0,
-    .transbg    = 0,
-    .fliprotate = 0,
     .rotate     = 0,
     .scalex     = 256,
     .scaley     = 256,
@@ -168,16 +164,6 @@ const s_offense default_offense =
     .factor         = 1.f    
 };
 
-const s_flash_properties empty_flash = {
-
-        .object_type = OBJECT_TYPE_FLASH,
-        .layer_adjust = 0,
-        .layer_source = 0,
-        .model_block = MODEL_INDEX_NONE,
-        .model_hit = MODEL_INDEX_NONE,
-        .z_source = 0
-};
-
 const s_hitbox empty_collision_coords = {   .x      = 0,
                                             .y      = 0,
                                             .width  = 0,
@@ -192,7 +178,14 @@ const s_collision_body empty_collision_body = { .coords = NULL,
                                             .meta_tag = 0 };
 
 const s_body empty_body = { .defense = NULL,
-                            .flash = empty_flash
+                            .flash = {
+                                .object_type = OBJECT_TYPE_FLASH,
+                                .layer_adjust = 0,
+                                .layer_source = 0,
+                                .model_block = MODEL_INDEX_NONE,
+                                .model_hit = MODEL_INDEX_NONE,
+                                .z_source = 0
+                            }
                                 
 };
 
@@ -227,7 +220,14 @@ const s_attack emptyattack =
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
-    .flash = empty_flash,
+    .flash = {
+            .object_type = OBJECT_TYPE_FLASH,
+            .layer_adjust = 0,
+            .layer_source = 0,
+            .model_block = MODEL_INDEX_NONE,
+            .model_hit = MODEL_INDEX_NONE,
+            .z_source = 0
+        },
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,
@@ -4143,7 +4143,7 @@ void load_layer(char *filename, char *maskfilename, int index)
 
     if(filename && level->layers[index].gfx.handle == NULL)
     {
-        if(*maskfilename || ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode))
+        if(*maskfilename || ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) && !level->layers[index].drawmethod.water.watermode))
         {
             // assume sprites are faster than screen when transparency or alpha are specified
             level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].size.x), &(level->layers[index].size.y));
@@ -9275,7 +9275,7 @@ int addframe(s_addframe_data* data)
     child_spawn_initialize_frame_property(data, currentframe);
 
     // Drawmethod (graphic settings)
-    if(data->drawmethod->flag)
+    if(data->drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         if(!data->animation->drawmethods)
         {
@@ -15663,14 +15663,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     // special effects
                     drawmethod.scalex = GET_INT_ARG(1);
                     drawmethod.scaley = GET_INT_ARG(2);
-                    drawmethod.flipx = GET_INT_ARG(3);
-                    drawmethod.flipy = GET_INT_ARG(4);
+                    drawmethod.config = GET_INT_ARG(3) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_X) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X);
+                    drawmethod.config = GET_INT_ARG(4) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_Y) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y);
                     drawmethod.shiftx = GET_INT_ARG(5);
                     drawmethod.alpha = GET_INT_ARG(6);
                     drawmethod.remap = GET_INT_ARG(7);
                     drawmethod.fillcolor = parsecolor(GET_ARG(8));
                     drawmethod.rotate = GET_INT_ARG(9);
-                    drawmethod.fliprotate = GET_INT_ARG(10);
+                    drawmethod.config = GET_INT_ARG(10) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_ROTATE) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_ROTATE);
                 }
                 else if (0 == stricmp(value, "scale"))
                 {
@@ -15703,11 +15703,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else if (0 == stricmp(value, "flipx"))
                 {
-                    drawmethod.flipx = GET_INT_ARG(2);
+                    drawmethod.config = GET_INT_ARG(2) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_X) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X);
                 }
                 else if (0 == stricmp(value, "flipy"))
                 {
-                    drawmethod.flipy = GET_INT_ARG(2);
+                    drawmethod.config = GET_INT_ARG(2) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_Y) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y);
                 }
                 else if (0 == stricmp(value, "shiftx"))
                 {
@@ -15719,7 +15719,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else if (0 == stricmp(value, "fliprotate"))
                 {
-                    drawmethod.fliprotate = GET_INT_ARG(2);
+                    drawmethod.config = GET_INT_ARG(2) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_ROTATE) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_ROTATE);
                 }
                 else if (0 == stricmp(value, "fillcolor"))
                 {
@@ -15769,12 +15769,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(drawmethod.scalex < 0)
                 {
                     drawmethod.scalex = -drawmethod.scalex;
-                    drawmethod.flipx = !drawmethod.flipx;
+                    drawmethod.config ^= DRAWMETHOD_CONFIG_FLIP_X;
                 }
                 if(drawmethod.scaley < 0)
                 {
                     drawmethod.scaley = -drawmethod.scaley;
-                    drawmethod.flipy = !drawmethod.flipy;
+                    drawmethod.config ^= DRAWMETHOD_CONFIG_FLIP_Y;
                 }
                 if(drawmethod.rotate)
                 {
@@ -15787,11 +15787,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         blendfx[drawmethod.alpha - 1] = 1;
                     }
                 }
-                drawmethod.flag = 1;
+                drawmethod.config |= DRAWMETHOD_CONFIG_ENABLED;
                 break;
             case CMD_MODEL_NODRAWMETHOD:
                 //disable special effects
-                drawmethod.flag = 0;
+                drawmethod.config &= ~DRAWMETHOD_CONFIG_ENABLED;
                 break;
 
             // 2016-10-11
@@ -16956,7 +16956,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shadow_coords[0] = shadow_coords[1] = 0;
                 }
 
-                if(drawmethod.flag)
+                if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
                 {
                     dm = drawmethod;
                     if(dm.clipw)
@@ -16967,7 +16967,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    dm.flag = 0;
+                    dm.config &= ~DRAWMETHOD_CONFIG_ENABLED;
                 }
 
                 add_frame_data.animation = newanim;
@@ -20453,7 +20453,10 @@ void load_level(char *filename)
             bgl->spacing.z = GET_INT_ARG(i + 7); // z spacing
             dm->xrepeat = GET_INT_ARG(i + 8); // x repeat
             dm->yrepeat = GET_INT_ARG(i + 9); // z repeat
-            dm->transbg = GET_INT_ARG(i + 10); // transparency
+            
+            dm->config = GET_INT_ARG(i + 10) ? (dm->config | DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) : (dm->config & ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
+
+
             dm->alpha = GET_INT_ARG(i + 11); // alpha
             dm->water.watermode = GET_INT_ARG(i + 12); // water
             if(dm->water.watermode == WATER_MODE_SHEAR)
@@ -20523,7 +20526,7 @@ void load_level(char *filename)
             bgl->spacing.z = 0; // z spacing
             dm->xrepeat = -1; // x repeat
             dm->yrepeat = 1; // z repeat
-            dm->transbg = 0; // transparency
+            dm->config &= ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY; // transparency
             dm->alpha = BLEND_MODE_NONE; // alpha
             dm->water.watermode = WATER_MODE_SINE;
             dm->water.amplitude = GET_INT_ARG(2); // amplitude
@@ -20763,7 +20766,7 @@ void load_level(char *filename)
             bgl->bgspeedratio = 0;
             bgl->offset.z = 0;
             dm->yrepeat = 1; // z repeat
-            dm->transbg = 1; // transparency
+            dm->config |= DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY; // transparency
             bgl->enabled = 1; // enabled
             bgl->quake = 1; // accept quake and rock
 
@@ -22520,7 +22523,7 @@ void predrawstatus()
             else
             {
                 drawmethod.table = 0;
-                drawmethod.flipx = 1;
+                drawmethod.config |= DRAWMETHOD_CONFIG_FLIP_X;
                 spriteq_add_sprite(40, 60 + videomodes.vShift, 10000, gosprite, &drawmethod, 0);
             }
         }
@@ -24221,7 +24224,7 @@ entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_d
 			// e->drawmethod = plainmethod;
             acting_entity->drawmethod = allocate_drawmethod();
 
-            acting_entity->drawmethod->flag = 0;
+            acting_entity->drawmethod->config &= ~DRAWMETHOD_CONFIG_ENABLED;
 
             // add to list and count current entities
             acting_entity->exists = 1;
@@ -29519,7 +29522,7 @@ void display_ents()
 
                     drawmethod = e->animation->drawmethods ? getDrawMethod(e->animation, e->animpos) : NULL;
                     
-					if(e->drawmethod->flag)
+					if(e->drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
                     {
                         drawmethod = (e->drawmethod);
                     }
@@ -29634,11 +29637,11 @@ void display_ents()
                     if(e->direction == DIRECTION_LEFT)
                     {
 						// Reverse the drawmethod flipx.
-                        drawmethod->flipx = !drawmethod->flipx;
+                        drawmethod->config ^= DRAWMETHOD_CONFIG_FLIP_X;
                         
 						// If the flip rotate is enabled, reverse the
 						// rotation setting.
-						if(drawmethod->fliprotate && drawmethod->rotate)
+						if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_ROTATE && drawmethod->rotate)
                         {
                             drawmethod->rotate = 360 - drawmethod->rotate;
                         }
@@ -29773,18 +29776,17 @@ void display_ents()
                                     shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
                                     shadowmethod.table = drawmethod->table;
                                     shadowmethod.scalex = drawmethod->scalex;
-                                    shadowmethod.flipx = drawmethod->flipx;
-                                    shadowmethod.scaley = light.y * drawmethod->scaley / 256;
-                                    shadowmethod.flipy = drawmethod->flipy;
+                                    shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X);
+                                    shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y);
                                     shadowmethod.centery += alty;
-                                    if (shadowmethod.flipy)
+                                    if (shadowmethod.config & DRAWMETHOD_CONFIG_FLIP_X)
                                     {
                                         shadowmethod.centery = -shadowmethod.centery;
                                     }
                                     if (shadowmethod.scaley < 0)
                                     {
                                         shadowmethod.scaley = -shadowmethod.scaley;
-                                        shadowmethod.flipy = !shadowmethod.flipy;
+                                        shadowmethod.config ^= DRAWMETHOD_CONFIG_FLIP_Y;
                                     }
                                     shadowmethod.rotate = drawmethod->rotate;
                                     shadowmethod.shiftx = drawmethod->shiftx + light.x;
@@ -29792,7 +29794,8 @@ void display_ents()
                                     spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
                                     if (use_mirror)
                                     {
-                                        shadowmethod.flipy = !shadowmethod.flipy;
+                                        shadowmethod.config ^= DRAWMETHOD_CONFIG_FLIP_Y;
+                                        
                                         shadowmethod.centery = -shadowmethod.centery;
                                         spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
                                     }
@@ -29865,7 +29868,7 @@ void display_ents()
 
                                 shadowmethod = plainmethod;
                                 shadowmethod.alpha = BLEND_MULTIPLY + 1;
-                                shadowmethod.flipx = !e->direction;
+                                shadowmethod.config = e->direction == DIRECTION_RIGHT ? (shadowmethod.config | DRAWMETHOD_CONFIG_FLIP_X) : (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X);
 
                                 spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                                 if (use_mirror)

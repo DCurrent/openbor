@@ -27,13 +27,6 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
 		property_map.type = VT_INTEGER;
 		break;
 
-	case DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY:
-		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->transbg;
-		property_map.id_string = "DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY";
-		property_map.type = VT_INTEGER;
-		break;
-
 	case DRAWMETHOD_PROPERTY_CENTER_X:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
 		property_map.field = &acting_object->centerx;
@@ -97,7 +90,33 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
 		property_map.type = VT_INTEGER;
 		break;
 
+	case DRAWMETHOD_PROPERTY_COLORSET_INDEX:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->remap;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_COLORSET_INDEX";
+		property_map.type = VT_INTEGER;
+		break;
 
+	case DRAWMETHOD_PROPERTY_COLORSET_TABLE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->table;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_COLORSET_TABLE";
+		property_map.type = VT_PTR;
+		break;
+
+	case DRAWMETHOD_PROPERTY_CONFIG:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->config;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_CONFIG";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_FILL_COLOR:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->fillcolor;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_FILL_COLOR";
+		property_map.type = VT_INTEGER;
+		break;
 
 	case DRAWMETHOD_PROPERTY_END:
 	default:
@@ -363,13 +382,6 @@ HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->transbg;
-
-		break;
-
 	case DRAWMETHOD_PROPERTY_CENTER_X:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
@@ -446,32 +458,11 @@ HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 		(*pretvar)->ptrVal = (VOID *)(handle->table);
 
 		break;
-
-	case DRAWMETHOD_PROPERTY_ENABLE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->flag;
-
-		break;
 	
 	case DRAWMETHOD_PROPERTY_FILL_COLOR:
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->fillcolor;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_FLIP_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->flipx;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_FLIP_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->flipy;
 
 		break;
 
@@ -493,13 +484,6 @@ HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 		(*pretvar)->lVal = (LONG)handle->rotate;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_ROTATE_FLIP:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->fliprotate;
 
 		break;
 
@@ -696,16 +680,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 			handle->alpha = temp_int;
 		}
 
-		break;
-
-	case DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->transbg = temp_int;
-		}
-
-		break;
+		break;	
 
 	case DRAWMETHOD_PROPERTY_CENTER_X:
 
@@ -803,15 +778,6 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 
 		break;
 
-	case DRAWMETHOD_PROPERTY_ENABLE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->flag = temp_int;
-		}
-
-		break;
-
 	case DRAWMETHOD_PROPERTY_FILL_COLOR:
 
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
@@ -819,25 +785,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 			handle->fillcolor = temp_int;
 		}
 
-		break;
-
-	case DRAWMETHOD_PROPERTY_FLIP_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->flipx = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_FLIP_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->flipy = temp_int;
-		}
-
-		break;
+		break;	
 
 	case DRAWMETHOD_PROPERTY_REPEAT_X:
 
@@ -862,15 +810,6 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant *
 		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
 		{
 			handle->rotate = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_ROTATE_FLIP:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->fliprotate = temp_int;
 		}
 
 		break;

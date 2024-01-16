@@ -359,7 +359,7 @@ static int draw_init( s_drawmethod *drawmethod)
     int alpha = 0;
     drawmethod_global_init(drawmethod);
 
-    if (drawmethod && drawmethod->flag)
+    if (drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         alpha = drawmethod->alpha;
     }
