@@ -118,6 +118,125 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
 		property_map.type = VT_INTEGER;
 		break;
 
+	case DRAWMETHOD_PROPERTY_REPEAT_X:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->xrepeat;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_REPEAT_X";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_REPEAT_Y:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->yrepeat;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_REPEAT_Y";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_ROTATE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->rotate;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_ROTATE";
+		property_map.type = VT_DECIMAL;
+		break;
+
+	case DRAWMETHOD_PROPERTY_SCALE_X:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->scalex;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_SCALE_X";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_SCALE_Y:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->scaley;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_SCALE_Y";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_SPAN_X:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->xspan;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_SPAN_X";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_SPAN_Y:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->yspan;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_SPAN_Y";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_TINT_COLOR:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->tintcolor;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_TINT_COLOR";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_TINT_MODE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->tintmode;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_TINT_MODE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_MODE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.watermode;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_MODE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_PERSPECTIVE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.perspective;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_PERSPECTIVE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_SIZE_BEGIN:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.beginsize;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_SIZE_BEGIN";
+		property_map.type = VT_DECIMAL;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_SIZE_END:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.endsize;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_SIZE_END";
+		property_map.type = VT_DECIMAL;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.amplitude;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE";
+		property_map.type = VT_INTEGER;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_LENGTH:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.wavelength;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE";
+		property_map.type = VT_DECIMAL;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_SPEED:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.wavespeed;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_WAVE_SPEED";
+		property_map.type = VT_DECIMAL;
+		break;
+
+	case DRAWMETHOD_PROPERTY_WATER_WAVE_TIME:
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->water.wavetime;
+		property_map.id_string = "DRAWMETHOD_PROPERTY_WATER_WAVE_TIME";
+		property_map.type = VT_INTEGER;
+		break;
+
 	case DRAWMETHOD_PROPERTY_END:
 	default:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
@@ -128,80 +247,6 @@ const s_property_access_map drawmethod_get_property_map(const void* acting_objec
 
 	}
 	return property_map;
-}
-
-// Use string property argument to find an
-// integer property constant and populate
-// varlist->lval.
-int mapstrings_drawmethod(ScriptVariant **varlist, int paramCount)
-{
-#define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
-#define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
-
-	char *propname = NULL;  // Placeholder for string property name from varlist.
-	int prop;               // Placeholder for integer constant located by string.
-
-	static const char *proplist[] =
-	{
-		"alpha",
-		"background_transparency",
-		"center_x",
-		"center_y",
-		"channel_blue",
-		"channel_green",
-		"channel_red",
-		"clip_position_x",
-		"clip_position_y",
-		"clip_size_x",
-		"clip_size_y",
-		"colorset_index",
-		"colorset_table",
-		"enable",
-		"fill_color",
-		"flip_x",
-		"flip_y",
-		"repeat_x",
-		"repeat_y",
-		"rotate",
-		"rotate_flip",
-		"scale_x",
-		"scale_y",
-		"shift_x",
-		"span_x",
-		"span_y",
-		"tag",
-		"tint_color",
-		"tint_mode",
-		"water_mode",
-		"water_perspective",
-		"water_size_begin",
-		"water_size_end",
-		"water_wave_amplitude",
-		"water_wave_length",
-		"water_wave_speed",
-		"water_wave_time"
-	};
-
-	// If the minimum argument count
-	// was not passed, then there is
-	// nothing to map. Return true - we'll
-	// catch the mistake in property access
-	// functions.
-	if (paramCount < ARG_MINIMUM)
-	{
-		return 1;
-	}
-
-	// See macro - will return 0 on fail.
-	MAPSTRINGS(varlist[ARG_PROPERTY], proplist, DRAWMETHOD_PROPERTY_END,
-		"Property name '%s' is not supported by drawmethod.\n");
-
-
-	// If we made it this far everything should be OK.
-	return 1;
-
-#undef ARG_MINIMUM
-#undef ARG_PROPERTY
 }
 
 // Caskey, Damon  V.
@@ -336,644 +381,153 @@ error_local:
 #undef ARG_TARGET
 }
 
-// Caskey, Damon  V.
-// 2019-03-28
-//
-// Return a drawmethod property. Requires
-// the pointer from drawmethod property
-// and a property to access.
-HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+/*
+* Caskey, Damon  V.
+* 2023-03-03
+*
+* Return a property. Requires
+* a object pointer and property
+* constant to access.
+*/
+HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-#define SELF_NAME       "openbor_get_drawmethod_property(void drawmethod, char property)"
-#define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_OBJECT      0   // Handle (pointer to property structure).
-#define ARG_PROPERTY    1   // Property to access.
+	const char* SELF_NAME = "openbor_get_drawmethod_property(void drawmethod, int property)";
+	const unsigned int ARG_OBJECT = 0;
+	const unsigned int ARG_PROPERTY = 1;
 
-	s_drawmethod				*handle = NULL;		// Property handle.
-	e_drawmethod_properties		property = 0;		// Property argument.
-
-	// Clear pass by reference argument used to send
-	// property data back to calling script.     .
+	/*
+	* Clear pass by reference argument used to send
+	* property data back to calling script.
+	*/
 	ScriptVariant_Clear(*pretvar);
 
-	// Verify arguments. There should at least
-	// be a pointer for the property handle and an integer
-	// to determine which property constant is accessed.
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-	{
+	/*
+	* Should at least be a pointer to the
+	* acting object and a property id.
+	*/
+	if (varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
+		printf("\n\n Script error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
+		return E_FAIL;
+	}
+
+	/*
+	* Now let's make sure the object type is
+	* correct (ex. drawmethod vs. model) so we
+	* can shut down gracefully if there's
+	* a mismatch.
+	*/
+
+	const s_drawmethod* const acting_object = (const s_drawmethod* const)varlist[ARG_OBJECT]->ptrVal;
+
+	if (acting_object->object_type != OBJECT_TYPE_DRAWMETHOD) {
+		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
 		*pretvar = NULL;
-		goto error_local;
-	}
-	else
-	{
-		// Populate local vars for readability.
-		handle = (s_drawmethod *)varlist[ARG_OBJECT]->ptrVal;
-		property = (LONG)varlist[ARG_PROPERTY]->lVal;
+		return E_FAIL;
 	}
 
-	switch (property)
-	{		
-	case DRAWMETHOD_PROPERTY_ALPHA:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->alpha;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CENTER_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->centerx;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CENTER_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->centery;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CHANNEL_BLUE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->channelb;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CHANNEL_GREEN:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->channelg;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CHANNEL_RED:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->channelr;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_POSITION_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->clipx;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_POSITION_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->clipy;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_SIZE_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->clipw;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_SIZE_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->cliph;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_COLORSET_INDEX:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->remap;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_COLORSET_TABLE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_PTR);
-		(*pretvar)->ptrVal = (VOID *)(handle->table);
-
-		break;
-	
-	case DRAWMETHOD_PROPERTY_FILL_COLOR:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->fillcolor;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_REPEAT_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->xrepeat;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_REPEAT_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->yrepeat;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_ROTATE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->rotate;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SCALE_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->scalex;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SCALE_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->scaley;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SHIFT_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->shiftx;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SPAN_X:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->xspan;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SPAN_Y:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->yspan;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_TAG:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->tag;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_TINT_COLOR:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->tintcolor;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_TINT_MODE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->tintmode;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_MODE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.watermode;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_PERSPECTIVE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.perspective;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_SIZE_BEGIN:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.beginsize;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_SIZE_END:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.endsize;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.amplitude;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_LENGTH:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.wavelength;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_SPEED:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.wavespeed;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_TIME:
-
-		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-		(*pretvar)->lVal = (LONG)handle->water.wavetime;
-
-		break;
-
-	default:
-
-		printf("Unsupported property.\n");
-		goto error_local;
-
-		break;
+	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+
+	const e_drawmethod_properties property_id = (e_drawmethod_properties)(property_id_param);
+	const s_property_access_map property_map = drawmethod_get_property_map(acting_object, property_id);
+
+	/*
+	* If property id is in range, we send
+	* the property map and return parameter
+	* for population, then ext.
+	*/
+
+	if (property_id_param >= 0 && property_id_param < DRAWMETHOD_PROPERTY_END) {
+		property_access_get_member(&property_map, *pretvar);
+		return S_OK;
+	}
+
+	/*
+	* Is this a dump request? If not, then
+	* the property id is invalid.
+	*/
+
+	if (property_id_param == PROPERTY_ACCESS_DUMP) {
+		property_access_dump_members(drawmethod_get_property_map, DRAWMETHOD_PROPERTY_END, acting_object);
+	}
+	else {
+		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+		return E_FAIL;
 	}
 
 	return S_OK;
-
-error_local:
-
-	printf("\nYou must provide a valid pointer and property name: " SELF_NAME "\n");
-	*pretvar = NULL;
-
-	return E_FAIL;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_OBJECT
-#undef ARG_INDEX
 }
 
-// Caskey, Damon  V.
-// 2019-03-28
-//
-// Mutate a drawmethod property. Requires
-// the pointer from drawmethod property
-// and a property to access.
-HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+
+/*
+* Caskey, Damon  V.
+* 2018-04-03
+*
+* Mutate a property. Requires
+* the object pointer, a property
+* id, and new value.
+*/
+HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-#define SELF_NAME			"set_drawmethod_property(void drawmethod, char property, mixed value)"
-#define ARG_MINIMUM         3   // Minimum required arguments.
-#define ARG_OBJECT          0   // Handle (pointer to property structure).
-#define ARG_PROPERTY        1   // Property to access.
-#define ARG_VALUE           2   // New value to apply.
+	const char* SELF_NAME = "openbor_set_drawmethod_property(void drawmethod, int property, <mixed> value)";
+	const unsigned int ARG_OBJECT = 0;
+	const unsigned int ARG_PROPERTY = 1;
+	const unsigned int ARG_VALUE = 2;
+	const unsigned int ARG_MINIMUM = 3;
 
-	s_drawmethod			*handle = NULL;	// Property handle.
-	e_drawmethod_properties	property = 0;	// Property to access.
+	/*
+	* Should at least be a pointer to the
+	* acting object, a property id, and
+	* a new value.
+	*/
 
-	// Value carriers to apply on properties after
-	// taken from argument.
-	LONG         temp_int;
-
-	// Verify incoming arguments. There should at least
-	// be a pointer for the property handle and an integer
-	// to determine which property is accessed.
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-	{
+	if (varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER
+		|| paramCount < ARG_MINIMUM) {
+		printf("\n\n Script error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
 		*pretvar = NULL;
-		goto error_local;
+		return E_FAIL;
 	}
 
-	// Populate local handle and property vars.
-	handle = (s_drawmethod *)varlist[ARG_OBJECT]->ptrVal;
-	property = (LONG)varlist[ARG_PROPERTY]->lVal;
-
-	// Default drawmethod (plainmethod) is a const and therefore cannot
-	// be mutated. If the author tries it's sure to cause a crash or
-	// even worse, untracable bugs. We'll send a warning to the log and 
-	// exit function.
-	if (handle == &plainmethod)
-	{
-		printf("\n Warning: The default drawmethod and its properties are read only: " SELF_NAME "\n");
-		
-		return S_OK;
-	}		
-
-	// Which property to modify?
-	switch (property)
-	{
-	
-	case DRAWMETHOD_PROPERTY_ALPHA:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->alpha = temp_int;
-		}
-
-		break;	
-
-	case DRAWMETHOD_PROPERTY_CENTER_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->centerx = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CENTER_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->centery = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CHANNEL_BLUE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->channelb = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CHANNEL_GREEN:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->channelg = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CHANNEL_RED:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->channelr = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_POSITION_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->clipx = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_POSITION_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->clipy = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_SIZE_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->clipw = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_CLIP_SIZE_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->cliph = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_COLORSET_INDEX:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->remap = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_COLORSET_TABLE:
-
-		handle->table = (VOID *)varlist[ARG_VALUE]->ptrVal;
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_FILL_COLOR:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->fillcolor = temp_int;
-		}
-
-		break;	
-
-	case DRAWMETHOD_PROPERTY_REPEAT_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->xrepeat = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_REPEAT_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->yrepeat = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_ROTATE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->rotate = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SCALE_X:
-		
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->scalex = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SCALE_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->scaley = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SHIFT_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->shiftx = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SPAN_X:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->xspan = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_SPAN_Y:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->yspan = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_TAG:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->tag = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_TINT_COLOR:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->tintcolor = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_TINT_MODE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->tintmode = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_MODE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.watermode = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_PERSPECTIVE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.perspective = temp_int;
-		}
-
-	case DRAWMETHOD_PROPERTY_WATER_SIZE_BEGIN:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.beginsize = temp_int;
-		}
-
-	case DRAWMETHOD_PROPERTY_WATER_SIZE_END:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.endsize = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_AMPLITUDE:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.amplitude = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_LENGTH:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.wavelength = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_SPEED:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.wavespeed = temp_int;
-		}
-
-		break;
-
-	case DRAWMETHOD_PROPERTY_WATER_WAVE_TIME:
-
-		if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-		{
-			handle->water.wavetime = temp_int;
-		}
-
-		break;
-
-	default:
-
-		printf("Unsupported property.\n");
-		goto error_local;
-
-		break;
+	/*
+	* Now let's make sure the object type is
+	* correct (ex. drawmethod vs. model) so we
+	* can shut down gracefully if there's
+	* a mismatch.
+	*/
+
+	const s_drawmethod* const acting_object = (const s_drawmethod* const)varlist[ARG_OBJECT]->ptrVal;
+
+	if (acting_object->object_type != OBJECT_TYPE_DRAWMETHOD) {
+		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
 	}
+
+	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+	const e_drawmethod_properties property_id = (e_drawmethod_properties)(property_id_param);
+
+	if (property_id_param < 0 && property_id_param >= DRAWMETHOD_PROPERTY_END) {
+		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+		return E_FAIL;
+	}
+
+	/*
+	* Get map of property. This is a struct
+	* that contains the property variable
+	* type, reference to the acting object's
+	* appropriate data member, text name,
+	* read only, etc.
+	*/
+
+	const s_property_access_map property_map = drawmethod_get_property_map(acting_object, property_id);
+
+	/*
+	* Populate the property value on
+	* acting object and return OK/FAIL.
+	*/
+
+	return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
 
 	return S_OK;
-
-	// Error trapping.
-error_local:
-
-	printf("\nYou must provide a valid pointer, property name, and new value: " SELF_NAME "\n");
-	
-	return E_FAIL;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_OBJECT
-#undef ARG_PROPERTY
-#undef ARG_VALUE
 }

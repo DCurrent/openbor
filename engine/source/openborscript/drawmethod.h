@@ -1,7 +1,6 @@
 typedef enum
 {
 	DRAWMETHOD_PROPERTY_ALPHA,
-	DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY,
 	DRAWMETHOD_PROPERTY_CENTER_X,
 	DRAWMETHOD_PROPERTY_CENTER_Y,
 	DRAWMETHOD_PROPERTY_CHANNEL_BLUE,
@@ -15,12 +14,9 @@ typedef enum
 	DRAWMETHOD_PROPERTY_COLORSET_TABLE,
 	DRAWMETHOD_PROPERTY_CONFIG,
 	DRAWMETHOD_PROPERTY_FILL_COLOR,
-	DRAWMETHOD_PROPERTY_FLIP_X,
-	DRAWMETHOD_PROPERTY_FLIP_Y,
 	DRAWMETHOD_PROPERTY_REPEAT_X,
 	DRAWMETHOD_PROPERTY_REPEAT_Y,
 	DRAWMETHOD_PROPERTY_ROTATE,
-	DRAWMETHOD_PROPERTY_ROTATE_FLIP,
 	DRAWMETHOD_PROPERTY_SCALE_X,
 	DRAWMETHOD_PROPERTY_SCALE_Y,
 	DRAWMETHOD_PROPERTY_SHIFT_X,
@@ -44,7 +40,5 @@ typedef enum
 HRESULT openbor_allocate_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_free_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-
-int mapstrings_drawmethod(ScriptVariant **varlist, int paramCount);
+HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);
