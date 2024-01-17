@@ -29781,7 +29781,7 @@ void display_ents()
                                     shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y);
                                     shadowmethod.centery += alty;
                                     
-                                    if (shadowmethod.config & DRAWMETHOD_CONFIG_FLIP_X)
+                                    if (shadowmethod.config & DRAWMETHOD_CONFIG_FLIP_Y)
                                     {
                                         shadowmethod.centery = -shadowmethod.centery;
                                     }
