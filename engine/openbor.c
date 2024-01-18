@@ -3640,7 +3640,7 @@ int load_palette(unsigned char *palette, char *filename)
 
         closepackfile(file_id);
         
-        acting_palette[0] = colour32(255, 0, 0);
+        acting_palette[0] = 0;
 
         return 1;
     }
