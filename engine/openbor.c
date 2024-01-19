@@ -2618,11 +2618,11 @@ void clearsettings()
     savedata.mode = 0;
     savedata.showtitles = 0;
     savedata.windowpos = 0;
-    savedata.logo = 0;
+    savedata.logo = 1;
     savedata.uselog = 1;
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
-    savedata.vsync = 1;
+    savedata.vsync = 0;
     savedata.fpslimit = 1; // Kratus (01-2023) Added a FPS limit option in the video settings
 
 	#if WII
