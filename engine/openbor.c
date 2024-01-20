@@ -26090,16 +26090,17 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 //
 // Verify entity has blockpain and that attack
 // should trigger it.
+// Kratus (01-2024) Minor fix in the blockpain flag check (inverted)
 int check_blocking_pain(entity *ent, s_attack *attack)
 {
 	// If blockpain is greater than attack
 	// force, we don't apply it.
 	if (attack->attack_force >= self->modeldata.blockpain)
 	{
-		return 0;
+		return 1;
 	}
 
-	return 1;
+	return 0;
 }
 
 // Caskey, Damon V.
