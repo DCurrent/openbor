@@ -3682,10 +3682,14 @@ void change_system_palette(int palindex)
 }
 
 // Load colour 0-127 from data/pal.act
+// Kratus (01-2024) Now the code checks if there's an "pal.act" file inside the data folder
 void standard_palette(int immediate)
 {
     unsigned char pp[MAX_PAL_SIZE] = {0};
-    if(load_palette(pp, "data/pal.act"))
+    char *filename = "data/pal.act";
+    int file_id = openpackfile(filename, packfile);
+
+    if(file_id >= 0 && load_palette(pp, filename))
     {
         memcpy(pal, pp, (PAL_BYTES) / 2);
     }
@@ -3694,7 +3698,6 @@ void standard_palette(int immediate)
         change_system_palette(0);
     }
 }
-
 
 void unload_background()
 {
