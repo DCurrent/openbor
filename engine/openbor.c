@@ -3592,7 +3592,7 @@ int load_palette(unsigned char *palette, char *filename)
 
     char *fileext;
     int file_id, i;
-    unsigned *acting_palette;
+    unsigned int *acting_palette;
     unsigned char rgb_temp[RGB_ELEMENT_COUNT];
 
     //printf("\n\nfileext: %s", filename);
