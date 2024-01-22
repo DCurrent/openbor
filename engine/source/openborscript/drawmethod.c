@@ -531,3 +531,128 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 
 	return S_OK;
 }
+
+HRESULT openbor_get_color_component(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
+{
+	const char* SELF_NAME = "openbor_set_color_component(void drawmethod, int color_index, int color_component)";
+	const unsigned int ARG_OBJECT = 0;
+	const unsigned int ARG_COLOR_INDEX = 1;
+	const unsigned int ARG_COLOR_COMPONENT = 2;	
+	const unsigned int ARG_MINIMUM = 3;
+
+	/*
+	* Verify parameters.
+	*/
+	if (varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_COLOR_INDEX]->vt != VT_INTEGER
+		|| varlist[ARG_COLOR_COMPONENT]->vt != VT_INTEGER
+		|| paramCount < ARG_MINIMUM) {
+		printf("\n\n Script error: %s. You must provide a valid object pointer, color index, and color component.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	/*
+	* Verify we don't have a NULL pointer.
+	* Our target object is an array, not
+	* a structure, so there's no really
+	* good way to verify type.
+	*/
+
+	unsigned char* acting_object = (unsigned char*)varlist[ARG_OBJECT]->ptrVal;
+
+	if (!acting_object) {
+		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	/*
+	* Clear pass by reference argument used to send
+	* property data back to calling script.
+	*/
+	ScriptVariant_Clear(*pretvar);
+
+	const unsigned char color_index_param = (unsigned char)varlist[ARG_COLOR_INDEX]->lVal;
+	const e_color_components color_component_param = (e_color_components)varlist[ARG_COLOR_COMPONENT]->lVal;
+
+	const unsigned int component_id = COLOR_COMPONENT_END * color_index_param + color_component_param;
+
+	/*
+	* If property id is in range, we send
+	* the property map and return parameter
+	* for population, then ext.
+	*/
+
+	if (component_id >= 0 && component_id < MAX_PAL_SIZE) {		
+
+		ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+			
+		(*pretvar)->lVal = acting_object[component_id];
+
+		return S_OK;
+	}
+
+	/*
+	* Is this a dump request? If not, then
+	* the property id is invalid.
+	*/
+
+	if (color_index_param == PROPERTY_ACCESS_DUMP) {
+		
+	}
+	else {
+		printf("\n\nScript error: %s. Unknown color index (%d) or component (%d). \n\n", SELF_NAME, color_index_param, color_component_param);
+		return E_FAIL;
+	}
+
+	return S_OK;
+}
+
+
+HRESULT openbor_set_color_component(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
+{
+	const char* SELF_NAME = "openbor_set_color_component(void drawmethod, int color_index, int color_component, int value)";
+	const unsigned int ARG_OBJECT = 0;
+	const unsigned int ARG_COLOR_INDEX = 1;
+	const unsigned int ARG_COLOR_COMPONENT = 2;
+	const unsigned int ARG_VALUE = 3;
+	const unsigned int ARG_MINIMUM = 4;
+
+	/*
+	* Verify parameters.
+	*/
+	if (varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_COLOR_INDEX]->vt != VT_INTEGER
+		|| varlist[ARG_COLOR_COMPONENT]->vt != VT_INTEGER
+		|| paramCount < ARG_MINIMUM) {
+		printf("\n\n Script error: %s. You must provide a valid object pointer, color index, color component, and new value.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	/*
+	* Verify we don't have a NULL pointer. 
+	* Our target object is an array, not 
+	* a structure, so there's no really
+	* good way to verify type.
+	*/
+
+	unsigned char* acting_object = (unsigned char*)varlist[ARG_OBJECT]->ptrVal;
+
+	if (!acting_object) {
+		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	const unsigned char color_index_param = (unsigned char)varlist[ARG_COLOR_INDEX]->lVal;
+	const e_color_components color_component_param = (e_color_components)varlist[ARG_COLOR_COMPONENT]->lVal;
+	
+	
+	const unsigned int component_id = COLOR_COMPONENT_END * color_index_param + color_component_param;
+	
+	acting_object[component_id] = (unsigned int)varlist[ARG_VALUE]->lVal;
+
+	return S_OK;
+}

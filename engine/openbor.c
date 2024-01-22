@@ -3583,17 +3583,10 @@ int convert_map_to_palette(s_model *model, unsigned mapflag[])
 //load a 256 colors' palette
 int load_palette(unsigned char *palette, char *filename)
 {
-    enum {
-        RGB_RED = 0,
-        RGB_GREEN = 1,
-        RGB_BLUE = 2,
-        RGB_ELEMENT_COUNT = 3
-    };
-
     char *fileext;
     int file_id, i;
     unsigned int *acting_palette;
-    unsigned char rgb_temp[RGB_ELEMENT_COUNT];
+    unsigned char rgb_temp[COLOR_COMPONENT_RGB];
 
     //printf("\n\nfileext: %s", filename);
 
@@ -3615,7 +3608,7 @@ int load_palette(unsigned char *palette, char *filename)
         memset(palette, 0, MAX_PAL_SIZE);
 
 
-        acting_palette = (unsigned *)palette;
+        acting_palette = (unsigned int*)palette;
 
         
         for(i = 0; i < MAX_PAL_SIZE / 4; i++)
@@ -3623,19 +3616,18 @@ int load_palette(unsigned char *palette, char *filename)
             //printf("\n\t i: %d", i);
 
 
-            if(readpackfile(file_id, rgb_temp, 3) != 3)
+            if(readpackfile(file_id, rgb_temp, COLOR_COMPONENT_RGB) != COLOR_COMPONENT_RGB)
             {
                 closepackfile(file_id);
                 return 0;
             }
 
-            //printf("\n\t tpal[RGB_RED]: %d, tpal[RGB_GREEN]: %d, tpal[2]: %d", rgb_temp[RGB_RED], rgb_temp[RGB_GREEN], rgb_temp[RGB_BLUE]);
-            //printf("\n\t colour32: %d", colour32(rgb_temp[RGB_RED], rgb_temp[RGB_GREEN], rgb_temp[RGB_BLUE]));
+            //printf("\n\t pal[COLOR_COMPONENT_RED]: %d, pal[RGB_GREEN]: %d, pal[RGB_BLUE]: %d", rgb_temp[COLOR_COMPONENT_RED], rgb_temp[COLOR_COMPONENT_GREEN], rgb_temp[COLOR_COMPONENT_BLUE]);
+            //printf("\n\t colour32: %d", colour32(rgb_temp[COLOR_COMPONENT_RED], rgb_temp[COLOR_COMPONENT_GREEN], rgb_temp[COLOR_COMPONENT_BLUE]));
             
-            acting_palette[i] = colour32(rgb_temp[RGB_RED], rgb_temp[RGB_GREEN], rgb_temp[RGB_BLUE]);
+            acting_palette[i] = colour32(rgb_temp[COLOR_COMPONENT_RED], rgb_temp[COLOR_COMPONENT_GREEN], rgb_temp[COLOR_COMPONENT_BLUE]);
             
-
-            //printf("\n\t\t acting_palette[%d]: %d", i, acting_palette[i]);
+            //printf("\n\t acting_palette[%d]: %d", i, acting_palette[i]);
         }                
 
         closepackfile(file_id);

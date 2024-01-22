@@ -259,6 +259,15 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "set_drawmethod_property";
 	}
 
+    else if (functionRef == ((void*)openbor_get_color_component))
+    {
+        return "get_color_component";
+    }
+    else if (functionRef == ((void*)openbor_set_color_component))
+    {
+        return "set_color_component";
+    }
+
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
         return "getplayerproperty";
@@ -1271,6 +1280,11 @@ void Script_LoadSystemFunctions()
 		(void *)openbor_get_drawmethod_property, "get_drawmethod_property");
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_set_drawmethod_property, "set_drawmethod_property");
+
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_color_component, "get_color_component");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_color_component, "set_color_component");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");

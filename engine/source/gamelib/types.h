@@ -94,6 +94,15 @@ typedef unsigned long long u64;
 //scr
 #define screen_magic ((int)0x726373)
 
+typedef enum e_color_components {
+    COLOR_COMPONENT_RED    = 0,
+    COLOR_COMPONENT_GREEN  = 1,
+    COLOR_COMPONENT_BLUE   = 2,
+    COLOR_COMPONENT_ALPHA  = 3,
+    COLOR_COMPONENT_RGB    = 3,
+    COLOR_COMPONENT_END    = 4
+} e_color_components;
+
 /*
 * Caskey, Damon V.
 * 2023-04-25
