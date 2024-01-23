@@ -598,13 +598,13 @@ HRESULT openbor_get_color_component(const ScriptVariant* const* varlist, ScriptV
 	* the property id is invalid.
 	*/
 
-	if (color_index_param == PROPERTY_ACCESS_DUMP) {
+	//if (color_index_param == PROPERTY_ACCESS_DUMP) {
 		
-	}
-	else {
-		printf("\n\nScript error: %s. Unknown color index (%d) or component (%d). \n\n", SELF_NAME, color_index_param, color_component_param);
-		return E_FAIL;
-	}
+	//}
+	//else {
+	//	printf("\n\nScript error: %s. Unknown color index (%d) or component (%d). \n\n", SELF_NAME, color_index_param, color_component_param);
+	//	return E_FAIL;
+	//}
 
 	return S_OK;
 }
