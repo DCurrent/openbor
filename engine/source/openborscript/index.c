@@ -246,10 +246,6 @@ const char *Script_GetFunctionName(void *functionRef)
 	{
 		return "copy_drawmethod";
 	}
-	else if (functionRef == ((void *)openbor_free_drawmethod))
-	{
-	return "free_drawmethod";
-	}
 	else if (functionRef == ((void *)openbor_get_drawmethod_property))
 	{
 		return "get_drawmethod_property";
@@ -259,13 +255,21 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "set_drawmethod_property";
 	}
 
-    else if (functionRef == ((void*)openbor_get_color_component))
+    else if (functionRef == ((void*)openbor_allocate_palette))
     {
-        return "get_color_component";
+        return "allocate_palette";
     }
-    else if (functionRef == ((void*)openbor_set_color_component))
+    else if (functionRef == ((void*)openbor_copy_palette))
     {
-        return "set_color_component";
+        return "copy_palette";
+    }
+    else if (functionRef == ((void*)openbor_get_palette_property))
+    {
+        return "get_palette_property";
+    }
+    else if (functionRef == ((void*)openbor_set_palette_property))
+    {
+        return "set_palette_property";
     }
 
     else if (functionRef == ((void *)openbor_getplayerproperty))
@@ -1275,16 +1279,18 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_copy_drawmethod, "copy_drawmethod");
 	List_InsertAfter(&theFunctionList,
-		(void *)openbor_free_drawmethod, "free_drawmethod");
-	List_InsertAfter(&theFunctionList,
 		(void *)openbor_get_drawmethod_property, "get_drawmethod_property");
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_set_drawmethod_property, "set_drawmethod_property");
 
     List_InsertAfter(&theFunctionList,
-        (void*)openbor_get_color_component, "get_color_component");
+        (void*)openbor_allocate_palette, "allocate_palette");
     List_InsertAfter(&theFunctionList,
-        (void*)openbor_set_color_component, "set_color_component");
+        (void*)openbor_copy_palette, "copy_palette");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_palette_property, "get_palette_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_palette_property, "set_palette_property");
 
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");

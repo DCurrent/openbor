@@ -274,38 +274,36 @@ HRESULT openbor_allocate_drawmethod(ScriptVariant **varlist, ScriptVariant **pre
 // Copy properties of source drawmethod to target drawmethod.
 HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-#define SELF_NAME       "openbor_copy_drawmethod(void source, void target)"
-#define ARG_MINIMUM     2   // Minimum required arguments.
-#define ARG_SOURCE		0
-#define ARG_TARGET		1
-
-	s_drawmethod *source;
-	s_drawmethod *target;
+	static const char* SELF_NAME = "copy_drawmethod(void target, void source)";
+	static const int ARG_MINIMUM = 2;   // Minimum required arguments.
+	static const int ARG_TARGET = 0;
+	static const int ARG_SOURCE = 1;
 
 	// Verify arguments. 
 	if (paramCount < ARG_MINIMUM
 		|| varlist[ARG_SOURCE]->vt != VT_PTR
 		|| varlist[ARG_TARGET]->vt != VT_PTR)
 	{
+		printf("\n\n Script error: %s. You must provide a valid target and source object.\n\n", SELF_NAME);
 		*pretvar = NULL;
-		goto error_local;
+		return E_FAIL;
 	}
-	else
-	{
-		// Populate local vars with arguments.
-		source = (s_drawmethod *)varlist[ARG_SOURCE]->ptrVal;
-		target = (s_drawmethod *)varlist[ARG_TARGET]->ptrVal;
-	}
+	
+	// Populate local vars with arguments.
+	const s_drawmethod* const source = (const s_drawmethod *)varlist[ARG_SOURCE]->ptrVal;
+	s_drawmethod* target = (s_drawmethod *)varlist[ARG_TARGET]->ptrVal;
 
-	// Default drawmethod (plainmethod) is a const and therefore cannot
-	// be mutated. If the author tries it's sure to cause a crash or
-	// even worse, untracable bugs. We'll send a warning to the log and 
-	// exit function. Note it's perfectly fine to use the default 
-	// drawmethod as a source, and that's probably what will be done 
-	// most of the time anyway.
+	/*
+	* Default drawmethod (plainmethod) is a const and 
+	* therefore cannot be mutated. We'll send a warning 
+	* to the log and exit function. Note it's perfectly 
+	* fine to use the default drawmethod as a source, 
+	* and that's probably what will be done most of the 
+	* time anyway.
+	*/
 	if (target == &plainmethod)
 	{
-		printf("\n Warning: The default drawmethod and its properties are read only: " SELF_NAME "\n");
+		printf("\n Warning: The default drawmethod and its properties are read only: %s\n\n", SELF_NAME);
 
 		return S_OK;
 	}
@@ -314,71 +312,6 @@ HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar
 	memcpy(target, source, sizeof(*target));
 
 	return S_OK;
-
-error_local:
-
-	printf("\nYou must provide valid source and target drawmethod pointers: " SELF_NAME "\n");
-	*pretvar = NULL;
-
-	return E_FAIL;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_SOURCE
-#undef ARG_TARGET
-}
-
-// Caskey, Damon  V.
-// 2019-04-16
-//
-// Allocate a new drawmethod and return the pointer.
-HRESULT openbor_free_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
-{
-#define SELF_NAME       "openbor_free_drawmethod(void drawmethod)"
-#define ARG_MINIMUM     1   // Minimum required arguments.
-#define ARG_TARGET		0
-
-	s_drawmethod *target;
-
-	// Verify arguments.
-	if (paramCount < ARG_MINIMUM
-		|| varlist[ARG_TARGET]->vt != VT_PTR)
-	{
-		*pretvar = NULL;
-		goto error_local;
-	}
-	else
-	{
-		// Populate local vars with arguments.
-		target = (s_drawmethod *)varlist[ARG_TARGET]->ptrVal;
-	}
-
-	// Default drawmethod (plainmethod) is a const and therefore cannot
-	// be mutated. If the author tries it's sure to cause a crash or
-	// even worse, untracable bugs. We'll send a warning to the log and 
-	// exit function.
-	if (target == &plainmethod)
-	{
-		printf("\n Warning: The default drawmethod and its properties are read only: " SELF_NAME "\n");
-
-		return S_OK;
-	}
-
-	// Free the drawmethod.
-	free(target);
-
-	return S_OK;
-
-error_local:
-
-	printf("\n You must provide a valid drawmethod pointer: " SELF_NAME "\n");
-	*pretvar = NULL;
-
-	return E_FAIL;
-
-#undef SELF_NAME
-#undef ARG_MINIMUM
-#undef ARG_TARGET
 }
 
 /*
@@ -391,9 +324,9 @@ error_local:
 */
 HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	const char* SELF_NAME = "openbor_get_drawmethod_property(void drawmethod, int property)";
-	const unsigned int ARG_OBJECT = 0;
-	const unsigned int ARG_PROPERTY = 1;
+	static const char* SELF_NAME = "openbor_get_drawmethod_property(void drawmethod, int property)";
+	static const int ARG_OBJECT = 0;
+	static const int ARG_PROPERTY = 1;
 
 	/*
 	* Clear pass by reference argument used to send
@@ -469,11 +402,11 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
 */
 HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	const char* SELF_NAME = "openbor_set_drawmethod_property(void drawmethod, int property, <mixed> value)";
-	const unsigned int ARG_OBJECT = 0;
-	const unsigned int ARG_PROPERTY = 1;
-	const unsigned int ARG_VALUE = 2;
-	const unsigned int ARG_MINIMUM = 3;
+	static const char* SELF_NAME = "openbor_set_drawmethod_property(void drawmethod, int property, <mixed> value)";
+	static const int ARG_OBJECT = 0;
+	static const int ARG_PROPERTY = 1;
+	static const int ARG_VALUE = 2;
+	static const int ARG_MINIMUM = 3;
 
 	/*
 	* Should at least be a pointer to the
@@ -532,13 +465,74 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 	return S_OK;
 }
 
-HRESULT openbor_get_color_component(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
+/*
+* Caskey, Damon C.
+* 2024-01-23
+* 
+* Allocate a new blank palette and return pointer.
+*/
+HRESULT openbor_allocate_palette(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-	const char* SELF_NAME = "openbor_set_color_component(void drawmethod, int color_index, int color_component)";
-	const unsigned int ARG_OBJECT = 0;
-	const unsigned int ARG_COLOR_INDEX = 1;
-	const unsigned int ARG_COLOR_COMPONENT = 2;	
-	const unsigned int ARG_MINIMUM = 3;
+	unsigned char* acting_object = NULL; 
+
+	ScriptVariant_ChangeType(*pretvar, VT_PTR);
+	
+	if ((acting_object = malloc(PAL_BYTES)))
+	{
+		memset(acting_object, 0, MAX_PAL_SIZE);
+
+		(*pretvar)->ptrVal = (unsigned char *)acting_object;
+	}
+
+	return S_OK;
+}
+
+/*
+* Caskey, Damon V.
+* 2024-01-23
+* 
+* Copy color entries from source to target.
+*/
+HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+{
+	static const char* SELF_NAME = "openbor_copy_palette(void target, void source)";
+	static const int ARG_MINIMUM = 2;   // Minimum required arguments.
+	static const int ARG_SOURCE = 1;
+	static const int ARG_TARGET = 0;
+
+	// Verify arguments. 
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_SOURCE]->vt != VT_PTR
+		|| varlist[ARG_TARGET]->vt != VT_PTR){
+
+		printf("\n\n Script error: %s. You must provide a valid target object and source object.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	// Populate local vars with arguments.
+	const unsigned char* const source = (const unsigned char* const)varlist[ARG_SOURCE]->ptrVal;
+	unsigned char* target = (unsigned char*)varlist[ARG_TARGET]->ptrVal;
+
+	// Copy values into target object.
+	memcpy(target, source, sizeof(*target));
+
+	return S_OK;
+}
+
+/*
+* Caskey, Damon V.
+* 2024-01-22
+*
+* Get palette entry component value.
+*/
+HRESULT openbor_get_palette_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
+{
+	static const char* SELF_NAME = "openbor_set_palette_property(void drawmethod, int color_index, int color_component)";
+	static const int ARG_OBJECT = 0;
+	static const int ARG_COLOR_INDEX = 1;
+	static const int ARG_COLOR_COMPONENT = 2;
+	static const int ARG_MINIMUM = 3;
 
 	/*
 	* Verify parameters.
@@ -609,15 +603,20 @@ HRESULT openbor_get_color_component(const ScriptVariant* const* varlist, ScriptV
 	return S_OK;
 }
 
-
-HRESULT openbor_set_color_component(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
+/*
+* Caskey, Damon V.
+* 2024-01-22
+* 
+* Edit palette entry component value.
+*/
+HRESULT openbor_set_palette_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	const char* SELF_NAME = "openbor_set_color_component(void drawmethod, int color_index, int color_component, int value)";
-	const unsigned int ARG_OBJECT = 0;
-	const unsigned int ARG_COLOR_INDEX = 1;
-	const unsigned int ARG_COLOR_COMPONENT = 2;
-	const unsigned int ARG_VALUE = 3;
-	const unsigned int ARG_MINIMUM = 4;
+	static const char* SELF_NAME = "openbor_set_palette_property(void drawmethod, int color_index, int color_component, int value)";
+	static const int ARG_OBJECT = 0;
+	static const int ARG_COLOR_INDEX = 1;
+	static const int ARG_COLOR_COMPONENT = 2;
+	static const int ARG_VALUE = 3;
+	static const int ARG_MINIMUM = 4;
 
 	/*
 	* Verify parameters.
