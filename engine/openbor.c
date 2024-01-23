@@ -33391,7 +33391,7 @@ int offense_result_damage(s_offense* offense_object, int attack_force)
 */
 int defense_result_damage(s_defense* defense_object, int attack_force, int blocked)
 {   
-#define DEFENSE_GLOBAL_BLOCK_RATIO 0.25
+    static const float DEFENSE_GLOBAL_BLOCK_RATIO = 0.25;
 
     //printf("\n\n defense_result_damage(%p, %p, %d, %d)", defense_object, attack_force, blocked);
     
@@ -33487,8 +33487,6 @@ int defense_result_damage(s_defense* defense_object, int attack_force, int block
     }
 
     return result;
-
-#undef DEFENSE_GLOBAL_BLOCK_RATIO
 }
 
 /*
@@ -36104,8 +36102,8 @@ int common_attack()
 // return 1 if jump
 int common_try_jump()
 {
-#define COMMON_TRY_JUMP_DEFAULT 1
-#define COMMON_TRY_JUMP_RUN 2
+    static const int COMMON_TRY_JUMP_DEFAULT = 1;
+    static const int COMMON_TRY_JUMP_RUN = 2;
 
     float xdir = 0.0;
     float zdir = 0.0;
@@ -36278,9 +36276,6 @@ int common_try_jump()
         return 1;
     }
     return 0;
-
-#undef COMMON_TRY_JUMP_DEFAULT
-#undef COMMON_TRY_JUMP_RUN
 }
 
 //test if direction is available for anim_up
@@ -38171,10 +38166,10 @@ entity *check_block_obstacle(entity *ent)
 */
 int projectile_wall_deflect(entity *acting_entity)
 {
-    #define RICHOCHET_FALL_FORCE        10000 
-    #define RICHOCHET_VELOCITY_X_FACTOR 0.25    // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
-    #define RICHOCHET_VELOCITY_Y        2.5     // Base Y velocity applied when projectile bounces off wall.
-    #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
+    static const int RICHOCHET_FALL_FORCE           = 10000;
+    static const float RICHOCHET_VELOCITY_X_FACTOR  = 0.25; // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
+    static const float RICHOCHET_VELOCITY_Y         = 2.5;  // Base Y velocity applied when projectile bounces off wall.
+    static const int RICHOCHET_VELOCITY_Y_RAND      = 1;    // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
     s_attack attack = emptyattack;
@@ -38247,11 +38242,6 @@ int projectile_wall_deflect(entity *acting_entity)
 
     /* Did not ricochet, so return false. */
     return 0;
-
-    #undef RICHOCHET_FALL_FORCE
-    #undef RICHOCHET_VELOCITY_X_FACTOR
-    #undef RICHOCHET_VELOCITY_Y
-    #undef RICHOCHET_VELOCITY_Y_RAND
 }
 
 // Caskey, Damon V.
@@ -43445,7 +43435,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 // Return TRUE if stars spawned, FALSE on fail.
 int star_spawn(entity *parent, s_projectile *projectile)
 {
-#define MAX_STARS 3
+    static const int MAX_STARS = 3;
 
     entity *ent = NULL;
 	int i = 0;
@@ -43601,8 +43591,6 @@ int star_spawn(entity *parent, s_projectile *projectile)
 		execute_onspawn_script(ent);
     }
     return TRUE;
-
-#undef MAX_STARS
 }
 
 
@@ -47343,8 +47331,8 @@ int playlevel(char *filename)
 // For select screen. Spawn sample entity for player_index.
 static entity *spawnexample(int player_index)
 {
-	#define SPAWN_MODEL_NAME	NULL
-	#define SPAWN_MODEL_INDEX	MODEL_INDEX_NONE
+    static char* SPAWN_MODEL_NAME = NULL;
+    static const int SPAWN_MODEL_INDEX = MODEL_INDEX_NONE;
 
     entity	*example;
 	s_model *model;
@@ -47392,9 +47380,6 @@ static entity *spawnexample(int player_index)
 	example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
     
 	return example;
-
-	#undef SPAWN_MODEL_NAME
-	#undef SPAWN_MODEL_INDEX
 }
 
 // load saved select screen
