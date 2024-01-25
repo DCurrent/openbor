@@ -20,7 +20,7 @@
 
 #define NaN 0xAAAAAAAA
 
-static const char *E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
+const char *E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
 
 
@@ -3186,7 +3186,7 @@ int isNumeric(const char *text)
 
 int getValidInt(const char *text, const char *file, const char *cmd)
 {
-    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
+    const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0;
@@ -3205,7 +3205,7 @@ int getValidInt(const char *text, const char *file, const char *cmd)
 
 float getValidFloat(const char *text, const char *file, const char *cmd)
 {
-    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
+    const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0.0f;
@@ -3395,7 +3395,7 @@ int readByte(char *buf)
 
 char *findarg(char *command, int which)
 {
-    static const char comment_mark[] = {"#"};
+    const char comment_mark[] = {"#"};
     int d;
     int argc;
     int inarg;
@@ -11044,7 +11044,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
 */
 e_entity_type get_type_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_entity_type flag;
@@ -11736,7 +11736,7 @@ e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_
 */
 e_air_control find_air_control_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_air_control flag;
@@ -11809,7 +11809,7 @@ void lcmHandleCommandAirControl(const ArgList* arglist, s_model* newchar)
 */
 e_move_config_flags find_move_config_flags_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_move_config_flags flag;
@@ -11912,7 +11912,7 @@ e_move_config_flags get_move_config_flags_from_arguments(ArgList* arglist)
 */
 e_cheat_options find_cheat_options_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_cheat_options flag;
@@ -11984,7 +11984,7 @@ void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
 */
 e_aimove get_aimove_constant_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_aimove flag;
@@ -12843,7 +12843,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
-    static const char pre_text[] =   // this is the skeleton of frame function
+    const char pre_text[] =   // this is the skeleton of frame function
     {
         "void main()\n"
         "{\n"
@@ -12852,12 +12852,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         "\n}\n"
     };
 
-    static const char sur_text[] =  // end of function text
+    const char sur_text[] =  // end of function text
     {
         "\n}\n"
     };
 
-    static const char ifid_text[] =  // if expression to check animation id
+    const char ifid_text[] =  // if expression to check animation id
     {
         "    if(animhandle==%d)\n"
         "    {\n"
@@ -12865,39 +12865,39 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         "    }\n"
     };
 
-    static const char endifid_text[] =  // end of if
+    const char endifid_text[] =  // end of if
     {
         "        return;\n"
         "    }\n"
     };
 
-    static const char if_text[] =  // this is the if expression of frame function
+    const char if_text[] =  // this is the if expression of frame function
     {
         "        if(frame==%d)\n"
         "        {\n"
     };
 
-    static const char endif_return_text[] =   //return to reduce unecessary checks
+    const char endif_return_text[] =   //return to reduce unecessary checks
     {
         "            return;\n"
     };
 
-    static const char endif_text[] =  // end of if
+    const char endif_text[] =  // end of if
     {
         "        }\n"
     } ;
 
-    static const char comma_text[] =  // arguments separator
+    const char comma_text[] =  // arguments separator
     {
         ", "
     };
 
-    static const char call_text[] =  //begin of function call
+    const char call_text[] =  //begin of function call
     {
         "            %s("
     };
 
-    static const char endcall_text[] =  //end of function call
+    const char endcall_text[] =  //end of function call
     {
         ");\n"
     };
@@ -18681,7 +18681,7 @@ s_set_entry *add_set()
 // Load list of levels
 void load_levelorder()
 {
-    static const char *defaulterr = "Error in level order: a set must be specified.";
+    const char *defaulterr = "Error in level order: a set must be specified.";
 #define CHKDEF if(!set) { errormessage = (char*) defaulterr; goto lCleanup; }
     char filename[MAX_BUFFER_LEN] = "";
     int i = 0, j = 0, err = 0;
@@ -25646,7 +25646,7 @@ void set_opponent(entity *ent, entity *other)
 */
 e_pain_config_flags pain_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_pain_config_flags flag;
@@ -25710,7 +25710,7 @@ e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist)
 */
 e_block_config_flags block_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_block_config_flags flag;
@@ -32569,7 +32569,7 @@ void checkhitscore(entity *other, s_attack *attack)
 */
 e_death_config_flags death_get_config_flag_from_string(const char* value)
 {    
-    static const struct 
+    const struct 
     {
         const char* text_name;
         e_death_config_flags flag;
@@ -32784,7 +32784,7 @@ e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags 
 */
 e_run_config_flags run_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_run_config_flags flag;
@@ -32861,7 +32861,7 @@ e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, c
 */
 e_shadow_config_flags shadow_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_shadow_config_flags flag;
@@ -33391,7 +33391,7 @@ int offense_result_damage(s_offense* offense_object, int attack_force)
 */
 int defense_result_damage(s_defense* defense_object, int attack_force, int blocked)
 {   
-    static const float DEFENSE_GLOBAL_BLOCK_RATIO = 0.25;
+    const float DEFENSE_GLOBAL_BLOCK_RATIO = 0.25;
 
     //printf("\n\n defense_result_damage(%p, %p, %d, %d)", defense_object, attack_force, blocked);
     
@@ -36102,8 +36102,8 @@ int common_attack()
 // return 1 if jump
 int common_try_jump()
 {
-    static const int COMMON_TRY_JUMP_DEFAULT = 1;
-    static const int COMMON_TRY_JUMP_RUN = 2;
+    const int COMMON_TRY_JUMP_DEFAULT = 1;
+    const int COMMON_TRY_JUMP_RUN = 2;
 
     float xdir = 0.0;
     float zdir = 0.0;
@@ -38166,10 +38166,10 @@ entity *check_block_obstacle(entity *ent)
 */
 int projectile_wall_deflect(entity *acting_entity)
 {
-    static const int RICHOCHET_FALL_FORCE           = 10000;
-    static const float RICHOCHET_VELOCITY_X_FACTOR  = 0.25; // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
-    static const float RICHOCHET_VELOCITY_Y         = 2.5;  // Base Y velocity applied when projectile bounces off wall.
-    static const int RICHOCHET_VELOCITY_Y_RAND      = 1;    // Random seed for Y variance added to base Y velocity when bouncing off wall.
+    const int RICHOCHET_FALL_FORCE           = 10000;
+    const float RICHOCHET_VELOCITY_X_FACTOR  = 0.25; // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
+    const float RICHOCHET_VELOCITY_Y         = 2.5;  // Base Y velocity applied when projectile bounces off wall.
+    const int RICHOCHET_VELOCITY_Y_RAND      = 1;    // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
     s_attack attack = emptyattack;
@@ -41195,11 +41195,11 @@ void player_think()
 
     entity* acting_entity = self;
 
-    static const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
-    static const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
-    static const e_key_def sequence_up_up[] = {FLAG_MOVEUP, FLAG_MOVEUP};
-    static const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
-    static const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
+    const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
+    const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
+    const e_key_def sequence_up_up[] = {FLAG_MOVEUP, FLAG_MOVEUP};
+    const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
+    const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
 
     
     int pli = acting_entity->playerindex;
@@ -42558,7 +42558,7 @@ void faction_copy_data(s_faction* dest, s_faction* source)
 */
 e_faction_group faction_get_flag_from_string(const char* value)
 {   
-    static const struct 
+    const struct 
     {
         const char* text_name;
         e_faction_group flag;
@@ -43435,7 +43435,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 // Return TRUE if stars spawned, FALSE on fail.
 int star_spawn(entity *parent, s_projectile *projectile)
 {
-    static const int MAX_STARS = 3;
+    const int MAX_STARS = 3;
 
     entity *ent = NULL;
 	int i = 0;
@@ -47331,8 +47331,8 @@ int playlevel(char *filename)
 // For select screen. Spawn sample entity for player_index.
 static entity *spawnexample(int player_index)
 {
-    static char* SPAWN_MODEL_NAME = NULL;
-    static const int SPAWN_MODEL_INDEX = MODEL_INDEX_NONE;
+    char* SPAWN_MODEL_NAME = NULL;
+    const int SPAWN_MODEL_INDEX = MODEL_INDEX_NONE;
 
     entity	*example;
 	s_model *model;
