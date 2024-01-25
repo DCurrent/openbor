@@ -58,13 +58,15 @@ Caution: move vorbis headers here otherwise the structs will
 #define		MIXSHIFT		     3	    // 2 should be OK
 
 /*
-    Kratus (02-2023) Fine tuning on every max volume usage, samples are multiplied by 1.5 and music by 2.5
+    Kratus (01-2024) Reverted all volume values but separated both music/sample volumes in different constants 
+    Fixed the "nullified" samples when many of them are played at the same time using 8 bits
     This was made to equalize both in the volume of 100, and at the same time to make them louder than before
     This way we don't need to increase the volume too much in the audio files, preventing distortions and quality loss
 */ 
-#define		MAXVOLUME		     64	    // 64 for backw. compat
 //#define		MAX_SAMPLES		     1024	// Should be well enough
-#define		MAX_CHANNELS	     256    
+#define		MAX_SAMPLE_VOLUME   100 // 64 for backw. compat
+#define		MAX_MUSIC_VOLUME    60 // 64 for backw. compat
+#define		MAX_CHANNELS        256    
 
 // Hardware settings for SoundBlaster (change only if latency is too big)
 #define		SB_BUFFER_SIZE		 0x8000
@@ -481,8 +483,8 @@ static void mixaudio(unsigned int todo)
 
             // Mix a sample
             lmusic = rmusic = sptr16[FIX_TO_INT(fp_pos)];
-            lmusic = (lmusic * lvolume / MAXVOLUME * 2.5);
-            rmusic = (rmusic * rvolume / MAXVOLUME * 2.5);
+            lmusic = (lmusic * lvolume / MAX_MUSIC_VOLUME);
+            rmusic = (rmusic * rvolume / MAX_MUSIC_VOLUME);
             mixbuf[i++] += lmusic;
             if(musicchannel.channels == SOUND_MONO)
             {
@@ -525,10 +527,10 @@ static void mixaudio(unsigned int todo)
                 for(i = 0; i < (int)todo;)
                 {
                     lmusic = rmusic = sptr8[FIX_TO_INT(fp_pos)];
-                    mixbuf[i++] += ((lmusic << 8) * lvolume / MAXVOLUME * 1.5) - 0x8000;
+                    mixbuf[i++] += ((lmusic << 8) * lvolume / MAX_SAMPLE_VOLUME) - 0x8000;
                     if(vchannel[chan].channels == SOUND_MONO)
                     {
-                        mixbuf[i++] += ((rmusic << 8) * rvolume / MAXVOLUME * 1.5) - 0x8000;
+                        mixbuf[i++] += ((rmusic << 8) * rvolume / MAX_SAMPLE_VOLUME) - 0x8000;
                     }
                     fp_pos += fp_period;
 
@@ -550,10 +552,10 @@ static void mixaudio(unsigned int todo)
                 for(i = 0; i < (int)todo;)
                 {
                     lmusic = rmusic = (int)(short)SwapLSB16(sptr16[FIX_TO_INT(fp_pos)]);
-                    mixbuf[i++] += (lmusic * lvolume / MAXVOLUME * 1.5);
+                    mixbuf[i++] += (lmusic * lvolume / MAX_SAMPLE_VOLUME);
                     if(vchannel[chan].channels == SOUND_MONO)
                     {
-                        mixbuf[i++] += (rmusic * rvolume / MAXVOLUME * 1.5);
+                        mixbuf[i++] += (rmusic * rvolume / MAX_SAMPLE_VOLUME);
                     }
                     fp_pos += fp_period;
 
@@ -691,13 +693,13 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
     {
         rvolume = 0;
     }
-    if(lvolume > MAXVOLUME * 1.5)
+    if(lvolume > MAX_SAMPLE_VOLUME)
     {
-        lvolume = MAXVOLUME * 1.5;
+        lvolume = MAX_SAMPLE_VOLUME;
     }
-    if(rvolume > MAXVOLUME * 1.5)
+    if(rvolume > MAX_SAMPLE_VOLUME)
     {
-        rvolume = MAXVOLUME * 1.5;
+        rvolume = MAX_SAMPLE_VOLUME;
     }
 
     vchannel[channel].samplenum = samplenum;
@@ -796,13 +798,13 @@ void sound_volume_sample(int channel, int lvolume, int rvolume)
     {
         rvolume = 0;
     }
-    if(lvolume > MAXVOLUME * 1.5)
+    if(lvolume > MAX_SAMPLE_VOLUME)
     {
-        lvolume = MAXVOLUME * 1.5;
+        lvolume = MAX_SAMPLE_VOLUME;
     }
-    if(rvolume > MAXVOLUME * 1.5)
+    if(rvolume > MAX_SAMPLE_VOLUME)
     {
-        rvolume = MAXVOLUME * 1.5;
+        rvolume = MAX_SAMPLE_VOLUME;
     }
     vchannel[channel].volume[0] = lvolume;
     vchannel[channel].volume[1] = rvolume;
@@ -1537,13 +1539,13 @@ void sound_volume_music(int left, int right)
     {
         right = 0;
     }
-    if(left > MAXVOLUME * 8)
+    if(left > MAX_SAMPLE_VOLUME * 8)
     {
-        left = MAXVOLUME * 8;
+        left = MAX_SAMPLE_VOLUME * 8;
     }
-    if(right > MAXVOLUME * 8)
+    if(right > MAX_SAMPLE_VOLUME * 8)
     {
-        right = MAXVOLUME * 8;
+        right = MAX_SAMPLE_VOLUME * 8;
     }
     musicchannel.volume[0] = left;
     musicchannel.volume[1] = right;
