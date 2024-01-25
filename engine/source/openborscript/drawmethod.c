@@ -274,10 +274,10 @@ HRESULT openbor_allocate_drawmethod(ScriptVariant **varlist, ScriptVariant **pre
 // Copy properties of source drawmethod to target drawmethod.
 HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
 {
-	static const char* SELF_NAME = "copy_drawmethod(void target, void source)";
-	static const int ARG_MINIMUM = 2;   // Minimum required arguments.
-	static const int ARG_TARGET = 0;
-	static const int ARG_SOURCE = 1;
+	const char* SELF_NAME = "copy_drawmethod(void target, void source)";
+	const int ARG_MINIMUM = 2;   // Minimum required arguments.
+	const int ARG_TARGET = 0;
+	const int ARG_SOURCE = 1;
 
 	// Verify arguments. 
 	if (paramCount < ARG_MINIMUM
@@ -324,9 +324,9 @@ HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar
 */
 HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	static const char* SELF_NAME = "openbor_get_drawmethod_property(void drawmethod, int property)";
-	static const int ARG_OBJECT = 0;
-	static const int ARG_PROPERTY = 1;
+	const char* SELF_NAME = "openbor_get_drawmethod_property(void drawmethod, int property)";
+	const int ARG_OBJECT = 0;
+	const int ARG_PROPERTY = 1;
 
 	/*
 	* Clear pass by reference argument used to send
@@ -402,11 +402,11 @@ HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, Scr
 */
 HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	static const char* SELF_NAME = "openbor_set_drawmethod_property(void drawmethod, int property, <mixed> value)";
-	static const int ARG_OBJECT = 0;
-	static const int ARG_PROPERTY = 1;
-	static const int ARG_VALUE = 2;
-	static const int ARG_MINIMUM = 3;
+	const char* SELF_NAME = "openbor_set_drawmethod_property(void drawmethod, int property, <mixed> value)";
+	const int ARG_OBJECT = 0;
+	const int ARG_PROPERTY = 1;
+	const int ARG_VALUE = 2;
+	const int ARG_MINIMUM = 3;
 
 	/*
 	* Should at least be a pointer to the
@@ -471,7 +471,7 @@ HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant**
 * 
 * Allocate a new blank palette and return pointer.
 */
-HRESULT openbor_allocate_palette(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_allocate_palette(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount)
 {
 	unsigned char* acting_object = NULL; 
 
@@ -493,12 +493,12 @@ HRESULT openbor_allocate_palette(ScriptVariant **varlist, ScriptVariant **pretva
 * 
 * Copy color entries from source to target.
 */
-HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount)
+HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount)
 {
-	static const char* SELF_NAME = "openbor_copy_palette(void target, void source)";
-	static const int ARG_MINIMUM = 2;   // Minimum required arguments.
-	static const int ARG_SOURCE = 1;
-	static const int ARG_TARGET = 0;
+	const char* SELF_NAME = "openbor_copy_palette(void target, void source)";
+	const int ARG_MINIMUM = 2;   // Minimum required arguments.
+	const int ARG_SOURCE = 1;
+	const int ARG_TARGET = 0;
 
 	// Verify arguments. 
 	if (paramCount < ARG_MINIMUM
@@ -520,6 +520,46 @@ HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, i
 	return S_OK;
 }
 
+HRESULT openbor_load_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount)
+{
+	const char* SELF_NAME = "openbor_load_palette(void target, char path)";
+	const int ARG_MINIMUM = 2;   // Minimum required arguments.
+	const int ARG_SOURCE = 1;
+	const int ARG_TARGET = 0;
+
+	// Verify arguments. 
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_SOURCE]->vt != VT_STR
+		|| varlist[ARG_TARGET]->vt != VT_PTR) {
+
+		printf("\n\n Script error: %s. You must provide a valid target object and source path.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	// Populate local vars with arguments.
+	char* source = (char*)StrCache_Get(varlist[ARG_SOURCE]->strVal);
+	unsigned char* target = (unsigned char*)varlist[ARG_TARGET]->ptrVal;
+
+	if (!target) {
+		printf("\n\nScript error: %s. Missing or invalid target pointer.\n\n", SELF_NAME);
+		*pretvar = NULL;
+		return E_FAIL;
+	}
+
+	/*
+	* Clear pass by reference argument used to send
+	* property data back to calling script.
+	*/
+	ScriptVariant_Clear(*pretvar);
+	ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+
+	/* Read file and populate palette with values. */
+	(*pretvar)->lVal = load_palette(target, source);
+
+	return S_OK;
+}
+
 /*
 * Caskey, Damon V.
 * 2024-01-22
@@ -528,11 +568,11 @@ HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, i
 */
 HRESULT openbor_get_palette_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	static const char* SELF_NAME = "openbor_set_palette_property(void drawmethod, int color_index, int color_component)";
-	static const int ARG_OBJECT = 0;
-	static const int ARG_COLOR_INDEX = 1;
-	static const int ARG_COLOR_COMPONENT = 2;
-	static const int ARG_MINIMUM = 3;
+	const char* SELF_NAME = "openbor_set_palette_property(void drawmethod, int color_index, int color_component)";
+	const int ARG_OBJECT = 0;
+	const int ARG_COLOR_INDEX = 1;
+	const int ARG_COLOR_COMPONENT = 2;
+	const int ARG_MINIMUM = 3;
 
 	/*
 	* Verify parameters.
@@ -611,12 +651,12 @@ HRESULT openbor_get_palette_property(const ScriptVariant* const* varlist, Script
 */
 HRESULT openbor_set_palette_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-	static const char* SELF_NAME = "openbor_set_palette_property(void drawmethod, int color_index, int color_component, int value)";
-	static const int ARG_OBJECT = 0;
-	static const int ARG_COLOR_INDEX = 1;
-	static const int ARG_COLOR_COMPONENT = 2;
-	static const int ARG_VALUE = 3;
-	static const int ARG_MINIMUM = 4;
+	const char* SELF_NAME = "openbor_set_palette_property(void drawmethod, int color_index, int color_component, int value)";
+	const int ARG_OBJECT = 0;
+	const int ARG_COLOR_INDEX = 1;
+	const int ARG_COLOR_COMPONENT = 2;
+	const int ARG_VALUE = 3;
+	const int ARG_MINIMUM = 4;
 
 	/*
 	* Verify parameters.

@@ -267,6 +267,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "get_palette_property";
     }
+    else if (functionRef == ((void*)openbor_load_palette))
+    {
+        return "load_palette";
+        }
     else if (functionRef == ((void*)openbor_set_palette_property))
     {
         return "set_palette_property";
@@ -1291,7 +1295,8 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_palette_property, "get_palette_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_palette_property, "set_palette_property");
-
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_load_palette, "load_palette");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");
     

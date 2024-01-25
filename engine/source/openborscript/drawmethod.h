@@ -42,7 +42,8 @@ HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar
 HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
 HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);
 
-HRESULT openbor_allocate_palette(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
+HRESULT openbor_allocate_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
+HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
+HRESULT openbor_load_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
 HRESULT openbor_get_palette_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
 HRESULT openbor_set_palette_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);
