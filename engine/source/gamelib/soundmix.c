@@ -108,6 +108,11 @@ typedef struct
     char *filename;
 } s_soundcache;
 
+s_sound_parameters sound_parameters = {
+    .music_buffers_count = 4,
+    .music_buffer_size = (16 * 1024),
+    .sound_length_max = 4294967295 // 0x4ffffb //2,147,483,392 // 3,039,297,536 // 625580,032
+};
 
 static List samplelist;
 static s_soundcache *soundcache = NULL;
@@ -306,7 +311,7 @@ int sound_reload_sample(int index)
     if(!soundcache[index].sample.sampleptr)
     {
         //printf("packfile: '%s'\n", packfile);
-        return loadwave(soundcache[index].filename, packfile, &(soundcache[index].sample), MAX_SOUND_LEN);
+        return loadwave(soundcache[index].filename, packfile, &(soundcache[index].sample), sound_parameters.sound_length_max);
     }
     else
     {
@@ -342,7 +347,7 @@ int sound_load_sample(char *filename, char *packfilename, int iLog)
     }
 
     memset(&sample, 0, sizeof(sample));
-    if(!loadwave(filename, packfilename, &sample, MAX_SOUND_LEN))
+    if(!loadwave(filename, packfilename, &sample, sound_parameters.sound_length_max))
     {
         if(iLog)
         {
@@ -506,7 +511,13 @@ static void mixaudio(unsigned int todo)
                 continue;
             }
             modlen = soundcache[snum].sample.soundlen;
-            fp_len = INT_TO_FIX(soundcache[snum].sample.soundlen);
+
+            //printf("\n modlen: %u", modlen);
+
+            fp_len = INT_TO_FIX(modlen);
+
+            //printf("\n fp_len: %u", fp_len);
+
             fp_pos = vchannel[chan].fp_samplepos;
             fp_period = vchannel[chan].fp_period;
             lvolume = vchannel[chan].volume[0];
