@@ -3674,14 +3674,12 @@ void change_system_palette(int palindex)
 }
 
 // Load colour 0-127 from data/pal.act
-// Kratus (01-2024) Now the code checks if there's an "pal.act" file inside the data folder
 void standard_palette(int immediate)
 {
     unsigned char pp[MAX_PAL_SIZE] = {0};
     char *filename = "data/pal.act";
-    int file_id = openpackfile(filename, packfile);
 
-    if(file_id >= 0 && load_palette(pp, filename))
+    if(load_palette(pp, filename))
     {
         memcpy(pal, pp, (PAL_BYTES) / 2);
     }
@@ -46496,6 +46494,10 @@ void startup()
     // init. input recorder
     init_input_recorder();
 
+    printf("Loading fonts................\t");
+    load_all_fonts();
+    printf("Done!\n");
+
     printf("Loading sprites..............\t");
     load_special_sprites();
     printf("Done!\n");
@@ -46530,13 +46532,9 @@ void startup()
     load_menu_txt();
     printf("Done!\n");
 
-    printf("Loading fonts................\t");
-    load_all_fonts();
-    printf("Done!\n");
-
     /*
-        Kratus (10-2021) Moved the translation, menu and font functions to the end of the engine "startup" function,
-        but before the "control init" function
+        Kratus (01-2024) Moved the translation and menu functions to the end of the engine "startup" function,
+        but before the "control init" function (reverted the font function to load before scripts)
     */
     printf("Loading translation..........\t");
     ob_inittrans();
@@ -46656,7 +46654,7 @@ playgif_end:
     _time = temptime;
     newtime = tempnewtime;
     background = tempbg;
-    standard_palette(1);
+    //standard_palette(1); //Kratus (01-2024) Disabled to fix the fps drop issue
 
     if(0 == result)
     {
