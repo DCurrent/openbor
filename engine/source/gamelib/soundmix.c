@@ -491,7 +491,7 @@ static void mixaudio(unsigned int todo)
             lmusic = (lmusic * lvolume / MAX_MUSIC_VOLUME);
             rmusic = (rmusic * rvolume / MAX_MUSIC_VOLUME);
             mixbuf[i++] += lmusic;
-            if(musicchannel.channels == SOUND_MONO)
+            if(musicchannel.channels == CHANNEL_TYPE_MONO)
             {
                 mixbuf[i++] += rmusic;
             }
@@ -539,7 +539,7 @@ static void mixaudio(unsigned int todo)
                 {
                     lmusic = rmusic = sptr8[FIX_TO_INT(fp_pos)];
                     mixbuf[i++] += ((lmusic << 8) * lvolume / MAX_SAMPLE_VOLUME) - 0x8000;
-                    if(vchannel[chan].channels == SOUND_MONO)
+                    if(vchannel[chan].channels == CHANNEL_TYPE_MONO)
                     {
                         mixbuf[i++] += ((rmusic << 8) * rvolume / MAX_SAMPLE_VOLUME) - 0x8000;
                     }
@@ -564,7 +564,7 @@ static void mixaudio(unsigned int todo)
                 {
                     lmusic = rmusic = (int)(short)SwapLSB16(sptr16[FIX_TO_INT(fp_pos)]);
                     mixbuf[i++] += (lmusic * lvolume / MAX_SAMPLE_VOLUME);
-                    if(vchannel[chan].channels == SOUND_MONO)
+                    if(vchannel[chan].channels == CHANNEL_TYPE_MONO)
                     {
                         mixbuf[i++] += (rmusic * rvolume / MAX_SAMPLE_VOLUME);
                     }
@@ -1075,7 +1075,7 @@ void sound_update_adpcm()
                         adpcm_decode(adpcm_inbuf, outptr, readsamples / 2, musicchannel.channels);
                         loop_valprev[0] = adpcm_valprev(0);
                         loop_index[0] = adpcm_index(0);
-                        if(musicchannel.channels == SOUND_STEREO)
+                        if(musicchannel.channels == CHANNEL_TYPE_STEREO)
                         {
                             loop_valprev[1] = adpcm_valprev(1);
                             loop_index[1] = adpcm_index(1);
@@ -1116,7 +1116,7 @@ void sound_update_adpcm()
                             }
                             // Reset decoder
                             adpcm_loop_reset(0, loop_valprev[0], loop_index[0]);
-                            if(musicchannel.channels == SOUND_STEREO)
+                            if(musicchannel.channels == CHANNEL_TYPE_STEREO)
                             {
                                 adpcm_loop_reset(1, loop_valprev[1], loop_index[1]);
                             }

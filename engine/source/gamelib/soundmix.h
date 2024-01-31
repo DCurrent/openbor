@@ -29,8 +29,12 @@
 #define		CHANNEL_LOOPING		2
 #define		MUSIC_NUM_BUFFERS	4
 #define		MUSIC_BUF_SIZE		(16*1024)	// In samples
-#define		SOUND_MONO			1
-#define		SOUND_STEREO		2
+
+typedef enum e_channel_type
+{
+    CHANNEL_TYPE_MONO = 1,
+    CHANNEL_TYPE_STEREO = 2
+} e_channel_type;
 
 typedef struct s_sound_parameters {
     unsigned int sound_length_max; // MAX_SOUND_LEN; Maximum sound length in samples
@@ -49,7 +53,7 @@ typedef struct
     unsigned int   fp_period;	  // Period (fixed-point)
     int			   playing_buffer;
     int            volume[2];
-    int            channels;
+    e_channel_type channels;
     const e_object_type  object_type;
 } musicchannelstruct;
 
