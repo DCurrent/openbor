@@ -21,3 +21,4 @@ engine/android/app/src/main/assets/bor.pak
 /openbor_vs
 engine/ios/Build
 **/.DS_Store
+tools/borpak/source/borpak

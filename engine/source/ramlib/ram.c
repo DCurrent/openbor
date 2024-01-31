@@ -29,6 +29,7 @@
 #elif LINUX
 #include <sys/sysinfo.h>
 #include <unistd.h>
+#include <features.h>
 #elif PSP
 #include "kernel/kernel.h"
 #elif GP2X

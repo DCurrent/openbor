@@ -14,6 +14,10 @@
 #include <locale.h>
 #include <math.h>
 
+#ifdef LINUX
+#include <features.h>
+#endif
+
 #include "stringptr.h"
 #include "utils.h"
 #include "stristr.h"
