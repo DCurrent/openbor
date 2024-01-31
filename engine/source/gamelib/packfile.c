@@ -56,7 +56,7 @@
 // Requirements for Compressed Packfiles.
 //
 #define	MAXPACKHANDLES	8
-#define	PACKMAGIC		0x4B434150 //0x7F14111D (sorx)
+#define	PACKMAGIC		0x4B434150
 #define	PACKVERSION		0x00000000
 static const size_t USED_FLAG = (((size_t) 1) << ((sizeof(size_t) * 8) - 1));
 
@@ -543,7 +543,6 @@ int openPackfile(const char *filename, const char *packfilename)
 
 
     // Read magic dword ("PACK" identifier)
-    // Kratus (12-2022) Temporarily disabled the original "PACK" magic dword
     // if(read(handle, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
     if(read(handle, &magic, 4) != 4)
     {
@@ -1307,8 +1306,7 @@ int pak_init()
     pakfd = open(packfile, O_RDONLY | O_BINARY, per);
 
     // Read magic dword ("PACK")
-    // Kratus (12-2022) Temporarily disabled the original "PACK" magic dword
-    // if(read(handle, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
+    // if(read(pakfd, &magic, 4) != 4 || magic != SwapLSB32(PACKMAGIC))
     if(read(pakfd, &magic, 4) != 4)
     {
         close(pakfd);

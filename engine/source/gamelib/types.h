@@ -94,6 +94,40 @@ typedef unsigned long long u64;
 //scr
 #define screen_magic ((int)0x726373)
 
+typedef enum e_color_components {
+    COLOR_COMPONENT_RED    = 0,
+    COLOR_COMPONENT_GREEN  = 1,
+    COLOR_COMPONENT_BLUE   = 2,
+    COLOR_COMPONENT_ALPHA  = 3,
+    COLOR_COMPONENT_RGB    = 3,
+    COLOR_COMPONENT_END    = 4
+} e_color_components;
+
+/*
+* Caskey, Damon V.
+* 2023-04-25
+*
+* Identify object type so we can
+* verify a pointer to an object
+* is valid.
+*
+* Each object has an object type
+* member with identical member name
+* (object_type). We populate the
+* member with an appropriate value
+* from this list on allocation.
+*/
+typedef enum e_object_type {
+    OBJECT_TYPE_NONE,
+    OBJECT_TYPE_BIND,
+    OBJECT_TYPE_DRAWMETHOD,
+    OBJECT_TYPE_ENTITY,
+    OBJECT_TYPE_FLASH,
+    OBJECT_TYPE_GLOBAL_CONFIG,
+    OBJECT_TYPE_MODEL,
+    OBJECT_TYPE_MUSIC_CHANNEL
+} e_object_type;
+
 typedef struct
 {
     int magic;
@@ -222,6 +256,17 @@ typedef enum
 	WATER_PERSPECTIVE_STRETCH
 } e_water_perspective;
 
+typedef enum e_drawmethod_config
+{
+    DRAWMETHOD_CONFIG_NONE                      = 0,
+    DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY   = (1 << 1),
+    DRAWMETHOD_CONFIG_ENABLED                   = (1 << 2),
+    DRAWMETHOD_CONFIG_FLIP_ROTATE               = (1 << 3),
+    DRAWMETHOD_CONFIG_FLIP_X                    = (1 << 4),
+    DRAWMETHOD_CONFIG_FLIP_Y                    = (1 << 5)
+    
+} e_drawmethod_config;
+
 typedef struct
 {
     union
@@ -247,14 +292,15 @@ typedef struct
 {
     unsigned char *table;	// ~~
     //void *fp;
-    unsigned fillcolor;		// ~~
-    int flag;				// When 0, the global plainmethod is used. ~~
+    unsigned int fillcolor;		// ~~
+    e_drawmethod_config config;
+        //int flag;				// When 0, the global plainmethod is used. ~~
     int alpha;				// ~~				
     int remap;				// ~~
-    int flipx;				// ~~
-    int flipy;				// ~~
-    int transbg;			// ~~
-    int fliprotate;			// entity only, whether the flip is affected by the entity's facing(not the sprite's flip ) ~~
+        //int flipx;				// ~~
+        //int flipy;				// ~~
+        //int transbg;			// ~~
+        //int fliprotate;			// entity only, whether the flip is affected by the entity's facing(not the sprite's flip ) ~~
     float rotate;			// 360 degrees ~~
     int scalex;				// ~~
     int scaley;				// ~~
@@ -276,6 +322,7 @@ typedef struct
     int cliph;				// ~~
     water_transform water;	
 	int tag;				// ~~
+    e_object_type object_type;
 } s_drawmethod;
 extern const s_drawmethod plainmethod;
 void drawmethod_global_init(s_drawmethod *drawmethod);

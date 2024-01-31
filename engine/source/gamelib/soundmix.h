@@ -21,15 +21,23 @@
 // 20:12 fixed-point conversion macros.
 // The maximum size of a sound is linked directly
 // to the range of the fixed-point variables!
-#define		INT_TO_FIX(i)		((unsigned int)i<<12)
-#define		FIX_TO_INT(f)		((unsigned int)f>>12)
-#define		MAX_SOUND_LEN		0xFFFFF
+// Kratus (01-2024) Increased the length limit for samples, from 8 seconds to 1 minute
+#define		INT_TO_FIX(i)		((unsigned int)i<<1)
+#define		FIX_TO_INT(f)		((unsigned int)f>>1)
+//#define		MAX_SOUND_LEN		0x4ffffb
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
 #define		MUSIC_NUM_BUFFERS	4
 #define		MUSIC_BUF_SIZE		(16*1024)	// In samples
 #define		SOUND_MONO			1
 #define		SOUND_STEREO		2
+
+typedef struct s_sound_parameters {
+    unsigned int sound_length_max; // MAX_SOUND_LEN; Maximum sound length in samples
+    const unsigned int music_buffers_count; // MUSIC_NUM_BUFFERS
+    const unsigned int music_buffer_size;    // MUSIC_BUF_SIZE - In samples
+} s_sound_parameters;
+
 
 typedef struct
 {
@@ -42,6 +50,7 @@ typedef struct
     int			   playing_buffer;
     int            volume[2];
     int            channels;
+    const e_object_type  object_type;
 } musicchannelstruct;
 
 extern musicchannelstruct musicchannel;

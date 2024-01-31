@@ -473,6 +473,14 @@ const s_property_access_map entity_get_property_map(const void* acting_object_pa
 		property_map.type = VT_INTEGER;
 		break;
 
+	case ENTITY_PROPERTY_GUARD_POINTS:
+
+		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+		property_map.field = &acting_object->guardpoints;
+		property_map.id_string = "ENTITY_PROPERTY_GUARD_POINTS";
+		property_map.type = VT_INTEGER;
+		break;
+
 	case ENTITY_PROPERTY_GUARD_TIME:
 
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;

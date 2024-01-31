@@ -367,6 +367,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_expr.o
 SCRIPT_BUILTINS = source/openborscript/commands.o                                                   \
 				  source/openborscript/animation.o                                                  \
+                  source/openborscript/audio.o                                           			\
 				  source/openborscript/axis.o                                           			\
 				  source/openborscript/binding.o                                           			\
 				  source/openborscript/drawmethod.o                                           		\
@@ -378,6 +379,7 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/constants.o                                                  \
                   source/openborscript/entity.o                                                   	\
                   source/openborscript/faction.o                                                   	\
+                  source/openborscript/flash.o                                             	        \
                   source/openborscript/global_config.o                                             	\
                   source/openborscript/icon.o                                                       \
                   source/openborscript/index.o                                                      \

@@ -1,19 +1,14 @@
 typedef enum
 {
-	_GLOBAL_CONFIG_AJSPECIAL,
-	_GLOBAL_CONFIG_BLOCK_RATIO,
-	_GLOBAL_CONFIG_BLOCK_TYPE,
-	_GLOBAL_CONFIG_CHEATS,
-	_GLOBAL_CONFIG_FLASH_LAYER_ADJUST,
-	_GLOBAL_CONFIG_FLASH_LAYER_SOURCE,
-	_GLOBAL_CONFIG_FLASH_Z_SOURCE,
-	_GLOBAL_CONFIG_FLASH_STATIC_Z_PRIORITY,
-	_GLOBAL_CONFIG_SHOW_GO,
-	_GLOBAL_CONFIG_END,
+	GLOBAL_CONFIG_PROPERTY_AJSPECIAL,
+	GLOBAL_CONFIG_PROPERTY_BLOCK_RATIO,
+	GLOBAL_CONFIG_PROPERTY_BLOCK_TYPE,
+	GLOBAL_CONFIG_PROPERTY_CHEATS,
+	GLOBAL_CONFIG_PROPERTY_FLASH,
+	GLOBAL_CONFIG_PROPERTY_SHOW_GO,
+	GLOBAL_CONFIG_PROPERTY_END,
 } e_global_config_properties;
 
 // Binding properties.
-HRESULT openbor_get_global_config_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-
-int mapstrings_global_config_property(ScriptVariant** varlist, int paramCount);
+HRESULT openbor_get_global_config_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_global_config_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);

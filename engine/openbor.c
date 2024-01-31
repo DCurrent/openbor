@@ -20,7 +20,7 @@
 
 #define NaN 0xAAAAAAAA
 
-static const char *E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
+const char *E_OUT_OF_MEMORY = "Error: Could not allocate sufficient memory.\n";
 static int DEFAULT_OFFSCREEN_KILL = 3000;
 
 
@@ -72,15 +72,12 @@ int atkchoices[MAX_ANIS]; //tempory values for ai functions, should be well enou
 //see types.h
 const s_drawmethod plainmethod =
 {
+    .object_type = OBJECT_TYPE_DRAWMETHOD,
     .table      = NULL,
     .fillcolor  = 0,
-    .flag       = 1,
+    .config     = DRAWMETHOD_CONFIG_ENABLED,
     .alpha      = BLEND_MODE_MODEL,
     .remap      = -1,
-    .flipx      = 0,
-    .flipy      = 0,
-    .transbg    = 0,
-    .fliprotate = 0,
     .rotate     = 0,
     .scalex     = 256,
     .scaley     = 256,
@@ -181,9 +178,15 @@ const s_collision_body empty_collision_body = { .coords = NULL,
                                             .meta_tag = 0 };
 
 const s_body empty_body = { .defense = NULL,
-                            .flash_layer_adjust = 0,
-                            .flash_layer_source = 0,
-                            .flash_z_source = 0
+                            .flash = {
+                                .object_type = OBJECT_TYPE_FLASH,
+                                .layer_adjust = 0,
+                                .layer_source = 0,
+                                .model_block = MODEL_INDEX_NONE,
+                                .model_hit = MODEL_INDEX_NONE,
+                                .z_source = 0
+                            }
+                                
 };
 
 const s_collision_entity empty_entity_collision =   {   .coords     = NULL,
@@ -210,7 +213,6 @@ const s_attack emptyattack =
     .attack_force       = 0,
     .attack_type        = ATK_NORMAL,
     .blast              = 0,
-    .blockflash         = MODEL_INDEX_NONE,
     .blocksound         = SAMPLE_ID_NONE,
     .counterattack      = 0,
     .damage_on_landing.attack_force =  0,
@@ -218,9 +220,14 @@ const s_attack emptyattack =
     .dropv              = { .x = 0,
                             .y = 0,
                             .z = 0},
-    .flash_layer_adjust = 0,
-    .flash_layer_source = 0,
-    .flash_z_source     = 0,
+    .flash = {
+            .object_type = OBJECT_TYPE_FLASH,
+            .layer_adjust = 0,
+            .layer_source = 0,
+            .model_block = MODEL_INDEX_NONE,
+            .model_hit = MODEL_INDEX_NONE,
+            .z_source = 0
+        },
     .force_direction    = DIRECTION_ADJUST_NONE,
     .forcemap           = MAP_TYPE_NONE,
     .freeze             = 0,
@@ -228,7 +235,6 @@ const s_attack emptyattack =
     .grab               = 0,
     .grab_distance      = 0,
     .guardcost          = 0,
-    .hitflash           = MODEL_INDEX_NONE,
     .hitsound           = SAMPLE_ID_NONE,
     .jugglecost         = 0,
     .maptime            = 0,
@@ -651,12 +657,15 @@ int					alwaysupdate		= 0; //execute update/updated scripts whenever it has a ch
 
 s_global_config global_config =
 {
+    .object_type = OBJECT_TYPE_GLOBAL_CONFIG,
     .ajspecial = AJSPECIAL_KEY_SPECIAL,
     .block_type = BLOCK_TYPE_GLOBAL,
-    .cheats = CHEAT_OPTIONS_ALL_MENU,    
-    .flash_layer_adjust = 1,
-    .flash_layer_source = 255,
-    .flash_z_source = 0,
+    .cheats = CHEAT_OPTIONS_ALL_MENU,
+    .flash = {
+        .object_type = OBJECT_TYPE_FLASH,
+        .layer_adjust = 1,
+        .layer_source = 255,
+        .z_source = 0},
     .showgo = 0    
 };
 
@@ -890,8 +899,7 @@ char *fill_s_loadingbar(s_loadingbar *s, e_loadingScreenType set, int bx, int by
     return NULL;
 }
 
-
-static int buffer_file(char *filename, char **pbuffer, size_t *psize)
+static int buffer_file(const char *filename, char **pbuffer, size_t *psize)
 {
     FILE *handle;
     *psize = 0;
@@ -939,7 +947,7 @@ static int buffer_file(char *filename, char **pbuffer, size_t *psize)
 
 
 // returns: 1 - succeeded 0 - failed
-int buffer_pakfile(char *filename, char **pbuffer, size_t *psize)
+int buffer_pakfile(const char *filename, char **pbuffer, size_t *psize)
 {
     int handle;
     *psize = 0;
@@ -2610,11 +2618,11 @@ void clearsettings()
     savedata.mode = 0;
     savedata.showtitles = 0;
     savedata.windowpos = 0;
-    savedata.logo = 0;
+    savedata.logo = 1;
     savedata.uselog = 1;
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
-    savedata.vsync = 1;
+    savedata.vsync = 0;
     savedata.fpslimit = 1; // Kratus (01-2023) Added a FPS limit option in the video settings
 
 	#if WII
@@ -3139,9 +3147,9 @@ void check_music()
 // ----------------------- General ------------------------------
 // atof and atoi return a valid number, if only the first char is one.
 // so we only check that.
-int isNumeric(char *text)
+int isNumeric(const char *text)
 {
-    char *p = text;
+    const char *p = text;
     assert(p);
     if(!*p)
     {
@@ -3176,9 +3184,9 @@ int isNumeric(char *text)
 }
 
 
-int getValidInt(char *text, char *file, char *cmd)
+int getValidInt(const char *text, const char *file, const char *cmd)
 {
-    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
+    const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0;
@@ -3195,9 +3203,9 @@ int getValidInt(char *text, char *file, char *cmd)
 
 }
 
-float getValidFloat(char *text, char *file, char *cmd)
+float getValidFloat(const char *text, const char *file, const char *cmd)
 {
-    static const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
+    const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0.0f;
@@ -3387,7 +3395,7 @@ int readByte(char *buf)
 
 char *findarg(char *command, int which)
 {
-    static const char comment_mark[] = {"#"};
+    const char comment_mark[] = {"#"};
     int d;
     int argc;
     int inarg;
@@ -3576,34 +3584,55 @@ int convert_map_to_palette(s_model *model, unsigned mapflag[])
 int load_palette(unsigned char *palette, char *filename)
 {
     char *fileext;
-    int handle, i;
-    unsigned *dp;
-    unsigned char tpal[3];
+    int file_id, i;
+    unsigned int *acting_palette;
+    unsigned char rgb_temp[COLOR_COMPONENT_RGB];
+
+    //printf("\n\nfileext: %s", filename);
 
     // Determine whether the author is using an .act or image file, and
     // verify the file content is valid to load a color table from.
     fileext = strrchr(filename, '.');
     if(fileext != NULL && stricmp(fileext, ".act") == 0)
-    {
-        handle = openpackfile(filename, packfile);
-        if(handle < 0)
+    {        
+
+        file_id = openpackfile(filename, packfile);
+        if(file_id < 0)
         {
             return 0;
         }
+
+        /* 
+        * Reset the palette. 
+        */
         memset(palette, 0, MAX_PAL_SIZE);
-        dp = (unsigned *)palette;
+
+
+        acting_palette = (unsigned int*)palette;
+
+        
         for(i = 0; i < MAX_PAL_SIZE / 4; i++)
         {
-            if(readpackfile(handle, tpal, 3) != 3)
+            //printf("\n\t i: %d", i);
+
+
+            if(readpackfile(file_id, rgb_temp, COLOR_COMPONENT_RGB) != COLOR_COMPONENT_RGB)
             {
-                closepackfile(handle);
+                closepackfile(file_id);
                 return 0;
             }
-            dp[i] = colour32(tpal[0], tpal[1], tpal[2]);
 
-        }
-        closepackfile(handle);
-        dp[0] = 0;
+            //printf("\n\t pal[COLOR_COMPONENT_RED]: %d, pal[RGB_GREEN]: %d, pal[RGB_BLUE]: %d", rgb_temp[COLOR_COMPONENT_RED], rgb_temp[COLOR_COMPONENT_GREEN], rgb_temp[COLOR_COMPONENT_BLUE]);
+            //printf("\n\t colour32: %d", colour32(rgb_temp[COLOR_COMPONENT_RED], rgb_temp[COLOR_COMPONENT_GREEN], rgb_temp[COLOR_COMPONENT_BLUE]));
+            
+            acting_palette[i] = colour32(rgb_temp[COLOR_COMPONENT_RED], rgb_temp[COLOR_COMPONENT_GREEN], rgb_temp[COLOR_COMPONENT_BLUE]);
+            
+            //printf("\n\t acting_palette[%d]: %d", i, acting_palette[i]);
+        }                
+
+        closepackfile(file_id);
+        
+        acting_palette[0] = 0;
 
         return 1;
     }
@@ -3648,7 +3677,9 @@ void change_system_palette(int palindex)
 void standard_palette(int immediate)
 {
     unsigned char pp[MAX_PAL_SIZE] = {0};
-    if(load_palette(pp, "data/pal.act"))
+    char *filename = "data/pal.act";
+
+    if(load_palette(pp, filename))
     {
         memcpy(pal, pp, (PAL_BYTES) / 2);
     }
@@ -3657,7 +3688,6 @@ void standard_palette(int immediate)
         change_system_palette(0);
     }
 }
-
 
 void unload_background()
 {
@@ -3701,132 +3731,114 @@ int parsecolor(const char *string)
 */
 void lifebar_colors()
 {
-    char *filename = "saves/lifebar.txt";
-    char *buf;
+    char *filename;
+    char *buffer;
     size_t size;
-    int pos;
+    int position;
     ArgList arglist;
     char argbuf[MAX_ARG_LEN + 1] = "";
 
     char *command;
 
-    if(buffer_pakfile(filename, &buf, &size) != 1)
-    {
-        goto default_file;
-    }
-    else
-    {
-        goto proceed;
-    }
+    /*
+    * Try getting buffer from saves. If that fails
+    * we check the data folder. If that also fails
+    * then creator didn't provide values. Use the
+    * defaults and exit.
+    * 
+    * The variable "filename" seems superflous, but
+    * macros below expect it.
+    */
+    
+    filename = "saves/lifebar.txt";
 
-default_file:
-
-    if(buffer_pakfile("data/lifebar.txt", &buf, &size) != 1)
+    if(buffer_pakfile(filename, &buffer, &size) != 1)
     {
-        color_black = 0;
-        color_red = 0;
-        color_orange = 0;
-        color_yellow = 0;
-        color_white = 0;
-        color_blue = 0;
-        color_green = 0;
-        color_pink = 0;
-        color_purple = 0;
-        color_magic = 0;
-        color_magic2 = 0;
-        shadowcolor = 0;
-        shadowalpha = BLEND_MULTIPLY + 1;
-        shadowopacity = 255;
-        return;
-    }
-    else
-    {
-        goto proceed;
-    }
+        filename = "data/lifebar.txt";
 
-proceed:
-
-    pos = 0;
-    colorbars = 1;
-    while(pos < size)
-    {
-        if(ParseArgs(&arglist, buf + pos, argbuf))
+        if (buffer_pakfile(filename, &buffer, &size) != 1)
         {
+            color_black = 0;
+            color_red = 0;
+            color_orange = 0;
+            color_yellow = 0;
+            color_white = 0;
+            color_blue = 0;
+            color_green = 0;
+            color_pink = 0;
+            color_purple = 0;
+            color_magic = 0;
+            color_magic2 = 0;
+            shadowcolor = 0;
+            shadowalpha = BLEND_MULTIPLY + 1;
+            shadowopacity = 255;
+            return;
+        }
+    }    
+
+    /*
+    * 2024-01-04 DC, not sure what this global 
+    * assignment does does yet. Leaving as-is for now.
+    */
+    colorbars = 1;
+    
+
+    // Lookup table for color commands
+    struct ColorCommand {
+        const char* name;
+        int* color;
+    };
+
+    const struct ColorCommand colorCommands[] = {
+        {"blackbox", &color_black},
+        {"color25", &color_red},
+        {"color50", &color_yellow},
+        {"color100", &color_green},
+        {"color200", &color_blue},
+        {"color300", &color_orange},
+        {"color400", &color_pink},
+        {"color500", &color_purple},
+        {"colormagic", &color_magic},
+        {"colormagic2", &color_magic2},
+        {"shadowcolor", &shadowcolor},
+        {"whitebox", &color_white},
+        {NULL, NULL} // Null terminator for the lookup table
+    };    
+    
+    position = 0;
+    while (position < size) {
+        if (ParseArgs(&arglist, buffer + position, argbuf)) {
             command = GET_ARG(0);
-            if(command && command[0])
-            {
-                if(stricmp(command, "blackbox") == 0)
-                {
-                    color_black = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+
+            if (command && command[0]) {
+                
+                // Search for the command in the lookup table
+                const struct ColorCommand* entry = colorCommands;
+
+                while (entry->name != NULL) {
+                    if (stricmp(command, entry->name) == 0) {
+                        // Found a matching command in the lookup table
+                        *(entry->color) = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
+                        break;
+                    }
+                    entry++;
                 }
-                else if(stricmp(command, "whitebox") == 0)
-                {
-                    color_white = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color300") == 0)
-                {
-                    color_orange = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color25") == 0)
-                {
-                    color_red = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color50") == 0)
-                {
-                    color_yellow = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color100") == 0)
-                {
-                    color_green = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color200") == 0)
-                {
-                    color_blue = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color400") == 0)
-                {
-                    color_pink = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "color500") == 0)
-                {
-                    color_purple = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                //magic bars color declarations by tails
-                else if(stricmp(command, "colormagic") == 0)
-                {
-                    color_magic = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "colormagic2") == 0)
-                {
-                    color_magic2 = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                //end of magic bars color declarations by tails
-                else if(stricmp(command, "shadowcolor") == 0)
-                {
-                    shadowcolor = _makecolour(GET_INT_ARG(1), GET_INT_ARG(2), GET_INT_ARG(3));
-                }
-                else if(stricmp(command, "shadowalpha") == 0) //gfxshadow alpha
-                {
-                    shadowalpha = GET_INT_ARG(1);
-                }
-                else if(stricmp(command, "shadowopacity") == 0)
-                {
-                    shadowopacity = GET_INT_ARG(1);
-                }
-                else if(command && command[0])
-                {
+
+                // Check if the command was not found in the lookup table
+                if (entry->name == NULL) {
                     printf("Warning: Unknown command in lifebar.txt: '%s'.\n", command);
                 }
             }
         }
 
         // Go to next line
-        pos += getNewLineStart(buf + pos);
-    }
-    if(buf != NULL)
+        position += getNewLineStart(buffer + position);
+    }   
+
+    if(buffer != NULL)
     {
-        free(buf);
-        buf = NULL;
+        free(buffer);
+        buffer = NULL;
     }
 }
 // ltb 1-17-05 end new lifebar colors
@@ -4124,7 +4136,7 @@ void load_layer(char *filename, char *maskfilename, int index)
 
     if(filename && level->layers[index].gfx.handle == NULL)
     {
-        if(*maskfilename || ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.transbg) && !level->layers[index].drawmethod.water.watermode))
+        if(*maskfilename || ((level->layers[index].drawmethod.alpha > 0 || level->layers[index].drawmethod.config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) && !level->layers[index].drawmethod.water.watermode))
         {
             // assume sprites are faster than screen when transparency or alpha are specified
             level->layers[index].gfx.sprite = loadsprite2(filename, &(level->layers[index].size.x), &(level->layers[index].size.y));
@@ -5600,9 +5612,11 @@ void cache_model_sprites(s_model *m, int ld)
     cachesprite(m->icon.def, ld);
     cachesprite(m->icon.die, ld);
     cachesprite(m->icon.get, ld);
+    cachesprite(m->icon.mpmax, ld);
     cachesprite(m->icon.mphigh, ld);
     cachesprite(m->icon.mplow, ld);
     cachesprite(m->icon.mpmed, ld);
+    cachesprite(m->icon.mpnone, ld);
     cachesprite(m->icon.pain, ld);
     cachesprite(m->icon.weapon, ld);
     cachesound(m->diesound, ld);
@@ -8481,7 +8495,6 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->attack_drop: %d", attack->attack_drop);
         printf("\n\t ->attack_force: %d", attack->attack_force);
         printf("\n\t ->attack_type: %d", attack->attack_type);
-        printf("\n\t ->blockflash: %d", attack->blockflash);
         printf("\n\t ->blocksound: %d", attack->blocksound);
         printf("\n\t ->counterattack: %d", attack->counterattack);
         printf("\n\t ->damage_on_landing.attack_force: %d", attack->damage_on_landing.attack_force);
@@ -8489,9 +8502,11 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->dropv.x: %f", attack->dropv.x);
         printf("\n\t ->dropv.y: %f", attack->dropv.y);
         printf("\n\t ->dropv.z: %f", attack->dropv.z);
-        printf("\n\t ->flash_layer_adjust: %d", attack->flash_layer_adjust);
-        printf("\n\t ->flash_layer_source: %d", attack->flash_layer_source);
-        printf("\n\t ->flash_z_source: %d", attack->flash_z_source);
+        printf("\n\t ->flash.layer_adjust: %d", attack->flash.layer_adjust);
+        printf("\n\t ->flash.layer_source: %d", attack->flash.layer_source);
+        printf("\n\t ->flash.model_hit: %d", attack->flash.model_block);
+        printf("\n\t ->flash.model_hit: %d", attack->flash.model_hit);
+        printf("\n\t ->flash.z_source: %d", attack->flash.z_source);
         printf("\n\t ->forcemap: %d", attack->forcemap);
         printf("\n\t ->force_direction: %d", attack->force_direction);
         printf("\n\t ->freeze: %d", attack->freeze);
@@ -8499,7 +8514,6 @@ void attack_dump_object(s_attack* attack)
         printf("\n\t ->grab: %d", attack->grab);
         printf("\n\t ->grab_distance: %d", attack->grab_distance);
         printf("\n\t ->guardcost: %d", attack->guardcost);
-        printf("\n\t ->hitflash: %d", attack->hitflash);
         printf("\n\t ->hitsound: %d", attack->hitsound);
         printf("\n\t ->jugglecost: %d", attack->jugglecost);
         printf("\n\t ->maptime: %d", attack->maptime);
@@ -8608,9 +8622,9 @@ void body_dump_object(s_body* body)
     if (body)
     {        
         printf("\n\t ->body_defense: %d", body->defense);
-        printf("\n\t ->flash_layer_adjust: %d", body->flash_layer_adjust);
-        printf("\n\t ->flash_layer_source: %d", body->flash_layer_source);
-        printf("\n\t ->flash_z_source: %d", body->flash_z_source);
+        printf("\n\t ->flash.layer_adjust: %d", body->flash.layer_adjust);
+        printf("\n\t ->flash.layer_source: %d", body->flash.layer_source);
+        printf("\n\t ->flash.z_source: %d", body->flash.z_source);
 
     }
 
@@ -9254,7 +9268,7 @@ int addframe(s_addframe_data* data)
     child_spawn_initialize_frame_property(data, currentframe);
 
     // Drawmethod (graphic settings)
-    if(data->drawmethod->flag)
+    if(data->drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         if(!data->animation->drawmethods)
         {
@@ -10746,6 +10760,8 @@ void lcmHandleCommandType(ArgList *arglist, s_model *newchar, char *filename)
     if(stricmp(value, "none") == 0)
     {
         newchar->type = TYPE_NONE;
+        newchar->move_config_flags        |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
+        newchar->move_config_flags        &= ~(MOVE_CONFIG_SUBJECT_TO_BASEMAP | MOVE_CONFIG_SUBJECT_TO_HOLE | MOVE_CONFIG_SUBJECT_TO_MAX_Z | MOVE_CONFIG_SUBJECT_TO_MIN_Z | MOVE_CONFIG_SUBJECT_TO_OBSTACLE | MOVE_CONFIG_SUBJECT_TO_PLATFORM | MOVE_CONFIG_SUBJECT_TO_SCREEN | MOVE_CONFIG_SUBJECT_TO_WALL);
     }
     else if(stricmp(value, "player") == 0)
     {
@@ -10973,8 +10989,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
     //smartbomb now use a normal attack box
     if(!newchar->smartbomb)
     {
-        newchar->smartbomb = malloc(sizeof(*newchar->smartbomb));
-        *(newchar->smartbomb) = emptyattack;
+        newchar->smartbomb = attack_allocate_object();
     }
     else
     {
@@ -11027,7 +11042,7 @@ void lcmHandleCommandSmartbomb(ArgList *arglist, s_model *newchar, char *filenam
 */
 e_entity_type get_type_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_entity_type flag;
@@ -11719,7 +11734,7 @@ e_air_control air_control_interpret_from_legacy_walkoffmove_z(e_air_control air_
 */
 e_air_control find_air_control_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_air_control flag;
@@ -11792,7 +11807,7 @@ void lcmHandleCommandAirControl(const ArgList* arglist, s_model* newchar)
 */
 e_move_config_flags find_move_config_flags_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_move_config_flags flag;
@@ -11895,7 +11910,7 @@ e_move_config_flags get_move_config_flags_from_arguments(ArgList* arglist)
 */
 e_cheat_options find_cheat_options_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_cheat_options flag;
@@ -11967,7 +11982,7 @@ void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
 */
 e_aimove get_aimove_constant_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_aimove flag;
@@ -12602,7 +12617,9 @@ s_model *init_model(const int cacheindex, const int unload)
         .get = ICON_NONE,
         .mphigh = ICON_NONE,
         .mplow = ICON_NONE,
+        .mpmax = ICON_NONE,
         .mpmed = ICON_NONE,
+        .mpnone = ICON_NONE,
         .pain = ICON_NONE,
         .weapon = ICON_NONE
     };
@@ -12648,17 +12665,8 @@ s_model *init_model(const int cacheindex, const int unload)
     newchar->risetime.rise              = -1;
     newchar->sleepwait                  = 1000;
 
-    newchar->jugglepoints = (s_status_points){
-        .current = 0,
-        .max = 0,
-        .min = 0
-    };
-
-    newchar->guardpoints = (s_status_points){
-        .current = 0,
-        .max = 0,
-        .min = 0
-    };
+    newchar->guardpoints = 0;
+    newchar->jugglepoints = 0;
 
     newchar->mpswitch                   = -1;       // switch between reduce mp or gain mp for mpstabletype 4
     
@@ -12713,7 +12721,7 @@ s_model *init_model(const int cacheindex, const int unload)
 
     // default string value, only by reference
     newchar->rider = get_cached_model_index("K'");
-    newchar->flash = newchar->bflash = get_cached_model_index("flash");
+    newchar->flash.model_hit = newchar->flash.model_block = get_cached_model_index("flash");
 
     //Default sight ranges.
     newchar->sight = (s_sight){
@@ -12833,7 +12841,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
-    static const char pre_text[] =   // this is the skeleton of frame function
+    const char pre_text[] =   // this is the skeleton of frame function
     {
         "void main()\n"
         "{\n"
@@ -12842,12 +12850,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         "\n}\n"
     };
 
-    static const char sur_text[] =  // end of function text
+    const char sur_text[] =  // end of function text
     {
         "\n}\n"
     };
 
-    static const char ifid_text[] =  // if expression to check animation id
+    const char ifid_text[] =  // if expression to check animation id
     {
         "    if(animhandle==%d)\n"
         "    {\n"
@@ -12855,39 +12863,39 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         "    }\n"
     };
 
-    static const char endifid_text[] =  // end of if
+    const char endifid_text[] =  // end of if
     {
         "        return;\n"
         "    }\n"
     };
 
-    static const char if_text[] =  // this is the if expression of frame function
+    const char if_text[] =  // this is the if expression of frame function
     {
         "        if(frame==%d)\n"
         "        {\n"
     };
 
-    static const char endif_return_text[] =   //return to reduce unecessary checks
+    const char endif_return_text[] =   //return to reduce unecessary checks
     {
         "            return;\n"
     };
 
-    static const char endif_text[] =  // end of if
+    const char endif_text[] =  // end of if
     {
         "        }\n"
     } ;
 
-    static const char comma_text[] =  // arguments separator
+    const char comma_text[] =  // arguments separator
     {
         ", "
     };
 
-    static const char call_text[] =  //begin of function call
+    const char call_text[] =  //begin of function call
     {
         "            %s("
     };
 
-    static const char endcall_text[] =  //end of function call
+    const char endcall_text[] =  //end of function call
     {
         ");\n"
     };
@@ -13513,22 +13521,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->flash = MODEL_INDEX_NONE;
+                    newchar->flash.model_hit = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    newchar->flash = get_cached_model_index(value);
+                    newchar->flash.model_hit = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_BFLASH:	// Flash that is spawned if an attack is blocked
                 value = GET_ARG(1);
                 if(stricmp(value, "none") == 0)
                 {
-                    newchar->bflash = MODEL_INDEX_NONE;
+                    newchar->flash.model_block = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    newchar->bflash = get_cached_model_index(value);
+                    newchar->flash.model_block = get_cached_model_index(value);
                 }
                 break;
             case CMD_MODEL_DUST:	// Spawned when hitting the ground to "kick up dust"
@@ -13650,8 +13658,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_JUGGLEPOINTS:
                 value = GET_ARG(1);
-                newchar->jugglepoints.current = atoi(value);
-                newchar->jugglepoints.max = atoi(value);
+                newchar->jugglepoints = atoi(value);
                 break;
             case CMD_MODEL_RISEATTACKTYPE:
                 value = GET_ARG(1);
@@ -13659,8 +13666,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_GUARDPOINTS:
                 value = GET_ARG(1);
-                newchar->guardpoints.current = atoi(value);
-                newchar->guardpoints.max = atoi(value);
+                newchar->guardpoints = atoi(value);
                 break;
             case CMD_MODEL_DEFENSE:
 
@@ -14131,17 +14137,25 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 value = GET_ARG(1);
                 newchar->icon.weapon = loadsprite(value, 0, 0, pixelformat);
                 break;
-            case CMD_MODEL_ICONMPHIGH:
-                value = GET_ARG(1);
-                newchar->icon.mphigh = loadsprite(value, 0, 0, pixelformat);
-                break;
             case CMD_MODEL_ICONMPHALF:
                 value = GET_ARG(1);
                 newchar->icon.mpmed = loadsprite(value, 0, 0, pixelformat);
                 break;
+            case CMD_MODEL_ICONMPHIGH:
+                value = GET_ARG(1);
+                newchar->icon.mphigh = loadsprite(value, 0, 0, pixelformat);
+                break;
             case CMD_MODEL_ICONMPLOW:
                 value = GET_ARG(1);
                 newchar->icon.mplow = loadsprite(value, 0, 0, pixelformat);
+                break;
+            case CMD_MODEL_ICONMPMAX:
+                value = GET_ARG(1);
+                newchar->icon.mpmax = loadsprite(value, 0, 0, pixelformat);
+                break;
+            case CMD_MODEL_ICONMPNONE:
+                value = GET_ARG(1);
+                newchar->icon.mpnone = loadsprite(value, 0, 0, pixelformat);
                 break;
             case CMD_MODEL_PARROW:
                 // Image that is displayed when player 1 spawns invincible
@@ -14482,7 +14496,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(newchar->palette == NULL)
                 {
 
-                    // Command title for log. Details will be added blow accordingly.
+                    // Command title for log. Details will be added below accordingly.
                     // Forced character length is to line up with Alternatepal logs.
                     //printf("\t\t\tPalette: \t");
 
@@ -15428,11 +15442,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (!newanim && newchar->smartbomb)
                 {
-                    newchar->smartbomb->hitflash = tempInt;
+                    newchar->smartbomb->flash.model_hit = tempInt;
                 }
                 else
                 {                    
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = tempInt;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_hit = tempInt;
                 }
 
                 break;
@@ -15443,11 +15457,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if (stricmp(value, "none") == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = get_cached_model_index(value);
                 }
 
                 break;
@@ -15532,13 +15546,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Does nothing. Do not modify.
                 break;
             case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_ADJUST:
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_layer_adjust = GET_INT_ARG(1);
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash.layer_adjust = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_SOURCE:
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_layer_source = GET_INT_ARG(1);
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash.layer_source = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_EFFECT_HIT_FLASH_Z_SOURCE:
-                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash_z_source = GET_INT_ARG(1);
+                collision_body_upsert_property(&temp_collision_body_head, temp_collision_index)->flash.z_source = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_BBOX_POSITION_X:   
 
@@ -15642,14 +15656,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     // special effects
                     drawmethod.scalex = GET_INT_ARG(1);
                     drawmethod.scaley = GET_INT_ARG(2);
-                    drawmethod.flipx = GET_INT_ARG(3);
-                    drawmethod.flipy = GET_INT_ARG(4);
+                    drawmethod.config = GET_INT_ARG(3) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_X) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X);
+                    drawmethod.config = GET_INT_ARG(4) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_Y) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y);
                     drawmethod.shiftx = GET_INT_ARG(5);
                     drawmethod.alpha = GET_INT_ARG(6);
                     drawmethod.remap = GET_INT_ARG(7);
                     drawmethod.fillcolor = parsecolor(GET_ARG(8));
                     drawmethod.rotate = GET_INT_ARG(9);
-                    drawmethod.fliprotate = GET_INT_ARG(10);
+                    drawmethod.config = GET_INT_ARG(10) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_ROTATE) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_ROTATE);
                 }
                 else if (0 == stricmp(value, "scale"))
                 {
@@ -15682,11 +15696,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else if (0 == stricmp(value, "flipx"))
                 {
-                    drawmethod.flipx = GET_INT_ARG(2);
+                    drawmethod.config = GET_INT_ARG(2) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_X) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X);
                 }
                 else if (0 == stricmp(value, "flipy"))
                 {
-                    drawmethod.flipy = GET_INT_ARG(2);
+                    drawmethod.config = GET_INT_ARG(2) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_Y) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y);
                 }
                 else if (0 == stricmp(value, "shiftx"))
                 {
@@ -15698,7 +15712,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else if (0 == stricmp(value, "fliprotate"))
                 {
-                    drawmethod.fliprotate = GET_INT_ARG(2);
+                    drawmethod.config = GET_INT_ARG(2) ? (drawmethod.config | DRAWMETHOD_CONFIG_FLIP_ROTATE) : (drawmethod.config & ~DRAWMETHOD_CONFIG_FLIP_ROTATE);
                 }
                 else if (0 == stricmp(value, "fillcolor"))
                 {
@@ -15748,12 +15762,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if(drawmethod.scalex < 0)
                 {
                     drawmethod.scalex = -drawmethod.scalex;
-                    drawmethod.flipx = !drawmethod.flipx;
+                    drawmethod.config ^= DRAWMETHOD_CONFIG_FLIP_X;
                 }
                 if(drawmethod.scaley < 0)
                 {
                     drawmethod.scaley = -drawmethod.scaley;
-                    drawmethod.flipy = !drawmethod.flipy;
+                    drawmethod.config ^= DRAWMETHOD_CONFIG_FLIP_Y;
                 }
                 if(drawmethod.rotate)
                 {
@@ -15766,11 +15780,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         blendfx[drawmethod.alpha - 1] = 1;
                     }
                 }
-                drawmethod.flag = 1;
+                drawmethod.config |= DRAWMETHOD_CONFIG_ENABLED;
                 break;
             case CMD_MODEL_NODRAWMETHOD:
                 //disable special effects
-                drawmethod.flag = 0;
+                drawmethod.config &= ~DRAWMETHOD_CONFIG_ENABLED;
                 break;
 
             // 2016-10-11
@@ -16010,11 +16024,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->blockflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_block = get_cached_model_index(value);
                 }
 
                 break;
@@ -16040,11 +16054,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(stricmp(value, "none") == 0 || value == 0)
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = MODEL_INDEX_NONE;
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_hit = MODEL_INDEX_NONE;
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->hitflash = get_cached_model_index(value);
+                    collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.model_hit = get_cached_model_index(value);
                 }
                 break;
 
@@ -16056,19 +16070,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_ADJUST:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_layer_adjust = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.layer_adjust = GET_INT_ARG(1);
 
                 break;
            
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_LAYER_SOURCE:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_layer_source = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.layer_source = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_EFFECT_HIT_FLASH_Z_SOURCE:
 
-                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash_z_source = GET_INT_ARG(1);
+                collision_attack_upsert_property(&temp_collision_head, temp_collision_index)->flash.z_source = GET_INT_ARG(1);
 
                 break;
 
@@ -16935,7 +16949,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     shadow_coords[0] = shadow_coords[1] = 0;
                 }
 
-                if(drawmethod.flag)
+                if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
                 {
                     dm = drawmethod;
                     if(dm.clipw)
@@ -16946,7 +16960,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    dm.flag = 0;
+                    dm.config &= ~DRAWMETHOD_CONFIG_ENABLED;
                 }
 
                 add_frame_data.animation = newanim;
@@ -18286,13 +18300,13 @@ int load_models()
                 lcmHandleCommandGlobalConfigCheats(&arglist);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
-                global_config.flash_layer_adjust = GET_INT_ARG(1);
+                global_config.flash.layer_adjust = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_SOURCE:
-                global_config.flash_layer_source = GET_INT_ARG(1);
+                global_config.flash.layer_source = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_Z_SOURCE:
-                global_config.flash_z_source = GET_INT_ARG(1);
+                global_config.flash.z_source = GET_INT_ARG(1);
                 break;
             case CMD_MODELSTXT_GRABDISTANCE:
                 default_model_grabdistance =  GET_FLOAT_ARG(1);
@@ -18665,7 +18679,7 @@ s_set_entry *add_set()
 // Load list of levels
 void load_levelorder()
 {
-    static const char *defaulterr = "Error in level order: a set must be specified.";
+    const char *defaulterr = "Error in level order: a set must be specified.";
 #define CHKDEF if(!set) { errormessage = (char*) defaulterr; goto lCleanup; }
     char filename[MAX_BUFFER_LEN] = "";
     int i = 0, j = 0, err = 0;
@@ -20432,7 +20446,10 @@ void load_level(char *filename)
             bgl->spacing.z = GET_INT_ARG(i + 7); // z spacing
             dm->xrepeat = GET_INT_ARG(i + 8); // x repeat
             dm->yrepeat = GET_INT_ARG(i + 9); // z repeat
-            dm->transbg = GET_INT_ARG(i + 10); // transparency
+            
+            dm->config = GET_INT_ARG(i + 10) ? (dm->config | DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY) : (dm->config & ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
+
+
             dm->alpha = GET_INT_ARG(i + 11); // alpha
             dm->water.watermode = GET_INT_ARG(i + 12); // water
             if(dm->water.watermode == WATER_MODE_SHEAR)
@@ -20502,7 +20519,7 @@ void load_level(char *filename)
             bgl->spacing.z = 0; // z spacing
             dm->xrepeat = -1; // x repeat
             dm->yrepeat = 1; // z repeat
-            dm->transbg = 0; // transparency
+            dm->config &= ~DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY; // transparency
             dm->alpha = BLEND_MODE_NONE; // alpha
             dm->water.watermode = WATER_MODE_SINE;
             dm->water.amplitude = GET_INT_ARG(2); // amplitude
@@ -20742,7 +20759,7 @@ void load_level(char *filename)
             bgl->bgspeedratio = 0;
             bgl->offset.z = 0;
             dm->yrepeat = 1; // z repeat
-            dm->transbg = 1; // transparency
+            dm->config |= DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY; // transparency
             bgl->enabled = 1; // enabled
             bgl->quake = 1; // accept quake and rock
 
@@ -22329,24 +22346,41 @@ void predrawstatus()
                 }
             }
 
-            if(player[i].ent->modeldata.mp)
-            {
+            /*
+            * If the player has MP, let's try to generate
+            * icons as well.
+            */
+
+            if (player[i].ent->modeldata.mp) {
+
                 drawmethod.table = player[i].ent->modeldata.icon.usemap ? player[i].ent->colourmap : NULL;
-                if(player[i].ent->modeldata.icon.mphigh > 0 && (player[i].ent->energy_state.mp_old >= (player[i].ent->modeldata.mp * .66)))
-                {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
+
+                const float mp_percentage = (float)player[i].ent->energy_state.mp_old / player[i].ent->modeldata.mp;
+                
+                int mp_icon_sprite = ICON_NONE;
+
+                if (mp_percentage <= 0.0 && player[i].ent->modeldata.icon.mpnone != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mpnone;
                 }
-                else if(player[i].ent->modeldata.icon.mpmed > 0 && (player[i].ent->energy_state.mp_old >= (player[i].ent->modeldata.mp * .33) && player[i].ent->energy_state.mp_old < (player[i].ent->modeldata.mp * .66)))
-                {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mpmed, &drawmethod, 0);
+                else if (mp_percentage < 0.25 && player[i].ent->modeldata.icon.mplow != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mplow;
                 }
-                else if(player[i].ent->modeldata.icon.mplow > 0 && (player[i].ent->energy_state.mp_old >= 0 && player[i].ent->energy_state.mp_old < (player[i].ent->modeldata.mp * .33)))
-                {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mplow, &drawmethod, 0);
+                else if (mp_percentage < 0.75 && player[i].ent->modeldata.icon.mpmed != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mpmed;
                 }
-                else if(player[i].ent->modeldata.icon.mphigh > 0 && player[i].ent->modeldata.icon.mpmed == -1 && player[i].ent->modeldata.icon.mplow == -1)
+                else if (mp_percentage < 1.0 && player[i].ent->modeldata.icon.mphigh != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mphigh;
+                }
+                else if (mp_percentage >= 1.0 && player[i].ent->modeldata.icon.mpmax != ICON_NONE){
+                    mp_icon_sprite = player[i].ent->modeldata.icon.mpmax;
+                }               
+
+                /*
+                * Draw an icon if we found one.
+                */
+                if (mp_icon_sprite > 0)
                 {
-                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, player[i].ent->modeldata.icon.mphigh, &drawmethod, 0);
+                    spriteq_add_sprite(videomodes.shiftpos[i] + mpicon[i][0], savedata.windowpos + mpicon[i][1], 10000, mp_icon_sprite, &drawmethod, 0);
                 }
             }
 
@@ -22482,7 +22516,7 @@ void predrawstatus()
             else
             {
                 drawmethod.table = 0;
-                drawmethod.flipx = 1;
+                drawmethod.config |= DRAWMETHOD_CONFIG_FLIP_X;
                 spriteq_add_sprite(40, 60 + videomodes.vShift, 10000, gosprite, &drawmethod, 0);
             }
         }
@@ -23104,6 +23138,10 @@ void ent_default_init(entity *e)
     }
 
     e->nograb_default = 0; // init all entities to 0 by default
+    e->guardpoints = e->modeldata.guardpoints;
+    e->jugglepoints = e->modeldata.jugglepoints;
+
+    e->binding.object_type = OBJECT_TYPE_BIND;
 
     switch(e->modeldata.type)
     {
@@ -23330,7 +23368,7 @@ void ent_default_init(entity *e)
         e->nograb_default = e->nograb;
         
         //e->base=e->position.y; //complained?
-        e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
+        //e->modeldata.move_config_flags |= (MOVE_CONFIG_NO_ADJUST_BASE | MOVE_CONFIG_SUBJECT_TO_GRAVITY);
 
         if(validanim(e, ANI_WALK))
         {
@@ -23599,7 +23637,7 @@ bool check_jumpframe(entity * const acting_entity, const unsigned int frame)
 void update_frame(entity *ent, unsigned int f)
 {
     entity *tempself;
-    s_attack attack;
+    s_attack attack = emptyattack;
     s_defense* defense_object = NULL;
     s_axis_principal_float move;
     s_anim *anim = ent->animation;
@@ -23705,7 +23743,6 @@ void update_frame(entity *ent, unsigned int f)
         if(self->subentity)
         {
             self = self->subentity;
-            attack = emptyattack;
             attack.dropv = default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type = ATK_SUB_ENTITY_UNSUMMON;
@@ -23969,19 +24006,20 @@ void ent_copy_uninit(entity *ent, s_model *oldmodel)
 
 //if syncAnim is set, only change animation reference
 void ent_set_model(entity *ent, char *modelname, int syncAnim)
-{
-    s_model *m = NULL;
-    s_model oldmodel;
+{    
     if(ent == NULL)
     {
         borShutdown(1, "FATAL: tried to change model of invalid object");
     }
-    m = findmodel(modelname);
+
+    s_model* m = findmodel(modelname);
+
     if(m == NULL)
     {
         borShutdown(1, "Model not found: '%s'", modelname);
     }
-    oldmodel = ent->modeldata;
+
+    s_model oldmodel = ent->modeldata;
     ent->model = m;
     ent->modeldata = *m;
     ent_copy_uninit(ent, &oldmodel);
@@ -24179,7 +24217,7 @@ entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_d
 			// e->drawmethod = plainmethod;
             acting_entity->drawmethod = allocate_drawmethod();
 
-            acting_entity->drawmethod->flag = 0;
+            acting_entity->drawmethod->config &= ~DRAWMETHOD_CONFIG_ENABLED;
 
             // add to list and count current entities
             acting_entity->exists = 1;
@@ -24276,7 +24314,7 @@ void ents_link(entity *e1, entity *e2)
 void kill_entity(entity *victim, e_kill_entity_trigger trigger)
 {
     int i = 0;
-    s_attack attack;
+    s_attack attack = emptyattack;
     s_defense* defense_object = NULL;
     entity *tempent = self;
 
@@ -24303,7 +24341,6 @@ void kill_entity(entity *victim, e_kill_entity_trigger trigger)
     victim->parent = NULL;
     if(victim->modeldata.summonkill)
     {
-        attack = emptyattack;
         attack.attack_type = ATK_SUB_ENTITY_PARENT_KILL;
         attack.dropv = default_model_dropv;
     }
@@ -25607,7 +25644,7 @@ void set_opponent(entity *ent, entity *other)
 */
 e_pain_config_flags pain_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_pain_config_flags flag;
@@ -25671,7 +25708,7 @@ e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist)
 */
 e_block_config_flags block_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_block_config_flags flag;
@@ -25791,9 +25828,9 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 
 	/* If guardpoints are set, then find out if they've been depleted. */
 	
-    if (ent->modeldata.guardpoints.max)
+    if (ent->modeldata.guardpoints)
 	{
-		if (ent->modeldata.guardpoints.current <= 0)
+		if (ent->guardpoints <= 0)
 		{
 			return 0;
 		}
@@ -26026,9 +26063,9 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
     ent->velocity.z = 0;
 
 	/* If we have guardpoints, then reduce them here. */
-	if (ent->modeldata.guardpoints.max > 0)
+	if (ent->modeldata.guardpoints > 0)
 	{
-		ent->modeldata.guardpoints.current -= attack->guardcost;
+		ent->guardpoints -= attack->guardcost;
 	}
 
 	/* 
@@ -26046,16 +26083,17 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 //
 // Verify entity has blockpain and that attack
 // should trigger it.
+// Kratus (01-2024) Minor fix in the blockpain flag check (inverted)
 int check_blocking_pain(entity *ent, s_attack *attack)
 {
 	// If blockpain is greater than attack
 	// force, we don't apply it.
 	if (attack->attack_force >= self->modeldata.blockpain)
 	{
-		return 0;
+		return 1;
 	}
 
-	return 1;
+	return 0;
 }
 
 // Caskey, Damon V.
@@ -26086,7 +26124,7 @@ void do_passive_block(entity *ent, entity *other, s_attack *attack)
 	set_blocking_animation(ent, attack);
 	
 	// Spawn the blocking flash.
-	spawn_attack_flash(ent, attack, attack->blockflash, ent->modeldata.bflash);	
+	spawn_attack_flash(ent, attack, attack->flash.model_block, ent->modeldata.flash.model_block);
 
 	// Run blocking actions and scripts.
 	set_blocking_action(ent, other, attack);
@@ -26178,9 +26216,9 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
     * using the total. 
     */
 
-    flash_z_source = global_config.flash_z_source;
-    flash_z_source += lasthit.attack ? lasthit.attack->flash_z_source : 0;
-    flash_z_source += lasthit.detect_body ? lasthit.detect_body->flash_z_source : 0;
+    flash_z_source = global_config.flash.z_source;
+    flash_z_source += lasthit.attack ? lasthit.attack->flash.z_source : 0;
+    flash_z_source += lasthit.detect_body ? lasthit.detect_body->flash.z_source : 0;
 
     if (!flash_z_source)
     {       
@@ -26226,9 +26264,9 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
 
     //printf("\n\t global_config.flash_layer_source: %d", global_config.flash_layer_source);
     
-    flash_layer_source = global_config.flash_layer_source;
-    flash_layer_source += lasthit.attack ? lasthit.attack->flash_layer_source : 0;
-    flash_layer_source += lasthit.detect_body ? lasthit.detect_body->flash_layer_source : 0;
+    flash_layer_source = global_config.flash.layer_source;
+    flash_layer_source += lasthit.attack ? lasthit.attack->flash.layer_source : 0;
+    flash_layer_source += lasthit.detect_body ? lasthit.detect_body->flash.layer_source : 0;
 
     //printf("\n\t flash_layer_source: %d", flash_layer_source);
 
@@ -26255,7 +26293,7 @@ entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int 
 
     //printf("\n\t set_layer: %d", set_layer);
 
-    set_layer += global_config.flash_layer_adjust + lasthit.attack->flash_layer_adjust + lasthit.detect_body->flash_layer_adjust;
+    set_layer += global_config.flash.layer_adjust + lasthit.attack->flash.layer_adjust + lasthit.detect_body->flash.layer_adjust;
     
     //printf("\n\t set_layer (adjusted): %d", set_layer);
 
@@ -26677,7 +26715,7 @@ int try_counter_action(entity* target, entity* attacker, s_attack* attack_object
 	}
 
 	/* Flash spawn. */
-	spawn_attack_flash(target, attack_object, attack_object->blockflash, target->modeldata.bflash);
+	spawn_attack_flash(target, attack_object, attack_object->flash.model_block, target->modeldata.flash.model_block);
 
 	return 1;
 }
@@ -26941,13 +26979,17 @@ void do_attack(entity *attacking_entity)
             {
                 continue;
             }
-        }
+        }    
 
-        // If in the air, then check the juggle cost.
+        //printf("\n\n Check");
+
         if(inair(target))
         {
-            if(attack->jugglecost > target->modeldata.jugglepoints.current)
+            //printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
+
+            if(attack->jugglecost > target->jugglepoints)
             {
+                printf("\n\n Continue.");
                 continue;
             }
         }
@@ -27040,9 +27082,12 @@ void do_attack(entity *attacking_entity)
                 attacking_entity->toexplode |= EXPLODE_DETONATE_HIT;
             }
 
+            /*
+            * Reduce available juggle points.
+            */
             if(inair(self))
             {
-                self->modeldata.jugglepoints.current = self->modeldata.jugglepoints.current - attack->jugglecost;    //reduce available juggle points.
+                self->jugglepoints -= attack->jugglecost;
             }
 
             didblock = check_blocking_master(self, attacking_entity, attack, target_body_object);
@@ -27075,7 +27120,7 @@ void do_attack(entity *attacking_entity)
                 attacking_entity->lasthit = self;
 
                 // Flash spawn.
-                spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
+                spawn_attack_flash(self, attack, attack->flash.model_hit, self->modeldata.flash.model_hit);
 
 				// Add to owner's combo time.
                 topowner->combotime = _time + combodelay; 
@@ -27801,7 +27846,11 @@ void check_gravity(entity *e)
                         check_landframe(self);
 
                         // Taking damage on a landing?
-                        checkdamageonlanding(self);
+                        // Kratus (01-2024) Now the damage_on_landing is affected by infinite health cheat
+                        if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
+                        {
+                            checkdamageonlanding(self);
+                        }
 
                         // in case landing, set hithead to NULL
                         self->hithead = NULL;
@@ -27825,7 +27874,7 @@ void check_gravity(entity *e)
 int check_lost()
 {
     s_defense* defense_object = NULL;
-    s_attack attack;
+    s_attack attack = emptyattack;
     int osk = self->modeldata.offscreenkill ? self->modeldata.offscreenkill : DEFAULT_OFFSCREEN_KILL;
 
     if((self->position.z != ITEM_HIDE_POSITION_Z && (advancex - self->position.x > osk || self->position.x - advancex - videomodes.hRes > osk ||
@@ -27853,7 +27902,6 @@ int check_lost()
         }
         else
         {
-            attack          = emptyattack;
             attack.dropv	= default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_PIT;
@@ -27870,8 +27918,7 @@ int check_lost()
         }
         else
         {
-            attack          = emptyattack;
-			attack.dropv	= default_model_dropv;
+            attack.dropv	= default_model_dropv;
             attack.attack_force = self->energy_state.health_current;
             attack.attack_type  = ATK_LIFESPAN;
             defense_object = defense_find_current_object(self, NULL, attack.attack_type);
@@ -28500,26 +28547,38 @@ int do_energy_charge(entity *ent)
 
 void update_health()
 {
-    //12/30/2008: Guardrate by OX. Guardpoints increase over time.
-    if(self->modeldata.guardpoints.max > 0 && _time >= self->guardtime) // If this is > 0 then guardpoints are set..
+    /*
+    * 12/30/2008: Guardrate by OX. Guardpoints increase over time.
+    *
+    * 2024-01-08, DC: Split max/current between model and
+    * entity. Remove some redudant code.
+    * 
+    * Only bother recovering if guardpoints are set in
+    * the first place (model has guardpoint value > 0).
+    */ 
+    if(self->modeldata.guardpoints > 0 && _time >= self->guardtime)
     {
+        /* 
+        * Recover guardpoints. Half rate if
+        * blocking.
+        */
         if(self->blocking)
         {
-            self->modeldata.guardpoints.current += (self->modeldata.guardrate / 2);
-            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.max)
-            {
-                self->modeldata.guardpoints.current = self->modeldata.guardpoints.max;
-            }
+            self->guardpoints += (self->modeldata.guardrate / 2);            
         }
         else
         {
-            self->modeldata.guardpoints.current += self->modeldata.guardrate;
-            if(self->modeldata.guardpoints.current > self->modeldata.guardpoints.max)
-            {
-                self->modeldata.guardpoints.current = self->modeldata.guardpoints.max;
-            }
+            self->guardpoints += self->modeldata.guardrate;            
         }
-        self->guardtime = _time + GAME_SPEED;    //Reset guardtime.
+
+        /* Cap to maximum. */
+        if (self->guardpoints > self->modeldata.guardpoints)
+        {
+            self->guardpoints = self->modeldata.guardpoints;
+        }
+
+        /* Reset guardtime. */
+        self->guardtime = _time + GAME_SPEED;    
     }
 
     //Damage over time.
@@ -28655,6 +28714,8 @@ s_bind* bind_allocate_object()
     */
 
     memset(result, 0, alloc_size);
+
+    result->object_type = OBJECT_TYPE_BIND;
           
     return result;
 }
@@ -29455,7 +29516,7 @@ void display_ents()
 
                     drawmethod = e->animation->drawmethods ? getDrawMethod(e->animation, e->animpos) : NULL;
                     
-					if(e->drawmethod->flag)
+					if(e->drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
                     {
                         drawmethod = (e->drawmethod);
                     }
@@ -29570,11 +29631,11 @@ void display_ents()
                     if(e->direction == DIRECTION_LEFT)
                     {
 						// Reverse the drawmethod flipx.
-                        drawmethod->flipx = !drawmethod->flipx;
+                        drawmethod->config ^= DRAWMETHOD_CONFIG_FLIP_X;
                         
 						// If the flip rotate is enabled, reverse the
 						// rotation setting.
-						if(drawmethod->fliprotate && drawmethod->rotate)
+						if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_ROTATE && drawmethod->rotate)
                         {
                             drawmethod->rotate = 360 - drawmethod->rotate;
                         }
@@ -29709,18 +29770,19 @@ void display_ents()
                                     shadowmethod.channelb = shadowmethod.channelg = shadowmethod.channelr = shadowopacity;
                                     shadowmethod.table = drawmethod->table;
                                     shadowmethod.scalex = drawmethod->scalex;
-                                    shadowmethod.flipx = drawmethod->flipx;
                                     shadowmethod.scaley = light.y * drawmethod->scaley / 256;
-                                    shadowmethod.flipy = drawmethod->flipy;
+                                    shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X);
+                                    shadowmethod.config = (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_Y) | (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y);
                                     shadowmethod.centery += alty;
-                                    if (shadowmethod.flipy)
+                                    
+                                    if (shadowmethod.config & DRAWMETHOD_CONFIG_FLIP_Y)
                                     {
                                         shadowmethod.centery = -shadowmethod.centery;
                                     }
                                     if (shadowmethod.scaley < 0)
                                     {
                                         shadowmethod.scaley = -shadowmethod.scaley;
-                                        shadowmethod.flipy = !shadowmethod.flipy;
+                                        shadowmethod.config ^= DRAWMETHOD_CONFIG_FLIP_Y;
                                     }
                                     shadowmethod.rotate = drawmethod->rotate;
                                     shadowmethod.shiftx = drawmethod->shiftx + light.x;
@@ -29728,7 +29790,8 @@ void display_ents()
                                     spriteq_add_sprite(qx, qy, z, f, &shadowmethod, 0);
                                     if (use_mirror)
                                     {
-                                        shadowmethod.flipy = !shadowmethod.flipy;
+                                        shadowmethod.config ^= DRAWMETHOD_CONFIG_FLIP_Y;
+                                        
                                         shadowmethod.centery = -shadowmethod.centery;
                                         spriteq_add_sprite(qx, sy, sz, f, &shadowmethod, 0);
                                     }
@@ -29801,7 +29864,7 @@ void display_ents()
 
                                 shadowmethod = plainmethod;
                                 shadowmethod.alpha = BLEND_MULTIPLY + 1;
-                                shadowmethod.flipx = !e->direction;
+                                shadowmethod.config = e->direction == DIRECTION_RIGHT ? (shadowmethod.config | DRAWMETHOD_CONFIG_FLIP_X) : (shadowmethod.config & ~DRAWMETHOD_CONFIG_FLIP_X);
 
                                 spriteq_add_sprite(qx, qy, z, shadowsprites[useshadow - 1], &shadowmethod, 0);
                                 if (use_mirror)
@@ -30131,6 +30194,7 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
     ent->attacking = ATTACKING_NONE;
     ent->blocking = 0;
     ent->nograb = 1;
+    ent->running = RUN_STATE_NONE; //Kratus (01-2024) Resets the aiflag running when falling
 
     if(ent->frozen)
     {
@@ -30187,7 +30251,7 @@ int set_rise(entity *iRise, int type, int reset)
     iRise->projectile = BLAST_NONE;
     iRise->nograb = iRise->nograb_default; //iRise->nograb = 0;
     iRise->velocity.x = self->velocity.z = self->velocity.y = 0;
-    iRise->modeldata.jugglepoints.current = iRise->modeldata.jugglepoints.max; //reset jugglepoints
+    iRise->jugglepoints = iRise->modeldata.jugglepoints; //reset jugglepoints
     return 1;
 }
 
@@ -30244,7 +30308,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     iRiseattack->rising |= RISING_ATTACK;
     iRiseattack->drop = 0;
     iRiseattack->nograb = iRiseattack->nograb_default; //iRiseattack->nograb = 0;
-    iRiseattack->modeldata.jugglepoints.current = iRiseattack->modeldata.jugglepoints.max; //reset jugglepoints
+    iRiseattack->jugglepoints = iRiseattack->modeldata.jugglepoints; //reset jugglepoints
     return 1;
 }
 
@@ -30351,10 +30415,10 @@ int set_pain(entity *iPain, int type, int reset)
     int pain = 0;
 
     iPain->velocity.x = iPain->velocity.z = iPain->velocity.y = 0; // stop the target
-    if(iPain->modeldata.guardpoints.max > 0 && iPain->modeldata.guardpoints.current <= 0)
+    if(iPain->modeldata.guardpoints > 0 && iPain->guardpoints <= 0)
     {
         pain = ANI_GUARDBREAK;
-        iPain->modeldata.guardpoints.current = iPain->modeldata.guardpoints.max;
+        iPain->guardpoints = iPain->modeldata.guardpoints;
     }
     else if(type == -1 || type >= max_attack_types)
     {
@@ -30528,13 +30592,13 @@ void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, in
         {
             newmodel->star          = model->star;
         }
-        if(newmodel->flash          <   0)
+        if(newmodel->flash.model_hit < 0)
         {
-            newmodel->flash         = model->flash;
+            newmodel->flash.model_hit = model->flash.model_hit;
         }
-        if(newmodel->bflash         <   0)
+        if(newmodel->flash.model_block <  0)
         {
-            newmodel->bflash        = model->bflash;
+            newmodel->flash.model_block = model->flash.model_block;
         }
         if(newmodel->dust.fall_land        <   0)
         {
@@ -32411,7 +32475,7 @@ void checkdamagedrop(entity* target_entity, s_attack* attack_object, s_defense* 
     
     /* Make sure guard break doesn't knock target down. */
     
-    if(target_entity->modeldata.guardpoints.max > 0 && target_entity->modeldata.guardpoints.current <= 0)
+    if(target_entity->modeldata.guardpoints > 0 && target_entity->guardpoints <= 0)
     {
         attack_drop = 0;
     } 
@@ -32503,7 +32567,7 @@ void checkhitscore(entity *other, s_attack *attack)
 */
 e_death_config_flags death_get_config_flag_from_string(const char* value)
 {    
-    static const struct 
+    const struct 
     {
         const char* text_name;
         e_death_config_flags flag;
@@ -32718,10 +32782,10 @@ e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags 
 */
 e_run_config_flags run_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
-        e_death_config_flags flag;
+        e_run_config_flags flag;
     } flag_lookup_table[] = {
         {"none", RUN_CONFIG_NONE},
         {"land", RUN_CONFIG_LAND},
@@ -32795,7 +32859,7 @@ e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, c
 */
 e_shadow_config_flags shadow_get_config_flag_from_string(const char* value)
 {
-    static const struct
+    const struct
     {
         const char* text_name;
         e_shadow_config_flags flag;
@@ -33325,7 +33389,7 @@ int offense_result_damage(s_offense* offense_object, int attack_force)
 */
 int defense_result_damage(s_defense* defense_object, int attack_force, int blocked)
 {   
-#define DEFENSE_GLOBAL_BLOCK_RATIO 0.25
+    const float DEFENSE_GLOBAL_BLOCK_RATIO = 0.25;
 
     //printf("\n\n defense_result_damage(%p, %p, %d, %d)", defense_object, attack_force, blocked);
     
@@ -33421,8 +33485,6 @@ int defense_result_damage(s_defense* defense_object, int attack_force, int block
     }
 
     return result;
-
-#undef DEFENSE_GLOBAL_BLOCK_RATIO
 }
 
 /*
@@ -33866,7 +33928,7 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
         }
     }
 
-    if(target->modeldata.guardpoints.max > 0 && target->modeldata.guardpoints.current <= 0)
+    if(target->modeldata.guardpoints > 0 && target->guardpoints <= 0)
     {
         return 0;    //guardbreak does not deal damage.
     }
@@ -33911,7 +33973,6 @@ void checkdamageonlanding(entity* acting_entity)
     if((acting_entity->damage_on_landing.attack_force > 0 && !(acting_entity->death_state & DEATH_STATE_DEAD)))
     {    
         //##################
-        attack              = emptyattack;
         attack.attack_force = acting_entity->damage_on_landing.attack_force;
         
         /* 
@@ -34011,7 +34072,7 @@ void checkdamageonlanding(entity* acting_entity)
                 dropweapon(1);
             }
             // check effects, e.g., frozen, blast, steal
-            if(!(acting_entity->modeldata.guardpoints.max > 0 && acting_entity->modeldata.guardpoints.current <= 0))
+            if(!(acting_entity->modeldata.guardpoints > 0 && acting_entity->guardpoints <= 0))
             {
                 checkdamageeffects(&attack);
             }
@@ -34052,10 +34113,9 @@ void checkdamageonlanding(entity* acting_entity)
         if(acting_entity->takedamage)
         {
             //##################
-            s_attack attack;
+            s_attack attack = emptyattack;
             entity *other;
 
-            attack              = emptyattack;
             attack.attack_force = acting_entity->damage_on_landing.attack_force;
             if (attack.damage_on_landing.attack_type >= 0) attack.attack_type  = acting_entity->damage_on_landing.attack_type;
             else attack.attack_type  = ATK_LAND;
@@ -34287,7 +34347,7 @@ int common_takedamage(entity *other, s_attack *attack, int fall_flag, s_defense*
             dropweapon(1);
         }
         // check effects, e.g., frozen, blast, steal
-        if(!(acting_entity->modeldata.guardpoints.max > 0 && acting_entity->modeldata.guardpoints.current <= 0))
+        if(!(acting_entity->modeldata.guardpoints > 0 && acting_entity->guardpoints <= 0))
         {
             checkdamageeffects(attack);
         }
@@ -34993,7 +35053,7 @@ void common_throw()
 // toss the grabbed one
 void dothrow()
 {
-    s_attack attack;
+    s_attack attack = emptyattack;
     entity *other;
     self->velocity.x = self->velocity.z = 0;
     other = self->link;
@@ -35033,7 +35093,6 @@ void dothrow()
     self->takeaction = common_throw;
 
     // Use default attack values.
-    attack = emptyattack;
     set_fall(other, self, &attack, 0);
     ent_set_anim(self, ANI_THROW, 0);
 }
@@ -36041,8 +36100,8 @@ int common_attack()
 // return 1 if jump
 int common_try_jump()
 {
-#define COMMON_TRY_JUMP_DEFAULT 1
-#define COMMON_TRY_JUMP_RUN 2
+    const int COMMON_TRY_JUMP_DEFAULT = 1;
+    const int COMMON_TRY_JUMP_RUN = 2;
 
     float xdir = 0.0;
     float zdir = 0.0;
@@ -36215,9 +36274,6 @@ int common_try_jump()
         return 1;
     }
     return 0;
-
-#undef COMMON_TRY_JUMP_DEFAULT
-#undef COMMON_TRY_JUMP_RUN
 }
 
 //test if direction is available for anim_up
@@ -37592,8 +37648,7 @@ int common_try_wander(entity *target, int dox, int doz)
 // to allow easy item scripting.
 void do_item_script(entity *ent, entity *item)
 {
-    s_attack attack;
-    attack = emptyattack;
+    s_attack attack = emptyattack;
     attack.attack_type = ATK_ITEM;
 
     execute_didhit_script(item, ent, &attack, 0);
@@ -37945,7 +38000,7 @@ int bomb_try_detonate(entity* acting_entity)
         if (validanim(acting_entity, ANI_ATTACK2))
         {
             ent_set_anim(acting_entity, ANI_ATTACK2, 0);
-            acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
+            //acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;
         }
         else if(acting_entity->modeldata.remove && acting_entity->toexplode & EXPLODE_DETONATE_HIT)
         {
@@ -37955,7 +38010,7 @@ int bomb_try_detonate(entity* acting_entity)
     else if (validanim(acting_entity, ANI_ATTACK1))
     {
         ent_set_anim(acting_entity, ANI_ATTACK1, 0);
-        acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;    
+        //acting_entity->animation->move_config_flags &= ~MOVE_CONFIG_SUBJECT_TO_GRAVITY;    
     }
 
     return 1;
@@ -38109,13 +38164,13 @@ entity *check_block_obstacle(entity *ent)
 */
 int projectile_wall_deflect(entity *acting_entity)
 {
-    #define RICHOCHET_FALL_FORCE        10000 
-    #define RICHOCHET_VELOCITY_X_FACTOR 0.25    // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
-    #define RICHOCHET_VELOCITY_Y        2.5     // Base Y velocity applied when projectile bounces off wall.
-    #define RICHOCHET_VELOCITY_Y_RAND   1       // Random seed for Y variance added to base Y velocity when bouncing off wall.
+    const int RICHOCHET_FALL_FORCE           = 10000;
+    const float RICHOCHET_VELOCITY_X_FACTOR  = 0.25; // This value is multiplied by current velocity to get an X velocity value to bounce off wall..
+    const float RICHOCHET_VELOCITY_Y         = 2.5;  // Base Y velocity applied when projectile bounces off wall.
+    const int RICHOCHET_VELOCITY_Y_RAND      = 1;    // Random seed for Y variance added to base Y velocity when bouncing off wall.
 
     float richochet_velocity_x;
-    s_attack attack;
+    s_attack attack = emptyattack;
 
     //printf("\n\n projectile_wall_deflect(%p)", acting_entity);
     //printf("\n\t model(%s)", acting_entity->model->name);
@@ -38172,7 +38227,6 @@ int projectile_wall_deflect(entity *acting_entity)
             acting_entity->base = 0;
 
             /* Use default attack values. */
-            attack = emptyattack;
             attack.attack_drop = RICHOCHET_FALL_FORCE;
             set_fall(acting_entity, acting_entity, &attack, 0);
 
@@ -38186,11 +38240,6 @@ int projectile_wall_deflect(entity *acting_entity)
 
     /* Did not ricochet, so return false. */
     return 0;
-
-    #undef RICHOCHET_FALL_FORCE
-    #undef RICHOCHET_VELOCITY_X_FACTOR
-    #undef RICHOCHET_VELOCITY_Y
-    #undef RICHOCHET_VELOCITY_Y_RAND
 }
 
 // Caskey, Damon V.
@@ -39334,11 +39383,10 @@ int check_energy(e_cost_check which, int ani)
                 || (energy_cost.disable == -4 && (type & (TYPE_PLAYER | TYPE_ENEMY)))))     // Disabled for all AI?
         {
             // No seal or seal is less/same as energy cost?
-            if(!self->seal || self->seal >= energy_cost.cost)
+            if (!self->seal || self->seal >= energy_cost.cost)
             {
                 if((which == ENERGY_TYPE_MP && (energy_cost.mponly != COST_TYPE_HP_ONLY) && (self->energy_state.mp_current >= energy_cost.cost)) 
-					||
-                   (which == ENERGY_TYPE_HP && (energy_cost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energy_cost.cost)))
+					|| (which == ENERGY_TYPE_HP && (energy_cost.mponly != COST_TYPE_MP_ONLY) &&  (self->energy_state.health_current > energy_cost.cost)))
                 {
                     result = TRUE;
                 }
@@ -41145,11 +41193,11 @@ void player_think()
 
     entity* acting_entity = self;
 
-    static const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
-    static const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
-    static const e_key_def sequence_up_up[] = {FLAG_MOVEUP, FLAG_MOVEUP};
-    static const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
-    static const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
+    const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
+    const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
+    const e_key_def sequence_up_up[] = {FLAG_MOVEUP, FLAG_MOVEUP};
+    const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
+    const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
 
     
     int pli = acting_entity->playerindex;
@@ -42205,7 +42253,7 @@ void drop_all_enemies()
 {
     int i;
     entity *weapself = self;
-    s_attack attack;
+    s_attack attack = emptyattack;
 
     for(i = 0; i < ent_max; i++)
     {
@@ -42237,8 +42285,6 @@ void drop_all_enemies()
 
             ent_list[i]->knockdowntime = 0;
 
-            // Use default attack values.
-            attack = emptyattack;
             set_fall(ent_list[i], self, &attack, 1);
         }
     }
@@ -42251,10 +42297,9 @@ void drop_all_enemies()
 void kill_all_enemies()
 {
     int i;
-    s_attack attack;
+    s_attack attack = emptyattack;
     entity *tmpself = NULL;
 
-    attack = emptyattack;
 	attack.attack_type = ATK_BOSS_DEATH;
 	attack.dropv = default_model_dropv;
 
@@ -42342,7 +42387,7 @@ void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
                 }
             }
 
-            spawn_attack_flash(self, attack, attack->hitflash, self->modeldata.flash);
+            spawn_attack_flash(self, attack, attack->flash.model_hit, self->modeldata.flash.model_block);
             
         }
     }
@@ -42511,7 +42556,7 @@ void faction_copy_data(s_faction* dest, s_faction* source)
 */
 e_faction_group faction_get_flag_from_string(const char* value)
 {   
-    static const struct 
+    const struct 
     {
         const char* text_name;
         e_faction_group flag;
@@ -43083,7 +43128,7 @@ entity *knife_spawn(entity *parent, s_projectile *projectile)
 	else
 	{	
 		/* Copy speed values from animation projectile settings to model. */
-        projectile_entity->modeldata.speed = projectile->velocity;
+        projectile->velocity = projectile_entity->modeldata.speed;
 	}
 
 	/* Set up behavior flags. */
@@ -43298,7 +43343,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 	else
 	{		
 		// Copy speed values from animation projectile settings to model.
-		ent->modeldata.speed = projectile->velocity;
+		projectile->velocity.x = ent->modeldata.speed.x;
 	}
 
     /*
@@ -43388,7 +43433,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 // Return TRUE if stars spawned, FALSE on fail.
 int star_spawn(entity *parent, s_projectile *projectile)
 {
-#define MAX_STARS 3
+    const int MAX_STARS = 3;
 
     entity *ent = NULL;
 	int i = 0;
@@ -43544,8 +43589,6 @@ int star_spawn(entity *parent, s_projectile *projectile)
 		execute_onspawn_script(ent);
     }
     return TRUE;
-
-#undef MAX_STARS
 }
 
 
@@ -44254,16 +44297,15 @@ int no_player_alive_to_join()
 void kill_all_players_by_timeover()
 {
     int i;
-    s_attack attack_timeover, attack_lose;
+    s_attack attack_timeover = emptyattack;
+    s_attack attack_lose = emptyattack;
     s_defense* defense_object = NULL;
 
-    attack_timeover = emptyattack;
     attack_timeover.attack_type = ATK_TIMEOVER;
     attack_timeover.dropv.y = default_model_dropv.y;
     attack_timeover.dropv.x = default_model_dropv.x;
     attack_timeover.dropv.z = default_model_dropv.z;
 
-    attack_lose = emptyattack;
     attack_lose.attack_type = ATK_LOSE;
     
 
@@ -46452,6 +46494,10 @@ void startup()
     // init. input recorder
     init_input_recorder();
 
+    printf("Loading fonts................\t");
+    load_all_fonts();
+    printf("Done!\n");
+
     printf("Loading sprites..............\t");
     load_special_sprites();
     printf("Done!\n");
@@ -46486,13 +46532,9 @@ void startup()
     load_menu_txt();
     printf("Done!\n");
 
-    printf("Loading fonts................\t");
-    load_all_fonts();
-    printf("Done!\n");
-
     /*
-        Kratus (10-2021) Moved the translation, menu and font functions to the end of the engine "startup" function,
-        but before the "control init" function
+        Kratus (01-2024) Moved the translation and menu functions to the end of the engine "startup" function,
+        but before the "control init" function (reverted the font function to load before scripts)
     */
     printf("Loading translation..........\t");
     ob_inittrans();
@@ -46612,7 +46654,7 @@ playgif_end:
     _time = temptime;
     newtime = tempnewtime;
     background = tempbg;
-    standard_palette(1);
+    //standard_palette(1); //Kratus (01-2024) Disabled to fix the fps drop issue
 
     if(0 == result)
     {
@@ -47287,8 +47329,8 @@ int playlevel(char *filename)
 // For select screen. Spawn sample entity for player_index.
 static entity *spawnexample(int player_index)
 {
-	#define SPAWN_MODEL_NAME	NULL
-	#define SPAWN_MODEL_INDEX	MODEL_INDEX_NONE
+    char* SPAWN_MODEL_NAME = NULL;
+    const int SPAWN_MODEL_INDEX = MODEL_INDEX_NONE;
 
     entity	*example;
 	s_model *model;
@@ -47336,9 +47378,6 @@ static entity *spawnexample(int player_index)
 	example->spawntype = SPAWN_TYPE_PLAYER_SELECT;
     
 	return example;
-
-	#undef SPAWN_MODEL_NAME
-	#undef SPAWN_MODEL_INDEX
 }
 
 // load saved select screen
@@ -48117,7 +48156,18 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
 
         if(current_level >= set->numlevels)
         {
+            /*
+                Kratus (01-2024) Reset level/stage values when a game is finished before saving it.
+                It will automatically erase the current game progress but only after the ending.
+                However, it will maintain the "times_completed" intact.
+                Without this fix the player can increase the "times_completed" infinitely by
+                just finishing the game once and loading the ending directly how many times he want.
+            */
             bonus += save->times_completed++;
+            current_level = 0;
+            current_stage = 1;
+            save->level = current_level;
+            save->stage = current_stage;
             saveGameFile();
             if(!nofadeout)
             {
@@ -48307,7 +48357,11 @@ int load_saved_game()
             _menutext(0, col2, -2, Tr("Not Found!"));
             _menutextm(1, 6, 0, Tr("Back"));
 
-            selector = 2;
+            /*
+                Kratus (01-2024) Minor fix in the selector number if no save is found.
+                There's no selector "2" in this menu, only 0 (load) or 1 (back).
+            */
+            selector = 1;
         }
         else
         {

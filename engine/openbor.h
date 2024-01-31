@@ -1824,6 +1824,16 @@ typedef enum e_cheat_options
     CHEAT_OPTIONS_ALL_MENU = (CHEAT_OPTIONS_MASTER_MENU | CHEAT_OPTIONS_CREDITS_MENU | CHEAT_OPTIONS_ENERGY_MENU | CHEAT_OPTIONS_HEALTH_MENU | CHEAT_OPTIONS_IMPLACABLE_MENU | CHEAT_OPTIONS_LIVES_MENU | CHEAT_OPTIONS_MULTIHIT_MENU | CHEAT_OPTIONS_TOD_MENU)
 } e_cheat_options;
 
+typedef struct s_flash_properties
+{       
+    int layer_adjust;  // Adjust Z position to spawn flash.
+    int layer_source;  // Adjustment to source of initial flash layer. NOT a layer value.
+    int model_block;   // Model ID to spawn when attack blocked.
+    int model_hit;     // Model ID to spawn when attack hits.
+    int z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
+    e_object_type object_type; // Object type, always OBJECT_TYPE_FLASH. Should be const, but we do too many object copies.
+} s_flash_properties;
+
 /*
 * Caskey, Damon V.
 * 2022-05-03
@@ -1833,13 +1843,12 @@ typedef enum e_cheat_options
 * between engines startups.
 */
 typedef struct s_global_config {
+    e_object_type object_type;      // Identifies object so functions can verify correct pointer type.
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
     unsigned int block_ratio;       // Blcoked attacks still cause 0.25 damage?
     e_blocktype block_type;         // Take chip damage from health or MP first?
     e_cheat_options cheats;         // Cheat menu config and active cheats.
-    int flash_layer_adjust;         // Adjust Z layer of flash spawn.
-    int flash_layer_source;         // Source of initial inital flash layer. NOT the layer value.
-    int flash_z_source;             // Source of Z position for flash spawn. NOT the Z value.
+    s_flash_properties flash;           // Flash config properties.
     unsigned int showgo;            // Enable/disable go arrow.
 } s_global_config;
 
@@ -1960,19 +1969,6 @@ typedef struct s_metric_range {
     int max;
     int min;
 } s_metric_range;
-
-/*
-* Caskey, Damon V.
-* 2014-01-20
-* 
-* Values for jugglepoints and
-* guardpoints system.
-*/
-typedef struct s_status_points {
-    unsigned int current;
-    unsigned int max;
-    unsigned int min;
-} s_status_points;
 
 typedef struct
 {
@@ -2293,16 +2289,11 @@ typedef struct
     
     e_direction_adjust  force_direction;    // Adjust target's direction on hit.
     int                 attack_force;       // Hit point damage attack inflicts.
-    int                 blockflash;         // Custom bflash for each animation, model id
     int                 blocksound;         // Custom sound for when an attack is blocked.
-    int                 flash_layer_adjust; // Adjust Z position to spawn flash.
-    int                 flash_layer_source; // Adjustment to source of initial flash layer. NOT a layer value.
-    int                 flash_z_source;     // Adjustment to source of initial flash Z position. NOT a position value.
+    s_flash_properties  flash;              // Flash config properties.
     int                 forcemap;           // Set target's palette on hit.
     unsigned int        freezetime;         // Time for target to remain frozen.
-    
     int                 guardcost;          // cost for blocking an attack
-    int                 hitflash;           // Custom flash for each animation, model id
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
     unsigned int        maptime;            // Time for forcemap to remain in effect.
@@ -2357,10 +2348,8 @@ typedef struct s_collision_attack
 */
 typedef struct
 {    
-    s_defense*  defense;            // Defense properties for this collision box only. 
-    int        flash_layer_adjust;  // Adjust Z position to spawn flash.
-    int        flash_layer_source;  // Adjustment to source of initial flash layer. NOT a layer value.
-    int        flash_z_source;      // Adjustment to source of initial flash Z position. NOT a position value.
+    s_defense*  defense;    // Defense properties for this collision box only. 
+    s_flash_properties flash;   // Flash configuration properties.
 } s_body;
 
 /*
@@ -2526,6 +2515,7 @@ typedef struct
     // Meta data.
     s_meta_data* meta_data;          // User defined data.
     int                     meta_tag;           // user defined int.
+    e_object_type           object_type;
 
 } s_bind;
 
@@ -2905,9 +2895,11 @@ typedef struct
     int def; //Default icon.
     int die; //Health depleted.
     int get; //Retrieving item.
-    int mphigh; //MP bar icon; at 66% or more (default if other mp icons not used).
-    int mplow; //MP bar icon; at or between 0% and 32%.
-    int mpmed; //MP bar icon; at or between 33% and 65%.
+    int mphigh; // MP bar icon; 75%+ or default if other mp icons not used.
+    int mplow; // MP bar icon; >0%+.
+    int mpmed; // MP bar icon; 25%+.
+    int mpmax; // MP bar icon; 100%+.
+    int mpnone; // MP bar icon; 0%.
     int pain; //Taking damage.
     int usemap;
     int weapon; //Weapon model.
@@ -3282,25 +3274,7 @@ typedef enum e_pain_config_flags
 } e_pain_config_flags;
 
 
-/*
-* Caskey, Damon V.
-* 2023-04-25
-* 
-* Identify object type so we can
-* verify a pointer to an object
-* is valid.
-*
-* Each object has an object type
-* member with identical member name
-* (object_type). We populate the
-* member with an appropriate value
-* from this list on allocation.
-*/
-typedef enum e_object_type {
-    OBJECT_TYPE_NONE,
-    OBJECT_TYPE_ENTITY,
-    OBJECT_TYPE_MODEL
-} e_object_type;
+
 
 /*
 * Caskey, Damon V.
@@ -3448,8 +3422,8 @@ typedef struct
     int pshotno; // 7-1-2005 now every enemy can have their own "knife" projectile
     int star; // 7-1-2005 now every enemy can have their own "ninja star" projectiles
     int bomb; // New projectile type for exploding bombs/grenades/dynamite
-    int flash; // Now each entity can have their own flash
-    int bflash; // Flash that plays when an attack is blocked
+    
+    s_flash_properties flash; // model level flash properties.
 
     s_dust dust; //Spawn entity during certain actions.
 
@@ -3507,8 +3481,10 @@ typedef struct
     s_staydown risetime;
     unsigned sleepwait;
     int riseattacktype;
-    s_status_points jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
-    s_status_points guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
+    int jugglepoints;   // Juggle limiting system.
+    int guardpoints;    // guardbreak system.
+    //s_status_points jugglepoints; // Juggle points feature by OX. 2011_04_05, DC: Moved to struct.
+    //s_status_points guardpoints; // Guard points feature by OX. 2011_04_05, DC: Moved to struct.
     int mpswitch; // switch between reduce or gain mp for mpstabletype 4
     int turndelay; // turn delay
     int lifespan; // lifespan count down
@@ -3717,6 +3693,8 @@ typedef struct entity
 	unsigned int			walkmode;							// Force a specfic alternate walk. ~~
 
 	// Signed integers
+    int                     guardpoints;                        // Remaining value before guardbreak.
+    int                     jugglepoints;                       // Remaining value before juggling this entity is impossible.
 	int						lifespancountdown;					// Life span count down. ~~
 	int						map;								// Stores the colourmap for restoring purposes. ~~
 	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
@@ -4164,7 +4142,8 @@ int		nextcolourmapn							(s_model *model, int map_index, int player_index);
 int		prevcolourmap							(s_model *model, int map_index);
 int		prevcolourmapn							(s_model *model, int map_index, int player_index);	
 
-int     buffer_pakfile							(char *filename, char **pbuffer, size_t *psize);
+int     buffer_pakfile							(const char *filename, char **pbuffer, size_t *psize);
+
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex					(ScriptVariant *var, int index);
 int     changesyspropertybyindex				(int index, ScriptVariant *value);
@@ -4742,8 +4721,8 @@ void menu_options_system();
 void menu_options_video();
 
 void openborMain(int argc, char **argv);
-int getValidInt(char *text, char *file, char *cmd);
-float getValidFloat(char *text, char *file, char *cmd);
+int getValidInt(const char *text, const char *file, const char *cmd);
+float getValidFloat(const char *text, const char *file, const char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
 int stopRecordInputs(void);
 int recordInputs(void);

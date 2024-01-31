@@ -1,7 +1,6 @@
 typedef enum
 {
 	DRAWMETHOD_PROPERTY_ALPHA,
-	DRAWMETHOD_PROPERTY_BACKGROUND_TRANSPARENCY,
 	DRAWMETHOD_PROPERTY_CENTER_X,
 	DRAWMETHOD_PROPERTY_CENTER_Y,
 	DRAWMETHOD_PROPERTY_CHANNEL_BLUE,
@@ -13,14 +12,11 @@ typedef enum
 	DRAWMETHOD_PROPERTY_CLIP_SIZE_Y,
 	DRAWMETHOD_PROPERTY_COLORSET_INDEX,
 	DRAWMETHOD_PROPERTY_COLORSET_TABLE,
-	DRAWMETHOD_PROPERTY_ENABLE,
+	DRAWMETHOD_PROPERTY_CONFIG,
 	DRAWMETHOD_PROPERTY_FILL_COLOR,
-	DRAWMETHOD_PROPERTY_FLIP_X,
-	DRAWMETHOD_PROPERTY_FLIP_Y,
 	DRAWMETHOD_PROPERTY_REPEAT_X,
 	DRAWMETHOD_PROPERTY_REPEAT_Y,
 	DRAWMETHOD_PROPERTY_ROTATE,
-	DRAWMETHOD_PROPERTY_ROTATE_FLIP,
 	DRAWMETHOD_PROPERTY_SCALE_X,
 	DRAWMETHOD_PROPERTY_SCALE_Y,
 	DRAWMETHOD_PROPERTY_SHIFT_X,
@@ -43,8 +39,11 @@ typedef enum
 // Drawmethod properties.
 HRESULT openbor_allocate_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_copy_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_free_drawmethod(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_get_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_drawmethod_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_drawmethod_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_drawmethod_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);
 
-int mapstrings_drawmethod(ScriptVariant **varlist, int paramCount);
+HRESULT openbor_allocate_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
+HRESULT openbor_copy_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
+HRESULT openbor_load_palette(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
+HRESULT openbor_get_palette_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount);
+HRESULT openbor_set_palette_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount);

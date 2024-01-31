@@ -13,6 +13,7 @@
 #include <malloc.h>
 #include <locale.h>
 #include <math.h>
+
 #ifdef LINUX
 #include <features.h>
 #endif
@@ -307,17 +308,9 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
 #ifndef WIN
-        #if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33)
-        writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
-        #else
         writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
-        #endif
 #elif LINUX
-        #if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33)
         writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
-        #else
-        writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
-        #endif
 #endif
         borExit(2);
     }

@@ -246,10 +246,6 @@ const char *Script_GetFunctionName(void *functionRef)
 	{
 		return "copy_drawmethod";
 	}
-	else if (functionRef == ((void *)openbor_free_drawmethod))
-	{
-	return "free_drawmethod";
-	}
 	else if (functionRef == ((void *)openbor_get_drawmethod_property))
 	{
 		return "get_drawmethod_property";
@@ -259,16 +255,26 @@ const char *Script_GetFunctionName(void *functionRef)
 		return "set_drawmethod_property";
 	}
 
-    /* Global config properties */
-    else if (functionRef == ((void*)openbor_set_global_config_property))
+    else if (functionRef == ((void*)openbor_allocate_palette))
     {
-        return "get_global_config_property";
+        return "allocate_palette";
     }
-    else if (functionRef == ((void*)openbor_set_global_config_property))
+    else if (functionRef == ((void*)openbor_copy_palette))
     {
-        return "set_global_config_property";
+        return "copy_palette";
     }
-    
+    else if (functionRef == ((void*)openbor_get_palette_property))
+    {
+        return "get_palette_property";
+    }
+    else if (functionRef == ((void*)openbor_load_palette))
+    {
+        return "load_palette";
+        }
+    else if (functionRef == ((void*)openbor_set_palette_property))
+    {
+        return "set_palette_property";
+    }
 
     else if (functionRef == ((void *)openbor_getplayerproperty))
     {
@@ -290,6 +296,7 @@ const char *Script_GetFunctionName(void *functionRef)
     {
     return "set_attack_id_value";
     }
+    
     else if (functionRef == ((void*)openbor_get_colorset_property))
     {
         return "get_colorset_property";
@@ -329,6 +336,14 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void*)openbor_set_model_property))
     {
         return "set_model_property";
+    }
+    else if (functionRef == ((void*)openbor_get_music_channel_property))
+    {
+        return "get_music_channel_property";
+    }
+    else if (functionRef == ((void*)openbor_set_music_channel_property))
+    {
+        return "set_music_channel_property";
     }
     else if (functionRef == ((void*)openbor_get_spawn_hud_property))
     {
@@ -425,6 +440,16 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_set_entity_collision_property))
     {
         return "set_entity_collision_property";
+    }
+
+    /* Flash config properties */
+    else if (functionRef == ((void*)openbor_get_flash_property))
+    {
+        return "get_flash_property";
+        }
+    else if (functionRef == ((void*)openbor_set_flash_property))
+    {
+        return "set_flash_property";
     }
 
     /* Global config property. */
@@ -1088,27 +1113,6 @@ void *Script_GetStringMapFunction(void *functionRef)
     {
         return (void *)mapstrings_axis_principal_property;
     }
-
-	// Drawmethod
-	else if (functionRef == ((void *)openbor_get_drawmethod_property))
-	{
-		return (void *)mapstrings_drawmethod;
-	}
-	else if (functionRef == ((void *)openbor_set_drawmethod_property))
-	{
-		return (void *)mapstrings_drawmethod;
-	}
-
-    /* Global config properties. */
-    else if (functionRef == ((void*)openbor_get_global_config_property))
-    {
-        return (void*)mapstrings_global_config_property;
-    }
-    else if (functionRef == ((void*)openbor_set_global_config_property))
-    {
-        return (void*)mapstrings_global_config_property;
-    }
-
     else if (functionRef == ((void *)openbor_setspawnentry))
     {
         return (void *)mapstrings_setspawnentry;
@@ -1288,12 +1292,20 @@ void Script_LoadSystemFunctions()
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_copy_drawmethod, "copy_drawmethod");
 	List_InsertAfter(&theFunctionList,
-		(void *)openbor_free_drawmethod, "free_drawmethod");
-	List_InsertAfter(&theFunctionList,
 		(void *)openbor_get_drawmethod_property, "get_drawmethod_property");
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_set_drawmethod_property, "set_drawmethod_property");
 
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_allocate_palette, "allocate_palette");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_copy_palette, "copy_palette");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_palette_property, "get_palette_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_palette_property, "set_palette_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_load_palette, "load_palette");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");
     
@@ -1363,6 +1375,12 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_faction_property, "set_faction_property");
 
+    /* Flash config properties. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_flash_property, "get_flash_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_flash_property, "set_flash_property");
+
     /* Global config properties. */
     List_InsertAfter(&theFunctionList,
         (void*)openbor_get_global_config_property, "get_global_config_property");
@@ -1380,6 +1398,12 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_model_property, "get_model_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_model_property, "set_model_property");
+
+    /* Music channel properties. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_music_channel_property, "get_music_channel_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_music_channel_property, "set_music_channel_property");
 
     /* Spawn HUD properties. */
     List_InsertAfter(&theFunctionList,

@@ -581,9 +581,15 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
     }
 
     // no scale, no shift, no flip, no fill, so use common method
-    if(!drawmethod->water.watermode && drawmethod->scalex == 256 && drawmethod->scaley == 256 && !drawmethod->flipy && !drawmethod->shiftx && drawmethod->fillcolor == TRANSPARENT_IDX && !drawmethod->rotate)
+    if(!drawmethod->water.watermode 
+        && drawmethod->scalex == 256 
+        && drawmethod->scaley == 256 
+        && !(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y) 
+        && !drawmethod->shiftx 
+        && drawmethod->fillcolor == TRANSPARENT_IDX 
+        && !drawmethod->rotate)
     {
-        if(drawmethod->flipx)
+        if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X)
         {
             x += drawmethod->centerx;
         }
@@ -595,13 +601,13 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
         switch(screen->pixelformat)
         {
         case PIXEL_8:
-            putsprite_8(x, y, drawmethod->flipx, frame, screen, drawmethod->table, drawmethod->alpha > 0 ? blendtables[drawmethod->alpha - 1] : NULL);
+            putsprite_8(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, drawmethod->table, drawmethod->alpha > 0 ? blendtables[drawmethod->alpha - 1] : NULL);
             break;
         case PIXEL_16:
-            putsprite_x8p16(x, y, drawmethod->flipx, frame, screen, (unsigned short *)drawmethod->table, getblendfunction16(drawmethod->alpha));
+            putsprite_x8p16(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, (unsigned short *)drawmethod->table, getblendfunction16(drawmethod->alpha));
             break;
         case PIXEL_32:
-            putsprite_x8p32(x, y, drawmethod->flipx, frame, screen, (unsigned *)drawmethod->table, getblendfunction32(drawmethod->alpha));
+            putsprite_x8p32(x, y, (drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X), frame, screen, (unsigned *)drawmethod->table, getblendfunction32(drawmethod->alpha));
             break;
         }
         return;
@@ -629,7 +635,7 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
 
 static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
-    if(!drawmethod || drawmethod->flag == 0)
+    if(!drawmethod || !(drawmethod->config & DRAWMETHOD_CONFIG_ENABLED))
     {
         goto plainsprite;
     }
@@ -657,7 +663,7 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
 
     drawmethod_global_init(drawmethod);
 
-    if(drawmethod && drawmethod->flag)
+    if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         xrepeat = drawmethod->xrepeat;
         yrepeat = drawmethod->yrepeat;

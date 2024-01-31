@@ -475,7 +475,7 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
     int alpha, transbg;
     gfx_entry gfx;
 
-    if(!drawmethod || drawmethod->flag == 0)
+    if(!drawmethod || !(drawmethod->config & DRAWMETHOD_CONFIG_ENABLED))
     {
         table = NULL;
         alpha = 0;
@@ -510,7 +510,7 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
     {
         table = drawmethod->table;
         alpha = drawmethod->alpha;
-        transbg = drawmethod->transbg;
+        transbg = (drawmethod->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY);
         x -= drawmethod->centerx;
         y -= drawmethod->centery;
     }
@@ -573,7 +573,7 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
 
     drawmethod_global_init(drawmethod);
 
-    if(drawmethod && drawmethod->flag)
+    if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         xrepeat = drawmethod->xrepeat;
         yrepeat = drawmethod->yrepeat;

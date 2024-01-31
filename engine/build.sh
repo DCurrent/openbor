@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # OpenBOR - http://www.ChronoCrash.com
 # -----------------------------------------------------------------------
@@ -6,7 +7,6 @@
 # Copyright (c) OpenBOR Team
 #
 
-#!/bin/bash
 # Building script for all platforms
 # build.sh by SX (SumolX@gmail.com)
 
@@ -71,7 +71,7 @@ if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
     cp ../scripts/paxplode ../../../engine/releases/LINUX/OpenBOR/
     cd ../../../engine
   else
-    if [ `echo $HOST_PLATFORM | grep -o "Linux"` ]; then
+    if [ $(echo $HOST_PLATFORM | grep -o "Linux") ]; then
       echo "Linux Platform Failed To Build!"
       exit 1
     fi
@@ -90,7 +90,7 @@ if test -e "releases/WINDOWS/OpenBOR/OpenBOR.exe"; then
 
   echo "All Platforms Created Successfully"
   if ! test "$BUILDBATCH"; then
-    TRIMMED_URL=`svn info | grep "URL:" | sed s/URL:\ svn\+ssh//g`
+    TRIMMED_URL=$(svn info | grep "URL:" | sed s/URL:\ svn\+ssh//g)
     if test -n $TRIMMED_URL;  then
       TRIMMED_URL="svn"$TRIMMED_URL
     fi
@@ -151,18 +151,18 @@ function linux {
 
 # Compile for Linux under various architectures
 function linux_x86 {
-  if [ `uname -s | grep -o "Linux"` ]; then
-    linux i.86-.*linux.* x86 LINUX || # try standard 32-bit GCC
-    [ `gcc -dumpmachine | grep -o x86_64-.*linux.*` ] && [ `gcc -print-multi-lib | grep -o '@m32'` ] && # check for x86_64 GCC with 32-bit multilib
-    linux x86_64-.*linux.* x86 LINUX  # try 64-bit compiler with multilib
+  if [ $(uname -s | grep -o "Linux") ]; then
+    linux i.86-.*linux.* x86 LINUX || { # try standard 32-bit GCC
+    [ $(gcc -dumpmachine | grep -o x86_64-.*linux.*) ] && [ $(gcc -print-multi-lib | grep -o '@m32') ] && # check for x86_64 GCC with 32-bit multilib
+    linux x86_64-.*linux.* x86 LINUX; }  # try 64-bit compiler with multilib
   fi
 }
 
 function linux_amd64 {
-  if [ `uname -s | grep -o "Linux"` ]; then
-    linux x86_64-.*linux.* amd64 LINUX_AMD64 || # try standard 64-bit GCC
-    [ `gcc -dumpmachine | grep -o i.86-.*linux.*` ] && [ `gcc -print-multi-lib | grep -o '@m64'` ] && # check for x86 GCC with 64-bit multilib
-    linux i.86-.*linux.* amd64 LINUX_AMD64 # try 32-bit compiler with multilib
+  if [ $(uname -s | grep -o "Linux") ]; then
+    linux x86_64-.*linux.* amd64 LINUX_AMD64 || { # try standard 64-bit GCC
+    [ $(gcc -dumpmachine | grep -o i.86-.*linux.*) ] && [ $(gcc -print-multi-lib | grep -o '@m64') ] && # check for x86 GCC with 64-bit multilib
+    linux i.86-.*linux.* amd64 LINUX_AMD64; } # try 32-bit compiler with multilib
   fi
 }
 

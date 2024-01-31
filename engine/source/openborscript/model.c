@@ -164,6 +164,20 @@ const s_property_access_map model_get_property_map(const void* acting_object_par
         property_map.type = VT_INTEGER;
         break;
 
+    case MODEL_PROPERTY_GUARD_POINTS:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->guardpoints;
+        property_map.id_string = "MODEL_PROPERTY_GUARD_POINTS";
+        property_map.type = VT_INTEGER;
+        break;
+
+    case MODEL_PROPERTY_GUARD_RATE:
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
+        property_map.field = &acting_object->guardrate;
+        property_map.id_string = "MODEL_PROPERTY_GUARD_RATE";
+        property_map.type = VT_INTEGER;
+        break;
+
     case MODEL_PROPERTY_HP:
         property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
         property_map.field = &acting_object->health;

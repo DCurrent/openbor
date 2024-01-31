@@ -70,7 +70,7 @@ int clipx1, clipy1, clipx2, clipy2;
 void drawmethod_global_init(s_drawmethod *drawmethod)
 {
 
-    if(drawmethod && drawmethod->flag)
+    if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
 #if REVERSE_COLOR
         channelr = drawmethod->channelb;
@@ -90,7 +90,7 @@ void drawmethod_global_init(s_drawmethod *drawmethod)
     }
 
 
-    if((useclip = drawmethod && drawmethod->flag && drawmethod->clipw > 0 && drawmethod->cliph > 0))
+    if((useclip = drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED && drawmethod->clipw > 0 && drawmethod->cliph > 0))
     {
         clipx1 = drawmethod->clipx;
         clipy1 = drawmethod->clipy;

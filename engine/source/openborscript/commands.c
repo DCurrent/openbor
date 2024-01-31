@@ -408,6 +408,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ICONMPHALF, "iconmphalf");
     LIST_ADD(CMD_MODEL_ICONMPHIGH, "iconmphigh");
     LIST_ADD(CMD_MODEL_ICONMPLOW, "iconmplow");
+    LIST_ADD(CMD_MODEL_ICONMPMAX, "iconmpmax");
+    LIST_ADD(CMD_MODEL_ICONMPNONE, "iconmpnone");
     LIST_ADD(CMD_MODEL_ICONPAIN, "iconpain");
     LIST_ADD(CMD_MODEL_ICONPOSITION, "iconposition");
     LIST_ADD(CMD_MODEL_ICONW, "iconw");
