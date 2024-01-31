@@ -78,14 +78,14 @@ const s_property_access_map music_channel_get_property_map(const void* acting_ob
 
 	case MUSIC_CHANNEL_PROPERTY_VOLUME_LEFT:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->volume[0];
+		property_map.field = &acting_object->volume[SOUND_SPATIAL_CHANNEL_LEFT];
 		property_map.id_string = "MUSIC_CHANNEL_PROPERTY_VOLUME_LEFT";
 		property_map.type = VT_INTEGER;
 		break;
 
 	case MUSIC_CHANNEL_PROPERTY_VOLUME_RIGHT:
 		property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
-		property_map.field = &acting_object->volume[1];
+		property_map.field = &acting_object->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
 		property_map.id_string = "MUSIC_CHANNEL_PROPERTY_VOLUME_RIGHT";
 		property_map.type = VT_INTEGER;
 		
@@ -141,8 +141,8 @@ HRESULT openbor_get_music_channel_property(const ScriptVariant* const* varlist, 
 
 	const musicchannelstruct* const acting_object = (const musicchannelstruct* const)varlist[ARG_OBJECT]->ptrVal;
 
-	if (acting_object->object_type != OBJECT_TYPE_DRAWMETHOD) {
-		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+	if (acting_object->object_type != OBJECT_TYPE_MUSIC_CHANNEL) {
+		printf("\n\nScript error: %s. Object pointer is not correct type (%d).\n\n", SELF_NAME, acting_object->object_type);
 		*pretvar = NULL;
 		return E_FAIL;
 	}
@@ -219,8 +219,8 @@ HRESULT openbor_set_music_channel_property(ScriptVariant** varlist, ScriptVarian
 
 	const musicchannelstruct* const acting_object = (const musicchannelstruct* const)varlist[ARG_OBJECT]->ptrVal;
 
-	if (acting_object->object_type != OBJECT_TYPE_DRAWMETHOD) {
-		printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+	if (acting_object->object_type != OBJECT_TYPE_MUSIC_CHANNEL) {
+		printf("\n\nScript error: %s. Object pointer is not correct type (%d).\n\n", SELF_NAME, acting_object->object_type);
 		*pretvar = NULL;
 		return E_FAIL;
 	}

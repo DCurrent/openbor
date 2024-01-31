@@ -1463,6 +1463,16 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SHADOW_CONFIG_GRAPHIC_STATIC_GROUND)        
         ICMPCONST(SHADOW_CONFIG_NONE)
 
+        /* Sound file types. */
+        ICMPCONST(SOUND_FILE_TYPE_ADPCM)
+        ICMPCONST(SOUND_FILE_TYPE_NONE)
+        ICMPCONST(SOUND_FILE_TYPE_VORBIS)
+
+        /* Sound output channels (left, right, ...). */
+        ICMPCONST(SOUND_SPATIAL_CHANNEL_LEFT)
+        ICMPCONST(SOUND_SPATIAL_CHANNEL_MAX)
+        ICMPCONST(SOUND_SPATIAL_CHANNEL_RIGHT)
+
         /* Spawn hud (player arrow) */
         ICMPCONST(SPAWN_HUD_PROPERTY_END)
         ICMPCONST(SPAWN_HUD_PROPERTY_POSITION_X)

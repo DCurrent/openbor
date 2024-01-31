@@ -88,7 +88,7 @@ typedef struct
     int            samplenum;	 // Index of sound playing
     unsigned int   priority;	 // Used for SFX
     int				playid;
-    int            volume[2];	 // Stereo :)
+    int            volume[SOUND_SPATIAL_CHANNEL_MAX];	 // Stereo :)
     int            channels;
     unsigned int   fp_samplepos; // Position (fixed-point)
     unsigned int   fp_period;	 // Period (fixed-point)
@@ -136,8 +136,8 @@ static int mixing_inited = 0;
 // Counts the total number of samples played
 static u32 samplesplayed;
 
-// Records type of currently playing music: 0=ADPCM, 1=Vorbis
-static int music_type = 0;
+// Records type of currently playing music.
+static e_sound_file_type music_type = SOUND_FILE_TYPE_ADPCM;
 
 //////////////////////////////// WAVE LOADER //////////////////////////////////
 
@@ -151,6 +151,12 @@ static int music_type = 0;
 #define		HEX_fmt		0x20746D66
 #define		HEX_data	0x61746164
 #define		FMT_PCM		0x0001
+
+void  sound_music_channel_clear(musicchannelstruct* const music_channel)
+{
+    memset(music_channel, 0, sizeof(*music_channel));
+    music_channel->object_type = OBJECT_TYPE_MUSIC_CHANNEL;
+}
 
 static int loadwave(char *filename, char *packname, samplestruct *buf, unsigned int maxsize)
 {
@@ -449,8 +455,8 @@ static void mixaudio(unsigned int todo)
         fp_playto = musicchannel.fp_playto[musicchannel.playing_buffer];
         fp_pos = musicchannel.fp_samplepos;
         fp_period = musicchannel.fp_period;
-        lvolume = musicchannel.volume[0];
-        rvolume = musicchannel.volume[1];
+        lvolume = musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT];
+        rvolume = musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT];
 
         // Mix it
         for(i = 0; i < (int)todo;)
@@ -522,8 +528,8 @@ static void mixaudio(unsigned int todo)
 
             fp_pos = vchannel[chan].fp_samplepos;
             fp_period = vchannel[chan].fp_period;
-            lvolume = vchannel[chan].volume[0];
-            rvolume = vchannel[chan].volume[1];
+            lvolume = vchannel[chan].volume[SOUND_SPATIAL_CHANNEL_LEFT];
+            rvolume = vchannel[chan].volume[SOUND_SPATIAL_CHANNEL_RIGHT];
             if(fp_len < 1)
             {
                 fp_len = 1;
@@ -717,8 +723,8 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
     // Prevent samples from being played at EXACT same point
     vchannel[channel].fp_samplepos = INT_TO_FIX((channel * 4) % soundcache[samplenum].sample.soundlen);
     vchannel[channel].fp_period = (INT_TO_FIX(1) * speed / 100) * soundcache[samplenum].sample.frequency / playfrequency;
-    vchannel[channel].volume[0] = lvolume;
-    vchannel[channel].volume[1] = rvolume;
+    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
+    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
     vchannel[channel].priority = priority;
     vchannel[channel].channels = soundcache[samplenum].sample.channels;
     vchannel[channel].active = CHANNEL_PLAYING;
@@ -817,8 +823,8 @@ void sound_volume_sample(int channel, int lvolume, int rvolume)
     {
         rvolume = MAX_SAMPLE_VOLUME;
     }
-    vchannel[channel].volume[0] = lvolume;
-    vchannel[channel].volume[1] = rvolume;
+    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
+    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
 }
 
 int sound_getpos_sample(int channel)
@@ -855,13 +861,9 @@ typedef struct
     int		datastart;
 } bor_header;
 
-#ifndef DC
-#pragma pack (4)
-#endif
-
 static bor_header borhead;
-static short loop_valprev[2];
-static char loop_index[2];
+static short loop_valprev[SOUND_SPATIAL_CHANNEL_MAX];
+static char loop_index[SOUND_SPATIAL_CHANNEL_MAX];
 static int loop_state_set;
 static u32 loop_offset;
 
@@ -899,12 +901,15 @@ void sound_close_adpcm()
         }
     }
 
-    memset(&musicchannel, 0, sizeof(musicchannelstruct));
+    
+
+    sound_music_channel_clear(&musicchannel);
+
     memset(&borhead, 0, sizeof(bor_header));
 
     adpcm_reset();
-    loop_valprev[0] = loop_valprev[1] = 0;
-    loop_index[0] = loop_index[1] = 0;
+    loop_valprev[SOUND_SPATIAL_CHANNEL_LEFT] = loop_valprev[SOUND_SPATIAL_CHANNEL_RIGHT] = 0;
+    loop_index[SOUND_SPATIAL_CHANNEL_LEFT] = loop_index[SOUND_SPATIAL_CHANNEL_RIGHT] = 0;
     loop_state_set = 0;
 }
 
@@ -961,11 +966,11 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
         goto error_exit;
     }
 
-    memset(&musicchannel, 0, sizeof(musicchannelstruct));
+    sound_music_channel_clear(&musicchannel);
 
     musicchannel.fp_period = INT_TO_FIX(borhead.frequency) / playfrequency;
-    musicchannel.volume[0] = volume;
-    musicchannel.volume[1] = volume;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
     musicchannel.channels = borhead.channels;
     music_looping = loop;
     music_atend = 0;
@@ -987,7 +992,7 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
     }
 
     loop_offset = music_offset;
-    music_type = 0;
+    music_type = SOUND_FILE_TYPE_ADPCM;
 
     return 1;
 error_exit:
@@ -1003,7 +1008,7 @@ void sound_update_adpcm()
     short *outptr;
     int i, j;
 
-    if((adpcm_handle < 0) || (music_type != 0))
+    if((adpcm_handle < 0) || (music_type != SOUND_FILE_TYPE_ADPCM))
     {
         return;
     }
@@ -1073,12 +1078,12 @@ void sound_update_adpcm()
                     {
                         readsamples = readpackfile(adpcm_handle, adpcm_inbuf, borhead.datastart + loop_offset - seekpackfile(adpcm_handle, 0, SEEK_CUR)) * 2;
                         adpcm_decode(adpcm_inbuf, outptr, readsamples / 2, musicchannel.channels);
-                        loop_valprev[0] = adpcm_valprev(0);
-                        loop_index[0] = adpcm_index(0);
+                        loop_valprev[SOUND_SPATIAL_CHANNEL_LEFT] = adpcm_valprev(0);
+                        loop_index[SOUND_SPATIAL_CHANNEL_LEFT] = adpcm_index(0);
                         if(musicchannel.channels == CHANNEL_TYPE_STEREO)
                         {
-                            loop_valprev[1] = adpcm_valprev(1);
-                            loop_index[1] = adpcm_index(1);
+                            loop_valprev[SOUND_SPATIAL_CHANNEL_RIGHT] = adpcm_valprev(1);
+                            loop_index[SOUND_SPATIAL_CHANNEL_RIGHT] = adpcm_index(1);
                         }
                         loop_state_set = 1;
                         outptr += readsamples;
@@ -1115,10 +1120,10 @@ void sound_update_adpcm()
                                 return;
                             }
                             // Reset decoder
-                            adpcm_loop_reset(0, loop_valprev[0], loop_index[0]);
+                            adpcm_loop_reset(SOUND_SPATIAL_CHANNEL_LEFT, loop_valprev[SOUND_SPATIAL_CHANNEL_LEFT], loop_index[SOUND_SPATIAL_CHANNEL_LEFT]);
                             if(musicchannel.channels == CHANNEL_TYPE_STEREO)
                             {
-                                adpcm_loop_reset(1, loop_valprev[1], loop_index[1]);
+                                adpcm_loop_reset(SOUND_SPATIAL_CHANNEL_RIGHT, loop_valprev[SOUND_SPATIAL_CHANNEL_RIGHT], loop_index[SOUND_SPATIAL_CHANNEL_RIGHT]);
                             }
                         }
                     }
@@ -1198,7 +1203,7 @@ void sound_close_ogg()
     ov_clear(oggfile);
     free(oggfile);
     oggfile = NULL;
-    music_type = -1;
+    music_type = SOUND_FILE_TYPE_NONE;
 
     for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
     {
@@ -1209,7 +1214,7 @@ void sound_close_ogg()
         }
     }
 
-    memset(&musicchannel, 0, sizeof(musicchannelstruct));
+    sound_music_channel_clear(&musicchannel);
 }
 
 int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 music_offset)
@@ -1271,11 +1276,11 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
         goto error_exit;
     }
 
-    memset(&musicchannel, 0, sizeof(musicchannelstruct));
+    sound_music_channel_clear(&musicchannel);
 
     musicchannel.fp_period = INT_TO_FIX(stream_info->rate) / playfrequency;
-    musicchannel.volume[0] = volume;
-    musicchannel.volume[1] = volume;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
     musicchannel.channels = stream_info->channels;
     music_looping = loop;
     music_atend = 0;
@@ -1292,10 +1297,11 @@ int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 mus
             goto error_exit;
         }
         memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE * sizeof(short));
+        musicchannel.object_type = OBJECT_TYPE_MUSIC_CHANNEL;
     }
 
     loop_offset = music_offset;
-    music_type = 1;
+    music_type = SOUND_FILE_TYPE_VORBIS;
 
 #ifdef VERBOSE
     printf("ogg is opened\n");
@@ -1493,24 +1499,30 @@ void sound_close_music()
 {
     switch(music_type)
     {
-    case 0:
+    case SOUND_FILE_TYPE_ADPCM:
         sound_close_adpcm();
         break;
-    case 1:
+    case SOUND_FILE_TYPE_VORBIS:
         sound_close_ogg();
+        break;
+    case SOUND_FILE_TYPE_NONE:
+        return;
     }
-    music_type = -1;
+    music_type = SOUND_FILE_TYPE_NONE;
 }
 
 void sound_update_music()
 {
     switch(music_type)
     {
-    case 0:
+    case SOUND_FILE_TYPE_ADPCM:
         sound_update_adpcm();
         break;
-    case 1:
+    case SOUND_FILE_TYPE_VORBIS:
         sound_update_ogg();
+        break;
+    case SOUND_FILE_TYPE_NONE:
+        return;
     }
 }
 
@@ -1518,13 +1530,15 @@ int sound_query_music(char *artist, char *title)
 {
     switch(music_type)
     {
-    case 0:
+    case SOUND_FILE_TYPE_ADPCM:
         return sound_query_adpcm(artist, title);
-    case 1:
+    case SOUND_FILE_TYPE_VORBIS:
         return sound_query_ogg(artist, title);
-    default:
+    case SOUND_FILE_TYPE_NONE:
         return 0;
     }
+
+    return 0;
 }
 
 void sound_music_tempo(int music_tempo)
@@ -1532,11 +1546,14 @@ void sound_music_tempo(int music_tempo)
 
     switch(music_type)
     {
-    case 0:
+    case SOUND_FILE_TYPE_ADPCM:
         sound_adpcm_tempo(music_tempo);
         break;
-    case 1:
+    case SOUND_FILE_TYPE_VORBIS:        
         sound_ogg_tempo(music_tempo);
+        break;
+    case SOUND_FILE_TYPE_NONE:
+        return;
     }
 }
 
@@ -1558,8 +1575,8 @@ void sound_volume_music(int left, int right)
     {
         right = MAX_SAMPLE_VOLUME * 8;
     }
-    musicchannel.volume[0] = left;
-    musicchannel.volume[1] = right;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = left;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = right;
 }
 
 void sound_pause_music(int toggle)

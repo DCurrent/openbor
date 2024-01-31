@@ -307,10 +307,11 @@ static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int vo
 
     // initialize soundmix music channel
     sound_close_music();
-    memset(&musicchannel, 0, sizeof(musicchannel));
+    sound_music_channel_clear(&musicchannel);
+
     musicchannel.fp_period = INT_TO_FIX(audio_ctx->frequency) / playfrequency;
-    musicchannel.volume[0] = volume;
-    musicchannel.volume[1] = volume;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
     musicchannel.channels = audioParams.channels;
     musicchannel.active = 1;
 
