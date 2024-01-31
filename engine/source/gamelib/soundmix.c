@@ -93,10 +93,10 @@ s_audio_global audio_global =
 {
     .sample_play_id = 0,
     .soundcache = NULL,
-    .sound_cached = 0
+    .sound_cached = 0,
 };
 
-static List samplelist;
+//static List samplelist;
 static s_soundcache *soundcache = NULL;
 static int sound_cached = 0;
 int sample_play_id = 0;
@@ -322,9 +322,9 @@ int sound_load_sample(char *filename, char *packfilename, int iLog)
     /////////////////////////////
     strcpy(convcache, filename);
     lc(convcache, strlen(convcache));
-    if(List_FindByName(&samplelist, convcache))
+    if(List_FindByName(&audio_global.samplelist, convcache))
     {
-        cache = &soundcache[(size_t)List_Retrieve(&samplelist)];
+        cache = &soundcache[(size_t)List_Retrieve(&audio_global.samplelist)];
         if(!cache->sample.sampleptr)
         {
             if(!sound_reload_sample(cache->index) && iLog)
@@ -348,10 +348,10 @@ int sound_load_sample(char *filename, char *packfilename, int iLog)
     __realloc(soundcache, sound_cached);
     soundcache[sound_cached].sample = sample;
 
-    List_GotoLast(&samplelist);
-    List_InsertAfter(&samplelist, (void *)(size_t)sound_cached, convcache);
+    List_GotoLast(&audio_global.samplelist);
+    List_InsertAfter(&audio_global.samplelist, (void *)(size_t)sound_cached, convcache);
     soundcache[sound_cached].index = sound_cached;
-    soundcache[sound_cached].filename = List_GetName(&samplelist);
+    soundcache[sound_cached].filename = List_GetName(&audio_global.samplelist);
 
     sound_cached++;
     return sound_cached - 1;
@@ -388,7 +388,7 @@ void sound_unload_all_samples()
     {
         sound_unload_sample(i);
     }
-    List_Clear(&samplelist);
+    List_Clear(&audio_global.samplelist);
     free(soundcache);
     soundcache = NULL;
     sound_cached = 0;
@@ -1667,7 +1667,7 @@ int sound_init(int channels)
 
     mixing_active = 0;
     mixing_inited = 1;
-    List_Init(&samplelist);
+    List_Init(&audio_global.samplelist);
 
     return 1;
 }
