@@ -52,7 +52,7 @@ Caution: move vorbis headers here otherwise the structs will
 #include "adpcm.h"
 #include "sblaster.h"
 #include "borendian.h"
-#include "List.h"
+
 
 
 #define		MIXSHIFT		     3	    // 2 should be OK
@@ -81,34 +81,7 @@ Caution: move vorbis headers here otherwise the structs will
 #pragma pack(4)
 #endif
 
-typedef struct
-{
-    int            active;		 // 1 = play, 2 = loop
-    int				paused;
-    int            samplenum;	 // Index of sound playing
-    unsigned int   priority;	 // Used for SFX
-    int				playid;
-    int            volume[SOUND_SPATIAL_CHANNEL_MAX];	 // Stereo :)
-    int            channels;
-    unsigned int   fp_samplepos; // Position (fixed-point)
-    unsigned int   fp_period;	 // Period (fixed-point)
-} channelstruct;
 
-typedef struct
-{
-    void 		   *sampleptr;
-    int			   soundlen;	 // Length in samples
-    int            bits;		 // 8/16 bit
-    int            frequency;    // 11025 * 1,2,4
-    int            channels;
-} samplestruct;
-
-typedef struct
-{
-    samplestruct  sample;
-    int index;
-    char *filename;
-} s_soundcache;
 
 s_sound_parameters sound_parameters = {
     .music_buffers_count = 4,
@@ -116,10 +89,18 @@ s_sound_parameters sound_parameters = {
     .sound_length_max = 4294967295 // 0x4ffffb //2,147,483,392 // 3,039,297,536 // 625580,032
 };
 
+s_audio_global audio_global =
+{
+    .sample_play_id = 0,
+    .soundcache = NULL,
+    .sound_cached = 0
+};
+
 static List samplelist;
 static s_soundcache *soundcache = NULL;
 static int sound_cached = 0;
 int sample_play_id = 0;
+
 static channelstruct vchannel[MAX_CHANNELS];
 musicchannelstruct musicchannel = { .object_type = OBJECT_TYPE_MUSIC_CHANNEL };
 static s32 *mixbuf = NULL;
@@ -729,7 +710,7 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
     vchannel[channel].channels = soundcache[samplenum].sample.channels;
     vchannel[channel].active = CHANNEL_PLAYING;
     vchannel[channel].paused = 0;
-    vchannel[channel].playid = ++sample_play_id;
+    vchannel[channel].playid = ++audio_global.sample_play_id;
 
     return channel;
 }

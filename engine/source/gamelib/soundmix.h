@@ -10,6 +10,7 @@
 #define SOUNDMIX_H
 
 #include "types.h"
+#include "List.h"
 
 /*
 **	Sound mixer.
@@ -58,6 +59,35 @@ typedef struct s_sound_parameters {
 
 typedef struct
 {
+    int            active;		 // 1 = play, 2 = loop
+    int				paused;
+    int            samplenum;	 // Index of sound playing
+    unsigned int   priority;	 // Used for SFX
+    int				playid;
+    int            volume[SOUND_SPATIAL_CHANNEL_MAX];	 // Stereo :)
+    int            channels;
+    unsigned int   fp_samplepos; // Position (fixed-point)
+    unsigned int   fp_period;	 // Period (fixed-point)
+} channelstruct;
+
+typedef struct
+{
+    void* sampleptr;
+    int			   soundlen;	 // Length in samples
+    int            bits;		 // 8/16 bit
+    int            frequency;    // 11025 * 1,2,4
+    int            channels;
+} samplestruct;
+
+typedef struct
+{
+    samplestruct  sample;
+    int index;
+    char* filename;
+} s_soundcache;
+
+typedef struct
+{
     int            active;
     int            paused;
     short 		   *buf[MUSIC_NUM_BUFFERS];
@@ -70,7 +100,16 @@ typedef struct
     e_object_type  object_type;
 } musicchannelstruct;
 
+typedef struct s_audio_global
+{
+    List samplelist;
+    s_soundcache* soundcache;
+    int sound_cached;
+    unsigned int sample_play_id;
+} s_audio_global;
+
 extern musicchannelstruct musicchannel;
+extern s_audio_global audio_global;
 extern int playfrequency;
 
 void sound_stop_playback();
@@ -78,7 +117,7 @@ int sound_start_playback();
 void sound_exit();
 int sound_init(int channels);
 
-extern int sample_play_id;
+
 
 // Returns interval in milliseconds
 u32 sound_getinterval();

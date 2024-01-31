@@ -9200,7 +9200,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
     case SYSTEM_PROPERTY_SAMPLE_PLAY_ID:
 
         ScriptVariant_ChangeType(var, VT_INTEGER);
-		var->lVal = sample_play_id;
+		var->lVal = audio_global.sample_play_id;
 		break;
 
     case SYSTEM_PROPERTY_SCROLLMAXX:
