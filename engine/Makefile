@@ -367,6 +367,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_expr.o
 SCRIPT_BUILTINS = source/openborscript/commands.o                                                   \
 				  source/openborscript/animation.o                                                  \
+                  source/openborscript/audio.o                                           			\
 				  source/openborscript/axis.o                                           			\
 				  source/openborscript/binding.o                                           			\
 				  source/openborscript/drawmethod.o                                           		\

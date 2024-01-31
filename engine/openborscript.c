@@ -111,9 +111,8 @@ extern s_projectile projectile_default_config;
 extern s_barstatus lbarstatus;
 extern s_barstatus loadingbarstatus;
 extern s_barstatus mpbarstatus;
-extern s_barstatus olbarstatus; 
-
-
+extern s_barstatus olbarstatus;
+extern musicchannelstruct musicchannel;
 
 static void clear_named_var_list(List *list, int level)
 {
@@ -1072,6 +1071,7 @@ static const char *svlist[] =
     "mirror_z",
     "models_cached",
     "models_loaded",
+    "music_channel",
     "musicvol",
     "neon_panel_z",
     "noaircancel",
@@ -8988,6 +8988,12 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
 
         ScriptVariant_ChangeType(var, VT_INTEGER);
         var->lVal = models_loaded;
+        break;
+
+    case SYSTEM_PROPERTY_MUSIC_CHANNEL:
+
+        ScriptVariant_ChangeType(var, VT_PTR);
+        var->ptrVal = &musicchannel;
         break;
 
     case SYSTEM_PROPERTY_MUSICVOL:

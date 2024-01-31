@@ -121,7 +121,7 @@ static s_soundcache *soundcache = NULL;
 static int sound_cached = 0;
 int sample_play_id = 0;
 static channelstruct vchannel[MAX_CHANNELS];
-musicchannelstruct musicchannel;
+musicchannelstruct musicchannel = { .object_type = OBJECT_TYPE_MUSIC_CHANNEL };
 static s32 *mixbuf = NULL;
 static int playbits;
 int playfrequency;

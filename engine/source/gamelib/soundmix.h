@@ -50,6 +50,7 @@ typedef struct
     int			   playing_buffer;
     int            volume[2];
     int            channels;
+    const e_object_type  object_type;
 } musicchannelstruct;
 
 extern musicchannelstruct musicchannel;

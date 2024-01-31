@@ -124,7 +124,8 @@ typedef enum e_object_type {
     OBJECT_TYPE_ENTITY,
     OBJECT_TYPE_FLASH,
     OBJECT_TYPE_GLOBAL_CONFIG,
-    OBJECT_TYPE_MODEL
+    OBJECT_TYPE_MODEL,
+    OBJECT_TYPE_MUSIC_CHANNEL
 } e_object_type;
 
 typedef struct

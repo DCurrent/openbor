@@ -13,6 +13,7 @@
 #include "pp_parser.h"
 
 #include "animation.h"
+#include "audio.h"
 #include "axis.h"
 #include "binding.h"
 #include "drawmethod.h"
@@ -448,6 +449,7 @@ enum systemvariant_enum
     SYSTEM_PROPERTY_MIRROR_Z,
     SYSTEM_PROPERTY_MODELS_CACHED,
     SYSTEM_PROPERTY_MODELS_LOADED,
+    SYSTEM_PROPERTY_MUSIC_CHANNEL,
     SYSTEM_PROPERTY_MUSICVOL,
     SYSTEM_PROPERTY_NEON_PANEL_Z,
     SYSTEM_PROPERTY_NOAIRCANCEL,
