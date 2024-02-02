@@ -715,8 +715,8 @@ typedef enum e_animations //Animations
     ANI_ATTACK4,			// Very important
     ANI_UPPER,
     ANI_BLOCK,				// New block animation
-	ANI_BLOCKRELEASE,		// Transition out of block.
-	ANI_BLOCKSTART,			// Transition to block.
+    ANI_BLOCKRELEASE,			// Transition out of block.
+    ANI_BLOCKSTART,			// Transition to block.
     ANI_JUMPATTACK,
     ANI_JUMPATTACK2,
     ANI_GET,
@@ -735,7 +735,7 @@ typedef enum e_animations //Animations
     ANI_FREESPECIAL2,
     ANI_JUMPATTACK3,
     ANI_FREESPECIAL3,
-    ANI_UP,					// Mar 2, 2005 - Animation for when going up
+    ANI_UP,				// Mar 2, 2005 - Animation for when going up
     ANI_DOWN,				// Mar 2, 2005 - Animation for when going down
     ANI_SHOCK,				// Animation played when knocked down by shock attack
     ANI_BURN,				// Animation played when knocked down by burn attack
@@ -745,22 +745,22 @@ typedef enum e_animations //Animations
     ANI_SPECIAL2,			// Animation played for when pressing forward special
     ANI_RUN,				// Animation played when a player is running
     ANI_RUNATTACK,			// Animation played when a player is running and presses attack
-    ANI_RUNJUMPATTACK,		// Animation played when a player is running and jumps and presses attack
+    ANI_RUNJUMPATTACK,			// Animation played when a player is running and jumps and presses attack
     ANI_ATTACKUP,			// u u animation
     ANI_ATTACKDOWN,			// d d animation
-    ANI_ATTACKFORWARD,		// f f animation
-    ANI_ATTACKBACKWARD,		// Used for attacking backwards
-    ANI_FREESPECIAL4,		// More freespecials added
-    ANI_FREESPECIAL5,		// More freespecials added
-    ANI_FREESPECIAL6,		// More freespecials added
-    ANI_FREESPECIAL7,		// More freespecials added
-    ANI_FREESPECIAL8,		// More freespecials added
+    ANI_ATTACKFORWARD,			// f f animation
+    ANI_ATTACKBACKWARD,			// Used for attacking backwards
+    ANI_FREESPECIAL4,			// More freespecials added
+    ANI_FREESPECIAL5,			// More freespecials added
+    ANI_FREESPECIAL6,			// More freespecials added
+    ANI_FREESPECIAL7,			// More freespecials added
+    ANI_FREESPECIAL8,			// More freespecials added
     ANI_RISEATTACK,			// Attack used for enemies when players are crowding around after knocking them down
     ANI_DODGE,				// Used for up up / down down SOR3 dodge moves for players
     ANI_ATTACKBOTH,			// Used for when a player holds down attack and presses jump
-    ANI_GRABFORWARD,		// New grab attack for when a player holds down forward/attack
-    ANI_GRABFORWARD2,		// New second grab attack for when a player holds down forward/attack
-    ANI_JUMPFORWARD,		// Attack when a player is moving and jumps
+    ANI_GRABFORWARD,			// New grab attack for when a player holds down forward/attack
+    ANI_GRABFORWARD2,			// New second grab attack for when a player holds down forward/attack
+    ANI_JUMPFORWARD,			// Attack when a player is moving and jumps
     ANI_GRABDOWN,			// Attack when a player has grabbed an opponent and presses down/attack
     ANI_GRABDOWN2,			// Attack when a player has grabbed an opponent and presses down/attack
     ANI_GRABUP,				// Attack when a player has grabbed an opponent and presses up/attack
@@ -771,8 +771,8 @@ typedef enum e_animations //Animations
     ANI_DUCK,				// Animation that is played when pressing down in "platform" type levels
     ANI_FAINT,  			// Faint animations for players/enemys by tails
     ANI_CANT,  				// Can't animation for players(animation when mp is less than mpcost) by tails.
-    ANI_THROWATTACK,		// Added for subtype projectile
-    ANI_CHARGEATTACK,       // Plays when player releases attack1 after holding >= charge_time.
+    ANI_THROWATTACK,			// Added for subtype projectile
+    ANI_CHARGEATTACK,       		// Plays when player releases attack1 after holding >= charge_time.
     ANI_JUMPCANT,
     ANI_JUMPSPECIAL,
     ANI_BURNDIE,
@@ -945,14 +945,14 @@ typedef enum e_animations //Animations
     ANI_BACKBLOCKPAIN8,
     ANI_BACKBLOCKPAIN9,
     ANI_BACKBLOCKPAIN10,
-    ANI_EDGE,
-    ANI_BACKEDGE,
-    ANI_DUCKING,
-    ANI_DUCKRISE,
-    ANI_VICTORY,
-    ANI_FALLLOSE,
-    ANI_LOSE,
-    MAX_ANIS                // Maximum # of animations. This must always be last.
+    ANI_EDGE,				// 6330: played when the player is on the edge of walls, platforms and holes, as if trying to balance so as not to fall.
+    ANI_BACKEDGE,			// 6330: Works like EDGE animation, but happens when the edge is behind of the player.
+    ANI_DUCKING,			// 6330: occurs before the "DUCK" animation. In other words, it's a transition between the idle and the duck animation.
+    ANI_DUCKRISE,			// 6330: occurs after the "DUCK" animation if the down button is not being held. In other words, it's a transition between the DUCK and the IDLE animation.
+    ANI_VICTORY,			// 6330: This animation is performedwhen you defeat all bosses in a level.
+    ANI_FALLLOSE,			// 6330: This animation is performed when you got a time over while on air.
+    ANI_LOSE,				// 6330: This animation is performed when you got a time over.
+    MAX_ANIS                		// Maximum # of animations. This must always be last.
 } e_animations;
 
 typedef enum
