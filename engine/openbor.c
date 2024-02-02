@@ -30075,6 +30075,20 @@ int set_idle(entity *ent)
     ent->jumping = 0;
     ent->blocking = 0;
     common_idle_anim(ent);
+
+    /*
+        Kratus (02-2024) Reset the aiflag running when landing after jumping
+        Works only if the RUN_CONFIG_LAND is enabled but no directional keys are held
+        If the RUN_CONFIG_LAND is disabled, the common_jump() function will reset it
+    */
+    if (ent->modeldata.run_config_flags & RUN_CONFIG_LAND)
+    {
+        if (!((player[ent->playerindex].keys & FLAG_MOVELEFT) || (player[ent->playerindex].keys & FLAG_MOVERIGHT)))
+        {
+            ent->running = RUN_STATE_NONE;
+        }
+    }
+
     return 1;
 }
 
@@ -31183,7 +31197,6 @@ void common_jump()
         {
             self->running = RUN_STATE_NONE;
         }
-
 
         self->velocity.z = self->velocity.x = 0;
 
