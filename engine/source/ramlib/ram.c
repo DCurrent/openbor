@@ -117,7 +117,11 @@ u64 getFreeRam(int byte_size)
 #elif SYMBIAN
     return GetFreeAmount();
 #else
+   #if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33)
+    struct mallinfo2 mi = mallinfo2();
+    #else
     struct mallinfo mi = mallinfo();
+    #endif
 #ifdef _INCLUDE_MALLOC_H_
     // Standard ANSI C Implementation
     return (systemRam - (mi.arena + stackSize)) / byte_size;
