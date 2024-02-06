@@ -30,23 +30,8 @@
 
 #define		MAX_MODS_NUM		18 //Kratus (13-03-21) decreased the max pak numbers from 100 to 18 to avoid engine "close" bug
 
-#ifdef PSP
-#include <stdarg.h>
-#include <psppower.h>
-#include "pspport.h"
-#include "graphics.h"
-#endif
-
 #ifdef SDL
 #include "sdlport.h"
-#endif
-
-#ifdef GP2X
-#include "gp2xport.h"
-#endif
-
-#ifdef DC
-#include "dcport.h"
 #endif
 
 #ifdef WII
@@ -54,13 +39,6 @@
 #include <ogc/conf.h>
 #include "wiiport.h"
 // For devkitPPC r29+
-#define stricmp strcasecmp
-#define strnicmp strncasecmp
-#endif
-
-#ifdef VITA
-#include <stdarg.h>
-#include "vitaport.h"
 #define stricmp strcasecmp
 #define strnicmp strncasecmp
 #endif

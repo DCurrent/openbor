@@ -20,20 +20,6 @@ endif
 # Defines
 #----------------------------------------------------------------------------------------------------
 
-
-ifdef BUILD_PSP
-TARGET          = $(VERSION_NAME)
-TARGET_FINAL    = EBOOT.PBP
-TARGET_PLATFORM = PSP
-PBPNAME_STR     = $(TARGET)
-BUILD_TREMOR    = 1
-BUILDING        = 1
-ifeq ($(BUILD_PSP), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
-
 ifdef BUILD_WIN
 TARGET          = $(VERSION_NAME).elf
 TARGET_FINAL    = $(VERSION_NAME).exe
@@ -179,27 +165,6 @@ BUILD_DEBUG     = 1
 endif
 endif
 
-ifdef BUILD_PANDORA
-TARGET 	        = $(VERSION_NAME).elf
-TARGET_FINAL    = $(VERSION_NAME)
-TARGET_PLATFORM = PANDORA
-BUILD_LINUX     = 1
-BUILD_SDL       = 1
-BUILD_GFX       = 1
-BUILD_PTHREAD   = 1
-BUILD_SDL_IO    = 1
-BUILD_TREMOR    = 1
-BUILDING        = 1
-CC  	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-gcc
-INCLUDES        = $(PNDDEV)/include \
-                  $(PNDDEV)/include/SDL
-OBJTYPE         = elf
-LIBRARIES       = $(PNDDEV)/lib
-ifeq ($(BUILD_PANDORA), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
 ifdef BUILD_WII
 TARGET 	        = $(VERSION_NAME).elf
 TARGET_MAP      = $(TARGET).map
@@ -218,20 +183,6 @@ BUILD_DEBUG     = 1
 endif
 endif
 
-ifdef BUILD_VITA
-TARGET 	        = $(VERSION_NAME).elf
-TARGET_FINAL    = $(VERSION_NAME).vpk
-TITLE_ID        = OPENBOR30
-TARGET_PLATFORM = VITA
-CC  	        = arm-vita-eabi-gcc
-BUILD_TREMOR    = 1
-BUILDING        = 1
-ifeq ($(BUILD_VITA), 0)
-BUILD_DEBUG     = 1
-endif
-endif
-
-
 STRIP           = cp $(TARGET) $(TARGET_FINAL)
 ifndef BUILD_DEBUG
 ifndef NO_STRIP
@@ -244,9 +195,6 @@ endif
 ifdef BUILD_DARWIN
 STRIP           = $(PREFIX)strip $(TARGET) -o $(TARGET_FINAL)
 endif
-ifdef BUILD_PANDORA
-STRIP 	        = $(PNDDEV)/bin/arm-none-linux-gnueabi-strip $(TARGET) -o $(TARGET_FINAL)
-endif
 ifdef BUILD_WII
 ELF2DOL         = elf2dol $< $@
 endif
@@ -258,25 +206,13 @@ endif
 # Directories
 #----------------------------------------------------------------------------------------------------
 
-ifdef BUILD_PSP
-INCS           += psp
-endif
-
-
 ifdef BUILD_WII
 INCS           += wii
 endif
 
-
-ifdef BUILD_VITA
-INCS           += vita
-endif
-
-
 ifdef BUILD_SDL
 INCS           += sdl
 endif
-
 
 ifdef BUILD_LINUX
 INCS           += 'libpng-config --prefix'/include/libpng
