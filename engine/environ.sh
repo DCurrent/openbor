@@ -80,7 +80,6 @@ case $1 in
      echo "            ERROR - PSP Environment Failed"
      echo "                   SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
    ;;
 
@@ -100,7 +99,6 @@ case $1 in
      echo "            ERROR - VITA Environment Failed"
      echo "                   SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
   ;;
 
@@ -151,7 +149,6 @@ case $1 in
      echo "            ERROR - GP2X Environment Failed"
      echo "                   SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
    ;;
 
@@ -189,7 +186,6 @@ case $1 in
      echo "     ERROR - Linux $TARGET_ARCH Environment Failed"
      echo "                 SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
    ;;
 
@@ -268,7 +264,6 @@ case $1 in
        echo "          ERROR - Windows Environment Failed"
        echo "                   SDK Installed?"
        echo "-------------------------------------------------------"
-       exit
    fi
    ;;
 
@@ -306,7 +301,6 @@ case $1 in
      echo "         ERROR - Dreamcast Environment Failed"
      echo "                   SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
    ;;
 
@@ -361,7 +355,6 @@ case $1 in
      echo "            ERROR - WII Environment Failed"
      echo "                    SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
    ;;
 
@@ -384,8 +377,7 @@ case $1 in
      echo "-------------------------------------------------------"
      echo "            ERROR - OPENDINGUX Environment Failed"
      echo "                    SDK Installed?"
-     echo "-------------------------------------------------------"1
-     exit
+     echo "-------------------------------------------------------"
    fi
    ;;
    
@@ -427,7 +419,6 @@ case $1 in
      echo "            ERROR - WIZ Environment Failed"
      echo "                    SDK Installed?"
      echo "-------------------------------------------------------"
-     exit
    fi
    ;;
 
