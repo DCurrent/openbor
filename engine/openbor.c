@@ -26989,7 +26989,7 @@ void do_attack(entity *attacking_entity)
 
             if(attack->jugglecost > target->jugglepoints)
             {
-                printf("\n\n Continue.");
+                //printf("\n\n Continue.");
                 continue;
             }
         }
