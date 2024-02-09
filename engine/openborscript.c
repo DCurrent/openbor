@@ -3338,7 +3338,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
 
     ScriptVariant_Clear(*pretvar);
-    //mapstrings_entityproperty(varlist, paramCount);
+    mapstrings_entityproperty(varlist, paramCount);
 
     arg = varlist[0];
     if(arg->vt != VT_PTR && arg->vt != VT_EMPTY)
