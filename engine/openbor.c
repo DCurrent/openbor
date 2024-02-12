@@ -27847,7 +27847,9 @@ void check_gravity(entity *e)
 
                         // Taking damage on a landing?
                         // Kratus (01-2024) Now the damage_on_landing is affected by infinite health cheat
-                        if(!(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
+                        // Kratus (02-2024) Minor fix to make health cheat affect players only
+                        if(((self->modeldata.type & TYPE_PLAYER) && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))||
+                            !(self->modeldata.type & TYPE_PLAYER))
                         {
                             checkdamageonlanding(self);
                         }
