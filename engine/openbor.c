@@ -3108,21 +3108,22 @@ int music(char *filename, int loop, long offset)
         //debug_xy_msg.y = videomodes.vRes - videomodes.vShift - fontheight(debug_xy_msg.font_index);
         debug_xy_msg.x = fontmonowidth(debug_xy_msg.font_index);
         debug_xy_msg.y = videomodes.vRes - fontheight(debug_xy_msg.font_index)*2;
+
         if(a[0] && t[0])
         {
-            debug_printf("Playing \"%s\" by %s", t, a);
+            debug_printf("%s \"%s\" %s %s", Tr("Playing"), t, Tr("by"), a);
         }
         else if(a[0])
         {
-            debug_printf("Playing unknown song by %s", a);
+            debug_printf("%s %s", Tr("Playing unknown song by"), a);
         }
         else if(t[0])
         {
-            debug_printf("Playing \"%s\" by unknown artist", t);
+            debug_printf("%s \"%s\" %s", Tr("Playing"), t, Tr("by unknown artist"));
         }
         else
         {
-            debug_printf("");
+            debug_printf("%s", Tr("Playing unknown song by unknown artist"));
         }
     }
     strncpy(currentmusic, filename, sizeof(currentmusic) - 1);
