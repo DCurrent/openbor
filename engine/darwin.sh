@@ -10,60 +10,25 @@
 # Script updates the hardcoded dynamic libraries paths
 # to paths that are relative to the executable.
 
-if [ -z "${DWNDEV+xxx}" ]; then
-  . environ.sh 10
-fi
-
-if [ "${DWNDEV}" == "/opt/mac" ]; then
-  exit
-fi
-
 ############ Update Library References ############
-IFS='
-'
+IFS=$'\n'
 
-#copy libs, used to be in build.sh
-lib_copy=(`find ${DWNDEV}/lib -name "libSDL-*.dylib"`)
-lib_copy+=(`find ${DWNDEV}/lib -name "libSDL_gfx.*.dylib"`)
-lib_copy+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
-lib_copy+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
-lib_copy+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
-lib_copy+=(`find ${DWNDEV}/lib -name "libz.[0-9].dylib"`)
-lib_copy+=(`find ${DWNDEV}/lib -name "libpng[0-9][0-9].dylib"`)
+lib_paths=("/opt/homebrew" "/usr/local/homebrew")
+lib_targets=("arm" "x86")
 
-for ((i = 0; i < ${#lib_copy[*]}; i = $i + 1)); do
-  cp ${lib_copy[i]} ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+for ((k = 0; k < ${#lib_paths[@]}; k = $k + 1)); do
+  lib_files=(`otool -L ./releases/Darwin/OpenBOR.app/Contents/MacOS/OpenBOR | grep -o "${lib_paths[k]}/.*" | sed 's/[[:space:]].*//g'`)
+  
+  for ((i = 0; i < ${#lib_files[@]}; i = $i + 1)); do
+    cp ${lib_paths[k]}/lib/$(basename ${lib_files[i]}) ./releases/DARWIN/OpenBOR.app/Contents/Libraries/${lib_targets[k]}/
+  done
+
+  for ((i = 0; i < ${#lib_files[@]}; i = $i + 2)); do
+    install_name_tool -change \
+    ${lib_files[i]} \
+    @executable_path/../Libraries/${lib_targets[k]}/$(basename ${lib_files[i]}) \
+    releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
+  done
 done
 
-# Order and pairing is critical!!!
-lib_ref_patch=(`find ${DWNDEV}/lib -name "libSDL-*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libSDL_gfx.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libogg.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbis.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libvorbisfile.*.dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libz.[0-9].dylib"`)
-lib_ref_patch+=(`find ${DWNDEV}/lib -name "libpng[0-9][0-9].dylib"`)
-
-for ((i = 0; i < ${#lib_ref_patch[*]}; i = $i + 2)); do
-
-  ${PREFIX}install_name_tool \
-  -change ${lib_ref_patch[i]} \
-  @executable_path/../Libraries/$(basename ${lib_ref_patch[i]}) \
-  releases/DARWIN/OpenBOR.app/Contents/Libraries/$(basename ${lib_ref_patch[i+1]})
-
-done
-
-######### Update Executable Library Paths ##########
-
-for ((i = 0; i < ${#lib_ref_patch[*]}; i = $i + 1)); do
-
-  ${PREFIX}install_name_tool \
-  -change ${lib_ref_patch[i]} \
-  @executable_path/../Libraries/$(basename ${lib_ref_patch[i]}) \
-  releases/DARWIN/OpenBOR.app/Contents/MacOS/OpenBOR
-
-done
-
+unset IFS

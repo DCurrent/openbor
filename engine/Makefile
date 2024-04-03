@@ -134,7 +134,8 @@ CFLAGS          += -Wno-error=format-overflow -Wno-error=implicit-function-decla
 endif
 
 ifdef BUILD_DARWIN
-TARGET          = $(VERSION_NAME).elf
+TARGET_X86      = $(VERSION_NAME).x86
+TARGET_ARM      = $(VERSION_NAME).arm
 TARGET_FINAL    = $(VERSION_NAME)
 TARGET_PLATFORM = DARWIN
 BUILD_SDL       = 1
@@ -142,27 +143,14 @@ BUILD_GFX       = 1
 BUILD_LINUX     = 1
 BUILD_PTHREAD   = 1
 BUILD_SDL_IO    = 1
-BUILD_OPENGL    = 1
-BUILD_LOADGL    = 1
 BUILD_VORBIS    = 1
+BUILD_WEBM      = 1
 BUILDING        = 1
-YASM            = yasm
-CC              = $(PREFIX)gcc
+CC              = $(PREFIX)clang -target arm64-apple-macos11
 OBJTYPE         = macho
 INCLUDES        = $(DWNDEV)/include \
                   $(DWNDEV)/include/SDL \
                   $(SDKPATH)/usr/include/malloc
-LIBRARIES       = $(DWNDEV)/lib
-ifeq ($(findstring darwin10, $(PREFIX)), darwin10)
-ARCHFLAGS       = -arch i386 -arch x86_64
-else
-BUILD_MMX       = 1
-TARGET_ARCH     = x86
-ARCHFLAGS       = -arch i386
-endif
-ifeq ($(BUILD_DARWIN), 0)
-BUILD_DEBUG     = 1
-endif
 endif
 
 ifdef BUILD_WII
@@ -436,20 +424,23 @@ OBJS            = $(MAIN)                                                       
 #----------------------------------------------------------------------------------------------------
 
 CFLAGS 	       += $(addprefix -I", $(addsuffix ", $(INCS))) $(ARCHFLAGS) -D$(TARGET_PLATFORM)
-CFLAGS 	       += -g -Wall -Werror -Wno-format-truncation -Wno-stringop-truncation -fsigned-char -std=gnu99
+CFLAGS 	       += -g -Wall -Werror -Wno-void-pointer-to-enum-cast -fsigned-char -std=gnu99
 
 
-ifndef BUILD_DARWIN
 ifdef BUILD_LINUX
 CFLAGS         += -Wno-unused-result `pkg-config sdl2 --cflags`
+ifndef BUILD_DARWIN
+CFLAGS 	       += -Wno-format-truncation -Wno-stringop-truncation 
 endif
 endif
 
 ifndef BUILD_DEBUG
 CFLAGS 	       += -O2
-CFLAGS 	       += -fno-ident -freorder-blocks
+ifndef BUILD_DARWIN
+CFLAGS 	       += -fno-indent -freorder-blocks
 ifndef BUILD_AMD64
 CFLAGS         += -fomit-frame-pointer
+endif
 endif
 else
 CFLAGS 	       += -DDEBUG -O0
@@ -470,7 +461,7 @@ endif
 
 
 ifdef BUILD_DARWIN
-CFLAGS 	       += -DLINUX -headerpad_max_install_names -isysroot $(SDKPATH)
+CFLAGS 	       += -DLINUX -isysroot $(SDKPATH)
 endif
 
 
@@ -553,7 +544,9 @@ LIBS           += -Wl,-syslibroot,$(SDKPATH) \
                   -framework Carbon \
                   -framework AudioUnit \
                   -framework IOKit \
-                  -lSDLmain
+                  -lSDL2main \
+                  -lSDL2 \
+                  -lSDL2_gfx
 endif
 
 
@@ -561,9 +554,11 @@ ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
 LIBS           += -lSDL -lSDL_gfx -lts # Kratus (01-2023) Added a FPS limit option in the video settings
 else
-COMMA		=,
-RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
+ifndef BUILD_DARWIN
+COMMA		    =,
+RPATH_LIBS	    = $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
 LIBS	       += $(RPATH_LIBS) -lSDL2 -lSDL2_gfx # Kratus (01-2023) Added a FPS limit option in the video settings
+endif
 
 ifdef CROSSCOMPILE_LINUX_WIN
 LIBS	       += -lsetupapi
@@ -647,6 +642,32 @@ endif
 # Rules to manage Files and Libraries for SDL
 #----------------------------------------------------------------------------------------------------
 
+ifdef BUILD_DARWIN
+OBJS_X86 = $(OBJS:=_x86)
+OBJS_ARM = $(OBJS:=_arm)
+all : $(TARGET_X86) $(TARGET_ARM) $(TARGET_FINAL)
+	@echo
+%.o_x86 : %.c
+	@echo Compiling $(TARGET_PLATFORM) X86 Port: $<...
+	@$(CC) $(CFLAGS) -c $< -o $@ -target x86_64-apple-macos10.7
+%.o_arm : %.c
+	@echo Compiling $(TARGET_PLATFORM) ARM Port: $<...
+	@$(CC) $(CFLAGS) -c $< -o $@ -target arm64-apple-macos11
+$(TARGET_X86) : $(OBJS_X86) $(RES)
+	@echo
+	@echo Linking $(TARGET_PLATFORM) X86 Port: $(TARGET_X86)...
+	@$(CC) $(CFLAGS) -o $(TARGET_X86)  -target x86_64-apple-macos10.12 $(OBJS_X86) $(TARGET_RESOURCE) -L/usr/local/homebrew/lib $(LIBS)
+$(TARGET_ARM) : $(OBJS_ARM) $(RES)
+	@echo
+	@echo Linking $(TARGET_PLATFORM) ARM Port: $(TARGET_ARM)...
+	@$(CC) $(CFLAGS) -o $(TARGET_ARM)  -target arm64-apple-macos11 $(OBJS_ARM) $(TARGET_RESOURCE) -L/opt/homebrew/lib $(LIBS)
+$(TARGET_FINAL) : $(TARGET_X86) $(TARGET_ARM)
+	@echo Universal $(TARGET_PLATFORM) Port: $(TARGET_FINAL)...
+	@lipo -create -output $(TARGET_FINAL) $(TARGET_X86) $(TARGET_ARM)
+	@echo
+	@echo Completed $(TARGET_PLATFORM) Port!
+	@echo $(TARGET_FINAL) is now ready!
+else    
 ifdef BUILD_SDL
 all : $(TARGET) $(TARGET_FINAL)
 	@echo
@@ -666,6 +687,7 @@ $(TARGET_FINAL) : $(TARGET)
 	@echo
 	@echo Completed $(TARGET_PLATFORM) Port!
 	@echo $(TARGET_FINAL) is now ready!
+endif
 endif
 
 #----------------------------------------------------------------------------------------------------
@@ -756,7 +778,7 @@ clean-releases:
 clean:
 	@echo
 	@echo "Removing All $(TARGET_PLATFORM) Files..."
-	@rm -f $(TARGET) $(TARGET_FINAL) $(TARGET_MAP) PARAM.SFO param.sfo eboot.bin OpenBOR.velf linkmap $(OBJS)
+	@rm -f $(TARGET) $(TARGET_X86) $(TARGET_ARM) $(TARGET_FINAL) $(TARGET_MAP) PARAM.SFO param.sfo eboot.bin OpenBOR.velf linkmap $(OBJS) $(OBJS_X86) $(OBJS_ARM)
 	@echo Done!
 	@echo
 endif

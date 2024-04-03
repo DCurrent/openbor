@@ -428,23 +428,10 @@ case $1 in
 #                                                                          #
 ############################################################################
 10)
-   if test -e "/opt/mac"; then
-     export DWNDEV=/opt/mac
-     export SDKPATH=$DWNDEV/SDKs/MacOSX10.4u.sdk
-     export PREFIX=i686-apple-darwin8-
+   if test -e "/opt/homebrew"; then
+     export DWNDEV=/opt/homebrew
+     export SDKPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
      export PATH=$PATH:$DWNDEV/bin
-   elif test -e "/sw/bin"; then
-     export DWNDEV=/sw
-     export SDKPATH=/Developer/SDKs/MacOSX10.6.sdk
-     export PATH=$PATH:$DWNDEV/bin
-   elif test -e "/opt/local/bin"; then
-     export DWNDEV=/opt/local
-     if test -e "/Applications/Xcode.app/Contents/Developer"; then
-       export SDKPATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk
-     else
-       export SDKPATH=/Developer/SDKs/MacOSX10.6.sdk
-     fi
-     export PATH=$PATH:DWNDEV/bin
    fi
    if test $DWNDEV; then
      echo "-------------------------------------------------------"

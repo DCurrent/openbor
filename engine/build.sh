@@ -212,15 +212,14 @@ function darwin {
         mkdir ./releases/DARWIN/OpenBOR.app/Contents
         mkdir ./releases/DARWIN/OpenBOR.app/Contents/MacOS
         mkdir ./releases/DARWIN/OpenBOR.app/Contents/Resources
-        mkdir ./releases/DARWIN/OpenBOR.app/Contents/Libraries
+        mkdir -p ./releases/DARWIN/OpenBOR.app/Contents/Libraries/x86
+        mkdir -p ./releases/DARWIN/OpenBOR.app/Contents/Libraries/arm
       fi
       mv OpenBOR ./releases/DARWIN/OpenBOR.app/Contents/MacOS
       cp ./resources/PkgInfo ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/Info.plist ./releases/DARWIN/OpenBOR.app/Contents
       cp ./resources/OpenBOR.icns ./releases/DARWIN/OpenBOR.app/Contents/Resources
-      if [ "${DWNDEV}" != "/opt/mac" ]; then
-        ./darwin.sh
-      fi
+      ./darwin.sh
     fi
     make clean BUILD_DARWIN=1
   fi
@@ -264,6 +263,7 @@ function print_help {
   echo "    4 = Linux (x86, amd64) Example: $0 4 amd64"
   echo "    5 = Windows"
   echo "    7 = Wii"
+  echo "   10 = MacOS"
   echo "  all = build for all applicable targets"
   echo "-------------------------------------------------------"
   echo "Example: $0 10"
@@ -289,6 +289,11 @@ case $1 in
   7)
     version
     wii
+    ;;
+
+  10)
+    version
+    darwin
     ;;
 
   ?)
