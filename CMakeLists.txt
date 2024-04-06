@@ -1,0 +1,134 @@
+cmake_minimum_required(VERSION 3.28)
+
+project(OpenBOR VERSION 4.0)
+
+# Targets
+option(BUILD_WIN    "Windows" OFF)
+option(BUILD_LINUX  "Linux" OFF)
+option(BUILD_DARWIN "MacOS" OFF)
+option(BUILD_WII    "Nintendo Wii Console" OFF)
+
+# Backends
+option(BUILD_STATIC  "Enable Static Linking" OFF)
+option(BUILD_SDL     "Enable SDL" OFF)
+option(BUILD_OPENGL  "Enable OpenGL" OFF)
+option(BUILD_LOADGL  "Enable SDL w/OpenGL Support" OFF)
+option(BUILD_PTHREAD "Enable Multi-Threading" OFF)
+option(BUILD_WEBM    "Enable WebM" OFF)
+option(BUILD_VORBIS  "Enable Vorbis" OFF)
+option(BUILD_TREMOR  "Enable Tremor" OFF)
+option(BUILD_GFX     "Enable Video Scaling" OFF)
+option(BUILD_MMX     "Enable MMX Instructions" OFF)
+
+# Global Configuration & Dependencies
+set(SDKPATH "")
+set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char -std=gnu99")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Grab ALL Source Files
+file(GLOB_RECURSE SRC_CORE "engine/source/*.c"        "engine/source/*.h")
+file(GLOB         SRC_GFX  "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
+file(GLOB         SRC_OBOR "engine/*.c"               "engine/*.h")
+file(GLOB         SRC_SDL  "engine/sdl/*.c"           "engine/sdl/*.h")
+file(GLOB         SRC_WII  "engine/wii/*.c"           "engine/wii/*.h")
+
+# Exclude GFX & Tests
+list(FILTER SRC_CORE EXCLUDE REGEX ".*test*" )
+list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/gfxlib/.*" )
+
+# Overall Target Source List
+set(SRC_FILES
+  ${SRC_OBOR}
+  ${SRC_CORE}
+)
+
+# Target Source List
+add_executable(${PROJECT_NAME} ${SRC_FILES})
+
+# Load Target Toolchain
+if(BUILD_DARWIN)
+  include("cmake/toolchain-osx.cmake")
+endif()
+
+# Include Optional Source Files
+if(BUILD_GFX)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_GFX})
+endif()
+
+if(BUILD_SDL)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_SDL})
+endif()
+
+if(BUILD_WII)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_WII})
+endif()
+
+# Compilation Flags
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_COMPILER_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_COMPILER_FLAGS}")
+set(CMAKE_C_FLAGS_DEBUG "-g -O0")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
+set(CMAKE_C_FLAGS_RELEASE "-Werror -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-Werror -O3 -DNDEBUG")
+
+# Default Includes
+target_include_directories(${PROJECT_NAME} PRIVATE 
+  engine/
+  engine/source
+  engine/source/adpcmlib
+  engine/source/gamelib
+  engine/source/gfxlib
+  engine/source/openborscript
+  engine/source/pnglib
+  engine/source/preprocessorlib
+  engine/source/ramlib
+  engine/source/randlib
+  engine/source/scriptlib
+  engine/source/tracelib2
+  engine/source/webmlib
+)
+
+# Default Libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE
+  z
+  m
+  ${PNG_LIBRARIES}
+)
+
+# Include & Library Configuration
+if(BUILD_SDL)
+  add_definitions(-DSDL=1)
+  target_include_directories(${PROJECT_NAME} PRIVATE
+    engine/sdl
+  )
+  target_link_libraries(${PROJECT_NAME} PRIVATE
+    SDL2
+	SDL2_gfx
+	SDL2main
+  )
+endif()
+
+if(BUILD_VORBIS)
+  add_definitions(-DOV_EXCLUDE_STATIC_CALLBACKS)
+  target_link_libraries(${PROJECT_NAME} PRIVATE
+    vorbisfile
+	vorbis
+	ogg
+  )
+endif()
+
+if(BUILD_TREMOR)
+  target_link_libraries(${PROJECT_NAME} PRIVATE
+    vorbisidec
+    ogg
+  )
+endif()
+
+if(BUILD_WEBM)
+  add_definitions(-DWEBM)
+  target_link_libraries(${PROJECT_NAME} PRIVATE vpx)
+endif()
+
+if(BUILD_PTHREAD)
+  target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
+endif()
