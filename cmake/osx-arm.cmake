@@ -1,7 +1,4 @@
-set(CMAKE_OSX_ARCHITECTURES, "arm64;x86_64" CACHE STRING "" FORCE)
-
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
-set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -isysroot ${SDKPATH}")
 
 set(BUILD_LINUX   ON)
 set(BUILD_SDL     ON)
@@ -12,9 +9,6 @@ set(BUILD_PTHREAD ON)
 
 add_definitions(-DLINUX)
 add_definitions(-DDARWIN)
-
-find_package(SDL2 REQUIRED)
-find_package(PNG REQUIRED)
 
 find_library(COCOA_LIBRARY Cocoa)
 find_library(OPENGL_LIBRARY OpenGL)
@@ -28,12 +22,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   ${SDKPATH}/usr/include/malloc
 )
 
-target_link_directories(${PROJECT_NAME} PRIVATE
-  /opt/homebrew/lib
+set_target_properties(${PROJECT_NAME}
+  PROPERTIES
+  OSX_ARCHITECTURES "arm64"
+  LINK_DIRECTORIES "/opt/homebrew/lib"
+  LINK_FLAGS "-headerpad_max_install_names"
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-  -Wl,-syslibroot,${SDKPATH}
   ${COCOA_LIBRARY}
   ${OPENGL_LIBRARY}
   ${CABRON_LIBRARY}
