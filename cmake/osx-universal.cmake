@@ -29,7 +29,10 @@ add_custom_target(${PROJECT_NAME}.universal ALL
   COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Frameworks/arm
   COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Frameworks/x86
   COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS
-  COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources
+  COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Logs
+  COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Paks
+  COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Saves
+  COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/ScreenShots
   COMMAND cp -a ../engine/resources/PkgInfo ../engine/releases/DARWIN/OpenBOR.app/Contents/
   COMMAND cp -a ../engine/resources/Info.plist ../engine/releases/DARWIN/OpenBOR.app/Contents/
   COMMAND cp -a ../engine/resources/OpenBOR.icns ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/

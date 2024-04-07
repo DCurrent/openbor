@@ -22,3 +22,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   /usr/include
   /usr/include/SDL2
 )
+
+add_custom_command(TARGET ${PROJECT_NAME}
+  POST_BUILD
+  COMMAND mkdir -p ../engine/releases/LINUX/Logs
+  COMMAND mkdir -p ../engine/releases/LINUX/Paks
+  COMMAND mkdir -p ../engine/releases/LINUX/Saves
+  COMMAND mkdir -p ../engine/releases/LINUX/ScreenShots
+  COMMAND cp -a ${PROJECT_NAME} ../engine/releases/LINUX/
+)
