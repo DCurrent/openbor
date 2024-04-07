@@ -20,10 +20,10 @@ option(BUILD_TREMOR  "Enable Tremor" OFF)
 option(BUILD_GFX     "Enable Video Scaling" OFF)
 option(BUILD_MMX     "Enable MMX Instructions" OFF)
 
-# Global Configuration & Dependencies
-set(SDKPATH "")
-set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char -std=gnu99")
+# Bases Compilation Flags
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char")
 
 # Grab ALL Source Files
 file(GLOB_RECURSE SRC_CORE "engine/source/*.c"        "engine/source/*.h")
@@ -47,7 +47,7 @@ add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 # Load Target Toolchain
 if(BUILD_DARWIN)
-  include("cmake/toolchain-osx.cmake")
+  include("cmake/osx-arm.cmake")
 endif()
 
 # Include Optional Source Files
@@ -89,10 +89,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 # Default Libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
+target_link_libraries(${PROJECT_NAME} PUBLIC
   z
   m
-  ${PNG_LIBRARIES}
+  png
 )
 
 # Include & Library Configuration
@@ -101,7 +101,7 @@ if(BUILD_SDL)
   target_include_directories(${PROJECT_NAME} PRIVATE
     engine/sdl
   )
-  target_link_libraries(${PROJECT_NAME} PRIVATE
+  target_link_libraries(${PROJECT_NAME} PUBLIC
     SDL2
 	SDL2_gfx
 	SDL2main
@@ -110,7 +110,7 @@ endif()
 
 if(BUILD_VORBIS)
   add_definitions(-DOV_EXCLUDE_STATIC_CALLBACKS)
-  target_link_libraries(${PROJECT_NAME} PRIVATE
+  target_link_libraries(${PROJECT_NAME} PUBLIC
     vorbisfile
 	vorbis
 	ogg
@@ -118,7 +118,7 @@ if(BUILD_VORBIS)
 endif()
 
 if(BUILD_TREMOR)
-  target_link_libraries(${PROJECT_NAME} PRIVATE
+  target_link_libraries(${PROJECT_NAME} PUBLIC
     vorbisidec
     ogg
   )
@@ -126,9 +126,13 @@ endif()
 
 if(BUILD_WEBM)
   add_definitions(-DWEBM)
-  target_link_libraries(${PROJECT_NAME} PRIVATE vpx)
+  target_link_libraries(${PROJECT_NAME} PUBLIC vpx)
 endif()
 
 if(BUILD_PTHREAD)
-  target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
+  target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
+endif()
+
+if(BUILD_DARWIN)
+  include("cmake/osx-universal.cmake")
 endif()

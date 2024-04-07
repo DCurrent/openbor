@@ -1,5 +1,7 @@
+set(CMAKE_OSX_ARCHITECTURES, "arm64;x86_64" CACHE STRING "" FORCE)
+
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
-set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -target arm64-apple-macos11 -isysroot ${SDKPATH}")
+set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -isysroot ${SDKPATH}")
 
 set(BUILD_LINUX   ON)
 set(BUILD_SDL     ON)
