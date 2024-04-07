@@ -26,11 +26,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char")
 
 # Grab ALL Source Files
-file(GLOB_RECURSE SRC_CORE "engine/source/*.c"        "engine/source/*.h")
-file(GLOB         SRC_GFX  "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
 file(GLOB         SRC_OBOR "engine/*.c"               "engine/*.h")
 file(GLOB         SRC_SDL  "engine/sdl/*.c"           "engine/sdl/*.h")
 file(GLOB         SRC_WII  "engine/wii/*.c"           "engine/wii/*.h")
+file(GLOB_RECURSE SRC_CORE "engine/source/*.c"        "engine/source/*.h")
+file(GLOB         SRC_GFX  "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
+file(GLOB         SRC_MMX  "engine/source/gfxlib/*.asm")
 
 # Exclude GFX & Tests
 list(FILTER SRC_CORE EXCLUDE REGEX ".*test*" )
@@ -55,6 +56,10 @@ endif()
 # Include Optional Source Files
 if(BUILD_GFX)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_GFX})
+endif()
+
+if(BUILD_MMX)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_MMX})
 endif()
 
 if(BUILD_SDL)
