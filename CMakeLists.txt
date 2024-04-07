@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.22)
 
 project(OpenBOR VERSION 4.0)
 
@@ -46,7 +46,9 @@ set(SRC_FILES
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 # Load Target Toolchain
-if(BUILD_DARWIN)
+if(BUILD_LINUX)
+  include("cmake/linux.cmake")
+elseif(BUILD_DARWIN)
   include("cmake/osx-arm.cmake")
 endif()
 

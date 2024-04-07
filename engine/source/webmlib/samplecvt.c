@@ -40,7 +40,7 @@
 
 #include "samplecvt.h"
 
-#ifdef DARWIN
+#ifdef LINUX
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
