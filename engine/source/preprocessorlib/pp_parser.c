@@ -15,6 +15,10 @@
  * @date 15 October 2010
  */
 
+#ifdef DARWIN
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

@@ -14,8 +14,10 @@
 #include <locale.h>
 #include <math.h>
 
+#ifndef DARWIN
 #ifdef LINUX
 #include <features.h>
+#endif
 #endif
 
 #include "stringptr.h"
@@ -307,10 +309,12 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
                        "\n*            Shutting Down            *\n\n");
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
+#ifndef DARWIN
 #ifndef WIN
         writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
 #elif LINUX
         writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
+#endif
 #endif
         borExit(2);
     }

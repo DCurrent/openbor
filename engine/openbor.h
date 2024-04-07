@@ -1790,8 +1790,6 @@ if(n<1) n = 1;
 //#define     MAX_MOVES             16
 //#define     MAX_MOVE_STEPS        16
 
-#pragma pack(4)
-
  /*
  * Caskey, Damon V.
  * 2022-05-04
@@ -4052,9 +4050,6 @@ typedef struct ArgList
     char *args[MAX_ARG_COUNT];
 } ArgList;
 
-#pragma pack()
-
-
 #define GET_ARG(z) (arglist.count > z ? arglist.args[z] : "")
 #define GET_ARG_LEN(z) (arglist.count > z ? arglist.arglen[z] : 0)
 #define GET_ARGP(z) (arglist->count > z ? arglist->args[z] : "")
@@ -4201,7 +4196,7 @@ float randf(float max);
 int _makecolour(int r, int g, int b);
 int load_colourmap(s_model *model, char *image1, char *image2);
 int load_palette(unsigned char *pal, char *filename);
-void standard_palette();
+void standard_palette(int immediate);
 void change_system_palette(int palindex);
 void unload_background();
 void lifebar_colors();
@@ -4223,9 +4218,9 @@ s_model *nextplayermodel(s_model *current);
 s_model *prevplayermodel(s_model *current);
 void free_anim(s_anim *anim);
 void free_models();
-int free_model();
+int free_model(s_model *model);
 void cache_attack_hit_sounds(s_collision_attack* head, int load);
-void cache_model_sprites();
+void cache_model_sprites(s_model *m, int ld);
 
 s_drawmethod			*allocate_drawmethod();
 s_projectile			*allocate_projectile();
@@ -4708,7 +4703,7 @@ void safe_set(int *arr, int index, int newkey, int oldkey);
 
 void keyboard_setup_menu(int player);
 void keyboard_setup(int player);
-void inputrefresh();
+void inputrefresh(int playrecmode);
 
 int menu_difficulty();
 void menu_options();

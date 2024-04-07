@@ -56,7 +56,7 @@ void StrCache_Clear();
 // int the string cache
 //void StrCache_Init();
 void StrCache_Collect(int index);
-int StrCache_Pop();
+int StrCache_Pop(int length);
 int StrCache_CreateNewFrom(const CHAR *str);
 CHAR *StrCache_Get(int index);
 void ScriptVariant_Clear(ScriptVariant *var);
