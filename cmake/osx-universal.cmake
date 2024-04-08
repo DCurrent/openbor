@@ -24,6 +24,7 @@ set_target_properties(${PROJECT_NAME}.x86
   LINK_FLAGS "-headerpad_max_install_names"
 )
 
+# Distribution Preperation
 add_custom_target(${PROJECT_NAME}.universal ALL
   lipo -create -output ${PROJECT_NAME}.universal ${PROJECT_NAME}.x86 ${PROJECT_NAME}
   COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Frameworks/arm

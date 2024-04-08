@@ -23,6 +23,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   /usr/include/SDL2
 )
 
+# Distribution Preperation
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
   COMMAND mkdir -p ../engine/releases/LINUX/Logs

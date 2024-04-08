@@ -20,12 +20,12 @@ option(BUILD_TREMOR  "Enable Tremor" OFF)
 option(BUILD_GFX     "Enable Video Scaling" OFF)
 option(BUILD_MMX     "Enable MMX Instructions" OFF)
 
-# Bases Compilation Flags
+# Default Compilation Flags
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char")
 
-# Grab ALL Source Files
+# Collect Source Files
 file(GLOB         SRC_OBOR "engine/*.c"               "engine/*.h")
 file(GLOB         SRC_SDL  "engine/sdl/*.c"           "engine/sdl/*.h")
 file(GLOB         SRC_WII  "engine/wii/*.c"           "engine/wii/*.h")
@@ -37,20 +37,34 @@ file(GLOB         SRC_MMX  "engine/source/gfxlib/*.asm")
 list(FILTER SRC_CORE EXCLUDE REGEX ".*test*" )
 list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/gfxlib/.*" )
 
-# Overall Target Source List
+# Target Sources
 set(SRC_FILES
   ${SRC_OBOR}
   ${SRC_CORE}
 )
 
-# Target Source List
+# Target Executable
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
-# Load Target Toolchain
-if(BUILD_LINUX)
-  include("cmake/linux.cmake")
-elseif(BUILD_DARWIN)
+# Auto-Detect
+if(NOT (BUILD_WIN OR BUILD_LINUX OR BUILD_DARWIN OR BUILD_WII))
+  if(APPLE)
+    set(BUILD_DARWIN ON)
+    message("Build target not specified, BUILD_DARWIN=ON")
+  elseif(UNIX)
+    set(BUILD_LINUX ON)
+    message("Build target not specified, BUILD_LINUX=ON")
+  else()
+    set(BUILD_WIN ON)
+    message("Build target not specified, BUILD_WIN=ON")
+  endif()
+endif()
+
+# Target Configuration Modules
+if(BUILD_DARWIN)
   include("cmake/osx-arm.cmake")
+elseif(BUILD_LINUX)
+  include("cmake/linux.cmake")
 endif()
 
 # Include Optional Source Files
@@ -140,10 +154,12 @@ if(BUILD_PTHREAD)
   target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
 endif()
 
+# Target Configuration Modules (Finalization) 
 if(BUILD_DARWIN)
   include("cmake/osx-universal.cmake")
 endif()
 
+# Distribution Preperation
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
   COMMAND cp -a ../engine/COMPILING ../engine/releases/COMPILING.txt
