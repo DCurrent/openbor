@@ -25,6 +25,13 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char")
 
+# Generate Version Header
+add_custom_target(VersionInfo ALL
+  COMMAND bash version.sh
+  COMMENT "Generating engine/version.h"
+  WORKING_DIRECTORY ../engine
+)
+
 # Collect Source Files
 file(GLOB         SRC_OBOR "engine/*.c"               "engine/*.h")
 file(GLOB         SRC_SDL  "engine/sdl/*.c"           "engine/sdl/*.h")
@@ -45,6 +52,7 @@ set(SRC_FILES
 
 # Target Executable
 add_executable(${PROJECT_NAME} ${SRC_FILES})
+add_dependencies(${PROJECT_NAME} VersionInfo)
 
 # Auto-Detect
 if(NOT (BUILD_WIN OR BUILD_LINUX OR BUILD_DARWIN OR BUILD_WII))
