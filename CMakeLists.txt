@@ -118,26 +118,24 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   engine/source/webmlib
 )
 
-# Default Libraries
-target_link_libraries(${PROJECT_NAME} PUBLIC
-  z
-  m
-  png
-)
-
 # Include & Library Configuration
-if(BUILD_STATIC)
-endif()
-
 if(BUILD_SDL)
   add_definitions(-DSDL=1)
   target_include_directories(${PROJECT_NAME} PRIVATE
     engine/sdl
   )
   target_link_libraries(${PROJECT_NAME} PUBLIC
+    -Wl,-Bdynamic
     SDL2
-	SDL2_gfx
-	SDL2main
+    SDL2_gfx
+    SDL2main
+  )
+endif()
+
+# Static linkage skips SDL
+if(BUILD_STATIC)
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    -Wl,-Bstatic
   )
 endif()
 
@@ -145,8 +143,8 @@ if(BUILD_VORBIS)
   add_definitions(-DOV_EXCLUDE_STATIC_CALLBACKS)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     vorbisfile
-	vorbis
-	ogg
+    vorbis
+    ogg
   )
 endif()
 
@@ -165,6 +163,24 @@ endif()
 if(BUILD_PTHREAD)
   target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
 endif()
+
+# Default Libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  png
+  z
+)
+
+# Static linkage disabled for default libraries
+if(BUILD_STATIC)
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    -Wl,-Bdynamic
+  )
+endif()
+
+# Standard Libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  m
+)
 
 # Target Configuration Modules (Finalization) 
 if(BUILD_DARWIN)

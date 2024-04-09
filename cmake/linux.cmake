@@ -8,6 +8,7 @@ set(BUILD_GFX     ON)
 set(BUILD_VORBIS  ON)
 set(BUILD_WEBM    ON)
 set(BUILD_PTHREAD ON)
+set(BUILD_STATIC  ON)
 
 if(DOCKER_ARCH MATCHES "(arm64)|(ARM64)")
   set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc-12)
