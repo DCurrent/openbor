@@ -45731,6 +45731,17 @@ void update(int ingame, int usevwait)
     int i = 0;
     int p_keys = 0;
 
+    if (savedata.vsync)
+    {
+        u64 update_start = timer_uticks();
+        int refresh_rate = video_current_refresh_rate();
+        u64 target_time = update_start + 1000000/refresh_rate - 3000;
+        while (timer_uticks() < target_time)
+        {
+            usleep(target_time - timer_uticks());
+        }
+    }
+
     getinterval();
     if(playrecstatus->status == A_REC_PLAY && !_pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
