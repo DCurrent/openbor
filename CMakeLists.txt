@@ -9,6 +9,7 @@ option(BUILD_DARWIN "MacOS" OFF)
 option(BUILD_WII    "Nintendo Wii Console" OFF)
 
 # Backends
+option(DOCKER_ARCH   "Docker Architecture")
 option(BUILD_STATIC  "Enable Static Linking" OFF)
 option(BUILD_SDL     "Enable SDL" OFF)
 option(BUILD_OPENGL  "Enable OpenGL" OFF)
@@ -125,6 +126,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 )
 
 # Include & Library Configuration
+if(BUILD_STATIC)
+endif()
+
 if(BUILD_SDL)
   add_definitions(-DSDL=1)
   target_include_directories(${PROJECT_NAME} PRIVATE
