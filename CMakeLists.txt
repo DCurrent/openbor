@@ -125,7 +125,6 @@ if(BUILD_SDL)
     engine/sdl
   )
   target_link_libraries(${PROJECT_NAME} PUBLIC
-    -Wl,-Bdynamic
     SDL2
     SDL2_gfx
     SDL2main
@@ -170,7 +169,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   z
 )
 
-# Static linkage disabled for default libraries
+# Static linkage disabled for standard libraries
 if(BUILD_STATIC)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     -Wl,-Bdynamic
