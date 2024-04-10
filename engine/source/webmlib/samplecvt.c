@@ -69,6 +69,15 @@ void pack_samples(ogg_int32_t **pcm, short *buffer, int samples, int channels)
 
 #include "vorbisfpu.h"
 
+/**
+ *  Modern nix platforms may or may not have fpu implemented,
+ *  thus the unsused warning should be silenced and is stripped
+ *  away for releases mode.
+*/
+#ifdef LINUX
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 void pack_samples(float **pcm, short *buffer, int samples, int channels)
 {
     int i, j;
