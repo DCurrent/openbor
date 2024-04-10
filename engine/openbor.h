@@ -63,7 +63,7 @@
 			"\n" \
 			"Special thanks to SEGA and SNK.\n\n"
 
-#define		COMPATIBLEVERSION	0x00033748
+#define		COMPATIBLEVERSION	0x00033749
 #define		CV_SAVED_GAME		0x00033747
 #define		CV_HIGH_SCORE		0x00033747
 #define     GAME_SPEED          200

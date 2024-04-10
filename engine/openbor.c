@@ -2622,8 +2622,7 @@ void clearsettings()
     savedata.uselog = 1;
     savedata.debuginfo = 0;
     savedata.fullscreen = 0;
-    savedata.vsync = 0;
-    savedata.fpslimit = 1; // Kratus (01-2023) Added a FPS limit option in the video settings
+    savedata.fpslimit = 1; // default to vsync
 
 	#if WII
     savedata.stretch = 1;
@@ -45732,11 +45731,11 @@ void update(int ingame, int usevwait)
     int p_keys = 0;
 
 #if SDL
-    if (savedata.vsync)
+    if (savedata.fpslimit == 1) // vsync enabled
     {
         // To reduce input latency, wait until the last 3 ms (3000 μs) of the current
         // frame to read inputs or do anything else. We can get away with this because
-        // the CPUs of all modern computers - even phones and low-end/outdated PCs -
+        // the CPUs of all modern computers - even phones and low-end, outdated PCs -
         // are complete overkill for OpenBOR's needs.
         s64 target_time = timer_uticks() + 1000000/video_current_refresh_rate() - 3000;
         u64 current_time = timer_uticks();
@@ -50314,29 +50313,45 @@ void menu_options_video()
         _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
         _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
-        _menutext((selector == 8), col1, 5, Tr("VSync:"));
-        _menutext((selector == 8), col2, 5, savedata.vsync ? Tr("Enabled") : Tr("Disabled")); // Kratus (10-2021) Added "Tr" for translation purpose 
+        char fpslimit_text[32];
+        switch (savedata.fpslimit)
+        {
+            case 0:
+                snprintf(fpslimit_text, sizeof(fpslimit_text), "%s", Tr("Disabled"));
+                break;
+            case 1:
+                snprintf(fpslimit_text, sizeof(fpslimit_text), "%i (VSync)", video_current_refresh_rate());
+                break;
+            case 2:
+                snprintf(fpslimit_text, sizeof(fpslimit_text), "%i", 200);
+                break;
+            case 3:
+                snprintf(fpslimit_text, sizeof(fpslimit_text), "%i", 500);
+                break;
+            default:
+                snprintf(fpslimit_text, sizeof(fpslimit_text), "%s", Tr("Unknown"));
+                break;
+        }
 
-        // Kratus (01-2023) Added a FPS limit option in the video settings
-        _menutext((selector == 9), col1, 6, Tr("FPS Limit:"));
-        _menutext((selector == 9), col2, 6, savedata.fpslimit ? Tr("Enabled") : Tr("Disabled"));
+        _menutext((selector == 8), col1, 5, Tr("FPS Limit:"));
+        _menutext((selector == 8), col2, 5, fpslimit_text);
 
         if(savedata.fullscreen)
         {
-            _menutext((selector == 10), col1, 7, Tr("Fullscreen Type:"));
-            _menutext((selector == 10), col2, 7, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+            _menutext((selector == 9), col1, 6, Tr("Fullscreen Type:"));
+            _menutext((selector == 9), col2, 6, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
         }
-        else if(selector == 10)
+        else if(selector == 9)
         {
-            selector = (bothnewkeys & FLAG_MOVEUP) ? 9 : 11;
+            selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
         }
 
-        _menutextm((selector == 11), 9, 0, Tr("Back"));
+        _menutextm((selector == 10), 9, 0, Tr("Back"));
         if(selector < 0)
         {
-            selector = 11;
+            selector = 10;
         }
-        if(selector > 11)
+        if(selector > 10)
         {
             selector = 0;
         }
@@ -50513,13 +50528,11 @@ void menu_options_video()
 				video_set_mode(videomodes);
                 break;
             case 8:
-                savedata.vsync = !savedata.vsync;
+                savedata.fpslimit = (savedata.fpslimit + dir) % 4;
+                if (savedata.fpslimit < 0) savedata.fpslimit += 4;
                 video_set_mode(videomodes);
                 break;
             case 9:
-                savedata.fpslimit = !savedata.fpslimit; // Kratus (01-2023) Added a FPS limit option in the video settings
-                break;
-            case 10:
                 video_stretch((savedata.stretch ^= 1));
                 break;
 #endif

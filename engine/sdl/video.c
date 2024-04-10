@@ -13,7 +13,6 @@
 #else
 
 #include "sdlport.h"
-#include "SDL2_framerate.h" // Kratus (01-2023) Added a FPS limit option in the video settings
 #include <math.h>
 #include "types.h"
 #include "video.h"
@@ -25,12 +24,12 @@
 #include "gfx.h"
 #include "pngdec.h"
 #include "videocommon.h"
+#include "timer.h"
 #include "../resources/OpenBOR_Icon_32x32_png.h"
 
 SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *texture = NULL;
-FPSmanager framerate_manager; // Kratus (01-2023) Added a FPS limit option in the video settings
 s_videomodes stored_videomodes;
 yuv_video_mode stored_yuv_mode;
 int yuv_mode = 0;
@@ -68,11 +67,6 @@ void initSDL()
 	nativeWidth = video_info.w;
 	nativeHeight = video_info.h;
 	printf("debug:nativeWidth, nativeHeight, bpp, Hz  %d, %d, %d, %d\n", nativeWidth, nativeHeight, SDL_BITSPERPIXEL(video_info.format), video_info.refresh_rate);
-
-	// Kratus (01-2023) Added a FPS limit option in the video settings
-	int maxFps = 200;
-	SDL_initFramerate(&framerate_manager);
-	SDL_setFramerate(&framerate_manager, maxFps);
 }
 
 void video_set_window_title(const char* title)
@@ -144,7 +138,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 
 	if(!gl)
 	{
-		renderer = SDL_CreateRenderer(window, -1, savedata.vsync ? SDL_RENDERER_PRESENTVSYNC : 0);
+		renderer = SDL_CreateRenderer(window, -1, savedata.fpslimit == 1 ? SDL_RENDERER_PRESENTVSYNC : 0);
 		if(!renderer)
 		{
 			printf("Error: failed to create renderer: %s\n", SDL_GetError());
@@ -223,6 +217,23 @@ void blit()
 	SDL_RenderPresent(renderer);
 }
 
+void FramerateDelay()
+{
+    static u64 last_time = 0;
+
+    if (savedata.fpslimit < 2 || savedata.fpslimit > 3) return;
+    int fps_limit = savedata.fpslimit == 3 ? 500 : 200;
+
+    u64 target_time = last_time + 1000000/fps_limit;
+    u64 current_time = timer_uticks();
+    while (current_time < target_time)
+    {
+        usleep(target_time - current_time);
+        current_time = timer_uticks();
+    }
+    last_time = current_time;
+}
+
 int video_copy_screen(s_screen* src)
 {
 	// do any needed scaling and color conversion
@@ -233,11 +244,7 @@ int video_copy_screen(s_screen* src)
 	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
 	blit();
 
-	// Kratus (01-2023) Added a FPS limit option in the video settings
-	#if WIN || LINUX
-	if(savedata.fpslimit){SDL_framerateDelay(&framerate_manager);}
-
-	#endif
+	if (savedata.fpslimit >= 2) FramerateDelay();
 
 	return 1;
 }

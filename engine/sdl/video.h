@@ -18,6 +18,7 @@ extern u8 pDeltaBuffer[480 * 2592];
 extern int opengl;
 
 int SetVideoMode(int, int, int, bool);
+void FramerateDelay();
 
 // Frees all VESA shit when returning to textmode
 int video_set_mode(s_videomodes);
