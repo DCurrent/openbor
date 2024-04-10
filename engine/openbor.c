@@ -45735,11 +45735,13 @@ void update(int ingame, int usevwait)
     {
         u64 update_start = timer_uticks();
         int refresh_rate = video_current_refresh_rate();
-        u64 target_time = update_start + 1000000/refresh_rate - 3000;
+        s64 target_time = update_start + 1000000/refresh_rate - 3000;
+        writeToLogFile("update_start=%llu target_time=%lli time_to_wait=%lli refresh_rate=%i\n", update_start, target_time, target_time - update_start, refresh_rate);
         while (timer_uticks() < target_time)
         {
             usleep(target_time - timer_uticks());
         }
+        writeToLogFile("done waiting\n");
     }
 
     getinterval();
