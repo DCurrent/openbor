@@ -11843,7 +11843,6 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
 	float a = 0;
     e_direction direction = DIRECTION_LEFT;
 	e_projectile_type type = PROJECTILE_TYPE_KNIFE;
-    e_projectile_prime projectile_prime = PROJECTILE_PRIME_NONE;
     int map = 0;
 	int model_index = MODEL_INDEX_NONE;
 	int relative = 0;
@@ -12022,13 +12021,13 @@ HRESULT openbor_projectile(ScriptVariant **varlist , ScriptVariant **pretvar, in
         // behavior to both be tied to a single 0 or 1 value.
         if((LONG)ltemp)
         {
-            projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
-            projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
+            ent->projectile_prime |= PROJECTILE_PRIME_BASE_FLOOR;
+            ent->projectile_prime |= PROJECTILE_PRIME_LAUNCH_STATIONARY;
         }
         else
         {
-            projectile_prime |= PROJECTILE_PRIME_BASE_Y;
-            projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
+            ent->projectile_prime |= PROJECTILE_PRIME_BASE_Y;
+            ent->projectile_prime |= PROJECTILE_PRIME_LAUNCH_MOVING;
         }
     }	
 
@@ -13338,6 +13337,7 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
 {
     e_blend_mode temp;
     DOUBLE temp2;
+    LONG temp3;
     switch(propind)
     {
     case _glp_alpha:
@@ -13406,11 +13406,11 @@ HRESULT _changelayerproperty(s_layer *layer, int propind, ScriptVariant *var)
     }
     case _glp_watermode:
     {
-        if(FAILED(ScriptVariant_IntegerValue(var, &temp)))
+        if(FAILED(ScriptVariant_IntegerValue(var, &temp3)))
         {
             return E_FAIL;
         }
-        layer->drawmethod.water.watermode = temp;
+        layer->drawmethod.water.watermode = temp3;
         break;
     }
 
