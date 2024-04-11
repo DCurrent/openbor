@@ -14,12 +14,6 @@
 #include <locale.h>
 #include <math.h>
 
-#ifndef DARWIN
-#ifdef LINUX
-#include <features.h>
-#endif
-#endif
-
 #include "stringptr.h"
 #include "utils.h"
 #include "stristr.h"
