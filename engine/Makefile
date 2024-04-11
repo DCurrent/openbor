@@ -559,11 +559,11 @@ endif
 
 ifdef BUILD_SDL
 ifeq ($(findstring DGE, $(SDKPATH)), DGE)
-LIBS           += -lSDL -lSDL_gfx -lts # Kratus (01-2023) Added a FPS limit option in the video settings
+LIBS           += -lSDL -lts
 else
 COMMA		=,
 RPATH_LIBS	= $(addprefix -Wl$(COMMA)-rpath$(COMMA),"$(LIBRARIES)")
-LIBS	       += $(RPATH_LIBS) -lSDL2 -lSDL2_gfx # Kratus (01-2023) Added a FPS limit option in the video settings
+LIBS	       += $(RPATH_LIBS) -lSDL2
 
 ifdef CROSSCOMPILE_LINUX_WIN
 LIBS	       += -lsetupapi
