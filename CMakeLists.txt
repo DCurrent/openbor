@@ -73,7 +73,7 @@ endif()
 if(BUILD_WIN)
   include("cmake/windows.cmake")
 elseif(BUILD_DARWIN)
-  include("cmake/osx-arm.cmake")
+  include("cmake/macos.cmake")
 elseif(BUILD_LINUX)
   include("cmake/linux.cmake")
 endif()
@@ -184,11 +184,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # Target Finalization
 if(BUILD_WIN)
-  target_link_libraries(${PROJECT_NAME} PUBLIC
-    -lsetupapi -lhid -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -luuid -limm32 -lversion -mwindows
-  )
+  include("cmake/windows-finalize.cmake")
 elseif(BUILD_DARWIN)
-  include("cmake/osx-universal.cmake")
+  include("cmake/macos-finalize.cmake")
 endif()
 
 # Distribution Preperation
