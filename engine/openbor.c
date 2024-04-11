@@ -42353,15 +42353,9 @@ void kill_all_enemies()
 
 void smart_bomb(entity *e, s_attack *attack)    // New method for smartbombs
 {
-    int i, hostile, hit = 0;
+    int i, hit = 0;
     entity *tmpself = NULL;
     s_defense* defense_object = NULL;
-
-    hostile = e->faction.type_hostile;
-    if(e->modeldata.type & TYPE_PLAYER)
-    {
-        hostile &= ~(TYPE_PLAYER);
-    }
 
     tmpself = self;
     for(i = 0; i < ent_max; i++)
@@ -44991,7 +44985,6 @@ void update_scrolled_bg()
 {
     float rocktravel;
     unsigned char neonp[32];//3*8
-    static int neon_count = 0;
     static int rockpos = 0;
     static int rockoffssine[32] =
     {
@@ -45024,7 +45017,6 @@ void update_scrolled_bg()
         memcpy(neontable + (128 + 6)*pb, neonp, 2 * pb);
 
         neon_time = _time + (GAME_SPEED / 3);
-        neon_count += 2;
     }
 
     if(!freezeall)
