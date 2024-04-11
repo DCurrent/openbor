@@ -49121,6 +49121,12 @@ void menu_options_input()
                 --selector;
             }
 
+            // skip over invisible configuration entries for non-existent players
+            while (selector >= 4 && selector <= 7 && selector - 4 >= max_players)
+            {
+                --selector;
+            }
+
             // skip over invisible device selection entries for non-existent players
             if (selector < 4 && selector >= max_players)
             {
@@ -49143,6 +49149,12 @@ void menu_options_input()
 
             // skip over invisible configuration entries for non-existent devices
             while (selector >= 4 && selector <= 7 && !control_isvaliddevice(playercontrolpointers[selector - 4]->deviceID))
+            {
+                ++selector;
+            }
+
+            // skip over invisible configuration entries for non-existent players
+            while (selector >= 4 && selector <= 7 && selector - 4 >= max_players)
             {
                 ++selector;
             }
