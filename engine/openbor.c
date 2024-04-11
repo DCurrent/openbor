@@ -45733,11 +45733,11 @@ void update(int ingame, int usevwait)
 #if SDL
     if (savedata.fpslimit == 1) // vsync enabled
     {
-        // To reduce input latency, wait until the last 3 ms (3000 μs) of the current
+        // To reduce input latency, wait until the last 4 ms (4000 μs) of the current
         // frame to read inputs or do anything else. We can get away with this because
         // the CPUs of all modern computers - even phones and low-end, outdated PCs -
         // are complete overkill for OpenBOR's needs.
-        s64 target_time = timer_uticks() + 1000000/video_current_refresh_rate() - 3000;
+        s64 target_time = timer_uticks() + 1000000/video_current_refresh_rate() - 4000;
         u64 current_time = timer_uticks();
         while (current_time < target_time)
         {
