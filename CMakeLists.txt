@@ -141,7 +141,6 @@ if(BUILD_SDL)
     -L${png-mingw_SOURCE_DIR}/mingw32/lib
     -L${vpx-mingw_SOURCE_DIR}/mingw32/lib
     -L/usr/i686-w64-mingw32/lib
-    -lsetupapi -lhid -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -luuid -limm32 -lversion -mwindows
   )
 
 endif()
