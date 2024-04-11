@@ -254,7 +254,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 
 	// try to disable vertical retrace syncing (VSync)
-	if(SDL_GL_SetSwapInterval(!!savedata.vsync) < 0)
+	if(SDL_GL_SetSwapInterval(savedata.fpslimit == 1) < 0)
 	{
 		printf("Warning: can't disable vertical retrace sync (%s)...\n", SDL_GetError());
 	}
@@ -394,11 +394,7 @@ int video_gl_copy_screen(s_videosurface* surface)
 	// display the rendered frame on the screen
 	SDL_GL_SwapWindow(window);
 
-	// Kratus (01-2023) Added a FPS limit option in the video settings
-	#if WIN || LINUX
-	if(savedata.fpslimit){SDL_framerateDelay(&framerate_manager);}
-
-	#endif
+	if (savedata.fpslimit >= 2) FramerateDelay();
 
 	return 1;
 }
