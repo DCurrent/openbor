@@ -1251,7 +1251,7 @@ void pp_parser_insert_macro(pp_parser *self, char *name)
  */
 HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
 {
-    int numParams, paramCount = 0, paramMacros = 0, parenLevel = 0, type;
+    int numParams, paramCount = 0, parenLevel = 0, type;
     List* params, *paramDefs; // note that params is different from self->params
     char paramBuffer[1024] = "", *tail;
 
@@ -1331,7 +1331,6 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
             if(strncmp(paramBuffer, List_GetName(params), sizeof(paramBuffer)) != 0)
             {
                 // add the new macro to the beginning of the macro list
-                paramMacros++;
                 List_InsertAfter(paramDefs, strdup(paramBuffer), List_GetName(params));
             }
 
