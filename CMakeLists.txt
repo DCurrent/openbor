@@ -24,7 +24,7 @@ option(BUILD_MMX     "Enable MMX Instructions" OFF)
 # Default Compilation Flags
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(COMMON_COMPILER_FLAGS "-Wall -Wno-void-pointer-to-enum-cast -fsigned-char")
+set(COMMON_COMPILER_FLAGS "-Wall -fsigned-char")
 
 # Generate Version Header
 add_custom_target(VersionInfo ALL
@@ -70,7 +70,9 @@ if(NOT (BUILD_WIN OR BUILD_LINUX OR BUILD_DARWIN OR BUILD_WII))
 endif()
 
 # Target Configuration Modules
-if(BUILD_DARWIN)
+if(BUILD_WIN)
+  include("cmake/windows.cmake")
+elseif(BUILD_DARWIN)
   include("cmake/osx-arm.cmake")
 elseif(BUILD_LINUX)
   include("cmake/linux.cmake")
@@ -129,6 +131,19 @@ if(BUILD_SDL)
     SDL2_gfx
     SDL2main
   )
+  target_link_libraries(${PROJECT_NAME} PRIVATE
+    -Wl,-Bstatic
+    -L${sdl2-mingw_SOURCE_DIR}/mingw32/lib
+    -L${sdl2_gfx-mingw_SOURCE_DIR}/mingw32/lib
+    -L${zlib-mingw_SOURCE_DIR}/mingw32/lib
+    -L${vorbis-mingw_SOURCE_DIR}/mingw32/lib
+    -L${ogg-mingw_SOURCE_DIR}/mingw32/lib
+    -L${png-mingw_SOURCE_DIR}/mingw32/lib
+    -L${vpx-mingw_SOURCE_DIR}/mingw32/lib
+    -L/usr/i686-w64-mingw32/lib
+    -lsetupapi -lhid -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -luuid -limm32 -lversion -mwindows
+  )
+
 endif()
 
 # Static linkage skips SDL
@@ -181,8 +196,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   m
 )
 
-# Target Configuration Modules (Finalization) 
-if(BUILD_DARWIN)
+# Target Finalization
+if(BUILD_WIN)
+  target_link_libraries(${PROJECT_NAME} PUBLIC
+    -lsetupapi -lhid -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -luuid -limm32 -lversion -mwindows
+  )
+elseif(BUILD_DARWIN)
   include("cmake/osx-universal.cmake")
 endif()
 

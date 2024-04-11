@@ -6,6 +6,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get -y install --no-install-recommends \
     cmake build-essential yasm \
+    gcc-mingw-w64 \
     gcc-12-i686-linux-gnu \
     gcc-12-aarch64-linux-gnu \
     libsdl2-dev libsdl2-dev:i386 libsdl2-dev:arm64 \

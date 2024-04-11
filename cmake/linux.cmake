@@ -1,4 +1,4 @@
-set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-deprecated-declarations")
+set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-cast -Wno-deprecated-declarations")
 
 set(BUILD_SDL     ON)
 set(BUILD_SDL_IO  ON)
