@@ -48888,6 +48888,13 @@ finish:
         int deviceID = playercontrolpointers[player]->deviceID;
         int *mapping = control_getmappings(deviceID);
 
+        // if a device is disconnected while it's being configured
+        if (!control_isvaliddevice(playercontrolpointers[player]->deviceID))
+        {
+            quit = 1;
+            break;
+        }
+
         voffset = -6;
         _menutextm(2, -8, 0, Tr("Player %i"), player + 1);
         for(i = 0; i < btnnum; i++)
