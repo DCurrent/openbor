@@ -1,4 +1,5 @@
 set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-deprecated-declarations -fstack-protector-all")
+set(ARCH_SUFFIX "")
 
 set(BUILD_SDL     ON)
 set(BUILD_SDL_IO  ON)
@@ -56,6 +57,7 @@ if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
   )
   FetchContent_MakeAvailable(vpx-mingw)
 
+  set(ARCH_SUFFIX "-x64")
   set(CMAKE_C_COMPILER x86_64-w64-mingw32-gcc)
   add_definitions(-DELF -DAMD64)
   target_include_directories(${PROJECT_NAME} PRIVATE
@@ -122,6 +124,7 @@ elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
   )
   FetchContent_MakeAvailable(vpx-mingw)
 
+  set(ARCH_SUFFIX "-x86")
   set(CMAKE_C_COMPILER i686-w64-mingw32-gcc)
   add_definitions(-DELF)
   set(BUILD_MMX ON)
@@ -146,6 +149,9 @@ elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
     -L${png-mingw_SOURCE_DIR}/mingw32/lib
     -L${vpx-mingw_SOURCE_DIR}/mingw32/lib
   )
+else()
+  message(NOTICE "Supported DOCKER_ARCH=[X86|AMD64]")
+  message(FATAL_ERROR "Unsupported Docker Architecture")
 endif()
 
 add_definitions(-DWIN)
@@ -157,5 +163,5 @@ add_custom_command(TARGET ${PROJECT_NAME}
   COMMAND mkdir -p ../engine/releases/WINDOWS/Paks
   COMMAND mkdir -p ../engine/releases/WINDOWS/Saves
   COMMAND mkdir -p ../engine/releases/WINDOWS/ScreenShots
-  COMMAND cp -a ${PROJECT_NAME}.exe ../engine/releases/WINDOWS/
+  COMMAND cp -a ${PROJECT_NAME}.exe ../engine/releases/WINDOWS/${PROJECT_NAME}${ARCH_SUFFIX}.exe
 )
