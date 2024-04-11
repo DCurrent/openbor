@@ -307,10 +307,10 @@ void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int
                        "\n*            Shutting Down            *\n\n");
         writeToLogFile("Out of memory!\n");
         writeToLogFile("Allocation of size %i failed in function '%s' at %s:%i.\n", size, func, file, line);
-#ifndef WIN
-        writeToLogFile("Memory usage at exit: %u\n", mallinfo().arena);
-#elif LINUX
+#if LINUX && !DARWIN
         writeToLogFile("Memory usage at exit: %u\n", mallinfo2().arena);
+#else
+        writeToLogFile("Memory usage at exit: %u\n", getUsedRam(BYTES));
 #endif
         borExit(2);
     }
