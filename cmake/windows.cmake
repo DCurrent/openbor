@@ -22,12 +22,6 @@ if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
   FetchContent_MakeAvailable(sdl2-mingw)
 
   FetchContent_Declare(
-    sdl2_gfx-mingw
-    URL https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-SDL2_gfx-1.0.4-2-any.pkg.tar.zst
-  )
-  FetchContent_MakeAvailable(sdl2_gfx-mingw)
-
-  FetchContent_Declare(
     zlib-mingw
     URL https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-zlib-1.3.1-1-any.pkg.tar.zst
   )
@@ -63,7 +57,6 @@ if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
   target_include_directories(${PROJECT_NAME} PRIVATE
     ${sdl2-mingw_SOURCE_DIR}/mingw64/include
     ${sdl2-mingw_SOURCE_DIR}/mingw64/include/SDL2
-    ${sdl2_gfx-mingw_SOURCE_DIR}/mingw64/include/SDL2
     ${zlib-mingw_SOURCE_DIR}/mingw64/include
     ${vorbis-mingw_SOURCE_DIR}/mingw64/include
     ${ogg-mingw_SOURCE_DIR}/mingw64/include
@@ -74,7 +67,6 @@ if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
     -Wl,-Bstatic
     -L/usr/x86_64-w64-mingw32/lib
     -L${sdl2-mingw_SOURCE_DIR}/mingw64/lib
-    -L${sdl2_gfx-mingw_SOURCE_DIR}/mingw64/lib
     -L${zlib-mingw_SOURCE_DIR}/mingw64/lib
     -L${vorbis-mingw_SOURCE_DIR}/mingw64/lib
     -L${ogg-mingw_SOURCE_DIR}/mingw64/lib
@@ -87,12 +79,6 @@ elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
     URL https://mirror.msys2.org/mingw/mingw32/mingw-w64-i686-SDL2-2.30.2-1-any.pkg.tar.zst
   )
   FetchContent_MakeAvailable(sdl2-mingw)
-
-  FetchContent_Declare(
-    sdl2_gfx-mingw
-    URL https://mirror.msys2.org/mingw/mingw32/mingw-w64-i686-SDL2_gfx-1.0.4-2-any.pkg.tar.zst
-  )
-  FetchContent_MakeAvailable(sdl2_gfx-mingw)
 
   FetchContent_Declare(
     zlib-mingw
@@ -131,7 +117,6 @@ elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
   target_include_directories(${PROJECT_NAME} PRIVATE
     ${sdl2-mingw_SOURCE_DIR}/mingw32/include
     ${sdl2-mingw_SOURCE_DIR}/mingw32/include/SDL2
-    ${sdl2_gfx-mingw_SOURCE_DIR}/mingw32/include/SDL2
     ${zlib-mingw_SOURCE_DIR}/mingw32/include
     ${vorbis-mingw_SOURCE_DIR}/mingw32/include
     ${ogg-mingw_SOURCE_DIR}/mingw32/include
@@ -142,7 +127,6 @@ elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
     -Wl,-Bstatic
     -L/usr/i686-w64-mingw32/lib
     -L${sdl2-mingw_SOURCE_DIR}/mingw32/lib
-    -L${sdl2_gfx-mingw_SOURCE_DIR}/mingw32/lib
     -L${zlib-mingw_SOURCE_DIR}/mingw32/lib
     -L${vorbis-mingw_SOURCE_DIR}/mingw32/lib
     -L${ogg-mingw_SOURCE_DIR}/mingw32/lib

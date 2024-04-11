@@ -1,4 +1,5 @@
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
+set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-cast")
 
 set(BUILD_LINUX   ON)
 set(BUILD_SDL     ON)

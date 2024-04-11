@@ -9,7 +9,7 @@ option(BUILD_DARWIN "MacOS" OFF)
 option(BUILD_WII    "Nintendo Wii Console" OFF)
 
 # Backends
-option(DOCKER_ARCH   "Docker Architecture")
+option(DOCKER_ARCH   "Docker Architecture" OFF)
 option(BUILD_STATIC  "Enable Static Linking" OFF)
 option(BUILD_SDL     "Enable SDL" OFF)
 option(BUILD_OPENGL  "Enable OpenGL" OFF)
@@ -128,21 +128,8 @@ if(BUILD_SDL)
   )
   target_link_libraries(${PROJECT_NAME} PUBLIC
     SDL2
-    SDL2_gfx
     SDL2main
   )
-  target_link_libraries(${PROJECT_NAME} PRIVATE
-    -Wl,-Bstatic
-    -L${sdl2-mingw_SOURCE_DIR}/mingw32/lib
-    -L${sdl2_gfx-mingw_SOURCE_DIR}/mingw32/lib
-    -L${zlib-mingw_SOURCE_DIR}/mingw32/lib
-    -L${vorbis-mingw_SOURCE_DIR}/mingw32/lib
-    -L${ogg-mingw_SOURCE_DIR}/mingw32/lib
-    -L${png-mingw_SOURCE_DIR}/mingw32/lib
-    -L${vpx-mingw_SOURCE_DIR}/mingw32/lib
-    -L/usr/i686-w64-mingw32/lib
-  )
-
 endif()
 
 # Static linkage skips SDL

@@ -10,7 +10,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     gcc-12-i686-linux-gnu \
     gcc-12-aarch64-linux-gnu \
     libsdl2-dev libsdl2-dev:i386 libsdl2-dev:arm64 \
-    libsdl2-gfx-dev libsdl2-gfx-dev:i386 libsdl2-gfx-dev:arm64 \
     libvorbis-dev libvorbis-dev:i386 libvorbis-dev:arm64 \
     libpng-dev libpng-dev:i386 libpng-dev:arm64 \
     libvpx-dev libvpx-dev:i386 libvpx-dev:arm64

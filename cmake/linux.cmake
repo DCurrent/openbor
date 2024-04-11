@@ -27,7 +27,7 @@ elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
     PROPERTIES
     LINK_DIRECTORIES "/usr/lib/i386-linux-gnu"
   )
-elseif(DEFINED DOCKER_ARCH)
+elseif(DOCKER_ARCH)
   message(NOTICE "Supported DOCKER_ARCH=[X86|ARM64]")
   message(FATAL_ERROR "Unsupported Docker Architecture")
 else()
