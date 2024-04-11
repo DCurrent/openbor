@@ -49116,7 +49116,7 @@ void menu_options_input()
             }
 
             // skip over invisible configuration entries for non-existent devices
-            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(selector - 4))
+            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(playercontrolpointers[selector - 4]->deviceID))
             {
                 --selector;
             }
@@ -49142,7 +49142,7 @@ void menu_options_input()
             }
 
             // skip over invisible configuration entries for non-existent devices
-            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(selector - 4))
+            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(playercontrolpointers[selector - 4]->deviceID))
             {
                 ++selector;
             }
