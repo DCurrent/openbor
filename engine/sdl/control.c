@@ -896,6 +896,8 @@ static void control_update_android_touch(TouchStatus *touch_info, int maxp)
     Uint8* keystate = (Uint8*) SDL_GetKeyboardState(NULL);
     SDL_Event event;
 
+    if (keyboardDeviceID < 0) return;
+
     memset(touchstates, 0, sizeof(touchstates));
 
     for(j=0; j<MAXTOUCHB; j++)
