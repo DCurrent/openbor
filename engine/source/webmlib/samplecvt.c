@@ -40,10 +40,6 @@
 
 #include "samplecvt.h"
 
-#ifdef LINUX
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#endif
-
 #if TREMOR
 
 static inline ogg_int32_t CLIP_TO_15(ogg_int32_t x)
