@@ -1970,42 +1970,6 @@ typedef struct s_metric_range {
 
 typedef struct
 {
-    unsigned compatibleversion;
-    char dName[MAX_NAME_LEN]; // Difficulty Name
-    unsigned level; // Level Number
-    unsigned stage; // Stage
-    unsigned pLives[MAX_PLAYERS]; // Player Lives Left
-    unsigned pCredits[MAX_PLAYERS]; // Player Credits Left
-    unsigned pScores[MAX_PLAYERS]; // Player Scores
-    unsigned credits; // Number Of Credits
-    unsigned times_completed;
-    unsigned which_set;
-    //-------------------new strict save features-----------------------
-    int flag; // 0 useless slot 1 only load level number 2 load player info and level
-    char pName[MAX_PLAYERS][MAX_NAME_LEN];   // player names
-    int pSpawnhealth[MAX_PLAYERS];              // hit points left
-    int pSpawnmp[MAX_PLAYERS];                  // magic points left
-    int pWeapnum[MAX_PLAYERS];                  // weapon
-    int pColourmap[MAX_PLAYERS];                // colour map
-
-    int selectFlag;                             // saved a select.txt infos
-    char allowSelectArgs[MAX_ALLOWSELECT_LEN];      // allowselect arguments
-    char selectMusic[MAX_ARG_LEN];          // select music arguments
-    char selectBackground[MAX_ARG_LEN];     // select background arguments
-    char selectLoad[MAX_SELECT_LOADS][MAX_ARG_LEN];           // select load arguments
-    int selectLoadCount;
-    char selectSkipSelect[MAX_ARG_LEN];     // skipselect arguments
-} s_savelevel;
-
-typedef struct
-{
-    unsigned compatibleversion;
-    unsigned highsc[10];
-    char hscoren[10][MAX_NAME_LEN];
-} s_savescore;
-
-typedef struct
-{
     /*
     Slow motion struct
     Damon V. Caskey
@@ -4726,6 +4690,49 @@ int freeRecordedInputs(void);
 a_playrecstatus* init_input_recorder(void);
 void free_input_recorder(void);
 void goto_mainmenu(int);
+
+/**
+ *  Only structures written to disk need to be packed.
+ */
+#pragma pack(1)
+
+typedef struct
+{
+    unsigned compatibleversion;
+    char dName[MAX_NAME_LEN]; // Difficulty Name
+    unsigned level; // Level Number
+    unsigned stage; // Stage
+    unsigned pLives[MAX_PLAYERS]; // Player Lives Left
+    unsigned pCredits[MAX_PLAYERS]; // Player Credits Left
+    unsigned pScores[MAX_PLAYERS]; // Player Scores
+    unsigned credits; // Number Of Credits
+    unsigned times_completed;
+    unsigned which_set;
+    //-------------------new strict save features-----------------------
+    int flag; // 0 useless slot 1 only load level number 2 load player info and level
+    char pName[MAX_PLAYERS][MAX_NAME_LEN];   // player names
+    int pSpawnhealth[MAX_PLAYERS];              // hit points left
+    int pSpawnmp[MAX_PLAYERS];                  // magic points left
+    int pWeapnum[MAX_PLAYERS];                  // weapon
+    int pColourmap[MAX_PLAYERS];                // colour map
+
+    int selectFlag;                             // saved a select.txt infos
+    char allowSelectArgs[MAX_ALLOWSELECT_LEN];      // allowselect arguments
+    char selectMusic[MAX_ARG_LEN];          // select music arguments
+    char selectBackground[MAX_ARG_LEN];     // select background arguments
+    char selectLoad[MAX_SELECT_LOADS][MAX_ARG_LEN];           // select load arguments
+    int selectLoadCount;
+    char selectSkipSelect[MAX_ARG_LEN];     // skipselect arguments
+} s_savelevel;
+
+typedef struct
+{
+    unsigned compatibleversion;
+    unsigned highsc[10];
+    char hscoren[10][MAX_NAME_LEN];
+} s_savescore;
+
+#pragma pack()
 
 extern s_savelevel   *savelevel;
 extern s_savescore    savescore;

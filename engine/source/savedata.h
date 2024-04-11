@@ -12,6 +12,11 @@
 #define     MAX_PLAYERS         4
 #define     MAX_BTN_NUM         13
 
+/**
+ *  Only structures written to disk need to be packed.
+ */
+#pragma pack(1)
+
 typedef struct
 {
     unsigned compatibleversion;
@@ -47,6 +52,8 @@ typedef struct
     int is_touchpad_vibration_enabled;
 #endif
 } s_savedata;
+
+#pragma pack()
 
 extern s_savedata     savedata;
 
