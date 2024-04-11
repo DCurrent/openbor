@@ -1,43 +1,23 @@
-  if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
-    target_include_directories(${PROJECT_NAME} PRIVATE
-      ${sdl2-mingw_SOURCE_DIR}/mingw64/include
-      ${sdl2-mingw_SOURCE_DIR}/mingw64/include/SDL2
-      ${zlib-mingw_SOURCE_DIR}/mingw64/include
-      ${vorbis-mingw_SOURCE_DIR}/mingw64/include
-      ${ogg-mingw_SOURCE_DIR}/mingw64/include
-      ${png-mingw_SOURCE_DIR}/mingw64/include
-      ${vpx-mingw_SOURCE_DIR}/mingw64/include
-    )
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-      -Wl,-Bstatic
-      -L/usr/x86_64-w64-mingw32/lib
-      -L${sdl2-mingw_SOURCE_DIR}/mingw64/lib
-      -L${zlib-mingw_SOURCE_DIR}/mingw64/lib
-      -L${vorbis-mingw_SOURCE_DIR}/mingw64/lib
-      -L${ogg-mingw_SOURCE_DIR}/mingw64/lib
-      -L${png-mingw_SOURCE_DIR}/mingw64/lib
-      -L${vpx-mingw_SOURCE_DIR}/mingw64/lib
-    )
-  elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
-    target_include_directories(${PROJECT_NAME} PRIVATE
-      ${sdl2-mingw_SOURCE_DIR}/mingw32/include
-      ${sdl2-mingw_SOURCE_DIR}/mingw32/include/SDL2
-      ${zlib-mingw_SOURCE_DIR}/mingw32/include
-      ${vorbis-mingw_SOURCE_DIR}/mingw32/include
-      ${ogg-mingw_SOURCE_DIR}/mingw32/include
-      ${png-mingw_SOURCE_DIR}/mingw32/include
-      ${vpx-mingw_SOURCE_DIR}/mingw32/include
-    )
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-      -Wl,-Bstatic
-      -L/usr/i686-w64-mingw32/lib
-      -L${sdl2-mingw_SOURCE_DIR}/mingw32/lib
-      -L${zlib-mingw_SOURCE_DIR}/mingw32/lib
-      -L${vorbis-mingw_SOURCE_DIR}/mingw32/lib
-      -L${ogg-mingw_SOURCE_DIR}/mingw32/lib
-      -L${png-mingw_SOURCE_DIR}/mingw32/lib
-      -L${vpx-mingw_SOURCE_DIR}/mingw32/lib
-    )
+if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
+  target_include_directories(${PROJECT_NAME} PRIVATE
+    /opt/mingw64/include
+    /opt/mingw64/include/SDL2
+  )
+  target_link_libraries(${PROJECT_NAME} PRIVATE
+    -Wl,-Bstatic
+    -L/usr/x86_64-w64-mingw32/lib
+    -L/opt/mingw64/lib
+  )
+elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
+  target_include_directories(${PROJECT_NAME} PRIVATE
+    /opt/mingw32/include
+    /opt/mingw32/include/SDL2
+  )
+  target_link_libraries(${PROJECT_NAME} PRIVATE
+    -Wl,-Bstatic
+    -L/usr/i686-w64-mingw32/lib
+    -L/opt/mingw32/lib
+  )
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
