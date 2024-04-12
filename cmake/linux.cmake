@@ -27,9 +27,6 @@ elseif(TARGET_ARCH STREQUAL "x86")
     PROPERTIES
     LINK_DIRECTORIES "/usr/lib/i386-linux-gnu"
   )
-elseif(TARGET_ARCH)
-  message(NOTICE "Supported TARGET_ARCH=[X86|ARM64]")
-  message(FATAL_ERROR "Unsupported Docker Architecture")
 else()
   if(CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
     set(ARCH_SUFFIX "-x64")
