@@ -9,7 +9,7 @@ option(BUILD_DARWIN "MacOS" OFF)
 option(BUILD_WII    "Nintendo Wii Console" OFF)
 
 # Backends
-option(DOCKER_ARCH   "Docker Architecture" OFF)
+option(TARGET_ARCH   "[X86,AMD64,ARM64,UNIVERAL]" OFF)
 option(BUILD_STATIC  "Enable Static Linking" OFF)
 option(BUILD_SDL     "Enable SDL" OFF)
 option(BUILD_OPENGL  "Enable OpenGL" OFF)
@@ -20,6 +20,10 @@ option(BUILD_VORBIS  "Enable Vorbis" OFF)
 option(BUILD_TREMOR  "Enable Tremor" OFF)
 option(BUILD_GFX     "Enable Video Scaling" OFF)
 option(BUILD_MMX     "Enable MMX Instructions" OFF)
+
+# Standardize String Values
+string(TOLOWER "${TARGET_ARCH}" TARGET_ARCH)
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR)
 
 # Default Compilation Flags
 set(CMAKE_C_STANDARD 99)
@@ -57,15 +61,17 @@ add_dependencies(${PROJECT_NAME} VersionInfo)
 
 # Auto-Detect
 if(NOT (BUILD_WIN OR BUILD_LINUX OR BUILD_DARWIN OR BUILD_WII))
-  if(APPLE)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(BUILD_DARWIN ON)
     message("Build target not specified, BUILD_DARWIN=ON")
-  elseif(UNIX)
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(BUILD_LINUX ON)
     message("Build target not specified, BUILD_LINUX=ON")
-  else()
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(BUILD_WIN ON)
     message("Build target not specified, BUILD_WIN=ON")
+  else()
+    message(FATAL_ERROR "Unsupported Host OS Detected!")    
   endif()
 endif()
 

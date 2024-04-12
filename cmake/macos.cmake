@@ -1,3 +1,12 @@
+# Find Dependencies
+find_program(BREW brew -v)
+if(BREW)
+  message(NOTICE "Native Homebrew installation detected")
+  set(CMAKE_PREFIX_PATH "/opt/homebrew")
+else()
+  message(FATAL_ERROR "Homebrew not installed: https://brew.sh")
+endif()
+
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
 set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-cast")
 
@@ -18,16 +27,16 @@ find_library(AUDIOUNIT_LIBRARY AudioUnit)
 find_library(IOKIT_LIBRARY IOKit)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
-  /opt/homebrew/include
-  /opt/homebrew/include/SDL2
+  ${CMAKE_PREFIX_PATH}/include
+  ${CMAKE_PREFIX_PATH}/include/SDL2
   ${SDKPATH}/usr/include/malloc
 )
 
 set_target_properties(${PROJECT_NAME}
   PROPERTIES
   OSX_ARCHITECTURES "arm64"
-  LINK_DIRECTORIES "/opt/homebrew/lib"
-  LINK_FLAGS "-headerpad_max_install_names"
+  LINK_DIRECTORIES ${CMAKE_PREFIX_PATH}/lib
+  LINK_FLAGS -headerpad_max_install_names
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

@@ -1,4 +1,4 @@
-if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
+if(TARGET_ARCH STREQUAL "amd64")
   target_include_directories(${PROJECT_NAME} PRIVATE
     /opt/mingw64/include
     /opt/mingw64/include/SDL2
@@ -8,7 +8,7 @@ if(DOCKER_ARCH MATCHES "(amd64)|(AMD64)")
     -L/usr/x86_64-w64-mingw32/lib
     -L/opt/mingw64/lib
   )
-elseif(DOCKER_ARCH MATCHES "(x86)|(X86)")
+elseif(TARGET_ARCH STREQUAL "x86")
   target_include_directories(${PROJECT_NAME} PRIVATE
     /opt/mingw32/include
     /opt/mingw32/include/SDL2

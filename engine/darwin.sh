@@ -14,7 +14,7 @@
 IFS=$'\n'
 
 lib_paths=("/opt/homebrew" "/usr/local/homebrew")
-lib_targets=("arm" "x86")
+lib_targets=("native" "others")
 
 for ((i = 0; i < ${#lib_paths[@]}; i = $i + 1)); do
   lib_files=(`otool -L releases/Darwin/OpenBOR.app/Contents/MacOS/OpenBOR | grep -o "${lib_paths[i]}/.*" | sed 's/[[:space:]].*//g'`)
