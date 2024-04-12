@@ -27,4 +27,7 @@ RUN curl -L https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-SDL2-2.30.2-
     curl -L https://mirror.msys2.org/mingw/mingw32/mingw-w64-i686-libogg-1.3.5-1-any.pkg.tar.zst | tar --use-compress-program=unzstd -xv -C /opt && \
     curl -L https://mirror.msys2.org/mingw/mingw32/mingw-w64-i686-libpng-1.6.43-1-any.pkg.tar.zst | tar --use-compress-program=unzstd -xv -C /opt && \
     curl -L https://mirror.msys2.org/mingw/mingw32/mingw-w64-i686-libvpx-1.14.0-1-any.pkg.tar.zst | tar --use-compress-program=unzstd -xv -C /opt
-    
+
+# DevkitPRO
+COPY installDevkitPro.sh .
+RUN ./installDevkitPro.sh
