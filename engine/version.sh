@@ -60,7 +60,7 @@ fi
 }
 
 function write_version {
-rm -rf version.h
+rm -rf version.tmp
 echo "/*
  * OpenBOR - http://www.ChronoCrash.com
  * -----------------------------------------------------------------------
@@ -76,17 +76,17 @@ echo "/*
 #define VERSION_MAJOR \"$VERSION_MAJOR\"
 #define VERSION_MINOR \"$VERSION_MINOR\"
 #define VERSION_BUILD \"$VERSION_BUILD\"
-#define VERSION_BUILD_INT $VERSION_BUILD" >> version.h
+#define VERSION_BUILD_INT $VERSION_BUILD" >> version.tmp
 
 if [ -z "${VERSION_COMMIT}" ]; then
   echo "#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
 
-#endif" >> version.h
+#endif" >> version.tmp
 else
   echo "#define VERSION_COMMIT \"${VERSION_COMMIT}\"
 #define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD\" (commit hash: \"VERSION_COMMIT\")\"
 
-#endif" >> version.h
+#endif" >> version.tmp
 fi
 
 rm -rf resources/meta.xml
@@ -176,6 +176,25 @@ All Rights Reserved</string>
 </plist>" >> resources/Info.plist
 }
 
+function replace_version {
+  if [ ! -f version.h ]; then
+    mv version.tmp version.h
+  else
+    OLD=""
+    NEW=""
+    if command -v md5sum &> /dev/null; then
+      OLD=`md5sum version.h`
+      NEW=`md5sum version.tmp`
+    elif command -v md5 &> /dev/null; then
+      OLD=`md5 version.h | awk '{print $4}'`
+      NEW=`md5 version.tmp | awk '{print $4}'`
+    fi
+    if [ "${OLD}" != "${NEW}" ]; then
+      mv version.tmp version.h
+    fi
+  fi
+}
+
 function archive_release {
 #TRIMMED_URL=`svn info | grep "URL:" | sed s/URL:\ svn\+ssh//g`
 #if test -n $TRIMMED_URL;  then
@@ -200,6 +219,7 @@ case $1 in
 *)
     read_version
     write_version
+    replace_version
     ;;
 esac
 
