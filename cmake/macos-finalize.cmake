@@ -3,7 +3,7 @@ if(TARGET_ARCH STREQUAL "universal")
   find_program(AXBREW axbrew -v)
   
   if(NOT AXBREW)
-    message(FATAL_ERROR "X86-64 Homebrew not installed: https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f")
+    message(FATAL_ERROR "X86-64 Homebrew not installed: https://github.com/SumolX/MacOS-Universal-Binary")
   else()
     message(NOTICE "X86-64 Homebrew installation detected")
     set(CMAKE_PREFIX_PATH "/usr/local/homebrew")
