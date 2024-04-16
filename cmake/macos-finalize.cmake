@@ -1,11 +1,12 @@
 if(TARGET_ARCH STREQUAL "universal")
   # Find Dependencies
   find_program(AXBREW axbrew -v)
-  if(BREW)
+  
+  if(NOT AXBREW)
+    message(FATAL_ERROR "X86-64 Homebrew not installed: https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f")
+  else()
     message(NOTICE "X86-64 Homebrew installation detected")
     set(CMAKE_PREFIX_PATH "/usr/local/homebrew")
-  else()
-    message(FATAL_ERROR "X86-64 Homebrew not installed: https://medium.com/mkdir-awesome/how-to-install-x86-64-homebrew-packages-on-apple-m1-macbook-54ba295230f")
   endif()  
 
   get_target_property(INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
