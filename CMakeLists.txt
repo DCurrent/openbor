@@ -40,7 +40,6 @@ add_custom_target(VersionInfo ALL
 # Collect Source Files
 file(GLOB         SRC_OBOR "engine/*.c"               "engine/*.h")
 file(GLOB         SRC_SDL  "engine/sdl/*.c"           "engine/sdl/*.h")
-file(GLOB         SRC_WII  "engine/wii/*.c"           "engine/wii/*.h")
 file(GLOB_RECURSE SRC_CORE "engine/source/*.c"        "engine/source/*.h")
 file(GLOB         SRC_GFX  "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
 file(GLOB         SRC_MMX  "engine/source/gfxlib/*.asm")
@@ -82,6 +81,8 @@ elseif(BUILD_DARWIN)
   include("cmake/macos.cmake")
 elseif(BUILD_LINUX)
   include("cmake/linux.cmake")
+elseif(BUILD_WII)
+  include("cmake/wii.cmake")
 endif()
 
 # Include Optional Source Files
@@ -95,10 +96,6 @@ endif()
 
 if(BUILD_SDL)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_SDL})
-endif()
-
-if(BUILD_WII)
-  target_sources(${PROJECT_NAME} PRIVATE ${SRC_WII})
 endif()
 
 # Compilation Flags
@@ -155,6 +152,7 @@ if(BUILD_VORBIS)
 endif()
 
 if(BUILD_TREMOR)
+  add_definitions(-DTREMOR)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     vorbisidec
     ogg

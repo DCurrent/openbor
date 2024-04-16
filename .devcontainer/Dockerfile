@@ -12,7 +12,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     libsdl2-dev libsdl2-dev:i386 libsdl2-dev:arm64 \
     libvorbis-dev libvorbis-dev:i386 libvorbis-dev:arm64 \
     libpng-dev libpng-dev:i386 libpng-dev:arm64 \
-    libvpx-dev libvpx-dev:i386 libvpx-dev:arm64
+    libvpx-dev libvpx-dev:i386 libvpx-dev:arm64 \
+    libbluetooth-dev
 
 # Windows MinGW X86_64 and I686 Libraries
 RUN curl -L https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-SDL2-2.30.2-1-any.pkg.tar.zst | tar --use-compress-program=unzstd -xv -C /opt && \
