@@ -5,8 +5,8 @@ endif()
 
 set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-maybe-uninitialized -Wno-stringop-truncation -Wno-enum-int-mismatch -Wno-array-bounds -Wno-stringop-overflow -Wno-address")
 
-set(BUILD_TREMOR ON)
-set(BUILD_WEBM   ON)
+set(USE_TREMOR ON)
+set(USE_WEBM   ON)
 
 add_definitions(
   -DWII

@@ -9,17 +9,20 @@ option(BUILD_DARWIN "MacOS" OFF)
 option(BUILD_WII    "Nintendo Wii Console" OFF)
 
 # Backends
-option(TARGET_ARCH   "[X86,AMD64,ARM64,UNIVERAL]" OFF)
-option(BUILD_STATIC  "Enable Static Linking" OFF)
-option(BUILD_SDL     "Enable SDL" OFF)
-option(BUILD_OPENGL  "Enable OpenGL" OFF)
-option(BUILD_LOADGL  "Enable SDL w/OpenGL Support" OFF)
-option(BUILD_PTHREAD "Enable Multi-Threading" OFF)
-option(BUILD_WEBM    "Enable WebM" OFF)
-option(BUILD_VORBIS  "Enable Vorbis" OFF)
-option(BUILD_TREMOR  "Enable Tremor" OFF)
-option(BUILD_GFX     "Enable Video Scaling" OFF)
-option(BUILD_MMX     "Enable MMX Instructions" OFF)
+option(TARGET_ARCH "[X86,AMD64,ARM64,UNIVERSAL]" OFF)
+option(USE_SDL     "Enable SDL" OFF)
+option(USE_OPENGL  "Enable OpenGL" OFF)
+option(USE_LOADGL  "Enable SDL w/OpenGL Support" OFF)
+option(USE_PTHREAD "Enable Multi-Threading" OFF)
+option(USE_WEBM    "Enable WebM" OFF)
+option(USE_VORBIS  "Enable Vorbis" OFF)
+option(USE_TREMOR  "Enable Tremor" OFF)
+option(USE_GFX     "Enable Video Scaling" OFF)
+option(USE_MMX     "Enable MMX Instructions" OFF)
+
+# Linker Options
+option(ENABLE_STATIC     "Enable Static Linking" OFF)
+option(ENABLE_STATIC_SDL "Enable SDL Static Linking" OFF)
 
 # Standardize String Values
 string(TOLOWER "${TARGET_ARCH}" TARGET_ARCH)
@@ -91,15 +94,15 @@ elseif(BUILD_WII)
 endif()
 
 # Include Optional Source Files
-if(BUILD_GFX)
+if(USE_GFX)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_GFX})
 endif()
 
-if(BUILD_MMX)
+if(USE_MMX)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_MMX})
 endif()
 
-if(BUILD_SDL)
+if(USE_SDL)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_SDL})
 endif()
 
@@ -129,25 +132,30 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 # Include & Library Configuration
-if(BUILD_SDL)
+if(USE_SDL)
   add_definitions(-DSDL=1)
   target_include_directories(${PROJECT_NAME} PRIVATE
     engine/sdl
   )
+  if(ENABLE_STATIC_SDL)
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+      -Wl,-Bstatic
+    )
+  endif() 
   target_link_libraries(${PROJECT_NAME} PUBLIC
     SDL2
     SDL2main
   )
 endif()
 
-# Static linkage skips SDL
-if(BUILD_STATIC)
+# General Static Linkage
+if(ENABLE_STATIC)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     -Wl,-Bstatic
   )
 endif()
 
-if(BUILD_VORBIS)
+if(USE_VORBIS)
   add_definitions(-DOV_EXCLUDE_STATIC_CALLBACKS)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     vorbisfile
@@ -156,7 +164,7 @@ if(BUILD_VORBIS)
   )
 endif()
 
-if(BUILD_TREMOR)
+if(USE_TREMOR)
   add_definitions(-DTREMOR)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     vorbisidec
@@ -164,12 +172,12 @@ if(BUILD_TREMOR)
   )
 endif()
 
-if(BUILD_WEBM)
+if(USE_WEBM)
   add_definitions(-DWEBM)
   target_link_libraries(${PROJECT_NAME} PUBLIC vpx)
 endif()
 
-if(BUILD_PTHREAD)
+if(USE_PTHREAD)
   target_link_libraries(${PROJECT_NAME} PUBLIC pthread)
 endif()
 
@@ -179,8 +187,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   z
 )
 
-# Static linkage disabled for standard libraries
-if(BUILD_STATIC)
+# Disable Static Linkage for standard libraries
+if(ENABLE_STATIC)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     -Wl,-Bdynamic
   )

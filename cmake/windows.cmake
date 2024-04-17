@@ -1,15 +1,16 @@
 set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-deprecated-declarations -fstack-protector-all")
 set(ARCH_SUFFIX "")
 
-set(BUILD_SDL     ON)
-set(BUILD_SDL_IO  ON)
-set(BUILD_OPENGL  ON)
-set(BUILD_LOADGL  ON)
-set(BUILD_GFX     ON)
-set(BUILD_VORBIS  ON)
-set(BUILD_WEBM    ON)
-set(BUILD_PTHREAD ON)
-set(BUILD_STATIC  ON)
+set(USE_SDL     ON)
+set(USE_OPENGL  ON)
+set(USE_LOADGL  ON)
+set(USE_GFX     ON)
+set(USE_VORBIS  ON)
+set(USE_WEBM    ON)
+set(USE_PTHREAD ON)
+
+set(ENABLE_STATIC     ON)
+set(ENABLE_STATIC_SDL ON)
 
 add_definitions(-DWIN)
 

@@ -13,19 +13,19 @@ endif()
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
 set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-cast")
 
-set(BUILD_LINUX   ON)
-set(BUILD_SDL     ON)
-set(BUILD_GFX     ON)
-set(BUILD_VORBIS  ON)
-set(BUILD_WEBM    ON)
-set(BUILD_PTHREAD ON)
+set(BUILD_LINUX ON)
+set(USE_SDL     ON)
+set(USE_GFX     ON)
+set(USE_VORBIS  ON)
+set(USE_WEBM    ON)
+set(USE_PTHREAD ON)
 
 add_definitions(-DLINUX)
 add_definitions(-DDARWIN)
 
 find_library(COCOA_LIBRARY Cocoa)
 find_library(OPENGL_LIBRARY OpenGL)
-find_library(CABRON_LIBRARY Carbon)
+find_library(CARBON_LIBRARY Carbon)
 find_library(AUDIOUNIT_LIBRARY AudioUnit)
 find_library(IOKIT_LIBRARY IOKit)
 
@@ -45,7 +45,7 @@ set_target_properties(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE
   ${COCOA_LIBRARY}
   ${OPENGL_LIBRARY}
-  ${CABRON_LIBRARY}
+  ${CARBON_LIBRARY}
   ${AUDIOUNIT_LIBRARY}
   ${IOKIT_LIBRARY}  
 )
