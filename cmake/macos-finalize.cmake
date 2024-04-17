@@ -2,11 +2,12 @@ if(TARGET_ARCH STREQUAL "universal")
   # Find Dependencies
   find_program(AXBREW axbrew -v)
   
-  if(NOT AXBREW)
-    message(FATAL_ERROR "X86-64 Homebrew not installed: https://github.com/SumolX/MacOS-Universal-Binary")
-  else()
+  if(AXBREW)
     message(NOTICE "X86-64 Homebrew installation detected")
-    set(CMAKE_PREFIX_PATH "/usr/local/homebrew")
+    set(CMAKE_PREFIX_UNIVERSAL_PATH "/usr/local/homebrew")
+  elseif(NOT CMAKE_PREFIX_UNIVERSAL_PATH)
+    message(WARNING "X86-64 Homebrew not installed: https://github.com/SumolX/MacOS-Universal-Binary")
+    message(FATAL_ERROR "CMAKE_PREFIX_UNIVERSAL_PATH is required.")    
   endif()  
 
   get_target_property(INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
@@ -31,7 +32,7 @@ if(TARGET_ARCH STREQUAL "universal")
   set_target_properties(${PROJECT_NAME}.x86
     PROPERTIES
     OSX_ARCHITECTURES "x86_64"
-    LINK_DIRECTORIES ${CMAKE_PREFIX_PATH}/lib
+    LINK_DIRECTORIES ${CMAKE_PREFIX_UNIVERSAL_PATH}/lib
     LINK_FLAGS -headerpad_max_install_names
   )
 

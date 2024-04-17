@@ -11,38 +11,43 @@ set(BUILD_WEBM    ON)
 set(BUILD_PTHREAD ON)
 set(BUILD_STATIC  ON)
 
+if(NOT CMAKE_PREFIX_PATH)
+    set(CMAKE_PREFIX_PATH "/usr")
+endif()
+
+if(NOT TARGET_ARCH)
+  set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 if(TARGET_ARCH STREQUAL "arm64")
   set(ARCH_SUFFIX "-arm64")
-  set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc-12)
-  set_target_properties(${PROJECT_NAME}
-    PROPERTIES
-    LINK_DIRECTORIES "/usr/lib/aarch64-linux-gnu"
-  )
 elseif(TARGET_ARCH STREQUAL "x86")
   set(ARCH_SUFFIX "-x86")
-  set(CMAKE_C_COMPILER i686-linux-gnu-gcc-12)
   add_definitions(-DELF)
   set(BUILD_MMX ON)
-  set_target_properties(${PROJECT_NAME}
-    PROPERTIES
-    LINK_DIRECTORIES "/usr/lib/i386-linux-gnu"
-  )
-else()
-  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64")
-    set(ARCH_SUFFIX "-x64")
-    add_definitions(-DELF -DAMD64)
-  elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86")
-    set(ARCH_SUFFIX "-x86")
-    add_definitions(-DELF)
-    set(BUILD_MMX ON)
+endif()
+
+if(NOT TARGET_ARCH MATCHES "${CMAKE_SYSTEM_PROCESSOR}")
+  if(TARGET_ARCH STREQUAL "arm64")
+    set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc-12)
+    set_target_properties(${PROJECT_NAME}
+      PROPERTIES
+      LINK_DIRECTORIES "/usr/lib/aarch64-linux-gnu"
+    )
+  elseif(TARGET_ARCH STREQUAL "x86")
+    set(CMAKE_C_COMPILER i686-linux-gnu-gcc-12)
+    set_target_properties(${PROJECT_NAME}
+      PROPERTIES
+      LINK_DIRECTORIES "/usr/lib/i386-linux-gnu"
+    )
   endif()
 endif()
 
 add_definitions(-DLINUX)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
-  /usr/include
-  /usr/include/SDL2
+  ${CMAKE_PREFIX_PATH}/include
+  ${CMAKE_PREFIX_PATH}/include/SDL2
 )
 
 # Distribution Preperation

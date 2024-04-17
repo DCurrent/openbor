@@ -1,10 +1,12 @@
 # Find Dependencies
 find_program(BREW brew -v)
+
 if(BREW)
   message(NOTICE "Native Homebrew installation detected")
   set(CMAKE_PREFIX_PATH "/opt/homebrew")
-else()
-  message(FATAL_ERROR "Homebrew not installed: https://brew.sh")
+elseif(NOT CMAKE_PREFIX_PATH)
+  message(WARNING "Homebrew not installed: https://brew.sh")
+  message(FATAL_ERROR "CMAKE_PREFIX_PATH is required.")
 endif()
 
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
