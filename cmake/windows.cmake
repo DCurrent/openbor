@@ -13,8 +13,13 @@ set(BUILD_STATIC  ON)
 
 add_definitions(-DWIN)
 
-if(NOT CMAKE_PREFIX_PATH)
-  set(CMAKE_PREFIX_PATH "c:/mingw")
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  if(NOT CMAKE_PREFIX_PATH)
+    set(CMAKE_PREFIX_PATH "c:/mingw")
+  endif()
+  if(NOT CMAKE_LIBRARY_PATH)
+    set(CMAKE_LIBRARY_PATH "${CMAKE_PREFIX_PATH}/lib")
+  endif()
 endif()
 
 if(TARGET_ARCH MATCHES "arm64")

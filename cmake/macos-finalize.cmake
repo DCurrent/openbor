@@ -5,9 +5,10 @@ if(TARGET_ARCH STREQUAL "universal")
   if(AXBREW)
     message(NOTICE "X86-64 Homebrew installation detected")
     set(CMAKE_PREFIX_UNIVERSAL_PATH "/usr/local/homebrew")
+    set(CMAKE_LIBRARY_UNIVERSAL_PATH "${CMAKE_PREFIX_UNIVERSAL_PATH}/lib")
   elseif(NOT CMAKE_PREFIX_UNIVERSAL_PATH)
     message(WARNING "X86-64 Homebrew not installed: https://github.com/SumolX/MacOS-Universal-Binary")
-    message(FATAL_ERROR "CMAKE_PREFIX_UNIVERSAL_PATH is required.")    
+    message(FATAL_ERROR "CMAKE_PREFIX_UNIVERSAL_PATH and CMAKE_LIBRARY_UNIVERSAL_PATH are required.")    
   endif()  
 
   get_target_property(INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
@@ -32,7 +33,7 @@ if(TARGET_ARCH STREQUAL "universal")
   set_target_properties(${PROJECT_NAME}.x86
     PROPERTIES
     OSX_ARCHITECTURES "x86_64"
-    LINK_DIRECTORIES ${CMAKE_PREFIX_UNIVERSAL_PATH}/lib
+    LINK_DIRECTORIES ${CMAKE_LIBRARY_UNIVERSAL_PATH}
     LINK_FLAGS -headerpad_max_install_names
   )
 

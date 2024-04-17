@@ -4,9 +4,10 @@ find_program(BREW brew -v)
 if(BREW)
   message(NOTICE "Native Homebrew installation detected")
   set(CMAKE_PREFIX_PATH "/opt/homebrew")
+  set(CMAKE_LIBRARY_PATH "${CMAKE_PREFIX_PATH}/lib")
 elseif(NOT CMAKE_PREFIX_PATH)
   message(WARNING "Homebrew not installed: https://brew.sh")
-  message(FATAL_ERROR "CMAKE_PREFIX_PATH is required.")
+  message(FATAL_ERROR "CMAKE_PREFIX_PATH and CMAKE_LIBRARY_PATH are required.")
 endif()
 
 set(SDKPATH "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk")
@@ -37,7 +38,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 set_target_properties(${PROJECT_NAME}
   PROPERTIES
   OSX_ARCHITECTURES "arm64"
-  LINK_DIRECTORIES ${CMAKE_PREFIX_PATH}/lib
+  LINK_DIRECTORIES ${CMAKE_LIBRARY_PATH}
   LINK_FLAGS -headerpad_max_install_names
 )
 
