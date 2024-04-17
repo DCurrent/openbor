@@ -1,7 +1,7 @@
 if(TARGET_ARCH STREQUAL "universal")
   # Find Dependencies
   find_program(AXBREW /usr/local/homebrew/bin/brew -v)
-  message(NOTICE "${AXBREW}")
+  
   if(AXBREW)
     message(NOTICE "X86-64 Homebrew installation detected")
     set(CMAKE_PREFIX_UNIVERSAL_PATH "/usr/local/homebrew")
