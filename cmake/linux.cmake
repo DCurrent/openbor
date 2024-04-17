@@ -28,13 +28,13 @@ elseif(TARGET_ARCH STREQUAL "x86")
 endif()
 
 if(NOT TARGET_ARCH MATCHES "${CMAKE_SYSTEM_PROCESSOR}")
-  if(TARGET_ARCH STREQUAL "arm64")
+  if(TARGET_ARCH MATCHES "arm64")
     set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc-12)
     set_target_properties(${PROJECT_NAME}
       PROPERTIES
       LINK_DIRECTORIES "/usr/lib/aarch64-linux-gnu"
     )
-  elseif(TARGET_ARCH STREQUAL "x86")
+  elseif(TARGET_ARCH MATCHES "86")
     set(CMAKE_C_COMPILER i686-linux-gnu-gcc-12)
     set_target_properties(${PROJECT_NAME}
       PROPERTIES
