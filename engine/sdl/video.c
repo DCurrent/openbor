@@ -102,26 +102,23 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	renderer = NULL;
 	texture = NULL;
 
-	if(window)
+	if (window && !savedata.fullscreen && !(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
 	{
-		if(savedata.fullscreen)
-		{
-			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		}
-		else
-		{
 #ifndef WIN // hiding and showing the window is problematic on Windows
-			if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
-				SDL_HideWindow(window);
+		if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
+			SDL_HideWindow(window);
 #endif
-			SDL_SetWindowFullscreen(window, 0);
-			SDL_SetWindowSize(window, w, h);
-			SDL_SetWindowPosition(window, last_x, last_y);
-			SDL_ShowWindow(window);
-		}
+		SDL_SetWindowSize(window, w, h);
+		SDL_SetWindowPosition(window, last_x, last_y);
+		SDL_ShowWindow(window);
 	}
 	else
 	{
+		if (window)
+		{
+			SDL_DestroyWindow(window);
+		}
+
 		window = SDL_CreateWindow(windowTitle, last_x, last_y, w, h, flags);
 		if(!window)
 		{

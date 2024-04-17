@@ -371,6 +371,7 @@ void control_resetmappings(int deviceID)
 static void handle_events()
 {
     SDL_Event ev;
+    bool altEnterJustReleased = false;
     while (SDL_PollEvent(&ev))
     {
         switch (ev.type)
@@ -473,11 +474,9 @@ static void handle_events()
                     remapKeycode = ev.key.keysym.scancode;
                 }
 
-#if 0 // disable Alt+Enter fullscreen toggle for now because it causes problems under X11
                 // Alt+Enter toggles fullscreen
-                if (ev.key.keysym.scancode == SDL_SCANCODE_RETURN && (SDL_GetModState() & KMOD_ALT) && !altEnterPressed)
+                if (ev.key.keysym.scancode == SDL_SCANCODE_RETURN && (SDL_GetModState() & KMOD_ALT) && !altEnterPressed && !altEnterJustReleased && !ev.key.repeat)
                 {
-                    fprintf(stderr, "Alt+Enter pressed, repeat=%i\n", ev.key.repeat);
                     video_fullscreen_flip();
 
                     /* Force the Enter key to unpressed in the SDL keyboard state so it won't be read by the
@@ -485,20 +484,18 @@ static void handle_events()
                     //((Uint8*)SDL_GetKeyboardState(NULL))[SDL_SCANCODE_RETURN] = 0;
                     altEnterPressed = true;
                 }
-#endif
                 break;
             }
 
-#if 0 // disable Alt+Enter fullscreen toggle for now because it causes problems under X11
             case SDL_KEYUP:
             {
                 if (ev.key.keysym.scancode == SDL_SCANCODE_RETURN)
                 {
                     altEnterPressed = false;
+                    altEnterJustReleased = true;
                 }
                 break;
             }
-#endif
 
             case SDL_CONTROLLERBUTTONDOWN:
             {
