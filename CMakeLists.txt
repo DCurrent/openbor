@@ -25,6 +25,11 @@ option(BUILD_MMX     "Enable MMX Instructions" OFF)
 string(TOLOWER "${TARGET_ARCH}" TARGET_ARCH)
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR)
 
+# Detect Target Architecture
+if(NOT TARGET_ARCH)
+  set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
 # Default Compilation Flags
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

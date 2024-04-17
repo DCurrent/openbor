@@ -17,10 +17,6 @@ if(NOT CMAKE_PREFIX_PATH)
   set(CMAKE_PREFIX_PATH "c:/mingw")
 endif()
 
-if(NOT TARGET_ARCH)
-  set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
-endif()
-
 if(TARGET_ARCH MATCHES "arm64")
   set(ARCH_SUFFIX "-arm64")
   add_definitions(-DELF)
