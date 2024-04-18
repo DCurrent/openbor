@@ -15,6 +15,8 @@ set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-c
 
 set(BUILD_LINUX ON)
 set(USE_SDL     ON)
+set(USE_OPENGL  ON)
+set(USE_LOADGL  ON)
 set(USE_GFX     ON)
 set(USE_VORBIS  ON)
 set(USE_WEBM    ON)

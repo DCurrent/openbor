@@ -2,7 +2,6 @@ set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-c
 set(ARCH_SUFFIX "")
 
 set(USE_SDL     ON)
-set(USE_SDL_IO  ON)
 set(USE_OPENGL  ON)
 set(USE_LOADGL  ON)
 set(USE_GFX     ON)
