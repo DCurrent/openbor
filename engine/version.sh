@@ -183,8 +183,8 @@ function replace_version {
     OLD=""
     NEW=""
     if command -v md5sum &> /dev/null; then
-      OLD=`md5sum version.h`
-      NEW=`md5sum version.tmp`
+      OLD=`md5sum version.h | awk '{print $1}'`
+      NEW=`md5sum version.tmp | awk '{print $1}'`
     elif command -v md5 &> /dev/null; then
       OLD=`md5 version.h | awk '{print $4}'`
       NEW=`md5 version.tmp | awk '{print $4}'`

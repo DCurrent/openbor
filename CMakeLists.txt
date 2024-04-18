@@ -24,6 +24,9 @@ option(USE_MMX     "Enable MMX Instructions" OFF)
 option(ENABLE_STATIC     "Enable Static Linking" OFF)
 option(ENABLE_STATIC_SDL "Enable SDL Static Linking" OFF)
 
+# Debug Options
+option(PRINT_ALL_VARS "Display All CMAKE Variables" OFF)
+
 # Standardize String Values
 string(TOLOWER "${TARGET_ARCH}" TARGET_ARCH)
 string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR)
@@ -74,7 +77,8 @@ if(NOT (BUILD_WIN OR BUILD_LINUX OR BUILD_DARWIN OR BUILD_WII))
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(BUILD_LINUX ON)
     message("Build target not specified, BUILD_LINUX=ON")
-  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows" OR
+         CMAKE_SYSTEM_NAME MATCHES "MINGW")
     set(BUILD_WIN ON)
     message("Build target not specified, BUILD_WIN=ON")
   else()
@@ -214,3 +218,12 @@ add_custom_command(TARGET ${PROJECT_NAME}
   COMMAND cp -a ../engine/README ../engine/releases/README.txt
   COMMAND cp -a ../engine/translation.txt ../engine/releases/
 )
+
+# Debug CMake Variables
+if(PRINT_ALL_VARS)
+  get_cmake_property(variable_names VARIABLES)
+  list(SORT variable_names)
+  foreach (variable_name ${variable_names})
+    message(STATUS "${variable_name}=${${variable_name}}")
+  endforeach ()
+endif()
