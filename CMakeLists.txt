@@ -49,14 +49,17 @@ add_custom_target(VersionInfo ALL
 )
 
 # Collect Source Files
-file(GLOB         SRC_OBOR "engine/*.c"               "engine/*.h")
-file(GLOB         SRC_SDL  "engine/sdl/*.c"           "engine/sdl/*.h")
-file(GLOB_RECURSE SRC_CORE "engine/source/*.c"        "engine/source/*.h")
-file(GLOB         SRC_GFX  "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
-file(GLOB         SRC_MMX  "engine/source/gfxlib/*.asm")
+file(GLOB         SRC_OBOR   "engine/*.c"               "engine/*.h")
+file(GLOB         SRC_SDL    "engine/sdl/*.c"           "engine/sdl/*.h")
+file(GLOB_RECURSE SRC_CORE   "engine/source/*.c"        "engine/source/*.h")
+file(GLOB         SRC_GFX    "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
+file(GLOB         SRC_MMX    "engine/source/gfxlib/*.asm")
+file(GLOB         SRC_OPENGL "engine/source/sdl/opengl.*")
+file(GLOB         SRC_LOADGL "engine/source/sdl/loadgl.*")
 
 # Exclude GFX & Tests
 list(FILTER SRC_CORE EXCLUDE REGEX ".*test*" )
+list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/sdl/.*gl.*" )
 list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/gfxlib/.*" )
 
 # Target Sources
@@ -110,6 +113,16 @@ if(USE_SDL)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_SDL})
 endif()
 
+if(USE_OPENGL)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_OPENGL})
+  add_definitions(-DOPENGL)
+endif()
+
+if(USE_LOADGL)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_LOADGL})
+  add_definitions(-DLOADGL)
+endif()
+
 # Compilation Flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_COMPILER_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_COMPILER_FLAGS}")
@@ -157,14 +170,6 @@ if(ENABLE_STATIC)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     -Wl,-Bstatic
   )
-endif()
-
-if(USE_OPENGL)
-  add_definitions(-DOPENGL)
-endif()
-
-if(USE_LOADGL)
-  add_definitions(-DLOADGL)
 endif()
 
 if(USE_VORBIS)
