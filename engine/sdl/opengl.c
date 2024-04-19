@@ -19,7 +19,6 @@
 #include "opengl.h"
 #include "video.h"
 #include "loadgl.h"
-#include "SDL2_framerate.h" // Kratus (01-2023) Added a FPS limit option in the video settings
 #include <math.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
@@ -39,7 +38,6 @@ static GLfloat tcx, tcy; // maximum x and y texture coords in floating-point for
 static GLuint shaderProgram; // fragment shader program
 
 // use some variables declared in video.c that are common to both backends
-extern FPSmanager framerate_manager; // Kratus (01-2023) Added a FPS limit option in the video settings
 extern int stretch;
 extern int nativeWidth, nativeHeight;
 extern SDL_Window* window;
