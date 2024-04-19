@@ -159,6 +159,14 @@ if(ENABLE_STATIC)
   )
 endif()
 
+if(USE_OPENGL)
+  add_definitions(-DOPENGL)
+endif()
+
+if(USE_LOADGL)
+  add_definitions(-DLOADGL)
+endif()
+
 if(USE_VORBIS)
   add_definitions(-DOV_EXCLUDE_STATIC_CALLBACKS)
   target_link_libraries(${PROJECT_NAME} PUBLIC
