@@ -18,6 +18,9 @@ if(TARGET_ARCH STREQUAL "universal")
     ${SRC_FILES}
     ${SRC_SDL}
     ${SRC_GFX}
+    ${SRC_WEBM}
+    ${SRC_OPENGL}
+    ${SRC_LOADGL}
   )
 
   target_include_directories(${PROJECT_NAME}.x86

@@ -49,10 +49,11 @@ add_custom_target(VersionInfo ALL
 )
 
 # Collect Source Files
-file(GLOB         SRC_OBOR   "engine/*.c"               "engine/*.h")
-file(GLOB         SRC_SDL    "engine/sdl/*.c"           "engine/sdl/*.h")
-file(GLOB_RECURSE SRC_CORE   "engine/source/*.c"        "engine/source/*.h")
-file(GLOB         SRC_GFX    "engine/source/gfxlib/*.c" "engine/source/gfxlib/*.h")
+file(GLOB         SRC_OBOR   "engine/*.c"                "engine/*.h")
+file(GLOB         SRC_SDL    "engine/sdl/*.c"            "engine/sdl/*.h")
+file(GLOB_RECURSE SRC_CORE   "engine/source/*.c"         "engine/source/*.h")
+file(GLOB         SRC_GFX    "engine/source/gfxlib/*.c"  "engine/source/gfxlib/*.h")
+file(GLOB_RECURSE SRC_WEBM   "engine/source/webmlib/*.c" "engine/source/webmlib/*.h")
 file(GLOB         SRC_MMX    "engine/source/gfxlib/*.asm")
 file(GLOB         SRC_OPENGL "engine/source/sdl/opengl.*")
 file(GLOB         SRC_LOADGL "engine/source/sdl/loadgl.*")
@@ -61,6 +62,7 @@ file(GLOB         SRC_LOADGL "engine/source/sdl/loadgl.*")
 list(FILTER SRC_CORE EXCLUDE REGEX ".*test*" )
 list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/sdl/.*gl.*" )
 list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/gfxlib/.*" )
+list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/webmlib/.*" )
 
 # Target Sources
 set(SRC_FILES
@@ -110,17 +112,23 @@ if(USE_MMX)
 endif()
 
 if(USE_SDL)
+  add_definitions(-DSDL=1)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_SDL})
 endif()
 
+if(USE_WEBM)
+  add_definitions(-DWEBM)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_WEBM})
+endif()
+
 if(USE_OPENGL)
-  target_sources(${PROJECT_NAME} PRIVATE ${SRC_OPENGL})
   add_definitions(-DOPENGL)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_OPENGL})
 endif()
 
 if(USE_LOADGL)
-  target_sources(${PROJECT_NAME} PRIVATE ${SRC_LOADGL})
   add_definitions(-DLOADGL)
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_LOADGL})
 endif()
 
 # Compilation Flags
@@ -150,7 +158,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Include & Library Configuration
 if(USE_SDL)
-  add_definitions(-DSDL=1)
   target_include_directories(${PROJECT_NAME} PRIVATE
     engine/sdl
   )
@@ -190,7 +197,6 @@ if(USE_TREMOR)
 endif()
 
 if(USE_WEBM)
-  add_definitions(-DWEBM)
   target_link_libraries(${PROJECT_NAME} PUBLIC vpx)
 endif()
 
