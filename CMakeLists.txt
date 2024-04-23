@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(OpenBOR VERSION 4.0)
+project(OpenBOR VERSION 4.0 LANGUAGES C)
 
 # Targets
 option(BUILD_WIN    "Windows" OFF)

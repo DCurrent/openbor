@@ -1,4 +1,5 @@
 if(CMAKE_HOST_SYSTEM MATCHES "MINGW")
+  set(CMAKE_RC_COMPILER "$ENV{MINGW_CHOST}-windres")
   if(NOT CMAKE_PREFIX_PATH)
     set(CMAKE_PREFIX_PATH "$ENV{MINGW_PREFIX}")
   endif()
@@ -12,6 +13,7 @@ else()
   if(TARGET_ARCH MATCHES "arm64")
     message(FATAL_ERROR "Cross-Compiling MinGW ARM64 Not Supported")
   elseif(TARGET_ARCH MATCHES "64")
+    set(CMAKE_RC_COMPILER x86_64-w64-mingw32-windres)
     if(CMAKE_C_COMPILER MATCHES "/usr/bin/cc")
       set(CMAKE_C_COMPILER "x86_64-w64-mingw32-gcc")
     endif()
@@ -22,6 +24,7 @@ else()
       set(CMAKE_LIBRARY_PATH "/usr/x86_64-w64-mingw32/lib ${CMAKE_PREFIX_PATH}/lib")
     endif()
   elseif(TARGET_ARCH MATCHES "86")
+    set(CMAKE_RC_COMPILER i686-w64-mingw32-windres)
     if(CMAKE_C_COMPILER MATCHES "/usr/bin/cc")
       set(CMAKE_C_COMPILER "i686-w64-mingw32-gcc")
     endif()
@@ -49,6 +52,16 @@ endforeach()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   -lsetupapi -lhid -lpsapi -lopengl32 -lwinmm -lole32 -loleaut32 -luuid -limm32 -lversion -mwindows
+)
+
+# Populate Executable Resource Attributes
+set_target_properties(${PROJECT_NAME} PROPERTIES
+  LINK_FLAGS ${PROJECT_SOURCE_DIR}/engine/resources/${PROJECT_NAME}.res
+)
+add_custom_command(TARGET ${PROJECT_NAME}
+  PRE_LINK
+  COMMAND ${CMAKE_RC_COMPILER} ${PROJECT_NAME}.rc -O coff -o ${PROJECT_NAME}.res
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/engine/resources
 )
 
 # Distribution Preperation
