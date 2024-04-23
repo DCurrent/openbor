@@ -458,32 +458,7 @@ const char* PC_GetJoystickKeyName(int portnum, int keynum)
 	else                                      return JoystickUnknownNames[keycode-firstUnknown];
 }
 
-#ifdef OPENDINGUX
-char* OPENDINGUX_GetKeyName(int keycode)
-{
-	     if (keycode == OPENDINGUX_BUTTON_UP)     return "Up";
-	else if (keycode == OPENDINGUX_BUTTON_DOWN)   return "Down";
-	else if (keycode == OPENDINGUX_BUTTON_LEFT)   return "Left";
-	else if (keycode == OPENDINGUX_BUTTON_RIGHT)  return "Right";
-	else if (keycode == OPENDINGUX_BUTTON_A)      return "A";
-	else if (keycode == OPENDINGUX_BUTTON_B)      return "B";
-	else if (keycode == OPENDINGUX_BUTTON_X)      return "X";
-	else if (keycode == OPENDINGUX_BUTTON_Y)      return "Y";
-	else if (keycode == OPENDINGUX_BUTTON_L)      return "L";
-	else if (keycode == OPENDINGUX_BUTTON_R)      return "R";
-	else if (keycode == OPENDINGUX_BUTTON_START)  return "Start";
-	else if (keycode == OPENDINGUX_BUTTON_SELECT) return "Select";
-	else return "...";
-}
-#endif
-
 char* JOY_GetKeyName(int keycode)
 {
-#ifdef OPENDINGUX
-	return OPENDINGUX_GetKeyName(keycode);
-#elif ANDROID || DARWIN || SDL2
 	return (char*)SDL_GetScancodeName(keycode);
-#else
-	return (char*)SDL_GetKeyName(keycode);
-#endif
 }

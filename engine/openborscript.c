@@ -10474,7 +10474,7 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         strcat(path, "/");
         strcat(path, filename);
         //printf("open path: %s", path);
-#ifndef DC
+
         if(!(fileExists(path)))
         {
             /*
@@ -10486,7 +10486,7 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
 
             return S_OK;
         }
-#endif
+
         handle = fopen(path, "rb");
         if(handle == NULL)
         {
@@ -10908,9 +10908,7 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         {
             path[i] = 0;
             // Make folder if it doesn't exist
-#ifndef DC
             dirExists(path, 1);
-#endif
             path[i] = '/';
             break;
         }

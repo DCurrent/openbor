@@ -55,15 +55,8 @@ char* AndroidRoot(char *relPath)
 
 void borExit(int reset)
 {
-#ifdef GP2X
-	gp2x_end();
-	chdir("/usr/gp2x");
-	execl("/usr/gp2x/gp2xmenu", "/usr/gp2x/gp2xmenu", NULL);
-#elif SDL
 	SDL_Delay(1000);
 	SDL_Quit(); // call this instead of atexit(SDL_Quit); It's best practice!
-#endif
-
     exit(reset);
 }
 

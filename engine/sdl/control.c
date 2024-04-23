@@ -54,7 +54,6 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 		switch(ev.type)
 		{
 			case SDL_KEYDOWN:
-#ifdef SDL2
 				lastkey = ev.key.keysym.scancode;
 				if((keystate[SDL_SCANCODE_LALT] || keystate[SDL_SCANCODE_RALT]) && (lastkey == SDL_SCANCODE_RETURN))
 				{
@@ -62,15 +61,6 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 					keystate[SDL_SCANCODE_RETURN] = 0;
 				}
 				if(lastkey != SDL_SCANCODE_F10) break;
-#else
-				lastkey = ev.key.keysym.sym;
-				if((keystate[SDLK_LALT] || keystate[SDLK_RALT]) && (lastkey == SDLK_RETURN))
-				{
-					video_fullscreen_flip();
-					keystate[SDLK_RETURN] = 0;
-				}
-				if(lastkey != SDLK_F10) break;
-#endif
 #ifdef ANDROID
 			case SDL_FINGERDOWN:
 			{
@@ -123,35 +113,6 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				}
 				control_update_android_touch(&touch_info, MAX_POINTERS, keystate, keystate_def);
 			}
-				break;
-#endif
-#if 0
-			// sdl 1.3 pause hack
-			// we don't need it in sdl 2.0 in theory
-			case SDL_WINDOWEVENT:
-				if(ev.window.event==SDL_WINDOWEVENT_MINIMIZED)
-				{
-					//SDL_PauseAudio(1);
-					SDL_PauseAudioDevice(audio_dev, 1);
-					while(true)
-					{
-						if(SDL_PollEvent(&ev))
-						{
-							if(ev.type==SDL_WINDOWEVENT && ev.window.event==SDL_WINDOWEVENT_RESTORED)
-							{
-								//SDL_PauseAudio(0);
-								SDL_PauseAudioDevice(audio_dev, 0);
-								extern s_videomodes videomodes;
-								video_set_mode(videomodes);
-								//extern SDL_Surface* getSDLScreen();
-								//SDL_Surface* s = getSDLScreen();
-								//printf("screen %d %d   %d %d\n", s->w, s->h, videomodes.hRes, videomodes.vRes);
-								break;
-							}
-						}
-						SDL_Delay(1);
-					}
-				}
 				break;
 #endif
 			case SDL_QUIT:
@@ -454,20 +415,10 @@ void open_joystick(int i)
         }
     }
 
-    #if GP2X
-    joysticks[i].Type = JOY_TYPE_GAMEPARK;
-    for(j = 0; j < JOY_MAX_INPUTS + 1; j++)
-    {
-        if(j) joysticks[i].KeyName[j] = GameparkKeyName[j + i * JOY_MAX_INPUTS];
-        else joysticks[i].KeyName[j] = GameparkKeyName[j];
-    }
-    #else
-    //SDL_JoystickEventState(SDL_IGNORE); // disable joystick events
     for(j = 1; j < JOY_MAX_INPUTS + 1; j++)
     {
         strcpy(joysticks[i].KeyName[j], PC_GetJoystickKeyName(i, j));
     }
-    #endif
 
     return;
 }
@@ -521,11 +472,7 @@ void control_init(int joy_enable)
 {
 	int i;
 
-#ifdef GP2X
-	usejoy = joy_enable ? joy_enable : 1;
-#else
 	usejoy = joy_enable;
-#endif
 
 	//memset(joysticks, 0, sizeof(s_joysticks) * JOY_LIST_TOTAL);
 	for(i = 0; i < JOY_LIST_TOTAL; i++)
@@ -894,13 +841,6 @@ int control_scankey()
 	k = keyboard_getlastkey();
 	j = lastjoy;
 	lastjoy = 0;
-
-#if 0
-		 if(joysticks[0].Data) j = 1 + 0 * JOY_MAX_INPUTS + flag_to_index(joysticks[0].Data);
-	else if(joysticks[1].Data) j = 1 + 1 * JOY_MAX_INPUTS + flag_to_index(joysticks[1].Data);
-	else if(joysticks[2].Data) j = 1 + 2 * JOY_MAX_INPUTS + flag_to_index(joysticks[2].Data);
-	else if(joysticks[3].Data) j = 1 + 3 * JOY_MAX_INPUTS + flag_to_index(joysticks[3].Data);
-#endif
 
 	if(ready && (k || j))
 	{

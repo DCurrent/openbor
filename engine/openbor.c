@@ -2655,7 +2655,6 @@ void clearsettings()
 
 void savesettings()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2669,12 +2668,10 @@ void savesettings()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
-#endif
 }
 
 void saveasdefault()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
@@ -2686,13 +2683,11 @@ void saveasdefault()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
-#endif
 }
 
 
 void loadsettings()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2716,14 +2711,10 @@ void loadsettings()
     {
         clearsettings();
     }
-#else
-    clearsettings();
-#endif
 }
 
 void loadfromdefault()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     getBasePath(path, "Saves", 0);
@@ -2740,9 +2731,6 @@ void loadfromdefault()
     {
         clearsettings();
     }
-#else
-    clearsettings();
-#endif
 }
 
 
@@ -2770,7 +2758,6 @@ void clearHighScore()
 
 int saveGameFile()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2791,15 +2778,11 @@ int saveGameFile()
     fclose(handle);
 
     return 1;
-#else
-    return 1;
-#endif
 }
 
 
 int loadGameFile()
 {
-#ifndef DC
     int result = 1, i;
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
@@ -2838,16 +2821,11 @@ int loadGameFile()
     fclose(handle);
 
     return result;
-#else
-    clearSavedGame();
-    return 0;
-#endif
 }
 
 
 int saveHighScoreFile()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2862,15 +2840,11 @@ int saveHighScoreFile()
     fwrite(&savescore, 1, sizeof(savescore), handle);
     fclose(handle);
     return 1;
-#else
-    return 1;
-#endif
 }
 
 
 int loadHighScoreFile()
 {
-#ifndef DC
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2891,14 +2865,9 @@ int loadHighScoreFile()
         return 0;
     }
     return 1;
-#else
-    clearHighScore();
-    return 0;
-#endif
 }
 
 
-#ifndef DC
 static void vardump(ScriptVariant *var, char buffer[])
 {
     char *tmpstr;
@@ -2946,12 +2915,8 @@ static void vardump(ScriptVariant *var, char buffer[])
     }
 }
 
-#endif
-
-
 int saveScriptFile()
 {
-#ifndef DC
 #define _writestr(v) fwrite(v, strlen(v), 1, handle);
 #define _writetmp  _writestr(tmpvalue)
 #define _writeconst(s) strcpy(tmpvalue,s);_writetmp
@@ -3025,15 +2990,11 @@ int saveScriptFile()
 #undef _writestr
 #undef _writetmp
 #undef _writeconst
-#else
-    return 1;
-#endif
 }
 
 
 int loadScriptFile()
 {
-#ifndef DC
     Script script;
     int result = 0;
     char *buf = NULL;
@@ -3078,9 +3039,6 @@ int loadScriptFile()
     Script_Clear(&script, 2);
     free(buf);
     return result;
-#else
-    return 0;
-#endif
 }
 
 // ----------------------- Sound ------------------------------
@@ -5494,27 +5452,6 @@ void free_frames(s_anim *anim)
         anim->drawmethods = NULL;
     }
 }
-
-#if 0
-s_anim_list *anim_list_delete(s_anim_list *list, int index)
-{
-    if(list == NULL)
-    {
-        return NULL;
-    }
-    if(list->anim->model_index == index)
-    {
-        s_anim_list *next;
-        next = list->next;
-        free_anim(list->anim);
-        free(list);
-        --anims_loaded;
-        return next;
-    }
-    list->next = anim_list_delete(list->next, index);
-    return list;
-}
-#endif
 
 void anim_list_delete(int index)
 {
@@ -45972,12 +45909,8 @@ void update(int ingame, int usevwait)
  * error. */
 int set_color_correction(int gm, int br)
 {
-#if WII || SDL || VITA
     video_set_color_correction(gm, br);
     return 1;
-#else
-    return 0;
-#endif
 }
 
 // Simple palette fade / vscreen fade
@@ -46428,7 +46361,6 @@ void borShutdown(int status, char *msg, ...)
 }
 
 
-#if DC
 void guistartup()
 {
     int i;
@@ -46463,7 +46395,7 @@ void guistartup()
         neontable[i] = i;
     }
 }
-#endif
+
 
 void startup()
 {
@@ -48656,20 +48588,6 @@ void init_videomodes(int log)
     {
         tryfile("data/video43.txt");
     }
-#elif WIZ
-    tryfile("data/videowiz.txt");
-    tryfile("data/video169.txt");
-#elif GP2X
-    tryfile("data/videogp2x.txt");
-    tryfile("data/video43.txt");
-#elif OPENDINGUX
-    tryfile("data/videoopendingux.txt");
-    tryfile("data/video43.txt");
-#elif SYMBIAN
-    tryfile("data/videosymbian.txt");
-#elif VITA
-    tryfile("data/videovita.txt");
-    tryfile("data/video169.txt");
 #endif
 #undef tryfile
 
@@ -48754,17 +48672,6 @@ readfile:
         free(buf);
         buf = NULL;
     }
-
-#if OPENDINGUX || GP2X
-    videoMode = 0;
-#endif
-
-#if SYMBIAN
-    if(videoMode != 0 && videoMode != 2)
-    {
-        videoMode = 0;
-    }
-#endif
 
 VIDEOMODES:
     videomodes.mode    = videoMode;
@@ -48885,9 +48792,7 @@ VIDEOMODES:
         break;
     }
 
-#if SDL || WII
     video_stretch(savedata.stretch);
-#endif
 
     if((vscreen = allocscreen(videomodes.hRes, videomodes.vRes, PIXEL_32)) == NULL)
     {
@@ -48950,11 +48855,7 @@ void keyboard_setup(int player)
     ArgList arglist;
     
     char argbuf[MAX_ARG_LEN + 1] = "";
-    #if SDL || WII || DC
     int OPTIONS_NUM = btnnum + 3;
-    #else
-    int OPTIONS_NUM = btnnum + 2;
-    #endif
 
     screen_status |= IN_SCREEN_BUTTON_CONFIG_MENU;
 
@@ -49063,7 +48964,7 @@ finish:
                 voffset++;
             }
         }
-        #if SDL || WII || DC
+
         ++voffset;
         if(savedata.joyrumble[player])
         {
@@ -49073,7 +48974,6 @@ finish:
         {
             _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Rumble Disabled"));
         }
-        #endif
 
         _menutextm((selector == OPTIONS_NUM - 2), ++voffset, 0, Tr("OK"));
         _menutextm((selector == OPTIONS_NUM - 1), ++voffset, 0, Tr("Cancel"));
@@ -49138,16 +49038,10 @@ finish:
                 while(disabledkey[selector]) if(++selector > btnnum - 1) break;
             }
 
-            #if SDL || WII || DC
-            if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
-            #else
-            if(bothnewkeys & (FLAG_ANYBUTTON))
-            #endif
             if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
             {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-#if SDL || WII || DC
                 if (selector != OPTIONS_NUM - 3 &&
                     bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
 
@@ -49156,9 +49050,6 @@ finish:
                     savedata.joyrumble[player] ^= 1;
                 }
                 else if(selector == OPTIONS_NUM - 2) // OK
-                #else
-                if(selector == OPTIONS_NUM - 2) // OK
-#endif
                 {
                     quit = 2;
                 }
@@ -49175,9 +49066,7 @@ finish:
                     setting = selector;
                     ok = savedata.keys[player][setting];
                     savedata.keys[player][setting] = 0;
-#ifndef DC
                     keyboard_getlastkey();
-#endif
                 }
             }
         }
@@ -50226,32 +50115,6 @@ void menu_options_video()
         _menutext((selector == 2), col1, -1, Tr("Window Offset:"));
         _menutext((selector == 2), col2, -1, "%i", savedata.windowpos);
 
-#if OPENDINGUX
-        _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
-        _menutext((selector == 3), col2, 0, savedata.fullscreen ? Tr("Full") : Tr("Window"));
-        _menutextm((selector == 4), 6, 0, Tr("Back"));
-        if(selector < 0)
-        {
-            selector = 4;
-        }
-        if(selector > 4)
-        {
-            selector = 0;
-        }
-#endif
-
-#if DC || GP2X || VITA
-        _menutextm((selector == 3), 6, 0, Tr("Back"));
-        if(selector < 0)
-        {
-            selector = 3;
-        }
-        if(selector > 3)
-        {
-            selector = 0;
-        }
-#endif
-
 #if WII
         _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
         _menutext((selector == 3), col2, 0, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
@@ -50267,7 +50130,6 @@ void menu_options_video()
 #endif
 
 #if SDL
-#if !defined(GP2X) && !defined(OPENDINGUX)
         _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
         _menutext((selector == 3), col2, 0, savedata.fullscreen ? Tr("Full") : Tr("Window"));
 
@@ -50348,8 +50210,6 @@ void menu_options_video()
             selector = 0;
         }
 #endif
-#endif
-
 
         update((level != NULL), 0);
 
@@ -50430,24 +50290,13 @@ void menu_options_video()
                     savedata.windowpos = 20;
                 }
                 break;
-#if SDL || WII
-            case 3:
-#if OPENDINGUX
-                video_fullscreen_flip();
-                break;
-#endif
-
 #if WII
+            case 3:
                 //video_fullscreen_flip();
                 video_stretch((savedata.stretch ^= 1));
                 break;
-#endif
-
-#endif
-
-
-#if SDL
-#if !defined(GP2X) && !defined(OPENDINGUX)
+#elif SDL
+            case 3:
                 video_fullscreen_flip();
                 break;
             case 4:
@@ -50482,7 +50331,6 @@ void menu_options_video()
                     savedata.hwscale = 4.00;
                 }
 #endif
-                break;
             case 6:
 #ifndef ANDROID
                 if (opengl || (!savedata.fullscreen && savedata.hwscale == 1.0))
@@ -50527,7 +50375,6 @@ void menu_options_video()
             case 9:
                 video_stretch((savedata.stretch ^= 1));
                 break;
-#endif
 #endif
             default:
                 quit = 1;

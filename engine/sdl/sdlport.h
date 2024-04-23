@@ -18,16 +18,12 @@
 
 #include "globals.h"
 
-#if GP2X || LINUX || OPENDINGUX || SYMBIAN
+#if LINUX
 #define stricmp  strcasecmp
 #define strnicmp strncasecmp
 #endif
 
-#if SDL_VERSION_ATLEAST(2,0,0)
-#define SDL2 1
-#endif
-
-#if GP2X || DARWIN || OPENDINGUX || ANDROID
+#if DARWIN || ANDROID
 #define SKIP_CODE
 #endif
 

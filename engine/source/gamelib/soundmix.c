@@ -40,9 +40,7 @@
 Caution: move vorbis headers here otherwise the structs will
  get poisoned by #pragma in other header files, i.e. list.h
 */
-#ifdef DC
-#include <ivorbisfile.h>
-#elif TREMOR
+#if TREMOR
 #include <tremor/ivorbisfile.h>
 #else
 #include <vorbis/vorbisfile.h>
@@ -77,11 +75,7 @@ Caution: move vorbis headers here otherwise the structs will
 #define		PREMIX_SIZE		     1024
 #define		MIX_BLOCK_SIZE		 32
 
-#ifndef DC
 #pragma pack(4)
-#endif
-
-
 
 s_sound_parameters sound_parameters = {
     .music_buffers_count = 4,
@@ -122,10 +116,7 @@ static e_sound_file_type music_type = SOUND_FILE_TYPE_ADPCM;
 
 //////////////////////////////// WAVE LOADER //////////////////////////////////
 
-#ifndef DC
 #pragma pack(push, 1)
-#endif
-
 
 #define		HEX_RIFF	0x46464952
 #define		HEX_WAVE	0x45564157
@@ -394,9 +385,7 @@ void sound_unload_all_samples()
     sound_cached = 0;
 }
 
-#ifndef DC
 #pragma pack(pop)
-#endif
 
 /////////////////////////////// Mix to DMA //////////////////////////////////
 // Mixbuffer / DMA buffer data handling
@@ -827,9 +816,7 @@ static int music_atend = 0;
 #define	BOR_MUSIC_VERSION_STEREO 0x00010001
 #define	BOR_IDENTIFIER "BOR music"
 
-#ifndef DC
 #pragma pack (1)
-#endif
 
 typedef struct
 {
@@ -1145,7 +1132,7 @@ int sound_query_adpcm(char *artist, char *title)
 /////////////////////////// Ogg Vorbis decoding ///////////////////////////////
 // Plombo's Ogg Vorbis decoder for OpenBOR. Uses libvorbisfile or libvorbisidec.
 
-#if TREMOR || DC
+#if TREMOR
 #define ov_decode(vf,buffer,length,bitstream) ov_read(vf,buffer,length,bitstream)
 #else
 #define ov_decode(vf,buffer,length,bitstream) ov_read(vf,buffer,length,0,2,1,bitstream)
@@ -1627,10 +1614,6 @@ void sound_exit()
         mixbuf = NULL;
     }
 
-#ifdef PSP
-    SB_exit();
-#endif
-
     mixing_inited = 0;
 }
 
@@ -1652,10 +1635,6 @@ int sound_init(int channels)
     // Allocate the maximum amount ever possibly needed for mixing
     if((mixbuf = malloc(MIXBUF_SIZE)) == NULL)
     {
-
-#ifdef PSP
-        SB_exit();
-#endif
         return 0;
     }
 

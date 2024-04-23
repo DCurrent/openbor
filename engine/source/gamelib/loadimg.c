@@ -23,9 +23,7 @@
 #include "packfile.h"
 #include "pngdec.h"
 
-#ifndef DC
 #pragma pack (1)
-#endif
 
 // ============================== Globals ===============================
 
@@ -55,54 +53,18 @@ typedef struct
 
 static s_bmpheader bmp_header;
 
-#if DC || GP2X || SYMBIAN
-static void build_bmp_header(s_bmpheader *h, const unsigned char *s)
-{
-
-    h->bm          = readlsb32(s + 0x00);
-    h->filesize    = readlsb32(s + 0x02);
-    h->reserved    = readlsb32(s + 0x06);
-    h->picstart    = readlsb32(s + 0x0A);
-    h->headersize  = readlsb32(s + 0x0E);
-    h->xsize       = readlsb32(s + 0x12);
-    h->ysize       = readlsb32(s + 0x16);
-    h->numplanes   = readlsb32(s + 0x1A);
-    h->bpp         = readlsb32(s + 0x1C);
-    h->compression = readlsb32(s + 0x1E);
-    h->picsize     = readlsb32(s + 0x22);
-    h->hres        = readlsb32(s + 0x26);
-    h->vres        = readlsb32(s + 0x2A);
-    h->numcolors_used      = readlsb32(s + 0x2E);
-    h->numcolors_important = readlsb32(s + 0x32);
-}
-#endif
-
 // Open a BMP stream
 static int openbmp(char *filename, char *packfilename)
 {
-
-#if DC || GP2X || SYMBIAN
-    unsigned char mybmpheader[0x36];
-#endif
-
     if((handle = openpackfile(filename, packfilename)) == -1)
     {
         return 0;
     }
-#if DC || GP2X || SYMBIAN
-    if(readpackfile(handle, &mybmpheader, 0x36) != 0x36)
-    {
-#else
     if(readpackfile(handle, &bmp_header, sizeof(s_bmpheader)) != sizeof(s_bmpheader))
     {
-#endif
-        closepackfile(handle);
+       closepackfile(handle);
         return 0;
     }
-
-#if DC || GP2X || SYMBIAN
-    build_bmp_header(&bmp_header, mybmpheader);
-#else
     bmp_header.bm = SwapLSB16(bmp_header.bm);
     bmp_header.numplanes = SwapLSB16(bmp_header.numplanes);
     bmp_header.bpp = SwapLSB16(bmp_header.bpp);
@@ -121,7 +83,6 @@ static int openbmp(char *filename, char *packfilename)
     bmp_header.vres = SwapLSB32(bmp_header.vres);
     bmp_header.numcolors_used = SwapLSB32(bmp_header.numcolors_used);
     bmp_header.numcolors_important = SwapLSB32(bmp_header.numcolors_important);
-#endif
 
     if(bmp_header.bm != 0x4D42 || bmp_header.bpp != 8 || bmp_header.compression)
     {
@@ -632,19 +593,11 @@ typedef struct
     unsigned char	aspect;
 } gifheaderstruct;
 
-#if DC || GP2X || SYMBIAN
-#define sizeof_gifheaderstruct 13
-#endif
-
 typedef struct
 {
     unsigned short   left, top, width, height;
     unsigned char    flags;
 } gifblockstruct;
-
-#if DC || GP2X || SYMBIAN
-#define sizeof_iblock 9
-#endif
 
 static gifheaderstruct gif_header;
 
@@ -857,13 +810,8 @@ static int opengif(char *filename, char *packfilename)
         return 0;
     }
 
-#if DC || GP2X || SYMBIAN
-    if(readpackfile(handle, &gif_header, sizeof_gifheaderstruct) != sizeof_gifheaderstruct)
-    {
-#else
     if(readpackfile(handle, &gif_header, sizeof(gifheaderstruct)) != sizeof(gifheaderstruct))
     {
-#endif
         closepackfile(handle);
         return 0;
     }
@@ -967,13 +915,8 @@ static int readgif(unsigned char *buf, unsigned char *pal, int maxwidth, int max
         {
         case ',':        // An image block
 
-#if DC || GP2X || SYMBIAN
-            if(readpackfile(handle, &iblock, sizeof_iblock) != sizeof_iblock)
-            {
-#else
             if(readpackfile(handle, &iblock, sizeof(iblock)) != sizeof(iblock))
             {
-#endif
                 return 0;
             }
 

@@ -137,11 +137,6 @@ void sound_pause_single_sample(int toggle, int channel);
 void sound_volume_sample(int channel, int lvolume, int rvolume);
 int sound_getpos_sample(int channel);
 void sound_music_channel_clear(musicchannelstruct* const music_channel);
-
-#ifdef DC
-int sound_was_music_opened();
-#endif
-
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset);
 void sound_close_music();
 void sound_update_music();
@@ -149,9 +144,7 @@ void sound_volume_music(int left, int right);
 void sound_music_tempo(int music_tempo);
 int sound_query_music(char *artist, char *title);
 void sound_pause_music(int toggle);
-
 void update_sample(unsigned char *buf, int size);
-
 int maxchannels(void);
 
 #endif
