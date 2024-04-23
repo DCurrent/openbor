@@ -1,0 +1,7 @@
+{
+    "editor.formatOnSave": false,
+    "files.associations": {
+        "__locale": "c",
+        "locale": "c"
+    }
+}
