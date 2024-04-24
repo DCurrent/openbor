@@ -24,7 +24,6 @@ if(TARGET_ARCH STREQUAL "arm64")
 elseif(TARGET_ARCH STREQUAL "x86")
   set(ARCH_SUFFIX "-x86")
   add_definitions(-DELF)
-  set(USE_MMX ON)
 endif()
 
 if(NOT TARGET_ARCH MATCHES "${CMAKE_SYSTEM_PROCESSOR}")
