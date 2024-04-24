@@ -84,11 +84,24 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	static int last_x = SDL_WINDOWPOS_UNDEFINED;
 	static int last_y = SDL_WINDOWPOS_UNDEFINED;
 
-	if(gl) flags |= SDL_WINDOW_OPENGL;
 	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
 	if(!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
 		SDL_GetWindowPosition(window, &last_x, &last_y);
+
+	if (gl)
+	{
+		flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+		SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+	}
+	else
+	{
+		// The SDL video backend doesn't support high-quality (sharp bilinear) scaling,
+		// so it will produce bad results if it tries to scale by a fractional factor.
+		// The results are worse than what we get from upscaling with nearest-neighbor
+		// and letting the windowing system upscale the result.
+		SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "0");
+	}
 
 	if(window && gl != last_gl)
 	{

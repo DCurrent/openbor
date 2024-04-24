@@ -283,6 +283,9 @@ int video_gl_set_mode(s_videomodes videomodes)
 		goto error;
 	}
 
+	// set proper viewport width/height for high-DPI support
+	SDL_GL_GetDrawableSize(window, &viewportWidth, &viewportHeight);
+
 	// set background to black
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT);
