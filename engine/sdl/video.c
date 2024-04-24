@@ -83,6 +83,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	static bool last_gl = false;
 	static int last_x = SDL_WINDOWPOS_UNDEFINED;
 	static int last_y = SDL_WINDOWPOS_UNDEFINED;
+	const int option_flags =  SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP;
 
 	if(gl) flags |= SDL_WINDOW_OPENGL;
 	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -111,6 +112,10 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		SDL_SetWindowSize(window, w, h);
 		SDL_SetWindowPosition(window, last_x, last_y);
 		SDL_ShowWindow(window);
+	}
+	else if (window && (SDL_GetWindowFlags(window) & option_flags) == (flags & option_flags))
+	{
+		SDL_SetWindowSize(window, w, h);
 	}
 	else
 	{
