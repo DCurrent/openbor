@@ -47680,7 +47680,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				}
 				else if (!player[i].hasplayed
 					&& (noshare || credits > 0)
-					&& (player[i].newkeys & FLAG_ANYBUTTON))
+					&& any_button_except_esc(player[i].newkeys))
 				{
 
 					//  Now this player has played.
@@ -47719,7 +47719,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 						sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 				}
-				else if ((player[i].newkeys & FLAG_ANYBUTTON) && example[i]) //Kratus (01-05-21) Moved the "anybutton" code to before of the "left/right" code to fix a bug that makes no character chosen when both are pressed together
+				else if (any_button_except_esc(player[i].newkeys) && example[i]) //Kratus (01-05-21) Moved the "anybutton" code to before of the "left/right" code to fix a bug that makes no character chosen when both are pressed together
 				{
 					if (global_sample_list.beep_2 >= 0)
 					{
@@ -48190,7 +48190,7 @@ int menu_difficulty()
         }
         //if(selector<num_difficulties) slider = selector * 4.5;
 
-        if(bothnewkeys & FLAG_ANYBUTTON)
+        if(any_button_except_esc(bothnewkeys))
         {
 
             if(global_sample_list.beep_2 >= 0)
@@ -48422,7 +48422,7 @@ int choose_mode(int *players)
             selector = 0;
         }
 
-        if(bothnewkeys & FLAG_ANYBUTTON)
+        if(any_button_except_esc(bothnewkeys))
         {
             if(global_sample_list.beep_2 >= 0)
             {
@@ -48981,7 +48981,7 @@ finish:
                 while(disabledkey[selector]) if(++selector > btnnum - 1) break;
             }
 
-            if (selector == OPTIONS_NUM - 3 && (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON)))
+            if (selector == OPTIONS_NUM - 3 && (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys)))
             {
                 // TODO: make rumble enable/disable a property of device, not player
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
@@ -49179,10 +49179,10 @@ void menu_options_input()
             selected_device = playercontrolpointers[selector]->deviceID;
         }
 
-        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             // Left/right only make sense for device reassignment
-            if (selector >= 4 && !(bothnewkeys & FLAG_ANYBUTTON))
+            if (selector >= 4 && !any_button_except_esc(bothnewkeys))
             {
                 continue;
             }
@@ -49218,7 +49218,7 @@ void menu_options_input()
                         }
                     } while (!control_isvaliddevice(selected_device));
                 }
-                else // (bothnewkeys & FLAG_ANYBUTTON)
+                else // any_button_except_esc(bothnewkeys)
                 {
                     // assign selected device to player
                     safe_set_device(selector, selected_device, playercontrolpointers[selector]->deviceID);
@@ -49319,7 +49319,7 @@ void menu_options_sound()
             selector = 0;
         }
 
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             dir = 0;
 
@@ -49486,7 +49486,7 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
             selector = 0;
         }
 
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
 
             if(global_sample_list.beep_2 >= 0)
@@ -49673,7 +49673,7 @@ void menu_options_debug()
 
         // Toggle selection value on left/right or
         // trigger button press.
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             if(global_sample_list.beep_2 >= 0)
             {
@@ -49896,7 +49896,7 @@ void menu_options_cheats()
         * Toggle selection value on left/right or
         * trigger button press.
         */
-        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             if (global_sample_list.beep_2 >= 0)
             {
@@ -50078,7 +50078,7 @@ void menu_options_system()
             selector = 0;
         }
 
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
@@ -50261,7 +50261,7 @@ void menu_options_video()
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             dir = 0;
 
@@ -50452,7 +50452,7 @@ void menu_options()
         {
             quit = 1;
         }
-        if(bothnewkeys & FLAG_MOVEUP)
+        else if(bothnewkeys & FLAG_MOVEUP)
         {
             if(selector <= VIDEO_OPTION)
             {
@@ -50465,7 +50465,7 @@ void menu_options()
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        if(bothnewkeys & FLAG_MOVEDOWN)
+        else if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
             if(selector > BACK_OPTION)
@@ -50478,7 +50478,7 @@ void menu_options()
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        else if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
 
             if(global_sample_list.beep_2 >= 0)
@@ -50681,7 +50681,7 @@ void openborMain(int argc, char **argv)
                     sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
             }
-            if(bothnewkeys & (FLAG_ANYBUTTON))
+            if(any_button_except_esc(bothnewkeys))
             {
                 if(global_sample_list.beep_2 >= 0)
                 {

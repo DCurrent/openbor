@@ -563,6 +563,11 @@ typedef enum
     FLAG_BACKWARD = 0x80000000
 } e_key_def;
 
+static inline bool any_button_except_esc(int keys)
+{
+    return (keys & FLAG_ANYBUTTON) && !(keys & FLAG_ESC);
+}
+
 // Caskey, Damon V.
 // 2013-12-27
 //
