@@ -5,7 +5,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     dpkg --add-architecture arm64 && \
     apt-get update && \
     apt-get -y install --no-install-recommends \
-    cmake build-essential yasm zstd \
+    cmake build-essential zstd \
     gcc-mingw-w64 \
     gcc-12-i686-linux-gnu \
     gcc-12-aarch64-linux-gnu \

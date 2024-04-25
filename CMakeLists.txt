@@ -105,10 +105,6 @@ if(USE_GFX)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_GFX})
 endif()
 
-if(USE_MMX)
-  target_sources(${PROJECT_NAME} PRIVATE ${SRC_MMX})
-endif()
-
 if(USE_SDL)
   add_definitions(-DSDL=1)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_SDL})
