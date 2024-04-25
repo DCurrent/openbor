@@ -20,9 +20,7 @@
 #include "openbor.h"
 #include "packfile.h"
 
-#if !DC && !VITA
 #include <dirent.h>
-#endif
 
 #ifdef SDL
 #include <unistd.h>
@@ -34,27 +32,9 @@
 #include <sys/stat.h>
 #endif
 
-#ifdef DC
-#include "dcport.h"
-#endif
-
-#ifdef PSP
-#include "image.h"
-#endif
-
 #if WII
 #include "wiiport.h"
 #include "savepng.h"
-#endif
-
-#if VITA
-#include "vitaport.h"
-#include "savepng.h"
-#include <sys/stat.h>
-#include <psp2/io/dirent.h>
-typedef void DIR;
-#define opendir(X) ((DIR*)sceIoDopen(X))
-#define closedir(X) sceIoDclose((SceUID)(X))
 #endif
 
 #if ANDROID
@@ -64,8 +44,6 @@ typedef void DIR;
 
 #ifdef WIN
 #define MKDIR(x) mkdir(x)
-#elif VITA
-#define MKDIR(x) sceIoMkdir(x, 0777)
 #else
 #define MKDIR(x) mkdir(x, 0777)
 #endif
@@ -77,13 +55,6 @@ typedef void DIR;
 #define READ_LOGFILE(type)   type ? fopen(getFullPath("Logs/OpenBorLog.txt"), "rt") : fopen(getFullPath("Logs/ScriptLog.txt"), "rt")
 #define COPY_ROOT_PATH(buf, name) strcpy(buf, rootDir); strcat(buf, name); strcat(buf, "/");
 #define COPY_PAKS_PATH(buf, name) strcpy(buf, paksDir); strcat(buf, "/"); strcat(buf, name);
-#elif VITA
-#define CHECK_LOGFILE(type)  type ? fileExists("ux0:/data/OpenBOR/Logs/OpenBorLog.txt") : fileExists("./Logs/ScriptLog.txt")
-#define OPEN_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "wt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "wt")
-#define APPEND_LOGFILE(type) type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "at") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "at")
-#define READ_LOGFILE(type)   type ? fopen("ux0:/data/OpenBOR/Logs/OpenBorLog.txt", "rt") : fopen("ux0:/data/OpenBOR/Logs/ScriptLog.txt", "rt")
-#define COPY_ROOT_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/"); strcat(buf, name); strcat(buf, "/");
-#define COPY_PAKS_PATH(buf, name) strcpy(buf, "ux0:/data/OpenBOR/Paks/"); strcat(buf, name);
 #elif ANDROID
 //msmalik681 now using AndroidRoot fuction from sdlport.c to update all android paths.
 #define Alog AndroidRoot("Logs/OpenBorLog.txt")
@@ -154,7 +125,6 @@ u32 debug_time = 0;
 
 void getBasePath(char *newName, char *name, int type)
 {
-#ifndef DC
     char buf[MAX_BUFFER_LEN] = {""};
     switch(type)
     {
@@ -166,14 +136,9 @@ void getBasePath(char *newName, char *name, int type)
         break;
     }
     strcpy(newName, buf);
-#else
-    strncpy(newName, name, MAX_LABEL_LEN - 1);
-#endif
 }
 
 
-
-#ifndef DC
 int dirExists(char *dname, int create)
 {
     char realName[MAX_LABEL_LEN] = {""};
@@ -241,18 +206,11 @@ CLOSE_AND_QUIT:
     fclose(handle);
     return buffer;
 }
-#endif
+
 
 void writeToLogFile(const char *msg, ...)
 {
     va_list arglist;
-
-#ifdef DC
-    va_start(arglist, msg);
-    vfprintf(stdout, msg, arglist);
-    va_end(arglist);
-    fflush(stdout);
-#else
     if(openborLog == NULL)
     {
         openborLog = OPEN_LOGFILE(OPENBOR_LOG);
@@ -265,12 +223,10 @@ void writeToLogFile(const char *msg, ...)
     vfprintf(openborLog, msg, arglist);
     va_end(arglist);
     fflush(openborLog);
-#endif
 }
 
 void writeToScriptLog(const char *msg)
 {
-#ifndef DC
     if(scriptLog == NULL)
     {
         scriptLog = OPEN_LOGFILE(SCRIPT_LOG);
@@ -281,7 +237,6 @@ void writeToScriptLog(const char *msg)
     }
     fwrite(msg, 1, strlen(msg), scriptLog);
     fflush(scriptLog);
-#endif
 }
 
 void debug_printf(char *format, ...)
@@ -397,48 +352,30 @@ void getPakName(char *name, int type)
 
 void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 {
-#ifndef DC
     int	 shotnum = 0;
     char shotname[1024] = {""};
     char modname[MAX_FILENAME_LEN]  = {""};
 
     getPakName(modname, 99);
-#ifdef PSP
-    if(dirExists("ms0:/PICTURE/", 1) && dirExists("ms0:/PICTURE/Beats Of Rage/", 1))
+    do
     {
-#endif
-        do
-        {
-#if PSP
-            sprintf(shotname, "ms0:/PICTURE/Beats Of Rage/%s - ScreenShot - %02u.png", modname, shotnum);
-#elif SDL || WII
-            sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
+#if SDL || WII
+        sprintf(shotname, "%s/%s - %04u.png", screenShotsDir, modname, shotnum);
 #else
-            sprintf(shotname, "./ScreenShots/%s - %04u.png", modname, shotnum);
+        sprintf(shotname, "./ScreenShots/%s - %04u.png", modname, shotnum);
 #endif
-            ++shotnum;
-        }
-        while(fileExists(shotname) && shotnum < 10000);
-
-#ifdef PSP
-        if(shotnum < 10000)
-        {
-            saveImage(shotname);
-        }
-#else
-        if(shotnum < 10000)
-        {
-            savepng(shotname, vscreen, pal);
-        }
-#endif
-        if(ingame)
-        {
-            debug_printf("Saved %s", shotname);
-        }
-#ifdef PSP
+        ++shotnum;
     }
-#endif
-#endif
+    while(fileExists(shotname) && shotnum < 10000);
+
+    if(shotnum < 10000)
+    {
+        savepng(shotname, vscreen, pal);
+    }
+    if(ingame)
+    {
+        debug_printf("Saved %s", shotname);
+    }
 }
 
 unsigned readlsb32(const unsigned char *src)

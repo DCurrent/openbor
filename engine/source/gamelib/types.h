@@ -15,9 +15,7 @@
 
 #define	ANYNUMBER		 2
 
-#if SYMBIAN
-#pragma pack(4)
-#elif SDL
+#if SDL
 #pragma pack(push,4)
 #endif
 
@@ -48,9 +46,7 @@ extern int pixelbytes[(int)5];
 
 // Define fixed-size integer types - these used to be in gfxtypes.h
 // TODO: use these for throughout the engine where fixed-length types are needed
-#if PSP
-#include "psptypes.h"
-#elif WII
+#if WII
 #include "gctypes.h"
 #elif ((__STDC_VERSION__ >= 199901L) || (defined(__GNUC__) && (__GNUC__ >= 3))) && (!defined(DC))
 #include <stdint.h>
@@ -58,13 +54,8 @@ typedef int8_t s8;
 typedef uint8_t u8;
 typedef int16_t s16;
 typedef uint16_t u16;
-#if VITA // silly compiler...
-typedef int s32;
-typedef unsigned int u32;
-#else
 typedef int32_t s32;
 typedef uint32_t u32;
-#endif
 typedef int64_t s64;
 typedef uint64_t u64;
 #else // MSVC - no C99 support :(
@@ -134,9 +125,6 @@ typedef struct
     int	width;
     int	height;
     int pixelformat;
-#if PSP
-    int dummy[3]; //temporary debug values
-#endif
     unsigned char *palette;
     unsigned char data[ANYNUMBER];
 } s_screen;
@@ -165,9 +153,6 @@ typedef struct
     int clipped_y_offset;
     int clipped_width;
     int clipped_height;
-#if PSP
-    int dummy[3]; //temporary debug values
-#endif
     unsigned char *palette;
     unsigned char data[ANYNUMBER];
 } s_bitmap;
@@ -363,9 +348,7 @@ typedef struct
 
 } s_videomodes;
 
-#if SYMBIAN
-#pragma pack(0)
-#elif SDL
+#if SDL
 #pragma pack(pop)
 #endif
 

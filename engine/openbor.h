@@ -4648,9 +4648,6 @@ int ai_check_escape();
 int ai_check_busy();
 void display_credits(void);
 void borShutdown(int status, char *msg, ...);
-#ifdef DC
-void guistartup(void);
-#endif
 void startup(void);
 int playgif(char *filename, int x, int y, int noskip);
 void playscene(char *filename);

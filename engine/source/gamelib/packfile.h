@@ -24,14 +24,6 @@
 #include <SDL.h>
 #endif
 
-#ifdef PSP
-#include "image.h"
-#endif
-
-#ifdef VITA
-#include "types.h"
-#endif
-
 #define PACKFILE_PATH_MAX 512 // Maximum length of file path string.
 #define MAX_TRACKS 256 // Maximum number of BGM Tracks. IMPORTANT: Wii max number is 256 (maybe for low memory??)
 
@@ -55,10 +47,6 @@ typedef struct fileliststruct
     unsigned int bgmTracks[MAX_TRACKS];
 #ifdef SDL
     SDL_Surface *preview;
-#elif PSP
-    Image *preview;
-#elif VITA
-    s_screen *preview;
 #endif
 } fileliststruct;
 

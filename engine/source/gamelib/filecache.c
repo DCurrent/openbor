@@ -11,14 +11,6 @@
 #include "packfile.h"
 #include "filecache.h"
 
-#ifdef DC
-#include "gdrom.h"
-#endif
-
-#ifdef PSP
-#include <pspsuspend.h>
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 
 static int filecache_blocksize;
@@ -313,17 +305,6 @@ void filecache_process(void)
         return;
     }
 
-#ifdef DC
-    // busy?
-    if(real_pakfd < 0)
-    {
-        if(gdrom_poll())
-        {
-            return;
-        }
-    }
-#endif
-
     cacheblock_read = last_cacheblock_read;
     pakblock_read = last_pakblock_read;
 
@@ -428,26 +409,8 @@ void filecache_process(void)
     // if we wanted to read something, read it
     if(pakblock_read >= 0 && cacheblock_read >= 0)
     {
-#ifdef DC
-        if(real_pakfd < 0)
-        {
-            void *dest = filecache + (cacheblock_read * filecache_blocksize);
-            int lba = (pakblock_read * filecache_blocksize) / 2048;
-            int n = filecache_blocksize / 2048;
-            // definitely do not go out of bounds here
-            if((lba + n) > filecache_maxcdsectors)
-            {
-                n = filecache_maxcdsectors - lba;
-            }
-            // gdrom reads are non-blocking
-            gdrom_readsectors(dest, (-real_pakfd) + lba, n);
-        }
-        else
-#endif
-        {
-            lseek(real_pakfd, pakblock_read * filecache_blocksize, SEEK_SET);
-            read(real_pakfd, (char *) filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
-        }
+        lseek(real_pakfd, pakblock_read * filecache_blocksize, SEEK_SET);
+        read(real_pakfd, (char *) filecache + (cacheblock_read * filecache_blocksize), filecache_blocksize);
     }
 }
 
@@ -578,22 +541,11 @@ void filecache_term()
         free(filecache_pakmap);
         filecache_pakmap = NULL;
     }
-#ifdef PSP
-    // Release 4 MBytes of reserved space by PSP.
-    if(sceKernelVolatileMemUnlock(0))
-    {
-        printf("Error allocation filecache!\n");
-        borExit(0);
-    }
-#elif DC
-    filecache_head = NULL;
-#else
     if(filecache_head)
     {
         free(filecache_head);
         filecache_head = NULL;
     }
-#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -603,11 +555,6 @@ void filecache_term()
 void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char blocks, int vfds)
 {
     int i;
-
-#ifdef PSP
-    int size;
-#endif
-
     real_pakfd = realfd;
     total_pakblocks = ((pakcdsectors * 2048) + (blocksize - 1)) / blocksize;
     filecache_blocksize = blocksize;
@@ -616,19 +563,7 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
     filecache_maxcdsectors = pakcdsectors;
 
     // allocate everything
-#ifdef PSP
-    // This will give us the extra 4 MBytes of reserved space by PSP.
-    if(sceKernelVolatileMemLock(0, (void *)&filecache_head, &size))
-    {
-        printf("Error allocation filecache!\n");
-        borExit(0);
-    }
-#elif DC
-    filecache_head = (void *)(0xA5500000 - 64);
-#else
     filecache_head = malloc(filecache_blocksize * filecache_blocks + 64);
-#endif
-
     filecache = filecache_head;
 
     // align the filecache

@@ -26,22 +26,9 @@ extern u32 debug_time;
 // *** FUNCTIONS DECLARATIONS ***
 void writeToLogFile(const char *, ...);
 void writeToScriptLog(const char *msg);
-
-#ifndef DC
 int fileExists(char *fnam);
 int dirExists(char *dname, int create);
 stringptr *readFromLogFile(int which);
-#endif
-
-#ifdef DC
-typedef struct
-{
-    char filename[80];
-} s_filelist;
-s_filelist paklist[20];
-
-int findmods(void);
-#endif
 
 void lc(char *buf, size_t size);
 size_t getNewLineStart(char *buf);

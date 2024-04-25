@@ -42,14 +42,11 @@
 #include <dirent.h>
 #endif
 
-#if _POSIX_SOURCE || SYMBIAN
+#if _POSIX_SOURCE
 #define	stricmp	strcasecmp
 #endif
 
-#ifndef DC
 #pragma pack (1)
-#endif
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -67,11 +64,7 @@ static const size_t USED_FLAG = (((size_t) 1) << ((sizeof(size_t) * 8) - 1));
 // cacheblocks must be 255 or less!
 //
 #define CACHEBLOCKSIZE (32768)
-#ifndef OPENDINGUX
 #define CACHEBLOCKS    (96)
-#else
-#define CACHEBLOCKS    (8)
-#endif
 
 static int pak_initialized;
 int printFileUsageStatistics = 0;
@@ -356,9 +349,6 @@ void packfile_mode(int mode)
 {
     if(!mode)
     {
-#ifdef DC
-        fs_chdir("/cd");
-#endif
         pOpenPackfile = openPackfile;
         pReadPackfile = readPackfile;
         pSeekPackfile = seekPackfile;
@@ -1099,119 +1089,10 @@ int seekPackfileCached(int handle, int offset, int whence)
 //
 static int pak_getsectors(void *dest, int lba, int n)
 {
-#ifdef DC
-    if((lba + n) > ((paksize + 0x7FF) / 0x800))
-    {
-        n = ((paksize + 0x7FF) / 0x800) - lba;
-    }
-    if(pakfd >= 0)
-    {
-        lseek(pakfd, lba << 11, SEEK_SET);
-        read(pakfd, dest, n << 11);
-    }
-    else
-    {
-        gdrom_readsectors(dest, (-pakfd) + lba, n);
-        while(gdrom_poll());
-    }
-#else
     lseek(pakfd, lba << 11, SEEK_SET);
     read(pakfd, dest, n << 11);
-#endif
     return n;
 }
-
-#ifdef DC
-/////////////////////////////////////////////////////////////////////////////
-//
-// returns 0 if they match
-//
-static int fncmp(const char *filename, const char *isofilename, int isolen)
-{
-    for(; isolen > 0; isolen--)
-    {
-        char cf = *filename++;
-        char ci = *isofilename++;
-        if(!cf)
-        {
-            // allowed to omit the version on filename
-            if(ci == ';' || ci == 0)
-            {
-                return 0;
-            }
-            return 1;
-        }
-        if(cf >= 'A' && cf <= 'Z')
-        {
-            cf += 'a' - 'A';
-        }
-        if(ci >= 'A' && ci <= 'Z')
-        {
-            ci += 'a' - 'A';
-        }
-        if(cf != ci)
-        {
-            return 1;
-        }
-    }
-    // allowed to omit the version on isofilename too O_o
-    if(*filename == ';' || *filename == 0)
-    {
-        return 0;
-    }
-    return 1;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// input: starting lba of the track
-// returns starting lba of the file, or 0 on failure
-//
-int find_iso_file(const char *filename, int lba, int *bytes)
-{
-    int dirlen;
-    unsigned char sector[4096];
-    int secofs;
-
-    // read the root descriptor
-    gdrom_readsectors(sector, lba + 16, 1);
-    while(gdrom_poll());
-    // get the root directory extent and size
-    lba    = 150 + readmsb32(sector + 156 + 6);
-    dirlen =       readmsb32(sector + 156 + 14);
-
-    // at this point, lba is the lba of the root dir
-    secofs = 4096;
-    while(dirlen > 0)
-    {
-        if(secofs >= 4096 || ((secofs + sector[secofs]) > 4096))
-        {
-            memcpy(sector, sector + 2048, 2048);
-            gdrom_readsectors(sector + 2048, lba, 1);
-            while(gdrom_poll());
-            lba++;
-            secofs -= 2048;
-        }
-        if(!sector[secofs])
-        {
-            break;
-        }
-        if(!fncmp(filename, sector + secofs + 33, sector[secofs + 32]))
-        {
-            lba = 150 + readmsb32(sector + secofs + 6);
-            if(bytes)
-            {
-                *bytes = readmsb32(sector + secofs + 14);
-            }
-            return lba;
-        }
-        secofs += sector[secofs];
-        dirlen -= sector[secofs];
-    }
-    // didn't find the file
-    return 0;
-}
-#endif
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1271,35 +1152,16 @@ int pak_init()
     pSeekPackfile = seekPackfileCached;
     pClosePackfile = closePackfileCached;
 
-#if DC
-    if(cd_lba)
-    {
-        paksize = 0;
-        pakfd = find_iso_file(packfile, cd_lba, &paksize);
-        if(pakfd <= 0)
-        {
-            printf("unable to find pak file on cd\n");
-            return 0;
-        }
-        pakfd = -pakfd;
-    }
-    else
-    {
-#endif
 	int per = 666;
-        pakfd = open(packfile, O_RDONLY | O_BINARY, per);
+    pakfd = open(packfile, O_RDONLY | O_BINARY, per);
 
-        if(pakfd < 0)
-        {
-            printf("error opening %s (%d) - could not get a valid device descriptor.\n%s\n", packfile, pakfd, strerror(errno));
-            return 0;
-        }
-
-        paksize = lseek(pakfd, 0, SEEK_END);
-
-#ifdef DC
+    if(pakfd < 0)
+    {
+        printf("error opening %s (%d) - could not get a valid device descriptor.\n%s\n", packfile, pakfd, strerror(errno));
+        return 0;
     }
-#endif
+
+    paksize = lseek(pakfd, 0, SEEK_END);
 
     // Is it a valid Packfile
     close(pakfd);
