@@ -156,7 +156,6 @@ int video_set_mode(s_videomodes videomodes)
 
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
-		Term_Gfx();
 		return 0;
 	}
 

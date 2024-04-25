@@ -18,6 +18,10 @@
 #include "gfx.h"
 #include "types.h"
 
+#ifdef __i586__
+#define MMX 1
+#endif
+
 static inline void scale2x_16_pixel_c(void *src0v, void *src1v, void *src2v, void *dst0v, void *dst1v)
 {
     u16 *src0 = src0v, *src1 = src1v, *src2 = src2v, *dst0 = dst0v, *dst1 = dst1v;

@@ -18,7 +18,6 @@ option(USE_WEBM    "Enable WebM" OFF)
 option(USE_VORBIS  "Enable Vorbis" OFF)
 option(USE_TREMOR  "Enable Tremor" OFF)
 option(USE_GFX     "Enable Video Scaling" OFF)
-option(USE_MMX     "Enable MMX Instructions" OFF)
 
 # Linker Options
 option(ENABLE_STATIC     "Enable Static Linking" OFF)
@@ -53,7 +52,6 @@ file(GLOB         SRC_OBOR   "engine/*.c"                "engine/*.h")
 file(GLOB_RECURSE SRC_CORE   "engine/source/*.c"         "engine/source/*.h")
 file(GLOB         SRC_GFX    "engine/source/gfxlib/*.c"  "engine/source/gfxlib/*.h")
 file(GLOB_RECURSE SRC_WEBM   "engine/source/webmlib/*.c" "engine/source/webmlib/*.h")
-file(GLOB         SRC_MMX    "engine/source/gfxlib/*.asm")
 file(GLOB         SRC_SDL    "engine/sdl/*.c" "engine/sdl/*.h")
 file(GLOB         SRC_OPENGL "engine/sdl/opengl.*")
 file(GLOB         SRC_LOADGL "engine/sdl/loadgl.*")
@@ -105,10 +103,6 @@ endif()
 # Include Optional Source Files
 if(USE_GFX)
   target_sources(${PROJECT_NAME} PRIVATE ${SRC_GFX})
-endif()
-
-if(USE_MMX)
-  target_sources(${PROJECT_NAME} PRIVATE ${SRC_MMX})
 endif()
 
 if(USE_SDL)

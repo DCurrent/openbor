@@ -52,7 +52,6 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 		screen = SDL_CreateRGBSurface(0, videomodes.hRes*2, videomodes.vRes*2, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);
 		if (!bscreen) bscreen = SDL_CreateRGBSurface(0, videomodes.hRes, videomodes.vRes, 8*bytes_per_pixel, masks[bytes_per_pixel-1][0], masks[bytes_per_pixel-1][1], masks[bytes_per_pixel-1][2], masks[bytes_per_pixel-1][3]); // 24bit mask
 		bscreen2 = SDL_CreateRGBSurface(0, videomodes.hRes+4, videomodes.vRes+8, 16, masks[1][0], masks[1][1], masks[1][2], masks[1][3]);
-		Init_Gfx(565, 16);
 		memset(pDeltaBuffer, 0x00, 1244160);
 		
 		assert(bscreen);
