@@ -14,6 +14,7 @@
 #include "globals.h"
 #include "control.h"
 #include "openbor.h"
+#include "stristr.h"
 #include "List.h"
 
 #define AXIS_THRESHOLD 7000
@@ -780,7 +781,8 @@ const char *control_getkeyname(int deviceID, int keycode)
     else if (devices[deviceID].deviceType == DEVICE_TYPE_CONTROLLER)
     {
         // These are more readable than the button names we get from SDL
-        const char *buttonNames[] = {
+        // Be sure to keep these arrays the same size as the PS ones below!
+        const char *xboxButtonNames[] = {
             "A",
             "B",
             "X",
@@ -796,6 +798,15 @@ const char *control_getkeyname(int deviceID, int keycode)
             "D-Pad Down",
             "D-Pad Left",
             "D-Pad Right",
+            "Share",
+            // Xbox Elite controller paddles
+            "P1",
+            "P3",
+            "P2", // yes, these are apparently ordered with 3 before 2
+            "P4",
+            "Touchpad", // PS4/PS5 touchpad
+        };
+        const char *xboxAxisNames[] = {
             "Left Stick Left",
             "Left Stick Right",
             "Left Stick Up",
@@ -808,9 +819,59 @@ const char *control_getkeyname(int deviceID, int keycode)
             "RT"
         };
 
-        if (keycode < sizeof(buttonNames) / sizeof(buttonNames[0]))
+        // be sure to keep these arrays the same size as the Xbox ones above!
+        const char *psButtonNames[] = {
+            "Cross",
+            "Circle",
+            "Square",
+            "Triangle",
+            "Share",
+            "Home",
+            "Options",
+            "L3",
+            "R3",
+            "L1",
+            "R1",
+            "D-Pad Up",
+            "D-Pad Down",
+            "D-Pad Left",
+            "D-Pad Right",
+            "Microphone",
+            // Xbox Elite controller paddles, which PS controllers don't have
+            "Unknown 1",
+            "Unknown 2",
+            "Unknown 3", // yes, these are apparently ordered with 3 before 2
+            "Unknown 4",
+            "Touchpad", // PS4/PS5 touchpad
+        };
+        const char *psAxisNames[] = {
+            "Left Stick Left",
+            "Left Stick Right",
+            "Left Stick Up",
+            "Left Stick Down",
+            "Right Stick Left",
+            "Right Stick Right",
+            "Right Stick Up",
+            "Right Stick Down",
+            "L2",
+            "R2"
+        };
+
+        bool isPlaystation = stristr(devices[deviceID].name, "PS4") ||
+            stristr(devices[deviceID].name, "PS5") ||
+            stristr(devices[deviceID].name, "PlayStation") ||
+            stristr(devices[deviceID].name, "DualShock") ||
+            stristr(devices[deviceID].name, "DualSense");
+        const char **buttonNames = isPlaystation ? psButtonNames : xboxButtonNames;
+        const char **axisNames = isPlaystation ? psAxisNames : xboxAxisNames;
+
+        if (keycode < sizeof(xboxButtonNames) / sizeof(xboxButtonNames[0]))
         {
             return buttonNames[keycode];
+        }
+        else if (keycode - SDL_CONTROLLER_BUTTON_MAX < sizeof(xboxAxisNames) / sizeof(xboxAxisNames[0]))
+        {
+            return axisNames[keycode - SDL_CONTROLLER_BUTTON_MAX];
         }
     }
     else if (devices[deviceID].deviceType == DEVICE_TYPE_JOYSTICK)
