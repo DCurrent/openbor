@@ -840,7 +840,7 @@ const char *control_getkeyname(int deviceID, int keycode)
             // Xbox Elite controller paddles, which PS controllers don't have
             "Unknown 1",
             "Unknown 2",
-            "Unknown 3", // yes, these are apparently ordered with 3 before 2
+            "Unknown 3",
             "Unknown 4",
             "Touchpad", // PS4/PS5 touchpad
         };
