@@ -504,6 +504,17 @@ static void handle_events()
                     remapDevice->deviceType == DEVICE_TYPE_CONTROLLER &&
                     SDL_GameControllerFromInstanceID(ev.cbutton.which) == remapDevice->controller)
                 {
+                    if (ev.cbutton.button >= SDL_CONTROLLER_BUTTON_MAX)
+                    {
+                        // If this happens, it means we're in the following situation:
+                        //   1) The SDL library was dynamically linked.
+                        //   2) OpenBOR is running with a newer version of SDL than it was compiled against.
+                        //   3) The newer version of SDL defined some new buttons.
+                        // If we try to handle buttons we didn't know about at compile time, those buttons'
+                        // keycodes will overlap with the analog sticks. So filter them out instead.
+                        break;
+                    }
+
                     remapKeycode = ev.cbutton.button;
                 }
                 break;
