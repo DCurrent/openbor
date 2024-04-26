@@ -44,9 +44,7 @@ void initSDL()
 	SDL_DisplayMode video_info;
 	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC;
 
-    /*#if EE_CURRENT_PLATFORM == EE_PLATFORM_WINDOWS
-       SDL_setenv("SDL_AUDIODRIVER", "directsound", true);
-    #endif*/
+	SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
 
 	if(SDL_Init(init_flags) < 0)
 	{
@@ -54,7 +52,6 @@ void initSDL()
 		borExit(0);
 	}
 	SDL_ShowCursor(SDL_DISABLE);
-	//atexit(SDL_Quit); //White Dragon: use SDL_Quit() into sdlport.c it's best practice!
 
 #ifdef LOADGL
 	if(SDL_GL_LoadLibrary(NULL) < 0)
@@ -84,11 +81,22 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	static int last_x = SDL_WINDOWPOS_UNDEFINED;
 	static int last_y = SDL_WINDOWPOS_UNDEFINED;
 
-	if(gl) flags |= SDL_WINDOW_OPENGL;
 	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
 	if(!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
 		SDL_GetWindowPosition(window, &last_x, &last_y);
+
+	if (gl)
+	{
+		// The SDL video backend doesn't support high-quality (sharp bilinear) scaling,
+		// so it will produce bad results if it tries to scale by a fractional factor.
+		// The results are worse than what we get from upscaling with nearest-neighbor
+		// and letting the windowing system upscale the result. So only use the high-DPI
+		// flag with the OpenGL backend. Unfortunately, we're stuck with it on Windows,
+		// where high-DPI support is controlled by a global hint and the ALLOW_HIGHDPI
+		// flag is ignored.
+		flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
+	}
 
 	if(window && gl != last_gl)
 	{
