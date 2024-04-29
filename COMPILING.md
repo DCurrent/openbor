@@ -46,7 +46,9 @@ Docker can be installed via a standard package managing tool such as APT/Yum or 
 First time users should install Docker Desktop as it provides a visual interface to manage images, containers and installs the command line tools for when the need arises for low-level management.
 
 ## Setting up Environment (VSCode)
-Via VSCode Explorer, open the root of your repository and the IDE will automatically detect and ask permissions to install all necessary plugins.  You may have to open a few files if the automatic detection does not occur such as the Dockerfile, CMakeLists.txt and a source file.  Once the plugins have completed installing you maybe prompted to re-open the project within a container: Click Yes to restart VSCode within the container and simply use the Built-In Terminal to invoke your cmake build commands.
+Via VSCode Explorer, open the root of your repository and the IDE will automatically detect and ask permissions to install all necessary plugins.  You may have to open a few files if the automatic detection does not occur such as the Dockerfile, CMakeLists.txt and a source file.
+
+Once the plugins have completed installing you maybe prompted to re-open the project within a container: Click Yes to restart VSCode within the container and simply use the Built-In Terminal to invoke your cmake build commands.
 
 At this point you are ready to build all supported platforms from within the VSCode Terminal.  A script is provided to generate all build targets for distribution.
 
