@@ -10,7 +10,7 @@ Within the root of the OpenBOR repository you will find CMakeLists.txt which con
     Wii     (wii.cmake)
 
 # Building Target
-Cmake provides various options for building a targets in general, however we are only going to focus on a subset of options.  Typically running the cmake command without parameters is enough for configuration system to identify which host you are running cmake on and building for that specific target.  A few example are provided below to showcase how to configure and build OpenBOR target.
+Cmake provides various options for building a targets in general, however we are only going to focus on a subset of options.  Typically running the cmake command without parameters is enough for the configuration system to identify which host you are running cmake on in order to build a native target.  A few example are provided below to showcase how to configure and build OpenBOR target.
 
 ## Configuring and Building Target
 Clear previous build directory, Set new configuration for distribution and build target:
