@@ -48,7 +48,7 @@ Open the root folder via VSCode explorer and the IDE will automatically detect a
 
 At this point you are ready to build all supported platforms from within the VSCode Terminal.  A script is provided to generate all build targets for distribution:
 
-        ./build-all.sh
+        vscode ➜ /workspaces/openbor-v4 (compiling) $ ./build-all.sh
 
 ## Setting up Environment (Manually)
 Using the Docker command line tool we will create a base image and then start a container for building a . single or multiple cross-platform targets.
