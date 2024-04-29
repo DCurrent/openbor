@@ -1,0 +1,1 @@
+# Compiling OpenBOR via CMAKE
