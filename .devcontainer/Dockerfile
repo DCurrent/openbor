@@ -1,6 +1,7 @@
 FROM --platform=linux/x86_64 mcr.microsoft.com/devcontainers/base:debian
 
 ENV WORKSPACE=/workspace
+ENV DEVKITPRO=/opt/devkitpro
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     dpkg --add-architecture i386 && \
@@ -41,10 +42,4 @@ RUN mkdir -p "${WORKSPACE}" && chmod -R 777 "$WORKSPACE"
 # Set Volume and Workdir
 VOLUME $WORKSPACE
 WORKDIR $WORKSPACE
-
-# Bash Settings
-RUN echo "export HISTTIMEFORMAT='%d/%m/%y %T '" >> ~/.bashrc && \
-    echo "export PS1='\[\e[0;36m\]\u\[\e[0m\]@\[\e[0;33m\]\h\[\e[0m\]:\[\e[0;35m\]\w\[\e[0m\]\$ '" >> ~/.bashrc && \
-    echo "alias ll='ls -lah'" >> ~/.bashrc && \
-    echo "alias ls='ls --color=auto'" >> ~/.bashrc
 
