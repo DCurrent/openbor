@@ -1,5 +1,5 @@
 # General Overview
-The build configuration management tool used for OpenBOR is cmake with a minimum requirement of v3.22.  Cmake can be installed via a standard package managing tool such as APT (Debian/Ubuntu) or can be downloaded/compiled for your development environment of choice via https://cmake.org
+The build configuration management tool used for OpenBOR is cmake with a minimum requirement of v3.22.  Cmake can be installed via a standard package managing tool such as APT (Debian/Ubuntu) or can be downloaded/compiled for your development environment of choice via https://cmake.org or which ever packaging management tool you use.
 
 # File Hierarchy
 Within the root of the OpenBOR repository you will find CMakeLists.txt which contains the base configuration which covers all the pre-processor features supported by OpenBOR.  A subdirectory labled "cmake" contains target modules which are used to configure your OpenBOR for you platform of choice.  Currently supported is the following list of targets:
