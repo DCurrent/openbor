@@ -46,7 +46,10 @@ First time users should install Docker Desktop as it provides a visual interface
 ## Setting up Environment (VSCode)
 Open the root folder via VSCode explorer and the IDE will automatically detect and ask permissions to install all necessary plugins.  Once completed you maybe prompted to re-open the project within a container: Click Yes to restart VSCode within the container and simply use the Built-In Terminal to invoke your cmake build commands.
 
-At this point you are ready to build all supported platforms from within the VSCode Terminal.  A script is provided to generate all build targets for distribution:
+At this point you are ready to build all supported platforms from within the VSCode Terminal.  A script is provided to generate all build targets for distribution.
+
+Terminal Tab:
+
 
         vscode ➜ /workspaces/openbor (compiling) $ ./build-all.sh
 
@@ -82,7 +85,7 @@ Return back to the the root of the repository and now you can invoke your develo
             drwxr-xr-x 14 root root  448 Apr 20 15:13 tools
         
 
-### Building from a Container
+### Building from within a Container
 Using the build scripts provided in the repository we can now ensure that all supported targets can be built successfully and are ready for distribution.  Once completed simply type exit to end your container session.
 
         root@7e7774eba72b:/workspace$ ./build-all.sh
@@ -100,3 +103,7 @@ Using the build scripts provided in the repository we can now ensure that all su
             -rw-r--r-- 1 root root 5871 Apr 20 15:13 translation.txt
 
         root@7e7774eba72b:/workspace$ exit
+
+### Single line command for building all targets
+
+    docker run -it --rm -v $(pwd):/workspace openbor ./build-all.sh
