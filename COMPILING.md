@@ -54,7 +54,7 @@ Terminal Tab:
         vscode ➜ /workspaces/openbor (compiling) $ ./build-all.sh
 
 ## Setting up Environment (Manually)
-Using the Docker command line tool we will create a base image and then start a container for building a . single or multiple cross-platform targets.
+Using the Docker command line tool we will create a base image and then start a container which will be used for building a single target or multiple cross-platform targets.
 
 ### Creating Base Image
 Creating a base image only needs to be done once unless updates were performed to the Dockerfile then a new base image will need to be regenerated.  Assuming you are in the root directory of the repository type the following and wait for the process to complete.
