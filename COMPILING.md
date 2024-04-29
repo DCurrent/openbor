@@ -83,7 +83,7 @@ Return back to the the root of the repository and now you can invoke your develo
         
 
 ### Building from a Container
-Using the build scripts provided in the repository we can now ensure that all supported targets can be built successfully and are ready for distribution.
+Using the build scripts provided in the repository we can now ensure that all supported targets can be built successfully and are ready for distribution.  Once completed simply type exit to end your container session.
 
         root@7e7774eba72b:/workspace$ ./build-all.sh
         
@@ -98,5 +98,5 @@ Using the build scripts provided in the repository we can now ensure that all su
             drwxr-xr-x 7 root root  224 Apr 21 01:24 WII
             drwxr-xr-x 8 root root  256 Apr 21 01:24 WINDOWS
             -rw-r--r-- 1 root root 5871 Apr 20 15:13 translation.txt
-            
-            
+
+        root@7e7774eba72b:/workspace$ exit
