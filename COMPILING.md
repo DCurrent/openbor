@@ -40,7 +40,7 @@ In this repository we also have support for Docker which allows us to build all 
 
     .devcontainer/Dockerfile
 
-## Prerequists
+## Prerequisite
 Docker can be installed via a standard package managing tool such as APT/Yum or can be directly downloaded from https://www.docker.com/products/docker-desktop
 
 First time users should install Docker Desktop as it provides a visual interface to manage images, containers and installs the command line tools for when the need arises for low-level management.
