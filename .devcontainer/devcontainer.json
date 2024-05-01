@@ -1,9 +1,12 @@
 {
     "name": "OpenBOR Environment",
+    "image": "openbor",
     "build": {
         "dockerfile": "Dockerfile"
     },
     "runArgs": [
+        "--name",
+        "openbor",
         "--cap-add=SYS_PTRACE",
         "--security-opt",
         "seccomp=unconfined"
