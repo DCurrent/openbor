@@ -29982,7 +29982,7 @@ int player_test_touch(entity *ent, entity *item)
     return test_item(ent, item);
 }
 
-entity *find_ent_here(entity *exclude, float x, float z, e_entity_type types, int (*test)(entity *, entity *))
+entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *))
 {
     int i;
     for(i = 0; i < ent_max; i++)
@@ -30265,7 +30265,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     return 1;
 }
 
-int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
+int set_blockpain(entity *ent, int attack_type, int reset)
 {
     e_animations animation;
 
