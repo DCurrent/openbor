@@ -44,7 +44,7 @@ void initSDL()
 	SDL_DisplayMode video_info;
 	int init_flags = SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_HAPTIC;
 
-	SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+	SDL_SetHint(SDL_HINT_VIDEO_HIGHDPI_DISABLED, "0");
 
 	if(SDL_Init(init_flags) < 0)
 	{

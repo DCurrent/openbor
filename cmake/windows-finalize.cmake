@@ -1,4 +1,4 @@
-if(CMAKE_HOST_SYSTEM MATCHES "MINGW")
+if((CMAKE_HOST_SYSTEM MATCHES "MINGW") OR (CMAKE_HOST_SYSTEM MATCHES "Windows"))
   set(CMAKE_RC_COMPILER "windres")
   if(NOT CMAKE_PREFIX_PATH)
     set(CMAKE_PREFIX_PATH "$ENV{MINGW_PREFIX}")
@@ -67,9 +67,9 @@ add_custom_command(TARGET ${PROJECT_NAME}
 # Distribution Preperation
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
-  COMMAND mkdir -p ../engine/releases/WINDOWS/Logs
-  COMMAND mkdir -p ../engine/releases/WINDOWS/Paks
-  COMMAND mkdir -p ../engine/releases/WINDOWS/Saves
-  COMMAND mkdir -p ../engine/releases/WINDOWS/ScreenShots
-  COMMAND cp -a ${PROJECT_NAME}.exe ../engine/releases/WINDOWS/${PROJECT_NAME}${ARCH_SUFFIX}.exe
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WINDOWS/Logs
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WINDOWS/Paks
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WINDOWS/Saves
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WINDOWS/ScreenShots
+  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_NAME}.exe ../engine/releases/WINDOWS/${PROJECT_NAME}${ARCH_SUFFIX}.exe
 )

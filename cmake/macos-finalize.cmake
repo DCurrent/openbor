@@ -66,16 +66,16 @@ if(TARGET_ARCH STREQUAL "universal")
 else()
   add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD
-    COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Frameworks/native
-    COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS
-    COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Logs
-    COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Paks
-    COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Saves
-    COMMAND mkdir -p ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/ScreenShots
-    COMMAND cp -a ../engine/resources/PkgInfo ../engine/releases/DARWIN/OpenBOR.app/Contents/
-    COMMAND cp -a ../engine/resources/Info.plist ../engine/releases/DARWIN/OpenBOR.app/Contents/
-    COMMAND cp -a ../engine/resources/OpenBOR.icns ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
-    COMMAND cp -a ${PROJECT_NAME} ../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/${PROJECT_NAME}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/DARWIN/OpenBOR.app/Contents/Frameworks/native
+    COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS
+    COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Logs
+    COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Paks
+    COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/Saves
+    COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/ScreenShots
+    COMMAND ${CMAKE_COMMAND} -E copy ../engine/resources/PkgInfo ../engine/releases/DARWIN/OpenBOR.app/Contents/
+    COMMAND ${CMAKE_COMMAND} -E copy ../engine/resources/Info.plist ../engine/releases/DARWIN/OpenBOR.app/Contents/
+    COMMAND ${CMAKE_COMMAND} -E copy ../engine/resources/OpenBOR.icns ../engine/releases/DARWIN/OpenBOR.app/Contents/Resources/
+    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_NAME} ../engine/releases/DARWIN/OpenBOR.app/Contents/MacOS/${PROJECT_NAME}
   )
   add_custom_command(TARGET ${PROJECT_NAME}
     POST_BUILD

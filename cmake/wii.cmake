@@ -35,9 +35,9 @@ ogc_create_dol(${PROJECT_NAME})
 # Distribution Preperation
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
-  COMMAND mkdir -p ../engine/releases/WII/Logs
-  COMMAND mkdir -p ../engine/releases/WII/Paks
-  COMMAND mkdir -p ../engine/releases/WII/Saves
-  COMMAND mkdir -p ../engine/releases/WII/ScreenShots
-  COMMAND cp -a ${PROJECT_NAME}.dol ../engine/releases/WII/boot.dol
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WII/Logs
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WII/Paks
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WII/Saves
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/WII/ScreenShots
+  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_NAME}.dol ../engine/releases/WII/boot.dol
 )

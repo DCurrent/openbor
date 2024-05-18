@@ -1,0 +1,68 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  Build:
+    name: ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.os }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.platform.shell }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { name: Windows x86, os: windows-latest, shell: 'msys2 {0}', msystem: mingw32, msys-env: mingw-w64-i686 }
+        - { name: Windows x64, os: windows-latest, shell: 'msys2 {0}', msystem: ucrt64,  msys-env: mingw-w64-ucrt-x86_64 }
+        - { name: Ubuntu x64,  os: ubuntu-latest,  shell: sh }
+        - { name: MacOS,       os: macos-latest,   shell: sh }
+
+    steps:
+    - name: Set up MSYS2
+      if: matrix.platform.shell == 'msys2 {0}'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.platform.msystem }}
+        install: >-
+          git
+          ${{ matrix.platform.msys-env }}-gcc
+          ${{ matrix.platform.msys-env }}-cmake
+          ${{ matrix.platform.msys-env }}-SDL2
+          ${{ matrix.platform.msys-env }}-zlib
+          ${{ matrix.platform.msys-env }}-libvorbis
+          ${{ matrix.platform.msys-env }}-libogg
+          ${{ matrix.platform.msys-env }}-libpng
+          ${{ matrix.platform.msys-env }}-libvpx
+    - name: Setup Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential git cmake zstd \
+          libsdl2-dev libvorbis-dev libpng-dev libvpx-dev
+    - name: Setup Macos dependencies
+      if: runner.os == 'macOS'
+      run: |
+        brew install \
+          SDL2 \
+          libvorbis \
+          libogg \
+          libvpx
+    - uses: actions/checkout@v3
+    - name: Configure (CMake)
+      run: |
+        ${{ matrix.platform.source_cmd }}
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPRINT_ALL_VARS=ON \
+        ${{ matrix.platform.cmake }}
+    - name: Build (CMake)
+      run: |
+        ${{ matrix.platform.source_cmd }}
+        cmake --build build/ --config Release --verbose --parallel
+    - name: Upload Platform
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.platform.name }}
+        path: engine/releases/
+
