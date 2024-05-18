@@ -1,4 +1,4 @@
-name: Build
+name: Build OpenBOR
 
 on: [push, pull_request]
 
@@ -15,9 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Windows x86, os: windows-latest, shell: 'msys2 {0}', msystem: mingw32, msys-env: mingw-w64-i686 }
-        - { name: Windows x64, os: windows-latest, shell: 'msys2 {0}', msystem: ucrt64,  msys-env: mingw-w64-ucrt-x86_64 }
-        - { name: Ubuntu x64,  os: ubuntu-latest,  shell: sh }
+        - { name: Windows-x86, os: windows-latest, shell: 'msys2 {0}', msystem: mingw32, msys-env: mingw-w64-i686 }
+        - { name: Windows-x64, os: windows-latest, shell: 'msys2 {0}', msystem: ucrt64,  msys-env: mingw-w64-ucrt-x86_64 }
+        - { name: Ubuntu-x64,  os: ubuntu-latest,  shell: sh }
         - { name: MacOS,       os: macos-latest,   shell: sh }
 
     steps:
@@ -51,18 +51,23 @@ jobs:
           libogg \
           libvpx
     - uses: actions/checkout@v3
-    - name: Configure (CMake)
+      with:
+        fetch-depth: 0
+    - name: Configure
       run: |
         ${{ matrix.platform.source_cmd }}
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPRINT_ALL_VARS=ON \
+        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
         ${{ matrix.platform.cmake }}
-    - name: Build (CMake)
+    - name: Build
       run: |
         ${{ matrix.platform.source_cmd }}
         cmake --build build/ --config Release --verbose --parallel
-    - name: Upload Platform
+    - name: Version
+      id: vars
+      run: echo "version_name=$(cat engine/version.txt)" >> $GITHUB_ENV
+
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.platform.name }}
+        name: "${{ env.version_name }}_${{ matrix.platform.name }}"
         path: engine/releases/
-
