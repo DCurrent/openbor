@@ -1,4 +1,4 @@
-set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS}  -Wno-void-pointer-to-enum-cast -Wno-deprecated-declarations")
+set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-stringop-truncation -Wno-maybe-uninitialized -Wno-unused-result -Wno-void-pointer-to-enum-cast -Wno-deprecated-declarations")
 set(ARCH_SUFFIX "")
 
 set(USE_SDL     ON)
@@ -61,9 +61,9 @@ endforeach()
 # Distribution Preperation
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
-  COMMAND mkdir -p ../engine/releases/LINUX/Logs
-  COMMAND mkdir -p ../engine/releases/LINUX/Paks
-  COMMAND mkdir -p ../engine/releases/LINUX/Saves
-  COMMAND mkdir -p ../engine/releases/LINUX/ScreenShots
-  COMMAND cp -a ${PROJECT_NAME} ../engine/releases/LINUX/${PROJECT_NAME}${ARCH_SUFFIX}
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/LINUX/Logs
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/LINUX/Paks
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/LINUX/Saves
+  COMMAND ${CMAKE_COMMAND} -E make_directory ../engine/releases/LINUX/ScreenShots
+  COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_NAME} ../engine/releases/LINUX/${PROJECT_NAME}${ARCH_SUFFIX}
 )

@@ -1,4 +1,4 @@
-set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-deprecated-declarations -Wno-overflow -Wno-shift-count-overflow -Wno-pointer-to-int-cast -fstack-protector-all")
+set(COMMON_COMPILER_FLAGS "${COMMON_COMPILER_FLAGS} -Wno-address -Wno-enum-int-mismatch -Wno-stringop-truncation -Wno-maybe-uninitialized -Wno-deprecated-declarations -Wno-overflow -Wno-shift-count-overflow -Wno-pointer-to-int-cast -fstack-protector-all")
 set(ARCH_SUFFIX "")
 
 set(USE_SDL     ON)
