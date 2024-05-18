@@ -61,6 +61,7 @@ fi
 
 function write_version {
 rm -rf version.tmp
+echo "$VERSION_NAME-v$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD-$VERSION_COMMIT" > version.txt
 echo "/*
  * OpenBOR - http://www.ChronoCrash.com
  * -----------------------------------------------------------------------
