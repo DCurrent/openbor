@@ -853,7 +853,7 @@ int control_scankey()
 	return 0;
 }
 
-void control_update(s_playercontrols ** playercontrols, int numplayers)
+void control_update(s_playercontrols * playercontrols, int numplayers)
 {
 	u64 k;
 	unsigned i;
@@ -867,7 +867,7 @@ void control_update(s_playercontrols ** playercontrols, int numplayers)
 
 	for(player = 0; player < numplayers; player++){
 
-		pcontrols = playercontrols[player];
+		pcontrols = &playercontrols[player];
 
 		k = 0;
 

@@ -9,6 +9,8 @@
 #ifndef GAMELIB_TYPES_H
 #define GAMELIB_TYPES_H
 
+#define     MAX_PLAYERS         4
+
 #ifndef TRANSPARENT_IDX
 #define		TRANSPARENT_IDX		0x00
 #endif
@@ -339,7 +341,7 @@ typedef struct
     short hShift;	     // Offset for X-Axis Text
     short vShift;	     // Offset for Y-Axis Text
     short dOffset;	 // Offset for Debug Text
-    short shiftpos[4];
+    short shiftpos[MAX_PLAYERS];
     char filter;
     char mode;
     char pixel;

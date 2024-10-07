@@ -48,44 +48,18 @@
 #define CONTROL_DEFAULT1_START		10
 #define CONTROL_DEFAULT1_SCREENSHOT 9
 
-#define	CONTROL_DEFAULT2_UP			(1+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_RIGHT		(2+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_DOWN		(3+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_LEFT		(4+MAX_BUTTONS)
-#define CONTROL_DEFAULT2_FIRE1		(5+MAX_BUTTONS)
-#define CONTROL_DEFAULT2_FIRE2		(7+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_FIRE3		(16+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_FIRE4		(17+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_FIRE5		(6+MAX_BUTTONS)
-#define	CONTROL_DEFAULT2_FIRE6		(8+MAX_BUTTONS)
-#define CONTROL_DEFAULT2_START		(10+MAX_BUTTONS)
-#define CONTROL_DEFAULT2_SCREENSHOT (9+MAX_BUTTONS)
-
-#define	CONTROL_DEFAULT3_UP			(1+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_RIGHT		(2+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_DOWN		(3+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_LEFT		(4+(MAX_BUTTONS*2))
-#define CONTROL_DEFAULT3_FIRE1		(5+(MAX_BUTTONS*2))
-#define CONTROL_DEFAULT3_FIRE2		(7+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_FIRE3		(16+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_FIRE4		(17+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_FIRE5		(6+(MAX_BUTTONS*2))
-#define	CONTROL_DEFAULT3_FIRE6		(8+(MAX_BUTTONS*2))
-#define CONTROL_DEFAULT3_START		(10+(MAX_BUTTONS*2))
-#define CONTROL_DEFAULT3_SCREENSHOT (9+(MAX_BUTTONS*2))
-
-#define	CONTROL_DEFAULT4_UP			(1+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_RIGHT		(2+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_DOWN		(3+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_LEFT		(4+(MAX_BUTTONS*3))
-#define CONTROL_DEFAULT4_FIRE1		(5+(MAX_BUTTONS*3))
-#define CONTROL_DEFAULT4_FIRE2		(7+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_FIRE3		(16+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_FIRE4		(17+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_FIRE5		(6+(MAX_BUTTONS*3))
-#define	CONTROL_DEFAULT4_FIRE6		(8+(MAX_BUTTONS*3))
-#define CONTROL_DEFAULT4_START		(10+(MAX_BUTTONS*3))
-#define CONTROL_DEFAULT4_SCREENSHOT (9+(MAX_BUTTONS*3))
+#define CONTROL_DEFAULT_UP(x)         (1+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_RIGHT(x)      (2+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_DOWN(x)       (3+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_LEFT(x)       (4+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_FIRE1(x)      (5+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_FIRE2(x)      (7+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_FIRE3(x)      (16+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_FIRE4(x)      (17+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_FIRE5(x)      (6+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_FIRE6(x)      (8+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_START(x)      (10+(MAX_BUTTONS*(x)))
+#define CONTROL_DEFAULT_SCREENSHOT(x) (9+(MAX_BUTTONS*(x)))
 
 #define	CONTROL_NONE				(1+(MAX_BUTTONS*99)) //Kratus (20-04-21) value used to clear all keys
 
@@ -108,7 +82,7 @@ int keyboard_getlastkey();
 void control_setkey(s_playercontrols * pcontrols, unsigned int flag, int key);
 int control_scankey();
 char* control_getkeyname(unsigned int keycode);
-void control_update(s_playercontrols ** playercontrols, int numplayers);
+void control_update(s_playercontrols * playercontrols, int numplayers);
 void control_rumble(int port, int ratio, int msec);
 unsigned long getPad(int port);
 

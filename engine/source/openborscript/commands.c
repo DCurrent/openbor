@@ -617,18 +617,12 @@ List *createModelCommandList(void)
 
 List *createLevelCommandList(void)
 {
+	char tmp[MAX_LABEL_LEN];
+	unsigned i;
+
     List *result = prepareList();
 #define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
 
-    LIST_ADD(CMD_LEVEL_2PHEALTH, "2phealth");
-    LIST_ADD(CMD_LEVEL_2PITEM, "2pitem");
-    LIST_ADD(CMD_LEVEL_2PSPAWN, "2pspawn");
-    LIST_ADD(CMD_LEVEL_3PHEALTH, "3phealth");
-    LIST_ADD(CMD_LEVEL_3PITEM, "3pitem");
-    LIST_ADD(CMD_LEVEL_3PSPAWN, "3pspawn");
-    LIST_ADD(CMD_LEVEL_4PHEALTH, "4phealth");
-    LIST_ADD(CMD_LEVEL_4PITEM, "4pitem");
-    LIST_ADD(CMD_LEVEL_4PSPAWN, "4pspawn");
     LIST_ADD(CMD_LEVEL_AGGRESSION, "aggression");
     LIST_ADD(CMD_LEVEL_ALIAS, "alias");
     LIST_ADD(CMD_LEVEL_ALLOWSELECT, "allowselect");
@@ -712,10 +706,6 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_SHADOWCOLOR, "shadowcolor");
     LIST_ADD(CMD_LEVEL_SHADOWOPACITY, "shadowopacity");
     LIST_ADD(CMD_LEVEL_SPAWN, "spawn");
-    LIST_ADD(CMD_LEVEL_SPAWN1, "spawn1");
-    LIST_ADD(CMD_LEVEL_SPAWN2, "spawn2");
-    LIST_ADD(CMD_LEVEL_SPAWN3, "spawn3");
-    LIST_ADD(CMD_LEVEL_SPAWN4, "spawn4");
     LIST_ADD(CMD_LEVEL_SPAWNSCRIPT, "spawnscript");
     LIST_ADD(CMD_LEVEL_STAGENUMBER, "stagenumber");
     LIST_ADD(CMD_LEVEL_TYPE, "type");
@@ -727,12 +717,33 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_WATER, "water");
     LIST_ADD(CMD_LEVEL_WEAPON, "weapon");
 
+	for(i = 0; i < MAX_PLAYERS; i++)
+	{
+		sprintf(tmp, "spawn%u", i + 1);
+		LIST_ADD(CMD_LEVEL_SPAWN1 + i, tmp);
+
+		if(i > 0)
+		{
+			sprintf(tmp, "%uphealth", i + 1);
+			LIST_ADD(CMD_LEVEL_HEALTH + i, tmp);
+
+			sprintf(tmp, "%upitem", i + 1);
+			LIST_ADD(CMD_LEVEL_ITEM + i, tmp);
+
+			sprintf(tmp, "%upspawn", i + 1);
+			LIST_ADD(CMD_LEVEL_SPAWN + i, tmp);
+		}
+	}
+
 #undef LIST_ADD
     return result;
 }
 
 List *createLevelOrderCommandList(void)
 {
+	char tmp[MAX_LABEL_LEN];
+	unsigned i;
+
     List *result = prepareList();
 #define LIST_ADD(y,z) List_InsertAfter(result, (void*) y, z)
     LIST_ADD(CMD_LEVELORDER_BGICON, "bgicon");
@@ -746,18 +757,53 @@ List *createLevelOrderCommandList(void)
     LIST_ADD(CMD_LEVELORDER_CUSTFADE, "custfade");
     LIST_ADD(CMD_LEVELORDER_DISABLEGAMEOVER, "disablegameover");
     LIST_ADD(CMD_LEVELORDER_DISABLEHOF, "disablehof");
-    LIST_ADD(CMD_LEVELORDER_E1ICON, "e1icon");
-    LIST_ADD(CMD_LEVELORDER_E1LIFE, "e1life");
-    LIST_ADD(CMD_LEVELORDER_E1NAME, "e1name");
-    LIST_ADD(CMD_LEVELORDER_E2ICON, "e2icon");
-    LIST_ADD(CMD_LEVELORDER_E2LIFE, "e2life");
-    LIST_ADD(CMD_LEVELORDER_E2NAME, "e2name");
-    LIST_ADD(CMD_LEVELORDER_E3ICON, "e3icon");
-    LIST_ADD(CMD_LEVELORDER_E3LIFE, "e3life");
-    LIST_ADD(CMD_LEVELORDER_E3NAME, "e3name");
-    LIST_ADD(CMD_LEVELORDER_E4ICON, "e4icon");
-    LIST_ADD(CMD_LEVELORDER_E4LIFE, "e4life");
-    LIST_ADD(CMD_LEVELORDER_E4NAME, "e4name");
+	for(i = 0; i < MAX_PLAYERS; i++)
+	{
+		sprintf(tmp, "e%uicon", i + 1);
+		LIST_ADD(CMD_LEVELORDER_E1ICON + i, tmp);
+
+		sprintf(tmp, "e%ulife", i + 1);
+		LIST_ADD(CMD_LEVELORDER_E1LIFE + i, tmp);
+
+		sprintf(tmp, "e%uname", i + 1);
+		LIST_ADD(CMD_LEVELORDER_E1NAME + i, tmp);
+
+		sprintf(tmp, "mp%uicon", i + 1);
+		LIST_ADD(CMD_LEVELORDER_MP1ICON + i, tmp);
+
+		sprintf(tmp, "p%uicon", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1ICON + i, tmp);
+
+		sprintf(tmp, "p%uiconw", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1ICONW + i, tmp);
+
+		sprintf(tmp, "p%ulife", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1LIFE + i, tmp);
+
+		sprintf(tmp, "p%ulifen", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1LIFEN + i, tmp);
+
+		sprintf(tmp, "p%ulifex", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1LIFEX + i, tmp);
+
+		sprintf(tmp, "p%ump", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1MP + i, tmp);
+
+		sprintf(tmp, "p%unamej", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1NAMEJ + i, tmp);
+
+		sprintf(tmp, "p%urush", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1RUSH + i, tmp);
+
+		sprintf(tmp, "p%uscore", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1SCORE + i, tmp);
+
+		sprintf(tmp, "p%ushoot", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1SHOOT + i, tmp);
+
+		sprintf(tmp, "p%usmenu", i + 1);
+		LIST_ADD(CMD_LEVELORDER_P1SMENU + i, tmp);
+	}
     LIST_ADD(CMD_LEVELORDER_END, "end");
     LIST_ADD(CMD_LEVELORDER_EQUALAIRPAUSE, "equalairpause");
     LIST_ADD(CMD_LEVELORDER_FILE, "file");
@@ -774,10 +820,6 @@ List *createLevelOrderCommandList(void)
     LIST_ADD(CMD_LEVELORDER_MAXENTITIES, "maxentities");
     LIST_ADD(CMD_LEVELORDER_MAXPLAYERS, "maxplayers");
     LIST_ADD(CMD_LEVELORDER_MAXWALLHEIGHT, "maxwallheight");
-    LIST_ADD(CMD_LEVELORDER_MP1ICON, "mp1icon");
-    LIST_ADD(CMD_LEVELORDER_MP2ICON, "mp2icon");
-    LIST_ADD(CMD_LEVELORDER_MP3ICON, "mp3icon");
-    LIST_ADD(CMD_LEVELORDER_MP4ICON, "mp4icon");
     LIST_ADD(CMD_LEVELORDER_MPBARSIZE, "mpbarsize");
     LIST_ADD(CMD_LEVELORDER_MPBARTEXT, "mpbartext");
     LIST_ADD(CMD_LEVELORDER_MUSICOVERLAP, "musicoverlap");
@@ -788,50 +830,6 @@ List *createLevelOrderCommandList(void)
     LIST_ADD(CMD_LEVELORDER_NOSLOWFX, "noslowfx");
     LIST_ADD(CMD_LEVELORDER_OLBARSIZE, "olbarsize");
     LIST_ADD(CMD_LEVELORDER_OLICON, "olicon");
-    LIST_ADD(CMD_LEVELORDER_P1ICON, "p1icon");
-    LIST_ADD(CMD_LEVELORDER_P1ICONW, "p1iconw");
-    LIST_ADD(CMD_LEVELORDER_P1LIFE, "p1life");
-    LIST_ADD(CMD_LEVELORDER_P1LIFEN, "p1lifen");
-    LIST_ADD(CMD_LEVELORDER_P1LIFEX, "p1lifex");
-    LIST_ADD(CMD_LEVELORDER_P1MP, "p1mp");
-    LIST_ADD(CMD_LEVELORDER_P1NAMEJ, "p1namej");
-    LIST_ADD(CMD_LEVELORDER_P1RUSH, "p1rush");
-    LIST_ADD(CMD_LEVELORDER_P1SCORE, "p1score");
-    LIST_ADD(CMD_LEVELORDER_P1SHOOT, "p1shoot");
-    LIST_ADD(CMD_LEVELORDER_P1SMENU, "p1smenu");
-    LIST_ADD(CMD_LEVELORDER_P2ICON, "p2icon");
-    LIST_ADD(CMD_LEVELORDER_P2ICONW, "p2iconw");
-    LIST_ADD(CMD_LEVELORDER_P2LIFE, "p2life");
-    LIST_ADD(CMD_LEVELORDER_P2LIFEN, "p2lifen");
-    LIST_ADD(CMD_LEVELORDER_P2LIFEX, "p2lifex");
-    LIST_ADD(CMD_LEVELORDER_P2MP, "p2mp");
-    LIST_ADD(CMD_LEVELORDER_P2NAMEJ, "p2namej");
-    LIST_ADD(CMD_LEVELORDER_P2RUSH, "p2rush");
-    LIST_ADD(CMD_LEVELORDER_P2SCORE, "p2score");
-    LIST_ADD(CMD_LEVELORDER_P2SHOOT, "p2shoot");
-    LIST_ADD(CMD_LEVELORDER_P2SMENU, "p2smenu");
-    LIST_ADD(CMD_LEVELORDER_P3ICON, "p3icon");
-    LIST_ADD(CMD_LEVELORDER_P3ICONW, "p3iconw");
-    LIST_ADD(CMD_LEVELORDER_P3LIFE, "p3life");
-    LIST_ADD(CMD_LEVELORDER_P3LIFEN, "p3lifen");
-    LIST_ADD(CMD_LEVELORDER_P3LIFEX, "p3lifex");
-    LIST_ADD(CMD_LEVELORDER_P3MP, "p3mp");
-    LIST_ADD(CMD_LEVELORDER_P3NAMEJ, "p3namej");
-    LIST_ADD(CMD_LEVELORDER_P3RUSH, "p3rush");
-    LIST_ADD(CMD_LEVELORDER_P3SCORE, "p3score");
-    LIST_ADD(CMD_LEVELORDER_P3SHOOT, "p3shoot");
-    LIST_ADD(CMD_LEVELORDER_P3SMENU, "p3smenu");
-    LIST_ADD(CMD_LEVELORDER_P4ICON, "p4icon");
-    LIST_ADD(CMD_LEVELORDER_P4ICONW, "p4iconw");
-    LIST_ADD(CMD_LEVELORDER_P4LIFE, "p4life");
-    LIST_ADD(CMD_LEVELORDER_P4LIFEN, "p4lifen");
-    LIST_ADD(CMD_LEVELORDER_P4LIFEX, "p4lifex");
-    LIST_ADD(CMD_LEVELORDER_P4MP, "p4mp");
-    LIST_ADD(CMD_LEVELORDER_P4NAMEJ, "p4namej");
-    LIST_ADD(CMD_LEVELORDER_P4RUSH, "p4rush");
-    LIST_ADD(CMD_LEVELORDER_P4SCORE, "p4score");
-    LIST_ADD(CMD_LEVELORDER_P4SHOOT, "p4shoot");
-    LIST_ADD(CMD_LEVELORDER_P4SMENU, "p4smenu");
     LIST_ADD(CMD_LEVELORDER_PAUSEOFFSET, "pauseoffset");
     LIST_ADD(CMD_LEVELORDER_RUSH, "rush");
     LIST_ADD(CMD_LEVELORDER_RUSHBONUS, "rushbonus");
