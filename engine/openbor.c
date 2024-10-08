@@ -48784,10 +48784,12 @@ void menu_options_input()
     int quit = 0;
     int selector = 1; // 0
     int x_pos = -6;
+    int y_pos = 0;
+    int show_players = levelsets[current_set].maxplayers;
     #if ANDROID
-	int OPTIONS_NUM = 10;
+    int OPTIONS_NUM = show_players + 2;
     #else
-	int OPTIONS_NUM = 9;
+    int OPTIONS_NUM = show_players + 1;
     #endif
 
     screen_status |= IN_SCREEN_CONTROL_OPTIONS_MENU;
@@ -48825,26 +48827,56 @@ void menu_options_input()
         }
         #endif
 
-        _menutext((selector == 1), x_pos,-1, Tr("Setup Player 1..."));
-        _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
-        _menutext((selector == 3), x_pos, 1, Tr("Setup Player 3..."));
-        _menutext((selector == 4), x_pos, 2, Tr("Setup Player 4..."));
-        _menutext((selector == 5), x_pos, 3, Tr("Setup Player 5..."));
-        _menutext((selector == 6), x_pos, 4, Tr("Setup Player 6..."));
-        _menutext((selector == 7), x_pos, 5, Tr("Setup Player 7..."));
-        _menutext((selector == 8), x_pos, 6, Tr("Setup Player 8..."));
+        _menutext((selector == 1), x_pos, -1, Tr("Setup Player 1..."));
+        y_pos = 0;
+        if (show_players >= 2)
+        {
+            _menutext((selector == 2), x_pos, y_pos, Tr("Setup Player 2..."));
+            y_pos++;
+        }
+        if (show_players >= 3)
+        {
+            _menutext((selector == 3), x_pos, y_pos, Tr("Setup Player 3..."));
+            y_pos++;
+        }
+        if (show_players >= 4)
+        {
+            _menutext((selector == 4), x_pos, y_pos, Tr("Setup Player 4..."));
+            y_pos++;
+        }
+        if (show_players >= 5)
+        {
+            _menutext((selector == 5), x_pos, y_pos, Tr("Setup Player 5..."));
+            y_pos++;
+        }
+        if (show_players >= 6)
+        {
+            _menutext((selector == 6), x_pos, y_pos, Tr("Setup Player 6..."));
+            y_pos++;
+        }
+        if (show_players >= 7)
+        {
+            _menutext((selector == 7), x_pos, y_pos, Tr("Setup Player 7..."));
+            y_pos++;
+        }
+        if (show_players >= 8)
+        {
+            _menutext((selector == 8), x_pos, y_pos, Tr("Setup Player 8..."));
+            y_pos++;
+        }
+
         #if ANDROID
         if(savedata.is_touchpad_vibration_enabled)
         {
-            _menutextm((selector == 9), 7, 0, Tr("Touchpad Vibration Enabled"));
+            _menutextm((selector == show_players+1), y_pos+1, 0, Tr("Touchpad Vibration Enabled"));
         }
         else
         {
-            _menutextm((selector == 9), 7, 0, Tr("Touchpad Vibration Disabled"));
+            _menutextm((selector == show_players+1), y_pos+1, 0, Tr("Touchpad Vibration Disabled"));
         }
-        _menutextm((selector == 10), 8, 0, Tr("Back"));
+        _menutextm((selector == show_players+2), y_pos+3, 0, Tr("Back"));
         #else
-        _menutextm((selector == 9), 8, 0, Tr("Back"));
+        _menutextm((selector == show_players+1), y_pos+1, 0, Tr("Back"));
         #endif
 
         update((level != NULL), 0);
@@ -48885,29 +48917,16 @@ void menu_options_input()
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            switch(selector)
-            {
-            case 0:
+            if (selector == 0)
                 control_usejoy((savedata.usejoy ^= 1));
-                break;
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-			case 5:
-			case 6:
-			case 7:
-			case 8:
-				keyboard_setup(selector - 1);
-                break;
+            else if (selector - 1 < show_players)
+                keyboard_setup(selector - 1);
             #if ANDROID
-			case 9:
+            else if (selector == show_players)
                 savedata.is_touchpad_vibration_enabled ^= 1;
-                break;
             #endif
-            default:
+            else
                 quit = (bothnewkeys & FLAG_ANYBUTTON);
-            }
         }
     }
     savesettings();
