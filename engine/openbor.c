@@ -19347,36 +19347,36 @@ void load_levelorder()
 
     for(i = 0; i < MAX_PLAYERS; i++)
     {
-        if(i < MAX_PLAYERS - 2)
+        if(i >= 2)
         {
-            if(!plifeUsed[i])
+            if(!plifeUsed[i - 2])
             {
-                plife[i + 2][0] = plife[i & 1][0];
-                plife[i + 2][1] += plife[i & 1][1] - 10;
+                plife[i][0] = plife[i & 1][0];
+                plife[i][1] += plife[i & 1][1] - 10;
             }
 
-            if(!elifeUsed[i])
+            if(!elifeUsed[i - 2])
             {
-                elife[i + 2][0] = elife[i & 1][0];
-                elife[i + 2][1] += elife[i & 1][1] - 27;
+                elife[i][0] = elife[i & 1][0];
+                elife[i][1] += elife[i & 1][1] - 27;
             }
 
-            if(!piconUsed[i])
+            if(!piconUsed[i - 2])
 		    {
-                picon[i + 2][0] = picon[i & 1][0];
-                picon[i + 2][1] += picon[i & 1][1] - 2;
+                picon[i][0] = picon[i & 1][0];
+                picon[i][1] += picon[i & 1][1] - 2;
             }
 
-            if(!piconwUsed[i])
+            if(!piconwUsed[i - 2])
             {
-                piconw[i + 2][0] = piconw[i & 1][0];
-                piconw[i + 2][1] += piconw[i & 1][1] - 2;
+                piconw[i][0] = piconw[i & 1][0];
+                piconw[i][1] += piconw[i & 1][1] - 2;
             }
 
-            if(!eiconUsed[i])
+            if(!eiconUsed[i - 2])
             {
-                eicon[i + 2][0] = eicon[i & 1][0];
-                eicon[i + 2][1] += eicon[i & 1][1] - 19;
+                eicon[i][0] = eicon[i & 1][0];
+                eicon[i][1] += eicon[i & 1][1] - 19;
             }
         }
 
