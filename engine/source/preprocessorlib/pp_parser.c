@@ -19,12 +19,16 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <time.h>
-#include <malloc.h>
 #include <errno.h>
 #include "List.h"
 #include "pp_parser.h"
 #include "pp_expr.h"
 #include "borendian.h"
+#ifndef DARWIN
+#include <malloc.h>
+#else
+#include <stdlib.h>
+#endif
 
 #if PP_TEST // using pp_test.c to test the preprocessor functionality; OpenBOR functionality is not available
 #undef printf
