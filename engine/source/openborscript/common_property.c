@@ -2,6 +2,30 @@
 
 /*
 * Caskey, Damon V.
+* 2025-05-04
+* 
+* Handle float/double get and set casting.
+* 
+* This is used because script-side uses double,
+* but property fields are floats, so we need to
+* downcast carefully to avoid memory overwrites.
+*/
+
+static inline double property_access_get_property_float(const void* field)
+{
+    float value = *(float*)field;    
+    return (double)value;
+}
+
+static inline void property_access_set_property_float(const void* field, const double value)
+{
+    *(float*)field = (float)value;
+
+    //printf("DEBUG: Writing %.6f to float field at %p\n", value, field);
+}
+
+/*
+* Caskey, Damon V.
 * 2023-04-17
 *
 * Accepts property map, the number of
@@ -114,7 +138,7 @@ void property_access_dump_members(property_access_map get_property_map, const in
 
                 case VT_DECIMAL:
                     
-                    printf(" | %f", *(DOUBLE*)property_map.field);
+                    printf(" | %f", property_access_get_property_float(property_map.field));
                     break;
                 case VT_STR:
 
@@ -188,7 +212,9 @@ HRESULT property_access_get_member(const s_property_access_map* property_map, Sc
     case VT_DECIMAL:
 
         //printf("\n\t VT_DECIMAL");
-        pretvar->dblVal = *(DOUBLE*)property_map->field;
+        //pretvar->dblVal = *(DOUBLE*)property_map->field;
+        pretvar->dblVal = property_access_get_property_float(property_map->field);
+
         break;
     case VT_STR:        
 
@@ -256,8 +282,11 @@ HRESULT property_access_set_member(const void* const acting_object, const s_prop
         case VT_DECIMAL:
 
             if (SUCCEEDED(ScriptVariant_DecimalValue(acting_value, &temp_float)))
-            {
-                *(DOUBLE*)property_map->field = temp_float;
+            {                
+                property_access_set_property_float(property_map->field, temp_float);
+
+                // Legacy.
+                //*(float*)property_map->field = (float)temp_float;
             }
             break;
 
