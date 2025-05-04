@@ -248,11 +248,9 @@ INCS += $(INCLUDES)
 ADPCM 	        = source/adpcmlib/adpcm.o
 
 ifdef BUILD_GFX
-GFX 	        = source/gfxlib/2xSaI.o                                                             \
-                  source/gfxlib/bilinear.o                                                          \
+GFX 	        = source/gfxlib/bilinear.o                                                          \
                   source/gfxlib/dotmatrix.o                                                         \
                   source/gfxlib/gfx.o                                                               \
-                  source/gfxlib/hq2x.o                                                              \
                   source/gfxlib/scale2x.o                                                           \
                   source/gfxlib/scanline.o                                                          \
                   source/gfxlib/simple2x.o                                                          \
@@ -260,9 +258,7 @@ GFX 	        = source/gfxlib/2xSaI.o                                            
 endif
 
 ifdef BUILD_MMX
-GFX 	       += source/gfxlib/2xSaImmx.o                                                          \
-                  source/gfxlib/bilinearmmx.o                                                       \
-                  source/gfxlib/hq2x16mmx.o
+GFX 	       += source/gfxlib/bilinearmmx.o
 endif
 
 GAME	        = source/gamelib/draw.o                                                             \
