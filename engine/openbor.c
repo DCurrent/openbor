@@ -29375,11 +29375,12 @@ void display_ents()
                 if ( e->animation->platform )
                 {
                     s_anim *anim = e->animation;
-
-                    if ( anim->platform[e->animpos] )
+                                       
+                    if (anim->platform[e->animpos][PLATFORM_HEIGHT])
                     {
-                        if ( anim->platform[e->animpos][PLATFORM_HEIGHT] ) eplatheight += anim->platform[e->animpos][PLATFORM_HEIGHT];
+                        eplatheight += anim->platform[e->animpos][PLATFORM_HEIGHT];
                     }
+                    
                 }
                 if ( e->modeldata.size.y && eplatheight <= 0 ) eheight += e->modeldata.size.y;
                 else eheight += eplatheight;
