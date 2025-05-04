@@ -14448,7 +14448,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     {
                         nopalette = 1;
 
-                        //printf("%s\n", "'None' option active. All sprites for this model will be loaded with independent color tables.");
+                        //printf("%s\n", "'None' option active. All sprites for this model will be loaded with independent color tables.");                     
                     }
                     else
                     {
@@ -14462,7 +14462,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                         if(load_palette(newchar->palette, value) == 0)
                         {
-                            //printf("%s%s\n", "Failed to load color table from file: ", value);
+                            printf("\n%s%s\n", "Failed to load color table from file: ", value);                            
+                            shutdownmessage = "Failed to load color table from file.";
                             goto lCleanup;
                         }
 
@@ -14484,7 +14485,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 if(load_palette(newchar->colourmap[newchar->maps_loaded], value) == 0)
                 {
-                    //printf("%s%s", "Failed to load color table from file: ", value);
+                    printf("\n%s%s\n", "Failed to load color table from file: ", value);
+                    shutdownmessage = "Failed to load color table from file.";
                     goto lCleanup;
                 }
 
