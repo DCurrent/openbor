@@ -26,6 +26,7 @@
 #include <mach/task.h>
 #include <mach/mach.h>
 #include <mach/mach_init.h>
+#include <stdlib.h>
 #elif LINUX
 #include <sys/sysinfo.h>
 #include <unistd.h>
@@ -38,7 +39,9 @@
 #include <stdlib.h>
 #endif
 
+#ifndef DARWIN
 #include <malloc.h>
+#endif
 #include <string.h>
 #include <stdio.h>
 #include "globals.h"
