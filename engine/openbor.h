@@ -4521,7 +4521,7 @@ bool check_frame_set_drop(entity *ent);
 bool check_landframe(entity* ent);
 int check_edge(entity *ent);
 void update_ents();
-entity *find_ent_here(entity *exclude, float x, float z, int types, int (*test)(entity *, entity *));
+entity *find_ent_here(entity *exclude, float x, float z, e_entity_type types, int (*test)(entity *, entity *));
 void display_ents();
 void toss(entity *ent, float lift);
 entity *findent(int types);
