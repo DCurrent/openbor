@@ -4193,7 +4193,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_hitbyid:
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (uintptr_t)ent->attack_id_incoming;
+        (*pretvar)->lVal = (uintptr_t)ent->attack_id_incoming[0];
         break;
     }
     case _ep_hitheadplatform:

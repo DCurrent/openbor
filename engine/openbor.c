@@ -2120,7 +2120,7 @@ void execute_ondoattack_script(entity *ent, entity *other, s_attack *attack, e_e
         Script_Set_Local_Variant(cs, "jugglecost",  &tempvar);
         Script_Set_Local_Variant(cs, "pauseadd",    &tempvar);
         Script_Set_Local_Variant(cs, "which",		&tempvar);
-        Script_Set_Local_Variant(cs, "attackid",	&tempvar);
+        Script_Set_Local_Variant(cs, "attack_id",	&tempvar);
         Script_Set_Local_Variant(cs, "tag",	        &tempvar);
     }
 }
