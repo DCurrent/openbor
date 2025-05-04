@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <malloc.h>
 #include <locale.h>
 #include <math.h>
 
@@ -20,12 +21,6 @@
 #include "packfile.h"
 
 #include <dirent.h>
-
-#ifndef DARWIN
-#include <malloc.h>
-#else
-#include <stdlib.h>
-#endif
 
 #ifdef SDL
 #include <unistd.h>

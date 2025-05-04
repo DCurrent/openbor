@@ -7,13 +7,9 @@
  */
 
 #include <png.h>
+#include <malloc.h>
 #include "globals.h"
 #include "screen.h"
-#ifndef DARWIN
-#include <malloc.h>
-#else
-#include <stdlib.h>
-#endif
 
 void savepng(const char *filename, s_screen *screen, u8 *pal)
 {
