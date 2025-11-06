@@ -21586,7 +21586,15 @@ void static backto_mainmenu()
 
 void pausemenu()
 {
-    int pauselector = 0;
+    typedef enum e_pause_menu_items
+    {
+        CONTINUE,
+        OPTIONS,
+        END_GAME,
+        ENUM_COUNT
+    } e_pause_menu_items;
+
+    e_pause_menu_items pauselector = CONTINUE;
     int quit = 0;
     int controlp = 0, i;
     int newkeys;
@@ -21613,9 +21621,9 @@ void pausemenu()
     while(!quit)
     {
         _menutextmshift(pauseoffset[4], -2, 0, pauseoffset[5], pauseoffset[6], Tr("Pause"));
-        _menutextmshift((pauselector == 0)?pauseoffset[1]:pauseoffset[0], -1, 0, pauseoffset[2], pauseoffset[3], Tr("Continue"));
-        _menutextmshift((pauselector == 1)?pauseoffset[1]:pauseoffset[0],  0, 0, pauseoffset[2], pauseoffset[3], Tr("End Game"));
-        _menutextmshift((pauselector == 2)?pauseoffset[1]:pauseoffset[0],  1, 0, pauseoffset[2], pauseoffset[3], Tr("Options"));
+        _menutextmshift((pauselector == CONTINUE)?pauseoffset[1]:pauseoffset[0], -1, 0, pauseoffset[2], pauseoffset[3], Tr("Continue"));
+        _menutextmshift((pauselector == OPTIONS)?pauseoffset[1]:pauseoffset[0],  0, 0, pauseoffset[2], pauseoffset[3], Tr("Options"));
+        _menutextmshift((pauselector == END_GAME)?pauseoffset[1]:pauseoffset[0],  1, 0, pauseoffset[2], pauseoffset[3], Tr("End Game"));
 
         update(1, 0);
 
@@ -21623,17 +21631,19 @@ void pausemenu()
 
         if(newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN))
         {
-            if(newkeys == FLAG_MOVEUP)
-            {
-                pauselector = (pauselector - 1) % 3;
-                if(pauselector < 0)
+            if(newkeys == FLAG_MOVEUP) {
+                if (pauselector == CONTINUE)
                 {
-                    pauselector = 2;
+                    pauselector = END_GAME;
+                }
+                else
+                {
+                    pauselector = (pauselector - 1) % ENUM_COUNT;
                 }
             }
             else
             {
-                pauselector = (pauselector + 1) % 3;
+                pauselector = (pauselector + 1) % ENUM_COUNT;
             }
 
             sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
@@ -21641,7 +21651,7 @@ void pausemenu()
         if(newkeys & FLAG_START)
         {
             // end game
-            if(pauselector == 1)
+            if(pauselector == END_GAME)
             {
                 for(i = 0; i < MAX_PLAYERS; i++)
                 {
@@ -21649,15 +21659,20 @@ void pausemenu()
                 }
                 endgame = 2;
             }
-            else if(pauselector == 2)
+            else if(pauselector == OPTIONS)
             {
                 menu_options();
+                pauselector = OPTIONS;
             }
-            quit = 1;
-            sound_pause_music(0);
-            sound_pause_sample(0);
-            sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
-            pauselector = 0;
+
+            if(pauselector != OPTIONS)
+            {
+                quit = 1;
+                sound_pause_music(0);
+                sound_pause_sample(0);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
+                pauselector = CONTINUE;
+            }
         }
         if(newkeys & FLAG_ESC)
         {
@@ -21665,7 +21680,7 @@ void pausemenu()
             sound_pause_music(0);
             sound_pause_sample(0);
             sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
-            pauselector = 0;
+            pauselector = CONTINUE;
         }
         if(newkeys & FLAG_SCREENSHOT)
         {
