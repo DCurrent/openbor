@@ -21615,6 +21615,7 @@ void pausemenu()
         _menutextmshift(pauseoffset[4], -2, 0, pauseoffset[5], pauseoffset[6], Tr("Pause"));
         _menutextmshift((pauselector == 0)?pauseoffset[1]:pauseoffset[0], -1, 0, pauseoffset[2], pauseoffset[3], Tr("Continue"));
         _menutextmshift((pauselector == 1)?pauseoffset[1]:pauseoffset[0],  0, 0, pauseoffset[2], pauseoffset[3], Tr("End Game"));
+        _menutextmshift((pauselector == 2)?pauseoffset[1]:pauseoffset[0],  1, 0, pauseoffset[2], pauseoffset[3], Tr("Options"));
 
         update(1, 0);
 
@@ -21622,18 +21623,35 @@ void pausemenu()
 
         if(newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN))
         {
-            pauselector ^= 1;
+            if(newkeys == FLAG_MOVEUP)
+            {
+                pauselector = (pauselector - 1) % 3;
+                if(pauselector < 0)
+                {
+                    pauselector = 2;
+                }
+            }
+            else
+            {
+                pauselector = (pauselector + 1) % 3;
+            }
+
             sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
         }
         if(newkeys & FLAG_START)
         {
-            if(pauselector)
+            // end game
+            if(pauselector == 1)
             {
                 for(i = 0; i < MAX_PLAYERS; i++)
                 {
                     player[i].lives = 0;
                 }
                 endgame = 2;
+            }
+            else if(pauselector == 2)
+            {
+                menu_options();
             }
             quit = 1;
             sound_pause_music(0);
