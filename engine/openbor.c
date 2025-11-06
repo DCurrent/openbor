@@ -21631,7 +21631,8 @@ void pausemenu()
 
         if(newkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN))
         {
-            if(newkeys == FLAG_MOVEUP) {
+            if(newkeys == FLAG_MOVEUP)
+            {
                 if (pauselector == CONTINUE)
                 {
                     pauselector = END_GAME;
