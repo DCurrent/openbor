@@ -151,9 +151,9 @@ bool writebor(char *filename, samplestruct *buf, char *artist, char *title)
 	if(fd == NULL) ioerror(strerror(errno));
 	
 	// write header
-	strcpy(borheader.identifier, BOR_IDENTIFIER);
-	strcpy(borheader.artist, artist);
-	strcpy(borheader.title, title);
+	snprintf(borheader.identifier, sizeof(borheader.identifier), "%s", BOR_IDENTIFIER);
+	snprintf(borheader.artist, sizeof(borheader.artist), "%s", artist);
+	snprintf(borheader.title, sizeof(borheader.title), "%s", title);
 	borheader.version = SwapLSB32(NEW_BOR_VERSION);
 	borheader.frequency = SwapLSB32(buf->frequency);
 	borheader.channels = SwapLSB32(buf->channels);
@@ -182,13 +182,17 @@ bool writebor(char *filename, samplestruct *buf, char *artist, char *title)
 	
 	fclose(fd);
 	free(buf->sampleptr);
+	buf->sampleptr = NULL;
 	free(adpcmbuf);
+	adpcmbuf = NULL;
 	return true;
 
 error:
 	if(fd) fclose(fd);
 	free(buf->sampleptr);
+	buf->sampleptr = NULL;
 	free(adpcmbuf);
+	adpcmbuf = NULL;
 	return false;
 }
 
