@@ -428,24 +428,6 @@ const char *Script_GetFunctionName(void *functionRef)
         return "set_body_collision_property";
     }
 
-    // Entity collision (ebox)
-    else if (functionRef == ((void *)openbor_get_entity_collision_collection))
-    {
-        return "get_entity_collision_collection";
-    }
-    else if (functionRef == ((void *)openbor_get_entity_collision_instance))
-    {
-        return "get_entity_collision_instance";
-    }
-    else if (functionRef == ((void *)openbor_get_entity_collision_property))
-    {
-        return "get_entity_collision_property";
-    }
-    else if (functionRef == ((void *)openbor_set_entity_collision_property))
-    {
-        return "set_entity_collision_property";
-    }
-
     /* Flash config properties */
     else if (functionRef == ((void*)openbor_get_flash_property))
     {
@@ -1366,16 +1348,6 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_colorset_property, "get_colorset_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_colorset_property, "set_colorset_property");
-
-    // Entity collision (ebox) properties.
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_entity_collision_collection, "get_entity_collision_collection");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_entity_collision_instance, "get_entity_collision_instance");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_entity_collision_property, "get_entity_collision_property");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_set_entity_collision_property, "set_entity_collision_property");
 
     // Entity properties.
     List_InsertAfter(&theFunctionList,
