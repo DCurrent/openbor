@@ -227,6 +227,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_COLLISIONZ, "attackz");
     LIST_ADD(CMD_MODEL_NOHITHEAD, "nohithead");
     LIST_ADD(CMD_MODEL_BBOX, "bbox");
+    LIST_ADD(CMD_MODEL_BBOX_COORDINATES, "bbox.coordinates"); // Shortcut for bbox coordinates (x, y, width, height, depth background, depth foreground) in one line.
     LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_ADJUST, "bbox.effect.hit.flash.layer.adjust");
     LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_LAYER_SOURCE, "bbox.effect.hit.flash.layer.source");
     LIST_ADD(CMD_MODEL_BBOX_EFFECT_HIT_FLASH_Z_SOURCE, "bbox.effect.hit.flash.z.source");

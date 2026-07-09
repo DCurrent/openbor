@@ -12424,6 +12424,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_collision_collection* temp_collision_body = NULL;  
     s_collision_collection* temp_collision_space = NULL;
 
+    /*
+    * Temp pointer to make adding several collision
+    * coordinates in one command a little cleaner.
+    */
+    s_hitbox* temp_collision_coordinates = NULL; 
+    
     int temp_child_spawn_index = 0;
     s_child_spawn* temp_child_spawn_head = NULL;         // Spawning sub entities.
 
@@ -15106,23 +15112,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_BBOX:   
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
 
                 value = GET_ARG(1);
-                if (stricmp(value, "none") == 0)
-                {
-                    collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->x = 0;
-                    collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->y = 0;
-                    collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->width = 0;
-                    collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->height = 0;
+                if (stricmp(value, "none") == 0) {
 
+                    *temp_collision_coordinates = (s_hitbox){ 0 };
                     break;
                 }
 
-                collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->x = GET_INT_ARG(1);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->y = GET_INT_ARG(2);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->width = GET_INT_ARG(3);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->height = GET_INT_ARG(4);
+                temp_collision_coordinates->x = GET_INT_ARG(1);
+                temp_collision_coordinates->y = GET_INT_ARG(2);
+                temp_collision_coordinates->width = GET_INT_ARG(3);
+                temp_collision_coordinates->height = GET_INT_ARG(4);
                 
                 /*
                 * 2023-01-13: If only the first Z depth provided, 
@@ -15134,17 +15136,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 tempInt = GET_INT_ARG(5);
 
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->z_background = tempInt;
+                temp_collision_coordinates->z_background = tempInt;
 
                 value = GET_ARG(6);
 
-                if (isNumeric(value))
-                {
+                if (isNumeric(value)) {
                     tempInt = GET_INT_ARG(6);
                 }                
 
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->z_foreground = tempInt;
+                temp_collision_coordinates->z_foreground = tempInt;
 
+                break;
+            case CMD_MODEL_BBOX_COORDINATES:
+                
+                collision_body_upsert_property(&temp_collision_body, temp_collision_index);
+
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+
+                temp_collision_coordinates->x = GET_INT_ARG(1);
+                temp_collision_coordinates->y = GET_INT_ARG(2);
+                temp_collision_coordinates->width = GET_INT_ARG(3);
+                temp_collision_coordinates->height = GET_INT_ARG(4);
+                temp_collision_coordinates->z_background = GET_INT_ARG(5);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(6);
+                
                 break;
             case CMD_MODEL_BBOX_INDEX:
                 // Does nothing. Do not modify.
@@ -15161,46 +15176,53 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_BBOX_POSITION_X:   
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->x = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->x = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOX_POSITION_Y:
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->y = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->y = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOX_SIZE_X:
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->width = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->width = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOX_SIZE_Y:
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->height = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->height = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_1:
             case CMD_MODEL_BBOX_SIZE_Z_BACKGROUND:
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->z_background = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->z_background = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOX_SIZE_Z_2:
             case CMD_MODEL_BBOX_SIZE_Z_FOREGROUND:
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->z_foreground = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(1);
 
                 break;
             case CMD_MODEL_BBOXZ:
 
                 collision_body_upsert_property(&temp_collision_body, temp_collision_index);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->z_background = GET_INT_ARG(1);
-                collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index)->z_foreground = GET_INT_ARG(2);
+                temp_collision_coordinates = collision_body_upsert_coordinates_property(&temp_collision_body, temp_collision_index);
+                temp_collision_coordinates->z_background = GET_INT_ARG(1);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(2);
 
                 break;
             case CMD_MODEL_PLATFORM:
@@ -15377,7 +15399,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
 
-                s_hitbox* const temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
 
                 temp_collision_coordinates->x = GET_INT_ARG(1);
                 temp_collision_coordinates->y = GET_INT_ARG(2);
@@ -15738,14 +15760,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_POSITION_X:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->x = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->x = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_POSITION_Y:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->y = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->y = GET_INT_ARG(1);
 
                 break;
 
@@ -15806,14 +15830,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_SIZE_X:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->width = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->width = GET_INT_ARG(1);
 
                 break;
 
             case CMD_MODEL_COLLISION_SIZE_Y:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->height = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->height = GET_INT_ARG(1);
 
                 break;
 
@@ -15821,7 +15847,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_SIZE_Z_BACKGROUND:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_background = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->z_background = GET_INT_ARG(1);
 
                 break;
 
@@ -15829,7 +15856,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_COLLISION_SIZE_Z_FOREGROUND:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_foreground = GET_INT_ARG(1);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(1);
                                 
                 break;
 
@@ -15873,38 +15901,34 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // 2020-03-08, 
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                
                 /*
                 * "none" deactivates attack on this and subsequent frames.
                 * The attack loading system interprets 0 for all coordinates 
                 * as no attack and will not load to memory.
                 */
                 value = GET_ARG(1);
-                if (stricmp(value, "none") == 0)
-                {
-                    collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->x = 0;
-                    collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->y = 0;
-                    collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->width = 0;
-                    collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->height = 0;
+                if (stricmp(value, "none") == 0) {
+                    
+                    *temp_collision_coordinates = (s_hitbox){0};
 
                     break;
-                }
-               
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->x = GET_INT_ARG(1);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->y = GET_INT_ARG(2);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->width = GET_INT_ARG(3);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->height = GET_INT_ARG(4);
+                }               
+
+                temp_collision_coordinates->x = GET_INT_ARG(1);
+                temp_collision_coordinates->y = GET_INT_ARG(2);
+                temp_collision_coordinates->width = GET_INT_ARG(3);
+                temp_collision_coordinates->height = GET_INT_ARG(4);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->attack_force = GET_INT_ARG(5);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->attack_drop = GET_INT_ARG(6);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->no_block = GET_INT_ARG(7);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->no_flash = GET_INT_ARG(8);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->pause_add = GET_INT_ARG(9);
 
-                // -- Not a typo - legacy Z sets identical value to back/fore.
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_background = GET_INT_ARG(10);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_foreground = GET_INT_ARG(10);
-               
-                       
+                // -- Not a typo - legacy Z sets identical value to back/fore depth.
+                temp_collision_coordinates->z_background = GET_INT_ARG(10);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(10);                      
 
                 switch(cmd)
                 {
@@ -16033,8 +16057,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_HITZ:
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_background = GET_INT_ARG(1);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_foreground = GET_INT_ARG(2);
+
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->z_background = GET_INT_ARG(1);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(2);
 
                 break;
 
@@ -16043,18 +16069,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // 2020-03-08, 
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->x = GET_INT_ARG(1);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->y = GET_INT_ARG(2);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->width = GET_INT_ARG(3);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->height = GET_INT_ARG(4);
+                temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+                temp_collision_coordinates->x = GET_INT_ARG(1);
+                temp_collision_coordinates->y = GET_INT_ARG(2);
+                temp_collision_coordinates->width = GET_INT_ARG(3);
+                temp_collision_coordinates->height = GET_INT_ARG(4);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->attack_force = GET_INT_ARG(5);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->no_block = GET_INT_ARG(6);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->no_flash = GET_INT_ARG(7);
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->pause_add = GET_INT_ARG(8);
 
-                // -- Not a typo - legacy Z sets identical value to back/fore.
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_background = GET_INT_ARG(9);
-                collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index)->z_foreground = GET_INT_ARG(9);
+                // -- Not a typo - legacy Z sets identical value to back/fore depth.
+                temp_collision_coordinates->z_background = GET_INT_ARG(9);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(9);
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->attack_drop = 1;
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->attack_type = ATK_BLAST;
@@ -16306,32 +16333,27 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_FSHADOW:
 
                 value = GET_ARG(1);
-                if (stricmp(value, "none") == 0)
-                {
+                if (stricmp(value, "none") == 0) {
                     tempInt = FRAME_SHADOW_NONE;
-                }
-                else
-                {
+                
+                } else {
                     tempInt = GET_INT_ARG(1);
                 }
                 frameshadow = tempInt;
                 break;
             case CMD_MODEL_RANGE:
-                if(!newanim)
-                {
+                if(!newanim) {
                     shutdownmessage = "Cannot set range: no animation!";
                     goto lCleanup;
                 }
                 newanim->range.x.min = GET_INT_ARG(1);
                 newanim->range.x.max = GET_INT_ARG(2);
-                if(newanim->range.x.min == newanim->range.x.max)
-                {
+                if(newanim->range.x.min == newanim->range.x.max) {
                     newanim->range.x.min--;
                 }
                 break;
             case CMD_MODEL_RANGEZ:
-                if(!newanim)
-                {
+                if(!newanim) {
                     shutdownmessage = "Cannot set rangez: no animation!";
                     goto lCleanup;
                 }
@@ -16339,8 +16361,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.z.max = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEA:
-                if(!newanim)
-                {
+                if(!newanim) {
                     shutdownmessage = "Cannot set rangea: no animation!";
                     goto lCleanup;
                 }
@@ -16348,8 +16369,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->range.y.max = GET_INT_ARG(2);
                 break;
             case CMD_MODEL_RANGEB:
-                if(!newanim)
-                {
+                if(!newanim) {
                     shutdownmessage = "Cannot set rangeb: no animation!";
                     goto lCleanup;
                 }
@@ -16364,35 +16384,32 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Command title for log. Details will be added blow accordingly.
                 //printf("\t\t\tFrame: ");
 
-                if(!newanim)
-                {
+                if(!newanim) {
                     shutdownmessage = "Cannot add frame: animation not specified!";
                     goto lCleanup;
                 }                
 
                 peek = 0;
-                if(frameset && framecount >= 0)
-                {
+                if(frameset && framecount >= 0) {
                     framecount = -framecount;
                 }
-                while(!frameset)
-                {
+
+                while(!frameset) {
                     value3 = findarg(buf + pos + peek, 0);
-                    if(stricmp(value3, "frame") == 0)
-                    {
+                    if(stricmp(value3, "frame") == 0) {
                         framecount++;
                     }
-                    if((stricmp(value3, "anim") == 0) || (pos + peek >= size))
-                    {
+
+                    if((stricmp(value3, "anim") == 0) || (pos + peek >= size)) {
                         frameset = 1;
                     }
+                    
                     // Go to next line
-                    while(buf[pos + peek] && buf[pos + peek] != '\n' && buf[pos + peek] != '\r')
-                    {
+                    while(buf[pos + peek] && buf[pos + peek] != '\n' && buf[pos + peek] != '\r') {
                         ++peek;
                     }
-                    while(buf[pos + peek] == '\n' || buf[pos + peek] == '\r')
-                    {
+
+                    while(buf[pos + peek] == '\n' || buf[pos + peek] == '\r') {
                         ++peek;
                     }
                 }
@@ -16403,25 +16420,24 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 //printf("\tSprite Path: %s\n", value);
 
                 index = stricmp(value, "none") == 0 ? -1 : loadsprite(value, offset.x, offset.y, nopalette ? PIXEL_x8 : PIXEL_8); //don't use palette for the sprite since it will one palette from the entity's remap list in 24bit mode
-                if(index >= 0)
-                {
+                
+                if(index >= 0) {
+
                     // If the model does not have a designated palette
-                    // yet and the author did not specify palette none
+                    // yet and the creator did not specify palette none
                     // or global palette, then we will use this frame's
                     // sprite to load a color table. Effectively the first
                     // frame of a model becomes its palette base.
-                    if(pixelformat == PIXEL_x8 && !nopalette)
-                    {
+                    if(pixelformat == PIXEL_x8 && !nopalette) {
+
                         // No master color table assigned yet?
-                        if(newchar->palette == NULL)
-                        {
+                        if(newchar->palette == NULL) {
                             //printf("\t\t\tAuto Palette - 'Palette' not defined. Attempting to load color table from this frame: ");
 
                             // Allocate memory for color table.
                             newchar->palette = malloc(PAL_BYTES);
                             //
-                            if(loadimagepalette(value, packfile, newchar->palette) == 0)
-                            {
+                            if(loadimagepalette(value, packfile, newchar->palette) == 0) {
                                 //printf("\t\t\t%s%s\n", "Failed to load color table from image: ", value);
                                 goto lCleanup;
                             }
@@ -16430,22 +16446,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         //printf("\t\t\t%s\n", "Success. Loaded color selection 0 from frame.");
 
                         // Assign the color table to sprite.
-                        if(!nopalette)
-                        {
+                        if(!nopalette) {
                             sprite_map[index].node->sprite->palette = newchar->palette;
                             sprite_map[index].node->sprite->pixelformat = pixelformat;
                         }
                     }
 
-                    if(maskindex >= 0)
-                    {
+                    if(maskindex >= 0) {
                         sprite_map[index].node->sprite->mask = sprite_map[maskindex].node->sprite;
                         maskindex = -1;
                     }
                 }                           
                
-                if(platform[PLATFORM_X] == PLATFORM_DEFAULT_X) // old style
-                {
+                if(platform[PLATFORM_X] == PLATFORM_DEFAULT_X) { // old style
                     platform_con[PLATFORM_X] = 0;
                     platform_con[PLATFORM_Z] = 3;
                     platform_con[PLATFORM_UPPERLEFT] = platform[PLATFORM_UPPERLEFT] - offset.x;
@@ -16453,9 +16466,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     platform_con[PLATFORM_UPPERRIGHT] = platform[PLATFORM_UPPERRIGHT] - offset.x;
                     platform_con[PLATFORM_LOWERRIGHT] = platform[PLATFORM_LOWERRIGHT] - offset.x;
                     platform_con[PLATFORM_DEPTH] = platform[PLATFORM_DEPTH] + 3;
-                }
-                else // wall style
-                {
+                
+                } else { // wall style
                     platform_con[PLATFORM_X] = platform[PLATFORM_X] - offset.x;
                     platform_con[PLATFORM_Z] = platform[PLATFORM_Z] - offset.y;
                     platform_con[PLATFORM_UPPERLEFT] = platform[PLATFORM_UPPERLEFT];
@@ -16465,27 +16477,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     platform_con[PLATFORM_DEPTH] = platform[PLATFORM_DEPTH];
                 }
                 platform_con[PLATFORM_HEIGHT] = platform[PLATFORM_HEIGHT];
-                if(shadow_set)
-                {
+                
+                if(shadow_set) {
                     shadow_coords[0] = shadow_xz[0] - offset.x;
                     shadow_coords[1] = shadow_xz[1] - offset.y;
-                }
-                else
-                {
+                
+                } else {
                     shadow_coords[0] = shadow_coords[1] = 0;
                 }
 
-                if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED)
-                {
+                if(drawmethod.config & DRAWMETHOD_CONFIG_ENABLED) {
                     dm = drawmethod;
-                    if(dm.clipw)
-                    {
+                    if(dm.clipw) {
                         dm.clipx -= offset.x;
                         dm.clipy -= offset.y;
                     }
-                }
-                else
-                {
+                
+                } else {
                     dm.config &= ~DRAWMETHOD_CONFIG_ENABLED;
                 }
 
