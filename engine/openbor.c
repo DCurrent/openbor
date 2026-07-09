@@ -21875,7 +21875,8 @@ static void draw_collision_cube_on_entity(entity* const target_entity,
     int z_depth;
 
     int perspective_x_sign;
-    int perspective_offset;
+    int perspective_offset_back;
+    int perspective_offset_front;
     int back_layer;
     int front_layer;
 
@@ -21933,11 +21934,17 @@ static void draw_collision_cube_on_entity(entity* const target_entity,
     /*
     * Visual-only perspective. Keep this independent from
     * the true Z layer.
+    *
     */
-    perspective_offset = z_depth / 4;
+    perspective_offset_back = z_background / 4;
+    perspective_offset_front = z_foreground / 4;
 
-    if (perspective_offset < 1) {
-        perspective_offset = 1;
+    if (z_background > 0 && perspective_offset_back < 1) {
+        perspective_offset_back = 1;
+    }
+
+    if (z_foreground > 0 && perspective_offset_front < 1) {
+        perspective_offset_front = 1;
     }
 
     /*
@@ -21946,11 +21953,10 @@ static void draw_collision_cube_on_entity(entity* const target_entity,
     * entity direction, so do not modify coords->x or coords->width.
     */
     perspective_x_sign = (target_entity->direction == DIRECTION_RIGHT) ? 1 : -1;
-
-
+    
     /*
-    * Back face: up/right visually, true back Z layer.
-    * Front face: down/left visually, true front Z layer.
+    * Back face: projected from entity Z toward background.
+    * Front face: projected from entity Z toward foreground.
     */
     debug_box_get_screen_coordinates_at_layer(
         target_entity,
@@ -21959,8 +21965,8 @@ static void draw_collision_cube_on_entity(entity* const target_entity,
         back_layer,
         coords->width,
         coords->height,
-        perspective_offset * perspective_x_sign,
-        -perspective_offset,
+        perspective_offset_back * perspective_x_sign,
+        -perspective_offset_back,
         &back_box);
 
     debug_box_get_screen_coordinates_at_layer(
@@ -21970,8 +21976,8 @@ static void draw_collision_cube_on_entity(entity* const target_entity,
         front_layer,
         coords->width,
         coords->height,
-        -perspective_offset * perspective_x_sign,
-        perspective_offset,
+        -perspective_offset_front * perspective_x_sign,
+        perspective_offset_front,
         &front_box);
 
     debug_box_draw_wireframe(&back_box, color, NULL);
