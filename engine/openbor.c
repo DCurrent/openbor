@@ -15373,6 +15373,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
 
+            case CMD_MODEL_COLLISION_COORDINATES:
+                
+                collision_attack_upsert_property(&temp_collision_attack, temp_collision_index);
+
+                s_hitbox* const temp_collision_coordinates = collision_attack_upsert_coordinates_property(&temp_collision_attack, temp_collision_index);
+
+                temp_collision_coordinates->x = GET_INT_ARG(1);
+                temp_collision_coordinates->y = GET_INT_ARG(2);
+                temp_collision_coordinates->width = GET_INT_ARG(3);
+                temp_collision_coordinates->height = GET_INT_ARG(4);
+                temp_collision_coordinates->z_background = GET_INT_ARG(5);
+                temp_collision_coordinates->z_foreground = GET_INT_ARG(6);
+                
+                break;
+
             case CMD_MODEL_COLLISION_COUNTER:
                 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->counterattack = GET_INT_ARG(1);

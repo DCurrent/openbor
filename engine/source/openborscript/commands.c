@@ -151,7 +151,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ATCHAIN, "atchain");    
     LIST_ADD(CMD_MODEL_COLLISION, "attack");
     LIST_ADD(CMD_MODEL_COLLISION_BLOCK_COST,                       "attack.block.cost");                       // guardcost
-    LIST_ADD(CMD_MODEL_COLLISION_BLOCK_PENETRATE,                  "attack.block.penetrate");                  // no_block
+    LIST_ADD(CMD_MODEL_COLLISION_BLOCK_PENETRATE,                  "attack.block.penetrate");
+    LIST_ADD(CMD_MODEL_COLLISION_COORDINATES,                      "attack.coordinates");   // Shortcut for collision coordinates (x, y, width, height, depth background, depth foreground) in one line.                   
     LIST_ADD(CMD_MODEL_COLLISION_COUNTER,                          "attack.counter");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_FORCE,                     "attack.damage.force");
     LIST_ADD(CMD_MODEL_COLLISION_DAMAGE_LAND_FORCE,                "attack.damage.land.force");
