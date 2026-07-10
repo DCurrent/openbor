@@ -1156,6 +1156,26 @@ void Script_LoadSystemFunctions()
     //load system functions if we need
     List_Reset(&theFunctionList);
 
+
+
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_format, "datetime_format");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getday, "datetime_getday");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_gethour, "datetime_gethour");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getminute, "datetime_getminute");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getmonth, "datetime_getmonth");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getsecond, "datetime_getsecond");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getyear, "datetime_getyear");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_gettimestamp, "datetime_gettimestamp");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_gettimestampms, "datetime_gettimestampms");
     List_InsertAfter(&theFunctionList,
                      (void *)system_isempty, "isempty");
     List_InsertAfter(&theFunctionList,
