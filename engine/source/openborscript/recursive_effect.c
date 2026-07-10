@@ -8,10 +8,78 @@
 
 #include "scriptcommon.h"
 
+/*
+* Caskey, Damon V.
+* 2026-07-10
+*
+* Return an indexed recursive effect object from
+* a recursive effect collection.
+*/
+HRESULT openbor_get_recursive_effect_object(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount) {
+
+	#define SELF_NAME       "get_recursive_effect_object(void collection, int index)"
+	#define ARG_MINIMUM     2
+	#define ARG_COLLECTION  0
+	#define ARG_INDEX       1
+
+    s_recursive_effect* collection;
+    LONG index;
+
+    ScriptVariant_Clear(*pretvar);
+
+    if (paramCount < ARG_MINIMUM
+        || varlist[ARG_INDEX]->vt != VT_INTEGER
+        || (varlist[ARG_COLLECTION]->vt != VT_PTR
+            && varlist[ARG_COLLECTION]->vt != VT_EMPTY)) {
+
+        goto error_local;
+    }
+
+    /*
+    * No collection is a valid result. The entity
+    * simply has no recursive effects allocated.
+    */
+    if (varlist[ARG_COLLECTION]->vt == VT_EMPTY
+        || !varlist[ARG_COLLECTION]->ptrVal) {
+
+        return S_OK;
+    }
+
+    index = varlist[ARG_INDEX]->lVal;
+
+    if (index < 0 || index >= MAX_RECURSIVE_EFFECTS) {
+        goto error_local;
+    }
+
+    collection =
+        (s_recursive_effect*)varlist[ARG_COLLECTION]->ptrVal;
+
+    ScriptVariant_ChangeType(*pretvar, VT_PTR);
+    (*pretvar)->ptrVal = (VOID*)&collection[index];
+
+    return S_OK;
+
+error_local:
+
+    printf(
+        "\nScript error: %s. You must provide a valid "
+        "recursive effect collection and index.\n",
+        SELF_NAME
+    );
+
+    *pretvar = NULL;
+    return E_FAIL;
+
+#undef SELF_NAME
+#undef ARG_MINIMUM
+#undef ARG_COLLECTION
+#undef ARG_INDEX
+}
+
  // Use string property argument to find an
  // integer property constant and populate
  // varlist->lval.
-int mapstrings_recursive_effect_property(ScriptVariant **varlist, int paramCount)
+int mapstrings_recursive_effect_property(ScriptVariant **varlist, const int paramCount)
 {
 #define ARG_MINIMUM     2   // Minimum number of arguments allowed in varlist.
 #define ARG_PROPERTY    1   // Varlist element carrying which property is requested.
@@ -61,7 +129,7 @@ int mapstrings_recursive_effect_property(ScriptVariant **varlist, int paramCount
 // Return a property. Requires
 // a pointer and property name to
 // access.
-HRESULT openbor_get_recursive_effect_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_get_recursive_effect_property(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount)
 {
 #define SELF_NAME       "openbor_get_recursive_effect_property(void handle, char property)"
 #define ARG_MINIMUM     2   // Minimum required arguments.

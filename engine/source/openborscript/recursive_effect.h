@@ -16,7 +16,8 @@ typedef enum
 	_RECURSIVE_EFFECT_END,
 } e_recursive_effect_properties;
 
-HRESULT openbor_get_recursive_effect_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_recursive_effect_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_get_recursive_effect_object(ScriptVariant** varlist, ScriptVariant** pretvar, const int paramCount);
+HRESULT openbor_get_recursive_effect_property(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount);
+HRESULT openbor_set_recursive_effect_property(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount);
 
 int mapstrings_recursive_effect_property(ScriptVariant **varlist, int paramCount);

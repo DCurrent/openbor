@@ -401,14 +401,15 @@ const char *Script_GetFunctionName(void *functionRef)
     }
 
 	// Recursive effect.
-	else if (functionRef == ((void *)openbor_get_recursive_effect_property))
-	{
-	return "get_recursive_effect_property";
-	}
-	else if (functionRef == ((void *)openbor_set_recursive_effect_property))
-	{
-	return "set_recursive_effect_property";
-	}
+    else if (functionRef == ((void *)openbor_get_recursive_effect_object)) {
+        return "get_recursive_effect_object";
+    }
+    else if (functionRef == ((void *)openbor_get_recursive_effect_property)) {
+        return "get_recursive_effect_property";
+    }
+    else if (functionRef == ((void *)openbor_set_recursive_effect_property)) {
+        return "set_recursive_effect_property";
+    }
 
     // Body collision (bbox)
     else if (functionRef == ((void *)openbor_get_body_collision_collection))
@@ -1348,6 +1349,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_set_attack_property, "set_attack_property");
 
 	// Recursive effect properties.
+    List_InsertAfter(&theFunctionList,
+		(void *)openbor_get_recursive_effect_object, "get_recursive_effect_object");
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_get_recursive_effect_property, "get_recursive_effect_property");
 	List_InsertAfter(&theFunctionList,

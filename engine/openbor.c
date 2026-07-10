@@ -8367,6 +8367,57 @@ s_recursive_effect* recursive_effect_allocate_object(void) {
 
 /*
 * Caskey, Damon V.
+* 2026-07-10
+*
+* Allocate the recursive effect collection used by
+* an entity. The collection remains allocated until
+* the entity dies.
+*/
+static s_recursive_effect* recursive_effect_allocate_collection(void) {
+    s_recursive_effect* result;
+    unsigned int recursive_index;
+
+    result = calloc(MAX_RECURSIVE_EFFECTS, sizeof(*result));
+
+    if (!result) {
+        borShutdown(1, (char*)E_OUT_OF_MEMORY);
+        return NULL;
+    }
+
+    /*
+    * calloc initializes type to 0, but ATK_NONE is -1.
+    * Initialize each inactive slot to the proper default.
+    */
+    for (recursive_index = 0;
+        recursive_index < MAX_RECURSIVE_EFFECTS;
+        recursive_index++) {
+
+        result[recursive_index].type = ATK_NONE;
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-07-10
+*
+* Release all recursive effect state owned by
+* an entity.
+*/
+static void recursive_effect_free_collection(entity* target) {
+    if (!target) {
+        return;
+    }
+
+    free(target->recursive_effect_collection);
+
+    target->recursive_effect_collection = NULL;
+    target->recursive_effect_active = 0;
+}
+
+/*
+* Caskey, Damon V.
 * 2019-01-15
 *
 * If attack has any recursive effects, apply
@@ -8374,12 +8425,13 @@ s_recursive_effect* recursive_effect_allocate_object(void) {
 */
 void recursive_effect_check_apply(entity* ent, entity* other, s_attack* attack) {
     s_recursive_effect* recursive_effect;
+    uint64_t active_flag;
+    uint32_t time_multiplier;
     unsigned int index;
-    uint16_t active_flag; // Bit flag for current index.
 
     /*
-    * No attack, or no recursive
-    * effect to apply.
+    * No target, attack, or recursive effect means
+    * there is nothing to apply.
     */
     if (!ent || !attack || !attack->recursive) {
         return;
@@ -8388,73 +8440,68 @@ void recursive_effect_check_apply(entity* ent, entity* other, s_attack* attack) 
     index = attack->recursive->index;
 
     /*
-    * Check if index is within valid range.
+    * Protect the collection lookup and bit shift.
     */
     if (index >= MAX_RECURSIVE_EFFECTS) {
         return;
     }
 
-    /*
-    * Get bitmask for index. If bit is 0, index 
-    * is invalid and we should exit. Shouldn't 
-    * happen because of previous range check, 
-    * but we'll be defensive here.
-    */
-
-    active_flag = bitmask16_from_index(index);
+    active_flag = bitmask64_from_index(index);
 
     if (!active_flag) {
         return;
     }
 
-    
     /*
-    * Get pointer to resident recursive effect slot
-    * for current index. 
-    */   
-    recursive_effect = &ent->recursive_effect_list[index];
+    * Allocate the entity collection only when the
+    * first recursive effect is applied.
+    */
+    if (!ent->recursive_effect_collection) {
+        ent->recursive_effect_collection = recursive_effect_allocate_collection();
+
+        if (!ent->recursive_effect_collection) {
+            return;
+        }
+    }
 
     /*
-    * Reset the resident recursive effect slot for 
-    * the current index. This is to clear any previous 
-    * values in case index was already active. 
+    * Get and reset the indexed resident slot.
     */
+    recursive_effect = &ent->recursive_effect_collection[index];
 
     memset(recursive_effect, 0, sizeof(*recursive_effect));
     recursive_effect->type = ATK_NONE;
 
     /*
-    * Mark active after the resident slot is reset.
+    * Populate the resident effect.
     */
-    ent->recursive_effect_active |= active_flag;
-    
-    /*
-    * Populate the resident recursive effect slot
-    * with attack recursive values and expire times.
-    */
-   
-    uint32_t time_multiplier = GAME_SPEED / 100;
+    time_multiplier = GAME_SPEED / 100;
 
     recursive_effect->meta_tag = attack->recursive->meta_tag;
-    //recursive_effect->meta_data = attack->recursive->meta_data;
     recursive_effect->mode = attack->recursive->mode;
-    recursive_effect->index = attack->recursive->index;
+    recursive_effect->index = index;
     recursive_effect->rate = attack->recursive->rate;
     recursive_effect->force = attack->recursive->force;
     recursive_effect->owner = other;
-    recursive_effect->time = _time + (attack->recursive->time * time_multiplier); // Time to expire the effect.
-    recursive_effect->tick = _time + (recursive_effect->rate * time_multiplier);  // Ttime for the next application of the effect.  
+    recursive_effect->time =
+        _time + (attack->recursive->time * time_multiplier);
+    recursive_effect->tick =
+        _time + (recursive_effect->rate * time_multiplier);
 
     /*
-    * If recursive type is none, that means use
-    * the same type as the original attack.
+    * ATK_NONE means inherit the original attack type.
     */
     if (attack->recursive->type == ATK_NONE) {
         recursive_effect->type = attack->attack_type;
-    }
-    else {
+    } else {
         recursive_effect->type = attack->recursive->type;
     }
+
+    /*
+    * Mark the slot active only after its contents
+    * have been fully initialized.
+    */
+    ent->recursive_effect_active |= active_flag;
 }
 
 /*
@@ -8615,68 +8662,54 @@ e_damage_recursive_logic recursive_effect_get_mode_setup_from_legacy_argument(e_
 * Apply recursive effect (damage over time (dot)).
 */
 void recursive_entity_effect_update(entity* acting_entity) {
-    s_attack attack;                    // Attack structure.
-    s_defense* defense_object = NULL;   // Defense properties.
-    s_recursive_effect* cursor = NULL;  // Current recursive effect slot.
-    s_recursive_effect snapshot;        // Snapshot of current recursive effect slot.
-    uint16_t scan_mask;                 // Local copy of active recursive effect mask.
-    int calculated_force;               // Calculated force after factoring offense and defense.
+    s_attack attack;
+    s_defense* defense_object = NULL;
+    s_recursive_effect* recursive_effect_collection;
+    s_recursive_effect* cursor = NULL;
+    s_recursive_effect snapshot;
+    uint64_t scan_mask;
+    int calculated_force;
 
-    /*
-    * Safety check. No entity means nothing to update.
-    */
     if (!acting_entity) {
         return;
     }
 
     /*
-    * Take a local copy of the mask. This allows us
-    * to process currently active slots once, even
-    * if the entity mask changes during this update.
+    * No collection means this entity has never
+    * received a recursive effect.
     */
+    recursive_effect_collection = acting_entity->recursive_effect_collection;
+
+    if (!recursive_effect_collection) {
+        /*
+        * Keep mask and collection state synchronized
+        * if outside code ever corrupts the invariant.
+        */
+        acting_entity->recursive_effect_active = 0;
+        return;
+    }
+
     scan_mask = acting_entity->recursive_effect_active;
 
-    /*
-    * Iterate active recursive effect slots.
-    */
     while (scan_mask) {
         unsigned int index;
-        uint16_t active_flag;
+        uint64_t active_flag;
 
-        /*
-        * Get the next active slot from the mask.
-        */
-        index = bitmask16_get_lowest_index(scan_mask);
-        active_flag = bitmask16_from_index(index);
+        index = bitmask64_get_lowest_index(scan_mask);
+        active_flag = bitmask64_from_index(index);
 
-        /*
-        * Defensive fallback. This should not occur
-        * because scan_mask is nonzero, but avoids any
-        * chance of a runaway loop.
-        */
         if (!active_flag) {
             break;
         }
 
-        /*
-        * Clear this slot from local scan mask now.
-        * This ensures each active slot is processed
-        * only once this pass.
-        */
         scan_mask &= ~active_flag;
 
-        /*
-        * Defensive guard against mask/data mismatch.
-        */
         if (index >= MAX_RECURSIVE_EFFECTS) {
             acting_entity->recursive_effect_active &= ~active_flag;
             continue;
         }
 
-        /*
-        * Get the recursive effect slot.
-        */
-        cursor = &acting_entity->recursive_effect_list[index];
+        cursor = &recursive_effect_collection[index];
 
         /*
         * If time has expired, clear the slot and exit this
@@ -8828,9 +8861,22 @@ void recursive_entity_effect_update(entity* acting_entity) {
                 acting_entity->energy_state.health_current -= calculated_force;
                 execute_takedamage_script(acting_entity, snapshot.owner, &attack);
             }
-        }        
+        }
+        
+        /*
+        * Damage processing may have killed the entity and
+        * released or replaced its recursive effect collection.
+        * Never continue scanning the old allocation.
+        */
+        if (!acting_entity->exists ||
+            acting_entity->recursive_effect_collection != recursive_effect_collection) {
+
+            return;
+        }
     }
 }
+
+
 
 /*
 * Caskey, Damon V. (original author unknown, 
@@ -22711,44 +22757,40 @@ void addscore(int playerindex, int add)
 
 void free_ent(entity *e)
 {
-    if(!e)
-    {
+    if(!e) {
         return;
     }
+
+    recursive_effect_free_collection(e);
+
     clear_all_scripts(e->scripts, 2);
     free_all_scripts(&e->scripts);
 
     // Item properties.
-    if(e->item_properties)
-    {
+    if(e->item_properties) {
         free(e->item_properties);
         e->item_properties = NULL;
     }
 
-    if(e->waypoints)
-    {
+    if(e->waypoints) {
         free(e->waypoints);
         e->waypoints = NULL;
     }
-    if(e->defense)
-    {
+    if(e->defense) {
         defense_free_object(e->defense);
         e->defense = NULL;
     }
-    if(e->offense)
-    {
+    if(e->offense) {
         offense_free_object(e->offense);
         e->offense = NULL;
     }
 
-	if (e->drawmethod)
-	{
+	if (e->drawmethod) {
 		free(e->drawmethod);
 		e->drawmethod = NULL;
 	}
 
-    if(e->varlist)
-    {
+    if(e->varlist) {
         // Although free_ent will be only called once when the engine is shutting down,
         // just clear those in case we forget something
         Varlist_Clear(e->varlist);
@@ -24150,6 +24192,9 @@ entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_d
                 free(acting_entity->waypoints);
             }
 
+            /* Just to make the recrusive collection is free. */
+            recursive_effect_free_collection(acting_entity);
+
             scripts = acting_entity->scripts;
             memset(acting_entity, 0, sizeof(*acting_entity));
             
@@ -24263,6 +24308,8 @@ void kill_entity(entity *victim, e_kill_entity_trigger trigger)
     }
 
     execute_onkill_script(victim, trigger);
+
+    recursive_effect_free_collection(victim);
 
     ent_unlink(victim);
     victim->weapent = NULL;
@@ -24382,16 +24429,19 @@ void kill_entity(entity *victim, e_kill_entity_trigger trigger)
 }
 
 
-void kill_all()
-{
+void kill_all(){
+
     int i;
     entity *e = NULL;
-    for(i = 0; i < ent_max; i++)
-    {
+    
+    for(i = 0; i < ent_max; i++) {
         e = ent_list[i];
-        if (e && e->exists)
-        {
+        if (e && e->exists) {
             execute_onkill_script(e, KILL_ENTITY_TRIGGER_ALL);
+
+            recursive_effect_free_collection(e);
+            ent_unlink(e);
+
             clear_all_scripts(e->scripts, 1);
         }
         e->exists = 0; // well, no need to use kill function
@@ -24399,8 +24449,7 @@ void kill_all()
     textbox = smartbomber = NULL;
     _time = 0;
     ent_count = ent_max = ent_stack_size = 0;
-    if(ent_list_size > MAX_ENTS) //shrinking...
-    {
+    if(ent_list_size > MAX_ENTS) {//shrinking...
         free_ents();
         alloc_ents(); //this shouldn't return 0, because the list shrinks...
     }

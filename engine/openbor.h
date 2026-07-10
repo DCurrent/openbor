@@ -85,7 +85,7 @@
 #define		MAX_ATTACKS			    4					// Total number of attacks players have
 #define     MAX_FOLLOWS             4					// For followup animations
 #define     MAX_COLLISIONS          2                   // Collision boxes.
-#define     MAX_RECURSIVE_EFFECTS   16					// Max number of recursive effects on an entity at a time.
+#define     MAX_RECURSIVE_EFFECTS   64					// Max number of recursive effects on an entity at a time.
 #define		MAX_ARG_LEN			    512
 #define		MAX_ALLOWSELECT_LEN	    1024
 #define		MAX_SELECT_LOADS   	    512
@@ -3564,8 +3564,7 @@ typedef struct entity
     s_faction               faction;                            // Can hit, hostile to, etc.
     s_model					modeldata;							// model data copied here ~~
 	s_jump					jump;								// Jumping velocity and animationnid. ~~	
-	s_recursive_effect      recursive_effect_list[MAX_RECURSIVE_EFFECTS]; // Array of recursive effect effects on entity. ~~
-    s_rush					rush;								// Rush combo display. ~~
+	s_rush					rush;								// Rush combo display. ~~
 
 	// Structured pointers.
 	s_anim					*animation;							// Pointer to animation collection. ~~
@@ -3577,6 +3576,8 @@ typedef struct entity
     s_model					*model;								// current model ~~
 	s_axis_plane_lateral_float *waypoints;						// Pathfinding waypoint array. ~~
 	s_scripts				*scripts;							// Loaded scripts. ~~
+    s_recursive_effect      *recursive_effect_collection;       // Lazily allocated recursive effect slots.. ~~
+    
 
 	struct entity			*collided_entity;					// Opposing entity when entities occupy same space. ~~
 	struct entity			*custom_target;						// Target forced by modder via script ~~
@@ -3633,7 +3634,7 @@ typedef struct entity
     // -------------------------end of times ------------------------------
 	
 	// Unsigned integers
-	uint16_t                recursive_effect_active;            // Bitmap of currently active recursive effect indices. ~~
+	uint64_t                recursive_effect_active;            // Bitmap of currently active recursive effect indices. ~~
         
     unsigned int			animpos;							// Current animation frame. ~~
 	unsigned int			attack_id_incoming[MAX_ATTACK_IDS];	// ~~ (	//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug. 2021-09-04, DC: Combine members into array. Should probably use pointer.
