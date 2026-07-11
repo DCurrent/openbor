@@ -679,11 +679,11 @@ static const entity_property_info entity_properties[] = {
 	.offset = PROPERTY_MEMBER_OFFSET(entity, projectile_prime),
 	.type = VT_INTEGER },
 
-	{.property = ENTITY_PROPERTY_RECURSIVE_EFFECT,
-	.id_string = "ENTITY_PROPERTY_RECURSIVE_EFFECT",
-	.config_flags = PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER,
-	.offset = PROPERTY_MEMBER_OFFSET(entity, recursive_effect_list),
-	.type = VT_PTR },
+	{.property = ENTITY_PROPERTY_RECURSIVE_EFFECT_COLLECTION,
+    .id_string = "ENTITY_PROPERTY_RECURSIVE_EFFECT_COLLECTION",
+    .config_flags = PROPERTY_ACCESS_CONFIG_READ,
+    .offset = PROPERTY_MEMBER_OFFSET(entity, recursive_effect_collection),
+    .type = VT_PTR },
 
 	{.property = ENTITY_PROPERTY_RELEASE_TIME,
 	.id_string = "ENTITY_PROPERTY_RELEASE_TIME",

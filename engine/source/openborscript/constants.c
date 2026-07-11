@@ -13,6 +13,7 @@
 // Mapping constants for use in script.
 
 #include "scriptcommon.h"
+#include "datetime.h"
 
 // ===== openborconstant =====
 #define IICMPCONST(x) \
@@ -645,7 +646,11 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
         //
         ICMPCONST(CV_HIGH_SCORE)
-        ICMPCONST(CV_SAVED_GAME)        
+        ICMPCONST(CV_SAVED_GAME)      
+        
+        /* Time standards. */
+        ICMPCONST(DATETIME_STANDARD_LOCAL)
+        ICMPCONST(DATETIME_STANDARD_UTC)
 
         /* Damage control flags. */
         ICMPCONST(DAMAGE_FROM_ENEMY_OFF)
@@ -876,7 +881,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(ENTITY_PROPERTY_POSITION_Y)
         ICMPCONST(ENTITY_PROPERTY_POSITION_Z)
         ICMPCONST(ENTITY_PROPERTY_PROJECTILE_PRIME)
-        ICMPCONST(ENTITY_PROPERTY_RECURSIVE_EFFECT)
+        ICMPCONST(ENTITY_PROPERTY_RECURSIVE_EFFECT_COLLECTION)
         ICMPCONST(ENTITY_PROPERTY_RELEASE_TIME)
         ICMPCONST(ENTITY_PROPERTY_RISE_ATTACK_DELAY)
         ICMPCONST(ENTITY_PROPERTY_RISE_ATTACK_TIME)

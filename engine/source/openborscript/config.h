@@ -16,6 +16,7 @@
 #include "audio.h"
 #include "axis.h"
 #include "binding.h"
+#include "datetime.h"
 #include "drawmethod.h"
 #include "colorset.h"
 #include "entity.h"
@@ -174,12 +175,6 @@ HRESULT openbor_get_body_collision_collection(ScriptVariant **varlist , ScriptVa
 HRESULT openbor_get_body_collision_instance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_get_body_collision_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_set_body_collision_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-
-// Entity collision (ebox) properties
-HRESULT openbor_get_entity_collision_collection(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_get_entity_collision_instance(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_get_entity_collision_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_set_entity_collision_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 
 HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount);

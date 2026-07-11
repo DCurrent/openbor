@@ -401,14 +401,15 @@ const char *Script_GetFunctionName(void *functionRef)
     }
 
 	// Recursive effect.
-	else if (functionRef == ((void *)openbor_get_recursive_effect_property))
-	{
-	return "get_recursive_effect_property";
-	}
-	else if (functionRef == ((void *)openbor_set_recursive_effect_property))
-	{
-	return "set_recursive_effect_property";
-	}
+    else if (functionRef == ((void *)openbor_get_recursive_effect_object)) {
+        return "get_recursive_effect_object";
+    }
+    else if (functionRef == ((void *)openbor_get_recursive_effect_property)) {
+        return "get_recursive_effect_property";
+    }
+    else if (functionRef == ((void *)openbor_set_recursive_effect_property)) {
+        return "set_recursive_effect_property";
+    }
 
     // Body collision (bbox)
     else if (functionRef == ((void *)openbor_get_body_collision_collection))
@@ -426,24 +427,6 @@ const char *Script_GetFunctionName(void *functionRef)
     else if (functionRef == ((void *)openbor_set_body_collision_property))
     {
         return "set_body_collision_property";
-    }
-
-    // Entity collision (ebox)
-    else if (functionRef == ((void *)openbor_get_entity_collision_collection))
-    {
-        return "get_entity_collision_collection";
-    }
-    else if (functionRef == ((void *)openbor_get_entity_collision_instance))
-    {
-        return "get_entity_collision_instance";
-    }
-    else if (functionRef == ((void *)openbor_get_entity_collision_property))
-    {
-        return "get_entity_collision_property";
-    }
-    else if (functionRef == ((void *)openbor_set_entity_collision_property))
-    {
-        return "set_entity_collision_property";
     }
 
     /* Flash config properties */
@@ -1174,6 +1157,26 @@ void Script_LoadSystemFunctions()
     //load system functions if we need
     List_Reset(&theFunctionList);
 
+
+
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_format, "datetime_format");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getday, "datetime_getday");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_gethour, "datetime_gethour");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getminute, "datetime_getminute");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getmonth, "datetime_getmonth");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getsecond, "datetime_getsecond");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_getyear, "datetime_getyear");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_gettimestamp, "datetime_gettimestamp");
+    List_InsertAfter(&theFunctionList,
+                     (void *)datetime_gettimestampms, "datetime_gettimestampms");
     List_InsertAfter(&theFunctionList,
                      (void *)system_isempty, "isempty");
     List_InsertAfter(&theFunctionList,
@@ -1346,6 +1349,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_set_attack_property, "set_attack_property");
 
 	// Recursive effect properties.
+    List_InsertAfter(&theFunctionList,
+		(void *)openbor_get_recursive_effect_object, "get_recursive_effect_object");
 	List_InsertAfter(&theFunctionList,
 		(void *)openbor_get_recursive_effect_property, "get_recursive_effect_property");
 	List_InsertAfter(&theFunctionList,
@@ -1366,16 +1371,6 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_colorset_property, "get_colorset_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_colorset_property, "set_colorset_property");
-
-    // Entity collision (ebox) properties.
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_entity_collision_collection, "get_entity_collision_collection");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_entity_collision_instance, "get_entity_collision_instance");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_get_entity_collision_property, "get_entity_collision_property");
-    List_InsertAfter(&theFunctionList,
-                     (void *)openbor_set_entity_collision_property, "set_entity_collision_property");
 
     // Entity properties.
     List_InsertAfter(&theFunctionList,

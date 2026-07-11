@@ -281,9 +281,9 @@ SCRIPT_BUILTINS = source/openborscript/commands.o                               
                   source/openborscript/collision_attack.o                                           \
                   source/openborscript/common_property.o                                            \
                   source/openborscript/collision_body.o                                             \
-				  source/openborscript/collision_entity.o                                           \
-                  source/openborscript/colorset.o                                                   \
+				  source/openborscript/colorset.o                                                   \
                   source/openborscript/constants.o                                                  \
+                  source/openborscript/datetime.o                                                   \
                   source/openborscript/entity.o                                                   	\
                   source/openborscript/faction.o                                                   	\
                   source/openborscript/flash.o                                             	        \
