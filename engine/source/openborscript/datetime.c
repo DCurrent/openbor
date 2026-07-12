@@ -69,8 +69,8 @@ DATETIME_WINDOWS_IMPORT void DATETIME_WINDOWS_CALL GetSystemTimeAsFileTime(s_dat
 * Forward declarations for internal support functions.
 */
 static HRESULT datetime_get_epoch_milliseconds(uint64_t *milliseconds);
-static HRESULT datetime_resolve_time(ScriptVariant **varlist, int paramCount, uint64_t *milliseconds_result, struct tm *time_result);
-static HRESULT datetime_set_formatted_string(ScriptVariant **varlist, ScriptVariant *pretvar, int paramCount, const char *format);
+static HRESULT datetime_resolve_time(ScriptVariant **varlist, const int paramCount, uint64_t *milliseconds_result, struct tm *time_result);
+static HRESULT datetime_set_formatted_string(ScriptVariant **varlist, ScriptVariant *pretvar, const int paramCount, const char *format);
 
 /*
 * Caskey, Damon V.
@@ -142,7 +142,7 @@ static HRESULT datetime_get_epoch_milliseconds(uint64_t *milliseconds) {
 * The broken-down time result is optional. Callers that only need raw
 * milliseconds can pass NULL for time_result.
 */
-static HRESULT datetime_resolve_time(ScriptVariant **varlist, int paramCount, uint64_t *milliseconds_result, struct tm *time_result) {
+static HRESULT datetime_resolve_time(ScriptVariant **varlist, const int paramCount, uint64_t *milliseconds_result, struct tm *time_result) {
     uint64_t milliseconds;
     uint64_t standard_value;
     e_datetime_standard standard;
@@ -336,7 +336,7 @@ static HRESULT datetime_resolve_time(ScriptVariant **varlist, int paramCount, ui
 * Format time from either current clock or 
 * caller-provided epoch milliseconds.
 */
-static HRESULT datetime_set_formatted_string(ScriptVariant **varlist, ScriptVariant *pretvar, int paramCount, const char *format) {
+static HRESULT datetime_set_formatted_string(ScriptVariant **varlist, ScriptVariant *pretvar, const int paramCount, const char *format) {
     struct tm time_value;
     char buffer[DATETIME_FORMAT_BUFFER_SIZE];
 
@@ -376,7 +376,7 @@ static HRESULT datetime_set_formatted_string(ScriptVariant **varlist, ScriptVari
 *
 * Return current Unix epoch seconds.
 */
-HRESULT datetime_gettimestamp(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_gettimestamp(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     uint64_t milliseconds;
 
     (void)varlist;
@@ -412,7 +412,7 @@ HRESULT datetime_gettimestamp(ScriptVariant **varlist, ScriptVariant **pretvar, 
 *
 * Return current Unix epoch milliseconds.
 */
-HRESULT datetime_gettimestampms(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_gettimestampms(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     uint64_t milliseconds;
 
     (void)varlist;
@@ -457,7 +457,7 @@ HRESULT datetime_gettimestampms(ScriptVariant **varlist, ScriptVariant **pretvar
 *   "%Y-%m-%d %H:%M:%S" - Return date and time as YYYY-MM-DD HH:MM:SS.
 *   "%A, %B %d, %Y" - Return date as "Weekday, Month Day, Year".
 */
-HRESULT datetime_format(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_format(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     const char *format;
 
     if(!pretvar || !*pretvar) {
@@ -517,7 +517,7 @@ HRESULT datetime_format(ScriptVariant **varlist, ScriptVariant **pretvar, int pa
 *
 * Return year as an integer.
 */
-HRESULT datetime_getyear(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_getyear(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     struct tm time_value;
 
     if(!pretvar || !*pretvar) {
@@ -541,7 +541,7 @@ HRESULT datetime_getyear(ScriptVariant **varlist, ScriptVariant **pretvar, int p
 *
 * Return month as an integer, 1-12.
 */
-HRESULT datetime_getmonth(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_getmonth(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     struct tm time_value;
 
     if(!pretvar || !*pretvar) {
@@ -565,7 +565,7 @@ HRESULT datetime_getmonth(ScriptVariant **varlist, ScriptVariant **pretvar, int 
 *
 * Return day of month as an integer, 1-31.
 */
-HRESULT datetime_getday(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_getday(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     struct tm time_value;
 
     if(!pretvar || !*pretvar) {
@@ -583,13 +583,40 @@ HRESULT datetime_getday(ScriptVariant **varlist, ScriptVariant **pretvar, int pa
 
 /*
 * Caskey, Damon V.
+* 2026-07-12
+*
+* datetime_getweekday([milliseconds][, standard])
+*
+* Return weekday as an integer, 0-6.
+*/
+HRESULT datetime_getweekday(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+    struct tm time_value;
+    e_datetime_weekday weekday;
+
+    if(!pretvar || !*pretvar) {
+        printf("\ndatetime_getweekday(): Missing return variant.\n\n");
+        return E_FAIL;
+    }
+
+    if(datetime_resolve_time(varlist, paramCount, NULL, &time_value) != S_OK) {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    weekday = (e_datetime_weekday)time_value.tm_wday;
+
+    return ScriptVariant_SetUnsignedIntegerResult(*pretvar, (uint64_t)weekday, 1);
+}
+
+/*
+* Caskey, Damon V.
 * 2026-07-09
 *
 * datetime_gethour([milliseconds][, standard])
 *
 * Return hour as an integer, 0-23.
 */
-HRESULT datetime_gethour(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_gethour(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     struct tm time_value;
 
     if(!pretvar || !*pretvar) {
@@ -613,7 +640,7 @@ HRESULT datetime_gethour(ScriptVariant **varlist, ScriptVariant **pretvar, int p
 *
 * Return minute as an integer, 0-59.
 */
-HRESULT datetime_getminute(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_getminute(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     struct tm time_value;
 
     if(!pretvar || !*pretvar) {
@@ -639,7 +666,7 @@ HRESULT datetime_getminute(ScriptVariant **varlist, ScriptVariant **pretvar, int
 *
 * Some C runtimes may report 60 for leap-second representation.
 */
-HRESULT datetime_getsecond(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+HRESULT datetime_getsecond(ScriptVariant **varlist, ScriptVariant **pretvar, const int paramCount) {
     struct tm time_value;
 
     if(!pretvar || !*pretvar) {
