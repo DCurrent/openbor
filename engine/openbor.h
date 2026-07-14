@@ -69,9 +69,9 @@
 #define		COMPATIBLEVERSION	    0x00033749
 #define		CV_SAVED_GAME		    0x00033747
 #define		CV_HIGH_SCORE		    0x00033747
-#define     GAME_SPEED              200
+#define     GAME_SPEED_DEFAULT              200
 #define		THINK_SPEED			    2
-#define		COUNTER_SPEED		    (GAME_SPEED*2)
+#define		COUNTER_SPEED_DEFAULT		    (GAME_SPEED_DEFAULT*2)
 #define		MAX_NAME_LEN		    50 //47
 #define		MAX_ENTS			    150
 #define		MAX_SPECIALS		    8					// Added for customizable freespecials
@@ -116,7 +116,7 @@ movement restirctions are here!
 #define		CONTACT_DIST_H		30					// Distance to make contact
 #define		CONTACT_DIST_V		12
 #define		GRAB_DIST			36					// Grabbing ents will be placed this far apart.
-#define		GRAB_STALL			(GAME_SPEED * 8 / 10)
+#define		GRAB_STALL_DEFAULT	(GAME_SPEED_DEFAULT * 8 / 10)
 #define		T_WALKOFF 			2.0
 #define		T_MIN_BASEMAP 		-1000
 #define     T_MAX_CHECK_ALTITUDE 9999999
@@ -1847,6 +1847,9 @@ typedef struct s_global_config {
     e_cheat_options cheats;         // Cheat menu config and active cheats.
     s_flash_properties flash;           // Flash config properties.
     unsigned int showgo;            // Enable/disable go arrow.
+    uint64_t game_speed;        // Game speed setting (logical clock hz)
+    uint64_t counter_speed;     // Counter speed (in game level clock) setting.
+    uint64_t grab_stall;        // Grab stall (delay time after a grab hit) setting.
 } s_global_config;
 
 /*
@@ -1963,8 +1966,8 @@ typedef struct
 * common integer measurements.
 */
 typedef struct s_metric_range {
-    int max;
-    int min;
+    int64_t max;
+    int64_t min;
 } s_metric_range;
 
 typedef struct
@@ -1985,11 +1988,10 @@ typedef struct
 //
 // Delay modifiers before rise or
 // riseattack can take place.
-typedef struct
-{
-    unsigned long rise;               // Time modifier before rise.
-    unsigned long riseattack;         // Time modifier before riseattack.
-    unsigned long riseattack_stall;   // Total stalltime before riseattack.
+typedef struct s_staydown {
+    uint64_t rise;               // Time modifier before rise.
+    uint64_t riseattack;         // Time modifier before riseattack.
+    uint64_t riseattack_stall;   // Total stalltime before riseattack.
 } s_staydown;
 
 // Caskey, Damon V.
@@ -2001,11 +2003,11 @@ typedef struct
 typedef struct s_recursive_effect {
 
     int							force;  // Damage force per tick.
-    unsigned int				index;  // Index.
+    uint64_t				    index;  // Index.
 	e_damage_recursive_logic	mode;   // Mode.
-    uint32_t				    rate;   // Tick delay.
-    uint32_t   				    tick;   // Time of next tick.
-    uint32_t				    time;   // Time to expire.
+    uint64_t				    rate;   // Tick delay.
+    uint64_t   				    tick;   // Time of next tick.
+    uint64_t				    time;   // Time to expire.
 	e_attack_types				type;	// Attack type.
 	struct entity				*owner;	// Entity that caused the recursive effect.
 
@@ -2206,14 +2208,14 @@ typedef struct
 
 // Collision box for active
 // attacks.
-typedef struct {
+typedef struct s_attack {
     int                 blast;              // Attack box active on hit opponent's fall animation.
     int                 steal;              // Add damage to owner's hp.
     int                 ignore_attack_id;   // Ignore attack ID to attack in every frame
     int                 no_flash;           // Flag to determine if an attack spawns a flash or not
     int                 no_kill;            // this attack won't kill target (leave 1 HP)
     int                 no_pain;            // No animation reaction on hit.
-    int                 pause_add;          // Flag to determine if an attack adds a pause before updating the animation
+    uint64_t            pause_add;          // Small "freeze" time added on hit, for cinematic effect.
     int                 freeze;             // Lock target in place and set freeze time.
 
     int                 grab;               // Not a grab as in grapple - behavior on hit for setting target's position
@@ -2233,13 +2235,13 @@ typedef struct {
     int                 blocksound;         // Custom sound for when an attack is blocked.
     s_flash_properties  flash;              // Flash config properties.
     int                 forcemap;           // Set target's palette on hit.
-    unsigned int        freezetime;         // Time for target to remain frozen.
+    uint64_t            freezetime;         // Time for target to remain frozen.
     int                 guardcost;          // cost for blocking an attack
     int                 hitsound;           // Sound effect to be played when attack hits opponent
     int                 index;              // Possible future support of multiple boxes - it's doubt even if support is added this property will be needed.
-    unsigned int        maptime;            // Time for forcemap to remain in effect.
-    unsigned int        next_hit_time;      // pain invincible time
-    unsigned int        sealtime;           // Time for seal to remain in effect.
+    uint64_t            maptime;            // Time for forcemap to remain in effect.
+    uint64_t            next_hit_time;      // pain invincible time
+    uint64_t            sealtime;           // Time for seal to remain in effect.
     int                 grab_distance;      // Distance used by "grab".
     s_axis_principal_float            dropv;              // Velocity of target if knocked down.
     s_damage_on_landing damage_on_landing;  // Cause damage when target entity lands from fall.
@@ -2437,7 +2439,7 @@ typedef struct
 {    
     s_metric_range cap;
     float factor;
-    int modifier;
+    int64_t modifier;
     s_metric_range range;
 } s_edelay;
 
@@ -2663,7 +2665,7 @@ typedef struct
 	float						(*platform)[8];			// Now entities can have others land on them
 	
 	unsigned					*idle;					// Allow free move
-	int							*delay;
+	int64_t						*delay;
 	int							*shadow;
 	int							(*shadow_coords)[2];	// x, z offset of shadow
 	int							*soundtoplay;           // each frame can have a sound
@@ -3436,7 +3438,7 @@ typedef struct
     int mpstableval; // MP Stable target.
     int aggression; // For enemy A.I.
     s_staydown risetime;
-    unsigned sleepwait;
+    uint64_t sleepwait;
     int riseattacktype;
     int jugglepoints;   // Juggle limiting system.
     int guardpoints;    // guardbreak system.
@@ -3525,9 +3527,9 @@ typedef struct
 * Combo meter display.
 */
 typedef struct s_rush {
-    unsigned int count;
-    unsigned int max;   
-    unsigned long time;
+    uint64_t count;
+    uint64_t max;   
+    uint64_t time;
 } s_rush;
 
 typedef struct
@@ -3608,60 +3610,60 @@ typedef struct entity
 	float					speedmul;							// Final multiplier for movement/velocity. ~~
 	
     // Size defined ints (for time).
-    unsigned long	        combotime;							// If not expired, continue to next attack in series combo. ~~
-	unsigned long			guardtime;							// Next time to auto adjust guardpoints. ~~
-	unsigned long			freezetime;							// Used to store at what point a frozen entity becomes unfrozen. ~~
-	unsigned long			invinctime;							// Used to set time for invincibility to expire. ~~
-	unsigned long			knockdowntime;						// When knockdown count is expired. ~~
-	unsigned long			magictime;							// Next time to auto adjust MP. ~~
-	unsigned long			maptime;							// When forcemap expires. ~~
-	unsigned long			movetime;							// For special moves. Grace time between player inputs. ~~
-	unsigned long			mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
-	unsigned long			next_hit_time;						// When temporary invincibility after getting hit expires. ~~
-	unsigned long			nextanim;							// Time for next frame (or to mark animation finished). ~~
-	unsigned long			nextattack;							// Time for next chance to attack. ~~
-	unsigned long			nextmove;							// Same as tosstime, but for X, Z movement. ~~
-	unsigned long			nextthink;							// Time for next main AI update. ~~
-	unsigned long			pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
-	unsigned long			releasetime;						// Delay letting go of grab when holding away command. ~~
-	unsigned long			sealtime;							// When seal expires. ~~    
-	unsigned long			sleeptime;							// When to start the SLEEP animation. ~~
-	unsigned long			stalltime;							// AI waits to perform actions. ~~
+    uint64_t                combotime;							// If not expired, continue to next attack in series combo. ~~
+	uint64_t			    guardtime;							// Next time to auto adjust guardpoints. ~~
+	uint64_t			    freezetime;							// Used to store at what point a frozen entity becomes unfrozen. ~~
+	uint64_t			    invinctime;							// Used to set time for invincibility to expire. ~~
+	uint64_t			    knockdowntime;						// When knockdown count is expired. ~~
+	uint64_t			    magictime;							// Next time to auto adjust MP. ~~
+	uint64_t			    maptime;							// When forcemap expires. ~~
+	uint64_t			    movetime;							// For special moves. Grace time between player inputs. ~~
+	uint64_t			    mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
+	uint64_t			    next_hit_time;						// When temporary invincibility after getting hit expires. ~~
+	uint64_t			    nextanim;							// Time for next frame (or to mark animation finished). ~~
+	uint64_t			    nextattack;							// Time for next chance to attack. ~~
+	uint64_t			    nextmove;							// Same as tosstime, but for X, Z movement. ~~
+	uint64_t			    nextthink;							// Time for next main AI update. ~~
+	uint64_t			    pausetime;							// 2012/4/30 UT: Remove lastanimpos and add this. Otherwise hit pause is always bound to frame and attack box. ~~
+	uint64_t			    releasetime;						// Delay letting go of grab when holding away command. ~~
+	uint64_t			    sealtime;							// When seal expires. ~~
+	uint64_t			    sleeptime;							// When to start the SLEEP animation. ~~
+	uint64_t			    stalltime;							// AI waits to perform actions. ~~
 	s_staydown				staydown;							// Delay modifiers before rise or riseattack can take place. 2011_04_08, DC: moved to struct. ~~
-	unsigned long			timestamp;							// Elasped time assigned when spawned. ~~
-    unsigned long			toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
-    unsigned long			turntime;							// Time when entity can switch direction. ~~
+	uint64_t			    timestamp;							// Elasped time assigned when spawned. ~~
+    uint64_t			    toss_time;							// Used by gravity code (If > elapsed time, gravity has no effect). ~~
+    uint64_t			turntime;							// Time when entity can switch direction. ~~
     // -------------------------end of times ------------------------------
 	
 	// Unsigned integers
 	uint64_t                recursive_effect_active;            // Bitmap of currently active recursive effect indices. ~~
         
-    unsigned int			animpos;							// Current animation frame. ~~
-	unsigned int			attack_id_incoming[MAX_ATTACK_IDS];	// ~~ (	//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug. 2021-09-04, DC: Combine members into array. Should probably use pointer.
-    unsigned int			attack_id_outgoing;	                // ~~
-    unsigned int			animnum;							// Current animation id. ~~
-	unsigned int			animnum_previous;					// Previous animation id. ~~
-	unsigned int			combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
-	unsigned int			dying;								// Corresponds with which remap is to be used for the dying flash ~~
-	unsigned int			dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
-	unsigned int			escapecount;						// hit count for escapehits. ~~
-	unsigned int			idlemode;							// Force a specfic alternate idle. ~~
-	unsigned int			pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
-	unsigned int			per1;								// Used to store at what health value the entity begins to flash ~~
-	unsigned int			per2;								// Used to store at what health value the entity flashes more rapidly ~~
-	unsigned int			numwaypoints;						// Count of waypoints in use. ~~
-    unsigned int			walkmode;							// Force a specfic alternate walk. ~~
+    uint64_t			    animpos;							// Current animation frame. ~~
+	uint64_t			    attack_id_incoming[MAX_ATTACK_IDS];	// ~~ (	//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug. 2021-09-04, DC: Combine members into array. Should probably use pointer.
+    uint64_t			    attack_id_outgoing;	                // ~~
+    uint64_t			    animnum;							// Current animation id. ~~
+	uint64_t			    animnum_previous;					// Previous animation id. ~~
+	uint64_t			    combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
+	uint64_t			    dying;								// Corresponds with which remap is to be used for the dying flash ~~
+	uint64_t			    dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
+	uint64_t			    escapecount;						// hit count for escapehits. ~~
+	uint64_t			    idlemode;							// Force a specfic alternate idle. ~~
+	uint64_t			    pathblocked;						// Time accumulated while obstructed. Used to start pathfining routine. ~~
+	uint64_t			    per1;								// Used to store at what health value the entity begins to flash ~~
+	uint64_t			    per2;								// Used to store at what health value the entity flashes more rapidly ~~
+	uint64_t			    numwaypoints;						// Count of waypoints in use. ~~
+    uint64_t			    walkmode;							// Force a specfic alternate walk. ~~
 
 	// Signed integers
-    int                     guardpoints;                        // Remaining value before guardbreak.
-    int                     jugglepoints;                       // Remaining value before juggling this entity is impossible.
-	int						lifespancountdown;					// Life span count down. ~~
-	int						map;								// Stores the colourmap for restoring purposes. ~~
-	int						nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
-	int						nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
-	int						playerindex;						// Player controlling the entity. ~~
-	int						seal;								// If 0+, entity can't perform special with >= energy cost. ~~
-	int						sortid;								// Drawing order (sprite queue sort id). ~~
+    int64_t                 guardpoints;                        // Remaining value before guardbreak.
+    int64_t                 jugglepoints;                       // Remaining value before juggling this entity is impossible.
+	int64_t					lifespancountdown;					// Life span count down. ~~
+	int64_t					map;								// Stores the colourmap for restoring purposes. ~~
+	int64_t					nograb;								// Some enemies cannot be grabbed (bikes) - now used with cantgrab as well ~~
+	int64_t					nograb_default;						// equal to nograb  but this is remain the default value setetd in entity txt file (by White Dragon) ~~
+	int64_t					playerindex;						// Player controlling the entity. ~~
+	int64_t					seal;								// If 0+, entity can't perform special with >= energy cost. ~~
+	int64_t					sortid;								// Drawing order (sprite queue sort id). ~~
 
 	// Enumerated integers.
     e_death_state		    death_state;						// Dead? ~~
@@ -3687,26 +3689,26 @@ typedef struct entity
     e_weapon_state		    weapon_state;						// Check for ammo count? ~~
 
 	// Boolean flags.
-    unsigned int		    arrowon;							// Display arrow icon (parrow<player>) ~~
-    unsigned int		    blink;								// Toggle flash effect. ~~
-    unsigned int		    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
-    unsigned int		    blocking;							// In blocking state. ~~
-    unsigned int		    charging;							// Charging MP. Gain according to chargerate. ~~
-	unsigned int		    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
-    unsigned int		    drop;								// Knocked down. Remains true until rising. ~~
-    unsigned int		    exists;								// flag to determine if it is a valid entity. ~~
-    unsigned int		    falling;							// Knocked down and haven't landed. ~~
-    unsigned int		    frozen;								// Frozen in place. ~~
-    unsigned int		    getting;							// Picking up item. ~~
-    unsigned int		    grabwalking;						// Walking while grappling. ~~
-    unsigned int		    hitwall;							// Blcoked by wall/platform/obstacle. ~~
-    unsigned int		    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
-    unsigned int		    inpain;								// Hit and block stun. ~~
-    unsigned int		    jumping;							// ~~
-    unsigned int		    noaicontrol;						// No AI or automated control. ~~
-    unsigned int		    tocost;								// Cost life on hit with special. ~~
-    unsigned int		    turning;							// Turning around. ~~
-    unsigned int		    walking;							// ~~
+    bool		    arrowon;							// Display arrow icon (parrow<player>) ~~
+    bool		    blink;								// Toggle flash effect. ~~
+    bool		    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
+    bool		    blocking;							// In blocking state. ~~
+    bool		    charging;							// Charging MP. Gain according to chargerate. ~~
+	bool		    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
+    bool		    drop;								// Knocked down. Remains true until rising. ~~
+    bool		    exists;								// flag to determine if it is a valid entity. ~~
+    bool		    falling;							// Knocked down and haven't landed. ~~
+    bool		    frozen;								// Frozen in place. ~~
+    bool		    getting;							// Picking up item. ~~
+    bool		    grabwalking;						// Walking while grappling. ~~
+    bool		    hitwall;							// Blcoked by wall/platform/obstacle. ~~
+    bool		    inbackpain;							// Playing back pain/fall/rise/riseattack/die animation. ~~
+    e_inpain_state	inpain;								// Hit and block stun. ~~
+    bool		    jumping;							// ~~
+    bool		    noaicontrol;						// No AI or automated control. ~~
+    bool		    tocost;								// Cost life on hit with special. ~~
+    bool		    turning;							// Turning around. ~~
+    bool		    walking;							// ~~
 
 	// Signed char.
 	char					name[MAX_NAME_LEN];					// Display name (alias). ~~	
@@ -3971,7 +3973,8 @@ typedef struct
     unsigned bossmusic_offset;
     int numpalettes;
     unsigned char (*palettes)[1024];//dynamic palettes
-    int settime; // Set time limit per level
+    unsigned int settime; // Set time limit per level
+    unsigned int counter_speed; // Used as a mutiplier for set time to determine real time limit (settime * counter_speed = real time limit)
     int notime; // Used to specify if the time is displayed 1 = no, else yes
     int noreset; // If set, clock will not reset when players spawn/die
     int type; // Used to specify which level type (1 = bonus, else regular)

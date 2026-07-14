@@ -614,7 +614,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(COMPATIBLEVERSION)
 
         //
-        ICMPCONST(COUNTER_SPEED)
+        ICMPCONST(COUNTER_SPEED_DEFAULT)
 
         //
         ICMPCONST(CONTACT_DIST_H)
@@ -1035,7 +1035,7 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
         //
         ICMPCONST(GRAB_DIST)
-        ICMPCONST(GRAB_STALL)
+        ICMPCONST(GRAB_STALL_DEFAULT)
 
         /* Icon property */
         ICMPCONST(ICON_PROPERTY_DEFAULT)

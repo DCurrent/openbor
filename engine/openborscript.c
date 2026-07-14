@@ -8548,7 +8548,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
             return 0;
         }
         ScriptVariant_ChangeType(var, VT_INTEGER);
-        var->lVal = GAME_SPEED;
+        var->lVal = global_config.game_speed;
         break;
 
     case SYSTEM_PROPERTY_GAME_TIME:

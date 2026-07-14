@@ -92,6 +92,7 @@ List *createModelstxtCommandList(void)
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST, "global_config_flash_layer_adjust");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_SOURCE, "global_config_flash_layer_source");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_Z_SOURCE, "global_config_flash_z_source");
+    LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_GAME_SPEED, "global_config_game_speed");
     LIST_ADD(CMD_MODELSTXT_GRABDISTANCE, "grabdistance");
     LIST_ADD(CMD_MODELSTXT_JUMPHEIGHT, "jumpheight");
     LIST_ADD(CMD_MODELSTXT_JUMPSPEED, "jumpspeed");
