@@ -214,7 +214,7 @@ static const entity_property_info entity_properties[] = {
 	{.property = ENTITY_PROPERTY_COMMAND_TIME,
 	.id_string = "ENTITY_PROPERTY_COMMAND_TIME",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
-	.offset = PROPERTY_MEMBER_OFFSET(entity, movetime),
+	.offset = PROPERTY_MEMBER_OFFSET(entity, command_time),
 	.type = VT_INTEGER },
 
 	{.property = ENTITY_PROPERTY_DAMAGE_ON_LANDING,

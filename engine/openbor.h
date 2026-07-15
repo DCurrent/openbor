@@ -72,6 +72,7 @@
 #define     GAME_SPEED_DEFAULT              200
 #define		THINK_SPEED			    2
 #define		COUNTER_SPEED_DEFAULT		    (GAME_SPEED_DEFAULT*2)
+#define     COMMAND_TIME_DEFAULT   GAME_SPEED_DEFAULT / 4   
 #define		MAX_NAME_LEN		    50 //47
 #define		MAX_ENTS			    150
 #define		MAX_SPECIALS		    8					// Added for customizable freespecials
@@ -291,13 +292,13 @@ typedef enum
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
-    unsigned long long keys[MAX_PLAYERS];
-    unsigned long long newkeys[MAX_PLAYERS];
-    unsigned long long releasekeys[MAX_PLAYERS];
-    unsigned long long playkeys[MAX_PLAYERS];
-    unsigned long time;
-    unsigned long interval;
-    unsigned long synctime;
+    uint64_t keys[MAX_PLAYERS];
+    uint64_t newkeys[MAX_PLAYERS];
+    uint64_t releasekeys[MAX_PLAYERS];
+    uint64_t playkeys[MAX_PLAYERS];
+    uint64_t time;
+    uint64_t interval;
+    uint64_t synctime;
 } RecKeys;
 
 typedef enum
@@ -313,12 +314,12 @@ typedef struct PlayRecStatus {
   char path[MAX_ARG_LEN];
   int status; // 0 = stop / 1 = rec / 2 = play
   int begin;
-  unsigned long starttime;
-  unsigned long endtime;
-  unsigned long synctime; // used to sync rec time with game time
-  unsigned long totsynctime;
-  unsigned long cseed;
-  unsigned long seed;
+  uint64_t starttime;
+  uint64_t endtime;
+  uint64_t synctime; // used to sync rec time with game time
+  uint64_t totsynctime;
+  uint64_t cseed;
+  uint64_t seed;
   unsigned ticks;
   FILE *handle;
   RecKeys *buffer;
@@ -1842,14 +1843,15 @@ typedef struct s_flash_properties
 typedef struct s_global_config {
     e_object_type object_type;      // Identifies object so functions can verify correct pointer type.
     e_ajspecial_config ajspecial;   // Which buttons can trigger breakout Special or Smartbomb.
-    unsigned int block_ratio;       // Blcoked attacks still cause 0.25 damage?
+    uint64_t block_ratio;       // Blcoked attacks still cause 0.25 damage?
     e_blocktype block_type;         // Take chip damage from health or MP first?
     e_cheat_options cheats;         // Cheat menu config and active cheats.
     s_flash_properties flash;           // Flash config properties.
-    unsigned int showgo;            // Enable/disable go arrow.
+    uint64_t showgo;            // Enable/disable go arrow.
     uint64_t game_speed;        // Game speed setting (logical clock hz)
     uint64_t counter_speed;     // Counter speed (in game level clock) setting.
     uint64_t grab_stall;        // Grab stall (delay time after a grab hit) setting.
+    uint64_t command_time;      // Time to execute free special or cancel command sequence.
 } s_global_config;
 
 /*
@@ -2379,7 +2381,7 @@ typedef struct
 */
 typedef struct
 {
-    unsigned int  frame;      // Frame to perform action.
+    uint64_t  frame;      // Frame to perform action.
     int                 model_index;        // Model to spawn.
     s_axis_principal_float            velocity;   // x,a,z velocity.
 } s_onframe_move;
@@ -2392,7 +2394,7 @@ typedef struct
 // On frame action, where no movement is needed. (Landing, starting to fall...).
 typedef struct
 {
-    unsigned int	frame;			// Frame to perform action.
+    uint64_t	frame;			// Frame to perform action.
     int				model_index;	// Index of model to spawn.
 } s_onframe_set;
 
@@ -2451,7 +2453,7 @@ typedef struct
     2014-01-04
     */
 
-    unsigned int animation;   // Follow animation to perform.
+    uint64_t animation;   // Follow animation to perform.
     e_follow_condition_logic condition;   // Condition in which follow up will be performed.
 } s_follow;
 
@@ -2680,7 +2682,7 @@ typedef struct
     e_move_config_flags           move_config_flags;        // Subject to gravity, walls, etc.
 
 	// Integers
-	unsigned int				charge_time;            // charge time for an animation. ~~
+	uint64_t				charge_time;            // charge time for an animation. ~~
 	int							flipframe;              // Turns entities around on the desired frame. ~~
 	int							hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
 	int							index;                  // unique id.~~
@@ -3462,7 +3464,7 @@ typedef struct
     
     s_sight sight; // Sight range. 2011_04_05, DC: Moved to struct.
     e_aimove aimove; // move style
-    unsigned int aiattack; // attack/defend style
+    uint64_t aiattack; // attack/defend style
 
     //----------------physical system-------------------
     float antigravity;                    //antigravity : gravity * (1- antigravity)
@@ -3617,7 +3619,7 @@ typedef struct entity
 	uint64_t			    knockdowntime;						// When knockdown count is expired. ~~
 	uint64_t			    magictime;							// Next time to auto adjust MP. ~~
 	uint64_t			    maptime;							// When forcemap expires. ~~
-	uint64_t			    movetime;							// For special moves. Grace time between player inputs. ~~
+	uint64_t			    command_time;						// For special moves. Grace time between player inputs. ~~
 	uint64_t			    mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
 	uint64_t			    next_hit_time;						// When temporary invincibility after getting hit expires. ~~
 	uint64_t			    nextanim;							// Time for next frame (or to mark animation finished). ~~
@@ -3733,14 +3735,14 @@ typedef struct
     unsigned lives;
     unsigned credits;
     entity *ent;
-    unsigned long long keys;
-    unsigned long long newkeys;
-    unsigned long long playkeys;
-    unsigned long long releasekeys;
-    unsigned long combokey[MAX_SPECIAL_INPUTS];
-    unsigned long inputtime[MAX_SPECIAL_INPUTS];
-    unsigned long long disablekeys;
-    unsigned long long prevkeys; // used for play/rec mode
+    uint64_t keys;
+    uint64_t newkeys;
+    uint64_t playkeys;
+    uint64_t releasekeys;
+    uint64_t combokey[MAX_SPECIAL_INPUTS];
+    uint64_t inputtime[MAX_SPECIAL_INPUTS];
+    uint64_t disablekeys;
+    uint64_t prevkeys; // used for play/rec mode
     int combostep;
     int spawnhealth;
     int spawnmp;
@@ -3775,7 +3777,7 @@ typedef struct
     int shadowopacity;
     char music[MAX_BUFFER_LEN];
     float musicfade;
-    unsigned long musicoffset;
+    uint64_t musicoffset;
     char *name; // must be a name in the model list, so just reference
     int index; // model index
     int weaponindex; // the spawned entity with a weapon item, this is the index of the item model
@@ -3875,7 +3877,7 @@ typedef struct
 
     int font;           //Font index.
     s_axis_principal_int position;  //x,y,z location on screen.
-    unsigned long time;           //Time to expire.
+    uint64_t time;           //Time to expire.
     char *text;         //Text to display.
     
     // Meta data.
@@ -3973,8 +3975,8 @@ typedef struct
     unsigned bossmusic_offset;
     int numpalettes;
     unsigned char (*palettes)[1024];//dynamic palettes
-    unsigned int settime; // Set time limit per level
-    unsigned int counter_speed; // Used as a mutiplier for set time to determine real time limit (settime * counter_speed = real time limit)
+    uint64_t settime; // Set time limit per level
+    uint64_t counter_speed; // Used as a mutiplier for set time to determine real time limit (settime * counter_speed = real time limit)
     int notime; // Used to specify if the time is displayed 1 = no, else yes
     int noreset; // If set, clock will not reset when players spawn/die
     int type; // Used to specify which level type (1 = bonus, else regular)
@@ -3998,8 +4000,8 @@ typedef struct
     Script level_script;
     Script endlevel_script;
     int pos;
-    unsigned long advancetime;
-    unsigned long quaketime;
+    uint64_t advancetime;
+    uint64_t quaketime;
     int quake;
     int waiting;
 
@@ -4343,7 +4345,7 @@ int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_
 
 /* Running */
 e_run_config_flags run_get_config_flag_from_string(const char* value);
-e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const unsigned int start_position);
+e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const uint64_t start_position);
 void run_try_runstop_player(entity* acting_entity, const s_player* acting_player);
 void run_try_runstop_check(entity* acting_entity, const e_RunXDirection movex, const e_RunZDirection movez, const e_RunXDirection running_x, const e_RunZDirection running_z, const int runConfigFlags, const int dashCommandFlag, const int dashFixedFlag, const int enabledFlag, const int stopStateFlag);
 
@@ -4391,7 +4393,7 @@ void update_loading(s_loadingbar *s,  int value, int max);
 void spawnplayer(int);
 unsigned getFPS(void);
 unsigned char *model_get_colourmap(s_model *model, unsigned which);
-void ent_set_colourmap(entity *ent, unsigned int which);
+void ent_set_colourmap(entity *ent, uint64_t which);
 void predrawstatus();
 void drawstatus();
 void addscore(int playerindex, int add);
@@ -4438,7 +4440,7 @@ void ent_default_init(entity *e);
 void ent_spawn_ent(entity *ent);
 void ent_summon_ent(entity *ent);
 void ent_set_anim(entity *ent, int aninum, int resetable);
-void ent_set_colourmap(entity *ent, unsigned int which);
+void ent_set_colourmap(entity *ent, uint64_t which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
 entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash);
 entity* spawn(const float pos_x, const float pos_z, const float pos_y, const e_direction direction, char* model_name, const int model_index, s_model* model_pointer);
@@ -4507,7 +4509,7 @@ void do_attack(entity *e);
 int do_energy_charge(entity *ent);
 void adjust_base(entity *e, entity **pla);
 void check_gravity(entity *e);
-bool check_jumpframe(entity *ent, unsigned int frame);
+bool check_jumpframe(entity *ent, uint64_t frame);
 bool check_frame_set_drop(entity *ent);
 bool check_landframe(entity* ent);
 int check_edge(entity *ent);

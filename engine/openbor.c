@@ -673,7 +673,8 @@ s_global_config global_config =
     .showgo = 0,
     .game_speed = GAME_SPEED_DEFAULT,
     .counter_speed = COUNTER_SPEED_DEFAULT,
-    .grab_stall = GRAB_STALL_DEFAULT
+    .grab_stall = GRAB_STALL_DEFAULT,
+    .command_time = COMMAND_TIME_DEFAULT
 };
 
 s_barstatus loadingbarstatus =
@@ -762,8 +763,8 @@ uint64_t            timeleft			= 0;                    // Time left in active le
 int                 oldtime             = 0;                    // One second back from time left.
 int                 holez				= 0;					// Used for setting spawn points
 int                 allow_secret_chars	= 0;
-unsigned int        lifescore			= 50000;				// Number of points needed to earn a 1-up
-unsigned int        credscore			= 0;					// Number of points needed to earn a credit
+uint64_t        lifescore			= 50000;				// Number of points needed to earn a 1-up
+uint64_t        credscore			= 0;					// Number of points needed to earn a credit
 int                 nochipdeath			= 0;					// Prevents entities from dying due to chip damage (damage while blocking)
 int                 noaircancel			= 0;					// Now, you can make jumping attacks uncancellable!
 int                 nomaxrushreset[5]	= {0, 0, 0, 0, 0};
@@ -798,17 +799,17 @@ int                 scoreformat			= 0;					// If set fill score values with 6 Ze
 
 // Funny neon lights
 unsigned char       neontable[MAX_PAL_SIZE];
-unsigned int        neon_time			= 0;
+uint64_t        neon_time			= 0;
 
 int                 panel_width			= 0;
 int                 panel_height		= 0;
 int                 frontpanels_loaded	= 0;
 
-unsigned int        sprites_loaded		= 0;
-unsigned int        anims_loaded		= 0;
+uint64_t        sprites_loaded		= 0;
+uint64_t        anims_loaded		= 0;
 
-unsigned int        models_loaded		= 0;
-unsigned int        models_cached		= 0;
+uint64_t        models_loaded		= 0;
+uint64_t        models_cached		= 0;
 
 entity            **ent_list;
 entity            **ent_stack; //temporary list, reference only
@@ -818,8 +819,8 @@ int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
 
 s_player            player[MAX_PLAYERS];
-unsigned long long  bothkeys;
-unsigned long long  bothnewkeys;
+uint64_t  bothkeys;
+uint64_t  bothnewkeys;
 
 s_playercontrols    playercontrols1;
 s_playercontrols    playercontrols2;
@@ -3109,21 +3110,17 @@ int isNumeric(const char *text)
 }
 
 
-int getValidInt(const char *text, const char *file, const char *cmd)
-{
+int64_t getValidInt(const char *text, const char *file, const char *cmd) {
     const char *WARN_NUMBER_EXPECTED = "WARNING: %s tries to load a non-numeric value at %s, where a number is expected!\nerroneus string: %s\n";
     if(!text || !*text)
     {
         return 0;
     }
 
-    if(isNumeric(text))
-    {
-        return atoi(text);
-    }
+    if(isNumeric(text)) {
+        return atoll(text);
     
-    else
-    {
+    } else {
         printf(WARN_NUMBER_EXPECTED, file, cmd, text);
         return 0;
     }
@@ -3315,7 +3312,7 @@ int readByte(char *buf)
 {
     int num = 0;
 
-    num = (unsigned int)buf[0]&0xFF;
+    num = (uint64_t)buf[0]&0xFF;
 
     return num;
 }
@@ -3512,7 +3509,7 @@ int load_palette(unsigned char *palette, char *filename)
 {
     char *fileext;
     int file_id, i;
-    unsigned int *acting_palette;
+    uint64_t *acting_palette;
     unsigned char rgb_temp[COLOR_COMPONENT_RGB];
 
     //printf("\n\nfileext: %s", filename);
@@ -3535,7 +3532,7 @@ int load_palette(unsigned char *palette, char *filename)
         memset(palette, 0, MAX_PAL_SIZE);
 
 
-        acting_palette = (unsigned int*)palette;
+        acting_palette = (uint64_t*)palette;
 
         
         for(i = 0; i < MAX_PAL_SIZE / 4; i++)
@@ -6983,7 +6980,7 @@ static bool collision_validate_slot_index(const int index) {
 *     Index 1 returns 0x0000000000000002
 */
 static uint64_t collision_get_slot_mask(const int index) {
-    return ((uint64_t)1 << (unsigned int)index);
+    return ((uint64_t)1 << (uint64_t)index);
 }
 
 /*
@@ -8378,7 +8375,7 @@ s_recursive_effect* recursive_effect_allocate_object(void) {
 */
 static s_recursive_effect* recursive_effect_allocate_collection(void) {
     s_recursive_effect* result;
-    unsigned int recursive_index;
+    uint64_t recursive_index;
 
     result = calloc(MAX_RECURSIVE_EFFECTS, sizeof(*result));
 
@@ -8695,7 +8692,7 @@ void recursive_entity_effect_update(entity* acting_entity) {
     scan_mask = acting_entity->recursive_effect_active;
 
     while (scan_mask) {
-        unsigned int index;
+        uint64_t index;
         uint64_t active_flag;
 
         index = bitmask64_get_lowest_index(scan_mask);
@@ -21383,7 +21380,7 @@ void updatestatus() {
 
     uint64_t display_time;
     uint64_t go_phase;
-    unsigned int i;
+    uint64_t i;
     s_model *model = NULL;
     s_set_entry *set = levelsets + current_set;
 
@@ -22307,7 +22304,7 @@ void predrawstatus()
 
     int icon = 0;
     int i;
-    unsigned long tmp;
+    uint64_t tmp;
     s_set_entry *set = levelsets + current_set;
     s_model *model = NULL;
     s_drawmethod drawmethod = plainmethod;
@@ -22667,15 +22664,15 @@ void drawstatus()
 
 void update_loading(s_loadingbar *s,  int value, int max)
 {
-    static unsigned int lasttick = 0;
-    static unsigned int soundtick = 0;
-    static unsigned int keybtick = 0;
+    static uint64_t lasttick = 0;
+    static uint64_t soundtick = 0;
+    static uint64_t keybtick = 0;
     int pos_x = s->bar_position.x + videomodes.hShift;
     int pos_y = s->bar_position.y + videomodes.vShift;
     int size_x = s->bsize;
     int text_x = s->text_position.x + videomodes.hShift;
     int text_y = s->text_position.y + videomodes.vShift;
-    unsigned int ticks = timer_gettick();
+    uint64_t ticks = timer_gettick();
 
     if(ticks - soundtick > 20)
     {
@@ -22735,8 +22732,8 @@ void update_loading(s_loadingbar *s,  int value, int max)
 
 void addscore(int playerindex, int add)
 {
-    unsigned int s = 0;
-    unsigned int next1up = 0;
+    uint64_t s = 0;
+    uint64_t next1up = 0;
     ScriptVariant var; // used for execute script
     Script *cs;
 
@@ -23602,7 +23599,7 @@ int64_t calculate_edelay(const entity* const acting_entity, const uint64_t frame
 * designated jump frame. Also spawns effect
 * entity if one is defined.
 */
-bool check_jumpframe(entity * const acting_entity, const unsigned int frame)
+bool check_jumpframe(entity * const acting_entity, const uint64_t frame)
 {
     if (!acting_entity || !acting_entity->animation)
     {
@@ -23659,7 +23656,7 @@ bool check_jumpframe(entity * const acting_entity, const unsigned int frame)
 }
 
 // move here to prevent some duplicated code in ent_sent_anim and update_ents
-void update_frame(entity *ent, unsigned int f)
+void update_frame(entity *ent, uint64_t f)
 {
     entity *tempself;
     s_attack attack = emptyattack;
@@ -23957,7 +23954,7 @@ unsigned char *model_get_colourmap(s_model *model, unsigned which)
 }
 
 // 0 = none, 1+ = alternative
-void ent_set_colourmap(entity *ent, unsigned int which)
+void ent_set_colourmap(entity *ent, uint64_t which)
 {
     if(which > ent->modeldata.maps_loaded)
     {
@@ -27088,7 +27085,7 @@ void do_attack(entity *attacking_entity)
 
 
 #define followed (current_anim!=attacking_entity->animation)
-    static unsigned int new_attack_id = 1;
+    static uint64_t new_attack_id = 1;
 
     // Can't get hit after this
     if(level_completed)
@@ -33146,7 +33143,7 @@ e_run_config_flags run_get_config_flag_from_string(const char* value)
 * Get arguments to output final
 * bitmask.
 */
-e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const unsigned int start_position)
+e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const uint64_t start_position)
 {
     int i = 0;
     char* value = "";
@@ -41293,23 +41290,31 @@ int check_costmove(int s, int fs, int jumphack)
     return 0;
 }
 
-int match_combo(const e_key_def sequence[], s_player *p, const int l)
-{
-    int j, step;
+/*
+* Check whether the player's most recent 
+* inputs satisfy a command sequence.
+*
+* Each sequence entry is a bit mask of 
+* required inputs. A recorded input may 
+* contain additional flags and still match.
+*
+* Returns true if every sequence entry matches, 
+* or false otherwise.
+*/
+static bool match_combo(const e_key_def sequence[], const s_player *acting_player, const uint64_t length) {
+    uint64_t j;  
+    uint64_t step;
 
-    for(j = 0; j < l; j++)
-    {
-        step = p->combostep - 1 - j;
+    for(j = 0; j < length; j++) {
+        step = acting_player->combostep - 1 - j;
         step = (step + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
 
-        // old: !(a[l - 1 - j]&p->combokey[step])
-        if( ((sequence[l - 1 - j]&p->combokey[step]) ^ sequence[l - 1 - j]) ) // if input&combokey == 0 then not good btn
-        {
-            return 0;
+        if(((sequence[length - 1 - j]&acting_player->combokey[step]) ^ sequence[length - 1 - j])) { // if input&combokey == 0 then not good btn
+            return false;
         }
     }
 
-    return 1;
+    return true;
 }
 
 
@@ -41703,8 +41708,8 @@ void player_think()
     if((acting_player->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
     {
         int t3;
-        const unsigned int command_match_left = (notinair && (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2)));
-        const unsigned int command_match_right = (notinair && (acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)));
+        const uint64_t command_match_left = (notinair && (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2)));
+        const uint64_t command_match_right = (notinair && (acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)));
 
         t = (notinair && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)) || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2))));
         t3 = (notinair && acting_entity->modeldata.facing && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, acting_player, 2)) || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_right_right, acting_player, 2))));
@@ -41889,23 +41894,25 @@ void player_think()
             goto endthinkcheck;
         }
 
-        if(validanim(acting_entity, ANI_ATTACKBACKWARD) && match_combo(sequence_back_attack, acting_player, 2))
-        {
+        /*
+        * Back attack. 
+        */
+        if(validanim(acting_entity, ANI_ATTACKBACKWARD) && match_combo(sequence_back_attack, acting_player, 2)) {
             t = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             t2 = (acting_player->combostep - 2 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            if(acting_player->inputtime[t] - acting_player->inputtime[t2] < global_config.game_speed / 10)
-            {
+            
+            if(acting_player->inputtime[t] - acting_player->inputtime[t2] < global_config.game_speed / 10) {
                 acting_entity->takeaction = common_attack_proc;
                 set_attacking(acting_entity);
                 acting_entity->velocity.x = acting_entity->velocity.z = 0;
-                if(acting_entity->direction == DIRECTION_LEFT && (acting_player->combokey[t2]&FLAG_MOVELEFT))
-                {
+            
+                if(acting_entity->direction == DIRECTION_LEFT && (acting_player->combokey[t2]&FLAG_MOVELEFT)) {
                     acting_entity->direction = DIRECTION_RIGHT;
-                }
-                else if(acting_entity->direction == DIRECTION_RIGHT && (acting_player->combokey[t2]&FLAG_MOVERIGHT))
-                {
+                
+                } else if(acting_entity->direction == DIRECTION_RIGHT && (acting_player->combokey[t2]&FLAG_MOVERIGHT)) {
                     acting_entity->direction = DIRECTION_LEFT;
                 }
+
                 acting_entity->combostep[0] = 0;
                 ent_set_anim(acting_entity, ANI_ATTACKBACKWARD, 0);
                 goto endthinkcheck;
@@ -45552,8 +45559,8 @@ void execute_input_scripts(int player_index)
 void inputrefresh(int playrecmode)
 {
     int p;
-    s_player *pl;
-    u64 k;
+    s_player *acting_player;
+    uint64_t key;
 
     control_update(playercontrolpointers, MAX_PLAYERS);
 
@@ -45562,62 +45569,80 @@ void inputrefresh(int playrecmode)
 
     for(p = 0; p < MAX_PLAYERS; p++)
     {
-        pl = player + p;
+        acting_player = player + p;
 
-        if ( playrecmode != A_REC_PLAY )
-        {
+        if (playrecmode != A_REC_PLAY) {
 
-            pl->releasekeys = (playercontrolpointers[p]->keyflags | pl->keys) - playercontrolpointers[p]->keyflags;
-            pl->releasekeys &= ~pl->disablekeys;
-            pl->keys = playercontrolpointers[p]->keyflags & ~pl->disablekeys;
-            pl->newkeys = playercontrolpointers[p]->newkeyflags & ~pl->disablekeys;
-            pl->playkeys |= pl->newkeys;
-            pl->playkeys &= pl->keys;
-            pl->playkeys &= ~pl->disablekeys;
-        }
-        else
-        {
+            acting_player->releasekeys = (playercontrolpointers[p]->keyflags | acting_player->keys) - playercontrolpointers[p]->keyflags;
+            acting_player->releasekeys &= ~acting_player->disablekeys;
+            acting_player->keys = playercontrolpointers[p]->keyflags & ~acting_player->disablekeys;
+            acting_player->newkeys = playercontrolpointers[p]->newkeyflags & ~acting_player->disablekeys;
+            acting_player->playkeys |= acting_player->newkeys;
+            acting_player->playkeys &= acting_player->keys;
+            acting_player->playkeys &= ~acting_player->disablekeys;
+        
+        } else {
             // in play mode: add pressed keys to rec keys
-            pl->releasekeys |= (playercontrolpointers[p]->keyflags | pl->prevkeys) - playercontrolpointers[p]->keyflags;
-            pl->releasekeys &= ~pl->disablekeys;
-            pl->keys |= playercontrolpointers[p]->keyflags & ~pl->disablekeys;
-            pl->newkeys |= playercontrolpointers[p]->newkeyflags & ~pl->disablekeys;
-            pl->playkeys |= pl->newkeys;
-            pl->playkeys &= pl->keys;
-            pl->playkeys &= ~pl->disablekeys;
+            acting_player->releasekeys |= (playercontrolpointers[p]->keyflags | acting_player->prevkeys) - playercontrolpointers[p]->keyflags;
+            acting_player->releasekeys &= ~acting_player->disablekeys;
+            acting_player->keys |= playercontrolpointers[p]->keyflags & ~acting_player->disablekeys;
+            acting_player->newkeys |= playercontrolpointers[p]->newkeyflags & ~acting_player->disablekeys;
+            acting_player->playkeys |= acting_player->newkeys;
+            acting_player->playkeys &= acting_player->keys;
+            acting_player->playkeys &= ~acting_player->disablekeys;
         }
 				
 		execute_input_scripts(p);		
 
-        if(pl->ent && pl->ent->movetime < _time)
-        {
-            memset(pl->combokey, 0, sizeof(*pl->combokey)*MAX_SPECIAL_INPUTS);
-            memset(pl->inputtime, 0, sizeof(*pl->inputtime)*MAX_SPECIAL_INPUTS);
-            pl->combostep = 0;
-        }
-        if(pl->newkeys)
-        {			
-            k = pl->newkeys;
-            if(pl->ent)
-            {
-                pl->ent->movetime = _time + global_config.game_speed / 4;
-                if(k & FLAG_MOVELEFT)
-                {
-                    k |= pl->ent->direction ? FLAG_BACKWARD : FLAG_FORWARD;
-                }
-                else if(k & FLAG_MOVERIGHT)
-                {
-                    k |= pl->ent->direction ? FLAG_FORWARD : FLAG_BACKWARD;
-                }
-            }
-            pl->inputtime[pl->combostep] = _time;
-            pl->combokey[pl->combostep] = k;
-            pl->combostep++;
-            pl->combostep %= MAX_SPECIAL_INPUTS;
+        /*
+        * Reset command sequence if the last command was
+        * too long ago.
+        */
+        if(acting_player->ent && acting_player->ent->command_time < _time) {
+            memset(acting_player->combokey, 0, sizeof(*acting_player->combokey)*MAX_SPECIAL_INPUTS);
+            memset(acting_player->inputtime, 0, sizeof(*acting_player->inputtime)*MAX_SPECIAL_INPUTS);
+            acting_player->combostep = 0;
         }
 
-        bothkeys |= player[p].keys;
-        bothnewkeys |= player[p].newkeys;
+        /*
+        * Reset the command sequence and timestamp if new 
+        * keys are pressed.
+        */
+
+        if(acting_player->newkeys) {			
+            
+            key = acting_player->newkeys;
+            
+            /*
+            * Player has an entity, so we can reset
+            * the command time and use the entity's 
+            * direction to determine the direction of 
+            * the player and set the forward/backward 
+            * flags accordingly.
+            */
+
+            if(acting_player->ent) {
+                acting_player->ent->command_time = _time + global_config.command_time;
+                
+                if(key & FLAG_MOVELEFT) {
+                    key |= acting_player->ent->direction ? FLAG_BACKWARD : FLAG_FORWARD;                
+                } else if(key & FLAG_MOVERIGHT) {
+                    key |= acting_player->ent->direction ? FLAG_FORWARD : FLAG_BACKWARD;
+                }
+            }
+            
+            /*
+            * Update the command ring buffer with the new 
+            * key and timestamp.
+            */
+            acting_player->inputtime[acting_player->combostep] = _time;
+            acting_player->combokey[acting_player->combostep] = key;
+            acting_player->combostep++;
+            acting_player->combostep %= MAX_SPECIAL_INPUTS;
+        }
+
+        bothkeys |= acting_player->keys;
+        bothnewkeys |= acting_player->newkeys;
     }
 
 }
@@ -45703,7 +45728,7 @@ int recordInputs()
 {
     int p = 0;
     RecKeys reckey;
-    unsigned int window = 4096;
+    uint64_t window = 4096;
     u32 max_rec_time = global_config.game_speed*60*10; // protection
 
     if(playrecstatus->status != A_REC_REC) return 0;
@@ -45820,7 +45845,7 @@ int playRecordedInputs()
         fread(&playrecstatus->endtime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->totsynctime, sizeof(u32), 1, playrecstatus->handle);
         fread(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
-        fread(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
+        fread(&playrecstatus->seed, sizeof(uint64_t), 1, playrecstatus->handle);
         fread(&playrecstatus->ticks, sizeof(unsigned), 1, playrecstatus->handle);
         fread(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->endtime+1), 1, playrecstatus->handle);
 
@@ -45932,7 +45957,7 @@ int stopRecordInputs()
                         fwrite(&playrecstatus->endtime, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->synctime, sizeof(u32), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->cseed, sizeof(u32), 1, playrecstatus->handle);
-                        fwrite(&playrecstatus->seed, sizeof(unsigned long), 1, playrecstatus->handle);
+                        fwrite(&playrecstatus->seed, sizeof(uint64_t), 1, playrecstatus->handle);
                         fwrite(&playrecstatus->ticks, sizeof(unsigned), 1, playrecstatus->handle);
                         fwrite(playrecstatus->buffer, sizeof(RecKeys)*(playrecstatus->synctime+1), 1, playrecstatus->handle);
                         fflush(playrecstatus->handle); // safe
