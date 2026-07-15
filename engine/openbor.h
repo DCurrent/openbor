@@ -76,7 +76,21 @@
 #define		MAX_NAME_LEN		    50 //47
 #define		MAX_ENTS			    150
 #define		MAX_SPECIALS		    8					// Added for customizable freespecials
-#define     MAX_SPECIAL_INPUTS      27                  // max freespecial input steps, MAX_SPECIAL_INPUTS-1 is reserved, MAX_SPECIAL_INPUTS-2 is animation index, MAX_SPECIAL_INPUTS-3 is reserved. OX -4 , -5 , -6 , -7 , -8 , -9 , -10 also for cancels
+
+/*
+* Maximum number of special-command input steps 
+* and retained player input-history entries.
+*
+* Must remain a power of two so ringr-buffer indexes
+* can wrap using SPECIAL_INPUT_INDEX_MASK.
+*/
+#define MAX_SPECIAL_INPUTS 64
+#define SPECIAL_INPUT_INDEX_MASK (MAX_SPECIAL_INPUTS - 1)
+
+#if (MAX_SPECIAL_INPUTS & SPECIAL_INPUT_INDEX_MASK) != 0
+#error MAX_SPECIAL_INPUTS must be a power of two.
+#endif
+
 #define		MAX_ATCHAIN			    12					// max attack chain length
 #define     MAX_IDLES               1                   // Idle animations.
 #define     MAX_WALKS               1                   // Walk animations.
@@ -4670,7 +4684,7 @@ void menu_options_system();
 void menu_options_video();
 
 void openborMain(int argc, char **argv);
-int getValidInt(const char *text, const char *file, const char *cmd);
+int64_t getValidInt(const char *text, const char *file, const char *cmd);
 float getValidFloat(const char *text, const char *file, const char *cmd);
 int dograb(entity *attacker, entity *target, e_dograb_adjustcheck adjustcheck);
 int stopRecordInputs(void);
