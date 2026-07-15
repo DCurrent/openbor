@@ -3745,9 +3745,9 @@ typedef struct
 {
     char name[MAX_NAME_LEN];
     int colourmap;
-    unsigned score;
-    unsigned lives;
-    unsigned credits;
+    uint64_t score;
+    uint64_t lives;
+    uint64_t credits;
     entity *ent;
     uint64_t keys;
     uint64_t newkeys;
@@ -3757,7 +3757,7 @@ typedef struct
     uint64_t inputtime[MAX_SPECIAL_INPUTS];
     uint64_t disablekeys;
     uint64_t prevkeys; // used for play/rec mode
-    int combostep;
+    uint64_t combostep;
     int spawnhealth;
     int spawnmp;
     int joining;

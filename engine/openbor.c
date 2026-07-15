@@ -41306,8 +41306,7 @@ static bool match_combo(const e_key_def sequence[], const s_player *acting_playe
     uint64_t step;
 
     for(j = 0; j < length; j++) {
-        step = acting_player->combostep - 1 - j;
-        step = (step + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+        step = (acting_player->combostep - 1 - j) & SPECIAL_INPUT_INDEX_MASK;
 
         if(((sequence[length - 1 - j]&acting_player->combokey[step]) ^ sequence[length - 1 - j])) { // if input&combokey == 0 then not good btn
             return false;
@@ -41639,7 +41638,7 @@ void player_think()
         if(t && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL)) == (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL) && validanim(acting_entity, ANI_RUN))
         {
             acting_player->playkeys &= ~FLAG_MOVEUP;
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
         else if(t && validanim(acting_entity, ANI_ATTACKUP))
@@ -41651,7 +41650,7 @@ void player_think()
             acting_entity->combostep[0] = 0;
             acting_entity->velocity.x = acting_entity->velocity.z = 0;
             ent_set_anim(acting_entity, ANI_ATTACKUP, 0);
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS; // this workaround deals default freespecial2
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK; // this workaround deals default freespecial2
             goto endthinkcheck;
         }
         else if(t && validanim(acting_entity, ANI_DODGE))
@@ -41664,7 +41663,7 @@ void player_think()
             acting_entity->velocity.z = -acting_entity->modeldata.speed.x * 1.75;
             acting_entity->velocity.x = 0;// OK you can use jumpframe to modify this anyway
             ent_set_anim(acting_entity, ANI_DODGE, 0);
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             goto endthinkcheck;
         }
     }
@@ -41675,7 +41674,7 @@ void player_think()
         if(t && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL)) == (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL) && validanim(acting_entity, ANI_RUN))
         {
             acting_player->playkeys &= ~FLAG_MOVEDOWN;
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_Z;    // Player begins to run
         }
         else if(t && validanim(acting_entity, ANI_ATTACKDOWN))
@@ -41687,7 +41686,7 @@ void player_think()
             acting_entity->velocity.x = acting_entity->velocity.z = 0;
             acting_entity->combostep[0] = 0;
             ent_set_anim(acting_entity, ANI_ATTACKDOWN, 0);
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             goto endthinkcheck;
         }
         else if(t && validanim(acting_entity, ANI_DODGE))
@@ -41700,7 +41699,7 @@ void player_think()
             acting_entity->velocity.z = acting_entity->modeldata.speed.x * 1.75;
             acting_entity->velocity.x = 0;
             ent_set_anim(acting_entity, ANI_DODGE, 0);
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             goto endthinkcheck;
         }
     }
@@ -41717,19 +41716,19 @@ void player_think()
         if (command_match_left && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL)) == (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
 
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
         else if(command_match_right && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL)) == (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
             
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
         else if(t3 && validanim(acting_entity, ANI_BACKRUN))
         {
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         }
         else if(t && validanim(acting_entity, ANI_ATTACKFORWARD))
@@ -41740,7 +41739,7 @@ void player_think()
             acting_entity->velocity.x = acting_entity->velocity.z = 0;
             acting_entity->combostep[0] = 0;
             ent_set_anim(acting_entity, ANI_ATTACKFORWARD, 0);
-            acting_player->combostep = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             goto endthinkcheck;
         }
     }
@@ -45637,8 +45636,7 @@ void inputrefresh(int playrecmode)
             */
             acting_player->inputtime[acting_player->combostep] = _time;
             acting_player->combokey[acting_player->combostep] = key;
-            acting_player->combostep++;
-            acting_player->combostep %= MAX_SPECIAL_INPUTS;
+            acting_player->combostep = (acting_player->combostep + 1) & SPECIAL_INPUT_INDEX_MASK;
         }
 
         bothkeys |= acting_player->keys;
