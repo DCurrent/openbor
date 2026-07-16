@@ -3296,7 +3296,7 @@ static bool command_token_equals(const s_command_token* token, const char* expec
 * sign followed by decimal digits and the result fits
 * in an int. Return false otherwise.
 */
-static bool command_token_get_int(const s_command_token* token, int* result) {
+static bool command_token_get_int(const s_command_token* token, int64_t* result) {
     size_t index = 0;
 
     bool negative = false;
@@ -3369,7 +3369,7 @@ static bool command_token_get_int(const s_command_token* token, int* result) {
 * expected numbered-name format. Return false
 * otherwise.
 */
-static bool command_token_get_numbered_suffix(const s_command_token* token, const char* prefix, int* result) {
+static bool command_token_get_numbered_suffix(const s_command_token* token, const char* prefix, int64_t* result) {
     
     const size_t prefix_length = strlen(prefix);
 
@@ -3479,7 +3479,7 @@ static bool command_token_get_input_flag(const s_command_token* token, e_key_def
 * Return NULL on success. Return a static error message
 * when the sequence is invalid.
 */
-static const char* special_command_parse_sequence(s_command_token_reader* reader, s_com* special, int* freespecial_number) {
+static const char* special_command_parse_sequence(s_command_token_reader* reader, s_com* special, int64_t* freespecial_number) {
     s_command_token token;
     e_key_def input_flag;
 
@@ -3496,7 +3496,7 @@ static const char* special_command_parse_sequence(s_command_token_reader* reader
     special->steps = 0;
 
     while(command_token_reader_next(reader, &token)) {
-        int numbered_animation;
+        int64_t numbered_animation;
 
         /*
         * Destination animation terminates the sequence.
@@ -14428,7 +14428,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 const char* parse_error;
 
-                uint64_t freespecial_number;
+                int64_t freespecial_number;
 
                 /*
                 * Consume and verify the command-name token.
