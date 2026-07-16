@@ -81,7 +81,7 @@
 * Maximum number of special-command input steps 
 * and retained player input-history entries.
 *
-* Must remain a power of two so ringr-buffer indexes
+* Must remain a power of two so ring-buffer indexes
 * can wrap using SPECIAL_INPUT_INDEX_MASK.
 */
 #define MAX_SPECIAL_INPUTS 64

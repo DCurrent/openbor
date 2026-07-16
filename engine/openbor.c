@@ -19,6 +19,9 @@
 #include "soundmix.h"
 #include "source/bitmask.h" // Inline bitmask utility functions.
 #include <inttypes.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include <limits.h>
 
 #define NaN 0xAAAAAAAA
 
@@ -603,7 +606,7 @@ int					groupmax            = 0;
 e_screen_status     screen_status       = IN_SCREEN_NONE;       // Caskey, Damon V. (2022-04-21) - Current screen status. Replaces the previous 16+ "inscreen" flag variables.
 char				*currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
-int                 reached[MAX_PLAYERS]          = {0, 0, 0, 0};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
+bool                reached[MAX_PLAYERS]          = {false, false, false, false};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
 int                 hiscorebg			= 0;					// If set to 1, will look for a background image to display at the highscore screen
@@ -3147,6 +3150,440 @@ float getValidFloat(const char *text, const char *file, const char *cmd)
         printf(WARN_NUMBER_EXPECTED, file, cmd, text);
         return 0.0f;
     }
+}
+
+/*
+* Non-owning view of a token in a command line.
+*
+* Text is not null terminated. Length identifies
+* the complete token.
+*/
+typedef struct s_command_token
+{
+    const char* text;
+    size_t length;
+} s_command_token;
+
+/*
+* Sequential reader for tokens in a command line.
+*
+* Cursor points directly into the original file
+* buffer. No token collection or copy is required.
+*/
+typedef struct s_command_token_reader
+{
+    const char* cursor;
+} s_command_token_reader;
+
+/*
+* Read the next token from a command line.
+*
+* Tokens end at whitespace, a line ending, a comment
+* marker, or the null terminator. Quoted text may
+* contain whitespace and comment markers.
+*
+* Return true when a token is available. Return false
+* when the command line has no remaining tokens.
+*/
+static bool command_token_reader_next(s_command_token_reader* reader, s_command_token* token) {
+    const char* cursor;
+    const char* token_start;
+
+    bool inside_double_quotes = false;
+    bool inside_single_quotes = false;
+
+    assert(reader);
+    assert(token);
+
+    cursor = reader->cursor;
+
+    /*
+    * Skip whitespace before the next token.
+    */
+    while(*cursor == ' ' || *cursor == '\t') {
+        cursor++;
+    }
+
+    /*
+    * Stop at the end of the command line or the
+    * beginning of a comment.
+    */
+    if(*cursor == '\0'
+        || *cursor == '\r'
+        || *cursor == '\n'
+        || *cursor == '#') {
+        reader->cursor = cursor;
+        token->text = NULL;
+        token->length = 0;
+
+        return false;
+    }
+
+    token_start = cursor;
+
+    while(*cursor) {
+        const bool escaped =
+            cursor > token_start
+            && cursor[-1] == '\\';
+
+        if(*cursor == '"' && !escaped && !inside_single_quotes) {
+            inside_double_quotes = !inside_double_quotes;
+            cursor++;
+            continue;
+        }
+
+        if(*cursor == '\'' && !escaped && !inside_double_quotes) {
+            inside_single_quotes = !inside_single_quotes;
+            cursor++;
+            continue;
+        }
+
+        if(!inside_double_quotes && !inside_single_quotes) {
+            if(*cursor == ' '
+                || *cursor == '\t'
+                || *cursor == '\r'
+                || *cursor == '\n'
+                || *cursor == '#') {
+                break;
+            }
+        }
+
+        cursor++;
+    }
+
+    token->text = token_start;
+    token->length = (size_t)(cursor - token_start);
+    reader->cursor = cursor;
+
+    return true;
+}
+
+/*
+* Compare a command token with a null-terminated
+* string without regard to letter case.
+*/
+static bool command_token_equals(const s_command_token* token, const char* expected) {
+    size_t index;
+    const size_t expected_length = strlen(expected);
+
+    assert(token);
+    assert(expected);
+
+    if(token->length != expected_length) {
+        return false;
+    }
+
+    for(index = 0; index < token->length; index++) {
+        const unsigned char token_character =
+            (unsigned char)token->text[index];
+
+        const unsigned char expected_character =
+            (unsigned char)expected[index];
+
+        if(tolower(token_character)
+            != tolower(expected_character)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/*
+* Convert a complete command token to an integer.
+*
+* Return true when the token contains only an optional
+* sign followed by decimal digits and the result fits
+* in an int. Return false otherwise.
+*/
+static bool command_token_get_int(const s_command_token* token, int* result) {
+    size_t index = 0;
+
+    bool negative = false;
+
+    uint64_t magnitude = 0;
+    uint64_t magnitude_limit;
+
+    assert(token);
+    assert(result);
+
+    if(!token->text || token->length == 0) {
+        return false;
+    }
+
+    if(token->text[index] == '+'
+        || token->text[index] == '-') {
+        negative = token->text[index] == '-';
+        index++;
+
+        if(index >= token->length) {
+            return false;
+        }
+    }
+
+    magnitude_limit = negative ? (uint64_t)INT_MAX + 1u : (uint64_t)INT_MAX;
+
+    for(; index < token->length; index++) {
+        const unsigned char character =
+            (unsigned char)token->text[index];
+
+        uint64_t digit;
+
+        if(character < '0' || character > '9') {
+            return false;
+        }
+
+        digit = (uint64_t)(character - '0');
+
+        if(magnitude > (magnitude_limit - digit) / 10u) {
+            return false;
+        }
+
+        magnitude = magnitude * 10u + digit;
+    }
+
+    if(negative) {
+        if(magnitude == (uint64_t)INT_MAX + 1u) {
+            *result = INT_MIN;
+        } else {
+            *result = -(int)magnitude;
+        }
+    } else {
+        *result = (int)magnitude;
+    }
+
+    return true;
+}
+
+/*
+* Read a positive integer suffix from a token with
+* the supplied case-insensitive prefix.
+*
+* Examples:
+*
+* freespecial  -> 1
+* freespecial1 -> 1
+* freespecial3 -> 3
+*
+* Return true when the complete token matches the
+* expected numbered-name format. Return false
+* otherwise.
+*/
+static bool command_token_get_numbered_suffix(const s_command_token* token, const char* prefix, int* result) {
+    
+    const size_t prefix_length = strlen(prefix);
+
+    s_command_token prefix_token;
+    s_command_token suffix_token;
+
+    assert(token);
+    assert(prefix);
+    assert(result);
+
+    if(token->length < prefix_length) {
+        return false;
+    }
+
+    /*
+    * Compare only the prefix portion of the token.
+    */
+    prefix_token.text = token->text;
+    prefix_token.length = prefix_length;
+
+    if(!command_token_equals(&prefix_token, prefix)) {
+        return false;
+    }
+
+    /*
+    * Preserve legacy behavior where a numbered name
+    * without an explicit number selects index 1.
+    */
+    if(token->length == prefix_length) {
+        *result = 1;
+        return true;
+    }
+
+    /*
+    * Numbered animation names begin with 1-9.
+    * This rejects zero, signs, and non-numeric tails.
+    */
+    suffix_token.text = token->text + prefix_length;
+    suffix_token.length = token->length - prefix_length;
+
+    if(suffix_token.text[0] < '1'
+        || suffix_token.text[0] > '9') {
+        return false;
+    }
+
+    if(!command_token_get_int(&suffix_token, result)) {
+        return false;
+    }
+
+    return *result >= 1;
+}
+
+/*
+* Convert a command-sequence token into its input flag.
+*
+* Return true when the token names a recognized input.
+* Return false when it is not an input token.
+*/
+static bool command_token_get_input_flag(const s_command_token* token, e_key_def* result) {
+    static const struct {
+        const char* name;
+        e_key_def flag;
+    } input_map[] = {
+        {"u",  FLAG_MOVEUP},
+        {"d",  FLAG_MOVEDOWN},
+        {"f",  FLAG_FORWARD},
+        {"b",  FLAG_BACKWARD},
+        {"a",  FLAG_ATTACK},
+        {"a1", FLAG_ATTACK},
+        {"a2", FLAG_ATTACK2},
+        {"a3", FLAG_ATTACK3},
+        {"a4", FLAG_ATTACK4},
+        {"j",  FLAG_JUMP},
+        {"s",  FLAG_SPECIAL},
+        {"k",  FLAG_SPECIAL}
+    };
+
+    size_t index;
+
+    assert(token);
+    assert(result);
+
+    for(index = 0;
+        index < sizeof(input_map) / sizeof(input_map[0]);
+        index++) {
+        if(command_token_equals(token, input_map[index].name)) {
+            *result = input_map[index].flag;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*
+* Parse the input-sequence portion of a special command.
+*
+* Sequence grammar:
+*
+* input [-> input ...] freespecial#
+* input + input [-> input ...] freespecial#
+*
+* The arrow token is an optional visual separator.
+* The plus token combines the following input with the
+* preceding sequence step.
+*
+* Return NULL on success. Return a static error message
+* when the sequence is invalid.
+*/
+static const char* special_command_parse_sequence(s_command_token_reader* reader, s_com* special, int* freespecial_number) {
+    s_command_token token;
+    e_key_def input_flag;
+
+    size_t step_count = 0;
+
+    bool combine_with_previous = false;
+
+    assert(reader);
+    assert(special);
+    assert(freespecial_number);
+
+    *freespecial_number = 0;
+    special->numkeys = 0;
+    special->steps = 0;
+
+    while(command_token_reader_next(reader, &token)) {
+        int numbered_animation;
+
+        /*
+        * Destination animation terminates the sequence.
+        */
+        if(command_token_get_numbered_suffix(&token, "freespecial", &numbered_animation)) {
+            
+            /*
+            * A plus token must be followed by another
+            * input, not the destination animation.
+            */
+            if(combine_with_previous) {
+                return "Invalid '+' placement in special command";
+            }
+
+            /*
+            * Destination animation must be the final
+            * non-comment token.
+            */
+            if(command_token_reader_next(reader, &token)) {
+                return "Unexpected token after special command animation";
+            }
+
+            special->steps = (int)step_count;
+            *freespecial_number = numbered_animation;
+
+            return NULL;
+        }
+
+        /*
+        * Optional separator between sequence steps.
+        *
+        * Preserve the old parser's acceptance of repeated
+        * arrows after at least one input step.
+        */
+        if(command_token_equals(&token, "->")) {
+            if(step_count == 0 || combine_with_previous) {
+                return "Invalid '->' placement in special command";
+            }
+
+            continue;
+        }
+
+        /*
+        * Combine the next input with the most recently
+        * stored sequence step.
+        */
+        if(command_token_equals(&token, "+")) {
+            if(step_count == 0 || combine_with_previous) {
+                return "Invalid '+' placement in special command";
+            }
+
+            combine_with_previous = true;
+            continue;
+        }
+
+        /*
+        * Every remaining token must identify an input.
+        */
+        if(!command_token_get_input_flag(&token, &input_flag)) {
+            return "Invalid input token in special command";
+        }
+
+        if(combine_with_previous) {
+            special->input[step_count - 1] |= input_flag;
+            combine_with_previous = false;
+        } else {
+            if(step_count >= MAX_SPECIAL_INPUTS) {
+                return "Special command exceeds maximum input steps";
+            }
+
+            special->input[step_count] = input_flag;
+            step_count++;
+        }
+
+        /*
+        * Preserve existing ranking behavior. numkeys
+        * counts input tokens, including inputs combined
+        * into the same sequence step.
+        */
+        special->numkeys++;
+    }
+
+    if(combine_with_previous) {
+        return "Special command ends with an incomplete '+' expression";
+    }
+
+    return "Special command is missing a freespecial animation";
 }
 
 size_t ParseArgs(ArgList *list, char *input, char *output)
@@ -12479,7 +12916,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int temp_child_spawn_index = 0;
     s_child_spawn* temp_child_spawn_head = NULL;         // Spawning sub entities.
 
-    char* shutdownmessage = NULL;
+    const char *shutdownmessage = NULL;
 
     unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
@@ -13979,114 +14416,72 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->hud_popup->name_position.y = atoi(value);
                 }
                 break;
+            
             case CMD_MODEL_COM:
             {
-                // Section for custom freespecials starts here
-                int i, t;
-                int add_flag = 0;
-                alloc_specials(newchar);
-                newchar->special[newchar->specials_loaded].numkeys = 0;
-                for(i = 0, t = 1; i < MAX_SPECIAL_INPUTS - 3; i++, t++)
-                {
-                    value = GET_ARG(t);
-                    if(!value[0])
-                    {
-                        break;
-                    }
-                    if(stricmp(value, "u") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEUP;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEUP;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "d") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_MOVEDOWN;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_MOVEDOWN;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "f") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_FORWARD;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_FORWARD;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "b") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_BACKWARD;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_BACKWARD;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "a") == 0 || stricmp(value, "a1") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "a2") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK2;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK2;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "a3") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK3;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK3;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "a4") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_ATTACK4;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_ATTACK4;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "j") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_JUMP;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_JUMP;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(stricmp(value, "s") == 0 || stricmp(value, "k") == 0)
-                    {
-                        if (!add_flag) newchar->special[newchar->specials_loaded].input[i] = FLAG_SPECIAL;
-                        else newchar->special[newchar->specials_loaded].input[i] |= FLAG_SPECIAL;
-                        ++newchar->special[newchar->specials_loaded].numkeys;
-                    }
-                    else if(starts_with_num(value, "freespecial"))
-                    {
-                        tempInt = atoi(value + 11);
-                        if(tempInt < 1)
-                        {
-                            tempInt = 1;
-                        }
-                        newchar->special[newchar->specials_loaded].anim = animspecials[tempInt - 1];
-                    }
-                    else if(stricmp(value, "+") == 0 && i >= 1)
-                    {
-                        add_flag = 1;
-                        i -= 2;
-                        continue;
-                    }
-                    else if(stricmp(value, "->") == 0 && i > 0)
-                    {
-                        // just for better reading
-                        --i;
-                        continue;
-                    }
-                    else
-                    {
-                        shutdownmessage = "Invalid freespecial command";
-                        goto lCleanup;
-                    }
-                    add_flag = 0;
-                    //printf("insert:%s in %d, numkeys:%d for special n.:%d\n",value,i,newchar->special[newchar->specials_loaded].numkeys,newchar->specials_loaded);
+                s_command_token_reader token_reader = {
+                    .cursor = buf + pos
+                };
+
+                s_command_token token;
+                s_com* special;
+
+                const char* parse_error;
+
+                uint64_t freespecial_number;
+
+                /*
+                * Consume and verify the command-name token.
+                */
+                if(!command_token_reader_next(&token_reader, &token) || !command_token_equals(&token, "com")) {
+                    shutdownmessage = "Invalid freespecial command name";
+                    goto lCleanup;
                 }
-                newchar->special[newchar->specials_loaded].steps = i - 1; // max steps
+
+                /*
+                * Allocate a zero-initialized command entry.
+                */
+                alloc_specials(newchar);
+                special = &newchar->special[newchar->specials_loaded];
+
+                /*
+                * Parse all sequence tokens through the destination
+                * freespecial animation.
+                */
+                parse_error = special_command_parse_sequence(&token_reader, special, &freespecial_number);
+
+                if(parse_error) {
+                    shutdownmessage = parse_error;
+                    goto lCleanup;
+                }
+
+                /*
+                * Validate before indexing the dynamic freespecial
+                * animation table.
+                */
+                if(freespecial_number < 1 || freespecial_number > max_freespecials) {
+                    
+                    shutdownmessage = "Freespecial animation index is out of range";
+
+                    goto lCleanup;
+                }
+
+                special->anim = animspecials[freespecial_number - 1];
+
+                /*
+                printf(
+                    "COM parsed: steps=%d, keys=%d, freespecial=%d, anim=%d\n",
+                    special->steps,
+                    special->numkeys,
+                    freespecial_number,
+                    special->anim
+                );
+                */
+
                 newchar->specials_loaded++;
             }
-            // End section for custom freespecials
             break;
+
             case CMD_MODEL_REMAP:
             {
                 // This command should not be used under 24bit mode, but for old mods, just give it a default palette
@@ -19653,7 +20048,11 @@ void unload_level()
     level_completed = 0;
     level_completed_defeating_boss = 0;
     tospeedup = 0;    // Reset so it sets to normal speed for the next level
-    for (i = 0; i < MAX_PLAYERS; i++) reached[i] = 0; // TYPE_ENDLEVEL values reset after level completed //4player
+    
+    for (i = 0; i < MAX_PLAYERS; i++){ 
+        reached[i] = false; // TYPE_ENDLEVEL values reset after level completed //4player
+    }
+    
     showtimeover = 0;
     _pause = 0;
     endgame = 0;
@@ -41494,12 +41893,9 @@ void player_think()
     } e_local_action_flags;
 
     e_local_action_flags action = 0;
-    int bkwalk = 0;   //backwalk
-    int t = 0;
-    int t2 = 0;    
+    bool back_walk = false;   //backwalk
+      
     entity *other = NULL;
-    float altdiff;
-    int notinair;
     float initial_jump_velocity_z = 0.0;
 
     entity* acting_entity = self;
@@ -41507,9 +41903,7 @@ void player_think()
     const e_key_def sequence_left_left[] = {FLAG_MOVELEFT, FLAG_MOVELEFT};
     const e_key_def sequence_right_right[] = {FLAG_MOVERIGHT, FLAG_MOVERIGHT};
     const e_key_def sequence_up_up[] = {FLAG_MOVEUP, FLAG_MOVEUP};
-    const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};
-    const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
-
+    const e_key_def sequence_down_down[] = {FLAG_MOVEDOWN, FLAG_MOVEDOWN};  
     
     int pli = acting_entity->playerindex;
     s_player *acting_player = player + pli;
@@ -41519,104 +41913,97 @@ void player_think()
         return;
     }
 
-    // check endlevel item
-    if((other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ENDLEVEL, NULL)) && diff(acting_entity->position.y, other->position.y) <= 0.1)
-    {
-        int no_reached_flag = 0, sum_reached = 0;;
-        int i;
+    /*
+    * Are we touching the end level entity?
+    */
+    if((other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ENDLEVEL, NULL)) 
+        && diff(acting_entity->position.y, other->position.y) <= 0.1) {
 
-        for (i = 0; i < MAX_PLAYERS; i++)
-        {
-            if (!reached[i]) ++no_reached_flag;
+        bool no_player_reached = false;
+        uint64_t sum_not_reached = 0;
+        uint64_t sum_reached = 0;
+        uint64_t i;
+        
+        for (i = 0; i < MAX_PLAYERS; i++) {
+            if (!reached[i]){
+                sum_not_reached++;
+            }
         }
-        no_reached_flag = (no_reached_flag >= MAX_PLAYERS) ? 1 : 0;
+        no_player_reached = (sum_not_reached >= MAX_PLAYERS) ? true : false;
 
-        if(no_reached_flag)
-        {
+        if(no_player_reached) {
             addscore(pli, other->modeldata.score);
         }
-        reached[pli] = 1;
+        reached[pli] = true;
 
-        for (i = 0; i < MAX_PLAYERS; i++)
-        {
+        for (i = 0; i < MAX_PLAYERS; i++) {
             sum_reached += reached[i];
         }
 
-        if (!other->modeldata.subtype || (other->modeldata.subtype == SUBTYPE_BOTH && sum_reached >= (count_ents(TYPE_PLAYER))))
-        {
+        if (!other->modeldata.subtype || (other->modeldata.subtype == SUBTYPE_BOTH && sum_reached >= (count_ents(TYPE_PLAYER)))) {
             level_completed = 1;
 
-            if(other->modeldata.branch)
-            {
+            if(other->modeldata.branch) {
                 strncpy( branch_name, other->modeldata.branch, MAX_NAME_LEN);    //now, you can branch to another level
             }
             return;
         }
     }
 
-    if(_time > acting_entity->rush.time)
-    {
+    /*
+    * Reset combo count if time has expired.
+    */
+    if(_time > acting_entity->rush.time) {
         acting_entity->rush.count = 0;
         acting_entity->rush.time = 0;
     }
 
-    if(player_preinput())
-    {
+    if(player_preinput()) {
         goto endthinkcheck;
     }
 
-    if(acting_entity->charging)
-    {
+    if(acting_entity->charging) {
         player_charge_check();
         goto endthinkcheck;
     }
 
-    if(acting_entity->inpain & ~IN_PAIN_NONE || (acting_entity->link && !acting_entity->grabbing))
-    {
+    if(acting_entity->inpain & ~IN_PAIN_NONE || (acting_entity->link && !acting_entity->grabbing)) {
         player_pain_check();
         goto endthinkcheck;
     }
 
     // falling? check for landing
-    if(acting_entity->projectile & BLAST_TOSS)
-    {
+    if(acting_entity->projectile & BLAST_TOSS) {
         player_fall_check();
         goto endthinkcheck;
     }
 
     // grab section, dont move if still animating
-    if(acting_entity->grabbing && acting_entity->attacking == ATTACKING_NONE && acting_entity->takeaction != common_throw_wait)
-    {
+    if(acting_entity->grabbing && acting_entity->attacking == ATTACKING_NONE && acting_entity->takeaction != common_throw_wait) {
         player_grab_check();
         goto endthinkcheck;
     }
 
     // jump section
-    if(acting_entity->jumping)
-    {
+    if(acting_entity->jumping) {
         player_jump_check();
         goto endthinkcheck;
     }
 
-    if(acting_entity->animnum == ANI_WALKOFF)
-    {
+    if(acting_entity->animnum == ANI_WALKOFF) {
         player_walkoff_check();
         goto endthinkcheck;
     }
 
-    if(acting_entity->drop && acting_entity->position.y == acting_entity->base && !acting_entity->velocity.y)
-    {
+    if(acting_entity->drop && acting_entity->position.y == acting_entity->base && !acting_entity->velocity.y) {
         player_lie_check();
         goto endthinkcheck;
     }
 
-
     // cant do anything if busy
-    if(!acting_entity->idling && !(acting_entity->animation->idle && acting_entity->animation->idle[acting_entity->animpos]))
-    {
+    if(!acting_entity->idling && !(acting_entity->animation->idle && acting_entity->animation->idle[acting_entity->animpos])) {
         goto endthinkcheck;
     }
-
 
     // Check if entity is under a platform
     /*if(acting_entity->modeldata.move_config_flags & MOVE_CONFIG_SUBJECT_TO_PLATFORM && (heightvar = acting_entity->animation->size.y ? acting_entity->animation->size.y : acting_entity->modeldata.size.y) &&
@@ -41629,20 +42016,20 @@ void player_think()
         goto endthinkcheck;
     }*/
 
-    altdiff = diff(acting_entity->position.y, acting_entity->base);
-    notinair = (acting_entity->landed_on_platform ? altdiff < 5 : altdiff < 2);
+    const float altdiff = diff(acting_entity->position.y, acting_entity->base);
+    const bool notinair = (acting_entity->landed_on_platform ? altdiff < 5 : altdiff < 2);
 
-    if(acting_player->playkeys & FLAG_MOVEUP)
-    {
-        t = (notinair && match_combo(sequence_up_up, acting_player, 2));
-        if(t && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL)) == (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL) && validanim(acting_entity, ANI_RUN))
-        {
+    if(acting_player->playkeys & FLAG_MOVEUP) {
+
+        const bool command_match = (notinair && match_combo(sequence_up_up, acting_player, 2));
+
+        if(command_match && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL)) == (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL) && validanim(acting_entity, ANI_RUN)) {
             acting_player->playkeys &= ~FLAG_MOVEUP;
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
-        }
-        else if(t && validanim(acting_entity, ANI_ATTACKUP))
-        {
+        
+        } else if(command_match && validanim(acting_entity, ANI_ATTACKUP)) {
+
             // New u u combo attack
             acting_player->playkeys &= ~FLAG_MOVEUP;
             acting_entity->takeaction = common_attack_proc;
@@ -41652,9 +42039,8 @@ void player_think()
             ent_set_anim(acting_entity, ANI_ATTACKUP, 0);
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK; // this workaround deals default freespecial2
             goto endthinkcheck;
-        }
-        else if(t && validanim(acting_entity, ANI_DODGE))
-        {
+        
+        } else if(command_match && validanim(acting_entity, ANI_DODGE)) {
             // New dodge move like on SOR3
             acting_player->playkeys &= ~FLAG_MOVEUP;
             acting_entity->takeaction = common_dodge;
@@ -41668,17 +42054,15 @@ void player_think()
         }
     }
 
-    if(acting_player->playkeys & FLAG_MOVEDOWN)
-    {
-        t = (notinair && match_combo(sequence_down_down, acting_player, 2));
-        if(t && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL)) == (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL) && validanim(acting_entity, ANI_RUN))
-        {
+    if(acting_player->playkeys & FLAG_MOVEDOWN) {
+        const bool command_match = (notinair && match_combo(sequence_down_down, acting_player, 2));
+
+        if(command_match && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL)) == (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL) && validanim(acting_entity, ANI_RUN)) {
             acting_player->playkeys &= ~FLAG_MOVEDOWN;
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_Z;    // Player begins to run
-        }
-        else if(t && validanim(acting_entity, ANI_ATTACKDOWN))
-        {
+        
+        } else if(command_match && validanim(acting_entity, ANI_ATTACKDOWN)) {
             // New d d combo attack
             acting_player->playkeys &= ~FLAG_MOVEDOWN;
             acting_entity->takeaction = common_attack_proc;
@@ -41688,9 +42072,8 @@ void player_think()
             ent_set_anim(acting_entity, ANI_ATTACKDOWN, 0);
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             goto endthinkcheck;
-        }
-        else if(t && validanim(acting_entity, ANI_DODGE))
-        {
+        
+        } else if(command_match && validanim(acting_entity, ANI_DODGE)) {
             // New dodge move like on SOR3
             acting_player->playkeys &= ~FLAG_MOVEDOWN;
             acting_entity->takeaction = common_dodge;
@@ -41704,35 +42087,34 @@ void player_think()
         }
     }
 
-    if((acting_player->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)))
-    {
-        int t3;
-        const uint64_t command_match_left = (notinair && (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2)));
-        const uint64_t command_match_right = (notinair && (acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)));
-
-        t = (notinair && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)) || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2))));
-        t3 = (notinair && acting_entity->modeldata.facing && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, acting_player, 2)) || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_right_right, acting_player, 2))));
-
+    if((acting_player->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT))) {
+        
+        const bool command_match_left = (notinair && (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2)));
+        const bool command_match_right = (notinair && (acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)));
+        const bool command_match_forward = command_match_left || command_match_right;
+        const bool command_match_back = notinair
+            && acting_entity->modeldata.facing
+            && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, acting_player, 2))
+            || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_right_right, acting_player, 2))); 
+        
         if (command_match_left && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL)) == (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
 
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
-        }
-        else if(command_match_right && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL)) == (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
+        
+        } else if(command_match_right && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL)) == (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
             
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
-        }
-        else if(t3 && validanim(acting_entity, ANI_BACKRUN))
-        {
+        
+        } else if(command_match_back && validanim(acting_entity, ANI_BACKRUN)) {
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
             acting_player->combostep = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
-        }
-        else if(t && validanim(acting_entity, ANI_ATTACKFORWARD))
-        {
+        
+        } else if(command_match_forward && validanim(acting_entity, ANI_ATTACKFORWARD)) {
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT);
             acting_entity->takeaction = common_attack_proc;
             set_attacking(acting_entity);
@@ -41894,21 +42276,36 @@ void player_think()
         }
 
         /*
-        * Back attack. 
+        * Back attack. If player's command buffer matches 
+        * the back attack sequence, we'll attempt to do 
+        * a back attack.
         */
+        const e_key_def sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
+
         if(validanim(acting_entity, ANI_ATTACKBACKWARD) && match_combo(sequence_back_attack, acting_player, 2)) {
-            t = (acting_player->combostep - 1 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
-            t2 = (acting_player->combostep - 2 + MAX_SPECIAL_INPUTS) % MAX_SPECIAL_INPUTS;
             
-            if(acting_player->inputtime[t] - acting_player->inputtime[t2] < global_config.game_speed / 10) {
+            /*
+            * Get the last two indexes of the input buffer.
+            */
+            const uint64_t attack_input_index = (acting_player->combostep - 1) & SPECIAL_INPUT_INDEX_MASK;
+            const uint64_t backward_input_index = (acting_player->combostep - 2) & SPECIAL_INPUT_INDEX_MASK;
+
+            /*
+            * Did back attack inputs come within the
+            * time window? If so, we'll do a back attack.
+            */
+            if(acting_player->inputtime[attack_input_index] - acting_player->inputtime[backward_input_index] < global_config.game_speed / 10) {
+
                 acting_entity->takeaction = common_attack_proc;
                 set_attacking(acting_entity);
-                acting_entity->velocity.x = acting_entity->velocity.z = 0;
-            
-                if(acting_entity->direction == DIRECTION_LEFT && (acting_player->combokey[t2]&FLAG_MOVELEFT)) {
+                acting_entity->velocity.x = 0;
+                acting_entity->velocity.z = 0;
+
+                if(acting_entity->direction == DIRECTION_LEFT  && (acting_player->combokey[backward_input_index] & FLAG_MOVELEFT)) {
+                
                     acting_entity->direction = DIRECTION_RIGHT;
                 
-                } else if(acting_entity->direction == DIRECTION_RIGHT && (acting_player->combokey[t2]&FLAG_MOVERIGHT)) {
+                } else if(acting_entity->direction == DIRECTION_RIGHT && (acting_player->combokey[backward_input_index] & FLAG_MOVERIGHT)) {
                     acting_entity->direction = DIRECTION_LEFT;
                 }
 
@@ -41918,15 +42315,23 @@ void player_think()
             }
         }
 
-        if( validanim(acting_entity, ANI_GET) && (other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ITEM, player_test_pickable)) )
-        {
+        /*
+        * Get item. If player is standing on an item
+        * and the get animation is valid, then
+        * we'll pick it up and run the get animation.
+        */
+        if(validanim(acting_entity, ANI_GET) 
+            && (other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ITEM, player_test_pickable))) {
+
             acting_entity->velocity.x = acting_entity->velocity.z = 0;
             set_getting(acting_entity);
             acting_entity->takeaction = common_get;
             ent_set_anim(acting_entity, ANI_GET, 0);
 
-            // Item "attacks" collector to make it
-            // easy to script actions on item pick up.
+            /*
+            * Item "attacks" collector to make it
+            * easy to script actions on item pick up. 
+            */
             do_item_script(acting_entity, other);
 
             didfind_item(other);
@@ -42321,40 +42726,37 @@ void player_think()
     {
     case ACTION_WALK:
         // back walk feature
-        if(level && validanim(acting_entity, ANI_BACKWALK))
-        {
-            if(acting_entity->modeldata.facing == FACING_ADJUST_RIGHT || level->facing == FACING_ADJUST_RIGHT)
-            {
-                bkwalk = !acting_entity->direction;
+        if(level && validanim(acting_entity, ANI_BACKWALK)) {
+
+            if(acting_entity->modeldata.facing == FACING_ADJUST_RIGHT || level->facing == FACING_ADJUST_RIGHT) {
+
+                back_walk = !acting_entity->direction;
+
+            } else if(acting_entity->modeldata.facing == FACING_ADJUST_LEFT || level->facing == FACING_ADJUST_LEFT) {
+
+                back_walk = acting_entity->direction;
+
+            } else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_LEFT) && acting_entity->direction == DIRECTION_LEFT) {
+
+                back_walk = true;
+
+            } else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_RIGHT) && acting_entity->direction == DIRECTION_RIGHT) {
+
+                back_walk = true;
+
+            } else if(acting_entity->turntime && acting_entity->modeldata.turndelay) {
+
+                back_walk = true;
             }
-            else if(acting_entity->modeldata.facing == FACING_ADJUST_LEFT || level->facing == FACING_ADJUST_RIGHT)
-            {
-                bkwalk = acting_entity->direction;
+
+            if(back_walk) {
+                common_backwalk_anim(acting_entity);          
+            } else {
+                common_walk_anim(acting_entity);
             }
-            else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_LEFT) && acting_entity->direction == DIRECTION_LEFT)
-            {
-                bkwalk = 1;
-            }
-            else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_RIGHT) && acting_entity->direction == DIRECTION_RIGHT)
-            {
-                bkwalk = 1;
-            }
-            else if(acting_entity->turntime && acting_entity->modeldata.turndelay)
-            {
-                bkwalk = 1;
-            }
-            if(bkwalk)
-            {
-                common_backwalk_anim(acting_entity);    //ent_set_anim(acting_entity, ANI_BACKWALK, 0);
-            }
-            else
-            {
-                common_walk_anim(acting_entity);    //ent_set_anim(acting_entity, ANI_WALK, 0);    // If neither up nor down exist, set to walk
-            }
-        }
-        else
-        {
-            common_walk_anim(acting_entity);    //ent_set_anim(acting_entity, ANI_WALK, 0);    // If neither up nor down exist, set to walk
+        
+        } else {
+            common_walk_anim(acting_entity);  
         }
         break;
     case ACTION_UP:
