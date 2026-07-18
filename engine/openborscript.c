@@ -7913,37 +7913,21 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _pp_combokey:
     {
-        ScriptVariant *frm = NULL;
-        frm = varlist[2];
-        if(frm->vt != VT_INTEGER)
-        {
-            printf("Need a combostep value number for this property.\n");
-            *pretvar = NULL;
-            return E_FAIL;
-        }
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)player[index].combokey[frm->lVal];
-        break;
+        printf("Combokey is deprecated.\n");
+        *pretvar = NULL;
+        return E_FAIL;
     }
     case _pp_combostep:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)player[index].combostep;
-        break;
+        printf("Combostep is deprecated.\n");
+        *pretvar = NULL;
+        return E_FAIL;
     }
     case _pp_inputtime:
     {
-        ScriptVariant *frm = NULL;
-        frm = varlist[2];
-        if(frm->vt != VT_INTEGER)
-        {
-            printf("Need a combostep value number for this property.\n");
-            *pretvar = NULL;
-            return E_FAIL;
-        }
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)player[index].inputtime[frm->lVal];
-        break;
+        printf("Inputtime is deprecated.\n");
+        *pretvar = NULL;
+        return E_FAIL;
     }
     case _pp_hmapl:
     {
@@ -8308,54 +8292,25 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _pp_combokey:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
-        {
-            ScriptVariant *value = NULL;
-            value = varlist[3];
-            if(value->vt != VT_INTEGER)
-            {
-                printf("Need a value and combostep value for this property.\n");
-                *pretvar = NULL;
-                return E_FAIL;
-            }
-            player[index].combokey[ltemp] = (int)value->lVal;
-        }
-        else
-        {
-            goto cpperror;
-        }
+        
+        printf("Combokey is deprecated.\n");
+        goto cpperror;
+       
         break;
     }
     case _pp_combostep:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
-        {
-            player[index].combostep = (LONG)ltemp;
-        }
-        else
-        {
-            goto cpperror;
-        }
+        printf("Combostep is deprecated.\n");
+        goto cpperror;
+
         break;
     }
     case _pp_inputtime:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(arg,&ltemp)))
-        {
-            ScriptVariant *value = NULL;
-            value = varlist[3];
-            if(value->vt != VT_INTEGER)
-            {
-                printf("Need a value and combostep value number for this property.\n");
-                *pretvar = NULL;
-                return E_FAIL;
-            }
-            player[index].inputtime[ltemp] = (int)value->lVal;
-        }
-        else
-        {
-            goto cpperror;
-        }
+        
+        printf("Inputtime is deprecated.\n");
+        goto cpperror;
+        
         break;
     }
     default:

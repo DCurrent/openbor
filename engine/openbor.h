@@ -56,6 +56,13 @@
 #include    "vidplay.h"
 #endif
 
+/*
+* Fixed-width bitmask used for player and command
+* inputs. e_key_def supplies the named flag values;
+* key_mask_t stores individual or combined flags.
+*/
+typedef uint64_t key_mask_t;
+
 /////////////////////////////////////////////////////////////////////////////
 
 #define		DEFAULT_SHUTDOWN_MESSAGE \
@@ -81,11 +88,18 @@
 * Maximum number of special-command input steps 
 * and retained player input-history entries.
 *
-* Must remain a power of two so ringr-buffer indexes
+* Must remain a power of two so ring-buffer indexes
 * can wrap using SPECIAL_INPUT_INDEX_MASK.
 */
 #define MAX_SPECIAL_INPUTS 64
 #define SPECIAL_INPUT_INDEX_MASK (MAX_SPECIAL_INPUTS - 1)
+
+/*
+* Command input masks use all 64 bits. Hold start times
+* use the matching bit index so future command keys do
+* not require another player-structure expansion.
+*/
+#define COMMAND_INPUT_FLAG_COUNT 64
 
 #if (MAX_SPECIAL_INPUTS & SPECIAL_INPUT_INDEX_MASK) != 0
 #error MAX_SPECIAL_INPUTS must be a power of two.
@@ -306,10 +320,10 @@ typedef enum
 // PLAY/REC INPUT vars
 typedef struct InputKeys
 {
-    uint64_t keys[MAX_PLAYERS];
-    uint64_t newkeys[MAX_PLAYERS];
-    uint64_t releasekeys[MAX_PLAYERS];
-    uint64_t playkeys[MAX_PLAYERS];
+    key_mask_t keys[MAX_PLAYERS];
+    key_mask_t newkeys[MAX_PLAYERS];
+    key_mask_t releasekeys[MAX_PLAYERS];
+    key_mask_t playkeys[MAX_PLAYERS];
     uint64_t time;
     uint64_t interval;
     uint64_t synctime;
@@ -2652,8 +2666,8 @@ typedef enum
 	ANIMATION_CANCEL_ENABLED	= 3
 } e_anim_cancel;
 
-typedef struct
-{
+typedef struct s_anim {
+
 	// Sub structures.
 	s_counter_action			counter_action;			// Auto counter attack. ~~
 	s_energy_cost				energy_cost;			// Energy (MP/HP) required to perform special moves. ~~
@@ -2680,38 +2694,38 @@ typedef struct
 
 	float						(*platform)[8];			// Now entities can have others land on them
 	
-	unsigned					*idle;					// Allow free move
+	uint64_t					*idle;					// Allow free move
 	int64_t						*delay;
-	int							*shadow;
-	int							(*shadow_coords)[2];	// x, z offset of shadow
-	int							*soundtoplay;           // each frame can have a sound
-	int							*sprite;                // sprite[set][framenumber]
-	int							*vulnerable;
-	int							*weaponframe;           // Specify with a frame when to switch to a weapon model
+	int64_t						*shadow;
+	int64_t						(*shadow_coords)[2];	// x, z offset of shadow
+	int64_t						*soundtoplay;           // each frame can have a sound
+	int64_t						*sprite;                // sprite[set][framenumber]
+	int64_t						*vulnerable;
+	int64_t						*weaponframe;           // Specify with a frame when to switch to a weapon model
 	
 	float						bounce_factor;			// On fall landing, New Y = -(old Y) / bounce_factor. ~~
 
 	// Enumerated integers
 	e_anim_cancel				cancel;                 // Cancel anims with freespecial. ~~
-    e_move_config_flags           move_config_flags;        // Subject to gravity, walls, etc.
+    e_move_config_flags         move_config_flags;        // Subject to gravity, walls, etc.
 
 	// Integers
-	uint64_t				charge_time;            // charge time for an animation. ~~
-	int							flipframe;              // Turns entities around on the desired frame. ~~
-	int							hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
-	int							index;                  // unique id.~~
-	int							numframes;              // Count of frames in the animation. ~~	
-	int							model_index;			// model index animation loaded to. ~~
-	int							sub_entity_model_index;	// Sub entity model index (for spawn/summon).
-	int							sub_entity_unsummon;    // Un-summon the entity
-	int							sync;                   // Synchronize frame to previous animation if they matches
+	uint64_t				    charge_time;            // charge time for an animation. ~~
+	int64_t					    flipframe;              // Turns entities around on the desired frame. ~~
+	uint64_t					hit_count;              // How many consecutive hits have been made? Used for canceling. ~~
+	int64_t						index;                  // unique id.~~
+	int64_t						numframes;              // Count of frames in the animation. ~~	
+	int64_t						model_index;			// model index animation loaded to. ~~
+	int64_t						sub_entity_model_index;	// Sub entity model index (for spawn/summon).
+	int64_t						sub_entity_unsummon;    // Un-summon the entity
+	int64_t						sync;                   // Synchronize frame to previous animation if they matches
 
     
-	int						    attack_one;             // Attack hits only one target. ~~
+	bool					    attack_one;             // Attack hits only one target. ~~
 	
     // Meta data.
     s_meta_data*                meta_data;              // User defiend data.
-    int					        meta_tag;	            // User defined int.
+    int64_t				        meta_tag;	            // User defined int.
 } s_anim;
 
 struct animlist
@@ -2920,17 +2934,75 @@ typedef struct
 } s_stealth;                                        //2011_04_05, DC: Invisibility to AI feature added by DC.
 
 
+/*
+* Caskey, Damon V.
+* 2026-07-17
+*
+* Requirements for one step of a configurable
+* special-command sequence.
+*
+* Press retains the existing positive-edge behavior.
+* Hold is a passive state requirement, hold_trigger is
+* an automatic threshold edge, release is a negative
+* edge, and hold_time is the minimum in logical ticks.
+* Hold_time_maximum is the optional inclusive upper
+* bound. Zero means the held duration has no maximum.
+* Chord_time is the optional grace period between plain
+* press inputs combined in this step. Zero preserves the
+* original same-tick chord sensitivity.
+*/
+typedef struct s_command_input_step
+{
+    key_mask_t press;
+    key_mask_t hold;
+    key_mask_t hold_trigger;
+    key_mask_t release;
+    uint64_t hold_time;
+    uint64_t hold_time_maximum;
+    uint64_t chord_time;
+} s_command_input_step;
+
+/*
+* Caskey, Damon V.
+* 2026-07-17
+*
+* One entry in a player's special-command input
+* history.
+*
+* Press identifies the physical positive edge.
+* Press_chord records inputs which remain held when a
+* positive edge occurs for configurable-command chord
+* matching. Held is a complete state snapshot taken when
+* the event occurs.
+*
+* Hold and release identify their respective edges, and
+* time retains the logical tick for timing comparisons.
+* Ticks records the platform timer value in milliseconds
+* when the history event is stored. It is reserved for
+* creator-facing APIs and is not used by native matching.
+*/
+typedef struct s_command_input_event
+{
+    key_mask_t press;
+    key_mask_t press_chord;
+    key_mask_t hold;
+    key_mask_t release;
+    key_mask_t held;
+    uint64_t time;
+    uint64_t ticks;
+} s_command_input_event;
+
 // WIP
 typedef struct
 {
-    e_key_def input[MAX_SPECIAL_INPUTS];
-    int	steps;
+    s_command_input_step input[MAX_SPECIAL_INPUTS];
+    int steps;
     int numkeys; // num keys pressed
     int anim;
-    int	cancel;		//should be fine to have 0 if idle is not a valid choice
+    int64_t cancel;		//should be fine to have 0 if idle is not a valid choice
     s_metric_range frame;
-    int hits;
-    int valid;		// should not be global unless nosame is set, but anyway...
+    uint64_t hits;
+    bool valid;		// should not be global unless nosame is set, but anyway...
     //int (*function)(); //reserved
 } s_com;
 
@@ -3749,15 +3821,19 @@ typedef struct
     uint64_t lives;
     uint64_t credits;
     entity *ent;
-    uint64_t keys;
-    uint64_t newkeys;
-    uint64_t playkeys;
-    uint64_t releasekeys;
-    uint64_t combokey[MAX_SPECIAL_INPUTS];
-    uint64_t inputtime[MAX_SPECIAL_INPUTS];
-    uint64_t disablekeys;
-    uint64_t prevkeys; // used for play/rec mode
-    uint64_t combostep;
+    key_mask_t keys;
+    key_mask_t newkeys;
+    key_mask_t playkeys;
+    key_mask_t releasekeys;
+    s_command_input_event command_input_history[MAX_SPECIAL_INPUTS];
+    uint64_t command_input_hold_start_time[COMMAND_INPUT_FLAG_COUNT];
+    key_mask_t command_input_hold_start_valid;
+    uint64_t command_input_hold_trigger_time[COMMAND_INPUT_FLAG_COUNT];
+    key_mask_t command_input_hold_trigger_valid;
+    key_mask_t disablekeys;
+    key_mask_t prevkeys; // used for play/rec mode
+    uint64_t command_input_count;
+    uint64_t command_input_index;
     int spawnhealth;
     int spawnmp;
     int joining;
@@ -4420,6 +4496,7 @@ void initialize_item_carry(entity *ent, s_spawn_entry *spawn_entry);
 int adjust_grabposition(entity *ent, entity *other, float dist, int grabin);
 int player_trymove(float xdir, float zdir);
 void toss(entity *ent, float lift);
+bool player_accepts_idle_input(const entity *acting_entity);
 void player_think(void);
 void subtract_shot(void);
 void set_model_ex(entity *ent, char *modelname, int index, s_model *newmodel, int flag);
@@ -4608,11 +4685,11 @@ void prethrow(void);
 void player_die();
 int player_trymove(float xdir, float zdir);
 int check_energy(e_cost_check which, int ani);
-int player_preinput();
+bool player_preinput();
 int player_check_special();
 void runanimal(void);
 void player_blink(void);
-int check_combo();
+bool check_combo();
 int check_costmove(int s, int fs, int jumphack);
 void didfind_item(entity *other);
 void player_think(void);
