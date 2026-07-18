@@ -22,6 +22,9 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include <limits.h>
 
 #define NaN 0xAAAAAAAA
 
@@ -606,6 +609,7 @@ int					groupmax            = 0;
 e_screen_status     screen_status       = IN_SCREEN_NONE;       // Caskey, Damon V. (2022-04-21) - Current screen status. Replaces the previous 16+ "inscreen" flag variables.
 char				*currentScene		= NULL;
 int                 tospeedup           = 0;          			// If set will speed the level back up after a boss hits the ground
+bool                reached[MAX_PLAYERS]          = {false, false, false, false};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 bool                reached[MAX_PLAYERS]          = {false, false, false, false};			// Used with TYPE_ENDLEVEL to determine which players have reached the point //4player
 int                 noslowfx			= 0;           			// Flag to determine if sound speed when hitting opponent slows or not
 int                 equalairpause 		= 0;         			// If set to 1, there will be no extra pausetime for players who hit multiple enemies in midair
@@ -13422,6 +13426,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     s_child_spawn* temp_child_spawn_head = NULL;         // Spawning sub entities.
 
     const char *shutdownmessage = NULL;
+    const char *shutdownmessage = NULL;
 
     unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
@@ -14922,6 +14927,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             
+            
             case CMD_MODEL_COM:
             {
                 s_command_token_reader token_reader = {
@@ -14975,6 +14981,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->specials_loaded++;
             }
             break;
+
 
             case CMD_MODEL_REMAP:
             {
@@ -20556,6 +20563,11 @@ void unload_level()
     level_completed = 0;
     level_completed_defeating_boss = 0;
     tospeedup = 0;    // Reset so it sets to normal speed for the next level
+    
+    for (i = 0; i < MAX_PLAYERS; i++){ 
+        reached[i] = false; // TYPE_ENDLEVEL values reset after level completed //4player
+    }
+    
     
     for (i = 0; i < MAX_PLAYERS; i++){ 
         reached[i] = false; // TYPE_ENDLEVEL values reset after level completed //4player
@@ -43120,6 +43132,8 @@ void player_think()
     e_local_action_flags action = 0;
     bool back_walk = false;   //backwalk
       
+    bool back_walk = false;   //backwalk
+      
     entity *other = NULL;
     float initial_jump_velocity_z = 0.0;
 
@@ -43153,21 +43167,42 @@ void player_think()
             if (!reached[i]){
                 sum_not_reached++;
             }
+    /*
+    * Are we touching the end level entity?
+    */
+    if((other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ENDLEVEL, NULL)) 
+        && diff(acting_entity->position.y, other->position.y) <= 0.1) {
+
+        bool no_player_reached = false;
+        uint64_t sum_not_reached = 0;
+        uint64_t sum_reached = 0;
+        uint64_t i;
+        
+        for (i = 0; i < MAX_PLAYERS; i++) {
+            if (!reached[i]){
+                sum_not_reached++;
+            }
         }
         no_player_reached = (sum_not_reached >= MAX_PLAYERS) ? true : false;
+        no_player_reached = (sum_not_reached >= MAX_PLAYERS) ? true : false;
 
+        if(no_player_reached) {
         if(no_player_reached) {
             addscore(pli, other->modeldata.score);
         }
         reached[pli] = true;
+        reached[pli] = true;
 
+        for (i = 0; i < MAX_PLAYERS; i++) {
         for (i = 0; i < MAX_PLAYERS; i++) {
             sum_reached += reached[i];
         }
 
         if (!other->modeldata.subtype || (other->modeldata.subtype == SUBTYPE_BOTH && sum_reached >= (count_ents(TYPE_PLAYER)))) {
+        if (!other->modeldata.subtype || (other->modeldata.subtype == SUBTYPE_BOTH && sum_reached >= (count_ents(TYPE_PLAYER)))) {
             level_completed = 1;
 
+            if(other->modeldata.branch) {
             if(other->modeldata.branch) {
                 strncpy( branch_name, other->modeldata.branch, MAX_NAME_LEN);    //now, you can branch to another level
             }
@@ -43179,19 +43214,26 @@ void player_think()
     * Reset combo count if time has expired.
     */
     if(_time > acting_entity->rush.time) {
+    /*
+    * Reset combo count if time has expired.
+    */
+    if(_time > acting_entity->rush.time) {
         acting_entity->rush.count = 0;
         acting_entity->rush.time = 0;
     }
 
     if(player_preinput()) {
+    if(player_preinput()) {
         goto endthinkcheck;
     }
 
+    if(acting_entity->charging) {
     if(acting_entity->charging) {
         player_charge_check();
         goto endthinkcheck;
     }
 
+    if(acting_entity->inpain & ~IN_PAIN_NONE || (acting_entity->link && !acting_entity->grabbing)) {
     if(acting_entity->inpain & ~IN_PAIN_NONE || (acting_entity->link && !acting_entity->grabbing)) {
         player_pain_check();
         goto endthinkcheck;
@@ -43199,11 +43241,13 @@ void player_think()
 
     // falling? check for landing
     if(acting_entity->projectile & BLAST_TOSS) {
+    if(acting_entity->projectile & BLAST_TOSS) {
         player_fall_check();
         goto endthinkcheck;
     }
 
     // grab section, dont move if still animating
+    if(acting_entity->grabbing && acting_entity->attacking == ATTACKING_NONE && acting_entity->takeaction != common_throw_wait) {
     if(acting_entity->grabbing && acting_entity->attacking == ATTACKING_NONE && acting_entity->takeaction != common_throw_wait) {
         player_grab_check();
         goto endthinkcheck;
@@ -43211,15 +43255,18 @@ void player_think()
 
     // jump section
     if(acting_entity->jumping) {
+    if(acting_entity->jumping) {
         player_jump_check();
         goto endthinkcheck;
     }
 
     if(acting_entity->animnum == ANI_WALKOFF) {
+    if(acting_entity->animnum == ANI_WALKOFF) {
         player_walkoff_check();
         goto endthinkcheck;
     }
 
+    if(acting_entity->drop && acting_entity->position.y == acting_entity->base && !acting_entity->velocity.y) {
     if(acting_entity->drop && acting_entity->position.y == acting_entity->base && !acting_entity->velocity.y) {
         player_lie_check();
         goto endthinkcheck;
@@ -43247,7 +43294,14 @@ void player_think()
 
     const float altdiff = diff(acting_entity->position.y, acting_entity->base);
     const bool notinair = (acting_entity->landed_on_platform ? altdiff < 5 : altdiff < 2);
+    const float altdiff = diff(acting_entity->position.y, acting_entity->base);
+    const bool notinair = (acting_entity->landed_on_platform ? altdiff < 5 : altdiff < 2);
 
+    if(acting_player->playkeys & FLAG_MOVEUP) {
+
+        const bool command_match = (notinair && match_combo(sequence_up_up, acting_player, 2));
+
+        if(command_match && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL)) == (RUN_CONFIG_Z_UP_ENABLED | RUN_CONFIG_Z_UP_INITIAL) && validanim(acting_entity, ANI_RUN)) {
     if(acting_player->playkeys & FLAG_MOVEUP) {
 
         const bool command_match = (notinair && match_combo(sequence_up_up, acting_player, 2));
@@ -43256,6 +43310,9 @@ void player_think()
             acting_player->playkeys &= ~FLAG_MOVEUP;
             command_input_history_consume_latest_press(acting_player);
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
+        
+        } else if(command_match && validanim(acting_entity, ANI_ATTACKUP)) {
+
         
         } else if(command_match && validanim(acting_entity, ANI_ATTACKUP)) {
 
@@ -43268,6 +43325,8 @@ void player_think()
             ent_set_anim(acting_entity, ANI_ATTACKUP, 0);
             command_input_history_consume_latest_press(acting_player); // this workaround deals default freespecial2
             goto endthinkcheck;
+        
+        } else if(command_match && validanim(acting_entity, ANI_DODGE)) {
         
         } else if(command_match && validanim(acting_entity, ANI_DODGE)) {
             // New dodge move like on SOR3
@@ -43287,9 +43346,15 @@ void player_think()
         const bool command_match = (notinair && match_combo(sequence_down_down, acting_player, 2));
 
         if(command_match && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL)) == (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL) && validanim(acting_entity, ANI_RUN)) {
+    if(acting_player->playkeys & FLAG_MOVEDOWN) {
+        const bool command_match = (notinair && match_combo(sequence_down_down, acting_player, 2));
+
+        if(command_match && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL)) == (RUN_CONFIG_Z_DOWN_ENABLED | RUN_CONFIG_Z_DOWN_INITIAL) && validanim(acting_entity, ANI_RUN)) {
             acting_player->playkeys &= ~FLAG_MOVEDOWN;
             command_input_history_consume_latest_press(acting_player);
             acting_entity->running |= RUN_STATE_START_Z;    // Player begins to run
+        
+        } else if(command_match && validanim(acting_entity, ANI_ATTACKDOWN)) {
         
         } else if(command_match && validanim(acting_entity, ANI_ATTACKDOWN)) {
             // New d d combo attack
@@ -43301,6 +43366,8 @@ void player_think()
             ent_set_anim(acting_entity, ANI_ATTACKDOWN, 0);
             command_input_history_consume_latest_press(acting_player);
             goto endthinkcheck;
+        
+        } else if(command_match && validanim(acting_entity, ANI_DODGE)) {
         
         } else if(command_match && validanim(acting_entity, ANI_DODGE)) {
             // New dodge move like on SOR3
@@ -43326,11 +43393,23 @@ void player_think()
             && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, acting_player, 2))
             || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_right_right, acting_player, 2))); 
         
+    if((acting_player->playkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT))) {
+        
+        const bool command_match_left = (notinair && (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_left_left, acting_player, 2)));
+        const bool command_match_right = (notinair && (acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_right_right, acting_player, 2)));
+        const bool command_match_forward = command_match_left || command_match_right;
+        const bool command_match_back = notinair
+            && acting_entity->modeldata.facing
+            && ((acting_entity->direction == DIRECTION_RIGHT && match_combo(sequence_left_left, acting_player, 2))
+            || (acting_entity->direction == DIRECTION_LEFT && match_combo(sequence_right_right, acting_player, 2))); 
+        
         if (command_match_left && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL)) == (RUN_CONFIG_X_LEFT_ENABLED | RUN_CONFIG_X_LEFT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
 
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
             command_input_history_consume_latest_press(acting_player);
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
+        
+        } else if(command_match_right && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL)) == (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
         
         } else if(command_match_right && (acting_entity->modeldata.run_config_flags & (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL)) == (RUN_CONFIG_X_RIGHT_ENABLED | RUN_CONFIG_X_RIGHT_INITIAL) && validanim(acting_entity, ANI_RUN)) {
             
@@ -43339,9 +43418,13 @@ void player_think()
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
         
         } else if(command_match_back && validanim(acting_entity, ANI_BACKRUN)) {
+        
+        } else if(command_match_back && validanim(acting_entity, ANI_BACKRUN)) {
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT); // usually left + right is not acceptable, so it is OK to null both
             command_input_history_consume_latest_press(acting_player);
             acting_entity->running |= RUN_STATE_START_X;    // Player begins to run
+        
+        } else if(command_match_forward && validanim(acting_entity, ANI_ATTACKFORWARD)) {
         
         } else if(command_match_forward && validanim(acting_entity, ANI_ATTACKFORWARD)) {
             acting_player->playkeys &= ~(FLAG_MOVELEFT | FLAG_MOVERIGHT);
@@ -43508,6 +43591,9 @@ void player_think()
         * Back attack. If player's command buffer matches 
         * the back attack sequence, we'll attempt to do 
         * a back attack.
+        * Back attack. If player's command buffer matches 
+        * the back attack sequence, we'll attempt to do 
+        * a back attack.
         */
         const key_mask_t sequence_back_attack[] = {FLAG_BACKWARD, FLAG_ATTACK};
 
@@ -43577,11 +43663,23 @@ void player_think()
         if(validanim(acting_entity, ANI_GET) 
             && (other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ITEM, player_test_pickable))) {
 
+        /*
+        * Get item. If player is standing on an item
+        * and the get animation is valid, then
+        * we'll pick it up and run the get animation.
+        */
+        if(validanim(acting_entity, ANI_GET) 
+            && (other = find_ent_here(acting_entity, acting_entity->position.x, acting_entity->position.z, TYPE_ITEM, player_test_pickable))) {
+
             acting_entity->velocity.x = acting_entity->velocity.z = 0;
             set_getting(acting_entity);
             acting_entity->takeaction = common_get;
             ent_set_anim(acting_entity, ANI_GET, 0);
 
+            /*
+            * Item "attacks" collector to make it
+            * easy to script actions on item pick up. 
+            */
             /*
             * Item "attacks" collector to make it
             * easy to script actions on item pick up. 
@@ -44001,13 +44099,42 @@ void player_think()
             } else if(acting_entity->turntime && acting_entity->modeldata.turndelay) {
 
                 back_walk = true;
+        if(level && validanim(acting_entity, ANI_BACKWALK)) {
+
+            if(acting_entity->modeldata.facing == FACING_ADJUST_RIGHT || level->facing == FACING_ADJUST_RIGHT) {
+
+                back_walk = !acting_entity->direction;
+
+            } else if(acting_entity->modeldata.facing == FACING_ADJUST_LEFT || level->facing == FACING_ADJUST_LEFT) {
+
+                back_walk = acting_entity->direction;
+
+            } else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_LEFT) && acting_entity->direction == DIRECTION_LEFT) {
+
+                back_walk = true;
+
+            } else if((acting_entity->modeldata.facing == FACING_ADJUST_LEVEL || level->facing == FACING_ADJUST_LEVEL) && (level->scrolldir & SCROLL_RIGHT) && acting_entity->direction == DIRECTION_RIGHT) {
+
+                back_walk = true;
+
+            } else if(acting_entity->turntime && acting_entity->modeldata.turndelay) {
+
+                back_walk = true;
             }
 
             if(back_walk) {
                 common_backwalk_anim(acting_entity);          
             } else {
                 common_walk_anim(acting_entity);
+
+            if(back_walk) {
+                common_backwalk_anim(acting_entity);          
+            } else {
+                common_walk_anim(acting_entity);
             }
+        
+        } else {
+            common_walk_anim(acting_entity);  
         
         } else {
             common_walk_anim(acting_entity);  
