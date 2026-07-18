@@ -4689,7 +4689,7 @@ bool player_preinput();
 int player_check_special();
 void runanimal(void);
 void player_blink(void);
-bool check_combo();
+bool check_combo(s_player* acting_player);
 int check_costmove(int s, int fs, int jumphack);
 void didfind_item(entity *other);
 void player_think(void);
