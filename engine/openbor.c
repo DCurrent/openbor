@@ -72,7 +72,13 @@ List *modelstxtcmdlist = NULL;
 List *levelcmdlist = NULL;
 List *levelordercmdlist = NULL;
 
-int atkchoices[MAX_ANIS]; //tempory values for ai functions, should be well enough LOL
+/*
+* Temporary attack choices assembled by AI routines.
+* Capacity follows the configured animation table instead
+* of assuming the compile-time MAX_ANIS default is enough.
+*/
+static int* ai_attack_choices = NULL;
+static size_t ai_attack_choice_capacity = 0;
 
 //see types.h
 const s_drawmethod plainmethod =
@@ -3456,70 +3462,108 @@ static bool command_token_reader_next_int64(s_command_token_reader* reader, int6
 }
 
 /*
-* Read a positive integer suffix from a token with
-* the supplied case-insensitive prefix.
+* Caskey, Damon V.
+* 2026-07-18
 *
-* Examples:
+* Parse and validate a numbered freespecial animation
+* token without atoi(), atoll(), or signed overflow.
 *
-* freespecial  -> 1
-* freespecial1 -> 1
-* freespecial3 -> 3
+* Recognized distinguishes unrelated animation or input
+* names from malformed freespecial names. The unnumbered
+* legacy spelling "freespecial" selects freespecial1.
 *
-* Return true when the complete token matches the
-* expected numbered-name format. Return false
-* otherwise.
+* Return NULL when the token is unrelated or valid.
+* Return error_buffer when a recognized freespecial name
+* is malformed or exceeds the configured animation table.
 */
-static bool command_token_get_numbered_suffix(const s_command_token* token, const char* prefix, int64_t* result) {
-    
-    const size_t prefix_length = strlen(prefix);
+static const char* command_token_get_freespecial_number(
+    const s_command_token* token,
+    bool* recognized,
+    int* result,
+    char* error_buffer,
+    const size_t error_buffer_size
+) {
+    static const char prefix[] = "freespecial";
+
+    const size_t prefix_length = sizeof(prefix) - 1;
 
     s_command_token prefix_token;
     s_command_token suffix_token;
 
+    uint64_t parsed_number;
+
     assert(token);
-    assert(prefix);
+    assert(recognized);
     assert(result);
+    assert(error_buffer);
+    assert(error_buffer_size);
+
+    *recognized = false;
+    *result = 0;
 
     if(token->length < prefix_length) {
-        return false;
+        return NULL;
     }
 
-    /*
-    * Compare only the prefix portion of the token.
-    */
     prefix_token.text = token->text;
     prefix_token.length = prefix_length;
 
     if(!command_token_equals(&prefix_token, prefix)) {
-        return false;
+        return NULL;
     }
 
+    *recognized = true;
+
     /*
-    * Preserve legacy behavior where a numbered name
-    * without an explicit number selects index 1.
+    * Preserve legacy behavior where an omitted suffix
+    * means freespecial1.
     */
     if(token->length == prefix_length) {
         *result = 1;
-        return true;
+        return NULL;
     }
 
-    /*
-    * Numbered animation names begin with 1-9.
-    * This rejects zero, signs, and non-numeric tails.
-    */
     suffix_token.text = token->text + prefix_length;
     suffix_token.length = token->length - prefix_length;
 
     if(suffix_token.text[0] < '1'
         || suffix_token.text[0] > '9') {
-        return false;
+        snprintf(
+            error_buffer,
+            error_buffer_size,
+            "Freespecial animation number must be at least 1."
+        );
+
+        return error_buffer;
     }
 
-    if(!command_token_get_int64(&suffix_token, result)) {
-        return false;
+    if(!command_token_get_uint64(&suffix_token, &parsed_number)) {
+        snprintf(
+            error_buffer,
+            error_buffer_size,
+            "Freespecial animation number is malformed or exceeds "
+            "the unsigned 64-bit range."
+        );
+
+        return error_buffer;
     }
 
-    return *result >= 1;
+    if(parsed_number > (uint64_t)max_freespecials) {
+        snprintf(
+            error_buffer,
+            error_buffer_size,
+            "Freespecial animation %" PRIu64 " exceeds maxfreespecials %d.\n"
+            "Increase maxfreespecials in data/models.txt.",
+            parsed_number,
+            max_freespecials
+        );
+
+        return error_buffer;
+    }
+
+    *result = (int)parsed_number;
+
+    return NULL;
 }
 
 /*
@@ -3853,6 +3897,54 @@ static const char* command_token_get_chord_time_modifier(
 }
 
 /*
+* Caskey, Damon V.
+* 2026-07-18
+*
+* Parse the optional grace modifier for a complete
+* command sequence. The complete token form is
+* :[time].
+*
+* Recognized distinguishes a non-modifier token from a
+* malformed modifier. Return NULL when the token is not
+* a modifier or when parsing succeeds. Return a static
+* error message when a modifier begins with :[ but does
+* not contain one unsigned logical tick value.
+*/
+static const char* command_token_get_sequence_grace_time_modifier(const s_command_token* token, bool* recognized, uint64_t* result) {
+    
+    s_command_token sequence_grace_time_token;
+
+    assert(token);
+    assert(recognized);
+    assert(result);
+
+    *recognized = false;
+    *result = 0;
+
+    if(token->length < 2
+        || token->text[0] != ':'
+        || token->text[1] != '[') {
+        return NULL;
+    }
+
+    *recognized = true;
+
+    if(token->length < 4
+        || token->text[token->length - 1] != ']') {
+        return "Sequence grace time must use :[time]";
+    }
+
+    sequence_grace_time_token.text = token->text + 2;
+    sequence_grace_time_token.length = token->length - 3;
+
+    if(!command_token_get_uint64(&sequence_grace_time_token, result)) {
+        return "Sequence grace time must be an unsigned integer";
+    }
+
+    return NULL;
+}
+
+/*
 * Parse the input-sequence portion of a special command.
 *
 * Sequence grammar:
@@ -3864,11 +3956,21 @@ static const char* command_token_get_chord_time_modifier(
 * The plus token combines the following input with the
 * preceding sequence step. The +[time] token overrides
 * same-tick sensitivity for the preceding press chord.
+* The :[time] token overrides the global grace time
+* between every step in this command sequence. It may
+* appear once in any token position outside an unfinished
+* plus expression.
 *
 * Return NULL on success. Return a static error message
 * when the sequence is invalid.
 */
-static const char* special_command_parse_sequence(s_command_token_reader* reader, s_com* special, int64_t* freespecial_number) {
+static const char* special_command_parse_sequence(
+    s_command_token_reader* reader,
+    s_com* special,
+    int* freespecial_number,
+    char* error_buffer,
+    const size_t error_buffer_size
+) {
     s_command_token token;
 
     s_command_input_step input_requirement;
@@ -3884,18 +3986,37 @@ static const char* special_command_parse_sequence(s_command_token_reader* reader
     assert(reader);
     assert(special);
     assert(freespecial_number);
+    assert(error_buffer);
+    assert(error_buffer_size);
 
     *freespecial_number = 0;
     special->numkeys = 0;
     special->steps = 0;
+    special->sequence_grace_time = 0;
+    special->sequence_grace_time_override = false;
 
     while(command_token_reader_next(reader, &token)) {
-        int64_t numbered_animation;
+        bool freespecial_recognized;
+
+        int numbered_animation;
+
+        const char* freespecial_error =
+            command_token_get_freespecial_number(
+                &token,
+                &freespecial_recognized,
+                &numbered_animation,
+                error_buffer,
+                error_buffer_size
+            );
+
+        if(freespecial_error) {
+            return freespecial_error;
+        }
 
         /*
         * Destination animation terminates the sequence.
         */
-        if(command_token_get_numbered_suffix(&token, "freespecial", &numbered_animation)) {
+        if(freespecial_recognized) {
             
             /*
             * A plus token must be followed by another
@@ -3915,6 +4036,11 @@ static const char* special_command_parse_sequence(s_command_token_reader* reader
 
             if(step_count == 0) {
                 return "Special command requires at least one input step";
+            }
+
+            if(special->sequence_grace_time_override
+                && step_count < 2) {
+                return "Sequence grace time requires at least two complete input steps";
             }
 
             /*
@@ -3943,13 +4069,55 @@ static const char* special_command_parse_sequence(s_command_token_reader* reader
         }
 
         /*
+        * Optional command-wide grace between separate
+        * input steps. A zero value is a valid explicit
+        * override, so the boolean records its presence.
+        * Its token position does not affect its scope.
+        */
+        {
+            bool sequence_grace_time_recognized;
+
+            uint64_t sequence_grace_time;
+
+            const char* sequence_grace_time_error =
+                command_token_get_sequence_grace_time_modifier(
+                    &token,
+                    &sequence_grace_time_recognized,
+                    &sequence_grace_time
+                );
+
+            if(sequence_grace_time_error) {
+                return sequence_grace_time_error;
+            }
+
+            if(sequence_grace_time_recognized) {
+                if(combine_with_previous) {
+                    return "Sequence grace time cannot interrupt a '+' expression";
+                }
+
+                if(special->sequence_grace_time_override) {
+                    return "Sequence grace time is already defined for this command";
+                }
+
+                special->sequence_grace_time =
+                    sequence_grace_time;
+
+                special->sequence_grace_time_override = true;
+
+                continue;
+            }
+        }
+
+        /*
         * Optional separator between sequence steps.
         *
         * Preserve the old parser's acceptance of repeated
         * arrows after at least one input step.
         */
         if(command_token_equals(&token, "->")) {
-            if(step_count == 0 || combine_with_previous) {
+            if(combine_with_previous
+                || (step_count == 0
+                    && !special->sequence_grace_time_override)) {
                 return "Invalid '->' placement in special command";
             }
 
@@ -4038,7 +4206,7 @@ static const char* special_command_parse_sequence(s_command_token_reader* reader
 
         } else {
             if(step_count >= MAX_SPECIAL_INPUTS) {
-                return "Special command exceeds maximum input steps";
+                return "Special command exceeds the maximum of 64 sequence steps.";
             }
 
             destination_step = &special->input[step_count];
@@ -6317,10 +6485,96 @@ static void load_playable_list(char *buf)
     return;
 }
 
-void alloc_specials(s_model *newchar)
+/*
+* Caskey, Damon V.
+* 2026-07-18 - Original author and date unknown, reworked 2026-07-06.
+*
+* Expand the model's configurable special-command table
+* by one zero-initialized entry.
+*
+* Preserve an owned table until realloc succeeds. When a
+* subclass still shares its parent's table, allocate and
+* copy the inherited entries before appending so changes
+* cannot modify or reallocate the parent table.
+*/
+static bool alloc_specials(s_model* newchar)
 {
-    newchar->special = realloc(newchar->special, sizeof(s_com) * (newchar->specials_loaded + 1));
-    memset(newchar->special + newchar->specials_loaded, 0, sizeof(s_com));
+    s_com* expanded_specials;
+    size_t expanded_count;
+    bool owns_special_table;
+
+    if(!newchar
+        || newchar->specials_loaded < 0
+        || newchar->specials_loaded == INT_MAX) {
+        return false;
+    }
+
+    owns_special_table =
+        (newchar->freetypes & MF_SPECIAL) != 0;
+
+    /*
+    * A subclass initially shares its parent's command
+    * table. A positive inherited count without a table
+    * is invalid and cannot be copied safely.
+    */
+    if(newchar->specials_loaded > 0
+        && !newchar->special) {
+        return false;
+    }
+
+    /*
+    * Calculate the new size of the table, which is
+    * the current number of loaded specials plus one
+    * for the new entry. Check for overflow before
+    * attempting to realloc the table.
+    */
+    expanded_count = (size_t)newchar->specials_loaded + 1;
+
+    if(expanded_count > SIZE_MAX / sizeof(*expanded_specials)) {
+        return false;
+    }
+
+    /*
+    * Models that own their table may expand it in place.
+    * A subclass that still shares an inherited table must
+    * allocate and copy first, leaving the parent untouched.
+    */
+
+    if(owns_special_table) {
+        expanded_specials = realloc(
+            newchar->special,
+            sizeof(*expanded_specials) * expanded_count
+        );
+    } else {
+        expanded_specials = malloc(
+            sizeof(*expanded_specials) * expanded_count
+        );
+
+        if(expanded_specials
+            && newchar->specials_loaded > 0) {
+            memcpy(
+                expanded_specials,
+                newchar->special,
+                sizeof(*expanded_specials)
+                    * (size_t)newchar->specials_loaded
+            );
+        }
+    }
+
+    if(!expanded_specials) {
+        return false;
+    }
+
+    newchar->special = expanded_specials;
+    newchar->freetypes |= MF_SPECIAL;
+
+    memset(
+        &newchar->special[newchar->specials_loaded],
+        0,
+        sizeof(*newchar->special)
+    );
+
+    return true;
 }
 
 void alloc_frames(s_anim *anim, int fcount)
@@ -6823,6 +7077,12 @@ void free_models()
     {
         free(animbackdies);
         animbackdies        = NULL;
+    }
+    if(ai_attack_choices)
+    {
+        free(ai_attack_choices);
+        ai_attack_choices = NULL;
+        ai_attack_choice_capacity = 0;
     }
 }
 
@@ -10906,11 +11166,6 @@ static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim
     {
         ani_id = ANI_JUMPSPECIAL;
     }
-    else if(starts_with_num(value, "freespecial"))
-    {
-        get_tail_number(tempInt, value, "freespecial");
-        ani_id = animspecials[tempInt - 1];
-    }
     else if(stricmp(value, "jumpattack") == 0)
     {
         ani_id = ANI_JUMPATTACK;
@@ -13293,7 +13548,25 @@ s_model *init_model(const int cacheindex, const int unload)
     newchar->attackthrottle				= 0.0f;
     newchar->attackthrottletime			= noatk_duration * global_config.game_speed;
 
-    newchar->animation = calloc(max_animations, sizeof(*newchar->animation));
+    /*
+    * max_animations originates in data/models.txt. Check
+    * the per-model table multiplication before allocating.
+    */
+    if(max_animations <= 0
+        || (size_t)max_animations
+            > SIZE_MAX / sizeof(*newchar->animation)) {
+        borShutdown(
+            1,
+            "Invalid per-model animation table size (%d). "
+            "Check animation limits in data/models.txt.\n",
+            max_animations
+        );
+    }
+
+    newchar->animation = calloc(
+        (size_t)max_animations,
+        sizeof(*newchar->animation)
+    );
     if(!newchar->animation)
     {
         borShutdown(1, (char *)E_OUT_OF_MEMORY);
@@ -13425,7 +13698,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     unsigned* mapflag = NULL;  // in 24bit mode, we need to know whether a colourmap is a common map or a palette
 
-    char alert_buffer[128] = { 0 }; // So we can concatenate specifics *like range max/min* into alert messages.
+    char alert_buffer[256] = { 0 }; // So we can concatenate specifics *like range max/min* into alert messages.
 
     const char pre_text[] =   // this is the skeleton of frame function
     {
@@ -14929,11 +15202,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 };
 
                 s_command_token token;
-                s_com* special;
+
+                /*
+                * Parse into a temporary command first. This prevents
+                * a malformed line from partially modifying the model.
+                */
+                s_com parsed_special = {0};
 
                 const char* parse_error;
 
-                int64_t freespecial_number;
+                int freespecial_number;
 
                 /*
                 * Consume and verify the command-name token.
@@ -14944,34 +15222,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 /*
-                * Allocate a zero-initialized command entry.
-                */
-                alloc_specials(newchar);
-                special = &newchar->special[newchar->specials_loaded];
-
-                /*
                 * Parse all sequence tokens through the destination
                 * freespecial animation.
                 */
-                parse_error = special_command_parse_sequence(&token_reader, special, &freespecial_number);
+                parse_error = special_command_parse_sequence(
+                    &token_reader,
+                    &parsed_special,
+                    &freespecial_number,
+                    alert_buffer,
+                    sizeof(alert_buffer)
+                );
 
                 if(parse_error) {
                     shutdownmessage = parse_error;
                     goto lCleanup;
                 }
 
-                /*
-                * Validate before indexing the dynamic freespecial
-                * animation table.
-                */
-                if(freespecial_number < 1 || freespecial_number > max_freespecials) {
-                    
-                    shutdownmessage = "Freespecial animation index is out of range.\n";
+                parsed_special.anim = animspecials[freespecial_number - 1];
 
+                if(!alloc_specials(newchar)) {
+                    shutdownmessage = E_OUT_OF_MEMORY;
                     goto lCleanup;
                 }
 
-                special->anim = animspecials[freespecial_number - 1];
+                newchar->special[newchar->specials_loaded] = parsed_special;
                 newchar->specials_loaded++;
             }
             break;
@@ -15197,7 +15471,36 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_ANIM:
             {
+                bool freespecial_recognized;
+
+                int freespecial_number;
+
+                s_command_token animation_name_token;
+
+                const char* freespecial_error;
+
                 value = GET_ARG(1);
+
+                /*
+                * Parse numbered freespecial animations before any
+                * allocation or animation-table indexing takes place.
+                */
+                animation_name_token.text = value;
+                animation_name_token.length = strlen(value);
+
+                freespecial_error = command_token_get_freespecial_number(
+                    &animation_name_token,
+                    &freespecial_recognized,
+                    &freespecial_number,
+                    alert_buffer,
+                    sizeof(alert_buffer)
+                );
+
+                if(freespecial_error) {
+                    shutdownmessage = freespecial_error;
+                    goto lCleanup;
+                }
+
                 frameset = 0;
                 framecount = 0;
                 // Create new animation
@@ -15299,7 +15602,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->quakeframe.framestart  = 0;
                 newanim->sync                   = FRAME_NONE;
 
-                if((ani_id = translate_ani_id(value, newchar, newanim)) < 0)
+                if(freespecial_recognized) {
+                    ani_id = animspecials[freespecial_number - 1];
+
+                } else {
+                    ani_id = translate_ani_id(value, newchar, newanim);
+                }
+
+                if(ani_id < 0)
                 {
                     shutdownmessage = "Invalid animation name!";
                     goto lCleanup;
@@ -15322,8 +15632,41 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->size.y = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_SYNC:
-                //if you want to remove default sync setting for idle or walk, use none
-                newanim->sync = translate_ani_id(GET_ARG(1), NULL, NULL);
+            {
+                bool freespecial_recognized;
+
+                int freespecial_number;
+
+                s_command_token animation_name_token;
+
+                const char* freespecial_error;
+
+                value = GET_ARG(1);
+
+                animation_name_token.text = value;
+                animation_name_token.length = strlen(value);
+
+                freespecial_error = command_token_get_freespecial_number(
+                    &animation_name_token,
+                    &freespecial_recognized,
+                    &freespecial_number,
+                    alert_buffer,
+                    sizeof(alert_buffer)
+                );
+
+                if(freespecial_error) {
+                    shutdownmessage = freespecial_error;
+                    goto lCleanup;
+                }
+
+                /*
+                * "none" intentionally translates to FRAME_NONE and
+                * continues to disable the default synchronization.
+                */
+                newanim->sync = freespecial_recognized
+                    ? animspecials[freespecial_number - 1]
+                    : translate_ani_id(value, NULL, NULL);
+            }
                 break;
             case CMD_MODEL_DELAY:
 
@@ -15859,7 +16202,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     int64_t frame_min;
                     int64_t frame_max;
                     int64_t required_hits;
-                    int64_t freespecial_number;
+                    int freespecial_number;
 
                     /*
                     * Cancel belongs to the currently active animation.
@@ -15920,20 +16263,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     * Parse the variable-length input sequence. The
                     * freespecial token terminates the sequence.
                     */
-                    parse_error = special_command_parse_sequence(&token_reader, &parsed_special, &freespecial_number);
+                    parse_error = special_command_parse_sequence(
+                        &token_reader,
+                        &parsed_special,
+                        &freespecial_number,
+                        alert_buffer,
+                        sizeof(alert_buffer)
+                    );
 
                     if(parse_error) {
                         shutdownmessage = parse_error;
-                        goto lCleanup;
-                    }
-
-                    /*
-                    * Validate before indexing the freespecial table.
-                    */
-                    if(freespecial_number < 1 || freespecial_number > max_freespecials) {
-                        shutdownmessage =
-                            "Freespecial animation index is out of range.\n";
-
                         goto lCleanup;
                     }
 
@@ -15951,7 +16290,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     * Commit only after the complete command has parsed
                     * and validated successfully.
                     */
-                    alloc_specials(newchar);
+                    if(!alloc_specials(newchar)) {
+                        shutdownmessage = E_OUT_OF_MEMORY;
+                        goto lCleanup;
+                    }
 
                     newchar->special[newchar->specials_loaded] = parsed_special;
                     newanim->cancel = ANIMATION_CANCEL_ENABLED;
@@ -17894,7 +18236,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     //temporary patch for conflicting moves
     if(newchar->animation[ANI_FREESPECIAL] && !is_set(newchar, ANI_FREESPECIAL))
     {
-        alloc_specials(newchar);
+        if(!alloc_specials(newchar))
+        {
+            shutdownmessage = E_OUT_OF_MEMORY;
+            goto lCleanup;
+        }
+
         newchar->special[newchar->specials_loaded].input[0].press = FLAG_FORWARD;
         newchar->special[newchar->specials_loaded].input[1].press = FLAG_FORWARD;
         newchar->special[newchar->specials_loaded].input[2].press = FLAG_ATTACK;
@@ -17904,7 +18251,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     }
     if(newchar->animation[ANI_FREESPECIAL2] && !is_set(newchar, ANI_FREESPECIAL2))
     {
-        alloc_specials(newchar);
+        if(!alloc_specials(newchar))
+        {
+            shutdownmessage = E_OUT_OF_MEMORY;
+            goto lCleanup;
+        }
+
         newchar->special[newchar->specials_loaded].input[0].press = FLAG_MOVEDOWN;
         newchar->special[newchar->specials_loaded].input[1].press = FLAG_MOVEDOWN;
         newchar->special[newchar->specials_loaded].input[2].press = FLAG_ATTACK;
@@ -17914,7 +18266,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     }
     if(newchar->animation[ANI_FREESPECIAL3] && !is_set(newchar, ANI_FREESPECIAL3))
     {
-        alloc_specials(newchar);
+        if(!alloc_specials(newchar))
+        {
+            shutdownmessage = E_OUT_OF_MEMORY;
+            goto lCleanup;
+        }
+
         newchar->special[newchar->specials_loaded].input[0].press = FLAG_MOVEUP;
         newchar->special[newchar->specials_loaded].input[1].press = FLAG_MOVEUP;
         newchar->special[newchar->specials_loaded].input[2].press = FLAG_ATTACK;
@@ -18219,10 +18576,82 @@ int load_script_setting()
     return 1;
 }
 
+/*
+* Convert one models.txt limit to an int without signed
+* overflow or partial numeric conversion.
+*/
+static bool model_constant_get_unsigned_int(const char* text, int* result)
+{
+    s_command_token token;
+    uint64_t parsed_value;
+
+    assert(text);
+    assert(result);
+
+    token.text = text;
+    token.length = strlen(text);
+
+    if(!command_token_get_uint64(&token, &parsed_value)
+        || parsed_value > (uint64_t)INT_MAX) {
+        return false;
+    }
+
+    *result = (int)parsed_value;
+
+    return true;
+}
+
+/*
+* Allocate a models.txt-driven table only after checking
+* its multiplication. Allocation failure is fatal because
+* model loading cannot safely continue with a missing table.
+*/
+static void* model_constant_array_allocate(
+    const size_t element_count,
+    const size_t element_size,
+    const char* table_name,
+    const char* filename
+) {
+    void* result;
+
+    assert(table_name);
+    assert(filename);
+
+    if(element_count == 0
+        || element_size == 0
+        || element_count > SIZE_MAX / element_size) {
+        borShutdown(
+            1,
+            "Invalid allocation size for %s while loading %s.\n",
+            table_name,
+            filename
+        );
+
+        return NULL;
+    }
+
+    result = malloc(element_count * element_size);
+
+    if(!result) {
+        borShutdown(
+            1,
+            "Unable to allocate %zu entries for %s while loading %s.\n",
+            element_count,
+            table_name,
+            filename
+        );
+
+        return NULL;
+    }
+
+    return result;
+}
+
 void load_model_constants()
 {
     char filename[MAX_BUFFER_LEN] = "data/models.txt";
     int i;
+    int64_t calculated_max_animations;
     char *buf;
     size_t size;
     ptrdiff_t pos;
@@ -18348,6 +18777,12 @@ void load_model_constants()
         free(animdowns);
         animdowns = NULL;
     }
+    if(ai_attack_choices)
+    {
+        free(ai_attack_choices);
+        ai_attack_choices = NULL;
+        ai_attack_choice_capacity = 0;
+    }
 
     // Read file
     if(buffer_pakfile(filename, &buf, &size) != 1)
@@ -18430,7 +18865,21 @@ void load_model_constants()
                 break;
             case CMD_MODELSTXT_MAXFREESPECIALS:
                 // max freespecials
-                max_freespecials = GET_INT_ARG(1);
+                if(!model_constant_get_unsigned_int(
+                    GET_ARG(1),
+                    &max_freespecials
+                )) {
+                    borShutdown(
+                        1,
+                        "Invalid maxfreespecials value '%s' in %s, line %d. "
+                        "Expected an unsigned integer no greater than %d.\n",
+                        GET_ARG(1),
+                        filename,
+                        line,
+                        INT_MAX
+                    );
+                }
+
                 if(max_freespecials < MAX_SPECIALS)
                 {
                     max_freespecials = MAX_SPECIALS;
@@ -18456,38 +18905,60 @@ void load_model_constants()
         pos += getNewLineStart(buf + pos);
     }
 
-    // calculate max animations
-    max_animations += (max_attack_types - MAX_ATKS) * 12 +// multply by 11: fall/die/pain/backpain/backfalls/backdies/rise/backrise/blockpain/backblockpain/riseattack/backriseattck
-                      (max_follows - MAX_FOLLOWS) +
-                      (max_freespecials - MAX_SPECIALS) +
-                      (max_attacks - MAX_ATTACKS) +
-                      (max_idles - MAX_IDLES) +
-                      (max_walks - MAX_WALKS) +
-                      (max_ups - MAX_UPS) +
-                      (max_downs - MAX_DOWNS) +
-                      (max_backwalks - MAX_BACKWALKS);
+    /*
+    * Calculate in a wider type before assigning the int
+    * animation identifiers used throughout the engine.
+    */
+    calculated_max_animations =
+        (int64_t)MAX_ANIS
+        + ((int64_t)max_attack_types - MAX_ATKS) * INT64_C(12)
+        + ((int64_t)max_follows - MAX_FOLLOWS)
+        + ((int64_t)max_freespecials - MAX_SPECIALS)
+        + ((int64_t)max_attacks - MAX_ATTACKS)
+        + ((int64_t)max_idles - MAX_IDLES)
+        + ((int64_t)max_walks - MAX_WALKS)
+        + ((int64_t)max_ups - MAX_UPS)
+        + ((int64_t)max_downs - MAX_DOWNS)
+        + ((int64_t)max_backwalks - MAX_BACKWALKS);
+
+    if(calculated_max_animations < MAX_ANIS
+        || calculated_max_animations > INT_MAX) {
+        borShutdown(
+            1,
+            "Configured model animation limits require %" PRId64
+            " animation identifiers, but the supported maximum is %d "
+            "while loading %s.\n",
+            calculated_max_animations,
+            INT_MAX,
+            filename
+        );
+    }
+
+    max_animations = (int)calculated_max_animations;
 
     // alloc indexed animation ids
-    animdowns = malloc(sizeof(*animdowns) * max_downs);
-    animups = malloc(sizeof(*animups) * max_ups);
-    animbackwalks = malloc(sizeof(*animbackwalks) * max_backwalks);
-    animwalks = malloc(sizeof(*animwalks) * max_walks);
-    animidles = malloc(sizeof(*animidles) * max_idles);
-    animpains = malloc(sizeof(*animpains) * max_attack_types);
-    animbackpains = malloc(sizeof(*animbackpains) * max_attack_types);
-    animdies = malloc(sizeof(*animdies) * max_attack_types);
-    animbackdies = malloc(sizeof(*animbackdies) * max_attack_types);
-    animfalls = malloc(sizeof(*animfalls) * max_attack_types);
-    animbackfalls = malloc(sizeof(*animbackfalls) * max_attack_types);
-    animrises = malloc(sizeof(*animrises) * max_attack_types);
-    animbackrises = malloc(sizeof(*animbackrises) * max_attack_types);
-    animriseattacks = malloc(sizeof(*animriseattacks) * max_attack_types);
-    animbackriseattacks = malloc(sizeof(*animbackriseattacks) * max_attack_types);
-    animblkpains = malloc(sizeof(*animblkpains) * max_attack_types);
-    animbackblkpains = malloc(sizeof(*animbackblkpains) * max_attack_types);
-    animattacks = malloc(sizeof(*animattacks) * max_attacks);
-    animfollows = malloc(sizeof(*animfollows) * max_follows);
-    animspecials = malloc(sizeof(*animspecials) * max_freespecials);
+    animdowns = model_constant_array_allocate((size_t)max_downs, sizeof(*animdowns), "down animation identifiers", filename);
+    animups = model_constant_array_allocate((size_t)max_ups, sizeof(*animups), "up animation identifiers", filename);
+    animbackwalks = model_constant_array_allocate((size_t)max_backwalks, sizeof(*animbackwalks), "backwalk animation identifiers", filename);
+    animwalks = model_constant_array_allocate((size_t)max_walks, sizeof(*animwalks), "walk animation identifiers", filename);
+    animidles = model_constant_array_allocate((size_t)max_idles, sizeof(*animidles), "idle animation identifiers", filename);
+    animpains = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animpains), "pain animation identifiers", filename);
+    animbackpains = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animbackpains), "back-pain animation identifiers", filename);
+    animdies = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animdies), "death animation identifiers", filename);
+    animbackdies = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animbackdies), "back-death animation identifiers", filename);
+    animfalls = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animfalls), "fall animation identifiers", filename);
+    animbackfalls = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animbackfalls), "back-fall animation identifiers", filename);
+    animrises = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animrises), "rise animation identifiers", filename);
+    animbackrises = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animbackrises), "back-rise animation identifiers", filename);
+    animriseattacks = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animriseattacks), "rise-attack animation identifiers", filename);
+    animbackriseattacks = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animbackriseattacks), "back-rise-attack animation identifiers", filename);
+    animblkpains = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animblkpains), "block-pain animation identifiers", filename);
+    animbackblkpains = model_constant_array_allocate((size_t)max_attack_types, sizeof(*animbackblkpains), "back-block-pain animation identifiers", filename);
+    animattacks = model_constant_array_allocate((size_t)max_attacks, sizeof(*animattacks), "attack animation identifiers", filename);
+    animfollows = model_constant_array_allocate((size_t)max_follows, sizeof(*animfollows), "follow animation identifiers", filename);
+    animspecials = model_constant_array_allocate((size_t)max_freespecials, sizeof(*animspecials), "freespecial animation identifiers", filename);
+    ai_attack_choice_capacity = (size_t)max_animations;
+    ai_attack_choices = model_constant_array_allocate(ai_attack_choice_capacity, sizeof(*ai_attack_choices), "AI attack-choice table", filename);
 
     // copy default values and new animation ids
     memcpy(animdowns, downs, sizeof(*animdowns)*MAX_DOWNS);
@@ -32247,6 +32718,30 @@ void upper_prepare()
     }
 }
 
+/*
+* Add one animation to the temporary AI attack-choice
+* table. A capacity failure is fatal because continuing
+* would overwrite unrelated memory.
+*/
+static void ai_attack_choice_append(int* choice_count, const int animation)
+{
+    if(!choice_count
+        || *choice_count < 0
+        || !ai_attack_choices
+        || (size_t)*choice_count >= ai_attack_choice_capacity) {
+        borShutdown(
+            1,
+            "AI attack-choice table exceeds its capacity of %zu animations.\n",
+            ai_attack_choice_capacity
+        );
+
+        return;
+    }
+
+    ai_attack_choices[*choice_count] = animation;
+    (*choice_count)++;
+}
+
 void normal_prepare()
 {
     int i, j;
@@ -32304,12 +32799,12 @@ void normal_prepare()
                  check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
                 check_range_target_all(self, target, animspecials[i], 0, 0))
         {
-            atkchoices[found++] = animspecials[i];
+            ai_attack_choice_append(&found, animspecials[i]);
         }
     }
     if((rand32() & 7) < 2)
     {
-        if(found && check_costmove(atkchoices[(rand32() & 0xffff) % found], 1, 0) )
+        if(found && check_costmove(ai_attack_choices[(rand32() & 0xffff) % found], 1, 0) )
         {
             return;
         }
@@ -32342,7 +32837,7 @@ void normal_prepare()
                 // 6 5 4 3 2 1 1 1 1 1 ....
                 for(j = ((5 - i) >= 0 ? (5 - i) : 0); j >= 0; j--)
                 {
-                    atkchoices[found++] = animattacks[i];
+                    ai_attack_choice_append(&found, animattacks[i]);
                 }
             }
         }
@@ -32350,13 +32845,13 @@ void normal_prepare()
         {
             self->takeaction = common_attack_proc;
             set_attacking(self);
-            ent_set_anim(self, atkchoices[special + (rand32() & 0xffff) % (found - special)], 0);
+            ent_set_anim(self, ai_attack_choices[special + (rand32() & 0xffff) % (found - special)], 0);
             return;
         }
     }
 
     // if no attack was picked, just choose a random one from the valid list
-    if(special && check_costmove(atkchoices[(rand32() & 0xffff) % special], 1, 0))
+    if(special && check_costmove(ai_attack_choices[(rand32() & 0xffff) % special], 1, 0))
     {
         return;
     }
@@ -36048,7 +36543,7 @@ int pick_random_attack(entity *target, int testonly)
         {
             for(j = ((5 - i) >= 0 ? (5 - i) : 0) * 3; j >= 0; j--)
             {
-                atkchoices[found++] = animattacks[i];
+                ai_attack_choice_append(&found, animattacks[i]);
             }
         }
     }
@@ -36059,21 +36554,21 @@ int pick_random_attack(entity *target, int testonly)
                  check_energy(ENERGY_TYPE_HP, animspecials[i])) &&
                 (!target || check_range_target_all(self, target, animspecials[i], 0, 0)))
         {
-            atkchoices[found++] = animspecials[i];
+            ai_attack_choice_append(&found, animspecials[i]);
         }
     }
     if( validanim(self, ANI_THROWATTACK) &&
             self->weapent && self->weapent->modeldata.subtype == SUBTYPE_PROJECTILE &&
             (!target || check_range_target_all(self, target, ANI_THROWATTACK, 0, 0) ))
     {
-        atkchoices[found++] = ANI_THROWATTACK;
+        ai_attack_choice_append(&found, ANI_THROWATTACK);
     }
 
     if(testonly)
     {
         if(found)
         {
-            return atkchoices[(rand32() & 0xffff) % found];
+            return ai_attack_choices[(rand32() & 0xffff) % found];
         }
         return -1;
     }
@@ -36085,7 +36580,7 @@ int pick_random_attack(entity *target, int testonly)
         {
             return ANI_JUMPATTACK;
         }
-        atkchoices[found++] = ANI_JUMPATTACK;
+        ai_attack_choice_append(&found, ANI_JUMPATTACK);
     }
     if( validanim(self, ANI_UPPER) &&
             (!target || check_range_target_all(self, target, ANI_UPPER, 0, 0)) )
@@ -36094,12 +36589,12 @@ int pick_random_attack(entity *target, int testonly)
         {
             return ANI_UPPER;
         }
-        atkchoices[found++] = ANI_UPPER;
+        ai_attack_choice_append(&found, ANI_UPPER);
     }
 
     if(found)
     {
-        return atkchoices[(rand32() & 0xffff) % found];
+        return ai_attack_choices[(rand32() & 0xffff) % found];
     }
 
     return -1;
@@ -42589,6 +43084,79 @@ static bool match_combo(const key_mask_t sequence[], const s_player* acting_play
 }
 
 /*
+* Return the grace time used by one configurable command
+* sequence. Commands without an explicit override inherit
+* the engine-wide setting at match time.
+*/
+static uint64_t command_sequence_grace_time_get(
+    const s_com* special_command
+) {
+    assert(special_command);
+
+    return special_command->sequence_grace_time_override
+        ? special_command->sequence_grace_time
+        : global_config.command_time;
+}
+
+/*
+* Return the longest grace time needed by the acting
+* entity's configurable and hard-coded commands.
+*
+* Input history is shared by every command. Retaining it
+* for the longest configured grace prevents a command
+* with a longer local override from losing its earlier
+* steps to the global history timeout.
+*/
+static uint64_t command_input_history_grace_time_get(
+    const entity* acting_entity
+) {
+    uint64_t history_grace_time = global_config.command_time;
+
+    int special_index;
+
+    if(!acting_entity) {
+        return history_grace_time;
+    }
+
+    for(special_index = 0;
+        special_index < acting_entity->modeldata.specials_loaded;
+        special_index++) {
+
+        const s_com* special_command =
+            &acting_entity->modeldata.special[special_index];
+
+        const uint64_t sequence_grace_time =
+            command_sequence_grace_time_get(special_command);
+
+        if(sequence_grace_time > history_grace_time) {
+            history_grace_time = sequence_grace_time;
+        }
+    }
+
+    return history_grace_time;
+}
+
+/*
+* Return the absolute logical tick when shared command
+* history expires. Saturation preserves extremely large
+* creator-defined grace values without wrapping the
+* expiration time around to the beginning of the clock.
+*/
+static uint64_t command_input_history_expiration_time_get(
+    const entity* acting_entity,
+    const uint64_t event_time
+) {
+    const uint64_t history_grace_time =
+        command_input_history_grace_time_get(acting_entity);
+
+    if(history_grace_time > UINT64_MAX - event_time) {
+        return UINT64_MAX;
+    }
+
+    return event_time + history_grace_time;
+}
+
+/*
 * Return whether an input event satisfies the positive
 * edge requirement for one configurable command step.
 *
@@ -42774,6 +43342,7 @@ static bool match_special_command(
     const s_command_input_step sequence[],
     const s_player* acting_player,
     const uint64_t length,
+    const uint64_t sequence_grace_time,
     uint64_t* match_time,
     uint64_t* match_age
 ) {
@@ -42825,7 +43394,7 @@ static bool match_special_command(
             || (input_event->hold & input_step->hold_trigger)
                 != input_step->hold_trigger
             || newer_event_time - input_event->time
-                > global_config.command_time
+                > sequence_grace_time
             || !command_input_event_matches_hold(
                 input_step,
                 input_event,
@@ -42884,12 +43453,16 @@ bool check_combo(s_player* acting_player) {
             uint64_t command_match_age;
             uint64_t command_match_time;
 
+            const uint64_t sequence_grace_time =
+                command_sequence_grace_time_get(com);
+
             if(validanim(self, com->anim)
             && (check_energy(ENERGY_TYPE_MP, com->anim) || check_energy(ENERGY_TYPE_HP, com->anim))
             && match_special_command(
                 com->input,
                 acting_player,
                 com->steps,
+                sequence_grace_time,
                 &command_match_time,
                 &command_match_age
             )) {
@@ -47384,7 +47957,11 @@ void inputrefresh(int playrecmode) {
                 command_input_history_push(acting_player, &input_event);
 
                 if(acting_player->ent) {
-                    acting_player->ent->command_time = _time + global_config.command_time;
+                    acting_player->ent->command_time =
+                        command_input_history_expiration_time_get(
+                            acting_player->ent,
+                            input_event.time
+                        );
                 }
             }
 

@@ -2996,6 +2996,8 @@ typedef struct s_command_input_event
 typedef struct
 {
     s_command_input_step input[MAX_SPECIAL_INPUTS];
+    uint64_t sequence_grace_time; // Optional logical ticks allowed between sequence steps.
+    bool sequence_grace_time_override; // Use sequence_grace_time instead of the global default.
     int steps;
     int numkeys; // num keys pressed
     int anim;
@@ -3705,7 +3707,7 @@ typedef struct entity
 	uint64_t			    knockdowntime;						// When knockdown count is expired. ~~
 	uint64_t			    magictime;							// Next time to auto adjust MP. ~~
 	uint64_t			    maptime;							// When forcemap expires. ~~
-	uint64_t			    command_time;						// For special moves. Grace time between player inputs. ~~
+	uint64_t			    command_time;						// Absolute tick when shared command input history expires. ~~
 	uint64_t			    mpchargetime;						// Next recharge tick when in the CHARGE animation. ~~
 	uint64_t			    next_hit_time;						// When temporary invincibility after getting hit expires. ~~
 	uint64_t			    nextanim;							// Time for next frame (or to mark animation finished). ~~
