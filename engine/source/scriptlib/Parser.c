@@ -934,19 +934,20 @@ void Parser_Iter_stmt(Parser *pparser )
     {
         Parser_Match(pparser);
         Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, startLabel );
-        Stack_Push(&(pparser->LabelStack), startLabel ); //*****
+        Stack_Push(&(pparser->LabelStack), continueLabel ); //***** (continue jumps to condition check, not body start)
         Stack_Push(&(pparser->LabelStack), endLabel ); //*****
         Parser_Stmt(pparser );
+        Stack_Pop(&(pparser->LabelStack)); //*****
+        Stack_Pop(&(pparser->LabelStack)); //*****
         Parser_Check(pparser, TOKEN_WHILE );
         Parser_Match(pparser);
         Parser_Check(pparser, TOKEN_LPAREN );
         Parser_Match(pparser);
+        Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, continueLabel ); // continue target: before condition
         Parser_Expr(pparser );
         Parser_Check(pparser, TOKEN_RPAREN );
         Parser_AddInstructionViaLabel(pparser, Branch_TRUE, startLabel, NULL );
         Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, endLabel );
-        Stack_Pop(&(pparser->LabelStack)); //*****
-        Stack_Pop(&(pparser->LabelStack)); //*****
         Parser_Match(pparser);
         Parser_Check(pparser, TOKEN_SEMICOLON );
         Parser_Match(pparser);
