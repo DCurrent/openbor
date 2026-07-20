@@ -1098,7 +1098,7 @@ static const char *svlist[] =
     "player2",
     "player3",
     "player4",
-    "players",
+    "player_collection",
     "player_max_z",
     "player_min_z",
     "porting",
@@ -9114,7 +9114,7 @@ int getsyspropertybyindex(ScriptVariant *var, int index)
         var->ptrVal = player + 3;
         break;
 
-    case SYSTEM_PROPERTY_PLAYERS:
+    case SYSTEM_PROPERTY_PLAYER_COLLECTION:
 
         ScriptVariant_ChangeType(var, VT_PTR);
         var->ptrVal = &player;
