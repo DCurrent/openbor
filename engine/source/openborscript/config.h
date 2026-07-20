@@ -16,6 +16,7 @@
 #include "audio.h"
 #include "axis.h"
 #include "binding.h"
+#include "command_input.h"
 #include "datetime.h"
 #include "drawmethod.h"
 #include "colorset.h"

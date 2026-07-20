@@ -284,6 +284,30 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "getplayerproperty";
     }
+    else if (functionRef == ((void *)openbor_get_command_input_event_object))
+    {
+        return "get_command_input_event_object";
+    }
+    else if (functionRef == ((void *)openbor_get_command_input_event_property))
+    {
+        return "get_command_input_event_property";
+    }
+    else if (functionRef == ((void *)openbor_set_command_input_event_property))
+    {
+        return "set_command_input_event_property";
+    }
+    else if (functionRef == ((void *)openbor_get_command_input_step_object))
+    {
+        return "get_command_input_step_object";
+    }
+    else if (functionRef == ((void *)openbor_get_command_input_step_property))
+    {
+        return "get_command_input_step_property";
+    }
+    else if (functionRef == ((void *)openbor_set_command_input_step_property))
+    {
+        return "set_command_input_step_property";
+    }
     else if (functionRef == ((void *)openbor_changeentityproperty))
     {
         return "changeentityproperty";
@@ -1325,6 +1349,38 @@ void Script_LoadSystemFunctions()
         (void*)openbor_load_palette, "load_palette");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_getplayerproperty, "getplayerproperty");
+
+    /* Command input history and configurable command steps. */
+    List_InsertAfter(
+        &theFunctionList,
+        (void*)openbor_get_command_input_event_object,
+        "get_command_input_event_object"
+    );
+    List_InsertAfter(
+        &theFunctionList,
+        (void*)openbor_get_command_input_event_property,
+        "get_command_input_event_property"
+    );
+    List_InsertAfter(
+        &theFunctionList,
+        (void*)openbor_set_command_input_event_property,
+        "set_command_input_event_property"
+    );
+    List_InsertAfter(
+        &theFunctionList,
+        (void*)openbor_get_command_input_step_object,
+        "get_command_input_step_object"
+    );
+    List_InsertAfter(
+        &theFunctionList,
+        (void*)openbor_get_command_input_step_property,
+        "get_command_input_step_property"
+    );
+    List_InsertAfter(
+        &theFunctionList,
+        (void*)openbor_set_command_input_step_property,
+        "set_command_input_step_property"
+    );
     
 	// Animation properties.
 	List_InsertAfter(&theFunctionList,
@@ -1714,4 +1770,3 @@ void Script_LoadSystemFunctions()
     //printf("Done!\n");
 
 }
-
