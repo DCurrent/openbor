@@ -494,7 +494,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_OFFENSE_DAMAGE_ADJUST, "offense.damage.adjust");
     LIST_ADD(CMD_MODEL_OFFENSE_DAMAGE_MAX, "offense.damage.max");
     LIST_ADD(CMD_MODEL_OFFENSE_DAMAGE_MIN, "offense.damage.min");
-    LIST_ADD(CMD_MODEL_OFFENSE_FACTOR, "offense.factor");
+    LIST_ADD(CMD_MODEL_OFFENSE_FACTOR, "offense.damage.factor");
     LIST_ADD(CMD_MODEL_OFFSCREENKILL, "offscreenkill");
     LIST_ADD(CMD_MODEL_ONAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODEL_OFFSET, "offset");

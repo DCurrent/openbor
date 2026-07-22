@@ -10010,7 +10010,7 @@ void recursive_entity_effect_update(entity* acting_entity) {
             attack.meta_tag = snapshot.meta_tag;
 
             defense_object = defense_find_current_object(acting_entity, NULL, attack.attack_type);
-            calculated_force = calculate_force_damage(acting_entity, snapshot.owner, &attack, defense_object);
+            calculated_force = calculate_force_damage(acting_entity, snapshot.owner, &attack, defense_object, FALSE);
 
             /*
             * Force is sufficient to KO target. Do we have 
@@ -28215,7 +28215,7 @@ int check_counter_condition(entity* target, entity* attacker, s_attack* attack_o
 	}
 
 	/* Vs.lethal / non - lethal damage. */
-	force = calculate_force_damage(target, attacker, attack_object, defense_object);
+	force = calculate_force_damage(target, attacker, attack_object, defense_object, FALSE);
 
 	if (counter->condition & COUNTER_ACTION_CONDITION_DAMAGE_LETHAL_FALSE)
 	{
@@ -28326,7 +28326,7 @@ int try_counter_action(entity* target, entity* attacker, s_attack* attack_object
 		/* We need the real damage. */
         defense_object = defense_find_current_object(target, body_object, attack_object->attack_type);
 
-		force = calculate_force_damage(target, attacker, attack_object, defense_object);
+		force = calculate_force_damage(target, attacker, attack_object, defense_object, FALSE);
 
 		/* Revert lethal damage to 1. */
 		if (target->energy_state.health_current - force <= 0)
@@ -28876,10 +28876,10 @@ void do_attack(entity *attacking_entity)
 		* Added checks for defense property specific blockratio and type. 
 		* Could probably use some cleaning.
         */
-        if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON)
-        {
-            /* Gets total force after defense adjustments. */
-            force = defense_result_damage(defense_object, force, 1);            
+        if(didblock && level->nohurt == DAMAGE_FROM_ENEMY_ON) {
+            
+            /* Gets total force after offense and defense adjustments. */
+            force = calculate_force_damage(def, attacking_entity, attack, defense_object, true);
             
             /*
             * Handle block type. Global blocktype is a 
@@ -28892,17 +28892,14 @@ void do_attack(entity *attacking_entity)
             * False = HP.
             */
 
-            if (defense_object->blocktype == BLOCK_TYPE_GLOBAL)
-            {
+            if (defense_object->blocktype == BLOCK_TYPE_GLOBAL) {
                 blocktype = global_config.block_type ? BLOCK_TYPE_MP_FIRST : BLOCK_TYPE_HP;
-            }
-            else
-            {
+            
+            } else {
                 blocktype = defense_object->blocktype;
             }
 
-            switch (blocktype)
-            {
+            switch (blocktype) {
                 case BLOCK_TYPE_GLOBAL:
                 case BLOCK_TYPE_HP:
                     /* 
@@ -28916,8 +28913,7 @@ void do_attack(entity *attacking_entity)
                     def->energy_state.mp_current -= force;
                     force = 0;
 
-                    if(def->energy_state.mp_current < 0)
-                    {
+                    if(def->energy_state.mp_current < 0) {
                         def->energy_state.mp_current = 0;
                     }
 
@@ -28931,13 +28927,11 @@ void do_attack(entity *attacking_entity)
                     * If there isn't enough MP to cover force, subtract remaining 
 					* MP from force and set MP to 0.
                     */
-                    if(def->energy_state.mp_current < 0)
-                    {
+                    if(def->energy_state.mp_current < 0) {
                         force = -def->energy_state.mp_current;
                         def->energy_state.mp_current = 0;
-                    }
-                    else
-                    {
+                    
+                    } else {
                         force = 0;
                     }
 
@@ -28947,8 +28941,7 @@ void do_attack(entity *attacking_entity)
 
                     def->energy_state.mp_current -= force;
 
-                    if(def->energy_state.mp_current < 0)
-                    {
+                    if(def->energy_state.mp_current < 0) {
                         def->energy_state.mp_current = 0;
                     }
 
@@ -28967,16 +28960,11 @@ void do_attack(entity *attacking_entity)
 			// 3. Damage force > HP, chip death is allowed - Set take 
 			// damage so engine will apply damage normally and KO the 
 			// entity.
-            if(force < def->energy_state.health_current)
-            {
+            if(force < def->energy_state.health_current) {
                 def->energy_state.health_current -= force;
-            }
-            else if(nochipdeath)
-            {
+            } else if(nochipdeath) {
                 def->energy_state.health_current = 1;
-            }
-            else
-            {
+            } else {
                 temp = self;
                 self = def;
                 self->takedamage(attacking_entity, attack, 0, defense_object);
@@ -35782,7 +35770,7 @@ void offense_setup_from_arg(
 * 2023-02-07
 *
 * Applies value to an attack type element
-* of defense.
+* of offense.
 */
 void offense_apply_setup_to_property(char* filename, char* command, s_offense* offense, ArgList* arglist, e_offense_parameters target_parameter)
 {
@@ -35791,8 +35779,7 @@ void offense_apply_setup_to_property(char* filename, char* command, s_offense* o
     * get out before we cause a NULL pointer
     * error
     */
-    if (!offense)
-    {
+    if (!offense) {
         return;
     }
 
@@ -35807,30 +35794,29 @@ void offense_apply_setup_to_property(char* filename, char* command, s_offense* o
     * but it still beats the legacy method.
     */
 
-    switch (target_parameter)
-    {
+    switch (target_parameter) {
     case OFFENSE_PARAMETER_DAMAGE_ADJUST:
-        offense->damage_adjust = GET_FLOAT_ARGP(2);
+        offense->damage_adjust = GET_INT_ARGP(2);
         break;
 
     case OFFENSE_PARAMETER_DAMAGE_MAX:
-        offense->damage_max = GET_FLOAT_ARGP(2);
+        offense->damage_max = GET_INT_ARGP(2);
         break;
 
     case OFFENSE_PARAMETER_DAMAGE_MIN:
-        offense->damage_min = GET_FLOAT_ARGP(2);
+        offense->damage_min = GET_INT_ARGP(2);
         break;
 
     case OFFENSE_PARAMETER_FACTOR:
     case OFFENSE_PARAMETER_LEGACY:
-        offense->factor = GET_INT_ARGP(2);
+        offense->factor = GET_FLOAT_ARGP(2);
         break;
     }
 }
 
-int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_object, s_defense* defense_object)
+int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_object, s_defense* defense_object, const bool blocked)
 {
-    //printf("\n\n calculate_force_damage(%p, %p, %p, %p)", target, attacker, attack_object, defense_object);
+    //printf("\n\n calculate_force_damage(%p, %p, %p, %p, %d)", target, attacker, attack_object, defense_object, blocked);
 
     int force = attack_object->attack_force;
     int type = attack_object->attack_type;
@@ -35851,15 +35837,22 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
         }
     }
 
-    if(target->modeldata.guardpoints > 0 && target->guardpoints <= 0)
-    {
-        return 0;    //guardbreak does not deal damage.
+    /*
+    * Guard-break damage paths do not deal damage. This 
+    * matches typical fighting game behavior where guard-breaks 
+    * are meant to open up the opponent for follow-up attacks, 
+    * not to inflict damage directly.
+    */
+    if(!blocked && target->modeldata.guardpoints > 0 && target->guardpoints <= 0){
+        return 0;    
     }
 
     //printf("\n\t force: %d", force);
 
-    if(type >= 0 && type < max_attack_types && attacker->offense)
-    {
+    /*
+    * Apply the attacker's offense first.
+    */
+    if(type >= 0 && type < max_attack_types && attacker->offense) {
         force = offense_result_damage(&attacker->offense[type], force);
     }
 
@@ -35867,12 +35860,18 @@ int calculate_force_damage(entity *target, entity *attacker, s_attack *attack_ob
     //printf("\n\t defense_object: %p", defense_object);
     //printf("\n\t defense_object->factor: %f", defense_object->factor);
 
-    if (!defense_object)
-    {
+    /*
+    * If we are not supplied a defense object, then we will 
+    * use the target's defense property. This allows us to
+    * use defense from a body object if we have one, or fall 
+    * back to model level defense if we don't.
+    */
+
+    if (!defense_object) {
         defense_object = target->defense;
     }
 
-    force = defense_result_damage(defense_object, force, 0);
+    force = defense_result_damage(defense_object, force, blocked);
 
     //printf("\n\t force: %d", force);
 
@@ -36140,7 +36139,7 @@ void checkdamage(entity* target_entity, entity* attacking_entity, s_attack* atta
 	int	normal_damage = 0;    
 
 	/* Get attack damage force after defense is applied. */
-    force = calculate_force_damage(target_entity, attacking_entity, attack_object, defense_object);
+    force = calculate_force_damage(target_entity, attacking_entity, attack_object, defense_object, FALSE);
 
     /*
 	* Damage does not return HP and comes from

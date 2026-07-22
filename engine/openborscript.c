@@ -11005,12 +11005,14 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
 {
     entity *defender = NULL;
     entity *attacker = NULL;
-    LONG force, drop, type;
+    LONG force;
+    LONG drop;
+    LONG type;
+    LONG block;
     s_attack atk = emptyattack;
     s_defense* defense_object = NULL;
 
-    if(paramCount < 3)
-    {
+    if(paramCount < 3) {
         printf("Function requires at least 3 parameters.\n");
         goto gcd_error;
     }
@@ -11021,46 +11023,47 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     force = (LONG)0;
     drop = (LONG)0;
     type = (LONG)ATK_NORMAL;
+    block = (LONG)0;
 
     defender = (entity *)(varlist[0])->ptrVal; //retrieve the entity
-    if(!defender)
-    {
+    if(!defender) {
         printf("Invalid entity parameter.\n");
         goto gcd_error;
     }
 
-    if(varlist[1]->ptrVal)
-    {
+    if(varlist[1]->ptrVal) {
         attacker = (entity *)(varlist[1])->ptrVal;
     }
 
-    if(FAILED(ScriptVariant_IntegerValue((varlist[2]), &force)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue((varlist[2]), &force))) {
         printf("Wrong force value.\n");
         goto gcd_error;
     }
 
-    if(paramCount >= 4)
-    {
-        if(FAILED(ScriptVariant_IntegerValue((varlist[3]), &drop)))
-        {
+    if(paramCount >= 4) {
+        if(FAILED(ScriptVariant_IntegerValue((varlist[3]), &drop))) {
             printf("Wrong drop value.\n");
             goto gcd_error;
         }
     }
-    if(paramCount >= 5)
-    {
-        if(FAILED(ScriptVariant_IntegerValue((varlist[4]), &type)))
-        {
+
+    if(paramCount >= 5) {
+        if(FAILED(ScriptVariant_IntegerValue((varlist[4]), &type))) {
             printf("Wrong type value.\n");
+            goto gcd_error;
+        }
+    }
+
+    if(paramCount >= 6) {
+        if(FAILED(ScriptVariant_IntegerValue((varlist[5]), &block))) {
+            printf("Wrong block value.\n");
             goto gcd_error;
         }
     }
 
     atk.attack_force = force;
     atk.attack_drop = drop;
-    if(drop)
-    {
+    if(drop) {
         atk.dropv.y = (float)DEFAULT_ATK_DROPV_Y;
         atk.dropv.x = (float)DEFAULT_ATK_DROPV_X;
         atk.dropv.z = (float)DEFAULT_ATK_DROPV_Z;
@@ -11077,9 +11080,10 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     * model level defense, and ignoring any body box 
     * defense properties. 
     */
-    defense_object = defense_find_current_object(defender, NULL, attack.attack_type);
+    defense_object = defense_find_current_object(defender, NULL, atk.attack_type);
 
-    (*pretvar)->lVal = (LONG)calculate_force_damage(defender, attacker, &atk, defense_object);
+    bool is_blocked = (block != 0) ? true : false;
+    (*pretvar)->lVal = (LONG)calculate_force_damage(defender, attacker, &atk, defense_object, is_blocked);
 
     return S_OK;
 

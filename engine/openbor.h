@@ -4136,7 +4136,7 @@ int is_frozen(entity *e);
 void unfrozen(entity *e);
 
 /* Defense. */
-int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object);
+int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, s_defense* defense_object, const bool blocked);
 s_defense* defense_allocate_object(void);
 void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 void defense_dump_object(s_defense* target);
