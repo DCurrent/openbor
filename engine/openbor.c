@@ -27449,8 +27449,7 @@ void do_active_block(entity *ent)
 * guard break, attack type vs. defense, and
 * so on. It does not handle rules for AI blocking.
 */
-int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body) 
-{
+bool check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body) {
     s_defense* defense_object = NULL;
     int temp_block_threshold = 0;
      
@@ -27459,18 +27458,15 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 	* This is to avoid the entity to block while in other animations like RISE, PAIN or WALK.
 	*/
 
-	if (!ent->blocking)
-	{
-		return 0;
+	if (!ent->blocking)	{
+		return false;
 	}
 
 	/* If guardpoints are set, then find out if they've been depleted. */
 	
-    if (ent->modeldata.guardpoints)
-	{
-		if (ent->guardpoints <= 0)
-		{
-			return 0;
+    if (ent->modeldata.guardpoints)	{
+		if (ent->guardpoints <= 0) {
+			return false;
 		}
 	}
     
@@ -27479,11 +27475,9 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 	* we don't have block back flag enabled.
 	*/
     
-    if (ent->direction == other->direction)
-	{
-		if (!(ent->modeldata.block_config_flags & BLOCK_CONFIG_BACK))
-		{
-			return 0;
+    if (ent->direction == other->direction)	{
+		if (!(ent->modeldata.block_config_flags & BLOCK_CONFIG_BACK)) {
+			return false;
 		}
 	}
         
@@ -27492,11 +27486,9 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 
     /* Attack block breaking exceeds block power? */
     
-    if (attack->no_block || defense_object->blockpower)
-    {
-        if (attack->no_block >= defense_object->blockpower)
-        {
-            return 0;
+    if (attack->no_block || defense_object->blockpower) {
+        if (attack->no_block >= defense_object->blockpower) {
+            return false;
         }
     }
 
@@ -27509,11 +27501,9 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 
     temp_block_threshold = ent->modeldata.thold + defense_object->blockthreshold;
 
-    if (temp_block_threshold)
-	{
-		if (temp_block_threshold > attack->attack_force)
-		{
-			return 0;
+    if (temp_block_threshold) {
+		if (temp_block_threshold > attack->attack_force) {
+			return false;
 		}
 	}
 
@@ -27522,7 +27512,7 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 	* attack can be blocked. Return true.
 	*/
 
-    return 1;
+    return true;
 }
 
 // Caskey, Damon V.
@@ -27531,59 +27521,50 @@ int check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body
 // Mandatory conditions the AI must pass before it
 // can decide to block. These are not rules for
 // blocking in general.
-int check_blocking_rules(entity *ent)
-{
+bool check_blocking_rules(entity *ent) {
 	// If already blocking we can
 	// forget the rest and return
 	// true right away.
-	if (ent->blocking)
-	{
-		return 1;
+	if (ent->blocking) {
+		return true;
 	}
 
 	// No blocking animation?
-	if (!validanim(ent, ANI_BLOCK))
-	{
-		return 0;
+	if (!validanim(ent, ANI_BLOCK))	{
+		return false;
 	}
 
 	// Have to be idle.
-	if (!ent->idling)
-	{
-		return 0;
+	if (!ent->idling) {
+		return false;
 	}
 
 	// AI can't be attacking.
-	if (ent->attacking == ATTACKING_ACTIVE)
-	{
-		return 0;
+	if (ent->attacking == ATTACKING_ACTIVE)	{
+		return false;
 	}
 
 	// Grappling?
-	if (ent->link)
-	{
-		return 0;
+	if (ent->link) {
+		return false;
 	}
 
 	//  Airborne?
-	if (inair(ent))
-	{
-		return 0;
+	if (inair(ent))	{
+		return false;
 	}
 
 	// Frozen?
-	if (ent->frozen)
-	{
-		return 0;
+	if (ent->frozen) {
+		return false;
 	}
 
 	// Falling?
-	if (ent->falling)
-	{
-		return 0;
+	if (ent->falling) {
+		return false;
 	}
 
-	return 1;
+	return true;
 }
 
 // Caskey, Damon V.
@@ -27592,16 +27573,14 @@ int check_blocking_rules(entity *ent)
 // AI blocking decision. Handles AI's chances
 // to block. Returns true if AI chooses to attempt 
 // a block.
-int check_blocking_decision(entity *ent)
-{
+bool check_blocking_decision(entity *ent) {
+
 	// If we have active block enabled and we're
 	// already blocking, then we want the AI to
 	// keep blocking (like most players would).
-	if (ent->modeldata.block_config_flags & BLOCK_CONFIG_ACTIVE)
-	{
-		if (ent->blocking)
-		{
-			return 1;
+	if (ent->modeldata.block_config_flags & BLOCK_CONFIG_ACTIVE) {
+		if (ent->blocking) {
+			return true;
 		}
 	}
 
@@ -27609,14 +27588,13 @@ int check_blocking_decision(entity *ent)
 	// Now it works as intended (1 = block all / 2147483647 = never block)
 	// Run random chance against blockodds. If it
 	// passes, AI will block.
-	if ((rand32()&ent->modeldata.blockodds) == 0)
-	{
-		return 1;
+	if ((rand32()&ent->modeldata.blockodds) == 0) {
+		return true;
 	}
 
 	// If we got this far, we never decided to
 	// block, so return false.
-	return 0;
+	return false;
 }
 
 // Caskey, Damon V.
@@ -27624,60 +27602,52 @@ int check_blocking_decision(entity *ent)
 //
 // Runs all blocking conditions and returns true
 // if the attack should be blocked.
-int check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body *body)
-{
+bool check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body *body) {
 	e_entity_type entity_type;
 
 	entity_type = ent->modeldata.type;
 
-    if (ent->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED)
-    {
-        return 0;
+    if (ent->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED) {
+        return false;
     }
 
 	// Check AI or player blocking rules.
-	if (entity_type & TYPE_PLAYER)
-	{
+	if (entity_type & TYPE_PLAYER)	{
 		// For players, all we need to know is if they
 		// are in a blocking state. If not we exit.
-		if (!ent->blocking)
-		{
-			return 0;
+		if (!ent->blocking) {
+			return false;
 		}
 
 		// Verify entity can block the attack at all.
-		if (!check_blocking_eligible(ent, other, attack, body))
-		{
-			return 0;
+		if (!check_blocking_eligible(ent, other, attack, body)) {
+			return false;
 		}
-	}
-	else
-	{
+	
+    } else {
+
 		// AI must pass a series of conditions
 		// before it may block attacks.
-		if (!check_blocking_rules(ent))
-		{
-			return 0;
+		if (!check_blocking_rules(ent)) {
+			return false;
 		}
 
 		// Now that we know AI is allowed
 		// to block let's find out if it
 		// wants to.
-		if (!check_blocking_decision(ent))
-		{
-			return 0;
+		if (!check_blocking_decision(ent)) {
+			return false;
 		}
 
 		// Verify entity can block the attack at all.
-		if (!check_blocking_eligible(ent, other, attack, body))
-		{
-			return 0;
+		if (!check_blocking_eligible(ent, other, attack, body))	{
+			return false;
 		}
 	}
 
 	// Looks like we made it through
 	// all the verifications. Return true.
-	return 1;
+	return true;
 }
 
 /* 
@@ -27722,16 +27692,15 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 // Verify entity has blockpain and that attack
 // should trigger it.
 // Kratus (01-2024) Minor fix in the blockpain flag check (inverted)
-int check_blocking_pain(entity *ent, s_attack *attack)
-{
-	// If blockpain is greater than attack
+bool check_blocking_pain(const entity *ent, const s_attack *attack) {
+	
+    // If blockpain is greater than attack
 	// force, we don't apply it.
-	if (attack->attack_force >= self->modeldata.blockpain)
-	{
-		return 1;
+	if (attack->attack_force >= ent->modeldata.blockpain) {
+		return false;
 	}
 
-	return 0;
+	return true;
 }
 
 // Caskey, Damon V.
@@ -27744,7 +27713,7 @@ void set_blocking_animation(entity *ent, s_attack *attack)
 	// apply it here.
 	if (check_blocking_pain(ent, attack))
 	{
-		set_blockpain(self, attack->attack_type, 1);
+		set_blockpain(ent, attack->attack_type, 1);
 	}
 	else
 	{
@@ -28343,8 +28312,8 @@ int try_counter_action(entity* target, entity* attacker, s_attack* attack_object
 	
     current_follow_id = animfollows[target->animation->followup.animation - 1];
 	
-    if (validanim(self, current_follow_id))
-	{
+    if (validanim(target, current_follow_id))
+    {
 		if (!target->modeldata.animation[current_follow_id]->attack_one)
 		{
 			target->modeldata.animation[current_follow_id]->attack_one = target->animation->attack_one;
@@ -28441,13 +28410,53 @@ int attack_id_check_match(entity* acting_entity, s_attack* attack_object, int at
     return 0;
 }
 
-void do_attack(entity *attacking_entity)
-{
+/*
+* Caskey, Damon V.
+* 2026-07-23
+*
+* Invoke an entity's legacy takedamage callback.
+*
+* Damage callbacks still obtain the entity receiving 
+* damage through the global self pointer. Keep that 
+* compatibility requirement isolated here so
+* callers can operate on explicit entity pointers 
+* without managing self.
+*/
+static int do_attack_invoke_takedamage(entity* target_entity, entity* attacking_entity, s_attack* attack_object, int fall_flag, s_defense* defense_object) {
+    entity* previous_self = self;
+    int result;
+
+    self = target_entity;
+    result = target_entity->takedamage(attacking_entity, attack_object, fall_flag, defense_object);
+    self = previous_self;
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-07-23
+*
+* Invoke legacy item collection with the 
+* collecting entity as self.
+*
+* didfind_item() does not yet accept the 
+* collector explicitly. Isolate that compatibility 
+*requirement here instead of exposing do_attack() to self.
+*/
+static void do_attack_invoke_didfind_item(entity* target_entity, entity* item_entity) {
+    entity* previous_self = self;
+
+    self = target_entity;
+    didfind_item(item_entity);
+    self = previous_self;
+}
+
+void do_attack(entity *attacking_entity) {
     int indirect = 0;
     int i = 0;
     int force = 0;
     e_blocktype blocktype       = BLOCK_TYPE_MP_FIRST;
-    entity* temp                = NULL;
     entity* def                 = NULL;
     entity* topowner            = NULL;
     entity* otherowner          = NULL;
@@ -28456,8 +28465,8 @@ void do_attack(entity *attacking_entity)
     s_attack* attack            = NULL;
     s_defense* defense_object = NULL;
     s_body* target_body_object  = NULL;
-    int didhit              = 0;
-    int didblock            = 0;    // So a different sound effect can be played when an attack is blocked
+    bool didhit              = false;  // So a different sound effect can be played when an attack hits
+    bool didblock            = false;    // So a different sound effect can be played when an attack is blocked
     int current_attack_id   = 0;
     //int hit_detected        = 0;    // Has a hit been detected?
 
@@ -28466,20 +28475,17 @@ void do_attack(entity *attacking_entity)
     static uint64_t new_attack_id = 1;
 
     // Can't get hit after this
-    if(level_completed)
-    {
+    if(level_completed) {
         return;
     }
 
     topowner = attacking_entity; // trace the top owner, for projectile combo checking :)
-    while(topowner->owner)
-    {
+    while(topowner->owner) {
         topowner = topowner->owner;
     }
 
 	// If any blast active, use indirect damage downstream.
-    if(attacking_entity->projectile != BLAST_NONE)
-    {
+    if(attacking_entity->projectile != BLAST_NONE) {
         indirect = 1;
     }
 
@@ -28487,11 +28493,9 @@ void do_attack(entity *attacking_entity)
     // gets hit more than once by the same attack
     current_attack_id = attacking_entity->attack_id_outgoing;
 
-    if(!current_attack_id)
-    {
+    if(!current_attack_id) {
         ++new_attack_id;
-        if(new_attack_id == 0)
-        {
+        if(new_attack_id == 0) {
             new_attack_id = 1;
         }
         attacking_entity->attack_id_outgoing = current_attack_id = new_attack_id;
@@ -28500,12 +28504,10 @@ void do_attack(entity *attacking_entity)
 
     current_anim = attacking_entity->animation;
 
-    for(i = 0; i < ent_max && !followed; i++)
-    {
+    for(i = 0; i < ent_max && !followed; i++) {
         target = ent_list[i];
 
-        if(!target->exists)
-        {
+        if(!target->exists) {
             continue;
         }
 
@@ -28514,8 +28516,7 @@ void do_attack(entity *attacking_entity)
         // collision pointers are also
         // populated into lasthit, which
         // we will use below.
-        if(!checkhit(attacking_entity, target))
-        {
+        if(!checkhit(attacking_entity, target)) {
             continue;
         }
                 
@@ -28525,8 +28526,7 @@ void do_attack(entity *attacking_entity)
         defense_object = defense_find_current_object(target, target_body_object, attack->attack_type);
 
         // Verify target is alive.
-        if(target->death_state & DEATH_STATE_DEAD)
-        {
+        if(target->death_state & DEATH_STATE_DEAD) {
             continue;
         }
 
@@ -28534,10 +28534,8 @@ void do_attack(entity *attacking_entity)
         // or attack type is an item.
         // This is to allow item collection
         // even while invincible.
-        if(target->invincible & INVINCIBLE_INTANGIBLE)
-        {
-            if(attack->attack_type != ATK_ITEM)
-            {
+        if(target->invincible & INVINCIBLE_INTANGIBLE) {
+            if(attack->attack_type != ATK_ITEM) {
                 continue;
             }
         }
@@ -28549,12 +28547,9 @@ void do_attack(entity *attacking_entity)
         // differs from current target,
         // then we are trying to hit
         // another entity and should exit.
-        if(current_anim->attack_one)
-        {
-            if(attacking_entity->lasthit)
-            {
-                if(target != attacking_entity->lasthit)
-                {
+        if(current_anim->attack_one) {
+            if(attacking_entity->lasthit) {
+                if(target != attacking_entity->lasthit) {
                     continue;
                 }
             }
@@ -28564,8 +28559,7 @@ void do_attack(entity *attacking_entity)
         * Verify this is a faction we
         * can hit.
         */
-        if (!faction_check_can_damage(attacking_entity, target, indirect))
-        {
+        if (!faction_check_can_damage(attacking_entity, target, indirect)) {
             continue;
         }        
 
@@ -28575,15 +28569,13 @@ void do_attack(entity *attacking_entity)
         * between hits so engine will not
         * run hit on every update.
         */
-        if(target->next_hit_time >= _time)
-        {
+        if(target->next_hit_time >= _time) {
             continue;
         }
 
         // Target takedamage flag
         // must be set.
-        if(!target->takedamage)
-        {
+        if(!target->takedamage) {
             continue;
         }
         
@@ -28595,8 +28587,10 @@ void do_attack(entity *attacking_entity)
         * Note that function includes exceptions for an attacks 
         * that ignore IDs and the global mutlihit cheat.
         */
-        if (attack_id_check_match(target, attack, current_attack_id, (global_config.cheats & CHEAT_OPTIONS_MULTIHIT_ACTIVE)))
-        {
+        const bool multihit_enabled = (global_config.cheats & CHEAT_OPTIONS_MULTIHIT_ACTIVE) != 0;
+        const bool attack_id_match = attack_id_check_match(target, attack, current_attack_id, multihit_enabled);
+
+        if(attack_id_match) {
             continue;
         }
 
@@ -28604,41 +28598,32 @@ void do_attack(entity *attacking_entity)
         // attack only hits standing targets.
 		// Otherwise exit if attack only hits 
 		// grounded targets.
-        if(target->takeaction == common_lie)
-        {
-            if(attack->otg == OTG_NONE)
-            {
+        if(target->takeaction == common_lie) {
+            if(attack->otg == OTG_NONE) {
                 continue;
             }
-        }
-		else
-		{
-            if(attack->otg == OTG_GROUND_ONLY)
-            {
+        
+        } else {
+            if(attack->otg == OTG_GROUND_ONLY) {
                 continue;
             }
         }    
 
         //printf("\n\n Check");
 
-        if(inair(target))
-        {
+        if(inair(target)) {
             //printf("\n\n In air. \n\t Jugglecost: %d \n\t Jugglepoints: %d", attack->jugglecost, target->jugglepoints);
 
-            if(attack->jugglecost > target->jugglepoints)
-            {
+            if(attack->jugglecost > target->jugglepoints) {
                 //printf("\n\n Continue.");
                 continue;
             }
         }
 
-        temp = self;
-        self = target;
-
         // Execute the doattack scripts so author can set take action
         // before the hit code below does.
-        execute_ondoattack_script(self, attacking_entity, attack, EXCHANGE_RECIPIANT, current_attack_id);
-        execute_ondoattack_script(attacking_entity, self, attack, EXCHANGE_CONFERRER, current_attack_id);
+        execute_ondoattack_script(target, attacking_entity, attack, EXCHANGE_RECIPIANT, current_attack_id);
+        execute_ondoattack_script(attacking_entity, target, attack, EXCHANGE_CONFERRER, current_attack_id);
 
         // 2010-12-31
         // Damon V. Caskey
@@ -28647,24 +28632,15 @@ void do_attack(entity *attacking_entity)
         // certainly with the ondoattack event scripts above. Skip the engine's
         // default hit handling below. Useful for scripting parry systems, alternate blocking,
         // or other custom collision events.
-        if(lasthit.confirm)
-        {
-            didhit = 1;
-        }
-        else
-        {
-            // By White Dragon
-            // This line: self = temp; is the fix for
-            // !lasthit.confirm bug. Without it when
-            // active lasthitc 0 the damagetaker has
-            // weird speedy effect.
-            self = temp;
+        if(lasthit.confirm) {
+            didhit = true;
+        
+        } else {
             continue;
         }
 
-        otherowner = self; // trace top owner for opponent
-        while(otherowner->owner)
-        {
+        otherowner = target; // trace top owner for opponent
+        while(otherowner->owner) {
             otherowner = otherowner->owner;
         }
 
@@ -28675,26 +28651,25 @@ void do_attack(entity *attacking_entity)
 		// projectile won't be able to hit its original owner. If they need to know the 
 		// original owner after changing the owner property, they can check the parent 
 		// property.
-		if(topowner == otherowner)
-        {
-            didhit = 0;
+		if(topowner == otherowner) {
+            didhit = false;
         }
 
         //Ground missle checking, and bullets wont hit each other
-        if( (attacking_entity->owner && self->owner) ||
-                (attacking_entity->modeldata.ground && inair(attacking_entity)))
-        {
-            didhit = 0;
+        
+        const bool both_owners_exist = attacking_entity->owner && target->owner;
+        const bool ground_attack_is_airborne = attacking_entity->modeldata.ground && inair(attacking_entity);
+
+        if(both_owners_exist || ground_attack_is_airborne) {
+            didhit = false;
         }
 
         // Blocking code section.
-        if(didhit)
-        {
-            if(attack->attack_type == ATK_ITEM)
-            {
-                do_item_script(self, attacking_entity);
+        if(didhit) {
+            if(attack->attack_type == ATK_ITEM) {
+                do_item_script(target, attacking_entity);
 
-                didfind_item(attacking_entity);
+                do_attack_invoke_didfind_item(target, attacking_entity);
                 return;
             }
             
@@ -28707,65 +28682,57 @@ void do_attack(entity *attacking_entity)
             * hits normally.
             */
 
-            if(self->toexplode & EXPLODE_PREPARE_TOUCH)
-            {
-                if (validanim(self, ANI_ATTACK2))
-                {
-                    self->toexplode |= EXPLODE_DETONATE_DAMAGED;
+            if(target->toexplode & EXPLODE_PREPARE_TOUCH) {
+                if (validanim(target, ANI_ATTACK2)) {
+                    target->toexplode |= EXPLODE_DETONATE_DAMAGED;
                 }
             }
            
-            if(attacking_entity->toexplode & EXPLODE_PREPARE_TOUCH)
-            {
+            if(attacking_entity->toexplode & EXPLODE_PREPARE_TOUCH) {
                 attacking_entity->toexplode |= EXPLODE_DETONATE_HIT;
             }
 
             /*
             * Reduce available juggle points.
             */
-            if(inair(self))
-            {
-                self->jugglepoints -= attack->jugglecost;
+            if(inair(target)) {
+                target->jugglepoints -= attack->jugglecost;
             }
 
-            didblock = check_blocking_master(self, attacking_entity, attack, target_body_object);
+            didblock = check_blocking_master(target, attacking_entity, attack, target_body_object);
 
             // Blocking the attack?
-            if(didblock)
-            {
+            if(didblock) {
                 // Perform the blocking actions.
-                do_passive_block(self, attacking_entity, attack);
-            }
-            // Counter the attack? 
-           	else if(try_counter_action(self, attacking_entity, attack, target_body_object))
-			{		
+                do_passive_block(target, attacking_entity, attack);
+            
+            } else if(try_counter_action(target, attacking_entity, attack, target_body_object)) {	// Counter action?
+
                 /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
-                attack_update_id(self, current_attack_id);
-            }
-            else if(self->takedamage(attacking_entity, attack, 0, defense_object))
-            {
+                attack_update_id(target, current_attack_id);
+            
+            } else if(do_attack_invoke_takedamage(target, attacking_entity, attack, 0, defense_object)) {
                 
 
-                // This is the block for normal hits. The
-                // hit was not blocked, countered, or
+                // This is the code block for normal hits. 
+                // The hit was not blocked, countered, or
                 // otherwise nullified, and this entity
                 // has takedamage() function. Let's
                 // process the hit.
 
-                execute_didhit_script(attacking_entity, self, attack, 0);
+                execute_didhit_script(attacking_entity, target, attack, 0);
                 ++attacking_entity->animation->hit_count;
 
-                attacking_entity->lasthit = self;
+                attacking_entity->lasthit = target;
 
                 // Flash spawn.
-                spawn_attack_flash(self, attack, attack->flash.model_hit, self->modeldata.flash.model_hit);
+                spawn_attack_flash(target, attack, attack->flash.model_hit, target->modeldata.flash.model_hit);
 
 				// Add to owner's combo time.
                 topowner->combotime = _time + combodelay; 
 
 				// If equalairpause is set, inair(attacking_entity) is nolonger a condition for extra pausetime.
-                if(attacking_entity->pausetime < _time || (inair(attacking_entity) && !equalairpause))
-                {
+                if(attacking_entity->pausetime < _time || (inair(attacking_entity) && !equalairpause)) {
                     // Adds pause to the current animation
                     attacking_entity->toss_time += attack->pause_add;      // So jump height pauses in midair
                     attacking_entity->nextmove += attack->pause_add;      // xdir, zdir
@@ -28776,40 +28743,36 @@ void do_attack(entity *attacking_entity)
                     attacking_entity->pausetime = _time + attack->pause_add ; //UT: temporary solution
                 }
 
-                self->toss_time += attack->pause_add;       // So jump height pauses in midair
-                self->nextmove += attack->pause_add;      // xdir, zdir
-                self->nextanim += attack->pause_add;        //Pause animation for a bit
-                self->nextthink += attack->pause_add;       // So anything that auto moves will pause
+                target->toss_time += attack->pause_add;       // So jump height pauses in midair
+                target->nextmove += attack->pause_add;      // xdir, zdir
+                target->nextanim += attack->pause_add;        //Pause animation for a bit
+                target->nextthink += attack->pause_add;       // So anything that auto moves will pause
 
-            }
-            else
-            {
+            }  else  {
                 // If we made it to this block the hit was
                 // not countered or blocked, but the entity
                 // does not have a takedamage() function. It
                 // therefore must be a type that is meant
                 // to ignore hits.
 
-                didhit = 0;
+                didhit = false;
                 continue;
             }
 
             // 2007 3 24, hmm, def should be like this
-            if(didblock && !def)
-            {
-                def = self;
+            if(didblock && !def)  {
+                def = target;
             }
             
 			// Attacker executes a follow up animation if it can.
-			try_follow_up(attacking_entity, self, attacking_entity->animation, didblock);
+			try_follow_up(attacking_entity, target, attacking_entity->animation, didblock);
 
             /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
-            attack_update_id(self, current_attack_id);
+            attack_update_id(target, current_attack_id);
 
 			// If hit, stop blocking.
-			if(self == def)
-            {
-                self->blocking = didblock;   
+			if(target == def) {
+                target->blocking = didblock;   
             }
 
             /*
@@ -28817,19 +28780,17 @@ void do_attack(entity *attacking_entity)
             * 2011-11-24 UT
 			*
 			* Move the next_hit_time logic here, because block needs this 
-			* as well. Otherwise, blockratio causes instant death
+            * as well. Otherwise, blockratio causes instant death
             */
-            self->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (global_config.game_speed / 5));
-            self->nextattack = 0; // reset this, make it easier to fight back
+            target->next_hit_time = _time + (attack->next_hit_time ? attack->next_hit_time : (global_config.game_speed / 5));
+            target->nextattack = 0; // reset this, make it easier to fight back
         }
-        self = temp;
 
     }
 
 
     // Did we get a hit? let's process it.
-    if(didhit)
-    {
+    if(didhit) {
 		// Handle energy cost if attacking animation has any.
 
 		// Caskey, Damon V.
@@ -28838,28 +28799,25 @@ void do_attack(entity *attacking_entity)
 		// I'm honestly not sure how the legacy logic works. Will need to spend
 		// some more time breaking it down.
 
-        if(current_anim->energy_cost.cost > 0)
-        {
+        if(current_anim->energy_cost.cost > 0) {
+
             // well, dont check player or not - UTunnels. TODO: take care of that health cheat
-            if(attacking_entity == topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE))
-            {
+            if(attacking_entity == topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE)) {
                 attacking_entity->tocost = 1;    // Set flag so life is subtracted when animation is finished
-            }
-            else if(attacking_entity != topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE) && !attacking_entity->tocost) // if it is not top, then must be a shot
-            {
-                if(current_anim->energy_cost.mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0)
-                {
+            
+            } else if(attacking_entity != topowner && nocost && !(global_config.cheats & CHEAT_OPTIONS_HEALTH_ACTIVE) && !attacking_entity->tocost) { // if it is not top, then must be a shot.
+            
+                if(current_anim->energy_cost.mponly != COST_TYPE_MP_THEN_HP && topowner->energy_state.mp_current > 0) {
+                    
                     topowner->energy_state.mp_current -= current_anim->energy_cost.cost;
-                    if(topowner->energy_state.mp_current < 0)
-                    {
+                    if(topowner->energy_state.mp_current < 0) {
                         topowner->energy_state.mp_current = 0;
                     }
-                }
-                else
-                {
+                
+                } else {
                     topowner->energy_state.health_current -= current_anim->energy_cost.cost;
-                    if(topowner->energy_state.health_current <= 0)
-                    {
+                    
+                    if(topowner->energy_state.health_current <= 0) {
                         topowner->energy_state.health_current = 1;
                     }
                 }
@@ -28965,21 +28923,18 @@ void do_attack(entity *attacking_entity)
             } else if(nochipdeath) {
                 def->energy_state.health_current = 1;
             } else {
-                temp = self;
-                self = def;
-                self->takedamage(attacking_entity, attack, 0, defense_object);
-                self = temp;
+                do_attack_invoke_takedamage(def, attacking_entity, attack, 0, defense_object);
             }            
         }
 
 		// If the attack was not blocked, let's increment the
 		// attacker's combo counter and time.
-        if(!didblock)
-        {
+        if(!didblock) {
+
             topowner->rush.time = _time + (global_config.game_speed * rush[1]);
             topowner->rush.count++;
-            if(topowner->rush.count > topowner->rush.max && topowner->rush.count > 1)
-            {
+            
+            if(topowner->rush.count > topowner->rush.max && topowner->rush.count > 1) {
                 topowner->rush.max = topowner->rush.count;
             }
         }
@@ -28992,8 +28947,7 @@ void do_attack(entity *attacking_entity)
 		* kills itself instantly. Used mainly for
 		* projectiles.
         */
-        if(attacking_entity->autokill & AUTOKILL_ATTACK_HIT)
-        {
+        if(attacking_entity->autokill & AUTOKILL_ATTACK_HIT) {
             kill_entity(attacking_entity, KILL_ENTITY_TRIGGER_AUTOKILL_ATTACK_HIT);
         }
     }

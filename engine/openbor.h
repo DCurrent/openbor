@@ -4163,11 +4163,11 @@ e_damage_recursive_logic    recursive_effect_get_mode_setup_from_legacy_argument
 /* Blocking logic. */
 e_block_config_flags block_get_config_flags_from_arguments(const ArgList* arglist);
 e_block_config_flags block_get_config_flag_from_string(const char* value);
-int     check_blocking_decision(entity *ent);
-int     check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
-int     check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
-int     check_blocking_rules(entity *ent);
-int     check_blocking_pain(entity *ent, s_attack *attack);
+bool    check_blocking_decision(entity *ent);
+bool    check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
+bool    check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
+bool    check_blocking_rules(entity *ent);
+bool    check_blocking_pain(const entity *ent, const s_attack *attack);
 void	do_active_block(entity *ent);
 void	do_passive_block(entity *ent, entity *other, s_attack *attack);
 void    set_blocking_action(entity *ent, entity *other, s_attack *attack);
