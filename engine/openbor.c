@@ -28431,7 +28431,7 @@ static void do_attack_invoke_didfind_item(entity* target_entity, entity* item_en
 
 void do_attack(entity *attacking_entity) {
     int i = 0;
-    int force = 0;
+    int64_t force = 0;
     e_blocktype blocktype       = BLOCK_TYPE_MP_FIRST;
     entity* def                 = NULL;
     entity* topowner            = NULL;
@@ -28443,7 +28443,7 @@ void do_attack(entity *attacking_entity) {
     s_body* target_body_object  = NULL;
     bool didhit              = false;  // So a different sound effect can be played when an attack hits
     bool didblock            = false;    // So a different sound effect can be played when an attack is blocked
-    int current_attack_id   = 0;
+    uint64_t current_attack_id   = 0;
     //int hit_detected        = 0;    // Has a hit been detected?
 
 
