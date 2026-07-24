@@ -721,6 +721,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "closefilestream";
     }
+    else if (functionRef == ((void *)openbor_deletefilestream))
+    {
+        return "deletefilestream";
+    }
     else if (functionRef == ((void *)openbor_savefilestream))
     {
         return "savefilestream";
@@ -1617,6 +1621,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_createfilestream, "createfilestream");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_closefilestream, "closefilestream");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_deletefilestream, "deletefilestream");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_savefilestream, "savefilestream");
     List_InsertAfter(&theFunctionList,

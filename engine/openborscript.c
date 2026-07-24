@@ -10351,8 +10351,57 @@ HRESULT openbor_generatebasemap(ScriptVariant **varlist , ScriptVariant **pretva
     return S_OK;
 }
 
-HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+/*
+* Caskey, Damon V.
+* 2026-07-24
+*
+* Build a writable external file path for filestream
+* save, load, and delete operations.
+*
+* When pathname is NULL, use the current module's
+* directory under Saves. Otherwise, use pathname
+* relative to the engine working directory.
+*/
+static bool filestream_get_external_path(char* const path, const size_t path_capacity, const char* const filename, const char* const pathname) {
+    
+    char module_name[MAX_BUFFER_LEN] = { "" };
+    size_t path_length;
+    int write_length;
+
+    if (!path || !path_capacity || !filename) {
+        return false;
+    }
+
+    if (pathname) {
+        write_length = snprintf(path, path_capacity, "./%s%s", pathname, filename);
+
+        return write_length >= 0
+            && (size_t)write_length < path_capacity;
+    }
+
+    getBasePath(path, "Saves", 0);
+    getPakName(module_name, -1);
+
+    path_length = strlen(path);
+
+    if (path_length >= path_capacity) {
+        return false;
+    }
+
+    write_length = snprintf(
+        path + path_length,
+        path_capacity - path_length,
+        "%s/%s",
+        module_name,
+        filename
+    );
+
+    return write_length >= 0
+        && (size_t)write_length < path_capacity - path_length;
+}
+
+HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
+
     char *filename = NULL;
     ScriptVariant *arg = NULL;
     LONG location = 0;
@@ -10360,13 +10409,11 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
 
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
-    char tmpname[MAX_BUFFER_LEN] = {""};
     long size;
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 1) {
         *pretvar = NULL;
         return E_FAIL;
     }
@@ -10374,8 +10421,7 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
     arg = varlist[0];
-    if(arg->vt != VT_STR)
-    {
+    if(arg->vt != VT_STR) {
         printf("Filename for openfilestream must be a string.\n");
         *pretvar = NULL;
         return E_FAIL;
@@ -10383,42 +10429,35 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
 
     filename = (char *)StrCache_Get(arg->strVal);
 
-    if(paramCount > 1)
-    {
+    if(paramCount > 1) {
         arg = varlist[1];
-        if(FAILED(ScriptVariant_IntegerValue(arg, &location)))
-        {
+        if(FAILED(ScriptVariant_IntegerValue(arg, &location))) {
             *pretvar = NULL;
             return E_FAIL;
         }
     }
 
-    for(fsindex = 0; fsindex < numfilestreams; fsindex++)
-    {
-        if(filestreams[fsindex].buf == NULL)
-        {
+    for(fsindex = 0; fsindex < numfilestreams; fsindex++) {
+        if(filestreams[fsindex].buf == NULL) {
             break;
         }
     }
 
-    if(fsindex == numfilestreams)
-    {
+    if(fsindex == numfilestreams) {
         __realloc(filestreams, numfilestreams); //warning, don't ++ here, its a macro
         numfilestreams++;
     }
 
     // Load file from saves directory if specified
-    if(location)
-    {
-        getBasePath(path, "Saves", 0);
-        getPakName(tmpname, -1);
-        strcat(path, tmpname);
-        strcat(path, "/");
-        strcat(path, filename);
+    if(location) {
+        if (!filestream_get_external_path(path, sizeof(path), filename, NULL)) {
+            (*pretvar)->lVal = -1;
+            return S_OK;
+        }
+
         //printf("open path: %s", path);
 
-        if(!(fileExists(path)))
-        {
+        if(!(fileExists(path))) {
             /*
             2011_03_27, DC: Let's be a little more friendly about missing files; this will let a function evaluate if file exists and decide what to do.
 
@@ -10430,28 +10469,31 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
         }
 
         handle = fopen(path, "rb");
-        if(handle == NULL)
-        {
+
+        if(handle == NULL) {
             (*pretvar)->lVal = -1;
             return S_OK;
         }
+
         //printf("\nfile opened\n");
         fseek(handle, 0, SEEK_END);
         size = ftell(handle);
         //printf("\n file size %d fsindex %d\n", size, fsindex);
         rewind(handle);
         filestreams[fsindex].buf = malloc(sizeof(*filestreams[fsindex].buf) * (size + 1));
-        if(filestreams[fsindex].buf == NULL)
-        {
+        
+        if(filestreams[fsindex].buf == NULL) {
+            fclose(handle);
             (*pretvar)->lVal = -1;
             return S_OK;
         }
+
         fread(filestreams[fsindex].buf, 1, size, handle);
+        fclose(handle);
         filestreams[fsindex].buf[size] = 0;
         filestreams[fsindex].size = size;
-    }
-    else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size) != 1)
-    {
+    
+    } else if(buffer_pakfile(filename, &filestreams[fsindex].buf, &filestreams[fsindex].size) != 1) {
         //printf("Invalid filename used in openfilestream.\n");
         (*pretvar)->lVal = -1;
         return S_OK;
@@ -10463,23 +10505,20 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
     return S_OK;
 }
 
-HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     int length;
     char *buf;
     char *dst;
     ScriptVariant *arg = NULL;
     LONG filestreamindex;
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 1) {
         *pretvar = NULL;
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         return S_OK;
     }
 
@@ -10487,8 +10526,7 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
 
     length = 0;
     buf = filestreams[filestreamindex].buf + filestreams[filestreamindex].pos;
-    while(buf[length] && buf[length] != '\n' && buf[length] != '\r')
-    {
+    while(buf[length] && buf[length] != '\n' && buf[length] != '\r') {
         ++length;
     }
 
@@ -10500,21 +10538,18 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
     return S_OK;
 }
 
-HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     ScriptVariant *arg = NULL;
     LONG filestreamindex, argument;
     char *argtype = NULL;
 
-    if(paramCount < 3)
-    {
+    if(paramCount < 3) {
         *pretvar = NULL;
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         return S_OK;
     }
 
@@ -10525,35 +10560,30 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
     }
     ScriptVariant_Clear(*pretvar);
 
-    if(varlist[2]->vt != VT_STR)
-    {
-        printf("You must give a string value specifying what kind of value you want the argument converted to.\n");
+    if(varlist[2]->vt != VT_STR) {
+        printf("You must provide a string value specifying what variable type the argument is converted to.\n Available types are: string, int, float, byte.\n");
         return E_FAIL;
     }
+
     argtype = (char *)StrCache_Get(varlist[2]->strVal);
 
-    if(stricmp(argtype, "string") == 0)
-    {
+    if(stricmp(argtype, "string") == 0) {
         ScriptVariant_ChangeType(*pretvar, VT_STR);
         (*pretvar)->strVal = StrCache_CreateNewFrom(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
-    }
-    else if(stricmp(argtype, "int") == 0)
-    {
+    
+    } else if(stricmp(argtype, "int") == 0) {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)atoi(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
-    }
-    else if(stricmp(argtype, "float") == 0)
-    {
+    
+    } else if(stricmp(argtype, "float") == 0) {
         ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
         (*pretvar)->dblVal = (DOUBLE)atof(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
-    }
-    else if(stricmp(argtype, "byte") == 0) // By White Dragon
-    {
+    
+    } else if(stricmp(argtype, "byte") == 0) {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)(readByte(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos));
-    }
-    else
-    {
+    
+    } else {
         printf("Invalid type for argument converted to (getfilestreamargument).\n");
         return E_FAIL;
     }
@@ -10561,53 +10591,49 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
     return S_OK;
 }
 
-HRESULT openbor_filestreamnextline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_filestreamnextline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     ScriptVariant *arg = NULL;
     char *buf;
     size_t pos;
     LONG filestreamindex;
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 1) {
         *pretvar = NULL;
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         return S_OK;
     }
+
     pos = filestreams[filestreamindex].pos;
     buf = filestreams[filestreamindex].buf;
-    while(buf[pos] && buf[pos] != '\n' && buf[pos] != '\r')
-    {
+
+    while(buf[pos] && buf[pos] != '\n' && buf[pos] != '\r') {
         ++pos;
     }
-    while(buf[pos] == '\n' || buf[pos] == '\r')
-    {
+    
+    while(buf[pos] == '\n' || buf[pos] == '\r') {
         ++pos;
     }
+
     filestreams[filestreamindex].pos = pos;
 
     return S_OK;
 }
 
-HRESULT openbor_getfilestreamposition(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_getfilestreamposition(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     ScriptVariant *arg = NULL;
     LONG filestreamindex;
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 1) {
         *pretvar = NULL;
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         return S_OK;
     }
 
@@ -10616,27 +10642,23 @@ HRESULT openbor_getfilestreamposition(ScriptVariant **varlist , ScriptVariant **
     return S_OK;
 }
 
-HRESULT openbor_setfilestreamposition(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_setfilestreamposition(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     ScriptVariant *arg = NULL;
     LONG filestreamindex, position;
 
 
-    if(paramCount < 2)
-    {
+    if(paramCount < 2) {
         *pretvar = NULL;
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         return S_OK;
     }
 
     arg = varlist[1];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &position)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &position))) {
         return S_OK;
     }
 
@@ -10644,8 +10666,7 @@ HRESULT openbor_setfilestreamposition(ScriptVariant **varlist , ScriptVariant **
     return S_OK;
 }
 
-HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     LONG filestreamindex;
     ScriptVariant *arg = NULL;
     LONG appendtype = -1;
@@ -10654,22 +10675,18 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
     static char append[2048];
 
     *pretvar = NULL;
-    if(paramCount < 2)
-    {
+    if(paramCount < 2) {
         goto append_error;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         goto append_error;
     }
 
-    if(paramCount >= 3)
-    {
+    if(paramCount >= 3) {
         arg = varlist[2];
-        if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype)))
-        {
+        if(FAILED(ScriptVariant_IntegerValue(arg, &appendtype))) {
             goto append_error;
         }
     }
@@ -10679,17 +10696,16 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
     /*
      * By White Dragon to write a byte
      */
-    if ( paramCount >= 4 )
-    {
+    if ( paramCount >= 4 ) {
         char* argtype = NULL;
         unsigned char byte = (unsigned char)0x00;
         if ( varlist[3]->vt != VT_STR ) goto append_error;
 
         argtype = (char *)StrCache_Get(varlist[3]->strVal);
 
-        if( stricmp(argtype, "byte") != 0 ) goto append_error;
-        else
-        {
+        if( stricmp(argtype, "byte") != 0 ) {
+             goto append_error;
+        } else {
             int inc = -1; // if buf > 0 (prev bytes) you need to begin from size-1 (index)
 
             len1 = 1+1; // +1 is the NULL to close the buffer
@@ -10708,8 +10724,9 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
 
             filestreams[filestreamindex].size = len1 + len2;
         }
-    } else
-    {
+
+    } else {
+        
         ScriptVariant_ToString(arg, append);
 
         len1 = strlen(append);
@@ -10717,22 +10734,19 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
 
         filestreams[filestreamindex].buf = realloc(filestreams[filestreamindex].buf, sizeof(*temp) * (len1 + len2 + 4));
 
-        if(appendtype == 0)
-        {
+        if(appendtype == 0) {
             append[len1] = ' ';
             append[++len1] = '\0';
             strcpy(filestreams[filestreamindex].buf + len2, "\r\n");
             len2 += 2;
             strcpy(filestreams[filestreamindex].buf + len2, append);
-        }
-        else if(appendtype == 1)
-        {
+        
+        } else if(appendtype == 1) {
             append[len1] = ' ';
             append[++len1] = '\0';
             strcpy(filestreams[filestreamindex].buf + len2, append);
-        }
-        else
-        {
+        
+        } else {
             strcpy(filestreams[filestreamindex].buf + len2, append);
         }
         filestreams[filestreamindex].size = len1 + len2;
@@ -10745,21 +10759,17 @@ append_error:
 
 }
 
-HRESULT openbor_createfilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_createfilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     int fsindex;
     ScriptVariant_Clear(*pretvar);
 
-    for(fsindex = 0; fsindex < numfilestreams; fsindex++)
-    {
-        if(filestreams[fsindex].buf == NULL)
-        {
+    for(fsindex = 0; fsindex < numfilestreams; fsindex++) {
+        if(filestreams[fsindex].buf == NULL) {
             break;
         }
     }
 
-    if(fsindex == numfilestreams)
-    {
+    if(fsindex == numfilestreams) {
         __realloc(filestreams, numfilestreams); //warning, don't ++ here, its a macro
         numfilestreams++;
     }
@@ -10775,79 +10785,69 @@ HRESULT openbor_createfilestream(ScriptVariant **varlist , ScriptVariant **pretv
     return S_OK;
 }
 
-HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     int i;
     LONG filestreamindex;
     ScriptVariant *arg = NULL;
-    char *bytearg = NULL, *patharg = NULL;
+    const char *bytearg = NULL;
+    const char *filename = NULL;
+    const char *patharg = NULL;
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
-    char tmpname[MAX_BUFFER_LEN] = {""};
 
     *pretvar = NULL;
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 2) {
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         printf("You must give a valid filestream handle for savefilestream!\n");
         return E_FAIL;
     }
 
     arg = varlist[1];
-    if(arg->vt != VT_STR)
-    {
+    if(arg->vt != VT_STR) {
         printf("Filename for savefilestream must be a string.\n");
         return E_FAIL;
     }
 
-    if (paramCount > 2)
-    {
-        patharg = (char *)StrCache_Get(varlist[2]->strVal);
-        if( varlist[2]->vt != VT_STR )
-        {
+    filename = StrCache_Get(arg->strVal);
+
+    if (paramCount > 2) {
+        if (varlist[2]->vt != VT_STR) {
             printf("The pathname parameter must be a string.\n");
             return E_FAIL;
         }
+
+        patharg = StrCache_Get(varlist[2]->strVal);
     }
 
-    if (paramCount > 3) // By White Dragon
-    {
-        bytearg = (char *)StrCache_Get(varlist[3]->strVal);
-        if( stricmp(bytearg, "byte") != 0 )
-        {
+    if (paramCount > 3) {
+        if (varlist[3]->vt != VT_STR) {
+            printf("The save type parameter must be a string.\n");
+            return E_FAIL;
+        }
+
+        bytearg = StrCache_Get(varlist[3]->strVal);
+
+        if( stricmp(bytearg, "byte") != 0 ) {
             printf("%s parameter does not exist.\n",bytearg);
             return E_FAIL;
         }
     }
 
-    // Get the saves directory
-    if ( paramCount <= 2 || patharg == NULL )
-    {
-        getBasePath(path, "Saves", 0);
-        getPakName(tmpname, -1);
-        strcat(path, tmpname);
-        // Add user's filename to path and write the filestream to it
-        strcat(path, "/");
-    } else // By White Dragon
-    {
-        strcat(path, "./");
-        strcat(path, patharg);
+    if (!filestream_get_external_path(path, sizeof(path), filename, patharg)) {
+        printf("The savefilestream path is too long.\n Path sizes may be up to %d characters.\n", MAX_BUFFER_LEN-1);
+        return E_FAIL;
     }
+
     //printf("path:%s\n",path);
 
-    strcat(path, (char *)StrCache_Get(arg->strVal));
+    for(i = strlen(path) - 1; i >= 0; i--) {
 
-    for(i = strlen(path) - 1; i >= 0; i--)
-    {
-
-        if(path[i] == '/' || path[i] == '\\')
-        {
+        if(path[i] == '/' || path[i] == '\\') {
             path[i] = 0;
             // Make folder if it doesn't exist
             dirExists(path, 1);
@@ -10858,43 +10858,92 @@ HRESULT openbor_savefilestream(ScriptVariant **varlist , ScriptVariant **pretvar
 
     //printf("save path: %s", path);
     handle = fopen(path, "wb");
-    if(handle == NULL)
-    {
+    if(handle == NULL) {
         return E_FAIL;
     }
     fwrite(filestreams[filestreamindex].buf, 1, strlen(filestreams[filestreamindex].buf), handle);
 
     // add blank line so it can be read successfully
-    if ( paramCount <= 3 || (paramCount > 3 && stricmp(bytearg, "byte") != 0 ) ) fwrite("\r\n", 1, 2, handle);
+    if (paramCount <= 3 
+        || (paramCount > 3 && stricmp(bytearg, "byte") != 0 )) {
+        fwrite("\r\n", 1, 2, handle);
+    }
     fclose(handle);
 
     return S_OK;
 }
 
-HRESULT openbor_closefilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+/*
+* Caskey, Damon V.
+* 2026-07-24
+*
+* deletefilestream(filename[, pathname])
+*
+* Delete a writable external file. When pathname 
+* is omitted, use the current module's directory 
+* under Saves. Return 1 when deletion succeeds, 0 
+* on failure.
+*/
+HRESULT openbor_deletefilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
+    const char* filename = NULL;
+    const char* pathname = NULL;
+    char path[MAX_BUFFER_LEN] = { "" };
+
+    if(paramCount < 1) {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    if(varlist[0]->vt != VT_STR) {
+        printf("Filename for deletefilestream must be a string.\n");
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    filename = StrCache_Get(varlist[0]->strVal);
+
+    if(paramCount > 1) {
+        if(varlist[1]->vt != VT_STR) {
+            printf("The pathname parameter must be a string.\n");
+            *pretvar = NULL;
+            return E_FAIL;
+        }
+
+        pathname = StrCache_Get(varlist[1]->strVal);
+    }
+
+    if(!filestream_get_external_path(path, sizeof(path), filename, pathname)) {
+        printf("The deletefilestream path is too long.\n Path sizes may be up to %d characters.\n", MAX_BUFFER_LEN-1);
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = remove(path) == 0;
+
+    return S_OK;
+}
+
+HRESULT openbor_closefilestream(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     LONG filestreamindex;
     ScriptVariant *arg = NULL;
 
     *pretvar = NULL;
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 1) {
         return E_FAIL;
     }
 
     arg = varlist[0];
-    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex)))
-    {
+    if(FAILED(ScriptVariant_IntegerValue(arg, &filestreamindex))) {
         return E_FAIL;
     }
 
-
-    if(filestreams[filestreamindex].buf)
-    {
+    if(filestreams[filestreamindex].buf) {
         free(filestreams[filestreamindex].buf);
         filestreams[filestreamindex].buf = NULL;
     }
+
     return S_OK;
 }
 //damageentity(entity, other, force, drop, type)
