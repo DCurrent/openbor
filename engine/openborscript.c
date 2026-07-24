@@ -10906,7 +10906,7 @@ HRESULT openbor_damageentity(ScriptVariant **varlist , ScriptVariant **pretvar, 
     LONG drop = 0;
     LONG type = 0;
     s_attack atk = emptyattack;
-    s_defense* defense_object = NULL;
+    const s_defense* defense_object = NULL;
 
     if(paramCount < 1)
     {
@@ -11003,7 +11003,7 @@ HRESULT openbor_getcomputeddamage(ScriptVariant **varlist , ScriptVariant **pret
     LONG type;
     LONG block;
     s_attack atk = emptyattack;
-    s_defense* defense_object = NULL;
+    const s_defense* defense_object = NULL;
 
     if(paramCount < 3) {
         printf("Function requires at least 3 parameters.\n");
