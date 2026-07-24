@@ -9628,7 +9628,6 @@ static void recursive_effect_free_collection(entity* target) {
 void recursive_effect_check_apply(entity* ent, entity* other, s_attack* attack) {
     s_recursive_effect* recursive_effect;
     uint64_t active_flag;
-    uint64_t time_multiplier;
     uint64_t index;
 
     /*
@@ -9677,7 +9676,7 @@ void recursive_effect_check_apply(entity* ent, entity* other, s_attack* attack) 
     /*
     * Populate the resident effect.
     */
-    time_multiplier = 1 // global_config.game_speed / 100;
+    const uint64_t time_multiplier = 1; // global_config.game_speed / 100;
 
     recursive_effect->meta_tag = attack->recursive->meta_tag;
     recursive_effect->mode = attack->recursive->mode;
