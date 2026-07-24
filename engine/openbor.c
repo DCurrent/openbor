@@ -9677,7 +9677,7 @@ void recursive_effect_check_apply(entity* ent, entity* other, s_attack* attack) 
     /*
     * Populate the resident effect.
     */
-    time_multiplier = global_config.game_speed / 100;
+    time_multiplier = 1 // global_config.game_speed / 100;
 
     recursive_effect->meta_tag = attack->recursive->meta_tag;
     recursive_effect->mode = attack->recursive->mode;
@@ -17523,12 +17523,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 // Disable special moves for specified time.
                 if (!newanim && newchar->smartbomb)
                 {
-                    newchar->smartbomb->sealtime = GET_INT_ARG(1) * global_config.game_speed;
+                    newchar->smartbomb->sealtime = GET_INT_ARG(1) * (global_config.game_speed / 100);
                     newchar->smartbomb->seal = GET_INT_ARG(2);
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->sealtime = GET_INT_ARG(1) * global_config.game_speed;
+                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->sealtime = GET_INT_ARG(1) * (global_config.game_speed / 100);
                     collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->seal = GET_INT_ARG(2);
                 }
                               
@@ -17596,12 +17596,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 if (!newanim && newchar->smartbomb)
                 {
                     newchar->smartbomb->forcemap = tempInt;
-                    newchar->smartbomb->maptime = GET_FLOAT_ARG(2) * global_config.game_speed;
+                    newchar->smartbomb->maptime = GET_FLOAT_ARG(2) * (global_config.game_speed / 100);
                 }
                 else
                 {
                     collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->forcemap = tempInt;
-                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->maptime = GET_FLOAT_ARG(2) * global_config.game_speed;
+                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->maptime = GET_FLOAT_ARG(2) * (global_config.game_speed / 100);
                 }
 
                 break;
