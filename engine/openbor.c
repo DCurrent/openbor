@@ -381,35 +381,35 @@ int                 max_attacks         = MAX_ATTACKS;
 int                 max_animations      = MAX_ANIS;
 
 // -------dynamic animation indexes-------
-e_animations	*animdowns           = NULL;
-e_animations    *animups             = NULL;
-e_animations    *animbackwalks       = NULL;
-e_animations	*animwalks           = NULL;
-e_animations    *animidles           = NULL;
-e_animations    *animpains           = NULL;
-e_animations    *animbackpains       = NULL;
-e_animations    *animdies            = NULL;
-e_animations    *animbackdies        = NULL;
-e_animations    *animfalls           = NULL;
-e_animations    *animbackfalls       = NULL;
-e_animations    *animrises           = NULL;
-e_animations    *animbackrises       = NULL;
-e_animations    *animriseattacks     = NULL;
-e_animations    *animbackriseattacks = NULL;
-e_animations    *animblkpains        = NULL;
-e_animations    *animbackblkpains    = NULL;
-e_animations    *animattacks         = NULL;
-e_animations    *animfollows         = NULL;
-e_animations    *animspecials        = NULL;
+animation_id_t  *animdowns           = NULL;
+animation_id_t  *animups             = NULL;
+animation_id_t  *animbackwalks       = NULL;
+animation_id_t  *animwalks           = NULL;
+animation_id_t  *animidles           = NULL;
+animation_id_t  *animpains           = NULL;
+animation_id_t  *animbackpains       = NULL;
+animation_id_t  *animdies            = NULL;
+animation_id_t  *animbackdies        = NULL;
+animation_id_t  *animfalls           = NULL;
+animation_id_t  *animbackfalls       = NULL;
+animation_id_t  *animrises           = NULL;
+animation_id_t  *animbackrises       = NULL;
+animation_id_t  *animriseattacks     = NULL;
+animation_id_t  *animbackriseattacks = NULL;
+animation_id_t  *animblkpains        = NULL;
+animation_id_t  *animbackblkpains    = NULL;
+animation_id_t  *animattacks         = NULL;
+animation_id_t  *animfollows         = NULL;
+animation_id_t  *animspecials        = NULL;
 
 // system default values
-int                 downs[MAX_DOWNS]        = {ANI_DOWN};
-int                 ups[MAX_UPS]            = {ANI_UP};
-int                 backwalks[MAX_BACKWALKS] = {ANI_BACKWALK};
-int                 walks[MAX_WALKS]        = {ANI_WALK};
-int                 idles[MAX_IDLES]        = {ANI_IDLE};
+animation_id_t      downs[MAX_DOWNS]         = {ANI_DOWN};
+animation_id_t      ups[MAX_UPS]             = {ANI_UP};
+animation_id_t      backwalks[MAX_BACKWALKS] = {ANI_BACKWALK};
+animation_id_t      walks[MAX_WALKS]         = {ANI_WALK};
+animation_id_t      idles[MAX_IDLES]         = {ANI_IDLE};
 
-int                 falls[MAX_ATKS] =
+animation_id_t      falls[MAX_ATKS] =
 {
     ANI_FALL,       // ATK_NORMAL
     ANI_FALL2,      // ATK_NORMAL2
@@ -437,7 +437,7 @@ int                 falls[MAX_ATKS] =
     ANI_FALL        // ATK_TIMEOVER
 };
 
-int                 backfalls[MAX_ATKS] =
+animation_id_t      backfalls[MAX_ATKS] =
 {
     ANI_BACKFALL,  ANI_BACKFALL2, ANI_BACKFALL3,  ANI_BACKFALL4,
     ANI_BACKFALL,  ANI_BACKBURN,  ANI_BACKFALL,   ANI_BACKSHOCK,
@@ -447,7 +447,7 @@ int                 backfalls[MAX_ATKS] =
     ANI_BACKFALL,  ANI_BACKFALL,  ANI_BACKFALL,   ANI_BACKFALL
 };
 
-int                 rises[MAX_ATKS] =
+animation_id_t      rises[MAX_ATKS] =
 {
     ANI_RISE,  ANI_RISE2, ANI_RISE3,  ANI_RISE4,
     ANI_RISE,  ANI_RISEB,  ANI_RISE,  ANI_RISES,
@@ -457,7 +457,7 @@ int                 rises[MAX_ATKS] =
     ANI_RISE,  ANI_RISE,  ANI_RISE,   ANI_RISE
 };
 
-int                 backrises[MAX_ATKS] =
+animation_id_t      backrises[MAX_ATKS] =
 {
     ANI_BACKRISE,  ANI_BACKRISE2, ANI_BACKRISE3,  ANI_BACKRISE4,
     ANI_BACKRISE,  ANI_BACKRISEB, ANI_BACKRISE,   ANI_BACKRISES,
@@ -467,7 +467,7 @@ int                 backrises[MAX_ATKS] =
     ANI_BACKRISE,  ANI_BACKRISE,  ANI_BACKRISE,   ANI_BACKRISE
 };
 
-int                 riseattacks[MAX_ATKS] =
+animation_id_t      riseattacks[MAX_ATKS] =
 {
     ANI_RISEATTACK,  ANI_RISEATTACK2, ANI_RISEATTACK3,  ANI_RISEATTACK4,
     ANI_RISEATTACK,  ANI_RISEATTACKB, ANI_RISEATTACK,   ANI_RISEATTACKS,
@@ -477,7 +477,7 @@ int                 riseattacks[MAX_ATKS] =
     ANI_RISEATTACK,  ANI_RISEATTACK,  ANI_RISEATTACK,   ANI_RISEATTACK
 };
 
-int                 backriseattacks[MAX_ATKS] =
+animation_id_t      backriseattacks[MAX_ATKS] =
 {
     ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK2, ANI_BACKRISEATTACK3,  ANI_BACKRISEATTACK4,
     ANI_BACKRISEATTACK,  ANI_BACKRISEATTACKB, ANI_BACKRISEATTACK,   ANI_BACKRISEATTACKS,
@@ -487,7 +487,7 @@ int                 backriseattacks[MAX_ATKS] =
     ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK,  ANI_BACKRISEATTACK,   ANI_BACKRISEATTACK
 };
 
-int                 pains[MAX_ATKS] =
+animation_id_t      pains[MAX_ATKS] =
 {
     ANI_PAIN,  ANI_PAIN2,    ANI_PAIN3,  ANI_PAIN4,
     ANI_PAIN,  ANI_BURNPAIN, ANI_PAIN,   ANI_SHOCKPAIN,
@@ -497,7 +497,7 @@ int                 pains[MAX_ATKS] =
     ANI_PAIN,  ANI_PAIN,     ANI_PAIN,   ANI_PAIN
 };
 
-int                 backpains[MAX_ATKS] =
+animation_id_t      backpains[MAX_ATKS] =
 {
     ANI_BACKPAIN,  ANI_BACKPAIN2,    ANI_BACKPAIN3,  ANI_BACKPAIN4,
     ANI_BACKPAIN,  ANI_BACKBURNPAIN, ANI_BACKPAIN,   ANI_BACKSHOCKPAIN,
@@ -507,7 +507,7 @@ int                 backpains[MAX_ATKS] =
     ANI_BACKPAIN,  ANI_BACKPAIN,     ANI_BACKPAIN,   ANI_BACKPAIN
 };
 
-int                 deaths[MAX_ATKS] =
+animation_id_t      deaths[MAX_ATKS] =
 {
     ANI_DIE,   ANI_DIE2,     ANI_DIE3,  ANI_DIE4,
     ANI_DIE,   ANI_BURNDIE,  ANI_DIE,   ANI_SHOCKDIE,
@@ -517,7 +517,7 @@ int                 deaths[MAX_ATKS] =
     ANI_DIE,   ANI_DIE,      ANI_DIE,   ANI_DIE
 };
 
-int                 backdeaths[MAX_ATKS] =
+animation_id_t      backdeaths[MAX_ATKS] =
 {
     ANI_BACKDIE,   ANI_BACKDIE2,     ANI_BACKDIE3,  ANI_BACKDIE4,
     ANI_BACKDIE,   ANI_BACKBURNDIE,  ANI_BACKDIE,   ANI_BACKSHOCKDIE,
@@ -527,7 +527,7 @@ int                 backdeaths[MAX_ATKS] =
     ANI_BACKDIE,   ANI_BACKDIE,      ANI_BACKDIE,   ANI_BACKDIE
 };
 
-int                 blkpains[MAX_ATKS] =
+animation_id_t      blkpains[MAX_ATKS] =
 {
     ANI_BLOCKPAIN,  ANI_BLOCKPAIN2, ANI_BLOCKPAIN3,  ANI_BLOCKPAIN4,
     ANI_BLOCKPAIN,  ANI_BLOCKPAINB, ANI_BLOCKPAIN,   ANI_BLOCKPAINS,
@@ -537,7 +537,7 @@ int                 blkpains[MAX_ATKS] =
     ANI_BLOCKPAIN,  ANI_BLOCKPAIN,  ANI_BLOCKPAIN,   ANI_BLOCKPAIN
 };
 
-int                 backblkpains[MAX_ATKS] =
+animation_id_t      backblkpains[MAX_ATKS] =
 {
     ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN2, ANI_BACKBLOCKPAIN3,  ANI_BACKBLOCKPAIN4,
     ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAINB, ANI_BACKBLOCKPAIN,   ANI_BACKBLOCKPAINS,
@@ -547,7 +547,7 @@ int                 backblkpains[MAX_ATKS] =
     ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN,  ANI_BACKBLOCKPAIN,   ANI_BACKBLOCKPAIN
 };
 
-int                 normal_attacks[MAX_ATTACKS] =
+animation_id_t      normal_attacks[MAX_ATTACKS] =
 {
     ANI_ATTACK1, ANI_ATTACK2, ANI_ATTACK3, ANI_ATTACK4
 };
@@ -561,14 +561,14 @@ int                 grab_attacks[GRAB_ACTION_SELECT_MAX][2] =
 	[GRAB_ACTION_SELECT_UP] = {ANI_GRABUP, ANI_GRABUP2}
 };
 
-int                 freespecials[MAX_SPECIALS] =
+animation_id_t      freespecials[MAX_SPECIALS] =
 {
     ANI_FREESPECIAL,   ANI_FREESPECIAL2,  ANI_FREESPECIAL3,
     ANI_FREESPECIAL4,  ANI_FREESPECIAL5,  ANI_FREESPECIAL6,
     ANI_FREESPECIAL7,  ANI_FREESPECIAL8
 };
 
-int                 follows[MAX_FOLLOWS] =
+animation_id_t      follows[MAX_FOLLOWS] =
 {
     ANI_FOLLOW1, ANI_FOLLOW2, ANI_FOLLOW3, ANI_FOLLOW4
 };
@@ -24301,12 +24301,12 @@ int is_walking(int iAni)
 // 2019-02-09
 //
 // Rewritten for greater readability.
-static bool common_anim_series(entity *ent, e_animations *alterates, int max_alternates, int force_mode, e_animations default_animation)
+static bool common_anim_series(entity *ent, const animation_id_t *alterates, int max_alternates, int force_mode, animation_id_t default_animation)
 {
 	int i;						// Loop cursor.
 	int loop_min;							
 	int loop_max;							
-	e_animations animation_id;	// Animation to apply.
+	animation_id_t animation_id;	// Animation to apply.
 	
 	// If we have a forced mode, we'll use it to constrict
 	// loop options to just the forced mode.
@@ -28073,7 +28073,7 @@ int check_follow_up_condition(entity *ent, entity *target, s_anim *animation, in
 */
 int try_follow_up(entity *ent, entity *target, s_anim *animation, int didblock)
 {
-	e_animations animation_id = ANI_NONE;
+	animation_id_t animation_id = ANI_NONE;
 
 	/* If we don't have a follow action, get out. */
 	
@@ -30345,7 +30345,7 @@ void adjust_bind(entity* acting_entity)
 	#define ADJUST_BIND_NO_FRAME_MATCH -1   
 
     int				frame = 0;
-    e_animations	animation = ANI_NONE;
+    animation_id_t animation = ANI_NONE;
 
 	/* 
     * Exit if there is no bind 
@@ -31868,7 +31868,7 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
 
 int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
 {
-    e_animations animation;
+    animation_id_t animation;
 
     // If attack type is out of bounds we
     // just use normal.
@@ -33250,9 +33250,9 @@ void dograbattack(int which)
 // Choose appropriate grab finish animation
 // or do nothing if we can't find one. Returns
 // selected animation.
-e_animations do_grab_attack_finish(entity *ent, int which)
+animation_id_t do_grab_attack_finish(entity *ent, int which)
 {
-    e_animations animation;
+    animation_id_t animation;
 
     // Clear out the combostep array since this is
     // the finishing attack.
@@ -37608,7 +37608,7 @@ int common_try_jump()
     float rmax = 0.0;
     float initial_z_velocity = 0.0;
 
-    e_animations jump_animation = ANI_JUMP;
+    animation_id_t jump_animation = ANI_JUMP;
 
     /*
     * If we can't jump at all, return false now.
