@@ -343,7 +343,7 @@ int mapstrings_systemvariant(ScriptVariant **varlist, int paramCount);
 int mapstrings_entityproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_setspawnentry(ScriptVariant **varlist, int paramCount);
-int mapstrings_transconst(ScriptVariant **varlist, int paramCount);
+bool mapstrings_transconst(ScriptVariant **varlist, int paramCount);
 int mapstrings_playerkeys(ScriptVariant **varlist, int paramCount);
 int mapstrings_textobjproperty(ScriptVariant **varlist, int paramCount);
 int mapstrings_layerproperty(ScriptVariant **varlist, int paramCount);

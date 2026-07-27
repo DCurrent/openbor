@@ -45,7 +45,13 @@ else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '
 	v.lVal = (LONG)(atoi(constname+(sizeof(#x)-1))+STA_ATKS-1);\
 }
 
-int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
+#define ICMPCONSTU64(x) \
+else if(stricmp(#x, constname) == 0) {\
+    ScriptVariant_ChangeType(&v, VT_UINTEGER64);\
+    v.ullVal = (uint64_t)(x);\
+}
+
+bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 {
     char *constname = NULL;
     int found = TRUE;
@@ -955,52 +961,78 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(EXPLODE_PREPARE_TOUCH)        
 
         /* Faction setup. */
-        ICMPCONST(FACTION_GROUP_NONE)
-        ICMPCONST(FACTION_GROUP_NEUTRAL)
-        ICMPCONST(FACTION_GROUP_NO_COPY)
-        ICMPCONST(FACTION_GROUP_PLAYER_VERSES)
-        ICMPCONST(FACTION_GROUP_TYPE_EXCLUSIVE)
-        ICMPCONST(FACTION_GROUP_TYPE_INCLUSIVE)
-        ICMPCONST(FACTION_GROUP_ALL)
-        ICMPCONST(FACTION_GROUP_ALL_NORMAL)
-        ICMPCONST(FACTION_GROUP_DEFAULT)
-        ICMPCONST(FACTION_GROUP_NO_CHECK)
-        ICMPCONST(FACTION_GROUP_A)
-        ICMPCONST(FACTION_GROUP_B)
-        ICMPCONST(FACTION_GROUP_C)
-        ICMPCONST(FACTION_GROUP_D)
-        ICMPCONST(FACTION_GROUP_E)
-        ICMPCONST(FACTION_GROUP_F)
-        ICMPCONST(FACTION_GROUP_G)
-        ICMPCONST(FACTION_GROUP_H)
-        ICMPCONST(FACTION_GROUP_I)
-        ICMPCONST(FACTION_GROUP_J)
-        ICMPCONST(FACTION_GROUP_K)
-        ICMPCONST(FACTION_GROUP_L)
-        ICMPCONST(FACTION_GROUP_M)
-        ICMPCONST(FACTION_GROUP_N)
-        ICMPCONST(FACTION_GROUP_O)
-        ICMPCONST(FACTION_GROUP_P)
-        ICMPCONST(FACTION_GROUP_Q)
-        ICMPCONST(FACTION_GROUP_R)
-        ICMPCONST(FACTION_GROUP_S)
-        ICMPCONST(FACTION_GROUP_T)
-        ICMPCONST(FACTION_GROUP_U)
-        ICMPCONST(FACTION_GROUP_V)
-        ICMPCONST(FACTION_GROUP_W)
-        ICMPCONST(FACTION_GROUP_X)
-        ICMPCONST(FACTION_GROUP_Y)
-        ICMPCONST(FACTION_GROUP_Z)
+        ICMPCONSTU64(FACTION_GROUP_NONE)
+        ICMPCONSTU64(FACTION_GROUP_NEUTRAL)
+        ICMPCONSTU64(FACTION_GROUP_NO_COPY)
+        ICMPCONSTU64(FACTION_GROUP_PLAYER_VERSES)
+        ICMPCONSTU64(FACTION_GROUP_TYPE_EXCLUSIVE)
+        ICMPCONSTU64(FACTION_GROUP_TYPE_INCLUSIVE)
+        ICMPCONSTU64(FACTION_GROUP_ALL)
+        ICMPCONSTU64(FACTION_GROUP_ALL_NORMAL)
+        ICMPCONSTU64(FACTION_GROUP_DEFAULT)
+        ICMPCONSTU64(FACTION_GROUP_NO_CHECK)
+        ICMPCONSTU64(FACTION_GROUP_A)
+        ICMPCONSTU64(FACTION_GROUP_B)
+        ICMPCONSTU64(FACTION_GROUP_C)
+        ICMPCONSTU64(FACTION_GROUP_D)
+        ICMPCONSTU64(FACTION_GROUP_E)
+        ICMPCONSTU64(FACTION_GROUP_F)
+        ICMPCONSTU64(FACTION_GROUP_G)
+        ICMPCONSTU64(FACTION_GROUP_H)
+        ICMPCONSTU64(FACTION_GROUP_I)
+        ICMPCONSTU64(FACTION_GROUP_J)
+        ICMPCONSTU64(FACTION_GROUP_K)
+        ICMPCONSTU64(FACTION_GROUP_L)
+        ICMPCONSTU64(FACTION_GROUP_M)
+        ICMPCONSTU64(FACTION_GROUP_N)
+        ICMPCONSTU64(FACTION_GROUP_O)
+        ICMPCONSTU64(FACTION_GROUP_P)
+        ICMPCONSTU64(FACTION_GROUP_Q)
+        ICMPCONSTU64(FACTION_GROUP_R)
+        ICMPCONSTU64(FACTION_GROUP_S)
+        ICMPCONSTU64(FACTION_GROUP_T)
+        ICMPCONSTU64(FACTION_GROUP_U)
+        ICMPCONSTU64(FACTION_GROUP_V)
+        ICMPCONSTU64(FACTION_GROUP_W)
+        ICMPCONSTU64(FACTION_GROUP_X)
+        ICMPCONSTU64(FACTION_GROUP_Y)
+        ICMPCONSTU64(FACTION_GROUP_Z)
+        ICMPCONSTU64(FACTION_GROUP_A1)
+        ICMPCONSTU64(FACTION_GROUP_B1)
+        ICMPCONSTU64(FACTION_GROUP_C1)
+        ICMPCONSTU64(FACTION_GROUP_D1)
+        ICMPCONSTU64(FACTION_GROUP_E1)
+        ICMPCONSTU64(FACTION_GROUP_F1)
+        ICMPCONSTU64(FACTION_GROUP_G1)
+        ICMPCONSTU64(FACTION_GROUP_H1)
+        ICMPCONSTU64(FACTION_GROUP_I1)
+        ICMPCONSTU64(FACTION_GROUP_J1)
+        ICMPCONSTU64(FACTION_GROUP_K1)
+        ICMPCONSTU64(FACTION_GROUP_L1)
+        ICMPCONSTU64(FACTION_GROUP_M1)
+        ICMPCONSTU64(FACTION_GROUP_N1)
+        ICMPCONSTU64(FACTION_GROUP_O1)
+        ICMPCONSTU64(FACTION_GROUP_P1)
+        ICMPCONSTU64(FACTION_GROUP_Q1)
+        ICMPCONSTU64(FACTION_GROUP_R1)
+        ICMPCONSTU64(FACTION_GROUP_S1)
+        ICMPCONSTU64(FACTION_GROUP_T1)
+        ICMPCONSTU64(FACTION_GROUP_U1)
+        ICMPCONSTU64(FACTION_GROUP_V1)
+        ICMPCONSTU64(FACTION_GROUP_W1)
+        ICMPCONSTU64(FACTION_GROUP_X1)
+        ICMPCONSTU64(FACTION_GROUP_Y1)
+        ICMPCONSTU64(FACTION_GROUP_Z1)
 
         /* Faction property script access. */
-        ICMPCONST(FACTION_PROPERTY_GROUP_DAMAGE_DIRECT)
-        ICMPCONST(FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT)
-        ICMPCONST(FACTION_PROPERTY_GROUP_HOSTILE)
-        ICMPCONST(FACTION_PROPERTY_GROUP_MEMBER)
-        ICMPCONST(FACTION_PROPERTY_TYPE_DAMAGE_DIRECT)
-        ICMPCONST(FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT)
-        ICMPCONST(FACTION_PROPERTY_TYPE_HOSTILE)
-        ICMPCONST(FACTION_PROPERTY_END)
+        ICMPCONSTU64(FACTION_PROPERTY_GROUP_DAMAGE_DIRECT)
+        ICMPCONSTU64(FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT)
+        ICMPCONSTU64(FACTION_PROPERTY_GROUP_HOSTILE)
+        ICMPCONSTU64(FACTION_PROPERTY_GROUP_MEMBER)
+        ICMPCONSTU64(FACTION_PROPERTY_TYPE_DAMAGE_DIRECT)
+        ICMPCONSTU64(FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT)
+        ICMPCONSTU64(FACTION_PROPERTY_TYPE_HOSTILE)
+        ICMPCONSTU64(FACTION_PROPERTY_END)
 
         /* Key flags. */
         ICMPCONST(FLAG_ANYBUTTON)
@@ -1633,6 +1665,10 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(VT_STR)
         ICMPCONST(VT_UINTEGER64)
 
+        /* COmpound variable type query*/
+        ICMPCONST(VT_INTANY)
+        ICMPCONST(VT_NUMERIC)
+
 		/* Drawmethod water modes. */
 		ICMPCONST(WATER_MODE_SHEAR)
 		ICMPCONST(WATER_MODE_NONE)
@@ -1685,24 +1721,25 @@ int mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 
 //openborconstant(constname);
 //translate a constant by string, used to retrieve a constant or macro of openbor
-HRESULT openbor_transconst(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
+HRESULT openbor_transconst(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
     static char buf[128];
-    if (paramCount >= 1)
-    {
-        //if(varlist[0]->vt == VT_INTEGER) printf("debug: mapstring for openborconstant works!\n");
 
-        mapstrings_transconst(varlist, paramCount);
+    if (paramCount < 1) {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
 
-        if (varlist[0]->vt == VT_INTEGER) // return value already determined by mapstrings
-        {
-            ScriptVariant_Copy((*pretvar), varlist[0]);
-            return S_OK;
-        }
+    const bool constant_found = mapstrings_transconst(varlist, paramCount);
+
+    // Return value already determined by mapstrings.
+    if (constant_found && (varlist[0]->vt & VT_INTANY)) {
+        ScriptVariant_Copy(*pretvar, varlist[0]);
+        return S_OK;
     }
 
     ScriptVariant_ToString(varlist[0], buf);
     printf("Can't translate constant %s\n", buf);
+
     *pretvar = NULL;
     return E_FAIL;
 }

@@ -44901,15 +44901,13 @@ void faction_copy_data(s_faction* dest, s_faction* source)
 * 2022-05-24
 *
 * Read a text argument for model copy flag
-* and output appropriate constant. If input
-* is legacy integer, we just pass it on.
+* and output appropriate constant.
 */
-e_faction_group faction_get_flag_from_string(const char* value)
-{   
-    const struct 
-    {
+faction_group_mask_t faction_get_flag_from_string(const char* value) {
+
+    const struct {
         const char* text_name;
-        e_faction_group flag;
+        faction_group_mask_t flag;
 
     } flag_lookup_table[] = {
         { "none", FACTION_GROUP_NONE },
@@ -44944,26 +44942,50 @@ e_faction_group faction_get_flag_from_string(const char* value)
         { "w", FACTION_GROUP_W },
         { "x", FACTION_GROUP_X },
         { "y", FACTION_GROUP_Y },
-        { "z", FACTION_GROUP_Z }
+        { "z", FACTION_GROUP_Z },
+        { "a1", FACTION_GROUP_A1 },
+        { "b1", FACTION_GROUP_B1 },
+        { "c1", FACTION_GROUP_C1 },
+        { "d1", FACTION_GROUP_D1 },
+        { "e1", FACTION_GROUP_E1 },
+        { "f1", FACTION_GROUP_F1 },
+        { "g1", FACTION_GROUP_G1 },
+        { "h1", FACTION_GROUP_H1 },
+        { "i1", FACTION_GROUP_I1 },
+        { "j1", FACTION_GROUP_J1 },
+        { "k1", FACTION_GROUP_K1 },
+        { "l1", FACTION_GROUP_L1 },
+        { "m1", FACTION_GROUP_M1 },
+        { "n1", FACTION_GROUP_N1 },
+        { "o1", FACTION_GROUP_O1 },
+        { "p1", FACTION_GROUP_P1 },
+        { "q1", FACTION_GROUP_Q1 },
+        { "r1", FACTION_GROUP_R1 },
+        { "s1", FACTION_GROUP_S1 },
+        { "t1", FACTION_GROUP_T1 },
+        { "u1", FACTION_GROUP_U1 },
+        { "v1", FACTION_GROUP_V1 },
+        { "w1", FACTION_GROUP_W1 },
+        { "x1", FACTION_GROUP_X1 },
+        { "y1", FACTION_GROUP_Y1 },
+        { "z1", FACTION_GROUP_Z1 }
     };
 
     const size_t list_count = sizeof(flag_lookup_table) / sizeof(*flag_lookup_table);
 
-    for (size_t i = 0; i < list_count; i++)
-    {
-        if (stricmp(value, flag_lookup_table[i].text_name) == 0)
-        {
+    for (size_t i = 0; i < list_count; i++) {
+        if (stricmp(value, flag_lookup_table[i].text_name) == 0) {
             return flag_lookup_table[i].flag;
         }
     }
-    
+
     /*
     * Couldn't find a match in the lookup
     * table. Send alert to log and return
     * none flag.
     */
 
-    printf("\n\n Unknown faction (%s). \n", value);    
+    printf("\n\n Unknown faction (%s). \n", value);
     return FACTION_GROUP_NONE;
 }
 
@@ -44974,12 +44996,12 @@ e_faction_group faction_get_flag_from_string(const char* value)
 * Populate faction property from
 * text arguments.
 */
-e_faction_group faction_get_flags_from_arglist(const ArgList* arglist)
+faction_group_mask_t faction_get_flags_from_arglist(const ArgList* arglist)
 {
     int i = 0;
     char* value = "";
 
-    e_faction_group result = FACTION_GROUP_NONE;
+    faction_group_mask_t result = FACTION_GROUP_NONE;
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
@@ -45000,9 +45022,9 @@ bool faction_check_can_damage(entity* acting_entity, entity* target_entity, cons
 
     e_entity_type acting_type;
     e_entity_type target_type;
-    e_faction_group acting_faction;
-    e_faction_group acting_faction_filtered;
-    e_faction_group target_faction;
+    faction_group_mask_t acting_faction;
+    faction_group_mask_t acting_faction_filtered;
+    faction_group_mask_t target_faction;
 
     if (!acting_entity || !target_entity) {
         return false;
@@ -45101,9 +45123,9 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 
     e_entity_type acting_type;
     e_entity_type target_type;
-    e_faction_group acting_faction;
-    e_faction_group filtered_faction;
-    e_faction_group target_faction;
+    faction_group_mask_t acting_faction;
+    faction_group_mask_t filtered_faction;
+    faction_group_mask_t target_faction;
 
     if (!acting_entity || !target_entity)
     {
@@ -45218,7 +45240,7 @@ int faction_check_is_hostile(entity* acting_entity, entity* target_entity)
 * property. Ex. Hostile, direct damage, 
 * indirect damage.
 */
-int faction_check_player_verses(entity* acting_entity, entity* target_entity, e_faction_group faction_property)
+int faction_check_player_verses(entity* acting_entity, entity* target_entity, faction_group_mask_t faction_property)
 {
     if (!acting_entity || !target_entity)
     {

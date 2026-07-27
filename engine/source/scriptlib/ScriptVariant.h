@@ -13,15 +13,23 @@
 #include <stdint.h>
 
 typedef enum VariantType {
-    
-    VT_EMPTY       = 0,    // not initialized
-    VT_INTEGER     = 1,    // LONG / legacy script integer
-    VT_DECIMAL     = 2,    // double
-    VT_INTEGER64   = 3,    // signed 64-bit integer
-    VT_UINTEGER64  = 4,    // unsigned 64-bit integer
-    VT_PTR         = 5,    // void*
-    VT_STR         = 6,    // char*
+
+    VT_EMPTY       = 0,           // Not initialized.
+    VT_INTEGER     = (1U << 0),   // LONG / legacy script integer.
+    VT_DECIMAL     = (1U << 1),   // double.
+    VT_INTEGER64   = (1U << 2),   // Signed 64-bit integer.
+    VT_UINTEGER64  = (1U << 3),   // Unsigned 64-bit integer.
+    VT_PTR         = (1U << 4),   // void*.
+    VT_STR         = (1U << 5)    // char*.
 } VARTYPE;
+
+/*
+* Query masks only. These are not concrete
+* types and must never be stored in
+* ScriptVariant.vt or property type maps.
+*/
+#define VT_INTANY  (VT_INTEGER | VT_INTEGER64 | VT_UINTEGER64)
+#define VT_NUMERIC (VT_DECIMAL | VT_INTANY)
 
 #pragma pack(4)
 

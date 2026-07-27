@@ -51,50 +51,50 @@ HRESULT openbor_get_faction_property(ScriptVariant **varlist , ScriptVariant **p
     {
 		case FACTION_PROPERTY_GROUP_DAMAGE_DIRECT:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->damage_direct;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->damage_direct;
 
 			break;
 
 		case FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->damage_indirect;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->damage_indirect;
 
 			break;
 
 		case FACTION_PROPERTY_GROUP_HOSTILE:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->hostile;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->hostile;
 
 			break;
 
 		case FACTION_PROPERTY_GROUP_MEMBER:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->member;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->member;
 
 			break;
 
 		case FACTION_PROPERTY_TYPE_DAMAGE_DIRECT:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->type_damage_direct;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->type_damage_direct;
 
 			break;
 
 		case FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->type_damage_indirect;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->type_damage_indirect;
 
 			break;
 
 		case FACTION_PROPERTY_TYPE_HOSTILE:
 
-			ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-			(*pretvar)->lVal = (e_faction_group)handle->type_hostile;
+			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+			(*pretvar)->ullVal = (faction_group_mask_t)handle->type_hostile;
 
 			break;
 
@@ -118,7 +118,7 @@ HRESULT openbor_get_faction_property(ScriptVariant **varlist , ScriptVariant **p
     #undef SELF_NAME
     #undef ARG_MINIMUM
     #undef ARG_OBJECT
-    #undef ARG_INDEX
+    #undef ARG_PROPERTY
 }
 
 /*
@@ -143,7 +143,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
     // Value carriers to apply on properties after
     // taken from argument.
-    LONG    temp_int;
+    faction_group_mask_t    temp_int;
 
 	// Map string property name to a
 	// matching integer constant.
@@ -170,8 +170,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		case FACTION_PROPERTY_GROUP_DAMAGE_DIRECT:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
 				handle->damage_direct = temp_int;
 			}
 
@@ -179,8 +178,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
         case FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
 				handle->damage_indirect = temp_int;
 			}
 
@@ -188,8 +186,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		case FACTION_PROPERTY_GROUP_HOSTILE:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
 				handle->hostile = temp_int;
 			}
 
@@ -197,8 +194,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		case FACTION_PROPERTY_GROUP_MEMBER:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
 				handle->member = temp_int;
 			}
 
@@ -206,8 +202,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		case FACTION_PROPERTY_TYPE_DAMAGE_DIRECT:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
 				handle->type_damage_direct = temp_int;
 			}
 
@@ -215,8 +210,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		case FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
 				handle->type_damage_indirect = temp_int;
 			}
 
@@ -224,8 +218,7 @@ HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pr
 
 		case FACTION_PROPERTY_TYPE_HOSTILE:
 
-			if (SUCCEEDED(ScriptVariant_IntegerValue(varlist[ARG_VALUE], &temp_int)))
-			{
+			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))){
 				handle->type_hostile = temp_int;
 			}
 

@@ -3133,52 +3133,123 @@ typedef struct
     s_axis_plane_vertical_int position;
 } s_spawn_hud;
 
+
+
+
 /*
 * Caskey, Damon V.
 * 2023-02-03
-* 
-* Factionc onstants for self-contained
+*
+* Faction constants for the self-contained
 * faction system. See s_faction struct.
 */
-typedef enum e_faction_group
-{
-    FACTION_GROUP_NONE = 0,                     // No value. Factions with no value don't copy by default.
-    FACTION_GROUP_NEUTRAL = (1 << 0),           // No effect. Use as an inert faction.
-    FACTION_GROUP_NO_COPY = (1 << 1),           // Don't copy to child model (spawning, projectile, weapon, etc.).
-    FACTION_GROUP_PLAYER_VERSES = (1 << 2),     // Ignore nohit and VS. setting.
-    FACTION_GROUP_TYPE_EXCLUSIVE = (1 << 3),    // Override other factions with type check.
-    FACTION_GROUP_TYPE_INCLUSIVE = (1 << 4),    // Include type check with faction.
-    FACTION_GROUP_A = (1 << 5),
-    FACTION_GROUP_B = (1 << 6),
-    FACTION_GROUP_C = (1 << 7),
-    FACTION_GROUP_D = (1 << 8),
-    FACTION_GROUP_E = (1 << 9),
-    FACTION_GROUP_F = (1 << 10),
-    FACTION_GROUP_G = (1 << 11),
-    FACTION_GROUP_H = (1 << 12),
-    FACTION_GROUP_I = (1 << 13),
-    FACTION_GROUP_J = (1 << 14),
-    FACTION_GROUP_K = (1 << 15),
-    FACTION_GROUP_L = (1 << 16),
-    FACTION_GROUP_M = (1 << 17),
-    FACTION_GROUP_N = (1 << 18),
-    FACTION_GROUP_O = (1 << 19),
-    FACTION_GROUP_P = (1 << 20),
-    FACTION_GROUP_Q = (1 << 21),
-    FACTION_GROUP_R = (1 << 22),
-    FACTION_GROUP_S = (1 << 23),
-    FACTION_GROUP_T = (1 << 24),
-    FACTION_GROUP_U = (1 << 25),
-    FACTION_GROUP_V = (1 << 26),
-    FACTION_GROUP_W = (1 << 27),
-    FACTION_GROUP_X = (1 << 28),
-    FACTION_GROUP_Y = (1 << 29),
-    FACTION_GROUP_Z = (1 << 30),
-    FACTION_GROUP_ALL_NORMAL = FACTION_GROUP_A | FACTION_GROUP_B | FACTION_GROUP_C | FACTION_GROUP_D | FACTION_GROUP_E | FACTION_GROUP_F | FACTION_GROUP_G | FACTION_GROUP_H | FACTION_GROUP_I | FACTION_GROUP_J | FACTION_GROUP_K | FACTION_GROUP_L | FACTION_GROUP_M | FACTION_GROUP_N | FACTION_GROUP_O | FACTION_GROUP_P | FACTION_GROUP_Q | FACTION_GROUP_R | FACTION_GROUP_S | FACTION_GROUP_T | FACTION_GROUP_U | FACTION_GROUP_V | FACTION_GROUP_W | FACTION_GROUP_X | FACTION_GROUP_Y | FACTION_GROUP_Z,
-    FACTION_GROUP_ALL = FACTION_GROUP_PLAYER_VERSES | FACTION_GROUP_TYPE_EXCLUSIVE | FACTION_GROUP_TYPE_INCLUSIVE | FACTION_GROUP_ALL_NORMAL,
-    FACTION_GROUP_DEFAULT = FACTION_GROUP_A | FACTION_GROUP_TYPE_INCLUSIVE,
-    FACTION_GROUP_NO_CHECK = FACTION_GROUP_NEUTRAL | FACTION_GROUP_NO_COPY | FACTION_GROUP_PLAYER_VERSES | FACTION_GROUP_TYPE_EXCLUSIVE | FACTION_GROUP_TYPE_INCLUSIVE
-} e_faction_group;
+
+typedef uint64_t faction_group_mask_t;
+
+/* Control flags. */
+
+#define FACTION_GROUP_NONE               UINT64_C(0)         // No value. Factions with no value don't copy by default.
+#define FACTION_GROUP_NEUTRAL            (UINT64_C(1) << 0)  // No effect. Use as an inert faction.
+#define FACTION_GROUP_NO_COPY            (UINT64_C(1) << 1)  // Don't copy to child model (spawning, projectile, weapon, etc.).
+#define FACTION_GROUP_PLAYER_VERSES      (UINT64_C(1) << 2)  // Ignore nohit and VS. setting.
+#define FACTION_GROUP_TYPE_EXCLUSIVE     (UINT64_C(1) << 3)  // Override other factions with type check.
+#define FACTION_GROUP_TYPE_INCLUSIVE     (UINT64_C(1) << 4)  // Include type check with faction.
+
+/* Original faction group bank. */
+
+#define FACTION_GROUP_A                  (UINT64_C(1) << 5)
+#define FACTION_GROUP_B                  (UINT64_C(1) << 6)
+#define FACTION_GROUP_C                  (UINT64_C(1) << 7)
+#define FACTION_GROUP_D                  (UINT64_C(1) << 8)
+#define FACTION_GROUP_E                  (UINT64_C(1) << 9)
+#define FACTION_GROUP_F                  (UINT64_C(1) << 10)
+#define FACTION_GROUP_G                  (UINT64_C(1) << 11)
+#define FACTION_GROUP_H                  (UINT64_C(1) << 12)
+#define FACTION_GROUP_I                  (UINT64_C(1) << 13)
+#define FACTION_GROUP_J                  (UINT64_C(1) << 14)
+#define FACTION_GROUP_K                  (UINT64_C(1) << 15)
+#define FACTION_GROUP_L                  (UINT64_C(1) << 16)
+#define FACTION_GROUP_M                  (UINT64_C(1) << 17)
+#define FACTION_GROUP_N                  (UINT64_C(1) << 18)
+#define FACTION_GROUP_O                  (UINT64_C(1) << 19)
+#define FACTION_GROUP_P                  (UINT64_C(1) << 20)
+#define FACTION_GROUP_Q                  (UINT64_C(1) << 21)
+#define FACTION_GROUP_R                  (UINT64_C(1) << 22)
+#define FACTION_GROUP_S                  (UINT64_C(1) << 23)
+#define FACTION_GROUP_T                  (UINT64_C(1) << 24)
+#define FACTION_GROUP_U                  (UINT64_C(1) << 25)
+#define FACTION_GROUP_V                  (UINT64_C(1) << 26)
+#define FACTION_GROUP_W                  (UINT64_C(1) << 27)
+#define FACTION_GROUP_X                  (UINT64_C(1) << 28)
+#define FACTION_GROUP_Y                  (UINT64_C(1) << 29)
+#define FACTION_GROUP_Z                  (UINT64_C(1) << 30)
+
+/* Extended faction group bank. */
+
+#define FACTION_GROUP_A1                 (UINT64_C(1) << 31)
+#define FACTION_GROUP_B1                 (UINT64_C(1) << 32)
+#define FACTION_GROUP_C1                 (UINT64_C(1) << 33)
+#define FACTION_GROUP_D1                 (UINT64_C(1) << 34)
+#define FACTION_GROUP_E1                 (UINT64_C(1) << 35)
+#define FACTION_GROUP_F1                 (UINT64_C(1) << 36)
+#define FACTION_GROUP_G1                 (UINT64_C(1) << 37)
+#define FACTION_GROUP_H1                 (UINT64_C(1) << 38)
+#define FACTION_GROUP_I1                 (UINT64_C(1) << 39)
+#define FACTION_GROUP_J1                 (UINT64_C(1) << 40)
+#define FACTION_GROUP_K1                 (UINT64_C(1) << 41)
+#define FACTION_GROUP_L1                 (UINT64_C(1) << 42)
+#define FACTION_GROUP_M1                 (UINT64_C(1) << 43)
+#define FACTION_GROUP_N1                 (UINT64_C(1) << 44)
+#define FACTION_GROUP_O1                 (UINT64_C(1) << 45)
+#define FACTION_GROUP_P1                 (UINT64_C(1) << 46)
+#define FACTION_GROUP_Q1                 (UINT64_C(1) << 47)
+#define FACTION_GROUP_R1                 (UINT64_C(1) << 48)
+#define FACTION_GROUP_S1                 (UINT64_C(1) << 49)
+#define FACTION_GROUP_T1                 (UINT64_C(1) << 50)
+#define FACTION_GROUP_U1                 (UINT64_C(1) << 51)
+#define FACTION_GROUP_V1                 (UINT64_C(1) << 52)
+#define FACTION_GROUP_W1                 (UINT64_C(1) << 53)
+#define FACTION_GROUP_X1                 (UINT64_C(1) << 54)
+#define FACTION_GROUP_Y1                 (UINT64_C(1) << 55)
+#define FACTION_GROUP_Z1                 (UINT64_C(1) << 56)
+
+/* Combined masks. */
+
+#define FACTION_GROUP_ALL_NORMAL                                      \
+    (FACTION_GROUP_A  | FACTION_GROUP_B  | FACTION_GROUP_C  |         \
+     FACTION_GROUP_D  | FACTION_GROUP_E  | FACTION_GROUP_F  |         \
+     FACTION_GROUP_G  | FACTION_GROUP_H  | FACTION_GROUP_I  |         \
+     FACTION_GROUP_J  | FACTION_GROUP_K  | FACTION_GROUP_L  |         \
+     FACTION_GROUP_M  | FACTION_GROUP_N  | FACTION_GROUP_O  |         \
+     FACTION_GROUP_P  | FACTION_GROUP_Q  | FACTION_GROUP_R  |         \
+     FACTION_GROUP_S  | FACTION_GROUP_T  | FACTION_GROUP_U  |         \
+     FACTION_GROUP_V  | FACTION_GROUP_W  | FACTION_GROUP_X  |         \
+     FACTION_GROUP_Y  | FACTION_GROUP_Z  |                            \
+     FACTION_GROUP_A1 | FACTION_GROUP_B1 | FACTION_GROUP_C1 |         \
+     FACTION_GROUP_D1 | FACTION_GROUP_E1 | FACTION_GROUP_F1 |         \
+     FACTION_GROUP_G1 | FACTION_GROUP_H1 | FACTION_GROUP_I1 |         \
+     FACTION_GROUP_J1 | FACTION_GROUP_K1 | FACTION_GROUP_L1 |         \
+     FACTION_GROUP_M1 | FACTION_GROUP_N1 | FACTION_GROUP_O1 |         \
+     FACTION_GROUP_P1 | FACTION_GROUP_Q1 | FACTION_GROUP_R1 |         \
+     FACTION_GROUP_S1 | FACTION_GROUP_T1 | FACTION_GROUP_U1 |         \
+     FACTION_GROUP_V1 | FACTION_GROUP_W1 | FACTION_GROUP_X1 |         \
+     FACTION_GROUP_Y1 | FACTION_GROUP_Z1)
+
+#define FACTION_GROUP_ALL                                             \
+    (FACTION_GROUP_PLAYER_VERSES  |                                   \
+     FACTION_GROUP_TYPE_EXCLUSIVE |                                   \
+     FACTION_GROUP_TYPE_INCLUSIVE |                                   \
+     FACTION_GROUP_ALL_NORMAL)
+
+#define FACTION_GROUP_DEFAULT                                         \
+    (FACTION_GROUP_A | FACTION_GROUP_TYPE_INCLUSIVE)
+
+#define FACTION_GROUP_NO_CHECK                                        \
+    (FACTION_GROUP_NEUTRAL        |                                   \
+     FACTION_GROUP_NO_COPY        |                                   \
+     FACTION_GROUP_PLAYER_VERSES  |                                   \
+     FACTION_GROUP_TYPE_EXCLUSIVE |                                   \
+     FACTION_GROUP_TYPE_INCLUSIVE)
 
 /*
 * Caskey, Damon V.
@@ -3188,8 +3259,8 @@ typedef enum e_faction_group
 * determine what other entities an 
 * entity is hostile to and can damage.
 */
-typedef struct
-{
+typedef struct s_faction {
+    
     /*
     * Group based factions. Entity can be
     * a member of any or all factions using
@@ -3198,10 +3269,10 @@ typedef struct
     * entity's member property.
     */
 
-    e_faction_group damage_direct;    // Factions entity can damage with attacks.
-    e_faction_group damage_indirect;  // Factions entity can damage when thrown/blasted.
-    e_faction_group hostile;          // Factions entity seeks and attacks.
-    e_faction_group member;           // Factions entity belongs to.
+    faction_group_mask_t damage_direct;    // Factions entity can damage with attacks.
+    faction_group_mask_t damage_indirect;  // Factions entity can damage when thrown/blasted.
+    faction_group_mask_t hostile;          // Factions entity seeks and attacks.
+    faction_group_mask_t member;           // Factions entity belongs to.
 
     /*
     * Type based faction control for legacy 
@@ -4344,9 +4415,9 @@ void faction_copy_all(entity* ent, entity* source);
 void faction_copy_data(s_faction* dest, s_faction* source);
 bool faction_check_can_damage(entity* acting_entity, entity* target_entity, const bool indirect);
 int faction_check_is_hostile(entity* acting_entity, entity* target_entity);
-int faction_check_player_verses(entity* acting_entity, entity* target_entity, e_faction_group faction_property);
-e_faction_group faction_get_flags_from_arglist(const ArgList* arglist);
-e_faction_group faction_get_flag_from_string(const char* value);
+int faction_check_player_verses(entity* acting_entity, entity* target_entity, faction_group_mask_t faction_property);
+faction_group_mask_t faction_get_flags_from_arglist(const ArgList* arglist);
+faction_group_mask_t faction_get_flag_from_string(const char* value);
 
 /* Bind control */
 void    adjust_bind(entity* acting_entity);
