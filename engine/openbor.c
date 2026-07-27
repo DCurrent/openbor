@@ -780,7 +780,7 @@ int                 nomaxrushreset[5]	= {0, 0, 0, 0, 0};
 int			        mpbartext[4]		= { -1, 0, 0, 0};			// Array for adjusting MP status text (font, Xpos, Ypos, Display type).
 int			        lbartext[4]			= { -1, 0, 0, 0};			// Array for adjusting HP status text (font, Xpos, Ypos, Display type).
 int                 pmp[4][2]			= {{0, 0}, {0, 0}, {0, 0}, {0, 0}}; // Used for customizable player mpbar
-int                 spdirection[4]		= {1, 0, 1, 0};			// Used for Select Player Direction for select player screen
+int                 spdirection[4]		= {DIRECTION_RIGHT, DIRECTION_LEFT, DIRECTION_RIGHT, DIRECTION_LEFT}; // Used for Select Player Direction for select player screen
 int                 bonus				= 0;					// Used for unlocking Bonus difficulties
 int                 versusdamage		= 2;					// Used for setting mode. (ability to hit other players)
 int                 z_coords[3]			= {0, 0, 0};				// Used for setting customizable walkable area
@@ -19153,10 +19153,10 @@ int load_models()
                 break;
             case CMD_MODELSTXT_SPDIRECTION:
                 // Select Player Direction for select player screen
-                spdirection[0] =  GET_INT_ARG(1);
-                spdirection[1] =  GET_INT_ARG(2);
-                spdirection[2] =  GET_INT_ARG(3);
-                spdirection[3] =  GET_INT_ARG(4);
+                spdirection[0] =  direction_get_direction_from_argument(filename, command, GET_ARG(1));
+                spdirection[1] =  direction_get_direction_from_argument(filename, command, GET_ARG(2));
+                spdirection[2] =  direction_get_direction_from_argument(filename, command, GET_ARG(3));
+                spdirection[3] =  direction_get_direction_from_argument(filename, command, GET_ARG(4));
                 break;
             case CMD_MODELSTXT_AUTOLAND:
                 // New flag to determine if a player auto lands when thrown by another player (2 completely disables the ability to land)
@@ -30542,45 +30542,52 @@ void adjust_bind(entity* acting_entity)
 /*
 * Caskey, Damon V.
 * 2021-08-24
+*
+* Read a text argument for direction and output
+* appropriate direction constant. If input is
+* legacy integer, we just pass it on.
+*/
+e_direction direction_get_direction_from_argument(const char* filename, const char* command, const char* value) {
+    e_direction result = DIRECTION_NONE;
+        
+    if (stricmp(value, "left") == 0) {
+        result = DIRECTION_LEFT;    
+    } else if (stricmp(value, "right") == 0) {
+        result = DIRECTION_RIGHT;    
+    } else {
+        /* Just pass through for legacy integer. */
+        result = getValidInt(value, filename, command);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2021-08-24
 * 
 * Read a text argument for direction and output
 * appropriate direction adjustment constant. If
 * input is legacy integer, we just pass it on.
 */
-e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* command, char* value)
-{
+e_direction_adjust direction_get_adjustment_from_argument(const char* filename, const char* command, const char* value) {
     e_direction_adjust result = DIRECTION_ADJUST_NONE;
         
-    if (stricmp(value, "left") == 0)
-    {
+    if (stricmp(value, "left") == 0) {
         result = DIRECTION_ADJUST_LEFT;
-    }
-    else if (stricmp(value, "none") == 0)
-    {
+    } else if (stricmp(value, "none") == 0) {
         result = DIRECTION_ADJUST_NONE;
-    }
-    else if (stricmp(value, "opposite") == 0)
-    {
+    } else if (stricmp(value, "opposite") == 0) {
         result = DIRECTION_ADJUST_OPPOSITE;
-    }
-    else if (stricmp(value, "right") == 0)
-    {
-        result = DIRECTION_ADJUST_RIGHT;
-    }
-    else if (stricmp(value, "same") == 0)
-    {
+    } else if (stricmp(value, "right") == 0) {
+        result = DIRECTION_ADJUST_RIGHT;    
+    } else if (stricmp(value, "same") == 0) {
         result = DIRECTION_ADJUST_SAME;
-    }
-    else if (stricmp(value, "toward") == 0)
-    {
+    } else if (stricmp(value, "toward") == 0) {
         result = DIRECTION_ADJUST_TOWARD;
-    }
-    else if (stricmp(value, "away") == 0)
-    {
+    } else if (stricmp(value, "away") == 0) {
         result = DIRECTION_ADJUST_AWAY;
-    }
-    else
-    {
+    } else {
         result = getValidInt(value, filename, command);
     }
 

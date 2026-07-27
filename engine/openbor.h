@@ -4217,7 +4217,8 @@ int     buffer_pakfile							(const char *filename, char **pbuffer, size_t *psiz
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
 int     getsyspropertybyindex					(ScriptVariant *var, int index);
 int     changesyspropertybyindex				(int index, ScriptVariant *value);
-e_direction_adjust direction_get_adjustment_from_argument(char* filename, char* command, char* value);
+e_direction direction_get_direction_from_argument(const char* filename, const char* command, const char* value);
+e_direction_adjust direction_get_adjustment_from_argument(const char* const filename, const char* command, const char* value);
 e_direction	direction_get_adjustment_result	    (entity* acting_entity, const entity* target_entity, e_direction_adjust adjustment);
 int     load_script								(Script *script, char *path);
 void    init_scripts();
