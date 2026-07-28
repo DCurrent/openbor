@@ -11929,7 +11929,7 @@ e_entity_type get_type_from_arglist(ArgList* arglist)
     int i = 0;
     char* value = "";
 
-    e_entity_type result = TYPE_UNDELCARED;
+    e_entity_type result = TYPE_UNDECLARED;
 
     for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
     {
@@ -13524,9 +13524,9 @@ s_model *init_model(const int cacheindex, const int unload)
         .damage_indirect = FACTION_GROUP_DEFAULT,
         .hostile = FACTION_GROUP_DEFAULT,
         .member = FACTION_GROUP_DEFAULT,
-        .type_damage_direct = TYPE_UNDELCARED,
-        .type_damage_indirect = TYPE_UNDELCARED,
-        .type_hostile = TYPE_UNDELCARED,
+        .type_damage_direct = TYPE_UNDECLARED,
+        .type_damage_indirect = TYPE_UNDECLARED,
+        .type_hostile = TYPE_UNDECLARED,
         .object_type = OBJECT_TYPE_FACTION
     };
 
@@ -18299,7 +18299,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         }
     }
 
-    if(newchar->faction.type_hostile == TYPE_UNDELCARED) // not been initialized, so initialize it
+    if(newchar->faction.type_hostile == TYPE_UNDECLARED) // not been initialized, so initialize it
     {
         switch (newchar->type)
         {
@@ -18315,13 +18315,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         case TYPE_TRAP:
             newchar->faction.type_hostile = TYPE_ENEMY | TYPE_PLAYER;
         case TYPE_OBSTACLE:
-            newchar->faction.type_hostile = TYPE_UNDELCARED;
+            newchar->faction.type_hostile = TYPE_UNDECLARED;
             break;
 		case TYPE_PROJECTILE:
 			// We want a clean slate so the projectile 
 			// spawn functions will copy owner settings 
 			// by default.
-			newchar->faction.type_hostile = TYPE_UNDELCARED;
+			newchar->faction.type_hostile = TYPE_UNDECLARED;
 			break;
         case TYPE_SHOT:  // only target enemies
             newchar->faction.type_hostile = TYPE_ENEMY ;
@@ -18332,7 +18332,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         }
     }
 
-    if(newchar->faction.type_damage_direct == TYPE_UNDELCARED) // not been initialized, so initialize it
+    if(newchar->faction.type_damage_direct == TYPE_UNDECLARED) // not been initialized, so initialize it
     {
         switch (newchar->type)
         {
@@ -18358,7 +18358,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 			// We want a clean slate so the projectile 
 			// spawn functions will copy owner settings 
 			// by default.
-			newchar->faction.type_damage_direct = TYPE_UNDELCARED;
+			newchar->faction.type_damage_direct = TYPE_UNDECLARED;
 			break;
         case TYPE_SHOT:
             newchar->faction.type_damage_direct = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
@@ -18372,7 +18372,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         }
     }
 
-    if(newchar->faction.type_damage_indirect == TYPE_UNDELCARED) // not been initialized, so initialize it
+    if(newchar->faction.type_damage_indirect == TYPE_UNDECLARED) // not been initialized, so initialize it
     {
         switch (newchar->type)
         {
@@ -18394,7 +18394,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 			// We want a clean slate so the projectile 
 			// spawn functions will copy owner settings 
 			// by default.
-			newchar->faction.type_damage_indirect = TYPE_UNDELCARED;
+			newchar->faction.type_damage_indirect = TYPE_UNDECLARED;
 			break;
         case TYPE_SHOT: // hmm, don't really needed
             newchar->faction.type_damage_indirect = TYPE_ENEMY | TYPE_PLAYER | TYPE_OBSTACLE;
@@ -24540,7 +24540,7 @@ void ent_default_init(entity *e)
     case TYPE_ANY:
     case TYPE_NO_COPY:
     case TYPE_RESERVED:
-	case TYPE_UNDELCARED:
+	case TYPE_UNDECLARED:
 	case TYPE_UNKNOWN:
 		//Do nothing.
         break;
@@ -44842,9 +44842,15 @@ void faction_copy_all(entity* dest, entity* source)
 * Copy faction properties if 
 * conditions pass.
 */
-void faction_copy_data(s_faction* dest, s_faction* source)
-{
-    
+void faction_copy_data(s_faction* dest, s_faction* source) {
+
+    /*
+    * The destination is always a faction
+    * object, regardless of which faction
+    * properties qualify for copying.
+    */
+    dest->object_type = OBJECT_TYPE_FACTION;
+
     /*
     * Faction groups. Only copy if source or 
     * destination has a value and does not
@@ -44857,23 +44863,27 @@ void faction_copy_data(s_faction* dest, s_faction* source)
     * keep it here and maintainable. 
     */
 
-    if (source->damage_direct != FACTION_GROUP_NONE && !(source->damage_direct & FACTION_GROUP_NO_COPY) && !(dest->damage_direct & FACTION_GROUP_NO_COPY))
-    { 
+    if (source->damage_direct != FACTION_GROUP_NONE 
+        && !(source->damage_direct & FACTION_GROUP_NO_COPY) 
+        && !(dest->damage_direct & FACTION_GROUP_NO_COPY)) {
         dest->damage_direct = source->damage_direct; 
     }
 
-    if (source->damage_indirect != FACTION_GROUP_NONE && !(source->damage_indirect & FACTION_GROUP_NO_COPY) && !(dest->damage_indirect & FACTION_GROUP_NO_COPY))
-    { 
+    if (source->damage_indirect != FACTION_GROUP_NONE 
+        && !(source->damage_indirect & FACTION_GROUP_NO_COPY) 
+        && !(dest->damage_indirect & FACTION_GROUP_NO_COPY)) {
         dest->damage_indirect = source->damage_indirect; 
     }
     
-    if (source->hostile != FACTION_GROUP_NONE && !(source->hostile & FACTION_GROUP_NO_COPY) && !(dest->hostile & FACTION_GROUP_NO_COPY))
-    { 
+    if (source->hostile != FACTION_GROUP_NONE 
+        && !(source->hostile & FACTION_GROUP_NO_COPY) 
+        && !(dest->hostile & FACTION_GROUP_NO_COPY)) {
         dest->hostile = source->hostile; 
     }
     
-    if (source->member != FACTION_GROUP_NONE && !(source->member & FACTION_GROUP_NO_COPY) && !(dest->member & FACTION_GROUP_NO_COPY))
-    { 
+    if (source->member != FACTION_GROUP_NONE 
+        && !(source->member & FACTION_GROUP_NO_COPY) 
+        && !(dest->member & FACTION_GROUP_NO_COPY)) {
         dest->member = source->member; 
     }
 
@@ -44881,20 +44891,24 @@ void faction_copy_data(s_faction* dest, s_faction* source)
     * Types. Same rule as faction groups.
     */
 
-    if (source->type_damage_direct != TYPE_UNDELCARED && !(source->type_damage_direct & TYPE_NO_COPY) && !(dest->type_damage_direct & TYPE_NO_COPY))
-    { 
+    if (source->type_damage_direct != TYPE_UNDECLARED 
+        && !(source->type_damage_direct & TYPE_NO_COPY) 
+        && !(dest->type_damage_direct & TYPE_NO_COPY)) {
+    
         dest->type_damage_direct = source->type_damage_direct; 
     }
 
-    if (source->type_damage_indirect != TYPE_UNDELCARED && !(source->type_damage_indirect & TYPE_NO_COPY) && !(dest->type_damage_indirect & TYPE_NO_COPY))
-    { 
+    if (source->type_damage_indirect != TYPE_UNDECLARED 
+        && !(source->type_damage_indirect & TYPE_NO_COPY) 
+        && !(dest->type_damage_indirect & TYPE_NO_COPY)) {
         dest->type_damage_indirect = source->type_damage_indirect; 
     }
 
-    if (source->type_hostile != TYPE_UNDELCARED && !(source->type_hostile & TYPE_NO_COPY) && !(dest->type_hostile & TYPE_NO_COPY))
-    { 
+    if (source->type_hostile != TYPE_UNDECLARED 
+        && !(source->type_hostile & TYPE_NO_COPY) 
+        && !(dest->type_hostile & TYPE_NO_COPY)) {
         dest->type_hostile = source->type_hostile; 
-    }
+    }    
 }
 
 /*

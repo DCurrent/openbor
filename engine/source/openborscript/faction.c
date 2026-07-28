@@ -3,248 +3,225 @@
  * -----------------------------------------------------------------------
  * All rights reserved. See LICENSE in OpenBOR root for license details.
  *
- * Copyright (c)  OpenBOR Team
+ * Copyright (c) OpenBOR Team
  */
 
- #include "scriptcommon.h"
+#include "scriptcommon.h"
 
-/*
-* Caskey, Damon V.
-* 2023-02-23
-* 
-* Return a faction property.
-* Requires a faction pointer 
-* and property name.
-*/
-HRESULT openbor_get_faction_property(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
+
+typedef struct {
+    e_faction_properties property;
+    e_property_access_config_flags config_flags;
+    size_t offset;
+    const char* id_string;
+    VARTYPE type;
+} faction_property_info;
+
+#define PROPERTY_MEMBER_OFFSET(type, member) ((size_t)&(((type*)0)->member))
+
+static const faction_property_info faction_properties[] = {
+    {.property = FACTION_PROPERTY_GROUP_DAMAGE_DIRECT,
+     .id_string = "FACTION_PROPERTY_GROUP_DAMAGE_DIRECT",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, damage_direct),
+     .type = VT_UINTEGER64 },
+
+    {.property = FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT,
+     .id_string = "FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, damage_indirect),
+     .type = VT_UINTEGER64 },
+
+    {.property = FACTION_PROPERTY_GROUP_HOSTILE,
+     .id_string = "FACTION_PROPERTY_GROUP_HOSTILE",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, hostile),
+     .type = VT_UINTEGER64 },
+
+    {.property = FACTION_PROPERTY_GROUP_MEMBER,
+     .id_string = "FACTION_PROPERTY_GROUP_MEMBER",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, member),
+     .type = VT_UINTEGER64 },
+
+    {.property = FACTION_PROPERTY_TYPE_DAMAGE_DIRECT,
+     .id_string = "FACTION_PROPERTY_TYPE_DAMAGE_DIRECT",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, type_damage_direct),
+     .type = VT_INTEGER },
+
+    {.property = FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT,
+     .id_string = "FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, type_damage_indirect),
+     .type = VT_INTEGER },
+
+    {.property = FACTION_PROPERTY_TYPE_HOSTILE,
+     .id_string = "FACTION_PROPERTY_TYPE_HOSTILE",
+     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .offset = PROPERTY_MEMBER_OFFSET(s_faction, type_hostile),
+     .type = VT_INTEGER },
+
+    {.property = FACTION_PROPERTY_END,
+     .id_string = "Faction",
+     .config_flags = PROPERTY_ACCESS_CONFIG_NONE,
+     .offset = 0,
+     .type = VT_EMPTY }
+};
+
+#undef PROPERTY_MEMBER_OFFSET
+
+const s_property_access_map faction_get_property_map(const void* acting_object_param, const unsigned int property_index_param)
 {
-    #define SELF_NAME       "openbor_get_faction_property(void pointer, char property)"
-    #define ARG_MINIMUM     2   // Minimum required arguments.
-    #define ARG_OBJECT      0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY    1   // Property to access.
+    s_property_access_map property_map = { 0 };
+    const s_faction* acting_object = acting_object_param;
+    const faction_property_info* info = NULL;
 
-	s_faction				*handle     = NULL; // Property handle.
-	e_faction_properties	property   = 0;    // Property argument.
-
-    // Clear pass by reference argument used to send
-    // property data back to calling script.
-    ScriptVariant_Clear(*pretvar);
-
-    // Verify arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property constant is accessed.
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_OBJECT]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
-        *pretvar = NULL;
-        goto error_local;
-    }
-    else
-    {
-        // Populate local vars for readability.
-        handle      = (s_faction*)varlist[ARG_OBJECT]->ptrVal;
-        property    = (LONG)varlist[ARG_PROPERTY]->lVal;
-    }
-	
-    switch(property)
-    {
-		case FACTION_PROPERTY_GROUP_DAMAGE_DIRECT:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->damage_direct;
-
-			break;
-
-		case FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->damage_indirect;
-
-			break;
-
-		case FACTION_PROPERTY_GROUP_HOSTILE:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->hostile;
-
-			break;
-
-		case FACTION_PROPERTY_GROUP_MEMBER:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->member;
-
-			break;
-
-		case FACTION_PROPERTY_TYPE_DAMAGE_DIRECT:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->type_damage_direct;
-
-			break;
-
-		case FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->type_damage_indirect;
-
-			break;
-
-		case FACTION_PROPERTY_TYPE_HOSTILE:
-
-			ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-			(*pretvar)->ullVal = (faction_group_mask_t)handle->type_hostile;
-
-			break;
-
-        default:
-
-            printf("Unsupported property.\n");
-            goto error_local;
-
+    for (size_t i = 0; i < sizeof(faction_properties) / sizeof(faction_properties[0]); ++i) {
+        if (faction_properties[i].property == property_index_param) {
+            info = &faction_properties[i];
             break;
+        }
     }
 
-    return S_OK;
+    if (info) {
+        property_map.config_flags = info->config_flags;
+        property_map.field = (const void*)((const char*)acting_object + info->offset);
+        property_map.id_string = info->id_string;
+        property_map.type = info->type;
+    }
+    else {
+        property_map.config_flags = PROPERTY_ACCESS_CONFIG_NONE;
+        property_map.field = NULL;
+        property_map.id_string = "Faction";
+        property_map.type = VT_EMPTY;
+    }
 
-    error_local:
-
-    printf("You must provide a valid handle and property name: " SELF_NAME "\n");
-    *pretvar = NULL;
-
-    return E_FAIL;
-
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_OBJECT
-    #undef ARG_PROPERTY
+    return property_map;
 }
 
 /*
 * Caskey, Damon V.
 * 2023-02-23
 *
-* Return a faction property.
-* Requires a faction pointer,
-* property name, and new value.
+* Return a faction property. Requires
+* a faction pointer and property constant.
 */
-HRESULT openbor_set_faction_property(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount)
+HRESULT openbor_get_faction_property(const ScriptVariant* const* varlist, ScriptVariant** const pretvar, const int paramCount)
 {
-    #define SELF_NAME           "openbor_set_faction_property(void handle, char property, value)"
-    #define ARG_MINIMUM         3   // Minimum required arguments.
-    #define ARG_OBJECT          0   // Handle (pointer to property structure).
-    #define ARG_PROPERTY        1   // Property to access.
-    #define ARG_VALUE           2   // New value to apply.
+    const char* SELF_NAME = "openbor_get_faction_property(void faction, int property)";
+    const unsigned int ARG_OBJECT = 0;
+    const unsigned int ARG_PROPERTY = 1;
+    const int ARG_MINIMUM = 2;
 
-    int						result     = S_OK; // Success or error?
-    s_faction*				handle     = NULL; // Property handle.
-    e_faction_properties	property   = 0;    // Property to access.
+    /*
+    * Clear pass by reference argument used to send
+    * property data back to calling script.
+    */
+    ScriptVariant_Clear(*pretvar);
 
-    // Value carriers to apply on properties after
-    // taken from argument.
-    faction_group_mask_t    temp_int;
-
-	// Map string property name to a
-	// matching integer constant.
-	//mapstrings_faction_property(varlist, paramCount);
-	
-    // Verify incoming arguments. There should at least
-    // be a pointer for the property handle and an integer
-    // to determine which property is accessed.
-    if(paramCount < ARG_MINIMUM
-       || varlist[ARG_OBJECT]->vt != VT_PTR
-       || varlist[ARG_PROPERTY]->vt != VT_INTEGER)
-    {
+    /*
+    * Should at least be a pointer to the
+    * acting object and a property id.
+    */
+    if (paramCount < ARG_MINIMUM
+        || varlist[ARG_OBJECT]->vt != VT_PTR
+        || varlist[ARG_OBJECT]->ptrVal == NULL
+        || varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
+        printf("\n\nScript error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
         *pretvar = NULL;
-        goto error_local;
+        return E_FAIL;
     }
 
-    // Populate local handle and property vars.
-    handle      = (s_faction *)varlist[ARG_OBJECT]->ptrVal;
-    property    = (LONG)varlist[ARG_PROPERTY]->lVal;
+    const s_faction* const acting_object = (const s_faction* const)varlist[ARG_OBJECT]->ptrVal;
 
-    // Which property to modify?
-    switch(property)
-    {
-
-		case FACTION_PROPERTY_GROUP_DAMAGE_DIRECT:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
-				handle->damage_direct = temp_int;
-			}
-
-			break;
-
-        case FACTION_PROPERTY_GROUP_DAMAGE_INDIRECT:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
-				handle->damage_indirect = temp_int;
-			}
-
-            break;
-
-		case FACTION_PROPERTY_GROUP_HOSTILE:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
-				handle->hostile = temp_int;
-			}
-
-			break;
-
-		case FACTION_PROPERTY_GROUP_MEMBER:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
-				handle->member = temp_int;
-			}
-
-			break;
-
-		case FACTION_PROPERTY_TYPE_DAMAGE_DIRECT:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
-				handle->type_damage_direct = temp_int;
-			}
-
-			break;
-
-		case FACTION_PROPERTY_TYPE_DAMAGE_INDIRECT:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))) {
-				handle->type_damage_indirect = temp_int;
-			}
-
-			break;
-
-		case FACTION_PROPERTY_TYPE_HOSTILE:
-
-			if (SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[ARG_VALUE], &temp_int))){
-				handle->type_hostile = temp_int;
-			}
-
-			break;
-
-        default:
-
-            printf("Unsupported property.\n");
-            goto error_local;
-
-            break;
+    if (acting_object->object_type != OBJECT_TYPE_FACTION) {
+        printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+        *pretvar = NULL;
+        return E_FAIL;
     }
 
-    return result;
+    const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
 
-    // Error trapping.
-    error_local:
+    /*
+    * If property id is in range, send the
+    * property map and return parameter for
+    * population.
+    */
+    if (property_id_param >= 0 && property_id_param < FACTION_PROPERTY_END) {
+        const e_faction_properties property_id = (e_faction_properties)property_id_param;
+        const s_property_access_map property_map = faction_get_property_map(acting_object, property_id);
 
-    printf("You must provide a valid handle, property, and new value: " SELF_NAME "\n");
+        return property_access_get_member(&property_map, *pretvar);
+    }
 
-    result = E_FAIL;
-    return result;
+    /*
+    * Is this a dump request? If not, then
+    * the property id is invalid.
+    */
+    if (property_id_param == PROPERTY_ACCESS_DUMP) {
+        property_access_dump_members(faction_get_property_map, FACTION_PROPERTY_END, acting_object);
+        return S_OK;
+    }
 
-    #undef SELF_NAME
-    #undef ARG_MINIMUM
-    #undef ARG_OBJECT
-    #undef ARG_PROPERTY
-    #undef ARG_VALUE
+    printf("\n\nScript error: %s. Unknown property id (%d).\n\n", SELF_NAME, property_id_param);
+    *pretvar = NULL;
+
+    return E_FAIL;
+}
+
+/*
+* Caskey, Damon V.
+* 2023-02-23
+*
+* Mutate a faction property. Requires
+* a faction pointer, property constant,
+* and new value.
+*/
+HRESULT openbor_set_faction_property(ScriptVariant** varlist, ScriptVariant** const pretvar, const int paramCount)
+{
+    const char* SELF_NAME = "openbor_set_faction_property(void faction, int property, <mixed> value)";
+    const unsigned int ARG_OBJECT = 0;
+    const unsigned int ARG_PROPERTY = 1;
+    const unsigned int ARG_VALUE = 2;
+    const int ARG_MINIMUM = 3;
+
+    /*
+    * Should at least be a pointer to the
+    * acting object, a property id, and
+    * a new value.
+    */
+    if (paramCount < ARG_MINIMUM
+        || varlist[ARG_OBJECT]->vt != VT_PTR
+        || varlist[ARG_OBJECT]->ptrVal == NULL
+        || varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
+        printf("\n\nScript error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    s_faction* const acting_object = (s_faction* const)varlist[ARG_OBJECT]->ptrVal;
+
+    if (acting_object->object_type != OBJECT_TYPE_FACTION) {
+        printf("\n\nScript error: %s. Object pointer is not correct type.\n\n", SELF_NAME);
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
+
+    if (property_id_param < 0 || property_id_param >= FACTION_PROPERTY_END) {
+        printf("\n\nScript error: %s. Unknown property id (%d).\n\n", SELF_NAME, property_id_param);
+        *pretvar = NULL;
+        return E_FAIL;
+    }
+
+    const e_faction_properties property_id = (e_faction_properties)property_id_param;
+    const s_property_access_map property_map = faction_get_property_map(acting_object, property_id);
+
+    /*
+    * Populate the property value on the
+    * acting object and return OK/FAIL.
+    */
+    return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
 }

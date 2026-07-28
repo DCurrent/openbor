@@ -595,7 +595,7 @@ typedef enum
 // Entity types.
 typedef enum e_entity_type
 {
-	TYPE_UNDELCARED = 0,    
+	TYPE_UNDECLARED = 0,    
     TYPE_NONE		= (1 << 0),
     TYPE_NO_COPY    = (1 << 1),     // Don't copy type data to/from another model.
     TYPE_PLAYER		= (1 << 2),

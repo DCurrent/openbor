@@ -5827,7 +5827,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_candamage:
     {
-        ent->faction.type_damage_direct = TYPE_UNDELCARED;
+        ent->faction.type_damage_direct = TYPE_UNDECLARED;
 
         for(i = 2; i < paramCount; i++)
         {
@@ -6320,7 +6320,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_hostile:
     {
-        ent->faction.type_hostile = TYPE_UNDELCARED;
+        ent->faction.type_hostile = TYPE_UNDECLARED;
         for(i = 2; i < paramCount; i++)
         {
             if(varlist[i]->vt == VT_INTEGER) // known entity type
@@ -6914,7 +6914,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_projectilehit:
     {
-        ent->faction.type_damage_indirect = TYPE_UNDELCARED;
+        ent->faction.type_damage_indirect = TYPE_UNDECLARED;
 
         for(i = 2; i < paramCount; i++)
         {
