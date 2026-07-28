@@ -13526,7 +13526,8 @@ s_model *init_model(const int cacheindex, const int unload)
         .member = FACTION_GROUP_DEFAULT,
         .type_damage_direct = TYPE_UNDELCARED,
         .type_damage_indirect = TYPE_UNDELCARED,
-        .type_hostile = TYPE_UNDELCARED
+        .type_hostile = TYPE_UNDELCARED,
+        .object_type = OBJECT_TYPE_FACTION
     };
 
     newchar->move_config_flags            = MOVE_CONFIG_NONE;

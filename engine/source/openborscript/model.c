@@ -130,9 +130,9 @@ static const model_property_info model_properties[] = {
 
     {.property = MODEL_PROPERTY_FACTION,
      .id_string = "MODEL_PROPERTY_FACTION",
-     .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
+     .config_flags = PROPERTY_ACCESS_CONFIG_READ | PROPERTY_ACCESS_CONFIG_STATIC_POINTER,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, faction),
-     .type = VT_INTEGER },
+     .type = VT_PTR },
 
     {.property = MODEL_PROPERTY_FLIP,
      .id_string = "MODEL_PROPERTY_FLIP",

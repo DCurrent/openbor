@@ -3285,6 +3285,8 @@ typedef struct s_faction {
     e_entity_type type_damage_direct;   // Types entity can damage with attacks.
     e_entity_type type_damage_indirect; // Types entity can damage when thrown/blasted.
     e_entity_type type_hostile;         // Types entity seeks and attacks.
+
+    e_object_type object_type;
 } s_faction;
 
 typedef enum
