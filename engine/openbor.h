@@ -3215,7 +3215,7 @@ typedef uint64_t faction_group_mask_t;
 
 /* Combined masks. */
 
-#define FACTION_GROUP_ALL_NORMAL                                      \
+#define FACTION_GROUP_ALL_NORMAL_0                                     \
     (FACTION_GROUP_A  | FACTION_GROUP_B  | FACTION_GROUP_C  |         \
      FACTION_GROUP_D  | FACTION_GROUP_E  | FACTION_GROUP_F  |         \
      FACTION_GROUP_G  | FACTION_GROUP_H  | FACTION_GROUP_I  |         \
@@ -3224,8 +3224,10 @@ typedef uint64_t faction_group_mask_t;
      FACTION_GROUP_P  | FACTION_GROUP_Q  | FACTION_GROUP_R  |         \
      FACTION_GROUP_S  | FACTION_GROUP_T  | FACTION_GROUP_U  |         \
      FACTION_GROUP_V  | FACTION_GROUP_W  | FACTION_GROUP_X  |         \
-     FACTION_GROUP_Y  | FACTION_GROUP_Z  |                            \
-     FACTION_GROUP_A1 | FACTION_GROUP_B1 | FACTION_GROUP_C1 |         \
+     FACTION_GROUP_Y  | FACTION_GROUP_Z)
+
+#define FACTION_GROUP_ALL_NORMAL_1                                     \
+    (FACTION_GROUP_A1 | FACTION_GROUP_B1 | FACTION_GROUP_C1 |         \
      FACTION_GROUP_D1 | FACTION_GROUP_E1 | FACTION_GROUP_F1 |         \
      FACTION_GROUP_G1 | FACTION_GROUP_H1 | FACTION_GROUP_I1 |         \
      FACTION_GROUP_J1 | FACTION_GROUP_K1 | FACTION_GROUP_L1 |         \
@@ -3234,6 +3236,9 @@ typedef uint64_t faction_group_mask_t;
      FACTION_GROUP_S1 | FACTION_GROUP_T1 | FACTION_GROUP_U1 |         \
      FACTION_GROUP_V1 | FACTION_GROUP_W1 | FACTION_GROUP_X1 |         \
      FACTION_GROUP_Y1 | FACTION_GROUP_Z1)
+
+#define FACTION_GROUP_ALL_NORMAL                                      \
+    (FACTION_GROUP_ALL_NORMAL_0  | FACTION_GROUP_ALL_NORMAL_1)
 
 #define FACTION_GROUP_ALL                                             \
     (FACTION_GROUP_PLAYER_VERSES  |                                   \

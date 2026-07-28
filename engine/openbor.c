@@ -44927,6 +44927,8 @@ faction_group_mask_t faction_get_flag_from_string(const char* value) {
     } flag_lookup_table[] = {
         { "none", FACTION_GROUP_NONE },
         { "all", FACTION_GROUP_ALL_NORMAL },
+        {"all0", FACTION_GROUP_ALL_NORMAL_0 },
+        {"all1", FACTION_GROUP_ALL_NORMAL_1 },
         { "neutral", FACTION_GROUP_NEUTRAL },
         { "no_copy", FACTION_GROUP_NO_COPY },
         { "player_verses", FACTION_GROUP_PLAYER_VERSES },
