@@ -626,32 +626,90 @@ int Script_AppendText(Script *pscript, char *text, char *path)
     return success;
 }
 
-/* Replace string constants with enum constants at compile time to speed up
-   script execution. */
-int Script_MapStringConstants(Instruction *pInstruction)
-{
+/*
+* Caskey, Damon V.
+* 2026-07-29 - Reworked original implementation
+*
+* Replaces eligible string arguments with mapped
+* constants during script compilation.
+*
+* Parameter references are dynamically sized. This
+* function validates the cached call representation
+* without imposing an arbitrary parameter-count limit.
+*
+* Returns true when no mapping is needed or all applicable
+* mappings succeed. Returns false when the instruction is
+* invalid, its parameter metadata is inconsistent, or
+* a mapping operation fails.
+*/
+bool Script_MapStringConstants(Instruction *pInstruction) {
     ScriptVariant **params;
     int paramCount;
     int (*pMapstrings)(ScriptVariant **, int);
 
-    if(pInstruction->functionRef)
-    {
-        params = (ScriptVariant **)pInstruction->theRefList->solidlist;
-        paramCount = (int)pInstruction->theRef->lVal;
-        assert(paramCount <= 32);
-        // Get the pointer to the correct mapstrings function, if one exists.
-        pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
-        if(pMapstrings)
-        {
-            // Call the mapstrings function.
-            if(!pMapstrings(params, paramCount))
-            {
-                return 0;
-            }
-        }
+    /*
+    * A missing instruction cannot contain valid call
+    * metadata.
+    */
+    if(!pInstruction) {
+        return false;
     }
 
-    return 1;
+    /*
+    * Script and imported calls do not use native
+    * string-constant mapping.
+    */
+    if(!pInstruction->functionRef) {
+        return true;
+    }
+
+    /*
+    * Native calls require a nonnegative cached parameter
+    * count and an allocated parameter-reference list.
+    */
+    if(!pInstruction->theRef
+       || pInstruction->theRef->vt != VT_INTEGER
+       || pInstruction->theRef->lVal < 0
+       || !pInstruction->theRefList) {
+        return false;
+    }
+
+    /*
+    * The parser generates parameter counts as int values
+    * stored in legacy integer variants.
+    */
+    paramCount =  (int)pInstruction->theRef->lVal;
+
+    /*
+    * The cached count must agree with the logical size
+    * retained by the solidified reference list.
+    */
+    if(List_GetSize(pInstruction->theRefList) != paramCount) {
+        return false;
+    }
+
+    /*
+    * Empty calls legitimately have no solid pointer
+    * table. Nonempty calls require one.
+    */
+    if(paramCount > 0 
+        && !pInstruction->theRefList->solidlist) {
+        return false;
+    }
+
+    params = (ScriptVariant **)pInstruction->theRefList->solidlist;
+
+    /*
+    * Only native functions with a registered mapper
+    * require compile-time string translation.
+    */
+    pMapstrings = Script_GetStringMapFunction(pInstruction->functionRef);
+
+    if(pMapstrings && !pMapstrings(params, paramCount)) {
+        return false;
+    }
+
+    return true;
 }
 
 //should be called only once after parsing text

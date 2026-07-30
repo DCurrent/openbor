@@ -7,6 +7,7 @@
  */
 
 #include "Parser.h"
+#include <limits.h>
 
 Parser *pcurParser = NULL;
 
@@ -546,46 +547,67 @@ void Parser_Param_list(Parser *pparser )
     }
 }
 
-void Parser_Param_list2(Parser *pparser )
+void Parser_Param_list2(Parser *pparser)
 {
     int i;
-    CHAR buf[4];
+    CHAR buffer[sizeof(int) * CHAR_BIT + 2U];
     Instruction *pinstruction;
-    if (Parser_Check(pparser, TOKEN_COMMA ))
-    {
+
+    while(Parser_Check(pparser, TOKEN_COMMA)) {
         Parser_Match(pparser);
-        Parser_Parm_decl(pparser );
+        Parser_Parm_decl(pparser);
+
+        /*
+         * Protect the count representation itself.
+         * This is not a creator-facing parameter limit.
+         */
+        if(pparser->paramCount == INT_MAX) {
+            Parser_Error(pparser, param_list2);
+            return;
+        }
+
         pparser->paramCount++;
-        Parser_Param_list2(pparser );
-    }
-    else if (ParserSet_Follow(&(pparser->theParserSet), param_list2, pparser->theNextToken.theType ))
-    {
-        //Walk back up the Instruction list and insert before the first PARAM
-        //instruction.
-        for(i = 1; i < pparser->paramCount; i++ )
-        {
-            List_GotoPrevious(pparser->pIList);
-        }
-
-        sprintf( buf, "%d", pparser->paramCount );
-        pinstruction = (Instruction *)malloc(sizeof(Instruction));
-        Instruction_InitViaLabel(pinstruction, CHECKARG, buf);
-
-        List_InsertBefore(pparser->pIList, pinstruction, NULL );
-
-        //Walk back down the InstructionList to reset the insertion point
-        for (i = 0; i < pparser->paramCount; i++ )
-        {
-            List_GotoNext(pparser->pIList);
-        }
-
-        //pparser->paramCount = 1;
     }
 
-    else
-    {
-        Parser_Error(pparser, param_list2 );
-        //pparser->paramCount =1 ;
+    if(!ParserSet_Follow(
+        &(pparser->theParserSet),
+        param_list2,
+        pparser->theNextToken.theType)) {
+        Parser_Error(pparser, param_list2);
+        return;
+    }
+
+    /*
+     * Walk back to the first PARAM instruction.
+     */
+    for(i = 1; i < pparser->paramCount; i++) {
+        List_GotoPrevious(pparser->pIList);
+    }
+
+    snprintf(buffer, sizeof(buffer), "%d", pparser->paramCount);
+
+    pinstruction = malloc(sizeof(*pinstruction));
+
+    if(!pinstruction) {
+        Parser_Error(pparser, param_list2);
+        return;
+    }
+
+    Instruction_InitViaLabel(
+        pinstruction,
+        CHECKARG,
+        buffer);
+
+    List_InsertBefore(
+        pparser->pIList,
+        pinstruction,
+        NULL);
+
+    /*
+     * Restore the insertion position.
+     */
+    for(i = 0; i < pparser->paramCount; i++) {
+        List_GotoNext(pparser->pIList);
     }
 }
 
@@ -1962,46 +1984,72 @@ void Parser_Arg_expr_list(Parser *pparser )
     }
 }
 
-void Parser_Arg_expr_list2(Parser *pparser, int argCount, int range)
-{
-    //This is going to get us in trouble if we have function calls as arguments.
-    //static int argCount = 1;
+void Parser_Arg_expr_list2(Parser *pparser, int argCount, int range){
+    int argRange;
+    int i;
+    CHAR buffer[sizeof(int) * CHAR_BIT + 2U];
 
-    //We push the arguments onto the stack backwards so they come off right,
-    //So back up one instruction before inserting.
-    int argRange, i;
-    CHAR buffer[4];
-    List_GotoPrevious(pparser->pIList);
+    for(;;) {
 
-    if (Parser_Check(pparser, TOKEN_COMMA ))
-    {
-        Parser_Match(pparser);
-        argRange = List_GetSize(pparser->pIList);
-        Parser_Assignment_expr(pparser );
-        argRange = List_GetSize(pparser->pIList) - argRange;
-        argCount++;
-        for (i = 1; i < argRange; i++)
-        {
-            List_GotoPrevious(pparser->pIList);
+        /*
+         * Arguments are inserted in reverse instruction
+         * order so they leave the data stack in normal
+         * source order.
+         */
+        List_GotoPrevious(pparser->pIList);
+
+        if(Parser_Check(pparser, TOKEN_COMMA)) {
+            Parser_Match(pparser);
+
+            argRange = List_GetSize(pparser->pIList);
+
+            Parser_Assignment_expr(pparser);
+
+            argRange =
+                List_GetSize(pparser->pIList) -
+                argRange;
+
+            /*
+             * Guard the existing integer representation
+             * without establishing an arbitrary limit.
+             */
+            if(argCount == INT_MAX 
+                || argRange < 0 
+                || argRange > INT_MAX - range) {
+                Parser_Error(pparser, arg_expr_list2);
+                return;
+            }
+
+            argCount++;
+
+            for(i = 1; i < argRange; i++) {
+                List_GotoPrevious(pparser->pIList);
+            }
+
+            range += argRange;
+            continue;
         }
-        range += argRange;
-        //if( m_pIList->Last()->m_OpCode == CALL) range++;
-        Parser_Arg_expr_list2(pparser, argCount, range );
-    }
-    else if (ParserSet_Follow(&(pparser->theParserSet), arg_expr_list2, pparser->theNextToken.theType ))
-    {
-        //Run back down the list to insert the argument count
-        for (i = 0; i < range; i++)
-        {
-            List_GotoNext(pparser->pIList);
+
+        const bool isFollow = ParserSet_Follow(&(pparser->theParserSet), arg_expr_list2, pparser->theNextToken.theType);
+
+        if(isFollow) {
+            /*
+             * Walk forward to the position where the
+             * argument-count instruction belongs.
+             */
+            for(i = 0; i < range; i++) {
+                List_GotoNext(pparser->pIList);
+            }
+
+            snprintf(buffer, sizeof(buffer), "%d", argCount);
+
+            Parser_AddInstructionViaLabel(pparser, CONSTINT, buffer, NULL);
+
+            return;
         }
 
-        sprintf( buffer, "%d", argCount );
-        Parser_AddInstructionViaLabel(pparser, CONSTINT, buffer, NULL );
-    }
-    else
-    {
-        Parser_Error(pparser, arg_expr_list2 );
+        Parser_Error(pparser, arg_expr_list2);
+        return;
     }
 }
 

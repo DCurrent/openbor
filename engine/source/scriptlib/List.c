@@ -484,57 +484,116 @@ void List_Init(List *list)
 #endif
 }
 
-void List_Solidify(List *list)
-{
-#ifdef DEBUG
-    chklist((List *)list);
-#endif
+/*
+* Converts a linked List into a contiguous array of
+* stored value pointers.
+*
+* Returns true when the list is empty or solidification
+* succeeds. Returns false when the list is invalid,
+* allocation size overflows, or allocation fails.
+*
+* Allocation completes before the linked nodes are
+* removed. Failure therefore leaves the original list
+* and any previous solid list intact.
+*/
+bool List_Solidify(List *list) {
+
     int i = 0;
-    size_t sldsize = 0;
-    size_t savesize = 0;
+    void **solidlist;
+
+    if(!list || list->size < 0) {
+        return false;
+    }
+
+#ifdef DEBUG
+    chklist(list);
+#endif
 
 #ifdef LIST_DEBUG
     printf("List_Solidify %p\n", list);
 #endif
-    if(list->solidlist)
-    {
+
+    if(list->size == 0) {
         free(list->solidlist);
-    }
-    if(!list->size)
-    {
-        return;
+        list->solidlist = NULL;
+        return true;
     }
 
-    sldsize = sizeof(void *) * (list->size);
-    list->solidlist = (void **)malloc(sldsize);
+    /*
+    * A solidified list retains its logical size after
+    * releasing the linked nodes. Avoid replacing its
+    * populated pointer table with uninitialized storage.
+    */
+    if(!list->first) {
+        return list->solidlist != NULL;
+    }
 
-    savesize = list->size;
+    if((size_t)list->size > SIZE_MAX / sizeof(*solidlist)) {
+        return false;
+    }
 
+    const size_t allocation_size = sizeof(*solidlist) * (size_t)list->size;
+
+    solidlist = malloc(allocation_size);
+
+    if(!solidlist) {
+        return false;
+    }
+
+    free(list->solidlist);
+    list->solidlist = solidlist;
+
+    const int saved_size = list->size;
+
+    /*
+    * Copy each stored value pointer into contiguous
+    * storage. List_Remove() releases the corresponding
+    * node while preserving ownership of its value.
+    */
     List_GotoFirst(list);
-    while(list->current)
-    {
-        list->solidlist[i++] = list->current->value;
+
+    while(list->current) {
+        assert(i < saved_size);
+
+        list->solidlist[i++] =
+            list->current->value;
+
         List_Remove(list);
     }
 
-    list->size = savesize; // the size is accessed by some piece of code after solidify, so restore it.
+    assert(i == saved_size);
+
+    /*
+    * Solidification removes the nodes but preserves the
+    * logical number of stored values for consumers that
+    * query List_GetSize().
+    */
+    list->size = saved_size;
 
 #ifdef LIST_DEBUG
     printf("solidlist of %p:\n", list);
 #endif
-    list->first = list->current = list->last = NULL;
+
+    list->first = NULL;
+    list->current = NULL;
+    list->last = NULL;
     list->index = 0;
 
-    //this shouldnt be needed when using remove, but it dont hurt either
+    /*
+    * Linked-node indexes are no longer applicable after
+    * the nodes have been removed.
+    */
 #ifdef USE_INDEX
-    if(list->mindices)
-    {
+    if(list->mindices) {
         List_FreeIndices(list);
     }
 #endif
+
 #ifdef USE_STRING_HASHES
     List_FreeHashes(list);
 #endif
+
+    return true;
 }
 
 

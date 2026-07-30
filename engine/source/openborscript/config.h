@@ -104,7 +104,7 @@ void Script_Load_Local_Variant(Script *cs, int handle);
 
 void Script_LoadSystemFunctions();
 void *Script_GetStringMapFunction(void *functionRef);
-int Script_MapStringConstants(Instruction *pInstruction);
+bool Script_MapStringConstants(Instruction *pInstruction);
 
 #ifndef COMPILED_SCRIPT
 int Script_Call(Script *pscript, char *method, ScriptVariant *pretvar);

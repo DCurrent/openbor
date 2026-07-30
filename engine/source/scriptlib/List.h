@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 /*
 * The full name hash is cached on each named 
@@ -122,7 +123,7 @@ typedef struct List
 void List_SetCurrent(List *list, Node *current);
 void Node_Clear(Node *node);
 void List_Init(List *list);
-void List_Solidify(List *list);
+bool List_Solidify(List *list);
 int List_GetIndex(List *list);
 void List_Copy(List *listdest, const List *listsrc);
 void List_Clear(List *list);

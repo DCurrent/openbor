@@ -190,82 +190,191 @@ HRESULT Interpreter_GetValueByRef(Interpreter *pinterpreter, LPCSTR variable, Sc
 }
 
 /******************************************************************************
-*  Call -- This method calls the method designated by variable, assuming it
-*          exists in the script somewhere.  If there is a return value, it is
-*          placed into the pRetValue ScriptVariant.
-*  Parameters: method -- a LPCSTR which denotes the method to call
-*              pRetValue -- a pointer to a ScriptVariant which accepts the
-*                           return value, if any.
-*  Returns: S_OK
-*           E_FAIL
+* Caskey, Damon V.
+* 2026-07-29 - Reworked original implementation
+*
+* Executes the CALL instruction selected by the interpreter's current
+* instruction pointer.
+*
+* Calls may target a script or imported function through ptheJumpTarget, or a
+* native function through functionRef. Cached parameter metadata is validated
+* before either target is invoked.
+*
+* Nested calls temporarily replace pCurrentCall. The previous call context is
+* restored through the common cleanup path regardless of success or failure.
+*
+* Returns S_OK when the target executes successfully or E_FAIL when the call
+* instruction, parameter metadata, target, or target execution is invalid.
 ******************************************************************************/
-HRESULT Interpreter_Call(Interpreter *pinterpreter)
-{
+HRESULT Interpreter_Call(Interpreter *pinterpreter) {
+
     HRESULT hr = E_FAIL;
-    Instruction **temp = pinterpreter->pCurrentCall;
-    Instruction **pCurrentCall = (Instruction **)(pinterpreter->pCurrentInstruction);
+    Instruction **previousCall;
+    Instruction **pCurrentCall;
     Instruction *currentCall;
+    ScriptVariant **parameters;
+    ScriptVariant *parameter;
     ScriptVariant *pretvar;
-    static char buf[256];
+    char buffer[256];
     int i;
 
-    if(pCurrentCall == NULL)
-    {
-        hr = E_FAIL;
+    if(!pinterpreter) {
+        return E_FAIL;
+    }
+
+    previousCall = pinterpreter->pCurrentCall;
+    pCurrentCall = (Instruction **)pinterpreter->pCurrentInstruction;
+
+    /*
+    * The current instruction pointer must reference an
+    * actual CALL instruction.
+    */
+    if(!pCurrentCall || !*pCurrentCall) {
+        printf("Script runtime error: missing current call instruction.\n");
+
         goto endcall;
     }
+
     pinterpreter->pCurrentCall = pCurrentCall;
-    currentCall = *((Instruction **)(pinterpreter->pCurrentInstruction));
-    //Search for the specified entry point.
-    if (currentCall->ptheJumpTarget)
-    {
-        pinterpreter->pCurrentInstruction = currentCall->ptheJumpTarget;
-        hr = Interpreter_EvaluateCall(pinterpreter);
+    currentCall = *pCurrentCall;
+
+    /*
+    * Every compiled call stores its generated parameter
+    * count in theRef and its parameter references in
+    * theRefList.
+    */
+    if(!currentCall->theRef
+       || currentCall->theRef->vt != VT_INTEGER
+       || currentCall->theRef->lVal < 0
+       || !currentCall->theRefList) {
+        printf("Script runtime error: invalid cached parameter metadata.\n");
+
+        goto endcall;
     }
-    else if( currentCall->functionRef)
-    {
+
+    /*
+    * The parser produces the parameter count as an int
+    * stored in a legacy integer ScriptVariant.
+    */
+    const int paramCount = (int)currentCall->theRef->lVal;
+
+    /*
+    * Solidification preserves the logical list size.
+    * It must agree with the count cached on the CALL
+    * instruction.
+    */
+    if(List_GetSize(currentCall->theRefList) != paramCount) {
+
+        printf("Script runtime error: cached parameter count does not match reference list size.\n");
+
+        goto endcall;
+    }
+
+    /*
+    * Empty calls legitimately have no contiguous pointer
+    * table. Nonempty calls require one.
+    */
+    if(paramCount > 0 && !currentCall->theRefList->solidlist) {
+        printf("Script runtime error: missing solid parameter reference table.\n");
+
+        goto endcall;
+    }
+
+    parameters = (ScriptVariant **)currentCall->theRefList->solidlist;
+
+    /*
+    * Script and imported functions execute through an
+    * interpreter jump target.
+    */
+    if(currentCall->ptheJumpTarget) {
+        pinterpreter->pCurrentInstruction = currentCall->ptheJumpTarget;
+
+        hr = Interpreter_EvaluateCall(pinterpreter);
+    
+    } else if(currentCall->functionRef) {
+
+        /*
+        * Native functions receive the contiguous parameter
+        * table, return storage, and validated parameter count.
+        */
+
         pretvar = currentCall->theVal;
-        // ScriptVariant_Clear(pretvar); // commenting this out since ScriptVariant_ChangeType is now doing the job
-        hr = currentCall->functionRef((ScriptVariant **)currentCall->theRefList->solidlist, &(pretvar), (int)currentCall->theRef->lVal);
-        if(FAILED(hr))
-        {
+
+        hr = currentCall->functionRef(parameters, &pretvar, paramCount);
+
+        if(FAILED(hr)) {
+            
+            /*
+            * Resolve the native function's registered name
+            * for diagnostic output.
+            */
             List_Includes(pinterpreter->ptheFunctionList, currentCall->functionRef);
+
             printf("Script function '%s' returned an exception. See any preceding error messages above for details.\n", List_GetName(pinterpreter->ptheFunctionList));
-            if(currentCall->theRef->lVal)
-            {
+
+            if(paramCount > 0) {
                 printf(" parameters: ");
-                for(i = 0; i < (int)currentCall->theRef->lVal; i++)
-                {
-                    ScriptVariant_ToString(((ScriptVariant **)currentCall->theRefList->solidlist)[i], buf);
-                    if(((ScriptVariant **)currentCall->theRefList->solidlist)[i]->vt == VT_STR)
-                    {
-                        printf("\"%s\", ", buf);
+
+                for(i = 0; i < paramCount; i++) {
+                    parameter = parameters[i];
+
+                    /*
+                    * Parameter references are validated
+                    * during compilation, though this guard
+                    * prevents diagnostic handling from
+                    * dereferencing corrupted metadata.
+                    */
+                    if(!parameter) {
+                        printf("<invalid>, ");
+                        continue;
                     }
-                    else
-                    {
-                        printf("%s, ", buf);
+
+                    ScriptVariant_ToString(parameter, buffer);
+
+                    if(parameter->vt == VT_STR) {
+                        printf("\"%s\", ", buffer);
+                    
+                    } else {
+                        printf("%s, ", buffer);
                     }
                 }
-                printf(" \n ");
-            }
 
+                printf("\n");
+            }
         }
-    }
-    else
-    {
-        hr = E_FAIL;
+
+    } else {
+        /*
+        * A compiled CALL must have either an interpreter
+        * jump target or a native function reference.
+        */
+        printf("Script runtime error: call instruction has no target.\n");
+
         goto endcall;
     }
-    //jump back
-    if (SUCCEEDED(hr))
-    {
+
+    /*
+    * Successful execution resumes at the CALL instruction.
+    * The evaluator advances from there through its normal
+    * instruction progression.
+    */
+    if(SUCCEEDED(hr)) {
         pinterpreter->pCurrentInstruction = pCurrentCall;
     }
-    pinterpreter->pCurrentCall = temp;
-
 
 endcall:
-    //Reset the m_bCallCompleted flag back to false
+
+    /*
+    * Restore the enclosing call context on every path.
+    * The previous implementation skipped this restoration
+    * when an error jumped directly to endcall.
+    */
+    pinterpreter->pCurrentCall = previousCall;
+
+    /*
+    * Report completion unless the interpreter is currently
+    * performing a reset.
+    */
     pinterpreter->bCallCompleted = !pinterpreter->bReset;
 
     return hr;
@@ -580,67 +689,258 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
             StackedSymbolTable_AddSymbol(&(pinterpreter->theSymbolTable), pSymbol );
             break;
 
-            //Call the specified method, and pass in a ScriptVariant* to receive the
-            //return value.  If it's not NULL, then push it onto the data stack.
+        //Call the specified method, and pass in a ScriptVariant* to receive the
+        //return value.  If it's not NULL, then push it onto the data stack.
         case CALL:
-            //We need to be able to jump back to this instruction when the call is
-            //over, so copy this instruction's label onto the label stack
-            pLabel = List_GetName(&(pinterpreter->theInstructionList));
-            pToken = pInstruction->theToken;
+        {
+            /*
+            * Preserve the CALL instruction's label. Function
+            * resolution may move the instruction-list cursor.
+            */
+            pLabel = List_GetName(
+                &(pinterpreter->theInstructionList));
 
+            pToken = pInstruction->theToken;
             pInstruction->functionRef = NULL;
-            //cache the jump target
-            if(List_FindByName(&(pinterpreter->theInstructionList), pToken->theSource))
-            {
+
+            /*
+            * Resolve the call target. Calls may reference a
+            * script function, imported function, or native
+            * system function.
+            */
+            if(List_FindByName(&(pinterpreter->theInstructionList), pToken->theSource)) {
+
                 pInstruction->theJumpTargetIndex = List_GetIndex(&(pinterpreter->theInstructionList));
+
                 pInstruction->jumpTargetType = 1;
-                List_FindByName(&(pinterpreter->theInstructionList), pLabel); //hop back
-            }
-            else if(ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource))
-            {
+
+                /*
+                * Function lookup selected the target instruction.
+                * Restore the CALL instruction as the current node.
+                */
+                List_FindByName(&(pinterpreter->theInstructionList), pLabel);
+
+            } else if(ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource)) {
+
                 pInstruction->ptheJumpTarget = ImportList_GetFunctionPointer(&(pinterpreter->theImportList), pToken->theSource);
-                assert((size_t)pInstruction->ptheJumpTarget >= size); // should be true in any sane environments
-            }
-            else if(List_FindByName( pinterpreter->ptheFunctionList, pToken->theSource))
-            {
+
+                assert((size_t)pInstruction->ptheJumpTarget >= size);
+
+            } else if(List_FindByName(pinterpreter->ptheFunctionList, pToken->theSource)) {
+
                 pInstruction->functionRef = (SCRIPTFUNCTION)List_Retrieve(pinterpreter->ptheFunctionList);
-            }
-            else // can't find the jump target
-            {
-                printf("Script compile error: can't find function '%s'\n", pToken->theSource);
+
+            } else {
+
+                /*
+                * No script, imported, or native function matched
+                * the requested name. Compilation cannot produce a
+                * valid call target.
+                */
+                printf("Script compile error: can't find function '%s'.\n", pToken->theSource);
+
                 hr = E_FAIL;
+                break;
             }
-            //cache the paramCount
+
+            /*
+            * The parser pushes a generated argument count after
+            * pushing the argument expressions. An empty stack
+            * indicates malformed or incomplete call bytecode.
+            */
+            if(Stack_IsEmpty(&(pinterpreter->theDataStack))) {
+
+                printf("Script compile error: missing parameter count for function '%s'.\n", pToken->theSource);
+
+                hr = E_FAIL;
+                break;
+            }
+
             pSVar1 = (ScriptVariant *)Stack_Top(&(pinterpreter->theDataStack));
+
+            /*
+            * Parameter counts originate from the parser and must
+            * be nonnegative legacy integers. Validate the cached
+            * value before removing it from the compilation stack.
+            */
+            if(!pSVar1
+                || pSVar1->vt != VT_INTEGER
+                || pSVar1->lVal < 0) {
+
+                printf("Script compile error: invalid parameter count for function '%s'.\n", pToken->theSource);
+
+                hr = E_FAIL;
+                break;
+            }
+
+            /*
+            * Cache the validated count reference on the CALL
+            * instruction. Stack removal does not destroy the
+            * referenced ScriptVariant.
+            */
             Stack_Pop(&(pinterpreter->theDataStack));
             pInstruction->theRef = pSVar1;
-            //printf("#%u\n", pInstruction->theRef);
-            // alloc the param ref list;
-            pInstruction->theRefList = (List *)malloc(sizeof(List));
-            List_Init(pInstruction->theRefList);
-            //cache parameter list
-            for(j = 0; j < pSVar1->lVal; j++)
-            {
-                pSVar2 = (ScriptVariant *)Stack_Top(&(pinterpreter->theDataStack));
-                Stack_Pop(&(pinterpreter->theDataStack));
-                List_InsertAfter(pInstruction->theRefList, (void *)pSVar2, NULL);
-            }
-            List_Solidify(pInstruction->theRefList);
-            //cache the return value
-            Instruction_NewData(pInstruction);
-            if(!Script_MapStringConstants(pInstruction))
-            {
+
+            /*
+            * The parser maintains its count as an int, so the
+            * generated legacy integer is safe to narrow here.
+            */
+            const int paramCount = (int)pSVar1->lVal;
+
+            /*
+            * Each CALL owns a dynamically sized list of argument
+            * references. No fixed parameter capacity is required.
+            */
+            pInstruction->theRefList = malloc(sizeof(*pInstruction->theRefList));
+
+            if(!pInstruction->theRefList) {
+
+                /*
+                * Without the reference list, the runtime could not
+                * pass arguments to the resolved function.
+                */
+                printf("Script compile error: unable to allocate parameter reference list for function '%s'.\n", pToken->theSource);
+
                 hr = E_FAIL;
+                break;
             }
-            List_GotoNext(&(pinterpreter->theInstructionList));
-            if(((Instruction *)List_Retrieve(&(pinterpreter->theInstructionList)))->OpCode != CLEAN)
-            {
+
+            List_Init(pInstruction->theRefList);
+
+            /*
+            * Argument instructions were emitted in reverse order.
+            * Removing their references from the compilation stack
+            * restores normal source order in the call list.
+            */
+            for(j = 0; j < paramCount; j++) {
+
+                /*
+                * Reaching an empty stack before collecting the
+                * declared number of arguments indicates an
+                * inconsistent parser or instruction state.
+                */
+                if(Stack_IsEmpty(&(pinterpreter->theDataStack))) {
+
+                    printf("Script compile error: parameter stack underflow for function '%s'.\n", pToken->theSource);
+
+                    hr = E_FAIL;
+                    break;
+                }
+
+                pSVar2 = (ScriptVariant *)Stack_Top(&(pinterpreter->theDataStack));
+
+                /*
+                * A populated stack must reference an actual
+                * ScriptVariant for each cached argument.
+                */
+                if(!pSVar2) {
+
+                    printf("Script compile error: invalid parameter reference for function '%s'.\n", pToken->theSource);
+
+                    hr = E_FAIL;
+                    break;
+                }
+
+                Stack_Pop(&(pinterpreter->theDataStack));
+
+                List_InsertAfter(pInstruction->theRefList, pSVar2, NULL);
+            }
+
+            /*
+            * Parameter retrieval may have left a partially built
+            * reference list. Stop before exposing it to later
+            * compilation stages.
+            */
+            if(FAILED(hr)) {
+                break;
+            }
+
+            /*
+            * Convert the linked reference list into the contiguous
+            * pointer table consumed by native and script calls.
+            */
+            const bool solidified = List_Solidify(pInstruction->theRefList);
+
+            if(!solidified) {
+
+                /*
+                * Solidification failure means the contiguous
+                * argument table could not be allocated.
+                */
+                printf("Script compile error: unable to solidify parameter reference list for function '%s'.\n", pToken->theSource);
+
+                hr = E_FAIL;
+                break;
+            }
+
+            /*
+            * Allocate and cache storage for the function's
+            * eventual return value.
+            */
+            Instruction_NewData(pInstruction);
+
+            /*
+            * Translate eligible string constants while argument
+            * references and call metadata are fully available.
+            */
+            if(!Script_MapStringConstants(pInstruction)) {
+                hr = E_FAIL;
+                break;
+            }
+
+            /*
+            * Inspect the instruction following CALL. Its presence
+            * is required to determine whether the return value is
+            * consumed or explicitly discarded.
+            */
+            const bool hasNext = List_GotoNext(&(pinterpreter->theInstructionList));
+
+            if(!hasNext) {
+
+                printf("Script compile error: missing instruction after call to function '%s'.\n", pToken->theSource);
+
+                hr = E_FAIL;
+                break;
+            }
+
+            Instruction *nextInstruction = (Instruction *)List_Retrieve(&(pinterpreter->theInstructionList));
+
+            if(!nextInstruction) {
+
+                /*
+                * Navigation succeeded but produced no instruction.
+                * Restore the CALL node before reporting failure.
+                */
+                List_GotoPrevious(&(pinterpreter->theInstructionList));
+
+                printf("Script compile error: invalid instruction after call to function '%s'.\n", pToken->theSource);
+
+                hr = E_FAIL;
+                break;
+            }
+
+            const bool isNextInstructionClean = nextInstruction->OpCode == CLEAN;
+
+            /*
+            * CLEAN explicitly discards the function result.
+            * Otherwise, place the cached result on the data stack
+            * for use by the surrounding expression.
+            */
+            if(!isNextInstructionClean) {
                 Stack_Push(&(pinterpreter->theDataStack), pInstruction->theVal);
             }
-            List_GotoPrevious(&(pinterpreter->theInstructionList));
-            break;
 
-            //Jump to the specified label
+            /*
+            * Following-instruction inspection moved the list
+            * cursor forward. Restore the CALL instruction before
+            * continuing compilation.
+            */
+            List_GotoPrevious(&(pinterpreter->theInstructionList));
+
+            break;
+        }
+
+        //Jump to the specified label
         case JUMP:
             pLabel = pInstruction->Label;
             //cache the jump target
