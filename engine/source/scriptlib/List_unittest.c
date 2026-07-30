@@ -52,6 +52,7 @@ int main()
     Node *test;
 
     List_Init(&list);
+    List_Init(&list2);
     assert(list.last == NULL);
     assert(list.first == NULL);
     assert(list.size == 0);
@@ -141,11 +142,21 @@ int main()
     assert(list2.size == list.size);
     assert(list2.current == list2.first);
     assert(eq(list2.last->name, "2"));
+    assert(list2.first != list.first);
+    assert(list2.first->name != list.first->name);
+    assert(list2.first->value == list.first->value);
+    assert(List_GetNodeByName(&list2, list.first->name) == list2.first);
+
+    // Populate the destination with an entry that must be removed by replacement.
+    List_InsertAfter(&list2, (void *)0xCAFE, "destination_only");
+    assert(list2.size == list.size + 1);
+    assert(List_GetNodeByName(&list2, "destination_only") != NULL);
 
     List_GotoLast(&list);
     assert(list.current == list.last);
 
     List_Copy(&list2, &list);
+    assert(!List_GetNodeByName(&list2, "destination_only"));
     assert(list2.current == list2.last);
     assert(list2.size == list.size);
     assert(list2.index == list.index);
@@ -153,6 +164,9 @@ int main()
     assert(eq(list2.last->name, "2"));
     assert(eq(list2.last->name, list.last->name));
     assert(eq(list2.first->name, list.first->name));
+    assert(list2.first != list.first);
+    assert(list2.first->name != list.first->name);
+    assert(list2.first->value == list.first->value);
     assert(eq(list2.current->name, list.current->name));
     assert(eq(list2.current->prev->name, list.current->prev->name));
     assert(list2.current->next == list.current->next);
@@ -168,7 +182,7 @@ int main()
 
     List_InsertAfter(&list, (void *) 0xDEADBEEF, int2str(++i));
     assert(list.first->next->value == (void *) 0xDEADBEEF);
-    assert(list.current = list.first->next);
+    assert(list.current == list.first->next);
 
     List_InsertAfter(&list, (void *) dummy, int2str(++i));
 
@@ -297,6 +311,77 @@ int main()
     assert(list.current == list.first);
     assert(list.current == NULL);
 
+    // Named lookup caches a full hash, while low bits select the bucket.
+    // These four names deliberately share the same FNV-1a low 10 bits.
+    List_Init(&list);
+    List_InsertAfter(&list, (void *)1, "key_15");
+    List_InsertAfter(&list, (void *)2, "key_123");
+    List_InsertAfter(&list, (void *)3, "key_365");
+    List_InsertAfter(&list, (void *)4, "key_538");
+    assert((list.first->name_hash & LIST_STRING_HASH_BUCKET_MASK) ==
+           (list.first->next->name_hash & LIST_STRING_HASH_BUCKET_MASK));
+    assert((list.first->name_hash & LIST_STRING_HASH_BUCKET_MASK) ==
+           (list.first->next->next->name_hash & LIST_STRING_HASH_BUCKET_MASK));
+    assert((list.first->name_hash & LIST_STRING_HASH_BUCKET_MASK) ==
+           (list.last->name_hash & LIST_STRING_HASH_BUCKET_MASK));
+    assert(list.first->name_hash != list.last->name_hash);
+    assert(List_GetNodeByName(&list, "key_365")->value == (void *)3);
+
+    // Removal compacts the bucket instead of leaving a permanent hole.
+    assert(List_FindByName(&list, "key_123"));
+    {
+        size_t bucket_index = list.current->name_hash &
+                              LIST_STRING_HASH_BUCKET_MASK;
+        Bucket *bucket = list.buckets[bucket_index];
+        size_t bucket_used = bucket->used;
+
+        List_Remove(&list);
+        assert(bucket->used == bucket_used - 1);
+        for(i = 0; i < (int)bucket->used; i++)
+        {
+            assert(bucket->nodes[i] != NULL);
+        }
+    }
+    assert(!List_GetNodeByName(&list, "key_123"));
+    assert(List_GetNodeByName(&list, "key_15")->value == (void *)1);
+    assert(List_GetNodeByName(&list, "key_365")->value == (void *)3);
+    assert(List_GetNodeByName(&list, "key_538")->value == (void *)4);
+    List_Clear(&list);
+
+    // Compaction preserves insertion order for duplicate names.
+    List_Init(&list);
+    List_InsertAfter(&list, (void *)1, "other_1007");
+    List_InsertAfter(&list, (void *)2, "duplicate");
+    List_InsertAfter(&list, (void *)3, "duplicate");
+    assert((list.first->name_hash & LIST_STRING_HASH_BUCKET_MASK) ==
+           (list.last->name_hash & LIST_STRING_HASH_BUCKET_MASK));
+    List_GotoFirst(&list);
+    List_Remove(&list);
+    assert(List_GetNodeByName(&list, "duplicate")->value == (void *)2);
+
+    // Rebuilding a copied list does not duplicate its hash entries.
+    List_Copy(&list2, &list);
+    {
+        size_t bucket_index = list2.first->name_hash &
+                              LIST_STRING_HASH_BUCKET_MASK;
+        assert(list2.buckets[bucket_index]->used == 2);
+    }
+    // Copying an empty source must release a populated destination.
+    List_Clear(&list);
+    List_Copy(&list2, &list);
+    assert(list2.size == 0);
+    assert(list2.first == NULL);
+    assert(list2.current == NULL);
+    assert(list2.last == NULL);
+#ifdef USE_INDEX
+    assert(list2.mindices == NULL);
+#endif
+#ifdef USE_STRING_HASHES
+    assert(list2.buckets == NULL);
+#endif
+
+    List_Clear(&list2);
+    List_Clear(&list);
 
     freemem();
     return 0;

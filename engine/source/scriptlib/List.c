@@ -21,124 +21,260 @@ void chklist(List *list)
 #endif
 
 #ifdef USE_STRING_HASHES
-unsigned char strhash(const char *s)
-{
-    ptrdiff_t tmp = 0;
-    const char *p = s;
-    while(*p)
-    {
-        tmp += *p - 'A';
-        p++;
+
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Original implementation 
+ * by Anallyst, circa 2011.
+ *
+ * Returns a 64-bit string hash using the 
+ * FNV-1a algorithm. The previous implementation 
+ * used an additive hash and returned an 8-bit 
+ * bucket index.
+ */
+static uint64_t strhash(const char *s) {
+    uint64_t hash = UINT64_C(14695981039346656037);
+
+    while(*s) {
+        hash ^= (unsigned char)*s++;
+        hash *= UINT64_C(1099511628211);
     }
-    return (size_t)tmp % 256;
+
+    return hash;
 }
 
-/* add a single node to the hash list */
-void List_AddHash(List *list, Node *node)
-{
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by Anallyst, circa 2011.
+ *
+ * Adds a named node to the list's string hash
+ * index. Uses cached 64-bit FNV-1a hashes and
+ * bucket-based collision handling.
+ */
+void List_AddHash(List *list, Node *node) {
 #ifdef DEBUG
     chklist((List *)list);
 #endif
-    unsigned char h;
-    size_t save;
 
     assert(node);
-    if(!node->name)
-    {
+
+    if(!node->name) {
+        node->name_hash = 0;
         return;
     }
 
-    if (!list->buckets)
-    {
-        list->buckets = calloc(1, sizeof(Bucket *) * 256);
+    /*
+     * Allocate the bucket directory on the 
+     * first named insertion. Lists containing 
+     * only unnamed entries never pay this cost.
+     */
+    if(!list->buckets) {
+        list->buckets = calloc(LIST_STRING_HASH_BUCKET_COUNT, sizeof(*list->buckets));
+
+        assert(list->buckets != NULL);
     }
 
-    h = strhash((char *)node->name);
-    if (!list->buckets[h])
-    {
-        list->buckets[h] = calloc(1, sizeof(Bucket));
-        list->buckets[h]->nodes = calloc(1, sizeof(Node *) * 8);
-        assert(list->buckets[h]->nodes != NULL);
-        list->buckets[h]->size = 8;
+    /*
+     * Cache the full hash on the node. The low 
+     * bits select the bucket, while lookups compare 
+     * the complete cached hash.
+     */
+    const uint64_t hash = strhash(node->name);
+    node->name_hash = hash;
+    
+    const size_t hash_bucket = hash & LIST_STRING_HASH_BUCKET_MASK;
+    Bucket *bucket = list->buckets[hash_bucket];
+
+    /*
+     * Allocate individual buckets only when 
+     * they receive an entry.
+     */
+    if(!bucket) {
+        bucket = calloc(1, sizeof(*bucket));
+        assert(bucket != NULL);
+
+        bucket->nodes = calloc(LIST_STRING_HASH_BUCKET_INITIAL_SIZE, sizeof(*bucket->nodes));
+
+        assert(bucket->nodes != NULL);
+        bucket->size = LIST_STRING_HASH_BUCKET_INITIAL_SIZE;
+        list->buckets[hash_bucket] = bucket;
     }
 
-    save = list->buckets[h]->size;
-    assert(list->buckets[h]->used <= save);
-    if (list->buckets[h]->used == save)
-    {
-        list->buckets[h]->nodes = realloc(list->buckets[h]->nodes, sizeof(Node *) * (save * 2));
-        assert(list->buckets[h]->nodes != NULL);
-        list->buckets[h]->size = save * 2;
+    /*
+     * Grow unusually crowded buckets geometrically.
+     */
+    const size_t capacity = bucket->size;
+
+    assert(bucket->used <= capacity);
+
+    if(bucket->used == capacity) {
+
+        Node **expanded_nodes = realloc(bucket->nodes, sizeof(*bucket->nodes) * (capacity * 2));
+        assert(expanded_nodes != NULL);
+
+        bucket->nodes = expanded_nodes;
+        bucket->size = capacity * 2;
     }
 
-    list->buckets[h]->nodes[list->buckets[h]->used] = node;
-    list->buckets[h]->used++;
+    bucket->nodes[bucket->used] = node;
+    bucket->used++;
 }
 
-/* removes the last element from the index list
-only use on fully indexed list */
-void List_RemoveHash(List *list, Node *node)
-{
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by Anallyst, circa 2011.
+ *
+ * Removes a named node from the list's string hash
+ * index. Compacts the bucket array to keep occupied
+ * entries contiguous and preserve insertion order.
+ * Empty bucket storage is retained for later reuse.
+ */
+void List_RemoveHash(List *list, Node *node) {
 #ifdef DEBUG
     chklist((List *)list);
 #endif
-    unsigned char h;
-    size_t i;
-    if(!node->name)
-    {
+
+    assert(node);
+
+    /*
+     * Unnamed nodes are never added to the string
+     * hash index and require no removal.
+     */
+    if(!node->name) {
         return;
     }
-    h = strhash((char *)node->name);
-    assert(list->buckets[h]);
-    assert(list->buckets[h]->used > 0);
-    for(i = 0; i < list->buckets[h]->used; i++)
-    {
-        if (node ==  list->buckets[h]->nodes[i])
-        {
-            list->buckets[h]->nodes[i] = NULL;
-            break;
+
+    /*
+     * Use the cached hash to locate the bucket without
+     * hashing the node's name again.
+     */
+    const size_t hash_bucket = node->name_hash & LIST_STRING_HASH_BUCKET_MASK;
+
+    assert(list->buckets != NULL);
+
+    Bucket *bucket = list->buckets[hash_bucket];
+
+    assert(bucket != NULL);
+    assert(bucket->used > 0);
+
+    /*
+     * Locate the exact node by pointer identity. Several
+     * nodes may occupy the same bucket or use the same name.
+     */
+    for(size_t i = 0; i < bucket->used; i++) {
+        if(node == bucket->nodes[i]) {
+            /*
+             * Reduce the occupied count, then move subsequent
+             * entries down to close the removed node's slot.
+             * memmove() safely handles the overlapping ranges.
+             */
+            bucket->used--;
+
+            if(i < bucket->used) {
+                memmove(bucket->nodes + i, bucket->nodes + i + 1, sizeof(*bucket->nodes) * (bucket->used - i));
+            }
+
+            /*
+             * Clear the now-unused final slot. Bucket storage
+             * remains allocated so later insertions can reuse it.
+             */
+            bucket->nodes[bucket->used] = NULL;
+            return;
         }
     }
+
+    /*
+     * Reaching this point means the linked list and its
+     * string hash index have become inconsistent.
+     */
+    assert(0 && "node missing from string hash bucket");
 }
 
-/* free everything related to the string hash list
-usually you dont have to do it manually, since its called by List_Clear
-but it won't hurt either */
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by Anallyst, circa 2011.
+ *
+ * Releases all memory owned by the list's string
+ * hash index. Frees each bucket's node-pointer
+ * array, each bucket, and the bucket directory.
+ *
+ * This function does not free the referenced Nodes,
+ * their names, or their values. Those remain under
+ * the ownership of the parent List.
+ */
 void List_FreeHashes(List *list)
 {
 #ifdef DEBUG
     chklist((List *)list);
 #endif
-    int i;
-    if(!list->buckets)
-    {
+
+    /*
+     * The bucket directory is allocated lazily, so
+     * lists without named entries have nothing to free.
+     */
+    if(!list->buckets) {
         return;
     }
-    for (i = 0; i < 256; i++)
-    {
-        if(list->buckets[i])
-        {
-            free(list->buckets[i]->nodes);
-            free(list->buckets[i]);
+
+    /*
+     * Release each allocated bucket. Unused directory
+     * positions remain NULL and require no cleanup.
+     */
+    for(size_t i = 0; i < LIST_STRING_HASH_BUCKET_COUNT; i++)  {
+        Bucket *bucket = list->buckets[i];
+
+        if(bucket) {
+            free(bucket->nodes);
+            free(bucket);
         }
     }
+
+    /*
+     * Release the bucket directory and clear its pointer
+     * to prevent stale access or accidental double-free.
+     */
     free(list->buckets);
     list->buckets = NULL;
 }
 
-/* build hashes for entire list
-this is only required when doing a list copy.
-*/
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by Anallyst, circa 2011.
+ *
+ * Rebuilds the list's complete string hash index
+ * from its linked-list nodes. Any existing hash
+ * index is discarded before reconstruction.
+ *
+ * Currently used after copying a List, but safe
+ * whenever the index requires a complete rebuild.
+ */
 void List_CreateHashes(List *list)
 {
 #ifdef DEBUG
     chklist((List *)list);
 #endif
-    Node *n = list->first;
-    while(n)
-    {
-        List_AddHash(list, n);
-        n = n->next;
+
+    /*
+     * Discard the existing index before rebuilding.
+     * This prevents duplicate node pointers when part
+     * of the index was already populated by insertion.
+     */
+    List_FreeHashes(list);
+
+    /*
+     * Walk the authoritative linked list and recreate
+     * the index. List_AddHash() recalculates and caches
+     * each named node's hash while skipping unnamed nodes.
+     */
+    Node *node = list->first;
+
+    while(node) {
+        List_AddHash(list, node);
+        node = node->next;
     }
 }
 #endif
@@ -451,67 +587,80 @@ int List_GetIndex(List *list)
     return List_GetNodeIndex(list, list->current);
 }
 
-void List_Copy(List *listdest, const List *listsrc)
-{
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by Anallyst, circa 2011.
+ *
+ * Copies the source List's node structure into an
+ * initialized destination List, replacing any existing
+ * destination contents.
+ *
+ * Node structures and names are duplicated. Value
+ * pointers remain shared. The source and destination
+ * must be distinct initialized Lists.
+ */
+void List_Copy(List *listdest, const List *listsrc) {
 #ifdef DEBUG
     chklist((List *)listsrc);
+    chklist(listdest);
 #endif
 #ifdef LIST_DEBUG
     printf("List_Copy %p %p\n", listsrc, listdest);
 #endif
-    Node *lptr = listsrc->first;
-    Node *nptr;
-    int i = 0, curr = -1;
 
-    List_Init(listdest);
-    if (lptr == NULL)
-    {
+    /*
+     * Self-copy would destroy the source when the
+     * destination is cleared.
+     */
+    assert(listdest != listsrc);
+
+    if(listdest == listsrc) {
         return;
     }
-    //create the first Node
-    nptr = (Node *)malloc(sizeof(Node));
-    nptr->value = lptr->value;
-    nptr->name = NAME(lptr->name);
-    nptr->prev = NULL;
-    nptr->next = NULL;
 
-    listdest->current = nptr;
-    listdest->first = nptr;
-    listdest->last = nptr;
-    listdest->size = 1;
+    /*
+     * Release the destination's existing node and index
+     * storage, then return it to an initialized state.
+     */
+    List_Clear(listdest);
 
-    if (listsrc->current == lptr)
-    {
-        curr = i;
-    }
-    while ((lptr = lptr->next) != NULL)
-    {
-        i++;
-        if (listsrc->current == lptr)
-        {
-            curr = i;
+    const Node *source_node = listsrc->first;
+    Node *copied_current = NULL;
+
+    /*
+     * Insert every node through the normal insertion path.
+     * This copies names, maintains links, and creates the
+     * string hash index without requiring a later rebuild.
+     */
+    while(source_node) {
+        List_InsertAfter(listdest, source_node->value, source_node->name);
+
+        if(source_node == listsrc->current) {
+            copied_current = listdest->current;
         }
-        List_InsertAfter(listdest, lptr->value, lptr->name);
 
+        source_node = source_node->next;
     }
-    assert(curr != -1);
-    List_GotoFirst(listdest);
-    for(i = 0; i < curr; i++)
-    {
-        List_GotoNext(listdest);    //setting current to the right value
+
+    /*
+     * A populated source is expected to have a valid
+     * current node.
+     */
+    if(listsrc->first) {
+        assert(copied_current != NULL);
+        listdest->current = copied_current;
     }
 
 #ifdef USE_INDEX
-    if(listsrc->mindices)
-    {
+    /*
+     * Recreate the optional value index only when the
+     * source had one.
+     */
+    if(listsrc->mindices) {
         List_CreateIndices(listdest);
     }
 #endif
-
-#ifdef USE_STRING_HASHES
-    List_CreateHashes(listdest);
-#endif
-
 }
 
 void List_Clear(List *list)
@@ -576,6 +725,7 @@ void List_InsertBefore(List *list, void *e, const char *theName)
 
     nptr->value = e;
     nptr->name = NAME(theName);
+    nptr->name_hash = 0;
 
 #ifdef USE_STRING_HASHES
     List_AddHash(list, nptr);
@@ -634,6 +784,7 @@ void List_InsertAfter(List *list, void *e, const char *theName)
     assert(nptr != NULL);
     nptr->value = e;
     nptr->name = NAME(theName);
+    nptr->name_hash = 0;
 
 #ifdef USE_STRING_HASHES
     List_AddHash(list, nptr);
@@ -936,8 +1087,12 @@ Node *List_GetNodeByName(List *list, const char *name)
     }
 
 #ifdef USE_STRING_HASHES
+    uint64_t hash;
     size_t i;
-    unsigned char h = strhash(name);
+    size_t h;
+
+    hash = strhash(name);
+    h = hash & LIST_STRING_HASH_BUCKET_MASK;
     if (!list->buckets || !list->buckets[h])
     {
         return 0;
@@ -945,9 +1100,11 @@ Node *List_GetNodeByName(List *list, const char *name)
     for(i = 0; i < list->buckets[h]->used; i++)
     {
         nptr = list->buckets[h]->nodes[i];
-        if(nptr && strcmp(name, nptr->name) == 0)
+        if(nptr
+           && nptr->name_hash == hash
+           && strcmp(name, nptr->name) == 0)
         {
-            return list->buckets[h]->nodes[i];
+            return nptr;
         }
     }
     return NULL;

@@ -29,9 +29,21 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+/*
+* The full name hash is cached on each named 
+* node. These bits only select the lookup bucket. 
+* Increase to 12 for 4096 buckets without changing 
+* the hash, 13 for 8192 buckets, ..., .
+*/
+#define LIST_STRING_HASH_BUCKET_BITS          10U
+#define LIST_STRING_HASH_BUCKET_COUNT         (1U << LIST_STRING_HASH_BUCKET_BITS)
+#define LIST_STRING_HASH_BUCKET_MASK          (LIST_STRING_HASH_BUCKET_COUNT - 1U)
+#define LIST_STRING_HASH_BUCKET_INITIAL_SIZE  2U
 
 //A macro to simplify iterating through all this lists.
 #define FOREACH( x, y ) { \
@@ -62,6 +74,7 @@ typedef struct Node
     struct Node *next;          //pointer to next Node
     void *value;                //data stored in a Node
     char *name;                //optional name of the Node
+    uint64_t name_hash;         //cached full hash of name
 } Node;
 
 #ifdef USE_INDEX

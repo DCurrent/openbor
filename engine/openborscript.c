@@ -260,72 +260,124 @@ int Varlist_AddByIndex(Varlist *array, int index, ScriptVariant *var)
     return 1;
 }
 
-// By White Dragon
-int Varlist_DeleteByIndex(Varlist *array, int index)
-{
-    if(index < 0 || index >= array->vars->lVal)
-    {
-        return 0;
-    }
-    else
-    {
-        int i = 0;
-        int size = array->vars->lVal;
-        ScriptVariant *elem;
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by White Dragon.
+ *
+ * Removes the ScriptVariant at a zero-based numeric
+ * index and shifts all subsequent values left.
+ *
+ * The first ScriptVariant in the allocation stores
+ * the logical array length. Indexed values begin at
+ * the following element.
+ *
+ * Returns true when an entry is removed or false when 
+ * the supplied index is outside the array bounds.
+ */
+bool Varlist_DeleteByIndex(Varlist *array, int index) {
+    assert(array != NULL);
+    assert(array->vars != NULL);
 
-        for ( i = index; i < size-1; i++ )
-        {
-            ScriptVariant_Copy(array->vars+1+i, array->vars+1+i+1); // first value of array is his size!
-        }
-        --array->vars->lVal;
-
-        // set last element to NULL
-        elem = array->vars+1+size-1;
-        ScriptVariant_ChangeType(elem, VT_EMPTY);
-        elem->ptrVal = NULL;
-
-        //realloc mem
-        array->vars = realloc((array->vars), sizeof(*(array->vars))*(array->vars->lVal+1));
-
-        //printf("aaa: %s\n", (char*)StrCache_Get(elem->strVal) );
+    /*
+     * Reject indexes outside the logical value range.
+     */
+    if(index < 0 || index >= array->vars->lVal) {
+        return false;
     }
 
-    return 1;
+    const int size = array->vars->lVal;
+
+    /*
+     * Shift subsequent values left over the removed
+     * entry. ScriptVariant_Copy() is required instead
+     * of assignment or memmove because string variants
+     * maintain reference counts.
+     */
+    for(int i = index; i < size - 1; i++) {
+        ScriptVariant_Copy(
+            array->vars + 1 + i,
+            array->vars + 1 + i + 1);
+    }
+
+    /*
+     * Clear the final value, which became redundant
+     * after the shift. This releases any string
+     * reference still owned by that element.
+     */
+    ScriptVariant_Clear(array->vars + size);
+
+    /*
+     * Update the logical length stored in the allocation's
+     * leading ScriptVariant.
+     */
+    array->vars->lVal = size - 1;
+
+    /*
+     * Attempt to release the unused final allocation slot.
+     * Shrinking failure is harmless because the logical
+     * deletion is already complete and the original
+     * allocation remains valid.
+     */
+    const size_t allocation_count = (size_t)array->vars->lVal + 1U;
+
+    ScriptVariant *resized_vars = realloc(array->vars, sizeof(*array->vars) * allocation_count);
+
+    if(resized_vars) {
+        array->vars = resized_vars;
+    }
+
+    return true;
 }
 
-// By White Dragon
-int Varlist_DeleteByName(Varlist *array, char *theName)
-{
-    if(!theName || !theName[0])
-    {
-        return 0;
+/*
+ * Caskey, Damon V.
+ * 2026-07-29 - Reworked original implementation
+ * by White Dragon.
+ *
+ * Removes a named ScriptVariant entry from a Varlist.
+ * Returns true when an entry is removed or false when 
+ * the supplied name is empty or not present.
+ *
+ * The List owns the node and its copied name, while
+ * the Varlist owns the ScriptVariant stored as its
+ * value. Each allocation is released by its owner.
+ */
+bool Varlist_DeleteByName(Varlist *array, char *theName) {
+    /*
+     * Empty names are not valid named Varlist keys.
+     */
+    if(!theName || !theName[0]) {
+        return false;
     }
-    if(List_FindByName(array->list, theName))
-    {
-        Node* node;
-        Node* prev_node;
-        Node* next_node;
 
-        node = array->list->current;
-        prev_node = node->prev;
-        next_node = node->next;
+    /*
+     * List_FindByName() selects the matching node as
+     * the List's current node for removal.
+     */
+    if(!List_FindByName(array->list, theName)) {
+        return false;
+    }
 
-        if ( prev_node ) prev_node->next = next_node;
-        if ( next_node ) next_node->prev = prev_node;
+    ScriptVariant *value = (ScriptVariant *)List_Retrieve(array->list);
 
-        if ( array->list->last == node ) array->list->last = prev_node;
-        if ( array->list->first == node ) array->list->first = next_node;
-        if ( array->list->first == array->list->last && array->list->first == node ) {
-            array->list->last = NULL;
-            array->list->first = NULL;
-        }
+    assert(value != NULL);
 
-        --array->list->size;
+    /*
+     * Remove the node through the List API so its links,
+     * size, copied name, and string-hash entry remain
+     * synchronized. List_Remove() does not free the value.
+     */
+    List_Remove(array->list);
 
-        free(node);
-    } else return 0;
+    /*
+     * Release resources owned by the stored ScriptVariant,
+     * then release the ScriptVariant allocation itself.
+     */
+    ScriptVariant_Clear(value);
+    free(value);
 
-    return 1;
+    return true;
 }
 
 //this function should be called before all script methods, for once
