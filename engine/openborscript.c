@@ -732,10 +732,10 @@ int Script_Compile(Script *pscript)
     return result;
 }
 
-int Script_IsInitialized(Script *pscript)
-{
+bool Script_IsInitialized(Script *pscript) {
+    
     //if(pscript && pscript->initialized) pcurrentscript = pscript; //used by local script functions
-    return pscript->initialized;
+    return pscript->initialized ? true : false;
 }
 
 //execute the script

@@ -1404,54 +1404,94 @@ void copy_all_scripts(s_scripts *src, s_scripts *dest, int method)
     }
 }
 
-void execute_animation_script(entity *ent)
-{
+/*
+* Caskey, Damon V.
+* 2026-07-31
+*
+* Execute model-owned animation bytecode with 
+* an entity's local variables.
+*
+* This function fixes an issue where oncreate()
+* and ondestroy() were called every time an 
+* animation script was executed.
+*
+* Script_Copy() is a lifecycle operation: it 
+* runs ondestroy() for the current script and 
+* oncreate() for the incoming script. Animation 
+* scripts only need to borrow the model interpreter 
+* while processing a frame, so temporarily select 
+* the source interpreter without recreating the 
+* entity script.
+*/
+static void execute_animation_script_source(Script *context, Script *source) {
+
+    Interpreter *saved_interpreter = context->pinterpreter;
+    char *saved_comment = context->comment;
+
+    context->pinterpreter = source->pinterpreter;
+    context->comment = source->comment;
+
+    Script_Execute(context);
+
+    context->pinterpreter = saved_interpreter;
+    context->comment = saved_comment;
+}
+
+void execute_animation_script(entity *ent) {
     ScriptVariant tempvar;
-    int is1 = 0, is2 = 0;
+
     char *namelist[] = {"self", "animnum", "frame", "animhandle", ""};
     int handle = 0;
+    
     Script *cs = ent->scripts->animation_script;
-    Script *s1 = ent->model->scripts->animation_script;
-    Script *s2 = ent->defaultmodel->scripts->animation_script;
-    is1 = Script_IsInitialized(s1);
-    is2 = Script_IsInitialized(s2);
-    if(is1 || is2)
-    {
-        if(cs->pinterpreter && cs->pinterpreter->bReset)
-        {
+    Script *model_script = ent->model->scripts->animation_script;
+    Script *defaultmodel_script = ent->defaultmodel->scripts->animation_script;
+    
+    const bool model_script_initialized = Script_IsInitialized(model_script);
+    const bool defaultmodel_script_initialized = Script_IsInitialized(defaultmodel_script);
+    
+    if(model_script_initialized || defaultmodel_script_initialized) {
+
+        if(cs->pinterpreter && cs->pinterpreter->bReset) {
             handle = Script_Save_Local_Variant(cs, namelist);
         }
+        
         ScriptVariant_Init(&tempvar);
+        
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self",    &tempvar);
+        
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)ent->animnum;
+        
         Script_Set_Local_Variant(cs, "animnum", &tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        
         tempvar.lVal = (LONG)ent->animpos;
         Script_Set_Local_Variant(cs, "frame",   &tempvar);
+        
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)ent->animation->index;
         Script_Set_Local_Variant(cs, "animhandle",   &tempvar);
-        if(is1)
-        {
-            Script_Copy(cs, s1, 0);
-            Script_Execute(cs);
+        
+        if(model_script_initialized) {
+            execute_animation_script_source(cs, model_script);
         }
-        if(ent->model != ent->defaultmodel && is2)
-        {
-            Script_Copy(cs, s2, 0);
-            Script_Execute(cs);
+
+        
+        if(ent->model != ent->defaultmodel && defaultmodel_script_initialized) {
+            execute_animation_script_source(cs, defaultmodel_script);
         }
+
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",    &tempvar);
         Script_Set_Local_Variant(cs, "animnum", &tempvar);
         Script_Set_Local_Variant(cs, "frame",   &tempvar);
         Script_Set_Local_Variant(cs, "animhandle", &tempvar);
-        if(handle)
-        {
+        
+        if(handle) {
             Script_Load_Local_Variant(cs, handle);
         }
     }

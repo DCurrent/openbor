@@ -94,7 +94,7 @@ void Script_Global_Clear();
 void Script_Init(Script *pscript, char *theName, char *comment, int first);
 Script *alloc_script();
 void Script_Copy(Script *pdest, Script *psrc, int localclear);
-int Script_IsInitialized(Script *pscript);
+bool Script_IsInitialized(Script *pscript);
 void Script_Clear(Script *pscript, int localclear);
 int Script_AppendText(Script *pscript, char *text, char *path);
 int Script_Compile(Script *pscript);
