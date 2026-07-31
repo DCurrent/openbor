@@ -17041,9 +17041,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 /*
                 * Translate text value into a pre-defined forcemap constant.
-                * When applying a pre-defined forcemap, we�ll look at the model
+                * When applying a pre-defined forcemap, we'll look at the model
                 * and try to find its appropriate index. For example, if the
-                * pre-defined BURN is used, forcemap will apply the model�s
+                * pre-defined BURN is used, forcemap will apply the model's
                 * designated burn. This allows use of effect maps without the
                 * need to match all model palettes up (i.e. all having their
                 * second palette a burn palette).
@@ -17594,9 +17594,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 /*
                 * Translate text value into a pre-defined forcemap constant.
-                * When applying a pre-defined forcemap, we�ll look at the model
+                * When applying a pre-defined forcemap, we'll look at the model
                 * and try to find its appropriate index. For example, if the
-                * pre-defined BURN is used, forcemap will apply the model�s
+                * pre-defined BURN is used, forcemap will apply the model's
                 * designated burn. This allows use of effect maps without the
                 * need to match all model palettes up (i.e. all having their
                 * second palette a burn palette).
@@ -30335,14 +30335,13 @@ s_bind* bind_clone_object(s_bind* source)
 *
 * Send all bind data to log for debugging.
 */
-void bind_dump_object(s_bind* object)
-{
+void bind_dump_object(s_bind* object) {
+
     printf("\n\n -- Bind (%p) dump --", object);
 
-    if (object)
-    {
+    if (object) {
         printf("\n\t ->animation: %d", object->animation);
-        printf("\n\t ->config: %d", object->config);
+        printf("\n\t ->config: %" PRIu64, object->config);
         printf("\n\t ->direction_adjust: %d", object->direction_adjust);
         printf("\n\t ->frame: %d", object->frame);
         printf("\n\t ->meta_data: %p", object->meta_data);
@@ -30379,84 +30378,68 @@ void bind_free_object(s_bind* object)
 * depending on bind property settings. Also 
 * executes bind scripts for acting and target.
 */
-void adjust_bind(entity* acting_entity)
-{
+void adjust_bind(entity* acting_entity) {
+
 	#define ADJUST_BIND_SET_ANIM_RESETABLE 1
 	#define ADJUST_BIND_NO_FRAME_MATCH -1   
 
     int				frame = 0;
     animation_id_t animation = ANI_NONE;
 
-	/* 
-    * Exit if there is no bind 
-    * or bind target. 
-    */
-	if (!acting_entity->binding.target)
-	{
-		return;
-	}
+    s_bind *const acting_bind = &acting_entity->binding;
 
-	/* 
-    * Run bind update scripts for target and
-    * acting entity. 
-    */
+    if (!acting_bind->target) {
+        return;
+    }
 
-	execute_on_bind_update_other_to_self(acting_entity->binding.target, acting_entity, &acting_entity->binding); 
-    execute_on_bind_update_self_to_other(acting_entity, acting_entity->binding.target, &acting_entity->binding);
+    execute_on_bind_update_other_to_self(acting_bind->target, acting_entity, acting_bind);
+    execute_on_bind_update_self_to_other(acting_entity, acting_bind->target, acting_bind);
 
-    /*
-    printf("\n\n adjust_bind(%p)", acting_entity);
-    printf("\n\t Acting Name: %s", acting_entity->name);
-    printf("\n\t acting_entity->binding: %p", &acting_entity->binding);
-    printf("\n\t\t binding.animation: %d", acting_entity->binding.animation);
-    printf("\n\t\t binding.config: %d", acting_entity->binding.config);
-    printf("\n\t\t binding.direction_adjust: %d", acting_entity->binding.direction_adjust);
-    printf("\n\t\t binding.frame: %d", acting_entity->binding.frame);
-    printf("\n\t\t binding.meta_data: %p", &acting_entity->binding.meta_data);
-    printf("\n\t\t binding.meta_tag: %d", acting_entity->binding.meta_tag);
-    printf("\n\t\t binding.offset: %d, %d, %d", acting_entity->binding.offset.x, acting_entity->binding.offset.y, acting_entity->binding.offset.z);
-    printf("\n\t\t binding.sortid: %d", acting_entity->binding.sortid);    
+    if (!acting_bind->target) { 
+        return;
+    }
+
+    const bind_config_t bind_config = acting_bind->config;
     
-    if (acting_entity->binding.target)
-    {
-        printf("\n\t\t binding.target: %p (%s)", acting_entity->binding.target, acting_entity->binding.target->name);
-    }
-    else
-    {
-        printf("\n\t\t binding.target: %p (%s)", acting_entity->binding.target, "");
-    }
-    printf("\n\n");
-    */
+	/*
+    * Check config flags for removal. Legacy bindentity() 
+    * used values 4 and 8 for animation and frame removal, 
+    * respectively. These values are now defined as 
+    * BIND_CONFIG_ANIMATION_REMOVE and BIND_CONFIG_ANIMATION_FRAME_REMOVE. 
+    * The removal flags imply target matching for legacy 
+    * bindentity() values 4 and 8, even when no explicit 
+    * matching flag is set.
+	*/
+	if (bind_config & (BIND_CONFIG_ANIMATION_DEFINED
+		| BIND_CONFIG_ANIMATION_TARGET
+		| BIND_CONFIG_ANIMATION_REMOVE
+		| BIND_CONFIG_ANIMATION_FRAME_DEFINED
+		| BIND_CONFIG_ANIMATION_FRAME_TARGET
+		| BIND_CONFIG_ANIMATION_FRAME_REMOVE)) {
 
-	if (acting_entity->binding.config & (BIND_CONFIG_ANIMATION_DEFINED | BIND_CONFIG_ANIMATION_TARGET | BIND_CONFIG_ANIMATION_FRAME_DEFINED | BIND_CONFIG_ANIMATION_FRAME_TARGET))
-	{
 		/* 
         * If a defined value is requested,
 		* use the binding member value.
 		* Otherwise use target's current value.
 		*/
-        if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_DEFINED)
-		{
-			animation = acting_entity->binding.animation;
-		}
-		else
-		{
-			animation = acting_entity->binding.target->animnum;
+        if (bind_config & BIND_CONFIG_ANIMATION_DEFINED) {
+			animation = acting_bind->animation;
+        } else {
+			animation = acting_bind->target->animnum;
 		}
 
 		/* Are we NOT currently playing the target animation? */
-		if (acting_entity->animnum != animation)
-		{
+		if (acting_entity->animnum != animation) {
+
 			/*
             * If we don't have the target animation
 			* and animation kill flag is set, then
 			* we kill ourselves and exit the function.
 			*/
-            if (!validanim(acting_entity, animation))
-			{
+            if (!validanim(acting_entity, animation)) {
+
 				/* Don't have the animation? Kill self. */
-				if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_REMOVE)
-				{
+				if (bind_config & BIND_CONFIG_ANIMATION_REMOVE) {
 					kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BIND_ANIMATION_MATCH);
 				}
 
@@ -30483,37 +30466,30 @@ void adjust_bind(entity* acting_entity)
 		* so frame matching logic is skipped.		
 		*/
 
-		if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_DEFINED)
-		{
-			frame = acting_entity->binding.frame;
-		}
-		else if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_TARGET)
-		{
-			frame = acting_entity->binding.target->animpos;
-		}
-		else
-		{
-			frame = ADJUST_BIND_NO_FRAME_MATCH;
-		}
+		if (bind_config & BIND_CONFIG_ANIMATION_FRAME_DEFINED) {
+		    frame = acting_bind->frame;
+        } else if (bind_config & BIND_CONFIG_ANIMATION_FRAME_TARGET) {
+            frame = acting_bind->target->animpos;
+        } else {
+            frame = ADJUST_BIND_NO_FRAME_MATCH;
+        }
 
 		/* 
         * Any frame match flag set?
 		*/
-        if (frame != ADJUST_BIND_NO_FRAME_MATCH)
-		{
+        if (frame != ADJUST_BIND_NO_FRAME_MATCH) {
+
 			/* Are we NOT currently playing the target frame ? */
-			if (acting_entity->animpos != frame)
-			{
-				/*
+			if (acting_entity->animpos != frame) {
+				
+                /*
                 * If we don't have the frame and frame kill flag is
 				* set, kill self.
 				*/
-                if ((acting_entity->animation->numframes -1) < frame)
-				{
-					if (acting_entity->binding.config & BIND_CONFIG_ANIMATION_FRAME_REMOVE)
-					{
-						kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BIND_FRAME_MATCH);
-                        						
+                if ((acting_entity->animation->numframes -1) < frame) {
+					if (bind_config & BIND_CONFIG_ANIMATION_FRAME_REMOVE) {
+
+						kill_entity(acting_entity, KILL_ENTITY_TRIGGER_BIND_FRAME_MATCH);                        						
 						return;
 					}					
 				}
@@ -30528,10 +30504,10 @@ void adjust_bind(entity* acting_entity)
 	}
 
 	/* Apply sort ID adjustment. */
-    acting_entity->sortid = acting_entity->binding.target->sortid + acting_entity->binding.sortid;
+    acting_entity->sortid = acting_bind->target->sortid + acting_bind->sortid;
 
 	/* Getand apply direction adjustment. */
-    acting_entity->direction = direction_get_adjustment_result(acting_entity, acting_entity->binding.target, acting_entity->binding.direction_adjust);
+    acting_entity->direction = direction_get_adjustment_result(acting_entity, acting_bind->target, acting_bind->direction_adjust);
 
     /*
 	* Apply positioning based on config. For
@@ -30540,40 +30516,52 @@ void adjust_bind(entity* acting_entity)
 	*/
 
     // X
-    if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_TARGET)
-    {
-        if (acting_entity->binding.target->direction == DIRECTION_LEFT)
-        {
-            acting_entity->position.x = acting_entity->binding.target->position.x - acting_entity->binding.offset.x;            
+    const int offset_x = acting_bind->offset.x;
+
+    if (bind_config & BIND_CONFIG_AXIS_X_TARGET) {
+        
+        const float target_x = acting_bind->target->position.x;
+
+        if (acting_bind->target->direction == DIRECTION_LEFT) {
+
+            acting_entity->position.x = target_x - (float)offset_x;
+        
+        } else {
+        
+            acting_entity->position.x = target_x + (float)offset_x;
+        
         }
-        else
-        {
-            acting_entity->position.x = acting_entity->binding.target->position.x + acting_entity->binding.offset.x;
-        }
-    }
-    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_X_LEVEL)
-    {
-        acting_entity->position.x = acting_entity->binding.offset.x;
+    
+    } else if (bind_config & BIND_CONFIG_AXIS_X_LEVEL) {
+
+        acting_entity->position.x = (float)offset_x;
+
     }
     
     // Y
-    if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_TARGET)
-    {
-        acting_entity->position.y = acting_entity->binding.target->position.y + acting_entity->binding.offset.y;
-    }
-    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Y_LEVEL)
-    {
-        acting_entity->position.y = acting_entity->binding.offset.y;
+    const int offset_y = acting_bind->offset.y;
+
+    if (bind_config & BIND_CONFIG_AXIS_Y_TARGET) {
+
+        acting_entity->position.y = acting_bind->target->position.y + (float)offset_y;
+
+    } else if (bind_config & BIND_CONFIG_AXIS_Y_LEVEL) {
+
+        acting_entity->position.y = (float)offset_y;
+
     }
 
     // Z
-    if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_TARGET)
-    {
-        acting_entity->position.z = acting_entity->binding.target->position.z + acting_entity->binding.offset.z;
-    }
-    else if (acting_entity->binding.config & BIND_CONFIG_AXIS_Z_LEVEL)
-    {
-        acting_entity->position.z = acting_entity->binding.offset.z;
+    const int offset_z = acting_bind->offset.z;
+
+    if (bind_config & BIND_CONFIG_AXIS_Z_TARGET) {
+
+        acting_entity->position.z = acting_bind->target->position.z + (float)offset_z;
+    
+    } else if (bind_config & BIND_CONFIG_AXIS_Z_LEVEL) {
+
+        acting_entity->position.z = (float)offset_z;
+
     }
     	
 	#undef ADJUST_BIND_SET_ANIM_RESETABLE
@@ -30737,12 +30725,10 @@ e_direction direction_get_adjustment_result(entity* acting_entity, const entity*
 * Return true if the target entity has a valid
 * bind target and match for the override argument.
 */
-int check_bind_override(entity *ent, e_bind_config bind_config)
-{
-    if(ent->binding.target)
-    {
-        if(ent->binding.config & bind_config)
-        {
+bool check_bind_override(entity *ent, bind_config_t bind_config) {
+    
+    if(ent->binding.target) {
+        if(ent->binding.config & bind_config) {
             return TRUE;
         }
     }
@@ -30835,58 +30821,66 @@ void check_move(entity *e)
     self = tempself;
 }
 
-void ent_post_update(entity *e)
-{
+void ent_post_update(entity *e) {
+
     check_gravity(e);// check gravity
     //check_entity_collision_for(e);
     check_move(e);
-
-    adjust_bind(e);
 }
 
-// arrenge the list reduce its length
-void arrange_ents()
-{
+// arrange the list and reduce its length
+void arrange_ents() {
+
     int i, ind = -1;
     entity *temp;
-    if(ent_count == 0)
-    {
+
+    if(ent_count == 0) {
         return;
     }
-    if(ent_max == ent_count)
-    {
-        for(i = 0; i < ent_max; i++)
-        {
-            if(ent_list[i]->exists)
-            {
-                ent_post_update(ent_list[i]);
-            }
+
+    /*
+    * Finish movement for every entity before 
+    * resolving binds. Movement may change a 
+    * bind target's animation, such as entering 
+    * ANI_HITWALL, and all bound entities must 
+    * observe the completed target state regardless 
+    * of their order in ent_list.
+    */
+    for(i = 0; i < ent_max; i++) {
+        if(ent_list[i]->exists) {
+            ent_post_update(ent_list[i]);
         }
     }
-    else
-    {
-        for(i = 0; i < ent_max; i++)
-        {
-            if(!ent_list[i]->exists && ind < 0)
-            {
+
+    /* 
+    * Resolve binding after all target movement 
+    * and animation changes. 
+    */
+    for(i = 0; i < ent_max; i++) {
+        if(ent_list[i]->exists) {
+            adjust_bind(ent_list[i]);
+        }
+    }
+
+    if(ent_max != ent_count) {
+
+        for(i = 0; i < ent_max; i++) {
+
+            if(!ent_list[i]->exists && ind < 0) {
+                
                 ind = i;
-            }
-            else if(ent_list[i]->exists && ind >= 0)
-            {
+            
+            } else if(ent_list[i]->exists && ind >= 0) {
                 temp = ent_list[i];
                 ent_list[i] = ent_list[ind];
                 ent_list[ind] = temp;
                 ind++;
             }
-            if(ent_list[i]->exists)
-            {
-                ent_post_update(ent_list[i]);
-            }
         }
         ent_max = ent_count;
     }
-    for(i = 0; i < ent_max; i++)
-    {
+
+    for(i = 0; i < ent_max; i++) {
         ent_list[i]->movex = ent_list[i]->movez = 0;
     }
 }
@@ -35288,11 +35282,11 @@ int get_attack_type_from_string(const char* value, const char* filename)
 
         if (strnicmp(value, prefix, prefix_len) == 0) {
             if (value[prefix_len] == '\0') {
-                // Case: "attack" or "normal" with no suffix → treat as "normal1"
+                // Case: "attack" or "normal" with no suffix: treat as "normal1"
                 snprintf(normalized_input, sizeof(normalized_input), "normal1");
             }
             else if (isdigit((unsigned char)value[prefix_len])) {
-                // Case: "attackX" or "normalX" → normalize to "normalX"
+                // Case: "attackX" or "normalX": normalize to "normalX"
                 snprintf(normalized_input, sizeof(normalized_input), "normal%s", value + prefix_len);
             }
             else {
@@ -35400,7 +35394,7 @@ int get_attack_type_from_string(const char* value, const char* filename)
     }
 
     // =========================================================================
-    // Step 8: Success — return resolved attack type ID
+    // Step 8: Success - return resolved attack type ID
     // =========================================================================
     return parsed_type;
 }
@@ -35463,7 +35457,7 @@ void defense_setup_from_arg(
         );
     }
     /*
-    * Handle "ALL" case—apply to all non-special attack types.
+    * Handle "ALL" case - apply to all non-special attack types.
     */
     else if (stricmp(value, "ALL") == 0)
     {
@@ -35616,7 +35610,7 @@ void offense_setup_from_arg(
         );
     }
     /*
-    * Handle "ALL" case—apply to all non-special attack types.
+    * Handle "ALL" case - apply to all non-special attack types.
     */
     else if (stricmp(value, "ALL") == 0)
     {
@@ -45839,7 +45833,7 @@ entity *bomb_spawn(entity *parent, s_projectile *projectile)
 // Caskey, Damon V.
 // 2019-12-17
 //
-// Spawn three �star� projectiles. Meant for Eiji enemies in 
+// Spawn three "star" projectiles. Meant for Eiji enemies in 
 // original Beats of Rage, who would jump and throw three star 
 // shuriken diagonally downward at players. Original author 
 // Roel, but modified several times by unknown parties. Refactored 
@@ -48256,7 +48250,7 @@ void update(int ingame, int usevwait)
 #if SDL
     if (savedata.fpslimit == 1) // vsync enabled
     {
-        // To reduce input latency, wait until the last 4 ms (4000 μs) of the current
+        // To reduce input latency, wait until the last 4 ms (4000 us) of the current
         // frame to read inputs or do anything else. We can get away with this because
         // the CPUs of all modern computers - even phones and low-end, outdated PCs -
         // are complete overkill for OpenBOR's needs.

@@ -13954,7 +13954,7 @@ HRESULT openbor_bindentity(ScriptVariant **varlist , ScriptVariant **pretvar, in
         * For legacy compatability, we add anim value
         * to config instead of direct assignment.
         */
-        ent->binding.config += (e_bind_config)anim;        
+        ent->binding.config |= (bind_config_t)anim;        
     }
 
     if(paramCount < 8)

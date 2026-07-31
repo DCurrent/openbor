@@ -1307,8 +1307,17 @@ typedef enum
     ENERGY_COST_DEFAULT_COST = 6,
 } e_cost_value;
 
-typedef enum
-{
+/*
+* Caskey, Damon V.
+* 2026-07-31
+*
+* Bind configuration bitmask. See
+* e_bind_config for individual bitmask 
+* values.
+*/
+typedef uint64_t bind_config_t;
+
+typedef enum e_bind_config {
     BIND_CONFIG_NONE = 0,
 
     /* 
@@ -1317,26 +1326,26 @@ typedef enum
     * modules that used magic numbers before
     * constants were available.
 	*/
-    BIND_CONFIG_ANIMATION_TARGET			= (1 << 0),
-    BIND_CONFIG_ANIMATION_FRAME_TARGET		= (1 << 1),
-    BIND_CONFIG_ANIMATION_REMOVE			= (1 << 2),
-    BIND_CONFIG_ANIMATION_FRAME_REMOVE		= (1 << 3),
+    BIND_CONFIG_ANIMATION_TARGET			= UINT64_C(1) << 0,
+    BIND_CONFIG_ANIMATION_FRAME_TARGET		= UINT64_C(1) << 1,
+    BIND_CONFIG_ANIMATION_REMOVE			= UINT64_C(1) << 2,
+    BIND_CONFIG_ANIMATION_FRAME_REMOVE		= UINT64_C(1) << 3,
 
 	/* End legacy order. */
 
-    BIND_CONFIG_ANIMATION_DEFINED			= (1 << 4),
-    BIND_CONFIG_ANIMATION_FRAME_DEFINED	    = (1 << 5),
-    BIND_CONFIG_AXIS_X_LEVEL                = (1 << 6),
-    BIND_CONFIG_AXIS_X_TARGET               = (1 << 7),
-    BIND_CONFIG_AXIS_Y_LEVEL                = (1 << 8),
-    BIND_CONFIG_AXIS_Y_TARGET               = (1 << 9),
-    BIND_CONFIG_AXIS_Z_LEVEL                = (1 << 10),
-    BIND_CONFIG_AXIS_Z_TARGET               = (1 << 11),
-    BIND_CONFIG_OVERRIDE_FALL_LAND          = (1 << 12),
-    BIND_CONFIG_OVERRIDE_DROPFRAME          = (1 << 13),
-    BIND_CONFIG_OVERRIDE_LANDFRAME          = (1 << 14),
-    BIND_CONFIG_OVERRIDE_SPECIAL_AI         = (1 << 15),
-    BIND_CONFIG_OVERRIDE_SPECIAL_PLAYER     = (1 << 16)
+    BIND_CONFIG_ANIMATION_DEFINED			= UINT64_C(1) << 4,
+    BIND_CONFIG_ANIMATION_FRAME_DEFINED	    = UINT64_C(1) << 5,
+    BIND_CONFIG_AXIS_X_LEVEL                = UINT64_C(1) << 6,
+    BIND_CONFIG_AXIS_X_TARGET               = UINT64_C(1) << 7,
+    BIND_CONFIG_AXIS_Y_LEVEL                = UINT64_C(1) << 8,
+    BIND_CONFIG_AXIS_Y_TARGET               = UINT64_C(1) << 9,
+    BIND_CONFIG_AXIS_Z_LEVEL                = UINT64_C(1) << 10,
+    BIND_CONFIG_AXIS_Z_TARGET               = UINT64_C(1) << 11,
+    BIND_CONFIG_OVERRIDE_FALL_LAND          = UINT64_C(1) << 12,
+    BIND_CONFIG_OVERRIDE_DROPFRAME          = UINT64_C(1) << 13,
+    BIND_CONFIG_OVERRIDE_LANDFRAME          = UINT64_C(1) << 14,
+    BIND_CONFIG_OVERRIDE_SPECIAL_AI         = UINT64_C(1) << 15,
+    BIND_CONFIG_OVERRIDE_SPECIAL_PLAYER     = UINT64_C(1) << 16
 
 } e_bind_config;
 
@@ -2498,7 +2507,7 @@ typedef struct
 */
 typedef struct
 {
-    e_bind_config           config;			    // Animation matching, axis matching, overrides, etc. ~~
+    bind_config_t           config;			    // Animation matching, axis matching, overrides, etc. ~~
     int                     sortid;             // Relative binding sortid. Default = -1
     int                     frame;              // Frame to match (only if requested in matching).
     animation_id_t          animation;          // Animation to match (only if requested in matching).
@@ -4432,7 +4441,7 @@ s_bind* bind_allocate_object();
 s_bind* bind_clone_object(s_bind* source);
 void    bind_dump_object(s_bind* target);
 void    bind_free_object(s_bind* target);
-int     check_bind_override(entity* ent, e_bind_config bind_config);
+bool     check_bind_override(entity* ent, bind_config_t bind_config);
 
 /* Child follow behavior */
 s_child_follow* child_follow_getsert_property(s_child_follow** acting_object);

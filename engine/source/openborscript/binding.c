@@ -43,7 +43,7 @@ const s_property_access_map bind_get_property_map(const void* acting_object_para
         property_map.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT;
         property_map.field = &acting_object->config;
         property_map.id_string = "BIND_PROPERTY_CONFIG";
-        property_map.type = VT_INTEGER;
+        property_map.type = VT_UINTEGER64;
         break;
 
     case BIND_PROPERTY_DIRECTION_ADJUST:
