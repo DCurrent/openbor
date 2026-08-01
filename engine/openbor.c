@@ -5914,21 +5914,21 @@ proceed:
 int load_special_sounds()
 {
     sound_unload_all_samples();
-    global_sample_list.go = sound_load_sample("data/sounds/go.wav",		packfile,	0);
-    global_sample_list.beat = sound_load_sample("data/sounds/beat1.wav",	packfile,	0);
-    global_sample_list.block = sound_load_sample("data/sounds/block.wav",	packfile,	0);
-    global_sample_list.fall = sound_load_sample("data/sounds/fall.wav",		packfile,	0);
-    global_sample_list.get = sound_load_sample("data/sounds/get.wav",		packfile,	0);
-    global_sample_list.get_2 = sound_load_sample("data/sounds/money.wav",	packfile,	0);
-    global_sample_list.jump = sound_load_sample("data/sounds/jump.wav",		packfile,	0);
-    global_sample_list.indirect = sound_load_sample("data/sounds/indirect.wav",	packfile,	0);
-    global_sample_list.punch = sound_load_sample("data/sounds/punch.wav",	packfile,	0);
-    global_sample_list.one_up = sound_load_sample("data/sounds/1up.wav",		packfile,	0);
-    global_sample_list.time_over = sound_load_sample("data/sounds/timeover.wav", packfile,	0);
-    global_sample_list.beep = sound_load_sample("data/sounds/beep.wav",		packfile,	0);
-    global_sample_list.beep_2 = sound_load_sample("data/sounds/beep2.wav",	packfile,	0);
-    global_sample_list.pause = sound_load_sample("data/sounds/pause.wav",	packfile,	0);
-    global_sample_list.bike = sound_load_sample("data/sounds/bike.wav",		packfile,	0);
+    global_sample_list.go = sound_load_sample("data/sounds/go.wav",		packfile,	0, 0);
+    global_sample_list.beat = sound_load_sample("data/sounds/beat1.wav",	packfile,	0, 0);
+    global_sample_list.block = sound_load_sample("data/sounds/block.wav",	packfile,	0, 0);
+    global_sample_list.fall = sound_load_sample("data/sounds/fall.wav",		packfile,	0, 0);
+    global_sample_list.get = sound_load_sample("data/sounds/get.wav",		packfile,	0, 0);
+    global_sample_list.get_2 = sound_load_sample("data/sounds/money.wav",	packfile,	0, 0);
+    global_sample_list.jump = sound_load_sample("data/sounds/jump.wav",		packfile,	0, 0);
+    global_sample_list.indirect = sound_load_sample("data/sounds/indirect.wav",	packfile,	0, 0);
+    global_sample_list.punch = sound_load_sample("data/sounds/punch.wav",	packfile,	0, 0);
+    global_sample_list.one_up = sound_load_sample("data/sounds/1up.wav",		packfile,	0, 0);
+    global_sample_list.time_over = sound_load_sample("data/sounds/timeover.wav", packfile,	0, 0);
+    global_sample_list.beep = sound_load_sample("data/sounds/beep.wav",		packfile,	0, 0);
+    global_sample_list.beep_2 = sound_load_sample("data/sounds/beep2.wav",	packfile,	0, 0);
+    global_sample_list.pause = sound_load_sample("data/sounds/pause.wav",	packfile,	0, 0);
+    global_sample_list.bike = sound_load_sample("data/sounds/bike.wav",		packfile,	0, 0);
 
     if (global_sample_list.pause < 0 ) global_sample_list.pause = global_sample_list.beep_2;
     if(global_sample_list.go < 0 || global_sample_list.beat < 0 || global_sample_list.block < 0 ||
@@ -15002,7 +15002,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newchar->throwframewait = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_DIESOUND:
-                newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 1);
+                newchar->diesound = sound_load_sample(GET_ARG(1), packfile, 1, 0);
                 break;
             case CMD_MODEL_ICON:
                 value = GET_ARG(1);
@@ -16343,7 +16343,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_SOUND:
-                soundtoplay = sound_load_sample(GET_ARG(1), packfile, 1);
+                soundtoplay = sound_load_sample(GET_ARG(1), packfile, 1, 0);
                 break;
             case CMD_MODEL_HITFX:
 
@@ -16355,7 +16355,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    tempInt = sound_load_sample(value, packfile, 1);
+                    tempInt = sound_load_sample(value, packfile, 1, 0);
                 }
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->hitsound = tempInt;
@@ -16417,7 +16417,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
+                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1, 0);
                 }
 
                 break;
@@ -16969,7 +16969,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1);
+                    collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->blocksound = sound_load_sample(value, packfile, 1, 0);
                 }
 
                 break;
@@ -17022,7 +17022,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 else
                 {
-                    tempInt = sound_load_sample(value, packfile, 1);
+                    tempInt = sound_load_sample(value, packfile, 1, 0);
                 }
 
                 collision_attack_upsert_property(&temp_collision_attack, temp_collision_index)->hitsound = tempInt;

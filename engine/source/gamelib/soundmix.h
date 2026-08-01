@@ -77,6 +77,7 @@ typedef struct
     uint64_t       soundbytes;  // Raw bytes loaded from the WAV data chunk.    
     uint64_t       soundlen;    // Scalar PCM sample units retained as cache metadata.
     uint64_t       framecount;  // Complete PCM frames loaded from the WAV data chunk.
+    uint64_t       data_offset; // Byte offset of PCM data inside the source file.
     int            bits;
     int            frequency;
     int            channels;
@@ -88,6 +89,8 @@ typedef struct
     samplestruct  sample;
     int index;
     char* filename;
+    char* packfilename;
+    bool stream;
 } s_soundcache;
 
 typedef struct
@@ -125,7 +128,7 @@ int sound_init(void);
 
 // Returns interval in milliseconds
 u32 sound_getinterval();
-int sound_load_sample(char *filename, char *packfilename, bool iLog);
+int sound_load_sample(char *filename, char *packfilename, bool log_errors, bool stream);
 bool sound_reload_sample(int index);
 void sound_unload_sample(int index);
 void sound_unload_all_samples();
@@ -133,9 +136,10 @@ int sound_query_channel(int playid);
 int sound_id(int channel);
 int sound_is_active(int channel);
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
+int sound_play_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame);
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
-// loop_start_frame is the PCM frame used after the first pass reaches the end.
-int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t loop_start_frame);
+// start_frame applies once. loop_start_frame applies after each pass reaches the end.
+int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame, uint64_t loop_start_frame);
 void sound_stop_sample(int channel);
 void sound_stopall_sample();
 void sound_pause_sample(int toggle);

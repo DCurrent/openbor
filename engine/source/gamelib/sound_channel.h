@@ -12,6 +12,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "sound_stream.h"
+
 /*
 * Caskey, Damon V.
 * 2026-07-31
@@ -47,6 +49,7 @@ typedef struct s_sound_channel {
     sound_sample_fixed_t fp_samplepos;  /* Fixed point PCM frame position. */
     sound_sample_fixed_t fp_period;     /* Advance per output frame. */
     sound_sample_fixed_t fp_loop_start; /* PCM frame used after looping. */
+    s_sound_stream stream;
 } channelstruct;
 
 typedef struct s_sound_channel_bank {
@@ -54,6 +57,7 @@ typedef struct s_sound_channel_bank {
     uint64_t active_mask;
     uint64_t paused_mask;
     uint64_t reserved_mask;
+    uint64_t streaming_mask;
 } s_sound_channel_bank;
 
 typedef struct s_sound_channel_pool {
@@ -61,6 +65,7 @@ typedef struct s_sound_channel_pool {
     uint64_t allocated_bank_mask;
     uint64_t active_bank_mask;
     uint64_t available_bank_mask;
+    uint64_t streaming_bank_mask;
 } s_sound_channel_pool;
 
 bool sound_channel_pool_init(s_sound_channel_pool *pool);
@@ -72,6 +77,7 @@ bool sound_channel_pool_is_active(const s_sound_channel_pool *pool, int channel)
 void sound_channel_pool_activate(s_sound_channel_pool *pool, int channel, int active_state);
 void sound_channel_pool_deactivate(s_sound_channel_pool *pool, int channel);
 void sound_channel_pool_pause(s_sound_channel_pool *pool, int channel, int toggle);
+void sound_channel_pool_stream(s_sound_channel_pool *pool, int channel, int toggle);
 bool sound_channel_pool_reserve_mask(s_sound_channel_pool *pool, unsigned int bank_index, uint64_t reserved_mask);
 void sound_channel_pool_stop_all(s_sound_channel_pool *pool);
 void sound_channel_pool_pause_all(s_sound_channel_pool *pool, int toggle);

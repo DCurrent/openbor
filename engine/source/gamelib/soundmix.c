@@ -243,12 +243,15 @@ static int sound_read_wave_chunk_header(int packfile_handle, s_wave_chunk_header
 }
 
 /*
-* Load classic RIFF/WAVE PCM data into memory. All 
-* file and chunk sizes are processed as 64-bit values 
-* so RF64/BW64 can be added later without changing
-* the sample or mixer data model.
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Validate RIFF/WAVE PCM and retain either the
+* complete sample or streaming metadata only. File
+* and chunk sizes remain 64-bit so larger container
+* formats can use the same sample data model later.
 */
-static bool loadwave(char *filename, char *packname, samplestruct *sample, uint64_t maximum_data_bytes) {
+static bool loadwave(char *filename, char *packname, samplestruct *sample, uint64_t maximum_data_bytes, bool stream) {
 
     s_wave_riff_header wave_riff_header;
     s_wave_chunk_header wave_chunk_header;
@@ -258,6 +261,8 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
     uint64_t sample_unit_count = 0;
     uint64_t bytes_per_sample_unit = 0;
     uint64_t complete_frame_count = 0;
+    packfile_signed_offset_t data_chunk_offset;
+    packfile_signed_offset_t source_file_size;
     size_t allocation_size = 0;
     int packfile_handle;
     int format_chunk_found = 0;
@@ -403,7 +408,7 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
     }
 
     sample_data_bytes = data_chunk_size;
-    if(sample_data_bytes > maximum_data_bytes) {
+    if(!stream && sample_data_bytes > maximum_data_bytes) {
         sample_data_bytes = maximum_data_bytes;
     }
 
@@ -424,6 +429,31 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
     if(complete_frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
         closepackfile(packfile_handle);
         return false;
+    }
+
+    data_chunk_offset = seekpackfile64(packfile_handle, 0, SEEK_CUR);
+    source_file_size = seekpackfile64(packfile_handle, 0, SEEK_END);
+    if(data_chunk_offset < 0 ||
+       source_file_size < data_chunk_offset ||
+       sample_data_bytes > (uint64_t)(source_file_size - data_chunk_offset) ||
+       seekpackfile64(packfile_handle, data_chunk_offset, SEEK_SET) != data_chunk_offset) {
+        closepackfile(packfile_handle);
+        return false;
+    }
+
+    sample->soundbytes = sample_data_bytes;
+    sample->soundlen = sample_unit_count;
+    sample->framecount = complete_frame_count;
+    sample->data_offset = (uint64_t)data_chunk_offset;
+    sample->bits = wave_format_header.samplebits;
+    sample->frequency = wave_format_header.samplerate;
+    sample->channels = wave_format_header.channels;
+    sample->blockalign = wave_format_header.blockalign;
+
+    /* Streamed samples retain metadata only. */
+    if(stream) {
+        closepackfile(packfile_handle);
+        return true;
     }
 
     if(sample_data_bytes > (uint64_t)(SIZE_MAX - 8U)) {
@@ -449,14 +479,6 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
 
     closepackfile(packfile_handle);
 
-    sample->soundbytes = sample_data_bytes;
-    sample->soundlen = sample_unit_count;
-    sample->framecount = complete_frame_count;
-    sample->bits = wave_format_header.samplebits;
-    sample->frequency = wave_format_header.samplerate;
-    sample->channels = wave_format_header.channels;
-    sample->blockalign = wave_format_header.blockalign;
-
     return true;
 }
 
@@ -470,10 +492,30 @@ bool sound_reload_sample(int index) {
         return false;
     }
 
+    if(soundcache[index].stream) {
+        if(soundcache[index].sample.framecount > 0) {
+            return true;
+        }
+
+        return loadwave(
+            soundcache[index].filename,
+            soundcache[index].packfilename,
+            &soundcache[index].sample,
+            sound_parameters.sound_length_max,
+            true
+        );
+    }
+
     if(!soundcache[index].sample.sampleptr) {
 
         //printf("packfile: '%s'\n", packfile);
-        return loadwave(soundcache[index].filename, packfile, &(soundcache[index].sample), sound_parameters.sound_length_max);
+        return loadwave(
+            soundcache[index].filename,
+            soundcache[index].packfilename,
+            &soundcache[index].sample,
+            sound_parameters.sound_length_max,
+            false
+        );
     
     } else {
         return true;
@@ -481,20 +523,42 @@ bool sound_reload_sample(int index) {
 }
 
 
-// Load a sound or return index
-int sound_load_sample(char *filename, char *packfilename, bool log_errors) {
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Load or find a resident or streamed sample. Cache
+* identities include storage mode so the same source
+* may be loaded independently in both forms.
+*/
+int sound_load_sample(char *filename, char *packfilename, bool log_errors, bool stream) {
 
     s_soundcache *cache;
+    s_soundcache *expanded_cache;
     samplestruct sample;
-    static char convcache[256];
+    char *cache_key;
+    char *source_filename;
+    char *source_packfilename;
+    const char *cache_prefix;
+    size_t cache_key_size;
     
     if(!mixing_inited) {
         return -1;
     }
 
-    /////////////////////////////
-    strcpy(convcache, filename);
-    lc(convcache, strlen(convcache));
+    if(!filename || !packfilename) {
+        return -1;
+    }
+
+    cache_prefix = stream ? "stream:" : "memory:";
+    cache_key_size = strlen(cache_prefix) + strlen(filename) + 1U;
+    cache_key = malloc(cache_key_size);
+    if(!cache_key) {
+        return -1;
+    }
+
+    snprintf(cache_key, cache_key_size, "%s%s", cache_prefix, filename);
+    lc(cache_key, strlen(cache_key));
 
     /*
     * First look for existing sample in the cache. If
@@ -503,18 +567,20 @@ int sound_load_sample(char *filename, char *packfilename, bool log_errors) {
     * the sample  cannot be restored, log an error.
     */
     {
-        const bool sample_found = List_FindByName(&audio_global.samplelist, convcache);
+        const bool sample_found = List_FindByName(&audio_global.samplelist, cache_key);
 
         if(sample_found) {
             
             cache = &soundcache[(size_t)List_Retrieve(&audio_global.samplelist)];
+            free(cache_key);
             
-            if(!cache->sample.sampleptr) {
+            if((cache->stream && cache->sample.framecount == 0) ||
+               (!cache->stream && !cache->sample.sampleptr)) {
 
                 const bool reload_success = sound_reload_sample(cache->index);
 
                 if(!reload_success && log_errors) {
-                    printf("sound_load_sample can't restore sampleptr from file '%s'!\n", filename);
+                    printf("sound_load_sample can't restore sample from file '%s'!\n", filename);
                 }
             }
             return cache->index;
@@ -528,22 +594,58 @@ int sound_load_sample(char *filename, char *packfilename, bool log_errors) {
     
     memset(&sample, 0, sizeof(sample));
 
-    const bool load_success = loadwave(filename, packfilename, &sample, sound_parameters.sound_length_max);
+    const bool load_success = loadwave(filename, packfilename, &sample, sound_parameters.sound_length_max, stream);
 
     if(!load_success) {
+        free(cache_key);
         if(log_errors) {
             printf("sound_load_sample can't load sample from file '%s'!\n", filename);
         }
         return -1;
     }
 
-    __realloc(soundcache, sound_cached);
+    source_filename = malloc(strlen(filename) + 1U);
+    source_packfilename = malloc(strlen(packfilename) + 1U);
+    if(!source_filename || !source_packfilename) {
+        free(source_filename);
+        free(source_packfilename);
+        free(sample.sampleptr);
+        free(cache_key);
+        return -1;
+    }
+
+    strcpy(source_filename, filename);
+    strcpy(source_packfilename, packfilename);
+
+    if((size_t)sound_cached >= (SIZE_MAX / sizeof(*soundcache)) - 1U) {
+        free(source_filename);
+        free(source_packfilename);
+        free(sample.sampleptr);
+        free(cache_key);
+        return -1;
+    }
+
+    expanded_cache = realloc(soundcache, sizeof(*soundcache) * ((size_t)sound_cached + 1U));
+    if(!expanded_cache) {
+        free(source_filename);
+        free(source_packfilename);
+        free(sample.sampleptr);
+        free(cache_key);
+        return -1;
+    }
+
+    soundcache = expanded_cache;
+    memset(&soundcache[sound_cached], 0, sizeof(soundcache[sound_cached]));
     soundcache[sound_cached].sample = sample;
 
     List_GotoLast(&audio_global.samplelist);
-    List_InsertAfter(&audio_global.samplelist, (void *)(size_t)sound_cached, convcache);
+    List_InsertAfter(&audio_global.samplelist, (void *)(size_t)sound_cached, cache_key);
     soundcache[sound_cached].index = sound_cached;
-    soundcache[sound_cached].filename = List_GetName(&audio_global.samplelist);
+    soundcache[sound_cached].filename = source_filename;
+    soundcache[sound_cached].packfilename = source_packfilename;
+    soundcache[sound_cached].stream = stream;
+
+    free(cache_key);
 
     sound_cached++;
     return sound_cached - 1;
@@ -563,7 +665,10 @@ void sound_unload_sample(int index)
     if(soundcache[index].sample.sampleptr != NULL)
     {
         free(soundcache[index].sample.sampleptr);
-        soundcache[index].sample.sampleptr = NULL;
+        memset(&soundcache[index].sample, 0, sizeof(samplestruct));
+    }
+    else if(soundcache[index].stream)
+    {
         memset(&soundcache[index].sample, 0, sizeof(samplestruct));
     }
 }
@@ -578,6 +683,10 @@ void sound_unload_all_samples()
     for(i = 0; i < sound_cached; i++)
     {
         sound_unload_sample(i);
+        free(soundcache[i].filename);
+        soundcache[i].filename = NULL;
+        free(soundcache[i].packfilename);
+        soundcache[i].packfilename = NULL;
     }
     List_Clear(&audio_global.samplelist);
     free(soundcache);
@@ -684,15 +793,12 @@ unsigned int sound_music_period_calculate(int source_frequency, int tempo) {
 * byte until we can widen the output path in a 
 * future update.
 */
-static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_index) {
-
-    const unsigned char *sample_data = sample->sampleptr;
-
-    if(sample->bits == 8){
+static int sound_pcm_to_mix_value(const unsigned char *sample_data, int sample_bits, size_t sample_index) {
+    if(sample_bits == 8){
         return ((int)sample_data[sample_index] - 0x80) * 0x100;
     }
 
-    if(sample->bits == 16) {
+    if(sample_bits == 16) {
 
         size_t byte_index = sample_index * 2U;
         uint16_t sample_value = (uint16_t)sample_data[byte_index] |
@@ -701,7 +807,7 @@ static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_i
         return (int)(int16_t)sample_value;
     }
 
-    if(sample->bits == 24) {
+    if(sample_bits == 24) {
         size_t byte_index = sample_index * 3U;
         uint16_t sample_value = (uint16_t)sample_data[byte_index + 1U] |
                                 ((uint16_t)sample_data[byte_index + 2U] << 8U);
@@ -710,6 +816,124 @@ static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_i
     }
 
     return 0;
+}
+
+static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_index) {
+    return sound_pcm_to_mix_value(sample->sampleptr, sample->bits, sample_index);
+}
+
+typedef struct s_sound_stream_read_context {
+    int handle;
+    uint64_t data_offset;
+    size_t block_align;
+} s_sound_stream_read_context;
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Seek and fill one PCM stream buffer from a
+* validated source frame. This runs only in the
+* producer path, never in the audio callback.
+*/
+static bool sound_stream_read_frames(
+    void *context,
+    uint64_t source_start_frame,
+    void *destination,
+    size_t bytes_to_read
+) {
+    s_sound_stream_read_context *read_context = context;
+    uint64_t byte_offset;
+
+    if(!read_context ||
+       read_context->handle < 0 ||
+       read_context->block_align == 0 ||
+       source_start_frame > (UINT64_MAX - read_context->data_offset) / read_context->block_align) {
+        return false;
+    }
+
+    byte_offset = read_context->data_offset + source_start_frame * read_context->block_align;
+    if(byte_offset > (uint64_t)INT64_MAX || bytes_to_read > (size_t)INT_MAX) {
+        return false;
+    }
+
+    if(seekpackfile64(read_context->handle, (packfile_signed_offset_t)byte_offset, SEEK_SET) !=
+       (packfile_signed_offset_t)byte_offset) {
+        return false;
+    }
+
+    return sound_read_packfile_exact(read_context->handle, destination, bytes_to_read) != 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Mix one streamed effect from ready PCM buffers.
+* Empty buffers cause silence without advancing the
+* cursor, so an underrun does not discard unheard
+* audio. Consumed buffers are returned to the main
+* thread producer for refill.
+*/
+static void sound_mix_stream_channel(
+    int channel,
+    channelstruct *channel_record,
+    const samplestruct *sample,
+    unsigned int todo
+) {
+    s_sound_stream *stream = &channel_record->stream;
+    sound_sample_fixed_t buffer_position_fixed = stream->fp_buffer_position;
+    int output_position;
+    int left_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_LEFT];
+    int right_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
+
+    for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
+        s_sound_stream_buffer *stream_buffer;
+        sound_sample_fixed_t buffer_length_fixed;
+        size_t frame_index;
+        size_t left_sample_index;
+        size_t right_sample_index;
+        int left_sample_value;
+        int right_sample_value;
+
+        for(;;) {
+            stream_buffer = &stream->buffer[stream->read_buffer];
+            if(!stream_buffer->ready) {
+                stream->fp_buffer_position = buffer_position_fixed;
+                return;
+            }
+
+            buffer_length_fixed = SOUND_SAMPLE_INT_TO_FIX(stream_buffer->frame_count);
+            if(buffer_position_fixed < buffer_length_fixed) {
+                break;
+            }
+
+            buffer_position_fixed -= buffer_length_fixed;
+            stream_buffer->ready = 0;
+            stream->read_buffer = (stream->read_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
+
+            if(stream_buffer->terminal) {
+                channel_record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(sample->framecount);
+                stream->fp_buffer_position = 0;
+                sound_channel_pool_deactivate(&sound_channel_pool, channel);
+                return;
+            }
+        }
+
+        frame_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(buffer_position_fixed);
+        left_sample_index = frame_index * (size_t)sample->channels;
+        right_sample_index = sample->channels == CHANNEL_TYPE_STEREO ? left_sample_index + 1U : left_sample_index;
+        left_sample_value = sound_pcm_to_mix_value(stream_buffer->data, sample->bits, left_sample_index);
+        right_sample_value = sound_pcm_to_mix_value(stream_buffer->data, sample->bits, right_sample_index);
+        mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
+        mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
+
+        channel_record->fp_samplepos =
+            SOUND_SAMPLE_INT_TO_FIX(stream_buffer->source_start_frame) + buffer_position_fixed;
+        buffer_position_fixed += channel_record->fp_period;
+    }
+
+    stream->fp_buffer_position = buffer_position_fixed;
 }
 
 
@@ -802,6 +1026,7 @@ static void mixaudio(unsigned int todo)
 
             while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
                 channelstruct *channel_record = &bank->channel[channel_index];
+                s_soundcache *cache;
                 samplestruct *sample;
                 uint64_t sample_frame_count;
                 sound_sample_fixed_t sample_length_fixed;
@@ -812,20 +1037,28 @@ static void mixaudio(unsigned int todo)
 
                 channel = (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
                 sample_index = channel_record->samplenum;
-                if(sample_index < 0 || sample_index >= sound_cached ||
-                   !soundcache[sample_index].sample.sampleptr) {
+                if(sample_index < 0 || sample_index >= sound_cached) {
                     sound_channel_pool_deactivate(&sound_channel_pool, channel);
                     channel_mask &= ~(UINT64_C(1) << channel_index);
                     continue;
                 }
 
-                sample = &soundcache[sample_index].sample;
+                cache = &soundcache[sample_index];
+                sample = &cache->sample;
                 sample_frame_count = sample->framecount;
                 if(sample_frame_count < 1 ||
                    sample_frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
                    (sample->bits != 8 && sample->bits != 16 && sample->bits != 24) ||
-                   (sample->channels != CHANNEL_TYPE_MONO && sample->channels != CHANNEL_TYPE_STEREO)) {
+                   (sample->channels != CHANNEL_TYPE_MONO && sample->channels != CHANNEL_TYPE_STEREO) ||
+                   (!cache->stream && !sample->sampleptr) ||
+                   (cache->stream && channel_record->stream.handle < 0)) {
                     sound_channel_pool_deactivate(&sound_channel_pool, channel);
+                    channel_mask &= ~(UINT64_C(1) << channel_index);
+                    continue;
+                }
+
+                if(cache->stream) {
+                    sound_mix_stream_channel(channel, channel_record, sample, todo);
                     channel_mask &= ~(UINT64_C(1) << channel_index);
                     continue;
                 }
@@ -951,6 +1184,272 @@ static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, in
     return (sound_sample_fixed_t)sample_period;
 }
 
+#define SOUND_STREAM_UPDATE_BYTE_BUDGET (256U * 1024U)
+
+static unsigned int sound_stream_update_cursor;
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Close a channel's stream handle on the main
+* thread and retain its PCM buffers for reuse.
+*/
+static void sound_stream_close_channel(int channel, channelstruct *record) {
+    if(!record) {
+        return;
+    }
+
+    if(record->stream.handle >= 0) {
+        closepackfile(record->stream.handle);
+    }
+
+    sound_stream_reset(&record->stream);
+    sound_channel_pool_stream(&sound_channel_pool, channel, 0);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Clear playback fields without releasing the
+* stream buffers retained by the channel.
+*/
+static void sound_channel_record_clear(channelstruct *record) {
+    s_sound_stream retained_stream;
+
+    if(!record) {
+        return;
+    }
+
+    retained_stream = record->stream;
+    memset(record, 0, sizeof(*record));
+    record->stream = retained_stream;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Open and prefill a streamed sample before its
+* channel becomes visible to the audio callback.
+*/
+static bool sound_stream_open_channel(
+    int channel,
+    channelstruct *record,
+    const s_soundcache *cache,
+    uint64_t start_frame,
+    int looping,
+    uint64_t loop_start_frame
+) {
+    s_sound_stream_read_context read_context;
+    unsigned int buffer_index;
+    int fill_result;
+    int filled_buffers = 0;
+
+    if(!record || !cache || !cache->stream) {
+        return false;
+    }
+
+    if(!sound_stream_configure(
+        &record->stream,
+        (size_t)cache->sample.blockalign,
+        cache->sample.framecount,
+        start_frame,
+        looping,
+        loop_start_frame
+    )) {
+        return false;
+    }
+
+    record->stream.handle = openpackfile(cache->filename, cache->packfilename);
+    if(record->stream.handle < 0) {
+        sound_stream_reset(&record->stream);
+        return false;
+    }
+
+    read_context.handle = record->stream.handle;
+    read_context.data_offset = cache->sample.data_offset;
+    read_context.block_align = (size_t)cache->sample.blockalign;
+
+    for(buffer_index = 0; buffer_index < SOUND_STREAM_BUFFER_COUNT; buffer_index++) {
+        fill_result = sound_stream_fill(
+            &record->stream,
+            sound_stream_read_frames,
+            &read_context,
+            NULL
+        );
+
+        if(fill_result < 0) {
+            sound_stream_close_channel(channel, record);
+            return false;
+        }
+        if(fill_result == 0) {
+            break;
+        }
+        filled_buffers++;
+    }
+
+    if(filled_buffers == 0) {
+        sound_stream_close_channel(channel, record);
+        return false;
+    }
+
+    sound_channel_pool_stream(&sound_channel_pool, channel, 1);
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Refill one buffer for a live streamed channel.
+* Finished channels close here rather than inside
+* the real-time audio callback.
+*/
+static size_t sound_stream_update_channel(int channel) {
+    s_sound_stream_read_context read_context;
+    channelstruct *record;
+    s_soundcache *cache;
+    size_t bytes_filled = 0;
+    int fill_result;
+
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record) {
+        return 0;
+    }
+
+    if(!sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        sound_stream_close_channel(channel, record);
+        return 0;
+    }
+
+    if(record->samplenum < 0 ||
+       record->samplenum >= sound_cached ||
+       !soundcache[record->samplenum].stream) {
+        sound_channel_pool_deactivate(&sound_channel_pool, channel);
+        sound_stream_close_channel(channel, record);
+        return 0;
+    }
+
+    cache = &soundcache[record->samplenum];
+    read_context.handle = record->stream.handle;
+    read_context.data_offset = cache->sample.data_offset;
+    read_context.block_align = (size_t)cache->sample.blockalign;
+    fill_result = sound_stream_fill(
+        &record->stream,
+        sound_stream_read_frames,
+        &read_context,
+        &bytes_filled
+    );
+
+    if(fill_result < 0) {
+        sound_channel_pool_deactivate(&sound_channel_pool, channel);
+        sound_stream_close_channel(channel, record);
+        return 0;
+    }
+
+    return bytes_filled;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Update a flattened range of streaming channels
+* through bank masks. Each channel receives at most
+* one buffer per pass for fair producer scheduling.
+*/
+static bool sound_stream_update_range(
+    unsigned int first_channel,
+    unsigned int end_channel,
+    size_t *remaining_budget,
+    unsigned int *last_channel
+) {
+    unsigned int first_bank;
+    unsigned int end_bank;
+    unsigned int bank_index;
+
+    if(first_channel >= end_channel || end_channel > SOUND_CHANNEL_COUNT_MAX) {
+        return true;
+    }
+
+    first_bank = first_channel / SOUND_CHANNEL_BANK_SIZE;
+    end_bank = (end_channel - 1U) / SOUND_CHANNEL_BANK_SIZE;
+
+    for(bank_index = first_bank; bank_index <= end_bank; bank_index++) {
+        s_sound_channel_bank *bank;
+        uint64_t channel_mask;
+        int channel_index;
+
+        if(!(sound_channel_pool.streaming_bank_mask & (UINT64_C(1) << bank_index))) {
+            continue;
+        }
+
+        bank = sound_channel_pool.bank[bank_index];
+        channel_mask = bank->streaming_mask;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            unsigned int channel = bank_index * SOUND_CHANNEL_BANK_SIZE + (unsigned int)channel_index;
+            size_t bytes_filled;
+
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+            if(channel < first_channel || channel >= end_channel) {
+                continue;
+            }
+
+            bytes_filled = sound_stream_update_channel((int)channel);
+            *last_channel = channel;
+
+            if(bytes_filled >= *remaining_budget) {
+                *remaining_budget = 0;
+                return false;
+            }
+            *remaining_budget -= bytes_filled;
+        }
+    }
+
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Refill streamed effects round-robin under a
+* bounded per-update byte budget.
+*/
+static void sound_update_streams(void) {
+    size_t remaining_budget = SOUND_STREAM_UPDATE_BYTE_BUDGET;
+    unsigned int start_channel;
+    unsigned int last_channel;
+    bool first_range_complete;
+
+    if(!sound_channel_pool.streaming_bank_mask) {
+        return;
+    }
+
+    start_channel = sound_stream_update_cursor;
+    last_channel = start_channel;
+    first_range_complete = sound_stream_update_range(
+        start_channel,
+        SOUND_CHANNEL_COUNT_MAX,
+        &remaining_budget,
+        &last_channel
+    );
+
+    if(first_range_complete && remaining_budget > 0 && start_channel > 0) {
+        sound_stream_update_range(
+            0,
+            start_channel,
+            &remaining_budget,
+            &last_channel
+        );
+    }
+
+    sound_stream_update_cursor = (last_channel + 1U) % SOUND_CHANNEL_COUNT_MAX;
+}
+
 /*
 * Caskey, Damon V.
 * 2026-07-31
@@ -991,13 +1490,27 @@ static int sound_find_lowest_priority_channel(unsigned int *lowest_priority) {
 
 /*
 * Caskey, Damon V.
-* 2026-07-31
+* 2026-08-01
 *
-* Play a sample on an available channel. Another
-* bank is allocated before priority replacement.
+* Play a resident or streamed sample on an available
+* channel. Explicit start frames apply only to the
+* initial pass; loop frames retain automatic restart
+* behavior after the source end.
 */
-static int sound_play_sample_internal(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, int looping, uint64_t loop_start_frame) {
+static int sound_play_sample_internal(
+    int samplenum,
+    unsigned int priority,
+    int lvolume,
+    int rvolume,
+    unsigned int speed,
+    int looping,
+    int start_frame_supplied,
+    uint64_t start_frame,
+    uint64_t loop_start_frame
+) {
     channelstruct *record;
+    samplestruct *sample;
+    uint64_t initial_frame;
     unsigned int priority_low;
     int channel;
 
@@ -1010,10 +1523,13 @@ static int sound_play_sample_internal(int samplenum, unsigned int priority, int 
     if(speed < 1) {
         speed = 100;
     }
-    if(!soundcache[samplenum].sample.sampleptr &&
+    if(((soundcache[samplenum].stream && soundcache[samplenum].sample.framecount == 0) ||
+        (!soundcache[samplenum].stream && !soundcache[samplenum].sample.sampleptr)) &&
        !sound_reload_sample(samplenum)) {
         return -1;
     }
+
+    sample = &soundcache[samplenum].sample;
 
     channel = sound_channel_pool_acquire(&sound_channel_pool);
     if(channel < 0) {
@@ -1036,11 +1552,13 @@ static int sound_play_sample_internal(int samplenum, unsigned int priority, int 
         rvolume = MAX_SAMPLE_VOLUME;
     }
 
-    if(soundcache[samplenum].sample.framecount < 1 ||
-       soundcache[samplenum].sample.framecount > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
-       (soundcache[samplenum].sample.channels != CHANNEL_TYPE_MONO &&
-        soundcache[samplenum].sample.channels != CHANNEL_TYPE_STEREO) ||
-       (looping && loop_start_frame >= soundcache[samplenum].sample.framecount)) {
+    if(sample->framecount < 1 ||
+       sample->framecount > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
+       (sample->bits != 8 && sample->bits != 16 && sample->bits != 24) ||
+       (sample->channels != CHANNEL_TYPE_MONO &&
+        sample->channels != CHANNEL_TYPE_STEREO) ||
+       (start_frame_supplied && start_frame >= sample->framecount) ||
+       (looping && loop_start_frame >= sample->framecount)) {
         return -1;
     }
 
@@ -1050,39 +1568,60 @@ static int sound_play_sample_internal(int samplenum, unsigned int priority, int 
     }
 
     sound_channel_pool_deactivate(&sound_channel_pool, channel);
-    memset(record, 0, sizeof(*record));
+    sound_stream_close_channel(channel, record);
+    sound_channel_record_clear(record);
     record->samplenum = samplenum;
+
     /*
-    * Prevent samples from being played at the exact
-    * same point. Keep the frame cursor inside the
-    * source sample length.
+    * Preserve legacy phase staggering when no start
+    * frame is supplied. An explicit start frame is
+    * used exactly once when playback begins.
     */
-    record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX((((uint64_t)channel * 4U) / (uint64_t)soundcache[samplenum].sample.channels) % soundcache[samplenum].sample.framecount);
-    record->fp_period = sound_sample_period_calculate(speed, soundcache[samplenum].sample.frequency);
+    initial_frame = start_frame_supplied
+        ? start_frame
+        : (((uint64_t)channel * 4U) / (uint64_t)sample->channels) % sample->framecount;
+
+    record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(initial_frame);
+    record->fp_period = sound_sample_period_calculate(speed, sample->frequency);
     record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
     record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
     record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
     record->priority = priority;
-    record->channels = soundcache[samplenum].sample.channels;
+    record->channels = sample->channels;
     record->playid = ++audio_global.sample_play_id;
+
+    if(soundcache[samplenum].stream &&
+       !sound_stream_open_channel(
+           channel,
+           record,
+           &soundcache[samplenum],
+           initial_frame,
+           looping,
+           loop_start_frame
+       )) {
+        sound_channel_record_clear(record);
+        return -1;
+    }
+
     sound_channel_pool_activate(&sound_channel_pool, channel, looping ? CHANNEL_LOOPING : CHANNEL_PLAYING);
 
     return channel;
 }
 
-int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed)
-{
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0);
+int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed) {
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0);
 }
 
-int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed)
-{
-    return sound_loop_sample_offset(samplenum, priority, lvolume, rvolume, speed, 0);
+int sound_play_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame) {
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 1, start_frame, 0);
 }
 
-int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t loop_start_frame)
-{
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, loop_start_frame);
+int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed) {
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 0, 0, 0);
+}
+
+int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame, uint64_t loop_start_frame) {
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 1, start_frame, loop_start_frame);
 }
 
 int sound_query_channel(int playid) {
@@ -1122,10 +1661,32 @@ int sound_is_active(int channel) {
 }
 
 void sound_stop_sample(int channel) {
+    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+
     sound_channel_pool_deactivate(&sound_channel_pool, channel);
+    if(record) {
+        sound_stream_close_channel(channel, record);
+    }
 }
 
 void sound_stopall_sample() {
+    uint64_t streaming_bank_mask = sound_channel_pool.streaming_bank_mask;
+    int bank_index;
+
+    while((bank_index = sound_channel_mask_first(streaming_bank_mask)) >= 0) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask = bank->streaming_mask;
+        int channel_index;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            int channel = bank_index * (int)SOUND_CHANNEL_BANK_SIZE + channel_index;
+            sound_stream_close_channel(channel, &bank->channel[channel_index]);
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+        }
+
+        streaming_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+
     sound_channel_pool_stop_all(&sound_channel_pool);
 }
 
@@ -1848,6 +2409,8 @@ void sound_close_music()
 
 void sound_update_music()
 {
+    sound_update_streams();
+
     switch(music_type)
     {
     case SOUND_FILE_TYPE_ADPCM:
@@ -1965,6 +2528,7 @@ void sound_exit() {
     }
 
     sound_channel_pool_destroy(&sound_channel_pool);
+    sound_stream_update_cursor = 0;
     mixing_inited = 0;
 }
 

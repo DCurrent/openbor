@@ -12622,7 +12622,13 @@ HRESULT openbor_sampleid(ScriptVariant **varlist , ScriptVariant **pretvar, int 
     return E_FAIL;
 }
 
-//playsample(id, priority, lvolume, rvolume, speed, loop, loop_offset)
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Script sound playback with independent initial
+* and automatic-loop PCM frame offsets.
+*/
 HRESULT openbor_playsample(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
     int i;
     int result;
@@ -12645,10 +12651,17 @@ HRESULT openbor_playsample(ScriptVariant **varlist, ScriptVariant **pretvar, int
         int rvolume;
         unsigned int speed;
         bool loop;
+        bool start_offset_supplied;
+        uint64_t start_offset;
         uint64_t loop_offset;
     } sample_params = {
+        .start_offset = 0,
         .loop_offset = 0
     };
+
+    if(paramCount > 8) {
+        goto playsample_error;
+    }
 
     /*
     * Read in the first 6 parameters, if they 
@@ -12668,32 +12681,58 @@ HRESULT openbor_playsample(ScriptVariant **varlist, ScriptVariant **pretvar, int
     sample_params.speed    = (unsigned int)value[4];
     sample_params.loop     = value[5] != 0;
 
-    /* Attempt to populate the loop offset. */
-    const HRESULT loop_offset_hr = ScriptVariant_Unsigned64Value(varlist[6], &sample_params.loop_offset);
+    sample_params.start_offset_supplied = paramCount > 6;
+    if(sample_params.start_offset_supplied &&
+       FAILED(ScriptVariant_Unsigned64Value(varlist[6], &sample_params.start_offset))) {
+        goto playsample_error;
+    }
 
-    if(paramCount > 6 && FAILED(loop_offset_hr)) {
+    if(paramCount > 7 &&
+       FAILED(ScriptVariant_Unsigned64Value(varlist[7], &sample_params.loop_offset))) {
         goto playsample_error;
     }
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
 
     if(sample_params.loop) {
-        result = sound_loop_sample_offset(
-            sample_params.id,
-            sample_params.priority,
-            sample_params.lvolume,
-            sample_params.rvolume,
-            sample_params.speed,
-            sample_params.loop_offset
-        );
+        if(sample_params.start_offset_supplied) {
+            result = sound_loop_sample_offset(
+                sample_params.id,
+                sample_params.priority,
+                sample_params.lvolume,
+                sample_params.rvolume,
+                sample_params.speed,
+                sample_params.start_offset,
+                sample_params.loop_offset
+            );
+        } else {
+            result = sound_loop_sample(
+                sample_params.id,
+                sample_params.priority,
+                sample_params.lvolume,
+                sample_params.rvolume,
+                sample_params.speed
+            );
+        }
     } else {
-        result = sound_play_sample(
-            sample_params.id,
-            sample_params.priority,
-            sample_params.lvolume,
-            sample_params.rvolume,
-            sample_params.speed
-        );
+        if(sample_params.start_offset_supplied) {
+            result = sound_play_sample_offset(
+                sample_params.id,
+                sample_params.priority,
+                sample_params.lvolume,
+                sample_params.rvolume,
+                sample_params.speed,
+                sample_params.start_offset
+            );
+        } else {
+            result = sound_play_sample(
+                sample_params.id,
+                sample_params.priority,
+                sample_params.lvolume,
+                sample_params.rvolume,
+                sample_params.speed
+            );
+        }
     }
 
     /*
@@ -12712,44 +12751,58 @@ playsample_error:
         "Function requires integer values: "
         "playsample(int id, unsigned int priority, int lvolume, "
         "int rvolume, unsigned int speed, int loop, "
+        "optional unsigned 64-bit start_offset, "
         "optional unsigned 64-bit loop_offset)\n"
     );
 
     return E_FAIL;
 }
 
-// int loadsample(filename, log)
-HRESULT openbor_loadsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
-    int arg = 0;
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Load resident sample data or metadata for streamed
+* playback according to the optional stream flag.
+*/
+HRESULT openbor_loadsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
+    int log_errors = 0;
+    int stream = 0;
 
-    if(paramCount < 1)
-    {
+    if(paramCount < 1 || paramCount > 3) {
         goto loadsample_error;
     }
-    if(varlist[0]->vt != VT_STR)
-    {
+    if(varlist[0]->vt != VT_STR) {
         goto loadsample_error;
     }
 
-    if(paramCount > 1)
-    {
-        if(varlist[1]->vt == VT_INTEGER)
-        {
-            arg = varlist[1]->lVal;
+    if(paramCount > 1) {
+        if(varlist[1]->vt == VT_INTEGER) {
+            log_errors = varlist[1]->lVal;
+        } else {
+            goto loadsample_error;
         }
-        else
-        {
+    }
+
+    if(paramCount > 2) {
+        if(varlist[2]->vt == VT_INTEGER) {
+            stream = varlist[2]->lVal;
+        } else {
             goto loadsample_error;
         }
     }
 
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-    (*pretvar)->lVal = (LONG)sound_load_sample(StrCache_Get(varlist[0]->strVal), packfile, arg);
+    (*pretvar)->lVal = (LONG)sound_load_sample(
+        StrCache_Get(varlist[0]->strVal),
+        packfile,
+        log_errors,
+        stream != 0
+    );
     return S_OK;
 
 loadsample_error:
-    printf("Function requires 1 string value and optional log value: loadsample(string {filename} integer {log})\n");
+    printf("Function requires a string value and optional integer values: loadsample(string {filename}, integer {log}, integer {stream})\n");
     *pretvar = NULL;
     return E_FAIL;
 }

@@ -36,6 +36,12 @@ static void sound_channel_pool_update_bank_masks(s_sound_channel_pool *pool, uns
     } else {
         pool->available_bank_mask |= bank_bit;
     }
+
+    if(bank->streaming_mask) {
+        pool->streaming_bank_mask |= bank_bit;
+    } else {
+        pool->streaming_bank_mask &= ~bank_bit;
+    }
 }
 
 /*
@@ -88,6 +94,7 @@ int sound_channel_mask_first(uint64_t mask) {
 * banks are retained and treated as success.
 */
 bool sound_channel_pool_allocate_bank(s_sound_channel_pool *pool, unsigned int bank_index) {
+    unsigned int channel_index;
     uint64_t bank_bit;
 
     if(!pool || bank_index >= SOUND_CHANNEL_BANK_COUNT) {
@@ -102,6 +109,10 @@ bool sound_channel_pool_allocate_bank(s_sound_channel_pool *pool, unsigned int b
     pool->bank[bank_index] = calloc(1, sizeof(*pool->bank[bank_index]));
     if(!pool->bank[bank_index]) {
         return false;
+    }
+
+    for(channel_index = 0; channel_index < SOUND_CHANNEL_BANK_SIZE; channel_index++) {
+        sound_stream_init(&pool->bank[bank_index]->channel[channel_index].stream);
     }
 
     pool->allocated_bank_mask |= bank_bit;
@@ -134,12 +145,18 @@ bool sound_channel_pool_init(s_sound_channel_pool *pool) {
 */
 void sound_channel_pool_destroy(s_sound_channel_pool *pool) {
     unsigned int bank_index;
+    unsigned int channel_index;
 
     if(!pool) {
         return;
     }
 
     for(bank_index = 0; bank_index < SOUND_CHANNEL_BANK_COUNT; bank_index++) {
+        if(pool->bank[bank_index]) {
+            for(channel_index = 0; channel_index < SOUND_CHANNEL_BANK_SIZE; channel_index++) {
+                sound_stream_destroy(&pool->bank[bank_index]->channel[channel_index].stream);
+            }
+        }
         free(pool->bank[bank_index]);
     }
 
@@ -336,6 +353,39 @@ void sound_channel_pool_pause(s_sound_channel_pool *pool, int channel, int toggl
     } else {
         bank->paused_mask &= ~channel_bit;
     }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Mark a channel as owning live streaming state.
+* Streaming masks drive producer updates and remain
+* independent from active playback masks so finished
+* channels can close files outside the audio callback.
+*/
+void sound_channel_pool_stream(s_sound_channel_pool *pool, int channel, int toggle) {
+    s_sound_channel_bank *bank;
+    uint64_t channel_bit;
+    unsigned int bank_index;
+    unsigned int channel_index;
+
+    if(!sound_channel_pool_get(pool, channel)) {
+        return;
+    }
+
+    bank_index = (unsigned int)channel / SOUND_CHANNEL_BANK_SIZE;
+    channel_index = (unsigned int)channel % SOUND_CHANNEL_BANK_SIZE;
+    bank = pool->bank[bank_index];
+    channel_bit = UINT64_C(1) << channel_index;
+
+    if(toggle) {
+        bank->streaming_mask |= channel_bit;
+    } else {
+        bank->streaming_mask &= ~channel_bit;
+    }
+
+    sound_channel_pool_update_bank_masks(pool, bank_index);
 }
 
 /*
