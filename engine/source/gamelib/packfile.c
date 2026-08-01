@@ -53,6 +53,7 @@
 #include "borendian.h"
 #include "stristr.h"
 #include "packfile.h"
+#include "packfile_handle.h"
 #include "filecache.h"
 #include "soundmix.h"
 #include "savedata.h"
@@ -71,7 +72,6 @@
 /*
 * Requirements for packfiles.
 */
-#define MAXPACKHANDLES 8
 #define PACKMAGIC      0x4B434150U
 #define PACK_HEADER_SIZE 8U
 #define PAK32_TABLE_ENTRY_HEADER_SIZE 12U
@@ -111,11 +111,11 @@ static int pak_cache_enabled = 1;
 int printFileUsageStatistics = 0;
 
 /*
-* These variables are only used for non-cached code.
+* Direct and cached readers share dynamically allocated integer handles.
+* Handle storage grows as needed and released slots are reused in constant
+* time. The table itself remains allocated until pak_term().
 */
-static int packhandle[MAXPACKHANDLES] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-static packfile_offset_t packfilepointer[MAXPACKHANDLES];
-static packfile_size_t packfilesize[MAXPACKHANDLES];
+static s_packfile_handle_table packfile_handle_table = { NULL, 0, -1 };
 
 /*
 * char packfile[128] is defined in sdl/sdlport.c.
@@ -129,11 +129,6 @@ static int pakfd = -1;
 static size_t pak_entry_header_size = PAK32_TABLE_ENTRY_HEADER_SIZE;
 static size_t pak_footer_size = PAK32_FOOTER_SIZE;
 static packfile_size_t paksize;
-static int pak_vfdexists[MAXPACKHANDLES];
-static packfile_offset_t pak_vfdstart[MAXPACKHANDLES];
-static packfile_size_t pak_vfdsize[MAXPACKHANDLES];
-static packfile_offset_t pak_vfdpos[MAXPACKHANDLES];
-static int pak_vfdreadahead[MAXPACKHANDLES];
 static packfile_offset_t pak_headerstart;
 static size_t pak_headersize;
 static unsigned char *pak_cdheader;
@@ -152,9 +147,6 @@ typedef struct packfile_format {
 * Pointers to the real functions.
 */
 typedef int (*OpenPackfile)(const char *, const char *);
-typedef int (*ReadPackfile)(int, void *, int);
-typedef packfile_signed_offset_t (*SeekPackfile64)(int, packfile_signed_offset_t, int);
-typedef int (*ClosePackfile)(int);
 
 int openPackfile(const char *, const char *);
 int readPackfile(int, void *, int);
@@ -168,9 +160,6 @@ int seekPackfileCached(int, int, int);
 int closePackfileCached(int);
 
 static OpenPackfile pOpenPackfile = openPackfile;
-static ReadPackfile pReadPackfile = readPackfile;
-static SeekPackfile64 pSeekPackfile64 = seekPackfile64;
-static ClosePackfile pClosePackfile = closePackfile;
 
 /*
 * Portable 64-bit seek and read helpers.
@@ -722,30 +711,43 @@ char *casesearch(const char *dir, const char *filepath) {
 #endif
 
 
-int getFreeHandle(void) {
-    int handle_index;
-    for(handle_index = 0; handle_index < MAXPACKHANDLES && packhandle[handle_index] > -1; handle_index++)  {
+static int packfile_acquire_handle(e_packfile_handle_type type) {
+    int handle;
+
+    handle = packfile_handle_acquire(&packfile_handle_table, type);
+    if(handle < 0)  {
+        printf("unable to allocate packfile handle\n");
     }
-    if(handle_index >= MAXPACKHANDLES)  {
-        printf("no free handles\n");
-        return -1;
+    return handle;
+}
+
+static void packfile_release_all_handles(void) {
+    size_t handle_index;
+
+    for(handle_index = 0; handle_index < packfile_handle_table.capacity; handle_index++)  {
+        s_packfile_handle *handle = packfile_handle_get(&packfile_handle_table, (int)handle_index);
+
+        if(!handle)  {
+            continue;
+        }
+        if(handle->type == PACKFILE_HANDLE_DIRECT && handle->file_descriptor >= 0)  {
+            close(handle->file_descriptor);
+        }
+        else if(handle->type == PACKFILE_HANDLE_CACHED)  {
+            filecache_setvfd((int)handle_index, -1, -1, 0);
+        }
     }
-    return handle_index;
+
+    packfile_handle_table_destroy(&packfile_handle_table);
 }
 
 void packfile_mode(int mode) {
     if(!mode || !pak_cache_enabled)  {
         pOpenPackfile = openPackfile;
-        pReadPackfile = readPackfile;
-        pSeekPackfile64 = seekPackfile64;
-        pClosePackfile = closePackfile;
         return;
     }
 
     pOpenPackfile = openPackfileCached;
-    pReadPackfile = readPackfileCached;
-    pSeekPackfile64 = seekPackfileCached64;
-    pClosePackfile = closePackfileCached;
 }
 
 
@@ -804,6 +806,7 @@ int openPackfile(const char *filename, const char *packfilename) {
     int virtual_handle;
     int real_handle;
     int file_permission = 666;
+    s_packfile_handle *handle_record;
     const char *disk_filename;
     const char *pak_filename;
     packfile_format format;
@@ -813,10 +816,11 @@ int openPackfile(const char *filename, const char *packfilename) {
     char *case_corrected_path;
 #endif
 
-    virtual_handle = getFreeHandle();
+    virtual_handle = packfile_acquire_handle(PACKFILE_HANDLE_DIRECT);
     if(virtual_handle == -1)  {
         return -1;
     }
+    handle_record = packfile_handle_get_type(&packfile_handle_table, virtual_handle, PACKFILE_HANDLE_DIRECT);
 
 #ifdef WIN
     disk_filename = slashback(filename);
@@ -825,8 +829,6 @@ int openPackfile(const char *filename, const char *packfilename) {
 #endif
 
     pak_filename = filename;
-    packfilepointer[virtual_handle] = 0;
-    packfilesize[virtual_handle] = 0;
 
     /*
     * Loose file override: prefer a separate file over the same file inside the pack.
@@ -838,16 +840,18 @@ int openPackfile(const char *filename, const char *packfilename) {
         loose_file_size = packfile_seek_fd(real_handle, 0, SEEK_END);
         if(loose_file_size < 0 || packfile_seek_fd(real_handle, 0, SEEK_SET) < 0)  {
             close(real_handle);
+            packfile_handle_release(&packfile_handle_table, virtual_handle);
             return -1;
         }
 
         if(!packfile_asset_size_is_supported((packfile_size_t)loose_file_size, disk_filename))  {
             close(real_handle);
+            packfile_handle_release(&packfile_handle_table, virtual_handle);
             return -1;
         }
 
-        packhandle[virtual_handle] = real_handle;
-        packfilesize[virtual_handle] = (packfile_size_t)loose_file_size;
+        handle_record->file_descriptor = real_handle;
+        handle_record->size = (packfile_size_t)loose_file_size;
         return virtual_handle;
     }
 
@@ -864,16 +868,18 @@ int openPackfile(const char *filename, const char *packfilename) {
             loose_file_size = packfile_seek_fd(real_handle, 0, SEEK_END);
             if(loose_file_size < 0 || packfile_seek_fd(real_handle, 0, SEEK_SET) < 0)  {
                 close(real_handle);
+                packfile_handle_release(&packfile_handle_table, virtual_handle);
                 return -1;
             }
 
             if(!packfile_asset_size_is_supported((packfile_size_t)loose_file_size, case_corrected_path))  {
                 close(real_handle);
+                packfile_handle_release(&packfile_handle_table, virtual_handle);
                 return -1;
             }
 
-            packhandle[virtual_handle] = real_handle;
-            packfilesize[virtual_handle] = (packfile_size_t)loose_file_size;
+            handle_record->file_descriptor = real_handle;
+            handle_record->size = (packfile_size_t)loose_file_size;
             return virtual_handle;
         }
     }
@@ -881,11 +887,13 @@ int openPackfile(const char *filename, const char *packfilename) {
 
     real_handle = open(packfilename, O_RDONLY | O_BINARY, file_permission);
     if(real_handle == -1)  {
+        packfile_handle_release(&packfile_handle_table, virtual_handle);
         return -1;
     }
 
     if(!packfile_read_format_fd(real_handle, &format))  {
         close(real_handle);
+        packfile_handle_release(&packfile_handle_table, virtual_handle);
         return -1;
     }
 
@@ -899,17 +907,18 @@ int openPackfile(const char *filename, const char *packfilename) {
             if(!packfile_entry_data_range_is_valid(&format, &entry) ||
                !packfile_asset_size_is_supported(entry.data_size, entry.name))  {
                 close(real_handle);
+                packfile_handle_release(&packfile_handle_table, virtual_handle);
                 return -1;
             }
 
             if(packfile_seek_fd_unsigned(real_handle, entry.data_offset, SEEK_SET) < 0)  {
                 close(real_handle);
+                packfile_handle_release(&packfile_handle_table, virtual_handle);
                 return -1;
             }
 
-            packhandle[virtual_handle] = real_handle;
-            packfilesize[virtual_handle] = entry.data_size;
-            packfilepointer[virtual_handle] = 0;
+            handle_record->file_descriptor = real_handle;
+            handle_record->size = entry.data_size;
             return virtual_handle;
         }
 
@@ -917,27 +926,28 @@ int openPackfile(const char *filename, const char *packfilename) {
     }
 
     close(real_handle);
+    packfile_handle_release(&packfile_handle_table, virtual_handle);
     return -1;
 }
 
-void update_filecache_vfd(int virtual_file_descriptor) {
+static int update_filecache_vfd(int virtual_file_descriptor) {
     int start_block;
     int read_block;
     int readahead_blocks;
+    s_packfile_handle *handle_record;
 
-    if(pak_vfdexists[virtual_file_descriptor])  {
-        if(!packfile_offset_to_int(pak_vfdstart[virtual_file_descriptor] / CACHEBLOCKSIZE, &start_block) ||
-           !packfile_offset_to_int((pak_vfdstart[virtual_file_descriptor] + pak_vfdpos[virtual_file_descriptor]) / CACHEBLOCKSIZE, &read_block))  {
-            filecache_setvfd(virtual_file_descriptor, -1, -1, 0);
-            return;
-        }
+    handle_record = packfile_handle_get_type(&packfile_handle_table, virtual_file_descriptor, PACKFILE_HANDLE_CACHED);
+    if(!handle_record)  {
+        return filecache_setvfd(virtual_file_descriptor, -1, -1, 0);
+    }
 
-        readahead_blocks = (pak_vfdreadahead[virtual_file_descriptor] + (CACHEBLOCKSIZE - 1)) / CACHEBLOCKSIZE;
-        filecache_setvfd(virtual_file_descriptor, start_block, read_block, readahead_blocks);
+    if(!packfile_offset_to_int(handle_record->data_start / CACHEBLOCKSIZE, &start_block) ||
+       !packfile_offset_to_int((handle_record->data_start + handle_record->position) / CACHEBLOCKSIZE, &read_block))  {
+        return filecache_setvfd(virtual_file_descriptor, -1, -1, 0);
     }
-    else  {
-        filecache_setvfd(virtual_file_descriptor, -1, -1, 0);
-    }
+
+    readahead_blocks = (handle_record->readahead_size + (CACHEBLOCKSIZE - 1)) / CACHEBLOCKSIZE;
+    return filecache_setvfd(virtual_file_descriptor, start_block, read_block, readahead_blocks);
 }
 
 void makefilenamecache(void) {
@@ -1019,6 +1029,7 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
     packfile_size_t data_size;
     char target[PACKFILE_PATH_MAX];
     Node *node;
+    s_packfile_handle *handle_record;
 
     if(!pak_cache_enabled)  {
         return openPackfile(filename, packfilename);
@@ -1049,15 +1060,6 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
     header_position = (size_t)node->value & ~USED_FLAG;
     node->value = (void *)(((size_t)node->value) | USED_FLAG);
 
-    for(virtual_file_descriptor = 0; virtual_file_descriptor < MAXPACKHANDLES; virtual_file_descriptor++)  {
-        if(!pak_vfdexists[virtual_file_descriptor])  {
-            break;
-        }
-    }
-    if(virtual_file_descriptor >= MAXPACKHANDLES)  {
-        return -1;
-    }
-
     data_offset = packfile_cached_data_offset(header_position);
     data_size = packfile_cached_data_size(header_position);
     if(!packfile_cached_data_range_is_valid(data_offset, data_size) ||
@@ -1065,13 +1067,20 @@ int openreadaheadpackfile(const char *filename, const char *packfilename, int re
         return -1;
     }
 
-    pak_vfdstart[virtual_file_descriptor] = data_offset;
-    pak_vfdsize[virtual_file_descriptor] = data_size;
-    pak_vfdpos[virtual_file_descriptor] = 0;
-    pak_vfdexists[virtual_file_descriptor] = 1;
-    pak_vfdreadahead[virtual_file_descriptor] = readaheadsize;
+    virtual_file_descriptor = packfile_acquire_handle(PACKFILE_HANDLE_CACHED);
+    if(virtual_file_descriptor < 0)  {
+        return -1;
+    }
 
-    update_filecache_vfd(virtual_file_descriptor);
+    handle_record = packfile_handle_get_type(&packfile_handle_table, virtual_file_descriptor, PACKFILE_HANDLE_CACHED);
+    handle_record->data_start = data_offset;
+    handle_record->size = data_size;
+    handle_record->readahead_size = readaheadsize;
+
+    if(!update_filecache_vfd(virtual_file_descriptor))  {
+        packfile_handle_release(&packfile_handle_table, virtual_file_descriptor);
+        return -1;
+    }
 
     if(prebuffersize > 0)  {
         filecache_wait_for_prebuffer(virtual_file_descriptor, (prebuffersize + (CACHEBLOCKSIZE - 1)) / CACHEBLOCKSIZE);
@@ -1085,17 +1094,22 @@ int openPackfileCached(const char *filename, const char *packfilename) {
 
 
 int readpackfile(int handle, void *buf, int len) {
-    return pReadPackfile(handle, buf, len);
+    s_packfile_handle *handle_record = packfile_handle_get(&packfile_handle_table, handle);
+
+    if(!handle_record)  {
+        return -1;
+    }
+    if(handle_record->type == PACKFILE_HANDLE_DIRECT)  {
+        return readPackfile(handle, buf, len);
+    }
+    return readPackfileCached(handle, buf, len);
 }
 
 int readPackfile(int handle, void *buf, int len) {
-    int real_handle;
     packfile_size_t bytes_remaining;
     int bytes_read;
+    s_packfile_handle *handle_record;
 
-    if(handle < 0 || handle >= MAXPACKHANDLES)  {
-        return -1;
-    }
     if(len < 0)  {
         return -1;
     }
@@ -1103,40 +1117,27 @@ int readPackfile(int handle, void *buf, int len) {
         return 0;
     }
 
-    real_handle = packhandle[handle];
-    if(real_handle == -1)  {
+    handle_record = packfile_handle_get_type(&packfile_handle_table, handle, PACKFILE_HANDLE_DIRECT);
+    if(!handle_record || handle_record->file_descriptor < 0)  {
         return -1;
     }
 
-    if(packfilepointer[handle] >= packfilesize[handle])  {
+    if(handle_record->position >= handle_record->size)  {
         return 0;
     }
 
-    bytes_remaining = packfilesize[handle] - packfilepointer[handle];
+    bytes_remaining = handle_record->size - handle_record->position;
     if((packfile_size_t)len > bytes_remaining)  {
         len = bytes_remaining > (packfile_size_t)INT_MAX ? INT_MAX : (int)bytes_remaining;
     }
 
-    bytes_read = (int)read(real_handle, buf, len);
+    bytes_read = (int)read(handle_record->file_descriptor, buf, len);
     if(bytes_read < 0)  {
         return -1;
     }
 
-    packfilepointer[handle] += (packfile_offset_t)bytes_read;
+    handle_record->position += (packfile_offset_t)bytes_read;
     return (int)bytes_read;
-}
-
-int pak_isvalidhandle(int handle) {
-    if(!pak_cache_enabled)  {
-        return (handle >= 0 && handle < MAXPACKHANDLES && packhandle[handle] != -1);
-    }
-    if(handle < 0 || handle >= MAXPACKHANDLES)  {
-        return 0;
-    }
-    if(!pak_vfdexists[handle])  {
-        return 0;
-    }
-    return 1;
 }
 
 static int pak_rawread(int virtual_file_descriptor, unsigned char *destination, int requested_length, int blocking) {
@@ -1144,21 +1145,23 @@ static int pak_rawread(int virtual_file_descriptor, unsigned char *destination, 
     packfile_offset_t end_position;
     packfile_offset_t virtual_file_end;
     int total_read = 0;
+    s_packfile_handle *handle_record;
 
     if(requested_length <= 0)  {
         return 0;
     }
 
-    if(pak_vfdpos[virtual_file_descriptor] > pak_vfdsize[virtual_file_descriptor])  {
+    handle_record = packfile_handle_get_type(&packfile_handle_table, virtual_file_descriptor, PACKFILE_HANDLE_CACHED);
+    if(!handle_record || handle_record->position > handle_record->size)  {
         return 0;
     }
 
-    if(!packfile_cached_data_range_is_valid(pak_vfdstart[virtual_file_descriptor], pak_vfdsize[virtual_file_descriptor]))  {
+    if(!packfile_cached_data_range_is_valid(handle_record->data_start, handle_record->size))  {
         return 0;
     }
 
-    absolute_position = pak_vfdstart[virtual_file_descriptor] + pak_vfdpos[virtual_file_descriptor];
-    virtual_file_end = pak_vfdstart[virtual_file_descriptor] + pak_vfdsize[virtual_file_descriptor];
+    absolute_position = handle_record->data_start + handle_record->position;
+    virtual_file_end = handle_record->data_start + handle_record->size;
     if(absolute_position >= virtual_file_end)  {
         return 0;
     }
@@ -1188,7 +1191,7 @@ static int pak_rawread(int virtual_file_descriptor, unsigned char *destination, 
         read_result = filecache_readpakblock(destination, pak_block, start_this_block, size_this_block, blocking);
         if(read_result >= 0)  {
             total_read += read_result;
-            pak_vfdpos[virtual_file_descriptor] += read_result;
+            handle_record->position += read_result;
             update_filecache_vfd(virtual_file_descriptor);
         }
         if(read_result < size_this_block)  {
@@ -1203,19 +1206,27 @@ static int pak_rawread(int virtual_file_descriptor, unsigned char *destination, 
 
 int readpackfileblocking(int fd, void *buf, int len, int blocking) {
     int bytes_read;
+    s_packfile_handle *handle_record;
 
     if(!pak_cache_enabled)  {
         return readPackfile(fd, buf, len);
     }
-
-    if(!pak_isvalidhandle(fd))  {
+    if(len < 0)  {
         return -1;
     }
-    if(pak_vfdpos[fd] > pak_vfdsize[fd])  {
-        pak_vfdpos[fd] = pak_vfdsize[fd];
+    if(len == 0)  {
+        return 0;
     }
-    if((packfile_size_t)len > (pak_vfdsize[fd] - pak_vfdpos[fd]))  {
-        len = (int)(pak_vfdsize[fd] - pak_vfdpos[fd]);
+
+    handle_record = packfile_handle_get_type(&packfile_handle_table, fd, PACKFILE_HANDLE_CACHED);
+    if(!handle_record)  {
+        return -1;
+    }
+    if(handle_record->position > handle_record->size)  {
+        handle_record->position = handle_record->size;
+    }
+    if((packfile_size_t)len > (handle_record->size - handle_record->position))  {
+        len = (int)(handle_record->size - handle_record->position);
     }
     if(len < 1)  {
         return 0;
@@ -1226,8 +1237,8 @@ int readpackfileblocking(int fd, void *buf, int len, int blocking) {
     if(bytes_read < 0)  {
         bytes_read = 0;
     }
-    if(pak_vfdpos[fd] > pak_vfdsize[fd])  {
-        pak_vfdpos[fd] = pak_vfdsize[fd];
+    if(handle_record->position > handle_record->size)  {
+        handle_record->position = handle_record->size;
     }
     update_filecache_vfd(fd);
     return bytes_read;
@@ -1243,46 +1254,48 @@ int readPackfileCached(int handle, void *buf, int len) {
 
 
 int closepackfile(int handle) {
+    s_packfile_handle *handle_record;
 #ifdef VERBOSE
     char *pointsto;
+#endif
 
-    if(pClosePackfile == closePackfileCached)  {
+    handle_record = packfile_handle_get(&packfile_handle_table, handle);
+    if(!handle_record)  {
+        return -1;
+    }
+#ifdef VERBOSE
+    if(handle_record->type == PACKFILE_HANDLE_CACHED)  {
         pointsto = "closePackfileCached";
     }
-    else if(pClosePackfile == closePackfile)  {
-        pointsto = "closePackfile";
-    }
     else  {
-        pointsto = "unknown destination";
+        pointsto = "closePackfile";
     }
     printf("closepackfile called: h: %d, dest: %s\n", handle, pointsto);
 #endif
-    return pClosePackfile(handle);
+    if(handle_record->type == PACKFILE_HANDLE_DIRECT)  {
+        return closePackfile(handle);
+    }
+    return closePackfileCached(handle);
 }
 
 int closePackfile(int handle) {
-    if(handle < 0 || handle >= MAXPACKHANDLES)  {
+    s_packfile_handle *handle_record;
+
+    handle_record = packfile_handle_get_type(&packfile_handle_table, handle, PACKFILE_HANDLE_DIRECT);
+    if(!handle_record || handle_record->file_descriptor < 0)  {
         return -1;
     }
-    if(packhandle[handle] == -1)  {
-        return -1;
-    }
-    close(packhandle[handle]);
-    packhandle[handle] = -1;
-    packfilepointer[handle] = 0;
-    packfilesize[handle] = 0;
+    close(handle_record->file_descriptor);
+    packfile_handle_release(&packfile_handle_table, handle);
     return 0;
 }
 
 int closePackfileCached(int handle) {
-    if(!pak_cache_enabled)  {
-        return closePackfile(handle);
-    }
-    if(!pak_isvalidhandle(handle))  {
+    if(!packfile_handle_get_type(&packfile_handle_table, handle, PACKFILE_HANDLE_CACHED))  {
         return -1;
     }
-    pak_vfdexists[handle] = 0;
-    update_filecache_vfd(handle);
+    filecache_setvfd(handle, -1, -1, 0);
+    packfile_handle_release(&packfile_handle_table, handle);
     return 0;
 }
 
@@ -1290,7 +1303,7 @@ int closePackfileCached(int handle) {
 int seekpackfile(int handle, int offset, int whence) {
     packfile_signed_offset_t position;
 
-    position = pSeekPackfile64(handle, (packfile_signed_offset_t)offset, whence);
+    position = seekpackfile64(handle, (packfile_signed_offset_t)offset, whence);
     if(position < 0 || position > INT_MAX)  {
         return -1;
     }
@@ -1298,19 +1311,24 @@ int seekpackfile(int handle, int offset, int whence) {
 }
 
 packfile_signed_offset_t seekpackfile64(int handle, packfile_signed_offset_t offset, int whence) {
-    return pSeekPackfile64(handle, offset, whence);
+    s_packfile_handle *handle_record = packfile_handle_get(&packfile_handle_table, handle);
+
+    if(!handle_record)  {
+        return -1;
+    }
+    if(handle_record->type == PACKFILE_HANDLE_DIRECT)  {
+        return seekPackfile64(handle, offset, whence);
+    }
+    return seekPackfileCached64(handle, offset, whence);
 }
 
 packfile_signed_offset_t seekPackfile64(int handle, packfile_signed_offset_t offset, int whence) {
-    int real_handle;
     packfile_signed_offset_t desired_offset;
     packfile_signed_offset_t seek_distance;
+    s_packfile_handle *handle_record;
 
-    if(handle < 0 || handle >= MAXPACKHANDLES)  {
-        return -1;
-    }
-    real_handle = packhandle[handle];
-    if(real_handle == -1)  {
+    handle_record = packfile_handle_get_type(&packfile_handle_table, handle, PACKFILE_HANDLE_DIRECT);
+    if(!handle_record || handle_record->file_descriptor < 0)  {
         return -1;
     }
 
@@ -1319,16 +1337,16 @@ packfile_signed_offset_t seekPackfile64(int handle, packfile_signed_offset_t off
         desired_offset = offset;
         break;
     case SEEK_CUR:
-        if(offset > 0 && packfilepointer[handle] > (packfile_offset_t)INT64_MAX - (packfile_offset_t)offset)  {
+        if(offset > 0 && handle_record->position > (packfile_offset_t)INT64_MAX - (packfile_offset_t)offset)  {
             return -1;
         }
-        desired_offset = (packfile_signed_offset_t)packfilepointer[handle] + offset;
+        desired_offset = (packfile_signed_offset_t)handle_record->position + offset;
         break;
     case SEEK_END:
-        if(offset > 0 && packfilesize[handle] > (packfile_size_t)INT64_MAX - (packfile_size_t)offset)  {
+        if(offset > 0 && handle_record->size > (packfile_size_t)INT64_MAX - (packfile_size_t)offset)  {
             return -1;
         }
-        desired_offset = (packfile_signed_offset_t)packfilesize[handle] + offset;
+        desired_offset = (packfile_signed_offset_t)handle_record->size + offset;
         break;
     default:
         return -1;
@@ -1337,15 +1355,15 @@ packfile_signed_offset_t seekPackfile64(int handle, packfile_signed_offset_t off
     if(desired_offset < 0)  {
         desired_offset = 0;
     }
-    if((packfile_size_t)desired_offset > packfilesize[handle])  {
-        desired_offset = (packfile_signed_offset_t)packfilesize[handle];
+    if((packfile_size_t)desired_offset > handle_record->size)  {
+        desired_offset = (packfile_signed_offset_t)handle_record->size;
     }
 
-    seek_distance = desired_offset - (packfile_signed_offset_t)packfilepointer[handle];
-    if(packfile_seek_fd(real_handle, seek_distance, SEEK_CUR) < 0)  {
+    seek_distance = desired_offset - (packfile_signed_offset_t)handle_record->position;
+    if(packfile_seek_fd(handle_record->file_descriptor, seek_distance, SEEK_CUR) < 0)  {
         return -1;
     }
-    packfilepointer[handle] = (packfile_offset_t)desired_offset;
+    handle_record->position = (packfile_offset_t)desired_offset;
     return desired_offset;
 }
 
@@ -1361,11 +1379,13 @@ int seekPackfile(int handle, int offset, int whence) {
 
 packfile_signed_offset_t seekPackfileCached64(int handle, packfile_signed_offset_t offset, int whence) {
     packfile_signed_offset_t desired_offset;
+    s_packfile_handle *handle_record;
 
     if(!pak_cache_enabled)  {
         return seekPackfile64(handle, offset, whence);
     }
-    if(!pak_isvalidhandle(handle))  {
+    handle_record = packfile_handle_get_type(&packfile_handle_table, handle, PACKFILE_HANDLE_CACHED);
+    if(!handle_record)  {
         return -1;
     }
 
@@ -1374,10 +1394,10 @@ packfile_signed_offset_t seekPackfileCached64(int handle, packfile_signed_offset
         desired_offset = offset;
         break;
     case SEEK_CUR:
-        desired_offset = (packfile_signed_offset_t)pak_vfdpos[handle] + offset;
+        desired_offset = (packfile_signed_offset_t)handle_record->position + offset;
         break;
     case SEEK_END:
-        desired_offset = (packfile_signed_offset_t)pak_vfdsize[handle] + offset;
+        desired_offset = (packfile_signed_offset_t)handle_record->size + offset;
         break;
     default:
         return -1;
@@ -1386,11 +1406,11 @@ packfile_signed_offset_t seekPackfileCached64(int handle, packfile_signed_offset
     if(desired_offset < 0)  {
         desired_offset = 0;
     }
-    if((packfile_size_t)desired_offset > pak_vfdsize[handle])  {
-        desired_offset = (packfile_signed_offset_t)pak_vfdsize[handle];
+    if((packfile_size_t)desired_offset > handle_record->size)  {
+        desired_offset = (packfile_signed_offset_t)handle_record->size;
     }
 
-    pak_vfdpos[handle] = (packfile_offset_t)desired_offset;
+    handle_record->position = (packfile_offset_t)desired_offset;
     update_filecache_vfd(handle);
     return desired_offset;
 }
@@ -1407,10 +1427,11 @@ int seekPackfileCached(int handle, int offset, int whence) {
 
 
 void pak_term() {
-    int i;
     if(!pak_initialized)  {
+        packfile_release_all_handles();
         return;
     }
+    packfile_release_all_handles();
     freefilenamecache();
     if(pak_cdheader != NULL)  {
         free(pak_cdheader);
@@ -1430,19 +1451,11 @@ void pak_term() {
     pak_footer_size = PAK32_FOOTER_SIZE;
     pak_entry_header_size = PAK32_TABLE_ENTRY_HEADER_SIZE;
     pak_cache_enabled = 1;
-    for(i = 0; i < MAXPACKHANDLES; i++)  {
-        pak_vfdexists[i] = 0;
-        pak_vfdstart[i] = 0;
-        pak_vfdsize[i] = 0;
-        pak_vfdpos[i] = 0;
-        pak_vfdreadahead[i] = 0;
-    }
     pak_initialized = 0;
 }
 
 
 int pak_init() {
-    int i;
     int file_permission = 666;
     packfile_format format;
     size_t header_bytes_to_cache;
@@ -1518,28 +1531,20 @@ int pak_init() {
     pak_header = pak_cdheader;
     pak_header[pak_headersize] = 0;
 
-    for(i = 0; i < MAXPACKHANDLES; i++)  {
-        pak_vfdexists[i] = 0;
-    }
-
     pak_sector_count = (int)((paksize + 0x7FF) / 0x800);
-    filecache_init(pakfd, pak_sector_count, CACHEBLOCKSIZE, CACHEBLOCKS, MAXPACKHANDLES);
+    filecache_init(pakfd, pak_sector_count, CACHEBLOCKSIZE, CACHEBLOCKS);
     pak_initialized = 1;
     return (CACHEBLOCKSIZE * CACHEBLOCKS + 64);
 }
 
 
 int packfileeof(int handle) {
-    if(!pak_cache_enabled)  {
-        if(handle < 0 || handle >= MAXPACKHANDLES || packhandle[handle] == -1)  {
-            return -1;
-        }
-        return (packfilepointer[handle] >= packfilesize[handle]);
-    }
-    if(!pak_isvalidhandle(handle))  {
+    s_packfile_handle *handle_record = packfile_handle_get(&packfile_handle_table, handle);
+
+    if(!handle_record)  {
         return -1;
     }
-    return (pak_vfdpos[handle] >= pak_vfdsize[handle]);
+    return (handle_record->position >= handle_record->size);
 }
 
 

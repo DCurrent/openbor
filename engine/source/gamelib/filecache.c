@@ -5,6 +5,9 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #ifndef _MSC_VER
 #include <unistd.h>
@@ -17,7 +20,6 @@
 
 static int filecache_blocksize;
 static int filecache_blocks;
-static int max_vfds;
 
 //static int default_minimum_run_bytes = 98304;
 static int default_minimum_run_bytes = 131072;
@@ -78,17 +80,25 @@ static void cacheblock_mark_used(unsigned n)
 
 /////////////////////////////////////////////////////////////////////////////
 
-// current read pointer (round down)
-// -1 if not open
-static int *vfd_readptr_pakblock;
-// desired readahead in blocks
-static int *vfd_desired_readahead_blocks;
-// starting block of each open vfd
-// these blocks are immune to being replaced in the cache
-static int *vfd_startptr_pakblock;
+typedef struct filecache_vfd
+{
+    int descriptor;
+    int read_block;
+    int desired_readahead_blocks;
+    int start_block;
+    int blocks_available;
+} filecache_vfd;
 
-// THIS IS TEMPORARY; DO NOT RELY ON THIS VALUE
-static int *vfd_blocks_available;
+/*
+ * Only live virtual descriptors participate in cache scans. The index map
+ * converts the public integer descriptor to its compact active-list entry.
+ * Both allocations grow on demand and impose no fixed descriptor limit.
+ */
+static filecache_vfd *active_vfd;
+static size_t active_vfd_count;
+static size_t active_vfd_capacity;
+static int *active_vfd_index;
+static size_t active_vfd_index_capacity;
 
 // requested read block
 static int request_read_pakblock = -1;
@@ -110,9 +120,136 @@ static int filecache_maxcdsectors;
 // find which cacheblock is the least useful
 // this means: least recently used, and is not immune
 //
+static int filecache_reserve_vfd_indices(size_t required_capacity)
+{
+    size_t old_capacity;
+    size_t new_capacity;
+    size_t index;
+    int *new_index;
+
+    if(required_capacity <= active_vfd_index_capacity)
+    {
+        return 1;
+    }
+    if(required_capacity > (size_t)INT_MAX)
+    {
+        return 0;
+    }
+
+    old_capacity = active_vfd_index_capacity;
+    new_capacity = old_capacity ? old_capacity : 8U;
+    while(new_capacity < required_capacity)
+    {
+        if(new_capacity > (size_t)INT_MAX / 2U)
+        {
+            new_capacity = (size_t)INT_MAX;
+            break;
+        }
+        new_capacity *= 2U;
+    }
+    if(new_capacity > SIZE_MAX / sizeof(*new_index))
+    {
+        return 0;
+    }
+
+    new_index = realloc(active_vfd_index, new_capacity * sizeof(*new_index));
+    if(!new_index)
+    {
+        return 0;
+    }
+    active_vfd_index = new_index;
+    active_vfd_index_capacity = new_capacity;
+    for(index = old_capacity; index < new_capacity; index++)
+    {
+        active_vfd_index[index] = -1;
+    }
+    return 1;
+}
+
+static int filecache_reserve_active_vfds(size_t required_capacity)
+{
+    size_t new_capacity;
+    filecache_vfd *new_vfd;
+
+    if(required_capacity <= active_vfd_capacity)
+    {
+        return 1;
+    }
+    if(required_capacity > (size_t)INT_MAX)
+    {
+        return 0;
+    }
+
+    new_capacity = active_vfd_capacity ? active_vfd_capacity : 8U;
+    while(new_capacity < required_capacity)
+    {
+        if(new_capacity > (size_t)INT_MAX / 2U)
+        {
+            new_capacity = (size_t)INT_MAX;
+            break;
+        }
+        new_capacity *= 2U;
+    }
+    if(new_capacity > SIZE_MAX / sizeof(*new_vfd))
+    {
+        return 0;
+    }
+
+    new_vfd = realloc(active_vfd, new_capacity * sizeof(*new_vfd));
+    if(!new_vfd)
+    {
+        return 0;
+    }
+    active_vfd = new_vfd;
+    active_vfd_capacity = new_capacity;
+    return 1;
+}
+
+static filecache_vfd *filecache_get_vfd(int descriptor)
+{
+    int active_index;
+
+    if(descriptor < 0 || (size_t)descriptor >= active_vfd_index_capacity)
+    {
+        return NULL;
+    }
+    active_index = active_vfd_index[descriptor];
+    if(active_index < 0 || (size_t)active_index >= active_vfd_count)
+    {
+        return NULL;
+    }
+    return &active_vfd[active_index];
+}
+
+static void filecache_remove_vfd(int descriptor)
+{
+    int active_index;
+    size_t last_index;
+
+    if(descriptor < 0 || (size_t)descriptor >= active_vfd_index_capacity)
+    {
+        return;
+    }
+    active_index = active_vfd_index[descriptor];
+    if(active_index < 0 || (size_t)active_index >= active_vfd_count)
+    {
+        return;
+    }
+
+    last_index = active_vfd_count - 1U;
+    if((size_t)active_index != last_index)
+    {
+        active_vfd[active_index] = active_vfd[last_index];
+        active_vfd_index[active_vfd[active_index].descriptor] = active_index;
+    }
+    active_vfd_count--;
+    active_vfd_index[descriptor] = -1;
+}
+
 int find_least_useful_cacheblock(void)
 {
-    int i, vfd;
+    int i;
+    size_t active_index;
     int leastcacheblock = -1;
     for(i = 0; i < filecache_blocks; i++)
     {
@@ -122,30 +259,28 @@ int find_least_useful_cacheblock(void)
             return i;
         }
         // start and read pointers of any open files are both immune
-        for(vfd = 0; vfd < max_vfds; vfd++)
+        for(active_index = 0; active_index < active_vfd_count; active_index++)
         {
-            if(vfd_readptr_pakblock[vfd] < 0)
-            {
-                continue;
-            }
-            if(vfd_startptr_pakblock[vfd] == pakblock)
+            filecache_vfd *vfd = &active_vfd[active_index];
+
+            if(vfd->start_block == pakblock)
             {
                 break;
             }
-            if(vfd_readptr_pakblock[vfd] == pakblock)
+            if(vfd->read_block == pakblock)
             {
                 break;
             }
-            if(vfd_desired_readahead_blocks[vfd] > 0)
+            if(vfd->desired_readahead_blocks > 0)
             {
-                if((pakblock >= vfd_readptr_pakblock[vfd]) &&
-                        (pakblock < (vfd_readptr_pakblock[vfd] + vfd_desired_readahead_blocks[vfd])))
+                if((pakblock >= vfd->read_block) &&
+                        (pakblock < (vfd->read_block + vfd->desired_readahead_blocks)))
                 {
                     break;
                 }
             }
         }
-        if(vfd < max_vfds)
+        if(active_index < active_vfd_count)
         {
             continue;
         }
@@ -167,12 +302,18 @@ int find_least_useful_cacheblock(void)
 // get the number of blocks available for this vfd
 // (short loop)
 //
-static int get_vfd_blocks_available(int vfd)
+static int get_vfd_blocks_available(const filecache_vfd *vfd)
 {
     int i;
     // can't have more blocks than what exists in the cache
     int max = filecache_blocks;
-    int ptr = vfd_readptr_pakblock[vfd];
+    int ptr;
+
+    if(!vfd)
+    {
+        return 0;
+    }
+    ptr = vfd->read_block;
     if(ptr < 0)
     {
         return 0;    // no blocks available for a vfd that doesn't exist
@@ -204,8 +345,8 @@ static int get_vfd_blocks_available(int vfd)
 //
 int which_pakblock_to_read(int *suggested_min_run)
 {
-    int vfd;
-    int least_avail;
+    size_t active_index;
+    int least_active_index;
     int percent_available;
     int least_percent_available;
     int pakblock;
@@ -218,31 +359,35 @@ int which_pakblock_to_read(int *suggested_min_run)
     // top priority: emergency stream reads
     //   any vfds with desired readahead > 0, and less than 1/4 blocks available
     //   the vfd with the least available blocks is serviced first
-    least_avail = -1;
+    least_active_index = -1;
     least_percent_available = 100;
-    for(vfd = 0; vfd < max_vfds; vfd++)
+    for(active_index = 0; active_index < active_vfd_count; active_index++)
     {
-        if(vfd_readptr_pakblock[vfd] >= 0 && vfd_desired_readahead_blocks[vfd] > 0)
+        filecache_vfd *vfd = &active_vfd[active_index];
+
+        if(vfd->read_block >= 0 && vfd->desired_readahead_blocks > 0)
         {
-            percent_available = (100 * vfd_blocks_available[vfd]) / vfd_desired_readahead_blocks[vfd];
+            percent_available = (100 * vfd->blocks_available) / vfd->desired_readahead_blocks;
             if(percent_available < 25 && percent_available < least_percent_available)
             {
-                pakblock = vfd_readptr_pakblock[vfd] + vfd_blocks_available[vfd];
+                pakblock = vfd->read_block + vfd->blocks_available;
                 if(pakblock >= 0 && pakblock < total_pakblocks)
                 {
                     least_percent_available = percent_available;
-                    least_avail = vfd;
+                    least_active_index = (int)active_index;
                 }
             }
         }
     }
-    if(least_avail >= 0)
+    if(least_active_index >= 0)
     {
+        filecache_vfd *vfd = &active_vfd[least_active_index];
+
         if(suggested_min_run)
         {
-            *suggested_min_run = vfd_desired_readahead_blocks[vfd] / 4;
+            *suggested_min_run = vfd->desired_readahead_blocks / 4;
         }
-        return vfd_readptr_pakblock[least_avail] + vfd_blocks_available[least_avail];
+        return vfd->read_block + vfd->blocks_available;
     }
 
     // normal priority: blocks needed for read calls
@@ -257,27 +402,30 @@ int which_pakblock_to_read(int *suggested_min_run)
     // low priority: stream reads
     //   any vfds with desired readahead > 0, and less than that many bytes available
     //   the vfd with the least available blocks is serviced first
-    least_avail = -1;
+    least_active_index = -1;
     least_percent_available = 100;
-    for(vfd = 0; vfd < max_vfds; vfd++)
+    for(active_index = 0; active_index < active_vfd_count; active_index++)
     {
-        if(vfd_readptr_pakblock[vfd] >= 0 && vfd_desired_readahead_blocks[vfd] > 0)
+        filecache_vfd *vfd = &active_vfd[active_index];
+
+        if(vfd->read_block >= 0 && vfd->desired_readahead_blocks > 0)
         {
-            percent_available = (100 * vfd_blocks_available[vfd]) / vfd_desired_readahead_blocks[vfd];
+            percent_available = (100 * vfd->blocks_available) / vfd->desired_readahead_blocks;
             if(percent_available < least_percent_available)
             {
-                pakblock = vfd_readptr_pakblock[vfd] + vfd_blocks_available[vfd];
+                pakblock = vfd->read_block + vfd->blocks_available;
                 if(pakblock >= 0 && pakblock < total_pakblocks)
                 {
                     least_percent_available = percent_available;
-                    least_avail = vfd;
+                    least_active_index = (int)active_index;
                 }
             }
         }
     }
-    if(least_avail >= 0)
+    if(least_active_index >= 0)
     {
-        return vfd_readptr_pakblock[least_avail] + vfd_blocks_available[least_avail];
+        filecache_vfd *vfd = &active_vfd[least_active_index];
+        return vfd->read_block + vfd->blocks_available;
     }
 
     // nothing needed to read
@@ -297,7 +445,7 @@ static int pakblock_run_min = 1;
 
 void filecache_process(void)
 {
-    int vfd;
+    size_t active_index;
     int least_useful_cacheblock;
     int cacheblock_read;
     int pakblock_read;
@@ -336,9 +484,9 @@ void filecache_process(void)
     least_useful_cacheblock = find_least_useful_cacheblock();
 
     // get how many blocks are available to each vfd
-    for(vfd = 0; vfd < max_vfds; vfd++)
+    for(active_index = 0; active_index < active_vfd_count; active_index++)
     {
-        vfd_blocks_available[vfd] = get_vfd_blocks_available(vfd);
+        active_vfd[active_index].blocks_available = get_vfd_blocks_available(&active_vfd[active_index]);
     }
 
     //
@@ -475,15 +623,41 @@ int filecache_readpakblock(unsigned char *dest, int pakblock, int startofs, int 
 //
 // set up where the vfd pointers are
 //
-void filecache_setvfd(int vfd, int start, int block, int readahead)
+int filecache_setvfd(int vfd, int start, int block, int readahead)
 {
-    if(vfd < 0 || vfd >= max_vfds)
+    filecache_vfd *record;
+
+    if(vfd < 0)
     {
-        return;
+        return 0;
     }
-    vfd_startptr_pakblock[vfd] = start;
-    vfd_readptr_pakblock[vfd] = block;
-    vfd_desired_readahead_blocks[vfd] = readahead;
+    if(start < 0 || block < 0)
+    {
+        filecache_remove_vfd(vfd);
+        return 1;
+    }
+
+    record = filecache_get_vfd(vfd);
+    if(!record)
+    {
+        if(!filecache_reserve_vfd_indices((size_t)vfd + 1U) ||
+           !filecache_reserve_active_vfds(active_vfd_count + 1U))
+        {
+            return 0;
+        }
+
+        record = &active_vfd[active_vfd_count];
+        memset(record, 0, sizeof(*record));
+        record->descriptor = vfd;
+        active_vfd_index[vfd] = (int)active_vfd_count;
+        active_vfd_count++;
+    }
+
+    record->start_block = start;
+    record->read_block = block;
+    record->desired_readahead_blocks = readahead;
+    record->blocks_available = 0;
+    return 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -494,7 +668,6 @@ void filecache_term()
 {
     filecache_blocksize       = 32768;
     filecache_blocks          = 96;
-    max_vfds                  = 8;
     default_minimum_run_bytes = 131072;
     real_pakfd                = 0;
     total_pakblocks           = 0;
@@ -508,30 +681,23 @@ void filecache_term()
     pakblock_run_ptr          = 0;
     pakblock_run_len          = 0;
     pakblock_run_min          = 1;
-    if(vfd_blocks_available != NULL)
+    if(active_vfd != NULL)
     {
-        free(vfd_blocks_available);
-        vfd_blocks_available = NULL;
+        free(active_vfd);
+        active_vfd = NULL;
     }
+    active_vfd_count = 0;
+    active_vfd_capacity = 0;
+    if(active_vfd_index != NULL)
+    {
+        free(active_vfd_index);
+        active_vfd_index = NULL;
+    }
+    active_vfd_index_capacity = 0;
     if(cacheblock_mru != NULL)
     {
         free(cacheblock_mru);
         cacheblock_mru = NULL;
-    }
-    if(vfd_desired_readahead_blocks != NULL)
-    {
-        free(vfd_desired_readahead_blocks);
-        vfd_desired_readahead_blocks = NULL;
-    }
-    if(vfd_startptr_pakblock != NULL)
-    {
-        free(vfd_startptr_pakblock);
-        vfd_startptr_pakblock = NULL;
-    }
-    if(vfd_readptr_pakblock != NULL)
-    {
-        free(vfd_readptr_pakblock);
-        vfd_readptr_pakblock = NULL;
     }
     if(where_is_this_pakblock_cached != NULL)
     {
@@ -554,14 +720,13 @@ void filecache_term()
 //
 // BLOCKS MUST BE 255 OR LESS
 //
-void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char blocks, int vfds)
+void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char blocks)
 {
     int i;
     real_pakfd = realfd;
     total_pakblocks = ((pakcdsectors * 2048) + (blocksize - 1)) / blocksize;
     filecache_blocksize = blocksize;
     filecache_blocks = blocks;
-    max_vfds = vfds;
     filecache_maxcdsectors = pakcdsectors;
 
     // allocate everything
@@ -586,36 +751,12 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
         where_is_this_pakblock_cached[i] = filecache_blocks;
     }
 
-    // vfd read pointers: init to -1
-    vfd_readptr_pakblock = malloc(sizeof(int) * max_vfds);
-    for(i = 0; i < max_vfds; i++)
-    {
-        vfd_readptr_pakblock[i] = -1;
-    }
-
-    // vfd starting pointers: init to -1
-    vfd_startptr_pakblock = malloc(sizeof(int) * max_vfds);
-    for(i = 0; i < max_vfds; i++)
-    {
-        vfd_startptr_pakblock[i] = -1;
-    }
-
-    // desired readahead: init to 0
-    vfd_desired_readahead_blocks = malloc(sizeof(int) * max_vfds);
-    for(i = 0; i < max_vfds; i++)
-    {
-        vfd_desired_readahead_blocks[i] = -1;
-    }
-
     // cache mru: init to 0
     cacheblock_mru = malloc(sizeof(unsigned) * filecache_blocks);
     for(i = 0; i < filecache_blocks; i++)
     {
         cacheblock_mru[i] = 0;
     }
-
-    // blocks available: needs no init
-    vfd_blocks_available = malloc(sizeof(int) * max_vfds);
 
     filecache_ready = 1;
 }
@@ -626,15 +767,17 @@ void filecache_init(int realfd, int pakcdsectors, int blocksize, unsigned char b
 //
 void filecache_wait_for_prebuffer(int vfd, int nblocks)
 {
-    if(vfd_readptr_pakblock[vfd] < 0)
+    filecache_vfd *record = filecache_get_vfd(vfd);
+
+    if(!record || record->read_block < 0)
     {
         return;
     }
-    if((vfd_readptr_pakblock[vfd] + nblocks) > total_pakblocks)
+    if((record->read_block + nblocks) > total_pakblocks)
     {
-        nblocks = total_pakblocks - vfd_readptr_pakblock[vfd];
+        nblocks = total_pakblocks - record->read_block;
     }
-    while(get_vfd_blocks_available(vfd) < nblocks)
+    while(get_vfd_blocks_available(record) < nblocks)
     {
         filecache_process();
     }

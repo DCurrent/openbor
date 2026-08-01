@@ -103,7 +103,7 @@ typedef struct fileliststruct
 #endif
 } fileliststruct;
 
-#define NUMPACKHANDLES 8
+/* Packfile handles are dynamically allocated integer indexes with no fixed engine limit. */
 #define testpackfile(filename, packfilename) closepackfile(openpackfile(filename, packfilename))
 
 extern int printFileUsageStatistics;
