@@ -243,7 +243,7 @@ static int audio_thread(void *data)
         // Just to be sure: check if all goes well...
         for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
         {
-            if(musicchannel.fp_playto[i] > INT_TO_FIX(MUSIC_BUF_SIZE))
+            if(musicchannel.fp_playto[i] > INT_TO_FIX(MUSIC_BUF_SIZE / musicchannel.channels))
             {
                 musicchannel.fp_playto[i] = 0;
             }
@@ -258,7 +258,7 @@ static int audio_thread(void *data)
                 // Buffer needs to be filled
                 if (audio_decode_frame(audio_ctx, (uint8_t*)musicchannel.buf[i], MUSIC_BUF_SIZE * sizeof(short)) < 0)
                     return 0;
-                musicchannel.fp_playto[i] = INT_TO_FIX(MUSIC_BUF_SIZE);
+                musicchannel.fp_playto[i] = INT_TO_FIX(MUSIC_BUF_SIZE / musicchannel.channels);
                 if(!musicchannel.active)
                 {
                     musicchannel.playing_buffer = i;
@@ -299,17 +299,20 @@ static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int vo
     audio_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE);
     printf("Audio track: %f Hz, %d channels, %d bits/sample\n",
             audioParams.rate, audioParams.channels, audioParams.depth / audioParams.channels);
-    if(audio_ctx->frequency % 11025)
+    if(audio_ctx->frequency < SOUND_MUSIC_FREQUENCY_MIN ||
+       audio_ctx->frequency > SOUND_MUSIC_FREQUENCY_MAX)
     {
-        printf("Warning: the audio frequency (%i Hz) is suboptimal; resample to 44100 Hz for best quality\n",
-                audio_ctx->frequency);
+        printf("Warning: the audio frequency (%i Hz) is outside the supported %i-%i Hz range\n",
+                audio_ctx->frequency,
+                SOUND_MUSIC_FREQUENCY_MIN,
+                SOUND_MUSIC_FREQUENCY_MAX);
     }
 
     // initialize soundmix music channel
     sound_close_music();
     sound_music_channel_clear(&musicchannel);
 
-    musicchannel.fp_period = INT_TO_FIX(audio_ctx->frequency) / playfrequency;
+    musicchannel.fp_period = sound_music_period_calculate(audio_ctx->frequency, 100);
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
     musicchannel.channels = audioParams.channels;
@@ -612,5 +615,3 @@ yuv_frame *webm_get_next_frame(webm_context *ctx)
     debug_printf("frame queue size=%i\n", ctx->video_ctx.frame_queue->size);
     return (yuv_frame *)queue_get(ctx->video_ctx.frame_queue);
 }
-
-

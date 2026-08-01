@@ -19,25 +19,30 @@
 **	Sound mixer.
 **	Now supports ADPCM instead of MP3 (costs less CPU time).
 **
-**	Also plays WAV files (mono or stereo, both 8-bit and 16-bit).
+**	Also plays WAV files (mono or stereo, 8-bit, 16-bit, or 24-bit).
 */
 
 /*
-* Music keeps the original fixed-point type because this project only
-* changes in-memory samples. Sample playback uses a separate 64-bit
-* fixed-point type so long samples do not wrap the play cursor.
+* Music buffers use a 32-bit frame cursor. In-memory effects use a separate
+* 64-bit frame cursor so long samples do not wrap during playback.
 */
-#define		INT_TO_FIX(integer_value)		((unsigned int)(integer_value)<<4)
-#define		FIX_TO_INT(fixed_value)		((unsigned int)(fixed_value)>>4)
+#define		MUSIC_SAMPLE_FIXED_SHIFT		16U
+#define		MUSIC_SAMPLE_FIXED_ONE			((unsigned int)1U << MUSIC_SAMPLE_FIXED_SHIFT)
+#define		INT_TO_FIX(integer_value)		((unsigned int)(integer_value) << MUSIC_SAMPLE_FIXED_SHIFT)
+#define		FIX_TO_INT(fixed_value)		((unsigned int)(fixed_value) >> MUSIC_SAMPLE_FIXED_SHIFT)
 
 typedef uint64_t sound_sample_fixed_t;
 typedef uint64_t sound_sample_position_t;
 
-#define		SOUND_SAMPLE_FIXED_SHIFT		4U
+#define		SOUND_SAMPLE_FIXED_SHIFT		16U
 #define		SOUND_SAMPLE_FIXED_ONE			((sound_sample_fixed_t)1U << SOUND_SAMPLE_FIXED_SHIFT)
 #define		SOUND_SAMPLE_FIXED_MAX_INTEGER	(UINT64_MAX >> SOUND_SAMPLE_FIXED_SHIFT)
 #define		SOUND_SAMPLE_INT_TO_FIX(integer_value)	((sound_sample_fixed_t)(integer_value) << SOUND_SAMPLE_FIXED_SHIFT)
 #define		SOUND_SAMPLE_FIX_TO_INT(fixed_value)	((sound_sample_position_t)((fixed_value) >> SOUND_SAMPLE_FIXED_SHIFT))
+#define		SOUND_MUSIC_FREQUENCY_MIN		11025
+#define		SOUND_MUSIC_FREQUENCY_MAX		48000
+#define		SOUND_OUTPUT_BITS_DEFAULT		16
+#define		SOUND_OUTPUT_FREQUENCY_DEFAULT	44100
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
 #define		MUSIC_NUM_BUFFERS	4
@@ -112,9 +117,9 @@ typedef struct
     int            active;
     int            paused;
     short 		   *buf[MUSIC_NUM_BUFFERS];
-    unsigned int   fp_playto[MUSIC_NUM_BUFFERS];
-    unsigned int   fp_samplepos;  // Position (fixed-point)
-    unsigned int   fp_period;	  // Period (fixed-point)
+    unsigned int   fp_playto[MUSIC_NUM_BUFFERS]; // PCM frame count (fixed-point).
+    unsigned int   fp_samplepos;  // PCM frame position (fixed-point).
+    unsigned int   fp_period;	  // PCM frames advanced per output frame (fixed-point).
     int			   playing_buffer;
     int            volume[SOUND_SPATIAL_CHANNEL_MAX];
     e_channel_type channels;
@@ -167,6 +172,7 @@ void sound_volume_music(int left, int right);
 void sound_music_tempo(int music_tempo);
 int sound_query_music(char *artist, char *title);
 void sound_pause_music(int toggle);
+unsigned int sound_music_period_calculate(int source_frequency, int tempo);
 void update_sample(unsigned char *buf, int size);
 int maxchannels(void);
 
