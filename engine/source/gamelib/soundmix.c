@@ -66,8 +66,6 @@ Caution: move vorbis headers here otherwise the structs will
 */ 
 #define		MAX_SAMPLE_VOLUME   100 // 64 for backw. compat
 #define		MAX_MUSIC_VOLUME    60 // 64 for backw. compat
-#define		MAX_CHANNELS        256    
-
 // Hardware settings for SoundBlaster (change only if latency is too big)
 #define		SB_BUFFER_SIZE		 0x8000
 #define		SB_BUFFER_SIZE_MASK	 0x7FFF
@@ -97,12 +95,11 @@ static s_soundcache *soundcache = NULL;
 static int sound_cached = 0;
 int sample_play_id = 0;
 
-static channelstruct vchannel[MAX_CHANNELS];
+static s_sound_channel_pool sound_channel_pool;
 musicchannelstruct musicchannel = { .object_type = OBJECT_TYPE_MUSIC_CHANNEL };
 static s32 *mixbuf = NULL;
 static int playbits;
 int playfrequency;
-static int max_channels = 0;
 
 // Indicates whether the hardware is playing, and if mixing is active
 static int mixing_active = 0;
@@ -719,6 +716,8 @@ static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_i
 // Input: number of input samples to mix
 static void mixaudio(unsigned int todo)
 {
+    int bank_index;
+    int channel;
     int output_position;
     int channel_index;
     int left_volume;
@@ -787,67 +786,83 @@ static void mixaudio(unsigned int todo)
         musicchannel.fp_samplepos = music_position_fixed;
     }
 
-    for(channel_index = 0; channel_index < max_channels; channel_index++)
+    /*
+    * Caskey, Damon V.
+    * 2026-07-31
+    *
+    * Walk only active, unpaused sound effect
+    * channels instead of scanning pool capacity.
+    */
     {
-        if(vchannel[channel_index].active && !vchannel[channel_index].paused)
-        {
-            samplestruct *sample;
-            uint64_t sample_frame_count;
-            sound_sample_fixed_t sample_length_fixed;
-            sound_sample_fixed_t loop_start_fixed;
-            sound_sample_fixed_t sample_position_fixed;
-            sound_sample_fixed_t sample_period_fixed;
-            int sample_index;
+        uint64_t active_bank_mask = sound_channel_pool.active_bank_mask;
 
-            sample_index = vchannel[channel_index].samplenum;
-            if(!soundcache[sample_index].sample.sampleptr)
-            {
-                vchannel[channel_index].active = 0;
-                continue;
-            }
+        while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
+            s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+            uint64_t channel_mask = bank->active_mask & ~bank->paused_mask;
 
-            sample = &soundcache[sample_index].sample;
-            sample_frame_count = sample->framecount;
-            if(sample_frame_count < 1 ||
-               sample_frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
-               (sample->bits != 8 && sample->bits != 16 && sample->bits != 24) ||
-               (sample->channels != CHANNEL_TYPE_MONO && sample->channels != CHANNEL_TYPE_STEREO))
-            {
-                vchannel[channel_index].active = 0;
-                continue;
-            }
+            while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+                channelstruct *channel_record = &bank->channel[channel_index];
+                samplestruct *sample;
+                uint64_t sample_frame_count;
+                sound_sample_fixed_t sample_length_fixed;
+                sound_sample_fixed_t loop_start_fixed;
+                sound_sample_fixed_t sample_position_fixed;
+                sound_sample_fixed_t sample_period_fixed;
+                int sample_index;
 
-            sample_length_fixed = SOUND_SAMPLE_INT_TO_FIX(sample_frame_count);
-            loop_start_fixed = vchannel[channel_index].active == CHANNEL_LOOPING ? vchannel[channel_index].fp_loop_start : 0;
-            sample_position_fixed = vchannel[channel_index].fp_samplepos;
-            sample_period_fixed = vchannel[channel_index].fp_period;
-            left_volume = vchannel[channel_index].volume[SOUND_SPATIAL_CHANNEL_LEFT];
-            right_volume = vchannel[channel_index].volume[SOUND_SPATIAL_CHANNEL_RIGHT];
-
-            for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX)
-            {
-                size_t left_sample_index;
-                size_t right_sample_index;
-                size_t sample_position_index;
-                int sample_end_reached;
-
-                sample_position_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(sample_position_fixed);
-                left_sample_index = sample_position_index * (size_t)sample->channels;
-                right_sample_index = sample->channels == CHANNEL_TYPE_STEREO ? left_sample_index + 1U : left_sample_index;
-
-                left_sample_value = sound_sample_to_mix_value(sample, left_sample_index);
-                right_sample_value = sound_sample_to_mix_value(sample, right_sample_index);
-                mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
-                mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
-
-                sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, loop_start_fixed, &sample_end_reached);
-                if(sample_end_reached && vchannel[channel_index].active != CHANNEL_LOOPING)
-                {
-                    vchannel[channel_index].active = 0;
-                    break;
+                channel = (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
+                sample_index = channel_record->samplenum;
+                if(sample_index < 0 || sample_index >= sound_cached ||
+                   !soundcache[sample_index].sample.sampleptr) {
+                    sound_channel_pool_deactivate(&sound_channel_pool, channel);
+                    channel_mask &= ~(UINT64_C(1) << channel_index);
+                    continue;
                 }
+
+                sample = &soundcache[sample_index].sample;
+                sample_frame_count = sample->framecount;
+                if(sample_frame_count < 1 ||
+                   sample_frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
+                   (sample->bits != 8 && sample->bits != 16 && sample->bits != 24) ||
+                   (sample->channels != CHANNEL_TYPE_MONO && sample->channels != CHANNEL_TYPE_STEREO)) {
+                    sound_channel_pool_deactivate(&sound_channel_pool, channel);
+                    channel_mask &= ~(UINT64_C(1) << channel_index);
+                    continue;
+                }
+
+                sample_length_fixed = SOUND_SAMPLE_INT_TO_FIX(sample_frame_count);
+                loop_start_fixed = channel_record->active == CHANNEL_LOOPING ? channel_record->fp_loop_start : 0;
+                sample_position_fixed = channel_record->fp_samplepos;
+                sample_period_fixed = channel_record->fp_period;
+                left_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_LEFT];
+                right_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
+
+                for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
+                    size_t left_sample_index;
+                    size_t right_sample_index;
+                    size_t sample_position_index;
+                    int sample_end_reached;
+
+                    sample_position_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(sample_position_fixed);
+                    left_sample_index = sample_position_index * (size_t)sample->channels;
+                    right_sample_index = sample->channels == CHANNEL_TYPE_STEREO ? left_sample_index + 1U : left_sample_index;
+
+                    left_sample_value = sound_sample_to_mix_value(sample, left_sample_index);
+                    right_sample_value = sound_sample_to_mix_value(sample, right_sample_index);
+                    mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
+                    mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
+
+                    sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, loop_start_fixed, &sample_end_reached);
+                    if(sample_end_reached && channel_record->active != CHANNEL_LOOPING) {
+                        sound_channel_pool_deactivate(&sound_channel_pool, channel);
+                        break;
+                    }
+                }
+                channel_record->fp_samplepos = sample_position_fixed;
+                channel_mask &= ~(UINT64_C(1) << channel_index);
             }
-            vchannel[channel_index].fp_samplepos = sample_position_fixed;
+
+            active_bank_mask &= ~(UINT64_C(1) << bank_index);
         }
     }
 }
@@ -936,73 +951,88 @@ static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, in
     return (sound_sample_fixed_t)sample_period;
 }
 
-// Speed in percents of normal.
-// Returns channel the sample is played on or -1 if not playing.
-static int sound_play_sample_internal(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, int looping, uint64_t loop_start_frame)
-{
-    int i;
-    unsigned int prio_low;
+/*
+* Caskey, Damon V.
+* 2026-07-31
+*
+* Find the active channel with the lowest current
+* priority. Masks avoid scanning inactive slots.
+*/
+static int sound_find_lowest_priority_channel(unsigned int *lowest_priority) {
+    uint64_t active_bank_mask;
+    int bank_index;
+    int channel = -1;
+
+    if(!lowest_priority) {
+        return -1;
+    }
+
+    *lowest_priority = UINT_MAX;
+    active_bank_mask = sound_channel_pool.active_bank_mask;
+    while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask = bank->active_mask;
+        int channel_index;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            channelstruct *record = &bank->channel[channel_index];
+
+            if(channel < 0 || record->priority < *lowest_priority) {
+                channel = (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
+                *lowest_priority = record->priority;
+            }
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+        }
+        active_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+
+    return channel;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-07-31
+*
+* Play a sample on an available channel. Another
+* bank is allocated before priority replacement.
+*/
+static int sound_play_sample_internal(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, int looping, uint64_t loop_start_frame) {
+    channelstruct *record;
+    unsigned int priority_low;
     int channel;
 
-    if(!mixing_inited)
-    {
+    if(!mixing_inited) {
         return -1;
     }
-    if(samplenum < 0 || samplenum >= sound_cached)
-    {
+    if(samplenum < 0 || samplenum >= sound_cached) {
         return -1;
     }
-    if(speed < 1)
-    {
+    if(speed < 1) {
         speed = 100;
     }
     if(!soundcache[samplenum].sample.sampleptr &&
-            !sound_reload_sample(samplenum))
-    {
+       !sound_reload_sample(samplenum)) {
         return -1;
     }
 
-    // Try to find unused SFX channel
-    channel = -1;
-    for(i = 0; i < max_channels; i++)
-    {
-        if(!vchannel[i].active)
-        {
-            channel = i;
-        }
-    }
-
-    if(channel == -1)
-    {
-        // Find SFX channel with lowest current priority
-        for(i = 0, prio_low = 0xFFFFFFFF; i < max_channels; i++)
-        {
-            if(vchannel[i].priority < prio_low)
-            {
-                channel = i;
-                prio_low = vchannel[i].priority;
-            }
-        }
-        if(prio_low > priority)
-        {
+    channel = sound_channel_pool_acquire(&sound_channel_pool);
+    if(channel < 0) {
+        channel = sound_find_lowest_priority_channel(&priority_low);
+        if(channel < 0 || priority_low > priority) {
             return -1;
         }
     }
 
-    if(lvolume < 0)
-    {
+    if(lvolume < 0) {
         lvolume = 0;
     }
-    if(rvolume < 0)
-    {
+    if(rvolume < 0) {
         rvolume = 0;
     }
-    if(lvolume > MAX_SAMPLE_VOLUME)
-    {
+    if(lvolume > MAX_SAMPLE_VOLUME) {
         lvolume = MAX_SAMPLE_VOLUME;
     }
-    if(rvolume > MAX_SAMPLE_VOLUME)
-    {
+    if(rvolume > MAX_SAMPLE_VOLUME) {
         rvolume = MAX_SAMPLE_VOLUME;
     }
 
@@ -1010,28 +1040,32 @@ static int sound_play_sample_internal(int samplenum, unsigned int priority, int 
        soundcache[samplenum].sample.framecount > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
        (soundcache[samplenum].sample.channels != CHANNEL_TYPE_MONO &&
         soundcache[samplenum].sample.channels != CHANNEL_TYPE_STEREO) ||
-       (looping && loop_start_frame >= soundcache[samplenum].sample.framecount))
-    {
+       (looping && loop_start_frame >= soundcache[samplenum].sample.framecount)) {
         return -1;
     }
 
-    vchannel[channel].active = 0;
-    vchannel[channel].samplenum = samplenum;
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record) {
+        return -1;
+    }
+
+    sound_channel_pool_deactivate(&sound_channel_pool, channel);
+    memset(record, 0, sizeof(*record));
+    record->samplenum = samplenum;
     /*
-    * Prevent samples from being played at the exact same point while keeping
-    * the widened frame cursor inside the addressable sample length. Divide by
-    * the source channel count to preserve the old scalar-sample offset.
+    * Prevent samples from being played at the exact
+    * same point. Keep the frame cursor inside the
+    * source sample length.
     */
-    vchannel[channel].fp_samplepos = SOUND_SAMPLE_INT_TO_FIX((((uint64_t)channel * 4U) / (uint64_t)soundcache[samplenum].sample.channels) % soundcache[samplenum].sample.framecount);
-    vchannel[channel].fp_period = sound_sample_period_calculate(speed, soundcache[samplenum].sample.frequency);
-    vchannel[channel].fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
-    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
-    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
-    vchannel[channel].priority = priority;
-    vchannel[channel].channels = soundcache[samplenum].sample.channels;
-    vchannel[channel].paused = 0;
-    vchannel[channel].playid = ++audio_global.sample_play_id;
-    vchannel[channel].active = looping ? CHANNEL_LOOPING : CHANNEL_PLAYING;
+    record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX((((uint64_t)channel * 4U) / (uint64_t)soundcache[samplenum].sample.channels) % soundcache[samplenum].sample.framecount);
+    record->fp_period = sound_sample_period_calculate(speed, soundcache[samplenum].sample.frequency);
+    record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
+    record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
+    record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
+    record->priority = priority;
+    record->channels = soundcache[samplenum].sample.channels;
+    record->playid = ++audio_global.sample_play_id;
+    sound_channel_pool_activate(&sound_channel_pool, channel, looping ? CHANNEL_LOOPING : CHANNEL_PLAYING);
 
     return channel;
 }
@@ -1051,97 +1085,88 @@ int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, 
     return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, loop_start_frame);
 }
 
-int sound_query_channel(int playid)
-{
-    int i;
-    for(i = 0; i < max_channels; i++)
-    {
-        if(vchannel[i].playid == playid && vchannel[i].active)
-        {
-            return i;
+int sound_query_channel(int playid) {
+    uint64_t active_bank_mask = sound_channel_pool.active_bank_mask;
+    int bank_index;
+
+    while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask = bank->active_mask;
+        int channel_index;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            if(bank->channel[channel_index].playid == playid) {
+                return (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
+            }
+            channel_mask &= ~(UINT64_C(1) << channel_index);
         }
+        active_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
+
     return -1;
 }
 
-int sound_id(int channel)
-{
-    if(vchannel[channel].active) return vchannel[channel].playid;
-    else return -1;
+int sound_id(int channel) {
+    channelstruct *record;
+
+    if(!sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        return -1;
+    }
+
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    return record ? record->playid : -1;
 }
 
-int sound_is_active(int channel)
-{
-    if( vchannel[channel].active ) return 1;
-    return 0;
+int sound_is_active(int channel) {
+    return sound_channel_pool_is_active(&sound_channel_pool, channel) ? 1 : 0;
 }
 
-void sound_stop_sample(int channel)
-{
-    if(channel < 0 || channel >= max_channels)
-    {
+void sound_stop_sample(int channel) {
+    sound_channel_pool_deactivate(&sound_channel_pool, channel);
+}
+
+void sound_stopall_sample() {
+    sound_channel_pool_stop_all(&sound_channel_pool);
+}
+
+void sound_pause_sample(int toggle) {
+    sound_channel_pool_pause_all(&sound_channel_pool, toggle);
+}
+
+void sound_pause_single_sample(int toggle, int channel) {
+    sound_channel_pool_pause(&sound_channel_pool, channel, toggle);
+}
+
+void sound_volume_sample(int channel, int lvolume, int rvolume) {
+    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+
+    if(!record) {
         return;
     }
-    vchannel[channel].active = 0;
-}
-
-void sound_stopall_sample()
-{
-    int channel;
-    for(channel = 0; channel < max_channels; channel++)
-    {
-        vchannel[channel].active = 0;
-    }
-}
-
-void sound_pause_sample(int toggle)
-{
-    int channel;
-    for(channel = 0; channel < max_channels; channel++)
-    {
-        vchannel[channel].paused = toggle;
-    }
-}
-
-void sound_pause_single_sample(int toggle, int channel)
-{
-    vchannel[channel].paused = toggle;
-}
-
-void sound_volume_sample(int channel, int lvolume, int rvolume)
-{
-    if(channel < 0 || channel >= max_channels)
-    {
-        return;
-    }
-    if(lvolume < 0)
-    {
+    if(lvolume < 0) {
         lvolume = 0;
     }
-    if(rvolume < 0)
-    {
+    if(rvolume < 0) {
         rvolume = 0;
     }
-    if(lvolume > MAX_SAMPLE_VOLUME)
-    {
+    if(lvolume > MAX_SAMPLE_VOLUME) {
         lvolume = MAX_SAMPLE_VOLUME;
     }
-    if(rvolume > MAX_SAMPLE_VOLUME)
-    {
+    if(rvolume > MAX_SAMPLE_VOLUME) {
         rvolume = MAX_SAMPLE_VOLUME;
     }
-    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
-    vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
+    record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
+    record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
 }
 
-int sound_getpos_sample(int channel)
-{
-    if(channel < 0 || channel >= max_channels)
-    {
+int sound_getpos_sample(int channel) {
+    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+
+    if(!record) {
         return 0;
     }
     {
-        uint64_t sample_position = SOUND_SAMPLE_FIX_TO_INT(vchannel[channel].fp_samplepos);
+        uint64_t sample_position = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
         return sample_position > (uint64_t)INT_MAX ? INT_MAX : (int)sample_position;
     }
 }
@@ -1894,32 +1919,21 @@ void sound_pause_music(int toggle)
     musicchannel.paused = toggle;
 }
 
-void sound_stop_playback()
-{
-    int i;
-    if(!mixing_inited)
-    {
+void sound_stop_playback() {
+    if(!mixing_inited) {
         return;
     }
-    if(!mixing_active)
-    {
+    if(!mixing_active) {
         return;
     }
     sound_close_music();
-    for(i = 0; i < max_channels; i++)
-    {
-        sound_stop_sample(i);
-    }
+    sound_stopall_sample();
     SB_playstop();
     mixing_active = 0;
 }
 
-int sound_start_playback()
-{
-    int i;
-
-    if(!mixing_inited)
-    {
+int sound_start_playback() {
+    if(!mixing_inited) {
         return 0;
     }
 
@@ -1928,13 +1942,9 @@ int sound_start_playback()
     playbits = SOUND_OUTPUT_BITS_DEFAULT;
     playfrequency = SOUND_OUTPUT_FREQUENCY_DEFAULT;
 
-    for(i = 0; i < max_channels; i++)
-    {
-        sound_stop_sample(i);
-    }
+    sound_stopall_sample();
     SB_playstop();
-    if(!SB_playstart(playbits, playfrequency))
-    {
+    if(!SB_playstart(playbits, playfrequency)) {
         return 0;
     }
 
@@ -1944,46 +1954,38 @@ int sound_start_playback()
 }
 
 // Stop everything and free used memory
-void sound_exit()
-{
-
+void sound_exit() {
     sound_stop_playback();
+    sound_stopall_sample();
     sound_unload_all_samples();
 
-    if(mixbuf != NULL)
-    {
+    if(mixbuf != NULL) {
         free(mixbuf);
         mixbuf = NULL;
     }
 
+    sound_channel_pool_destroy(&sound_channel_pool);
     mixing_inited = 0;
 }
 
-// Find and initialize SoundBlaster, allocate memory, initialize tables...
-int sound_init(int channels)
-{
-    int i;
-
-    if(channels < 2)
-    {
-        channels = 2;
-    }
-    if(channels > MAX_CHANNELS)
-    {
-        channels = MAX_CHANNELS;
-    }
+/*
+* Caskey, Damon V.
+* 2026-07-31
+*
+* Initialize sound with one 64-channel bank.
+* Additional banks are allocated on demand.
+*/
+int sound_init(void) {
     sound_exit();
 
-    // Allocate the maximum amount ever possibly needed for mixing
-    if((mixbuf = malloc(MIXBUF_SIZE)) == NULL)
-    {
+    if(!sound_channel_pool_init(&sound_channel_pool)) {
         return 0;
     }
 
-    max_channels = channels;
-    for(i = 0; i < max_channels; i++)
-    {
-        memset(&vchannel[i], 0, sizeof(channelstruct));
+    /* Allocate the maximum amount ever needed for one mixing pass. */
+    if((mixbuf = malloc(MIXBUF_SIZE)) == NULL) {
+        sound_channel_pool_destroy(&sound_channel_pool);
+        return 0;
     }
 
     mixing_active = 0;
@@ -2011,7 +2013,6 @@ u32 sound_getinterval()
     return msecs;
 }
 
-int maxchannels()
-{
-    return MAX_CHANNELS;
+int maxchannels() {
+    return (int)SOUND_CHANNEL_COUNT_MAX;
 }

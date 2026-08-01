@@ -14,6 +14,7 @@
 
 #include "types.h"
 #include "List.h"
+#include "sound_channel.h"
 
 /*
 **	Sound mixer.
@@ -31,14 +32,6 @@
 #define		INT_TO_FIX(integer_value)		((unsigned int)(integer_value) << MUSIC_SAMPLE_FIXED_SHIFT)
 #define		FIX_TO_INT(fixed_value)		((unsigned int)(fixed_value) >> MUSIC_SAMPLE_FIXED_SHIFT)
 
-typedef uint64_t sound_sample_fixed_t;
-typedef uint64_t sound_sample_position_t;
-
-#define		SOUND_SAMPLE_FIXED_SHIFT		16U
-#define		SOUND_SAMPLE_FIXED_ONE			((sound_sample_fixed_t)1U << SOUND_SAMPLE_FIXED_SHIFT)
-#define		SOUND_SAMPLE_FIXED_MAX_INTEGER	(UINT64_MAX >> SOUND_SAMPLE_FIXED_SHIFT)
-#define		SOUND_SAMPLE_INT_TO_FIX(integer_value)	((sound_sample_fixed_t)(integer_value) << SOUND_SAMPLE_FIXED_SHIFT)
-#define		SOUND_SAMPLE_FIX_TO_INT(fixed_value)	((sound_sample_position_t)((fixed_value) >> SOUND_SAMPLE_FIXED_SHIFT))
 #define		SOUND_MUSIC_FREQUENCY_MIN		11025
 #define		SOUND_MUSIC_FREQUENCY_MAX		48000
 #define		SOUND_OUTPUT_BITS_DEFAULT		16
@@ -76,21 +69,6 @@ typedef struct s_sound_parameters {
     const unsigned int music_buffers_count; /* MUSIC_NUM_BUFFERS */
     const unsigned int music_buffer_size;   /* MUSIC_BUF_SIZE - In samples */
 } s_sound_parameters;
-
-typedef struct
-{
-    int            active;		 // 1 = play, 2 = loop
-    int				paused;
-    int            samplenum;	 // Index of sound playing
-    unsigned int   priority;	 // Used for SFX
-    int				playid;
-    int            volume[SOUND_SPATIAL_CHANNEL_MAX];	 // Stereo :)
-    int            channels;
-    
-    sound_sample_fixed_t fp_samplepos;  // Fixed point PCM frame position.
-    sound_sample_fixed_t fp_period;     // Fixed point playback period (advance per output frame).
-    sound_sample_fixed_t fp_loop_start; // Fixed point PCM frame position to resume looping.
-} channelstruct;
 
 typedef struct
 {
@@ -141,7 +119,7 @@ extern int playfrequency;
 void sound_stop_playback();
 int sound_start_playback();
 void sound_exit();
-int sound_init(int channels);
+int sound_init(void);
 
 
 

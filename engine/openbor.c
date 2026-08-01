@@ -49008,7 +49008,7 @@ void startup()
     printf("Done!\n");
 
     printf("Initialize Sound.............\t");
-    if(sound_init(12))
+    if(sound_init())
     {
         if(load_special_sounds())
         {

@@ -485,7 +485,7 @@ static void initMenu(int type)
 
 	control_init(2);
 	apply_controls();
-	sound_init(12);
+	sound_init();
 	sound_start_playback();
 }
 
@@ -805,4 +805,3 @@ void Menu()
 	// Restore pixelformat default value.
 	pixelformat = PIXEL_x8;
 }
-
