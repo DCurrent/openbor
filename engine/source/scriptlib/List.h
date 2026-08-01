@@ -139,7 +139,7 @@ void *List_GetFirst(const List *list);
 void *List_GetLast(const List *list);
 void List_Update(List *list, void *e);
 int List_Includes(List *list, void *e);
-int List_FindByName(List *list, const char *name);
+bool List_FindByName(List *list, const char *name);
 char *List_GetName(const List *list);
 void List_Reset(List *list);
 int List_GetSize(const List *list);

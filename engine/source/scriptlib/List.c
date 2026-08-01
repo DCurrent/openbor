@@ -1185,20 +1185,20 @@ Node *List_GetNodeByName(List *list, const char *name)
 #endif
 
 }
+
 /* SIDE EFFECTS: sets list->current to the first found node */
-int List_FindByName(List *list, const char *name)
+bool List_FindByName(List *list, const char *name)
 {
 #ifdef DEBUG
     chklist((List *)list);
 #endif
 
     Node *n = List_GetNodeByName(list, name);
-    if (n)
-    {
+    if (n) {
         list->current = n;
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 char *List_GetName(const List *list)

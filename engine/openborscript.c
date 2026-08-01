@@ -12622,34 +12622,99 @@ HRESULT openbor_sampleid(ScriptVariant **varlist , ScriptVariant **pretvar, int 
     return E_FAIL;
 }
 
-//playsample(id, priority, lvolume, rvolume, speed, loop)
-HRESULT openbor_playsample(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
-{
-    int i, result;
-    LONG value[6] = { -1, 0, savedata.effectvol, savedata.effectvol, 100, 0};
+//playsample(id, priority, lvolume, rvolume, speed, loop, loop_offset)
+HRESULT openbor_playsample(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
+    int i;
+    int result;
+    LONG value[6] = {
+        -1,
+        0,
+        savedata.effectvol,
+        savedata.effectvol,
+        100,
+        0
+    };
 
-    for(i = 0; i < 6 && i < paramCount; i++)
-    {
-        if(FAILED(ScriptVariant_IntegerValue(varlist[i], value + i)))
-        {
+    /*
+    * For readability.
+    */
+    struct {
+        int id;
+        unsigned int priority;
+        int lvolume;
+        int rvolume;
+        unsigned int speed;
+        bool loop;
+        uint64_t loop_offset;
+    } sample_params = {
+        .loop_offset = 0
+    };
+
+    /*
+    * Read in the first 6 parameters, if they 
+    * exist. If any of them are fail, then we 
+    * will exit with an error.
+    */
+    for(i = 0; i < 6 && i < paramCount; i++) {
+        if(FAILED(ScriptVariant_IntegerValue(varlist[i], value + i))) {
             goto playsample_error;
         }
     }
+
+    sample_params.id       = (int)value[0];
+    sample_params.priority = (unsigned int)value[1];
+    sample_params.lvolume  = (int)value[2];
+    sample_params.rvolume  = (int)value[3];
+    sample_params.speed    = (unsigned int)value[4];
+    sample_params.loop     = value[5] != 0;
+
+    /* Attempt to populate the loop offset. */
+    const HRESULT loop_offset_hr = ScriptVariant_Unsigned64Value(varlist[6], &sample_params.loop_offset);
+
+    if(paramCount > 6 && FAILED(loop_offset_hr)) {
+        goto playsample_error;
+    }
+
     ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-    if((int)value[5])
-    {
-        result = sound_loop_sample((int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4]);
+
+    if(sample_params.loop) {
+        result = sound_loop_sample_offset(
+            sample_params.id,
+            sample_params.priority,
+            sample_params.lvolume,
+            sample_params.rvolume,
+            sample_params.speed,
+            sample_params.loop_offset
+        );
+    } else {
+        result = sound_play_sample(
+            sample_params.id,
+            sample_params.priority,
+            sample_params.lvolume,
+            sample_params.rvolume,
+            sample_params.speed
+        );
     }
-    else
-    {
-        result = sound_play_sample((int)value[0], (unsigned int)value[1], (int)value[2], (int)value[3], (unsigned int)value[4]);
-    }
+
+    /*
+    * The channel number is returned to the 
+    * script. If the sample could not be played, 
+    * then -1 is returned.
+    */
     (*pretvar)->lVal = (LONG)result;
+
     return S_OK;
 
 playsample_error:
     *pretvar = NULL;
-    printf("Function requires 6 integer values: playsample(int id, unsigned int priority, int lvolume, int rvolume, unsigned int speed, int loop)\n");
+
+    printf(
+        "Function requires integer values: "
+        "playsample(int id, unsigned int priority, int lvolume, "
+        "int rvolume, unsigned int speed, int loop, "
+        "optional unsigned 64-bit loop_offset)\n"
+    );
+
     return E_FAIL;
 }
 

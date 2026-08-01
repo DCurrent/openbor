@@ -64,7 +64,6 @@ Caution: move vorbis headers here otherwise the structs will
     This was made to equalize both in the volume of 100, and at the same time to make them louder than before
     This way we don't need to increase the volume too much in the audio files, preventing distortions and quality loss
 */ 
-//#define		MAX_SAMPLES		     1024	// Should be well enough
 #define		MAX_SAMPLE_VOLUME   100 // 64 for backw. compat
 #define		MAX_MUSIC_VOLUME    60 // 64 for backw. compat
 #define		MAX_CHANNELS        256    
@@ -157,15 +156,15 @@ typedef struct s_wave_format_header
 } s_wave_format_header;
 
 /*
-* readpackfile() intentionally uses int-sized requests. Keep the WAV loader
-* future-proof by reading large in-memory samples through repeated reads.
+* readpackfile() intentionally uses int-sized 
+* requests. Keep the WAV loader future-proof by 
+* reading large in-memory samples through repeated 
+* reads.
 */
-static int sound_read_packfile_exact(int packfile_handle, void *destination_buffer, uint64_t bytes_to_read)
-{
+static int sound_read_packfile_exact(int packfile_handle, void *destination_buffer, uint64_t bytes_to_read) {
     unsigned char *write_position = (unsigned char *)destination_buffer;
 
-    while(bytes_to_read > 0)
-    {
+    while(bytes_to_read > 0) {
         int requested_read_size;
         int actual_read_size;
 
@@ -188,10 +187,9 @@ static int sound_read_packfile_exact(int packfile_handle, void *destination_buff
 * WAV chunks are word aligned. The size stored in the chunk header does not
 * include the optional pad byte, so callers need to include it when skipping.
 */
-static int sound_wave_chunk_skip_size(uint64_t chunk_data_size, uint64_t *chunk_skip_size)
-{
-    if(chunk_data_size == UINT64_MAX)
-    {
+static int sound_wave_chunk_skip_size(uint64_t chunk_data_size, uint64_t *chunk_skip_size) {
+
+    if(chunk_data_size == UINT64_MAX) {
         return 0;
     }
 
@@ -203,26 +201,24 @@ static int sound_wave_chunk_skip_size(uint64_t chunk_data_size, uint64_t *chunk_
 * The pack layer exposes 64-bit seeks, but the offset is signed. Keep the
 * conversion guarded so malformed or future oversized chunks fail cleanly.
 */
-static int sound_seek_packfile_forward(int packfile_handle, uint64_t bytes_to_skip)
-{
+static int sound_seek_packfile_forward(int packfile_handle, uint64_t bytes_to_skip) {
     uint64_t chunk_skip_size;
 
-    if(!sound_wave_chunk_skip_size(bytes_to_skip, &chunk_skip_size))
-    {
+    if(!sound_wave_chunk_skip_size(bytes_to_skip, &chunk_skip_size)) {
         return 0;
-    }
-    if(chunk_skip_size > (uint64_t)INT64_MAX)
-    {
+    
+    } 
+    
+    if(chunk_skip_size > (uint64_t)INT64_MAX) {
         return 0;
     }
 
     return seekpackfile64(packfile_handle, (packfile_signed_offset_t)chunk_skip_size, SEEK_CUR) >= 0;
 }
 
-static int sound_read_wave_chunk_header(int packfile_handle, s_wave_chunk_header *wave_chunk_header)
-{
-    if(readpackfile(packfile_handle, wave_chunk_header, sizeof(*wave_chunk_header)) != sizeof(*wave_chunk_header))
-    {
+static int sound_read_wave_chunk_header(int packfile_handle, s_wave_chunk_header *wave_chunk_header) {
+    
+    if(readpackfile(packfile_handle, wave_chunk_header, sizeof(*wave_chunk_header)) != sizeof(*wave_chunk_header)) {
         return 0;
     }
 
@@ -233,12 +229,13 @@ static int sound_read_wave_chunk_header(int packfile_handle, s_wave_chunk_header
 }
 
 /*
-* Load classic RIFF/WAVE PCM data into memory. All file and chunk sizes are
-* processed as 64-bit values so RF64/BW64 can be added later without changing
+* Load classic RIFF/WAVE PCM data into memory. All 
+* file and chunk sizes are processed as 64-bit values 
+* so RF64/BW64 can be added later without changing
 * the sample or mixer data model.
 */
-static int loadwave(char *filename, char *packname, samplestruct *sample, uint64_t maximum_data_bytes)
-{
+static bool loadwave(char *filename, char *packname, samplestruct *sample, uint64_t maximum_data_bytes) {
+
     s_wave_riff_header wave_riff_header;
     s_wave_chunk_header wave_chunk_header;
     s_wave_format_header wave_format_header;
@@ -251,71 +248,62 @@ static int loadwave(char *filename, char *packname, samplestruct *sample, uint64
     int packfile_handle;
     int format_chunk_found = 0;
 
-    if(sample == NULL)
-    {
-        return 0;
+    if(sample == NULL) {
+        return false;
     }
 
     memset(sample, 0, sizeof(*sample));
 
     packfile_handle = openpackfile(filename, packname);
-    if(packfile_handle == -1)
-    {
-        return 0;
+
+    if(packfile_handle == -1) {
+        return false;
     }
 
-    if(readpackfile(packfile_handle, &wave_riff_header, sizeof(wave_riff_header)) != sizeof(wave_riff_header))
-    {
+    if(readpackfile(packfile_handle, &wave_riff_header, sizeof(wave_riff_header)) != sizeof(wave_riff_header)) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     wave_riff_header.riff = SwapLSB32(wave_riff_header.riff);
     wave_riff_header.size = SwapLSB32(wave_riff_header.size);
     wave_riff_header.type = SwapLSB32(wave_riff_header.type);
 
-    if(wave_riff_header.riff != HEX_RIFF || wave_riff_header.type != HEX_WAVE)
-    {
+    if(wave_riff_header.riff != HEX_RIFF || wave_riff_header.type != HEX_WAVE) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     /*
     * Find and read the PCM format chunk before loading sample data. Unknown
     * chunks are skipped with 64-bit seek support and RIFF pad-byte handling.
     */
-    while(!format_chunk_found)
-    {
+    while(!format_chunk_found) {
         uint64_t format_chunk_size;
         uint64_t remaining_format_bytes;
 
-        if(!sound_read_wave_chunk_header(packfile_handle, &wave_chunk_header))
-        {
+        if(!sound_read_wave_chunk_header(packfile_handle, &wave_chunk_header)) {
             closepackfile(packfile_handle);
-            return 0;
+            return false;
         }
 
-        if(wave_chunk_header.tag != HEX_fmt)
-        {
-            if(!sound_seek_packfile_forward(packfile_handle, wave_chunk_header.size))
-            {
+        if(wave_chunk_header.tag != HEX_fmt) {
+            if(!sound_seek_packfile_forward(packfile_handle, wave_chunk_header.size)) {
                 closepackfile(packfile_handle);
-                return 0;
+                return false;
             }
             continue;
         }
 
         format_chunk_size = wave_chunk_header.size;
-        if(format_chunk_size < sizeof(wave_format_header))
-        {
+        if(format_chunk_size < sizeof(wave_format_header)) {
             closepackfile(packfile_handle);
-            return 0;
+            return false;
         }
 
-        if(readpackfile(packfile_handle, &wave_format_header, sizeof(wave_format_header)) != sizeof(wave_format_header))
-        {
+        if(readpackfile(packfile_handle, &wave_format_header, sizeof(wave_format_header)) != sizeof(wave_format_header)) {
             closepackfile(packfile_handle);
-            return 0;
+            return false;
         }
 
         wave_format_header.format = SwapLSB16(wave_format_header.format);
@@ -326,10 +314,9 @@ static int loadwave(char *filename, char *packname, samplestruct *sample, uint64
         wave_format_header.bps = SwapLSB32(wave_format_header.bps);
 
         remaining_format_bytes = format_chunk_size - sizeof(wave_format_header);
-        if(remaining_format_bytes > 0 && !sound_seek_packfile_forward(packfile_handle, remaining_format_bytes))
-        {
+        if(remaining_format_bytes > 0 && !sound_seek_packfile_forward(packfile_handle, remaining_format_bytes)) {
             closepackfile(packfile_handle);
-            return 0;
+            return false;
         }
 
         format_chunk_found = 1;
@@ -337,100 +324,90 @@ static int loadwave(char *filename, char *packname, samplestruct *sample, uint64
 
     if(wave_format_header.format != FMT_PCM ||
        (wave_format_header.channels != 1 && wave_format_header.channels != 2) ||
-       (wave_format_header.samplebits != 8 && wave_format_header.samplebits != 16))
-    {
+       (wave_format_header.samplebits != 8 && wave_format_header.samplebits != 16)) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     bytes_per_sample_unit = (uint64_t)(wave_format_header.samplebits / 8U);
-    if(bytes_per_sample_unit == 0 || wave_format_header.blockalign == 0)
-    {
+    if(bytes_per_sample_unit == 0 || wave_format_header.blockalign == 0) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     /*
-    * The mixer indexes 8-bit data by byte and 16-bit data by 16-bit element.
-    * Keep soundlen in those existing mixer units to avoid changing playback.
+    * Retain soundlen in scalar sample units as cache metadata. Playback uses
+    * framecount so stereo channel pairs always advance together.
     */
-    if(wave_format_header.blockalign != wave_format_header.channels * bytes_per_sample_unit)
-    {
+    if(wave_format_header.blockalign != wave_format_header.channels * bytes_per_sample_unit) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     /*
     * Find the sample data chunk after the format has been validated.
     */
-    for(;;)
-    {
-        if(!sound_read_wave_chunk_header(packfile_handle, &wave_chunk_header))
-        {
+    for(;;) {
+
+        if(!sound_read_wave_chunk_header(packfile_handle, &wave_chunk_header)) {
             closepackfile(packfile_handle);
-            return 0;
+            return false;
         }
 
-        if(wave_chunk_header.tag == HEX_data)
-        {
+        if(wave_chunk_header.tag == HEX_data) {
             data_chunk_size = wave_chunk_header.size;
             break;
         }
 
-        if(!sound_seek_packfile_forward(packfile_handle, wave_chunk_header.size))
-        {
+        if(!sound_seek_packfile_forward(packfile_handle, wave_chunk_header.size)) {
             closepackfile(packfile_handle);
-            return 0;
+            return false;
         }
     }
 
     sample_data_bytes = data_chunk_size;
-    if(sample_data_bytes > maximum_data_bytes)
-    {
+    if(sample_data_bytes > maximum_data_bytes) {
         sample_data_bytes = maximum_data_bytes;
     }
 
     /*
-    * Only complete PCM frames are exposed to the mixer. This prevents partial
-    * trailing bytes from being addressable if a malformed file or cap appears.
+    * Only complete PCM frames are exposed to 
+    * the mixer. This prevents partial trailing 
+    * bytes from being addressable if a malformed 
+    * file or cap appears.
     */
     sample_data_bytes -= sample_data_bytes % wave_format_header.blockalign;
-    if(sample_data_bytes == 0)
-    {
+    if(sample_data_bytes == 0) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     sample_unit_count = sample_data_bytes / bytes_per_sample_unit;
     complete_frame_count = sample_data_bytes / wave_format_header.blockalign;
-    if(sample_unit_count > SOUND_SAMPLE_FIXED_MAX_INTEGER)
-    {
+    if(complete_frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
-    if(sample_data_bytes > (uint64_t)(SIZE_MAX - 8U))
-    {
+    if(sample_data_bytes > (uint64_t)(SIZE_MAX - 8U)) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     allocation_size = (size_t)sample_data_bytes + 8U;
     sample->sampleptr = malloc(allocation_size);
-    if(sample->sampleptr == NULL)
-    {
+    if(sample->sampleptr == NULL) {
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     memset(sample->sampleptr, wave_format_header.samplebits == 8 ? 0x80 : 0x00, allocation_size);
 
-    if(!sound_read_packfile_exact(packfile_handle, sample->sampleptr, sample_data_bytes))
-    {
+    if(!sound_read_packfile_exact(packfile_handle, sample->sampleptr, sample_data_bytes)) {
         free(sample->sampleptr);
         sample->sampleptr = NULL;
         closepackfile(packfile_handle);
-        return 0;
+        return false;
     }
 
     closepackfile(packfile_handle);
@@ -443,62 +420,81 @@ static int loadwave(char *filename, char *packname, samplestruct *sample, uint64
     sample->channels = wave_format_header.channels;
     sample->blockalign = wave_format_header.blockalign;
 
-    return 1;
+    return true;
 }
 
-int sound_reload_sample(int index)
-{
-    if(!mixing_inited)
-    {
-        return 0;
+bool sound_reload_sample(int index) {
+    
+    if(!mixing_inited) {
+        return false;
     }
-    if(index < 0 || index >= sound_cached)
-    {
-        return 0;
+
+    if(index < 0 || index >= sound_cached) {
+        return false;
     }
-    if(!soundcache[index].sample.sampleptr)
-    {
+
+    if(!soundcache[index].sample.sampleptr) {
+
         //printf("packfile: '%s'\n", packfile);
         return loadwave(soundcache[index].filename, packfile, &(soundcache[index].sample), sound_parameters.sound_length_max);
-    }
-    else
-    {
-        return 1;
+    
+    } else {
+        return true;
     }
 }
 
 
 // Load a sound or return index
-int sound_load_sample(char *filename, char *packfilename, int iLog)
-{
+int sound_load_sample(char *filename, char *packfilename, bool log_errors) {
+
     s_soundcache *cache;
     samplestruct sample;
     static char convcache[256];
-    if(!mixing_inited)
-    {
+    
+    if(!mixing_inited) {
         return -1;
     }
+
     /////////////////////////////
     strcpy(convcache, filename);
     lc(convcache, strlen(convcache));
-    if(List_FindByName(&audio_global.samplelist, convcache))
+
+    /*
+    * First look for existing sample in the cache. If
+    * it is found, then attempt to restore the sample 
+    * pointer if it is NULL and return its index. If 
+    * the sample  cannot be restored, log an error.
+    */
     {
-        cache = &soundcache[(size_t)List_Retrieve(&audio_global.samplelist)];
-        if(!cache->sample.sampleptr)
-        {
-            if(!sound_reload_sample(cache->index) && iLog)
-            {
-                printf("sound_load_sample can't restore sampleptr from file '%s'!\n", filename);
+        const bool sample_found = List_FindByName(&audio_global.samplelist, convcache);
+
+        if(sample_found) {
+            
+            cache = &soundcache[(size_t)List_Retrieve(&audio_global.samplelist)];
+            
+            if(!cache->sample.sampleptr) {
+
+                const bool reload_success = sound_reload_sample(cache->index);
+
+                if(!reload_success && log_errors) {
+                    printf("sound_load_sample can't restore sampleptr from file '%s'!\n", filename);
+                }
             }
+            return cache->index;
         }
-        return cache->index;
     }
 
+    /*
+    * No existing sample was found in the cache, so 
+    * attempt to load it from the packfile.
+    */
+    
     memset(&sample, 0, sizeof(sample));
-    if(!loadwave(filename, packfilename, &sample, sound_parameters.sound_length_max))
-    {
-        if(iLog)
-        {
+
+    const bool load_success = loadwave(filename, packfilename, &sample, sound_parameters.sound_length_max);
+
+    if(!load_success) {
+        if(log_errors) {
             printf("sound_load_sample can't load sample from file '%s'!\n", filename);
         }
         return -1;
@@ -514,7 +510,6 @@ int sound_load_sample(char *filename, char *packfilename, int iLog)
 
     sound_cached++;
     return sound_cached - 1;
-
 }
 
 // Changed to conserve memory: added this function
@@ -577,28 +572,34 @@ static void clearmixbuffer(unsigned int *buf, int n)
 
 
 /*
-* Advance a sample cursor without allowing 64-bit addition to wrap. The caller
-* uses sample_end_reached to decide whether one-shot playback should stop.
+* Advance a PCM frame cursor without allowing 
+* 64-bit addition to wrap. Once the end is reached, 
+* preserve any overshoot and resume from loop_start_fixed.
+* The caller uses sample_end_reached to stop one-shot 
+* playback.
 */
-static sound_sample_fixed_t sound_sample_position_advance(sound_sample_fixed_t sample_position_fixed, sound_sample_fixed_t sample_period_fixed, sound_sample_fixed_t sample_length_fixed, int *sample_end_reached)
+static sound_sample_fixed_t sound_sample_position_advance(sound_sample_fixed_t sample_position_fixed, sound_sample_fixed_t sample_period_fixed, sound_sample_fixed_t sample_length_fixed, sound_sample_fixed_t loop_start_fixed, int *sample_end_reached)
 {
-    sound_sample_fixed_t advanced_sample_position;
+    sound_sample_fixed_t distance_to_end;
+    sound_sample_fixed_t loop_length_fixed;
 
-    if(sample_period_fixed > UINT64_MAX - sample_position_fixed)
+    if(sample_position_fixed >= sample_length_fixed || loop_start_fixed >= sample_length_fixed)
     {
         *sample_end_reached = 1;
-        return ((sample_position_fixed % sample_length_fixed) + (sample_period_fixed % sample_length_fixed)) % sample_length_fixed;
+        return 0;
     }
 
-    advanced_sample_position = sample_position_fixed + sample_period_fixed;
-    if(advanced_sample_position >= sample_length_fixed)
+    distance_to_end = sample_length_fixed - sample_position_fixed;
+    if(sample_period_fixed < distance_to_end)
     {
-        *sample_end_reached = 1;
-        return advanced_sample_position % sample_length_fixed;
+        *sample_end_reached = 0;
+        return sample_position_fixed + sample_period_fixed;
     }
 
-    *sample_end_reached = 0;
-    return advanced_sample_position;
+    *sample_end_reached = 1;
+    loop_length_fixed = sample_length_fixed - loop_start_fixed;
+
+    return loop_start_fixed + ((sample_period_fixed - distance_to_end) % loop_length_fixed);
 }
 
 
@@ -670,8 +671,10 @@ static void mixaudio(unsigned int todo)
     {
         if(vchannel[channel_index].active && !vchannel[channel_index].paused)
         {
-            uint64_t sample_length_units;
+            samplestruct *sample;
+            uint64_t sample_frame_count;
             sound_sample_fixed_t sample_length_fixed;
+            sound_sample_fixed_t loop_start_fixed;
             sound_sample_fixed_t sample_position_fixed;
             sound_sample_fixed_t sample_period_fixed;
             int sample_index;
@@ -683,38 +686,46 @@ static void mixaudio(unsigned int todo)
                 continue;
             }
 
-            sample_length_units = soundcache[sample_index].sample.soundlen;
-            if(sample_length_units < 1 || sample_length_units > SOUND_SAMPLE_FIXED_MAX_INTEGER)
+            sample = &soundcache[sample_index].sample;
+            sample_frame_count = sample->framecount;
+            if(sample_frame_count < 1 ||
+               sample_frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
+               (sample->channels != CHANNEL_TYPE_MONO && sample->channels != CHANNEL_TYPE_STEREO))
             {
                 vchannel[channel_index].active = 0;
                 continue;
             }
 
-            sample_length_fixed = SOUND_SAMPLE_INT_TO_FIX(sample_length_units);
+            sample_length_fixed = SOUND_SAMPLE_INT_TO_FIX(sample_frame_count);
+            loop_start_fixed = vchannel[channel_index].active == CHANNEL_LOOPING ? vchannel[channel_index].fp_loop_start : 0;
             sample_position_fixed = vchannel[channel_index].fp_samplepos;
             sample_period_fixed = vchannel[channel_index].fp_period;
             left_volume = vchannel[channel_index].volume[SOUND_SPATIAL_CHANNEL_LEFT];
             right_volume = vchannel[channel_index].volume[SOUND_SPATIAL_CHANNEL_RIGHT];
 
-            if(soundcache[sample_index].sample.bits == 8)
+            if(sample->bits == 8)
             {
-                unsigned char *sample_data_8bit = soundcache[sample_index].sample.sampleptr;
+                unsigned char *sample_data_8bit = sample->sampleptr;
 
-                for(output_position = 0; output_position < (int)todo;)
+                for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX)
                 {
+                    size_t left_sample_index;
+                    size_t right_sample_index;
                     size_t sample_position_index;
 
                     sample_position_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(sample_position_fixed);
-                    left_sample_value = right_sample_value = sample_data_8bit[sample_position_index];
-                    mixbuf[output_position++] += ((left_sample_value << 8) * left_volume / MAX_SAMPLE_VOLUME) - 0x8000;
-                    if(vchannel[channel_index].channels == CHANNEL_TYPE_MONO)
-                    {
-                        mixbuf[output_position++] += ((right_sample_value << 8) * right_volume / MAX_SAMPLE_VOLUME) - 0x8000;
-                    }
+                    left_sample_index = sample_position_index * (size_t)sample->channels;
+                    right_sample_index = sample->channels == CHANNEL_TYPE_STEREO ? left_sample_index + 1U : left_sample_index;
+
+                    /* Unsigned 8-bit PCM is centered on 0x80, not zero. */
+                    left_sample_value = ((int)sample_data_8bit[left_sample_index] - 0x80) * 0x100;
+                    right_sample_value = ((int)sample_data_8bit[right_sample_index] - 0x80) * 0x100;
+                    mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
+                    mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
                     {
                         int sample_end_reached;
 
-                        sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, &sample_end_reached);
+                        sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, loop_start_fixed, &sample_end_reached);
                         if(sample_end_reached && vchannel[channel_index].active != CHANNEL_LOOPING)
                         {
                             vchannel[channel_index].active = 0;
@@ -723,25 +734,28 @@ static void mixaudio(unsigned int todo)
                     }
                 }
             }
-            else if(soundcache[sample_index].sample.bits == 16)
+            else if(sample->bits == 16)
             {
-                short *sample_data_16bit = soundcache[sample_index].sample.sampleptr;
+                short *sample_data_16bit = sample->sampleptr;
 
-                for(output_position = 0; output_position < (int)todo;)
+                for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX)
                 {
+                    size_t left_sample_index;
+                    size_t right_sample_index;
                     size_t sample_position_index;
 
                     sample_position_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(sample_position_fixed);
-                    left_sample_value = right_sample_value = (int)(short)SwapLSB16(sample_data_16bit[sample_position_index]);
-                    mixbuf[output_position++] += (left_sample_value * left_volume / MAX_SAMPLE_VOLUME);
-                    if(vchannel[channel_index].channels == CHANNEL_TYPE_MONO)
-                    {
-                        mixbuf[output_position++] += (right_sample_value * right_volume / MAX_SAMPLE_VOLUME);
-                    }
+                    left_sample_index = sample_position_index * (size_t)sample->channels;
+                    right_sample_index = sample->channels == CHANNEL_TYPE_STEREO ? left_sample_index + 1U : left_sample_index;
+
+                    left_sample_value = (int)(short)SwapLSB16(sample_data_16bit[left_sample_index]);
+                    right_sample_value = (int)(short)SwapLSB16(sample_data_16bit[right_sample_index]);
+                    mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
+                    mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
                     {
                         int sample_end_reached;
 
-                        sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, &sample_end_reached);
+                        sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, loop_start_fixed, &sample_end_reached);
                         if(sample_end_reached && vchannel[channel_index].active != CHANNEL_LOOPING)
                         {
                             vchannel[channel_index].active = 0;
@@ -812,29 +826,27 @@ void update_sample(unsigned char *buf, int size)
 // Functions to start, stop, loop, etc.
 
 /*
-* Calculate sample playback period with the same formula as the old mixer,
-* but keep the math in 64-bit fixed-point for long sample support.
+* Calculate sample playback period with the 
+* same formula as the old mixer, but keep the 
+* math in 64-bit fixed-point for long sample 
+* support.
 */
-static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, int sample_frequency)
-{
+static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, int sample_frequency) {
     uint64_t sample_period;
 
-    if(sample_frequency <= 0 || playfrequency <= 0)
-    {
+    if(sample_frequency <= 0 || playfrequency <= 0) {
         return SOUND_SAMPLE_FIXED_ONE;
     }
 
     sample_period = SOUND_SAMPLE_FIXED_ONE;
     sample_period = sample_period * (uint64_t)speed / 100U;
 
-    if(sample_period > UINT64_MAX / (uint64_t)sample_frequency)
-    {
+    if(sample_period > UINT64_MAX / (uint64_t)sample_frequency) {
         return UINT64_MAX;
     }
 
     sample_period = sample_period * (uint64_t)sample_frequency / (uint64_t)playfrequency;
-    if(sample_period == 0)
-    {
+    if(sample_period == 0) {
         sample_period = 1;
     }
 
@@ -843,9 +855,8 @@ static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, in
 
 // Speed in percents of normal.
 // Returns channel the sample is played on or -1 if not playing.
-int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed)
+static int sound_play_sample_internal(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, int looping, uint64_t loop_start_frame)
 {
-
     int i;
     unsigned int prio_low;
     int channel;
@@ -912,37 +923,49 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
         rvolume = MAX_SAMPLE_VOLUME;
     }
 
-    if(soundcache[samplenum].sample.soundlen < 1 || soundcache[samplenum].sample.soundlen > SOUND_SAMPLE_FIXED_MAX_INTEGER)
+    if(soundcache[samplenum].sample.framecount < 1 ||
+       soundcache[samplenum].sample.framecount > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
+       (soundcache[samplenum].sample.channels != CHANNEL_TYPE_MONO &&
+        soundcache[samplenum].sample.channels != CHANNEL_TYPE_STEREO) ||
+       (looping && loop_start_frame >= soundcache[samplenum].sample.framecount))
     {
         return -1;
     }
 
+    vchannel[channel].active = 0;
     vchannel[channel].samplenum = samplenum;
     /*
     * Prevent samples from being played at the exact same point while keeping
-    * the widened sample cursor inside the addressable sample length.
+    * the widened frame cursor inside the addressable sample length. Divide by
+    * the source channel count to preserve the old scalar-sample offset.
     */
-    vchannel[channel].fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(((uint64_t)channel * 4U) % soundcache[samplenum].sample.soundlen);
+    vchannel[channel].fp_samplepos = SOUND_SAMPLE_INT_TO_FIX((((uint64_t)channel * 4U) / (uint64_t)soundcache[samplenum].sample.channels) % soundcache[samplenum].sample.framecount);
     vchannel[channel].fp_period = sound_sample_period_calculate(speed, soundcache[samplenum].sample.frequency);
+    vchannel[channel].fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
     vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
     vchannel[channel].volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
     vchannel[channel].priority = priority;
     vchannel[channel].channels = soundcache[samplenum].sample.channels;
-    vchannel[channel].active = CHANNEL_PLAYING;
     vchannel[channel].paused = 0;
     vchannel[channel].playid = ++audio_global.sample_play_id;
+    vchannel[channel].active = looping ? CHANNEL_LOOPING : CHANNEL_PLAYING;
 
     return channel;
 }
 
+int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed)
+{
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0);
+}
+
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed)
 {
-    int ch = sound_play_sample(samplenum, priority, lvolume, rvolume, speed);
-    if(ch >= 0)
-    {
-        vchannel[ch].active = CHANNEL_LOOPING;
-    }
-    return ch;
+    return sound_loop_sample_offset(samplenum, priority, lvolume, rvolume, speed, 0);
+}
+
+int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t loop_start_frame)
+{
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, loop_start_frame);
 }
 
 int sound_query_channel(int playid)
@@ -1907,4 +1930,3 @@ int maxchannels()
 {
     return MAX_CHANNELS;
 }
-

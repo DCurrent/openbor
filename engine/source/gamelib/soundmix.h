@@ -19,7 +19,7 @@
 **	Sound mixer.
 **	Now supports ADPCM instead of MP3 (costs less CPU time).
 **
-**	Also plays WAV files (unsigned, mono, both 8-bit and 16-bit).
+**	Also plays WAV files (mono or stereo, both 8-bit and 16-bit).
 */
 
 /*
@@ -82,8 +82,9 @@ typedef struct
     int            volume[SOUND_SPATIAL_CHANNEL_MAX];	 // Stereo :)
     int            channels;
     
-    sound_sample_fixed_t fp_samplepos;  // Fixed point sample position.
-    sound_sample_fixed_t fp_period;     // Fixed point playback period (advance per output sample).
+    sound_sample_fixed_t fp_samplepos;  // Fixed point PCM frame position.
+    sound_sample_fixed_t fp_period;     // Fixed point playback period (advance per output frame).
+    sound_sample_fixed_t fp_loop_start; // Fixed point PCM frame position to resume looping.
 } channelstruct;
 
 typedef struct
@@ -91,7 +92,7 @@ typedef struct
     void* sampleptr;
     
     uint64_t       soundbytes;  // Raw bytes loaded from the WAV data chunk.    
-    uint64_t       soundlen;    // Mixer-addressable sample units, not bytes.    
+    uint64_t       soundlen;    // Scalar PCM sample units retained as cache metadata.
     uint64_t       framecount;  // Complete PCM frames loaded from the WAV data chunk.
     int            bits;
     int            frequency;
@@ -141,8 +142,8 @@ int sound_init(int channels);
 
 // Returns interval in milliseconds
 u32 sound_getinterval();
-int sound_load_sample(char *filename, char *packfilename, int iLog);
-int sound_reload_sample(int index);
+int sound_load_sample(char *filename, char *packfilename, bool iLog);
+bool sound_reload_sample(int index);
 void sound_unload_sample(int index);
 void sound_unload_all_samples();
 int sound_query_channel(int playid);
@@ -150,6 +151,8 @@ int sound_id(int channel);
 int sound_is_active(int channel);
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
+// loop_start_frame is the PCM frame used after the first pass reaches the end.
+int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t loop_start_frame);
 void sound_stop_sample(int channel);
 void sound_stopall_sample();
 void sound_pause_sample(int toggle);
