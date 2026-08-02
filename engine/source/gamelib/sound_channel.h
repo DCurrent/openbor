@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include "sound_stream.h"
+#include "types.h"
 
 /*
 * Caskey, Damon V.
@@ -31,6 +32,29 @@
 typedef uint64_t sound_sample_fixed_t;
 typedef uint64_t sound_sample_position_t;
 
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Pool masks identify banks with a shared state.
+* Channel masks identify slots within one bank.
+*/
+typedef enum e_sound_channel_bank_mask {
+    SOUND_CHANNEL_BANK_MASK_ALLOCATED,
+    SOUND_CHANNEL_BANK_MASK_ACTIVE,
+    SOUND_CHANNEL_BANK_MASK_AVAILABLE,
+    SOUND_CHANNEL_BANK_MASK_STREAMING,
+    SOUND_CHANNEL_BANK_MASK_END
+} e_sound_channel_bank_mask;
+
+typedef enum e_sound_channel_mask {
+    SOUND_CHANNEL_MASK_ACTIVE,
+    SOUND_CHANNEL_MASK_PAUSED,
+    SOUND_CHANNEL_MASK_RESERVED,
+    SOUND_CHANNEL_MASK_STREAMING,
+    SOUND_CHANNEL_MASK_END
+} e_sound_channel_mask;
+
 #define SOUND_SAMPLE_FIXED_SHIFT        16U
 #define SOUND_SAMPLE_FIXED_ONE          ((sound_sample_fixed_t)1U << SOUND_SAMPLE_FIXED_SHIFT)
 #define SOUND_SAMPLE_FIXED_MAX_INTEGER  (UINT64_MAX >> SOUND_SAMPLE_FIXED_SHIFT)
@@ -38,6 +62,8 @@ typedef uint64_t sound_sample_position_t;
 #define SOUND_SAMPLE_FIX_TO_INT(fixed_value) ((sound_sample_position_t)((fixed_value) >> SOUND_SAMPLE_FIXED_SHIFT))
 
 typedef struct s_sound_channel {
+    e_object_type object_type;
+    int index;        /* Flattened public channel index. */
     int active;       /* 1 = play, 2 = loop. */
     int paused;
     int samplenum;    /* Index of sound playing. */
@@ -75,6 +101,9 @@ void sound_channel_pool_destroy(s_sound_channel_pool *pool);
 bool sound_channel_pool_allocate_bank(s_sound_channel_pool *pool, unsigned int bank_index);
 int sound_channel_pool_acquire(s_sound_channel_pool *pool);
 channelstruct *sound_channel_pool_get(s_sound_channel_pool *pool, int channel);
+int sound_channel_pool_get_index(const s_sound_channel_pool *pool, const channelstruct *record);
+uint64_t sound_channel_pool_get_bank_mask(const s_sound_channel_pool *pool, e_sound_channel_bank_mask mask);
+uint64_t sound_channel_pool_get_mask(const s_sound_channel_pool *pool, unsigned int bank_index, e_sound_channel_mask mask);
 bool sound_channel_pool_is_active(const s_sound_channel_pool *pool, int channel);
 void sound_channel_pool_activate(s_sound_channel_pool *pool, int channel, int active_state);
 void sound_channel_pool_deactivate(s_sound_channel_pool *pool, int channel);

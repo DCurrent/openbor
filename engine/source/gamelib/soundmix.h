@@ -45,7 +45,8 @@ typedef enum e_sound_file_type
 {
     SOUND_FILE_TYPE_NONE = -1,
     SOUND_FILE_TYPE_ADPCM = 0,
-    SOUND_FILE_TYPE_SAMPLE = 1
+    SOUND_FILE_TYPE_SAMPLE = 1,
+    SOUND_FILE_TYPE_VORBIS = SOUND_FILE_TYPE_SAMPLE /* Legacy script alias. */
 } e_sound_file_type;
 
 typedef enum e_sound_sample_file_type
@@ -143,6 +144,10 @@ bool sound_reload_sample(int index);
 void sound_unload_sample(int index);
 void sound_unload_all_samples();
 int sound_query_channel(int playid);
+channelstruct *sound_get_channel_object(int channel);
+int sound_get_channel_index(const channelstruct *record);
+uint64_t sound_get_channel_bank_mask(e_sound_channel_bank_mask mask);
+uint64_t sound_get_channel_mask(unsigned int bank_index, e_sound_channel_mask mask);
 int sound_id(int channel);
 int sound_is_active(int channel);
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
@@ -155,6 +160,10 @@ void sound_stopall_sample();
 void sound_pause_sample(int toggle);
 void sound_pause_single_sample(int toggle, int channel);
 void sound_volume_sample(int channel, int lvolume, int rvolume);
+bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame);
+bool sound_set_channel_period(int channel, uint64_t period);
+bool sound_set_channel_position(int channel, uint64_t sample_position);
+bool sound_set_channel_volume_divisor(int channel, int volume_divisor);
 int sound_getpos_sample(int channel);
 void sound_music_channel_clear(musicchannelstruct* const music_channel);
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset);

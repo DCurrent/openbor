@@ -65,7 +65,6 @@ LOCAL_C_INCLUDES  :=  \
 	$(LOCAL_PATH)/../../../../sdl \
 	$(LOCAL_PATH)/../../../../resources \
 	$(LOCAL_PATH)/../../../../source \
-	$(LOCAL_PATH)/../../../../source/adpcmlib \
 	$(LOCAL_PATH)/../../../../source/gamelib \
 	$(LOCAL_PATH)/../../../../source/gfxlib \
 	$(LOCAL_PATH)/../../../../source/pnglib \

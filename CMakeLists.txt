@@ -134,7 +134,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-Werror -O3 -DNDEBUG")
 target_include_directories(${PROJECT_NAME} PRIVATE 
   engine/
   engine/source
-  engine/source/adpcmlib
   engine/source/gamelib
   engine/source/gfxlib
   engine/source/openborscript

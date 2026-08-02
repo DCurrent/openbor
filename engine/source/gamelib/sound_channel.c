@@ -112,6 +112,11 @@ bool sound_channel_pool_allocate_bank(s_sound_channel_pool *pool, unsigned int b
     }
 
     for(channel_index = 0; channel_index < SOUND_CHANNEL_BANK_SIZE; channel_index++) {
+        pool->bank[bank_index]->channel[channel_index].object_type = OBJECT_TYPE_SOUND;
+        pool->bank[bank_index]->channel[channel_index].index =
+            ((int)bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + (int)channel_index;
+        pool->bank[bank_index]->channel[channel_index].samplenum = -1;
+        pool->bank[bank_index]->channel[channel_index].playid = -1;
         sound_stream_init(&pool->bank[bank_index]->channel[channel_index].stream);
     }
 
@@ -185,6 +190,85 @@ channelstruct *sound_channel_pool_get(s_sound_channel_pool *pool, int channel) {
     }
 
     return &pool->bank[bank_index]->channel[channel_index];
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Resolve a stable channel object back to its
+* flattened public index.
+*/
+int sound_channel_pool_get_index(const s_sound_channel_pool *pool, const channelstruct *record) {
+    channelstruct *indexed_record;
+
+    if(!pool || !record || record->object_type != OBJECT_TYPE_SOUND) {
+        return -1;
+    }
+
+    indexed_record = sound_channel_pool_get((s_sound_channel_pool*)pool, record->index);
+    return indexed_record == record ? record->index : -1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Return a pool-level mask describing allocated,
+* active, available, or streaming banks.
+*/
+uint64_t sound_channel_pool_get_bank_mask(const s_sound_channel_pool *pool, e_sound_channel_bank_mask mask) {
+    if(!pool) {
+        return 0;
+    }
+
+    switch(mask) {
+        case SOUND_CHANNEL_BANK_MASK_ALLOCATED:
+            return pool->allocated_bank_mask;
+        case SOUND_CHANNEL_BANK_MASK_ACTIVE:
+            return pool->active_bank_mask;
+        case SOUND_CHANNEL_BANK_MASK_AVAILABLE:
+            return pool->available_bank_mask;
+        case SOUND_CHANNEL_BANK_MASK_STREAMING:
+            return pool->streaming_bank_mask;
+        case SOUND_CHANNEL_BANK_MASK_END:
+        default:
+            return 0;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Return a channel-state mask from one allocated
+* bank. Unallocated banks contain no set channels.
+*/
+uint64_t sound_channel_pool_get_mask(const s_sound_channel_pool *pool, unsigned int bank_index, e_sound_channel_mask mask) {
+    const s_sound_channel_bank *bank;
+
+    if(!pool || bank_index >= SOUND_CHANNEL_BANK_COUNT) {
+        return 0;
+    }
+
+    bank = pool->bank[bank_index];
+    if(!bank) {
+        return 0;
+    }
+
+    switch(mask) {
+        case SOUND_CHANNEL_MASK_ACTIVE:
+            return bank->active_mask;
+        case SOUND_CHANNEL_MASK_PAUSED:
+            return bank->paused_mask;
+        case SOUND_CHANNEL_MASK_RESERVED:
+            return bank->reserved_mask;
+        case SOUND_CHANNEL_MASK_STREAMING:
+            return bank->streaming_mask;
+        case SOUND_CHANNEL_MASK_END:
+        default:
+            return 0;
+    }
 }
 
 /*

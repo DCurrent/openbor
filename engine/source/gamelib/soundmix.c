@@ -49,7 +49,7 @@ Caution: move vorbis headers here otherwise the structs will
 #endif
 #include "soundmix.h"
 #include "globals.h"
-#include "adpcm.h"
+#include "adpcmlib/adpcm.h"
 #include "sblaster.h"
 #include "borendian.h"
 #include "packfile.h"
@@ -1669,14 +1669,22 @@ static void sound_stream_close_channel(int channel, channelstruct *record) {
 * stream buffers retained by the channel.
 */
 static void sound_channel_record_clear(channelstruct *record) {
+    e_object_type object_type;
+    int index;
     s_sound_stream retained_stream;
 
     if(!record) {
         return;
     }
 
+    object_type = record->object_type;
+    index = record->index;
     retained_stream = record->stream;
     memset(record, 0, sizeof(*record));
+    record->object_type = object_type;
+    record->index = index;
+    record->samplenum = -1;
+    record->playid = -1;
     record->stream = retained_stream;
 }
 
@@ -2153,6 +2161,50 @@ int sound_query_channel(int playid) {
     return -1;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Return the stable sound object assigned to a
+* flattened channel index.
+*/
+channelstruct *sound_get_channel_object(int channel) {
+    return sound_channel_pool_get(&sound_channel_pool, channel);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Resolve a sound object to its flattened channel
+* index after verifying pool ownership.
+*/
+int sound_get_channel_index(const channelstruct *record) {
+    return sound_channel_pool_get_index(&sound_channel_pool, record);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Return a pool-level bank mask for script and
+* engine channel traversal.
+*/
+uint64_t sound_get_channel_bank_mask(e_sound_channel_bank_mask mask) {
+    return sound_channel_pool_get_bank_mask(&sound_channel_pool, mask);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Return one state mask from an allocated channel
+* bank. Unallocated banks return an empty mask.
+*/
+uint64_t sound_get_channel_mask(unsigned int bank_index, e_sound_channel_mask mask) {
+    return sound_channel_pool_get_mask(&sound_channel_pool, bank_index, mask);
+}
+
 int sound_id(int channel) {
     channelstruct *record;
 
@@ -2226,6 +2278,179 @@ void sound_volume_sample(int channel, int lvolume, int rvolume) {
     }
     record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
     record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Restart a streamed channel from a requested frame
+* while preserving its loop and pause state.
+*/
+static bool sound_reconfigure_streamed_channel(
+    int channel,
+    channelstruct *record,
+    uint64_t start_frame,
+    uint64_t loop_start_frame
+) {
+    s_soundcache *cache;
+    int active_state;
+    int paused;
+
+    if(!record ||
+       record->samplenum < 0 ||
+       record->samplenum >= sound_cached ||
+       !soundcache[record->samplenum].stream ||
+       !sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        return false;
+    }
+
+    cache = &soundcache[record->samplenum];
+    if(start_frame >= cache->sample.framecount ||
+       loop_start_frame >= cache->sample.framecount ||
+       start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
+       loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        return false;
+    }
+
+    active_state = record->active;
+    paused = record->paused;
+
+    sound_channel_pool_deactivate(&sound_channel_pool, channel);
+    sound_stream_close_channel(channel, record);
+
+    if(!sound_stream_open_channel(
+        channel,
+        record,
+        cache,
+        start_frame,
+        active_state == CHANNEL_LOOPING,
+        loop_start_frame
+    )) {
+        return false;
+    }
+
+    record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(start_frame);
+    record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
+    sound_channel_pool_activate(&sound_channel_pool, channel, active_state);
+
+    if(paused) {
+        sound_channel_pool_pause(&sound_channel_pool, channel, 1);
+    }
+
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Set the automatic-loop frame. Streamed playback
+* is requeued so prefetched data uses the new loop.
+*/
+bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame) {
+    channelstruct *record;
+    samplestruct *sample;
+    uint64_t sample_position;
+
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record || record->samplenum < 0 || record->samplenum >= sound_cached) {
+        return false;
+    }
+
+    sample = &soundcache[record->samplenum].sample;
+    if(loop_start_frame >= sample->framecount ||
+       loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        return false;
+    }
+
+    if(soundcache[record->samplenum].stream &&
+       sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        sample_position = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
+        return sound_reconfigure_streamed_channel(
+            channel,
+            record,
+            sample_position,
+            loop_start_frame
+        );
+    }
+
+    record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Set the raw fixed-point playback period. Zero is
+* rejected because it would stall the channel.
+*/
+bool sound_set_channel_period(int channel, uint64_t period) {
+    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+
+    if(!record || period == 0) {
+        return false;
+    }
+
+    record->fp_period = period;
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Seek a resident or streamed sound object to a PCM
+* frame without changing automatic-loop behavior.
+*/
+bool sound_set_channel_position(int channel, uint64_t sample_position) {
+    channelstruct *record;
+    samplestruct *sample;
+    uint64_t loop_start_frame;
+
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record || record->samplenum < 0 || record->samplenum >= sound_cached) {
+        return false;
+    }
+
+    sample = &soundcache[record->samplenum].sample;
+    if(sample_position >= sample->framecount ||
+       sample_position > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        return false;
+    }
+
+    if(soundcache[record->samplenum].stream &&
+       sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        loop_start_frame = SOUND_SAMPLE_FIX_TO_INT(record->fp_loop_start);
+        return sound_reconfigure_streamed_channel(
+            channel,
+            record,
+            sample_position,
+            loop_start_frame
+        );
+    }
+
+    record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(sample_position);
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Set the channel volume divisor while preventing
+* division by zero in the audio callback.
+*/
+bool sound_set_channel_volume_divisor(int channel, int volume_divisor) {
+    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+
+    if(!record || volume_divisor < 1) {
+        return false;
+    }
+
+    record->volume_divisor = volume_divisor;
+    return true;
 }
 
 int sound_getpos_sample(int channel) {

@@ -196,7 +196,6 @@ endif
 
 INCS 	       += .                                                                                 \
                   source                                                                            \
-                  source/adpcmlib                                                                   \
                   source/gamelib                                                                    \
                   source/preprocessorlib                                                            \
                   source/ramlib                                                                     \

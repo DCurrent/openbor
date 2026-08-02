@@ -349,6 +349,30 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_faction_property";
     }
+    else if (functionRef == ((void*)openbor_get_sound_channel_bank_mask))
+    {
+        return "get_sound_channel_bank_mask";
+    }
+    else if (functionRef == ((void*)openbor_get_sound_channel_mask))
+    {
+        return "get_sound_channel_mask";
+    }
+    else if (functionRef == ((void*)openbor_get_sound_channel_object))
+    {
+        return "get_sound_channel_object";
+    }
+    else if (functionRef == ((void*)openbor_get_sound_channel_index))
+    {
+        return "get_sound_channel_index";
+    }
+    else if (functionRef == ((void*)openbor_get_sound_property))
+    {
+        return "get_sound_property";
+    }
+    else if (functionRef == ((void*)openbor_set_sound_property))
+    {
+        return "set_sound_property";
+    }
     else if (functionRef == ((void*)openbor_get_icon_property))
     {
         return "get_icon_property";
@@ -1443,6 +1467,20 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_faction_property, "get_faction_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_faction_property, "set_faction_property");
+
+    /* Sound channel objects and masks. */
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_sound_channel_bank_mask, "get_sound_channel_bank_mask");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_sound_channel_mask, "get_sound_channel_mask");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_sound_channel_object, "get_sound_channel_object");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_sound_channel_index, "get_sound_channel_index");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_get_sound_property, "get_sound_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_set_sound_property, "set_sound_property");
 
     /* Flash config properties. */
     List_InsertAfter(&theFunctionList,
