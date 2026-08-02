@@ -10,8 +10,8 @@
 **	Sound mixer.
 **	High quality, with support for ADPCM and Vorbis-compressed music.
 **
-**	Also plays WAV files (8-bit, 16-bit, and 24-bit).
-**	Note: 8-bit WAVs are unsigned; 16-bit and 24-bit WAVs are signed.
+**	Also plays WAV files (8-bit, 16-bit, and 24-bit) and Ogg Vorbis.
+**	Note: 8-bit WAVs are unsigned; all other supported PCM is signed.
 **
 **
 **	Function naming convention:
@@ -54,7 +54,11 @@ Caution: move vorbis headers here otherwise the structs will
 #include "borendian.h"
 #include "packfile.h"
 
-
+#if TREMOR
+#define sound_vorbis_decode(vf, buffer, length, bitstream) ov_read(vf, buffer, length, bitstream)
+#else
+#define sound_vorbis_decode(vf, buffer, length, bitstream) ov_read(vf, buffer, length, 0, 2, 1, bitstream)
+#endif
 
 #define		MIXSHIFT		     3	    // 2 should be OK
 
@@ -111,7 +115,11 @@ static int mixing_inited = 0;
 static u32 samplesplayed;
 
 // Records type of currently playing music.
-static e_sound_file_type music_type = SOUND_FILE_TYPE_ADPCM;
+static e_sound_file_type music_type = SOUND_FILE_TYPE_NONE;
+static int music_sample_index = -1;
+static int music_sample_play_id = -1;
+
+#define SOUND_MUSIC_CHANNEL 0
 
 //////////////////////////////// WAVE LOADER //////////////////////////////////
 
@@ -449,6 +457,7 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
     sample->frequency = wave_format_header.samplerate;
     sample->channels = wave_format_header.channels;
     sample->blockalign = wave_format_header.blockalign;
+    sample->file_type = SOUND_SAMPLE_FILE_TYPE_WAVE;
 
     /* Streamed samples retain metadata only. */
     if(stream) {
@@ -482,6 +491,378 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
     return true;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Adapt dynamically allocated packfile handles to
+* the libvorbisfile callback contract. Decoder seeks
+* retain 64-bit packfile positions.
+*/
+static size_t sound_vorbis_pack_read(void *destination, size_t item_size, size_t item_count, void *source) {
+    int *handle = source;
+    size_t requested_items;
+    size_t requested_bytes;
+    int bytes_read;
+
+    if(!handle || *handle < 0 || item_size == 0 || item_count == 0) {
+        return 0;
+    }
+
+    requested_items = item_count;
+    if(requested_items > (size_t)INT_MAX / item_size) {
+        requested_items = (size_t)INT_MAX / item_size;
+    }
+    if(requested_items == 0) {
+        return 0;
+    }
+
+    requested_bytes = item_size * requested_items;
+    bytes_read = readpackfile(*handle, destination, (int)requested_bytes);
+    if(bytes_read <= 0) {
+        return 0;
+    }
+
+    return (size_t)bytes_read / item_size;
+}
+
+static int sound_vorbis_pack_seek(void *source, ogg_int64_t offset, int origin) {
+    int *handle = source;
+    packfile_signed_offset_t position;
+
+    if(!handle || *handle < 0 || offset < INT64_MIN || offset > INT64_MAX) {
+        return -1;
+    }
+
+    position = seekpackfile64(*handle, (packfile_signed_offset_t)offset, origin);
+    return position < 0 ? -1 : 0;
+}
+
+static int sound_vorbis_pack_close(void *source) {
+    int *handle = source;
+    int result;
+
+    if(!handle || *handle < 0) {
+        return 0;
+    }
+
+    result = closepackfile(*handle);
+    *handle = -1;
+    return result;
+}
+
+static long sound_vorbis_pack_tell(void *source) {
+    int *handle = source;
+    packfile_signed_offset_t position;
+
+    if(!handle || *handle < 0) {
+        return -1;
+    }
+
+    position = seekpackfile64(*handle, 0, SEEK_CUR);
+    if(position < 0 || (uint64_t)position > (uint64_t)LONG_MAX) {
+        return -1;
+    }
+
+    return (long)position;
+}
+
+static ov_callbacks sound_vorbis_callbacks = {
+    sound_vorbis_pack_read,
+    sound_vorbis_pack_seek,
+    sound_vorbis_pack_close,
+    sound_vorbis_pack_tell
+};
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Open one independent Vorbis decoder. The decoder
+* owns the dynamic packfile handle after a successful
+* ov_open_callbacks() call.
+*/
+static bool sound_vorbis_open_decoder(
+    const char *filename,
+    const char *packname,
+    int *handle,
+    OggVorbis_File **decoder
+) {
+    OggVorbis_File *new_decoder;
+
+    if(!filename || !packname || !handle || !decoder) {
+        return false;
+    }
+
+    *handle = openpackfile(filename, packname);
+    *decoder = NULL;
+    if(*handle < 0) {
+        return false;
+    }
+
+    new_decoder = malloc(sizeof(*new_decoder));
+    if(!new_decoder) {
+        closepackfile(*handle);
+        *handle = -1;
+        return false;
+    }
+
+    if(ov_open_callbacks(handle, new_decoder, NULL, 0, sound_vorbis_callbacks) != 0) {
+        free(new_decoder);
+        closepackfile(*handle);
+        *handle = -1;
+        return false;
+    }
+
+    *decoder = new_decoder;
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Close a Vorbis decoder and its callback-owned
+* packfile handle.
+*/
+static void sound_vorbis_close_decoder(int *handle, OggVorbis_File **decoder) {
+    if(decoder && *decoder) {
+        ov_clear(*decoder);
+        free(*decoder);
+        *decoder = NULL;
+    } else if(handle && *handle >= 0) {
+        closepackfile(*handle);
+        *handle = -1;
+    }
+}
+
+static void sound_vorbis_copy_comment(char destination[64], const char *source, size_t source_length) {
+    size_t copy_length;
+
+    if(!destination || !source) {
+        return;
+    }
+
+    copy_length = source_length < 63U ? source_length : 63U;
+    memcpy(destination, source, copy_length);
+    destination[copy_length] = '\0';
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Retain common Vorbis comments with sample metadata
+* so legacy music queries do not depend on global
+* decoder state.
+*/
+static void sound_vorbis_read_comments(OggVorbis_File *decoder, samplestruct *sample) {
+    vorbis_comment *comment;
+    int comment_index;
+
+    if(!decoder || !sample) {
+        return;
+    }
+
+    comment = ov_comment(decoder, -1);
+    if(!comment) {
+        return;
+    }
+
+    for(comment_index = 0; comment_index < comment->comments; comment_index++) {
+        const char *text = comment->user_comments[comment_index];
+        size_t text_length;
+
+        if(!text) {
+            continue;
+        }
+
+        text_length = comment->comment_lengths
+            ? (size_t)comment->comment_lengths[comment_index]
+            : strlen(text);
+
+        if(text_length >= 7U && memcmp(text, "ARTIST=", 7U) == 0) {
+            sound_vorbis_copy_comment(sample->artist, text + 7U, text_length - 7U);
+        } else if(text_length >= 6U && memcmp(text, "TITLE=", 6U) == 0) {
+            sound_vorbis_copy_comment(sample->title, text + 6U, text_length - 6U);
+        }
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Validate Ogg Vorbis and retain either decoded
+* 16-bit PCM or metadata for channel streaming.
+*/
+static bool loadvorbis(char *filename, char *packname, samplestruct *sample, uint64_t maximum_data_bytes, bool stream) {
+    OggVorbis_File *decoder = NULL;
+    vorbis_info *stream_info;
+    vorbis_info *link_info;
+    ogg_int64_t total_frames;
+    long logical_stream_count;
+    long logical_stream_index;
+    uint64_t retained_frames;
+    uint64_t retained_bytes;
+    size_t allocation_size;
+    size_t bytes_written;
+    int current_section = 0;
+    int handle = -1;
+
+    if(!sample) {
+        return false;
+    }
+
+    memset(sample, 0, sizeof(*sample));
+    if(!sound_vorbis_open_decoder(filename, packname, &handle, &decoder)) {
+        return false;
+    }
+
+    logical_stream_count = ov_streams(decoder);
+    stream_info = ov_info(decoder, 0);
+    total_frames = ov_pcm_total(decoder, -1);
+    if(logical_stream_count < 1 ||
+       logical_stream_count > INT_MAX ||
+       !stream_info ||
+       (stream_info->channels != CHANNEL_TYPE_MONO && stream_info->channels != CHANNEL_TYPE_STEREO) ||
+       stream_info->rate < SOUND_MUSIC_FREQUENCY_MIN ||
+       stream_info->rate > SOUND_MUSIC_FREQUENCY_MAX ||
+       total_frames <= 0 ||
+       (uint64_t)total_frames > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        sound_vorbis_close_decoder(&handle, &decoder);
+        return false;
+    }
+
+    /* Chained streams must retain one mixer-compatible PCM format. */
+    for(logical_stream_index = 1; logical_stream_index < logical_stream_count; logical_stream_index++) {
+        link_info = ov_info(decoder, (int)logical_stream_index);
+        if(!link_info ||
+           link_info->channels != stream_info->channels ||
+           link_info->rate != stream_info->rate) {
+            sound_vorbis_close_decoder(&handle, &decoder);
+            return false;
+        }
+    }
+
+    retained_frames = (uint64_t)total_frames;
+    if(retained_frames > UINT64_MAX / ((uint64_t)stream_info->channels * sizeof(int16_t))) {
+        sound_vorbis_close_decoder(&handle, &decoder);
+        return false;
+    }
+
+    retained_bytes = retained_frames * (uint64_t)stream_info->channels * sizeof(int16_t);
+    if(!stream && retained_bytes > maximum_data_bytes) {
+        retained_bytes = maximum_data_bytes;
+        retained_bytes -= retained_bytes % ((uint64_t)stream_info->channels * sizeof(int16_t));
+        retained_frames = retained_bytes / ((uint64_t)stream_info->channels * sizeof(int16_t));
+    }
+    if(retained_frames == 0) {
+        sound_vorbis_close_decoder(&handle, &decoder);
+        return false;
+    }
+
+    sample->soundbytes = retained_bytes;
+    sample->soundlen = retained_frames * (uint64_t)stream_info->channels;
+    sample->framecount = retained_frames;
+    sample->bits = 16;
+    sample->frequency = (int)stream_info->rate;
+    sample->channels = stream_info->channels;
+    sample->blockalign = stream_info->channels * (int)sizeof(int16_t);
+    sample->file_type = SOUND_SAMPLE_FILE_TYPE_VORBIS;
+    sound_vorbis_read_comments(decoder, sample);
+
+    if(stream) {
+        sound_vorbis_close_decoder(&handle, &decoder);
+        return true;
+    }
+
+    if(retained_bytes > (uint64_t)(SIZE_MAX - 8U)) {
+        sound_vorbis_close_decoder(&handle, &decoder);
+        return false;
+    }
+
+    allocation_size = (size_t)retained_bytes + 8U;
+    sample->sampleptr = malloc(allocation_size);
+    if(!sample->sampleptr || ov_pcm_seek(decoder, 0) != 0) {
+        free(sample->sampleptr);
+        sample->sampleptr = NULL;
+        sound_vorbis_close_decoder(&handle, &decoder);
+        return false;
+    }
+
+    memset(sample->sampleptr, 0, allocation_size);
+    bytes_written = 0;
+    while(bytes_written < (size_t)retained_bytes) {
+        size_t remaining_bytes = (size_t)retained_bytes - bytes_written;
+        int requested_bytes = remaining_bytes > (size_t)INT_MAX ? INT_MAX : (int)remaining_bytes;
+        long decoded_bytes = sound_vorbis_decode(
+            decoder,
+            (char *)sample->sampleptr + bytes_written,
+            requested_bytes,
+            &current_section
+        );
+
+        if(decoded_bytes <= 0) {
+            free(sample->sampleptr);
+            sample->sampleptr = NULL;
+            sound_vorbis_close_decoder(&handle, &decoder);
+            return false;
+        }
+
+        bytes_written += (size_t)decoded_bytes;
+    }
+
+    sound_vorbis_close_decoder(&handle, &decoder);
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Identify sample containers by signature so valid
+* WAV and Ogg Vorbis files do not depend on their
+* filename extension.
+*/
+static e_sound_sample_file_type sound_sample_file_type_detect(char *filename, char *packname) {
+    unsigned char signature[4];
+    int handle;
+    int bytes_read;
+
+    handle = openpackfile(filename, packname);
+    if(handle < 0) {
+        return SOUND_SAMPLE_FILE_TYPE_NONE;
+    }
+
+    bytes_read = readpackfile(handle, signature, sizeof(signature));
+    closepackfile(handle);
+    if(bytes_read != sizeof(signature)) {
+        return SOUND_SAMPLE_FILE_TYPE_NONE;
+    }
+
+    if(memcmp(signature, "RIFF", sizeof(signature)) == 0) {
+        return SOUND_SAMPLE_FILE_TYPE_WAVE;
+    }
+    if(memcmp(signature, "OggS", sizeof(signature)) == 0) {
+        return SOUND_SAMPLE_FILE_TYPE_VORBIS;
+    }
+
+    return SOUND_SAMPLE_FILE_TYPE_NONE;
+}
+
+static bool sound_load_sample_source(char *filename, char *packname, samplestruct *sample, uint64_t maximum_data_bytes, bool stream) {
+    switch(sound_sample_file_type_detect(filename, packname)) {
+    case SOUND_SAMPLE_FILE_TYPE_WAVE:
+        return loadwave(filename, packname, sample, maximum_data_bytes, stream);
+    case SOUND_SAMPLE_FILE_TYPE_VORBIS:
+        return loadvorbis(filename, packname, sample, maximum_data_bytes, stream);
+    case SOUND_SAMPLE_FILE_TYPE_NONE:
+    default:
+        return false;
+    }
+}
+
 bool sound_reload_sample(int index) {
     
     if(!mixing_inited) {
@@ -497,7 +878,7 @@ bool sound_reload_sample(int index) {
             return true;
         }
 
-        return loadwave(
+        return sound_load_sample_source(
             soundcache[index].filename,
             soundcache[index].packfilename,
             &soundcache[index].sample,
@@ -509,7 +890,7 @@ bool sound_reload_sample(int index) {
     if(!soundcache[index].sample.sampleptr) {
 
         //printf("packfile: '%s'\n", packfile);
-        return loadwave(
+        return sound_load_sample_source(
             soundcache[index].filename,
             soundcache[index].packfilename,
             &soundcache[index].sample,
@@ -594,7 +975,13 @@ int sound_load_sample(char *filename, char *packfilename, bool log_errors, bool 
     
     memset(&sample, 0, sizeof(sample));
 
-    const bool load_success = loadwave(filename, packfilename, &sample, sound_parameters.sound_length_max, stream);
+    const bool load_success = sound_load_sample_source(
+        filename,
+        packfilename,
+        &sample,
+        sound_parameters.sound_length_max,
+        stream
+    );
 
     if(!load_success) {
         free(cache_key);
@@ -822,11 +1209,11 @@ static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_i
     return sound_pcm_to_mix_value(sample->sampleptr, sample->bits, sample_index);
 }
 
-typedef struct s_sound_stream_read_context {
+typedef struct s_sound_wave_stream_read_context {
     int handle;
     uint64_t data_offset;
     size_t block_align;
-} s_sound_stream_read_context;
+} s_sound_wave_stream_read_context;
 
 /*
 * Caskey, Damon V.
@@ -836,13 +1223,13 @@ typedef struct s_sound_stream_read_context {
 * validated source frame. This runs only in the
 * producer path, never in the audio callback.
 */
-static bool sound_stream_read_frames(
+static bool sound_wave_stream_read_frames(
     void *context,
     uint64_t source_start_frame,
     void *destination,
     size_t bytes_to_read
 ) {
-    s_sound_stream_read_context *read_context = context;
+    s_sound_wave_stream_read_context *read_context = context;
     uint64_t byte_offset;
 
     if(!read_context ||
@@ -869,6 +1256,58 @@ static bool sound_stream_read_frames(
 * Caskey, Damon V.
 * 2026-08-01
 *
+* Decode one exact PCM frame range from a channel-owned
+* Vorbis decoder. Seeks occur for initial offsets and
+* automatic loop restarts, never in the audio callback.
+*/
+static bool sound_vorbis_stream_read_frames(
+    void *context,
+    uint64_t source_start_frame,
+    void *destination,
+    size_t bytes_to_read
+) {
+    OggVorbis_File *decoder = context;
+    ogg_int64_t current_frame;
+    size_t bytes_written = 0;
+    int current_section = 0;
+
+    if(!decoder || !destination || source_start_frame > (uint64_t)INT64_MAX) {
+        return false;
+    }
+
+    current_frame = ov_pcm_tell(decoder);
+    if(current_frame < 0) {
+        return false;
+    }
+    if((uint64_t)current_frame != source_start_frame &&
+       ov_pcm_seek(decoder, (ogg_int64_t)source_start_frame) != 0) {
+        return false;
+    }
+
+    while(bytes_written < bytes_to_read) {
+        size_t remaining_bytes = bytes_to_read - bytes_written;
+        int requested_bytes = remaining_bytes > (size_t)INT_MAX ? INT_MAX : (int)remaining_bytes;
+        long decoded_bytes = sound_vorbis_decode(
+            decoder,
+            (char *)destination + bytes_written,
+            requested_bytes,
+            &current_section
+        );
+
+        if(decoded_bytes <= 0) {
+            return false;
+        }
+
+        bytes_written += (size_t)decoded_bytes;
+    }
+
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
 * Mix one streamed effect from ready PCM buffers.
 * Empty buffers cause silence without advancing the
 * cursor, so an underrun does not discard unheard
@@ -886,6 +1325,9 @@ static void sound_mix_stream_channel(
     int output_position;
     int left_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_LEFT];
     int right_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
+    int volume_divisor = channel_record->volume_divisor > 0
+        ? channel_record->volume_divisor
+        : MAX_SAMPLE_VOLUME;
 
     for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
         s_sound_stream_buffer *stream_buffer;
@@ -925,8 +1367,8 @@ static void sound_mix_stream_channel(
         right_sample_index = sample->channels == CHANNEL_TYPE_STEREO ? left_sample_index + 1U : left_sample_index;
         left_sample_value = sound_pcm_to_mix_value(stream_buffer->data, sample->bits, left_sample_index);
         right_sample_value = sound_pcm_to_mix_value(stream_buffer->data, sample->bits, right_sample_index);
-        mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
-        mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
+        mixbuf[output_position] += left_sample_value * left_volume / volume_divisor;
+        mixbuf[output_position + 1] += right_sample_value * right_volume / volume_divisor;
 
         channel_record->fp_samplepos =
             SOUND_SAMPLE_INT_TO_FIX(stream_buffer->source_start_frame) + buffer_position_fixed;
@@ -949,13 +1391,14 @@ static void mixaudio(unsigned int todo)
     int left_sample_value;
     int right_sample_value;
 
-    if(musicchannel.active &&
+    if(music_type != SOUND_FILE_TYPE_SAMPLE &&
+       musicchannel.active &&
        (musicchannel.channels != CHANNEL_TYPE_MONO && musicchannel.channels != CHANNEL_TYPE_STEREO))
     {
         musicchannel.active = 0;
     }
 
-    if(musicchannel.active && !musicchannel.paused)
+    if(music_type != SOUND_FILE_TYPE_SAMPLE && musicchannel.active && !musicchannel.paused)
     {
         unsigned int music_position_fixed;
         unsigned int music_period_fixed;
@@ -1034,6 +1477,7 @@ static void mixaudio(unsigned int todo)
                 sound_sample_fixed_t sample_position_fixed;
                 sound_sample_fixed_t sample_period_fixed;
                 int sample_index;
+                int volume_divisor;
 
                 channel = (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
                 sample_index = channel_record->samplenum;
@@ -1069,6 +1513,9 @@ static void mixaudio(unsigned int todo)
                 sample_period_fixed = channel_record->fp_period;
                 left_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_LEFT];
                 right_volume = channel_record->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
+                volume_divisor = channel_record->volume_divisor > 0
+                    ? channel_record->volume_divisor
+                    : MAX_SAMPLE_VOLUME;
 
                 for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
                     size_t left_sample_index;
@@ -1082,8 +1529,8 @@ static void mixaudio(unsigned int todo)
 
                     left_sample_value = sound_sample_to_mix_value(sample, left_sample_index);
                     right_sample_value = sound_sample_to_mix_value(sample, right_sample_index);
-                    mixbuf[output_position] += left_sample_value * left_volume / MAX_SAMPLE_VOLUME;
-                    mixbuf[output_position + 1] += right_sample_value * right_volume / MAX_SAMPLE_VOLUME;
+                    mixbuf[output_position] += left_sample_value * left_volume / volume_divisor;
+                    mixbuf[output_position + 1] += right_sample_value * right_volume / volume_divisor;
 
                     sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, loop_start_fixed, &sample_end_reached);
                     if(sample_end_reached && channel_record->active != CHANNEL_LOOPING) {
@@ -1196,11 +1643,17 @@ static unsigned int sound_stream_update_cursor;
 * thread and retain its PCM buffers for reuse.
 */
 static void sound_stream_close_channel(int channel, channelstruct *record) {
+    OggVorbis_File *decoder;
+
     if(!record) {
         return;
     }
 
-    if(record->stream.handle >= 0) {
+    decoder = record->stream_decoder;
+    if(decoder) {
+        sound_vorbis_close_decoder(&record->stream.handle, &decoder);
+        record->stream_decoder = NULL;
+    } else if(record->stream.handle >= 0) {
         closepackfile(record->stream.handle);
     }
 
@@ -1231,6 +1684,44 @@ static void sound_channel_record_clear(channelstruct *record) {
 * Caskey, Damon V.
 * 2026-08-01
 *
+* Fill one rotating buffer from the source producer
+* selected by the cached sample container.
+*/
+static int sound_stream_fill_channel(channelstruct *record, const s_soundcache *cache, size_t *bytes_filled) {
+    s_sound_wave_stream_read_context wave_context;
+
+    if(!record || !cache) {
+        return -1;
+    }
+
+    switch(cache->sample.file_type) {
+    case SOUND_SAMPLE_FILE_TYPE_WAVE:
+        wave_context.handle = record->stream.handle;
+        wave_context.data_offset = cache->sample.data_offset;
+        wave_context.block_align = (size_t)cache->sample.blockalign;
+        return sound_stream_fill(
+            &record->stream,
+            sound_wave_stream_read_frames,
+            &wave_context,
+            bytes_filled
+        );
+    case SOUND_SAMPLE_FILE_TYPE_VORBIS:
+        return sound_stream_fill(
+            &record->stream,
+            sound_vorbis_stream_read_frames,
+            record->stream_decoder,
+            bytes_filled
+        );
+    case SOUND_SAMPLE_FILE_TYPE_NONE:
+    default:
+        return -1;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
 * Open and prefill a streamed sample before its
 * channel becomes visible to the audio callback.
 */
@@ -1242,7 +1733,7 @@ static bool sound_stream_open_channel(
     int looping,
     uint64_t loop_start_frame
 ) {
-    s_sound_stream_read_context read_context;
+    OggVorbis_File *decoder = NULL;
     unsigned int buffer_index;
     int fill_result;
     int filled_buffers = 0;
@@ -1262,23 +1753,33 @@ static bool sound_stream_open_channel(
         return false;
     }
 
-    record->stream.handle = openpackfile(cache->filename, cache->packfilename);
-    if(record->stream.handle < 0) {
+    switch(cache->sample.file_type) {
+    case SOUND_SAMPLE_FILE_TYPE_WAVE:
+        record->stream.handle = openpackfile(cache->filename, cache->packfilename);
+        break;
+    case SOUND_SAMPLE_FILE_TYPE_VORBIS:
+        if(sound_vorbis_open_decoder(
+            cache->filename,
+            cache->packfilename,
+            &record->stream.handle,
+            &decoder
+        )) {
+            record->stream_decoder = decoder;
+        }
+        break;
+    case SOUND_SAMPLE_FILE_TYPE_NONE:
+    default:
+        break;
+    }
+
+    if(record->stream.handle < 0 ||
+       (cache->sample.file_type == SOUND_SAMPLE_FILE_TYPE_VORBIS && !record->stream_decoder)) {
         sound_stream_reset(&record->stream);
         return false;
     }
 
-    read_context.handle = record->stream.handle;
-    read_context.data_offset = cache->sample.data_offset;
-    read_context.block_align = (size_t)cache->sample.blockalign;
-
     for(buffer_index = 0; buffer_index < SOUND_STREAM_BUFFER_COUNT; buffer_index++) {
-        fill_result = sound_stream_fill(
-            &record->stream,
-            sound_stream_read_frames,
-            &read_context,
-            NULL
-        );
+        fill_result = sound_stream_fill_channel(record, cache, NULL);
 
         if(fill_result < 0) {
             sound_stream_close_channel(channel, record);
@@ -1308,7 +1809,6 @@ static bool sound_stream_open_channel(
 * the real-time audio callback.
 */
 static size_t sound_stream_update_channel(int channel) {
-    s_sound_stream_read_context read_context;
     channelstruct *record;
     s_soundcache *cache;
     size_t bytes_filled = 0;
@@ -1333,15 +1833,7 @@ static size_t sound_stream_update_channel(int channel) {
     }
 
     cache = &soundcache[record->samplenum];
-    read_context.handle = record->stream.handle;
-    read_context.data_offset = cache->sample.data_offset;
-    read_context.block_align = (size_t)cache->sample.blockalign;
-    fill_result = sound_stream_fill(
-        &record->stream,
-        sound_stream_read_frames,
-        &read_context,
-        &bytes_filled
-    );
+    fill_result = sound_stream_fill_channel(record, cache, &bytes_filled);
 
     if(fill_result < 0) {
         sound_channel_pool_deactivate(&sound_channel_pool, channel);
@@ -1470,7 +1962,7 @@ static int sound_find_lowest_priority_channel(unsigned int *lowest_priority) {
     active_bank_mask = sound_channel_pool.active_bank_mask;
     while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
         s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
-        uint64_t channel_mask = bank->active_mask;
+        uint64_t channel_mask = bank->active_mask & ~bank->reserved_mask;
         int channel_index;
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
@@ -1506,7 +1998,8 @@ static int sound_play_sample_internal(
     int looping,
     int start_frame_supplied,
     uint64_t start_frame,
-    uint64_t loop_start_frame
+    uint64_t loop_start_frame,
+    int forced_channel
 ) {
     channelstruct *record;
     samplestruct *sample;
@@ -1531,11 +2024,25 @@ static int sound_play_sample_internal(
 
     sample = &soundcache[samplenum].sample;
 
-    channel = sound_channel_pool_acquire(&sound_channel_pool);
-    if(channel < 0) {
-        channel = sound_find_lowest_priority_channel(&priority_low);
-        if(channel < 0 || priority_low > priority) {
+    if(forced_channel >= 0) {
+        unsigned int bank_index;
+
+        if((unsigned int)forced_channel >= SOUND_CHANNEL_COUNT_MAX) {
             return -1;
+        }
+
+        bank_index = (unsigned int)forced_channel / SOUND_CHANNEL_BANK_SIZE;
+        if(!sound_channel_pool_allocate_bank(&sound_channel_pool, bank_index)) {
+            return -1;
+        }
+        channel = forced_channel;
+    } else {
+        channel = sound_channel_pool_acquire(&sound_channel_pool);
+        if(channel < 0) {
+            channel = sound_find_lowest_priority_channel(&priority_low);
+            if(channel < 0 || priority_low > priority) {
+                return -1;
+            }
         }
     }
 
@@ -1586,6 +2093,7 @@ static int sound_play_sample_internal(
     record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
     record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
     record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
+    record->volume_divisor = MAX_SAMPLE_VOLUME;
     record->priority = priority;
     record->channels = sample->channels;
     record->playid = ++audio_global.sample_play_id;
@@ -1609,19 +2117,19 @@ static int sound_play_sample_internal(
 }
 
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0, -1);
 }
 
 int sound_play_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 1, start_frame, 0);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 1, start_frame, 0, -1);
 }
 
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 0, 0, 0);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 0, 0, 0, -1);
 }
 
 int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame, uint64_t loop_start_frame) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 1, start_frame, loop_start_frame);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 1, start_frame, loop_start_frame, -1);
 }
 
 int sound_query_channel(int playid) {
@@ -2056,303 +2564,188 @@ int sound_query_adpcm(char *artist, char *title)
     return 1;
 }
 
-/////////////////////////// Ogg Vorbis decoding ///////////////////////////////
-// Plombo's Ogg Vorbis decoder for OpenBOR. Uses libvorbisfile or libvorbisidec.
+/////////////////////// Channel-owned sample music ///////////////////////////
 
-#if TREMOR
-#define ov_decode(vf,buffer,length,bitstream) ov_read(vf,buffer,length,bitstream)
-#else
-#define ov_decode(vf,buffer,length,bitstream) ov_read(vf,buffer,length,0,2,1,bitstream)
-#endif
-
-OggVorbis_File *oggfile;
-vorbis_info *stream_info;
-int current_section, ogg_handle;
-
-// I/O functions used by libvorbisfile
-size_t readpackfile_callback(void *buf, size_t len, size_t nmembers, int *handle)
-{
-    return readpackfile(*handle, buf, (int)(len * nmembers));
-}
-int closepackfile_callback(void *ptr)
-{
-#ifdef VERBOSE
-    printf ("closepack cb %d\n", *(int *)ptr);
-#endif
-
-    return closepackfile(*(int *)ptr);
-}
-int seekpackfile_callback(int *handle, ogg_int64_t offset, int whence)
-{
-    return seekpackfile(*handle, (int)offset, whence);
-}
-int tellpackfile_callback(int *handle)
-{
-    return seekpackfile(*handle, 0, SEEK_CUR);
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Report whether channel zero still contains the
+* playback started through the legacy music interface.
+* Forced replacement of channel zero therefore ends
+* music ownership without stopping the replacement.
+*/
+static bool sound_sample_music_is_active(void) {
+    return music_sample_play_id >= 0 &&
+           sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) &&
+           sound_id(SOUND_MUSIC_CHANNEL) == music_sample_play_id;
 }
 
-void sound_close_ogg()
-{
-    int i;
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Maintain the public legacy music channel view from
+* soft-reserved channel zero. Rotating buffer internals
+* remain owned by the generic sound stream.
+*/
+static void sound_sample_music_sync(void) {
+    channelstruct *record;
 
-    ov_clear(oggfile);
-    free(oggfile);
-    oggfile = NULL;
-    music_type = SOUND_FILE_TYPE_NONE;
-
-    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
-    {
-        if(musicchannel.buf[i] != NULL)
-        {
-            free(musicchannel.buf[i]);
-            musicchannel.buf[i] = NULL;
-        }
+    if(!sound_sample_music_is_active()) {
+        music_type = SOUND_FILE_TYPE_NONE;
+        music_sample_index = -1;
+        music_sample_play_id = -1;
+        sound_music_channel_clear(&musicchannel);
+        return;
     }
 
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    musicchannel.active = 1;
+    musicchannel.paused = record->paused;
+    musicchannel.channels = record->channels;
+    musicchannel.fp_samplepos = record->fp_samplepos > UINT_MAX
+        ? UINT_MAX
+        : (unsigned int)record->fp_samplepos;
+    musicchannel.fp_period = record->fp_period > UINT_MAX
+        ? UINT_MAX
+        : (unsigned int)record->fp_period;
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] =
+        record->volume[SOUND_SPATIAL_CHANNEL_LEFT];
+    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] =
+        record->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Close legacy WAV or Ogg music only while it still
+* owns soft-reserved channel zero.
+*/
+static void sound_close_sample_music(void) {
+    if(sound_sample_music_is_active()) {
+        sound_stop_sample(SOUND_MUSIC_CHANNEL);
+    }
+
+    music_sample_index = -1;
+    music_sample_play_id = -1;
+    music_type = SOUND_FILE_TYPE_NONE;
     sound_music_channel_clear(&musicchannel);
 }
 
-int sound_open_ogg(char *filename, char *packname, int volume, int loop, u32 music_offset)
-{
+/*
+* Caskey, Damon V.
+* 2026-08-01
+*
+* Route WAV or Ogg music through the generic streamed
+* sample path on soft-reserved channel zero. The legacy
+* music offset remains an automatic-loop offset.
+*/
+static int sound_open_sample_music(char *filename, char *packname, int volume, int loop, u32 music_offset) {
+    channelstruct *record;
+    samplestruct *sample;
+    int sample_index;
+    int channel;
 
-    int i;
-
-    static ov_callbacks ogg_callbacks =
-    {
-        (size_t ( *)(void *, size_t, size_t, void *))  readpackfile_callback,
-        (int ( *)(void *, ogg_int64_t, int))           seekpackfile_callback,
-        (int ( *)(void *))                             closepackfile_callback,
-        (long ( *)(void *))                            tellpackfile_callback
-    };
-
-    if(!mixing_inited)
-    {
-        return 0;
-    }
-    if(!mixing_active)
-    {
+    if(!mixing_inited || !mixing_active) {
         return 0;
     }
 
     sound_close_music();
-#ifdef VERBOSE
-    printf("trying to open OGG file %s from %s, vol %d, loop %d, ofs %u\n", filename, packname, volume, loop, music_offset);
-#endif
-    // Open file, etcetera
-    ogg_handle = openpackfile(filename, packname);
-#ifdef VERBOSE
-    printf ("ogg handle %d\n", ogg_handle);
-#endif
-    if(ogg_handle < 0)
-    {
-#ifdef VERBOSE
-        printf("couldn't get handle\n");
-#endif
+    sample_index = sound_load_sample(filename, packname, false, true);
+    if(sample_index < 0) {
         return 0;
     }
-    oggfile = malloc(sizeof(OggVorbis_File));
-    if (ov_open_callbacks(&ogg_handle, oggfile, NULL, 0, ogg_callbacks) != 0)
-    {
-#ifdef VERBOSE
-        printf("ov_open_callbacks failed\n");
-#endif
-        goto error_exit;
-    }
-    // Can I play it?
-    stream_info = ov_info(oggfile, -1);
-    if((stream_info->channels != 1 && stream_info->channels != 2) ||
-            stream_info->rate < SOUND_MUSIC_FREQUENCY_MIN ||
-            stream_info->rate > SOUND_MUSIC_FREQUENCY_MAX)
-    {
-        sound_close_ogg();
-#ifdef VERBOSE
-        printf("NOT can i play it\n");
-#endif
 
-        goto error_exit;
+    sample = &soundcache[sample_index].sample;
+    if(sample->file_type != SOUND_SAMPLE_FILE_TYPE_WAVE &&
+       sample->file_type != SOUND_SAMPLE_FILE_TYPE_VORBIS) {
+        return 0;
     }
 
+    channel = sound_play_sample_internal(
+        sample_index,
+        UINT_MAX,
+        volume,
+        volume,
+        100,
+        loop,
+        1,
+        0,
+        music_offset,
+        SOUND_MUSIC_CHANNEL
+    );
+    if(channel != SOUND_MUSIC_CHANNEL) {
+        return 0;
+    }
+
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    if(!record) {
+        sound_stop_sample(SOUND_MUSIC_CHANNEL);
+        return 0;
+    }
+
+    if(volume < 0) {
+        volume = 0;
+    }
+    if(volume > MAX_SAMPLE_VOLUME * 8) {
+        volume = MAX_SAMPLE_VOLUME * 8;
+    }
+
+    record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
+    record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
+    record->volume_divisor = MAX_MUSIC_VOLUME;
+
+    music_sample_index = sample_index;
+    music_sample_play_id = record->playid;
+    music_type = SOUND_FILE_TYPE_SAMPLE;
     sound_music_channel_clear(&musicchannel);
-
-    musicchannel.fp_period = sound_music_period_calculate((int)stream_info->rate, 100);
-    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
-    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
-    musicchannel.channels = stream_info->channels;
-    music_looping = loop;
-    music_atend = 0;
-
-    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
-    {
-        musicchannel.buf[i] = malloc(MUSIC_BUF_SIZE * sizeof(short));
-        if(musicchannel.buf[i] == NULL)
-        {
-            sound_close_ogg();
-#ifdef VERBOSE
-            printf("buf is null\n");
-#endif
-            goto error_exit;
-        }
-        memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE * sizeof(short));
-        musicchannel.object_type = OBJECT_TYPE_MUSIC_CHANNEL;
-    }
-
-    loop_offset = music_offset;
-    music_type = SOUND_FILE_TYPE_VORBIS;
-
-#ifdef VERBOSE
-    printf("ogg is opened\n");
-#endif
+    sound_sample_music_sync();
     return 1;
-
-error_exit:
-    closepackfile(ogg_handle);
-    return 0;
-
 }
 
-void sound_update_ogg()
-{
+static void sound_update_sample_music(void) {
+    sound_sample_music_sync();
+}
 
-    int samples, readsamples, samples_to_read;
-    short *outptr;
-    int i, j;
+static void sound_sample_music_tempo(int music_tempo) {
+    channelstruct *record;
 
-    if(!mixing_inited || !mixing_active)
-    {
-        sound_close_music();
-        return;
-    }
-    if(musicchannel.paused)
-    {
+    if(!sound_sample_music_is_active() ||
+       music_sample_index < 0 ||
+       music_sample_index >= sound_cached) {
         return;
     }
 
-    // Just to be sure: check if all goes well...
-    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
-    {
-        if(musicchannel.fp_playto[i] > INT_TO_FIX(MUSIC_BUF_SIZE / musicchannel.channels))
-        {
-            musicchannel.fp_playto[i] = 0;
-            return;
-        }
-    }
-
-
-    // Need to update?
-    for(j = 0, i = musicchannel.playing_buffer + 1; j < MUSIC_NUM_BUFFERS; j++, i++)
-    {
-        i %= MUSIC_NUM_BUFFERS;
-
-        if(musicchannel.fp_playto[i] == 0)
-        {
-            // Buffer needs to be filled
-
-            samples = 0;
-            outptr = musicchannel.buf[i];
-
-            if(!music_looping)
-            {
-                if(music_atend)
-                {
-                    // Close file when done playing all buffers
-                    if(!musicchannel.active)
-                    {
-                        sound_close_music();
-                        return;
-                    }
-                }
-                else while(samples < MUSIC_BUF_SIZE)
-                    {
-                        readsamples = ov_decode(oggfile, (char *)outptr, 2 * (MUSIC_BUF_SIZE - samples), &current_section) / 2;
-                        if (readsamples == 0)
-                        {
-                            music_atend = 1;
-                            return;
-                        }
-                        else if (readsamples < 0)
-                        {
-                            sound_close_music();
-                            return;
-                        }
-                        outptr += readsamples;
-                        samples += readsamples;
-                    }
-            }
-            else while(samples < MUSIC_BUF_SIZE)
-                {
-                    samples_to_read = MUSIC_BUF_SIZE - samples;
-                    readsamples = ov_decode(oggfile, (char *)outptr, 2 * samples_to_read, &current_section) / 2;
-                    if(readsamples < 0)
-                    {
-                        // Error
-                        sound_close_music();
-                        return;
-                    }
-                    else if(readsamples > 0)
-                    {
-                        outptr += readsamples;
-                        samples += readsamples;
-                    }
-                    else if(readsamples < samples_to_read)
-                    {
-                        // At start of data already?
-                        if(ov_pcm_tell(oggfile) == 0)
-                        {
-                            // Must be some error
-                            sound_close_music();
-                            return;
-                        }
-                        // Seek to beginning of data
-                        if(ov_pcm_seek(oggfile, loop_offset) != 0)
-                        {
-                            sound_close_music();
-                            return;
-                        }
-                    }
-                }
-            // Activate
-            musicchannel.fp_playto[i] = INT_TO_FIX(samples / musicchannel.channels);
-            if(!musicchannel.active)
-            {
-                musicchannel.playing_buffer = i;
-                musicchannel.active = 1;
-            }
-        }
-    }
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    record->fp_period = music_tempo > 0
+        ? sound_sample_period_calculate(
+            (unsigned int)music_tempo,
+            soundcache[music_sample_index].sample.frequency
+        )
+        : 0;
+    sound_sample_music_sync();
 }
 
-void sound_ogg_tempo(int music_tempo)
-{
-    musicchannel.fp_period = sound_music_period_calculate((int)stream_info->rate, music_tempo);
-}
+static int sound_query_sample_music(char *artist, char *title) {
+    samplestruct *sample;
 
-int sound_query_ogg(char *artist, char *title)
-{
-    int i;
-    char *current;
-    vorbis_comment *comment = ov_comment(oggfile, -1);
+    if(!sound_sample_music_is_active() ||
+       music_sample_index < 0 ||
+       music_sample_index >= sound_cached) {
+        return 0;
+    }
 
-    if (!artist || !title)
-    {
+    if(!artist || !title) {
         return 1;
     }
 
-    for(i = 0; i < comment->comments; i++)
-    {
-        current = comment->user_comments[i];
-        if (strncmp("ARTIST=", current, 7) == 0)
-        {
-            strcpy(artist, current + 7);
-        }
-        else if (strncmp("TITLE=", current, 6) == 0)
-        {
-            strcpy(title, current + 6);
-        }
-    }
-
+    sample = &soundcache[music_sample_index].sample;
+    strcpy(artist, sample->artist);
+    strcpy(title, sample->title);
     return 1;
 }
-
 /////////////////////////////// INIT / EXIT //////////////////////////////////
 
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset)
@@ -2366,7 +2759,7 @@ int sound_open_music(char *filename, char *packname, int volume, int loop, u32 m
     {
         return 1;
     }
-    if(sound_open_ogg(filename, packname, volume, loop, music_offset))
+    if(sound_open_sample_music(filename, packname, volume, loop, music_offset))
     {
         return 1;
     }
@@ -2378,12 +2771,17 @@ int sound_open_music(char *filename, char *packname, int volume, int loop, u32 m
         return 1;
     }
     sprintf(fnam, "%s.ogg", filename);
-    if(sound_open_ogg(fnam, packname, volume, loop, music_offset))
+    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
     {
         return 1;
     }
     sprintf(fnam, "%s.oga", filename);
-    if(sound_open_ogg(fnam, packname, volume, loop, music_offset))
+    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
+    {
+        return 1;
+    }
+    sprintf(fnam, "%s.wav", filename);
+    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
     {
         return 1;
     }
@@ -2398,8 +2796,8 @@ void sound_close_music()
     case SOUND_FILE_TYPE_ADPCM:
         sound_close_adpcm();
         break;
-    case SOUND_FILE_TYPE_VORBIS:
-        sound_close_ogg();
+    case SOUND_FILE_TYPE_SAMPLE:
+        sound_close_sample_music();
         break;
     case SOUND_FILE_TYPE_NONE:
         return;
@@ -2416,8 +2814,8 @@ void sound_update_music()
     case SOUND_FILE_TYPE_ADPCM:
         sound_update_adpcm();
         break;
-    case SOUND_FILE_TYPE_VORBIS:
-        sound_update_ogg();
+    case SOUND_FILE_TYPE_SAMPLE:
+        sound_update_sample_music();
         break;
     case SOUND_FILE_TYPE_NONE:
         return;
@@ -2430,8 +2828,8 @@ int sound_query_music(char *artist, char *title)
     {
     case SOUND_FILE_TYPE_ADPCM:
         return sound_query_adpcm(artist, title);
-    case SOUND_FILE_TYPE_VORBIS:
-        return sound_query_ogg(artist, title);
+    case SOUND_FILE_TYPE_SAMPLE:
+        return sound_query_sample_music(artist, title);
     case SOUND_FILE_TYPE_NONE:
         return 0;
     }
@@ -2447,8 +2845,8 @@ void sound_music_tempo(int music_tempo)
     case SOUND_FILE_TYPE_ADPCM:
         sound_adpcm_tempo(music_tempo);
         break;
-    case SOUND_FILE_TYPE_VORBIS:        
-        sound_ogg_tempo(music_tempo);
+    case SOUND_FILE_TYPE_SAMPLE:
+        sound_sample_music_tempo(music_tempo);
         break;
     case SOUND_FILE_TYPE_NONE:
         return;
@@ -2457,6 +2855,8 @@ void sound_music_tempo(int music_tempo)
 
 void sound_volume_music(int left, int right)
 {
+    channelstruct *record;
+
     if(left < 0)
     {
         left = 0;
@@ -2473,12 +2873,38 @@ void sound_volume_music(int left, int right)
     {
         right = MAX_SAMPLE_VOLUME * 8;
     }
+
+    if(music_type == SOUND_FILE_TYPE_SAMPLE) {
+        if(!sound_sample_music_is_active()) {
+            sound_sample_music_sync();
+            return;
+        }
+
+        record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+        record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = left;
+        record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = right;
+        record->volume_divisor = MAX_MUSIC_VOLUME;
+        sound_sample_music_sync();
+        return;
+    }
+
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = left;
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = right;
 }
 
 void sound_pause_music(int toggle)
 {
+    if(music_type == SOUND_FILE_TYPE_SAMPLE) {
+        if(!sound_sample_music_is_active()) {
+            sound_sample_music_sync();
+            return;
+        }
+
+        sound_channel_pool_pause(&sound_channel_pool, SOUND_MUSIC_CHANNEL, toggle);
+        sound_sample_music_sync();
+        return;
+    }
+
     musicchannel.paused = toggle;
 }
 
@@ -2529,6 +2955,10 @@ void sound_exit() {
 
     sound_channel_pool_destroy(&sound_channel_pool);
     sound_stream_update_cursor = 0;
+    music_type = SOUND_FILE_TYPE_NONE;
+    music_sample_index = -1;
+    music_sample_play_id = -1;
+    sound_music_channel_clear(&musicchannel);
     mixing_inited = 0;
 }
 
@@ -2542,9 +2972,13 @@ void sound_exit() {
 int sound_init(void) {
     sound_exit();
 
-    if(!sound_channel_pool_init(&sound_channel_pool)) {
+    if(!sound_channel_pool_init(&sound_channel_pool) ||
+       !sound_channel_pool_reserve_mask(&sound_channel_pool, 0, UINT64_C(1))) {
+        sound_channel_pool_destroy(&sound_channel_pool);
         return 0;
     }
+
+    /* Channel zero is ignored by automatic allocation but remains forceable. */
 
     /* Allocate the maximum amount ever needed for one mixing pass. */
     if((mixbuf = malloc(MIXBUF_SIZE)) == NULL) {

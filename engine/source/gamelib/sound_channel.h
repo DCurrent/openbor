@@ -44,12 +44,14 @@ typedef struct s_sound_channel {
     unsigned int priority;
     int playid;
     int volume[2];
+    int volume_divisor;
     int channels;
 
     sound_sample_fixed_t fp_samplepos;  /* Fixed point PCM frame position. */
     sound_sample_fixed_t fp_period;     /* Advance per output frame. */
     sound_sample_fixed_t fp_loop_start; /* PCM frame used after looping. */
     s_sound_stream stream;
+    void *stream_decoder;
 } channelstruct;
 
 typedef struct s_sound_channel_bank {

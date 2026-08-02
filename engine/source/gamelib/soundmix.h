@@ -20,7 +20,7 @@
 **	Sound mixer.
 **	Now supports ADPCM instead of MP3 (costs less CPU time).
 **
-**	Also plays WAV files (mono or stereo, 8-bit, 16-bit, or 24-bit).
+**	Also plays WAV and Ogg Vorbis samples.
 */
 
 /*
@@ -45,8 +45,15 @@ typedef enum e_sound_file_type
 {
     SOUND_FILE_TYPE_NONE = -1,
     SOUND_FILE_TYPE_ADPCM = 0,
-    SOUND_FILE_TYPE_VORBIS = 1
+    SOUND_FILE_TYPE_SAMPLE = 1
 } e_sound_file_type;
+
+typedef enum e_sound_sample_file_type
+{
+    SOUND_SAMPLE_FILE_TYPE_NONE = 0,
+    SOUND_SAMPLE_FILE_TYPE_WAVE,
+    SOUND_SAMPLE_FILE_TYPE_VORBIS
+} e_sound_sample_file_type;
 
 typedef enum e_channel_type
 {
@@ -74,14 +81,17 @@ typedef struct
 {
     void* sampleptr;
     
-    uint64_t       soundbytes;  // Raw bytes loaded from the WAV data chunk.    
+    uint64_t       soundbytes;  // Raw PCM byte count.
     uint64_t       soundlen;    // Scalar PCM sample units retained as cache metadata.
-    uint64_t       framecount;  // Complete PCM frames loaded from the WAV data chunk.
-    uint64_t       data_offset; // Byte offset of PCM data inside the source file.
+    uint64_t       framecount;  // Complete PCM frames in the playback range.
+    uint64_t       data_offset; // PCM byte offset for directly streamed containers.
     int            bits;
     int            frequency;
     int            channels;
     int            blockalign;  // Bytes in one complete PCM frame.
+    e_sound_sample_file_type file_type;
+    char           artist[64];
+    char           title[64];
 } samplestruct;
 
 typedef struct

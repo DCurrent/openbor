@@ -17,14 +17,14 @@
 * Caskey, Damon V.
 * 2026-08-01
 *
-* Streamed sound effects use SOUND_STREAM_BUFFER_COUNT
-* retained PCM buffers. At the largest supported input
-* format, each SOUND_STREAM_BUFFER_SIZE buffer supplies
-* approximately 57 milliseconds of data. Total reserve
-* is therefore approximately 57 milliseconds multiplied
-* by SOUND_STREAM_BUFFER_COUNT.
-*/
-#define SOUND_STREAM_BUFFER_COUNT 8U 
+* Streamed channels use SOUND_STREAM_BUFFER_COUNT
+ * retained PCM buffers. At the largest supported input
+ * format, each SOUND_STREAM_BUFFER_SIZE buffer supplies
+ * approximately 57 milliseconds of data. Total reserve
+ * is approximately 57 milliseconds multiplied by
+ * SOUND_STREAM_BUFFER_COUNT.
+ */
+#define SOUND_STREAM_BUFFER_COUNT 4U
 #define SOUND_STREAM_BUFFER_SIZE  (16U * 1024U)
 #define SOUND_STREAM_HANDLE_CLOSED (-1)
 
