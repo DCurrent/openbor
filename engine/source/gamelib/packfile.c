@@ -21,8 +21,8 @@
 * footer. PAK64 uses 64-bit offsets, sizes, and table footer.
 *
 * Archive positions and pack sizes are stored internally as 64-bit values.
-* Individual readable assets are limited to INT_MAX bytes unless a caller is
-* known to stream and seek through the 64-bit packfile API.
+* Individual readable assets are limited to INT_MAX bytes unless their format
+* has a verified chunked reader using the 64-bit packfile API.
 */
 
 #ifndef _FILE_OFFSET_BITS
@@ -463,6 +463,15 @@ static int packfile_entry_data_range_is_valid(const packfile_format *format, con
     return packfile_data_range_is_valid(entry->data_offset, entry->data_size, format->table_offset);
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Identify formats whose readers retain 64-bit
+* positions and consume data in bounded chunks.
+* These assets may exceed the universal INT_MAX
+* limit without widening the legacy read API.
+*/
 static int packfile_asset_size_limit_exempt(const char *asset_name) {
     const char *extension;
 
@@ -471,7 +480,11 @@ static int packfile_asset_size_limit_exempt(const char *asset_name) {
     }
 
     extension = strrchr(asset_name, '.');
-    return extension && !stricmp(extension, ".webm");
+    return extension &&
+           (!stricmp(extension, ".wav") ||
+            !stricmp(extension, ".ogg") ||
+            !stricmp(extension, ".oga") ||
+            !stricmp(extension, ".webm"));
 }
 
 static int packfile_asset_size_is_supported(packfile_size_t asset_size, const char *asset_name) {
@@ -1577,6 +1590,14 @@ static void packfile_copy_music_track_title(const char *input_path, char output_
     output_title[output_index] = '\0';
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Identify audio files available to the legacy
+* music browser. WAV and Ogg playback use the
+* general sound system; BOR remains compatible.
+*/
 static int packfile_entry_is_music_track(const char *entry_name) {
     const char *extension = strrchr(entry_name, '.');
 
@@ -1584,7 +1605,10 @@ static int packfile_entry_is_music_track(const char *entry_name) {
         return 0;
     }
 
-    return !stricmp(extension, ".bor") || !stricmp(extension, ".ogg");
+    return !stricmp(extension, ".bor") ||
+           !stricmp(extension, ".wav") ||
+           !stricmp(extension, ".ogg") ||
+           !stricmp(extension, ".oga");
 }
 
 static int packfile_count_music_tracks(int pack_descriptor, const packfile_format *format) {
@@ -1598,7 +1622,7 @@ static int packfile_count_music_tracks(int pack_descriptor, const packfile_forma
         }
 
         if(packfile_entry_is_music_track(entry.name) &&
-           entry.data_size <= PACKFILE_MAXIMUM_ASSET_SIZE)  {
+           packfile_asset_size_is_supported(entry.data_size, entry.name))  {
             if(track_count == INT_MAX)  {
                 return -1;
             }
@@ -1657,7 +1681,7 @@ static int packfile_populate_music_track_list(int pack_descriptor, const packfil
         }
 
         if(packfile_entry_is_music_track(entry.name) &&
-           entry.data_size <= PACKFILE_MAXIMUM_ASSET_SIZE)  {
+           packfile_asset_size_is_supported(entry.data_size, entry.name))  {
             if(track_index >= file_list_entry->nTracks)  {
                 return 0;
             }

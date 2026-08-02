@@ -110,7 +110,7 @@ void print_format_details(pak_format_t format) {
 		printf("- PAK64 format id: %u\n", (unsigned int)PAK_FORMAT_PAK64);
 		printf("- PAK64 offsets/sizes: 64-bit\n");
 		printf("- PAK64 non-streamed asset limit: %.2f GB\n", pak_nonstreamed_asset_limit_gb);
-		printf("- PAK64 streamed asset exceptions: .ogg and .webm\n");
+		printf("- PAK64 streamed asset exceptions: .wav, .ogg, .oga, and .webm\n");
 	}
 }
 
@@ -270,8 +270,18 @@ static int archive_path_has_extension(const char *archive_path, const char *exte
 	return 1;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-02
+*
+* Identify media formats with bounded readers and
+* 64-bit file positions in the engine. PAK64 may
+* retain these assets beyond the legacy INT_MAX cap.
+*/
 static int is_streamed_archive_asset(const char *archive_path) {
-	return archive_path_has_extension(archive_path, ".ogg") ||
+	return archive_path_has_extension(archive_path, ".wav") ||
+		archive_path_has_extension(archive_path, ".ogg") ||
+		archive_path_has_extension(archive_path, ".oga") ||
 		archive_path_has_extension(archive_path, ".webm");
 }
 
@@ -282,7 +292,7 @@ static int validate_asset_size(const char *archive_path, const char *source_file
 		printf("\nError: PAK64 non-streamed asset is too large: %s\n", archive_path);
 		printf("Source file: %s\n", source_file_path ? source_file_path : "(unknown source)");
 		printf("Non-streamed asset limit is %.2f GB.\n", pak_nonstreamed_asset_limit_gb);
-		printf("Only .ogg and .webm files may exceed this limit because the engine streams them.\n");
+		printf("Only .wav, .ogg, .oga, and .webm files may exceed this limit because the engine streams them.\n");
 		return 0;
 	}
 
