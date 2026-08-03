@@ -1116,12 +1116,15 @@ typedef enum
 * Caskey, Damon V.
 * 2013-12-27
 *
-* Attack types. If more types are added,
+* Attack types and native type list. 
+* If more native types are added,
 * don't forget to add them to script
 * access, handle them in model load
 * logic and update any relevant LUTs.
 */ 
-typedef enum
+typedef uint64_t attack_type_t;
+
+typedef enum e_attack_types
 {
     ATK_NONE            = MAX_INT,   // When we want no attack at all, such as damage_on_landing's default.
     ATK_NORMAL          = 0,
@@ -1160,7 +1163,6 @@ typedef enum
     STA_ATKS       = (MAX_ATKS-1)
 } e_attack_types;
 
-typedef uint64_t attack_type_t;
 
 // Attack box properties.
 // Caskey, Damon V.
@@ -2051,7 +2053,7 @@ typedef struct s_recursive_effect {
     uint64_t				    rate;   // Tick delay.
     uint64_t   				    tick;   // Time of next tick.
     uint64_t				    time;   // Time to expire.
-	e_attack_types				type;	// Attack type.
+	attack_type_t				type;	// Attack type.
 	struct entity				*owner;	// Entity that caused the recursive effect.
 
     // Meta data.
@@ -2246,7 +2248,7 @@ typedef struct
 typedef struct
 {
     int attack_force;
-    e_attack_types attack_type;
+    attack_type_t attack_type;
 } s_damage_on_landing;
 
 // Collision box for active
@@ -3837,8 +3839,8 @@ typedef struct entity
     uint64_t			    animpos;							// Current animation frame. ~~
 	uint64_t			    attack_id_incoming[MAX_ATTACK_IDS];	// ~~ (	//Kratus (20-04-21) used to memorize the last 4 hitboxes and avoid the multihit bug. 2021-09-04, DC: Combine members into array. Should probably use pointer.
     uint64_t			    attack_id_outgoing;	                // ~~
-    uint64_t			    animnum;							// Current animation id. ~~
-	uint64_t			    animnum_previous;					// Previous animation id. ~~
+    animation_id_t		    animnum;							// Current animation id. ~~
+	animation_id_t		    animnum_previous;					// Previous animation id. ~~
 	uint64_t			    combostep[MAX_SPECIAL_INPUTS];		// merge into an array to clear up some code. ~~
 	uint64_t			    dying;								// Corresponds with which remap is to be used for the dying flash ~~
 	uint64_t			    dying2;								// Corresponds with which remap is to be used for the dying flash for per2 ~~
@@ -3863,7 +3865,7 @@ typedef struct entity
 
 	// Enumerated integers.
     e_death_state		    death_state;						// Dead? ~~
-    e_attack_types			last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
+    attack_type_t			last_damage_type;					// Used for set death, pain, rise, etc. animation. ~~
     e_spawn_type			spawntype;							// Type of spawn (level spawn, script spawn, ...) ~~
 	e_projectile_prime		projectile_prime;					// If this entity is a projectile, several priming values go here to set up its behavior. ~~
 	e_animating				animating;							// Animation status (none, forward, reverse). ~~
@@ -4237,7 +4239,7 @@ e_air_control_legacy_z air_control_interpret_to_legacy_walkoffmove_z(e_air_contr
 
 
 int get_attack_type_from_string(const char* value, const char* filename);
-int is_attack_type_special(e_attack_types attack_type);
+int is_attack_type_special(attack_type_t attack_type);
 int is_frozen(entity *e);
 void unfrozen(entity *e);
 
@@ -4639,7 +4641,7 @@ void biker_drive(void);
 void ent_default_init(entity *e);
 void ent_spawn_ent(entity *ent);
 void ent_summon_ent(entity *ent);
-void ent_set_anim(entity *ent, int aninum, int resetable);
+void ent_set_anim(entity *ent, animation_id_t aninum, bool resetable);
 void ent_set_colourmap(entity *ent, uint64_t which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
 entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash);
@@ -4724,7 +4726,7 @@ int set_death(entity *iDie, int type, int reset);
 int set_fall(entity *ent, entity *other, s_attack *attack, int reset);
 int set_rise(entity *iRise, int type, int reset);
 int set_riseattack(entity *iRiseattack, int type, int reset);
-int set_blockpain(entity *iBlkpain, e_attack_types type, int reset);
+bool set_blockpain(entity *iBlkpain, attack_type_t type, int reset);
 int set_pain(entity *iPain, int type, int reset);
 int reset_backpain(entity *ent);
 int check_backpain(entity* attacker, entity* defender);

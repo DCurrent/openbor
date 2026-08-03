@@ -25293,67 +25293,66 @@ uf_interrupted:
 }
 
 
-void ent_set_anim(entity *ent, int aninum, int resetable)
-{
+void ent_set_anim(entity *acting_entity, animation_id_t aninum, bool resetable) {
+
     s_anim *ani = NULL;
     int animpos;
 
-    if(!ent)
-    {
+    if(!acting_entity) {
         //printf("FATAL: tried to set animation with invalid address (no such object)");
         return;
     }
 
-    if(aninum < 0 || aninum >= max_animations)
-    {
+    if(aninum >= max_animations) {
         //printf("FATAL: tried to set animation with invalid index (%s, %i)", ent->name, aninum);
         return;
     }
 
-    if(!validanim(ent, aninum))
-    {
-        //printf("FATAL: tried to set animation with invalid address (%s, %i)", ent->name, aninum);
+    if(!validanim(acting_entity, aninum)) {
+        //printf("FATAL: tried to set animation with invalid address (%s, %i)", acting_entity->name, aninum);
         return;
     }
 
-    ani = ent->modeldata.animation[aninum];
+    ani = acting_entity->modeldata.animation[aninum];
 
-    if(!resetable && ent->animation == ani)
-    {
+    /*
+    * If reset flag is not enabled and the entity 
+    * is already on the requested animation, then
+    * just bail.
+    */
+    if(!resetable && acting_entity->animation == ani) {
         return;
     }
 
-    if(ani->numframes == 0)
-    {
+    if(ani->numframes == 0) {
         return;
     }
 
-    if(ent->animation && ((resetable & 2) || (ani->sync >= 0 && ent->animation->sync == ani->sync)))
-    {
-        animpos = ent->animpos;
-        if(animpos >= ani->numframes)
-        {
+    if(acting_entity->animation && ((resetable & 2) || (ani->sync >= 0 && acting_entity->animation->sync == ani->sync))) {
+        animpos = acting_entity->animpos;
+        
+        if(animpos >= ani->numframes) {
             animpos = 0;
         }
-        ent->animnum_previous = ent->animnum;
-        ent->animnum = aninum;
-        ent->animation = ani;
-        ent->animpos = animpos;
-        ent->walking = 0;
-    }
-    else
-    {
-        ent->animnum_previous = ent->animnum;
-        ent->animnum = aninum;    // Stored for nocost usage
-        ent->animation = ani;
-        ent->animation->hit_count = 0;
+        
+        acting_entity->animnum_previous = acting_entity->animnum;
+        acting_entity->animnum = aninum;
+        acting_entity->animation = ani;
+        acting_entity->animpos = animpos;
+        acting_entity->walking = false;
+    
+    } else {
+        acting_entity->animnum_previous = acting_entity->animnum;
+        acting_entity->animnum = aninum;    // Stored for nocost usage
+        acting_entity->animation = ani;
+        acting_entity->animation->hit_count = 0;
 
-        ent->animating = ANIMATING_FORWARD;
-        ent->lasthit = ent->grabbing;
-        ent->altbase = 0;
-        ent->walking = 0;
+        acting_entity->animating = ANIMATING_FORWARD;
+        acting_entity->lasthit = acting_entity->grabbing;
+        acting_entity->altbase = 0;
+        acting_entity->walking = false;
 
-        update_frame(ent, 0);
+        update_frame(acting_entity, 0);
     }
 }
 
@@ -27715,39 +27714,41 @@ void set_blocking_action(entity *ent, entity *other, s_attack *attack)
 	execute_didblock_script(ent, other, attack);
 }
 
-// Caskey, Damon V.
-// 2018-09-18
-//
-// Verify entity has blockpain and that attack
-// should trigger it.
-// Kratus (01-2024) Minor fix in the blockpain flag check (inverted)
+/* 
+* Caskey, Damon V.
+* 2018-09-18
+*
+* Return true if attack force is sufficient 
+* to cause blocking pain. Otherwise return false.
+*/
 bool check_blocking_pain(const entity *ent, const s_attack *attack) {
 	
-    // If blockpain is greater than attack
-	// force, we don't apply it.
 	if (attack->attack_force >= ent->modeldata.blockpain) {
-		return false;
+		return true;
 	}
 
-	return true;
+	return false;
 }
 
 // Caskey, Damon V.
 // 2018-09-21
 //
 // Place entity into appropriate blocking animation.
-void set_blocking_animation(entity *ent, s_attack *attack)
-{
-	// If we have an appropriate blockpain, lets
-	// apply it here.
-	if (check_blocking_pain(ent, attack))
-	{
-		set_blockpain(ent, attack->attack_type, 1);
-	}
-	else
-	{
-		ent_set_anim(ent, ANI_BLOCK, 0);
-	}
+void set_blocking_animation(entity *acting_entity, s_attack *attack) {
+
+    /*
+    * Entity must have a valid blockpain and
+    * attack must meet or exceed the blockpain 
+    * threshold. Otherwise, we just go to the 
+    * normal block animation.
+    */
+
+    if(check_blocking_pain(acting_entity, attack)
+        && set_blockpain(acting_entity, attack->attack_type, 1)) {
+        return;
+    }
+
+    ent_set_anim(acting_entity, ANI_BLOCK, 0);
 }
 
 // Caskey, Damon V.
@@ -31907,67 +31908,67 @@ int set_riseattack(entity *iRiseattack, int type, int reset)
     return 1;
 }
 
-int set_blockpain(entity *ent, e_attack_types attack_type, int reset)
-{
+/*
+* Caskey, Damon V.
+* 2018
+*
+* Place entity into appropriate block pain animation 
+* based on attack type and direction of attack.
+*
+* Returns true if successful, false if no valid block pain 
+* animation was found.
+*/
+bool set_blockpain(entity *acting_entity, attack_type_t attack_type, int reset) {
     animation_id_t animation;
 
     // If attack type is out of bounds we
     // just use normal.
-    if(attack_type < ATK_NORMAL || attack_type >= max_attack_types)
-    {
+    if(attack_type >= max_attack_types) {
         attack_type = ATK_NORMAL;
     }
 
     // In front or back?
-    if (ent->inbackpain)
-    {
+    if (acting_entity->inbackpain) {
         animation = animbackblkpains[attack_type];
-    }
-    else
-    {
+    
+    } else {
         animation = animblkpains[attack_type];
     }
 
-    if(validanim(ent, animation))
-    {
-        ent_set_anim(ent, animation, reset);
-    }
-    else if( ent->inbackpain && validanim(ent, animbackblkpains[ATK_NORMAL]) )
-    {
-        ent_set_anim(ent, animbackblkpains[ATK_NORMAL], reset);
-    }
-    else if(validanim(ent, animblkpains[attack_type]))
-    {
-        if (ent->inbackpain)
-        {
-            reset_backpain(ent);
+    if(validanim(acting_entity, animation)) {
+        ent_set_anim(acting_entity, animation, reset);
+    
+    } else if( acting_entity->inbackpain 
+        && validanim(acting_entity, animbackblkpains[ATK_NORMAL]) ) {
+        
+            ent_set_anim(acting_entity, animbackblkpains[ATK_NORMAL], reset);
+    
+    } else if(validanim(acting_entity, animblkpains[attack_type])) {
+        
+        if (acting_entity->inbackpain) {
+            reset_backpain(acting_entity);
         }
 
-        ent->inbackpain = 0;
-        ent_set_anim(ent, animblkpains[attack_type], reset);
-    }
-    else if(validanim(ent, animblkpains[ATK_NORMAL]))
-    {
-        if (ent->inbackpain)
-        {
-            reset_backpain(ent);
+        acting_entity->inbackpain = 0;
+        ent_set_anim(acting_entity, animblkpains[attack_type], reset);
+    
+    } else if(validanim(acting_entity, animblkpains[ATK_NORMAL])) {
+        if (acting_entity->inbackpain) {
+            reset_backpain(acting_entity);
         }
 
-        ent->inbackpain = 0;
-        ent_set_anim(ent, animblkpains[ATK_NORMAL], reset);
-    }
-    else
-    {
-        return 0;
+        acting_entity->inbackpain = 0;
+        ent_set_anim(acting_entity, animblkpains[ATK_NORMAL], reset);
+    } else {
+        return false;
     }
 
-    ent->takeaction = common_block;
-    set_blocking(self);
-    ent->inpain = IN_PAIN_BLOCK;
-    ent->rising = RISING_NONE;
-    ent->ducking = DUCK_NONE;
-    ent_set_anim(ent, animblkpains[attack_type], reset);
-    return 1;
+    acting_entity->takeaction = common_block;
+    set_blocking(acting_entity);
+    acting_entity->inpain = IN_PAIN_BLOCK;
+    acting_entity->rising = RISING_NONE;
+    acting_entity->ducking = DUCK_NONE;
+    return true;
 }
 
 int reset_backpain(entity *ent)
@@ -32985,7 +32986,7 @@ void common_try_riseattack()
 int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_sequence, e_death_sequence_acting_event acting_event)
 {
     int result = 0;
-    e_attack_types attack_type = acting_entity->last_damage_type;
+    attack_type_t attack_type = acting_entity->last_damage_type;
     e_death_state death_state = acting_entity->death_state;
     
     if (death_state & DEATH_STATE_AIR)
@@ -35206,7 +35207,7 @@ const s_defense* defense_find_current_object(const entity* ent, const s_body* bo
 
 typedef struct {
     const char* name;
-    e_attack_types attack_type;
+    attack_type_t attack_type;
 } s_attack_type_map;
 
 static const s_attack_type_map attack_type_map[] = {
@@ -35953,14 +35954,13 @@ static const int special_attack_table[MAX_ATKS] = {
 * Return true if attack type is one of the 
 * types not included in normal use by creators.
 */
-int is_attack_type_special(e_attack_types type)
+int is_attack_type_special(attack_type_t type)
 {
     /* 
     * Anything outside of bounds is
     * user defined and not special.
     */
-    if (type < 0 || type >= MAX_ATKS)
-    {
+    if (type >= MAX_ATKS) {
         return 0;
     }
     

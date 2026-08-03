@@ -2235,7 +2235,7 @@ void sound_stopall_sample() {
 
     while((bank_index = sound_channel_mask_first(streaming_bank_mask)) >= 0) {
         s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
-        uint64_t channel_mask = bank->streaming_mask;
+        channel_mask = bank->active_mask & ~bank->reserved_mask;
         int channel_index;
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
