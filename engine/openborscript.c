@@ -3536,7 +3536,7 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)ent->charging;
             break;
         case _ep_aiflag_blocking:
-            (*pretvar)->lVal = (LONG)ent->blocking;
+            (*pretvar)->lVal = (LONG)((ent->blocking & BLOCK_STATE_ACTIVE) != 0);
             break;
         case _ep_aiflag_ducking:
             (*pretvar)->lVal = (LONG)ent->ducking;
@@ -5730,7 +5730,7 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
                 ent->charging = (LONG)ltemp;
                 break;
             case _ep_aiflag_blocking:
-                ent->blocking = (LONG)ltemp;
+                ent->blocking = (e_block_state_flags)ltemp;
                 break;
             case _ep_aiflag_ducking:
                 ent->ducking = (LONG)ltemp;
@@ -15308,7 +15308,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     e->edge = EDGE_NONE;
     e->ducking = DUCK_NONE;
     e->inbackpain = 0;
-    e->blocking = 0;
+    e->blocking = BLOCK_STATE_NONE;
 
     if(paramCount == 1)
     {
@@ -15371,7 +15371,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     e->rising = RISING_NONE;
     e->edge = EDGE_NONE;
     e->inbackpain = 0;
-    e->blocking = 0;
+    e->blocking = BLOCK_STATE_NONE;
 
     if(paramCount == 1)
     {
@@ -15436,7 +15436,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     e->edge = EDGE_NONE;
     e->ducking = DUCK_NONE;
     e->inbackpain = 0;
-    e->blocking = 0;
+    e->blocking = BLOCK_STATE_NONE;
     e->nograb = e->nograb_default; //e->nograb = 0;
     e->destx = e->position.x;
     e->destz = e->position.z;

@@ -1792,7 +1792,7 @@ if(n<1) n = 1;
 						 e->idling = IDLING_NONE; \
 						 e->ducking = DUCK_NONE;
 
-#define set_blocking(e)  e->blocking = 1;\
+#define set_blocking(e)  e->blocking |= (BLOCK_STATE_ACTIVE | BLOCK_STATE_NATIVE);\
 						 e->idling = IDLING_NONE;
 
 #define set_turning(e)  e->turning = 1;\
@@ -3422,6 +3422,26 @@ typedef enum e_block_config_flags
     BLOCK_CONFIG_HOLD_INFINITE  = (1 << 4)  // Maintain block by holding button indefinitely.
 } e_block_config_flags;
 
+/*
+* Caskey, Damon V.
+* 2026-08-03
+*
+* Blocking state and behavior overrides. BLOCK_STATE_ACTIVE alone
+* provides a script-controlled automatic block frame. Native player
+* and AI blocking add BLOCK_STATE_NATIVE for engine-owned reactions.
+*/
+typedef enum e_block_state_flags
+{
+    BLOCK_STATE_NONE                       = 0,
+    BLOCK_STATE_ACTIVE                     = (1U << 0),
+    BLOCK_STATE_NATIVE                     = (1U << 1),
+    BLOCK_STATE_IGNORE_CHANCE              = (1U << 2),
+    BLOCK_STATE_IGNORE_GUARD_POINTS        = (1U << 3),
+    BLOCK_STATE_IGNORE_DIRECTION           = (1U << 4),
+    BLOCK_STATE_IGNORE_ATTACK_ELIGIBILITY  = (1U << 5),
+    BLOCK_STATE_IGNORE_BLOCKPAIN           = (1U << 6)
+} e_block_state_flags;
+
 typedef enum e_pain_config_flags
 {
     PAIN_CONFIG_NONE                = 0,
@@ -3872,6 +3892,7 @@ typedef struct entity
 	e_idling_state			idling;								// ~~ Kratus (10-2021) Moved from "bool" to the "Enumerated integers" section
 	e_attacking_state		attacking;							// ~~
 	e_autokill_state		autokill;							// Kill entity on condition. ~~
+	e_block_state_flags		blocking;							// Blocking state and behavior overrides. ~~
 	e_direction				direction;							//  ~~
 	e_duck_state			ducking;							// In or transitioning to/from duck. ~~
 	e_edge_state			edge;								// At an edge (unbalanced).
@@ -3890,7 +3911,6 @@ typedef struct entity
     bool		    arrowon;							// Display arrow icon (parrow<player>) ~~
     bool		    blink;								// Toggle flash effect. ~~
     bool		    boss;								// I'm the BOSS playa, I'm the reason that you lost! ~~
-    bool		    blocking;							// In blocking state. ~~
     bool		    charging;							// Charging MP. Gain according to chargerate. ~~
 	bool		    die_on_landing;						// Flag for death by damageonlanding (active if self->health <= 0). ~~
     bool		    drop;								// Knocked down. Remains true until rising. ~~
@@ -4272,14 +4292,14 @@ e_damage_recursive_logic    recursive_effect_get_mode_setup_from_legacy_argument
 e_block_config_flags block_get_config_flags_from_arguments(const ArgList* arglist);
 e_block_config_flags block_get_config_flag_from_string(const char* value);
 bool    check_blocking_decision(entity *ent);
-bool    check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body);
-bool    check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
+bool    check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body, e_block_state_flags block_state);
+e_block_state_flags check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body* body);
 bool    check_blocking_rules(entity *ent);
 bool    check_blocking_pain(const entity *ent, const s_attack *attack);
 void	do_active_block(entity *ent);
-void	do_passive_block(entity *ent, entity *other, s_attack *attack);
-void    set_blocking_action(entity *ent, entity *other, s_attack *attack);
-void    set_blocking_animation(entity *ent, s_attack *attack);
+void	do_passive_block(entity *ent, entity *other, s_attack *attack, e_block_state_flags block_state);
+void    set_blocking_action(entity *ent, entity *other, s_attack *attack, e_block_state_flags block_state);
+void    set_blocking_animation(entity *ent, s_attack *attack, e_block_state_flags block_state);
 
 /* Counter action (aka. couner attack). */
 bool check_counter_condition(entity* target, entity* attacker, s_attack* attack_object, s_body* body_object);

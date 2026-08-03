@@ -27477,68 +27477,48 @@ void do_active_block(entity *ent)
 * guard break, attack type vs. defense, and
 * so on. It does not handle rules for AI blocking.
 */
-bool check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body) {
-    
+bool check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body *body, e_block_state_flags block_state) {
     int temp_block_threshold = 0;
-     
-	/* 
-	* Kratus (10-2021) For safe, confirm if the entity's "BLOCKING" instance was gone or not
-	* This is to avoid the entity to block while in other animations like RISE, PAIN or WALK.
-	*/
 
-	if (!ent->blocking)	{
+	/* Blocking must be active regardless of behavior overrides. */
+	if (!(block_state & BLOCK_STATE_ACTIVE)) {
 		return false;
 	}
 
-	/* If guardpoints are set, then find out if they've been depleted. */
-	
-    if (ent->modeldata.guardpoints)	{
-		if (ent->guardpoints <= 0) {
-			return false;
-		}
+	/* Guard points only limit native blocking unless explicitly ignored. */
+	if ((block_state & BLOCK_STATE_NATIVE)
+		&& !(block_state & BLOCK_STATE_IGNORE_GUARD_POINTS)
+		&& ent->modeldata.guardpoints > 0
+		&& ent->guardpoints <= 0) {
+		return false;
 	}
-    
-    /*
-	* Attack from behind? Can't block that if
-	* we don't have block back flag enabled.
-	*/
-    
-    if (ent->direction == other->direction)	{
-		if (!(ent->modeldata.block_config_flags & BLOCK_CONFIG_BACK)) {
-			return false;
-		}
-	}
-        
-    /* Need defense object for subsequent checks. */
-    const s_defense* defense_object = defense_find_current_object(ent, body, attack->attack_type);
 
-    /* Attack block breaking exceeds block power? */
-    
-    if (attack->no_block || defense_object->blockpower) {
-        if (attack->no_block >= defense_object->blockpower) {
+    /* Attack from behind? Can't block without an applicable override. */
+    if (!(block_state & BLOCK_STATE_IGNORE_DIRECTION)
+		&& ent->direction == other->direction
+		&& !(ent->modeldata.block_config_flags & BLOCK_CONFIG_BACK)) {
+		return false;
+	}
+
+	/*
+	* Attack eligibility consists of penetration vs. power and the
+	* combined model plus defense threshold. Direction and guard
+	* points have independent override flags above.
+	*/
+	if (!(block_state & BLOCK_STATE_IGNORE_ATTACK_ELIGIBILITY)) {
+        const s_defense* defense_object = defense_find_current_object(ent, body, attack->attack_type);
+
+        if ((attack->no_block || defense_object->blockpower)
+			&& attack->no_block >= defense_object->blockpower) {
             return false;
         }
-    }
 
-	/* 
-    * Is there a blocking threshhold for the attack type?
-	* Verify it vs. attack force.
-	*/
-    
-    /* Is there a blocking threshold ? Verify it vs.attack force. */
+        temp_block_threshold = ent->modeldata.thold + defense_object->blockthreshold;
 
-    temp_block_threshold = ent->modeldata.thold + defense_object->blockthreshold;
-
-    if (temp_block_threshold) {
-		if (temp_block_threshold > attack->attack_force) {
+        if (temp_block_threshold > attack->attack_force) {
 			return false;
 		}
 	}
-
-    /*
-	* If we made it through all that, then
-	* attack can be blocked. Return true.
-	*/
 
     return true;
 }
@@ -27553,7 +27533,7 @@ bool check_blocking_rules(entity *ent) {
 	// If already blocking we can
 	// forget the rest and return
 	// true right away.
-	if (ent->blocking) {
+	if (ent->blocking & BLOCK_STATE_ACTIVE) {
 		return true;
 	}
 
@@ -27602,12 +27582,16 @@ bool check_blocking_rules(entity *ent) {
 // to block. Returns true if AI chooses to attempt 
 // a block.
 bool check_blocking_decision(entity *ent) {
+	/* Per-instance override supplied through the blocking state. */
+	if (ent->blocking & BLOCK_STATE_IGNORE_CHANCE) {
+		return true;
+	}
 
 	// If we have active block enabled and we're
 	// already blocking, then we want the AI to
 	// keep blocking (like most players would).
 	if (ent->modeldata.block_config_flags & BLOCK_CONFIG_ACTIVE) {
-		if (ent->blocking) {
+		if (ent->blocking & BLOCK_STATE_ACTIVE) {
 			return true;
 		}
 	}
@@ -27628,54 +27612,53 @@ bool check_blocking_decision(entity *ent) {
 // Caskey, Damon V.
 // 2018-09-17
 //
-// Runs all blocking conditions and returns true
-// if the attack should be blocked.
-bool check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body *body) {
+// Runs all blocking conditions and returns the active
+// blocking state, or BLOCK_STATE_NONE if the attack
+// should not be blocked.
+e_block_state_flags check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body *body) {
 	e_entity_type entity_type;
+	e_block_state_flags block_state;
 
 	entity_type = ent->modeldata.type;
+	block_state = ent->blocking;
 
     if (ent->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED) {
-        return false;
+        return BLOCK_STATE_NONE;
     }
 
-	// Check AI or player blocking rules.
-	if (entity_type & TYPE_PLAYER)	{
-		// For players, all we need to know is if they
-		// are in a blocking state. If not we exit.
-		if (!ent->blocking) {
-			return false;
+	/*
+	* Script-controlled blocking is already an explicit choice. It
+	* bypasses native initiation rules and chance while retaining
+	* common attack eligibility unless its individual bits disable it.
+	*/
+	if ((block_state & BLOCK_STATE_ACTIVE)
+		&& !(block_state & BLOCK_STATE_NATIVE)) {
+		if (!check_blocking_eligible(ent, other, attack, body, block_state)) {
+			return BLOCK_STATE_NONE;
 		}
 
-		// Verify entity can block the attack at all.
-		if (!check_blocking_eligible(ent, other, attack, body)) {
-			return false;
-		}
-	
-    } else {
-
-		// AI must pass a series of conditions
-		// before it may block attacks.
-		if (!check_blocking_rules(ent)) {
-			return false;
-		}
-
-		// Now that we know AI is allowed
-		// to block let's find out if it
-		// wants to.
-		if (!check_blocking_decision(ent)) {
-			return false;
-		}
-
-		// Verify entity can block the attack at all.
-		if (!check_blocking_eligible(ent, other, attack, body))	{
-			return false;
-		}
+		return block_state;
 	}
 
-	// Looks like we made it through
-	// all the verifications. Return true.
-	return true;
+	/* Players must have entered native blocking before impact. */
+	if (entity_type & TYPE_PLAYER) {
+		if (!(block_state & BLOCK_STATE_ACTIVE)) {
+			return BLOCK_STATE_NONE;
+		}
+	} else {
+		/* AI either continues native blocking or chooses it on impact. */
+		if (!check_blocking_rules(ent) || !check_blocking_decision(ent)) {
+			return BLOCK_STATE_NONE;
+		}
+
+		block_state |= BLOCK_STATE_ACTIVE | BLOCK_STATE_NATIVE;
+	}
+
+	if (!check_blocking_eligible(ent, other, attack, body, block_state)) {
+		return BLOCK_STATE_NONE;
+	}
+
+	return block_state;
 }
 
 /* 
@@ -27685,23 +27668,25 @@ bool check_blocking_master(entity *ent, entity *other, s_attack *attack, s_body 
 * Apply primary block settings, animations,
 * actions, and scripts.
 */
-void set_blocking_action(entity *ent, entity *other, s_attack *attack)
+void set_blocking_action(entity *ent, entity *other, s_attack *attack, e_block_state_flags block_state)
 {
 	/* Execute the attacker's didhit script with blocked flag. */
 	execute_didhit_script(other, ent, attack, 1);
 
-	/* Set up blocking action and flag. */
-	ent->takeaction = common_block;
-	set_blocking(ent);	
+	/* Native blocking owns the action, movement, and guard system. */
+	if (block_state & BLOCK_STATE_NATIVE) {
+		ent->blocking |= block_state;
+		set_blocking(ent);
+		block_state = ent->blocking;
+		ent->takeaction = common_block;
 
-	/* Stop ground movement. */
-    ent->velocity.x = 0;
-    ent->velocity.z = 0;
+		ent->velocity.x = 0;
+		ent->velocity.z = 0;
 
-	/* If we have guardpoints, then reduce them here. */
-	if (ent->modeldata.guardpoints > 0)
-	{
-		ent->guardpoints -= attack->guardcost;
+		if (!(block_state & BLOCK_STATE_IGNORE_GUARD_POINTS)
+			&& ent->modeldata.guardpoints > 0) {
+			ent->guardpoints -= attack->guardcost;
+		}
 	}
 
 	/* 
@@ -27734,7 +27719,7 @@ bool check_blocking_pain(const entity *ent, const s_attack *attack) {
 // 2018-09-21
 //
 // Place entity into appropriate blocking animation.
-void set_blocking_animation(entity *acting_entity, s_attack *attack) {
+void set_blocking_animation(entity *acting_entity, s_attack *attack, e_block_state_flags block_state) {
 
     /*
     * Entity must have a valid blockpain and
@@ -27743,7 +27728,8 @@ void set_blocking_animation(entity *acting_entity, s_attack *attack) {
     * normal block animation.
     */
 
-    if(check_blocking_pain(acting_entity, attack)
+    if(!(block_state & BLOCK_STATE_IGNORE_BLOCKPAIN)
+		&& check_blocking_pain(acting_entity, attack)
         && set_blockpain(acting_entity, attack->attack_type, 1)) {
         return;
     }
@@ -27755,16 +27741,18 @@ void set_blocking_animation(entity *acting_entity, s_attack *attack) {
 // 2018-09-21
 //
 // Perform a block.
-void do_passive_block(entity *ent, entity *other, s_attack *attack)
+void do_passive_block(entity *ent, entity *other, s_attack *attack, e_block_state_flags block_state)
 {	
-	// Place entity in blocking animation.
-	set_blocking_animation(ent, attack);
+	/* Script-controlled blocks preserve the creator-controlled action. */
+	if (block_state & BLOCK_STATE_NATIVE) {
+		set_blocking_animation(ent, attack, block_state);
+	}
 	
 	// Spawn the blocking flash.
 	spawn_attack_flash(ent, attack, attack->flash.model_block, ent->modeldata.flash.model_block);
 
 	// Run blocking actions and scripts.
-	set_blocking_action(ent, other, attack);
+	set_blocking_action(ent, other, attack, block_state);
 }
 
 /*
@@ -28435,6 +28423,7 @@ void do_attack(entity *attacking_entity) {
     const s_defense* defense_object = NULL;
     bool didhit              = false;  // So a different sound effect can be played when an attack hits
     bool didblock            = false;    // So a different sound effect can be played when an attack is blocked
+    e_block_state_flags block_state = BLOCK_STATE_NONE;
     uint64_t current_attack_id   = 0;
     //int hit_detected        = 0;    // Has a hit been detected?
 
@@ -28665,12 +28654,13 @@ void do_attack(entity *attacking_entity) {
                 target->jugglepoints -= attack->jugglecost;
             }
 
-            didblock = check_blocking_master(target, attacking_entity, attack, target_body_object);
+            block_state = check_blocking_master(target, attacking_entity, attack, target_body_object);
+            didblock = (block_state & BLOCK_STATE_ACTIVE) != 0;
 
             // Blocking the attack?
             if(didblock) {
                 // Perform the blocking actions.
-                do_passive_block(target, attacking_entity, attack);
+                do_passive_block(target, attacking_entity, attack, block_state);
             
             } else if(try_counter_action(target, attacking_entity, attack, target_body_object)) {	// Counter action?
 
@@ -28735,11 +28725,6 @@ void do_attack(entity *attacking_entity) {
 
             /* Kratus(20 - 04 - 21) used by the multihit glitch memorization. */
             attack_update_id(target, current_attack_id);
-
-			// If hit, stop blocking.
-			if(target == def) {
-                target->blocking = didblock;   
-            }
 
             /*
 			* Utunnels
@@ -30142,7 +30127,9 @@ void update_health()
         * Recover guardpoints. Half rate if
         * blocking.
         */
-        if(self->blocking)
+        if((self->blocking & (BLOCK_STATE_ACTIVE | BLOCK_STATE_NATIVE))
+			== (BLOCK_STATE_ACTIVE | BLOCK_STATE_NATIVE)
+			&& !(self->blocking & BLOCK_STATE_IGNORE_GUARD_POINTS))
         {
             self->guardpoints += (self->modeldata.guardrate / 2);            
         }
@@ -31655,7 +31642,7 @@ int set_idle(entity *ent)
     ent->inbackpain = 0;
     ent->falling = 0;
     ent->jumping = 0;
-    ent->blocking = 0;
+    ent->blocking = BLOCK_STATE_NONE;
     common_idle_anim(ent);
 
     /*
@@ -31679,7 +31666,7 @@ int set_death(entity *iDie, int type, int reset)
     int die = 0;
 
     //iDie->velocity.x = iDie->velocity.z = iDie->velocity.y = 0; // stop the target
-    if(iDie->blocking && validanim(iDie, ANI_CHIPDEATH))
+    if((iDie->blocking & BLOCK_STATE_ACTIVE) && validanim(iDie, ANI_CHIPDEATH))
     {
         ent_set_anim(iDie, ANI_CHIPDEATH, reset);
         iDie->idling = IDLING_NONE;
@@ -31687,7 +31674,7 @@ int set_death(entity *iDie, int type, int reset)
         iDie->jumping = 0;
         iDie->charging = 0;
         iDie->attacking = ATTACKING_NONE;
-        iDie->blocking = 0;
+        iDie->blocking = BLOCK_STATE_NONE;
         iDie->inpain = IN_PAIN_NONE;
         iDie->falling = 0;
         iDie->rising = RISING_NONE;
@@ -31733,7 +31720,7 @@ int set_death(entity *iDie, int type, int reset)
     iDie->jumping = 0;
     iDie->charging = 0;
     iDie->attacking = ATTACKING_NONE;
-    iDie->blocking = 0;
+    iDie->blocking = BLOCK_STATE_NONE;
     iDie->inpain = IN_PAIN_NONE;
     iDie->falling = 0;
     iDie->rising = RISING_NONE;
@@ -31788,7 +31775,7 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
     ent->getting = 0;
     ent->charging = 0;
     ent->attacking = ATTACKING_NONE;
-    ent->blocking = 0;
+    ent->blocking = BLOCK_STATE_NONE;
     ent->nograb = 1;
     ent->running = RUN_STATE_NONE; //Kratus (01-2024) Resets the aiflag running when falling
 
@@ -32068,7 +32055,7 @@ int set_pain(entity *iPain, int type, int reset)
 	iPain->getting = 0;
 	iPain->charging = 0;
 	iPain->jumping = 0;
-	iPain->blocking = 0;
+	iPain->blocking = BLOCK_STATE_NONE;
 	iPain->inpain = IN_PAIN_HIT;
 	if(iPain->frozen) unfrozen(iPain);
 
@@ -33223,7 +33210,8 @@ void common_pain()
 //        set_pain(self, -1, 0);
         self->takeaction = common_grabbed;
     }
-    else if(self->blocking)
+    else if((self->blocking & (BLOCK_STATE_ACTIVE | BLOCK_STATE_NATIVE))
+		== (BLOCK_STATE_ACTIVE | BLOCK_STATE_NATIVE))
     {
         self->inpain = IN_PAIN_BLOCK;
         self->takeaction = common_block;
@@ -33511,7 +33499,7 @@ void common_block()
 		{
 			if (self->animnum == ANI_BLOCKRELEASE && !self->animating)
 			{
-				self->blocking = 0;
+				self->blocking = BLOCK_STATE_NONE;
 				self->takeaction = NULL;
 				set_idle(self);
 			}
@@ -33523,7 +33511,7 @@ void common_block()
 				}
 				else
 				{
-					self->blocking = 0;
+					self->blocking = BLOCK_STATE_NONE;
 					self->takeaction = NULL;
 					set_idle(self);
 				}				
@@ -36501,7 +36489,7 @@ int check_attack_chance(entity *target, float min, float max)
 //give it a chance to reset current noattack timer
 u32 recheck_nextattack(entity *target)
 {
-    if(target->blocking)
+    if(target->blocking & BLOCK_STATE_ACTIVE)
     {
         self->nextattack = 0;
     }
