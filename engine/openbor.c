@@ -33451,8 +33451,7 @@ void common_block()
 
 	// If we are in a block transition, let's see if it is finished.
 	// If it is, apply block animation.
-	if (self->animnum == ANI_BLOCKSTART && !self->animating)
-	{
+	if (self->animnum == ANI_BLOCKSTART && !self->animating) {
 		ent_set_anim(self, ANI_BLOCK, 0);
 	}
 	
@@ -33476,16 +33475,15 @@ void common_block()
     if(self->inpain & IN_PAIN_BLOCK
 		&& (self->modeldata.block_config_flags & BLOCK_CONFIG_HOLD_INFINITE)
 		&& !self->animating 
-		&& validanim(self, ANI_BLOCK))
-    {
+		&& validanim(self, ANI_BLOCK)) {
+
 		self->inpain = IN_PAIN_NONE;
 		self->rising = RISING_NONE;
 		self->inbackpain = 0;
 		ent_set_anim(self, ANI_BLOCK, 0);
-    }
-    else if((player_hold_block_eligible && !player_holding_special)
-		|| (!self->animating && (!player_hold_block_eligible || !player_holding_special)))
-    {
+    
+    } else if((player_hold_block_eligible && !player_holding_special)
+		|| (!self->animating && (!player_hold_block_eligible || !player_holding_special))) {
 		
         /*
         * Is blockstun complete (no blockpain and
@@ -33495,22 +33493,21 @@ void common_block()
         * return to idle.
         */ 
 
-		if (self->inpain & ~IN_PAIN_BLOCK || !self->animating)
-		{
-			if (self->animnum == ANI_BLOCKRELEASE && !self->animating)
-			{
+		if (self->inpain == IN_PAIN_NONE || !self->animating) {
+			
+            if (self->animnum == ANI_BLOCKRELEASE && !self->animating) {
 				self->blocking = BLOCK_STATE_NONE;
 				self->takeaction = NULL;
 				set_idle(self);
-			}
-			else
-			{
-				if (validanim(self, ANI_BLOCKRELEASE))
-				{
-					ent_set_anim(self, ANI_BLOCKRELEASE, 0);
-				}
-				else
-				{
+			
+            } else {
+				
+                if (validanim(self, ANI_BLOCKRELEASE)) {
+				
+                    ent_set_anim(self, ANI_BLOCKRELEASE, 0);
+				
+                } else {
+
 					self->blocking = BLOCK_STATE_NONE;
 					self->takeaction = NULL;
 					set_idle(self);
