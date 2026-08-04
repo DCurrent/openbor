@@ -675,7 +675,7 @@ char *casesearch(const char *dir, const char *filepath) {
     DIR *directory;
     struct dirent *entry;
     char filename[PACKFILE_PATH_MAX] = {""};
-    char *rest_of_path;
+    const char *rest_of_path;
     static char fullpath[PACKFILE_PATH_MAX];
     int found = 0;
 #ifdef VERBOSE
