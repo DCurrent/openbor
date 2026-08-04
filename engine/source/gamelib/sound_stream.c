@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "sound_stream.h"
+#include "sblaster.h"
 
 /*
 * Caskey, Damon V.
@@ -140,9 +141,12 @@ int sound_stream_fill(
     }
 
     buffer = &stream->buffer[stream->write_buffer];
+    SB_lock_audio();
     if(buffer->ready) {
+        SB_unlock_audio();
         return 0;
     }
+    SB_unlock_audio();
 
     if(stream->next_source_frame >= stream->source_frame_count) {
         if(!stream->looping) {
@@ -168,15 +172,15 @@ int sound_stream_fill(
         return -1;
     }
 
+    /* Publish PCM ownership only after all buffer metadata is complete. */
+    SB_lock_audio();
     buffer->source_start_frame = stream->next_source_frame;
     buffer->frame_count = frames_to_read;
     buffer->terminal = !stream->looping && frames_to_read == available_frames;
-
-    /* Publish readiness only after the PCM data and metadata are complete. */
     buffer->ready = 1;
-
     stream->next_source_frame += frames_to_read;
     stream->write_buffer = (stream->write_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
+    SB_unlock_audio();
 
     if(bytes_filled) {
         *bytes_filled = requested_bytes;

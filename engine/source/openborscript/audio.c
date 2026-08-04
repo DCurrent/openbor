@@ -319,6 +319,7 @@ HRESULT openbor_get_sound_property(
     const int argument_property = 1;
     const int argument_minimum = 2;
     const channelstruct *sound_object;
+    channelstruct sound_snapshot;
     int property_index;
     s_property_access_map property_map;
 
@@ -332,7 +333,7 @@ HRESULT openbor_get_sound_property(
     }
 
     sound_object = (const channelstruct*)varlist[argument_object]->ptrVal;
-    if(sound_get_channel_index(sound_object) < 0) {
+    if(!sound_get_channel_snapshot(sound_object, &sound_snapshot)) {
         goto error_object;
     }
 
@@ -340,21 +341,21 @@ HRESULT openbor_get_sound_property(
     if(property_index >= 0 && property_index < SOUND_PROPERTY_END) {
         if(property_index == SOUND_PROPERTY_LOOP_OFFSET) {
             ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-            (*pretvar)->ullVal = SOUND_SAMPLE_FIX_TO_INT(sound_object->fp_loop_start);
+            (*pretvar)->ullVal = SOUND_SAMPLE_FIX_TO_INT(sound_snapshot.fp_loop_start);
             return S_OK;
         }
         if(property_index == SOUND_PROPERTY_SAMPLE_POSITION) {
             ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
-            (*pretvar)->ullVal = SOUND_SAMPLE_FIX_TO_INT(sound_object->fp_samplepos);
+            (*pretvar)->ullVal = SOUND_SAMPLE_FIX_TO_INT(sound_snapshot.fp_samplepos);
             return S_OK;
         }
 
-        property_map = sound_get_property_map(sound_object, (unsigned int)property_index);
+        property_map = sound_get_property_map(&sound_snapshot, (unsigned int)property_index);
         return property_access_get_member(&property_map, *pretvar);
     }
 
     if(property_index == PROPERTY_ACCESS_DUMP) {
-        property_access_dump_members(sound_get_property_map, SOUND_PROPERTY_END, sound_object);
+        property_access_dump_members(sound_get_property_map, SOUND_PROPERTY_END, &sound_snapshot);
         return S_OK;
     }
 
@@ -437,10 +438,10 @@ HRESULT openbor_set_sound_property(
 
         case SOUND_PROPERTY_PRIORITY:
             if(FAILED(ScriptVariant_IntegerValue(varlist[argument_value], &integer_value)) ||
-               integer_value < 0) {
+               integer_value < 0 ||
+               !sound_set_channel_priority(channel, (unsigned int)integer_value)) {
                 goto error_value;
             }
-            sound_object->priority = (unsigned int)integer_value;
             return S_OK;
 
         case SOUND_PROPERTY_SAMPLE_POSITION:
@@ -458,17 +459,17 @@ HRESULT openbor_set_sound_property(
             return S_OK;
 
         case SOUND_PROPERTY_VOLUME_LEFT:
-            if(FAILED(ScriptVariant_IntegerValue(varlist[argument_value], &integer_value))) {
+            if(FAILED(ScriptVariant_IntegerValue(varlist[argument_value], &integer_value)) ||
+               !sound_set_channel_volume(channel, SOUND_SPATIAL_CHANNEL_LEFT, (int)integer_value)) {
                 goto error_value;
             }
-            sound_volume_sample(channel, (int)integer_value, sound_object->volume[SOUND_SPATIAL_CHANNEL_RIGHT]);
             return S_OK;
 
         case SOUND_PROPERTY_VOLUME_RIGHT:
-            if(FAILED(ScriptVariant_IntegerValue(varlist[argument_value], &integer_value))) {
+            if(FAILED(ScriptVariant_IntegerValue(varlist[argument_value], &integer_value)) ||
+               !sound_set_channel_volume(channel, SOUND_SPATIAL_CHANNEL_RIGHT, (int)integer_value)) {
                 goto error_value;
             }
-            sound_volume_sample(channel, sound_object->volume[SOUND_SPATIAL_CHANNEL_LEFT], (int)integer_value);
             return S_OK;
 
         case SOUND_PROPERTY_ACTIVE:
