@@ -235,30 +235,34 @@ ifdef BUILD_MMX
 GFX 	       += source/gfxlib/bilinearmmx.o
 endif
 
-GAME	        = source/gamelib/draw.o                                                             \
+GAME            = source/gamelib/draw.o                                                             \
                   source/gamelib/draw16.o                                                           \
                   source/gamelib/draw32.o                                                           \
                   source/gamelib/font.o                                                             \
-                  source/gamelib/translation.o                                                             \
+                  source/gamelib/translation.o                                                      \
                   source/gamelib/anigif.o                                                           \
-                  source/gamelib/bitmap.o 	                                                        \
+                  source/gamelib/bitmap.o                                                           \
                   source/gamelib/screen.o                                                           \
                   source/gamelib/screen16.o                                                         \
                   source/gamelib/screen32.o                                                         \
                   source/gamelib/loadimg.o                                                          \
                   source/gamelib/palette.o                                                          \
                   source/gamelib/packfile.o                                                         \
+                  source/gamelib/packfile_handle.o                                                  \
                   source/gamelib/filecache.o                                                        \
                   source/gamelib/pixelformat.o                                                      \
                   source/gamelib/soundmix.o                                                         \
+                  source/gamelib/sound_stream.o                                                     \
+                  source/gamelib/sound_channel.o                                                    \
                   source/gamelib/spriteq.o                                                          \
-                  source/gamelib/sprite.o                                                          \
+                  source/gamelib/sprite.o                                                           \
                   source/gamelib/spritex8p16.o                                                      \
                   source/gamelib/spritex8p32.o                                                      \
                   source/gamelib/models.o                                                           \
                   source/gamelib/transform.o
 SCRIPT          = source/scriptlib/StackedSymbolTable.o                                             \
                   source/scriptlib/ScriptVariant.o                                                  \
+                  source/scriptlib/ScriptVariantInteger.o                                           \
                   source/scriptlib/SymbolTable.o                                                    \
                   source/scriptlib/Instruction.o                                                    \
                   source/scriptlib/Interpreter.o                                                    \
@@ -272,6 +276,7 @@ SCRIPT          = source/scriptlib/StackedSymbolTable.o                         
                   source/preprocessorlib/pp_parser.o                                                \
                   source/preprocessorlib/pp_expr.o
 SCRIPT_BUILTINS = source/openborscript/commands.o                                                   \
+                  source/openborscript/command_input.o                                              \
 				  source/openborscript/animation.o                                                  \
                   source/openborscript/audio.o                                           			\
 				  source/openborscript/axis.o                                           			\
@@ -575,3 +580,5 @@ version:
 	@echo "Copyright (c) OpenBOR Team"
 	@echo "-------------------------------------------------------"
 
+clean:
+	@find . -maxdepth 4 -name "*.o" -type f -delete
