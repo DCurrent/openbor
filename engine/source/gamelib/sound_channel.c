@@ -493,8 +493,9 @@ bool sound_channel_pool_reserve_mask(s_sound_channel_pool *pool, unsigned int ba
 * Caskey, Damon V.
 * 2026-07-31
 *
-* Stop active channels through the bank masks.
-* Allocated banks remain available for reuse.
+* Stop non-reserved active channels through the bank
+* masks. Reserved channels retain playback and pause
+* state until they are stopped explicitly.
 */
 void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
     s_sound_channel_bank *bank;
@@ -511,7 +512,7 @@ void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
     active_bank_mask = pool->active_bank_mask;
     while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
         bank = pool->bank[bank_index];
-        channel_mask = bank->active_mask;
+        channel_mask = bank->active_mask & ~bank->reserved_mask;
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
             bank->channel[channel_index].active = 0;
@@ -519,8 +520,8 @@ void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
             channel_mask &= ~(UINT64_C(1) << channel_index);
         }
 
-        bank->active_mask = 0;
-        bank->paused_mask = 0;
+        bank->active_mask &= bank->reserved_mask;
+        bank->paused_mask &= bank->reserved_mask;
         active_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
 
@@ -537,8 +538,9 @@ void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
 * Caskey, Damon V.
 * 2026-07-31
 *
-* Pause or resume every active channel through
-* the bank masks.
+* Pause or resume every non-reserved active channel
+* through the bank masks. Reserved channel state is
+* controlled explicitly by its owner.
 */
 void sound_channel_pool_pause_all(s_sound_channel_pool *pool, int toggle) {
     s_sound_channel_bank *bank;
@@ -554,14 +556,18 @@ void sound_channel_pool_pause_all(s_sound_channel_pool *pool, int toggle) {
     active_bank_mask = pool->active_bank_mask;
     while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
         bank = pool->bank[bank_index];
-        channel_mask = bank->active_mask;
+        channel_mask = bank->active_mask & ~bank->reserved_mask;
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
             bank->channel[channel_index].paused = toggle ? 1 : 0;
             channel_mask &= ~(UINT64_C(1) << channel_index);
         }
 
-        bank->paused_mask = toggle ? bank->active_mask : 0;
+        if(toggle) {
+            bank->paused_mask |= bank->active_mask & ~bank->reserved_mask;
+        } else {
+            bank->paused_mask &= bank->reserved_mask;
+        }
         active_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
 }

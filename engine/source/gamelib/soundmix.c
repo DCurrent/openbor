@@ -2372,7 +2372,7 @@ void sound_stopall_sample() {
     streaming_bank_mask = sound_channel_pool.streaming_bank_mask;
     while((bank_index = sound_channel_mask_first(streaming_bank_mask)) >= 0) {
         s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
-        streaming_channel_mask[bank_index] = bank->streaming_mask;
+        streaming_channel_mask[bank_index] = bank->streaming_mask & ~bank->reserved_mask;
         streaming_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
     sound_channel_pool_stop_all(&sound_channel_pool);
