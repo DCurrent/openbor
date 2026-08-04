@@ -864,43 +864,55 @@ static bool sound_load_sample_source(char *filename, char *packname, samplestruc
 }
 
 bool sound_reload_sample(int index) {
-    
+    samplestruct loaded_sample;
+    char *filename;
+    char *packfilename;
+    bool stream;
+    bool load_success;
+
     if(!mixing_inited) {
         return false;
     }
 
+    SB_lock_audio();
     if(index < 0 || index >= sound_cached) {
+        SB_unlock_audio();
         return false;
     }
 
-    if(soundcache[index].stream) {
-        if(soundcache[index].sample.framecount > 0) {
-            return true;
-        }
-
-        return sound_load_sample_source(
-            soundcache[index].filename,
-            soundcache[index].packfilename,
-            &soundcache[index].sample,
-            sound_parameters.sound_length_max,
-            true
-        );
-    }
-
-    if(!soundcache[index].sample.sampleptr) {
-
-        //printf("packfile: '%s'\n", packfile);
-        return sound_load_sample_source(
-            soundcache[index].filename,
-            soundcache[index].packfilename,
-            &soundcache[index].sample,
-            sound_parameters.sound_length_max,
-            false
-        );
-    
-    } else {
+    stream = soundcache[index].stream;
+    if((stream && soundcache[index].sample.framecount > 0) ||
+       (!stream && soundcache[index].sample.sampleptr)) {
+        SB_unlock_audio();
         return true;
     }
+
+    filename = soundcache[index].filename;
+    packfilename = soundcache[index].packfilename;
+    SB_unlock_audio();
+
+    memset(&loaded_sample, 0, sizeof(loaded_sample));
+    load_success = sound_load_sample_source(
+        filename,
+        packfilename,
+        &loaded_sample,
+        sound_parameters.sound_length_max,
+        stream
+    );
+    if(!load_success) {
+        return false;
+    }
+
+    SB_lock_audio();
+    if(index < 0 || index >= sound_cached) {
+        SB_unlock_audio();
+        free(loaded_sample.sampleptr);
+        return false;
+    }
+
+    soundcache[index].sample = loaded_sample;
+    SB_unlock_audio();
+    return true;
 }
 
 
@@ -1012,8 +1024,10 @@ int sound_load_sample(char *filename, char *packfilename, bool log_errors, bool 
         return -1;
     }
 
+    SB_lock_audio();
     expanded_cache = realloc(soundcache, sizeof(*soundcache) * ((size_t)sound_cached + 1U));
     if(!expanded_cache) {
+        SB_unlock_audio();
         free(source_filename);
         free(source_packfilename);
         free(sample.sampleptr);
@@ -1031,10 +1045,11 @@ int sound_load_sample(char *filename, char *packfilename, bool log_errors, bool 
     soundcache[sound_cached].filename = source_filename;
     soundcache[sound_cached].packfilename = source_packfilename;
     soundcache[sound_cached].stream = stream;
+    sound_cached++;
+    SB_unlock_audio();
 
     free(cache_key);
 
-    sound_cached++;
     return sound_cached - 1;
 }
 
@@ -1045,8 +1060,11 @@ void sound_unload_sample(int index)
     {
         return;
     }
+
+    SB_lock_audio();
     if(index < 0 || index >= sound_cached)
     {
+        SB_unlock_audio();
         return;
     }
     if(soundcache[index].sample.sampleptr != NULL)
@@ -1058,18 +1076,23 @@ void sound_unload_sample(int index)
     {
         memset(&soundcache[index].sample, 0, sizeof(samplestruct));
     }
+    SB_unlock_audio();
 }
 
 void sound_unload_all_samples()
 {
     int i;
+
+    SB_lock_audio();
     if(!soundcache)
     {
+        SB_unlock_audio();
         return;
     }
     for(i = 0; i < sound_cached; i++)
     {
-        sound_unload_sample(i);
+        free(soundcache[i].sample.sampleptr);
+        memset(&soundcache[i].sample, 0, sizeof(samplestruct));
         free(soundcache[i].filename);
         soundcache[i].filename = NULL;
         free(soundcache[i].packfilename);
@@ -1079,6 +1102,7 @@ void sound_unload_all_samples()
     free(soundcache);
     soundcache = NULL;
     sound_cached = 0;
+    SB_unlock_audio();
 }
 
 #pragma pack(pop)
@@ -1337,6 +1361,7 @@ static void sound_mix_stream_channel(
         size_t right_sample_index;
         int left_sample_value;
         int right_sample_value;
+        int terminal;
 
         for(;;) {
             stream_buffer = &stream->buffer[stream->read_buffer];
@@ -1351,10 +1376,11 @@ static void sound_mix_stream_channel(
             }
 
             buffer_position_fixed -= buffer_length_fixed;
+            terminal = stream_buffer->terminal;
             stream_buffer->ready = 0;
             stream->read_buffer = (stream->read_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
 
-            if(stream_buffer->terminal) {
+            if(terminal) {
                 channel_record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(sample->framecount);
                 stream->fp_buffer_position = 0;
                 sound_channel_pool_deactivate(&sound_channel_pool, channel);
@@ -1657,8 +1683,10 @@ static void sound_stream_close_channel(int channel, channelstruct *record) {
         closepackfile(record->stream.handle);
     }
 
+    SB_lock_audio();
     sound_stream_reset(&record->stream);
     sound_channel_pool_stream(&sound_channel_pool, channel, 0);
+    SB_unlock_audio();
 }
 
 /*
@@ -1669,9 +1697,10 @@ static void sound_stream_close_channel(int channel, channelstruct *record) {
 * stream buffers retained by the channel.
 */
 static void sound_channel_record_clear(channelstruct *record) {
+    unsigned char *buffer_data[SOUND_STREAM_BUFFER_COUNT];
+    unsigned int buffer_index;
     e_object_type object_type;
     int index;
-    s_sound_stream retained_stream;
 
     if(!record) {
         return;
@@ -1679,13 +1708,20 @@ static void sound_channel_record_clear(channelstruct *record) {
 
     object_type = record->object_type;
     index = record->index;
-    retained_stream = record->stream;
+    for(buffer_index = 0; buffer_index < SOUND_STREAM_BUFFER_COUNT; buffer_index++) {
+        buffer_data[buffer_index] = record->stream.buffer[buffer_index].data;
+    }
+
     memset(record, 0, sizeof(*record));
     record->object_type = object_type;
     record->index = index;
     record->samplenum = -1;
     record->playid = -1;
-    record->stream = retained_stream;
+    sound_stream_init(&record->stream);
+
+    for(buffer_index = 0; buffer_index < SOUND_STREAM_BUFFER_COUNT; buffer_index++) {
+        record->stream.buffer[buffer_index].data = buffer_data[buffer_index];
+    }
 }
 
 /*
@@ -1804,7 +1840,9 @@ static bool sound_stream_open_channel(
         return false;
     }
 
+    SB_lock_audio();
     sound_channel_pool_stream(&sound_channel_pool, channel, 1);
+    SB_unlock_audio();
     return true;
 }
 
@@ -1820,22 +1858,27 @@ static size_t sound_stream_update_channel(int channel) {
     channelstruct *record;
     s_soundcache *cache;
     size_t bytes_filled = 0;
+    int close_stream = 0;
     int fill_result;
 
+    SB_lock_audio();
     record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record) {
+        SB_unlock_audio();
         return 0;
     }
 
     if(!sound_channel_pool_is_active(&sound_channel_pool, channel)) {
-        sound_stream_close_channel(channel, record);
-        return 0;
-    }
-
-    if(record->samplenum < 0 ||
-       record->samplenum >= sound_cached ||
-       !soundcache[record->samplenum].stream) {
+        close_stream = 1;
+    } else if(record->samplenum < 0 ||
+              record->samplenum >= sound_cached ||
+              !soundcache[record->samplenum].stream) {
         sound_channel_pool_deactivate(&sound_channel_pool, channel);
+        close_stream = 1;
+    }
+    SB_unlock_audio();
+
+    if(close_stream) {
         sound_stream_close_channel(channel, record);
         return 0;
     }
@@ -1844,7 +1887,9 @@ static size_t sound_stream_update_channel(int channel) {
     fill_result = sound_stream_fill_channel(record, cache, &bytes_filled);
 
     if(fill_result < 0) {
+        SB_lock_audio();
         sound_channel_pool_deactivate(&sound_channel_pool, channel);
+        SB_unlock_audio();
         sound_stream_close_channel(channel, record);
         return 0;
     }
@@ -1863,6 +1908,7 @@ static size_t sound_stream_update_channel(int channel) {
 static bool sound_stream_update_range(
     unsigned int first_channel,
     unsigned int end_channel,
+    const uint64_t streaming_channel_mask[SOUND_CHANNEL_BANK_COUNT],
     size_t *remaining_budget,
     unsigned int *last_channel
 ) {
@@ -1878,16 +1924,13 @@ static bool sound_stream_update_range(
     end_bank = (end_channel - 1U) / SOUND_CHANNEL_BANK_SIZE;
 
     for(bank_index = first_bank; bank_index <= end_bank; bank_index++) {
-        s_sound_channel_bank *bank;
         uint64_t channel_mask;
         int channel_index;
 
-        if(!(sound_channel_pool.streaming_bank_mask & (UINT64_C(1) << bank_index))) {
+        channel_mask = streaming_channel_mask[bank_index];
+        if(!channel_mask) {
             continue;
         }
-
-        bank = sound_channel_pool.bank[bank_index];
-        channel_mask = bank->streaming_mask;
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
             unsigned int channel = bank_index * SOUND_CHANNEL_BANK_SIZE + (unsigned int)channel_index;
@@ -1920,12 +1963,25 @@ static bool sound_stream_update_range(
 * bounded per-update byte budget.
 */
 static void sound_update_streams(void) {
+    uint64_t streaming_channel_mask[SOUND_CHANNEL_BANK_COUNT] = { 0 };
+    uint64_t streaming_bank_mask;
+    uint64_t streaming_bank_snapshot;
     size_t remaining_budget = SOUND_STREAM_UPDATE_BYTE_BUDGET;
     unsigned int start_channel;
     unsigned int last_channel;
+    int bank_index;
     bool first_range_complete;
 
-    if(!sound_channel_pool.streaming_bank_mask) {
+    SB_lock_audio();
+    streaming_bank_snapshot = sound_channel_pool.streaming_bank_mask;
+    streaming_bank_mask = streaming_bank_snapshot;
+    while((bank_index = sound_channel_mask_first(streaming_bank_mask)) >= 0) {
+        streaming_channel_mask[bank_index] = sound_channel_pool.bank[bank_index]->streaming_mask;
+        streaming_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+    SB_unlock_audio();
+
+    if(!streaming_bank_snapshot) {
         return;
     }
 
@@ -1934,6 +1990,7 @@ static void sound_update_streams(void) {
     first_range_complete = sound_stream_update_range(
         start_channel,
         SOUND_CHANNEL_COUNT_MAX,
+        streaming_channel_mask,
         &remaining_budget,
         &last_channel
     );
@@ -1942,6 +1999,7 @@ static void sound_update_streams(void) {
         sound_stream_update_range(
             0,
             start_channel,
+            streaming_channel_mask,
             &remaining_budget,
             &last_channel
         );
@@ -2032,15 +2090,18 @@ static int sound_play_sample_internal(
 
     sample = &soundcache[samplenum].sample;
 
+    SB_lock_audio();
     if(forced_channel >= 0) {
         unsigned int bank_index;
 
         if((unsigned int)forced_channel >= SOUND_CHANNEL_COUNT_MAX) {
+            SB_unlock_audio();
             return -1;
         }
 
         bank_index = (unsigned int)forced_channel / SOUND_CHANNEL_BANK_SIZE;
         if(!sound_channel_pool_allocate_bank(&sound_channel_pool, bank_index)) {
+            SB_unlock_audio();
             return -1;
         }
         channel = forced_channel;
@@ -2049,10 +2110,12 @@ static int sound_play_sample_internal(
         if(channel < 0) {
             channel = sound_find_lowest_priority_channel(&priority_low);
             if(channel < 0 || priority_low > priority) {
+                SB_unlock_audio();
                 return -1;
             }
         }
     }
+    SB_unlock_audio();
 
     if(lvolume < 0) {
         lvolume = 0;
@@ -2077,12 +2140,15 @@ static int sound_play_sample_internal(
         return -1;
     }
 
+    SB_lock_audio();
     record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record) {
+        SB_unlock_audio();
         return -1;
     }
 
     sound_channel_pool_deactivate(&sound_channel_pool, channel);
+    SB_unlock_audio();
     sound_stream_close_channel(channel, record);
     sound_channel_record_clear(record);
     record->samplenum = samplenum;
@@ -2119,7 +2185,9 @@ static int sound_play_sample_internal(
         return -1;
     }
 
+    SB_lock_audio();
     sound_channel_pool_activate(&sound_channel_pool, channel, looping ? CHANNEL_LOOPING : CHANNEL_PLAYING);
+    SB_unlock_audio();
 
     return channel;
 }
@@ -2141,9 +2209,12 @@ int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, 
 }
 
 int sound_query_channel(int playid) {
-    uint64_t active_bank_mask = sound_channel_pool.active_bank_mask;
+    uint64_t active_bank_mask;
     int bank_index;
+    int channel = -1;
 
+    SB_lock_audio();
+    active_bank_mask = sound_channel_pool.active_bank_mask;
     while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
         s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
         uint64_t channel_mask = bank->active_mask;
@@ -2151,14 +2222,19 @@ int sound_query_channel(int playid) {
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
             if(bank->channel[channel_index].playid == playid) {
-                return (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
+                channel = (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
+                break;
             }
             channel_mask &= ~(UINT64_C(1) << channel_index);
         }
+        if(channel >= 0) {
+            break;
+        }
         active_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
+    SB_unlock_audio();
 
-    return -1;
+    return channel;
 }
 
 /*
@@ -2169,7 +2245,12 @@ int sound_query_channel(int playid) {
 * flattened channel index.
 */
 channelstruct *sound_get_channel_object(int channel) {
-    return sound_channel_pool_get(&sound_channel_pool, channel);
+    channelstruct *record;
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    SB_unlock_audio();
+    return record;
 }
 
 /*
@@ -2180,7 +2261,35 @@ channelstruct *sound_get_channel_object(int channel) {
 * index after verifying pool ownership.
 */
 int sound_get_channel_index(const channelstruct *record) {
-    return sound_channel_pool_get_index(&sound_channel_pool, record);
+    int channel;
+
+    SB_lock_audio();
+    channel = sound_channel_pool_get_index(&sound_channel_pool, record);
+    SB_unlock_audio();
+    return channel;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-04
+*
+* Copy the script-visible channel fields while the
+* SDL callback is excluded from updating them.
+*/
+bool sound_get_channel_snapshot(const channelstruct *record, channelstruct *snapshot) {
+    int channel;
+
+    if(!record || !snapshot) {
+        return false;
+    }
+
+    SB_lock_audio();
+    channel = sound_channel_pool_get_index(&sound_channel_pool, record);
+    if(channel >= 0) {
+        *snapshot = *sound_channel_pool_get(&sound_channel_pool, channel);
+    }
+    SB_unlock_audio();
+    return channel >= 0;
 }
 
 /*
@@ -2191,7 +2300,12 @@ int sound_get_channel_index(const channelstruct *record) {
 * engine channel traversal.
 */
 uint64_t sound_get_channel_bank_mask(e_sound_channel_bank_mask mask) {
-    return sound_channel_pool_get_bank_mask(&sound_channel_pool, mask);
+    uint64_t result;
+
+    SB_lock_audio();
+    result = sound_channel_pool_get_bank_mask(&sound_channel_pool, mask);
+    SB_unlock_audio();
+    return result;
 }
 
 /*
@@ -2202,66 +2316,104 @@ uint64_t sound_get_channel_bank_mask(e_sound_channel_bank_mask mask) {
 * bank. Unallocated banks return an empty mask.
 */
 uint64_t sound_get_channel_mask(unsigned int bank_index, e_sound_channel_mask mask) {
-    return sound_channel_pool_get_mask(&sound_channel_pool, bank_index, mask);
+    uint64_t result;
+
+    SB_lock_audio();
+    result = sound_channel_pool_get_mask(&sound_channel_pool, bank_index, mask);
+    SB_unlock_audio();
+    return result;
 }
 
 int sound_id(int channel) {
     channelstruct *record;
+    int playid = -1;
 
+    SB_lock_audio();
     if(!sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        SB_unlock_audio();
         return -1;
     }
 
     record = sound_channel_pool_get(&sound_channel_pool, channel);
-    return record ? record->playid : -1;
+    if(record) {
+        playid = record->playid;
+    }
+    SB_unlock_audio();
+    return playid;
 }
 
 int sound_is_active(int channel) {
-    return sound_channel_pool_is_active(&sound_channel_pool, channel) ? 1 : 0;
+    int active;
+
+    SB_lock_audio();
+    active = sound_channel_pool_is_active(&sound_channel_pool, channel) ? 1 : 0;
+    SB_unlock_audio();
+    return active;
 }
 
 void sound_stop_sample(int channel) {
-    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+    channelstruct *record;
 
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
     sound_channel_pool_deactivate(&sound_channel_pool, channel);
+    SB_unlock_audio();
     if(record) {
         sound_stream_close_channel(channel, record);
     }
 }
 
 void sound_stopall_sample() {
-    uint64_t streaming_bank_mask = sound_channel_pool.streaming_bank_mask;
+    uint64_t streaming_channel_mask[SOUND_CHANNEL_BANK_COUNT] = { 0 };
+    uint64_t streaming_bank_mask;
     int bank_index;
 
+    SB_lock_audio();
+    streaming_bank_mask = sound_channel_pool.streaming_bank_mask;
     while((bank_index = sound_channel_mask_first(streaming_bank_mask)) >= 0) {
         s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
-        uint64_t channel_mask = bank->streaming_mask;
+        streaming_channel_mask[bank_index] = bank->streaming_mask;
+        streaming_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+    sound_channel_pool_stop_all(&sound_channel_pool);
+    SB_unlock_audio();
+
+    for(bank_index = 0; bank_index < (int)SOUND_CHANNEL_BANK_COUNT; bank_index++) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask = streaming_channel_mask[bank_index];
         int channel_index;
+
+        if(!bank) {
+            continue;
+        }
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
             int channel = bank_index * (int)SOUND_CHANNEL_BANK_SIZE + channel_index;
             sound_stream_close_channel(channel, &bank->channel[channel_index]);
             channel_mask &= ~(UINT64_C(1) << channel_index);
         }
-
-        streaming_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
-
-    sound_channel_pool_stop_all(&sound_channel_pool);
 }
 
 void sound_pause_sample(int toggle) {
+    SB_lock_audio();
     sound_channel_pool_pause_all(&sound_channel_pool, toggle);
+    SB_unlock_audio();
 }
 
 void sound_pause_single_sample(int toggle, int channel) {
+    SB_lock_audio();
     sound_channel_pool_pause(&sound_channel_pool, channel, toggle);
+    SB_unlock_audio();
 }
 
 void sound_volume_sample(int channel, int lvolume, int rvolume) {
-    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+    channelstruct *record;
 
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record) {
+        SB_unlock_audio();
         return;
     }
     if(lvolume < 0) {
@@ -2278,6 +2430,7 @@ void sound_volume_sample(int channel, int lvolume, int rvolume) {
     }
     record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = lvolume;
     record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
+    SB_unlock_audio();
 }
 
 /*
@@ -2297,11 +2450,13 @@ static bool sound_reconfigure_streamed_channel(
     int active_state;
     int paused;
 
+    SB_lock_audio();
     if(!record ||
        record->samplenum < 0 ||
        record->samplenum >= sound_cached ||
        !soundcache[record->samplenum].stream ||
        !sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+        SB_unlock_audio();
         return false;
     }
 
@@ -2310,6 +2465,7 @@ static bool sound_reconfigure_streamed_channel(
        loop_start_frame >= cache->sample.framecount ||
        start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
        loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        SB_unlock_audio();
         return false;
     }
 
@@ -2317,6 +2473,7 @@ static bool sound_reconfigure_streamed_channel(
     paused = record->paused;
 
     sound_channel_pool_deactivate(&sound_channel_pool, channel);
+    SB_unlock_audio();
     sound_stream_close_channel(channel, record);
 
     if(!sound_stream_open_channel(
@@ -2332,11 +2489,13 @@ static bool sound_reconfigure_streamed_channel(
 
     record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(start_frame);
     record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
+    SB_lock_audio();
     sound_channel_pool_activate(&sound_channel_pool, channel, active_state);
 
     if(paused) {
         sound_channel_pool_pause(&sound_channel_pool, channel, 1);
     }
+    SB_unlock_audio();
 
     return true;
 }
@@ -2352,21 +2511,32 @@ bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame) {
     channelstruct *record;
     samplestruct *sample;
     uint64_t sample_position;
+    bool reconfigure_stream;
 
+    SB_lock_audio();
     record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record || record->samplenum < 0 || record->samplenum >= sound_cached) {
+        SB_unlock_audio();
         return false;
     }
 
     sample = &soundcache[record->samplenum].sample;
     if(loop_start_frame >= sample->framecount ||
        loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        SB_unlock_audio();
         return false;
     }
 
-    if(soundcache[record->samplenum].stream &&
-       sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+    reconfigure_stream = soundcache[record->samplenum].stream &&
+                         sound_channel_pool_is_active(&sound_channel_pool, channel);
+    if(reconfigure_stream) {
         sample_position = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
+    } else {
+        record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
+    }
+    SB_unlock_audio();
+
+    if(reconfigure_stream) {
         return sound_reconfigure_streamed_channel(
             channel,
             record,
@@ -2374,8 +2544,6 @@ bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame) {
             loop_start_frame
         );
     }
-
-    record->fp_loop_start = SOUND_SAMPLE_INT_TO_FIX(loop_start_frame);
     return true;
 }
 
@@ -2387,13 +2555,71 @@ bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame) {
 * rejected because it would stall the channel.
 */
 bool sound_set_channel_period(int channel, uint64_t period) {
-    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+    channelstruct *record;
 
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record || period == 0) {
+        SB_unlock_audio();
         return false;
     }
 
     record->fp_period = period;
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-04
+*
+* Update replacement priority without racing the
+* callback's active channel traversal.
+*/
+bool sound_set_channel_priority(int channel, unsigned int priority) {
+    channelstruct *record;
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    record->priority = priority;
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-04
+*
+* Set one spatial volume without requiring script code
+* to read the opposite callback-owned channel first.
+*/
+bool sound_set_channel_volume(int channel, unsigned int spatial_channel, int volume) {
+    channelstruct *record;
+
+    if(spatial_channel >= SOUND_SPATIAL_CHANNEL_MAX) {
+        return false;
+    }
+    if(volume < 0) {
+        volume = 0;
+    }
+    if(volume > MAX_SAMPLE_VOLUME) {
+        volume = MAX_SAMPLE_VOLUME;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    record->volume[spatial_channel] = volume;
+    SB_unlock_audio();
     return true;
 }
 
@@ -2408,21 +2634,32 @@ bool sound_set_channel_position(int channel, uint64_t sample_position) {
     channelstruct *record;
     samplestruct *sample;
     uint64_t loop_start_frame;
+    bool reconfigure_stream;
 
+    SB_lock_audio();
     record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record || record->samplenum < 0 || record->samplenum >= sound_cached) {
+        SB_unlock_audio();
         return false;
     }
 
     sample = &soundcache[record->samplenum].sample;
     if(sample_position >= sample->framecount ||
        sample_position > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
+        SB_unlock_audio();
         return false;
     }
 
-    if(soundcache[record->samplenum].stream &&
-       sound_channel_pool_is_active(&sound_channel_pool, channel)) {
+    reconfigure_stream = soundcache[record->samplenum].stream &&
+                         sound_channel_pool_is_active(&sound_channel_pool, channel);
+    if(reconfigure_stream) {
         loop_start_frame = SOUND_SAMPLE_FIX_TO_INT(record->fp_loop_start);
+    } else {
+        record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(sample_position);
+    }
+    SB_unlock_audio();
+
+    if(reconfigure_stream) {
         return sound_reconfigure_streamed_channel(
             channel,
             record,
@@ -2430,8 +2667,6 @@ bool sound_set_channel_position(int channel, uint64_t sample_position) {
             loop_start_frame
         );
     }
-
-    record->fp_samplepos = SOUND_SAMPLE_INT_TO_FIX(sample_position);
     return true;
 }
 
@@ -2443,26 +2678,33 @@ bool sound_set_channel_position(int channel, uint64_t sample_position) {
 * division by zero in the audio callback.
 */
 bool sound_set_channel_volume_divisor(int channel, int volume_divisor) {
-    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+    channelstruct *record;
 
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record || volume_divisor < 1) {
+        SB_unlock_audio();
         return false;
     }
 
     record->volume_divisor = volume_divisor;
+    SB_unlock_audio();
     return true;
 }
 
 int sound_getpos_sample(int channel) {
-    channelstruct *record = sound_channel_pool_get(&sound_channel_pool, channel);
+    channelstruct *record;
+    uint64_t sample_position;
 
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
     if(!record) {
+        SB_unlock_audio();
         return 0;
     }
-    {
-        uint64_t sample_position = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
-        return sample_position > (uint64_t)INT_MAX ? INT_MAX : (int)sample_position;
-    }
+    sample_position = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
+    SB_unlock_audio();
+    return sample_position > (uint64_t)INT_MAX ? INT_MAX : (int)sample_position;
 }
 
 //////////////////////////////// ADPCM music ////////////////////////////////
@@ -2498,6 +2740,8 @@ void sound_close_adpcm()
 {
 
     int i;
+
+    SB_lock_audio();
 
     // Prevent any further access by the ISR
     musicchannel.active = 0;
@@ -2538,6 +2782,7 @@ void sound_close_adpcm()
     loop_valprev[SOUND_SPATIAL_CHANNEL_LEFT] = loop_valprev[SOUND_SPATIAL_CHANNEL_RIGHT] = 0;
     loop_index[SOUND_SPATIAL_CHANNEL_LEFT] = loop_index[SOUND_SPATIAL_CHANNEL_RIGHT] = 0;
     loop_state_set = 0;
+    SB_unlock_audio();
 }
 
 int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 music_offset)
@@ -2620,7 +2865,9 @@ int sound_open_adpcm(char *filename, char *packname, int volume, int loop, u32 m
     }
 
     loop_offset = music_offset;
+    SB_lock_audio();
     music_type = SOUND_FILE_TYPE_ADPCM;
+    SB_unlock_audio();
 
     return 1;
 error_exit:
@@ -2769,7 +3016,9 @@ void sound_update_adpcm()
 
 void sound_adpcm_tempo(int music_tempo)
 {
+    SB_lock_audio();
     musicchannel.fp_period = sound_music_period_calculate((int)borhead.frequency, music_tempo);
+    SB_unlock_audio();
 }
 
 int sound_query_adpcm(char *artist, char *title)
@@ -2801,9 +3050,16 @@ int sound_query_adpcm(char *artist, char *title)
 * music ownership without stopping the replacement.
 */
 static bool sound_sample_music_is_active(void) {
-    return music_sample_play_id >= 0 &&
-           sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) &&
-           sound_id(SOUND_MUSIC_CHANNEL) == music_sample_play_id;
+    channelstruct *record;
+    bool active;
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    active = music_sample_play_id >= 0 &&
+             sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) &&
+             record && record->playid == music_sample_play_id;
+    SB_unlock_audio();
+    return active;
 }
 
 /*
@@ -2817,15 +3073,19 @@ static bool sound_sample_music_is_active(void) {
 static void sound_sample_music_sync(void) {
     channelstruct *record;
 
-    if(!sound_sample_music_is_active()) {
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    if(music_sample_play_id < 0 ||
+       !sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) ||
+       !record || record->playid != music_sample_play_id) {
         music_type = SOUND_FILE_TYPE_NONE;
         music_sample_index = -1;
         music_sample_play_id = -1;
         sound_music_channel_clear(&musicchannel);
+        SB_unlock_audio();
         return;
     }
 
-    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
     musicchannel.active = 1;
     musicchannel.paused = record->paused;
     musicchannel.channels = record->channels;
@@ -2839,6 +3099,7 @@ static void sound_sample_music_sync(void) {
         record->volume[SOUND_SPATIAL_CHANNEL_LEFT];
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] =
         record->volume[SOUND_SPATIAL_CHANNEL_RIGHT];
+    SB_unlock_audio();
 }
 
 /*
@@ -2853,10 +3114,12 @@ static void sound_close_sample_music(void) {
         sound_stop_sample(SOUND_MUSIC_CHANNEL);
     }
 
+    SB_lock_audio();
     music_sample_index = -1;
     music_sample_play_id = -1;
     music_type = SOUND_FILE_TYPE_NONE;
     sound_music_channel_clear(&musicchannel);
+    SB_unlock_audio();
 }
 
 /*
@@ -2905,8 +3168,10 @@ static int sound_open_sample_music(char *filename, char *packname, int volume, i
         return 0;
     }
 
+    SB_lock_audio();
     record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
     if(!record) {
+        SB_unlock_audio();
         sound_stop_sample(SOUND_MUSIC_CHANNEL);
         return 0;
     }
@@ -2926,6 +3191,7 @@ static int sound_open_sample_music(char *filename, char *packname, int volume, i
     music_sample_play_id = record->playid;
     music_type = SOUND_FILE_TYPE_SAMPLE;
     sound_music_channel_clear(&musicchannel);
+    SB_unlock_audio();
     sound_sample_music_sync();
     return 1;
 }
@@ -2937,38 +3203,51 @@ static void sound_update_sample_music(void) {
 static void sound_sample_music_tempo(int music_tempo) {
     channelstruct *record;
 
-    if(!sound_sample_music_is_active() ||
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    if(music_sample_play_id < 0 ||
+       !sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) ||
+       !record || record->playid != music_sample_play_id ||
        music_sample_index < 0 ||
        music_sample_index >= sound_cached) {
+        SB_unlock_audio();
         return;
     }
 
-    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
     record->fp_period = music_tempo > 0
         ? sound_sample_period_calculate(
             (unsigned int)music_tempo,
             soundcache[music_sample_index].sample.frequency
         )
         : 0;
+    SB_unlock_audio();
     sound_sample_music_sync();
 }
 
 static int sound_query_sample_music(char *artist, char *title) {
+    channelstruct *record;
     samplestruct *sample;
 
-    if(!sound_sample_music_is_active() ||
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+    if(music_sample_play_id < 0 ||
+       !sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) ||
+       !record || record->playid != music_sample_play_id ||
        music_sample_index < 0 ||
        music_sample_index >= sound_cached) {
+        SB_unlock_audio();
         return 0;
     }
 
     if(!artist || !title) {
+        SB_unlock_audio();
         return 1;
     }
 
     sample = &soundcache[music_sample_index].sample;
     strcpy(artist, sample->artist);
     strcpy(title, sample->title);
+    SB_unlock_audio();
     return 1;
 }
 /////////////////////////////// INIT / EXIT //////////////////////////////////
@@ -3016,7 +3295,13 @@ int sound_open_music(char *filename, char *packname, int volume, int loop, u32 m
 
 void sound_close_music()
 {
-    switch(music_type)
+    e_sound_file_type current_music_type;
+
+    SB_lock_audio();
+    current_music_type = music_type;
+    SB_unlock_audio();
+
+    switch(current_music_type)
     {
     case SOUND_FILE_TYPE_ADPCM:
         sound_close_adpcm();
@@ -3027,14 +3312,22 @@ void sound_close_music()
     case SOUND_FILE_TYPE_NONE:
         return;
     }
+    SB_lock_audio();
     music_type = SOUND_FILE_TYPE_NONE;
+    SB_unlock_audio();
 }
 
 void sound_update_music()
 {
+    e_sound_file_type current_music_type;
+
     sound_update_streams();
 
-    switch(music_type)
+    SB_lock_audio();
+    current_music_type = music_type;
+    SB_unlock_audio();
+
+    switch(current_music_type)
     {
     case SOUND_FILE_TYPE_ADPCM:
         sound_update_adpcm();
@@ -3049,7 +3342,13 @@ void sound_update_music()
 
 int sound_query_music(char *artist, char *title)
 {
-    switch(music_type)
+    e_sound_file_type current_music_type;
+
+    SB_lock_audio();
+    current_music_type = music_type;
+    SB_unlock_audio();
+
+    switch(current_music_type)
     {
     case SOUND_FILE_TYPE_ADPCM:
         return sound_query_adpcm(artist, title);
@@ -3064,8 +3363,13 @@ int sound_query_music(char *artist, char *title)
 
 void sound_music_tempo(int music_tempo)
 {
+    e_sound_file_type current_music_type;
 
-    switch(music_type)
+    SB_lock_audio();
+    current_music_type = music_type;
+    SB_unlock_audio();
+
+    switch(current_music_type)
     {
     case SOUND_FILE_TYPE_ADPCM:
         sound_adpcm_tempo(music_tempo);
@@ -3099,38 +3403,53 @@ void sound_volume_music(int left, int right)
         right = MAX_SAMPLE_VOLUME * 8;
     }
 
+    SB_lock_audio();
     if(music_type == SOUND_FILE_TYPE_SAMPLE) {
-        if(!sound_sample_music_is_active()) {
+        record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+        if(music_sample_play_id < 0 ||
+           !sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) ||
+           !record || record->playid != music_sample_play_id) {
+            SB_unlock_audio();
             sound_sample_music_sync();
             return;
         }
 
-        record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
         record->volume[SOUND_SPATIAL_CHANNEL_LEFT] = left;
         record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = right;
         record->volume_divisor = MAX_MUSIC_VOLUME;
+        SB_unlock_audio();
         sound_sample_music_sync();
         return;
     }
 
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = left;
     musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = right;
+    SB_unlock_audio();
 }
 
 void sound_pause_music(int toggle)
 {
+    channelstruct *record;
+
+    SB_lock_audio();
     if(music_type == SOUND_FILE_TYPE_SAMPLE) {
-        if(!sound_sample_music_is_active()) {
+        record = sound_channel_pool_get(&sound_channel_pool, SOUND_MUSIC_CHANNEL);
+        if(music_sample_play_id < 0 ||
+           !sound_channel_pool_is_active(&sound_channel_pool, SOUND_MUSIC_CHANNEL) ||
+           !record || record->playid != music_sample_play_id) {
+            SB_unlock_audio();
             sound_sample_music_sync();
             return;
         }
 
         sound_channel_pool_pause(&sound_channel_pool, SOUND_MUSIC_CHANNEL, toggle);
+        SB_unlock_audio();
         sound_sample_music_sync();
         return;
     }
 
     musicchannel.paused = toggle;
+    SB_unlock_audio();
 }
 
 void sound_stop_playback() {
@@ -3155,6 +3474,7 @@ int sound_start_playback() {
 
     playbits = SOUND_OUTPUT_BITS_DEFAULT;
     playfrequency = SOUND_OUTPUT_FREQUENCY_DEFAULT;
+    samplesplayed = 0;
 
     sound_stopall_sample();
     SB_playstop();
@@ -3163,7 +3483,6 @@ int sound_start_playback() {
     }
 
     mixing_active = 1;
-    samplesplayed = 0;
     return 1;
 }
 
@@ -3230,8 +3549,10 @@ u32 sound_getinterval()
         return 0xFFFFFFFF;
     }
 
+    SB_lock_audio();
     msecs = 1000 * samplesplayed / playfrequency;
     samplesplayed -= msecs * playfrequency / 1000;
+    SB_unlock_audio();
 
     return msecs;
 }

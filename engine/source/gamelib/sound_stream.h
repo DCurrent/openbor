@@ -33,7 +33,7 @@ typedef struct s_sound_stream_buffer {
     uint64_t source_start_frame;
     uint64_t frame_count;
     int terminal;
-    volatile int ready;
+    int ready;
 } s_sound_stream_buffer;
 
 typedef struct s_sound_stream {

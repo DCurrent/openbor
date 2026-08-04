@@ -36335,43 +36335,43 @@ int common_try_runattack(entity *target)
 // 2. Target is within range of BLOCK animation.
 // 3. Target is actively attacking.
 // 4. Blocking chance passes (same rules as active blocking).
-int common_try_block(entity *target)
-{
-	// Must have block animation.
-	if (!validanim(self, ANI_BLOCK))
-	{
-		return 0;
+static bool common_try_block(entity *target) {
+
+	/* Only active AI may initiate blocking before impact. */
+	if (!(self->modeldata.block_config_flags & BLOCK_CONFIG_ACTIVE)
+		|| (self->modeldata.block_config_flags & BLOCK_CONFIG_DISABLED)) {
+		return false;
 	}
 
-	// Exit if we choose not to block. This function includes 
-	// the check for active blocking flag.
-	if (!check_blocking_decision(self))
-	{	
-		return 0;
+	// Must have block animation.
+	if (!validanim(self, ANI_BLOCK)) {
+		return false;
+	}
+
+	// Active blocking is enabled. Exit if the chance roll fails.
+	if (!check_blocking_decision(self))	{	
+		return false;
 	}
 
 	// If no current target, use block range.
-    if(!target)
-    {
+    if(!target) {
         target = block_find_target(ANI_BLOCK, 0);
     }
 
 	// Still no target? Nothing to do, so exit.
-	if (!target)
-	{
-		return 0;
+	if (!target) {
+		return false;
 	}
 
     // If target is attacking, let's block and return true.
-    if(target->attacking != ATTACKING_NONE)
-    {
+    if(target->attacking != ATTACKING_NONE) {
 		// Set up flags, action, and blocking animations.
 		do_active_block(self);
 
-        return 1;
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
 // this logic could be used for multiple times, so make a function
