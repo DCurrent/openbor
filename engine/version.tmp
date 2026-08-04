@@ -12,6 +12,7 @@
 #define VERSION_NAME "OpenBOR"
 #define VERSION_MAJOR "4"
 #define VERSION_MINOR "0"
+
 #define VERSION_BUILD "7876"
 #define VERSION_BUILD_INT 7876
 #define VERSION_COMMIT "2e8e32d"
