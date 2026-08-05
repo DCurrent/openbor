@@ -197,17 +197,59 @@ channelstruct *sound_channel_pool_get(s_sound_channel_pool *pool, int channel) {
 * 2026-08-02
 *
 * Resolve a stable channel object back to its
-* flattened public index.
+* flattened public index. Scan allocated banks to
+* confirm pool membership before dereferencing a
+* caller-supplied pointer.
 */
 int sound_channel_pool_get_index(const s_sound_channel_pool *pool, const channelstruct *record) {
-    channelstruct *indexed_record;
+    const s_sound_channel_bank *bank;
+    const channelstruct *indexed_record;
+    uintptr_t bank_address;
+    uintptr_t record_address;
+    uintptr_t record_offset;
+    uint64_t allocated_bank_mask;
+    int bank_index;
+    unsigned int channel_index;
+    int channel;
 
-    if(!pool || !record || record->object_type != OBJECT_TYPE_SOUND) {
+    if(!pool || !record) {
         return -1;
     }
 
-    indexed_record = sound_channel_pool_get((s_sound_channel_pool*)pool, record->index);
-    return indexed_record == record ? record->index : -1;
+    record_address = (uintptr_t)(const void*)record;
+    allocated_bank_mask = pool->allocated_bank_mask;
+    while((bank_index = sound_channel_mask_first(allocated_bank_mask)) >= 0) {
+        bank = pool->bank[bank_index];
+        allocated_bank_mask &= ~(UINT64_C(1) << bank_index);
+        if(!bank) {
+            continue;
+        }
+
+        bank_address = (uintptr_t)(const void*)&bank->channel[0];
+        if(record_address < bank_address) {
+            continue;
+        }
+
+        record_offset = record_address - bank_address;
+        if(record_offset >= sizeof(bank->channel) ||
+           record_offset % sizeof(bank->channel[0])) {
+            continue;
+        }
+
+        channel_index = (unsigned int)(record_offset / sizeof(bank->channel[0]));
+        indexed_record = &bank->channel[channel_index];
+        channel = ((int)bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + (int)channel_index;
+
+        if((uintptr_t)(const void*)indexed_record != record_address ||
+           indexed_record->object_type != OBJECT_TYPE_SOUND ||
+           indexed_record->index != channel) {
+            return -1;
+        }
+
+        return channel;
+    }
+
+    return -1;
 }
 
 /*
