@@ -47,6 +47,7 @@ typedef struct s_sound_stream {
     size_t block_align;
     int handle;
     int looping;
+    int producer_finished;
 } s_sound_stream;
 
 typedef bool (*sound_stream_read_callback)(
@@ -67,11 +68,21 @@ bool sound_stream_configure(
     int looping,
     uint64_t loop_start_frame
 );
+bool sound_stream_configure_push(
+    s_sound_stream *stream,
+    size_t block_align
+);
 int sound_stream_fill(
     s_sound_stream *stream,
     sound_stream_read_callback read_callback,
     void *read_context,
     size_t *bytes_filled
+);
+int sound_stream_push_locked(
+    s_sound_stream *stream,
+    const void *source,
+    uint64_t frame_count,
+    int terminal
 );
 
 #endif

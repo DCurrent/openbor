@@ -110,6 +110,42 @@ bool sound_stream_configure(
 
 /*
 * Caskey, Damon V.
+* 2026-08-05
+*
+* Configure retained channel buffers for a live PCM
+* producer whose final frame count is not known when
+* playback begins.
+*/
+bool sound_stream_configure_push(
+    s_sound_stream *stream,
+    size_t block_align
+) {
+    unsigned int buffer_index;
+
+    if(!stream ||
+       block_align == 0 ||
+       block_align > SOUND_STREAM_BUFFER_SIZE) {
+        return false;
+    }
+
+    sound_stream_reset(stream);
+    stream->block_align = block_align;
+
+    for(buffer_index = 0; buffer_index < SOUND_STREAM_BUFFER_COUNT; buffer_index++) {
+        if(!stream->buffer[buffer_index].data) {
+            stream->buffer[buffer_index].data = malloc(SOUND_STREAM_BUFFER_SIZE);
+            if(!stream->buffer[buffer_index].data) {
+                sound_stream_reset(stream);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-01
 *
 * Fill the next empty PCM buffer from the source.
@@ -185,5 +221,61 @@ int sound_stream_fill(
     if(bytes_filled) {
         *bytes_filled = requested_bytes;
     }
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-05
+*
+* Publish one live-producer PCM buffer. The caller
+* must exclude the audio callback for the complete
+* validation, copy, and publication operation.
+*
+* Returns 1 when published, 0 when the rotating queue
+* is full, and -1 for invalid or finished input.
+*/
+int sound_stream_push_locked(
+    s_sound_stream *stream,
+    const void *source,
+    uint64_t frame_count,
+    int terminal
+) {
+    s_sound_stream_buffer *buffer;
+    uint64_t capacity_frames;
+    size_t source_bytes;
+
+    if(!stream ||
+       stream->block_align == 0 ||
+       stream->producer_finished ||
+       (!source && frame_count > 0) ||
+       (frame_count == 0 && !terminal)) {
+        return -1;
+    }
+
+    capacity_frames = SOUND_STREAM_BUFFER_SIZE / stream->block_align;
+    if(frame_count > capacity_frames ||
+       frame_count > (uint64_t)SIZE_MAX / stream->block_align) {
+        return -1;
+    }
+
+    buffer = &stream->buffer[stream->write_buffer];
+    if(buffer->ready || !buffer->data) {
+        return 0;
+    }
+
+    source_bytes = (size_t)frame_count * stream->block_align;
+    if(source_bytes > 0) {
+        memcpy(buffer->data, source, source_bytes);
+    }
+
+    buffer->source_start_frame = stream->next_source_frame;
+    buffer->frame_count = frame_count;
+    buffer->terminal = terminal ? 1 : 0;
+    buffer->ready = 1;
+    stream->next_source_frame += frame_count;
+    stream->source_frame_count = stream->next_source_frame;
+    stream->producer_finished = terminal ? 1 : 0;
+    stream->write_buffer = (stream->write_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
     return 1;
 }

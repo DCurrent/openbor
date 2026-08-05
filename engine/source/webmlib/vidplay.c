@@ -26,6 +26,7 @@
 #include "threads.h"
 #include "types.h"
 #include "globals.h"
+#include "borendian.h"
 #include "soundmix.h"
 
 // lowering these might save a bit of memory but could also cause lag
@@ -50,6 +51,9 @@ typedef struct {
     int frequency;
     int avail_samples;
     int last_samples;
+    int channel;
+    int stream_play_id;
+    uint8_t pcm_buffer[SOUND_STREAM_BUFFER_SIZE];
 } audio_context;
 
 typedef struct {
@@ -188,12 +192,19 @@ static int bgm_update_thread(void *data)
     return 0;
 }
 
-static int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int buf_size)
+static int audio_decode_frame(
+    audio_context *audio_ctx,
+    uint8_t *audio_buf,
+    int buf_size,
+    int *terminal
+)
 {
     vorbis_context *vorbis_ctx = &audio_ctx->vorbis_ctx;
     //audio_clock += 1000000000LL * audio_ctx->last_samples / audio_ctx->frequency;
     int samples = buf_size / (vorbis_ctx->channels * 2);
-    audio_ctx->last_samples = samples;
+    int samples_written = 0;
+
+    *terminal = 0;
 
     while (samples)
     {
@@ -205,7 +216,10 @@ static int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int 
 
             debug_printf("audio queue size=%i\n", audio_ctx->packet_queue->size);
             if ((pkt = queue_get(audio_ctx->packet_queue)) == NULL)
-                return -1;
+            {
+                *terminal = 1;
+                break;
+            }
             nestegg_packet_tstamp(pkt, &timestamp);
             //audio_clock = timestamp;
             nestegg_packet_count(pkt, &num_chunks);
@@ -224,51 +238,62 @@ static int audio_decode_frame(audio_context *audio_ctx, uint8_t *audio_buf, int 
         audio_buf += 2 * vorbis_ctx->channels * samples_read;
         audio_ctx->avail_samples -= samples_read;
         samples -= samples_read;
+        samples_written += samples_read;
     }
-    return buf_size;
+
+    audio_ctx->last_samples = samples_written;
+    return samples_written * vorbis_ctx->channels * (int)sizeof(int16_t);
 }
 
 static int audio_thread(void *data)
 {
     audio_context *audio_ctx = (audio_context *)data;
-    int i, j;
+    int decoded_bytes;
+    int frame_count;
+    int queue_result;
+    int terminal;
 
     while(!quit_video)
     {
-        if(musicchannel.paused)
-        {
-            continue;
-        }
+        decoded_bytes = audio_decode_frame(
+            audio_ctx,
+            audio_ctx->pcm_buffer,
+            sizeof(audio_ctx->pcm_buffer),
+            &terminal
+        );
+        frame_count = decoded_bytes /
+            (audio_ctx->vorbis_ctx.channels * (int)sizeof(int16_t));
 
-        // Just to be sure: check if all goes well...
-        for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
+#ifdef BOR_BIG_ENDIAN
+        /* Generic 16-bit channel stream buffers use little-endian PCM. */
         {
-            if(musicchannel.fp_playto[i] > INT_TO_FIX(MUSIC_BUF_SIZE / musicchannel.channels))
-            {
-                musicchannel.fp_playto[i] = 0;
+            int sample_index;
+            uint16_t *pcm = (uint16_t *)audio_ctx->pcm_buffer;
+
+            for(sample_index = 0;
+                sample_index < decoded_bytes / (int)sizeof(*pcm);
+                sample_index++) {
+                pcm[sample_index] = SwapLSB16(pcm[sample_index]);
             }
         }
+#endif
 
-        // Need to update?
-        for(j = 0, i = musicchannel.playing_buffer + 1; j < MUSIC_NUM_BUFFERS; j++, i++)
-        {
-            i %= MUSIC_NUM_BUFFERS;
-            if(musicchannel.fp_playto[i] == 0)
-            {
-                // Buffer needs to be filled
-                if (audio_decode_frame(audio_ctx, (uint8_t*)musicchannel.buf[i], MUSIC_BUF_SIZE * sizeof(short)) < 0)
-                    return 0;
-                musicchannel.fp_playto[i] = INT_TO_FIX(MUSIC_BUF_SIZE / musicchannel.channels);
-                if(!musicchannel.active)
-                {
-                    musicchannel.playing_buffer = i;
-                    musicchannel.active = 1;
-                }
+        do {
+            queue_result = sound_queue_channel_pcm_stream(
+                audio_ctx->channel,
+                audio_ctx->stream_play_id,
+                frame_count > 0 ? audio_ctx->pcm_buffer : NULL,
+                (uint64_t)frame_count,
+                terminal
+            );
+            if(queue_result == 0) {
+                usleep(1000);
             }
-        }
+        } while(!quit_video && queue_result == 0);
 
-        // Sleep for 1 ms so that this thread doesn't waste CPU cycles busywaiting
-        usleep(1000);
+        if(queue_result < 0 || terminal) {
+            return 0;
+        }
     }
 
     return 0;
@@ -308,22 +333,18 @@ static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int vo
                 SOUND_MUSIC_FREQUENCY_MAX);
     }
 
-    // initialize soundmix music channel
+    /* WebM audio retains its legacy behavior by replacing all playback. */
     sound_close_music();
-    sound_music_channel_clear(&musicchannel);
-
-    musicchannel.fp_period = sound_music_period_calculate(audio_ctx->frequency, 100);
-    musicchannel.volume[SOUND_SPATIAL_CHANNEL_LEFT] = volume;
-    musicchannel.volume[SOUND_SPATIAL_CHANNEL_RIGHT] = volume;
-    musicchannel.channels = audioParams.channels;
-    musicchannel.active = 1;
-
-    int i;
-    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
-    {
-        musicchannel.buf[i] = malloc(MUSIC_BUF_SIZE * sizeof(short));
-        memset(musicchannel.buf[i], 0, MUSIC_BUF_SIZE * sizeof(short));
-    }
+    sound_stopall_sample();
+    audio_ctx->channel = SOUND_CHANNEL_MUSIC_DEFAULT;
+    audio_ctx->stream_play_id = sound_open_channel_pcm_stream(
+        audio_ctx->channel,
+        audio_ctx->frequency,
+        audioParams.channels,
+        volume
+    );
+    assert(audio_ctx->stream_play_id >= 0);
+    sound_volume_music(volume, volume);
 }
 
 static void close_audio(audio_context *audio_ctx)
@@ -339,14 +360,10 @@ static void close_audio(audio_context *audio_ctx)
     // close the vorbis decoding context
     vorbis_destroy(&(audio_ctx->vorbis_ctx));
 
-    // set the state of soundmix to how it was before
-    int i;
-    musicchannel.active = 0;
-    for(i = 0; i < MUSIC_NUM_BUFFERS; i++)
-    {
-        free(musicchannel.buf[i]);
-        musicchannel.buf[i] = NULL;
-    }
+    sound_close_channel_pcm_stream(
+        audio_ctx->channel,
+        audio_ctx->stream_play_id
+    );
 }
 
 static int video_thread(void *data)

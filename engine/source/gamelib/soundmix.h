@@ -23,23 +23,13 @@
 **	Also plays WAV and Ogg Vorbis samples.
 */
 
-/*
-* Music buffers use a 32-bit frame cursor. In-memory effects use a separate
-* 64-bit frame cursor so long samples do not wrap during playback.
-*/
-#define		MUSIC_SAMPLE_FIXED_SHIFT		16U
-#define		MUSIC_SAMPLE_FIXED_ONE			((unsigned int)1U << MUSIC_SAMPLE_FIXED_SHIFT)
-#define		INT_TO_FIX(integer_value)		((unsigned int)(integer_value) << MUSIC_SAMPLE_FIXED_SHIFT)
-#define		FIX_TO_INT(fixed_value)		((unsigned int)(fixed_value) >> MUSIC_SAMPLE_FIXED_SHIFT)
-
 #define		SOUND_MUSIC_FREQUENCY_MIN		11025
 #define		SOUND_MUSIC_FREQUENCY_MAX		48000
 #define		SOUND_OUTPUT_BITS_DEFAULT		16
 #define		SOUND_OUTPUT_FREQUENCY_DEFAULT	44100
+#define     SOUND_CHANNEL_MUSIC_DEFAULT       0
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
-#define		MUSIC_NUM_BUFFERS	4
-#define		MUSIC_BUF_SIZE		(16*1024)	// In samples
 
 typedef enum e_sound_file_type
 {
@@ -53,7 +43,8 @@ typedef enum e_sound_sample_file_type
 {
     SOUND_SAMPLE_FILE_TYPE_NONE = 0,
     SOUND_SAMPLE_FILE_TYPE_WAVE,
-    SOUND_SAMPLE_FILE_TYPE_VORBIS
+    SOUND_SAMPLE_FILE_TYPE_VORBIS,
+    SOUND_SAMPLE_FILE_TYPE_ADPCM
 } e_sound_sample_file_type;
 
 typedef enum e_channel_type
@@ -74,8 +65,6 @@ typedef struct s_sound_parameters {
     * Maximum sample data bytes. UINT64_MAX means no engine cap.
     */
     uint64_t sound_length_max;
-    const unsigned int music_buffers_count; /* MUSIC_NUM_BUFFERS */
-    const unsigned int music_buffer_size;   /* MUSIC_BUF_SIZE - In samples */
 } s_sound_parameters;
 
 typedef struct
@@ -104,20 +93,6 @@ typedef struct
     bool stream;
 } s_soundcache;
 
-typedef struct
-{
-    int            active;
-    int            paused;
-    short 		   *buf[MUSIC_NUM_BUFFERS];
-    unsigned int   fp_playto[MUSIC_NUM_BUFFERS]; // PCM frame count (fixed-point).
-    unsigned int   fp_samplepos;  // PCM frame position (fixed-point).
-    unsigned int   fp_period;	  // PCM frames advanced per output frame (fixed-point).
-    int			   playing_buffer;
-    int            volume[SOUND_SPATIAL_CHANNEL_MAX];
-    e_channel_type channels;
-    e_object_type  object_type;
-} musicchannelstruct;
-
 typedef struct s_audio_global
 {
     List samplelist;
@@ -126,7 +101,6 @@ typedef struct s_audio_global
     unsigned int sample_play_id;
 } s_audio_global;
 
-extern musicchannelstruct musicchannel;
 extern s_audio_global audio_global;
 extern int playfrequency;
 
@@ -168,15 +142,16 @@ bool sound_set_channel_position(int channel, uint64_t sample_position);
 bool sound_set_channel_volume(int channel, unsigned int spatial_channel, int volume);
 bool sound_set_channel_volume_divisor(int channel, int volume_divisor);
 int sound_getpos_sample(int channel);
-void sound_music_channel_clear(musicchannelstruct* const music_channel);
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset);
+int sound_open_channel_pcm_stream(int channel, int frequency, int channels, int volume);
+int sound_queue_channel_pcm_stream(int channel, int play_id, const void *pcm, uint64_t frame_count, int terminal);
+void sound_close_channel_pcm_stream(int channel, int play_id);
 void sound_close_music();
 void sound_update_music();
 void sound_volume_music(int left, int right);
 void sound_music_tempo(int music_tempo);
 int sound_query_music(char *artist, char *title);
 void sound_pause_music(int toggle);
-unsigned int sound_music_period_calculate(int source_frequency, int tempo);
 void update_sample(unsigned char *buf, int size);
 int maxchannels(void);
 

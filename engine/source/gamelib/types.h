@@ -115,7 +115,6 @@ typedef enum e_object_type {
     OBJECT_TYPE_FLASH,
     OBJECT_TYPE_GLOBAL_CONFIG,
     OBJECT_TYPE_MODEL,
-    OBJECT_TYPE_MUSIC_CHANNEL,
     OBJECT_TYPE_SOUND
 } e_object_type;
 
@@ -353,5 +352,4 @@ typedef struct
 #endif
 
 #endif
-
 

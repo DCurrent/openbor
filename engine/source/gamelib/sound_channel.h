@@ -32,6 +32,14 @@
 typedef uint64_t sound_sample_fixed_t;
 typedef uint64_t sound_sample_position_t;
 
+typedef enum e_sound_channel_stream_source {
+    SOUND_CHANNEL_STREAM_SOURCE_NONE,
+    SOUND_CHANNEL_STREAM_SOURCE_WAVE,
+    SOUND_CHANNEL_STREAM_SOURCE_VORBIS,
+    SOUND_CHANNEL_STREAM_SOURCE_ADPCM,
+    SOUND_CHANNEL_STREAM_SOURCE_PUSH
+} e_sound_channel_stream_source;
+
 /*
 * Caskey, Damon V.
 * 2026-08-02
@@ -71,7 +79,10 @@ typedef struct s_sound_channel {
     int playid;
     int volume[2];
     int volume_divisor;
+    int bits;
+    int frequency;
     int channels;
+    e_sound_channel_stream_source stream_source;
 
     sound_sample_fixed_t fp_samplepos;  /* Fixed point PCM frame position. */
     sound_sample_fixed_t fp_period;     /* Advance per output frame. */

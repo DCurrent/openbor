@@ -78,7 +78,7 @@ void SB_lock_audio()
 
 	if(audio_lock_depth++ == 0)
 	{
-		SDL_LockAudioDevice(audio_dev);
+		SB_lock_audio_direct();
 	}
 }
 
@@ -90,6 +90,30 @@ void SB_unlock_audio()
 	}
 
 	if(--audio_lock_depth == 0)
+	{
+		SB_unlock_audio_direct();
+	}
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-05
+*
+* Lock the SDL device without participating in the
+* main-thread nesting counter. Live PCM producer
+* threads use this pair exactly once per publication.
+*/
+void SB_lock_audio_direct()
+{
+	if(started)
+	{
+		SDL_LockAudioDevice(audio_dev);
+	}
+}
+
+void SB_unlock_audio_direct()
+{
+	if(started)
 	{
 		SDL_UnlockAudioDevice(audio_dev);
 	}

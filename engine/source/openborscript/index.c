@@ -389,14 +389,6 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_model_property";
     }
-    else if (functionRef == ((void*)openbor_get_music_channel_property))
-    {
-        return "get_music_channel_property";
-    }
-    else if (functionRef == ((void*)openbor_set_music_channel_property))
-    {
-        return "set_music_channel_property";
-    }
     else if (functionRef == ((void*)openbor_get_spawn_hud_property))
     {
         return "get_spawn_hud_property";
@@ -1505,12 +1497,6 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_model_property, "get_model_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_model_property, "set_model_property");
-
-    /* Music channel properties. */
-    List_InsertAfter(&theFunctionList,
-        (void*)openbor_get_music_channel_property, "get_music_channel_property");
-    List_InsertAfter(&theFunctionList,
-        (void*)openbor_set_music_channel_property, "set_music_channel_property");
 
     /* Spawn HUD properties. */
     List_InsertAfter(&theFunctionList,
