@@ -10,6 +10,8 @@
  // 2019-03-28
  // Caskey, Damon V.
 
+#include <limits.h>
+
 #include "scriptcommon.h"
 
 typedef struct s_sound_property_info {
@@ -344,6 +346,11 @@ HRESULT openbor_get_sound_property(
             (*pretvar)->ullVal = SOUND_SAMPLE_FIX_TO_INT(sound_snapshot.fp_loop_start);
             return S_OK;
         }
+        if(property_index == SOUND_PROPERTY_PRIORITY) {
+            ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+            (*pretvar)->ullVal = (uint64_t)sound_snapshot.priority;
+            return S_OK;
+        }
         if(property_index == SOUND_PROPERTY_SAMPLE_POSITION) {
             ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
             (*pretvar)->ullVal = SOUND_SAMPLE_FIX_TO_INT(sound_snapshot.fp_samplepos);
@@ -437,9 +444,9 @@ HRESULT openbor_set_sound_property(
             return S_OK;
 
         case SOUND_PROPERTY_PRIORITY:
-            if(FAILED(ScriptVariant_IntegerValue(varlist[argument_value], &integer_value)) ||
-               integer_value < 0 ||
-               !sound_set_channel_priority(channel, (unsigned int)integer_value)) {
+            if(FAILED(ScriptVariant_Unsigned64Value(varlist[argument_value], &unsigned_value)) ||
+               unsigned_value > (uint64_t)UINT_MAX ||
+               !sound_set_channel_priority(channel, (unsigned int)unsigned_value)) {
                 goto error_value;
             }
             return S_OK;
