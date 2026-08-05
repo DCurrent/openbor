@@ -604,6 +604,7 @@ HRESULT openbor_get_music_channel_property(const ScriptVariant* const* varlist, 
 	const char* SELF_NAME = "get_music_channel_property(void object, int property)";
 	const int ARG_OBJECT = 0;
 	const int ARG_PROPERTY = 1;
+	const int ARG_MINIMUM = 2;
 
 	/*
 	* Clear pass by reference argument used to send
@@ -615,26 +616,22 @@ HRESULT openbor_get_music_channel_property(const ScriptVariant* const* varlist, 
 	* Should at least be a pointer to the
 	* acting object and a property id.
 	*/
-	if (varlist[ARG_OBJECT]->vt != VT_PTR
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->ptrVal != &musicchannel
 		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
 		printf("\n\n Script error: %s. You must provide a valid object pointer and property id.\n\n", SELF_NAME);
+		*pretvar = NULL;
 		return E_FAIL;
 	}
 
 	/*
-	* Now let's make sure the object type is
-	* correct (ex. drawmethod vs. model) so we
-	* can shut down gracefully if there's
-	* a mismatch.
+	* Music channel is a singleton. Identity validation above
+	* verifies ownership without dereferencing a caller-supplied
+	* pointer.
 	*/
 
-	const musicchannelstruct* const acting_object = (const musicchannelstruct* const)varlist[ARG_OBJECT]->ptrVal;
-
-	if (acting_object->object_type != OBJECT_TYPE_MUSIC_CHANNEL) {
-		printf("\n\nScript error: %s. Object pointer is not correct type (%d).\n\n", SELF_NAME, acting_object->object_type);
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	const musicchannelstruct* const acting_object = &musicchannel;
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
 
@@ -691,34 +688,29 @@ HRESULT openbor_set_music_channel_property(ScriptVariant** varlist, ScriptVarian
 	* a new value.
 	*/
 
-	if (varlist[ARG_OBJECT]->vt != VT_PTR
-		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER
-		|| paramCount < ARG_MINIMUM) {
+	if (paramCount < ARG_MINIMUM
+		|| varlist[ARG_OBJECT]->vt != VT_PTR
+		|| varlist[ARG_OBJECT]->ptrVal != &musicchannel
+		|| varlist[ARG_PROPERTY]->vt != VT_INTEGER) {
 		printf("\n\n Script error: %s. You must provide a valid object pointer, property id, and new value.\n\n", SELF_NAME);
 		*pretvar = NULL;
 		return E_FAIL;
 	}
 
 	/*
-	* Now let's make sure the object type is
-	* correct (ex. drawmethod vs. model) so we
-	* can shut down gracefully if there's
-	* a mismatch.
+	* Music channel is a singleton. Identity validation above
+	* verifies ownership without dereferencing a caller-supplied
+	* pointer.
 	*/
 
-	const musicchannelstruct* const acting_object = (const musicchannelstruct* const)varlist[ARG_OBJECT]->ptrVal;
-
-	if (acting_object->object_type != OBJECT_TYPE_MUSIC_CHANNEL) {
-		printf("\n\nScript error: %s. Object pointer is not correct type (%d).\n\n", SELF_NAME, acting_object->object_type);
-		*pretvar = NULL;
-		return E_FAIL;
-	}
+	const musicchannelstruct* const acting_object = &musicchannel;
 
 	const int property_id_param = (const int)varlist[ARG_PROPERTY]->lVal;
 	const e_music_channel_properties property_id = (e_music_channel_properties)(property_id_param);
 
-	if (property_id_param < 0 && property_id_param >= MUSIC_CHANNEL_PROPERTY_END) {
+	if (property_id_param < 0 || property_id_param >= MUSIC_CHANNEL_PROPERTY_END) {
 		printf("\n\nScript error: %s. Unknown property id (%d). \n\n", SELF_NAME, property_id_param);
+		*pretvar = NULL;
 		return E_FAIL;
 	}
 
@@ -738,6 +730,4 @@ HRESULT openbor_set_music_channel_property(ScriptVariant** varlist, ScriptVarian
 	*/
 
 	return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
-
-	return S_OK;
 }
