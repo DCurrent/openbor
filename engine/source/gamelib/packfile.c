@@ -467,24 +467,37 @@ static int packfile_entry_data_range_is_valid(const packfile_format *format, con
 * Caskey, Damon V.
 * 2026-08-02
 *
-* Identify formats whose readers retain 64-bit
-* positions and consume data in bounded chunks.
-* These assets may exceed the universal INT_MAX
-* limit without widening the legacy read API.
+* Identify formats whose readers retain positions
+* wider than int and consume data in bounded chunks.
+* WAV and WebM meet this requirement on every
+* supported target. Vorbisfile exposes tell_func as
+* long, so OGG/OGA qualify only on LP64 targets.
 */
 static int packfile_asset_size_limit_exempt(const char *asset_name) {
     const char *extension;
 
-    if(!asset_name)  {
+    if(!asset_name) {
         return 0;
     }
 
     extension = strrchr(asset_name, '.');
-    return extension &&
-           (!stricmp(extension, ".wav") ||
-            !stricmp(extension, ".ogg") ||
-            !stricmp(extension, ".oga") ||
-            !stricmp(extension, ".webm"));
+    if(!extension) {
+        return 0;
+    }
+
+    if(!stricmp(extension, ".wav") ||
+       !stricmp(extension, ".webm")) {
+        return 1;
+    }
+
+#if LONG_MAX > INT_MAX
+    if(!stricmp(extension, ".ogg") ||
+       !stricmp(extension, ".oga")) {
+        return 1;
+    }
+#endif
+
+    return 0;
 }
 
 static int packfile_asset_size_is_supported(packfile_size_t asset_size, const char *asset_name) {

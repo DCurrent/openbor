@@ -109,8 +109,13 @@ void print_format_details(pak_format_t format) {
 	} else {
 		printf("- PAK64 format id: %u\n", (unsigned int)PAK_FORMAT_PAK64);
 		printf("- PAK64 offsets/sizes: 64-bit\n");
-		printf("- PAK64 non-streamed asset limit: %.2f GB\n", pak_nonstreamed_asset_limit_gb);
-		printf("- PAK64 streamed asset exceptions: .wav, .ogg, .oga, and .webm\n");
+		printf("- PAK64 standard asset limit: %.2f GB\n", pak_nonstreamed_asset_limit_gb);
+#if LONG_MAX > INT_MAX
+		printf("- PAK64 oversized asset exceptions: .wav, .ogg, .oga, and .webm\n");
+#else
+		printf("- PAK64 oversized asset exceptions: .wav and .webm\n");
+		printf("- OGG/OGA remain limited to %.2f GB because long positions are 32-bit.\n", pak_nonstreamed_asset_limit_gb);
+#endif
 	}
 }
 
@@ -274,25 +279,40 @@ static int archive_path_has_extension(const char *archive_path, const char *exte
 * Caskey, Damon V.
 * 2026-08-02
 *
-* Identify media formats with bounded readers and
-* 64-bit file positions in the engine. PAK64 may
-* retain these assets beyond the legacy INT_MAX cap.
+* Identify media formats whose engine readers can
+* address positions beyond INT_MAX. Vorbisfile uses
+* long for its tell callback, so OGG/OGA qualify only
+* when long is wider than int.
 */
-static int is_streamed_archive_asset(const char *archive_path) {
-	return archive_path_has_extension(archive_path, ".wav") ||
-		archive_path_has_extension(archive_path, ".ogg") ||
-		archive_path_has_extension(archive_path, ".oga") ||
-		archive_path_has_extension(archive_path, ".webm");
+static int is_oversized_archive_asset_supported(const char *archive_path) {
+	if(archive_path_has_extension(archive_path, ".wav") ||
+		archive_path_has_extension(archive_path, ".webm")) {
+		return 1;
+	}
+
+#if LONG_MAX > INT_MAX
+	if(archive_path_has_extension(archive_path, ".ogg") ||
+		archive_path_has_extension(archive_path, ".oga")) {
+		return 1;
+	}
+#endif
+
+	return 0;
 }
 
 static int validate_asset_size(const char *archive_path, const char *source_file_path, pak_size_t source_file_size, pak_format_t format) {
 	if(format == PAK_FORMAT_PAK64 &&
 		source_file_size > PAK_NONSTREAMED_ASSET_LIMIT &&
-		!is_streamed_archive_asset(archive_path)) {
-		printf("\nError: PAK64 non-streamed asset is too large: %s\n", archive_path);
+		!is_oversized_archive_asset_supported(archive_path)) {
+		printf("\nError: PAK64 asset is too large for this build: %s\n", archive_path);
 		printf("Source file: %s\n", source_file_path ? source_file_path : "(unknown source)");
-		printf("Non-streamed asset limit is %.2f GB.\n", pak_nonstreamed_asset_limit_gb);
-		printf("Only .wav, .ogg, .oga, and .webm files may exceed this limit because the engine streams them.\n");
+		printf("Standard asset limit is %.2f GB.\n", pak_nonstreamed_asset_limit_gb);
+#if LONG_MAX > INT_MAX
+		printf("Only .wav, .ogg, .oga, and .webm files may exceed this limit in this build.\n");
+#else
+		printf("Only .wav and .webm files may exceed this limit in this build.\n");
+		printf("OGG and OGA require a build where long is wider than int.\n");
+#endif
 		return 0;
 	}
 
