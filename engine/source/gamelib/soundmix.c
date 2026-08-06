@@ -3297,39 +3297,70 @@ void sound_close_channel_pcm_stream(int channel, int play_id) {
     SB_unlock_audio();
 }
 
-int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset)
-{
-    static char fnam[128];
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Try the supplied music path exactly before appending
+* each supported legacy extension. Fallback storage is
+* sized from the complete source path so long filenames
+* cannot overflow a fixed buffer.
+*/
+int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset) {
+    static const char fallback_extensions[][5] = {
+        ".bor",
+        ".ogg",
+        ".oga",
+        ".wav"
+    };
+    char *fallback_filename;
+    size_t extension_index;
+    size_t filename_length;
+
+    if(!filename || !packname) {
+        return 0;
+    }
 #ifdef VERBOSE
     printf("trying to open music file %s from %s, vol %d, loop %d, ofs %u\n", filename, packname, volume, loop, music_offset);
 #endif
 
-    if(sound_open_sample_music(filename, packname, volume, loop, music_offset))
-    {
+    if(sound_open_sample_music(filename, packname, volume, loop, music_offset)) {
         return 1;
     }
 
-    sprintf(fnam, "%s.bor", filename);
-    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
-    {
-        return 1;
-    }
-    sprintf(fnam, "%s.ogg", filename);
-    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
-    {
-        return 1;
-    }
-    sprintf(fnam, "%s.oga", filename);
-    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
-    {
-        return 1;
-    }
-    sprintf(fnam, "%s.wav", filename);
-    if(sound_open_sample_music(fnam, packname, volume, loop, music_offset))
-    {
-        return 1;
+    filename_length = strlen(filename);
+    if(filename_length > SIZE_MAX - sizeof(fallback_extensions[0])) {
+        return 0;
     }
 
+    fallback_filename = malloc(filename_length + sizeof(fallback_extensions[0]));
+    if(!fallback_filename) {
+        return 0;
+    }
+
+    memcpy(fallback_filename, filename, filename_length);
+    for(extension_index = 0;
+        extension_index < sizeof(fallback_extensions) / sizeof(fallback_extensions[0]);
+        extension_index++) {
+        memcpy(
+            fallback_filename + filename_length,
+            fallback_extensions[extension_index],
+            sizeof(fallback_extensions[extension_index])
+        );
+
+        if(sound_open_sample_music(
+            fallback_filename,
+            packname,
+            volume,
+            loop,
+            music_offset
+        )) {
+            free(fallback_filename);
+            return 1;
+        }
+    }
+
+    free(fallback_filename);
     return 0;
 }
 
