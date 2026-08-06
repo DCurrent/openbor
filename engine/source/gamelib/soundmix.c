@@ -76,6 +76,7 @@ Caution: move vorbis headers here otherwise the structs will
 #define		SB_WBUFFER_SIZE		 0x4000
 #define		SB_WBUFFER_SIZE_MASK 0x3FFF
 #define		MIXBUF_SIZE		     SB_BUFFER_SIZE*8
+#define     MIXBUF_SAMPLE_COUNT  (MIXBUF_SIZE / sizeof(s32))
 #define		PREMIX_SIZE		     1024
 #define		MIX_BLOCK_SIZE		 32
 
@@ -98,7 +99,7 @@ static int sound_cached = 0;
 int sample_play_id = 0;
 
 static s_sound_channel_pool sound_channel_pool;
-static s32 *mixbuf = NULL;
+static s64 *mixbuf = NULL;
 static int playbits;
 int playfrequency;
 
@@ -1205,15 +1206,20 @@ void sound_unload_all_samples()
 
 /////////////////////////////// Mix to DMA //////////////////////////////////
 // Mixbuffer / DMA buffer data handling
-// Writes mixbuffer data (16-bit mixed in 32-bit array)
+// Writes mixbuffer data (16-bit mixed in 64-bit array)
 // to 8-bit or 16-bit DMA buffer.
 
-// Fill the mixbuffer with silence
-static void clearmixbuffer(unsigned int *buf, int n)
-{
-    while((--n) >= 0)
-    {
-        *buf = 0x8000 << MIXSHIFT;
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Keep intermediate mixing in 64-bit storage. This
+* accommodates every channel at the maximum writable
+* volume without overflowing before final output clipping.
+*/
+static void clearmixbuffer(s64 *buf, int n) {
+    while((--n) >= 0) {
+        *buf = (s64)0x8000 << MIXSHIFT;
         ++buf;
     }
 }
@@ -1691,8 +1697,10 @@ static void sound_mix_stream_channel(
             channel_record->bits,
             right_sample_index
         );
-        mixbuf[output_position] += left_sample_value * left_volume / volume_divisor;
-        mixbuf[output_position + 1] += right_sample_value * right_volume / volume_divisor;
+        mixbuf[output_position] +=
+            (s64)left_sample_value * left_volume / volume_divisor;
+        mixbuf[output_position + 1] +=
+            (s64)right_sample_value * right_volume / volume_divisor;
 
         channel_record->fp_samplepos =
             SOUND_SAMPLE_INT_TO_FIX(stream_buffer->source_start_frame) + buffer_position_fixed;
@@ -1802,8 +1810,10 @@ static void mixaudio(unsigned int todo)
 
                     left_sample_value = sound_sample_to_mix_value(sample, left_sample_index);
                     right_sample_value = sound_sample_to_mix_value(sample, right_sample_index);
-                    mixbuf[output_position] += left_sample_value * left_volume / volume_divisor;
-                    mixbuf[output_position + 1] += right_sample_value * right_volume / volume_divisor;
+                    mixbuf[output_position] +=
+                        (s64)left_sample_value * left_volume / volume_divisor;
+                    mixbuf[output_position + 1] +=
+                        (s64)right_sample_value * right_volume / volume_divisor;
 
                     sample_position_fixed = sound_sample_position_advance(sample_position_fixed, sample_period_fixed, sample_length_fixed, loop_start_fixed, &sample_end_reached);
                     if(sample_end_reached && channel_record->active != CHANNEL_LOOPING) {
@@ -1826,13 +1836,14 @@ static void mixaudio(unsigned int todo)
 
 void update_sample(unsigned char *buf, int size)
 {
-    int i, u, todo = size;
+    int i, todo = size;
+    s64 u;
     if (playbits == 16)
     {
         todo >>= 1;
     }
 
-    clearmixbuffer((unsigned int *)mixbuf, todo);
+    clearmixbuffer(mixbuf, todo);
     mixaudio(todo);
     samplesplayed += (todo >> 1);
 
@@ -1850,7 +1861,7 @@ void update_sample(unsigned char *buf, int size)
             {
                 u = 0xff;
             }
-            dst[i] = u;
+            dst[i] = (unsigned char)u;
         }
     }
     else
@@ -1868,7 +1879,7 @@ void update_sample(unsigned char *buf, int size)
                 u = 0xffff;
             }
             u ^= 0x8000;
-            dst[i] = u;
+            dst[i] = (unsigned short)u;
         }
     }
 }
@@ -3522,7 +3533,7 @@ int sound_init(void) {
     /* Channel zero is ignored by automatic allocation but remains forceable. */
 
     /* Allocate the maximum amount ever needed for one mixing pass. */
-    if((mixbuf = malloc(MIXBUF_SIZE)) == NULL) {
+    if((mixbuf = malloc(MIXBUF_SAMPLE_COUNT * sizeof(*mixbuf))) == NULL) {
         sound_channel_pool_destroy(&sound_channel_pool);
         return 0;
     }
