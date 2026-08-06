@@ -736,6 +736,9 @@ bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         /* Defense constants */
         ICMPCONST(DEFENSE_BLOCKRATIO_COMPATABILITY_DEFAULT)
 
+        /* Animation frame delay. */
+        ICMPCONSTU64(DELAY_INFINITE)
+
         /* Direction adjustment. */
         ICMPCONST(DIRECTION_ADJUST_AWAY)
         ICMPCONST(DIRECTION_ADJUST_LEFT)

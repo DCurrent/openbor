@@ -167,7 +167,17 @@ movement restirctions are here!
 #define HOLE_INDEX_NONE -1
 #define WALL_INDEX_NONE -1
 
-#define DELAY_INFINITE MIN_INT  // Animation never moves to next frame without outside influence.
+/*
+* Finite animation delays use the lower 32 bits. Upper
+* bits remain available for behavior flags. Bit 63 marks
+* an infinite delay; finite timestamps stay below it.
+*/
+#define DELAY_VALUE_MASK UINT64_C(0x00000000FFFFFFFF)
+#define DELAY_FINITE_MAX DELAY_VALUE_MASK // Largest finite animation frame delay.
+#define DELAY_FLAG_INFINITE (UINT64_C(1) << 63)
+#define DELAY_BEHAVIOR_MASK (~DELAY_VALUE_MASK)
+#define DELAY_TIMESTAMP_MAX (DELAY_FLAG_INFINITE - UINT64_C(1))
+#define DELAY_INFINITE DELAY_FLAG_INFINITE // Animation never moves to next frame without outside influence.
 #define PROPERTY_ACCESS_DUMP MAX_INT // If passed to a property access "get" function, all the properties dump to log instead.
 
 typedef enum e_ajspecial_config
@@ -1490,6 +1500,21 @@ typedef enum
 typedef enum
 {
     /*
+    Animation frame delay input modes.
+    2026-08-06
+    Caskey, Damon V.
+    */
+    DELAY_UNIT_GLOBAL,      // Use the models.txt delay unit setting.
+    DELAY_UNIT_CENTISECOND, // Convert centiseconds to logical clock ticks.
+    DELAY_UNIT_MILLISECOND, // Convert milliseconds to logical clock ticks.
+    DELAY_UNIT_SECOND,      // Convert seconds to logical clock ticks.
+    DELAY_UNIT_MINUTE,      // Convert minutes to logical clock ticks.
+    DELAY_UNIT_DIRECT       // Use the supplied logical tick count directly.
+} e_delay_unit;
+
+typedef enum
+{
+    /*
     Edelay factor modes.
     2013-12-16
     Damon V. Caskey
@@ -1801,7 +1826,7 @@ if(n<1) n = 1;
 
 #define expand_time(e)   if(e->stalltime>0) e->stalltime++;\
 						 if(e->releasetime>0)e->releasetime++;\
-						 if(e->nextanim>0)e->nextanim++;\
+						 if(e->nextanim>0 && e->nextanim<DELAY_TIMESTAMP_MAX)e->nextanim++;\
 						 if(e->nextthink>0)e->nextthink++;\
 						 if(e->nextmove>0)e->nextmove++;\
 						 if(e->magictime>0)e->magictime++;\
@@ -1890,6 +1915,7 @@ typedef struct s_global_config {
     e_blocktype block_type;         // Take chip damage from health or MP first?
     e_cheat_options cheats;         // Cheat menu config and active cheats.
     s_flash_properties flash;           // Flash config properties.
+    e_delay_unit delay_unit;        // Load-only default unit for model animation frame delays.
     uint64_t showgo;            // Enable/disable go arrow.
     uint64_t game_speed;        // Game speed setting (logical clock hz)
     uint64_t counter_speed;     // Counter speed (in game level clock) setting.
@@ -2725,7 +2751,7 @@ typedef struct s_anim {
 	float						(*platform)[8];			// Now entities can have others land on them
 	
 	uint64_t					*idle;					// Allow free move
-	int64_t						*delay;
+	uint64_t					*delay;
 	int64_t						*shadow;
 	int64_t						(*shadow_coords)[2];	// x, z offset of shadow
 	int64_t						*soundtoplay;           // each frame can have a sound
@@ -4425,7 +4451,8 @@ typedef struct {
     s_anim*                     animation;      // Animation we will add frame to.
     int                         spriteindex;    // Image displayed during frame.
     int                         framecount;     // Number of frames.
-    int                         delay;          // Frame duration (centiseonds).
+    uint64_t                    delay;          // Frame duration supplied by the model command.
+    e_delay_unit                delay_mode;     // Interpret the supplied delay value.
     unsigned                    idle;           // TRUE = Set idle status during frame.
     s_recursive_effect*         recursive;      // Recursive effect properties for attack.
     s_move*                     move;           // Move <n> horizontal pixels on frame.

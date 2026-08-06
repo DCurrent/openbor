@@ -89,6 +89,7 @@ List *createModelstxtCommandList(void)
     LIST_ADD(CMD_MODELSTXT_DEBUG_OSNAF, "offscreen_noatk_factor");
     LIST_ADD(CMD_MODELSTXT_DROPV, "dropv");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS, "global_config_cheats");
+    LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_DELAY_UNIT, "global_config_delay_unit");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST, "global_config_flash_layer_adjust");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_SOURCE, "global_config_flash_layer_source");
     LIST_ADD(CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_Z_SOURCE, "global_config_flash_z_source");

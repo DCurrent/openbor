@@ -679,6 +679,7 @@ s_global_config global_config =
         .layer_adjust = 1,
         .layer_source = 255,
         .z_source = 0},
+    .delay_unit = DELAY_UNIT_CENTISECOND,
     .showgo = 0,
     .game_speed = GAME_SPEED_DEFAULT,
     .counter_speed = COUNTER_SPEED_DEFAULT,
@@ -3478,6 +3479,142 @@ static bool command_token_get_uint64(const s_command_token* token, uint64_t* res
     *result = value;
 
     return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Convert a delay unit name to its internal constant. Model
+* frame delays may select the models.txt global mode, while
+* the models.txt setting itself must resolve to a concrete
+* unit.
+*/
+static const char* delay_unit_from_text(
+    const char* unit_text,
+    const bool allow_global,
+    e_delay_unit* unit
+) {
+    assert(unit);
+
+    if(!unit_text || !unit_text[0]) {
+        return allow_global
+            ? "Delay unit requires a value."
+            : "Delay unit requires a value.";
+    }
+
+    if(stricmp(unit_text, "global") == 0) {
+        if(!allow_global) {
+            return "Global delay unit must be 'centisecond', 'millisecond', 'second', 'minute', or 'direct'.";
+        }
+
+        *unit = DELAY_UNIT_GLOBAL;
+    } else if(stricmp(unit_text, "centisecond") == 0) {
+        *unit = DELAY_UNIT_CENTISECOND;
+    } else if(stricmp(unit_text, "millisecond") == 0) {
+        *unit = DELAY_UNIT_MILLISECOND;
+    } else if(stricmp(unit_text, "second") == 0) {
+        *unit = DELAY_UNIT_SECOND;
+    } else if(stricmp(unit_text, "minute") == 0) {
+        *unit = DELAY_UNIT_MINUTE;
+    } else if(stricmp(unit_text, "direct") == 0) {
+        *unit = DELAY_UNIT_DIRECT;
+    } else {
+        return allow_global
+            ? "Delay unit must be 'global', 'centisecond', 'millisecond', 'second', 'minute', or 'direct'."
+            : "Global delay unit must be 'centisecond', 'millisecond', 'second', 'minute', or 'direct'.";
+    }
+
+    return NULL;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Parse an animation frame delay and its optional input
+* unit. Negative numeric values and the symbolic infinite
+* forms normalize to DELAY_INFINITE. Finite positive values
+* must fit the reserved 32-bit delay range; the bit-63 flag
+* value is accepted as the explicit infinite representation.
+*/
+static const char* command_token_get_delay(
+    const char* value_text,
+    const char* unit_text,
+    uint64_t* result,
+    e_delay_unit* unit
+) {
+    size_t index;
+
+    s_command_token numeric_token;
+    s_command_token value_token;
+
+    uint64_t parsed_value;
+
+    bool negative = false;
+
+    assert(result);
+    assert(unit);
+
+    if(!value_text || !value_text[0]) {
+        return "Delay requires a value.";
+    }
+
+    value_token.text = value_text;
+    value_token.length = strlen(value_text);
+
+    if(command_token_equals(&value_token, "\xE2\x88\x9E")
+        || command_token_equals(&value_token, "infinite")) {
+        *result = DELAY_INFINITE;
+    } else {
+        numeric_token = value_token;
+
+        if(numeric_token.text[0] == '+'
+            || numeric_token.text[0] == '-') {
+            negative = numeric_token.text[0] == '-';
+            numeric_token.text++;
+            numeric_token.length--;
+        }
+
+        if(numeric_token.length == 0) {
+            return "Delay must be an integer, '\xE2\x88\x9E', or 'infinite'.";
+        }
+
+        if(negative) {
+            /*
+            * Magnitude is irrelevant once a delay is negative,
+            * but every remaining character must still be numeric.
+            */
+            for(index = 0; index < numeric_token.length; index++) {
+                if(numeric_token.text[index] < '0'
+                    || numeric_token.text[index] > '9') {
+                    return "Delay must be an integer, '\xE2\x88\x9E', or 'infinite'.";
+                }
+            }
+
+            *result = DELAY_INFINITE;
+        } else {
+            if(!command_token_get_uint64(&numeric_token, &parsed_value)) {
+                return "Delay must fit the unsigned 64-bit integer range.";
+            }
+
+            if(parsed_value == DELAY_INFINITE) {
+                *result = DELAY_INFINITE;
+            } else if(parsed_value > DELAY_FINITE_MAX) {
+                return "Finite delay must not exceed the 32-bit delay range.";
+            } else {
+                *result = parsed_value;
+            }
+        }
+    }
+
+    if(!unit_text || !unit_text[0]) {
+        *unit = DELAY_UNIT_GLOBAL;
+
+        return NULL;
+    }
+
+    return delay_unit_from_text(unit_text, true, unit);
 }
 
 /*
@@ -10117,6 +10254,152 @@ void recursive_entity_effect_update(entity* acting_entity) {
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Convert subdivisions of a second to logical clock ticks without
+* overflowing the finite 32-bit delay representation.
+* DELAY_INFINITE remains a sentinel instead of entering
+* the conversion, and finite overflow clamps to
+* DELAY_FINITE_MAX instead of creating the sentinel.
+*/
+static uint64_t delay_subsecond_units_to_ticks(
+    const uint64_t value,
+    const uint64_t units_per_second
+) {
+    const uint64_t whole_seconds =
+        value / units_per_second;
+
+    const uint64_t remaining_units =
+        value % units_per_second;
+
+    const uint64_t tick_whole_units =
+        global_config.game_speed / units_per_second;
+
+    const uint64_t tick_remainder =
+        global_config.game_speed % units_per_second;
+
+    uint64_t result;
+    uint64_t remainder_ticks;
+
+    if(value & DELAY_FLAG_INFINITE) {
+        return value;
+    }
+
+    if(whole_seconds
+        && global_config.game_speed
+            > DELAY_FINITE_MAX / whole_seconds) {
+        return DELAY_FINITE_MAX;
+    }
+
+    result = whole_seconds * global_config.game_speed;
+
+    if(remaining_units
+        && tick_whole_units
+            > (DELAY_FINITE_MAX - result)
+                / remaining_units) {
+        return DELAY_FINITE_MAX;
+    }
+
+    result += remaining_units
+        * tick_whole_units;
+
+    /*
+    * Supported subdivisions are at most 1,000 units per
+    * second, so this product cannot overflow.
+    */
+    remainder_ticks = remaining_units
+        * tick_remainder
+        / units_per_second;
+
+    if(remainder_ticks > DELAY_FINITE_MAX - result) {
+        return DELAY_FINITE_MAX;
+    }
+
+    return result + remainder_ticks;
+}
+
+static uint64_t delay_centiseconds_to_ticks(const uint64_t centiseconds) {
+    return delay_subsecond_units_to_ticks(
+        centiseconds,
+        UINT64_C(100)
+    );
+}
+
+static uint64_t delay_milliseconds_to_ticks(const uint64_t milliseconds) {
+    return delay_subsecond_units_to_ticks(
+        milliseconds,
+        UINT64_C(1000)
+    );
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Convert whole time units to logical clock ticks. The
+* supplied seconds-per-unit multiplier supports seconds
+* and minutes while keeping every intermediate within the
+* finite delay range.
+*/
+static uint64_t delay_whole_units_to_ticks(
+    const uint64_t value,
+    const uint64_t seconds_per_unit
+) {
+    uint64_t seconds;
+
+    if(value & DELAY_FLAG_INFINITE) {
+        return value;
+    }
+
+    if(!value || !seconds_per_unit || !global_config.game_speed) {
+        return 0;
+    }
+
+    if(seconds_per_unit > DELAY_FINITE_MAX / value) {
+        return DELAY_FINITE_MAX;
+    }
+
+    seconds = value * seconds_per_unit;
+
+    if(global_config.game_speed > DELAY_FINITE_MAX / seconds) {
+        return DELAY_FINITE_MAX;
+    }
+
+    return seconds * global_config.game_speed;
+}
+
+/*
+* Convert an animation delay from its declared input unit
+* to logical clock ticks.
+*/
+static uint64_t delay_to_ticks(
+    const uint64_t delay,
+    const e_delay_unit mode
+) {
+    const e_delay_unit resolved_mode =
+        mode == DELAY_UNIT_GLOBAL
+            ? global_config.delay_unit
+            : mode;
+
+    switch(resolved_mode) {
+        case DELAY_UNIT_GLOBAL:
+            /* Defensive fallback for invalid internal configuration. */
+        case DELAY_UNIT_CENTISECOND:
+            return delay_centiseconds_to_ticks(delay);
+        case DELAY_UNIT_MILLISECOND:
+            return delay_milliseconds_to_ticks(delay);
+        case DELAY_UNIT_SECOND:
+            return delay_whole_units_to_ticks(delay, UINT64_C(1));
+        case DELAY_UNIT_MINUTE:
+            return delay_whole_units_to_ticks(delay, UINT64_C(60));
+        case DELAY_UNIT_DIRECT:
+        default:
+            return delay;
+    }
+}
+
 
 
 /*
@@ -10147,7 +10430,10 @@ int addframe(s_addframe_data* data) {
     ++data->animation->numframes;
 
     data->animation->sprite[currentframe] = data->spriteindex;
-    data->animation->delay[currentframe] = data->delay * global_config.game_speed / 100;
+    data->animation->delay[currentframe] = delay_to_ticks(
+        data->delay,
+        data->delay_mode
+    );
 
     /* Allocate collision. */
     collision_attack_initialize_frame_property(data, currentframe);
@@ -13665,7 +13951,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int peek = 0;
     int cacheindex = 0;
     int curframe = 0;
-    int delay = 0;
     int errorVal = 0;
     int shadow_set = 0;
     int idle = 0;
@@ -13680,6 +13965,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     size_t len = 0;
     size_t sbsize = 0;
     size_t scriptlen = 0;
+
+    uint64_t delay = 0;
+
+    e_delay_unit delay_mode = DELAY_UNIT_GLOBAL;
 
     ptrdiff_t pos = 0;
     ptrdiff_t index = 0;
@@ -15709,19 +15998,21 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             }
                 break;
             case CMD_MODEL_DELAY:
+            {
+                const char* delay_error = command_token_get_delay(
+                    GET_ARG(1),
+                    GET_ARG(2),
+                    &delay,
+                    &delay_mode
+                );
 
-                value = GET_ARG(1);
-                
-                if (stricmp(value, "infinite") == 0)
-                {
-                    delay = DELAY_INFINITE;
-                }
-                else
-                {
-                    delay = GET_INT_ARG(1);
+                if(delay_error) {
+                    shutdownmessage = delay_error;
+                    goto lCleanup;
                 }
 
                 break;
+            }
             case CMD_MODEL_OFFSET:
                 offset.x = GET_INT_ARG(1);
                 offset.y = GET_INT_ARG(2);
@@ -17832,6 +18123,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 add_frame_data.spriteindex = index;
                 add_frame_data.framecount = framecount;
                 add_frame_data.delay = delay;
+                add_frame_data.delay_mode = delay_mode;
                 add_frame_data.idle = idle;
                 add_frame_data.move = &move;
                 add_frame_data.platform = platform_con;
@@ -19130,7 +19422,15 @@ int load_models()
     char* value = NULL;
     int tempInt = 0;
 
+    const char* delay_mode_error;
+
     free_modelcache();
+
+    /*
+    * Reset load-only configuration before reading models.txt
+    * so a reload cannot retain a setting that was removed.
+    */
+    global_config.delay_unit = DELAY_UNIT_CENTISECOND;
 
     if(isLoadingScreenTypeBg(loadingbg[0].set))
     {
@@ -19290,6 +19590,24 @@ int load_models()
             case CMD_MODELSTXT_CREDSCORE:
                 // Number of points needed to earn a 1-up
                 credscore =  GET_INT_ARG(1);
+                break;
+            case CMD_MODELSTXT_GLOBAL_CONFIG_DELAY_UNIT:
+                delay_mode_error = delay_unit_from_text(
+                    GET_ARG(1),
+                    false,
+                    &global_config.delay_unit
+                );
+
+                if(delay_mode_error) {
+                    borShutdown(
+                        1,
+                        "%s Invalid value '%s' in %s, line %d.\n",
+                        delay_mode_error,
+                        GET_ARG(1),
+                        filename,
+                        line
+                    );
+                }
                 break;
             case CMD_MODELSTXT_VERSUSDAMAGE:
                 // Number of points needed to earn a credit
@@ -24959,21 +25277,91 @@ void ent_summon_ent(entity *ent)
 
 /*
 * Caskey, Damon V.
-* Unknown date (~2008)
-* 
-* Get final delay.
+* 2026-08-06
+*
+* Add a duration to an animation timestamp without entering
+* the bit-63 behavior range. An infinite operand propagates
+* the canonical infinite flag. Finite overflow stops at the
+* largest timestamp below that flag.
 */
+static uint64_t animation_timestamp_add_bounded(
+    const uint64_t left,
+    const uint64_t right
+) {
+    if((left & DELAY_FLAG_INFINITE)
+        || (right & DELAY_FLAG_INFINITE)) {
+        return DELAY_INFINITE;
+    }
+
+    if(left > DELAY_TIMESTAMP_MAX
+        || right > DELAY_TIMESTAMP_MAX
+        || right > DELAY_TIMESTAMP_MAX - left) {
+        return DELAY_TIMESTAMP_MAX;
+    }
+
+    return left + right;
+}
+
+/*
+* Convert an encoded frame delay into its absolute next-frame
+* timestamp. Behavior bits do not enter clock arithmetic.
+*/
+static uint64_t animation_timestamp_from_delay(
+    const uint64_t current_time,
+    const uint64_t encoded_delay
+) {
+    if(encoded_delay & DELAY_FLAG_INFINITE) {
+        return DELAY_INFINITE;
+    }
+
+    return animation_timestamp_add_bounded(
+        current_time,
+        encoded_delay & DELAY_VALUE_MASK
+    );
+}
+
+/*
+* Multiply a finite delay without exceeding the reserved
+* 32-bit range or creating DELAY_INFINITE by overflow.
+*/
+static uint64_t delay_multiply_bounded(
+    const uint64_t left,
+    const uint64_t right
+) {
+    if(!left || !right) {
+        return 0;
+    }
+
+    if(left > DELAY_FINITE_MAX
+        || right > DELAY_FINITE_MAX
+        || right > DELAY_FINITE_MAX / left) {
+        return DELAY_FINITE_MAX;
+    }
+
+    return left * right;
+}
+
 /*
 * Caskey, Damon V.
 * Unknown date (~2008)
 *
-* Get final delay.
+* Get final delay. Revised 2026-08-06 for unsigned
+* 64-bit encoded delays, preserved behavior flags, and
+* bounded enhanced-delay arithmetic.
 */
-int64_t calculate_edelay(const entity* const acting_entity, const uint64_t frame) {
+uint64_t calculate_edelay(const entity* const acting_entity, const uint64_t frame) {
     const s_anim* const animation = acting_entity->animation;
     const s_edelay* const edelay = &acting_entity->modeldata.edelay;
-    
-    int64_t result = animation->delay[frame];
+
+    const uint64_t encoded_delay = animation->delay[frame];
+
+    const uint64_t behavior_flags =
+        encoded_delay & DELAY_BEHAVIOR_MASK;
+
+    const uint64_t delay =
+        encoded_delay & DELAY_VALUE_MASK;
+
+    long double result;
 
     /*
     * Return delay as-is if it falls outside
@@ -24982,30 +25370,56 @@ int64_t calculate_edelay(const entity* const acting_entity, const uint64_t frame
     * certain frames to be exempt from the
     * edelay calculations.
     */
-    if(result < edelay->range.min || result > edelay->range.max) {
-        return result;
+    if(edelay->range.max < 0
+        || (edelay->range.min > 0
+            && delay < (uint64_t)edelay->range.min)
+        || delay > (uint64_t)edelay->range.max) {
+        return behavior_flags | delay;
     }
 
     /*
     * Apply percentage and static delay 
     * modifier.
     */
-    result = (int64_t)(result * edelay->factor);
-    result += edelay->modifier;
+    result = (long double)delay
+        * (long double)edelay->factor
+        + (long double)edelay->modifier;
+
+    /*
+    * Preserve the unmodified delay if a script supplied
+    * a non-number multiplier.
+    */
+    if(result != result) {
+        return behavior_flags | delay;
+    }
 
     /*
     * Cap results.
     */
 
-    if(result < edelay->cap.min) {
-        result = edelay->cap.min;
+    if(result < (long double)edelay->cap.min) {
+        result = (long double)edelay->cap.min;
     }
 
-    if(result > edelay->cap.max) {
-        result = edelay->cap.max;
+    if(result > (long double)edelay->cap.max) {
+        result = (long double)edelay->cap.max;
     }
 
-    return result;
+    /*
+    * Edelay configuration remains signed so negative
+    * modifiers and caps retain their legacy meaning.
+    * Final value bits cannot leave the finite 32-bit
+    * range. Behavior bits remain unchanged.
+    */
+    if(result <= 0.0L) {
+        return behavior_flags;
+    }
+
+    if(result >= (long double)DELAY_FINITE_MAX) {
+        return behavior_flags | DELAY_FINITE_MAX;
+    }
+
+    return behavior_flags | (uint64_t)result;
 }
 
 /*
@@ -25095,7 +25509,10 @@ void update_frame(entity *ent, uint64_t f)
 
     if(self->animating)
     {
-        if (self->nextanim != DELAY_INFINITE) { self->nextanim = _time + calculate_edelay(self, f); }
+        self->nextanim = animation_timestamp_from_delay(
+            _time,
+            calculate_edelay(self, f)
+        );
 
         self->pausetime = 0;
         execute_animation_script(self);
@@ -25470,7 +25887,10 @@ void ent_set_model(entity *ent, char *modelname, int syncAnim)
             ent->animpos = ent->animation->numframes - 1;
         }
 
-        if (ent->nextanim != DELAY_INFINITE) { ent->nextanim = _time + calculate_edelay(ent, ent->animpos); }
+        ent->nextanim = animation_timestamp_from_delay(
+            _time,
+            calculate_edelay(ent, ent->animpos)
+        );
 
         
         //update_frame(ent, ent->animpos);
@@ -28693,7 +29113,10 @@ void do_attack(entity *attacking_entity) {
                     attacking_entity->toss_time += attack->pause_add;      // So jump height pauses in midair
                     attacking_entity->nextmove += attack->pause_add;      // xdir, zdir
                    
-                    if (attacking_entity->nextanim != DELAY_INFINITE) { attacking_entity->nextanim += attack->pause_add; }
+                    attacking_entity->nextanim = animation_timestamp_add_bounded(
+                        attacking_entity->nextanim,
+                        attack->pause_add
+                    );
 
                     attacking_entity->nextthink += attack->pause_add;      // So anything that auto moves will pause
                     attacking_entity->pausetime = _time + attack->pause_add ; //UT: temporary solution
@@ -28701,7 +29124,10 @@ void do_attack(entity *attacking_entity) {
 
                 target->toss_time += attack->pause_add;       // So jump height pauses in midair
                 target->nextmove += attack->pause_add;      // xdir, zdir
-                target->nextanim += attack->pause_add;        //Pause animation for a bit
+                target->nextanim = animation_timestamp_add_bounded(
+                    target->nextanim,
+                    attack->pause_add
+                ); // Pause animation for a bit.
                 target->nextthink += attack->pause_add;       // So anything that auto moves will pause
 
             }  else  {
@@ -29930,12 +30356,24 @@ void update_animation()
         self->escapecount = 0;
     }
 
-    if((self->nextanim == _time && self->nextanim != DELAY_INFINITE) ||
-            ((self->modeldata.type & TYPE_TEXTBOX) && self->modeldata.subtype != SUBTYPE_NOSKIP &&
-             (bothnewkeys & (FLAG_JUMP | FLAG_ATTACK | FLAG_ATTACK2 | FLAG_ATTACK3 | FLAG_ATTACK4 | FLAG_SPECIAL)))) // Textbox will autoupdate if a valid player presses an action button
-    {
-        // Now you can display text and cycle through with any jump/attack/special unless SUBTYPE_NOSKIP
-
+    /*
+    * Cycle frame if the frame time is not infinite 
+    * and the nextanim time has been reached, or if 
+    * the entity is a textbox and the player has 
+    * pressed a key to skip the text.
+    */
+    if((!(self->nextanim & DELAY_FLAG_INFINITE)
+        && self->nextanim <= _time) ||
+        ((self->modeldata.type & TYPE_TEXTBOX)
+            && self->modeldata.subtype != SUBTYPE_NOSKIP
+            && (bothnewkeys
+                & (FLAG_JUMP
+                    | FLAG_ATTACK
+                    | FLAG_ATTACK2
+                    | FLAG_ATTACK3
+                    | FLAG_ATTACK4
+                    | FLAG_SPECIAL)))) {
+                
         f = self->animpos + self->animating;
 
         //Specified loop break frame.
@@ -39217,9 +39655,15 @@ void common_pickupitem(entity *other)
             self->position.z = other->position.z;
         }
 
-        if (other->nextanim != DELAY_INFINITE)
+        if(!(other->nextanim & DELAY_FLAG_INFINITE))
         {
-            other->nextanim = _time + global_config.game_speed * 999999;
+            other->nextanim = animation_timestamp_add_bounded(
+                _time,
+                delay_multiply_bounded(
+                    global_config.game_speed,
+                    UINT64_C(999999)
+                )
+            );
         }
             
         other->nextthink = _time + global_config.game_speed * 999999;
@@ -39234,7 +39678,15 @@ void common_pickupitem(entity *other)
         self->weapent = other;
         set_getting(self);
         self->velocity.x = self->velocity.z = 0; //stop moving
-        if (other->nextanim != DELAY_INFINITE) { other->nextanim = _time + global_config.game_speed * 999999; }
+        if(!(other->nextanim & DELAY_FLAG_INFINITE)) {
+            other->nextanim = animation_timestamp_add_bounded(
+                _time,
+                delay_multiply_bounded(
+                    global_config.game_speed,
+                    UINT64_C(999999)
+                )
+            );
+        }
             
             
         other->nextthink = _time + global_config.game_speed * 999999;
@@ -41741,7 +42193,15 @@ void didfind_item(entity *other)
     }
     else
     {
-        if (other->nextanim != DELAY_INFINITE) { other->nextanim = _time + global_config.game_speed * 999999; }
+        if(!(other->nextanim & DELAY_FLAG_INFINITE)) {
+            other->nextanim = animation_timestamp_add_bounded(
+                _time,
+                delay_multiply_bounded(
+                    global_config.game_speed,
+                    UINT64_C(999999)
+                )
+            );
+        }
         other->nextthink = _time + global_config.game_speed * 999999;
     }
     other->position.z = ITEM_HIDE_POSITION_Z;

@@ -96,19 +96,19 @@ static const model_property_info model_properties[] = {
      .id_string = "MODEL_PROPERTY_ENHANCED_DELAY_CAP_MAX",
      .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, edelay.cap.max),
-     .type = VT_INTEGER },
+     .type = VT_INTEGER64 },
 
     {.property = MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN,
      .id_string = "MODEL_PROPERTY_ENHANCED_DELAY_CAP_MIN",
      .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, edelay.cap.min),
-     .type = VT_INTEGER },
+     .type = VT_INTEGER64 },
 
     {.property = MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER,
      .id_string = "MODEL_PROPERTY_ENHANCED_DELAY_MODIFIER",
      .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, edelay.modifier),
-     .type = VT_INTEGER },
+     .type = VT_INTEGER64 },
 
     {.property = MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER,
      .id_string = "MODEL_PROPERTY_ENHANCED_DELAY_MULTIPLIER",
@@ -120,13 +120,13 @@ static const model_property_info model_properties[] = {
      .id_string = "MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MAX",
      .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, edelay.range.max),
-     .type = VT_INTEGER },
+     .type = VT_INTEGER64 },
 
     {.property = MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN,
      .id_string = "MODEL_PROPERTY_ENHANCED_DELAY_RANGE_MIN",
      .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, edelay.range.min),
-     .type = VT_INTEGER },
+     .type = VT_INTEGER64 },
 
     {.property = MODEL_PROPERTY_FACTION,
      .id_string = "MODEL_PROPERTY_FACTION",
@@ -553,7 +553,6 @@ HRESULT openbor_set_model_property(ScriptVariant** varlist, ScriptVariant** cons
 
     return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
 }
-
 
 
 

@@ -77,7 +77,7 @@ static const entity_property_info entity_properties[] = {
 	.id_string = "ENTITY_PROPERTY_ANIMATION_TIME",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, nextanim),
-	.type = VT_INTEGER },
+	.type = VT_UINTEGER64 },
 
 	{.property = ENTITY_PROPERTY_ARROW_STATE,
 	.id_string = "ENTITY_PROPERTY_ARROW_STATE",
