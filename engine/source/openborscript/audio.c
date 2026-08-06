@@ -22,6 +22,11 @@ typedef struct s_sound_property_info {
     VARTYPE type;
 } s_sound_property_info;
 
+typedef struct s_sound_property_dump_view {
+    channelstruct channel;
+    uint64_t priority;
+} s_sound_property_dump_view;
+
 #define PROPERTY_MEMBER_OFFSET(type, member) ((size_t)&(((type*)0)->member))
 
 static const s_sound_property_info sound_properties[] = {
@@ -147,6 +152,32 @@ static const s_property_access_map sound_get_property_map(
         property_map.field = NULL;
         property_map.id_string = "Sound";
         property_map.type = VT_EMPTY;
+    }
+
+    return property_map;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-06
+*
+* Adapt normalized sound values to the generic
+* property diagnostic. Priority requires dedicated
+* unsigned storage because its channel field is 32-bit.
+*/
+static const s_property_access_map sound_get_dump_property_map(
+    const void *acting_object_param,
+    const unsigned int property_index_param
+) {
+    const s_sound_property_dump_view *acting_object = acting_object_param;
+    s_property_access_map property_map = sound_get_property_map(
+        &acting_object->channel,
+        property_index_param
+    );
+
+    if(property_index_param == SOUND_PROPERTY_PRIORITY) {
+        property_map.field = &acting_object->priority;
+        property_map.type = VT_UINTEGER64;
     }
 
     return property_map;
@@ -362,7 +393,22 @@ HRESULT openbor_get_sound_property(
     }
 
     if(property_index == PROPERTY_ACCESS_DUMP) {
-        property_access_dump_members(sound_get_property_map, SOUND_PROPERTY_END, &sound_snapshot);
+        s_sound_property_dump_view dump_view;
+
+        dump_view.channel = sound_snapshot;
+        dump_view.channel.fp_loop_start = SOUND_SAMPLE_FIX_TO_INT(
+            sound_snapshot.fp_loop_start
+        );
+        dump_view.channel.fp_samplepos = SOUND_SAMPLE_FIX_TO_INT(
+            sound_snapshot.fp_samplepos
+        );
+        dump_view.priority = (uint64_t)sound_snapshot.priority;
+
+        property_access_dump_members(
+            sound_get_dump_property_map,
+            SOUND_PROPERTY_END,
+            &dump_view
+        );
         return S_OK;
     }
 
