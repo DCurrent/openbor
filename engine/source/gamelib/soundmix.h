@@ -131,7 +131,7 @@ int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 // start_frame applies once. loop_start_frame applies after each pass reaches the end.
 int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame, uint64_t loop_start_frame);
 void sound_stop_sample(int channel);
-void sound_stopall_sample();
+void sound_stopall_sample(bool force);
 void sound_pause_sample(int toggle);
 void sound_pause_single_sample(int toggle, int channel);
 void sound_volume_sample(int channel, int lvolume, int rvolume);

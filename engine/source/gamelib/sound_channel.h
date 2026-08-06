@@ -121,7 +121,7 @@ void sound_channel_pool_deactivate(s_sound_channel_pool *pool, int channel);
 void sound_channel_pool_pause(s_sound_channel_pool *pool, int channel, int toggle);
 void sound_channel_pool_stream(s_sound_channel_pool *pool, int channel, int toggle);
 bool sound_channel_pool_reserve_mask(s_sound_channel_pool *pool, unsigned int bank_index, uint64_t reserved_mask);
-void sound_channel_pool_stop_all(s_sound_channel_pool *pool);
+void sound_channel_pool_stop_all(s_sound_channel_pool *pool, bool force);
 void sound_channel_pool_pause_all(s_sound_channel_pool *pool, int toggle);
 int sound_channel_mask_first(uint64_t mask);
 

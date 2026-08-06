@@ -49830,7 +49830,7 @@ int playlevel(char *filename)
     {
         sound_close_music();
     }
-    sound_stopall_sample();
+    sound_stopall_sample(false);
 
     unload_level();
 

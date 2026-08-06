@@ -2687,7 +2687,15 @@ void sound_stop_sample(int channel) {
     }
 }
 
-void sound_stopall_sample() {
+/*
+* Caskey, Damon V.
+* 2026-08-05
+*
+* Stop channel playback and release stream resources.
+* Normal cleanup preserves soft-reserved channels.
+* Forced teardown includes every reserved stream.
+*/
+void sound_stopall_sample(bool force) {
     uint64_t streaming_channel_mask[SOUND_CHANNEL_BANK_COUNT] = { 0 };
     uint64_t streaming_bank_mask;
     int bank_index;
@@ -2696,10 +2704,12 @@ void sound_stopall_sample() {
     streaming_bank_mask = sound_channel_pool.streaming_bank_mask;
     while((bank_index = sound_channel_mask_first(streaming_bank_mask)) >= 0) {
         s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
-        streaming_channel_mask[bank_index] = bank->streaming_mask & ~bank->reserved_mask;
+        streaming_channel_mask[bank_index] = force
+            ? bank->streaming_mask
+            : bank->streaming_mask & ~bank->reserved_mask;
         streaming_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
-    sound_channel_pool_stop_all(&sound_channel_pool);
+    sound_channel_pool_stop_all(&sound_channel_pool, force);
     SB_unlock_audio();
 
     for(bank_index = 0; bank_index < (int)SOUND_CHANNEL_BANK_COUNT; bank_index++) {
@@ -3420,8 +3430,7 @@ void sound_stop_playback() {
     if(!mixing_active) {
         return;
     }
-    sound_close_music();
-    sound_stopall_sample();
+    sound_stopall_sample(true);
     SB_playstop();
     mixing_active = 0;
 }
@@ -3437,7 +3446,7 @@ int sound_start_playback() {
     playfrequency = SOUND_OUTPUT_FREQUENCY_DEFAULT;
     samplesplayed = 0;
 
-    sound_stopall_sample();
+    sound_stopall_sample(true);
     SB_playstop();
     if(!SB_playstart(playbits, playfrequency)) {
         return 0;
@@ -3450,7 +3459,7 @@ int sound_start_playback() {
 // Stop everything and free used memory
 void sound_exit() {
     sound_stop_playback();
-    sound_stopall_sample();
+    sound_stopall_sample(true);
     sound_unload_all_samples();
 
     if(mixbuf != NULL) {

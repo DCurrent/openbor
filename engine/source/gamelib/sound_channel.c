@@ -535,15 +535,16 @@ bool sound_channel_pool_reserve_mask(s_sound_channel_pool *pool, unsigned int ba
 * Caskey, Damon V.
 * 2026-07-31
 *
-* Stop non-reserved active channels through the bank
-* masks. Reserved channels retain playback and pause
-* state until they are stopped explicitly.
+* Stop active channels through the bank masks. Reserved
+* channels retain playback and pause state unless force
+* is enabled for complete playback teardown.
 */
-void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
+void sound_channel_pool_stop_all(s_sound_channel_pool *pool, bool force) {
     s_sound_channel_bank *bank;
     uint64_t active_bank_mask;
     uint64_t allocated_bank_mask;
     uint64_t channel_mask;
+    uint64_t retained_mask;
     int bank_index;
     int channel_index;
 
@@ -554,7 +555,8 @@ void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
     active_bank_mask = pool->active_bank_mask;
     while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
         bank = pool->bank[bank_index];
-        channel_mask = bank->active_mask & ~bank->reserved_mask;
+        retained_mask = force ? 0 : bank->reserved_mask;
+        channel_mask = bank->active_mask & ~retained_mask;
 
         while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
             bank->channel[channel_index].active = 0;
@@ -562,8 +564,8 @@ void sound_channel_pool_stop_all(s_sound_channel_pool *pool) {
             channel_mask &= ~(UINT64_C(1) << channel_index);
         }
 
-        bank->active_mask &= bank->reserved_mask;
-        bank->paused_mask &= bank->reserved_mask;
+        bank->active_mask &= retained_mask;
+        bank->paused_mask &= retained_mask;
         active_bank_mask &= ~(UINT64_C(1) << bank_index);
     }
 

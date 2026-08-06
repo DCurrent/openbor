@@ -334,8 +334,7 @@ static void init_audio(nestegg *ctx, int track, audio_context *audio_ctx, int vo
     }
 
     /* WebM audio retains its legacy behavior by replacing all playback. */
-    sound_close_music();
-    sound_stopall_sample();
+    sound_stopall_sample(true);
     audio_ctx->channel = SOUND_CHANNEL_MUSIC_DEFAULT;
     audio_ctx->stream_play_id = sound_open_channel_pcm_stream(
         audio_ctx->channel,
