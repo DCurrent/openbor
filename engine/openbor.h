@@ -2412,7 +2412,9 @@ typedef struct s_collision_collection {
 #define FRAME_SOUND_ACTIVE_NONE     0
 
 typedef struct s_frame_sound {
-    int sample; /* Loaded sample index. */
+    uint64_t delay;   /* Logical ticks to wait before playback. */
+    int sample;       /* Loaded sample index. */
+    unsigned chance;  /* Playback chance from 0 through 100 percent. */
 } s_frame_sound;
 
 typedef struct s_frame_sound_collection {

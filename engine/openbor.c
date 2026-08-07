@@ -8390,7 +8390,9 @@ s_frame_sound* frame_sound_allocate(void) {
         borShutdown(1, E_OUT_OF_MEMORY);
     }
 
+    memset(result, 0, sizeof(*result));
     result->sample = SAMPLE_ID_NONE;
+    result->chance = SOUND_PLAY_CHANCE_MAX;
 
     return result;
 }
@@ -8601,10 +8603,13 @@ void frame_sound_cache_collection(const s_frame_sound_collection* const collecti
 * Caskey, Damon V.
 * 2026-08-07
 *
-* Play every active sound instance in ascending slot order.
+* Submit active frame sounds in ascending slot order. The
+* acquired mixer channel owns delayed start and chance from
+* this point forward.
 */
 void frame_sound_execute_collection(const s_frame_sound_collection* const collection) {
     const s_frame_sound* sound;
+    s_sound_play_options options;
     uint64_t active_status;
     int sound_index;
 
@@ -8619,9 +8624,24 @@ void frame_sound_execute_collection(const s_frame_sound_collection* const collec
         active_status &= active_status - 1;
         sound = collection->slots[sound_index];
 
-        if (sound && sound->sample >= 0) {
-            sound_play_sample(sound->sample, 0, savedata.effectvol, savedata.effectvol, 100);
+        if (!sound || sound->sample < 0) {
+            continue;
         }
+
+        options.delay = sound->delay;
+        options.delay_rate = global_config.game_speed > 0
+            ? (unsigned int)global_config.game_speed
+            : GAME_SPEED_DEFAULT;
+        options.chance = sound->chance;
+
+        sound_play_sample_with_options(
+            sound->sample,
+            0,
+            savedata.effectvol,
+            savedata.effectvol,
+            100,
+            &options
+        );
     }
 }
 
@@ -16923,7 +16943,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->specials_loaded++;
                 }
                 break;
-            
+
             case CMD_MODEL_SOUND_INDEX:
                 tempInt = GET_INT_ARG(1);
 
@@ -16942,11 +16962,55 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 temp_frame_sound_index = tempInt;
                 break;
+            case CMD_MODEL_SOUND_CHANCE:
+                tempInt = GET_INT_ARG(1);
 
+                if (tempInt < 0 || tempInt > 100) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound chance (%d) out of range (0 to 100).",
+                        tempInt
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->chance = (unsigned)tempInt;
+                break;
+            case CMD_MODEL_SOUND_DELAY:
+            {
+                s_command_token delay_token;
+                uint64_t sound_delay;
+
+                delay_token.text = GET_ARG(1);
+                delay_token.length = strlen(delay_token.text);
+
+                if (!command_token_get_uint64(&delay_token, &sound_delay)) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound delay '%s'. Expected an unsigned logical tick count.",
+                        delay_token.text
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->delay = sound_delay;
+                break;
+            }
             case CMD_MODEL_SOUND:
                 frame_sound_upsert_index(&temp_frame_sound, temp_frame_sound_index)->sample = sound_load_sample(GET_ARG(1), packfile, 1, 0);
                 break;
-
             case CMD_MODEL_HITFX:
 
                 value = GET_ARG(1);
@@ -25953,7 +26017,8 @@ void update_frame(entity *ent, uint64_t f)
         child_spawn_execute_list(anim->child_spawn[f], ent);
     }
 
-    if(anim->sound) {
+    if(anim->sound)
+    {
         frame_sound_execute_collection(anim->sound[f]);
     }
 

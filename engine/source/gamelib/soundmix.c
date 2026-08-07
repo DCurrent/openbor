@@ -53,6 +53,7 @@ Caution: move vorbis headers here otherwise the structs will
 #include "sblaster.h"
 #include "borendian.h"
 #include "packfile.h"
+#include "rand32.h"
 
 #if TREMOR
 #define sound_vorbis_decode(vf, buffer, length, bitstream) ov_read(vf, buffer, length, bitstream)
@@ -1634,7 +1635,8 @@ static bool sound_vorbis_stream_read_frames(
 static void sound_mix_stream_channel(
     int channel,
     channelstruct *channel_record,
-    unsigned int todo
+    unsigned int todo,
+    int output_start
 ) {
     s_sound_stream *stream = &channel_record->stream;
     sound_sample_fixed_t buffer_position_fixed = stream->fp_buffer_position;
@@ -1645,7 +1647,7 @@ static void sound_mix_stream_channel(
         ? channel_record->volume_divisor
         : MAX_SAMPLE_VOLUME;
 
-    for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
+    for(output_position = output_start; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
         s_sound_stream_buffer *stream_buffer;
         sound_sample_fixed_t buffer_length_fixed;
         size_t frame_index;
@@ -1710,6 +1712,65 @@ static void sound_mix_stream_channel(
     stream->fp_buffer_position = buffer_position_fixed;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Prepare an active channel for the current output block.
+* Delayed channels consume output frames without advancing
+* sample data. Chance is evaluated once at the exact point
+* playback becomes eligible. A failed roll releases the
+* channel without emitting audio.
+*/
+static bool sound_channel_prepare_mix(
+    int channel,
+    channelstruct *record,
+    unsigned int todo,
+    int *output_start
+) {
+    uint64_t output_frames;
+    uint64_t chance_threshold;
+    unsigned int chance;
+
+    if(!record || !output_start) {
+        return false;
+    }
+
+    output_frames = todo / SOUND_SPATIAL_CHANNEL_MAX;
+    if(!output_frames) {
+        return false;
+    }
+
+    *output_start = 0;
+
+    if(record->delay_frames) {
+        if(record->delay_frames >= output_frames) {
+            record->delay_frames -= output_frames;
+            return false;
+        }
+
+        *output_start = (int)(record->delay_frames * SOUND_SPATIAL_CHANNEL_MAX);
+        record->delay_frames = 0;
+    }
+
+    chance = record->chance;
+    record->chance = SOUND_PLAY_CHANCE_MAX;
+
+    if(chance >= SOUND_PLAY_CHANCE_MAX) {
+        return true;
+    }
+
+    chance_threshold = ((uint64_t)chance * (UINT64_C(1) << 32))
+        / SOUND_PLAY_CHANCE_MAX;
+
+    if((uint64_t)record->chance_roll >= chance_threshold) {
+        sound_channel_pool_deactivate(&sound_channel_pool, channel);
+        return false;
+    }
+
+    return true;
+}
+
 
 // Input: number of input samples to mix
 static void mixaudio(unsigned int todo)
@@ -1752,6 +1813,16 @@ static void mixaudio(unsigned int todo)
 
                 channel = (bank_index * (int)SOUND_CHANNEL_BANK_SIZE) + channel_index;
 
+                if(!sound_channel_prepare_mix(
+                    channel,
+                    channel_record,
+                    todo,
+                    &output_position
+                )) {
+                    channel_mask &= ~channel_bit;
+                    continue;
+                }
+
                 if(bank->streaming_mask & channel_bit) {
                     if(channel_record->stream_source == SOUND_CHANNEL_STREAM_SOURCE_NONE ||
                        channel_record->stream.block_align == 0 ||
@@ -1762,7 +1833,12 @@ static void mixaudio(unsigned int todo)
                         channel_record->channels != CHANNEL_TYPE_STEREO)) {
                         sound_channel_pool_deactivate(&sound_channel_pool, channel);
                     } else {
-                        sound_mix_stream_channel(channel, channel_record, todo);
+                        sound_mix_stream_channel(
+                            channel,
+                            channel_record,
+                            todo,
+                            output_position
+                        );
                     }
                     channel_mask &= ~channel_bit;
                     continue;
@@ -1798,7 +1874,7 @@ static void mixaudio(unsigned int todo)
                     ? channel_record->volume_divisor
                     : MAX_SAMPLE_VOLUME;
 
-                for(output_position = 0; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
+                for(; output_position + 1 < (int)todo; output_position += SOUND_SPATIAL_CHANNEL_MAX) {
                     size_t left_sample_index;
                     size_t right_sample_index;
                     size_t sample_position_index;
@@ -1981,6 +2057,7 @@ static void sound_channel_record_clear(channelstruct *record) {
     record->index = index;
     record->samplenum = -1;
     record->playid = -1;
+    record->chance = SOUND_PLAY_CHANCE_MAX;
     sound_stream_init(&record->stream);
 
     for(buffer_index = 0; buffer_index < SOUND_STREAM_BUFFER_COUNT; buffer_index++) {
@@ -2377,6 +2454,56 @@ static int sound_find_lowest_priority_channel(unsigned int *lowest_priority) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-07
+*
+* Convert caller clock units to output sample frames. Split
+* whole and remainder units before multiplication so extreme
+* delays saturate instead of overflowing. Partial output
+* frames round up so playback never begins before the full
+* requested duration has elapsed.
+*/
+static uint64_t sound_play_delay_frames_calculate(const s_sound_play_options *options) {
+    uint64_t delay_frames;
+    uint64_t delay_remainder;
+    uint64_t delay_whole;
+    uint64_t partial_frames;
+    uint64_t partial_numerator;
+    uint64_t output_frequency;
+    uint64_t rate;
+
+    if(!options || !options->delay) {
+        return 0;
+    }
+
+    output_frequency = playfrequency > 0
+        ? (uint64_t)playfrequency
+        : SOUND_OUTPUT_FREQUENCY_DEFAULT;
+    rate = options->delay_rate;
+
+    if(!rate) {
+        return UINT64_MAX;
+    }
+
+    delay_whole = options->delay / rate;
+    delay_remainder = options->delay % rate;
+
+    if(delay_whole > UINT64_MAX / output_frequency) {
+        return UINT64_MAX;
+    }
+
+    delay_frames = delay_whole * output_frequency;
+    partial_numerator = delay_remainder * output_frequency;
+    partial_frames = (partial_numerator + rate - 1U) / rate;
+
+    if(partial_frames > UINT64_MAX - delay_frames) {
+        return UINT64_MAX;
+    }
+
+    return delay_frames + partial_frames;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-01
 *
 * Play a resident or streamed sample on an available
@@ -2394,7 +2521,8 @@ static int sound_play_sample_internal(
     int start_frame_supplied,
     uint64_t start_frame,
     uint64_t loop_start_frame,
-    int forced_channel
+    int forced_channel,
+    const s_sound_play_options *options
 ) {
     channelstruct *record;
     samplestruct *sample;
@@ -2410,6 +2538,9 @@ static int sound_play_sample_internal(
     }
     if(speed < 1) {
         speed = 100;
+    }
+    if(options && options->delay && !options->delay_rate) {
+        return -1;
     }
     if(((soundcache[samplenum].stream && soundcache[samplenum].sample.framecount == 0) ||
         (!soundcache[samplenum].stream && !soundcache[samplenum].sample.sampleptr)) &&
@@ -2502,6 +2633,13 @@ static int sound_play_sample_internal(
     record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
     record->volume_divisor = MAX_SAMPLE_VOLUME;
     record->priority = priority;
+    record->delay_frames = sound_play_delay_frames_calculate(options);
+    record->chance = options && options->chance < SOUND_PLAY_CHANCE_MAX
+        ? options->chance
+        : SOUND_PLAY_CHANCE_MAX;
+    record->chance_roll = record->chance < SOUND_PLAY_CHANCE_MAX
+        ? rand32()
+        : 0;
     record->bits = sample->bits;
     record->frequency = sample->frequency;
     record->channels = sample->channels;
@@ -2528,19 +2666,23 @@ static int sound_play_sample_internal(
 }
 
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0, -1);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0, -1, NULL);
+}
+
+int sound_play_sample_with_options(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, const s_sound_play_options *options) {
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0, -1, options);
 }
 
 int sound_play_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 1, start_frame, 0, -1);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 1, start_frame, 0, -1, NULL);
 }
 
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 0, 0, 0, -1);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 0, 0, 0, -1, NULL);
 }
 
 int sound_loop_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame, uint64_t loop_start_frame) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 1, start_frame, loop_start_frame, -1);
+    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 1, 1, start_frame, loop_start_frame, -1, NULL);
 }
 
 int sound_query_channel(int playid) {
@@ -3135,7 +3277,8 @@ static int sound_open_sample_music(
         1,
         0,
         loop_start_frame,
-        SOUND_CHANNEL_MUSIC_DEFAULT
+        SOUND_CHANNEL_MUSIC_DEFAULT,
+        NULL
     );
     if(channel != SOUND_CHANNEL_MUSIC_DEFAULT) {
         return 0;

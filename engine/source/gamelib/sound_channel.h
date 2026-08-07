@@ -76,6 +76,8 @@ typedef struct s_sound_channel {
     int paused;
     int samplenum;    /* Index of sound playing. */
     unsigned int priority;
+    unsigned int chance;       /* Playback chance from 0 through 100. */
+    uint32_t chance_roll;       /* Main-thread roll evaluated when delay expires. */
     int playid;
     int volume[2];
     int volume_divisor;
@@ -84,6 +86,7 @@ typedef struct s_sound_channel {
     int channels;
     e_sound_channel_stream_source stream_source;
 
+    uint64_t delay_frames;              /* Output frames remaining before playback. */
     sound_sample_fixed_t fp_samplepos;  /* Fixed point PCM frame position. */
     sound_sample_fixed_t fp_period;     /* Advance per output frame. */
     sound_sample_fixed_t fp_loop_start; /* PCM frame used after looping. */

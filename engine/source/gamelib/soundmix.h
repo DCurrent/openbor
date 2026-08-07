@@ -28,6 +28,7 @@
 #define		SOUND_OUTPUT_BITS_DEFAULT		16
 #define		SOUND_OUTPUT_FREQUENCY_DEFAULT	44100
 #define     SOUND_CHANNEL_MUSIC_DEFAULT       0
+#define     SOUND_PLAY_CHANCE_MAX             100U
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
 
@@ -66,6 +67,17 @@ typedef struct s_sound_parameters {
     */
     uint64_t sound_length_max;
 } s_sound_parameters;
+
+/*
+* Optional behavior applied when a sample channel is created.
+* Delay is expressed in caller clock units and delay_rate is
+* the number of those units per second.
+*/
+typedef struct s_sound_play_options {
+    uint64_t delay;
+    unsigned int delay_rate;
+    unsigned int chance;
+} s_sound_play_options;
 
 typedef struct
 {
@@ -126,6 +138,7 @@ uint64_t sound_get_channel_mask(unsigned int bank_index, e_sound_channel_mask ma
 int sound_id(int channel);
 int sound_is_active(int channel);
 int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
+int sound_play_sample_with_options(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, const s_sound_play_options *options);
 int sound_play_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame);
 int sound_loop_sample(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed);
 // start_frame applies once. loop_start_frame applies after each pass reaches the end.
