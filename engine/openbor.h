@@ -2400,6 +2400,26 @@ typedef struct s_collision_collection {
     s_collision_instance*   slots[MAX_COLLISION_BOXES_PER_FRAME]; /* Array of pointers to collision instances. */
 } s_collision_collection;
 
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Indexed sound instances assigned to an animation frame.
+* Each instance is kept separate so additional playback
+* properties can be added without widening the sound command.
+*/
+#define MAX_FRAME_SOUNDS_PER_FRAME  64
+#define FRAME_SOUND_ACTIVE_NONE     0
+
+typedef struct s_frame_sound {
+    int sample; /* Loaded sample index. */
+} s_frame_sound;
+
+typedef struct s_frame_sound_collection {
+    uint64_t        active_status; /* Bitmask indicating active sound slots. */
+    s_frame_sound*  slots[MAX_FRAME_SOUNDS_PER_FRAME];
+} s_frame_sound_collection;
+
 // Caskey, Damon V.
 // 2013-12-15
 //
@@ -2744,6 +2764,7 @@ typedef struct s_anim {
     s_collision_collection**    collision_body;         // Collision detection (body).
 	s_collision_collection**    collision_space;        // Collision detection (space).
     s_child_spawn**             child_spawn;            // Head node for child spawns (frame level spawning for particle effects, projectiles, etc.).
+    s_frame_sound_collection**  sound;                  // Indexed sounds played when entering a frame.
     s_move**					move;					// base = seta, x = move, y = movea, z = movez
 	s_axis_plane_vertical_int**	offset;				    // original sprite offsets
 	s_drawmethod**				drawmethods;
@@ -2754,7 +2775,6 @@ typedef struct s_anim {
 	uint64_t					*delay;
 	int64_t						*shadow;
 	int64_t						(*shadow_coords)[2];	// x, z offset of shadow
-	int64_t						*soundtoplay;           // each frame can have a sound
 	int64_t						*sprite;                // sprite[set][framenumber]
 	int64_t						*vulnerable;
 	int64_t						*weaponframe;           // Specify with a frame when to switch to a weapon model
@@ -4459,7 +4479,7 @@ typedef struct {
     float*                      platform;       // Platform coordinates.
     int                         frameshadow;    // TRUE = Display shadow during frame.
     int*                        shadow_coords;  // Shadow position.
-    int                         soundtoplay;    // Sound index played on frame.
+    s_frame_sound_collection*   sound;          // Indexed sounds played on frame.
     s_drawmethod*               drawmethod;     // Drawmethod to apply on frame.
     s_axis_plane_vertical_int*  offset;         // X & Y offset coordinates.    
     s_collision_collection*     collision_attack;      // Collision collection (attack) for frame.
@@ -4566,6 +4586,21 @@ void collision_body_initialize_frame_property(s_addframe_data* data, const ptrdi
 void collision_space_initialize_frame_property(s_addframe_data* data, const ptrdiff_t frame);
 
 s_collision_instance* collision_attack_find_no_block_on_frame(s_anim* animation, const int frame, const int block);
+
+/* -- Frame sound instances and collections. */
+s_frame_sound* frame_sound_allocate(void);
+void frame_sound_free(s_frame_sound* sound);
+
+s_frame_sound_collection* frame_sound_collection_allocate(void);
+s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_collection* source);
+void frame_sound_collection_free(s_frame_sound_collection* collection);
+
+s_frame_sound* frame_sound_find_slot_index(s_frame_sound_collection* collection, int sound_index);
+s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** collection, int sound_index);
+
+void frame_sound_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
+void frame_sound_cache_collection(const s_frame_sound_collection* collection, int load);
+void frame_sound_execute_collection(const s_frame_sound_collection* collection);
 
 int check_collision(s_collision_check_data* const collision_data);
 

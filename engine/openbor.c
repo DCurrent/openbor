@@ -6862,9 +6862,14 @@ void free_frames(s_anim *anim) {
         anim->shadow_coords = NULL;
     }
 
-    if(anim->soundtoplay) {
-        free(anim->soundtoplay);
-        anim->soundtoplay = NULL;
+    if(anim->sound) {
+        for(i = 0; i < anim->numframes; i++) {
+            frame_sound_collection_free(anim->sound[i]);
+            anim->sound[i] = NULL;
+        }
+
+        free(anim->sound);
+        anim->sound = NULL;
     }
     
     if(anim->drawmethods) {
@@ -7019,9 +7024,9 @@ void cache_model_sprites(s_model *m, int ld)
             for(f = 0; f < anim->numframes; f++)
             {
                 cachesprite(anim->sprite[f], ld);
-                if(anim->soundtoplay)
+                if(anim->sound)
                 {
-                    cachesound(anim->soundtoplay[f], ld);
+                    frame_sound_cache_collection(anim->sound[f], ld);
                 }
                 
                 // Hit sounds.
@@ -8331,6 +8336,293 @@ entity* child_spawn_execute_object(s_child_spawn* object, entity* parent)
     printf("\n\t return: %p", child_entity);
 
     return child_entity;
+}
+
+/* **** Frame Sound Support Functions */
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Validate an author-facing frame sound slot index.
+*/
+static bool frame_sound_validate_slot_index(const int index) {
+    return index >= 0 && index < MAX_FRAME_SOUNDS_PER_FRAME;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Return the active mask bit for a frame sound slot.
+*/
+static uint64_t frame_sound_get_slot_mask(const int index) {
+    return UINT64_C(1) << (uint64_t)index;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Return the lowest active slot in a non-zero mask.
+*/
+static int frame_sound_get_lowest_active_index(uint64_t active_status) {
+    int sound_index = 0;
+
+    while (!(active_status & UINT64_C(1))) {
+        active_status >>= 1;
+        sound_index++;
+    }
+
+    return sound_index;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Allocate one frame sound instance with playback disabled.
+*/
+s_frame_sound* frame_sound_allocate(void) {
+    s_frame_sound* result = malloc(sizeof(*result));
+
+    if (!result) {
+        borShutdown(1, E_OUT_OF_MEMORY);
+    }
+
+    result->sample = SAMPLE_ID_NONE;
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Free one frame sound instance.
+*/
+void frame_sound_free(s_frame_sound* const sound) {
+    free(sound);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Allocate an empty indexed frame sound collection.
+*/
+s_frame_sound_collection* frame_sound_collection_allocate(void) {
+    s_frame_sound_collection* result = malloc(sizeof(*result));
+
+    if (!result) {
+        borShutdown(1, E_OUT_OF_MEMORY);
+    }
+
+    memset(result, 0, sizeof(*result));
+    result->active_status = FRAME_SOUND_ACTIVE_NONE;
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Free a frame sound collection and its instances.
+*/
+void frame_sound_collection_free(s_frame_sound_collection* const collection) {
+    int sound_index;
+
+    if (!collection) {
+        return;
+    }
+
+    for (sound_index = 0; sound_index < MAX_FRAME_SOUNDS_PER_FRAME; sound_index++) {
+        frame_sound_free(collection->slots[sound_index]);
+        collection->slots[sound_index] = NULL;
+    }
+
+    collection->active_status = FRAME_SOUND_ACTIVE_NONE;
+    free(collection);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Find an active sound instance by author-facing slot index.
+*/
+s_frame_sound* frame_sound_find_slot_index(s_frame_sound_collection* const collection, const int sound_index) {
+    if (!collection || !frame_sound_validate_slot_index(sound_index)) {
+        return NULL;
+    }
+
+    if (!(collection->active_status & frame_sound_get_slot_mask(sound_index))) {
+        return NULL;
+    }
+
+    return collection->slots[sound_index];
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Find or allocate an indexed sound instance. Collection
+* allocation is deferred until the first sound is supplied.
+*/
+s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** const collection, const int sound_index) {
+    s_frame_sound* sound;
+
+    if (!collection || !frame_sound_validate_slot_index(sound_index)) {
+        return NULL;
+    }
+
+    if (!*collection) {
+        *collection = frame_sound_collection_allocate();
+    }
+
+    sound = frame_sound_find_slot_index(*collection, sound_index);
+
+    if (!sound) {
+        frame_sound_free((*collection)->slots[sound_index]);
+        sound = frame_sound_allocate();
+        (*collection)->slots[sound_index] = sound;
+    }
+
+    (*collection)->active_status |= frame_sound_get_slot_mask(sound_index);
+
+    return sound;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Clone active, playable sound slots into a frame-owned
+* collection. Slot indexes remain intact for future policies
+* such as indexed random selection.
+*/
+s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_collection* const source) {
+    s_frame_sound_collection* result = NULL;
+    s_frame_sound* sound_clone;
+    const s_frame_sound* source_sound;
+    uint64_t active_status;
+    int sound_index;
+
+    if (!source || !source->active_status) {
+        return NULL;
+    }
+
+    active_status = source->active_status;
+
+    while (active_status) {
+        sound_index = frame_sound_get_lowest_active_index(active_status);
+        active_status &= active_status - 1;
+        source_sound = source->slots[sound_index];
+
+        if (!source_sound || source_sound->sample < 0) {
+            continue;
+        }
+
+        if (!result) {
+            result = frame_sound_collection_allocate();
+        }
+
+        sound_clone = frame_sound_allocate();
+        *sound_clone = *source_sound;
+        result->slots[sound_index] = sound_clone;
+        result->active_status |= frame_sound_get_slot_mask(sound_index);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Clone parser scratch sounds into an animation frame.
+*/
+void frame_sound_initialize_frame_property(s_addframe_data* const data, const ptrdiff_t frame) {
+    s_frame_sound_collection* sound_clone;
+    size_t memory_size;
+
+    sound_clone = frame_sound_collection_clone(data->sound);
+
+    if (!sound_clone) {
+        return;
+    }
+
+    if (!data->animation->sound) {
+        memory_size = data->framecount * sizeof(*data->animation->sound);
+        data->animation->sound = malloc(memory_size);
+
+        if (!data->animation->sound) {
+            frame_sound_collection_free(sound_clone);
+            borShutdown(1, E_OUT_OF_MEMORY);
+        }
+
+        memset(data->animation->sound, 0, memory_size);
+    }
+
+    data->animation->sound[frame] = sound_clone;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Load or unload every sample referenced by a frame.
+*/
+void frame_sound_cache_collection(const s_frame_sound_collection* const collection, const int load) {
+    const s_frame_sound* sound;
+    uint64_t active_status;
+    int sound_index;
+
+    if (!collection || !collection->active_status) {
+        return;
+    }
+
+    active_status = collection->active_status;
+
+    while (active_status) {
+        sound_index = frame_sound_get_lowest_active_index(active_status);
+        active_status &= active_status - 1;
+        sound = collection->slots[sound_index];
+
+        if (sound && sound->sample >= 0) {
+            cachesound(sound->sample, load);
+        }
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Play every active sound instance in ascending slot order.
+*/
+void frame_sound_execute_collection(const s_frame_sound_collection* const collection) {
+    const s_frame_sound* sound;
+    uint64_t active_status;
+    int sound_index;
+
+    if (!collection || !collection->active_status) {
+        return;
+    }
+
+    active_status = collection->active_status;
+
+    while (active_status) {
+        sound_index = frame_sound_get_lowest_active_index(active_status);
+        active_status &= active_status - 1;
+        sound = collection->slots[sound_index];
+
+        if (sound && sound->sample >= 0) {
+            sound_play_sample(sound->sample, 0, savedata.effectvol, savedata.effectvol, 100);
+        }
+    }
 }
 
 /* **** Collision Support Functions */
@@ -10443,6 +10735,9 @@ int addframe(s_addframe_data* data) {
     /* Child spawns. */
     child_spawn_initialize_frame_property(data, currentframe);
 
+    /* Frame sounds. */
+    frame_sound_initialize_frame_property(data, currentframe);
+
     // Drawmethod (graphic settings)
     if(data->drawmethod->config & DRAWMETHOD_CONFIG_ENABLED) {
         if(!data->animation->drawmethods) {
@@ -10510,15 +10805,6 @@ int addframe(s_addframe_data* data) {
             memset(data->animation->platform, 0, data->framecount * sizeof(*data->animation->platform));
         }
         memcpy(data->animation->platform[currentframe], data->platform, sizeof(*data->animation->platform));// Used so entity can be landed on
-    }
-
-    // Sound effect
-    if(data->soundtoplay >= 0) {
-        if(!data->animation->soundtoplay) {
-            data->animation->soundtoplay = malloc(data->framecount * sizeof(*data->animation->soundtoplay));
-            memset(data->animation->soundtoplay, SAMPLE_ID_NONE, data->framecount * sizeof(*data->animation->soundtoplay)); // default to SAMPLE_ID_NONE
-        }
-        data->animation->soundtoplay[currentframe] = data->soundtoplay;
     }
 
     return data->animation->numframes;
@@ -13955,7 +14241,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int shadow_set = 0;
     int idle = 0;
     int frameshadow = FRAME_SHADOW_NONE;    // FRAME_SHADOW_NONE will use default shadow for this entity, otherwise will use this value.
-    int soundtoplay = SAMPLE_ID_NONE;
+    int temp_frame_sound_index = 0;
     int aiattackset = 0;
     int maskindex = -1;
     int nopalette = 0;
@@ -13991,6 +14277,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     s_drawmethod        drawmethod;
     s_drawmethod        dm;
+
+    s_frame_sound_collection* temp_frame_sound = NULL;
 
     /*
     * Caskey, Damon V.
@@ -15857,6 +16145,10 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_collision_space = NULL;
                 temp_collision_index = 0;
 
+                frame_sound_collection_free(temp_frame_sound);
+                temp_frame_sound = NULL;
+                temp_frame_sound_index = 0;
+
                 child_spawn_free_list(temp_child_spawn_head);
                 temp_child_spawn_head = NULL;
                 temp_child_spawn_index = 0;
@@ -15877,7 +16169,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 move.axis.y                     = 0;
                 move.axis.z                     = 0;
                 frameshadow                     = FRAME_SHADOW_NONE;
-                soundtoplay                     = SAMPLE_ID_NONE;
 
                 /*
                 * Other than Min X, default ranges are 
@@ -16632,10 +16923,30 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     newchar->specials_loaded++;
                 }
                 break;
+            
+            case CMD_MODEL_SOUND_INDEX:
+                tempInt = GET_INT_ARG(1);
+
+                if (!frame_sound_validate_slot_index(tempInt)) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound index (%d) out of range (0 to %d).",
+                        tempInt,
+                        MAX_FRAME_SOUNDS_PER_FRAME - 1
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                temp_frame_sound_index = tempInt;
+                break;
 
             case CMD_MODEL_SOUND:
-                soundtoplay = sound_load_sample(GET_ARG(1), packfile, 1, 0);
+                frame_sound_upsert_index(&temp_frame_sound, temp_frame_sound_index)->sample = sound_load_sample(GET_ARG(1), packfile, 1, 0);
                 break;
+
             case CMD_MODEL_HITFX:
 
                 value = GET_ARG(1);
@@ -18129,7 +18440,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 add_frame_data.platform = platform_con;
                 add_frame_data.frameshadow = frameshadow;
                 add_frame_data.shadow_coords = shadow_coords;
-                add_frame_data.soundtoplay = soundtoplay;
+                add_frame_data.sound = temp_frame_sound;
                 add_frame_data.drawmethod = &dm;
                 add_frame_data.offset = &offset;
                 
@@ -18174,11 +18485,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                                 
                 temp_collision_index = 0;
 
+                frame_sound_collection_free(temp_frame_sound);
+                temp_frame_sound = NULL;
+                temp_frame_sound_index = 0;
+
                 child_spawn_free_list(temp_child_spawn_head);
                 temp_child_spawn_head = NULL;
                 temp_child_spawn_index = 0;
 
-                soundtoplay = SAMPLE_ID_NONE;
                 frm_id = -1;
             }
             break;
@@ -18800,6 +19114,9 @@ lCleanup:
 
     collision_collection_free(temp_collision_space);
     temp_collision_space = NULL;
+
+    frame_sound_collection_free(temp_frame_sound);
+    temp_frame_sound = NULL;
 
     child_spawn_free_list(temp_child_spawn_head);
     temp_child_spawn_head = NULL;
@@ -25636,9 +25953,8 @@ void update_frame(entity *ent, uint64_t f)
         child_spawn_execute_list(anim->child_spawn[f], ent);
     }
 
-    if(anim->soundtoplay && anim->soundtoplay[f] >= 0)
-    {
-        sound_play_sample(anim->soundtoplay[f], 0, savedata.effectvol, savedata.effectvol, 100);
+    if(anim->sound) {
+        frame_sound_execute_collection(anim->sound[f]);
     }
 
     // Perform jumping if on a jumpframe.
