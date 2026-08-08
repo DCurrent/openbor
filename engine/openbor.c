@@ -827,6 +827,7 @@ int					ent_stack_size = 0;
 entity             *self;
 int                 ent_count			= 0;					// log count of entites
 int                 ent_max				= 0;
+static uint64_t     entity_unique_id_counter = ENTITY_UNIQUE_ID_NONE;
 
 s_player            player[MAX_PLAYERS];
 key_mask_t  bothkeys;
@@ -27016,6 +27017,24 @@ s_sub_entity *allocate_sub_entity()
 	return result;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Return the next process-lifetime entity instance ID.
+* Zero and UINT64_MAX remain reserved for no-owner and
+* wildcard selectors respectively.
+*/
+static uint64_t entity_unique_id_next(void) {
+    entity_unique_id_counter++;
+
+    if(entity_unique_id_counter == ENTITY_UNIQUE_ID_ALL) {
+        entity_unique_id_counter = UINT64_C(1);
+    }
+
+    return entity_unique_id_counter;
+}
+
 entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_direction direction, char *model_name, const int model_index, s_model* model_pointer)
 {
     entity *acting_entity = NULL;
@@ -27092,6 +27111,7 @@ entity *spawn(const float pos_x, const float pos_z, const float pos_y, const e_d
 
             scripts = acting_entity->scripts;
             memset(acting_entity, 0, sizeof(*acting_entity));
+            acting_entity->unique_id = entity_unique_id_next();
             
 			// e->drawmethod = plainmethod;
             acting_entity->drawmethod = allocate_drawmethod();

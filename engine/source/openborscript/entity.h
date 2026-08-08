@@ -146,6 +146,7 @@ typedef enum
 	ENTITY_PROPERTY_TOSS_TIME,
 	ENTITY_PROPERTY_TURN_STATE,
 	ENTITY_PROPERTY_TURN_TIME,
+	ENTITY_PROPERTY_UNIQUE_ID,
 	ENTITY_PROPERTY_UPDATE_MARK,
 	ENTITY_PROPERTY_VELOCITY_X,
 	ENTITY_PROPERTY_VELOCITY_Y,
@@ -163,4 +164,3 @@ HRESULT openbor_set_entity_property(ScriptVariant** varlist, ScriptVariant** con
 
 HRESULT openbor_get_attack_id_value(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
 HRESULT openbor_set_attack_id_value(ScriptVariant** varlist, ScriptVariant** pretvar, int paramCount);
-

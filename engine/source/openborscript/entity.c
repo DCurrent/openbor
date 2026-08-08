@@ -823,6 +823,12 @@ static const entity_property_info entity_properties[] = {
 	.offset = PROPERTY_MEMBER_OFFSET(entity, turntime),
 	.type = VT_INTEGER },
 
+	{.property = ENTITY_PROPERTY_UNIQUE_ID,
+	.id_string = "ENTITY_PROPERTY_UNIQUE_ID",
+	.config_flags = PROPERTY_ACCESS_CONFIG_READ,
+	.offset = PROPERTY_MEMBER_OFFSET(entity, unique_id),
+	.type = VT_UINTEGER64 },
+
 	{.property = ENTITY_PROPERTY_UPDATE_MARK,
 	.id_string = "ENTITY_PROPERTY_UPDATE_MARK",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,

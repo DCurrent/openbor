@@ -85,6 +85,13 @@ typedef uint64_t key_mask_t;
 #define		MAX_SPECIALS		    8					// Added for customizable freespecials
 
 /*
+* Entity instance identifiers. Zero represents no entity,
+* and the maximum value is reserved for wildcard matching.
+*/
+#define ENTITY_UNIQUE_ID_NONE UINT64_C(0)
+#define ENTITY_UNIQUE_ID_ALL  UINT64_MAX
+
+/*
 * Maximum number of special-command input steps 
 * and retained player input-history entries.
 *
@@ -3943,6 +3950,7 @@ typedef struct entity
 	uint64_t			    per1;								// Used to store at what health value the entity begins to flash ~~
 	uint64_t			    per2;								// Used to store at what health value the entity flashes more rapidly ~~
 	uint64_t			    numwaypoints;						// Count of waypoints in use. ~~
+    uint64_t                unique_id;                          // Process-lifetime identifier assigned on spawn. ~~
     uint64_t			    walkmode;							// Force a specfic alternate walk. ~~
 
 	// Signed integers
