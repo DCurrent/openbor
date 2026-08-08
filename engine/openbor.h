@@ -2418,7 +2418,8 @@ typedef struct s_frame_sound {
 } s_frame_sound;
 
 typedef struct s_frame_sound_collection {
-    uint64_t        active_status; /* Bitmask indicating active sound slots. */
+    uint64_t        active_status; /* Slots supplied by an explicit sound command. */
+    uint64_t        random_status; /* Inclusive index range eligible for one random selection. */
     s_frame_sound*  slots[MAX_FRAME_SOUNDS_PER_FRAME];
 } s_frame_sound_collection;
 

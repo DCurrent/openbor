@@ -588,6 +588,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_SOUND_INDEX, "sound.index");
     LIST_ADD(CMD_MODEL_SOUND_CHANCE, "sound.chance");
     LIST_ADD(CMD_MODEL_SOUND_DELAY, "sound.delay");
+    LIST_ADD(CMD_MODEL_SOUND_RANDOM, "sound.random");
     LIST_ADD(CMD_MODEL_SOUND, "sound");
     LIST_ADD(CMD_MODEL_SPAWNFRAME, "spawnframe");
     LIST_ADD(CMD_MODEL_SPEED, "speed");

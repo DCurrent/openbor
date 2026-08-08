@@ -8364,6 +8364,22 @@ static uint64_t frame_sound_get_slot_mask(const int index) {
 * Caskey, Damon V.
 * 2026-08-07
 *
+* Return an inclusive mask for a validated pair of frame
+* sound slot indexes without ever shifting by 64 bits.
+*/
+static uint64_t frame_sound_get_slot_range_mask(const int min, const int max) {
+    const uint64_t lower_mask = UINT64_MAX << (uint64_t)min;
+    const uint64_t upper_mask = max == MAX_FRAME_SOUNDS_PER_FRAME - 1
+        ? UINT64_MAX
+        : (UINT64_C(1) << ((uint64_t)max + 1U)) - 1U;
+
+    return lower_mask & upper_mask;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
 * Return the lowest active slot in a non-zero mask.
 */
 static int frame_sound_get_lowest_active_index(uint64_t active_status) {
@@ -8445,6 +8461,7 @@ void frame_sound_collection_free(s_frame_sound_collection* const collection) {
     }
 
     collection->active_status = FRAME_SOUND_ACTIVE_NONE;
+    collection->random_status = FRAME_SOUND_ACTIVE_NONE;
     free(collection);
 }
 
@@ -8452,14 +8469,12 @@ void frame_sound_collection_free(s_frame_sound_collection* const collection) {
 * Caskey, Damon V.
 * 2026-08-07
 *
-* Find an active sound instance by author-facing slot index.
+* Find an allocated sound instance by author-facing slot index.
+* Allocation may precede the sound command so properties can
+* be supplied in any order.
 */
 s_frame_sound* frame_sound_find_slot_index(s_frame_sound_collection* const collection, const int sound_index) {
     if (!collection || !frame_sound_validate_slot_index(sound_index)) {
-        return NULL;
-    }
-
-    if (!(collection->active_status & frame_sound_get_slot_mask(sound_index))) {
         return NULL;
     }
 
@@ -8471,7 +8486,8 @@ s_frame_sound* frame_sound_find_slot_index(s_frame_sound_collection* const colle
 * 2026-08-07
 *
 * Find or allocate an indexed sound instance. Collection
-* allocation is deferred until the first sound is supplied.
+* allocation is deferred until the first sound property is
+* supplied.
 */
 s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** const collection, const int sound_index) {
     s_frame_sound* sound;
@@ -8492,8 +8508,6 @@ s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** const collect
         (*collection)->slots[sound_index] = sound;
     }
 
-    (*collection)->active_status |= frame_sound_get_slot_mask(sound_index);
-
     return sound;
 }
 
@@ -8501,9 +8515,9 @@ s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** const collect
 * Caskey, Damon V.
 * 2026-08-07
 *
-* Clone active, playable sound slots into a frame-owned
-* collection. Slot indexes remain intact for future policies
-* such as indexed random selection.
+* Clone explicitly configured sound slots into a frame-owned
+* collection. SAMPLE_ID_NONE remains active so it can serve
+* as a deliberate blank in a random selection.
 */
 s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_collection* const source) {
     s_frame_sound_collection* result = NULL;
@@ -8523,12 +8537,13 @@ s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_colle
         active_status &= active_status - 1;
         source_sound = source->slots[sound_index];
 
-        if (!source_sound || source_sound->sample < 0) {
+        if (!source_sound) {
             continue;
         }
 
         if (!result) {
             result = frame_sound_collection_allocate();
+            result->random_status = source->random_status;
         }
 
         sound_clone = frame_sound_allocate();
@@ -8603,7 +8618,50 @@ void frame_sound_cache_collection(const s_frame_sound_collection* const collecti
 * Caskey, Damon V.
 * 2026-08-07
 *
-* Submit active frame sounds in ascending slot order. The
+* Select one configured sound bit uniformly from a non-zero
+* candidate mask. Rejection avoids modulo bias while keeping
+* random selection on the entity update thread.
+*/
+static uint64_t frame_sound_select_random_status(uint64_t candidate_status) {
+    uint64_t candidate_scan;
+    uint64_t random_limit;
+    uint64_t random_value;
+    unsigned int candidate_count = 0;
+    unsigned int candidate_offset;
+
+    candidate_scan = candidate_status;
+    while (candidate_scan) {
+        candidate_scan &= candidate_scan - 1U;
+        candidate_count++;
+    }
+
+    if (candidate_count <= 1U) {
+        return candidate_status;
+    }
+
+    random_limit = (UINT64_C(1) << 32)
+        - ((UINT64_C(1) << 32) % candidate_count);
+
+    do {
+        random_value = rand32();
+    } while (random_value >= random_limit);
+
+    candidate_offset = (unsigned int)(random_value % candidate_count);
+    while (candidate_offset) {
+        candidate_status &= candidate_status - 1U;
+        candidate_offset--;
+    }
+
+    return candidate_status & (~candidate_status + 1U);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-07
+*
+* Submit active frame sounds in ascending slot order. When a
+* random range is enabled, submit one configured entry from
+* that range and every configured entry outside it. The
 * acquired mixer channel owns delayed start and chance from
 * this point forward.
 */
@@ -8618,6 +8676,14 @@ void frame_sound_execute_collection(const s_frame_sound_collection* const collec
     }
 
     active_status = collection->active_status;
+
+    if (collection->random_status) {
+        const uint64_t random_candidates =
+            active_status & collection->random_status;
+
+        active_status &= ~collection->random_status;
+        active_status |= frame_sound_select_random_status(random_candidates);
+    }
 
     while (active_status) {
         sound_index = frame_sound_get_lowest_active_index(active_status);
@@ -17008,9 +17074,65 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 )->delay = sound_delay;
                 break;
             }
-            case CMD_MODEL_SOUND:
-                frame_sound_upsert_index(&temp_frame_sound, temp_frame_sound_index)->sample = sound_load_sample(GET_ARG(1), packfile, 1, 0);
+            case CMD_MODEL_SOUND_RANDOM:
+            {
+                const int random_min = GET_INT_ARG(1);
+                const int random_max = GET_INT_ARG(2);
+
+                if (!frame_sound_validate_slot_index(random_min)
+                    || !frame_sound_validate_slot_index(random_max)
+                    || random_min > random_max) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound random range (%d to %d) invalid. Expected an ascending range from 0 to %d.",
+                        random_min,
+                        random_max,
+                        MAX_FRAME_SOUNDS_PER_FRAME - 1
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                if (!temp_frame_sound) {
+                    temp_frame_sound = frame_sound_collection_allocate();
+                }
+
+                temp_frame_sound->random_status =
+                    frame_sound_get_slot_range_mask(random_min, random_max);
                 break;
+            }
+            case CMD_MODEL_SOUND:
+            {
+                s_frame_sound* frame_sound = frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                );
+
+                value = GET_ARG(1);
+                if (stricmp(value, "none") == 0) {
+                    frame_sound->sample = SAMPLE_ID_NONE;
+                    temp_frame_sound->active_status |=
+                        frame_sound_get_slot_mask(temp_frame_sound_index);
+                } else {
+                    frame_sound->sample = sound_load_sample(
+                        value,
+                        packfile,
+                        1,
+                        0
+                    );
+
+                    if (frame_sound->sample >= 0) {
+                        temp_frame_sound->active_status |=
+                            frame_sound_get_slot_mask(temp_frame_sound_index);
+                    } else {
+                        temp_frame_sound->active_status &=
+                            ~frame_sound_get_slot_mask(temp_frame_sound_index);
+                    }
+                }
+                break;
+            }
             case CMD_MODEL_HITFX:
 
                 value = GET_ARG(1);
