@@ -2648,6 +2648,8 @@ static int sound_play_sample_internal(
     record->volume[SOUND_SPATIAL_CHANNEL_RIGHT] = rvolume;
     record->volume_divisor = MAX_SAMPLE_VOLUME;
     record->priority = priority;
+    record->owner_id = options ? options->owner_id : UINT64_C(0);
+    record->group = options ? options->group : SOUND_GROUP_NONE;
     record->delay_frames = sound_play_delay_frames_calculate(options);
     record->chance = options && options->chance < SOUND_PLAY_CHANCE_MAX
         ? options->chance

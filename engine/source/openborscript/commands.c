@@ -594,6 +594,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_SOUND_CHANNEL_STOP, "sound.channel_stop");
     LIST_ADD(CMD_MODEL_SOUND_CHANCE, "sound.chance");
     LIST_ADD(CMD_MODEL_SOUND_DELAY, "sound.delay");
+    LIST_ADD(CMD_MODEL_SOUND_GROUP, "sound.group");
     LIST_ADD(CMD_MODEL_SOUND_LOADING, "sound.loading");
     LIST_ADD(CMD_MODEL_SOUND_LOOP, "sound.loop");
     LIST_ADD(CMD_MODEL_SOUND_LOOP_OFFSET, "sound.loop_offset");

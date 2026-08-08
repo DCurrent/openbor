@@ -77,7 +77,9 @@ typedef struct s_sound_parameters {
 typedef struct s_sound_play_options {
     uint64_t delay;
     uint64_t loop_offset;
+    uint64_t owner_id;
     uint64_t start_offset;
+    sound_group_mask_t group;
     unsigned int channel;
     unsigned int delay_rate;
     unsigned int chance;

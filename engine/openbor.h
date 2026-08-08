@@ -2435,6 +2435,7 @@ typedef struct s_frame_sound {
     uint64_t delay;           /* Logical ticks to wait before playback. */
     uint64_t loop_offset;     /* PCM frame used when automatic looping restarts. */
     uint64_t start_offset;    /* PCM frame used once when playback begins. */
+    sound_group_mask_t group; /* Groups assigned to the playback channel. */
     char* source;             /* Temporary source path retained until frame finalization. */
     int channel;              /* Forced mixer channel, or -1 for automatic allocation. */
     int sample;               /* Loaded sample index. */
@@ -4635,7 +4636,10 @@ s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** collection, i
 
 void frame_sound_initialize_frame_property(s_addframe_data* data, ptrdiff_t frame);
 void frame_sound_cache_collection(const s_frame_sound_collection* collection, int load);
-void frame_sound_execute_collection(const s_frame_sound_collection* collection);
+void frame_sound_execute_collection(
+    const s_frame_sound_collection* collection,
+    uint64_t owner_id
+);
 
 int check_collision(s_collision_check_data* const collision_data);
 

@@ -8425,6 +8425,136 @@ static int frame_sound_get_lowest_active_index(uint64_t active_status) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-08
+*
+* Translate one author-facing sound group name.
+*/
+static bool sound_group_get_flag_from_string(
+    const char* const value,
+    sound_group_mask_t* const result
+) {
+    static const struct {
+        const char* text_name;
+        sound_group_mask_t flag;
+    } flag_lookup_table[] = {
+        { "none", SOUND_GROUP_NONE },
+        { "all", SOUND_GROUP_ALL },
+        { "all0", SOUND_GROUP_ALL_0 },
+        { "all1", SOUND_GROUP_ALL_1 },
+        { "a", SOUND_GROUP_A },
+        { "b", SOUND_GROUP_B },
+        { "c", SOUND_GROUP_C },
+        { "d", SOUND_GROUP_D },
+        { "e", SOUND_GROUP_E },
+        { "f", SOUND_GROUP_F },
+        { "g", SOUND_GROUP_G },
+        { "h", SOUND_GROUP_H },
+        { "i", SOUND_GROUP_I },
+        { "j", SOUND_GROUP_J },
+        { "k", SOUND_GROUP_K },
+        { "l", SOUND_GROUP_L },
+        { "m", SOUND_GROUP_M },
+        { "n", SOUND_GROUP_N },
+        { "o", SOUND_GROUP_O },
+        { "p", SOUND_GROUP_P },
+        { "q", SOUND_GROUP_Q },
+        { "r", SOUND_GROUP_R },
+        { "s", SOUND_GROUP_S },
+        { "t", SOUND_GROUP_T },
+        { "u", SOUND_GROUP_U },
+        { "v", SOUND_GROUP_V },
+        { "w", SOUND_GROUP_W },
+        { "x", SOUND_GROUP_X },
+        { "y", SOUND_GROUP_Y },
+        { "z", SOUND_GROUP_Z },
+        { "a1", SOUND_GROUP_A1 },
+        { "b1", SOUND_GROUP_B1 },
+        { "c1", SOUND_GROUP_C1 },
+        { "d1", SOUND_GROUP_D1 },
+        { "e1", SOUND_GROUP_E1 },
+        { "f1", SOUND_GROUP_F1 },
+        { "g1", SOUND_GROUP_G1 },
+        { "h1", SOUND_GROUP_H1 },
+        { "i1", SOUND_GROUP_I1 },
+        { "j1", SOUND_GROUP_J1 },
+        { "k1", SOUND_GROUP_K1 },
+        { "l1", SOUND_GROUP_L1 },
+        { "m1", SOUND_GROUP_M1 },
+        { "n1", SOUND_GROUP_N1 },
+        { "o1", SOUND_GROUP_O1 },
+        { "p1", SOUND_GROUP_P1 },
+        { "q1", SOUND_GROUP_Q1 },
+        { "r1", SOUND_GROUP_R1 },
+        { "s1", SOUND_GROUP_S1 },
+        { "t1", SOUND_GROUP_T1 },
+        { "u1", SOUND_GROUP_U1 },
+        { "v1", SOUND_GROUP_V1 },
+        { "w1", SOUND_GROUP_W1 },
+        { "x1", SOUND_GROUP_X1 },
+        { "y1", SOUND_GROUP_Y1 },
+        { "z1", SOUND_GROUP_Z1 }
+    };
+    size_t flag_index;
+
+    if (!value || !value[0] || !result) {
+        return false;
+    }
+
+    for (flag_index = 0;
+        flag_index < sizeof(flag_lookup_table) / sizeof(*flag_lookup_table);
+        flag_index++) {
+        if (stricmp(value, flag_lookup_table[flag_index].text_name) == 0) {
+            *result = flag_lookup_table[flag_index].flag;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Combine every sound group argument into one independent
+* mask. Return the first invalid token for diagnostics.
+*/
+static bool sound_group_get_flags_from_arglist(
+    const ArgList* const arglist,
+    sound_group_mask_t* const result,
+    const char** const invalid_value
+) {
+    sound_group_mask_t flag;
+    const char* value;
+    int argument_index;
+
+    if (!arglist || !result || arglist->count <= 1) {
+        if (invalid_value) {
+            *invalid_value = "";
+        }
+        return false;
+    }
+
+    *result = SOUND_GROUP_NONE;
+
+    for (argument_index = 1;
+        (value = GET_ARGP(argument_index)) && value[0];
+        argument_index++) {
+        if (!sound_group_get_flag_from_string(value, &flag)) {
+            if (invalid_value) {
+                *invalid_value = value;
+            }
+            return false;
+        }
+
+        *result |= flag;
+    }
+
+    return true;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-07
 *
 * Allocate one frame sound instance with playback disabled.
@@ -8440,6 +8570,7 @@ s_frame_sound* frame_sound_allocate(void) {
     result->channel = -1;
     result->sample = SAMPLE_ID_NONE;
     result->chance = SOUND_PLAY_CHANCE_MAX;
+    result->group = SOUND_GROUP_DEFAULT;
 
     return result;
 }
@@ -8691,6 +8822,7 @@ s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_colle
         sound_clone->delay = source_sound->delay;
         sound_clone->loop_offset = source_sound->loop_offset;
         sound_clone->start_offset = source_sound->start_offset;
+        sound_clone->group = source_sound->group;
         sound_clone->channel = source_sound->channel;
         sound_clone->sample = source_sound->sample;
         sound_clone->chance = source_sound->chance;
@@ -8913,7 +9045,10 @@ static void frame_sound_execute_channel_actions(
 * acquired mixer channel owns delay, chance, looping, and
 * offsets from this point forward.
 */
-void frame_sound_execute_collection(const s_frame_sound_collection* const collection) {
+void frame_sound_execute_collection(
+    const s_frame_sound_collection* const collection,
+    const uint64_t owner_id
+) {
     const s_frame_sound* sound;
     s_sound_play_options options;
     uint64_t active_status;
@@ -8951,7 +9086,9 @@ void frame_sound_execute_collection(const s_frame_sound_collection* const collec
         memset(&options, 0, sizeof(options));
         options.delay = sound->delay;
         options.loop_offset = sound->loop_offset;
+        options.owner_id = owner_id;
         options.start_offset = sound->start_offset;
+        options.group = sound->group;
         options.channel = sound->channel >= 0
             ? (unsigned int)sound->channel
             : 0;
@@ -17473,6 +17610,33 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     &temp_frame_sound,
                     temp_frame_sound_index
                 )->delay = sound_delay;
+                break;
+            }
+            case CMD_MODEL_SOUND_GROUP:
+            {
+                const char* invalid_group;
+                sound_group_mask_t sound_group;
+
+                if (!sound_group_get_flags_from_arglist(
+                    &arglist,
+                    &sound_group,
+                    &invalid_group
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound group '%s' invalid. Expected none, all, all0, all1, a-z, or a1-z1.",
+                        invalid_group
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->group = sound_group;
                 break;
             }
             case CMD_MODEL_SOUND_LOADING:
@@ -26658,7 +26822,7 @@ void update_frame(entity *ent, uint64_t f)
 
     if(anim->sound)
     {
-        frame_sound_execute_collection(anim->sound[f]);
+        frame_sound_execute_collection(anim->sound[f], ent->unique_id);
     }
 
     // Perform jumping if on a jumpframe.
