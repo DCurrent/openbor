@@ -8578,8 +8578,13 @@ s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_colle
 
         sound_clone = frame_sound_allocate();
         sound_clone->delay = source_sound->delay;
+        sound_clone->loop_offset = source_sound->loop_offset;
+        sound_clone->start_offset = source_sound->start_offset;
         sound_clone->sample = source_sound->sample;
         sound_clone->chance = source_sound->chance;
+        sound_clone->loop = source_sound->loop;
+        sound_clone->start_offset_supplied =
+            source_sound->start_offset_supplied;
         sound_clone->stream = source_sound->stream;
         result->slots[sound_index] = sound_clone;
         result->active_status |= frame_sound_get_slot_mask(sound_index);
@@ -8747,8 +8752,8 @@ static uint64_t frame_sound_select_random_status(uint64_t candidate_status) {
 * Submit active frame sounds in ascending slot order. When a
 * random range is enabled, submit one configured entry from
 * that range and every configured entry outside it. The
-* acquired mixer channel owns delayed start and chance from
-* this point forward.
+* acquired mixer channel owns delay, chance, looping, and
+* offsets from this point forward.
 */
 void frame_sound_execute_collection(const s_frame_sound_collection* const collection) {
     const s_frame_sound* sound;
@@ -8780,10 +8785,15 @@ void frame_sound_execute_collection(const s_frame_sound_collection* const collec
         }
 
         options.delay = sound->delay;
+        options.loop_offset = sound->loop_offset;
+        options.start_offset = sound->start_offset;
         options.delay_rate = global_config.game_speed > 0
             ? (unsigned int)global_config.game_speed
             : GAME_SPEED_DEFAULT;
         options.chance = sound->chance;
+        options.loop = sound->loop;
+        options.start_offset_supplied =
+            sound->start_offset_supplied;
 
         sound_play_sample_with_options(
             sound->sample,
@@ -17187,6 +17197,62 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 )->stream = stream;
                 break;
             }
+            case CMD_MODEL_SOUND_LOOP:
+            {
+                s_command_token loop_token;
+                uint64_t loop;
+
+                loop_token.text = GET_ARG(1);
+                loop_token.length = strlen(loop_token.text);
+
+                if (!command_token_get_uint64(&loop_token, &loop)
+                    || loop > 1U) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound loop '%s'. Expected 0 or 1.",
+                        loop_token.text
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->loop = loop != 0;
+                break;
+            }
+            case CMD_MODEL_SOUND_LOOP_OFFSET:
+            {
+                s_command_token loop_offset_token;
+                uint64_t loop_offset;
+
+                loop_offset_token.text = GET_ARG(1);
+                loop_offset_token.length = strlen(loop_offset_token.text);
+
+                if (!command_token_get_uint64(
+                    &loop_offset_token,
+                    &loop_offset
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound loop offset '%s'. Expected an unsigned PCM frame.",
+                        loop_offset_token.text
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->loop_offset = loop_offset;
+                break;
+            }
             case CMD_MODEL_SOUND_RANDOM:
             {
                 const int random_min = GET_INT_ARG(1);
@@ -17214,6 +17280,48 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 temp_frame_sound->random_status =
                     frame_sound_get_slot_range_mask(random_min, random_max);
+                break;
+            }
+            case CMD_MODEL_SOUND_START_OFFSET:
+            {
+                s_command_token start_offset_token;
+                s_frame_sound* frame_sound;
+                uint64_t start_offset;
+
+                start_offset_token.text = GET_ARG(1);
+                start_offset_token.length = strlen(start_offset_token.text);
+
+                if (stricmp(start_offset_token.text, "auto") == 0) {
+                    frame_sound = frame_sound_upsert_index(
+                        &temp_frame_sound,
+                        temp_frame_sound_index
+                    );
+                    frame_sound->start_offset = 0;
+                    frame_sound->start_offset_supplied = false;
+                    break;
+                }
+
+                if (!command_token_get_uint64(
+                    &start_offset_token,
+                    &start_offset
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound start offset '%s'. Expected 'auto' or an unsigned PCM frame.",
+                        start_offset_token.text
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound = frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                );
+                frame_sound->start_offset = start_offset;
+                frame_sound->start_offset_supplied = true;
                 break;
             }
             case CMD_MODEL_SOUND:

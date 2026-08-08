@@ -2670,7 +2670,19 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 }
 
 int sound_play_sample_with_options(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, const s_sound_play_options *options) {
-    return sound_play_sample_internal(samplenum, priority, lvolume, rvolume, speed, 0, 0, 0, 0, -1, options);
+    return sound_play_sample_internal(
+        samplenum,
+        priority,
+        lvolume,
+        rvolume,
+        speed,
+        options && options->loop,
+        options && options->start_offset_supplied,
+        options ? options->start_offset : 0,
+        options ? options->loop_offset : 0,
+        -1,
+        options
+    );
 }
 
 int sound_play_sample_offset(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, uint64_t start_frame) {

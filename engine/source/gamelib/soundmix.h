@@ -71,12 +71,17 @@ typedef struct s_sound_parameters {
 /*
 * Optional behavior applied when a sample channel is created.
 * Delay is expressed in caller clock units and delay_rate is
-* the number of those units per second.
+* the number of those units per second. Start and loop offsets
+* are expressed in complete PCM frames.
 */
 typedef struct s_sound_play_options {
     uint64_t delay;
+    uint64_t loop_offset;
+    uint64_t start_offset;
     unsigned int delay_rate;
     unsigned int chance;
+    bool loop;
+    bool start_offset_supplied;
 } s_sound_play_options;
 
 typedef struct
