@@ -8420,7 +8420,37 @@ s_frame_sound* frame_sound_allocate(void) {
 * Free one frame sound instance.
 */
 void frame_sound_free(s_frame_sound* const sound) {
+    if (!sound) {
+        return;
+    }
+
+    free(sound->source);
+    sound->source = NULL;
     free(sound);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Replace the temporary source path for an indexed frame
+* sound. Sample loading is deferred until the frame command
+* so loading mode and source may be supplied in any order.
+*/
+static void frame_sound_set_source(s_frame_sound* const sound, const char* const source) {
+    char* source_copy = NULL;
+
+    if (!sound) {
+        return;
+    }
+
+    if (source) {
+        source_copy = strdup(source);
+    }
+
+    free(sound->source);
+    sound->source = source_copy;
+    sound->sample = SAMPLE_ID_NONE;
 }
 
 /*
@@ -8547,12 +8577,67 @@ s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_colle
         }
 
         sound_clone = frame_sound_allocate();
-        *sound_clone = *source_sound;
+        sound_clone->delay = source_sound->delay;
+        sound_clone->sample = source_sound->sample;
+        sound_clone->chance = source_sound->chance;
+        sound_clone->stream = source_sound->stream;
         result->slots[sound_index] = sound_clone;
         result->active_status |= frame_sound_get_slot_mask(sound_index);
     }
 
     return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Resolve explicit frame sound sources after every indexed
+* property has been parsed. Explicit silent entries retain
+* SAMPLE_ID_NONE. Failed sources are removed from the frame.
+*/
+static void frame_sound_load_collection(
+    s_frame_sound_collection* const collection,
+    char* const packfilename
+) {
+    s_frame_sound* sound;
+    uint64_t active_status;
+    int sound_index;
+
+    if (!collection || !collection->active_status) {
+        return;
+    }
+
+    active_status = collection->active_status;
+
+    while (active_status) {
+        sound_index = frame_sound_get_lowest_active_index(active_status);
+        active_status &= active_status - 1U;
+        sound = collection->slots[sound_index];
+
+        if (!sound) {
+            collection->active_status &=
+                ~frame_sound_get_slot_mask(sound_index);
+            continue;
+        }
+
+        if (!sound->source) {
+            sound->sample = SAMPLE_ID_NONE;
+            continue;
+        }
+
+        sound->sample = sound_load_sample(
+            sound->source,
+            packfilename,
+            true,
+            sound->stream
+        );
+
+        if (sound->sample < 0) {
+            collection->active_status &=
+                ~frame_sound_get_slot_mask(sound_index);
+        }
+    }
 }
 
 /*
@@ -17074,6 +17159,34 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 )->delay = sound_delay;
                 break;
             }
+            case CMD_MODEL_SOUND_LOADING:
+            {
+                bool stream;
+
+                value = GET_ARG(1);
+
+                if (stricmp(value, "cache") == 0) {
+                    stream = false;
+                } else if (stricmp(value, "stream") == 0) {
+                    stream = true;
+                } else {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound loading mode '%s' invalid. Expected 'cache' or 'stream'.",
+                        value
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->stream = stream;
+                break;
+            }
             case CMD_MODEL_SOUND_RANDOM:
             {
                 const int random_min = GET_INT_ARG(1);
@@ -17112,25 +17225,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 value = GET_ARG(1);
                 if (stricmp(value, "none") == 0) {
-                    frame_sound->sample = SAMPLE_ID_NONE;
-                    temp_frame_sound->active_status |=
-                        frame_sound_get_slot_mask(temp_frame_sound_index);
+                    frame_sound_set_source(frame_sound, NULL);
                 } else {
-                    frame_sound->sample = sound_load_sample(
-                        value,
-                        packfile,
-                        1,
-                        0
-                    );
-
-                    if (frame_sound->sample >= 0) {
-                        temp_frame_sound->active_status |=
-                            frame_sound_get_slot_mask(temp_frame_sound_index);
-                    } else {
-                        temp_frame_sound->active_status &=
-                            ~frame_sound_get_slot_mask(temp_frame_sound_index);
-                    }
+                    frame_sound_set_source(frame_sound, value);
                 }
+
+                temp_frame_sound->active_status |=
+                    frame_sound_get_slot_mask(temp_frame_sound_index);
                 break;
             }
             case CMD_MODEL_HITFX:
@@ -18615,6 +18716,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 } else {
                     dm.config &= ~DRAWMETHOD_CONFIG_ENABLED;
                 }
+
+                frame_sound_load_collection(temp_frame_sound, packfile);
 
                 add_frame_data.animation = newanim;
                 add_frame_data.spriteindex = index;

@@ -2412,9 +2412,11 @@ typedef struct s_collision_collection {
 #define FRAME_SOUND_ACTIVE_NONE     0
 
 typedef struct s_frame_sound {
-    uint64_t delay;   /* Logical ticks to wait before playback. */
-    int sample;       /* Loaded sample index. */
-    unsigned chance;  /* Playback chance from 0 through 100 percent. */
+    uint64_t delay;      /* Logical ticks to wait before playback. */
+    char* source;        /* Temporary source path retained until frame finalization. */
+    int sample;          /* Loaded sample index. */
+    unsigned chance;     /* Playback chance from 0 through 100 percent. */
+    bool stream;         /* True to stream the source instead of caching decoded PCM. */
 } s_frame_sound;
 
 typedef struct s_frame_sound_collection {
