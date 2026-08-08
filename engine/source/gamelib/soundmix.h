@@ -78,8 +78,10 @@ typedef struct s_sound_play_options {
     uint64_t delay;
     uint64_t loop_offset;
     uint64_t start_offset;
+    unsigned int channel;
     unsigned int delay_rate;
     unsigned int chance;
+    bool channel_supplied;
     bool loop;
     bool start_offset_supplied;
 } s_sound_play_options;

@@ -8352,6 +8352,35 @@ static bool frame_sound_validate_slot_index(const int index) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-08
+*
+* Parse and validate an author-facing mixer channel.
+*/
+static bool frame_sound_parse_channel(
+    const char* const text,
+    int* const result
+) {
+    s_command_token token;
+    uint64_t channel;
+
+    if (!text || !result) {
+        return false;
+    }
+
+    token.text = text;
+    token.length = strlen(text);
+
+    if (!command_token_get_uint64(&token, &channel)
+        || channel >= SOUND_CHANNEL_COUNT_MAX) {
+        return false;
+    }
+
+    *result = (int)channel;
+    return true;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-07
 *
 * Return the active mask bit for a frame sound slot.
@@ -8407,6 +8436,7 @@ s_frame_sound* frame_sound_allocate(void) {
     }
 
     memset(result, 0, sizeof(*result));
+    result->channel = -1;
     result->sample = SAMPLE_ID_NONE;
     result->chance = SOUND_PLAY_CHANCE_MAX;
 
@@ -8492,7 +8522,68 @@ void frame_sound_collection_free(s_frame_sound_collection* const collection) {
 
     collection->active_status = FRAME_SOUND_ACTIVE_NONE;
     collection->random_status = FRAME_SOUND_ACTIVE_NONE;
+    free(collection->channel_action);
+    collection->channel_action = NULL;
+    collection->channel_action_count = 0;
+    collection->channel_action_capacity = 0;
     free(collection);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Append a frame-level channel operation. Channel actions
+* retain declaration order and execute before new sounds are
+* submitted for the frame.
+*/
+static s_frame_sound_channel_action* frame_sound_channel_action_append(
+    s_frame_sound_collection** const collection,
+    const e_frame_sound_channel_action type
+) {
+    s_frame_sound_channel_action* action;
+    s_frame_sound_channel_action* resized_actions;
+    size_t new_capacity;
+
+    if (!collection) {
+        return NULL;
+    }
+
+    if (!*collection) {
+        *collection = frame_sound_collection_allocate();
+    }
+
+    if ((*collection)->channel_action_count
+        == (*collection)->channel_action_capacity) {
+        new_capacity = (*collection)->channel_action_capacity
+            ? (*collection)->channel_action_capacity * 2U
+            : 4U;
+
+        if (new_capacity < (*collection)->channel_action_capacity
+            || new_capacity > SIZE_MAX / sizeof(*resized_actions)) {
+            borShutdown(1, E_OUT_OF_MEMORY);
+        }
+
+        resized_actions = realloc(
+            (*collection)->channel_action,
+            new_capacity * sizeof(*resized_actions)
+        );
+
+        if (!resized_actions) {
+            borShutdown(1, E_OUT_OF_MEMORY);
+        }
+
+        (*collection)->channel_action = resized_actions;
+        (*collection)->channel_action_capacity = new_capacity;
+    }
+
+    action = &(*collection)->channel_action[
+        (*collection)->channel_action_count++
+    ];
+    memset(action, 0, sizeof(*action));
+    action->type = type;
+
+    return action;
 }
 
 /*
@@ -8550,14 +8641,38 @@ s_frame_sound* frame_sound_upsert_index(s_frame_sound_collection** const collect
 * as a deliberate blank in a random selection.
 */
 s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_collection* const source) {
-    s_frame_sound_collection* result = NULL;
+    s_frame_sound_collection* result;
     s_frame_sound* sound_clone;
     const s_frame_sound* source_sound;
     uint64_t active_status;
+    size_t action_memory_size;
     int sound_index;
 
-    if (!source || !source->active_status) {
+    if (!source || (!source->active_status
+        && !source->channel_action_count)) {
         return NULL;
+    }
+
+    result = frame_sound_collection_allocate();
+    result->random_status = source->random_status;
+
+    if (source->channel_action_count) {
+        action_memory_size = source->channel_action_count
+            * sizeof(*result->channel_action);
+        result->channel_action = malloc(action_memory_size);
+
+        if (!result->channel_action) {
+            frame_sound_collection_free(result);
+            borShutdown(1, E_OUT_OF_MEMORY);
+        }
+
+        memcpy(
+            result->channel_action,
+            source->channel_action,
+            action_memory_size
+        );
+        result->channel_action_count = source->channel_action_count;
+        result->channel_action_capacity = source->channel_action_count;
     }
 
     active_status = source->active_status;
@@ -8571,17 +8686,14 @@ s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_colle
             continue;
         }
 
-        if (!result) {
-            result = frame_sound_collection_allocate();
-            result->random_status = source->random_status;
-        }
-
         sound_clone = frame_sound_allocate();
         sound_clone->delay = source_sound->delay;
         sound_clone->loop_offset = source_sound->loop_offset;
         sound_clone->start_offset = source_sound->start_offset;
+        sound_clone->channel = source_sound->channel;
         sound_clone->sample = source_sound->sample;
         sound_clone->chance = source_sound->chance;
+        sound_clone->priority = source_sound->priority;
         sound_clone->loop = source_sound->loop;
         sound_clone->start_offset_supplied =
             source_sound->start_offset_supplied;
@@ -8747,6 +8859,51 @@ static uint64_t frame_sound_select_random_status(uint64_t candidate_status) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-08
+*
+* Apply frame-level channel operations in declaration order.
+* These run before the frame submits new sounds, allowing an
+* old channel occupant to be stopped before forced playback.
+*/
+static void frame_sound_execute_channel_actions(
+    const s_frame_sound_collection* const collection
+) {
+    const s_frame_sound_channel_action* action;
+    size_t action_index;
+
+    if (!collection) {
+        return;
+    }
+
+    for (action_index = 0;
+        action_index < collection->channel_action_count;
+        action_index++) {
+        action = &collection->channel_action[action_index];
+
+        switch (action->type) {
+            case FRAME_SOUND_CHANNEL_ACTION_STOP:
+                sound_stop_sample(action->channel);
+                break;
+            case FRAME_SOUND_CHANNEL_ACTION_PAUSE:
+                sound_pause_single_sample(true, action->channel);
+                break;
+            case FRAME_SOUND_CHANNEL_ACTION_RESUME:
+                sound_pause_single_sample(false, action->channel);
+                break;
+            case FRAME_SOUND_CHANNEL_ACTION_OFFSET:
+                sound_set_channel_position(
+                    action->channel,
+                    action->offset
+                );
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-07
 *
 * Submit active frame sounds in ascending slot order. When a
@@ -8761,7 +8918,13 @@ void frame_sound_execute_collection(const s_frame_sound_collection* const collec
     uint64_t active_status;
     int sound_index;
 
-    if (!collection || !collection->active_status) {
+    if (!collection) {
+        return;
+    }
+
+    frame_sound_execute_channel_actions(collection);
+
+    if (!collection->active_status) {
         return;
     }
 
@@ -8784,20 +8947,25 @@ void frame_sound_execute_collection(const s_frame_sound_collection* const collec
             continue;
         }
 
+        memset(&options, 0, sizeof(options));
         options.delay = sound->delay;
         options.loop_offset = sound->loop_offset;
         options.start_offset = sound->start_offset;
+        options.channel = sound->channel >= 0
+            ? (unsigned int)sound->channel
+            : 0;
         options.delay_rate = global_config.game_speed > 0
             ? (unsigned int)global_config.game_speed
             : GAME_SPEED_DEFAULT;
         options.chance = sound->chance;
+        options.channel_supplied = sound->channel >= 0;
         options.loop = sound->loop;
         options.start_offset_supplied =
             sound->start_offset_supplied;
 
         sound_play_sample_with_options(
             sound->sample,
-            0,
+            sound->priority,
             savedata.effectvol,
             savedata.effectvol,
             100,
@@ -17123,6 +17291,143 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 temp_frame_sound_index = tempInt;
                 break;
+            case CMD_MODEL_SOUND_CHANNEL_OFFSET:
+            {
+                s_command_token offset_token;
+                s_frame_sound_channel_action* action;
+                uint64_t channel_offset;
+                int channel;
+
+                if (!frame_sound_parse_channel(GET_ARG(1), &channel)) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound channel '%s' invalid. Expected an integer from 0 to %u.",
+                        GET_ARG(1),
+                        SOUND_CHANNEL_COUNT_MAX - 1U
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                offset_token.text = GET_ARG(2);
+                offset_token.length = strlen(offset_token.text);
+
+                if (!command_token_get_uint64(
+                    &offset_token,
+                    &channel_offset
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound channel offset '%s'. Expected an unsigned PCM frame.",
+                        offset_token.text
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                action = frame_sound_channel_action_append(
+                    &temp_frame_sound,
+                    FRAME_SOUND_CHANNEL_ACTION_OFFSET
+                );
+                action->channel = channel;
+                action->offset = channel_offset;
+                break;
+            }
+            case CMD_MODEL_SOUND_CHANNEL_PAUSE:
+            case CMD_MODEL_SOUND_CHANNEL_RESUME:
+            case CMD_MODEL_SOUND_CHANNEL_STOP:
+            {
+                s_frame_sound_channel_action* action;
+                e_frame_sound_channel_action action_type;
+                int channel;
+
+                if (!frame_sound_parse_channel(GET_ARG(1), &channel)) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound channel '%s' invalid. Expected an integer from 0 to %u.",
+                        GET_ARG(1),
+                        SOUND_CHANNEL_COUNT_MAX - 1U
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                action_type = cmd == CMD_MODEL_SOUND_CHANNEL_PAUSE
+                    ? FRAME_SOUND_CHANNEL_ACTION_PAUSE
+                    : cmd == CMD_MODEL_SOUND_CHANNEL_RESUME
+                        ? FRAME_SOUND_CHANNEL_ACTION_RESUME
+                        : FRAME_SOUND_CHANNEL_ACTION_STOP;
+
+                action = frame_sound_channel_action_append(
+                    &temp_frame_sound,
+                    action_type
+                );
+                action->channel = channel;
+                break;
+            }
+            case CMD_MODEL_SOUND_CHANNEL_PRIORITY:
+            {
+                s_command_token priority_token;
+                uint64_t priority;
+
+                priority_token.text = GET_ARG(1);
+                priority_token.length = strlen(priority_token.text);
+
+                if (!command_token_get_uint64(
+                    &priority_token,
+                    &priority
+                ) || priority > UINT_MAX) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound channel priority '%s'. Expected an unsigned integer from 0 to %u.",
+                        priority_token.text,
+                        UINT_MAX
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->priority = (unsigned int)priority;
+                break;
+            }
+            case CMD_MODEL_SOUND_CHANNEL_SET:
+            {
+                int channel;
+
+                value = GET_ARG(1);
+
+                if (stricmp(value, "auto") == 0) {
+                    channel = -1;
+                } else if (!frame_sound_parse_channel(value, &channel)) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound channel '%s' invalid. Expected 'auto' or an integer from 0 to %u.",
+                        value,
+                        SOUND_CHANNEL_COUNT_MAX - 1U
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                frame_sound_upsert_index(
+                    &temp_frame_sound,
+                    temp_frame_sound_index
+                )->channel = channel;
+                break;
+            }
             case CMD_MODEL_SOUND_CHANCE:
                 tempInt = GET_INT_ARG(1);
 

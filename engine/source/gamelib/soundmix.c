@@ -2553,6 +2553,7 @@ static int sound_play_sample_internal(
     SB_lock_audio();
     if(forced_channel >= 0) {
         unsigned int bank_index;
+        channelstruct *forced_record;
 
         if((unsigned int)forced_channel >= SOUND_CHANNEL_COUNT_MAX) {
             SB_unlock_audio();
@@ -2564,6 +2565,20 @@ static int sound_play_sample_internal(
             SB_unlock_audio();
             return -1;
         }
+
+        forced_record = sound_channel_pool_get(
+            &sound_channel_pool,
+            forced_channel
+        );
+
+        if(sound_channel_pool_is_active(
+               &sound_channel_pool,
+               forced_channel
+           ) && (!forced_record || forced_record->priority > priority)) {
+            SB_unlock_audio();
+            return -1;
+        }
+
         channel = forced_channel;
     } else {
         channel = sound_channel_pool_acquire(&sound_channel_pool);
@@ -2670,6 +2685,15 @@ int sound_play_sample(int samplenum, unsigned int priority, int lvolume, int rvo
 }
 
 int sound_play_sample_with_options(int samplenum, unsigned int priority, int lvolume, int rvolume, unsigned int speed, const s_sound_play_options *options) {
+    int forced_channel = -1;
+
+    if(options && options->channel_supplied) {
+        if(options->channel >= SOUND_CHANNEL_COUNT_MAX) {
+            return -1;
+        }
+        forced_channel = (int)options->channel;
+    }
+
     return sound_play_sample_internal(
         samplenum,
         priority,
@@ -2680,7 +2704,7 @@ int sound_play_sample_with_options(int samplenum, unsigned int priority, int lvo
         options && options->start_offset_supplied,
         options ? options->start_offset : 0,
         options ? options->loop_offset : 0,
-        -1,
+        forced_channel,
         options
     );
 }

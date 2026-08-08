@@ -2411,13 +2411,28 @@ typedef struct s_collision_collection {
 #define MAX_FRAME_SOUNDS_PER_FRAME  64
 #define FRAME_SOUND_ACTIVE_NONE     0
 
+typedef enum e_frame_sound_channel_action {
+    FRAME_SOUND_CHANNEL_ACTION_STOP,
+    FRAME_SOUND_CHANNEL_ACTION_PAUSE,
+    FRAME_SOUND_CHANNEL_ACTION_RESUME,
+    FRAME_SOUND_CHANNEL_ACTION_OFFSET
+} e_frame_sound_channel_action;
+
+typedef struct s_frame_sound_channel_action {
+    uint64_t offset;                    /* PCM frame used by OFFSET. */
+    int channel;                        /* Mixer channel acted upon. */
+    e_frame_sound_channel_action type;  /* Operation performed on frame entry. */
+} s_frame_sound_channel_action;
+
 typedef struct s_frame_sound {
     uint64_t delay;           /* Logical ticks to wait before playback. */
     uint64_t loop_offset;     /* PCM frame used when automatic looping restarts. */
     uint64_t start_offset;    /* PCM frame used once when playback begins. */
     char* source;             /* Temporary source path retained until frame finalization. */
+    int channel;              /* Forced mixer channel, or -1 for automatic allocation. */
     int sample;               /* Loaded sample index. */
     unsigned chance;          /* Playback chance from 0 through 100 percent. */
+    unsigned priority;        /* Replacement priority used by channel allocation. */
     bool loop;                /* True to restart playback after the source end. */
     bool start_offset_supplied; /* True when start_offset was explicitly configured. */
     bool stream;              /* True to stream the source instead of caching decoded PCM. */
@@ -2426,6 +2441,9 @@ typedef struct s_frame_sound {
 typedef struct s_frame_sound_collection {
     uint64_t        active_status; /* Slots supplied by an explicit sound command. */
     uint64_t        random_status; /* Inclusive index range eligible for one random selection. */
+    size_t          channel_action_count;
+    size_t          channel_action_capacity;
+    s_frame_sound_channel_action* channel_action;
     s_frame_sound*  slots[MAX_FRAME_SOUNDS_PER_FRAME];
 } s_frame_sound_collection;
 
