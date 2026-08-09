@@ -22636,6 +22636,32 @@ void free_level(s_level *lv)
     lv = NULL;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-09
+*
+* Accept model pointer and check if it 
+* is the model of an active player. If so, 
+* return true; otherwise, return false.
+*/
+static bool model_is_active_player(const s_model *model) {
+    int i;
+
+    if(!model || !model->name) {
+        return false;
+    }
+
+    for(i = 0; i < MAX_PLAYERS; i++) {
+        if(player[i].lives > 0
+            && player[i].name[0]
+            && stricmp(player[i].name, model->name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
 void unload_level()
 {
@@ -22667,6 +22693,16 @@ void unload_level()
             {
                 break;
             }
+
+            // Players carry their model choice into the next level. Keep the
+            // corresponding model and sprites resident while the player is
+            // alive, even when the model was loaded with an unload flag.
+            if(model_is_active_player(temp))
+            {
+                temp = getNextModel();
+                continue;
+            }
+
             if((temp->unload & 2))
             {
                 cache_model_sprites(temp, 0);
