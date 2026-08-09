@@ -2418,18 +2418,23 @@ typedef struct s_collision_collection {
 #define MAX_FRAME_SOUNDS_PER_FRAME  64
 #define FRAME_SOUND_ACTIVE_NONE     0
 
-typedef enum e_frame_sound_channel_action {
+typedef enum e_frame_sound_action {
     FRAME_SOUND_CHANNEL_ACTION_STOP,
     FRAME_SOUND_CHANNEL_ACTION_PAUSE,
     FRAME_SOUND_CHANNEL_ACTION_RESUME,
-    FRAME_SOUND_CHANNEL_ACTION_OFFSET
-} e_frame_sound_channel_action;
+    FRAME_SOUND_CHANNEL_ACTION_OFFSET,
+    FRAME_SOUND_GROUP_ACTION_STOP,
+    FRAME_SOUND_GROUP_ACTION_PAUSE,
+    FRAME_SOUND_GROUP_ACTION_RESUME,
+    FRAME_SOUND_GROUP_ACTION_OFFSET
+} e_frame_sound_action;
 
-typedef struct s_frame_sound_channel_action {
-    uint64_t offset;                    /* PCM frame used by OFFSET. */
-    int channel;                        /* Mixer channel acted upon. */
-    e_frame_sound_channel_action type;  /* Operation performed on frame entry. */
-} s_frame_sound_channel_action;
+typedef struct s_frame_sound_action {
+    uint64_t offset;             /* PCM frame used by OFFSET. */
+    sound_group_mask_t group;    /* Group mask used by group operations. */
+    int channel;                 /* Mixer channel used by channel operations. */
+    e_frame_sound_action type;   /* Operation performed on frame entry. */
+} s_frame_sound_action;
 
 typedef struct s_frame_sound {
     uint64_t delay;           /* Logical ticks to wait before playback. */
@@ -2449,9 +2454,9 @@ typedef struct s_frame_sound {
 typedef struct s_frame_sound_collection {
     uint64_t        active_status; /* Slots supplied by an explicit sound command. */
     uint64_t        random_status; /* Inclusive index range eligible for one random selection. */
-    size_t          channel_action_count;
-    size_t          channel_action_capacity;
-    s_frame_sound_channel_action* channel_action;
+    size_t          action_count;
+    size_t          action_capacity;
+    s_frame_sound_action* action;
     s_frame_sound*  slots[MAX_FRAME_SOUNDS_PER_FRAME];
 } s_frame_sound_collection;
 

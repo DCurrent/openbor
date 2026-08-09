@@ -8519,16 +8519,19 @@ static bool sound_group_get_flag_from_string(
 * Combine every sound group argument into one independent
 * mask. Return the first invalid token for diagnostics.
 */
-static bool sound_group_get_flags_from_arglist(
+static bool sound_group_get_flags_from_arglist_range(
     const ArgList* const arglist,
+    const size_t argument_first,
+    const size_t argument_end,
     sound_group_mask_t* const result,
     const char** const invalid_value
 ) {
     sound_group_mask_t flag;
     const char* value;
-    int argument_index;
+    size_t argument_index;
 
-    if (!arglist || !result || arglist->count <= 1) {
+    if (!arglist || !result || argument_first >= argument_end
+        || argument_end > arglist->count) {
         if (invalid_value) {
             *invalid_value = "";
         }
@@ -8537,9 +8540,11 @@ static bool sound_group_get_flags_from_arglist(
 
     *result = SOUND_GROUP_NONE;
 
-    for (argument_index = 1;
-        (value = GET_ARGP(argument_index)) && value[0];
+    for (argument_index = argument_first;
+        argument_index < argument_end;
         argument_index++) {
+        value = GET_ARGP(argument_index);
+
         if (!sound_group_get_flag_from_string(value, &flag)) {
             if (invalid_value) {
                 *invalid_value = value;
@@ -8551,6 +8556,20 @@ static bool sound_group_get_flags_from_arglist(
     }
 
     return true;
+}
+
+static bool sound_group_get_flags_from_arglist(
+    const ArgList* const arglist,
+    sound_group_mask_t* const result,
+    const char** const invalid_value
+) {
+    return sound_group_get_flags_from_arglist_range(
+        arglist,
+        1,
+        arglist ? arglist->count : 0,
+        result,
+        invalid_value
+    );
 }
 
 /*
@@ -8654,10 +8673,10 @@ void frame_sound_collection_free(s_frame_sound_collection* const collection) {
 
     collection->active_status = FRAME_SOUND_ACTIVE_NONE;
     collection->random_status = FRAME_SOUND_ACTIVE_NONE;
-    free(collection->channel_action);
-    collection->channel_action = NULL;
-    collection->channel_action_count = 0;
-    collection->channel_action_capacity = 0;
+    free(collection->action);
+    collection->action = NULL;
+    collection->action_count = 0;
+    collection->action_capacity = 0;
     free(collection);
 }
 
@@ -8665,16 +8684,16 @@ void frame_sound_collection_free(s_frame_sound_collection* const collection) {
 * Caskey, Damon V.
 * 2026-08-08
 *
-* Append a frame-level channel operation. Channel actions
-* retain declaration order and execute before new sounds are
+* Append a frame-level sound operation. Actions retain
+* declaration order and execute before new sounds are
 * submitted for the frame.
 */
-static s_frame_sound_channel_action* frame_sound_channel_action_append(
+static s_frame_sound_action* frame_sound_action_append(
     s_frame_sound_collection** const collection,
-    const e_frame_sound_channel_action type
+    const e_frame_sound_action type
 ) {
-    s_frame_sound_channel_action* action;
-    s_frame_sound_channel_action* resized_actions;
+    s_frame_sound_action* action;
+    s_frame_sound_action* resized_actions;
     size_t new_capacity;
 
     if (!collection) {
@@ -8685,19 +8704,19 @@ static s_frame_sound_channel_action* frame_sound_channel_action_append(
         *collection = frame_sound_collection_allocate();
     }
 
-    if ((*collection)->channel_action_count
-        == (*collection)->channel_action_capacity) {
-        new_capacity = (*collection)->channel_action_capacity
-            ? (*collection)->channel_action_capacity * 2U
+    if ((*collection)->action_count
+        == (*collection)->action_capacity) {
+        new_capacity = (*collection)->action_capacity
+            ? (*collection)->action_capacity * 2U
             : 4U;
 
-        if (new_capacity < (*collection)->channel_action_capacity
+        if (new_capacity < (*collection)->action_capacity
             || new_capacity > SIZE_MAX / sizeof(*resized_actions)) {
             borShutdown(1, E_OUT_OF_MEMORY);
         }
 
         resized_actions = realloc(
-            (*collection)->channel_action,
+            (*collection)->action,
             new_capacity * sizeof(*resized_actions)
         );
 
@@ -8705,12 +8724,12 @@ static s_frame_sound_channel_action* frame_sound_channel_action_append(
             borShutdown(1, E_OUT_OF_MEMORY);
         }
 
-        (*collection)->channel_action = resized_actions;
-        (*collection)->channel_action_capacity = new_capacity;
+        (*collection)->action = resized_actions;
+        (*collection)->action_capacity = new_capacity;
     }
 
-    action = &(*collection)->channel_action[
-        (*collection)->channel_action_count++
+    action = &(*collection)->action[
+        (*collection)->action_count++
     ];
     memset(action, 0, sizeof(*action));
     action->type = type;
@@ -8781,30 +8800,30 @@ s_frame_sound_collection* frame_sound_collection_clone(const s_frame_sound_colle
     int sound_index;
 
     if (!source || (!source->active_status
-        && !source->channel_action_count)) {
+        && !source->action_count)) {
         return NULL;
     }
 
     result = frame_sound_collection_allocate();
     result->random_status = source->random_status;
 
-    if (source->channel_action_count) {
-        action_memory_size = source->channel_action_count
-            * sizeof(*result->channel_action);
-        result->channel_action = malloc(action_memory_size);
+    if (source->action_count) {
+        action_memory_size = source->action_count
+            * sizeof(*result->action);
+        result->action = malloc(action_memory_size);
 
-        if (!result->channel_action) {
+        if (!result->action) {
             frame_sound_collection_free(result);
             borShutdown(1, E_OUT_OF_MEMORY);
         }
 
         memcpy(
-            result->channel_action,
-            source->channel_action,
+            result->action,
+            source->action,
             action_memory_size
         );
-        result->channel_action_count = source->channel_action_count;
-        result->channel_action_capacity = source->channel_action_count;
+        result->action_count = source->action_count;
+        result->action_capacity = source->action_count;
     }
 
     active_status = source->active_status;
@@ -8994,14 +9013,15 @@ static uint64_t frame_sound_select_random_status(uint64_t candidate_status) {
 * Caskey, Damon V.
 * 2026-08-08
 *
-* Apply frame-level channel operations in declaration order.
-* These run before the frame submits new sounds, allowing an
-* old channel occupant to be stopped before forced playback.
+* Apply frame-level sound operations in declaration order.
+* These run before the frame submits new sounds, allowing
+* earlier playback to be manipulated before new submission.
 */
-static void frame_sound_execute_channel_actions(
-    const s_frame_sound_collection* const collection
+static void frame_sound_execute_actions(
+    const s_frame_sound_collection* const collection,
+    const uint64_t owner_id
 ) {
-    const s_frame_sound_channel_action* action;
+    const s_frame_sound_action* action;
     size_t action_index;
 
     if (!collection) {
@@ -9009,9 +9029,9 @@ static void frame_sound_execute_channel_actions(
     }
 
     for (action_index = 0;
-        action_index < collection->channel_action_count;
+        action_index < collection->action_count;
         action_index++) {
-        action = &collection->channel_action[action_index];
+        action = &collection->action[action_index];
 
         switch (action->type) {
             case FRAME_SOUND_CHANNEL_ACTION_STOP:
@@ -9026,6 +9046,22 @@ static void frame_sound_execute_channel_actions(
             case FRAME_SOUND_CHANNEL_ACTION_OFFSET:
                 sound_set_channel_position(
                     action->channel,
+                    action->offset
+                );
+                break;
+            case FRAME_SOUND_GROUP_ACTION_STOP:
+                sound_group_stop(action->group, owner_id);
+                break;
+            case FRAME_SOUND_GROUP_ACTION_PAUSE:
+                sound_group_pause(true, action->group, owner_id);
+                break;
+            case FRAME_SOUND_GROUP_ACTION_RESUME:
+                sound_group_pause(false, action->group, owner_id);
+                break;
+            case FRAME_SOUND_GROUP_ACTION_OFFSET:
+                sound_group_set_position(
+                    action->group,
+                    owner_id,
                     action->offset
                 );
                 break;
@@ -9058,7 +9094,7 @@ void frame_sound_execute_collection(
         return;
     }
 
-    frame_sound_execute_channel_actions(collection);
+    frame_sound_execute_actions(collection, owner_id);
 
     if (!collection->active_status) {
         return;
@@ -17432,7 +17468,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_SOUND_CHANNEL_OFFSET:
             {
                 s_command_token offset_token;
-                s_frame_sound_channel_action* action;
+                s_frame_sound_action* action;
                 uint64_t channel_offset;
                 int channel;
 
@@ -17467,7 +17503,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     goto lCleanup;
                 }
 
-                action = frame_sound_channel_action_append(
+                action = frame_sound_action_append(
                     &temp_frame_sound,
                     FRAME_SOUND_CHANNEL_ACTION_OFFSET
                 );
@@ -17479,8 +17515,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_SOUND_CHANNEL_RESUME:
             case CMD_MODEL_SOUND_CHANNEL_STOP:
             {
-                s_frame_sound_channel_action* action;
-                e_frame_sound_channel_action action_type;
+                s_frame_sound_action* action;
+                e_frame_sound_action action_type;
                 int channel;
 
                 if (!frame_sound_parse_channel(GET_ARG(1), &channel)) {
@@ -17502,7 +17538,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         ? FRAME_SOUND_CHANNEL_ACTION_RESUME
                         : FRAME_SOUND_CHANNEL_ACTION_STOP;
 
-                action = frame_sound_channel_action_append(
+                action = frame_sound_action_append(
                     &temp_frame_sound,
                     action_type
                 );
@@ -17637,6 +17673,104 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     &temp_frame_sound,
                     temp_frame_sound_index
                 )->group = sound_group;
+                break;
+            }
+            case CMD_MODEL_SOUND_GROUP_OFFSET:
+            {
+                s_command_token offset_token;
+                s_frame_sound_action* action;
+                const char* invalid_group;
+                sound_group_mask_t sound_group;
+                uint64_t group_offset;
+                size_t offset_argument;
+
+                if (arglist.count < 3) {
+                    shutdownmessage =
+                        "Sound group offset requires one or more groups followed by an unsigned PCM frame.";
+                    goto lCleanup;
+                }
+
+                offset_argument = arglist.count - 1U;
+                offset_token.text = GET_ARG(offset_argument);
+                offset_token.length = strlen(offset_token.text);
+
+                if (!command_token_get_uint64(
+                    &offset_token,
+                    &group_offset
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Invalid sound group offset '%s'. Expected an unsigned PCM frame.",
+                        offset_token.text
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                if (!sound_group_get_flags_from_arglist_range(
+                    &arglist,
+                    1,
+                    offset_argument,
+                    &sound_group,
+                    &invalid_group
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound group '%s' invalid. Expected none, all, all0, all1, a-z, or a1-z1.",
+                        invalid_group
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                action = frame_sound_action_append(
+                    &temp_frame_sound,
+                    FRAME_SOUND_GROUP_ACTION_OFFSET
+                );
+                action->group = sound_group;
+                action->offset = group_offset;
+                break;
+            }
+            case CMD_MODEL_SOUND_GROUP_PAUSE:
+            case CMD_MODEL_SOUND_GROUP_RESUME:
+            case CMD_MODEL_SOUND_GROUP_STOP:
+            {
+                s_frame_sound_action* action;
+                e_frame_sound_action action_type;
+                const char* invalid_group;
+                sound_group_mask_t sound_group;
+
+                if (!sound_group_get_flags_from_arglist(
+                    &arglist,
+                    &sound_group,
+                    &invalid_group
+                )) {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Sound group '%s' invalid. Expected none, all, all0, all1, a-z, or a1-z1.",
+                        invalid_group
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
+                action_type = cmd == CMD_MODEL_SOUND_GROUP_PAUSE
+                    ? FRAME_SOUND_GROUP_ACTION_PAUSE
+                    : cmd == CMD_MODEL_SOUND_GROUP_RESUME
+                        ? FRAME_SOUND_GROUP_ACTION_RESUME
+                        : FRAME_SOUND_GROUP_ACTION_STOP;
+
+                action = frame_sound_action_append(
+                    &temp_frame_sound,
+                    action_type
+                );
+                action->group = sound_group;
                 break;
             }
             case CMD_MODEL_SOUND_LOADING:

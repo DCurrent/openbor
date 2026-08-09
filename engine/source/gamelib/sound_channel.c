@@ -88,6 +88,25 @@ int sound_channel_mask_first(uint64_t mask) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-08
+*
+* Return true when a channel shares at least one requested
+* sound group and matches the owner filter. UINT64_MAX
+* selects every owner.
+*/
+bool sound_channel_matches_group(
+    const channelstruct *record,
+    sound_group_mask_t group,
+    const uint64_t owner_id
+) {
+    group &= SOUND_GROUP_ALL;
+
+    return record && group && (record->group & group) &&
+        (owner_id == UINT64_MAX || record->owner_id == owner_id);
+}
+
+/*
+* Caskey, Damon V.
 * 2026-07-31
 *
 * Allocate a requested channel bank. Existing

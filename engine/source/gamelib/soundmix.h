@@ -156,6 +156,13 @@ void sound_stop_sample(int channel);
 void sound_stopall_sample(bool force);
 void sound_pause_sample(int toggle);
 void sound_pause_single_sample(int toggle, int channel);
+size_t sound_group_stop(sound_group_mask_t group, uint64_t owner_id);
+size_t sound_group_pause(int toggle, sound_group_mask_t group, uint64_t owner_id);
+size_t sound_group_set_position(
+    sound_group_mask_t group,
+    uint64_t owner_id,
+    uint64_t sample_position
+);
 void sound_volume_sample(int channel, int lvolume, int rvolume);
 bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame);
 bool sound_set_channel_period(int channel, uint64_t period);

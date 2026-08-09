@@ -108,6 +108,18 @@ static const s_sound_property_info sound_properties[] = {
      .offset = PROPERTY_MEMBER_OFFSET(channelstruct, volume[SOUND_SPATIAL_CHANNEL_RIGHT]),
      .type = VT_INTEGER },
 
+    {.property = SOUND_PROPERTY_GROUP,
+     .id_string = "SOUND_PROPERTY_GROUP",
+     .config_flags = PROPERTY_ACCESS_CONFIG_READ,
+     .offset = PROPERTY_MEMBER_OFFSET(channelstruct, group),
+     .type = VT_UINTEGER64 },
+
+    {.property = SOUND_PROPERTY_OWNER_ID,
+     .id_string = "SOUND_PROPERTY_OWNER_ID",
+     .config_flags = PROPERTY_ACCESS_CONFIG_READ,
+     .offset = PROPERTY_MEMBER_OFFSET(channelstruct, owner_id),
+     .type = VT_UINTEGER64 },
+
     {.property = SOUND_PROPERTY_END,
      .id_string = "Sound",
      .config_flags = PROPERTY_ACCESS_CONFIG_NONE,
@@ -530,6 +542,8 @@ HRESULT openbor_set_sound_property(
         case SOUND_PROPERTY_CHANNELS:
         case SOUND_PROPERTY_PLAY_ID:
         case SOUND_PROPERTY_SAMPLE:
+        case SOUND_PROPERTY_GROUP:
+        case SOUND_PROPERTY_OWNER_ID:
         case SOUND_PROPERTY_END:
         default:
             property_map = sound_get_property_map(sound_object, (unsigned int)property_index);
@@ -545,4 +559,175 @@ error_object:
     printf("\nScript error: %s. You must provide a valid sound object, property id, and value.\n", self_name);
     *pretvar = NULL;
     return E_FAIL;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Read and validate the group and owner filters shared by
+* sound-group script operations.
+*/
+static bool sound_group_get_script_filter(
+    ScriptVariant** varlist,
+    const int paramCount,
+    sound_group_mask_t* const group,
+    uint64_t* const owner_id
+) {
+    if(!varlist || !group || !owner_id || paramCount < 2 ||
+       FAILED(ScriptVariant_Unsigned64Value(varlist[0], group)) ||
+       FAILED(ScriptVariant_Unsigned64Value(varlist[1], owner_id)) ||
+       (*group & ~SOUND_GROUP_ALL)) {
+        return false;
+    }
+
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Stop active channels sharing any requested group and
+* matching an exact entity owner ID. ENTITY_UNIQUE_ID_ALL
+* selects matching groups from every owner.
+*/
+HRESULT openbor_sound_group_stop(
+    ScriptVariant** varlist,
+    ScriptVariant** pretvar,
+    const int paramCount
+) {
+    const char *self_name =
+        "sound_group_stop(uint64 group, uint64 owner_id)";
+    sound_group_mask_t group;
+    uint64_t owner_id;
+
+    if(!pretvar || !*pretvar ||
+       !sound_group_get_script_filter(
+           varlist,
+           paramCount,
+           &group,
+           &owner_id
+       )) {
+        printf("\nScript error: %s. Invalid group or owner ID.\n", self_name);
+        if(pretvar) {
+            *pretvar = NULL;
+        }
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)sound_group_stop(group, owner_id);
+    return S_OK;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Apply a pause state to matching sound-group channels.
+*/
+static HRESULT openbor_sound_group_pause_state(
+    ScriptVariant** varlist,
+    ScriptVariant** pretvar,
+    const int paramCount,
+    const int toggle,
+    const char* const self_name
+) {
+    sound_group_mask_t group;
+    uint64_t owner_id;
+
+    if(!pretvar || !*pretvar ||
+       !sound_group_get_script_filter(
+           varlist,
+           paramCount,
+           &group,
+           &owner_id
+       )) {
+        printf("\nScript error: %s. Invalid group or owner ID.\n", self_name);
+        if(pretvar) {
+            *pretvar = NULL;
+        }
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)sound_group_pause(
+        toggle,
+        group,
+        owner_id
+    );
+    return S_OK;
+}
+
+HRESULT openbor_sound_group_pause(
+    ScriptVariant** varlist,
+    ScriptVariant** pretvar,
+    const int paramCount
+) {
+    return openbor_sound_group_pause_state(
+        varlist,
+        pretvar,
+        paramCount,
+        true,
+        "sound_group_pause(uint64 group, uint64 owner_id)"
+    );
+}
+
+HRESULT openbor_sound_group_resume(
+    ScriptVariant** varlist,
+    ScriptVariant** pretvar,
+    const int paramCount
+) {
+    return openbor_sound_group_pause_state(
+        varlist,
+        pretvar,
+        paramCount,
+        false,
+        "sound_group_resume(uint64 group, uint64 owner_id)"
+    );
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Seek matching sound-group channels to a PCM frame.
+*/
+HRESULT openbor_sound_group_offset(
+    ScriptVariant** varlist,
+    ScriptVariant** pretvar,
+    const int paramCount
+) {
+    const char *self_name =
+        "sound_group_offset(uint64 group, uint64 owner_id, uint64 offset)";
+    sound_group_mask_t group;
+    uint64_t owner_id;
+    uint64_t offset;
+
+    if(!pretvar || !*pretvar || paramCount < 3 ||
+       !sound_group_get_script_filter(
+           varlist,
+           paramCount,
+           &group,
+           &owner_id
+       ) ||
+       FAILED(ScriptVariant_Unsigned64Value(varlist[2], &offset))) {
+        printf(
+            "\nScript error: %s. Invalid group, owner ID, or offset.\n",
+            self_name
+        );
+        if(pretvar) {
+            *pretvar = NULL;
+        }
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+    (*pretvar)->lVal = (LONG)sound_group_set_position(
+        group,
+        owner_id,
+        offset
+    );
+    return S_OK;
 }

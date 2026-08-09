@@ -219,5 +219,10 @@ bool sound_channel_pool_reserve_mask(s_sound_channel_pool *pool, unsigned int ba
 void sound_channel_pool_stop_all(s_sound_channel_pool *pool, bool force);
 void sound_channel_pool_pause_all(s_sound_channel_pool *pool, int toggle);
 int sound_channel_mask_first(uint64_t mask);
+bool sound_channel_matches_group(
+    const channelstruct *record,
+    sound_group_mask_t group,
+    uint64_t owner_id
+);
 
 #endif

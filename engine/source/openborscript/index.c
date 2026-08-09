@@ -373,6 +373,22 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "set_sound_property";
     }
+    else if (functionRef == ((void*)openbor_sound_group_stop))
+    {
+        return "sound_group_stop";
+    }
+    else if (functionRef == ((void*)openbor_sound_group_pause))
+    {
+        return "sound_group_pause";
+    }
+    else if (functionRef == ((void*)openbor_sound_group_resume))
+    {
+        return "sound_group_resume";
+    }
+    else if (functionRef == ((void*)openbor_sound_group_offset))
+    {
+        return "sound_group_offset";
+    }
     else if (functionRef == ((void*)openbor_get_icon_property))
     {
         return "get_icon_property";
@@ -1473,6 +1489,14 @@ void Script_LoadSystemFunctions()
         (void*)openbor_get_sound_property, "get_sound_property");
     List_InsertAfter(&theFunctionList,
         (void*)openbor_set_sound_property, "set_sound_property");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_sound_group_stop, "sound_group_stop");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_sound_group_pause, "sound_group_pause");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_sound_group_resume, "sound_group_resume");
+    List_InsertAfter(&theFunctionList,
+        (void*)openbor_sound_group_offset, "sound_group_offset");
 
     /* Flash config properties. */
     List_InsertAfter(&theFunctionList,

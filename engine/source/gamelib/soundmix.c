@@ -2932,6 +2932,229 @@ void sound_pause_single_sample(int toggle, int channel) {
     SB_unlock_audio();
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Build the active channel mask matching a sound group and
+* owner within one bank. UINT64_MAX selects every owner.
+* Caller must hold the audio lock.
+*/
+static uint64_t sound_group_get_bank_match_mask(
+    const s_sound_channel_bank *bank,
+    const sound_group_mask_t group,
+    const uint64_t owner_id
+) {
+    const channelstruct *record;
+    uint64_t active_mask;
+    uint64_t result = 0;
+    int channel_index;
+
+    if(!bank || !group) {
+        return 0;
+    }
+
+    active_mask = bank->active_mask;
+
+    while((channel_index = sound_channel_mask_first(active_mask)) >= 0) {
+        record = &bank->channel[channel_index];
+
+        if(sound_channel_matches_group(record, group, owner_id)) {
+            result |= UINT64_C(1) << channel_index;
+        }
+
+        active_mask &= ~(UINT64_C(1) << channel_index);
+    }
+
+    return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Stop every active channel sharing at least one requested
+* group and matching the requested owner. Stream resources
+* are closed after releasing the audio callback lock.
+*/
+size_t sound_group_stop(
+    sound_group_mask_t group,
+    const uint64_t owner_id
+) {
+    uint64_t match_mask[SOUND_CHANNEL_BANK_COUNT] = { 0 };
+    uint64_t active_bank_mask;
+    size_t match_count = 0;
+    int bank_index;
+
+    group &= SOUND_GROUP_ALL;
+    if(!group) {
+        return 0;
+    }
+
+    SB_lock_audio();
+    active_bank_mask = sound_channel_pool.active_bank_mask;
+
+    while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask;
+        int channel_index;
+
+        channel_mask = sound_group_get_bank_match_mask(
+            bank,
+            group,
+            owner_id
+        );
+        match_mask[bank_index] = channel_mask;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            const int channel =
+                bank_index * (int)SOUND_CHANNEL_BANK_SIZE + channel_index;
+
+            sound_channel_pool_deactivate(&sound_channel_pool, channel);
+            match_count++;
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+        }
+
+        active_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+    SB_unlock_audio();
+
+    for(bank_index = 0;
+        bank_index < (int)SOUND_CHANNEL_BANK_COUNT;
+        bank_index++) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask = match_mask[bank_index];
+        int channel_index;
+
+        if(!bank) {
+            continue;
+        }
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            const int channel =
+                bank_index * (int)SOUND_CHANNEL_BANK_SIZE + channel_index;
+
+            sound_stream_close_channel(
+                channel,
+                &bank->channel[channel_index]
+            );
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+        }
+    }
+
+    return match_count;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Pause or resume active channels by sound group and owner.
+* Return the number of matching channels.
+*/
+size_t sound_group_pause(
+    const int toggle,
+    sound_group_mask_t group,
+    const uint64_t owner_id
+) {
+    uint64_t active_bank_mask;
+    size_t match_count = 0;
+    int bank_index;
+
+    group &= SOUND_GROUP_ALL;
+    if(!group) {
+        return 0;
+    }
+
+    SB_lock_audio();
+    active_bank_mask = sound_channel_pool.active_bank_mask;
+
+    while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
+        s_sound_channel_bank *bank = sound_channel_pool.bank[bank_index];
+        uint64_t channel_mask = sound_group_get_bank_match_mask(
+            bank,
+            group,
+            owner_id
+        );
+        int channel_index;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            const int channel =
+                bank_index * (int)SOUND_CHANNEL_BANK_SIZE + channel_index;
+
+            sound_channel_pool_pause(
+                &sound_channel_pool,
+                channel,
+                toggle
+            );
+            match_count++;
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+        }
+
+        active_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+    SB_unlock_audio();
+
+    return match_count;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-08
+*
+* Seek matching active channels to one PCM frame. Candidate
+* masks are captured under lock; stream reconfiguration uses
+* the normal per-channel synchronization path afterward.
+*/
+size_t sound_group_set_position(
+    sound_group_mask_t group,
+    const uint64_t owner_id,
+    const uint64_t sample_position
+) {
+    uint64_t match_mask[SOUND_CHANNEL_BANK_COUNT] = { 0 };
+    uint64_t active_bank_mask;
+    size_t success_count = 0;
+    int bank_index;
+
+    group &= SOUND_GROUP_ALL;
+    if(!group) {
+        return 0;
+    }
+
+    SB_lock_audio();
+    active_bank_mask = sound_channel_pool.active_bank_mask;
+
+    while((bank_index = sound_channel_mask_first(active_bank_mask)) >= 0) {
+        match_mask[bank_index] = sound_group_get_bank_match_mask(
+            sound_channel_pool.bank[bank_index],
+            group,
+            owner_id
+        );
+        active_bank_mask &= ~(UINT64_C(1) << bank_index);
+    }
+    SB_unlock_audio();
+
+    for(bank_index = 0;
+        bank_index < (int)SOUND_CHANNEL_BANK_COUNT;
+        bank_index++) {
+        uint64_t channel_mask = match_mask[bank_index];
+        int channel_index;
+
+        while((channel_index = sound_channel_mask_first(channel_mask)) >= 0) {
+            const int channel =
+                bank_index * (int)SOUND_CHANNEL_BANK_SIZE + channel_index;
+
+            if(sound_set_channel_position(channel, sample_position)) {
+                success_count++;
+            }
+
+            channel_mask &= ~(UINT64_C(1) << channel_index);
+        }
+    }
+
+    return success_count;
+}
+
 void sound_volume_sample(int channel, int lvolume, int rvolume) {
     channelstruct *record;
 
