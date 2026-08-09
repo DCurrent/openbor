@@ -14,7 +14,6 @@
 
 static SDL_AudioSpec cspec;
 static SDL_AudioDeviceID audio_dev;
-static int sample_per_byte;
 static int voicevol = 15;
 static int buffsize = 4096;
 static unsigned int audio_lock_depth;
@@ -30,11 +29,38 @@ static int started;
 int SB_playstart(int bits, int samplerate)
 {
 	SDL_AudioSpec spec = { 0 };
+	int bytes_per_frame;
+
 	spec.channels = 2;
-	spec.format = bits==16?AUDIO_S16SYS:AUDIO_U8;
+
+	switch(bits)
+	{
+		case 8:
+			spec.format = AUDIO_U8;
+			break;
+
+		case 16:
+			spec.format = AUDIO_S16SYS;
+			break;
+
+		/* SDL has no packed 24-bit format. Retain 24 meaningful bits
+		 * in a signed 32-bit transport sample instead. */
+		case 24:
+			spec.format = AUDIO_S32SYS;
+			break;
+
+		default:
+			return 0;
+	}
+
 	spec.freq = samplerate;
-	sample_per_byte = 16/bits*spec.channels;
-	spec.samples = buffsize/sample_per_byte/2;
+	bytes_per_frame = (SDL_AUDIO_BITSIZE(spec.format) / 8) * spec.channels;
+	if(bytes_per_frame <= 0 || buffsize < bytes_per_frame)
+	{
+		return 0;
+	}
+
+	spec.samples = (Uint16)(buffsize / bytes_per_frame);
 	spec.userdata = NULL;
 	spec.callback = callback;
 

@@ -62,6 +62,13 @@ Caution: move vorbis headers here otherwise the structs will
 #endif
 
 #define		MIXSHIFT		     3	    // 2 should be OK
+#define     SOUND_PCM_24_MIN     (-8388607 - 1)
+#define     SOUND_PCM_24_MAX     8388607
+#define     SOUND_PCM_8_TO_24    65536
+#define     SOUND_PCM_16_TO_24   256
+#define     SOUND_PCM_24_TO_S32  256
+#define     SOUND_OUTPUT_BITS_FALLBACK        16
+#define     SOUND_OUTPUT_FREQUENCY_FALLBACK   44100
 
 /*
     Kratus (01-2024) Reverted all volume values but separated both music/sample volumes in different constants 
@@ -1207,8 +1214,8 @@ void sound_unload_all_samples()
 
 /////////////////////////////// Mix to DMA //////////////////////////////////
 // Mixbuffer / DMA buffer data handling
-// Writes mixbuffer data (16-bit mixed in 64-bit array)
-// to 8-bit or 16-bit DMA buffer.
+// Writes signed 24-bit values mixed in a 64-bit array
+// to the active SDL transport format.
 
 /*
 * Caskey, Damon V.
@@ -1220,7 +1227,7 @@ void sound_unload_all_samples()
 */
 static void clearmixbuffer(s64 *buf, int n) {
     while((--n) >= 0) {
-        *buf = (s64)0x8000 << MIXSHIFT;
+        *buf = 0;
         ++buf;
     }
 }
@@ -1266,16 +1273,14 @@ static sound_sample_fixed_t sound_sample_position_advance(sound_sample_fixed_t s
 * Caskey, Damon V.
 * 2026-07-31
 *
-* Normalize supported PCM source widths 
-* to the mixer's signed 16-bit range.
-* 
-* Packed 24-bit input drops its least-significant 
-* byte until we can widen the output path in a 
-* future update.
+* Normalize supported PCM source widths to the
+* mixer's signed 24-bit range. Multiplication is
+* used for signed promotion so negative shifts do
+* not rely on implementation-defined behavior.
 */
-static int sound_pcm_to_mix_value(const unsigned char *sample_data, int sample_bits, size_t sample_index) {
+static int32_t sound_pcm_to_mix_value(const unsigned char *sample_data, int sample_bits, size_t sample_index) {
     if(sample_bits == 8){
-        return ((int)sample_data[sample_index] - 0x80) * 0x100;
+        return ((int32_t)sample_data[sample_index] - 0x80) * SOUND_PCM_8_TO_24;
     }
 
     if(sample_bits == 16) {
@@ -1284,22 +1289,84 @@ static int sound_pcm_to_mix_value(const unsigned char *sample_data, int sample_b
         uint16_t sample_value = (uint16_t)sample_data[byte_index] |
                                 ((uint16_t)sample_data[byte_index + 1U] << 8U);
 
-        return (int)(int16_t)sample_value;
+        return (int32_t)(int16_t)sample_value * SOUND_PCM_16_TO_24;
     }
 
     if(sample_bits == 24) {
         size_t byte_index = sample_index * 3U;
-        uint16_t sample_value = (uint16_t)sample_data[byte_index + 1U] |
-                                ((uint16_t)sample_data[byte_index + 2U] << 8U);
+        uint32_t sample_value = (uint32_t)sample_data[byte_index] |
+                                ((uint32_t)sample_data[byte_index + 1U] << 8U) |
+                                ((uint32_t)sample_data[byte_index + 2U] << 16U);
 
-        return (int)(int16_t)sample_value;
+        if(sample_value & UINT32_C(0x00800000)) {
+            return (int32_t)((int64_t)sample_value - INT64_C(0x01000000));
+        }
+
+        return (int32_t)sample_value;
     }
 
     return 0;
 }
 
-static int sound_sample_to_mix_value(const samplestruct *sample, size_t sample_index) {
+static int32_t sound_sample_to_mix_value(const samplestruct *sample, size_t sample_index) {
     return sound_pcm_to_mix_value(sample->sampleptr, sample->bits, sample_index);
+}
+
+static int32_t sound_pcm_frame_to_mix_value(
+    const unsigned char *sample_data,
+    int sample_bits,
+    int sample_channels,
+    size_t frame_index,
+    e_channel_index spatial_channel
+) {
+    size_t sample_index = frame_index * (size_t)sample_channels;
+
+    if(sample_channels == CHANNEL_TYPE_STEREO &&
+       spatial_channel == SOUND_SPATIAL_CHANNEL_RIGHT) {
+        sample_index++;
+    }
+
+    return sound_pcm_to_mix_value(sample_data, sample_bits, sample_index);
+}
+
+/*
+* Apply linear interpolation using the fractional portion
+* of a fixed-point PCM frame position. Integer positions
+* return the source value exactly.
+*/
+static int32_t sound_mix_value_interpolate(
+    int32_t current_value,
+    int32_t next_value,
+    sound_sample_fixed_t sample_position_fixed
+) {
+    uint32_t fraction = (uint32_t)(sample_position_fixed & (SOUND_SAMPLE_FIXED_ONE - 1U));
+    int64_t difference;
+
+    if(fraction == 0 || current_value == next_value) {
+        return current_value;
+    }
+
+    difference = (int64_t)next_value - current_value;
+
+    return current_value + (int32_t)(
+        difference * fraction / (int64_t)SOUND_SAMPLE_FIXED_ONE
+    );
+}
+
+/*
+* Clip the accumulated mixer value to signed 24-bit PCM and
+* place its meaningful bits in SDL's signed 32-bit transport.
+*/
+static int32_t sound_mix_value_to_s32_transport(s64 mix_value) {
+    s64 output_value = mix_value / (INT64_C(1) << MIXSHIFT);
+
+    if(output_value < SOUND_PCM_24_MIN) {
+        output_value = SOUND_PCM_24_MIN;
+    } else if(output_value > SOUND_PCM_24_MAX) {
+        output_value = SOUND_PCM_24_MAX;
+    }
+
+    return (int32_t)output_value * SOUND_PCM_24_TO_S32;
 }
 
 typedef struct s_sound_wave_stream_read_context {
@@ -1623,6 +1690,53 @@ static bool sound_vorbis_stream_read_frames(
 }
 
 /*
+* Return the queued PCM frame following the current stream
+* frame without consuming either buffer. Looping pull streams
+* already publish their loop frame at the start of the next
+* ready buffer. Push streams publish the next contiguous frame.
+*/
+static int32_t sound_stream_next_mix_value(
+    const s_sound_stream *stream,
+    const channelstruct *channel_record,
+    const s_sound_stream_buffer *stream_buffer,
+    size_t frame_index,
+    e_channel_index spatial_channel,
+    int32_t current_value
+) {
+    const s_sound_stream_buffer *next_buffer;
+
+    if((uint64_t)frame_index + 1U < stream_buffer->frame_count) {
+        return sound_pcm_frame_to_mix_value(
+            stream_buffer->data,
+            channel_record->bits,
+            channel_record->channels,
+            frame_index + 1U,
+            spatial_channel
+        );
+    }
+
+    if(stream_buffer->terminal) {
+        return current_value;
+    }
+
+    next_buffer = &stream->buffer[
+        (stream->read_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT
+    ];
+
+    if(!next_buffer->ready || next_buffer->frame_count == 0) {
+        return current_value;
+    }
+
+    return sound_pcm_frame_to_mix_value(
+        next_buffer->data,
+        channel_record->bits,
+        channel_record->channels,
+        0,
+        spatial_channel
+    );
+}
+
+/*
 * Caskey, Damon V.
 * 2026-08-01
 *
@@ -1651,10 +1765,8 @@ static void sound_mix_stream_channel(
         s_sound_stream_buffer *stream_buffer;
         sound_sample_fixed_t buffer_length_fixed;
         size_t frame_index;
-        size_t left_sample_index;
-        size_t right_sample_index;
-        int left_sample_value;
-        int right_sample_value;
+        int32_t left_sample_value;
+        int32_t right_sample_value;
         int terminal;
 
         for(;;) {
@@ -1685,20 +1797,48 @@ static void sound_mix_stream_channel(
         }
 
         frame_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(buffer_position_fixed);
-        left_sample_index = frame_index * (size_t)channel_record->channels;
-        right_sample_index = channel_record->channels == CHANNEL_TYPE_STEREO
-            ? left_sample_index + 1U
-            : left_sample_index;
-        left_sample_value = sound_pcm_to_mix_value(
+        left_sample_value = sound_pcm_frame_to_mix_value(
             stream_buffer->data,
             channel_record->bits,
-            left_sample_index
+            channel_record->channels,
+            frame_index,
+            SOUND_SPATIAL_CHANNEL_LEFT
         );
-        right_sample_value = sound_pcm_to_mix_value(
+        right_sample_value = sound_pcm_frame_to_mix_value(
             stream_buffer->data,
             channel_record->bits,
-            right_sample_index
+            channel_record->channels,
+            frame_index,
+            SOUND_SPATIAL_CHANNEL_RIGHT
         );
+
+        if(buffer_position_fixed & (SOUND_SAMPLE_FIXED_ONE - 1U)) {
+            left_sample_value = sound_mix_value_interpolate(
+                left_sample_value,
+                sound_stream_next_mix_value(
+                    stream,
+                    channel_record,
+                    stream_buffer,
+                    frame_index,
+                    SOUND_SPATIAL_CHANNEL_LEFT,
+                    left_sample_value
+                ),
+                buffer_position_fixed
+            );
+            right_sample_value = sound_mix_value_interpolate(
+                right_sample_value,
+                sound_stream_next_mix_value(
+                    stream,
+                    channel_record,
+                    stream_buffer,
+                    frame_index,
+                    SOUND_SPATIAL_CHANNEL_RIGHT,
+                    right_sample_value
+                ),
+                buffer_position_fixed
+            );
+        }
+
         mixbuf[output_position] +=
             (s64)left_sample_value * left_volume / volume_divisor;
         mixbuf[output_position + 1] +=
@@ -1781,8 +1921,8 @@ static void mixaudio(unsigned int todo)
     int channel_index;
     int left_volume;
     int right_volume;
-    int left_sample_value;
-    int right_sample_value;
+    int32_t left_sample_value;
+    int32_t right_sample_value;
 
     /*
     * Caskey, Damon V.
@@ -1878,6 +2018,7 @@ static void mixaudio(unsigned int todo)
                     size_t left_sample_index;
                     size_t right_sample_index;
                     size_t sample_position_index;
+                    size_t next_sample_position_index;
                     int sample_end_reached;
 
                     sample_position_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(sample_position_fixed);
@@ -1886,6 +2027,42 @@ static void mixaudio(unsigned int todo)
 
                     left_sample_value = sound_sample_to_mix_value(sample, left_sample_index);
                     right_sample_value = sound_sample_to_mix_value(sample, right_sample_index);
+
+                    if(sample_position_fixed & (SOUND_SAMPLE_FIXED_ONE - 1U)) {
+                        next_sample_position_index = sample_position_index;
+
+                        if((uint64_t)sample_position_index + 1U < sample_frame_count) {
+                            next_sample_position_index++;
+                        } else if(channel_record->active == CHANNEL_LOOPING) {
+                            next_sample_position_index = (size_t)SOUND_SAMPLE_FIX_TO_INT(
+                                loop_start_fixed
+                            );
+                        }
+
+                        left_sample_value = sound_mix_value_interpolate(
+                            left_sample_value,
+                            sound_pcm_frame_to_mix_value(
+                                sample->sampleptr,
+                                sample->bits,
+                                sample->channels,
+                                next_sample_position_index,
+                                SOUND_SPATIAL_CHANNEL_LEFT
+                            ),
+                            sample_position_fixed
+                        );
+                        right_sample_value = sound_mix_value_interpolate(
+                            right_sample_value,
+                            sound_pcm_frame_to_mix_value(
+                                sample->sampleptr,
+                                sample->bits,
+                                sample->channels,
+                                next_sample_position_index,
+                                SOUND_SPATIAL_CHANNEL_RIGHT
+                            ),
+                            sample_position_fixed
+                        );
+                    }
+
                     mixbuf[output_position] +=
                         (s64)left_sample_value * left_volume / volume_divisor;
                     mixbuf[output_position + 1] +=
@@ -1912,23 +2089,54 @@ static void mixaudio(unsigned int todo)
 
 void update_sample(unsigned char *buf, int size)
 {
-    int i, todo = size;
+    int bytes_per_sample;
+    int i;
+    int todo;
     s64 u;
-    if (playbits == 16)
-    {
-        todo >>= 1;
+
+    if(!buf || size <= 0 || !mixbuf) {
+        return;
+    }
+
+    switch(playbits) {
+        case 8:
+            bytes_per_sample = 1;
+            memset(buf, 0x80, (size_t)size);
+            break;
+
+        case 16:
+            bytes_per_sample = 2;
+            memset(buf, 0, (size_t)size);
+            break;
+
+        case 24:
+            /* SDL transports each signed 24-bit value in an S32 sample. */
+            bytes_per_sample = 4;
+            memset(buf, 0, (size_t)size);
+            break;
+
+        default:
+            memset(buf, 0, (size_t)size);
+            return;
+    }
+
+    todo = size / bytes_per_sample;
+    todo -= todo % SOUND_SPATIAL_CHANNEL_MAX;
+    if(todo <= 0 || (size_t)todo > MIXBUF_SAMPLE_COUNT) {
+        return;
     }
 
     clearmixbuffer(mixbuf, todo);
     mixaudio(todo);
-    samplesplayed += (todo >> 1);
+    samplesplayed += todo / SOUND_SPATIAL_CHANNEL_MAX;
 
-    if (playbits == 8)
-    {
+    if(playbits == 8) {
         unsigned char *dst = buf;
-        for(i = 0; i < todo; i++)
-        {
-            u = mixbuf[i] >> (MIXSHIFT + 8);
+
+        for(i = 0; i < todo; i++) {
+            u = mixbuf[i] / (INT64_C(1) << (MIXSHIFT + 16));
+            u += 0x80;
+
             if (u < 0)
             {
                 u = 0;
@@ -1939,23 +2147,28 @@ void update_sample(unsigned char *buf, int size)
             }
             dst[i] = (unsigned char)u;
         }
-    }
-    else
-    {
-        unsigned short *dst = (unsigned short *)buf;
-        for(i = 0; i < todo; i++)
-        {
-            u = mixbuf[i] >> MIXSHIFT;
-            if (u < 0)
+    } else if(playbits == 16) {
+        int16_t *dst = (int16_t *)buf;
+
+        for(i = 0; i < todo; i++) {
+            u = mixbuf[i] / (INT64_C(1) << (MIXSHIFT + 8));
+
+            if(u < INT16_MIN)
             {
-                u = 0;
+                u = INT16_MIN;
             }
-            else if (u > 0xffff)
+            else if(u > INT16_MAX)
             {
-                u = 0xffff;
+                u = INT16_MAX;
             }
-            u ^= 0x8000;
-            dst[i] = (unsigned short)u;
+
+            dst[i] = (int16_t)u;
+        }
+    } else {
+        int32_t *dst = (int32_t *)buf;
+
+        for(i = 0; i < todo; i++) {
+            dst[i] = sound_mix_value_to_s32_transport(mixbuf[i]);
         }
     }
 }
@@ -3882,24 +4095,44 @@ void sound_stop_playback() {
 }
 
 int sound_start_playback() {
+    /* Prefer 24-bit/48 kHz unconditionally. Older backends that cannot
+     * open that logical SDL format fall back automatically, without a
+     * creator-facing quality switch. */
+    static const struct {
+        int bits;
+        int frequency;
+    } output_candidates[] = {
+        { SOUND_OUTPUT_BITS_DEFAULT,  SOUND_OUTPUT_FREQUENCY_DEFAULT },
+        { SOUND_OUTPUT_BITS_FALLBACK, SOUND_OUTPUT_FREQUENCY_DEFAULT },
+        { SOUND_OUTPUT_BITS_DEFAULT,  SOUND_OUTPUT_FREQUENCY_FALLBACK },
+        { SOUND_OUTPUT_BITS_FALLBACK, SOUND_OUTPUT_FREQUENCY_FALLBACK }
+    };
+    size_t candidate_index;
+
     if(!mixing_inited) {
         return 0;
     }
 
     sound_stop_playback();
 
-    playbits = SOUND_OUTPUT_BITS_DEFAULT;
-    playfrequency = SOUND_OUTPUT_FREQUENCY_DEFAULT;
     samplesplayed = 0;
 
     sound_stopall_sample(true);
     SB_playstop();
-    if(!SB_playstart(playbits, playfrequency)) {
-        return 0;
+
+    for(candidate_index = 0;
+        candidate_index < sizeof(output_candidates) / sizeof(output_candidates[0]);
+        candidate_index++) {
+        playbits = output_candidates[candidate_index].bits;
+        playfrequency = output_candidates[candidate_index].frequency;
+
+        if(SB_playstart(playbits, playfrequency)) {
+            mixing_active = 1;
+            return 1;
+        }
     }
 
-    mixing_active = 1;
-    return 1;
+    return 0;
 }
 
 // Stop everything and free used memory
