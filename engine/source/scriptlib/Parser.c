@@ -937,28 +937,29 @@ void Parser_Iter_stmt(Parser *pparser )
     if (Parser_Check(pparser, TOKEN_WHILE ))
     {
         Parser_Match(pparser);
-        Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, startLabel );
+        Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, continueLabel );
         Parser_Check(pparser, TOKEN_LPAREN );
         Parser_Match(pparser);
         Parser_Expr(pparser );
         Parser_Check(pparser, TOKEN_RPAREN );
         Parser_AddInstructionViaLabel(pparser, Branch_FALSE, endLabel, NULL );
-        Stack_Push(&(pparser->LabelStack), startLabel ); //*****
+        Stack_Push(&(pparser->LabelStack), continueLabel ); //*****
         Stack_Push(&(pparser->LabelStack), endLabel ); //*****
         Parser_Match(pparser);
         Parser_Stmt(pparser );
         Stack_Pop(&(pparser->LabelStack)); //*****
         Stack_Pop(&(pparser->LabelStack)); //*****
-        Parser_AddInstructionViaLabel(pparser, JUMP, startLabel, NULL );
+        Parser_AddInstructionViaLabel(pparser, JUMP, continueLabel, NULL );
         Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, endLabel );
     }
     else if (Parser_Check(pparser, TOKEN_DO ))
     {
         Parser_Match(pparser);
         Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, startLabel );
-        Stack_Push(&(pparser->LabelStack), startLabel ); //*****
+        Stack_Push(&(pparser->LabelStack), continueLabel ); //*****
         Stack_Push(&(pparser->LabelStack), endLabel ); //*****
         Parser_Stmt(pparser );
+        Parser_AddInstructionViaToken(pparser, NOOP, (Token *)NULL, continueLabel );
         Parser_Check(pparser, TOKEN_WHILE );
         Parser_Match(pparser);
         Parser_Check(pparser, TOKEN_LPAREN );
