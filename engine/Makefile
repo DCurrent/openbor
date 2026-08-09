@@ -219,8 +219,6 @@ INCS += $(INCLUDES)
 # Objects
 #----------------------------------------------------------------------------------------------------
 
-ADPCM 	        = source/adpcmlib/adpcm.o
-
 ifdef BUILD_GFX
 GFX 	        = source/gfxlib/bilinear.o                                                          \
                   source/gfxlib/dotmatrix.o                                                         \
@@ -356,7 +354,6 @@ MAIN            = openbor.o					                                                
 
 OBJS            = $(MAIN)                                                                           \
                   $(GAME_CONSOLE)                                                                   \
-                  $(ADPCM)                                                                          \
                   $(GFX)                                                                            \
                   $(GAME)                                                                           \
                   $(SOURCE)                                                                         \

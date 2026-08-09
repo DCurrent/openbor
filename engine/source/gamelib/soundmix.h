@@ -18,9 +18,7 @@
 
 /*
 **	Sound mixer.
-**	Now supports ADPCM instead of MP3 (costs less CPU time).
-**
-**	Also plays WAV and Ogg Vorbis samples.
+**	Plays WAV and Ogg Vorbis samples.
 */
 
 #define		SOUND_MUSIC_FREQUENCY_MIN		11025
@@ -35,7 +33,6 @@
 typedef enum e_sound_file_type
 {
     SOUND_FILE_TYPE_NONE = -1,
-    SOUND_FILE_TYPE_ADPCM = 0,
     SOUND_FILE_TYPE_SAMPLE = 1,
     SOUND_FILE_TYPE_VORBIS = SOUND_FILE_TYPE_SAMPLE /* Legacy script alias. */
 } e_sound_file_type;
@@ -44,8 +41,7 @@ typedef enum e_sound_sample_file_type
 {
     SOUND_SAMPLE_FILE_TYPE_NONE = 0,
     SOUND_SAMPLE_FILE_TYPE_WAVE,
-    SOUND_SAMPLE_FILE_TYPE_VORBIS,
-    SOUND_SAMPLE_FILE_TYPE_ADPCM
+    SOUND_SAMPLE_FILE_TYPE_VORBIS
 } e_sound_sample_file_type;
 
 typedef enum e_channel_type

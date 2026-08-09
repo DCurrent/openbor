@@ -84,7 +84,6 @@ LOCAL_SRC_FILES := \
 	$(wildcard $(LOCAL_PATH)/../../../../sdl/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../../*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../../source/*.c) \
-	$(wildcard $(LOCAL_PATH)/../../../../source/adpcmlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../../source/gamelib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../../source/gfxlib/*.c) \
 	$(wildcard $(LOCAL_PATH)/../../../../source/pnglib/*.c) \
@@ -105,4 +104,3 @@ LOCAL_STATIC_LIBRARIES := png vorbisidec SDL2 vpx libhidapi
 
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,android/cpufeatures)
-

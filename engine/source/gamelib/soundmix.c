@@ -8,7 +8,7 @@
 
 /*
 **	Sound mixer.
-**	High quality, with support for ADPCM and Vorbis-compressed music.
+**	High quality, with support for WAV and Vorbis-compressed audio.
 **
 **	Also plays WAV files (8-bit, 16-bit, and 24-bit) and Ogg Vorbis.
 **	Note: 8-bit WAVs are unsigned; all other supported PCM is signed.
@@ -49,7 +49,6 @@ Caution: move vorbis headers here otherwise the structs will
 #endif
 #include "soundmix.h"
 #include "globals.h"
-#include "adpcmlib/adpcm.h"
 #include "sblaster.h"
 #include "borendian.h"
 #include "packfile.h"
@@ -161,21 +160,6 @@ typedef struct s_wave_format_extensible
     u32 channel_mask;
     u8 subformat[16];
 } s_wave_format_extensible;
-
-#define SOUND_BOR_MUSIC_VERSION_MONO   0x00010000
-#define SOUND_BOR_MUSIC_VERSION_STEREO 0x00010001
-
-static const char sound_bor_identifier[16] = "BOR music";
-
-typedef struct s_bor_music_header {
-    char identifier[16];
-    char artist[64];
-    char title[64];
-    unsigned int version;
-    int frequency;
-    int channels;
-    int datastart;
-} s_bor_music_header;
 
 static const u8 wave_subformat_pcm[16] = {
     0x01, 0x00, 0x00, 0x00,
@@ -496,94 +480,6 @@ static bool loadwave(char *filename, char *packname, samplestruct *sample, uint6
 
     closepackfile(packfile_handle);
 
-    return true;
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-05
-*
-* Validate legacy BOR ADPCM and retain its decoded
-* PCM dimensions as streaming metadata. One encoded
-* byte expands to four PCM bytes for mono or stereo.
-*/
-static bool loadbor(
-    char *filename,
-    char *packname,
-    samplestruct *sample,
-    uint64_t maximum_data_bytes,
-    bool stream
-) {
-    s_bor_music_header header;
-    packfile_signed_offset_t source_file_size;
-    uint64_t encoded_bytes;
-    uint64_t decoded_bytes;
-    uint64_t frame_count;
-    int packfile_handle;
-
-    (void)maximum_data_bytes;
-
-    if(!sample || !stream) {
-        return false;
-    }
-
-    memset(sample, 0, sizeof(*sample));
-    packfile_handle = openpackfile(filename, packname);
-    if(packfile_handle < 0) {
-        return false;
-    }
-
-    if(readpackfile(packfile_handle, &header, sizeof(header)) != sizeof(header)) {
-        closepackfile(packfile_handle);
-        return false;
-    }
-
-    header.version = SwapLSB32(header.version);
-    header.frequency = SwapLSB32(header.frequency);
-    header.channels = SwapLSB32(header.channels);
-    header.datastart = SwapLSB32(header.datastart);
-    source_file_size = seekpackfile64(packfile_handle, 0, SEEK_END);
-
-    if(strncmp(header.identifier, sound_bor_identifier, sizeof(header.identifier)) != 0 ||
-       (header.version != SOUND_BOR_MUSIC_VERSION_MONO &&
-        header.version != SOUND_BOR_MUSIC_VERSION_STEREO) ||
-       (header.channels != CHANNEL_TYPE_MONO && header.channels != CHANNEL_TYPE_STEREO) ||
-       header.frequency < SOUND_MUSIC_FREQUENCY_MIN ||
-       header.frequency > SOUND_MUSIC_FREQUENCY_MAX ||
-       header.datastart < (int)sizeof(header) ||
-       source_file_size <= (packfile_signed_offset_t)header.datastart) {
-        closepackfile(packfile_handle);
-        return false;
-    }
-
-    encoded_bytes = (uint64_t)(source_file_size - (packfile_signed_offset_t)header.datastart);
-    if(encoded_bytes > UINT64_MAX / 4U) {
-        closepackfile(packfile_handle);
-        return false;
-    }
-
-    decoded_bytes = encoded_bytes * 4U;
-    frame_count = decoded_bytes / ((uint64_t)header.channels * sizeof(int16_t));
-    if(frame_count == 0 || frame_count > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
-        closepackfile(packfile_handle);
-        return false;
-    }
-
-    sample->soundbytes = decoded_bytes;
-    sample->soundlen = decoded_bytes / sizeof(int16_t);
-    sample->framecount = frame_count;
-    sample->data_offset = (uint64_t)header.datastart;
-    sample->bits = 16;
-    sample->frequency = header.frequency;
-    sample->channels = header.channels;
-    sample->blockalign = header.channels * (int)sizeof(int16_t);
-    sample->file_type = SOUND_SAMPLE_FILE_TYPE_ADPCM;
-    memcpy(sample->artist, header.artist, sizeof(sample->artist));
-    memcpy(sample->title, header.title, sizeof(sample->title));
-    sample->artist[sizeof(sample->artist) - 1U] = '\0';
-    sample->title[sizeof(sample->title) - 1U] = '\0';
-
-    closepackfile(packfile_handle);
     return true;
 }
 
@@ -917,9 +813,8 @@ static bool loadvorbis(char *filename, char *packname, samplestruct *sample, uin
 * Caskey, Damon V.
 * 2026-08-01
 *
-* Identify sample containers by signature so valid
-* WAV, Ogg Vorbis, and BOR ADPCM files do not depend
-* on their filename extension.
+* Identify WAV and Ogg Vorbis containers by signature
+* so audio loading does not depend on filename extensions.
 */
 static e_sound_sample_file_type sound_sample_file_type_detect(char *filename, char *packname) {
     unsigned char signature[16];
@@ -943,14 +838,6 @@ static e_sound_sample_file_type sound_sample_file_type_detect(char *filename, ch
     if(memcmp(signature, "OggS", 4U) == 0) {
         return SOUND_SAMPLE_FILE_TYPE_VORBIS;
     }
-    if(strncmp(
-        (const char *)signature,
-        sound_bor_identifier,
-        sizeof(signature)
-    ) == 0) {
-        return SOUND_SAMPLE_FILE_TYPE_ADPCM;
-    }
-
     return SOUND_SAMPLE_FILE_TYPE_NONE;
 }
 
@@ -960,8 +847,6 @@ static bool sound_load_sample_source(char *filename, char *packname, samplestruc
         return loadwave(filename, packname, sample, maximum_data_bytes, stream);
     case SOUND_SAMPLE_FILE_TYPE_VORBIS:
         return loadvorbis(filename, packname, sample, maximum_data_bytes, stream);
-    case SOUND_SAMPLE_FILE_TYPE_ADPCM:
-        return loadbor(filename, packname, sample, maximum_data_bytes, stream);
     case SOUND_SAMPLE_FILE_TYPE_NONE:
     default:
         return false;
@@ -1410,231 +1295,6 @@ static bool sound_wave_stream_read_frames(
     }
 
     return sound_read_packfile_exact(read_context->handle, destination, bytes_to_read) != 0;
-}
-
-typedef struct s_sound_adpcm_stream_decoder {
-    int handle;
-    int channels;
-    uint64_t data_offset;
-    uint64_t encoded_byte_count;
-    uint64_t encoded_position;
-    uint64_t loop_encoded_byte;
-    short value_previous[SOUND_SPATIAL_CHANNEL_MAX];
-    unsigned char step_index[SOUND_SPATIAL_CHANNEL_MAX];
-    short loop_value_previous[SOUND_SPATIAL_CHANNEL_MAX];
-    unsigned char loop_step_index[SOUND_SPATIAL_CHANNEL_MAX];
-    int loop_state_ready;
-    unsigned char encoded_buffer[SOUND_STREAM_BUFFER_SIZE / 4U];
-    short discard_buffer[SOUND_STREAM_BUFFER_SIZE / sizeof(short)];
-} s_sound_adpcm_stream_decoder;
-
-static void sound_adpcm_decoder_restore_state(const s_sound_adpcm_stream_decoder *decoder) {
-    unsigned int channel;
-
-    for(channel = 0;
-        channel < SOUND_SPATIAL_CHANNEL_MAX &&
-        channel < (unsigned int)decoder->channels;
-        channel++) {
-        adpcm_loop_reset(
-            (int)channel,
-            decoder->value_previous[channel],
-            (char)decoder->step_index[channel]
-        );
-    }
-}
-
-static void sound_adpcm_decoder_save_state(s_sound_adpcm_stream_decoder *decoder) {
-    unsigned int channel;
-
-    for(channel = 0;
-        channel < SOUND_SPATIAL_CHANNEL_MAX &&
-        channel < (unsigned int)decoder->channels;
-        channel++) {
-        decoder->value_previous[channel] = adpcm_valprev((int)channel);
-        decoder->step_index[channel] = (unsigned char)adpcm_index((int)channel);
-    }
-}
-
-static void sound_adpcm_decoder_save_loop_state(s_sound_adpcm_stream_decoder *decoder) {
-    unsigned int channel;
-
-    for(channel = 0;
-        channel < SOUND_SPATIAL_CHANNEL_MAX &&
-        channel < (unsigned int)decoder->channels;
-        channel++) {
-        decoder->loop_value_previous[channel] = decoder->value_previous[channel];
-        decoder->loop_step_index[channel] = decoder->step_index[channel];
-    }
-    decoder->loop_state_ready = 1;
-}
-
-static bool sound_adpcm_decoder_decode(
-    s_sound_adpcm_stream_decoder *decoder,
-    uint64_t encoded_bytes,
-    unsigned char *destination
-) {
-    while(encoded_bytes > 0) {
-        uint64_t segment_bytes = encoded_bytes;
-        short *decoded_output;
-
-        if(!decoder->loop_state_ready &&
-           decoder->encoded_position == decoder->loop_encoded_byte) {
-            sound_adpcm_decoder_save_loop_state(decoder);
-        }
-
-        if(segment_bytes > sizeof(decoder->encoded_buffer)) {
-            segment_bytes = sizeof(decoder->encoded_buffer);
-        }
-        if(!decoder->loop_state_ready &&
-           decoder->encoded_position < decoder->loop_encoded_byte &&
-           segment_bytes > decoder->loop_encoded_byte - decoder->encoded_position) {
-            segment_bytes = decoder->loop_encoded_byte - decoder->encoded_position;
-        }
-        if(segment_bytes == 0 || segment_bytes > (uint64_t)INT_MAX) {
-            return false;
-        }
-
-        if(!sound_read_packfile_exact(
-            decoder->handle,
-            decoder->encoded_buffer,
-            segment_bytes
-        )) {
-            return false;
-        }
-
-        decoded_output = destination
-            ? (short*)destination
-            : decoder->discard_buffer;
-        sound_adpcm_decoder_restore_state(decoder);
-        if(adpcm_decode(
-            decoder->encoded_buffer,
-            decoded_output,
-            (int)segment_bytes,
-            decoder->channels
-        ) != (int)(segment_bytes * 4U)) {
-            return false;
-        }
-#ifdef BOR_BIG_ENDIAN
-        /* Generic 16-bit channel stream buffers use little-endian PCM. */
-        if(destination) {
-            size_t sample_index;
-
-            for(sample_index = 0;
-                sample_index < (size_t)segment_bytes * 2U;
-                sample_index++) {
-                decoded_output[sample_index] = (short)SwapLSB16(
-                    (uint16_t)decoded_output[sample_index]
-                );
-            }
-        }
-#endif
-        sound_adpcm_decoder_save_state(decoder);
-
-        decoder->encoded_position += segment_bytes;
-        encoded_bytes -= segment_bytes;
-        if(destination) {
-            destination += (size_t)segment_bytes * 4U;
-        }
-    }
-
-    if(!decoder->loop_state_ready &&
-       decoder->encoded_position == decoder->loop_encoded_byte) {
-        sound_adpcm_decoder_save_loop_state(decoder);
-    }
-    return true;
-}
-
-static bool sound_adpcm_decoder_seek(
-    s_sound_adpcm_stream_decoder *decoder,
-    uint64_t encoded_position
-) {
-    uint64_t absolute_position;
-
-    if(!decoder || encoded_position > decoder->encoded_byte_count) {
-        return false;
-    }
-    if(encoded_position == decoder->encoded_position) {
-        return true;
-    }
-
-    if(decoder->loop_state_ready && encoded_position == decoder->loop_encoded_byte) {
-        unsigned int channel;
-
-        for(channel = 0;
-            channel < SOUND_SPATIAL_CHANNEL_MAX &&
-            channel < (unsigned int)decoder->channels;
-            channel++) {
-            decoder->value_previous[channel] = decoder->loop_value_previous[channel];
-            decoder->step_index[channel] = decoder->loop_step_index[channel];
-        }
-        decoder->encoded_position = encoded_position;
-    } else {
-        memset(decoder->value_previous, 0, sizeof(decoder->value_previous));
-        memset(decoder->step_index, 0, sizeof(decoder->step_index));
-        decoder->encoded_position = 0;
-    }
-
-    if(decoder->data_offset > UINT64_MAX - decoder->encoded_position) {
-        return false;
-    }
-    absolute_position = decoder->data_offset + decoder->encoded_position;
-    if(absolute_position > (uint64_t)INT64_MAX ||
-       seekpackfile64(
-           decoder->handle,
-           (packfile_signed_offset_t)absolute_position,
-           SEEK_SET
-       ) != (packfile_signed_offset_t)absolute_position) {
-        return false;
-    }
-
-    if(decoder->encoded_position < encoded_position) {
-        return sound_adpcm_decoder_decode(
-            decoder,
-            encoded_position - decoder->encoded_position,
-            NULL
-        );
-    }
-    return true;
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-05
-*
-* Decode one exact legacy BOR ADPCM frame range into
-* a generic channel buffer. Decoder state is retained
-* per channel and restored at the byte-based loop point.
-*/
-static bool sound_adpcm_stream_read_frames(
-    void *context,
-    uint64_t source_start_frame,
-    void *destination,
-    size_t bytes_to_read
-) {
-    s_sound_adpcm_stream_decoder *decoder = context;
-    uint64_t scalar_sample_position;
-    uint64_t encoded_position;
-    uint64_t encoded_bytes;
-
-    if(!decoder || !destination ||
-       bytes_to_read == 0 || bytes_to_read % 4U ||
-       source_start_frame > UINT64_MAX / (uint64_t)decoder->channels) {
-        return false;
-    }
-
-    scalar_sample_position = source_start_frame * (uint64_t)decoder->channels;
-    if(scalar_sample_position % 2U) {
-        return false;
-    }
-    encoded_position = scalar_sample_position / 2U;
-    encoded_bytes = bytes_to_read / 4U;
-    if(encoded_position > decoder->encoded_byte_count ||
-       encoded_bytes > decoder->encoded_byte_count - encoded_position ||
-       !sound_adpcm_decoder_seek(decoder, encoded_position)) {
-        return false;
-    }
-
-    return sound_adpcm_decoder_decode(decoder, encoded_bytes, destination);
 }
 
 /*
@@ -2225,11 +1885,6 @@ static void sound_stream_close_channel(int channel, channelstruct *record) {
     decoder = record->stream_decoder;
     if(record->stream_source == SOUND_CHANNEL_STREAM_SOURCE_VORBIS && decoder) {
         sound_vorbis_close_decoder(&record->stream.handle, &decoder);
-    } else if(record->stream_source == SOUND_CHANNEL_STREAM_SOURCE_ADPCM) {
-        free(record->stream_decoder);
-        if(record->stream.handle >= 0) {
-            closepackfile(record->stream.handle);
-        }
     } else if(record->stream.handle >= 0) {
         closepackfile(record->stream.handle);
     }
@@ -2310,35 +1965,10 @@ static int sound_stream_fill_channel(channelstruct *record, const s_soundcache *
             record->stream_decoder,
             bytes_filled
         );
-    case SOUND_SAMPLE_FILE_TYPE_ADPCM:
-        return sound_stream_fill(
-            &record->stream,
-            sound_adpcm_stream_read_frames,
-            record->stream_decoder,
-            bytes_filled
-        );
     case SOUND_SAMPLE_FILE_TYPE_NONE:
     default:
         return -1;
     }
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-05
-*
-* Mono BOR ADPCM stores two decoded frames in each
-* encoded byte. Its generic stream seek points must
-* therefore remain on even PCM frames.
-*/
-static bool sound_stream_frame_is_seekable(
-    const samplestruct *sample,
-    uint64_t frame
-) {
-    return sample &&
-           (sample->file_type != SOUND_SAMPLE_FILE_TYPE_ADPCM ||
-            sample->channels != CHANNEL_TYPE_MONO ||
-            (frame % 2U) == 0);
 }
 
 /*
@@ -2356,7 +1986,6 @@ static bool sound_stream_open_channel(
     int looping,
     uint64_t loop_start_frame
 ) {
-    s_sound_adpcm_stream_decoder *adpcm_decoder = NULL;
     OggVorbis_File *decoder = NULL;
     unsigned int buffer_index;
     int fill_result;
@@ -2364,10 +1993,7 @@ static bool sound_stream_open_channel(
 
     if(!record ||
        !cache ||
-       !cache->stream ||
-       !sound_stream_frame_is_seekable(&cache->sample, start_frame) ||
-       (looping &&
-        !sound_stream_frame_is_seekable(&cache->sample, loop_start_frame))) {
+       !cache->stream) {
         return false;
     }
 
@@ -2398,41 +2024,13 @@ static bool sound_stream_open_channel(
             record->stream_source = SOUND_CHANNEL_STREAM_SOURCE_VORBIS;
         }
         break;
-    case SOUND_SAMPLE_FILE_TYPE_ADPCM:
-        record->stream.handle = openpackfile(cache->filename, cache->packfilename);
-        if(record->stream.handle >= 0) {
-            adpcm_decoder = calloc(1, sizeof(*adpcm_decoder));
-        }
-        if(adpcm_decoder &&
-           cache->sample.data_offset <= (uint64_t)INT64_MAX &&
-           seekpackfile64(
-               record->stream.handle,
-               (packfile_signed_offset_t)cache->sample.data_offset,
-               SEEK_SET
-           ) == (packfile_signed_offset_t)cache->sample.data_offset) {
-            adpcm_decoder->handle = record->stream.handle;
-            adpcm_decoder->channels = cache->sample.channels;
-            adpcm_decoder->data_offset = cache->sample.data_offset;
-            adpcm_decoder->encoded_byte_count = cache->sample.soundbytes / 4U;
-            adpcm_decoder->loop_encoded_byte =
-                loop_start_frame * (uint64_t)cache->sample.channels / 2U;
-            if(adpcm_decoder->loop_encoded_byte == 0) {
-                sound_adpcm_decoder_save_loop_state(adpcm_decoder);
-            }
-            record->stream_decoder = adpcm_decoder;
-            record->stream_source = SOUND_CHANNEL_STREAM_SOURCE_ADPCM;
-        } else {
-            free(adpcm_decoder);
-        }
-        break;
     case SOUND_SAMPLE_FILE_TYPE_NONE:
     default:
         break;
     }
 
     if(record->stream.handle < 0 ||
-       ((cache->sample.file_type == SOUND_SAMPLE_FILE_TYPE_VORBIS ||
-         cache->sample.file_type == SOUND_SAMPLE_FILE_TYPE_ADPCM) &&
+       (cache->sample.file_type == SOUND_SAMPLE_FILE_TYPE_VORBIS &&
         !record->stream_decoder)) {
         sound_stream_close_channel(channel, record);
         return false;
@@ -2823,12 +2421,8 @@ static int sound_play_sample_internal(
        (sample->bits != 8 && sample->bits != 16 && sample->bits != 24) ||
        (sample->channels != CHANNEL_TYPE_MONO &&
         sample->channels != CHANNEL_TYPE_STEREO) ||
-       (start_frame_supplied &&
-        (start_frame >= sample->framecount ||
-         !sound_stream_frame_is_seekable(sample, start_frame))) ||
-       (looping &&
-        (loop_start_frame >= sample->framecount ||
-         !sound_stream_frame_is_seekable(sample, loop_start_frame)))) {
+       (start_frame_supplied && start_frame >= sample->framecount) ||
+       (looping && loop_start_frame >= sample->framecount)) {
         return -1;
     }
 
@@ -3425,9 +3019,7 @@ static bool sound_reconfigure_streamed_channel(
     if(start_frame >= cache->sample.framecount ||
        loop_start_frame >= cache->sample.framecount ||
        start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
-       loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
-       !sound_stream_frame_is_seekable(&cache->sample, start_frame) ||
-       !sound_stream_frame_is_seekable(&cache->sample, loop_start_frame)) {
+       loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
         SB_unlock_audio();
         return false;
     }
@@ -3485,8 +3077,7 @@ bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame) {
 
     sample = &soundcache[record->samplenum].sample;
     if(loop_start_frame >= sample->framecount ||
-       loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
-       !sound_stream_frame_is_seekable(sample, loop_start_frame)) {
+       loop_start_frame > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
         SB_unlock_audio();
         return false;
     }
@@ -3609,8 +3200,7 @@ bool sound_set_channel_position(int channel, uint64_t sample_position) {
 
     sample = &soundcache[record->samplenum].sample;
     if(sample_position >= sample->framecount ||
-       sample_position > SOUND_SAMPLE_FIXED_MAX_INTEGER ||
-       !sound_stream_frame_is_seekable(sample, sample_position)) {
+       sample_position > SOUND_SAMPLE_FIXED_MAX_INTEGER) {
         SB_unlock_audio();
         return false;
     }
@@ -3695,10 +3285,8 @@ static channelstruct *sound_active_channel_record_locked(int channel) {
 * Caskey, Damon V.
 * 2026-08-05
 *
-* Route WAV, Ogg Vorbis, or BOR ADPCM music through
-* the generic streamed sample path on soft-reserved
-* channel zero. BOR offsets retain their legacy byte
-* units and are converted to decoded PCM frames.
+* Route WAV or Ogg Vorbis music through the generic
+* streamed sample path on soft-reserved channel zero.
 */
 static int sound_open_sample_music(
     char *filename,
@@ -3725,21 +3313,11 @@ static int sound_open_sample_music(
 
     sample = &soundcache[sample_index].sample;
     if(sample->file_type != SOUND_SAMPLE_FILE_TYPE_WAVE &&
-       sample->file_type != SOUND_SAMPLE_FILE_TYPE_VORBIS &&
-       sample->file_type != SOUND_SAMPLE_FILE_TYPE_ADPCM) {
+       sample->file_type != SOUND_SAMPLE_FILE_TYPE_VORBIS) {
         return 0;
     }
 
     loop_start_frame = music_offset;
-    if(sample->file_type == SOUND_SAMPLE_FILE_TYPE_ADPCM) {
-        uint64_t encoded_byte_count = sample->soundbytes / 4U;
-
-        if(loop && (uint64_t)music_offset >= encoded_byte_count) {
-            return 0;
-        }
-        loop_start_frame =
-            (uint64_t)music_offset * 2U / (uint64_t)sample->channels;
-    }
 
     channel = sound_play_sample_internal(
         sample_index,
@@ -3930,13 +3508,12 @@ void sound_close_channel_pcm_stream(int channel, int play_id) {
 * 2026-08-06
 *
 * Try the supplied music path exactly before appending
-* each supported legacy extension. Fallback storage is
+* each supported extension. Fallback storage is
 * sized from the complete source path so long filenames
 * cannot overflow a fixed buffer.
 */
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset) {
     static const char fallback_extensions[][5] = {
-        ".bor",
         ".ogg",
         ".oga",
         ".wav"

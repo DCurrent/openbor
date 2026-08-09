@@ -1621,7 +1621,6 @@ bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(SHADOW_CONFIG_NONE)
 
         /* Sound file types. */
-        ICMPCONST(SOUND_FILE_TYPE_ADPCM)
         ICMPCONST(SOUND_FILE_TYPE_NONE)
         ICMPCONST(SOUND_FILE_TYPE_VORBIS)
 

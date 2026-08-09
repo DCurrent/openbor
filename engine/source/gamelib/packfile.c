@@ -1607,9 +1607,8 @@ static void packfile_copy_music_track_title(const char *input_path, char output_
 * Caskey, Damon V.
 * 2026-08-02
 *
-* Identify audio files available to the legacy
-* music browser. WAV and Ogg playback use the
-* general sound system; BOR remains compatible.
+* Identify WAV and Ogg audio files available to
+* the music browser.
 */
 static int packfile_entry_is_music_track(const char *entry_name) {
     const char *extension = strrchr(entry_name, '.');
@@ -1618,8 +1617,7 @@ static int packfile_entry_is_music_track(const char *entry_name) {
         return 0;
     }
 
-    return !stricmp(extension, ".bor") ||
-           !stricmp(extension, ".wav") ||
+    return !stricmp(extension, ".wav") ||
            !stricmp(extension, ".ogg") ||
            !stricmp(extension, ".oga");
 }
