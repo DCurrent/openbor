@@ -233,7 +233,7 @@ endif()
 # Distribution Preperation
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD
-  COMMAND cp -a ../engine/COMPILING ../engine/releases/COMPILING.txt
+  COMMAND cp -a ../COMPILING.md ../engine/releases/COMPILING.txt
   COMMAND cp -a ../engine/LICENSE ../engine/releases/LICENSE.txt
   COMMAND cp -a ../engine/README ../engine/releases/README.txt
   COMMAND cp -a ../engine/translation.txt ../engine/releases/
