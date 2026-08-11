@@ -30,9 +30,6 @@ typedef struct s_datetime_windows_filetime {
 #if defined(_MSC_VER)
 #define DATETIME_WINDOWS_IMPORT __declspec(dllimport)
 #define DATETIME_WINDOWS_CALL   __stdcall
-#elif defined(__GNUC__) && defined(__i386__)
-#define DATETIME_WINDOWS_IMPORT __declspec(dllimport)
-#define DATETIME_WINDOWS_CALL   __attribute__((stdcall))
 #else
 #define DATETIME_WINDOWS_IMPORT __declspec(dllimport)
 #define DATETIME_WINDOWS_CALL
