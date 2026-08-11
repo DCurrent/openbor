@@ -3544,7 +3544,7 @@ bool command_argument_read(
   argument. Keep this independent from the legacy command-line,
   script file-stream, path, and persistent save-field limit.
 */
-#define MAX_COMMAND_ARGUMENT_LEN 64
+#define MAX_COMMAND_ARGUMENT_LEN 512
 
 /*
 - Caskey, Damon V.
@@ -15220,7 +15220,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int script_id = -1;
     int frm_id = -1;
     int i = 0;
-    int j = 0;
     int tempInt = 0;
     int framecount = 0;
     int frameset = 0;
@@ -15356,9 +15355,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         ", "
     };
 
-    const char call_text[] =  //begin of function call
+    const char call_indent_text[] =  //begin of function call
     {
-        "            %s("
+        "            "
+    };
+
+    const char call_open_text[] =
+    {
+        "("
     };
 
     const char endcall_text[] =  //end of function call
@@ -20186,6 +20190,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen);// put back last  chars
                 break;
             case CMD_MODEL_AT_CMD:
+            {
+                const char* command_argument = NULL;
+                s_command_argument_reader command_argument_reader;
+                bool first_command_argument;
+
                 //translate @cmd into script function call
                 if(ani_id < 0)
                 {
@@ -20204,11 +20213,17 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
                     script_id = ani_id;
                 }
-                j = 1;
-                value = GET_ARG(j);
                 scriptbuf[scriptlen - strclen(endifid_text)] = 0; // cut last chars
                 scriptlen = strlen(scriptbuf);
-                if(value && value[0])
+                if(command_argument_reader_initialize(
+                        &command_argument_reader,
+                        buf + pos,
+                        1
+                    )
+                    && command_argument_reader_next(
+                        &command_argument_reader,
+                        &command_argument
+                    ))
                 {
                     /*
                      //no_cmd_compatible will try to optimize if(frame==n)
@@ -20249,23 +20264,23 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         scriptbuf[scriptlen - strclen(endif_return_text)] = 0; // cut last chars
                         scriptlen = strlen(scriptbuf);
                     }
-                    sprintf(namebuf, call_text, value);
-                    buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
+                    buffer_append(&scriptbuf, call_indent_text, 0xffffff, &sbsize, &scriptlen);
+                    buffer_append(&scriptbuf, command_argument, 0xffffff, &sbsize, &scriptlen);
+                    buffer_append(&scriptbuf, call_open_text, 0xffffff, &sbsize, &scriptlen);
 
-                    do  //argument and comma
+                    first_command_argument = true;
+                    while(command_argument_reader_next(
+                        &command_argument_reader,
+                        &command_argument
+                    ))
                     {
-                        j++;
-                        value = GET_ARG(j);
-                        if(value && value[0])
+                        if(!first_command_argument)
                         {
-                            if(j != 2)
-                            {
-                                buffer_append(&scriptbuf, comma_text, 0xffffff, &sbsize, &scriptlen);
-                            }
-                            buffer_append(&scriptbuf, value, 0xffffff, &sbsize, &scriptlen);
+                            buffer_append(&scriptbuf, comma_text, 0xffffff, &sbsize, &scriptlen);
                         }
+                        buffer_append(&scriptbuf, command_argument, 0xffffff, &sbsize, &scriptlen);
+                        first_command_argument = false;
                     }
-                    while(value && value[0]);
                 }
 
                 buffer_append(&scriptbuf, endcall_text, 0xffffff, &sbsize, &scriptlen);
@@ -20277,6 +20292,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
                 buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
                 break;
+            }
             default:
                 if(command && command[0])
                 {
