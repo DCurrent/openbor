@@ -272,6 +272,32 @@ void pp_warning(pp_parser *self, char *format, ...)
     pp_message(self, "warning", buf);
 }
 
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Return a non-owning view of a preprocessor token's complete
+  source. String literals may exceed fixed identifier storage.
+*/
+static const char *pp_token_source_view(
+    const pp_token *token,
+    size_t *source_length
+)
+{
+    assert(token);
+    assert(source_length);
+
+    if(token->theType == PP_TOKEN_STRING_LITERAL
+        && token->theStringLiteralSource)
+    {
+        *source_length = token->theStringLiteralLength;
+        return token->theStringLiteralSource;
+    }
+
+    *source_length = strlen(token->theSource);
+    return token->theSource;
+}
+
 /**
  * Gets the next parsable token from the lexer.
  * @param skip_whitespace true to ignore whitespace, false otherwise
@@ -645,7 +671,7 @@ pp_token *pp_parser_emit_token(pp_parser *self)
 // self->token contains the first token of the macro/message if self->overread == true
 HRESULT pp_parser_readline(pp_parser *self, char *buf, int bufsize)
 {
-    int total_length = 1;
+    size_t total_length = 0;
 
     if(FAILED(pp_parser_lex_token(self, true)))
     {
@@ -665,15 +691,21 @@ HRESULT pp_parser_readline(pp_parser *self, char *buf, int bufsize)
             break;
         }
 
-        if((total_length + strlen(self->token.theSource)) > bufsize)
+        const char *source;
+        size_t source_length;
+
+        source = pp_token_source_view(&self->token, &source_length);
+
+        if(total_length + source_length + 1 > (size_t)bufsize)
         {
             // Prevent buffer overflow
             pp_error(self, "length of macro or message contents is too long; must be <= %i characters", bufsize);
             return E_FAIL;
         }
 
-        strcat(buf, self->token.theSource);
-        total_length += strlen(self->token.theSource);
+        memcpy(buf + total_length, source, source_length);
+        total_length += source_length;
+        buf[total_length] = '\0';
         if(FAILED(pp_parser_lex_token(self, false)))
         {
             return E_FAIL;
@@ -692,6 +724,7 @@ HRESULT pp_parser_stringify(pp_parser *self)
     char *contents = (char *)List_Retrieve(&self->ctx->macros);
     pp_parser parser;
     pp_token *token;
+    size_t output_length = 1;
 
     pp_token_Init(&self->token, PP_TOKEN_STRING_LITERAL, "\"",
                   self->token.theTextPosition, 0);
@@ -699,34 +732,55 @@ HRESULT pp_parser_stringify(pp_parser *self)
 
     while((token = pp_parser_emit_token(&parser)) && token->theType != PP_TOKEN_EOF)
     {
-        char *source = token->theSource;
+        const char *source;
+        const char *source_end;
+        size_t source_length;
         bool in_string = false;
-        while(*source)
+
+        source = pp_token_source_view(token, &source_length);
+        source_end = source + source_length;
+
+        while(source < source_end)
         {
+            const char *addition;
+            size_t addition_length;
+
             if(*source == '"')
             {
-                strcat(self->token.theSource, "\\\"");
+                addition = "\\\"";
+                addition_length = 2;
                 in_string = !in_string;
             }
             else if(*source == '\\' && in_string)
             {
-                strcat(self->token.theSource, "\\\\");
+                addition = "\\\\";
+                addition_length = 2;
             }
             else
             {
-                strncat(self->token.theSource, source, 1);
+                addition = source;
+                addition_length = 1;
             }
 
-            if(strlen(self->token.theSource) + 2 > MAX_TOKEN_LENGTH)
+            if(output_length + addition_length + 1 > MAX_TOKEN_LENGTH)
             {
                 return pp_error(self, "sequence is too long to stringify");
             }
+
+            memcpy(
+                self->token.theSource + output_length,
+                addition,
+                addition_length
+            );
+            output_length += addition_length;
+            self->token.theSource[output_length] = '\0';
 
             source++;
         }
     }
 
-    strcat(self->token.theSource, "\"");
+    self->token.theSource[output_length++] = '"';
+    self->token.theSource[output_length] = '\0';
     return S_OK;
 }
 
@@ -1362,11 +1416,18 @@ HRESULT pp_parser_insert_function_macro(pp_parser *self, char *name)
         }
         if(write)
         {
-            if((strlen(paramBuffer) + strlen(self->token.theSource) + 1) > sizeof(paramBuffer))
+            const char *source;
+            size_t source_length;
+            size_t param_length = strlen(paramBuffer);
+
+            source = pp_token_source_view(&self->token, &source_length);
+
+            if(param_length + source_length + 1 > sizeof(paramBuffer))
                 return pp_error(self, "parameter %d of function '%s' exceeds max length of %d characters",
                                 name, sizeof(paramBuffer) - 1);
 
-            strcat(paramBuffer, self->token.theSource);
+            memcpy(paramBuffer + param_length, source, source_length);
+            paramBuffer[param_length + source_length] = '\0';
         }
     }
     while(parenLevel >= 0 || type != PP_TOKEN_RPAREN);
@@ -1453,4 +1514,3 @@ bool pp_parser_is_defined(pp_parser *self, const char *name)
 
     return false;
 }
-

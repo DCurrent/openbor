@@ -229,8 +229,114 @@ void ScriptVariant_ChangeType(ScriptVariant *var, VARTYPE cvt)
     }
 }
 
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Decode one quoted script string literal. Source length is
+  explicit so the lexer may provide a non-owning view instead
+  of copying the literal through fixed token storage.
+*/
+size_t ScriptString_DecodeLiteral(
+    CHAR *destination,
+    size_t destination_size,
+    const CHAR *source,
+    size_t source_length
+)
+{
+    const CHAR *cursor;
+    const CHAR *end;
+    size_t output_length = 0;
+
+    assert(source);
+
+    cursor = source;
+    end = source + source_length;
+
+    if(source_length >= 2 && cursor[0] == '"' && end[-1] == '"')
+    {
+        cursor++;
+        end--;
+    }
+
+#define APPEND_DECODED_CHARACTER(character) \
+    do \
+    { \
+        if(destination && output_length + 1 < destination_size) \
+        { \
+            destination[output_length] = (character); \
+        } \
+        output_length++; \
+    } while(0)
+
+    while(cursor < end)
+    {
+        if(*cursor == '\\' && cursor + 1 < end)
+        {
+            cursor++;
+
+            switch(*cursor)
+            {
+            case 's':
+                APPEND_DECODED_CHARACTER(' ');
+                cursor++;
+                break;
+            case 'r':
+                APPEND_DECODED_CHARACTER('\r');
+                cursor++;
+                break;
+            case 'n':
+                APPEND_DECODED_CHARACTER('\n');
+                cursor++;
+                break;
+            case 't':
+                APPEND_DECODED_CHARACTER('\t');
+                cursor++;
+                break;
+            case '0':
+                APPEND_DECODED_CHARACTER('\0');
+                cursor++;
+                break;
+            case '"':
+                APPEND_DECODED_CHARACTER('"');
+                cursor++;
+                break;
+            case '\'':
+                APPEND_DECODED_CHARACTER('\'');
+                cursor++;
+                break;
+            case '\\':
+                APPEND_DECODED_CHARACTER('\\');
+                cursor++;
+                break;
+            default:
+                /* Preserve the legacy invalid-escape result. */
+                APPEND_DECODED_CHARACTER('\\');
+                APPEND_DECODED_CHARACTER(*cursor);
+                break;
+            }
+        }
+        else
+        {
+            APPEND_DECODED_CHARACTER(*cursor);
+            cursor++;
+        }
+    }
+
+    if(destination && destination_size)
+    {
+        destination[output_length < destination_size
+            ? output_length
+            : destination_size - 1] = '\0';
+    }
+
+#undef APPEND_DECODED_CHARACTER
+
+    return output_length;
+}
+
 // find an existing constant before copy
-void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str)
+void ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str)
 {
     //assert(index<strcache_size);
     //assert(size>0);
@@ -248,6 +354,41 @@ void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str)
 
     ScriptVariant_ChangeType(var, VT_STR);
     var->strVal = StrCache_CreateNewFrom(str);
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Convert a length-delimited source literal directly into a
+  runtime string constant without fixed intermediate storage.
+*/
+void ScriptVariant_ParseStringLiteral(
+    ScriptVariant *var,
+    const CHAR *source,
+    size_t source_length
+)
+{
+    CHAR *decoded;
+    size_t decoded_length;
+
+    decoded_length = ScriptString_DecodeLiteral(
+        NULL,
+        0,
+        source,
+        source_length
+    );
+    decoded = malloc(decoded_length + 1);
+
+    ScriptString_DecodeLiteral(
+        decoded,
+        decoded_length + 1,
+        source,
+        source_length
+    );
+    ScriptVariant_ParseStringConstant(var, decoded);
+
+    free(decoded);
 }
 
 /*
@@ -2567,6 +2708,5 @@ void ScriptVariant_Boolean_Not(ScriptVariant *svar )
     svar->lVal = b;
 
 }
-
 
 

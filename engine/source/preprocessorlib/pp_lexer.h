@@ -73,6 +73,8 @@ typedef struct pp_token
 {
     PP_TOKEN_TYPE theType;
     CHAR theSource[MAX_TOKEN_LENGTH + 1];
+    LPCSTR theStringLiteralSource;     // Non-owning complete literal view.
+    size_t theStringLiteralLength;     // Length of complete literal view.
     TEXTPOS theTextPosition;
     ULONG charOffset;
 } pp_token;
@@ -118,6 +120,4 @@ HRESULT pp_lexer_GetTokenSymbol(pp_lexer *plexer, pp_token *theNextToken);
 HRESULT pp_lexer_SkipComment(pp_lexer *lexer, COMMENT_TYPE theType);
 
 #endif
-
-
 

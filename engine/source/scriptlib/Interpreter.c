@@ -1107,7 +1107,9 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
                 pInstruction = (Instruction *)List_Retrieve(&(pinterpreter->theInstructionList));
                 if(pInstruction->theVal)
                 {
+                    ScriptVariant_Clear(pInstruction->theVal);
                     free(pInstruction->theVal);
+                    pInstruction->theVal = NULL;
                 }
                 if(pInstruction->theRefList)
                 {
@@ -1631,4 +1633,3 @@ void Interpreter_Reset(Interpreter *pinterpreter)
     pinterpreter->bReset = TRUE;
     pinterpreter->bCallCompleted = FALSE;
 }
-

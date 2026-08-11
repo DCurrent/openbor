@@ -10,6 +10,7 @@
 #define SCRIPTVARIANT_H
 
 #include "depends.h"
+#include <stddef.h>
 #include <stdint.h>
 
 typedef enum VariantType {
@@ -77,7 +78,9 @@ void ScriptVariant_Clear(ScriptVariant *var);
 void ScriptVariant_Init(ScriptVariant *var);
 void ScriptVariant_Copy(ScriptVariant *svar, ScriptVariant *rightChild ); // faster in some situations
 void ScriptVariant_ChangeType(ScriptVariant *var, VARTYPE cvt);
-void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str);
+size_t ScriptString_DecodeLiteral(CHAR *destination, size_t destination_size, const CHAR *source, size_t source_length);
+void ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str);
+void ScriptVariant_ParseStringLiteral(ScriptVariant *var, const CHAR *source, size_t source_length);
 HRESULT ScriptVariant_IntegerValue(ScriptVariant *var, LONG *pVal);
 HRESULT ScriptVariant_DecimalValue(ScriptVariant *var, DOUBLE *pVal);
 HRESULT ScriptVariant_Integer64Value(ScriptVariant *var, int64_t *pVal);

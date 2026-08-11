@@ -1025,11 +1025,13 @@ int buffer_pakfile(const char *filename, char **pbuffer, size_t *psize)
 
 int buffer_append(char **buffer, const char *str, size_t n, size_t *bufferlen, size_t *len)
 {
-    size_t appendlen = strlen(str);
-    if(appendlen > n)
+    size_t appendlen = 0;
+
+    while(appendlen < n && str[appendlen])
     {
-        appendlen = n;
+        appendlen++;
     }
+
     if(appendlen + *len + 1 > *bufferlen)
     {
         //printf("*Debug* reallocating buffer...\n");
@@ -1039,7 +1041,7 @@ int buffer_append(char **buffer, const char *str, size_t n, size_t *bufferlen, s
             borShutdown(1, "Unable to resize buffer.\n");
         }
     }
-    strncpy(*buffer + *len, str, appendlen);
+    memcpy(*buffer + *len, str, appendlen);
     *len = *len + appendlen;
     (*buffer)[*len] = 0;
     return *len;
@@ -20191,8 +20193,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_AT_CMD:
             {
-                const char* command_argument = NULL;
-                s_command_argument_reader command_argument_reader;
+                s_command_token command_token;
+                s_command_token_reader command_token_reader;
                 bool first_command_argument;
 
                 //translate @cmd into script function call
@@ -20215,15 +20217,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 scriptbuf[scriptlen - strclen(endifid_text)] = 0; // cut last chars
                 scriptlen = strlen(scriptbuf);
-                if(command_argument_reader_initialize(
-                        &command_argument_reader,
-                        buf + pos,
-                        1
-                    )
-                    && command_argument_reader_next(
-                        &command_argument_reader,
-                        &command_argument
-                    ))
+                command_token_reader = (s_command_token_reader){
+                    .cursor = buf + pos
+                };
+
+                /* Skip @cmd, then read the function name. */
+                if(command_token_reader_next(&command_token_reader, &command_token)
+                    && command_token_reader_next(&command_token_reader, &command_token))
                 {
                     /*
                      //no_cmd_compatible will try to optimize if(frame==n)
@@ -20265,20 +20265,32 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         scriptlen = strlen(scriptbuf);
                     }
                     buffer_append(&scriptbuf, call_indent_text, 0xffffff, &sbsize, &scriptlen);
-                    buffer_append(&scriptbuf, command_argument, 0xffffff, &sbsize, &scriptlen);
+                    buffer_append(
+                        &scriptbuf,
+                        command_token.text,
+                        command_token.length,
+                        &sbsize,
+                        &scriptlen
+                    );
                     buffer_append(&scriptbuf, call_open_text, 0xffffff, &sbsize, &scriptlen);
 
                     first_command_argument = true;
-                    while(command_argument_reader_next(
-                        &command_argument_reader,
-                        &command_argument
+                    while(command_token_reader_next(
+                        &command_token_reader,
+                        &command_token
                     ))
                     {
                         if(!first_command_argument)
                         {
                             buffer_append(&scriptbuf, comma_text, 0xffffff, &sbsize, &scriptlen);
                         }
-                        buffer_append(&scriptbuf, command_argument, 0xffffff, &sbsize, &scriptlen);
+                        buffer_append(
+                            &scriptbuf,
+                            command_token.text,
+                            command_token.length,
+                            &sbsize,
+                            &scriptlen
+                        );
                         first_command_argument = false;
                     }
                 }

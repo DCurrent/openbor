@@ -21,6 +21,15 @@ void Instruction_InitViaToken(Instruction *pins, OpCode code, Token *pToken )
     if(pToken)
     {
         *(pins->theToken) = *pToken;
+
+        /*
+        * Materialize string constants while their non-owning
+        * source view is guaranteed to remain valid.
+        */
+        if(code == CONSTSTR)
+        {
+            Instruction_ConvertConstant(pins);
+        }
     }
     else
     {
@@ -497,7 +506,19 @@ void Instruction_ConvertConstant(Instruction *pins) {
     } else if(pins->OpCode == CONSTSTR) {
         pvar = (ScriptVariant *)malloc(sizeof(ScriptVariant));
         ScriptVariant_Init(pvar);
-        ScriptVariant_ParseStringConstant(pvar, pins->theToken->theSource);
+
+        if(pins->theToken->theStringLiteralSource)
+        {
+            ScriptVariant_ParseStringLiteral(
+                pvar,
+                pins->theToken->theStringLiteralSource,
+                pins->theToken->theStringLiteralLength
+            );
+        }
+        else
+        {
+            ScriptVariant_ParseStringConstant(pvar, pins->theToken->theSource);
+        }
     
     } else {
         return;
