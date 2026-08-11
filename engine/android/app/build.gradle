@@ -16,9 +16,7 @@ android {
 
         externalNativeBuild {
           ndkBuild {
-              // currently supports with pre-built libraries for following
-              // two target abis removed arm64 as unsupported for now
-              abiFilters 'arm64-v8a', 'armeabi-v7a'
+              abiFilters 'arm64-v8a'
           }
         }
     }

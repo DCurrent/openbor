@@ -10,22 +10,6 @@
 # Script acquires the verison number from GIT Repository and creates
 # a version.h as well as the environment variable to be used.
 
-function check_git {
-HOST_PLATFORM=$(uname -s)
-if [ `echo $HOST_PLATFORM | grep -o "windows"` ]; then
-  if [ ! -d "../tools/mingit/mingw32" ]; then
-    echo "-------------------------------------------------------"
-    echo "           GIT - Not Found, Installing GIT!"
-    echo "-------------------------------------------------------"
-    7za x -y ../tools/mingit/MinGit-2.21.0-32-bit.7z -o../tools/mingit/
-    echo
-    echo "-------------------------------------------------------"
-    echo "           GIT - Installation Has Completed!"
-    echo "-------------------------------------------------------"
-  fi
-fi
-}
-
 function get_revnum {
   if test -d "../.git" || test -d ".git"; then
     VERSION_BUILD=`git rev-list --count HEAD`
@@ -43,7 +27,6 @@ function get_revnum {
 
 
 function read_version {
-check_git
 get_revnum
 VERSION_NAME="OpenBOR"
 VERSION_MAJOR=4

@@ -39,6 +39,7 @@ OpenBOR currently supports the following platforms.
 
 * Android
 * Linux
+* macOS
 * Windows
 
 ## OpenBOR Team

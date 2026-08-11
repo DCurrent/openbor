@@ -1,111 +1,266 @@
-# General Overview
-The build configuration management tool used for OpenBOR is cmake with a minimum version requirement of 3.22
+# OpenBOR Compilation Guide
 
-Cmake can be installed via a standard package managing tool such (APT/YUM/Pacman) or can be downloaded via https://cmake.org (Source and Executables are Available).
+OpenBOR requires a 64-bit target architecture. Desktop builds use CMake 3.22 or newer with the root `CMakeLists.txt` and platform modules under `cmake/`. Android uses the Gradle/NDK project under `engine/android/`.
 
-# File Hierarchy
-Within the root of the OpenBOR repository you will find CMakeLists.txt which contains the base configuration which covers all the pre-processor features supported by OpenBOR.  A subdirectory labled "cmake" contains target modules which are used to configure OpenBOR for your platform of choice.  Currently supported is the following list of targets:
+The accepted desktop `TARGET_ARCH` values are `AMD64`, `ARM64`, and `UNIVERSAL`, with availability depending on the target platform. Android targets the 64-bit `arm64-v8a` ABI. The legacy engine Makefile and shell build system are no longer supported.
 
-    Linux   (linux.cmake)
-    Windows (windows.cmake, windows-finalize.cmake)
-    Darwin  (macos.cmake, macos-finalize.cmake)
+Git must be available on `PATH`. Build workflows invoke `engine/version.sh`, which reads the current Git revision to generate the engine version information.
 
-# Building Target
-Cmake provides various options for building a targets in general, however we are only going to focus on a subset of these options.  Typically running the cmake command without addition parameters is enough for the configuration system to identify which host you are running on in order to build a native target.  A few example are provided below to showcase how to configure and build a OpenBOR target.
+## Desktop Build Configuration
 
-## Configuring and Building a Native Target
-Clear previous build directory, Set new configuration for distribution and build target:
+The root CMake configuration selects one desktop platform target:
 
-    rm -rf build && cmake -S . --config Release -- -j `nprog`
-    engine/releases/[TARGET]/OpenBOR
+- `BUILD_WIN=ON` - Windows
+- `BUILD_LINUX=ON` - Linux
+- `BUILD_DARWIN=ON` - macOS
 
-Clear previous build directory, Set new configuration for debuging the build target:
+If no platform option is supplied, CMake attempts to detect the native host platform automatically. Explicit platform and architecture options are recommended for reproducible builds.
 
-    rm -rf build && cmake -S . --config Debug -- -j `nprog`
-    engine/releases/[TARGET]/OpenBOR
+The primary architecture targets are:
 
-## Alternative Commands
-Clear previous build directory, Set new configuration for distribution and build target:
+- Windows: `AMD64`
+- Linux: `AMD64` or `ARM64`
+- macOS: `ARM64`
+- macOS universal builds: `UNIVERSAL` when the required dual-architecture dependencies are installed
+- Android: `arm64-v8a` through Gradle/NDK
 
-    rm -rf build
-    mkdir build
-    cmake .. -DCMAKE_BUILD_TYPE=Release
-    make -j `nproc`
-    
-    engine/releases/[TARGET]/OpenBOR
+Windows ARM64 is recognized by the configuration layer, but MinGW ARM64 cross-compilation is not currently supported.
 
-# Docker Integration
-In this repository we also have support for Docker which allows us to build all supported targets via cross-compilation toolchains.
+# Direct Desktop Builds with Ninja
 
-    .devcontainer/Dockerfile
+Docker is not required to build OpenBOR. For normal desktop development, the simplest build path is a native compiler environment with CMake and Ninja.
 
-## Prerequisite
-Docker can be installed via a standard package managing tool such as APT/Yum or can be directly downloaded from https://www.docker.com/products/docker-desktop
+The general pattern is:
 
-First time users should install Docker Desktop as it provides a visual interface to manage images, containers and installs the command line tools for when the need arises for low-level management.
+```sh
+rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -D<PLATFORM>=ON -DTARGET_ARCH=<ARCH>
+cmake --build build --parallel
+```
 
-## Setting up Environment (VSCode)
-Via VSCode Explorer, open the root of your repository and the IDE will automatically detect and ask permissions to install all necessary plugins.  You may have to open a few files if the automatic detection does not occur such as the Dockerfile, CMakeLists.txt and a source file.
+For a debug build, replace `Release` with `Debug`.
 
-Once the plugins have completed installing you maybe prompted to re-open the project within a container: Click Yes to restart VSCode within the container and simply use the Built-In Terminal to invoke your cmake build commands.
+Ninja is a single-configuration generator, so `CMAKE_BUILD_TYPE` is selected when configuring. A separate `--config Release` argument is not required when building.
 
-At this point you are ready to build all supported platforms from within the VSCode Terminal.  A script is provided to generate all build targets for distribution.
+## Windows AMD64 - MSYS2 UCRT64
 
-Terminal Tab:
+The recommended direct Windows environment is MSYS2 UCRT64.
 
+Install MSYS2, then open the **MSYS2 UCRT64** terminal. Install the compiler, CMake, Ninja, Git, and OpenBOR dependencies:
 
-        vscode ➜ /workspaces/openbor (compiling) $ ./build-all.sh
+```sh
+pacman -S --needed \
+    git \
+    mingw-w64-ucrt-x86_64-gcc \
+    mingw-w64-ucrt-x86_64-cmake \
+    mingw-w64-ucrt-x86_64-ninja \
+    mingw-w64-ucrt-x86_64-SDL2 \
+    mingw-w64-ucrt-x86_64-zlib \
+    mingw-w64-ucrt-x86_64-libvorbis \
+    mingw-w64-ucrt-x86_64-libogg \
+    mingw-w64-ucrt-x86_64-libpng \
+    mingw-w64-ucrt-x86_64-libvpx
+```
 
-## Setting up Environment (Manually)
-Using the Docker command line tool we will create a base image and then start a container which will be used for building cross-platform targets.
+From the root of the OpenBOR repository:
 
-### Creating Base Image
-Creating a base image only needs to be done once unless updates were performed to the Dockerfile which will require us to regenerate a new base image.  Assuming you are in the root directory of the repository type the following and wait for the process to complete.
+```sh
+rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_WIN=ON -DTARGET_ARCH=AMD64
+cmake --build build --parallel
+```
 
-    cd .devcontainer
-    docker build -t openbor .
+The packaged executable is written to:
 
-### Instanciating a Container
-Return back to the the root of the repository and now you can invoke your development environment which will automatically mount the root directory of the repository and we can now build the targets.
+```text
+engine/releases/WINDOWS/OpenBOR-x64.exe
+```
 
-        docker run -it --rm -v $(pwd):/workspace openbor
+Run the commands from the UCRT64 terminal rather than the plain MSYS shell so CMake uses the UCRT64 compiler and libraries.
 
-        root@7e7774eba72b:/workspace$ ls -l
+## Linux AMD64
 
-            total 44
-            -rw-r--r--  1 root root 6296 Apr 29 11:00 CMakeLists.txt
-            -rw-r--r--  1 root root   88 Apr 20 15:13 CODEOWNERS
-            -rw-r--r--  1 root root 3211 Apr 20 15:13 CODE_OF_CONDUCT.md
-            -rw-r--r--  1 root root   30 Apr 29 11:02 COMPILING.md
-            -rw-r--r--  1 root root 2408 Apr 20 15:13 CONTRIBUTING.md
-            -rw-r--r--  1 root root 1537 Apr 20 15:13 LICENSE
-            -rw-r--r--  1 root root  197 Apr 20 15:13 PULL_REQUEST_TEMPLATE.md
-            -rw-r--r--  1 root root 8059 Apr 20 15:13 README.md
-            -rwxr-xr-x  1 root root 1053 Apr 23 21:15 build-all.sh
-            drwxr-xr-x  8 root root  256 Apr 29 11:00 cmake
-            drwxr-xr-x 27 root root  864 Apr 25 01:03 engine
-            drwxr-xr-x  3 root root   96 Apr 20 15:13 media
-            drwxr-xr-x 14 root root  448 Apr 20 15:13 tools
-        
+On Debian or Ubuntu, install the native compiler, CMake, Ninja, Git, and required libraries:
 
-### Building from within a Container
-Using the build scripts provided in the repository we can now ensure that all supported targets can be built successfully and are ready for distribution.  Once completed simply type exit to end your container session.
+```sh
+sudo apt-get update
+sudo apt-get install -y \
+    build-essential \
+    git \
+    cmake \
+    ninja-build \
+    libsdl2-dev \
+    libvorbis-dev \
+    libpng-dev \
+    libvpx-dev
+```
 
-        root@7e7774eba72b:/workspace$ ./build-all.sh
-        
-        root@7e7774eba72b:/workspace$ ls -l engine/releases/
-        
-            total 20
-            -rw-r--r-- 1 root root   98 Apr 20 15:13 COMPILING.txt
-            drwxr-xr-x 3 root root   96 Apr 21 01:28 DARWIN
-            -rw-r--r-- 1 root root 1537 Apr 20 15:13 LICENSE.txt
-            drwxr-xr-x 9 root root  288 Apr 21 01:24 LINUX
-            -rw-r--r-- 1 root root  314 Apr 20 15:13 README.txt
-            drwxr-xr-x 8 root root  256 Apr 21 01:24 WINDOWS
-            -rw-r--r-- 1 root root 5871 Apr 20 15:13 translation.txt
+Configure and build from the repository root:
 
-        root@7e7774eba72b:/workspace$ exit
+```sh
+rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_LINUX=ON -DTARGET_ARCH=AMD64
+cmake --build build --parallel
+```
 
-### Single line command for building all targets
+The packaged executable is written to:
 
-    docker run -it --rm -v $(pwd):/workspace openbor ./build-all.sh
+```text
+engine/releases/LINUX/OpenBOR
+```
+
+## Linux ARM64
+
+On a native ARM64 Linux system, install the same native dependencies and configure with `TARGET_ARCH=ARM64`:
+
+```sh
+rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_LINUX=ON -DTARGET_ARCH=ARM64
+cmake --build build --parallel
+```
+
+The packaged executable is written to:
+
+```text
+engine/releases/LINUX/OpenBOR-arm64
+```
+
+For Linux ARM64 cross-compilation from an AMD64 host, the Docker/dev-container environment is generally easier because it already provides the AArch64 compiler and ARM64 development libraries.
+
+## macOS ARM64
+
+Install CMake, Ninja, and the required Homebrew dependencies:
+
+```sh
+brew install cmake ninja SDL2 libvorbis libogg libvpx
+```
+
+Configure and build from the repository root:
+
+```sh
+rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_DARWIN=ON -DTARGET_ARCH=ARM64
+cmake --build build --parallel
+```
+
+The application bundle is written to:
+
+```text
+engine/releases/DARWIN/OpenBOR.app
+```
+
+Universal macOS builds require both ARM64 and x86-64 Homebrew dependency trees and are an advanced configuration. See `cmake/macos-finalize.cmake` for the additional universal-build prefix requirements.
+
+# Android ARM64 Builds
+
+Android does not use the root CMake build. It uses the Gradle project and Android NDK configuration under `engine/android/` and currently targets only the 64-bit `arm64-v8a` ABI.
+
+The Android project currently requires:
+
+- JDK 17
+- Android SDK Platform 35
+- Android Build Tools 36.0.0
+- Android NDK 21.4.7075529
+
+Install the Android command-line tools using the normal Android SDK setup for your operating system, then install the exact project packages with `sdkmanager`:
+
+```sh
+sdkmanager "platforms;android-35" "build-tools;36.0.0" "ndk;21.4.7075529"
+```
+
+Make sure `ANDROID_SDK_ROOT` or `ANDROID_HOME` points to your Android SDK installation and Java 17 is active.
+
+From the repository root, generate the version information and build a debug APK with the checked-in Gradle wrapper:
+
+```sh
+cd engine
+bash version.sh
+cd android
+chmod +x gradlew
+./gradlew --no-daemon clean assembleDebug
+```
+
+The debug APK is written to:
+
+```text
+engine/android/app/build/outputs/apk/debug/OpenBOR.apk
+```
+
+Release APKs require signing configuration. See `engine/android/README` for keystore and standalone-game packaging details.
+
+GitHub Actions performs the same ARM64 debug build on every push and pull request, including installation of the pinned SDK, build-tools, and NDK packages.
+
+# Docker and Dev Container Builds
+
+The repository also provides a Docker/dev-container environment for desktop cross-platform compilation. This is useful when building several supported desktop targets from one host or when a native toolchain is inconvenient.
+
+The environment is defined by:
+
+```text
+.devcontainer/Dockerfile
+.devcontainer/devcontainer.json
+```
+
+The current container includes toolchains and dependencies for:
+
+- Linux AMD64
+- Linux ARM64
+- Windows AMD64 cross-compilation
+
+Android is built separately with its Gradle/NDK toolchain and is not part of `build-all.sh`.
+
+## VS Code Dev Container
+
+Open the repository in Visual Studio Code with the Dev Containers extension installed and reopen the workspace in the provided container. From the integrated terminal, the aggregate build script can be run directly:
+
+```sh
+./build-all.sh
+```
+
+## Manual Docker Setup
+
+Build the image from the repository root:
+
+```sh
+docker build -t openbor .devcontainer
+```
+
+Start a temporary container with the repository mounted at `/workspace`:
+
+```sh
+docker run -it --rm -v "$(pwd):/workspace" openbor
+```
+
+Inside the container, build all configured aggregate desktop targets:
+
+```sh
+./build-all.sh
+```
+
+The aggregate script currently builds:
+
+- Linux AMD64
+- Linux ARM64
+- Windows AMD64
+
+A one-line Docker build invocation is also available:
+
+```sh
+docker run -it --rm -v "$(pwd):/workspace" openbor ./build-all.sh
+```
+
+# Build Output
+
+The main output locations are:
+
+```text
+engine/releases/WINDOWS/OpenBOR-x64.exe
+engine/releases/LINUX/OpenBOR
+engine/releases/LINUX/OpenBOR-arm64
+engine/releases/DARWIN/OpenBOR.app
+engine/android/app/build/outputs/apk/debug/OpenBOR.apk
+```
+
+Desktop platform modules copy completed builds into `engine/releases/`. Android keeps its APK under the Gradle build output directory.
+
+The build workflows also refresh `engine/version.h`, `engine/version.txt`, and platform release metadata through `engine/version.sh`.

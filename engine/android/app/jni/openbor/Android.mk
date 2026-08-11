@@ -52,7 +52,7 @@ include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := openbor
-LOCAL_CFLAGS    := -g -O2 -Wall -Werror -Wno-unused-result -fsigned-char -fno-ident -freorder-blocks
+LOCAL_CFLAGS    := -g -O2 -Wall -Werror -Wno-unused-result -Wno-missing-braces -fsigned-char -fno-ident -freorder-blocks
 LOCAL_CFLAGS    += -DLINUX -DSDL=1 -DANDROID=1 -DTREMOR=1 -DWEBM=1
 LOCAL_CPPFLAGS  := ${LOCAL_CFLAGS}
 

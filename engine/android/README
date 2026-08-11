@@ -2,7 +2,7 @@
 # Windows 64 bit Build instructions
 ##############################################
 
-First Download and install JAVA JDK 11. once installed open a command promt window and type "java -version" if it confirms you have java 11 installed.
+First Download and install JAVA JDK 17. once installed open a command promt window and type "java -version" if it confirms you have java 17 installed.
 
 Now download the Android SDK but be sure to get the "command line tools only" package and extract it to the folder "C:\android\sdk\" if this path is missing make it. Now confirm your have this path "C:\android\sdk\cmdline-tools\bin\sdkmanager.bat" if you have a match your done with this step.
 
@@ -105,4 +105,4 @@ Anyway for debugging and development, you can
 ###################
 
 * Minimum SDK (API Level) is 21 at the moment
-* Support building for two architectures (with included pre-built libraries) arm64-v8a, and armeabi-v7a.
+* Android builds target the 64-bit arm64-v8a architecture.
