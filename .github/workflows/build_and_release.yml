@@ -70,3 +70,49 @@ jobs:
       with:
         name: "${{ env.version_name }}_${{ matrix.platform.name }}"
         path: engine/releases/
+
+  Android:
+    name: Android-arm64
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '17'
+        cache: gradle
+        cache-dependency-path: |
+          engine/android/*.gradle
+          engine/android/gradle/wrapper/gradle-wrapper.properties
+          engine/android/app/*.gradle
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v4
+
+    - name: Install Android packages
+      run: sdkmanager "platforms;android-35" "build-tools;36.0.0" "ndk;21.4.7075529"
+
+    - name: Generate version
+      working-directory: engine
+      run: bash version.sh
+
+    - name: Build Android ARM64
+      working-directory: engine/android
+      run: |
+        chmod +x gradlew
+        ./gradlew --no-daemon clean assembleDebug
+
+    - name: Version
+      run: echo "version_name=$(cat engine/version.txt)" >> $GITHUB_ENV
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: "${{ env.version_name }}_Android-arm64"
+        path: engine/android/app/build/outputs/apk/debug/OpenBOR.apk
+        if-no-files-found: error
