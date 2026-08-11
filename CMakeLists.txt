@@ -8,7 +8,8 @@ option(BUILD_LINUX  "Linux" OFF)
 option(BUILD_DARWIN "MacOS" OFF)
 
 # Backends
-option(TARGET_ARCH "[X86,AMD64,ARM64,UNIVERSAL]" OFF)
+set(TARGET_ARCH "" CACHE STRING "Target architecture [AMD64,ARM64,UNIVERSAL]")
+set_property(CACHE TARGET_ARCH PROPERTY STRINGS AMD64 ARM64 UNIVERSAL)
 option(USE_SDL     "Enable SDL" OFF)
 option(USE_OPENGL  "Enable OpenGL" OFF)
 option(USE_LOADGL  "Enable SDL w/OpenGL Support" OFF)
@@ -32,6 +33,11 @@ string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" CMAKE_SYSTEM_PROCESSOR)
 # Detect Target Architecture
 if(NOT TARGET_ARCH)
   set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+# Reject Unsupported 32-bit X86 Targets
+if(TARGET_ARCH MATCHES "^(x86|i[3-6]86|x86_32)$")
+  message(FATAL_ERROR "32-bit X86 targets are no longer supported. Supported TARGET_ARCH values: AMD64, ARM64, UNIVERSAL.")
 endif()
 
 # Default Compilation Flags
