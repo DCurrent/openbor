@@ -35,6 +35,11 @@ if(NOT TARGET_ARCH)
   set(TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
+# Require 64-bit Execution Environment
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+  message(FATAL_ERROR "OpenBOR requires a 64-bit target architecture.")
+endif()
+
 # Reject Unsupported 32-bit X86 Targets
 if(TARGET_ARCH MATCHES "^(x86|i[3-6]86|x86_32)$")
   message(FATAL_ERROR "32-bit X86 targets are no longer supported. Supported TARGET_ARCH values: AMD64, ARM64, UNIVERSAL.")
