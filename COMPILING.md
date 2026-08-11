@@ -1,14 +1,14 @@
 # OpenBOR Compilation Guide
 
-OpenBOR uses CMake for build configuration and requires CMake 3.22 or newer. The supported engine build system is the root `CMakeLists.txt` and the platform modules under `cmake/`.
+OpenBOR requires a 64-bit target architecture. Desktop builds use CMake 3.22 or newer with the root `CMakeLists.txt` and platform modules under `cmake/`. Android uses the Gradle/NDK project under `engine/android/`.
 
-OpenBOR now requires a 64-bit target architecture. The accepted `TARGET_ARCH` values are `AMD64`, `ARM64`, and `UNIVERSAL`, with availability depending on the target platform. The legacy engine Makefile and shell build system are no longer supported.
+The accepted desktop `TARGET_ARCH` values are `AMD64`, `ARM64`, and `UNIVERSAL`, with availability depending on the target platform. Android targets the 64-bit `arm64-v8a` ABI. The legacy engine Makefile and shell build system are no longer supported.
 
-Git must also be available on `PATH`. The CMake build invokes `engine/version.sh`, which reads the current Git revision to generate the engine version information.
+Git must be available on `PATH`. Build workflows invoke `engine/version.sh`, which reads the current Git revision to generate the engine version information.
 
-## Build Configuration
+## Desktop Build Configuration
 
-The root CMake configuration selects one platform target:
+The root CMake configuration selects one desktop platform target:
 
 - `BUILD_WIN=ON` - Windows
 - `BUILD_LINUX=ON` - Linux
@@ -22,12 +22,13 @@ The primary architecture targets are:
 - Linux: `AMD64` or `ARM64`
 - macOS: `ARM64`
 - macOS universal builds: `UNIVERSAL` when the required dual-architecture dependencies are installed
+- Android: `arm64-v8a` through Gradle/NDK
 
 Windows ARM64 is recognized by the configuration layer, but MinGW ARM64 cross-compilation is not currently supported.
 
-# Direct Builds with Ninja
+# Direct Desktop Builds with Ninja
 
-Docker is not required to build OpenBOR. For normal local development, the simplest build path is a native compiler environment with CMake and Ninja.
+Docker is not required to build OpenBOR. For normal desktop development, the simplest build path is a native compiler environment with CMake and Ninja.
 
 The general pattern is:
 
@@ -150,9 +151,48 @@ engine/releases/DARWIN/OpenBOR.app
 
 Universal macOS builds require both ARM64 and x86-64 Homebrew dependency trees and are an advanced configuration. See `cmake/macos-finalize.cmake` for the additional universal-build prefix requirements.
 
+# Android ARM64 Builds
+
+Android does not use the root CMake build. It uses the Gradle project and Android NDK configuration under `engine/android/` and currently targets only the 64-bit `arm64-v8a` ABI.
+
+The Android project currently requires:
+
+- JDK 17
+- Android SDK Platform 35
+- Android Build Tools 36.0.0
+- Android NDK 21.4.7075529
+
+Install the Android command-line tools using the normal Android SDK setup for your operating system, then install the exact project packages with `sdkmanager`:
+
+```sh
+sdkmanager "platforms;android-35" "build-tools;36.0.0" "ndk;21.4.7075529"
+```
+
+Make sure `ANDROID_SDK_ROOT` or `ANDROID_HOME` points to your Android SDK installation and Java 17 is active.
+
+From the repository root, generate the version information and build a debug APK with the checked-in Gradle wrapper:
+
+```sh
+cd engine
+bash version.sh
+cd android
+chmod +x gradlew
+./gradlew --no-daemon clean assembleDebug
+```
+
+The debug APK is written to:
+
+```text
+engine/android/app/build/outputs/apk/debug/OpenBOR.apk
+```
+
+Release APKs require signing configuration. See `engine/android/README` for keystore and standalone-game packaging details.
+
+GitHub Actions performs the same ARM64 debug build on every push and pull request, including installation of the pinned SDK, build-tools, and NDK packages.
+
 # Docker and Dev Container Builds
 
-The repository also provides a Docker/dev-container environment for cross-platform compilation. This is useful when building several supported targets from one host or when a native toolchain is inconvenient.
+The repository also provides a Docker/dev-container environment for desktop cross-platform compilation. This is useful when building several supported desktop targets from one host or when a native toolchain is inconvenient.
 
 The environment is defined by:
 
@@ -166,6 +206,8 @@ The current container includes toolchains and dependencies for:
 - Linux AMD64
 - Linux ARM64
 - Windows AMD64 cross-compilation
+
+Android is built separately with its Gradle/NDK toolchain and is not part of `build-all.sh`.
 
 ## VS Code Dev Container
 
@@ -189,7 +231,7 @@ Start a temporary container with the repository mounted at `/workspace`:
 docker run -it --rm -v "$(pwd):/workspace" openbor
 ```
 
-Inside the container, build all configured aggregate targets:
+Inside the container, build all configured aggregate desktop targets:
 
 ```sh
 ./build-all.sh
@@ -209,13 +251,16 @@ docker run -it --rm -v "$(pwd):/workspace" openbor ./build-all.sh
 
 # Build Output
 
-Platform modules copy completed builds into `engine/releases/`. The main output locations are:
+The main output locations are:
 
 ```text
 engine/releases/WINDOWS/OpenBOR-x64.exe
 engine/releases/LINUX/OpenBOR
 engine/releases/LINUX/OpenBOR-arm64
 engine/releases/DARWIN/OpenBOR.app
+engine/android/app/build/outputs/apk/debug/OpenBOR.apk
 ```
 
-The CMake build also refreshes `engine/version.h`, `engine/version.txt`, and platform release metadata through `engine/version.sh`.
+Desktop platform modules copy completed builds into `engine/releases/`. Android keeps its APK under the Gradle build output directory.
+
+The build workflows also refresh `engine/version.h`, `engine/version.txt`, and platform release metadata through `engine/version.sh`.
