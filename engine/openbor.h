@@ -4353,13 +4353,13 @@ void unfrozen(entity *e);
 /* Defense. */
 int calculate_force_damage(entity* target, entity* attacker, s_attack* attack_object, const s_defense* defense_object, const bool blocked);
 s_defense* defense_allocate_object(void);
-void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
+void defense_apply_setup_to_property(char* filename, char* command, const char* command_line, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 void defense_dump_object(const s_defense* target);
 void defense_free_object(s_defense* target);
 const s_defense* defense_find_current_object(const entity* ent, const s_body* body_object, const attack_type_t attack_type);
 int64_t defense_result_damage(const s_defense* defense_object, int64_t attack_force, bool blocked);
 int defense_result_pain(s_attack* attack_object, const s_defense* defense_object);
-void defense_setup_from_arg(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
+void defense_setup_from_arg(char* filename, char* command, const char* command_line, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter);
 
 s_offense* offense_allocate_object(void);
 void offense_free_object(s_offense* target);
@@ -4372,11 +4372,11 @@ s_recursive_effect*         recursive_effect_allocate_object(void);
 void                        recursive_effect_check_apply(entity* ent, entity* other, s_attack* attack);
 void                        recursive_effect_dump_object(s_recursive_effect* recursive);
 void                        recursive_effect_free_object(s_recursive_effect* target);
-e_damage_recursive_logic    recursive_effect_get_mode_setup_from_arg_list(ArgList* arglist);
+e_damage_recursive_logic    recursive_effect_get_mode_setup_from_command_line(const char* command_line);
 e_damage_recursive_logic    recursive_effect_get_mode_setup_from_legacy_argument(e_damage_recursive_cmd_read value);
 
 /* Blocking logic. */
-e_block_config_flags block_get_config_flags_from_arguments(const ArgList* arglist);
+e_block_config_flags block_get_config_flags_from_command_line(const char* command_line);
 e_block_config_flags block_get_config_flag_from_string(const char* value);
 bool    check_blocking_decision(entity *ent);
 bool    check_blocking_eligible(entity *ent, entity *other, s_attack *attack, s_body* body, e_block_state_flags block_state);
@@ -4542,7 +4542,7 @@ void faction_copy_data(s_faction* dest, s_faction* source);
 bool faction_check_can_damage(entity* acting_entity, entity* target_entity, const bool indirect);
 int faction_check_is_hostile(entity* acting_entity, entity* target_entity);
 int faction_check_player_verses(entity* acting_entity, entity* target_entity, faction_group_mask_t faction_property);
-faction_group_mask_t faction_get_flags_from_arglist(const ArgList* arglist);
+faction_group_mask_t faction_get_flags_from_command_line(const char* command_line);
 faction_group_mask_t faction_get_flag_from_string(const char* value);
 
 /* Bind control */
@@ -4559,8 +4559,8 @@ s_child_follow* child_follow_allocate_object();
 
 /* Child spawn control */
 int child_spawn_get_color_from_argument(char* filename, char* command, char* value);
-e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_spawn_config config_current);
-e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value);
+e_child_spawn_config child_spawn_get_config_argument(const char* command_line, e_child_spawn_config config_current);
+e_child_spawn_config child_spawn_get_config_bit_from_argument(const char* value);
 
 s_child_spawn*  child_spawn_allocate_object();
 s_child_spawn*  child_spawn_append_node(struct s_child_spawn* head);
@@ -4659,7 +4659,7 @@ e_falldie_config death_config_get_falldie_from_value(e_death_config_flags acting
 e_death_config_flags death_config_get_value_from_falldie(e_death_config_flags current_value, e_falldie_config acting_value);
 e_death_config_flags death_config_get_value_from_nodieblink(e_death_config_flags current_value, e_nodieblink_config acting_value);
 e_nodieblink_config death_config_get_nodieblink_from_value(e_death_config_flags acting_value);
-e_death_config_flags death_get_config_flags_from_arguments(const ArgList* arglist, int start_position);
+e_death_config_flags death_get_config_flags_from_command_line(const char* command_line, size_t start_position);
 e_death_config_flags death_get_config_flag_from_string(const char* value);
 
 typedef enum e_death_sequence_acting_event
@@ -4672,7 +4672,7 @@ int death_try_sequence_damage(entity* acting_entity, e_death_config_flags death_
 
 /* Running */
 e_run_config_flags run_get_config_flag_from_string(const char* value);
-e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const uint64_t start_position);
+e_run_config_flags run_get_config_flags_from_command_line(const char* command_line, size_t start_position);
 void run_try_runstop_player(entity* acting_entity, const s_player* acting_player);
 void run_try_runstop_check(entity* acting_entity, const e_RunXDirection movex, const e_RunZDirection movez, const e_RunXDirection running_x, const e_RunZDirection running_z, const int runConfigFlags, const int dashCommandFlag, const int dashFixedFlag, const int enabledFlag, const int stopStateFlag);
 
@@ -4682,29 +4682,29 @@ e_shadow_config_flags shadow_get_config_from_legacy_aironly(e_shadow_config_flag
 e_shadow_config_flags shadow_get_config_from_legacy_gfxshadow(e_shadow_config_flags shadow_config_flags, int legacy_value);
 e_shadow_config_flags shadow_get_config_from_legacy_shadowbase(e_shadow_config_flags shadow_config_flags, e_shadowbase_config legacy_value);
 e_shadow_config_flags shadow_get_config_flag_from_string(const char* value);
-e_shadow_config_flags shadow_get_config_flags_from_arguments(const ArgList* arglist);
+e_shadow_config_flags shadow_get_config_flags_from_command_line(const char* command_line);
 
 // Meta data control.
 void meta_data_free_list(s_meta_data* head);
 
 /* Model flag control. */
 e_model_copy get_model_flag_from_legacy_int(int legacy_int);
-e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value);
-void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar);
+e_model_copy get_model_flag_from_argument(const char* filename, const char* command, const char* value);
+void lcmHandleCommandModelFlag(char* filename, char* command, const char* command_line, s_model* newchar);
 
 /* Pain and fall (model) */
-e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist);
+e_pain_config_flags pain_get_config_flags_from_command_line(const char* command_line);
 e_pain_config_flags pain_get_config_flag_from_string(const char* value);
 
 /* Weapon loss control */
-e_weapon_loss_condition get_weapon_loss_from_argument(char* value);
-void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar);
+e_weapon_loss_condition get_weapon_loss_from_argument(const char* value);
+void lcmHandleCommandWeaponLossCondition(const char* command_line, s_model* newchar);
 
 int play_hit_impact_sound(s_attack* attack_object, entity* attacking_entity, int attack_blocked);
 
 void cache_model(char *name, char *path, int flag);
 void free_modelcache();
-int get_cached_model_index(char *name);
+int get_cached_model_index(const char *name);
 char *get_cached_model_path(char *name);
 s_model *load_cached_model(char *name, char *owner, char unload);
 int is_set(s_model *model, int m);

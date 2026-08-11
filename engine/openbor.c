@@ -3307,6 +3307,107 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
 }
 
 /*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Reserve fixed storage for one sequentially read command
+  argument. Keep this independent from the legacy command-line,
+  script file-stream, path, and persistent save-field limit.
+*/
+#define MAX_COMMAND_ARGUMENT_LEN 64
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Maintain sequential command argument reading state. The
+  underlying token reader walks the source line directly,
+  while one fixed scratch buffer holds only the current item.
+*/
+typedef struct s_command_argument_reader
+{
+    s_command_token_reader token_reader;
+    char value[MAX_COMMAND_ARGUMENT_LEN];
+} s_command_argument_reader;
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Initialize a command argument reader at the requested
+  argument index. Skip preceding items directly in the
+  source line without collecting them into a buffer.
+*/
+static bool command_argument_reader_initialize(
+    s_command_argument_reader* reader,
+    const char* command_line,
+    size_t argument_index
+) {
+    s_command_token skipped_token;
+
+    assert(reader);
+    assert(command_line);
+
+    *reader = (s_command_argument_reader){
+        .token_reader = {
+            .cursor = command_line
+        }
+    };
+
+    while(argument_index) {
+        if(!command_token_reader_next(
+                &reader->token_reader,
+                &skipped_token
+            )) {
+            return false;
+        }
+
+        argument_index--;
+    }
+
+    return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read the next command argument into the reader's reusable
+  fixed buffer. Enforce the dedicated per-item length limit
+  without imposing whole-line or argument-count limits.
+*/
+static bool command_argument_reader_next(
+    s_command_argument_reader* reader,
+    const char** value
+) {
+    s_command_token token;
+
+    assert(reader);
+    assert(value);
+
+    if(!command_token_reader_next(&reader->token_reader, &token)) {
+        *value = NULL;
+        return false;
+    }
+
+    if(token.length >= sizeof(reader->value)) {
+        borShutdown(
+            1,
+            "Command argument exceeds the maximum length of %zu characters.\n",
+            sizeof(reader->value) - 1
+        );
+        *value = NULL;
+        return false;
+    }
+
+    memcpy(reader->value, token.text, token.length);
+    reader->value[token.length] = '\0';
+    *value = reader->value;
+
+    return true;
+}
+
+/*
 * Compare a command token with a null-terminated
 * string without regard to letter case.
 */
@@ -6624,43 +6725,87 @@ static void reset_playable_list(char which)
     }
 }
 
-// Specify which Player Models are allowable for selecting
-static void load_playable_list(char *buf)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read selectable player model names directly from the source
+  line one item at a time. Apply the complete runtime list and
+  retain as many whole arguments as the legacy save field holds.
+*/
+static void load_playable_list(const char* command_line)
 {
-    int i, index;
-    char *value;
-    s_model *playermodels = NULL;
-    ArgList arglist;
-    char argbuf[MAX_ALLOWSELECT_LEN] = "";
+    const char* value;
+    s_command_argument_reader reader;
+    s_model* playermodel;
+    size_t saved_length = 0;
+    bool save_capacity_reached = false;
+    int index;
 
-    ParseArgs(&arglist, buf, argbuf);
-
-    // avoid to load characters if there isn't an allowselect
-    if ( stricmp(value = GET_ARG(0), "allowselect") != 0 ) return;
+    if(!command_argument_reader_initialize(
+            &reader,
+            command_line,
+            0
+        )
+        || !command_argument_reader_next(&reader, &value)
+        || stricmp(value, "allowselect") != 0) {
+        return;
+    }
 
     reset_playable_list(0);
+    memset(allowselect_args, 0, sizeof(allowselect_args));
+    memcpy(
+        allowselect_args,
+        "allowselect",
+        sizeof("allowselect")
+    );
+    saved_length = sizeof("allowselect") - 1;
 
-    for(i = 0; i < sizeof(argbuf); i++) allowselect_args[i] = ' ';
-    for(i = 0; i < sizeof(argbuf); i++)
-    {
-        if ( argbuf[i] != '\0' ) allowselect_args[i] = argbuf[i]; // store allowselect players for savefile
-        else allowselect_args[i] = ' ';
-    }
-    allowselect_args[sizeof(argbuf)-1] = '\0';
+    while(command_argument_reader_next(&reader, &value)) {
+        const size_t value_length = strlen(value);
+        const size_t remaining_capacity =
+            sizeof(allowselect_args) - saved_length;
 
-    for(i = 1; (value = GET_ARG(i))[0]; i++)
-    {
-        playermodels = findmodel(value);
-        //if(playermodels == NULL) borShutdown(1, "Player model '%s' is not loaded.\n", value);
-        index = get_cached_model_index(playermodels->name);
-        if(index == -1)
-        {
+        if(!save_capacity_reached
+            && value_length < remaining_capacity
+            && remaining_capacity - value_length > 1) {
+            allowselect_args[saved_length++] = ' ';
+
+            memcpy(
+                allowselect_args + saved_length,
+                value,
+                value_length
+            );
+
+            saved_length += value_length;
+            allowselect_args[saved_length] = '\0';
+        } else {
+            save_capacity_reached = true;
+        }
+
+        playermodel = findmodel((char*)value);
+
+        if(!playermodel) {
+            borShutdown(1, "Player model '%s' is not loaded.\n", value);
+        }
+
+        index = get_cached_model_index(playermodel->name);
+
+        if(index == -1) {
             borShutdown(1, "Player model '%s' is not cached.\n", value);
         }
+
         model_cache[index].selectable = 1;
     }
 
-    return;
+    if(save_capacity_reached) {
+        printf(
+            "Warning: allowselect exceeds the legacy save field; "
+            "the active list is complete, but saved continuation data "
+            "contains only the complete names that fit.\n"
+        );
+    }
+
 }
 
 /*
@@ -7448,7 +7593,9 @@ int child_spawn_get_color_from_argument(char* filename, char* command, char* val
 * Read a text argument for child spawn config
 * flag and output appropriate constant.
 */
-e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
+e_child_spawn_config child_spawn_get_config_bit_from_argument(
+    const char* value
+)
 {
     e_child_spawn_config result = CHILD_SPAWN_CONFIG_NONE;
 
@@ -7560,14 +7707,18 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
 * and outputs integer. Accepts existing
 * argument as a default.
 */
-e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_spawn_config config_current)
+e_child_spawn_config child_spawn_get_config_argument(
+    const char* command_line,
+    e_child_spawn_config config_current
+)
 {
+    const char* value;
+    s_command_argument_reader reader;
     e_child_spawn_config result = config_current;
-    int i;
-    char* value;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= child_spawn_get_config_bit_from_argument(value);
     }
 
@@ -10778,19 +10929,19 @@ static inline e_damage_recursive_logic recursive_effect_get_mode_flag_from_argum
 }
 
 /*
-* Caskey, Damon V.
-* 2021-08-24
-*
-* Reads text arguments from recursive mode
-* command and outputs integer with appropriate
-* bits toggled.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read recursive damage mode arguments directly from the
+  source line and combine their corresponding behavior flags.
 */
-e_damage_recursive_logic recursive_effect_get_mode_setup_from_arg_list(ArgList* arglist)
+e_damage_recursive_logic recursive_effect_get_mode_setup_from_command_line(
+    const char* command_line
+)
 {
+    const char* value;
+    s_command_argument_reader reader;
     e_damage_recursive_logic result = 0;
-
-    int i;
-    char* value;
 
     /*
     * Read all arguments left to right. We send each arg
@@ -10798,8 +10949,9 @@ e_damage_recursive_logic recursive_effect_get_mode_setup_from_arg_list(ArgList* 
     * bit to toggle.
     */
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= recursive_effect_get_mode_flag_from_argument(value);
     }
 
@@ -11445,7 +11597,7 @@ void free_modelcache()
 }
 
 
-int get_cached_model_index(char *name)
+int get_cached_model_index(const char *name)
 {
     int i;
     for(i = 0; i < models_cached; i++)
@@ -13053,21 +13205,21 @@ e_entity_type get_type_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2022-06-14
-*
-* Get arguments for type and output final
-* bitmask so we can have a reusable function.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read entity type arguments directly from the source line
+  and combine their corresponding type flags.
 */
-e_entity_type get_type_from_arglist(ArgList* arglist)
+e_entity_type get_type_from_command_line(const char* command_line)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_entity_type result = TYPE_UNDECLARED;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= get_type_from_string(value);
     }
 
@@ -13160,7 +13312,7 @@ e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_w
 * Accept string input and return
 * matching constant. 
 */
-e_weapon_loss_condition get_weapon_loss_from_argument(char* value)
+e_weapon_loss_condition get_weapon_loss_from_argument(const char* value)
 {
     e_weapon_loss_condition result;
 
@@ -13220,16 +13372,22 @@ e_weapon_loss_condition get_weapon_loss_from_argument(char* value)
 * Populate weapon loss model property
 * from text arguments.
 */
-void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
+void lcmHandleCommandWeaponLossCondition(
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     newchar->weapon_properties.loss_condition = WEAPON_LOSS_CONDITION_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         newchar->weapon_properties.loss_condition |= get_weapon_loss_from_argument(value);
     }
+
 }
 
 /*
@@ -13240,7 +13398,11 @@ void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
 * and output appropriate constant. If input 
 * is legacy integer, we just pass it on.
 */
-e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value)
+e_model_copy get_model_flag_from_argument(
+    const char* filename,
+    const char* command,
+    const char* value
+)
 {
     e_model_copy result = MODEL_COPY_FLAG_NONE;
 
@@ -13312,16 +13474,24 @@ e_model_copy get_model_flag_from_legacy_int(int legacy_int)
 * Populate model flag property
 * from text arguments.
 */
-void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar)
+void lcmHandleCommandModelFlag(
+    char* filename,
+    char* command,
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     newchar->model_flag = MODEL_COPY_FLAG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         newchar->model_flag |= get_model_flag_from_argument(filename, command, value);
     }
+
 }
 
 /*
@@ -13755,16 +13925,22 @@ e_air_control find_air_control_from_string(const char* value)
 * Populate air control model property
 * from text arguments.
 */
-void lcmHandleCommandAirControl(const ArgList* arglist, s_model* newchar)
+void lcmHandleCommandAirControl(
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     newchar->air_control = AIR_CONTROL_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         newchar->air_control |= find_air_control_from_string(value);
     }
+
 }
 
 /*
@@ -13848,22 +14024,23 @@ e_ko_colorset_config komap_type_get_value_from_argument(char* filename, char* co
 }
 
 /*
-* Caskey, Damon V.
-* 2022-06-14
-*
-* Get arguments for move constraint and 
-* output final bitmask so we can have a 
-* reusable function.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read movement configuration arguments directly from the
+  source line and combine their corresponding behavior flags.
 */
-e_move_config_flags get_move_config_flags_from_arguments(ArgList* arglist)
+e_move_config_flags get_move_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_move_config_flags result = MOVE_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= find_move_config_flags_from_string(value);
     }
 
@@ -13930,16 +14107,19 @@ e_cheat_options find_cheat_options_from_string(const char* value)
 * Populate global config cheats 
 * property from text arguments.
 */
-void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
+void lcmHandleCommandGlobalConfigCheats(const char* command_line)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     global_config.cheats = CHEAT_OPTIONS_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         global_config.cheats |= find_cheat_options_from_string(value);    
     }
+
 }
 
 /*
@@ -13996,24 +14176,26 @@ e_aimove get_aimove_constant_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2022-06-08
-* 
-* Get arguments for Aimove and output final 
-* bitmask. Replaces lcmHandleCommandAiMove 
-* so we can have a reusable function.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read AI movement arguments directly from the source line
+  and combine them with the supplied default behavior flags.
 */
-e_aimove get_aimove_from_arguments(const ArgList *arglist, e_aimove default_value)
+e_aimove get_aimove_from_command_line(
+    const char* command_line,
+    e_aimove default_value
+)
 {    
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_aimove result = default_value;
-    
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= get_aimove_constant_from_string(value);
-    }    
+    }
 
     return result;
 }
@@ -14056,32 +14238,55 @@ void lcmHandleCommandAiattack(ArgList *arglist, s_model *newchar, int *aiattacks
     }*/
 }
 
-void lcmHandleCommandWeapons(ArgList *arglist, s_model *newchar)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read weapon model names directly from the source line,
+  allocate an exact-sized list, and safely replace any list
+  owned by the model without modifying inherited storage.
+*/
+void lcmHandleCommandWeapons(
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int weapon_index = 0;
-    char *value;
-    
-    for(weapon_index = 0; ; weapon_index++)
-    {
-        value = GET_ARGP(weapon_index + 1);
-        if(!value[0])
-        {
-            break;
+    const char* value;
+    s_command_argument_reader reader;
+    s_command_token token;
+    s_command_token_reader count_reader = {
+        .cursor = command_line
+    };
+    int* weapon_list;
+    size_t weapon_count = 0;
+    size_t weapon_index = 0;
+
+    /* Skip the command name before counting its values. */
+    command_token_reader_next(&count_reader, &token);
+
+    while(command_token_reader_next(&count_reader, &token)) {
+        if(weapon_count == INT_MAX) {
+            borShutdown(
+                1,
+                "Weapon list exceeds the supported integer count range.\n"
+            );
         }
+
+        weapon_count++;
     }
 
-    if(!weapon_index)
-    {
+    if(!weapon_count) {
         return;
     }
 
-    newchar->weapon_properties.weapon_count = weapon_index;
+    if(weapon_count > SIZE_MAX / sizeof(*weapon_list)) {
+        borShutdown(1, E_OUT_OF_MEMORY);
+    }
 
-    if(!newchar->weapon_properties.weapon_list)
-    {
-        newchar->weapon_properties.weapon_list = malloc(sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
-        memset(newchar->weapon_properties.weapon_list, 0xFF, sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
-        newchar->weapon_properties.weapon_state |= WEAPON_STATE_HAS_LIST;
+    weapon_list = malloc(sizeof(*weapon_list) * weapon_count);
+
+    if(!weapon_list) {
+        borShutdown(1, E_OUT_OF_MEMORY);
     }
 
     /*
@@ -14091,19 +14296,25 @@ void lcmHandleCommandWeapons(ArgList *arglist, s_model *newchar)
     * a model index to populate with.
     */
 
-    for(weapon_index = 0; weapon_index < newchar->weapon_properties.weapon_count; weapon_index++)
-    {
-        value = GET_ARGP(weapon_index + 1);
+    command_argument_reader_initialize(&reader, command_line, 1);
 
-        if(stricmp(value, "none") != 0)
-        {
-            newchar->weapon_properties.weapon_list[weapon_index] = get_cached_model_index(value);
-        }
-        else
-        {
-            newchar->weapon_properties.weapon_list[weapon_index] = MODEL_INDEX_NONE;
-        }
+    while(command_argument_reader_next(&reader, &value)) {
+        weapon_list[weapon_index] = stricmp(value, "none") != 0
+            ? get_cached_model_index(value)
+            : MODEL_INDEX_NONE;
+
+        weapon_index++;
     }
+
+    if(hasFreetype(newchar, MF_WEAPONS)
+        && newchar->weapon_properties.weapon_list) {
+        free(newchar->weapon_properties.weapon_list);
+    }
+
+    newchar->weapon_properties.weapon_list = weapon_list;
+    newchar->weapon_properties.weapon_count = (int)weapon_count;
+    newchar->weapon_properties.weapon_state |= WEAPON_STATE_HAS_LIST;
+    newchar->freetypes |= MF_WEAPONS;
 }
 
 //fetch string between next @script and @end_script
@@ -15056,7 +15267,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_BLOCK_CONFIG:
 
-                newchar->block_config_flags = block_get_config_flags_from_arguments(&arglist);
+                newchar->block_config_flags = block_get_config_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_BLOCKBACK:
@@ -15218,45 +15429,45 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             
             /* Faction set up. */
             case CMD_MODEL_FACTION_GROUP_DAMAGE_DIRECT:
-                newchar->faction.damage_direct = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.damage_direct = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_GROUP_DAMAGE_INDIRECT:
-                newchar->faction.damage_indirect = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.damage_indirect = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_GROUP_HOSTILE:
-                newchar->faction.hostile = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.hostile = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_GROUP_MEMBER:
-                newchar->faction.member = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.member = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             /* Legacy type based faction */
             case CMD_MODEL_FACTION_TYPE_HOSTILE:
             case CMD_MODEL_HOSTILE:
-                newchar->faction.type_hostile = get_type_from_arglist(&arglist);
+                newchar->faction.type_hostile = get_type_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_TYPE_DAMAGE_DIRECT:
             case CMD_MODEL_CANDAMAGE:
-                newchar->faction.type_damage_direct = get_type_from_arglist(&arglist);
+                newchar->faction.type_damage_direct = get_type_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_TYPE_DAMAGE_INDIRECT:
             case CMD_MODEL_PROJECTILEHIT:
-                newchar->faction.type_damage_indirect = get_type_from_arglist(&arglist);
+                newchar->faction.type_damage_indirect = get_type_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_AIMOVE:
-                newchar->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NORMAL);
+                newchar->aimove = get_aimove_from_command_line(buf + pos, AIMOVE1_NORMAL);
                 break;
             case CMD_MODEL_AIATTACK:
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
                 break;
             case CMD_MODEL_MOVE_CONFIG:
-                newchar->move_config_flags = get_move_config_flags_from_arguments(&arglist);
+                newchar->move_config_flags = get_move_config_flags_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_SUBJECT_TO_BASEMAP:
 
@@ -15391,7 +15602,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_MODELFLAG: // Legacy model copy flag.                             
                 
                 
-                lcmHandleCommandModelFlag(filename, command, &arglist, newchar);
+                lcmHandleCommandModelFlag(filename, command, buf + pos, newchar);
 
                 break;
                 // weapons
@@ -15405,7 +15616,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             
             case CMD_MODEL_WEAPON_LOSS_CONFIG:
                 
-                lcmHandleCommandWeaponLossCondition(&arglist, newchar);
+                lcmHandleCommandWeaponLossCondition(buf + pos, newchar);
                 break;
 
             case CMD_MODEL_WEAPON_LOSS_INDEX:
@@ -15431,7 +15642,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_WEAPONS:
-                lcmHandleCommandWeapons(&arglist, newchar);
+                lcmHandleCommandWeapons(buf + pos, newchar);
                 break;
             case CMD_MODEL_SHOOTNUM: 
                 newchar->weapon_properties.use_count = GET_INT_ARG(1);
@@ -15612,7 +15823,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_DEATH_CONFIG:
 
-                newchar->death_config_flags = death_get_config_flags_from_arguments(&arglist, 1);
+                newchar->death_config_flags = death_get_config_flags_from_command_line(buf + pos, 1);
                 break;
 
             case CMD_MODEL_SPEED:
@@ -15672,49 +15883,49 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * from 3.0 builds. See function for details.
                 */
 
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_LEGACY);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_LEGACY);
             break;    
             case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_ADJUST:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MAX:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MIN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_POWER:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_POWER);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_POWER);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_RATIO:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_RATIO);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_RATIO);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_THRESHOLD:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_THRESHOLD);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_THRESHOLD);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_TYPE:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_TYPE);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_TYPE);
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_ADJUST:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_ADJUST);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_ADJUST);
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_MAX:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MAX);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MAX);
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_MIN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MIN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MIN);
                 break;
             case CMD_MODEL_DEFENSE_DEATH_CONFIG:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DEATH_CONFIG);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DEATH_CONFIG);
                 break;
             case CMD_MODEL_DEFENSE_FACTOR:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
                 break;
             case CMD_MODEL_DEFENSE_KNOCKDOWN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_KNOCKDOWN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_KNOCKDOWN);
                 break;
             case CMD_MODEL_DEFENSE_PAIN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_PAIN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_PAIN);
                 break;
             case CMD_MODEL_OFFENSE:
                 offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_LEGACY);
@@ -15741,7 +15952,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_AIR_CONTROL:
                 
-                lcmHandleCommandAirControl(&arglist, newchar);
+                lcmHandleCommandAirControl(buf + pos, newchar);
                 break;
 
             case CMD_MODEL_JUMPMOVE:
@@ -15781,7 +15992,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SHADOW_CONFIG:                
 
-                newchar->shadow_config_flags = shadow_get_config_flags_from_arguments(&arglist);
+                newchar->shadow_config_flags = shadow_get_config_flags_from_command_line(buf + pos);
 
                 break;
             case CMD_MODEL_GFXSHADOW:
@@ -15891,7 +16102,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_RUN_CONFIG:
-                newchar->run_config_flags = run_get_config_flags_from_arguments(&arglist, 1);
+                newchar->run_config_flags = run_get_config_flags_from_command_line(buf + pos, 1);
                 break;
             case CMD_MODEL_RUNNING:
                 // The speed at which the player runs
@@ -16066,7 +16277,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 tempInt = GET_INT_ARG(1);
 
-                newchar->pain_config_flags = pain_get_config_flags_from_arguments(&arglist);
+                newchar->pain_config_flags = pain_get_config_flags_from_command_line(buf + pos);
 
                 break;
 
@@ -16920,28 +17131,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             
             case CMD_MODEL_CHILD_SPAWN_AIMOVE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NONE);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_command_line(buf + pos, AIMOVE1_NONE);
                 break;
             case CMD_MODEL_CHILD_SPAWN_CANDAMAGE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_arglist(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_COLOR:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->color = child_spawn_get_color_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_CONFIG:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(&arglist, 0);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(buf + pos, 0);
                 break;
             case CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_HOSTILE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_arglist(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_MODEL:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->model_index = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_MOVE_CONSTRAINT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = get_move_config_flags_from_arguments(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = get_move_config_flags_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_OFFSET_X:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.x = GET_INT_ARG(1);
@@ -16953,7 +17164,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.z = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHILD_SPAWN_PROJECTILEHIT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_arglist(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_TAKEDAMAGE:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->takedamage = takedamage_get_reference_from_argument(GET_ARG(1));
@@ -18159,7 +18370,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
-                //for(i=0;(GET_ARG(i+1)[0]; i++);
                 for(i = 0; i < arglist.count && arglist.args[i] && arglist.args[i][0]; i++);
                 if(i < 8)
                 {
@@ -18446,7 +18656,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     * Toggle bits based on items provided in argument list.
                     */
 
-                    tempInt = recursive_effect_get_mode_setup_from_arg_list(&arglist);
+                    tempInt = recursive_effect_get_mode_setup_from_command_line(buf + pos);
                 }
 
 
@@ -20948,7 +21158,7 @@ int load_models()
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS:
 
-                lcmHandleCommandGlobalConfigCheats(&arglist);
+                lcmHandleCommandGlobalConfigCheats(buf + pos);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
                 global_config.flash.layer_adjust = GET_INT_ARG(1);
@@ -23728,37 +23938,37 @@ void load_level(char *filename)
 
         case CMD_LEVEL_FACTION_GROUP_DAMAGE_DIRECT:
 
-            next.faction.damage_direct = faction_get_flags_from_arglist(&arglist);
+            next.faction.damage_direct = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_GROUP_DAMAGE_INDIRECT:
 
-            next.faction.damage_indirect = faction_get_flags_from_arglist(&arglist);
+            next.faction.damage_indirect = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_GROUP_HOSTILE:
 
-            next.faction.hostile = faction_get_flags_from_arglist(&arglist);
+            next.faction.hostile = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_GROUP_MEMBER:
 
-            next.faction.member = faction_get_flags_from_arglist(&arglist);
+            next.faction.member = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_TYPE_DAMAGE_DIRECT:
 
-            next.faction.type_damage_direct = get_type_from_arglist(&arglist);
+            next.faction.type_damage_direct = get_type_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_TYPE_DAMAGE_INDIRECT:
 
-            next.faction.type_damage_indirect = get_type_from_arglist(&arglist);
+            next.faction.type_damage_indirect = get_type_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_TYPE_HOSTILE:
 
-            next.faction.type_hostile = get_type_from_arglist(&arglist);
+            next.faction.type_hostile = get_type_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FLIP:
@@ -29136,21 +29346,23 @@ e_pain_config_flags pain_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-04-10
-*
-* Get arguments and output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read pain configuration arguments directly from the source
+  line and combine their corresponding behavior flags.
 */
-e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist)
+e_pain_config_flags pain_get_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_pain_config_flags result = PAIN_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= pain_get_config_flag_from_string(value);
     }
 
@@ -29201,21 +29413,23 @@ e_block_config_flags block_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-04-05
-*
-* Get arguments and output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read blocking configuration arguments directly from the
+  source line and combine their corresponding behavior flags.
 */
-e_block_config_flags block_get_config_flags_from_arguments(const ArgList * arglist)
+e_block_config_flags block_get_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_block_config_flags result = BLOCK_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= block_get_config_flag_from_string(value);
     }
 
@@ -36018,21 +36232,28 @@ e_death_config_flags death_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-03-20
-*
-* Get arguments to output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read death configuration arguments directly from the source
+  line, beginning at the requested item, and combine their flags.
 */
-e_death_config_flags death_get_config_flags_from_arguments(const ArgList* arglist, int start_position)
+e_death_config_flags death_get_config_flags_from_command_line(
+    const char* command_line,
+    const size_t start_position
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_death_config_flags result = DEATH_CONFIG_NONE;
 
-    for (i = start_position; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(
+        &reader,
+        command_line,
+        start_position
+    );
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= death_get_config_flag_from_string(value);
     }
 
@@ -36232,21 +36453,28 @@ e_run_config_flags run_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-04-26
-*
-* Get arguments to output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read running configuration arguments directly from the source
+  line, beginning at the requested item, and combine their flags.
 */
-e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const uint64_t start_position)
+e_run_config_flags run_get_config_flags_from_command_line(
+    const char* command_line,
+    const size_t start_position
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_run_config_flags result = RUN_CONFIG_NONE;
 
-    for (i = start_position; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(
+        &reader,
+        command_line,
+        start_position
+    );
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= run_get_config_flag_from_string(value);
     }
 
@@ -36300,21 +36528,23 @@ e_shadow_config_flags shadow_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-03-20
-*
-* Get arguments foroutput final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read shadow configuration arguments directly from the source
+  line and combine their corresponding behavior flags.
 */
-e_shadow_config_flags shadow_get_config_flags_from_arguments(const ArgList* arglist)
+e_shadow_config_flags shadow_get_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_shadow_config_flags result = SHADOW_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= shadow_get_config_flag_from_string(value);
     }
 
@@ -36560,7 +36790,14 @@ s_defense* defense_allocate_object(void) {
 * Applies value to an attack type element
 * of defense.
 */
-void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter)
+void defense_apply_setup_to_property(
+    char* filename,
+    char* command,
+    const char* command_line,
+    s_defense* defense,
+    ArgList* arglist,
+    e_defense_parameters target_parameter
+)
 {
     //printf("\n\n defense_apply_setup_to_property(%s, %s, %p, %p, %d)", filename, command, defense, arglist, target_parameter);
     //printf("\n\t GET_FLOAT_ARGP(2): %f", GET_FLOAT_ARGP(2));
@@ -36629,7 +36866,7 @@ void defense_apply_setup_to_property(char* filename, char* command, s_defense* d
         break;
 
     case DEFENSE_PARAMETER_DEATH_CONFIG:
-        defense->death_config_flags = death_get_config_flags_from_arguments(arglist, 2);
+        defense->death_config_flags = death_get_config_flags_from_command_line(command_line, 2);
         break;
 
     case DEFENSE_PARAMETER_FACTOR:
@@ -37212,6 +37449,7 @@ int get_attack_type_from_string(const char* value, const char* filename)
 void defense_setup_from_arg(
     char* filename,
     char* command,
+    const char* command_line,
     s_defense* target_defense,
     ArgList* arglist,
     e_defense_parameters target_parameter
@@ -37230,6 +37468,7 @@ void defense_setup_from_arg(
             defense_apply_setup_to_property(
                 filename,
                 command,
+                command_line,
                 &target_defense[attack_type_map[i].attack_type],
                 arglist,
                 target_parameter
@@ -37248,6 +37487,7 @@ void defense_setup_from_arg(
         defense_apply_setup_to_property(
             filename,
             command,
+            command_line,
             &target_defense[tempInt + STA_ATKS - 1],
             arglist,
             target_parameter
@@ -37268,6 +37508,7 @@ void defense_setup_from_arg(
             defense_apply_setup_to_property(
                 filename,
                 command,
+                command_line,
                 &target_defense[i],
                 arglist,
                 target_parameter
@@ -46859,21 +47100,23 @@ faction_group_mask_t faction_get_flag_from_string(const char* value) {
 }
 
 /*
-* Caskey, Damon V.
-* 2022-05-24
-*
-* Populate faction property from
-* text arguments.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read faction arguments directly from the source line and
+  combine their corresponding group flags.
 */
-faction_group_mask_t faction_get_flags_from_arglist(const ArgList* arglist)
+faction_group_mask_t faction_get_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     faction_group_mask_t result = FACTION_GROUP_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= faction_get_flag_from_string(value);
     }
 
