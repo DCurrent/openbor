@@ -34,6 +34,7 @@
 #include "ImportCache.h"
 #include "models.h"
 #include "scriptcommon.h"
+#include <limits.h>
 
 Varlist global_var_list;
 Script *pcurrentscript = NULL; //used by local script functions
@@ -10640,9 +10641,20 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
     return S_OK;
 }
 
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read one requested file-stream argument sequentially and
+  copy only that argument into exact-sized script storage.
+  Numeric conversions reuse the same temporary script string.
+*/
 HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
+    const char *argument_text = "";
+    char *converted_text;
     ScriptVariant *arg = NULL;
     LONG filestreamindex, argument;
+    size_t argument_length = 0;
     char *argtype = NULL;
 
     if(paramCount < 3) {
@@ -10669,25 +10681,53 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
 
     argtype = (char *)StrCache_Get(varlist[2]->strVal);
 
-    if(stricmp(argtype, "string") == 0) {
-        ScriptVariant_ChangeType(*pretvar, VT_STR);
-        (*pretvar)->strVal = StrCache_CreateNewFrom(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
-    
-    } else if(stricmp(argtype, "int") == 0) {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)atoi(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
-    
-    } else if(stricmp(argtype, "float") == 0) {
-        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
-        (*pretvar)->dblVal = (DOUBLE)atof(findarg(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos, argument));
-    
-    } else if(stricmp(argtype, "byte") == 0) {
+    if(stricmp(argtype, "byte") == 0) {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)(readByte(filestreams[filestreamindex].buf + filestreams[filestreamindex].pos));
-    
-    } else {
+
+        return S_OK;
+    }
+
+    if(stricmp(argtype, "string") != 0
+        && stricmp(argtype, "int") != 0
+        && stricmp(argtype, "float") != 0) {
         printf("Invalid type for argument converted to (getfilestreamargument).\n");
         return E_FAIL;
+    }
+
+    if(argument >= 0) {
+        if(!command_argument_read(
+                filestreams[filestreamindex].buf
+                    + filestreams[filestreamindex].pos,
+                (size_t)argument,
+                &argument_text,
+                &argument_length
+            )) {
+            argument_text = "";
+        }
+    }
+
+    if(argument_length >= (size_t)INT_MAX) {
+        printf("File stream argument exceeds the script string capacity.\n");
+        return E_FAIL;
+    }
+
+    ScriptVariant_ChangeType(*pretvar, VT_STR);
+    (*pretvar)->strVal = StrCache_Pop((int)argument_length);
+    converted_text = StrCache_Get((*pretvar)->strVal);
+    memcpy(converted_text, argument_text, argument_length);
+    converted_text[argument_length] = '\0';
+
+    if(stricmp(argtype, "int") == 0) {
+        const LONG converted_integer = (LONG)atoi(converted_text);
+
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
+        (*pretvar)->lVal = converted_integer;
+    } else if(stricmp(argtype, "float") == 0) {
+        const DOUBLE converted_decimal = (DOUBLE)atof(converted_text);
+
+        ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+        (*pretvar)->dblVal = converted_decimal;
     }
 
     return S_OK;

@@ -4410,6 +4410,7 @@ int		prevcolourmapn							(s_model *model, int map_index, int player_index);
 int     buffer_pakfile							(const char *filename, char **pbuffer, size_t *psize);
 
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
+bool    command_argument_read                    (const char* command_line, size_t argument_index, const char** value, size_t* length);
 int     getsyspropertybyindex					(ScriptVariant *var, int index);
 int     changesyspropertybyindex				(int index, ScriptVariant *value);
 e_direction direction_get_direction_from_argument(const char* filename, const char* command, const char* value);
@@ -4459,7 +4460,6 @@ int    loadHighScoreFile(void);
 int translate_SDID(char *value);
 int music(char *filename, int loop, long offset);
 int readByte(char* buf);
-char *findarg(char *command, int which);
 float diff(float a, float b);
 int inair(entity *e);
 int inair_range(entity *e);

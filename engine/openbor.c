@@ -3493,6 +3493,53 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
 - Caskey, Damon V.
 - 2026-08-11
 -
+- Read one requested command argument sequentially from the
+  source line. Return a non-owning view so the caller can
+  allocate only the storage required for that argument.
+*/
+bool command_argument_read(
+    const char* command_line,
+    size_t argument_index,
+    const char** value,
+    size_t* length
+) {
+    s_command_token_reader reader;
+    s_command_token token;
+
+    assert(command_line);
+    assert(value);
+    assert(length);
+
+    reader.cursor = command_line;
+
+    while(argument_index) {
+        if(!command_token_reader_next(&reader, &token)) {
+            *value = NULL;
+            *length = 0;
+
+            return false;
+        }
+
+        argument_index--;
+    }
+
+    if(!command_token_reader_next(&reader, &token)) {
+        *value = NULL;
+        *length = 0;
+
+        return false;
+    }
+
+    *value = token.text;
+    *length = token.length;
+
+    return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
 - Reserve fixed storage for one sequentially read command
   argument. Keep this independent from the legacy command-line,
   script file-stream, path, and persistent save-field limit.
@@ -4937,67 +4984,6 @@ int readByte(char *buf)
 
     return num;
 }
-
-char *findarg(char *command, int which)
-{
-    const char comment_mark[] = {"#"};
-    int d;
-    int argc;
-    int inarg;
-    int argstart;
-    static char arg[MAX_ARG_LEN];
-
-
-    // Copy the command line, replacing spaces by zeroes,
-    // finally returning a pointer to the requested arg.
-    d = 0;
-    inarg = 0;
-    argstart = 0;
-    argc = -1;
-
-    while(d < MAX_ARG_LEN - 1 && command[d])
-    {
-        // Zero out whitespace
-        if(command[d] == ' ' || command[d] == '\t')
-        {
-            arg[d] = 0;
-            inarg = 0;
-            if(argc == which)
-            {
-                return arg + argstart;
-            }
-        }
-        else if(command[d] == 0 || command[d] == '\n' || command[d] == '\r' ||
-                strcmp(command + d, comment_mark) == 0)
-        {
-            // End of line
-            arg[d] = 0;
-            if(argc == which)
-            {
-                return arg + argstart;
-            }
-            return arg + d;
-        }
-        else
-        {
-            if(!inarg)
-            {
-                // if(argc==-1 && command[d]=='#') return arg;
-                inarg = 1;
-                argstart = d;
-                argc++;
-            }
-            arg[d] = command[d];
-        }
-        ++d;
-    }
-    arg[d] = 0;
-
-    return arg;
-}
-
-
-
 
 float diff(float a, float b)
 {
@@ -15223,7 +15209,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     char* command = NULL;
     char* value = NULL;
     char* value2 = NULL;
-    char* value3 = NULL;
 
     char fnbuf[MAX_BUFFER_LEN] = { "" };
     char namebuf[MAX_BUFFER_LEN] = { "" };
@@ -19794,6 +19779,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_FRAME:
             {
+                s_command_token frame_token;
+                s_command_token_reader frame_reader;
+
                 // Command title for log. Details will be added blow accordingly.
                 //printf("\t\t\tFrame: ");
 
@@ -19808,12 +19796,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 while(!frameset) {
-                    value3 = findarg(buf + pos + peek, 0);
-                    if(stricmp(value3, "frame") == 0) {
-                        framecount++;
+                    frame_reader.cursor = buf + pos + peek;
+
+                    if(command_token_reader_next(
+                            &frame_reader,
+                            &frame_token
+                        )) {
+                        if(command_token_equals(&frame_token, "frame")) {
+                            framecount++;
+                        }
+
+                        if(command_token_equals(&frame_token, "anim")) {
+                            frameset = 1;
+                        }
                     }
 
-                    if((stricmp(value3, "anim") == 0) || (pos + peek >= size)) {
+                    if(pos + peek >= size) {
                         frameset = 1;
                     }
                     
