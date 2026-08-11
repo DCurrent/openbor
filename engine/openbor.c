@@ -2763,26 +2763,12 @@ void loadfromdefault()
 - Caskey, Damon V.
 - 2026-08-11
 -
-- Append complete allowselect state to the legacy fixed-record
-  save file. Older engines ignore the trailing extension and
-  retain their fixed compatibility mirror. Current engines use
-  the length-prefixed values without imposing a list-size limit.
+- Append complete allowselect state to the fixed-record save
+  file using length-prefixed values without imposing a list-size
+  limit.
 */
 #define SAVE_ALLOWSELECT_EXTENSION_MAGIC UINT64_C(0x5443454C45534C41)
 #define SAVE_ALLOWSELECT_EXTENSION_VERSION UINT32_C(1)
-
-static void restore_saved_allowselect_legacy_arguments(void)
-{
-    size_t i;
-
-    for(i = 0; i < savelevel_count; i++)
-    {
-        set_saved_allowselect_arguments(
-            i,
-            savelevel[i].allowSelectArgsLegacy
-        );
-    }
-}
 
 static bool write_saved_allowselect_extension(FILE* handle)
 {
@@ -2848,16 +2834,10 @@ static bool read_saved_allowselect_extension(FILE* handle)
     char** loaded_values;
     size_t i;
 
-    if(fread(&magic, sizeof(magic), 1, handle) != 1)
+    if(fread(&magic, sizeof(magic), 1, handle) != 1
+        || magic != SAVE_ALLOWSELECT_EXTENSION_MAGIC)
     {
-        restore_saved_allowselect_legacy_arguments();
-        return true;
-    }
-
-    if(magic != SAVE_ALLOWSELECT_EXTENSION_MAGIC)
-    {
-        restore_saved_allowselect_legacy_arguments();
-        return true;
+        return false;
     }
 
     if(fread(&version, sizeof(version), 1, handle) != 1
@@ -2869,8 +2849,7 @@ static bool read_saved_allowselect_extension(FILE* handle)
     if(version != SAVE_ALLOWSELECT_EXTENSION_VERSION
         || entry_count != (uint64_t)savelevel_count)
     {
-        restore_saved_allowselect_legacy_arguments();
-        return true;
+        return false;
     }
 
     loaded_values = calloc(savelevel_count, sizeof(*loaded_values));
@@ -3026,7 +3005,6 @@ int loadGameFile()
     if(fread(savelevel, sizeof(*savelevel), savelevel_count, handle)
             != savelevel_count
         || (savelevel_count
-            && savelevel[0].compatibleversion
             && savelevel[0].compatibleversion != CV_SAVED_GAME)
         || !read_saved_allowselect_extension(handle))
     {
@@ -3612,55 +3590,6 @@ static bool command_argument_reader_next(
     return true;
 }
 
-/*
-- Caskey, Damon V.
-- 2026-08-11
--
-- Own complete allowselect command lines independently from
-  the packed legacy save record. Keep a whole-argument mirror
-  only so older save readers retain their historical behavior.
-*/
-static void copy_legacy_allowselect_arguments(
-    char* destination,
-    size_t capacity,
-    const char* source
-) {
-    const char* value;
-    s_command_argument_reader reader;
-    size_t length = 0;
-
-    if(!destination || !capacity) {
-        return;
-    }
-
-    destination[0] = '\0';
-
-    if(!source
-        || !source[0]
-        || !command_argument_reader_initialize(&reader, source, 0)) {
-        return;
-    }
-
-    while(command_argument_reader_next(&reader, &value)) {
-        const size_t value_length = strlen(value);
-        const size_t separator_length = length ? 1 : 0;
-
-        if(separator_length > capacity - length - 1
-            || value_length
-                > capacity - length - separator_length - 1) {
-            break;
-        }
-
-        if(separator_length) {
-            destination[length++] = ' ';
-        }
-
-        memcpy(destination + length, value, value_length);
-        length += value_length;
-        destination[length] = '\0';
-    }
-}
-
 static void clear_saved_allowselect_arguments(void)
 {
     size_t i;
@@ -3677,16 +3606,11 @@ static void clear_saved_allowselect_arguments(void)
 
 static const char* get_saved_allowselect_arguments(size_t index)
 {
-    if(index >= savelevel_count || !savelevel) {
+    if(index >= savelevel_count || !savelevel_allowselect_args) {
         return NULL;
     }
 
-    if(savelevel_allowselect_args
-        && savelevel_allowselect_args[index]) {
-        return savelevel_allowselect_args[index];
-    }
-
-    return savelevel[index].allowSelectArgsLegacy;
+    return savelevel_allowselect_args[index];
 }
 
 static void set_saved_allowselect_arguments(
@@ -3695,9 +3619,7 @@ static void set_saved_allowselect_arguments(
 ) {
     char* owned_source = NULL;
 
-    if(index >= savelevel_count
-        || !savelevel
-        || !savelevel_allowselect_args) {
+    if(index >= savelevel_count || !savelevel_allowselect_args) {
         return;
     }
 
@@ -3715,12 +3637,6 @@ static void set_saved_allowselect_arguments(
 
     free(savelevel_allowselect_args[index]);
     savelevel_allowselect_args[index] = owned_source;
-
-    copy_legacy_allowselect_arguments(
-        savelevel[index].allowSelectArgsLegacy,
-        sizeof(savelevel[index].allowSelectArgsLegacy),
-        owned_source
-    );
 }
 
 /*
@@ -23088,7 +23004,6 @@ lCleanup:
             savelevel_count,
             sizeof(*savelevel_allowselect_args)
         );
-        restore_saved_allowselect_legacy_arguments();
     }
 
     if(errormessage)

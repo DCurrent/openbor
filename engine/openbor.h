@@ -74,7 +74,7 @@ typedef uint64_t key_mask_t;
 			"Special thanks to SEGA and SNK.\n\n"
 
 #define		COMPATIBLEVERSION	    0x00033749
-#define		CV_SAVED_GAME		    0x00033747
+#define		CV_SAVED_GAME		    0x00033748
 #define		CV_HIGH_SCORE		    0x00033747
 #define     GAME_SPEED_DEFAULT              200
 #define		THINK_SPEED			    2
@@ -123,7 +123,6 @@ typedef uint64_t key_mask_t;
 #define     MAX_COLLISIONS          2                   // Collision boxes.
 #define     MAX_RECURSIVE_EFFECTS   64					// Max number of recursive effects on an entity at a time.
 #define		MAX_ARG_LEN			    512
-#define		MAX_LEGACY_ALLOWSELECT_LEN 1024
 #define		MAX_SELECT_LOADS   	    512
 #define		MAX_PAL_SIZE		    1024
 #define		MAX_CACHED_BACKGROUNDS  9
@@ -5036,8 +5035,6 @@ typedef struct
     int pColourmap[MAX_PLAYERS];                // colour map
 
     int selectFlag;                             // saved a select.txt infos
-    // Fixed compatibility mirror. Current saves append the complete dynamic list.
-    char allowSelectArgsLegacy[MAX_LEGACY_ALLOWSELECT_LEN];
     char selectMusic[MAX_ARG_LEN];          // select music arguments
     char selectBackground[MAX_ARG_LEN];     // select background arguments
     char selectLoad[MAX_SELECT_LOADS][MAX_ARG_LEN];           // select load arguments
