@@ -105,4 +105,4 @@ Anyway for debugging and development, you can
 ###################
 
 * Minimum SDK (API Level) is 21 at the moment
-* Support building for two architectures (with included pre-built libraries) arm64-v8a, and armeabi-v7a.
+* Android builds target the 64-bit arm64-v8a architecture.
