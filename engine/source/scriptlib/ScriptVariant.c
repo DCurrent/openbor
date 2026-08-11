@@ -488,7 +488,7 @@ void ScriptVariant_ToString(ScriptVariant *svar, LPSTR buffer) {
             break;
 
         case VT_PTR:
-            sprintf(buffer, "#%ld", (long)(svar->ptrVal));
+            sprintf(buffer, "#%" PRIuPTR, (uintptr_t)svar->ptrVal);
             break;
 
         case VT_STR:
@@ -528,7 +528,7 @@ static int ScriptVariant_LengthAsString(ScriptVariant *svar) {
             return snprintf(NULL, 0, "%lf", svar->dblVal);
 
         case VT_PTR:
-            return snprintf(NULL, 0, "#%ld", (long)(svar->ptrVal));
+            return snprintf(NULL, 0, "#%" PRIuPTR, (uintptr_t)svar->ptrVal);
 
         case VT_STR:
             return snprintf(NULL, 0, "%s", StrCache_Get(svar->strVal));
@@ -1413,8 +1413,8 @@ ScriptVariant *ScriptVariant_Ge(ScriptVariant *svar, ScriptVariant *rightChild) 
     retvar.vt = VT_INTEGER;
 
     /*
-    * Integer comparison should remain in integer
-    * space so large 64-bit values compare exactly.
+    * Integer comparison should remain in integer space
+    * so large 64-bit values compare exactly.
     */
     if (ScriptVariant_IsIntegerType(svar) &&
         ScriptVariant_IsIntegerType(rightChild)) {
