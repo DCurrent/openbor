@@ -33,8 +33,14 @@ s_sprite_list *sprite_list;
 s_sprite_map *sprite_map;
 
 s_savelevel *savelevel;
+static char **savelevel_allowselect_args;
+static size_t savelevel_count;
 s_savescore savescore;
 s_savedata savedata;
+
+static void clear_saved_allowselect_arguments(void);
+static const char* get_saved_allowselect_arguments(size_t index);
+static void set_saved_allowselect_arguments(size_t index, const char* source);
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -285,7 +291,7 @@ char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN + 1];  // Used for branches
-char                allowselect_args[MAX_ALLOWSELECT_LEN]; // stored allowselect players
+char                *allowselect_args = NULL; // stored allowselect players
 int					useSave = 0;
 int					useSet = -1;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
@@ -2753,11 +2759,178 @@ void loadfromdefault()
 }
 
 
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Append complete allowselect state to the legacy fixed-record
+  save file. Older engines ignore the trailing extension and
+  retain their fixed compatibility mirror. Current engines use
+  the length-prefixed values without imposing a list-size limit.
+*/
+#define SAVE_ALLOWSELECT_EXTENSION_MAGIC UINT64_C(0x5443454C45534C41)
+#define SAVE_ALLOWSELECT_EXTENSION_VERSION UINT32_C(1)
+
+static void restore_saved_allowselect_legacy_arguments(void)
+{
+    size_t i;
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        set_saved_allowselect_arguments(
+            i,
+            savelevel[i].allowSelectArgsLegacy
+        );
+    }
+}
+
+static bool write_saved_allowselect_extension(FILE* handle)
+{
+    const uint64_t magic = SAVE_ALLOWSELECT_EXTENSION_MAGIC;
+    const uint32_t version = SAVE_ALLOWSELECT_EXTENSION_VERSION;
+    const uint64_t entry_count = (uint64_t)savelevel_count;
+    size_t i;
+
+    if(fwrite(&magic, sizeof(magic), 1, handle) != 1
+        || fwrite(&version, sizeof(version), 1, handle) != 1
+        || fwrite(&entry_count, sizeof(entry_count), 1, handle) != 1)
+    {
+        return false;
+    }
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        const char* value = get_saved_allowselect_arguments(i);
+        const uint64_t length = value ? (uint64_t)strlen(value) : 0;
+
+        if(fwrite(&length, sizeof(length), 1, handle) != 1
+            || (length
+                && fwrite(value, 1, (size_t)length, handle)
+                    != (size_t)length))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool get_file_remaining_size(FILE* handle, uint64_t* remaining)
+{
+    long current_position;
+    long end_position;
+
+    current_position = ftell(handle);
+
+    if(current_position < 0 || fseek(handle, 0, SEEK_END) != 0)
+    {
+        return false;
+    }
+
+    end_position = ftell(handle);
+
+    if(end_position < current_position
+        || fseek(handle, current_position, SEEK_SET) != 0)
+    {
+        return false;
+    }
+
+    *remaining = (uint64_t)(end_position - current_position);
+
+    return true;
+}
+
+static bool read_saved_allowselect_extension(FILE* handle)
+{
+    uint64_t magic;
+    uint32_t version;
+    uint64_t entry_count;
+    char** loaded_values;
+    size_t i;
+
+    if(fread(&magic, sizeof(magic), 1, handle) != 1)
+    {
+        restore_saved_allowselect_legacy_arguments();
+        return true;
+    }
+
+    if(magic != SAVE_ALLOWSELECT_EXTENSION_MAGIC)
+    {
+        restore_saved_allowselect_legacy_arguments();
+        return true;
+    }
+
+    if(fread(&version, sizeof(version), 1, handle) != 1
+        || fread(&entry_count, sizeof(entry_count), 1, handle) != 1)
+    {
+        return false;
+    }
+
+    if(version != SAVE_ALLOWSELECT_EXTENSION_VERSION
+        || entry_count != (uint64_t)savelevel_count)
+    {
+        restore_saved_allowselect_legacy_arguments();
+        return true;
+    }
+
+    loaded_values = calloc(savelevel_count, sizeof(*loaded_values));
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        uint64_t length;
+        uint64_t remaining;
+
+        if(fread(&length, sizeof(length), 1, handle) != 1
+            || length > (uint64_t)(SIZE_MAX - 1)
+            || !get_file_remaining_size(handle, &remaining)
+            || length > remaining)
+        {
+            goto error;
+        }
+
+        if(length)
+        {
+            loaded_values[i] = malloc((size_t)length + 1);
+
+            if(fread(loaded_values[i], 1, (size_t)length, handle)
+                != (size_t)length)
+            {
+                goto error;
+            }
+
+            loaded_values[i][(size_t)length] = '\0';
+        }
+    }
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        set_saved_allowselect_arguments(i, loaded_values[i]);
+        free(loaded_values[i]);
+    }
+
+    free(loaded_values);
+    return true;
+
+error:
+    for(i = 0; i < savelevel_count; i++)
+    {
+        free(loaded_values[i]);
+    }
+
+    free(loaded_values);
+    return false;
+}
+
 
 
 void clearSavedGame()
 {
-    memset(savelevel, 0, sizeof(*savelevel)*num_difficulties);
+    clear_saved_allowselect_arguments();
+
+    if(savelevel)
+    {
+        memset(savelevel, 0, sizeof(*savelevel) * savelevel_count);
+    }
 }
 
 
@@ -2777,6 +2950,7 @@ void clearHighScore()
 
 int saveGameFile()
 {
+    size_t i;
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2792,7 +2966,24 @@ int saveGameFile()
         return 0;
     }
 
-    fwrite(savelevel, sizeof(*savelevel), num_difficulties, handle);
+    if(!savelevel || savelevel_count != (size_t)num_difficulties)
+    {
+        fclose(handle);
+        return 0;
+    }
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        savelevel[i].compatibleversion = CV_SAVED_GAME;
+    }
+
+    if(fwrite(savelevel, sizeof(*savelevel), savelevel_count, handle)
+            != savelevel_count
+        || !write_saved_allowselect_extension(handle))
+    {
+        fclose(handle);
+        return 0;
+    }
 
     fclose(handle);
 
@@ -2802,7 +2993,8 @@ int saveGameFile()
 
 int loadGameFile()
 {
-    int result = 1, i;
+    int result = 1;
+    size_t i;
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2818,12 +3010,25 @@ int loadGameFile()
         return 0;
     }
 
+    if(!savelevel || savelevel_count != (size_t)num_difficulties)
+    {
+        fclose(handle);
+        return 0;
+    }
+
+    clearSavedGame();
+
     //fseek(handle, 0L, SEEK_END);
     //filesize = ftell(handle);
     //fseek(handle, 0L, SEEK_SET); // or rewind(handle);
     //(filesize != sizeof(*savelevel)*num_difficulties)
 
-    if( (fread(savelevel, sizeof(*savelevel), num_difficulties, handle) >= sizeof(*savelevel) && savelevel[0].compatibleversion != CV_SAVED_GAME) )
+    if(fread(savelevel, sizeof(*savelevel), savelevel_count, handle)
+            != savelevel_count
+        || (savelevel_count
+            && savelevel[0].compatibleversion
+            && savelevel[0].compatibleversion != CV_SAVED_GAME)
+        || !read_saved_allowselect_extension(handle))
     {
         clearSavedGame();
         result = 0;
@@ -2831,7 +3036,7 @@ int loadGameFile()
     else
     {
         bonus = 0;
-        for(i = 0; i < num_difficulties; i++) if(savelevel[i].times_completed > 0)
+        for(i = 0; i < savelevel_count; i++) if(savelevel[i].times_completed > 0)
             {
                 bonus += savelevel[i].times_completed;
             }
@@ -3405,6 +3610,117 @@ static bool command_argument_reader_next(
     *value = reader->value;
 
     return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Own complete allowselect command lines independently from
+  the packed legacy save record. Keep a whole-argument mirror
+  only so older save readers retain their historical behavior.
+*/
+static void copy_legacy_allowselect_arguments(
+    char* destination,
+    size_t capacity,
+    const char* source
+) {
+    const char* value;
+    s_command_argument_reader reader;
+    size_t length = 0;
+
+    if(!destination || !capacity) {
+        return;
+    }
+
+    destination[0] = '\0';
+
+    if(!source
+        || !source[0]
+        || !command_argument_reader_initialize(&reader, source, 0)) {
+        return;
+    }
+
+    while(command_argument_reader_next(&reader, &value)) {
+        const size_t value_length = strlen(value);
+        const size_t separator_length = length ? 1 : 0;
+
+        if(separator_length > capacity - length - 1
+            || value_length
+                > capacity - length - separator_length - 1) {
+            break;
+        }
+
+        if(separator_length) {
+            destination[length++] = ' ';
+        }
+
+        memcpy(destination + length, value, value_length);
+        length += value_length;
+        destination[length] = '\0';
+    }
+}
+
+static void clear_saved_allowselect_arguments(void)
+{
+    size_t i;
+
+    if(!savelevel_allowselect_args) {
+        return;
+    }
+
+    for(i = 0; i < savelevel_count; i++) {
+        free(savelevel_allowselect_args[i]);
+        savelevel_allowselect_args[i] = NULL;
+    }
+}
+
+static const char* get_saved_allowselect_arguments(size_t index)
+{
+    if(index >= savelevel_count || !savelevel) {
+        return NULL;
+    }
+
+    if(savelevel_allowselect_args
+        && savelevel_allowselect_args[index]) {
+        return savelevel_allowselect_args[index];
+    }
+
+    return savelevel[index].allowSelectArgsLegacy;
+}
+
+static void set_saved_allowselect_arguments(
+    size_t index,
+    const char* source
+) {
+    char* owned_source = NULL;
+
+    if(index >= savelevel_count
+        || !savelevel
+        || !savelevel_allowselect_args) {
+        return;
+    }
+
+    if(source && source[0]) {
+        const size_t length = strlen(source);
+
+        if(length == SIZE_MAX) {
+            borShutdown(1, "Allowselect state exceeds addressable memory.\n");
+            return;
+        }
+
+        owned_source = malloc(length + 1);
+        memcpy(owned_source, source, length + 1);
+    }
+
+    free(savelevel_allowselect_args[index]);
+    savelevel_allowselect_args[index] = owned_source;
+
+    copy_legacy_allowselect_arguments(
+        savelevel[index].allowSelectArgsLegacy,
+        sizeof(savelevel[index].allowSelectArgsLegacy),
+        owned_source
+    );
 }
 
 /*
@@ -6729,20 +7045,77 @@ static void reset_playable_list(char which)
 - Caskey, Damon V.
 - 2026-08-11
 -
+- Grow a normalized command line as sequential arguments arrive.
+  Capacity follows actual content, so total command size is bound
+  only by addressable memory while individual arguments retain
+  their dedicated validation limit.
+*/
+static void append_command_argument(
+    char** command_line,
+    size_t* length,
+    size_t* capacity,
+    const char* value
+) {
+    const size_t value_length = strlen(value);
+    const size_t separator_length = *length ? 1 : 0;
+    size_t required_capacity;
+    size_t expanded_capacity;
+
+    if(*length > SIZE_MAX - separator_length - 1
+        || value_length
+            > SIZE_MAX - *length - separator_length - 1) {
+        borShutdown(1, "Command line exceeds addressable memory.\n");
+        return;
+    }
+
+    required_capacity =
+        *length + separator_length + value_length + 1;
+
+    if(required_capacity > *capacity) {
+        expanded_capacity = *capacity ? *capacity : 64;
+
+        while(expanded_capacity < required_capacity) {
+            if(expanded_capacity > SIZE_MAX / 2) {
+                expanded_capacity = required_capacity;
+                break;
+            }
+
+            expanded_capacity *= 2;
+        }
+
+        *command_line = realloc(*command_line, expanded_capacity);
+        *capacity = expanded_capacity;
+    }
+
+    if(separator_length) {
+        (*command_line)[(*length)++] = ' ';
+    }
+
+    memcpy(*command_line + *length, value, value_length);
+    *length += value_length;
+    (*command_line)[*length] = '\0';
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
 - Read selectable player model names directly from the source
-  line one item at a time. Apply the complete runtime list and
-  retain as many whole arguments as the legacy save field holds.
+  line one item at a time. Apply and retain the complete runtime
+  list without a whole-line or persistent save-field ceiling.
 */
 static void load_playable_list(const char* command_line)
 {
     const char* value;
     s_command_argument_reader reader;
     s_model* playermodel;
-    size_t saved_length = 0;
-    bool save_capacity_reached = false;
+    char* stored_arguments = NULL;
+    size_t stored_length = 0;
+    size_t stored_capacity = 0;
     int index;
 
-    if(!command_argument_reader_initialize(
+    if(!command_line
+        || !command_argument_reader_initialize(
             &reader,
             command_line,
             0
@@ -6753,59 +7126,41 @@ static void load_playable_list(const char* command_line)
     }
 
     reset_playable_list(0);
-    memset(allowselect_args, 0, sizeof(allowselect_args));
-    memcpy(
-        allowselect_args,
-        "allowselect",
-        sizeof("allowselect")
+    append_command_argument(
+        &stored_arguments,
+        &stored_length,
+        &stored_capacity,
+        "allowselect"
     );
-    saved_length = sizeof("allowselect") - 1;
 
     while(command_argument_reader_next(&reader, &value)) {
-        const size_t value_length = strlen(value);
-        const size_t remaining_capacity =
-            sizeof(allowselect_args) - saved_length;
-
-        if(!save_capacity_reached
-            && value_length < remaining_capacity
-            && remaining_capacity - value_length > 1) {
-            allowselect_args[saved_length++] = ' ';
-
-            memcpy(
-                allowselect_args + saved_length,
-                value,
-                value_length
-            );
-
-            saved_length += value_length;
-            allowselect_args[saved_length] = '\0';
-        } else {
-            save_capacity_reached = true;
-        }
-
         playermodel = findmodel((char*)value);
 
         if(!playermodel) {
+            free(stored_arguments);
             borShutdown(1, "Player model '%s' is not loaded.\n", value);
+            return;
         }
 
         index = get_cached_model_index(playermodel->name);
 
         if(index == -1) {
+            free(stored_arguments);
             borShutdown(1, "Player model '%s' is not cached.\n", value);
+            return;
         }
 
         model_cache[index].selectable = 1;
-    }
-
-    if(save_capacity_reached) {
-        printf(
-            "Warning: allowselect exceeds the legacy save field; "
-            "the active list is complete, but saved continuation data "
-            "contains only the complete names that fit.\n"
+        append_command_argument(
+            &stored_arguments,
+            &stored_length,
+            &stored_capacity,
+            value
         );
     }
 
+    free(allowselect_args);
+    allowselect_args = stored_arguments;
 }
 
 /*
@@ -22714,9 +23069,26 @@ lCleanup:
         free(buf);
     }
 
-    if(!savelevel)
+    if(!savelevel || savelevel_count != (size_t)num_difficulties)
     {
-        savelevel = calloc(num_difficulties, sizeof(*savelevel));
+        clear_saved_allowselect_arguments();
+        free(savelevel_allowselect_args);
+        free(savelevel);
+
+        savelevel_count = (size_t)num_difficulties;
+        savelevel = calloc(savelevel_count, sizeof(*savelevel));
+        savelevel_allowselect_args = calloc(
+            savelevel_count,
+            sizeof(*savelevel_allowselect_args)
+        );
+    }
+    else if(!savelevel_allowselect_args)
+    {
+        savelevel_allowselect_args = calloc(
+            savelevel_count,
+            sizeof(*savelevel_allowselect_args)
+        );
+        restore_saved_allowselect_legacy_arguments();
     }
 
     if(errormessage)
@@ -50980,10 +51352,17 @@ void borShutdown(int status, char *msg, ...)
     }
 
     freeModelList();
+    clear_saved_allowselect_arguments();
+    free(savelevel_allowselect_args);
+    savelevel_allowselect_args = NULL;
     if(savelevel)
     {
         free(savelevel);
+        savelevel = NULL;
     }
+    savelevel_count = 0;
+    free(allowselect_args);
+    allowselect_args = NULL;
     freefilenamecache();
     ob_termtrans();
 
@@ -51740,8 +52119,7 @@ void savelevelinfo()
     save->stage = current_stage;
     save->which_set = current_set;
     strncpy(save->dName, set->name, MAX_NAME_LEN - 1);
-    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = '\0'; // clear
-    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
+    set_saved_allowselect_arguments(current_set, allowselect_args);
 }
 
 void tryvictorypose(entity *ent)
@@ -52059,8 +52437,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
 	// Allow select? 'a' is the first char of allowselect,
 	// if there's 'a' then there is allowselect.
-	if (allowselect_args[0] != 'a'
-		&& allowselect_args[0] != 'A')
+	if (!allowselect_args
+		|| (allowselect_args[0] != 'a'
+			&& allowselect_args[0] != 'A'))
 	{
 		reset_playable_list(1);
 	}
@@ -52074,7 +52453,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 		if (save->selectFlag)
 		{
 			load_select_screen_info(save);
-			load_playable_list(save->allowSelectArgs);
+			load_playable_list(
+				get_saved_allowselect_arguments(current_set)
+			);
 			saved_select_screen = 1;
 		}
 	}
@@ -52116,7 +52497,10 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				else if (stricmp(command, "allowselect") == 0)
 				{
 					load_playable_list(buf + pos);
-					memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
+					set_saved_allowselect_arguments(
+						current_set,
+						allowselect_args
+					);
 				}
 				else if (stricmp(command, "background") == 0)
 				{
@@ -52610,7 +52994,9 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             credits = save->credits;
         }
-        load_playable_list(save->allowSelectArgs); //TODO: change sav format to support dynamic allowselect list.
+        load_playable_list(
+            get_saved_allowselect_arguments(current_set)
+        );
         //reset_playable_list(1); // add this because there's no select screen, temporary solution
     }
 
