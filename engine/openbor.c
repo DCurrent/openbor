@@ -20467,6 +20467,19 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     }
                 }
 
+                if(command_token_reader.unterminated_quote)
+                {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Command '@cmd' has an unterminated %c quote.\n",
+                        command_token_reader.unterminated_quote
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
+                }
+
                 buffer_append(&scriptbuf, endcall_text, 0xffffff, &sbsize, &scriptlen);
                 if(no_cmd_compatible)
                 {
