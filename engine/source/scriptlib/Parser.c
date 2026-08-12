@@ -153,10 +153,32 @@ void Parser_ParseExpression(Parser *pparser, List *pIList, LPSTR scriptText,
 
 void Parser_AddInstructionViaToken(Parser *pparser, OpCode pCode, Token *pToken, Label label )
 {
+    HRESULT result;
     Instruction *pInstruction = NULL;
     pInstruction = (Instruction *)malloc(sizeof(Instruction));
-    Instruction_InitViaToken(pInstruction, pCode, pToken);
+    result = Instruction_InitViaToken(pInstruction, pCode, pToken);
     List_InsertAfter(pparser->pIList, pInstruction, label);
+
+    if(FAILED(result))
+    {
+        if(pCode == CONSTSTR)
+        {
+            pp_error(
+                &(pparser->theLexer.preprocessor),
+                "String literal exceeds the maximum length of %u characters",
+                MAX_SCRIPT_STRING_LENGTH
+            );
+        }
+        else
+        {
+            pp_error(
+                &(pparser->theLexer.preprocessor),
+                "Unable to create script instruction"
+            );
+        }
+
+        pparser->errorFound = TRUE;
+    }
 }
 
 /******************************************************************************
@@ -1877,10 +1899,17 @@ void Parser_Unary_expr(Parser *pparser )
                 prefixed_value[0] = '!';
                 memcpy(prefixed_value + 1, value, value_length + 1);
                 ScriptVariant_Clear(pInstruction->theVal);
-                ScriptVariant_ParseStringConstant(
-                    pInstruction->theVal,
-                    prefixed_value
-                );
+                if(FAILED(ScriptVariant_ParseStringConstant(
+                        pInstruction->theVal,
+                        prefixed_value)))
+                {
+                    pp_error(
+                        &(pparser->theLexer.preprocessor),
+                        "String result exceeds the maximum length of %u characters",
+                        MAX_SCRIPT_STRING_LENGTH
+                    );
+                    pparser->errorFound = TRUE;
+                }
                 free(prefixed_value);
             }
             else

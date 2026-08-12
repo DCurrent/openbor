@@ -35,6 +35,7 @@
 #include "models.h"
 #include "scriptcommon.h"
 #include <limits.h>
+#include <stdint.h>
 
 Varlist global_var_list;
 Script *pcurrentscript = NULL; //used by local script functions
@@ -1340,8 +1341,8 @@ changesystemvariant_error:
 //drawstring(x, y, font, string, z);
 HRESULT openbor_drawstring(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    int i;
     char buf[MAX_BUFFER_LEN];
+    int i;
     LONG value[4];
     *pretvar = NULL;
 
@@ -1368,7 +1369,16 @@ HRESULT openbor_drawstring(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         value[3] = 0;
     }
-    ScriptVariant_ToString(varlist[3], buf);
+    if(FAILED(ScriptVariant_ToString(
+        varlist[3],
+        buf,
+        sizeof(buf),
+        NULL
+    )))
+    {
+        goto drawstring_error;
+    }
+
     font_printf((int)value[0], (int)value[1], (int)value[2], (int)value[3], "%s", buf);
     return S_OK;
 
@@ -1381,9 +1391,9 @@ drawstring_error:
 //drawstringtoscreen(screen, x, y, font, string);
 HRESULT openbor_drawstringtoscreen(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
+    char buf[MAX_BUFFER_LEN];
     int i;
     s_screen *scr;
-    char buf[MAX_BUFFER_LEN];
     LONG value[3];
     *pretvar = NULL;
 
@@ -1410,7 +1420,16 @@ HRESULT openbor_drawstringtoscreen(ScriptVariant **varlist , ScriptVariant **pre
         }
     }
 
-    ScriptVariant_ToString(varlist[4], buf);
+    if(FAILED(ScriptVariant_ToString(
+        varlist[4],
+        buf,
+        sizeof(buf),
+        NULL
+    )))
+    {
+        goto drawstring_error;
+    }
+
     screen_printf(scr, (int)value[0], (int)value[1], (int)value[2], "%s", buf);
     return S_OK;
 
@@ -1423,7 +1442,8 @@ drawstring_error:
 //log(string);
 HRESULT openbor_log(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    char buf[MAX_BUFFER_LEN];
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
     *pretvar = NULL;
 
     if(paramCount != 1)
@@ -1431,8 +1451,17 @@ HRESULT openbor_log(ScriptVariant **varlist , ScriptVariant **pretvar, int param
         goto drawstring_error;
     }
 
-    ScriptVariant_ToString(varlist[0], buf);
-    printf("%s", buf);
+    if(FAILED(ScriptVariant_GetStringView(
+        varlist[0],
+        conversion_buffer,
+        sizeof(conversion_buffer),
+        &string_view
+    )))
+    {
+        goto drawstring_error;
+    }
+
+    printf("%s", string_view.string);
     return S_OK;
 
 drawstring_error:
@@ -8122,12 +8151,13 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
 //changeplayerproperty(index, propname, value[, value2, value3,...]);
 HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
     LONG ltemp, ltemp2;
     int index;
     entity *ent = NULL;
     int prop = -1;
     char *tempstr = NULL;
-    static char buffer[64];
     ScriptVariant *arg = NULL;
 
     *pretvar = NULL;
@@ -8428,8 +8458,23 @@ HRESULT openbor_changeplayerproperty(ScriptVariant **varlist , ScriptVariant **p
 
     return S_OK;
 cpperror:
-    ScriptVariant_ToString(arg, buffer);
-    printf("Function changeplayerproperty receives an invalid value: %s.\n", buffer);
+    if(SUCCEEDED(ScriptVariant_GetStringView(
+        arg,
+        conversion_buffer,
+        sizeof(conversion_buffer),
+        &string_view
+    )))
+    {
+        printf(
+            "Function changeplayerproperty receives an invalid value: %.*s.\n",
+            (int)string_view.length,
+            string_view.string
+        );
+    }
+    else
+    {
+        printf("Function changeplayerproperty receives an invalid or oversized value.\n");
+    }
     return E_FAIL;
 }
 
@@ -10609,7 +10654,7 @@ HRESULT openbor_openfilestream(ScriptVariant **varlist , ScriptVariant **pretvar
 }
 
 HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
-    int length;
+    size_t length;
     char *buf;
     char *dst;
     ScriptVariant *arg = NULL;
@@ -10633,7 +10678,16 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
         ++length;
     }
 
-    (*pretvar)->strVal = StrCache_Pop(length);
+    if(length > MAX_SCRIPT_STRING_LENGTH) {
+        ScriptVariant_Clear(*pretvar);
+        printf(
+            "File stream line exceeds the maximum script string length of %u characters.\n",
+            MAX_SCRIPT_STRING_LENGTH
+        );
+        return E_FAIL;
+    }
+
+    (*pretvar)->strVal = StrCache_Pop((int)length);
     dst = StrCache_Get((*pretvar)->strVal);
     memcpy(dst, buf, length);
     dst[length] = '\0';
@@ -10707,8 +10761,11 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
         }
     }
 
-    if(argument_length >= (size_t)INT_MAX) {
-        printf("File stream argument exceeds the script string capacity.\n");
+    if(argument_length > MAX_SCRIPT_STRING_LENGTH) {
+        printf(
+            "File stream argument exceeds the maximum script string length of %u characters.\n",
+            MAX_SCRIPT_STRING_LENGTH
+        );
         return E_FAIL;
     }
 
@@ -10809,12 +10866,13 @@ HRESULT openbor_setfilestreamposition(ScriptVariant **varlist , ScriptVariant **
 }
 
 HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
+    ScriptVariantStringView append_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
     LONG filestreamindex;
     ScriptVariant *arg = NULL;
     LONG appendtype = -1;
-    size_t len1, len2;
+    size_t len1, len2, output_length;
     char *temp;
-    static char append[2048];
 
     *pretvar = NULL;
     if(paramCount < 2) {
@@ -10868,30 +10926,60 @@ HRESULT openbor_filestreamappend(ScriptVariant **varlist , ScriptVariant **pretv
         }
 
     } else {
-        
-        ScriptVariant_ToString(arg, append);
 
-        len1 = strlen(append);
+        if(FAILED(ScriptVariant_GetStringView(
+            arg,
+            conversion_buffer,
+            sizeof(conversion_buffer),
+            &append_view
+        ))) {
+            goto append_error;
+        }
+
+        len1 = append_view.length;
         len2 = filestreams[filestreamindex].size;
 
-        filestreams[filestreamindex].buf = realloc(filestreams[filestreamindex].buf, sizeof(*temp) * (len1 + len2 + 4));
+        if(len2 > SIZE_MAX - 4 || len1 > SIZE_MAX - len2 - 4) {
+            goto append_error;
+        }
+
+        output_length = len2 + len1;
 
         if(appendtype == 0) {
-            append[len1] = ' ';
-            append[++len1] = '\0';
-            strcpy(filestreams[filestreamindex].buf + len2, "\r\n");
-            len2 += 2;
-            strcpy(filestreams[filestreamindex].buf + len2, append);
-        
+            output_length += 3;
         } else if(appendtype == 1) {
-            append[len1] = ' ';
-            append[++len1] = '\0';
-            strcpy(filestreams[filestreamindex].buf + len2, append);
-        
-        } else {
-            strcpy(filestreams[filestreamindex].buf + len2, append);
+            output_length += 1;
         }
-        filestreams[filestreamindex].size = len1 + len2;
+
+        temp = realloc(
+            filestreams[filestreamindex].buf,
+            sizeof(*temp) * (output_length + 1)
+        );
+
+        if(!temp) {
+            goto append_error;
+        }
+
+        filestreams[filestreamindex].buf = temp;
+        temp += len2;
+
+        if(appendtype == 0) {
+            *temp++ = '\r';
+            *temp++ = '\n';
+            memcpy(temp, append_view.string, len1);
+            temp += len1;
+            *temp++ = ' ';
+        } else if(appendtype == 1) {
+            memcpy(temp, append_view.string, len1);
+            temp += len1;
+            *temp++ = ' ';
+        } else {
+            memcpy(temp, append_view.string, len1);
+            temp += len1;
+        }
+
+        *temp = '\0';
+        filestreams[filestreamindex].size = output_length;
     }
 
     return S_OK;
@@ -13123,9 +13211,11 @@ gettextobjproperty_error:
 
 HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
     LONG ind;
     int propind;
-    static char buf[MAX_STR_VAR_LEN];
+    char buf[MAX_STR_VAR_LEN];
     LONG ltemp;
     const char *ctotext = "changetextobjproperty(int index, \"property\", value)";
 
@@ -13180,9 +13270,18 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
     }
     case _top_text:
     {
-        ScriptVariant_ToString(varlist[2], buf);
+        if(FAILED(ScriptVariant_ToString(
+            varlist[2],
+            buf,
+            sizeof(buf),
+            NULL
+        )))
+        {
+            goto changetextobjproperty_error;
+        }
+
         level->textobjs[ind].text = malloc(MAX_STR_VAR_LEN);
-        strncpy(level->textobjs[ind].text, buf, MAX_STR_VAR_LEN);
+        strcpy(level->textobjs[ind].text, buf);
         break;
     }
     case _top_time:
@@ -13243,8 +13342,23 @@ HRESULT openbor_changetextobjproperty(ScriptVariant **varlist , ScriptVariant **
     return S_OK;
 
 changetextobjproperty_error:
-    ScriptVariant_ToString(varlist[2], buf);
-    printf("Invalid textobj value: %s\n", buf);
+    if(SUCCEEDED(ScriptVariant_GetStringView(
+        varlist[2],
+        conversion_buffer,
+        sizeof(conversion_buffer),
+        &string_view
+    )))
+    {
+        printf(
+            "Invalid textobj value: %.*s\n",
+            (int)string_view.length,
+            string_view.string
+        );
+    }
+    else
+    {
+        printf("Invalid or oversized textobj value.\n");
+    }
     return E_FAIL;
 }
 
@@ -13253,7 +13367,7 @@ HRESULT openbor_settextobj(ScriptVariant **varlist , ScriptVariant **pretvar, in
 {
     LONG ind;
     LONG X, Y, Z, F, T = 0;
-    static char buf[MAX_STR_VAR_LEN];
+    char buf[MAX_STR_VAR_LEN];
     const char *stotext = "settextobj(int index, int x, int y, int font, int z, char text, int time {optional})";
 
     *pretvar = NULL;
@@ -13298,7 +13412,15 @@ HRESULT openbor_settextobj(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         goto settextobj_error;
     }
-    ScriptVariant_ToString(varlist[5], buf);
+    if(FAILED(ScriptVariant_ToString(
+        varlist[5],
+        buf,
+        sizeof(buf),
+        NULL
+    )))
+    {
+        goto settextobj_error;
+    }
     if(paramCount >= 7 && FAILED(ScriptVariant_IntegerValue(varlist[6], &T)))
     {
         goto settextobj_error;
@@ -13314,7 +13436,7 @@ HRESULT openbor_settextobj(ScriptVariant **varlist , ScriptVariant **pretvar, in
     {
         level->textobjs[ind].text = (char *)malloc(MAX_STR_VAR_LEN);
     }
-    strncpy(level->textobjs[ind].text, buf, MAX_STR_VAR_LEN);
+    strcpy(level->textobjs[ind].text, buf);
 
     return S_OK;
 

@@ -45,13 +45,13 @@ typedef struct Instruction
 
 #pragma pack()
 
-void Instruction_InitViaToken(Instruction *pins, OpCode code, Token *pToken );
+HRESULT Instruction_InitViaToken(Instruction *pins, OpCode code, Token *pToken );
 void Instruction_InitViaLabel(Instruction *pins, OpCode code, LPCSTR label );
 void Instruction_Init(Instruction *pins);
 void Instruction_Clear(Instruction *pins);
 
 void Instruction_NewData(Instruction *pins);
-void Instruction_ConvertConstant(Instruction *pins);
+HRESULT Instruction_ConvertConstant(Instruction *pins);
 
 void Instruction_ToString(Instruction *pins, LPSTR strRep);
 #endif

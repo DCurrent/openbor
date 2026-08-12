@@ -136,6 +136,9 @@ void StrCache_Collect(int index)
 int StrCache_Pop(int length)
 {
     int i;
+
+    assert(length >= 0);
+
     if(strcache_size == 0)
     {
         StrCache_Init();
@@ -163,6 +166,7 @@ int StrCache_Pop(int length)
     i = strcache_index[strcache_top--];
     strcache[i].str = malloc(length + 1);
     strcache[i].str[0] = 0;
+    strcache[i].str[length] = 0;
     strcache[i].len = length;
     strcache[i].ref = 1;
     return i;
@@ -336,11 +340,29 @@ size_t ScriptString_DecodeLiteral(
 }
 
 // find an existing constant before copy
-void ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str)
+HRESULT ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str)
 {
     //assert(index<strcache_size);
     //assert(size>0);
     int i;
+    size_t length;
+
+    if(!var || !str)
+    {
+        return E_FAIL;
+    }
+
+    for(length = 0;
+        length <= MAX_SCRIPT_STRING_LENGTH && str[length];
+        length++)
+    {
+    }
+
+    if(length > MAX_SCRIPT_STRING_LENGTH)
+    {
+        return E_FAIL;
+    }
+
     for(i = 0; i < strcache_size; i++)
     {
         if (strcache[i].ref && strcmp(str, strcache[i].str) == 0)
@@ -348,12 +370,14 @@ void ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str)
             var->strVal = i;
             strcache[i].ref++;
             var->vt = VT_STR;
-            return;
+            return S_OK;
         }
     }
 
     ScriptVariant_ChangeType(var, VT_STR);
     var->strVal = StrCache_CreateNewFrom(str);
+
+    return S_OK;
 }
 
 /*
@@ -363,7 +387,7 @@ void ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str)
 - Convert a length-delimited source literal directly into a
   runtime string constant without fixed intermediate storage.
 */
-void ScriptVariant_ParseStringLiteral(
+HRESULT ScriptVariant_ParseStringLiteral(
     ScriptVariant *var,
     const CHAR *source,
     size_t source_length
@@ -372,13 +396,29 @@ void ScriptVariant_ParseStringLiteral(
     CHAR *decoded;
     size_t decoded_length;
 
+    if(!var || !source)
+    {
+        return E_FAIL;
+    }
+
     decoded_length = ScriptString_DecodeLiteral(
         NULL,
         0,
         source,
         source_length
     );
+
+    if(decoded_length > MAX_SCRIPT_STRING_LENGTH)
+    {
+        return E_FAIL;
+    }
+
     decoded = malloc(decoded_length + 1);
+
+    if(!decoded)
+    {
+        return E_FAIL;
+    }
 
     ScriptString_DecodeLiteral(
         decoded,
@@ -386,9 +426,15 @@ void ScriptVariant_ParseStringLiteral(
         source,
         source_length
     );
-    ScriptVariant_ParseStringConstant(var, decoded);
+    if(FAILED(ScriptVariant_ParseStringConstant(var, decoded)))
+    {
+        free(decoded);
+        return E_FAIL;
+    }
 
     free(decoded);
+
+    return S_OK;
 }
 
 /*
@@ -599,84 +645,161 @@ BOOL ScriptVariant_IsTrue(ScriptVariant *svar) {
 }
 
 /*
-* Caskey, Damon V.
-* Orginal author (Utunels?) and date unknown.
-* 
-* Reworked 2026-06-02 to handle 64-bit 
-* integers.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Return a non-owning view of a script variant's string
+  representation. String variants reference their cache-owned
+  text directly. Other types use caller-provided conversion
+  storage with explicit capacity.
 */
-void ScriptVariant_ToString(ScriptVariant *svar, LPSTR buffer) {
-    
-    switch( svar->vt ) {
-        case VT_EMPTY:
-            sprintf( buffer, "<VT_EMPTY> Unitialized" );
-            break;
+HRESULT ScriptVariant_GetStringView(
+    const ScriptVariant *svar,
+    CHAR *conversion_buffer,
+    size_t conversion_buffer_size,
+    ScriptVariantStringView *view
+)
+{
+    const CHAR *terminator;
+    int result;
 
-        case VT_INTEGER:
-            sprintf( buffer, "%ld", (long)svar->lVal);
-            break;
-
-        case VT_INTEGER64:
-            sprintf( buffer, "%" PRId64, (int64_t)svar->llVal);
-            break;
-
-        case VT_UINTEGER64:
-            sprintf( buffer, "%" PRIu64, (uint64_t)svar->ullVal);
-            break;
-
-        case VT_DECIMAL:
-            sprintf( buffer, "%lf", svar->dblVal );
-            break;
-
-        case VT_PTR:
-            sprintf(buffer, "#%" PRIuPTR, (uintptr_t)svar->ptrVal);
-            break;
-
-        case VT_STR:
-            sprintf(buffer, "%s", StrCache_Get(svar->strVal));
-            break;
-
-        default:
-            sprintf(buffer, "<Unprintable VARIANT type.>" );
-            break;
+    if(!svar || !view)
+    {
+        return E_FAIL;
     }
+
+    view->string = NULL;
+    view->length = 0;
+
+    if(svar->vt == VT_STR)
+    {
+        if(svar->strVal < 0 || svar->strVal >= strcache_size ||
+           !strcache[svar->strVal].str ||
+           strcache[svar->strVal].len < 0 ||
+           (size_t)strcache[svar->strVal].len > MAX_SCRIPT_STRING_LENGTH)
+        {
+            return E_FAIL;
+        }
+
+        view->string = strcache[svar->strVal].str;
+        terminator = memchr(
+            view->string,
+            '\0',
+            (size_t)strcache[svar->strVal].len + 1
+        );
+
+        if(!terminator)
+        {
+            view->string = NULL;
+            view->length = 0;
+            return E_FAIL;
+        }
+
+        view->length = (size_t)(terminator - view->string);
+
+        return S_OK;
+    }
+
+    if(!conversion_buffer || !conversion_buffer_size)
+    {
+        return E_FAIL;
+    }
+
+    conversion_buffer[0] = '\0';
+
+    switch(svar->vt)
+    {
+    case VT_EMPTY:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "<VT_EMPTY> Unitialized");
+        break;
+    case VT_INTEGER:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "%ld", (long)svar->lVal);
+        break;
+    case VT_INTEGER64:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "%" PRId64, (int64_t)svar->llVal);
+        break;
+    case VT_UINTEGER64:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "%" PRIu64, (uint64_t)svar->ullVal);
+        break;
+    case VT_DECIMAL:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "%lf", svar->dblVal);
+        break;
+    case VT_PTR:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "#%" PRIuPTR, (uintptr_t)svar->ptrVal);
+        break;
+    default:
+        result = snprintf(conversion_buffer, conversion_buffer_size, "<Unprintable VARIANT type.>");
+        break;
+    }
+
+    if(result < 0 || (size_t)result >= conversion_buffer_size ||
+       (size_t)result > MAX_SCRIPT_STRING_LENGTH)
+    {
+        conversion_buffer[0] = '\0';
+        return E_FAIL;
+    }
+
+    view->string = conversion_buffer;
+    view->length = (size_t)result;
+
+    return S_OK;
 }
 
 /*
-* Caskey, Damon V.
-* Orginal author (Utunels?) and date unknown.
-* 
-* Reworked 2026-06-02 to handle 64-bit integers.
-*
-* Get the length of a variant when converted to a string.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Copy a script variant's string representation into caller
+  storage with explicit capacity and optional output length.
 */
-static int ScriptVariant_LengthAsString(ScriptVariant *svar) {
-    
-    switch (svar->vt) {
-        case VT_EMPTY:
-            return snprintf(NULL, 0, "<VT_EMPTY> Unitialized");
+HRESULT ScriptVariant_ToString(
+    const ScriptVariant *svar,
+    LPSTR buffer,
+    size_t buffer_size,
+    size_t *output_length
+)
+{
+    ScriptVariantStringView view;
 
-        case VT_INTEGER:
-            return snprintf(NULL, 0, "%ld", (long)svar->lVal);
-
-        case VT_INTEGER64:
-            return snprintf(NULL, 0, "%" PRId64, (int64_t)svar->llVal);
-
-        case VT_UINTEGER64:
-            return snprintf(NULL, 0, "%" PRIu64, (uint64_t)svar->ullVal);
-
-        case VT_DECIMAL:
-            return snprintf(NULL, 0, "%lf", svar->dblVal);
-
-        case VT_PTR:
-            return snprintf(NULL, 0, "#%" PRIuPTR, (uintptr_t)svar->ptrVal);
-
-        case VT_STR:
-            return snprintf(NULL, 0, "%s", StrCache_Get(svar->strVal));
-
-        default:
-            return snprintf(NULL, 0, "<Unprintable VARIANT type.>");
+    if(output_length)
+    {
+        *output_length = 0;
     }
+
+    if(!buffer || !buffer_size)
+    {
+        return E_FAIL;
+    }
+
+    buffer[0] = '\0';
+
+    if(FAILED(ScriptVariant_GetStringView(
+        svar,
+        buffer,
+        buffer_size,
+        &view
+    )))
+    {
+        return E_FAIL;
+    }
+
+    if(view.length >= buffer_size)
+    {
+        buffer[0] = '\0';
+        return E_FAIL;
+    }
+
+    if(view.string != buffer)
+    {
+        memmove(buffer, view.string, view.length + 1);
+    }
+
+    if(output_length)
+    {
+        *output_length = view.length;
+    }
+
+    return S_OK;
 }
 
 /*
@@ -1900,8 +2023,26 @@ ScriptVariant *ScriptVariant_Add(ScriptVariant *svar, ScriptVariant *rightChild)
     if (svar->vt == VT_STR || rightChild->vt == VT_STR) {
 
         CHAR *destination_string;
-        int length_a = ScriptVariant_LengthAsString(svar);
-        int length_b = ScriptVariant_LengthAsString(rightChild);
+        CHAR conversion_a[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
+        CHAR conversion_b[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
+        ScriptVariantStringView view_a;
+        ScriptVariantStringView view_b;
+
+        if(FAILED(ScriptVariant_GetStringView(
+                svar,
+                conversion_a,
+                sizeof(conversion_a),
+                &view_a)) ||
+           FAILED(ScriptVariant_GetStringView(
+                rightChild,
+                conversion_b,
+                sizeof(conversion_b),
+                &view_b)) ||
+           view_a.length > MAX_SCRIPT_STRING_LENGTH - view_b.length)
+        {
+            ScriptVariant_Clear(&retvar);
+            return &retvar;
+        }
 
         ScriptVariant_ChangeType(&retvar, VT_STR);
 
@@ -1910,22 +2051,22 @@ ScriptVariant *ScriptVariant_Add(ScriptVariant *svar, ScriptVariant *rightChild)
         * inline text. Reserve a cache entry large enough for
         * both operands and get its writable character buffer.
         */
-        retvar.strVal = StrCache_Pop(length_a + length_b);
+        retvar.strVal = StrCache_Pop((int)(view_a.length + view_b.length));
         destination_string = StrCache_Get(retvar.strVal);
 
         /*
         * Fill the cache-owned buffer: left operand first,
         * then right operand at the end of the left text.
         */
-        ScriptVariant_ToString(svar, destination_string);
-        ScriptVariant_ToString(rightChild, destination_string + length_a);
+        memcpy(destination_string, view_a.string, view_a.length);
+        memcpy(destination_string + view_a.length, view_b.string, view_b.length);
 
         /*
         * Finalize the cache-owned buffer as a C string.
         * The cache releases it later through reference 
         * counting.
         */
-        destination_string[length_a + length_b] = '\0';
+        destination_string[view_a.length + view_b.length] = '\0';
 
         return &retvar;
     }
@@ -2708,5 +2849,3 @@ void ScriptVariant_Boolean_Not(ScriptVariant *svar )
     svar->lVal = b;
 
 }
-
-

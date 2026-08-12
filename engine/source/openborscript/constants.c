@@ -1389,6 +1389,7 @@ bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(MAX_INT)
         ICMPCONST(MAX_NAME_LEN)
         ICMPCONST(MAX_PLAYERS)
+        ICMPCONST(MAX_SCRIPT_STRING_LENGTH)
         ICMPCONST(MAX_SPECIALS)
         ICMPCONST(MIN_INT)        
 
@@ -1816,7 +1817,8 @@ bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
 //openborconstant(constname);
 //translate a constant by string, used to retrieve a constant or macro of openbor
 HRESULT openbor_transconst(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount) {
-    static char buf[128];
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
 
     if (paramCount < 1) {
         *pretvar = NULL;
@@ -1831,8 +1833,20 @@ HRESULT openbor_transconst(ScriptVariant **varlist, ScriptVariant **pretvar, int
         return S_OK;
     }
 
-    ScriptVariant_ToString(varlist[0], buf);
-    printf("Can't translate constant %s\n", buf);
+    if(SUCCEEDED(ScriptVariant_GetStringView(
+        varlist[0],
+        conversion_buffer,
+        sizeof(conversion_buffer),
+        &string_view
+    ))) {
+        printf(
+            "Can't translate constant %.*s\n",
+            (int)string_view.length,
+            string_view.string
+        );
+    } else {
+        printf("Can't translate invalid or oversized constant.\n");
+    }
 
     *pretvar = NULL;
     return E_FAIL;
