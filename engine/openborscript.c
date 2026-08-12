@@ -10716,11 +10716,13 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
 - 2026-08-11
 -
 - Read one requested file-stream argument sequentially and
-  copy only that argument into exact-sized script storage.
-  Numeric conversions reuse the same temporary script string.
+  copy only its decoded value into exact-sized script storage.
+  Opening and closing quote delimiters are discarded. Numeric
+  conversions reuse the same temporary script string.
 */
 HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
-    const char *argument_text = "";
+    e_command_argument_read_result argument_result = COMMAND_ARGUMENT_READ_END;
+    s_command_argument_view argument_view = {0};
     char *converted_text;
     ScriptVariant *arg = NULL;
     LONG filestreamindex, argument;
@@ -10766,15 +10768,19 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
     }
 
     if(argument >= 0) {
-        if(!command_argument_read(
-                filestreams[filestreamindex].buf
-                    + filestreams[filestreamindex].pos,
-                (size_t)argument,
-                &argument_text,
-                &argument_length
-            )) {
-            argument_text = "";
+        argument_result = command_argument_read(
+            filestreams[filestreamindex].buf
+                + filestreams[filestreamindex].pos,
+            (size_t)argument,
+            &argument_view
+        );
+
+        if(argument_result == COMMAND_ARGUMENT_READ_INVALID) {
+            printf("File stream argument contains an unterminated quote.\n");
+            return E_FAIL;
         }
+
+        argument_length = argument_view.length;
     }
 
     if(argument_length > MAX_SCRIPT_STRING_LENGTH) {
@@ -10788,8 +10794,19 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
     ScriptVariant_ChangeType(*pretvar, VT_STR);
     (*pretvar)->strVal = StrCache_Pop((int)argument_length);
     converted_text = StrCache_Get((*pretvar)->strVal);
-    memcpy(converted_text, argument_text, argument_length);
-    converted_text[argument_length] = '\0';
+
+    if(argument_result == COMMAND_ARGUMENT_READ_SUCCESS) {
+        if(!command_argument_copy(
+                &argument_view,
+                converted_text,
+                argument_length + 1
+            )) {
+            ScriptVariant_Clear(*pretvar);
+            return E_FAIL;
+        }
+    } else {
+        converted_text[0] = '\0';
+    }
 
     if(stricmp(argtype, "int") == 0) {
         const LONG converted_integer = (LONG)atoi(converted_text);

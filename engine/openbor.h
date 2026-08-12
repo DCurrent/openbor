@@ -4410,7 +4410,32 @@ int		prevcolourmapn							(s_model *model, int map_index, int player_index);
 int     buffer_pakfile							(const char *filename, char **pbuffer, size_t *psize);
 
 size_t  ParseArgs								(ArgList *list, char *input, char *output);
-bool    command_argument_read                    (const char* command_line, size_t argument_index, const char** value, size_t* length);
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Describe one sequential command argument as a source view
+  and its decoded length. Quote delimiters remain in the source
+  view so callers can scan without allocation, then discard the
+  delimiters while copying into correctly sized owned storage.
+*/
+typedef enum e_command_argument_read_result
+{
+    COMMAND_ARGUMENT_READ_END,
+    COMMAND_ARGUMENT_READ_SUCCESS,
+    COMMAND_ARGUMENT_READ_INVALID
+} e_command_argument_read_result;
+
+typedef struct s_command_argument_view
+{
+    const char* source;
+    size_t source_length;
+    size_t length;
+} s_command_argument_view;
+
+e_command_argument_read_result command_argument_read(const char* command_line, size_t argument_index, s_command_argument_view* argument);
+bool    command_argument_copy                    (const s_command_argument_view* argument, char* destination, size_t capacity);
 int     getsyspropertybyindex					(ScriptVariant *var, int index);
 int     changesyspropertybyindex				(int index, ScriptVariant *value);
 e_direction direction_get_direction_from_argument(const char* filename, const char* command, const char* value);

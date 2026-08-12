@@ -3395,6 +3395,7 @@ typedef struct s_command_token
 {
     const char* text;
     size_t length;
+    size_t value_length;
 } s_command_token;
 
 /*
@@ -3406,21 +3407,72 @@ typedef struct s_command_token
 typedef struct s_command_token_reader
 {
     const char* cursor;
+    char unterminated_quote;
 } s_command_token_reader;
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Identify command quote delimiters and update quote state.
+  Double quotes may group text anywhere within an argument.
+  Single quotes may begin grouping only at the argument boundary,
+  allowing apostrophes in ordinary words to remain literal.
+*/
+static bool command_token_update_quote_state(
+    const char* token_start,
+    const char* cursor,
+    bool* inside_double_quotes,
+    bool* inside_single_quotes
+) {
+    bool escaped;
+
+    assert(token_start);
+    assert(cursor);
+    assert(inside_double_quotes);
+    assert(inside_single_quotes);
+
+    escaped =
+        cursor > token_start
+        && cursor[-1] == '\\';
+
+    if(*cursor == '"' && !escaped && !*inside_single_quotes) {
+        *inside_double_quotes = !*inside_double_quotes;
+        return true;
+    }
+
+    if(*cursor == '\'' && !escaped && !*inside_double_quotes) {
+        if(*inside_single_quotes || cursor == token_start) {
+            *inside_single_quotes = !*inside_single_quotes;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /*
 * Read the next token from a command line.
 *
 * Tokens end at whitespace, a line ending, a comment
-* marker, or the null terminator. Quoted text may
-* contain whitespace and comment markers.
+* marker, or the null terminator. Quoted text may contain
+* whitespace, line endings, and comment markers. Double
+* quotes may open anywhere in an argument. Single quotes
+* may open only at its beginning so ordinary apostrophes
+* remain literal. Matching delimiters are omitted from the
+* logical value, while the opposite quote type is literal.
 *
 * Return true when a token is available. Return false
-* when the command line has no remaining tokens.
+* when the command line has no remaining tokens or the
+* current token contains an unterminated quote. The reader
+* records the invalid delimiter for callers that distinguish
+* malformed input from an ordinary end.
 */
 static bool command_token_reader_next(s_command_token_reader* reader, s_command_token* token) {
     const char* cursor;
     const char* token_start;
+
+    size_t value_length = 0;
 
     bool inside_double_quotes = false;
     bool inside_single_quotes = false;
@@ -3448,6 +3500,7 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
         reader->cursor = cursor;
         token->text = NULL;
         token->length = 0;
+        token->value_length = 0;
 
         return false;
     }
@@ -3455,18 +3508,12 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
     token_start = cursor;
 
     while(*cursor) {
-        const bool escaped =
-            cursor > token_start
-            && cursor[-1] == '\\';
-
-        if(*cursor == '"' && !escaped && !inside_single_quotes) {
-            inside_double_quotes = !inside_double_quotes;
-            cursor++;
-            continue;
-        }
-
-        if(*cursor == '\'' && !escaped && !inside_double_quotes) {
-            inside_single_quotes = !inside_single_quotes;
+        if(command_token_update_quote_state(
+                token_start,
+                cursor,
+                &inside_double_quotes,
+                &inside_single_quotes
+            )) {
             cursor++;
             continue;
         }
@@ -3481,11 +3528,23 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
             }
         }
 
+        value_length++;
         cursor++;
+    }
+
+    if(inside_double_quotes || inside_single_quotes) {
+        reader->cursor = cursor;
+        reader->unterminated_quote = inside_double_quotes ? '"' : '\'';
+        token->text = NULL;
+        token->length = 0;
+        token->value_length = 0;
+
+        return false;
     }
 
     token->text = token_start;
     token->length = (size_t)(cursor - token_start);
+    token->value_length = value_length;
     reader->cursor = cursor;
 
     return true;
@@ -3495,47 +3554,137 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
 - Caskey, Damon V.
 - 2026-08-11
 -
-- Read one requested command argument sequentially from the
-  source line. Return a non-owning view so the caller can
-  allocate only the storage required for that argument.
+- Copy a command token while discarding quote delimiters.
+  The destination receives the logical argument text and
+  is always null terminated on success.
 */
-bool command_argument_read(
+static bool command_token_copy_value(
+    const s_command_token* token,
+    char* destination,
+    const size_t capacity
+) {
+    const char* cursor;
+    const char* source_end;
+
+    size_t destination_index = 0;
+
+    bool inside_double_quotes = false;
+    bool inside_single_quotes = false;
+
+    assert(token);
+    assert(destination);
+
+    if(!token->text) {
+        return false;
+    }
+
+    source_end = token->text + token->length;
+
+    if(capacity <= token->value_length) {
+        return false;
+    }
+
+    if(token->length == token->value_length) {
+        memcpy(destination, token->text, token->length);
+        destination[token->length] = '\0';
+        return true;
+    }
+
+    for(cursor = token->text; cursor < source_end; cursor++) {
+        if(command_token_update_quote_state(
+                token->text,
+                cursor,
+                &inside_double_quotes,
+                &inside_single_quotes
+            )) {
+            continue;
+        }
+
+        destination[destination_index++] = *cursor;
+    }
+
+    assert(!inside_double_quotes);
+    assert(!inside_single_quotes);
+    assert(destination_index == token->value_length);
+
+    destination[destination_index] = '\0';
+
+    return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read one requested command argument sequentially from the
+  source line. Return its non-owning source view and decoded
+  length so the caller can allocate only the required storage.
+  Distinguish malformed quoting from a missing argument.
+*/
+e_command_argument_read_result command_argument_read(
     const char* command_line,
     size_t argument_index,
-    const char** value,
-    size_t* length
+    s_command_argument_view* argument
 ) {
-    s_command_token_reader reader;
+    s_command_token_reader reader = {
+        .cursor = command_line
+    };
+
     s_command_token token;
 
     assert(command_line);
-    assert(value);
-    assert(length);
+    assert(argument);
 
-    reader.cursor = command_line;
+    *argument = (s_command_argument_view){0};
 
     while(argument_index) {
         if(!command_token_reader_next(&reader, &token)) {
-            *value = NULL;
-            *length = 0;
-
-            return false;
+            return reader.unterminated_quote
+                ? COMMAND_ARGUMENT_READ_INVALID
+                : COMMAND_ARGUMENT_READ_END;
         }
 
         argument_index--;
     }
 
     if(!command_token_reader_next(&reader, &token)) {
-        *value = NULL;
-        *length = 0;
-
-        return false;
+        return reader.unterminated_quote
+            ? COMMAND_ARGUMENT_READ_INVALID
+            : COMMAND_ARGUMENT_READ_END;
     }
 
-    *value = token.text;
-    *length = token.length;
+    argument->source = token.text;
+    argument->source_length = token.length;
+    argument->length = token.value_length;
 
-    return true;
+    return COMMAND_ARGUMENT_READ_SUCCESS;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Copy a previously read command argument into caller-owned
+  storage while discarding its opening and closing quote
+  delimiters. Preserve literal apostrophes and opposite quotes.
+*/
+bool command_argument_copy(
+    const s_command_argument_view* argument,
+    char* destination,
+    const size_t capacity
+) {
+    s_command_token token;
+
+    assert(argument);
+    assert(destination);
+
+    token = (s_command_token){
+        .text = argument->source,
+        .length = argument->source_length,
+        .value_length = argument->length
+    };
+
+    return command_token_copy_value(&token, destination, capacity);
 }
 
 /*
@@ -3591,6 +3740,14 @@ static bool command_argument_reader_initialize(
                 &reader->token_reader,
                 &skipped_token
             )) {
+            if(reader->token_reader.unterminated_quote) {
+                borShutdown(
+                    1,
+                    "Command argument has an unterminated %c quote.\n",
+                    reader->token_reader.unterminated_quote
+                );
+            }
+
             return false;
         }
 
@@ -3618,11 +3775,19 @@ static bool command_argument_reader_next(
     assert(value);
 
     if(!command_token_reader_next(&reader->token_reader, &token)) {
+        if(reader->token_reader.unterminated_quote) {
+            borShutdown(
+                1,
+                "Command argument has an unterminated %c quote.\n",
+                reader->token_reader.unterminated_quote
+            );
+        }
+
         *value = NULL;
         return false;
     }
 
-    if(token.length >= sizeof(reader->value)) {
+    if(token.value_length >= sizeof(reader->value)) {
         borShutdown(
             1,
             "Command argument exceeds the maximum length of %zu characters.\n",
@@ -3632,8 +3797,15 @@ static bool command_argument_reader_next(
         return false;
     }
 
-    memcpy(reader->value, token.text, token.length);
-    reader->value[token.length] = '\0';
+    if(!command_token_copy_value(
+            &token,
+            reader->value,
+            sizeof(reader->value)
+        )) {
+        *value = NULL;
+        return false;
+    }
+
     *value = reader->value;
 
     return true;
