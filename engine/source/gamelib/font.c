@@ -23,6 +23,94 @@ s_font **fonts[MAX_FONTS];
 
 static char b[1024];
 
+#define FONT_FORMAT_STACK_LENGTH 1024
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Format font text into caller-provided stack storage when it
+  fits, or allocate exact spillover storage when it does not.
+  The returned text remains valid until the caller frees it if
+  the returned pointer differs from the stack buffer.
+*/
+static char *font_format_text(
+    char *stack_buffer,
+    size_t stack_capacity,
+    const char *format,
+    va_list arguments,
+    size_t *output_length
+)
+{
+    va_list arguments_copy;
+    char *result;
+    int required_length;
+
+    if(!stack_buffer || !stack_capacity || !format || !output_length)
+    {
+        return NULL;
+    }
+
+    *output_length = 0;
+
+    va_copy(arguments_copy, arguments);
+    required_length = vsnprintf(
+        stack_buffer,
+        stack_capacity,
+        format,
+        arguments_copy
+    );
+    va_end(arguments_copy);
+
+    if(required_length < 0)
+    {
+        stack_buffer[0] = '\0';
+        return NULL;
+    }
+
+    *output_length = (size_t)required_length;
+
+    if(*output_length < stack_capacity)
+    {
+        return stack_buffer;
+    }
+
+    if(*output_length == SIZE_MAX)
+    {
+        stack_buffer[0] = '\0';
+        *output_length = 0;
+        return NULL;
+    }
+
+    result = malloc(*output_length + 1);
+
+    if(!result)
+    {
+        stack_buffer[0] = '\0';
+        *output_length = 0;
+        return NULL;
+    }
+
+    va_copy(arguments_copy, arguments);
+    required_length = vsnprintf(
+        result,
+        *output_length + 1,
+        format,
+        arguments_copy
+    );
+    va_end(arguments_copy);
+
+    if(required_length < 0 || (size_t)required_length != *output_length)
+    {
+        free(result);
+        stack_buffer[0] = '\0';
+        *output_length = 0;
+        return NULL;
+    }
+
+    return result;
+}
+
 void _font_unload(s_font *font)
 {
     int i;
@@ -357,48 +445,52 @@ int fontheight(int which)
 }
 
 
-int font_string_width(int which, char *format, ...)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Measure a length-delimited text value directly, without
+  treating its contents as a format string or staging it in a
+  fixed-capacity buffer.
+*/
+int font_string_width_length(int which, const char *text, size_t length)
 {
     int w = 0;
-    char *buf = b, c;
-    va_list arglist;
+    char c;
     s_font **sets, *font;
     int mbs, index;
+    size_t position = 0;
 
     which %= MAX_FONTS;
 
     sets = fonts[which];
 
-    if(!sets || !format)
+    if(!sets || !text)
     {
         return 0;
     }
 
     mbs = sets[0]->mbs;
 
-    va_start(arglist, format);
-    vsprintf(buf, format, arglist);
-    va_end(arglist);
-
     if(!mbs)
     {
         font = sets[0];
 
         if(font)
-            while(*buf)
+            while(position < length && text[position])
             {
-                w += font->token_width[((int)(*buf)) & 0xFF];
-                buf++;
+                w += font->token_width[((int)text[position]) & 0xFF];
+                position++;
             }
     }
     else
     {
-        while((c = *buf))
+        while(position < length && (c = text[position]))
         {
-            if((c & 0x80) && buf[1])
+            if((c & 0x80) && position + 1 < length && text[position + 1])
             {
                 index = (unsigned char)c;
-                buf++;
+                position++;
             }
             else
             {
@@ -409,12 +501,45 @@ int font_string_width(int which, char *format, ...)
 
             if(font)
             {
-                w += font->token_width[((int)(*buf)) & 0xFF];
+                w += font->token_width[((int)text[position]) & 0xFF];
             }
-            buf++;
+            position++;
         }
     }
     return w;
+}
+
+int font_string_width(int which, const char *format, ...)
+{
+    char stack_buffer[FONT_FORMAT_STACK_LENGTH];
+    char *text;
+    int result;
+    size_t text_length;
+    va_list arguments;
+
+    va_start(arguments, format);
+    text = font_format_text(
+        stack_buffer,
+        sizeof(stack_buffer),
+        format,
+        arguments,
+        &text_length
+    );
+    va_end(arguments);
+
+    if(!text)
+    {
+        return 0;
+    }
+
+    result = font_string_width_length(which, text, text_length);
+
+    if(text != stack_buffer)
+    {
+        free(text);
+    }
+
+    return result;
 }
 
 
@@ -446,7 +571,9 @@ int font_string_width_max(char **strings, int elements, int font)
 	// be the width of longest string.
 	for (i = 0; i < elements; i++)
 	{
-		width_temp = font_string_width(font, strings[i]);
+		width_temp = strings[i]
+            ? font_string_width_length(font, strings[i], strlen(strings[i]))
+            : 0;
 
 		if (width_temp > result)
 		{
@@ -457,37 +584,48 @@ int font_string_width_max(char **strings, int elements, int font)
 	return result;
 }
 
-void font_printf(int x, int y, int which, int layeroffset, char *format, ...)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Queue a length-delimited text value directly as font sprites.
+  Newlines advance to the next font row and multibyte font
+  selection retains the legacy two-byte behavior.
+*/
+void font_print_length(
+    int x,
+    int y,
+    int which,
+    int layeroffset,
+    const char *text,
+    size_t length
+)
 {
-    char *buf = b, c;
-    va_list arglist;
+    char c;
     int ox = x;
     s_font **sets, *font;
     int mbs, index, w, lf;
+    size_t position = 0;
 
     which %= MAX_FONTS;
 
     sets = fonts[which];
 
-    if(!sets)
+    if(!sets || !text)
     {
         return;
     }
 
     mbs = sets[0]->mbs;
 
-    va_start(arglist, format);
-    vsprintf(buf, format, arglist);
-    va_end(arglist);
-
-    while((c = *buf))
+    while(position < length && (c = text[position]))
     {
         lf = (c == '\n');
 
-        if(mbs && (c & 0x80) && buf[1])
+        if(mbs && (c & 0x80) && position + 1 < length && text[position + 1])
         {
             index = (unsigned char)c;
-            buf++;
+            position++;
         }
         else
         {
@@ -505,48 +643,88 @@ void font_printf(int x, int y, int which, int layeroffset, char *format, ...)
             }
             else
             {
-                w = font->token_width[((int)(*buf)) & 0xFF];
-                spriteq_add_frame(x, y, FONT_LAYER + layeroffset, font->token[((int)(*buf)) & 0xFF], NULL, 0);
+                w = font->token_width[((int)text[position]) & 0xFF];
+                spriteq_add_frame(x, y, FONT_LAYER + layeroffset, font->token[((int)text[position]) & 0xFF], NULL, 0);
                 x += w;
             }
         }
-        buf++;
+        position++;
+    }
+}
+
+void font_printf(int x, int y, int which, int layeroffset, const char *format, ...)
+{
+    char stack_buffer[FONT_FORMAT_STACK_LENGTH];
+    char *text;
+    size_t text_length;
+    va_list arguments;
+
+    va_start(arguments, format);
+    text = font_format_text(
+        stack_buffer,
+        sizeof(stack_buffer),
+        format,
+        arguments,
+        &text_length
+    );
+    va_end(arguments);
+
+    if(!text)
+    {
+        return;
+    }
+
+    font_print_length(x, y, which, layeroffset, text, text_length);
+
+    if(text != stack_buffer)
+    {
+        free(text);
     }
 }
 
 
 // Print to a screen rather than queueing the sprites
-void screen_printf(s_screen *screen, int x, int y, int which, char *format, ...)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Draw length-delimited font text directly to a target screen,
+  bypassing format parsing and fixed-capacity staging.
+*/
+void screen_print_length(
+    s_screen *screen,
+    int x,
+    int y,
+    int which,
+    const char *text,
+    size_t length
+)
 {
-    char *buf = b, c;
-    va_list arglist;
+    char c;
     int ox = x;
     s_font **sets, *font;
     int mbs, index, w, lf;
+    size_t position = 0;
 
     which %= MAX_FONTS;
 
     sets = fonts[which];
 
-    if(!sets)
+    if(!sets || !text)
     {
         return;
     }
 
     mbs = sets[0]->mbs;
 
-    va_start(arglist, format);
-    vsprintf(buf, format, arglist);
-    va_end(arglist);
-
-    while((c = *buf))
+    while(position < length && (c = text[position]))
     {
         lf = (c == '\n');
 
-        if(mbs && (c & 0x80) && buf[1])
+        if(mbs && (c & 0x80) && position + 1 < length && text[position + 1])
         {
             index = (unsigned char)c;
-            buf++;
+            position++;
         }
         else
         {
@@ -564,14 +742,42 @@ void screen_printf(s_screen *screen, int x, int y, int which, char *format, ...)
             }
             else
             {
-                w = font->token_width[((int)(*buf)) & 0xFF];
-                putsprite(x, y, font->token[((int)(*buf)) & 0xFF], screen, NULL);
+                w = font->token_width[((int)text[position]) & 0xFF];
+                putsprite(x, y, font->token[((int)text[position]) & 0xFF], screen, NULL);
                 x += w;
             }
         }
-        buf++;
+        position++;
     }
 }
 
+void screen_printf(s_screen *screen, int x, int y, int which, const char *format, ...)
+{
+    char stack_buffer[FONT_FORMAT_STACK_LENGTH];
+    char *text;
+    size_t text_length;
+    va_list arguments;
 
+    va_start(arguments, format);
+    text = font_format_text(
+        stack_buffer,
+        sizeof(stack_buffer),
+        format,
+        arguments,
+        &text_length
+    );
+    va_end(arguments);
+
+    if(!text)
+    {
+        return;
+    }
+
+    screen_print_length(screen, x, y, which, text, text_length);
+
+    if(text != stack_buffer)
+    {
+        free(text);
+    }
+}
 

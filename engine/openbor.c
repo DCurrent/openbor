@@ -50300,7 +50300,14 @@ void draw_textobjs()
         {
             if(textobj->text)
             {
-                font_printf(textobj->position.x, textobj->position.y, textobj->font, textobj->position.z, "%s", textobj->text);
+                font_print_length(
+                    textobj->position.x,
+                    textobj->position.y,
+                    textobj->font,
+                    textobj->position.z,
+                    textobj->text,
+                    strlen(textobj->text)
+                );
             }
         }
     }
@@ -51062,10 +51069,10 @@ void display_credits()
 }
 
 
-void borShutdown(int status, char *msg, ...)
+void borShutdown(int status, const char *msg, ...)
 {
-    char buf[1024] = "";
     va_list arglist;
+    va_list output_arguments;
     int i;
 
     static int shuttingdown = 0;
@@ -51076,12 +51083,9 @@ void borShutdown(int status, char *msg, ...)
     }
 
     shuttingdown = 1;
+    va_start(arglist, msg);
 
     //printf("savedata.logo %d\n", savedata.logo);
-
-    va_start(arglist, msg);
-    vsprintf(buf, msg, arglist);
-    va_end(arglist);
 
     if(!disablelog)
     {
@@ -51099,7 +51103,9 @@ void borShutdown(int status, char *msg, ...)
 
     if(!disablelog)
     {
-        printf("%s", buf);
+        va_copy(output_arguments, arglist);
+        writeToLogFileV(msg, output_arguments);
+        va_end(output_arguments);
     }
 
 
@@ -51317,9 +51323,12 @@ void borShutdown(int status, char *msg, ...)
 
     if(!disablelog)
     {
-        printf("%s", buf);
+        va_copy(output_arguments, arglist);
+        writeToLogFileV(msg, output_arguments);
+        va_end(output_arguments);
     }
 
+    va_end(arglist);
     shuttingdown = 0;
     borExit(status);
 }
