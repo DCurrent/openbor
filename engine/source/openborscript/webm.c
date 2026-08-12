@@ -120,8 +120,8 @@ static const s_property_access_map webm_get_property_map(
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Start nonblocking playback into a creator-owned 32-bit
-* screen and return the acquired channel object.
+* Start nonblocking playback on an automatic or forced video
+* channel and render into a creator-owned 32-bit screen.
 */
 HRESULT openbor_open_webm(
     ScriptVariant **varlist,
@@ -130,9 +130,10 @@ HRESULT openbor_open_webm(
 )
 {
     const char *self_name =
-        "open_webm(string path, void screen, int sound_channel, int interrupt, int loading)";
+        "open_webm(string path, void screen, int video_channel, int sound_channel, int interrupt, int loading)";
     s_webm_playback *playback;
     s_screen *screen;
+    LONG video_channel = WEBM_PLAYBACK_CHANNEL_AUTO;
     LONG sound_channel = SOUND_CHANNEL_MUSIC_DEFAULT;
     LONG interrupt = 1;
     LONG loading_mode = WEBM_LOADING_STREAM;
@@ -142,13 +143,17 @@ HRESULT openbor_open_webm(
        varlist[0]->vt != VT_STR ||
        varlist[1]->vt != VT_PTR ||
        !varlist[1]->ptrVal ||
-       (paramCount > 2 && FAILED(ScriptVariant_IntegerValue(varlist[2], &sound_channel))) ||
-       (paramCount > 3 && FAILED(ScriptVariant_IntegerValue(varlist[3], &interrupt))) ||
-       (paramCount > 4 && FAILED(ScriptVariant_IntegerValue(varlist[4], &loading_mode))) ||
+       (paramCount > 2 && FAILED(ScriptVariant_IntegerValue(varlist[2], &video_channel))) ||
+       (paramCount > 3 && FAILED(ScriptVariant_IntegerValue(varlist[3], &sound_channel))) ||
+       (paramCount > 4 && FAILED(ScriptVariant_IntegerValue(varlist[4], &interrupt))) ||
+       (paramCount > 5 && FAILED(ScriptVariant_IntegerValue(varlist[5], &loading_mode))) ||
+       (video_channel != WEBM_PLAYBACK_CHANNEL_AUTO &&
+        (video_channel < 0 ||
+         (unsigned int)video_channel >= WEBM_PLAYBACK_CHANNEL_COUNT)) ||
        sound_channel < 0 ||
        (unsigned int)sound_channel >= SOUND_CHANNEL_COUNT_MAX ||
        loading_mode < 0 || loading_mode >= WEBM_LOADING_END) {
-        printf("\nScript error: %s. Invalid path, screen, sound channel, interrupt, or loading mode.\n",
+        printf("\nScript error: %s. Invalid path, screen, video channel, sound channel, interrupt, or loading mode.\n",
             self_name);
         *pretvar = NULL;
         return E_FAIL;
@@ -158,6 +163,7 @@ HRESULT openbor_open_webm(
     playback = webm_playback_open(
         StrCache_Get(varlist[0]->strVal),
         screen,
+        (int)video_channel,
         (int)sound_channel,
         interrupt != 0,
         (e_webm_loading_mode)loading_mode,
@@ -169,7 +175,7 @@ HRESULT openbor_open_webm(
         return S_OK;
     }
 
-    printf("\nScript error: %s. Playback could not acquire a channel, screen, or decoder.\n",
+    printf("\nScript error: %s. Playback could not acquire or replace the requested channel, screen, or decoder.\n",
         self_name);
     *pretvar = NULL;
     return E_FAIL;

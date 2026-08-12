@@ -383,12 +383,13 @@ static bool webm_playback_open_media(
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Acquire the lowest free video channel and return its
-* stable object after decoder and destination validation.
+* Acquire an automatic or explicitly requested video channel.
+* Explicit selection replaces the channel's current playback.
 */
 s_webm_playback *webm_playback_open(
     const char *path,
     s_screen *screen,
+    int video_channel,
     int sound_channel,
     int interrupt,
     e_webm_loading_mode loading_mode,
@@ -402,20 +403,28 @@ s_webm_playback *webm_playback_open(
     if(!webm_playback_init() ||
        !path || !path[0] ||
        !webm_playback_screen_valid(screen) ||
+       (video_channel != WEBM_PLAYBACK_CHANNEL_AUTO &&
+        (video_channel < 0 ||
+         (unsigned int)video_channel >= WEBM_PLAYBACK_CHANNEL_COUNT)) ||
        sound_channel < 0 ||
        (unsigned int)sound_channel >= SOUND_CHANNEL_COUNT_MAX ||
        loading_mode < 0 || loading_mode >= WEBM_LOADING_END) {
         return NULL;
     }
 
-    available_mask = ~webm_playback_pool.active_mask;
-    channel = sound_channel_mask_first(available_mask);
-    if(channel < 0 || (unsigned int)channel >= WEBM_PLAYBACK_CHANNEL_COUNT) {
-        return NULL;
+    if(video_channel == WEBM_PLAYBACK_CHANNEL_AUTO) {
+        available_mask = ~webm_playback_pool.active_mask;
+        channel = sound_channel_mask_first(available_mask);
+        if(channel < 0 ||
+           (unsigned int)channel >= WEBM_PLAYBACK_CHANNEL_COUNT) {
+            return NULL;
+        }
+    } else {
+        channel = video_channel;
     }
 
     playback = &webm_playback_pool.channel[channel];
-    webm_playback_reset_record(playback);
+    webm_playback_stop(playback);
     playback->path = webm_playback_copy_path(path);
     if(!playback->path) {
         return NULL;

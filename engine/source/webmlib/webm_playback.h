@@ -16,6 +16,7 @@
 #include "yuv.h"
 
 #define WEBM_PLAYBACK_CHANNEL_COUNT 64U
+#define WEBM_PLAYBACK_CHANNEL_AUTO (-1)
 #define WEBM_PLAYBACK_SPEED_MIN 0.01
 #define WEBM_PLAYBACK_SPEED_MAX 16.0
 
@@ -78,6 +79,7 @@ void webm_playback_restore_yuv(void);
 s_webm_playback *webm_playback_open(
     const char *path,
     s_screen *screen,
+    int video_channel,
     int sound_channel,
     int interrupt,
     e_webm_loading_mode loading_mode,
