@@ -17,7 +17,6 @@
 struct webm_context;
 typedef struct webm_context webm_context;
 
-webm_context *webm_start_playback(const char *path, int volume);
 webm_context *webm_start_playback_ex(
     const char *path,
     int volume,
@@ -32,7 +31,6 @@ uint64_t webm_get_duration(webm_context *ctx);
 void webm_set_audio_paused(webm_context *ctx, int paused);
 void webm_set_audio_speed(webm_context *ctx, unsigned int speed);
 void webm_close(webm_context *ctx);
-yuv_frame *webm_get_next_frame(webm_context *ctx);
 int webm_try_get_next_frame(webm_context *ctx, yuv_frame **frame);
 
 #endif

@@ -63,13 +63,14 @@ typedef struct s_movie_playback {
     uint64_t clock_anchor;
     uint64_t position_anchor;
     int volume;
+    bool replace_all_audio;
     int frame_dirty;
     int reverse_pending;
+    int terminal_pending;
 } s_movie_playback;
 
 bool movie_playback_init(void);
 void movie_playback_shutdown(void);
-void movie_playback_restore_yuv(void);
 
 int movie_source_load(const char *path, e_movie_loading_mode loading_mode);
 bool movie_source_unload(int source_id);
@@ -77,7 +78,8 @@ bool movie_source_unload(int source_id);
 s_movie_playback *movie_playback_play(
     int source_id,
     int movie_channel,
-    int volume
+    int volume,
+    bool replace_all_audio
 );
 s_movie_playback *movie_playback_get(int channel);
 int movie_playback_get_index(const s_movie_playback *playback);
@@ -88,7 +90,7 @@ bool movie_playback_get_snapshot(
 uint64_t movie_playback_get_active_mask(void);
 void movie_playback_update(int interrupt_requested);
 void movie_playback_render_subscreens(void);
-void movie_playback_render_main(s_screen *screen);
+bool movie_playback_render_main(s_screen *screen);
 void movie_playback_stop(s_movie_playback *playback);
 void movie_playback_stop_all(void);
 void movie_playback_detach_screen(const s_screen *screen);

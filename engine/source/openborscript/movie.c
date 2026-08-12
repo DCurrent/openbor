@@ -222,7 +222,8 @@ HRESULT openbor_movie_play(
     playback = movie_playback_play(
         (int)source_id,
         (int)channel,
-        savedata.musicvol
+        savedata.musicvol,
+        false
     );
     if(!playback) {
         printf("\nScript error: %s. Source is invalid or no channel could be acquired.\n",

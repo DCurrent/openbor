@@ -51870,73 +51870,75 @@ playgif_end:
 
 
 #ifdef WEBM
-// Returns 0 on error, -1 on escape
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Preserve blocking playwebm() behavior as a wrapper around
+* the reusable movie APIs. Return 1 on completion, 0 on error,
+* or -1 when creator-enabled input interrupts playback.
+*/
 int playwebm(const char *path, int noskip)
 {
     int retval = 1;
-    webm_context *ctx = NULL;
-    yuv_video_mode info;
-    s_screen *rgb_frame = NULL;
+    int source_id = -1;
+    s_movie_playback *playback = NULL;
 
     movie_playback_stop_all();
-    ctx = webm_start_playback(path, savedata.musicvol);
-    if(ctx == NULL) {retval=0; goto quit;}
+    source_id = movie_source_load(path, MOVIE_LOADING_STREAM);
+    if(source_id < 0) {
+        return 0;
+    }
+    playback = movie_playback_play(
+        source_id,
+        MOVIE_CHANNEL_AUTO,
+        savedata.musicvol,
+        true
+    );
+    if(!playback) {
+        retval = 0;
+        goto quit;
+    }
+    if(!movie_playback_set_interrupt(playback, !noskip)) {
+        retval = 0;
+        goto quit;
+    }
 
-    // set video output to YUV mode
-    webm_get_video_info(ctx, &info);
-    int status = video_setup_yuv_overlay(&info);
-    if(!status) {retval=0; goto quit;}
+    clearscreen(vscreen);
+    video_copy_screen(vscreen);
+    while(playback->active) {
+        int interrupt_requested;
 
-    // allocate s_screen for screenshot capture
-    yuv_init(2);
-    rgb_frame = allocscreen(info.width, info.height, PIXEL_16);
-    if(!rgb_frame) {retval=0; goto quit;}
-
-    u64 start_time = timer_uticks();
-    u64 next_frame_time = 0;
-    yuv_frame *frame = NULL;
-
-    while(1)
-    {
         inputrefresh(playrecstatus->status);
-        if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
-        {
+        interrupt_requested =
+            (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0;
+        if(interrupt_requested && playback->interrupt) {
             retval = -1;
-            yuv_frame_destroy(frame);
+        }
+        movie_playback_update(interrupt_requested);
+        if(!playback->active) {
             break;
         }
-        else if(frame && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
-        {
-            yuv_to_rgb(frame, rgb_frame);
-            screenshot(rgb_frame, NULL, 0);
+        if(!movie_playback_render_main(vscreen)) {
+            retval = 0;
+            break;
         }
-
-        u64 time_passed = timer_uticks() - start_time;
-
-        if(next_frame_time <= time_passed)
-        {
-            // display the current frame
-            if(frame)
-            {
-                video_display_yuv_frame();
-                yuv_frame_destroy(frame);
-            }
-
-            // prepare the next frame for display
-            frame = webm_get_next_frame(ctx);
-            if(frame == NULL) break;
-            video_prepare_yuv_frame(frame);
-            next_frame_time = frame->timestamp / 1000;
+        if(playback->current_frame &&
+           !noscreenshot &&
+           (bothnewkeys & FLAG_SCREENSHOT)) {
+            screenshot(vscreen, getpal, 1);
         }
-        else usleep(next_frame_time - time_passed);
+        video_copy_screen(vscreen);
+        usleep(1000);
     }
 
 quit:
-    if(ctx) webm_close(ctx);
-    if(rgb_frame) freescreen(&rgb_frame);
-    yuv_clear();
-    movie_playback_restore_yuv();
-    video_set_mode(videomodes);
+    if(playback && playback->active) {
+        movie_playback_stop(playback);
+    }
+    if(source_id >= 0 && !movie_source_unload(source_id)) {
+        retval = 0;
+    }
     return retval;
 }
 #endif

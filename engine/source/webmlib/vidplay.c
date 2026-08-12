@@ -918,26 +918,6 @@ error_io:
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Preserve the original fullscreen decoder entrypoint with
-* channel zero and replace-all audio defaults.
-*/
-webm_context *webm_start_playback(const char *path, int volume)
-{
-    return webm_start_playback_ex(
-        path,
-        volume,
-        SOUND_CHANNEL_MUSIC_DEFAULT,
-        NULL,
-        0,
-        0,
-        1
-    );
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-12
-*
 * Stop one decoder without signaling any other WebM
 * object, then release its queues, codec, and I/O source.
 */
@@ -1006,12 +986,6 @@ void webm_set_audio_speed(webm_context *ctx, unsigned int speed)
             speed
         );
     }
-}
-
-yuv_frame *webm_get_next_frame(webm_context *ctx)
-{
-    debug_printf("frame queue size=%i\n", ctx->video_ctx.frame_queue->size);
-    return (yuv_frame *)queue_get(ctx->video_ctx.frame_queue);
 }
 
 /*

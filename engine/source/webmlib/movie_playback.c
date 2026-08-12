@@ -305,21 +305,6 @@ void movie_playback_shutdown(void)
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Restore 32-bit conversion after legacy fullscreen WebM
-* playback temporarily uses the shared 16-bit converter.
-*/
-void movie_playback_restore_yuv(void)
-{
-    if(movie_playback_pool.initialized) {
-        yuv_init(4);
-        movie_playback_pool.yuv_initialized = 1;
-    }
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-12
-*
 * Load one reusable movie source. Stream mode validates the
 * path; cache mode retains one shared read-only byte buffer.
 */
@@ -534,7 +519,7 @@ static bool movie_playback_open_media(
         source->cache_buffer,
         source->cache_size,
         position,
-        0
+        playback->replace_all_audio
     );
     if(!playback->context) {
         return false;
@@ -592,6 +577,7 @@ static bool movie_playback_open_media(
     playback->clock_anchor = timer_uticks();
     playback->position = position / UINT64_C(1000000);
     playback->reverse_pending = playback->speed < 0.0;
+    playback->terminal_pending = 0;
     return true;
 }
 
@@ -601,11 +587,13 @@ static bool movie_playback_open_media(
 *
 * Create one playback from a reusable source. Automatic mode
 * takes the lowest free slot; explicit selection replaces it.
+* Legacy callers may request their historical audio takeover.
 */
 s_movie_playback *movie_playback_play(
     int source_id,
     int movie_channel,
-    int volume
+    int volume,
+    bool replace_all_audio
 )
 {
     s_movie_source *source;
@@ -634,6 +622,7 @@ s_movie_playback *movie_playback_play(
     playback = &movie_playback_pool.channel[channel];
     movie_playback_stop(playback);
     playback->source_id = source_id;
+    playback->replace_all_audio = replace_all_audio;
     ++source->references;
     if(!movie_playback_open_media(playback, 0, volume)) {
         movie_playback_reset_record(playback);
@@ -959,6 +948,20 @@ void movie_playback_update(int interrupt_requested)
             movie_playback_stop(playback);
             continue;
         }
+        if(playback->terminal_pending && !playback->frame_dirty) {
+            if(playback->repeat) {
+                if(!movie_playback_open_media(
+                    playback,
+                    0,
+                    playback->volume
+                )) {
+                    movie_playback_stop(playback);
+                }
+            } else {
+                movie_playback_stop(playback);
+            }
+            continue;
+        }
 
         position = movie_playback_position_now(playback, now);
         playback->position = position / UINT64_C(1000000);
@@ -1008,7 +1011,9 @@ void movie_playback_update(int interrupt_requested)
         }
 
         if(terminal && playback->speed >= 0.0) {
-            if(playback->repeat) {
+            if(playback->frame_dirty) {
+                playback->terminal_pending = 1;
+            } else if(playback->repeat) {
                 if(!movie_playback_open_media(
                     playback,
                     0,
@@ -1045,13 +1050,14 @@ void movie_playback_render_subscreens(void)
     }
 }
 
-void movie_playback_render_main(s_screen *screen)
+bool movie_playback_render_main(s_screen *screen)
 {
     uint64_t active_mask;
     int channel;
+    bool result = true;
 
     if(!movie_playback_screen_valid(screen)) {
-        return;
+        return false;
     }
 
     active_mask = movie_playback_pool.active_mask;
@@ -1060,8 +1066,10 @@ void movie_playback_render_main(s_screen *screen)
         active_mask &= ~(UINT64_C(1) << channel);
         if(!playback->screen && !movie_playback_render_to(playback, screen)) {
             movie_playback_stop(playback);
+            result = false;
         }
     }
+    return result;
 }
 
 /*
@@ -1267,6 +1275,7 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
         webm_set_audio_paused(playback->context, playback->paused);
     } else {
         playback->reverse_pending = 0;
+        playback->terminal_pending = 0;
         webm_set_audio_paused(playback->context, 1);
     }
     return true;

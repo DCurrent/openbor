@@ -15874,7 +15874,7 @@ HRESULT openbor_hallfame(ScriptVariant **varlist , ScriptVariant **pretvar, int 
 HRESULT openbor_playwebm(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG temp = 0; //noskip
-    extern int playwebm(char * filename, int noskip); // avoid implicit declaration
+    extern int playwebm(const char *filename, int noskip); // avoid implicit declaration
 
     if(paramCount < 1)
     {
