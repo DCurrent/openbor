@@ -116,7 +116,7 @@ typedef enum e_object_type {
     OBJECT_TYPE_GLOBAL_CONFIG,
     OBJECT_TYPE_MODEL,
     OBJECT_TYPE_SOUND,
-    OBJECT_TYPE_WEBM
+    OBJECT_TYPE_MOVIE_PLAYBACK
 } e_object_type;
 
 typedef struct

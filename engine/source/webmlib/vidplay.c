@@ -30,8 +30,6 @@
 #include "borendian.h"
 #include "soundmix.h"
 
-extern int buffer_pakfile(const char *filename, char **pbuffer, size_t *psize);
-
 // lowering these might save a bit of memory but could also cause lag
 #define PACKET_QUEUE_SIZE 20
 #define FRAME_QUEUE_SIZE 10
@@ -83,7 +81,7 @@ typedef struct {
 
 typedef struct {
     int packhandle;
-    unsigned char *cache_buffer;
+    const unsigned char *cache_buffer;
     size_t cache_size;
     size_t cache_position;
 } webm_io_context;
@@ -768,15 +766,16 @@ static int demux_thread(void *data)
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Open one independently owned decoder. Optional memory
-* caching, initial seek, and sound routing are established
+* Open one independently owned decoder. Optional shared cache,
+* initial seek, and sound routing are established
 * before its worker threads become visible.
 */
 webm_context *webm_start_playback_ex(
     const char *path,
     int volume,
     int sound_channel,
-    int cache,
+    const unsigned char *cache_buffer,
+    size_t cache_size,
     uint64_t seek_timestamp,
     int replace_all_audio
 )
@@ -803,15 +802,12 @@ webm_context *webm_start_playback_ex(
     io.tell = webm_io_tell;
     io.userdata = &ctx->io_ctx;
 
-    if(cache) {
-        if(buffer_pakfile(
-            path,
-            (char**)&ctx->io_ctx.cache_buffer,
-            &ctx->io_ctx.cache_size
-        ) != 1) {
-            printf("Error: Unable to cache file %s for playback\n", path);
+    if(cache_buffer) {
+        if(!cache_size) {
             goto error_io;
         }
+        ctx->io_ctx.cache_buffer = cache_buffer;
+        ctx->io_ctx.cache_size = cache_size;
     } else {
         ctx->io_ctx.packhandle = openpackfile(path, packfile);
         if(ctx->io_ctx.packhandle < 0) {
@@ -914,7 +910,6 @@ error_io:
     if(ctx->io_ctx.packhandle >= 0) {
         closepackfile(ctx->io_ctx.packhandle);
     }
-    free(ctx->io_ctx.cache_buffer);
     free(ctx);
     return NULL;
 }
@@ -932,6 +927,7 @@ webm_context *webm_start_playback(const char *path, int volume)
         path,
         volume,
         SOUND_CHANNEL_MUSIC_DEFAULT,
+        NULL,
         0,
         0,
         1
@@ -959,7 +955,6 @@ void webm_close(webm_context *ctx)
     if(ctx->audio_track >= 0) close_audio(&(ctx->audio_ctx));
     if(ctx->nestegg_ctx) nestegg_destroy(ctx->nestegg_ctx);
     if(ctx->io_ctx.packhandle >= 0) closepackfile(ctx->io_ctx.packhandle);
-    free(ctx->io_ctx.cache_buffer);
     free(ctx);
 }
 

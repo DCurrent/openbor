@@ -9,6 +9,7 @@
 #ifndef VIDPLAY_H
 #define VIDPLAY_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "yuv.h"
@@ -21,7 +22,8 @@ webm_context *webm_start_playback_ex(
     const char *path,
     int volume,
     int sound_channel,
-    int cache,
+    const unsigned char *cache_buffer,
+    size_t cache_size,
     uint64_t seek_timestamp,
     int replace_all_audio
 );

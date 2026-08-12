@@ -50915,9 +50915,10 @@ void update(int ingame, int usevwait)
     if(playrecstatus->status == A_REC_PLAY && !_pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
 #ifdef WEBM
-    webm_playback_update(
+    movie_playback_update(
         (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0
     );
+    movie_playback_render_subscreens();
 #endif
     if(playrecstatus->status == A_REC_REC && !_pause && level) if ( !recordInputs() ) stopRecordInputs();
 
@@ -51095,6 +51096,9 @@ void update(int ingame, int usevwait)
     /********** update screen **************/
 
     spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0); // notice, always draw sprites at the very end of other methods
+#ifdef WEBM
+    movie_playback_render_main(vscreen);
+#endif
 
     if(_pause != 2 && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
     {
@@ -51874,7 +51878,7 @@ int playwebm(const char *path, int noskip)
     yuv_video_mode info;
     s_screen *rgb_frame = NULL;
 
-    webm_playback_stop_all();
+    movie_playback_stop_all();
     ctx = webm_start_playback(path, savedata.musicvol);
     if(ctx == NULL) {retval=0; goto quit;}
 
@@ -51931,7 +51935,7 @@ quit:
     if(ctx) webm_close(ctx);
     if(rgb_frame) freescreen(&rgb_frame);
     yuv_clear();
-    webm_playback_restore_yuv();
+    movie_playback_restore_yuv();
     video_set_mode(videomodes);
     return retval;
 }
