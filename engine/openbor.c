@@ -1047,6 +1047,54 @@ int buffer_append(char **buffer, const char *str, size_t n, size_t *bufferlen, s
     return *len;
 }
 
+/*
+- Caskey, Damon V.
+- 2026-08-12
+-
+- Verify and atomically remove two adjoining suffixes
+  from a generated text buffer. Leave the buffer intact
+  if its tail does not match the complete sequence.
+*/
+static bool buffer_remove_suffix_pair(
+    char* buffer,
+    size_t* length,
+    const char* first,
+    size_t first_length,
+    const char* second,
+    size_t second_length
+) {
+    size_t pair_length;
+
+    assert(length);
+    assert(first);
+    assert(second);
+
+    if(!buffer || first_length > SIZE_MAX - second_length) {
+        return false;
+    }
+
+    pair_length = first_length + second_length;
+
+    if(*length < pair_length
+        || memcmp(
+            buffer + *length - second_length,
+            second,
+            second_length
+        )
+        || memcmp(
+            buffer + *length - pair_length,
+            first,
+            first_length
+        )) {
+        return false;
+    }
+
+    *length -= pair_length;
+    buffer[*length] = '\0';
+
+    return true;
+}
+
 int handle_txt_include(char *command, ArgList *arglist, char **fn, char *namebuf, char **buf, ptrdiff_t *pos, size_t *len)
 {
     char *incfile, *filename = *fn, *buf2, *endstr = "\r\n@end";
@@ -15393,6 +15441,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int ani_id = ANI_NONE;
     int script_id = -1;
     int frm_id = -1;
+    bool at_cmd_mergeable = false;
     int i = 0;
     int tempInt = 0;
     int framecount = 0;
@@ -17298,6 +17347,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
+                at_cmd_mergeable = false;
                 
                 /*
                 * Caskey, Damon V.
@@ -20152,6 +20202,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_child_spawn_index = 0;
 
                 frm_id = -1;
+                at_cmd_mergeable = false;
             }
             break;
             case CMD_MODEL_ALPHAMASK:
@@ -20326,6 +20377,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_AT_SCRIPT:
+                at_cmd_mergeable = false;
+
                 if(!scriptbuf[0])  // if empty, paste the main function text here
                 {
                     buffer_append(&scriptbuf, pre_text, 0xffffff, &sbsize, &scriptlen);
@@ -20367,6 +20420,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             {
                 s_command_token command_token;
                 s_command_token_reader command_token_reader;
+                bool command_emitted = false;
                 bool first_command_argument;
 
                 //translate @cmd into script function call
@@ -20383,6 +20437,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 scriptlen = strlen(scriptbuf);
                 if(script_id != ani_id)  // if expression 1
                 {
+                    at_cmd_mergeable = false;
                     sprintf(namebuf, ifid_text, newanim->index);
                     buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
                     script_id = ani_id;
@@ -20423,18 +20478,41 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                      //       f();
                      //    }
                      */
-                    if(!no_cmd_compatible || frm_id != curframe)
+                    /*
+                    - Caskey, Damon V.
+                    - 2026-08-12
+                    -
+                    - Merge same-frame @cmd calls only when the
+                      previous generated section is an eligible
+                      @cmd block with the exact expected suffix.
+                      Otherwise, open a new frame condition without
+                      removing any existing script text.
+                    */
+                    const size_t frame_close_length = strclen(endif_text);
+                    const size_t frame_return_length = strclen(endif_return_text);
+
+                    bool merge_previous_command =
+                        no_cmd_compatible
+                        && at_cmd_mergeable
+                        && frm_id == curframe;
+
+                    if(merge_previous_command)
+                    {
+                        merge_previous_command = buffer_remove_suffix_pair(
+                            scriptbuf,
+                            &scriptlen,
+                            endif_return_text,
+                            frame_return_length,
+                            endif_text,
+                            frame_close_length
+                        );
+                    }
+
+                    if(!merge_previous_command)
                     {
                         sprintf(namebuf, if_text, curframe);//only execute in current frame
                         buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
                         frm_id = curframe;
-                    }
-                    else //no_cmd_compatible==1
-                    {
-                        scriptbuf[scriptlen - strclen(endif_text)] = 0; // cut last chars
-                        scriptlen = strlen(scriptbuf);
-                        scriptbuf[scriptlen - strclen(endif_return_text)] = 0; // cut last chars
-                        scriptlen = strlen(scriptbuf);
                     }
                     buffer_append(&scriptbuf, call_indent_text, 0xffffff, &sbsize, &scriptlen);
                     buffer_append(
@@ -20465,6 +20543,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                         );
                         first_command_argument = false;
                     }
+
+                    command_emitted = true;
                 }
 
                 if(command_token_reader.unterminated_quote)
@@ -20488,6 +20568,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 buffer_append(&scriptbuf, endif_text, 0xffffff, &sbsize, &scriptlen);//end of if
                 buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
                 buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
+                at_cmd_mergeable = no_cmd_compatible && command_emitted;
                 break;
             }
             default:
