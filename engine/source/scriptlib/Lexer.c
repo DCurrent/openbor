@@ -7,6 +7,7 @@
  */
 
 #include "Lexer.h"
+#include "ScriptVariant.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,8 @@
 void Token_Init(Token *ptoken, MY_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset)
 {
     ptoken->theType = theType;
+    ptoken->theStringLiteralSource = NULL;
+    ptoken->theStringLiteralLength = 0;
     ptoken->theTextPosition = theTextPosition;
     ptoken->charOffset = charOffset;
     strcpy(ptoken->theSource, theSource );
@@ -25,7 +28,10 @@ HRESULT Token_InitFromPreprocessor(Token *ptoken, pp_token *ppToken)
 {
     ptoken->theTextPosition = ppToken->theTextPosition;
     ptoken->charOffset = ppToken->charOffset;
-    strncpy(ptoken->theSource, ppToken->theSource, MAX_TOKEN_LENGTH + 1);
+    ptoken->theStringLiteralSource = NULL;
+    ptoken->theStringLiteralLength = 0;
+    strncpy(ptoken->theSource, ppToken->theSource, MAX_TOKEN_LENGTH);
+    ptoken->theSource[MAX_TOKEN_LENGTH] = '\0';
 
     switch (ppToken->theType)
     {
@@ -55,63 +61,28 @@ HRESULT Token_InitFromPreprocessor(Token *ptoken, pp_token *ppToken)
         break;
     case PP_TOKEN_STRING_LITERAL:
     {
-        char *src, *dest;
+        const char *literal_source;
+        size_t literal_length;
 
         // handle escape sequences and convert to correct format
         ptoken->theType = TOKEN_STRING_LITERAL;
-        src = ppToken->theSource + 1; // skip first quote mark
-        dest = ptoken->theSource;
 
-        while (*src && *src != '"')
-        {
-            if (*src == '\\')
-            {
-                switch (*(++src))
-                {
-                case 's':
-                    *dest++ = ' ';
-                    src++;
-                    break;
-                case 'r':
-                    *dest++ = '\r';
-                    src++;
-                    break;
-                case 'n':
-                    *dest++ = '\n';
-                    src++;
-                    break;
-                case 't':
-                    *dest++ = '\t';
-                    src++;
-                    break;
-                case '0':
-                    *dest++ = '\0';
-                    src++;
-                    break;
-                case '\"':
-                    *dest++ = '\"';
-                    src++;
-                    break;
-                case '\'':
-                    *dest++ = '\'';
-                    src++;
-                    break;
-                case '\\':
-                    *dest++ = '\\';
-                    src++;
-                    break;
-                default: // invalid escape sequence
-                    // TODO: emit a warning here
-                    *dest++ = '\\';
-                    *dest++ = *src;
-                }
-            }
-            else
-            {
-                *dest++ = *src++;
-            }
-        }
-        *dest = '\0';
+        literal_source = ppToken->theStringLiteralSource
+            ? ppToken->theStringLiteralSource
+            : ppToken->theSource;
+        literal_length = ppToken->theStringLiteralSource
+            ? ppToken->theStringLiteralLength
+            : strlen(ppToken->theSource);
+
+        ptoken->theStringLiteralSource = literal_source;
+        ptoken->theStringLiteralLength = literal_length;
+
+        ScriptString_DecodeLiteral(
+            ptoken->theSource,
+            sizeof(ptoken->theSource),
+            literal_source,
+            literal_length
+        );
         break;
     }
     case PP_TOKEN_SIZEOF:
@@ -419,4 +390,3 @@ HRESULT Lexer_GetNextToken(Lexer *plexer, Token *theNextToken)
 
     return Token_InitFromPreprocessor(theNextToken, ppToken);
 }
-

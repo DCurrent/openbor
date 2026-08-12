@@ -10,6 +10,7 @@
 #define SCRIPTVARIANT_H
 
 #include "depends.h"
+#include <stddef.h>
 #include <stdint.h>
 
 typedef enum VariantType {
@@ -22,6 +23,13 @@ typedef enum VariantType {
     VT_PTR         = (1U << 4),   // void*.
     VT_STR         = (1U << 5)    // char*.
 } VARTYPE;
+
+/*
+* Script strings are dynamically allocated. This is a policy
+* bound, not the capacity of a fixed storage buffer.
+*/
+#define MAX_SCRIPT_STRING_LENGTH                 65535U
+#define SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH    512U
 
 /*
 * Query masks only. These are not concrete
@@ -46,6 +54,11 @@ typedef struct ScriptVariant {
 
     VARTYPE vt;
 } ScriptVariant;
+
+typedef struct ScriptVariantStringView {
+    const CHAR *string;
+    size_t length;
+} ScriptVariantStringView;
 
 /*
 * Caskey, Damon V.
@@ -77,13 +90,16 @@ void ScriptVariant_Clear(ScriptVariant *var);
 void ScriptVariant_Init(ScriptVariant *var);
 void ScriptVariant_Copy(ScriptVariant *svar, ScriptVariant *rightChild ); // faster in some situations
 void ScriptVariant_ChangeType(ScriptVariant *var, VARTYPE cvt);
-void ScriptVariant_ParseStringConstant(ScriptVariant *var, CHAR *str);
+size_t ScriptString_DecodeLiteral(CHAR *destination, size_t destination_size, const CHAR *source, size_t source_length);
+HRESULT ScriptVariant_ParseStringConstant(ScriptVariant *var, const CHAR *str);
+HRESULT ScriptVariant_ParseStringLiteral(ScriptVariant *var, const CHAR *source, size_t source_length);
 HRESULT ScriptVariant_IntegerValue(ScriptVariant *var, LONG *pVal);
 HRESULT ScriptVariant_DecimalValue(ScriptVariant *var, DOUBLE *pVal);
 HRESULT ScriptVariant_Integer64Value(ScriptVariant *var, int64_t *pVal);
 HRESULT ScriptVariant_Unsigned64Value(ScriptVariant *var, uint64_t *pVal);
 BOOL ScriptVariant_IsTrue(ScriptVariant *svar);
-void ScriptVariant_ToString(ScriptVariant *svar, LPSTR buffer );
+HRESULT ScriptVariant_GetStringView(const ScriptVariant *svar, CHAR *conversion_buffer, size_t conversion_buffer_size, ScriptVariantStringView *view);
+HRESULT ScriptVariant_ToString(const ScriptVariant *svar, LPSTR buffer, size_t buffer_size, size_t *output_length);
 
 // light version, for compiled call, faster than above, but not safe in some situations
 // This function are used by compiled scripts

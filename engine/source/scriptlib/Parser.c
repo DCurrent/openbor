@@ -153,10 +153,32 @@ void Parser_ParseExpression(Parser *pparser, List *pIList, LPSTR scriptText,
 
 void Parser_AddInstructionViaToken(Parser *pparser, OpCode pCode, Token *pToken, Label label )
 {
+    HRESULT result;
     Instruction *pInstruction = NULL;
     pInstruction = (Instruction *)malloc(sizeof(Instruction));
-    Instruction_InitViaToken(pInstruction, pCode, pToken);
+    result = Instruction_InitViaToken(pInstruction, pCode, pToken);
     List_InsertAfter(pparser->pIList, pInstruction, label);
+
+    if(FAILED(result))
+    {
+        if(pCode == CONSTSTR)
+        {
+            pp_error(
+                &(pparser->theLexer.preprocessor),
+                "String literal exceeds the maximum length of %u characters",
+                MAX_SCRIPT_STRING_LENGTH
+            );
+        }
+        else
+        {
+            pp_error(
+                &(pparser->theLexer.preprocessor),
+                "Unable to create script instruction"
+            );
+        }
+
+        pparser->errorFound = TRUE;
+    }
 }
 
 /******************************************************************************
@@ -805,6 +827,10 @@ void Parser_Select_stmt(Parser *pparser )
         int opcode = pToken->theType == TOKEN_STRING_LITERAL ? CONSTSTR : CONSTINT;
         Parser_AddInstructionViaToken(pparser, opcode, pToken, NULL );
             Parser_AddInstructionViaLabel(pparser, Branch_EQUAL, List_GetName(&cases), NULL );
+            if(pToken->theType == TOKEN_STRING_LITERAL)
+            {
+                free((void *)pToken->theStringLiteralSource);
+            }
             free(pToken);
         }
         else
@@ -899,6 +925,20 @@ void Parser_Case_label(Parser *pparser, List *pCases )
         }
         token = malloc(sizeof(Token));
         memcpy(token, &pparser->theNextToken, sizeof(Token));
+
+        if(token->theType == TOKEN_STRING_LITERAL && token->theStringLiteralSource)
+        {
+            CHAR *literal_source = malloc(token->theStringLiteralLength + 1);
+
+            memcpy(
+                literal_source,
+                token->theStringLiteralSource,
+                token->theStringLiteralLength
+            );
+            literal_source[token->theStringLiteralLength] = '\0';
+            token->theStringLiteralSource = literal_source;
+        }
+
         List_InsertAfter(pCases, token, label);
         Parser_Match(pparser);
         Parser_Check(pparser, TOKEN_COLON );
@@ -1844,9 +1884,39 @@ void Parser_Unary_expr(Parser *pparser )
         }
         else if(pInstruction->OpCode == CONSTSTR)
         {
-            //convert to negative constant
-            sprintf(buf, "!%s", pInstruction->theToken->theSource);
-            strcpy(pInstruction->theToken->theSource, buf);
+            /*
+            * String constants are materialized when emitted so
+            * long literal source does not outlive its lexer view.
+            * Preserve the legacy leading-! string result in the
+            * dynamically sized runtime representation.
+            */
+            if(pInstruction->theVal && pInstruction->theVal->vt == VT_STR)
+            {
+                const CHAR *value = StrCache_Get(pInstruction->theVal->strVal);
+                size_t value_length = strlen(value);
+                CHAR *prefixed_value = malloc(value_length + 2);
+
+                prefixed_value[0] = '!';
+                memcpy(prefixed_value + 1, value, value_length + 1);
+                ScriptVariant_Clear(pInstruction->theVal);
+                if(FAILED(ScriptVariant_ParseStringConstant(
+                        pInstruction->theVal,
+                        prefixed_value)))
+                {
+                    pp_error(
+                        &(pparser->theLexer.preprocessor),
+                        "String result exceeds the maximum length of %u characters",
+                        MAX_SCRIPT_STRING_LENGTH
+                    );
+                    pparser->errorFound = TRUE;
+                }
+                free(prefixed_value);
+            }
+            else
+            {
+                sprintf(buf, "!%s", pInstruction->theToken->theSource);
+                strcpy(pInstruction->theToken->theSource, buf);
+            }
         }
         else
         {

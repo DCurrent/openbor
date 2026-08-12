@@ -12,20 +12,42 @@
 #include <errno.h>
 #include <stdint.h>
 
-void Instruction_InitViaToken(Instruction *pins, OpCode code, Token *pToken )
+HRESULT Instruction_InitViaToken(Instruction *pins, OpCode code, Token *pToken )
 {
+    if(!pins)
+    {
+        return E_FAIL;
+    }
+
     memset(pins, 0, sizeof(Instruction));
     pins->OpCode = code;
     pins->theToken = malloc(sizeof(Token));
+
+    if(!pins->theToken)
+    {
+        return E_FAIL;
+    }
+
     memset(pins->theToken, 0, sizeof(Token));
     if(pToken)
     {
         *(pins->theToken) = *pToken;
+
+        /*
+        * Materialize string constants while their non-owning
+        * source view is guaranteed to remain valid.
+        */
+        if(code == CONSTSTR)
+        {
+            return Instruction_ConvertConstant(pins);
+        }
     }
     else
     {
         pins->theToken->theType = END_OF_TOKENS;
     }
+
+    return S_OK;
 }
 
 void Instruction_InitViaLabel(Instruction *pins, OpCode code, LPCSTR label )
@@ -422,18 +444,31 @@ static int Instruction_IsHexIntegerSource(const char *source) {
 }
 
 //'compile' constant to improve speed
-void Instruction_ConvertConstant(Instruction *pins) {
+HRESULT Instruction_ConvertConstant(Instruction *pins) {
     
     ScriptVariant *pvar;
     CHAR *sc;
+    HRESULT result = S_OK;
+
+    if(!pins)
+    {
+        return E_FAIL;
+    }
+
     if(pins->theVal)
     {
-        return;    //already have the constant as a variant
+        return S_OK;    //already have the constant as a variant
     }
 
     if( pins->OpCode == CONSTDBL)
     {
         pvar = (ScriptVariant *)malloc(sizeof(ScriptVariant));
+
+        if(!pvar)
+        {
+            return E_FAIL;
+        }
+
         ScriptVariant_Init(pvar);
         ScriptVariant_ChangeType(pvar, VT_DECIMAL);
         //Note: There shouldn't be any double constants added via a label,
@@ -458,7 +493,7 @@ void Instruction_ConvertConstant(Instruction *pins) {
         pvar = (ScriptVariant *)malloc(sizeof(ScriptVariant));
 
         if (!pvar) {
-            return;
+            return E_FAIL;
         }
 
         ScriptVariant_Init(pvar);
@@ -496,14 +531,34 @@ void Instruction_ConvertConstant(Instruction *pins) {
     
     } else if(pins->OpCode == CONSTSTR) {
         pvar = (ScriptVariant *)malloc(sizeof(ScriptVariant));
+
+        if(!pvar)
+        {
+            return E_FAIL;
+        }
+
         ScriptVariant_Init(pvar);
-        ScriptVariant_ParseStringConstant(pvar, pins->theToken->theSource);
+
+        if(pins->theToken->theStringLiteralSource)
+        {
+            result = ScriptVariant_ParseStringLiteral(
+                pvar,
+                pins->theToken->theStringLiteralSource,
+                pins->theToken->theStringLiteralLength
+            );
+        }
+        else
+        {
+            result = ScriptVariant_ParseStringConstant(pvar, pins->theToken->theSource);
+        }
     
     } else {
-        return;
+        return E_FAIL;
     }
 
     pins->theVal = pvar;
+
+    return result;
 }
 
 

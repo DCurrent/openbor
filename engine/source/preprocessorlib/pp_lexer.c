@@ -58,6 +58,8 @@
 void pp_token_Init(pp_token *ptoken, PP_TOKEN_TYPE theType, LPCSTR theSource, TEXTPOS theTextPosition, ULONG charOffset)
 {
     ptoken->theType = theType;
+    ptoken->theStringLiteralSource = NULL;
+    ptoken->theStringLiteralLength = 0;
     ptoken->theTextPosition = theTextPosition;
     ptoken->charOffset = charOffset;
     strcpy(ptoken->theSource, theSource );
@@ -679,29 +681,59 @@ HRESULT pp_lexer_GetTokenNumber(pp_lexer *plexer, pp_token *theNextToken)
 ******************************************************************************/
 HRESULT pp_lexer_GetTokenStringLiteral(pp_lexer *plexer, pp_token *theNextToken)
 {
-    //copy the source that makes up this token
-    //an identifier is a string of letters, digits and/or underscores
-    //consume that first quote mark
-    int esc = 0;
-    CONSUMECHARACTER;
-    while ( strncmp( plexer->pcurChar, "\"", 1))
+    const char *literal_start = plexer->pcurChar;
+    size_t literal_length;
+    size_t preview_length;
+
+    /*
+    * String literals remain views into the source text. This
+    * lets the lexer scan them sequentially without copying the
+    * complete literal into the fixed identifier token buffer.
+    */
+    SKIPCHARACTER;
+
+    while(*plexer->pcurChar && *plexer->pcurChar != '"')
     {
-        if(!strncmp( plexer->pcurChar, "\\", 1))
+        if(*plexer->pcurChar == '\\')
         {
-            esc = 1;
+            SKIPCHARACTER;
+
+            if(!*plexer->pcurChar)
+            {
+                return E_FAIL;
+            }
         }
-        CONSUMECHARACTER;
-        if(esc)
-        {
-            CONSUMECHARACTER;
-            esc = 0;
-        }
+
+        SKIPCHARACTER;
     }
 
-    //consume that last quote mark
-    CONSUMECHARACTER;
+    if(*plexer->pcurChar != '"')
+    {
+        return E_FAIL;
+    }
 
-    MAKETOKEN( PP_TOKEN_STRING_LITERAL );
+    SKIPCHARACTER;
+
+    literal_length = (size_t)(plexer->pcurChar - literal_start);
+    preview_length = literal_length < MAX_TOKEN_LENGTH
+        ? literal_length
+        : MAX_TOKEN_LENGTH;
+
+    memcpy(plexer->theTokenSource, literal_start, preview_length);
+    plexer->theTokenSource[preview_length] = '\0';
+    plexer->theTokenLen = (ULONG)preview_length;
+
+    pp_token_Init(
+        theNextToken,
+        PP_TOKEN_STRING_LITERAL,
+        plexer->theTokenSource,
+        plexer->theTokenPosition,
+        plexer->tokOffset
+    );
+
+    theNextToken->theStringLiteralSource = literal_start;
+    theNextToken->theStringLiteralLength = literal_length;
+
     return S_OK;
 }
 /******************************************************************************
@@ -1116,4 +1148,3 @@ HRESULT pp_lexer_SkipComment(pp_lexer *plexer, COMMENT_TYPE theType)
 
     return S_OK;
 }
-

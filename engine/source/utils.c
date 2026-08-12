@@ -196,9 +196,15 @@ CLOSE_AND_QUIT:
 }
 
 
-void writeToLogFile(const char *msg, ...)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Write a formatted message to the engine log from an existing
+  variable-argument list without fixed-capacity staging.
+*/
+void writeToLogFileV(const char *message, va_list arguments)
 {
-    va_list arglist;
     if(openborLog == NULL)
     {
         openborLog = OPEN_LOGFILE(OPENBOR_LOG);
@@ -207,9 +213,43 @@ void writeToLogFile(const char *msg, ...)
             return;
         }
     }
+    vfprintf(openborLog, message, arguments);
+    fflush(openborLog);
+}
+
+void writeToLogFile(const char *msg, ...)
+{
+    va_list arglist;
+
     va_start(arglist, msg);
-    vfprintf(openborLog, msg, arglist);
+    writeToLogFileV(msg, arglist);
     va_end(arglist);
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Write a length-delimited message to the engine log without
+  treating creator-provided text as a format string.
+*/
+void writeToLogFileLength(const char *message, size_t length)
+{
+    if(!message)
+    {
+        return;
+    }
+
+    if(openborLog == NULL)
+    {
+        openborLog = OPEN_LOGFILE(OPENBOR_LOG);
+        if(openborLog == NULL)
+        {
+            return;
+        }
+    }
+
+    fwrite(message, 1, length, openborLog);
     fflush(openborLog);
 }
 
@@ -622,4 +662,3 @@ void Array_Check_Size( const char *f_caller, char **array, int new_size, int *cu
     // ReAssign the new allocated array
     *array = copy;
 }
-

@@ -33,8 +33,14 @@ s_sprite_list *sprite_list;
 s_sprite_map *sprite_map;
 
 s_savelevel *savelevel;
+static char **savelevel_allowselect_args;
+static size_t savelevel_count;
 s_savescore savescore;
 s_savedata savedata;
+
+static void clear_saved_allowselect_arguments(void);
+static const char* get_saved_allowselect_arguments(size_t index);
+static void set_saved_allowselect_arguments(size_t index, const char* source);
 
 /////////////////////////////////////////////////////////////////////////////
 //  Global Variables                                                        //
@@ -285,7 +291,7 @@ char                *custModels = NULL;
 char                rush_names[2][MAX_NAME_LEN];
 char				skipselect[MAX_PLAYERS][MAX_NAME_LEN];
 char                branch_name[MAX_NAME_LEN + 1];  // Used for branches
-char                allowselect_args[MAX_ALLOWSELECT_LEN]; // stored allowselect players
+char                *allowselect_args = NULL; // stored allowselect players
 int					useSave = 0;
 int					useSet = -1;
 unsigned char       pal[MAX_PAL_SIZE] = {""};
@@ -1019,11 +1025,13 @@ int buffer_pakfile(const char *filename, char **pbuffer, size_t *psize)
 
 int buffer_append(char **buffer, const char *str, size_t n, size_t *bufferlen, size_t *len)
 {
-    size_t appendlen = strlen(str);
-    if(appendlen > n)
+    size_t appendlen = 0;
+
+    while(appendlen < n && str[appendlen])
     {
-        appendlen = n;
+        appendlen++;
     }
+
     if(appendlen + *len + 1 > *bufferlen)
     {
         //printf("*Debug* reallocating buffer...\n");
@@ -1033,10 +1041,58 @@ int buffer_append(char **buffer, const char *str, size_t n, size_t *bufferlen, s
             borShutdown(1, "Unable to resize buffer.\n");
         }
     }
-    strncpy(*buffer + *len, str, appendlen);
+    memcpy(*buffer + *len, str, appendlen);
     *len = *len + appendlen;
     (*buffer)[*len] = 0;
     return *len;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-12
+-
+- Verify and atomically remove two adjoining suffixes
+  from a generated text buffer. Leave the buffer intact
+  if its tail does not match the complete sequence.
+*/
+static bool buffer_remove_suffix_pair(
+    char* buffer,
+    size_t* length,
+    const char* first,
+    size_t first_length,
+    const char* second,
+    size_t second_length
+) {
+    size_t pair_length;
+
+    assert(length);
+    assert(first);
+    assert(second);
+
+    if(!buffer || first_length > SIZE_MAX - second_length) {
+        return false;
+    }
+
+    pair_length = first_length + second_length;
+
+    if(*length < pair_length
+        || memcmp(
+            buffer + *length - second_length,
+            second,
+            second_length
+        )
+        || memcmp(
+            buffer + *length - pair_length,
+            first,
+            first_length
+        )) {
+        return false;
+    }
+
+    *length -= pair_length;
+    buffer[*length] = '\0';
+
+    return true;
 }
 
 int handle_txt_include(char *command, ArgList *arglist, char **fn, char *namebuf, char **buf, ptrdiff_t *pos, size_t *len)
@@ -2753,11 +2809,157 @@ void loadfromdefault()
 }
 
 
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Append complete allowselect state to the fixed-record save
+  file using length-prefixed values without imposing a list-size
+  limit.
+*/
+#define SAVE_ALLOWSELECT_EXTENSION_MAGIC UINT64_C(0x5443454C45534C41)
+#define SAVE_ALLOWSELECT_EXTENSION_VERSION UINT32_C(1)
+
+static bool write_saved_allowselect_extension(FILE* handle)
+{
+    const uint64_t magic = SAVE_ALLOWSELECT_EXTENSION_MAGIC;
+    const uint32_t version = SAVE_ALLOWSELECT_EXTENSION_VERSION;
+    const uint64_t entry_count = (uint64_t)savelevel_count;
+    size_t i;
+
+    if(fwrite(&magic, sizeof(magic), 1, handle) != 1
+        || fwrite(&version, sizeof(version), 1, handle) != 1
+        || fwrite(&entry_count, sizeof(entry_count), 1, handle) != 1)
+    {
+        return false;
+    }
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        const char* value = get_saved_allowselect_arguments(i);
+        const uint64_t length = value ? (uint64_t)strlen(value) : 0;
+
+        if(fwrite(&length, sizeof(length), 1, handle) != 1
+            || (length
+                && fwrite(value, 1, (size_t)length, handle)
+                    != (size_t)length))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static bool get_file_remaining_size(FILE* handle, uint64_t* remaining)
+{
+    long current_position;
+    long end_position;
+
+    current_position = ftell(handle);
+
+    if(current_position < 0 || fseek(handle, 0, SEEK_END) != 0)
+    {
+        return false;
+    }
+
+    end_position = ftell(handle);
+
+    if(end_position < current_position
+        || fseek(handle, current_position, SEEK_SET) != 0)
+    {
+        return false;
+    }
+
+    *remaining = (uint64_t)(end_position - current_position);
+
+    return true;
+}
+
+static bool read_saved_allowselect_extension(FILE* handle)
+{
+    uint64_t magic;
+    uint32_t version;
+    uint64_t entry_count;
+    char** loaded_values;
+    size_t i;
+
+    if(fread(&magic, sizeof(magic), 1, handle) != 1
+        || magic != SAVE_ALLOWSELECT_EXTENSION_MAGIC)
+    {
+        return false;
+    }
+
+    if(fread(&version, sizeof(version), 1, handle) != 1
+        || fread(&entry_count, sizeof(entry_count), 1, handle) != 1)
+    {
+        return false;
+    }
+
+    if(version != SAVE_ALLOWSELECT_EXTENSION_VERSION
+        || entry_count != (uint64_t)savelevel_count)
+    {
+        return false;
+    }
+
+    loaded_values = calloc(savelevel_count, sizeof(*loaded_values));
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        uint64_t length;
+        uint64_t remaining;
+
+        if(fread(&length, sizeof(length), 1, handle) != 1
+            || length > (uint64_t)(SIZE_MAX - 1)
+            || !get_file_remaining_size(handle, &remaining)
+            || length > remaining)
+        {
+            goto error;
+        }
+
+        if(length)
+        {
+            loaded_values[i] = malloc((size_t)length + 1);
+
+            if(fread(loaded_values[i], 1, (size_t)length, handle)
+                != (size_t)length)
+            {
+                goto error;
+            }
+
+            loaded_values[i][(size_t)length] = '\0';
+        }
+    }
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        set_saved_allowselect_arguments(i, loaded_values[i]);
+        free(loaded_values[i]);
+    }
+
+    free(loaded_values);
+    return true;
+
+error:
+    for(i = 0; i < savelevel_count; i++)
+    {
+        free(loaded_values[i]);
+    }
+
+    free(loaded_values);
+    return false;
+}
+
 
 
 void clearSavedGame()
 {
-    memset(savelevel, 0, sizeof(*savelevel)*num_difficulties);
+    clear_saved_allowselect_arguments();
+
+    if(savelevel)
+    {
+        memset(savelevel, 0, sizeof(*savelevel) * savelevel_count);
+    }
 }
 
 
@@ -2777,6 +2979,7 @@ void clearHighScore()
 
 int saveGameFile()
 {
+    size_t i;
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2792,7 +2995,24 @@ int saveGameFile()
         return 0;
     }
 
-    fwrite(savelevel, sizeof(*savelevel), num_difficulties, handle);
+    if(!savelevel || savelevel_count != (size_t)num_difficulties)
+    {
+        fclose(handle);
+        return 0;
+    }
+
+    for(i = 0; i < savelevel_count; i++)
+    {
+        savelevel[i].compatibleversion = CV_SAVED_GAME;
+    }
+
+    if(fwrite(savelevel, sizeof(*savelevel), savelevel_count, handle)
+            != savelevel_count
+        || !write_saved_allowselect_extension(handle))
+    {
+        fclose(handle);
+        return 0;
+    }
 
     fclose(handle);
 
@@ -2802,7 +3022,8 @@ int saveGameFile()
 
 int loadGameFile()
 {
-    int result = 1, i;
+    int result = 1;
+    size_t i;
     FILE *handle = NULL;
     char path[MAX_BUFFER_LEN] = {""};
     char tmpname[MAX_BUFFER_LEN] = {""};
@@ -2818,12 +3039,24 @@ int loadGameFile()
         return 0;
     }
 
+    if(!savelevel || savelevel_count != (size_t)num_difficulties)
+    {
+        fclose(handle);
+        return 0;
+    }
+
+    clearSavedGame();
+
     //fseek(handle, 0L, SEEK_END);
     //filesize = ftell(handle);
     //fseek(handle, 0L, SEEK_SET); // or rewind(handle);
     //(filesize != sizeof(*savelevel)*num_difficulties)
 
-    if( (fread(savelevel, sizeof(*savelevel), num_difficulties, handle) >= sizeof(*savelevel) && savelevel[0].compatibleversion != CV_SAVED_GAME) )
+    if(fread(savelevel, sizeof(*savelevel), savelevel_count, handle)
+            != savelevel_count
+        || (savelevel_count
+            && savelevel[0].compatibleversion != CV_SAVED_GAME)
+        || !read_saved_allowselect_extension(handle))
     {
         clearSavedGame();
         result = 0;
@@ -2831,7 +3064,7 @@ int loadGameFile()
     else
     {
         bonus = 0;
-        for(i = 0; i < num_difficulties; i++) if(savelevel[i].times_completed > 0)
+        for(i = 0; i < savelevel_count; i++) if(savelevel[i].times_completed > 0)
             {
                 bonus += savelevel[i].times_completed;
             }
@@ -3210,6 +3443,7 @@ typedef struct s_command_token
 {
     const char* text;
     size_t length;
+    size_t value_length;
 } s_command_token;
 
 /*
@@ -3221,21 +3455,72 @@ typedef struct s_command_token
 typedef struct s_command_token_reader
 {
     const char* cursor;
+    char unterminated_quote;
 } s_command_token_reader;
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Identify command quote delimiters and update quote state.
+  Double quotes may group text anywhere within an argument.
+  Single quotes may begin grouping only at the argument boundary,
+  allowing apostrophes in ordinary words to remain literal.
+*/
+static bool command_token_update_quote_state(
+    const char* token_start,
+    const char* cursor,
+    bool* inside_double_quotes,
+    bool* inside_single_quotes
+) {
+    bool escaped;
+
+    assert(token_start);
+    assert(cursor);
+    assert(inside_double_quotes);
+    assert(inside_single_quotes);
+
+    escaped =
+        cursor > token_start
+        && cursor[-1] == '\\';
+
+    if(*cursor == '"' && !escaped && !*inside_single_quotes) {
+        *inside_double_quotes = !*inside_double_quotes;
+        return true;
+    }
+
+    if(*cursor == '\'' && !escaped && !*inside_double_quotes) {
+        if(*inside_single_quotes || cursor == token_start) {
+            *inside_single_quotes = !*inside_single_quotes;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 /*
 * Read the next token from a command line.
 *
 * Tokens end at whitespace, a line ending, a comment
-* marker, or the null terminator. Quoted text may
-* contain whitespace and comment markers.
+* marker, or the null terminator. Quoted text may contain
+* whitespace, line endings, and comment markers. Double
+* quotes may open anywhere in an argument. Single quotes
+* may open only at its beginning so ordinary apostrophes
+* remain literal. Matching delimiters are omitted from the
+* logical value, while the opposite quote type is literal.
 *
 * Return true when a token is available. Return false
-* when the command line has no remaining tokens.
+* when the command line has no remaining tokens or the
+* current token contains an unterminated quote. The reader
+* records the invalid delimiter for callers that distinguish
+* malformed input from an ordinary end.
 */
 static bool command_token_reader_next(s_command_token_reader* reader, s_command_token* token) {
     const char* cursor;
     const char* token_start;
+
+    size_t value_length = 0;
 
     bool inside_double_quotes = false;
     bool inside_single_quotes = false;
@@ -3263,6 +3548,7 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
         reader->cursor = cursor;
         token->text = NULL;
         token->length = 0;
+        token->value_length = 0;
 
         return false;
     }
@@ -3270,18 +3556,12 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
     token_start = cursor;
 
     while(*cursor) {
-        const bool escaped =
-            cursor > token_start
-            && cursor[-1] == '\\';
-
-        if(*cursor == '"' && !escaped && !inside_single_quotes) {
-            inside_double_quotes = !inside_double_quotes;
-            cursor++;
-            continue;
-        }
-
-        if(*cursor == '\'' && !escaped && !inside_double_quotes) {
-            inside_single_quotes = !inside_single_quotes;
+        if(command_token_update_quote_state(
+                token_start,
+                cursor,
+                &inside_double_quotes,
+                &inside_single_quotes
+            )) {
             cursor++;
             continue;
         }
@@ -3296,14 +3576,336 @@ static bool command_token_reader_next(s_command_token_reader* reader, s_command_
             }
         }
 
+        value_length++;
         cursor++;
+    }
+
+    if(inside_double_quotes || inside_single_quotes) {
+        reader->cursor = cursor;
+        reader->unterminated_quote = inside_double_quotes ? '"' : '\'';
+        token->text = NULL;
+        token->length = 0;
+        token->value_length = 0;
+
+        return false;
     }
 
     token->text = token_start;
     token->length = (size_t)(cursor - token_start);
+    token->value_length = value_length;
     reader->cursor = cursor;
 
     return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Copy a command token while discarding quote delimiters.
+  The destination receives the logical argument text and
+  is always null terminated on success.
+*/
+static bool command_token_copy_value(
+    const s_command_token* token,
+    char* destination,
+    const size_t capacity
+) {
+    const char* cursor;
+    const char* source_end;
+
+    size_t destination_index = 0;
+
+    bool inside_double_quotes = false;
+    bool inside_single_quotes = false;
+
+    assert(token);
+    assert(destination);
+
+    if(!token->text) {
+        return false;
+    }
+
+    source_end = token->text + token->length;
+
+    if(capacity <= token->value_length) {
+        return false;
+    }
+
+    if(token->length == token->value_length) {
+        memcpy(destination, token->text, token->length);
+        destination[token->length] = '\0';
+        return true;
+    }
+
+    for(cursor = token->text; cursor < source_end; cursor++) {
+        if(command_token_update_quote_state(
+                token->text,
+                cursor,
+                &inside_double_quotes,
+                &inside_single_quotes
+            )) {
+            continue;
+        }
+
+        destination[destination_index++] = *cursor;
+    }
+
+    assert(!inside_double_quotes);
+    assert(!inside_single_quotes);
+    assert(destination_index == token->value_length);
+
+    destination[destination_index] = '\0';
+
+    return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read one requested command argument sequentially from the
+  source line. Return its non-owning source view and decoded
+  length so the caller can allocate only the required storage.
+  Distinguish malformed quoting from a missing argument.
+*/
+e_command_argument_read_result command_argument_read(
+    const char* command_line,
+    size_t argument_index,
+    s_command_argument_view* argument
+) {
+    s_command_token_reader reader = {
+        .cursor = command_line
+    };
+
+    s_command_token token;
+
+    assert(command_line);
+    assert(argument);
+
+    *argument = (s_command_argument_view){0};
+
+    while(argument_index) {
+        if(!command_token_reader_next(&reader, &token)) {
+            return reader.unterminated_quote
+                ? COMMAND_ARGUMENT_READ_INVALID
+                : COMMAND_ARGUMENT_READ_END;
+        }
+
+        argument_index--;
+    }
+
+    if(!command_token_reader_next(&reader, &token)) {
+        return reader.unterminated_quote
+            ? COMMAND_ARGUMENT_READ_INVALID
+            : COMMAND_ARGUMENT_READ_END;
+    }
+
+    argument->source = token.text;
+    argument->source_length = token.length;
+    argument->length = token.value_length;
+
+    return COMMAND_ARGUMENT_READ_SUCCESS;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Copy a previously read command argument into caller-owned
+  storage while discarding its opening and closing quote
+  delimiters. Preserve literal apostrophes and opposite quotes.
+*/
+bool command_argument_copy(
+    const s_command_argument_view* argument,
+    char* destination,
+    const size_t capacity
+) {
+    s_command_token token;
+
+    assert(argument);
+    assert(destination);
+
+    token = (s_command_token){
+        .text = argument->source,
+        .length = argument->source_length,
+        .value_length = argument->length
+    };
+
+    return command_token_copy_value(&token, destination, capacity);
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Reserve fixed storage for one sequentially read command
+  argument. Keep this independent from the legacy command-line,
+  script file-stream, path, and persistent save-field limit.
+*/
+#define MAX_COMMAND_ARGUMENT_LEN 512
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Maintain sequential command argument reading state. The
+  underlying token reader walks the source line directly,
+  while one fixed scratch buffer holds only the current item.
+*/
+typedef struct s_command_argument_reader
+{
+    s_command_token_reader token_reader;
+    char value[MAX_COMMAND_ARGUMENT_LEN];
+} s_command_argument_reader;
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Initialize a command argument reader at the requested
+  argument index. Skip preceding items directly in the
+  source line without collecting them into a buffer.
+*/
+static bool command_argument_reader_initialize(
+    s_command_argument_reader* reader,
+    const char* command_line,
+    size_t argument_index
+) {
+    s_command_token skipped_token;
+
+    assert(reader);
+    assert(command_line);
+
+    *reader = (s_command_argument_reader){
+        .token_reader = {
+            .cursor = command_line
+        }
+    };
+
+    while(argument_index) {
+        if(!command_token_reader_next(
+                &reader->token_reader,
+                &skipped_token
+            )) {
+            if(reader->token_reader.unterminated_quote) {
+                borShutdown(
+                    1,
+                    "Command argument has an unterminated %c quote.\n",
+                    reader->token_reader.unterminated_quote
+                );
+            }
+
+            return false;
+        }
+
+        argument_index--;
+    }
+
+    return true;
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read the next command argument into the reader's reusable
+  fixed buffer. Enforce the dedicated per-item length limit
+  without imposing whole-line or argument-count limits.
+*/
+static bool command_argument_reader_next(
+    s_command_argument_reader* reader,
+    const char** value
+) {
+    s_command_token token;
+
+    assert(reader);
+    assert(value);
+
+    if(!command_token_reader_next(&reader->token_reader, &token)) {
+        if(reader->token_reader.unterminated_quote) {
+            borShutdown(
+                1,
+                "Command argument has an unterminated %c quote.\n",
+                reader->token_reader.unterminated_quote
+            );
+        }
+
+        *value = NULL;
+        return false;
+    }
+
+    if(token.value_length >= sizeof(reader->value)) {
+        borShutdown(
+            1,
+            "Command argument exceeds the maximum length of %zu characters.\n",
+            sizeof(reader->value) - 1
+        );
+        *value = NULL;
+        return false;
+    }
+
+    if(!command_token_copy_value(
+            &token,
+            reader->value,
+            sizeof(reader->value)
+        )) {
+        *value = NULL;
+        return false;
+    }
+
+    *value = reader->value;
+
+    return true;
+}
+
+static void clear_saved_allowselect_arguments(void)
+{
+    size_t i;
+
+    if(!savelevel_allowselect_args) {
+        return;
+    }
+
+    for(i = 0; i < savelevel_count; i++) {
+        free(savelevel_allowselect_args[i]);
+        savelevel_allowselect_args[i] = NULL;
+    }
+}
+
+static const char* get_saved_allowselect_arguments(size_t index)
+{
+    if(index >= savelevel_count || !savelevel_allowselect_args) {
+        return NULL;
+    }
+
+    return savelevel_allowselect_args[index];
+}
+
+static void set_saved_allowselect_arguments(
+    size_t index,
+    const char* source
+) {
+    char* owned_source = NULL;
+
+    if(index >= savelevel_count || !savelevel_allowselect_args) {
+        return;
+    }
+
+    if(source && source[0]) {
+        const size_t length = strlen(source);
+
+        if(length == SIZE_MAX) {
+            borShutdown(1, "Allowselect state exceeds addressable memory.\n");
+            return;
+        }
+
+        owned_source = malloc(length + 1);
+        memcpy(owned_source, source, length + 1);
+    }
+
+    free(savelevel_allowselect_args[index]);
+    savelevel_allowselect_args[index] = owned_source;
 }
 
 /*
@@ -4604,67 +5206,6 @@ int readByte(char *buf)
 
     return num;
 }
-
-char *findarg(char *command, int which)
-{
-    const char comment_mark[] = {"#"};
-    int d;
-    int argc;
-    int inarg;
-    int argstart;
-    static char arg[MAX_ARG_LEN];
-
-
-    // Copy the command line, replacing spaces by zeroes,
-    // finally returning a pointer to the requested arg.
-    d = 0;
-    inarg = 0;
-    argstart = 0;
-    argc = -1;
-
-    while(d < MAX_ARG_LEN - 1 && command[d])
-    {
-        // Zero out whitespace
-        if(command[d] == ' ' || command[d] == '\t')
-        {
-            arg[d] = 0;
-            inarg = 0;
-            if(argc == which)
-            {
-                return arg + argstart;
-            }
-        }
-        else if(command[d] == 0 || command[d] == '\n' || command[d] == '\r' ||
-                strcmp(command + d, comment_mark) == 0)
-        {
-            // End of line
-            arg[d] = 0;
-            if(argc == which)
-            {
-                return arg + argstart;
-            }
-            return arg + d;
-        }
-        else
-        {
-            if(!inarg)
-            {
-                // if(argc==-1 && command[d]=='#') return arg;
-                inarg = 1;
-                argstart = d;
-                argc++;
-            }
-            arg[d] = command[d];
-        }
-        ++d;
-    }
-    arg[d] = 0;
-
-    return arg;
-}
-
-
-
 
 float diff(float a, float b)
 {
@@ -6624,43 +7165,126 @@ static void reset_playable_list(char which)
     }
 }
 
-// Specify which Player Models are allowable for selecting
-static void load_playable_list(char *buf)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Grow a normalized command line as sequential arguments arrive.
+  Capacity follows actual content, so total command size is bound
+  only by addressable memory while individual arguments retain
+  their dedicated validation limit.
+*/
+static void append_command_argument(
+    char** command_line,
+    size_t* length,
+    size_t* capacity,
+    const char* value
+) {
+    const size_t value_length = strlen(value);
+    const size_t separator_length = *length ? 1 : 0;
+    size_t required_capacity;
+    size_t expanded_capacity;
+
+    if(*length > SIZE_MAX - separator_length - 1
+        || value_length
+            > SIZE_MAX - *length - separator_length - 1) {
+        borShutdown(1, "Command line exceeds addressable memory.\n");
+        return;
+    }
+
+    required_capacity =
+        *length + separator_length + value_length + 1;
+
+    if(required_capacity > *capacity) {
+        expanded_capacity = *capacity ? *capacity : 64;
+
+        while(expanded_capacity < required_capacity) {
+            if(expanded_capacity > SIZE_MAX / 2) {
+                expanded_capacity = required_capacity;
+                break;
+            }
+
+            expanded_capacity *= 2;
+        }
+
+        *command_line = realloc(*command_line, expanded_capacity);
+        *capacity = expanded_capacity;
+    }
+
+    if(separator_length) {
+        (*command_line)[(*length)++] = ' ';
+    }
+
+    memcpy(*command_line + *length, value, value_length);
+    *length += value_length;
+    (*command_line)[*length] = '\0';
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read selectable player model names directly from the source
+  line one item at a time. Apply and retain the complete runtime
+  list without a whole-line or persistent save-field ceiling.
+*/
+static void load_playable_list(const char* command_line)
 {
-    int i, index;
-    char *value;
-    s_model *playermodels = NULL;
-    ArgList arglist;
-    char argbuf[MAX_ALLOWSELECT_LEN] = "";
+    const char* value;
+    s_command_argument_reader reader;
+    s_model* playermodel;
+    char* stored_arguments = NULL;
+    size_t stored_length = 0;
+    size_t stored_capacity = 0;
+    int index;
 
-    ParseArgs(&arglist, buf, argbuf);
-
-    // avoid to load characters if there isn't an allowselect
-    if ( stricmp(value = GET_ARG(0), "allowselect") != 0 ) return;
+    if(!command_line
+        || !command_argument_reader_initialize(
+            &reader,
+            command_line,
+            0
+        )
+        || !command_argument_reader_next(&reader, &value)
+        || stricmp(value, "allowselect") != 0) {
+        return;
+    }
 
     reset_playable_list(0);
+    append_command_argument(
+        &stored_arguments,
+        &stored_length,
+        &stored_capacity,
+        "allowselect"
+    );
 
-    for(i = 0; i < sizeof(argbuf); i++) allowselect_args[i] = ' ';
-    for(i = 0; i < sizeof(argbuf); i++)
-    {
-        if ( argbuf[i] != '\0' ) allowselect_args[i] = argbuf[i]; // store allowselect players for savefile
-        else allowselect_args[i] = ' ';
-    }
-    allowselect_args[sizeof(argbuf)-1] = '\0';
+    while(command_argument_reader_next(&reader, &value)) {
+        playermodel = findmodel((char*)value);
 
-    for(i = 1; (value = GET_ARG(i))[0]; i++)
-    {
-        playermodels = findmodel(value);
-        //if(playermodels == NULL) borShutdown(1, "Player model '%s' is not loaded.\n", value);
-        index = get_cached_model_index(playermodels->name);
-        if(index == -1)
-        {
-            borShutdown(1, "Player model '%s' is not cached.\n", value);
+        if(!playermodel) {
+            free(stored_arguments);
+            borShutdown(1, "Player model '%s' is not loaded.\n", value);
+            return;
         }
+
+        index = get_cached_model_index(playermodel->name);
+
+        if(index == -1) {
+            free(stored_arguments);
+            borShutdown(1, "Player model '%s' is not cached.\n", value);
+            return;
+        }
+
         model_cache[index].selectable = 1;
+        append_command_argument(
+            &stored_arguments,
+            &stored_length,
+            &stored_capacity,
+            value
+        );
     }
 
-    return;
+    free(allowselect_args);
+    allowselect_args = stored_arguments;
 }
 
 /*
@@ -7448,7 +8072,9 @@ int child_spawn_get_color_from_argument(char* filename, char* command, char* val
 * Read a text argument for child spawn config
 * flag and output appropriate constant.
 */
-e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
+e_child_spawn_config child_spawn_get_config_bit_from_argument(
+    const char* value
+)
 {
     e_child_spawn_config result = CHILD_SPAWN_CONFIG_NONE;
 
@@ -7560,14 +8186,18 @@ e_child_spawn_config child_spawn_get_config_bit_from_argument(char* value)
 * and outputs integer. Accepts existing
 * argument as a default.
 */
-e_child_spawn_config child_spawn_get_config_argument(ArgList* arglist, e_child_spawn_config config_current)
+e_child_spawn_config child_spawn_get_config_argument(
+    const char* command_line,
+    e_child_spawn_config config_current
+)
 {
+    const char* value;
+    s_command_argument_reader reader;
     e_child_spawn_config result = config_current;
-    int i;
-    char* value;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= child_spawn_get_config_bit_from_argument(value);
     }
 
@@ -10778,19 +11408,19 @@ static inline e_damage_recursive_logic recursive_effect_get_mode_flag_from_argum
 }
 
 /*
-* Caskey, Damon V.
-* 2021-08-24
-*
-* Reads text arguments from recursive mode
-* command and outputs integer with appropriate
-* bits toggled.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read recursive damage mode arguments directly from the
+  source line and combine their corresponding behavior flags.
 */
-e_damage_recursive_logic recursive_effect_get_mode_setup_from_arg_list(ArgList* arglist)
+e_damage_recursive_logic recursive_effect_get_mode_setup_from_command_line(
+    const char* command_line
+)
 {
+    const char* value;
+    s_command_argument_reader reader;
     e_damage_recursive_logic result = 0;
-
-    int i;
-    char* value;
 
     /*
     * Read all arguments left to right. We send each arg
@@ -10798,8 +11428,9 @@ e_damage_recursive_logic recursive_effect_get_mode_setup_from_arg_list(ArgList* 
     * bit to toggle.
     */
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= recursive_effect_get_mode_flag_from_argument(value);
     }
 
@@ -11445,7 +12076,7 @@ void free_modelcache()
 }
 
 
-int get_cached_model_index(char *name)
+int get_cached_model_index(const char *name)
 {
     int i;
     for(i = 0; i < models_cached; i++)
@@ -13053,21 +13684,21 @@ e_entity_type get_type_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2022-06-14
-*
-* Get arguments for type and output final
-* bitmask so we can have a reusable function.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read entity type arguments directly from the source line
+  and combine their corresponding type flags.
 */
-e_entity_type get_type_from_arglist(ArgList* arglist)
+e_entity_type get_type_from_command_line(const char* command_line)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_entity_type result = TYPE_UNDECLARED;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= get_type_from_string(value);
     }
 
@@ -13160,7 +13791,7 @@ e_weapon_loss_condition weapon_loss_condition_interpret_from_legacy_weaploss(e_w
 * Accept string input and return
 * matching constant. 
 */
-e_weapon_loss_condition get_weapon_loss_from_argument(char* value)
+e_weapon_loss_condition get_weapon_loss_from_argument(const char* value)
 {
     e_weapon_loss_condition result;
 
@@ -13220,16 +13851,22 @@ e_weapon_loss_condition get_weapon_loss_from_argument(char* value)
 * Populate weapon loss model property
 * from text arguments.
 */
-void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
+void lcmHandleCommandWeaponLossCondition(
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     newchar->weapon_properties.loss_condition = WEAPON_LOSS_CONDITION_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         newchar->weapon_properties.loss_condition |= get_weapon_loss_from_argument(value);
     }
+
 }
 
 /*
@@ -13240,7 +13877,11 @@ void lcmHandleCommandWeaponLossCondition(ArgList* arglist, s_model* newchar)
 * and output appropriate constant. If input 
 * is legacy integer, we just pass it on.
 */
-e_model_copy get_model_flag_from_argument(char* filename, char* command, char* value)
+e_model_copy get_model_flag_from_argument(
+    const char* filename,
+    const char* command,
+    const char* value
+)
 {
     e_model_copy result = MODEL_COPY_FLAG_NONE;
 
@@ -13312,16 +13953,24 @@ e_model_copy get_model_flag_from_legacy_int(int legacy_int)
 * Populate model flag property
 * from text arguments.
 */
-void lcmHandleCommandModelFlag(char* filename, char* command, ArgList* arglist, s_model* newchar)
+void lcmHandleCommandModelFlag(
+    char* filename,
+    char* command,
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     newchar->model_flag = MODEL_COPY_FLAG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         newchar->model_flag |= get_model_flag_from_argument(filename, command, value);
     }
+
 }
 
 /*
@@ -13755,16 +14404,22 @@ e_air_control find_air_control_from_string(const char* value)
 * Populate air control model property
 * from text arguments.
 */
-void lcmHandleCommandAirControl(const ArgList* arglist, s_model* newchar)
+void lcmHandleCommandAirControl(
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     newchar->air_control = AIR_CONTROL_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         newchar->air_control |= find_air_control_from_string(value);
     }
+
 }
 
 /*
@@ -13848,22 +14503,23 @@ e_ko_colorset_config komap_type_get_value_from_argument(char* filename, char* co
 }
 
 /*
-* Caskey, Damon V.
-* 2022-06-14
-*
-* Get arguments for move constraint and 
-* output final bitmask so we can have a 
-* reusable function.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read movement configuration arguments directly from the
+  source line and combine their corresponding behavior flags.
 */
-e_move_config_flags get_move_config_flags_from_arguments(ArgList* arglist)
+e_move_config_flags get_move_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_move_config_flags result = MOVE_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= find_move_config_flags_from_string(value);
     }
 
@@ -13930,16 +14586,19 @@ e_cheat_options find_cheat_options_from_string(const char* value)
 * Populate global config cheats 
 * property from text arguments.
 */
-void lcmHandleCommandGlobalConfigCheats(ArgList* arglist)
+void lcmHandleCommandGlobalConfigCheats(const char* command_line)
 {
-    int i;
-    char* value;
+    const char* value;
+    s_command_argument_reader reader;
+
     global_config.cheats = CHEAT_OPTIONS_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         global_config.cheats |= find_cheat_options_from_string(value);    
     }
+
 }
 
 /*
@@ -13996,24 +14655,26 @@ e_aimove get_aimove_constant_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2022-06-08
-* 
-* Get arguments for Aimove and output final 
-* bitmask. Replaces lcmHandleCommandAiMove 
-* so we can have a reusable function.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read AI movement arguments directly from the source line
+  and combine them with the supplied default behavior flags.
 */
-e_aimove get_aimove_from_arguments(const ArgList *arglist, e_aimove default_value)
+e_aimove get_aimove_from_command_line(
+    const char* command_line,
+    e_aimove default_value
+)
 {    
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_aimove result = default_value;
-    
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= get_aimove_constant_from_string(value);
-    }    
+    }
 
     return result;
 }
@@ -14056,32 +14717,55 @@ void lcmHandleCommandAiattack(ArgList *arglist, s_model *newchar, int *aiattacks
     }*/
 }
 
-void lcmHandleCommandWeapons(ArgList *arglist, s_model *newchar)
+/*
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read weapon model names directly from the source line,
+  allocate an exact-sized list, and safely replace any list
+  owned by the model without modifying inherited storage.
+*/
+void lcmHandleCommandWeapons(
+    const char* command_line,
+    s_model* newchar
+)
 {
-    int weapon_index = 0;
-    char *value;
-    
-    for(weapon_index = 0; ; weapon_index++)
-    {
-        value = GET_ARGP(weapon_index + 1);
-        if(!value[0])
-        {
-            break;
+    const char* value;
+    s_command_argument_reader reader;
+    s_command_token token;
+    s_command_token_reader count_reader = {
+        .cursor = command_line
+    };
+    int* weapon_list;
+    size_t weapon_count = 0;
+    size_t weapon_index = 0;
+
+    /* Skip the command name before counting its values. */
+    command_token_reader_next(&count_reader, &token);
+
+    while(command_token_reader_next(&count_reader, &token)) {
+        if(weapon_count == INT_MAX) {
+            borShutdown(
+                1,
+                "Weapon list exceeds the supported integer count range.\n"
+            );
         }
+
+        weapon_count++;
     }
 
-    if(!weapon_index)
-    {
+    if(!weapon_count) {
         return;
     }
 
-    newchar->weapon_properties.weapon_count = weapon_index;
+    if(weapon_count > SIZE_MAX / sizeof(*weapon_list)) {
+        borShutdown(1, E_OUT_OF_MEMORY);
+    }
 
-    if(!newchar->weapon_properties.weapon_list)
-    {
-        newchar->weapon_properties.weapon_list = malloc(sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
-        memset(newchar->weapon_properties.weapon_list, 0xFF, sizeof(*newchar->weapon_properties.weapon_list) * newchar->weapon_properties.weapon_count);
-        newchar->weapon_properties.weapon_state |= WEAPON_STATE_HAS_LIST;
+    weapon_list = malloc(sizeof(*weapon_list) * weapon_count);
+
+    if(!weapon_list) {
+        borShutdown(1, E_OUT_OF_MEMORY);
     }
 
     /*
@@ -14091,19 +14775,25 @@ void lcmHandleCommandWeapons(ArgList *arglist, s_model *newchar)
     * a model index to populate with.
     */
 
-    for(weapon_index = 0; weapon_index < newchar->weapon_properties.weapon_count; weapon_index++)
-    {
-        value = GET_ARGP(weapon_index + 1);
+    command_argument_reader_initialize(&reader, command_line, 1);
 
-        if(stricmp(value, "none") != 0)
-        {
-            newchar->weapon_properties.weapon_list[weapon_index] = get_cached_model_index(value);
-        }
-        else
-        {
-            newchar->weapon_properties.weapon_list[weapon_index] = MODEL_INDEX_NONE;
-        }
+    while(command_argument_reader_next(&reader, &value)) {
+        weapon_list[weapon_index] = stricmp(value, "none") != 0
+            ? get_cached_model_index(value)
+            : MODEL_INDEX_NONE;
+
+        weapon_index++;
     }
+
+    if(hasFreetype(newchar, MF_WEAPONS)
+        && newchar->weapon_properties.weapon_list) {
+        free(newchar->weapon_properties.weapon_list);
+    }
+
+    newchar->weapon_properties.weapon_list = weapon_list;
+    newchar->weapon_properties.weapon_count = (int)weapon_count;
+    newchar->weapon_properties.weapon_state |= WEAPON_STATE_HAS_LIST;
+    newchar->freetypes |= MF_WEAPONS;
 }
 
 //fetch string between next @script and @end_script
@@ -14741,7 +15431,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     char* command = NULL;
     char* value = NULL;
     char* value2 = NULL;
-    char* value3 = NULL;
 
     char fnbuf[MAX_BUFFER_LEN] = { "" };
     char namebuf[MAX_BUFFER_LEN] = { "" };
@@ -14752,8 +15441,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
     int ani_id = ANI_NONE;
     int script_id = -1;
     int frm_id = -1;
+    bool at_cmd_mergeable = false;
     int i = 0;
-    int j = 0;
     int tempInt = 0;
     int framecount = 0;
     int frameset = 0;
@@ -14889,9 +15578,14 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         ", "
     };
 
-    const char call_text[] =  //begin of function call
+    const char call_indent_text[] =  //begin of function call
     {
-        "            %s("
+        "            "
+    };
+
+    const char call_open_text[] =
+    {
+        "("
     };
 
     const char endcall_text[] =  //end of function call
@@ -15056,7 +15750,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_BLOCK_CONFIG:
 
-                newchar->block_config_flags = block_get_config_flags_from_arguments(&arglist);
+                newchar->block_config_flags = block_get_config_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_BLOCKBACK:
@@ -15218,45 +15912,45 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             
             /* Faction set up. */
             case CMD_MODEL_FACTION_GROUP_DAMAGE_DIRECT:
-                newchar->faction.damage_direct = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.damage_direct = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_GROUP_DAMAGE_INDIRECT:
-                newchar->faction.damage_indirect = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.damage_indirect = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_GROUP_HOSTILE:
-                newchar->faction.hostile = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.hostile = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_GROUP_MEMBER:
-                newchar->faction.member = faction_get_flags_from_arglist(&arglist);
+                newchar->faction.member = faction_get_flags_from_command_line(buf + pos);
                 break;
 
             /* Legacy type based faction */
             case CMD_MODEL_FACTION_TYPE_HOSTILE:
             case CMD_MODEL_HOSTILE:
-                newchar->faction.type_hostile = get_type_from_arglist(&arglist);
+                newchar->faction.type_hostile = get_type_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_TYPE_DAMAGE_DIRECT:
             case CMD_MODEL_CANDAMAGE:
-                newchar->faction.type_damage_direct = get_type_from_arglist(&arglist);
+                newchar->faction.type_damage_direct = get_type_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_FACTION_TYPE_DAMAGE_INDIRECT:
             case CMD_MODEL_PROJECTILEHIT:
-                newchar->faction.type_damage_indirect = get_type_from_arglist(&arglist);
+                newchar->faction.type_damage_indirect = get_type_from_command_line(buf + pos);
                 break;
 
             case CMD_MODEL_AIMOVE:
-                newchar->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NORMAL);
+                newchar->aimove = get_aimove_from_command_line(buf + pos, AIMOVE1_NORMAL);
                 break;
             case CMD_MODEL_AIATTACK:
                 lcmHandleCommandAiattack(&arglist, newchar, &aiattackset, filename);
                 break;
             case CMD_MODEL_MOVE_CONFIG:
-                newchar->move_config_flags = get_move_config_flags_from_arguments(&arglist);
+                newchar->move_config_flags = get_move_config_flags_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_SUBJECT_TO_BASEMAP:
 
@@ -15391,7 +16085,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_MODELFLAG: // Legacy model copy flag.                             
                 
                 
-                lcmHandleCommandModelFlag(filename, command, &arglist, newchar);
+                lcmHandleCommandModelFlag(filename, command, buf + pos, newchar);
 
                 break;
                 // weapons
@@ -15405,7 +16099,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             
             case CMD_MODEL_WEAPON_LOSS_CONFIG:
                 
-                lcmHandleCommandWeaponLossCondition(&arglist, newchar);
+                lcmHandleCommandWeaponLossCondition(buf + pos, newchar);
                 break;
 
             case CMD_MODEL_WEAPON_LOSS_INDEX:
@@ -15431,7 +16125,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_WEAPONS:
-                lcmHandleCommandWeapons(&arglist, newchar);
+                lcmHandleCommandWeapons(buf + pos, newchar);
                 break;
             case CMD_MODEL_SHOOTNUM: 
                 newchar->weapon_properties.use_count = GET_INT_ARG(1);
@@ -15612,7 +16306,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_DEATH_CONFIG:
 
-                newchar->death_config_flags = death_get_config_flags_from_arguments(&arglist, 1);
+                newchar->death_config_flags = death_get_config_flags_from_command_line(buf + pos, 1);
                 break;
 
             case CMD_MODEL_SPEED:
@@ -15672,49 +16366,49 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * from 3.0 builds. See function for details.
                 */
 
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_LEGACY);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_LEGACY);
             break;    
             case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_ADJUST:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_ADJUST);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MAX:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MAX);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_DAMAGE_MIN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_DAMAGE_MIN);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_POWER:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_POWER);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_POWER);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_RATIO:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_RATIO);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_RATIO);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_THRESHOLD:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_THRESHOLD);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_THRESHOLD);
                 break;
             case CMD_MODEL_DEFENSE_BLOCK_TYPE:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_TYPE);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_BLOCK_TYPE);
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_ADJUST:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_ADJUST);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_ADJUST);
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_MAX:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MAX);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MAX);
                 break;
             case CMD_MODEL_DEFENSE_DAMAGE_MIN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MIN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DAMAGE_MIN);
                 break;
             case CMD_MODEL_DEFENSE_DEATH_CONFIG:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_DEATH_CONFIG);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_DEATH_CONFIG);
                 break;
             case CMD_MODEL_DEFENSE_FACTOR:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_FACTOR);
                 break;
             case CMD_MODEL_DEFENSE_KNOCKDOWN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_KNOCKDOWN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_KNOCKDOWN);
                 break;
             case CMD_MODEL_DEFENSE_PAIN:
-                defense_setup_from_arg(filename, command, newchar->defense, &arglist, DEFENSE_PARAMETER_PAIN);
+                defense_setup_from_arg(filename, command, buf + pos, newchar->defense, &arglist, DEFENSE_PARAMETER_PAIN);
                 break;
             case CMD_MODEL_OFFENSE:
                 offense_setup_from_arg(filename, command, newchar->offense, &arglist, OFFENSE_PARAMETER_LEGACY);
@@ -15741,7 +16435,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
             case CMD_MODEL_AIR_CONTROL:
                 
-                lcmHandleCommandAirControl(&arglist, newchar);
+                lcmHandleCommandAirControl(buf + pos, newchar);
                 break;
 
             case CMD_MODEL_JUMPMOVE:
@@ -15781,7 +16475,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_SHADOW_CONFIG:                
 
-                newchar->shadow_config_flags = shadow_get_config_flags_from_arguments(&arglist);
+                newchar->shadow_config_flags = shadow_get_config_flags_from_command_line(buf + pos);
 
                 break;
             case CMD_MODEL_GFXSHADOW:
@@ -15891,7 +16585,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
 
             case CMD_MODEL_RUN_CONFIG:
-                newchar->run_config_flags = run_get_config_flags_from_arguments(&arglist, 1);
+                newchar->run_config_flags = run_get_config_flags_from_command_line(buf + pos, 1);
                 break;
             case CMD_MODEL_RUNNING:
                 // The speed at which the player runs
@@ -16066,7 +16760,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 tempInt = GET_INT_ARG(1);
 
-                newchar->pain_config_flags = pain_get_config_flags_from_arguments(&arglist);
+                newchar->pain_config_flags = pain_get_config_flags_from_command_line(buf + pos);
 
                 break;
 
@@ -16653,6 +17347,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 newanim->model_index = newchar->index;
                 // Reset vars
                 curframe = 0;
+                at_cmd_mergeable = false;
                 
                 /*
                 * Caskey, Damon V.
@@ -16920,28 +17615,28 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             
             case CMD_MODEL_CHILD_SPAWN_AIMOVE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_arguments(&arglist, AIMOVE1_NONE);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->aimove = get_aimove_from_command_line(buf + pos, AIMOVE1_NONE);
                 break;
             case CMD_MODEL_CHILD_SPAWN_CANDAMAGE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_arglist(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->candamage = get_type_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_COLOR:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->color = child_spawn_get_color_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_CONFIG:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(&arglist, 0);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->config = child_spawn_get_config_argument(buf + pos, 0);
                 break;
             case CMD_MODEL_CHILD_SPAWN_DIRECTION_ADJUST:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->direction_adjust = direction_get_adjustment_from_argument(filename, command, GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_HOSTILE:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_arglist(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->hostile = get_type_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_MODEL:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->model_index = get_cached_model_index(GET_ARG(1));
                 break;
             case CMD_MODEL_CHILD_SPAWN_MOVE_CONSTRAINT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = get_move_config_flags_from_arguments(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->move_config_flags = get_move_config_flags_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_OFFSET_X:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.x = GET_INT_ARG(1);
@@ -16953,7 +17648,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->position.z = GET_INT_ARG(1);
                 break;
             case CMD_MODEL_CHILD_SPAWN_PROJECTILEHIT:
-                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_arglist(&arglist);
+                child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->projectilehit = get_type_from_command_line(buf + pos);
                 break;
             case CMD_MODEL_CHILD_SPAWN_TAKEDAMAGE:
                 child_spawn_upsert_property(&temp_child_spawn_head, temp_child_spawn_index)->takedamage = takedamage_get_reference_from_argument(GET_ARG(1));
@@ -18159,7 +18854,6 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_PLATFORM:
                 newchar->hasPlatforms = 1;
-                //for(i=0;(GET_ARG(i+1)[0]; i++);
                 for(i = 0; i < arglist.count && arglist.args[i] && arglist.args[i][0]; i++);
                 if(i < 8)
                 {
@@ -18446,7 +19140,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     * Toggle bits based on items provided in argument list.
                     */
 
-                    tempInt = recursive_effect_get_mode_setup_from_arg_list(&arglist);
+                    tempInt = recursive_effect_get_mode_setup_from_command_line(buf + pos);
                 }
 
 
@@ -19313,6 +20007,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_FRAME:
             {
+                s_command_token frame_token;
+                s_command_token_reader frame_reader;
+
                 // Command title for log. Details will be added blow accordingly.
                 //printf("\t\t\tFrame: ");
 
@@ -19327,12 +20024,22 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
 
                 while(!frameset) {
-                    value3 = findarg(buf + pos + peek, 0);
-                    if(stricmp(value3, "frame") == 0) {
-                        framecount++;
+                    frame_reader.cursor = buf + pos + peek;
+
+                    if(command_token_reader_next(
+                            &frame_reader,
+                            &frame_token
+                        )) {
+                        if(command_token_equals(&frame_token, "frame")) {
+                            framecount++;
+                        }
+
+                        if(command_token_equals(&frame_token, "anim")) {
+                            frameset = 1;
+                        }
                     }
 
-                    if((stricmp(value3, "anim") == 0) || (pos + peek >= size)) {
+                    if(pos + peek >= size) {
                         frameset = 1;
                     }
                     
@@ -19495,6 +20202,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 temp_child_spawn_index = 0;
 
                 frm_id = -1;
+                at_cmd_mergeable = false;
             }
             break;
             case CMD_MODEL_ALPHAMASK:
@@ -19669,6 +20377,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 break;
             case CMD_MODEL_AT_SCRIPT:
+                at_cmd_mergeable = false;
+
                 if(!scriptbuf[0])  // if empty, paste the main function text here
                 {
                     buffer_append(&scriptbuf, pre_text, 0xffffff, &sbsize, &scriptlen);
@@ -19707,6 +20417,12 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen);// put back last  chars
                 break;
             case CMD_MODEL_AT_CMD:
+            {
+                s_command_token command_token;
+                s_command_token_reader command_token_reader;
+                bool command_emitted = false;
+                bool first_command_argument;
+
                 //translate @cmd into script function call
                 if(ani_id < 0)
                 {
@@ -19721,15 +20437,20 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 scriptlen = strlen(scriptbuf);
                 if(script_id != ani_id)  // if expression 1
                 {
+                    at_cmd_mergeable = false;
                     sprintf(namebuf, ifid_text, newanim->index);
                     buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
                     script_id = ani_id;
                 }
-                j = 1;
-                value = GET_ARG(j);
                 scriptbuf[scriptlen - strclen(endifid_text)] = 0; // cut last chars
                 scriptlen = strlen(scriptbuf);
-                if(value && value[0])
+                command_token_reader = (s_command_token_reader){
+                    .cursor = buf + pos
+                };
+
+                /* Skip @cmd, then read the function name. */
+                if(command_token_reader_next(&command_token_reader, &command_token)
+                    && command_token_reader_next(&command_token_reader, &command_token))
                 {
                     /*
                      //no_cmd_compatible will try to optimize if(frame==n)
@@ -19757,36 +20478,86 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                      //       f();
                      //    }
                      */
-                    if(!no_cmd_compatible || frm_id != curframe)
+                    /*
+                    - Caskey, Damon V.
+                    - 2026-08-12
+                    -
+                    - Merge same-frame @cmd calls only when the
+                      previous generated section is an eligible
+                      @cmd block with the exact expected suffix.
+                      Otherwise, open a new frame condition without
+                      removing any existing script text.
+                    */
+                    const size_t frame_close_length = strclen(endif_text);
+                    const size_t frame_return_length = strclen(endif_return_text);
+
+                    bool merge_previous_command =
+                        no_cmd_compatible
+                        && at_cmd_mergeable
+                        && frm_id == curframe;
+
+                    if(merge_previous_command)
+                    {
+                        merge_previous_command = buffer_remove_suffix_pair(
+                            scriptbuf,
+                            &scriptlen,
+                            endif_return_text,
+                            frame_return_length,
+                            endif_text,
+                            frame_close_length
+                        );
+                    }
+
+                    if(!merge_previous_command)
                     {
                         sprintf(namebuf, if_text, curframe);//only execute in current frame
                         buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
                         frm_id = curframe;
                     }
-                    else //no_cmd_compatible==1
-                    {
-                        scriptbuf[scriptlen - strclen(endif_text)] = 0; // cut last chars
-                        scriptlen = strlen(scriptbuf);
-                        scriptbuf[scriptlen - strclen(endif_return_text)] = 0; // cut last chars
-                        scriptlen = strlen(scriptbuf);
-                    }
-                    sprintf(namebuf, call_text, value);
-                    buffer_append(&scriptbuf, namebuf, 0xffffff, &sbsize, &scriptlen);
+                    buffer_append(&scriptbuf, call_indent_text, 0xffffff, &sbsize, &scriptlen);
+                    buffer_append(
+                        &scriptbuf,
+                        command_token.text,
+                        command_token.length,
+                        &sbsize,
+                        &scriptlen
+                    );
+                    buffer_append(&scriptbuf, call_open_text, 0xffffff, &sbsize, &scriptlen);
 
-                    do  //argument and comma
+                    first_command_argument = true;
+                    while(command_token_reader_next(
+                        &command_token_reader,
+                        &command_token
+                    ))
                     {
-                        j++;
-                        value = GET_ARG(j);
-                        if(value && value[0])
+                        if(!first_command_argument)
                         {
-                            if(j != 2)
-                            {
-                                buffer_append(&scriptbuf, comma_text, 0xffffff, &sbsize, &scriptlen);
-                            }
-                            buffer_append(&scriptbuf, value, 0xffffff, &sbsize, &scriptlen);
+                            buffer_append(&scriptbuf, comma_text, 0xffffff, &sbsize, &scriptlen);
                         }
+                        buffer_append(
+                            &scriptbuf,
+                            command_token.text,
+                            command_token.length,
+                            &sbsize,
+                            &scriptlen
+                        );
+                        first_command_argument = false;
                     }
-                    while(value && value[0]);
+
+                    command_emitted = true;
+                }
+
+                if(command_token_reader.unterminated_quote)
+                {
+                    snprintf(
+                        alert_buffer,
+                        sizeof(alert_buffer),
+                        "Command '@cmd' has an unterminated %c quote.\n",
+                        command_token_reader.unterminated_quote
+                    );
+
+                    shutdownmessage = alert_buffer;
+                    goto lCleanup;
                 }
 
                 buffer_append(&scriptbuf, endcall_text, 0xffffff, &sbsize, &scriptlen);
@@ -19797,7 +20568,9 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 buffer_append(&scriptbuf, endif_text, 0xffffff, &sbsize, &scriptlen);//end of if
                 buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
                 buffer_append(&scriptbuf, sur_text, 0xffffff, &sbsize, &scriptlen); // put back last  chars
+                at_cmd_mergeable = no_cmd_compatible && command_emitted;
                 break;
+            }
             default:
                 if(command && command[0])
                 {
@@ -20948,7 +21721,7 @@ int load_models()
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_CHEATS:
 
-                lcmHandleCommandGlobalConfigCheats(&arglist);
+                lcmHandleCommandGlobalConfigCheats(buf + pos);
                 break;
             case CMD_MODELSTXT_GLOBAL_CONFIG_FLASH_LAYER_ADJUST:
                 global_config.flash.layer_adjust = GET_INT_ARG(1);
@@ -22504,9 +23277,25 @@ lCleanup:
         free(buf);
     }
 
-    if(!savelevel)
+    if(!savelevel || savelevel_count != (size_t)num_difficulties)
     {
-        savelevel = calloc(num_difficulties, sizeof(*savelevel));
+        clear_saved_allowselect_arguments();
+        free(savelevel_allowselect_args);
+        free(savelevel);
+
+        savelevel_count = (size_t)num_difficulties;
+        savelevel = calloc(savelevel_count, sizeof(*savelevel));
+        savelevel_allowselect_args = calloc(
+            savelevel_count,
+            sizeof(*savelevel_allowselect_args)
+        );
+    }
+    else if(!savelevel_allowselect_args)
+    {
+        savelevel_allowselect_args = calloc(
+            savelevel_count,
+            sizeof(*savelevel_allowselect_args)
+        );
     }
 
     if(errormessage)
@@ -23728,37 +24517,37 @@ void load_level(char *filename)
 
         case CMD_LEVEL_FACTION_GROUP_DAMAGE_DIRECT:
 
-            next.faction.damage_direct = faction_get_flags_from_arglist(&arglist);
+            next.faction.damage_direct = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_GROUP_DAMAGE_INDIRECT:
 
-            next.faction.damage_indirect = faction_get_flags_from_arglist(&arglist);
+            next.faction.damage_indirect = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_GROUP_HOSTILE:
 
-            next.faction.hostile = faction_get_flags_from_arglist(&arglist);
+            next.faction.hostile = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_GROUP_MEMBER:
 
-            next.faction.member = faction_get_flags_from_arglist(&arglist);
+            next.faction.member = faction_get_flags_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_TYPE_DAMAGE_DIRECT:
 
-            next.faction.type_damage_direct = get_type_from_arglist(&arglist);
+            next.faction.type_damage_direct = get_type_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_TYPE_DAMAGE_INDIRECT:
 
-            next.faction.type_damage_indirect = get_type_from_arglist(&arglist);
+            next.faction.type_damage_indirect = get_type_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FACTION_TYPE_HOSTILE:
 
-            next.faction.type_hostile = get_type_from_arglist(&arglist);
+            next.faction.type_hostile = get_type_from_command_line(buf + pos);
             break;
 
         case CMD_LEVEL_FLIP:
@@ -29136,21 +29925,23 @@ e_pain_config_flags pain_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-04-10
-*
-* Get arguments and output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read pain configuration arguments directly from the source
+  line and combine their corresponding behavior flags.
 */
-e_pain_config_flags pain_get_config_flags_from_arguments(const ArgList* arglist)
+e_pain_config_flags pain_get_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_pain_config_flags result = PAIN_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= pain_get_config_flag_from_string(value);
     }
 
@@ -29201,21 +29992,23 @@ e_block_config_flags block_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-04-05
-*
-* Get arguments and output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read blocking configuration arguments directly from the
+  source line and combine their corresponding behavior flags.
 */
-e_block_config_flags block_get_config_flags_from_arguments(const ArgList * arglist)
+e_block_config_flags block_get_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_block_config_flags result = BLOCK_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= block_get_config_flag_from_string(value);
     }
 
@@ -36018,21 +36811,28 @@ e_death_config_flags death_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-03-20
-*
-* Get arguments to output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read death configuration arguments directly from the source
+  line, beginning at the requested item, and combine their flags.
 */
-e_death_config_flags death_get_config_flags_from_arguments(const ArgList* arglist, int start_position)
+e_death_config_flags death_get_config_flags_from_command_line(
+    const char* command_line,
+    const size_t start_position
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_death_config_flags result = DEATH_CONFIG_NONE;
 
-    for (i = start_position; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(
+        &reader,
+        command_line,
+        start_position
+    );
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= death_get_config_flag_from_string(value);
     }
 
@@ -36232,21 +37032,28 @@ e_run_config_flags run_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-04-26
-*
-* Get arguments to output final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read running configuration arguments directly from the source
+  line, beginning at the requested item, and combine their flags.
 */
-e_run_config_flags run_get_config_flags_from_arguments(const ArgList* arglist, const uint64_t start_position)
+e_run_config_flags run_get_config_flags_from_command_line(
+    const char* command_line,
+    const size_t start_position
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_run_config_flags result = RUN_CONFIG_NONE;
 
-    for (i = start_position; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(
+        &reader,
+        command_line,
+        start_position
+    );
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= run_get_config_flag_from_string(value);
     }
 
@@ -36300,21 +37107,23 @@ e_shadow_config_flags shadow_get_config_flag_from_string(const char* value)
 }
 
 /*
-* Caskey, Damon V.
-* 2023-03-20
-*
-* Get arguments foroutput final
-* bitmask.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read shadow configuration arguments directly from the source
+  line and combine their corresponding behavior flags.
 */
-e_shadow_config_flags shadow_get_config_flags_from_arguments(const ArgList* arglist)
+e_shadow_config_flags shadow_get_config_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     e_shadow_config_flags result = SHADOW_CONFIG_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= shadow_get_config_flag_from_string(value);
     }
 
@@ -36560,7 +37369,14 @@ s_defense* defense_allocate_object(void) {
 * Applies value to an attack type element
 * of defense.
 */
-void defense_apply_setup_to_property(char* filename, char* command, s_defense* defense, ArgList* arglist, e_defense_parameters target_parameter)
+void defense_apply_setup_to_property(
+    char* filename,
+    char* command,
+    const char* command_line,
+    s_defense* defense,
+    ArgList* arglist,
+    e_defense_parameters target_parameter
+)
 {
     //printf("\n\n defense_apply_setup_to_property(%s, %s, %p, %p, %d)", filename, command, defense, arglist, target_parameter);
     //printf("\n\t GET_FLOAT_ARGP(2): %f", GET_FLOAT_ARGP(2));
@@ -36629,7 +37445,7 @@ void defense_apply_setup_to_property(char* filename, char* command, s_defense* d
         break;
 
     case DEFENSE_PARAMETER_DEATH_CONFIG:
-        defense->death_config_flags = death_get_config_flags_from_arguments(arglist, 2);
+        defense->death_config_flags = death_get_config_flags_from_command_line(command_line, 2);
         break;
 
     case DEFENSE_PARAMETER_FACTOR:
@@ -37212,6 +38028,7 @@ int get_attack_type_from_string(const char* value, const char* filename)
 void defense_setup_from_arg(
     char* filename,
     char* command,
+    const char* command_line,
     s_defense* target_defense,
     ArgList* arglist,
     e_defense_parameters target_parameter
@@ -37230,6 +38047,7 @@ void defense_setup_from_arg(
             defense_apply_setup_to_property(
                 filename,
                 command,
+                command_line,
                 &target_defense[attack_type_map[i].attack_type],
                 arglist,
                 target_parameter
@@ -37248,6 +38066,7 @@ void defense_setup_from_arg(
         defense_apply_setup_to_property(
             filename,
             command,
+            command_line,
             &target_defense[tempInt + STA_ATKS - 1],
             arglist,
             target_parameter
@@ -37268,6 +38087,7 @@ void defense_setup_from_arg(
             defense_apply_setup_to_property(
                 filename,
                 command,
+                command_line,
                 &target_defense[i],
                 arglist,
                 target_parameter
@@ -46859,21 +47679,23 @@ faction_group_mask_t faction_get_flag_from_string(const char* value) {
 }
 
 /*
-* Caskey, Damon V.
-* 2022-05-24
-*
-* Populate faction property from
-* text arguments.
+- Caskey, Damon V.
+- 2026-08-11
+-
+- Read faction arguments directly from the source line and
+  combine their corresponding group flags.
 */
-faction_group_mask_t faction_get_flags_from_arglist(const ArgList* arglist)
+faction_group_mask_t faction_get_flags_from_command_line(
+    const char* command_line
+)
 {
-    int i = 0;
-    char* value = "";
-
+    const char* value;
+    s_command_argument_reader reader;
     faction_group_mask_t result = FACTION_GROUP_NONE;
 
-    for (i = 1; (value = GET_ARGP(i)) && value[0]; i++)
-    {
+    command_argument_reader_initialize(&reader, command_line, 1);
+
+    while(command_argument_reader_next(&reader, &value)) {
         result |= faction_get_flag_from_string(value);
     }
 
@@ -49744,7 +50566,14 @@ void draw_textobjs()
         {
             if(textobj->text)
             {
-                font_printf(textobj->position.x, textobj->position.y, textobj->font, textobj->position.z, "%s", textobj->text);
+                font_print_length(
+                    textobj->position.x,
+                    textobj->position.y,
+                    textobj->font,
+                    textobj->position.z,
+                    textobj->text,
+                    strlen(textobj->text)
+                );
             }
         }
     }
@@ -50506,10 +51335,10 @@ void display_credits()
 }
 
 
-void borShutdown(int status, char *msg, ...)
+void borShutdown(int status, const char *msg, ...)
 {
-    char buf[1024] = "";
     va_list arglist;
+    va_list output_arguments;
     int i;
 
     static int shuttingdown = 0;
@@ -50520,12 +51349,9 @@ void borShutdown(int status, char *msg, ...)
     }
 
     shuttingdown = 1;
+    va_start(arglist, msg);
 
     //printf("savedata.logo %d\n", savedata.logo);
-
-    va_start(arglist, msg);
-    vsprintf(buf, msg, arglist);
-    va_end(arglist);
 
     if(!disablelog)
     {
@@ -50543,7 +51369,9 @@ void borShutdown(int status, char *msg, ...)
 
     if(!disablelog)
     {
-        printf("%s", buf);
+        va_copy(output_arguments, arglist);
+        writeToLogFileV(msg, output_arguments);
+        va_end(output_arguments);
     }
 
 
@@ -50737,10 +51565,17 @@ void borShutdown(int status, char *msg, ...)
     }
 
     freeModelList();
+    clear_saved_allowselect_arguments();
+    free(savelevel_allowselect_args);
+    savelevel_allowselect_args = NULL;
     if(savelevel)
     {
         free(savelevel);
+        savelevel = NULL;
     }
+    savelevel_count = 0;
+    free(allowselect_args);
+    allowselect_args = NULL;
     freefilenamecache();
     ob_termtrans();
 
@@ -50754,9 +51589,12 @@ void borShutdown(int status, char *msg, ...)
 
     if(!disablelog)
     {
-        printf("%s", buf);
+        va_copy(output_arguments, arglist);
+        writeToLogFileV(msg, output_arguments);
+        va_end(output_arguments);
     }
 
+    va_end(arglist);
     shuttingdown = 0;
     borExit(status);
 }
@@ -51497,8 +52335,7 @@ void savelevelinfo()
     save->stage = current_stage;
     save->which_set = current_set;
     strncpy(save->dName, set->name, MAX_NAME_LEN - 1);
-    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = '\0'; // clear
-    for(i = 0; i < sizeof(allowselect_args); i++) save->allowSelectArgs[i] = allowselect_args[i];
+    set_saved_allowselect_arguments(current_set, allowselect_args);
 }
 
 void tryvictorypose(entity *ent)
@@ -51816,8 +52653,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 
 	// Allow select? 'a' is the first char of allowselect,
 	// if there's 'a' then there is allowselect.
-	if (allowselect_args[0] != 'a'
-		&& allowselect_args[0] != 'A')
+	if (!allowselect_args
+		|| (allowselect_args[0] != 'a'
+			&& allowselect_args[0] != 'A'))
 	{
 		reset_playable_list(1);
 	}
@@ -51831,7 +52669,9 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 		if (save->selectFlag)
 		{
 			load_select_screen_info(save);
-			load_playable_list(save->allowSelectArgs);
+			load_playable_list(
+				get_saved_allowselect_arguments(current_set)
+			);
 			saved_select_screen = 1;
 		}
 	}
@@ -51873,7 +52713,10 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				else if (stricmp(command, "allowselect") == 0)
 				{
 					load_playable_list(buf + pos);
-					memcpy(&save->allowSelectArgs, &allowselect_args, sizeof(allowselect_args)); // SAVE
+					set_saved_allowselect_arguments(
+						current_set,
+						allowselect_args
+					);
 				}
 				else if (stricmp(command, "background") == 0)
 				{
@@ -52367,7 +53210,9 @@ void playgame(int *players,  unsigned which_set, int useSavedGame)
             }
             credits = save->credits;
         }
-        load_playable_list(save->allowSelectArgs); //TODO: change sav format to support dynamic allowselect list.
+        load_playable_list(
+            get_saved_allowselect_arguments(current_set)
+        );
         //reset_playable_list(1); // add this because there's no select screen, temporary solution
     }
 

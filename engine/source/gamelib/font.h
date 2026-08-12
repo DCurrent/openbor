@@ -30,10 +30,13 @@ typedef struct
 void font_unload(int which);
 int font_load(int which, char *filename, char *packfile, int flags);
 int font_loadmask(int which, char *filename, char *packfile, int flags);
-int font_string_width(int which, char *buf, ...);
+int font_string_width_length(int which, const char *text, size_t length);
+int font_string_width(int which, const char *format, ...);
 int font_string_width_max(char **strings, int elements, int font);
-void font_printf(int x, int y, int which, int layeroffset, char *format, ...);
-void screen_printf(s_screen *screen, int x, int y, int which, char *format, ...);
+void font_print_length(int x, int y, int which, int layeroffset, const char *text, size_t length);
+void screen_print_length(s_screen *screen, int x, int y, int which, const char *text, size_t length);
+void font_printf(int x, int y, int which, int layeroffset, const char *format, ...);
+void screen_printf(s_screen *screen, int x, int y, int which, const char *format, ...);
 int fontmonowidth(int which);
 int fontheight(int which);
 #endif

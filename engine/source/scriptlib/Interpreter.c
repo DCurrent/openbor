@@ -215,7 +215,8 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter) {
     ScriptVariant **parameters;
     ScriptVariant *parameter;
     ScriptVariant *pretvar;
-    char buffer[256];
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
     int i;
 
     if(!pinterpreter) {
@@ -329,13 +330,29 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter) {
                         continue;
                     }
 
-                    ScriptVariant_ToString(parameter, buffer);
+                    if(FAILED(ScriptVariant_GetStringView(
+                        parameter,
+                        conversion_buffer,
+                        sizeof(conversion_buffer),
+                        &string_view
+                    ))) {
+                        printf("<invalid or oversized>, ");
+                        continue;
+                    }
 
                     if(parameter->vt == VT_STR) {
-                        printf("\"%s\", ", buffer);
+                        printf(
+                            "\"%.*s\", ",
+                            (int)string_view.length,
+                            string_view.string
+                        );
                     
                     } else {
-                        printf("%s, ", buffer);
+                        printf(
+                            "%.*s, ",
+                            (int)string_view.length,
+                            string_view.string
+                        );
                     }
                 }
 
@@ -601,7 +618,11 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
             //Push a constant integer
         case CONSTINT:
             //convert to constant first
-            Instruction_ConvertConstant(pInstruction);
+            if(FAILED(Instruction_ConvertConstant(pInstruction)))
+            {
+                hr = E_FAIL;
+                break;
+            }
             Instruction_NewData(pInstruction);
             Stack_Push(&(pinterpreter->theDataStack), (void *)pInstruction->theVal);
             break;
@@ -1050,7 +1071,10 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
             //number of arguments we have
         case CHECKARG:
             //cache the argument count
-            Instruction_ConvertConstant(pInstruction);
+            if(FAILED(Instruction_ConvertConstant(pInstruction)))
+            {
+                hr = E_FAIL;
+            }
             break;
 
             //This instructs the interpreter to clean one value off the stack.
@@ -1107,7 +1131,9 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
                 pInstruction = (Instruction *)List_Retrieve(&(pinterpreter->theInstructionList));
                 if(pInstruction->theVal)
                 {
+                    ScriptVariant_Clear(pInstruction->theVal);
                     free(pInstruction->theVal);
+                    pInstruction->theVal = NULL;
                 }
                 if(pInstruction->theRefList)
                 {
@@ -1631,4 +1657,3 @@ void Interpreter_Reset(Interpreter *pinterpreter)
     pinterpreter->bReset = TRUE;
     pinterpreter->bCallCompleted = FALSE;
 }
-

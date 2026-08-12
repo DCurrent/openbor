@@ -2101,9 +2101,10 @@ getlevelproperty_error:
 //changelevelproperty(name, value)
 HRESULT openbor_changelevelproperty(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
+    ScriptVariantStringView string_view;
+    char conversion_buffer[SCRIPT_VARIANT_CONVERSION_BUFFER_LENGTH];
     LONG ltemp, ltemp1;
     DOUBLE dbltemp, dbltemp2, dbltemp3;
-    static char buf[64];
     int i;
     ScriptVariant *arg = NULL;
 
@@ -2482,11 +2483,25 @@ clperror:
     printf("Dumping values: ");
     for(i = 1; i < paramCount; i++)
     {
-        ScriptVariant_ToString(varlist[i], buf);
-        printf("%s, ", buf);
+        if(SUCCEEDED(ScriptVariant_GetStringView(
+            varlist[i],
+            conversion_buffer,
+            sizeof(conversion_buffer),
+            &string_view
+        )))
+        {
+            printf(
+                "%.*s, ",
+                (int)string_view.length,
+                string_view.string
+            );
+        }
+        else
+        {
+            printf("<invalid or oversized>, ");
+        }
     }
     printf("\n");
     return E_FAIL;
 }
-
 

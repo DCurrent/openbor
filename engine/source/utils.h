@@ -10,6 +10,7 @@
 #define UTILS_H
 
 // *** INCLUDES ***
+#include <stdarg.h>
 #include <time.h>
 #include "types.h"
 #include "stringptr.h"
@@ -25,6 +26,8 @@ extern u32 debug_time;
 
 // *** FUNCTIONS DECLARATIONS ***
 void writeToLogFile(const char *, ...);
+void writeToLogFileV(const char *message, va_list arguments);
+void writeToLogFileLength(const char *message, size_t length);
 void writeToScriptLog(const char *msg);
 int fileExists(char *fnam);
 int dirExists(char *dname, int create);
@@ -54,4 +57,3 @@ void get_now_string(char buffer[], unsigned buffer_size, char* pattern);
 void Array_Check_Size( const char *f_caller, char **array, int new_size, int *curr_size_allocated, int grow_step );
 
 #endif
-
