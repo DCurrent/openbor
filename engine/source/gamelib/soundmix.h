@@ -26,6 +26,7 @@
 #define		SOUND_OUTPUT_BITS_DEFAULT		24
 #define		SOUND_OUTPUT_FREQUENCY_DEFAULT	48000
 #define     SOUND_CHANNEL_MUSIC_DEFAULT       0
+#define     SOUND_VOLUME_DIVISOR_MUSIC        60
 #define     SOUND_PLAY_CHANCE_MAX             100U
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
@@ -162,6 +163,8 @@ size_t sound_group_set_position(
 void sound_volume_sample(int channel, int lvolume, int rvolume);
 bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame);
 bool sound_set_channel_period(int channel, uint64_t period);
+bool sound_set_channel_speed_owned(int channel, int play_id, unsigned int speed);
+bool sound_pause_channel_owned(int channel, int play_id, int toggle);
 bool sound_set_channel_priority(int channel, unsigned int priority);
 bool sound_set_channel_position(int channel, uint64_t sample_position);
 bool sound_set_channel_volume(int channel, unsigned int spatial_channel, int volume);

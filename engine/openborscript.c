@@ -416,6 +416,12 @@ void _freeheapnode(void *ptr)
             free(((s_sprite *)ptr)->mask);
         }
     }
+#ifdef WEBM
+    else if(((s_screen *)ptr)->magic == screen_magic)
+    {
+        webm_playback_detach_screen((s_screen *)ptr);
+    }
+#endif
     free(ptr);
 }
 
@@ -423,6 +429,9 @@ void _freeheapnode(void *ptr)
 void Script_Global_Clear()
 {
     int i, size;
+#ifdef WEBM
+    webm_playback_shutdown();
+#endif
     List_Clear(&theFunctionList);
     // dump all un-freed variants
     size = List_GetSize(&scriptheap);

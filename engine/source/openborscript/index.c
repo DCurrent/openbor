@@ -925,6 +925,34 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "playwebm";
     }
+    else if (functionRef == ((void *)openbor_open_webm))
+    {
+        return "open_webm";
+    }
+    else if (functionRef == ((void *)openbor_get_webm_channel_object))
+    {
+        return "get_webm_channel_object";
+    }
+    else if (functionRef == ((void *)openbor_get_webm_channel_index))
+    {
+        return "get_webm_channel_index";
+    }
+    else if (functionRef == ((void *)openbor_get_webm_channel_mask))
+    {
+        return "get_webm_channel_mask";
+    }
+    else if (functionRef == ((void *)openbor_get_webm_property))
+    {
+        return "get_webm_property";
+    }
+    else if (functionRef == ((void *)openbor_set_webm_property))
+    {
+        return "set_webm_property";
+    }
+    else if (functionRef == ((void *)openbor_stop_webm))
+    {
+        return "stop_webm";
+    }
     else if (functionRef == ((void *)openbor_playgif))
     {
         return "playgif";
@@ -1755,6 +1783,20 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_menu_options, "options");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playwebm, "playwebm");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_open_webm, "open_webm");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_webm_channel_object, "get_webm_channel_object");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_webm_channel_index, "get_webm_channel_index");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_webm_channel_mask, "get_webm_channel_mask");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_get_webm_property, "get_webm_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_set_webm_property, "set_webm_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_stop_webm, "stop_webm");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgif, "playgif");
     List_InsertAfter(&theFunctionList,

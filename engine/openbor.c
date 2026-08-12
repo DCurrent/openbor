@@ -50914,6 +50914,11 @@ void update(int ingame, int usevwait)
     getinterval();
     if(playrecstatus->status == A_REC_PLAY && !_pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
+#ifdef WEBM
+    webm_playback_update(
+        (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0
+    );
+#endif
     if(playrecstatus->status == A_REC_REC && !_pause && level) if ( !recordInputs() ) stopRecordInputs();
 
     if ((!_pause && ingame == 1) || alwaysupdate)
@@ -51869,6 +51874,7 @@ int playwebm(const char *path, int noskip)
     yuv_video_mode info;
     s_screen *rgb_frame = NULL;
 
+    webm_playback_stop_all();
     ctx = webm_start_playback(path, savedata.musicvol);
     if(ctx == NULL) {retval=0; goto quit;}
 
@@ -51925,6 +51931,7 @@ quit:
     if(ctx) webm_close(ctx);
     if(rgb_frame) freescreen(&rgb_frame);
     yuv_clear();
+    webm_playback_restore_yuv();
     video_set_mode(videomodes);
     return retval;
 }

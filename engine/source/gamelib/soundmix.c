@@ -76,7 +76,7 @@ Caution: move vorbis headers here otherwise the structs will
     This way we don't need to increase the volume too much in the audio files, preventing distortions and quality loss
 */ 
 #define		MAX_SAMPLE_VOLUME   100 // 64 for backw. compat
-#define		MAX_MUSIC_VOLUME    60 // 64 for backw. compat
+#define		MAX_MUSIC_VOLUME    SOUND_VOLUME_DIVISOR_MUSIC // 64 for backw. compat
 // Hardware settings for SoundBlaster (change only if latency is too big)
 #define		SB_BUFFER_SIZE		 0x8000
 #define		SB_BUFFER_SIZE_MASK	 0x7FFF
@@ -3120,6 +3120,60 @@ bool sound_set_channel_period(int channel, uint64_t period) {
     }
 
     record->fp_period = period;
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Change producer stream speed only while its play ID
+* still owns the requested generic sound channel.
+*/
+bool sound_set_channel_speed_owned(int channel, int play_id, unsigned int speed) {
+    channelstruct *record;
+
+    if(play_id < 0 || speed == 0) {
+        return false;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH ||
+       record->frequency <= 0) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    record->fp_period = sound_sample_period_calculate(speed, record->frequency);
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Pause a producer stream only while its play ID still
+* identifies the live channel record.
+*/
+bool sound_pause_channel_owned(int channel, int play_id, int toggle) {
+    channelstruct *record;
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(play_id < 0 ||
+       !record ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    sound_channel_pool_pause(&sound_channel_pool, channel, toggle);
     SB_unlock_audio();
     return true;
 }

@@ -117,12 +117,38 @@ static int free_bits_at_bottom(uint32_t a)
     return 1 + free_bits_at_bottom ( a >> 1);
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Allocate one complete YUV 4:2:0 frame with checked
+* dimensions and exact chroma plane capacity.
+*/
 yuv_frame *yuv_frame_create(int width, int height)
 {
-    yuv_frame *frame = malloc(sizeof(yuv_frame));
-    frame->lum = malloc(width * height);
-    frame->cr = malloc(width * height / 2);
-    frame->cb = malloc(width * height / 2);
+    yuv_frame *frame;
+    size_t luma_size;
+    size_t chroma_size;
+
+    if(width < 1 || height < 1 ||
+       (width & 1) || (height & 1) ||
+       (size_t)width > SIZE_MAX / (size_t)height) {
+        return NULL;
+    }
+
+    luma_size = (size_t)width * (size_t)height;
+    chroma_size = luma_size / 4U;
+    frame = calloc(1, sizeof(*frame));
+    if(!frame) {
+        return NULL;
+    }
+    frame->lum = malloc(luma_size);
+    frame->cr = malloc(chroma_size);
+    frame->cb = malloc(chroma_size);
+    if(!frame->lum || !frame->cr || !frame->cb) {
+        yuv_frame_destroy(frame);
+        return NULL;
+    }
     return frame;
 }
 
@@ -396,4 +422,3 @@ void yuv_to_rgb(yuv_frame *in, s_screen *out)
     convert(in->lum, in->cr, in->cb, out->data, out->height, out->width, 0);
 #endif
 }
-

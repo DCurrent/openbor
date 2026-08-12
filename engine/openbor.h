@@ -54,6 +54,7 @@
 #ifdef WEBM
 #include    "yuv.h"
 #include    "vidplay.h"
+#include    "webm_playback.h"
 #endif
 
 /*
