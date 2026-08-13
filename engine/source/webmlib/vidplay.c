@@ -767,8 +767,9 @@ static int demux_thread(void *data)
 * 2026-08-12
 *
 * Open one independently owned decoder. Optional shared cache,
-* initial seek, and sound routing are established
-* before its worker threads become visible.
+* initial seek, and sound routing are established before its worker
+* threads become visible. Reverse contexts omit the audio track so
+* paused producer queues cannot back-pressure video demuxing.
 */
 webm_context *webm_start_playback_ex(
     const char *path,
@@ -777,6 +778,7 @@ webm_context *webm_start_playback_ex(
     const unsigned char *cache_buffer,
     size_t cache_size,
     uint64_t seek_timestamp,
+    int play_audio,
     int replace_all_audio
 )
 {
@@ -868,8 +870,8 @@ webm_context *webm_start_playback_ex(
         return NULL;
     }
 
-    ctx->audio_track = audio_track;
-    if(audio_track >= 0) {
+    if(audio_track >= 0 && play_audio) {
+        ctx->audio_track = audio_track;
         if(init_audio(
             ctx->nestegg_ctx,
             ctx->audio_track,
@@ -888,7 +890,9 @@ webm_context *webm_start_playback_ex(
             printf("Warning: Unable to open the WebM audio track on channel %d\n", sound_channel);
             ctx->audio_track = -1;
         }
-    } else if(replace_all_audio && sound_query_music(NULL, NULL)) {
+    } else if(audio_track < 0 &&
+              replace_all_audio &&
+              sound_query_music(NULL, NULL)) {
         /* Blocking legacy playback must service existing channel zero audio. */
         ctx->the_audio_thread = thread_create(bgm_update_thread, "bgm", ctx);
         if(!ctx->the_audio_thread) {

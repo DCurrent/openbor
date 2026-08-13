@@ -24,6 +24,7 @@ webm_context *webm_start_playback_ex(
     const unsigned char *cache_buffer,
     size_t cache_size,
     uint64_t seek_timestamp,
+    int play_audio,
     int replace_all_audio
 );
 void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims);

@@ -519,6 +519,7 @@ static bool movie_playback_open_media(
         source->cache_buffer,
         source->cache_size,
         position,
+        playback->speed > 0.0,
         playback->replace_all_audio
     );
     if(!playback->context) {
