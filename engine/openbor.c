@@ -50918,7 +50918,6 @@ void update(int ingame, int usevwait)
     movie_playback_update(
         (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0
     );
-    movie_playback_render_subscreens();
 #endif
     if(playrecstatus->status == A_REC_REC && !_pause && level) if ( !recordInputs() ) stopRecordInputs();
 
@@ -51096,9 +51095,6 @@ void update(int ingame, int usevwait)
     /********** update screen **************/
 
     spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0); // notice, always draw sprites at the very end of other methods
-#ifdef WEBM
-    movie_playback_render_main(vscreen);
-#endif
 
     if(_pause != 2 && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
     {
@@ -51908,6 +51904,7 @@ int playwebm(const char *path, int noskip)
     video_copy_screen(vscreen);
     while(playback->active) {
         int interrupt_requested;
+        int present_frame;
 
         inputrefresh(playrecstatus->status);
         interrupt_requested =
@@ -51919,16 +51916,22 @@ int playwebm(const char *path, int noskip)
         if(!playback->active) {
             break;
         }
-        if(!movie_playback_render_main(vscreen)) {
-            retval = 0;
-            break;
+        present_frame = playback->frame_dirty;
+        if(present_frame) {
+            clearscreen(vscreen);
+            if(!movie_playback_draw_to_screen(vscreen, playback->index)) {
+                retval = 0;
+                break;
+            }
         }
         if(playback->current_frame &&
            !noscreenshot &&
            (bothnewkeys & FLAG_SCREENSHOT)) {
             screenshot(vscreen, getpal, 1);
         }
-        video_copy_screen(vscreen);
+        if(present_frame) {
+            video_copy_screen(vscreen);
+        }
         usleep(1000);
     }
 

@@ -52,7 +52,6 @@ typedef struct s_movie_playback {
     float speed;
     uint64_t duration;
     uint64_t position;
-    s_screen *screen;
 
     struct webm_context *context;
     yuv_video_mode video_mode;
@@ -65,6 +64,7 @@ typedef struct s_movie_playback {
     int volume;
     bool replace_all_audio;
     int frame_dirty;
+    int scaled_frame_dirty;
     int reverse_pending;
     int terminal_pending;
 } s_movie_playback;
@@ -89,11 +89,9 @@ bool movie_playback_get_snapshot(
 );
 uint64_t movie_playback_get_active_mask(void);
 void movie_playback_update(int interrupt_requested);
-void movie_playback_render_subscreens(void);
-bool movie_playback_render_main(s_screen *screen);
+bool movie_playback_draw_to_screen(s_screen *screen, int channel);
 void movie_playback_stop(s_movie_playback *playback);
 void movie_playback_stop_all(void);
-void movie_playback_detach_screen(const s_screen *screen);
 
 bool movie_playback_set_height(s_movie_playback *playback, int height);
 bool movie_playback_set_black_filter(
@@ -110,7 +108,6 @@ bool movie_playback_set_position(
     int volume
 );
 bool movie_playback_set_repeat(s_movie_playback *playback, int repeat);
-bool movie_playback_set_screen(s_movie_playback *playback, s_screen *screen);
 bool movie_playback_set_sound_channel(
     s_movie_playback *playback,
     int sound_channel,

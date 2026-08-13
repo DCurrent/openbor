@@ -636,8 +636,8 @@ s_movie_playback *movie_playback_play(
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Stop individual, grouped, or screen-detached playbacks and
-* release their source references and fixed channel slots.
+* Stop individual or grouped playbacks and release their source
+* references and fixed channel slots.
 */
 void movie_playback_stop(s_movie_playback *playback)
 {
@@ -663,25 +663,6 @@ void movie_playback_stop_all(void)
     while((channel = sound_channel_mask_first(active_mask)) >= 0) {
         active_mask &= ~(UINT64_C(1) << channel);
         movie_playback_stop(&movie_playback_pool.channel[channel]);
-    }
-}
-
-void movie_playback_detach_screen(const s_screen *screen)
-{
-    uint64_t active_mask;
-    int channel;
-
-    if(!screen || !movie_playback_pool.initialized) {
-        return;
-    }
-
-    active_mask = movie_playback_pool.active_mask;
-    while((channel = sound_channel_mask_first(active_mask)) >= 0) {
-        s_movie_playback *playback = &movie_playback_pool.channel[channel];
-        active_mask &= ~(UINT64_C(1) << channel);
-        if(playback->screen == screen) {
-            movie_playback_stop(playback);
-        }
     }
 }
 
@@ -717,6 +698,7 @@ static bool movie_playback_prepare_frame(
         uint32_t protected_black;
 
         yuv_to_rgb(playback->current_frame, playback->rgb_frame);
+        playback->scaled_frame_dirty = 1;
         if(playback->black_filter) {
             pixel_count =
                 (size_t)playback->rgb_frame->width *
@@ -751,11 +733,12 @@ static bool movie_playback_prepare_frame(
     if(!playback->scaled_frame) {
         return false;
     }
-    if(refresh) {
+    if(refresh || playback->scaled_frame_dirty) {
         scalescreen32(playback->scaled_frame, playback->rgb_frame);
     }
 
     playback->frame_dirty = 0;
+    playback->scaled_frame_dirty = 0;
     *render_frame = playback->scaled_frame;
     return true;
 }
@@ -946,7 +929,7 @@ void movie_playback_update(int interrupt_requested)
             movie_playback_stop(playback);
             continue;
         }
-        if(playback->terminal_pending && !playback->frame_dirty) {
+        if(playback->terminal_pending) {
             if(playback->repeat) {
                 if(!movie_playback_open_media(
                     playback,
@@ -1028,46 +1011,29 @@ void movie_playback_update(int interrupt_requested)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-13
 *
-* Compose bound subscreens before creator scripts, and compose
-* unbound playback over the main screen at its presentation stage.
+* Draw the retained frame from one active movie channel to a
+* creator-selected 32-bit screen. Playback and composition remain
+* independent so script call order controls clearing and layering.
 */
-void movie_playback_render_subscreens(void)
+bool movie_playback_draw_to_screen(s_screen *screen, int channel)
 {
-    uint64_t active_mask = movie_playback_pool.active_mask;
-    int channel;
+    s_movie_playback *playback;
 
-    while((channel = sound_channel_mask_first(active_mask)) >= 0) {
-        s_movie_playback *playback = &movie_playback_pool.channel[channel];
-        active_mask &= ~(UINT64_C(1) << channel);
-        if(playback->screen &&
-           !movie_playback_render_to(playback, playback->screen)) {
-            movie_playback_stop(playback);
-        }
-    }
-}
-
-bool movie_playback_render_main(s_screen *screen)
-{
-    uint64_t active_mask;
-    int channel;
-    bool result = true;
-
-    if(!movie_playback_screen_valid(screen)) {
+    if(!movie_playback_pool.initialized ||
+       channel < 0 ||
+       (unsigned int)channel >= MOVIE_CHANNEL_COUNT ||
+       !movie_playback_screen_valid(screen)) {
         return false;
     }
 
-    active_mask = movie_playback_pool.active_mask;
-    while((channel = sound_channel_mask_first(active_mask)) >= 0) {
-        s_movie_playback *playback = &movie_playback_pool.channel[channel];
-        active_mask &= ~(UINT64_C(1) << channel);
-        if(!playback->screen && !movie_playback_render_to(playback, screen)) {
-            movie_playback_stop(playback);
-            result = false;
-        }
+    playback = &movie_playback_pool.channel[channel];
+    if(!playback->active ||
+       !(movie_playback_pool.active_mask & (UINT64_C(1) << channel))) {
+        return false;
     }
-    return result;
+    return movie_playback_render_to(playback, screen);
 }
 
 /*
@@ -1194,17 +1160,6 @@ bool movie_playback_set_repeat(s_movie_playback *playback, int repeat)
         return false;
     }
     playback->repeat = repeat != 0;
-    return true;
-}
-
-bool movie_playback_set_screen(s_movie_playback *playback, s_screen *screen)
-{
-    if(movie_playback_get_index(playback) < 0 ||
-       (screen && !movie_playback_screen_valid(screen))) {
-        return false;
-    }
-    playback->screen = screen;
-    playback->frame_dirty = 1;
     return true;
 }
 

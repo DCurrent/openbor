@@ -21,7 +21,6 @@ typedef enum e_movie_properties {
     MOVIE_PROPERTY_PAUSED,
     MOVIE_PROPERTY_POSITION,       /* Milliseconds; writing seeks. */
     MOVIE_PROPERTY_REPEAT,
-    MOVIE_PROPERTY_SCREEN,
     MOVIE_PROPERTY_SOUND_CHANNEL,
     MOVIE_PROPERTY_SOURCE,
     MOVIE_PROPERTY_SPEED,
@@ -32,7 +31,7 @@ typedef enum e_movie_properties {
 HRESULT openbor_movie_load(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_unload(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_play(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
-HRESULT openbor_movie_set_screen(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_movie_draw_to_screen(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_set_sound_channel(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_stop(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_get_channel_object(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);

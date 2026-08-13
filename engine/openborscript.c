@@ -416,12 +416,6 @@ void _freeheapnode(void *ptr)
             free(((s_sprite *)ptr)->mask);
         }
     }
-#ifdef WEBM
-    else if(((s_screen *)ptr)->magic == screen_magic)
-    {
-        movie_playback_detach_screen((s_screen *)ptr);
-    }
-#endif
     free(ptr);
 }
 

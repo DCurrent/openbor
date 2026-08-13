@@ -937,9 +937,9 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "movie_play";
     }
-    else if (functionRef == ((void *)openbor_movie_set_screen))
+    else if (functionRef == ((void *)openbor_movie_draw_to_screen))
     {
-        return "movie_set_screen";
+        return "movie_draw_to_screen";
     }
     else if (functionRef == ((void *)openbor_movie_set_sound_channel))
     {
@@ -1806,7 +1806,7 @@ void Script_LoadSystemFunctions()
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_movie_play, "movie_play");
     List_InsertAfter(&theFunctionList,
-                     (void *)openbor_movie_set_screen, "movie_set_screen");
+                     (void *)openbor_movie_draw_to_screen, "movie_draw_to_screen");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_movie_set_sound_channel, "movie_set_sound_channel");
     List_InsertAfter(&theFunctionList,

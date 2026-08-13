@@ -56,9 +56,6 @@ static const s_movie_property_info movie_properties[] = {
     { MOVIE_PROPERTY_REPEAT, PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
       PROPERTY_MEMBER_OFFSET(s_movie_playback, repeat),
       "MOVIE_PROPERTY_REPEAT", VT_INTEGER },
-    { MOVIE_PROPERTY_SCREEN, PROPERTY_ACCESS_CONFIG_READ,
-      PROPERTY_MEMBER_OFFSET(s_movie_playback, screen),
-      "MOVIE_PROPERTY_SCREEN", VT_PTR },
     { MOVIE_PROPERTY_SOUND_CHANNEL, PROPERTY_ACCESS_CONFIG_READ,
       PROPERTY_MEMBER_OFFSET(s_movie_playback, sound_channel),
       "MOVIE_PROPERTY_SOUND_CHANNEL", VT_INTEGER },
@@ -245,37 +242,37 @@ error:
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-13
 *
-* Assign a creator-owned 32-bit screen. Null restores the
-* default main-screen fill behavior.
+* Draw the retained frame from one movie channel to a creator-owned
+* 32-bit screen. Call position determines composition order.
 */
-HRESULT openbor_movie_set_screen(
+HRESULT openbor_movie_draw_to_screen(
     ScriptVariant **varlist,
     ScriptVariant **pretvar,
     int paramCount
 )
 {
-    s_screen *screen = NULL;
+    s_screen *screen;
+    LONG channel;
 
     *pretvar = NULL;
     if(paramCount < 2 ||
        varlist[0]->vt != VT_PTR ||
        !varlist[0]->ptrVal ||
-       movie_playback_get_index(varlist[0]->ptrVal) < 0 ||
-       (varlist[1]->vt != VT_PTR && varlist[1]->vt != VT_EMPTY)) {
+       FAILED(ScriptVariant_IntegerValue(varlist[1], &channel))) {
         goto error;
     }
-    if(varlist[1]->vt == VT_PTR) {
-        screen = varlist[1]->ptrVal;
-    }
-    if(!movie_playback_set_screen(varlist[0]->ptrVal, screen)) {
+    screen = varlist[0]->ptrVal;
+    if(channel < 0 ||
+       (unsigned int)channel >= MOVIE_CHANNEL_COUNT ||
+       !movie_playback_draw_to_screen(screen, (int)channel)) {
         goto error;
     }
     return S_OK;
 
 error:
-    printf("\nScript error: movie_set_screen(void playback, void screen). Playback or screen is invalid.\n");
+    printf("\nScript error: movie_draw_to_screen(void screen, int channel). Screen or movie channel is invalid.\n");
     return E_FAIL;
 }
 
@@ -521,7 +518,6 @@ HRESULT openbor_movie_set_property(
         case MOVIE_PROPERTY_ACTIVE:
         case MOVIE_PROPERTY_CHANNEL:
         case MOVIE_PROPERTY_DURATION:
-        case MOVIE_PROPERTY_SCREEN:
         case MOVIE_PROPERTY_SOUND_CHANNEL:
         case MOVIE_PROPERTY_SOURCE:
         case MOVIE_PROPERTY_END:
@@ -566,7 +562,7 @@ static HRESULT openbor_movie_unsupported(ScriptVariant **pretvar)
 MOVIE_UNSUPPORTED(openbor_movie_load)
 MOVIE_UNSUPPORTED(openbor_movie_unload)
 MOVIE_UNSUPPORTED(openbor_movie_play)
-MOVIE_UNSUPPORTED(openbor_movie_set_screen)
+MOVIE_UNSUPPORTED(openbor_movie_draw_to_screen)
 MOVIE_UNSUPPORTED(openbor_movie_set_sound_channel)
 MOVIE_UNSUPPORTED(openbor_movie_stop)
 MOVIE_UNSUPPORTED(openbor_movie_get_channel_object)
