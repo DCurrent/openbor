@@ -31,5 +31,6 @@ void vorbis_prepare(vorbis_context *ctx);
 void vorbis_headerpacket(vorbis_context *ctx, void *data, size_t size, int packetCount);
 int vorbis_packet(vorbis_context *ctx, void *data, size_t size);
 void vorbis_getpcm(vorbis_context *ctx, void *buffer, size_t samples);
+void vorbis_skip_pcm(vorbis_context *ctx, size_t samples);
 
 #endif

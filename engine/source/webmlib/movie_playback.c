@@ -564,6 +564,12 @@ static bool movie_playback_open_media(
         return false;
     }
 
+    playback->position_anchor = position;
+    playback->clock_anchor = timer_uticks();
+    playback->position = position / UINT64_C(1000000);
+    playback->reverse_pending = playback->speed < 0.0;
+    playback->terminal_pending = 0;
+
     if(playback->speed > 0.0) {
         speed_percent = (unsigned int)(playback->speed * 100.0 + 0.5);
         if(speed_percent < 1U) speed_percent = 1U;
@@ -573,12 +579,6 @@ static bool movie_playback_open_media(
         playback->context,
         playback->paused || playback->speed <= 0.0
     );
-
-    playback->position_anchor = position;
-    playback->clock_anchor = timer_uticks();
-    playback->position = position / UINT64_C(1000000);
-    playback->reverse_pending = playback->speed < 0.0;
-    playback->terminal_pending = 0;
     return true;
 }
 

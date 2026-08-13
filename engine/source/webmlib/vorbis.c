@@ -92,5 +92,27 @@ void vorbis_getpcm(vorbis_context *ctx, void *buffer, size_t samples)
     vorbis_synthesis_read(&ctx->v, samples);
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Consume decoded PCM without packing it into an output buffer.
+* Seek alignment uses this to discard samples preceding the
+* requested movie position.
+*/
+void vorbis_skip_pcm(vorbis_context *ctx, size_t samples)
+{
+#if TREMOR
+    ogg_int32_t **pcm;
+#else
+    float **pcm;
+#endif
+    int avail_samples;
+
+    if(!samples) return;
+    avail_samples = vorbis_synthesis_pcmout(&ctx->v, &pcm);
+    assert(avail_samples >= 0 && (size_t)avail_samples >= samples);
+    vorbis_synthesis_read(&ctx->v, samples);
+}
 
 

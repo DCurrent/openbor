@@ -63,6 +63,9 @@ typedef struct {
     int channel;
     int stream_play_id;
     int output_active;
+    int aligning;
+    uint64_t output_timestamp;
+    uint64_t leading_silence_frames;
     volatile int *quit;
     uint8_t pcm_buffer[SOUND_STREAM_BUFFER_SIZE];
 } audio_context;
@@ -318,6 +321,91 @@ static int bgm_update_thread(void *data)
     return 0;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Convert a nanosecond interval to the number of complete PCM
+* frames needed to reach or pass its end without overflowing.
+*/
+static uint64_t audio_nanoseconds_to_frames(
+    uint64_t nanoseconds,
+    int frequency
+)
+{
+    const uint64_t nanoseconds_per_second = UINT64_C(1000000000);
+    uint64_t whole_seconds;
+    uint64_t remainder;
+    uint64_t frames;
+    uint64_t remainder_frames;
+
+    if(frequency <= 0) {
+        return UINT64_MAX;
+    }
+
+    whole_seconds = nanoseconds / nanoseconds_per_second;
+    remainder = nanoseconds % nanoseconds_per_second;
+    if(whole_seconds > UINT64_MAX / (uint64_t)frequency) {
+        return UINT64_MAX;
+    }
+    frames = whole_seconds * (uint64_t)frequency;
+    remainder_frames = remainder * (uint64_t)frequency;
+    if(remainder_frames) {
+        remainder_frames =
+            ((remainder_frames - 1U) / nanoseconds_per_second) + 1U;
+    }
+    if(frames > UINT64_MAX - remainder_frames) {
+        return UINT64_MAX;
+    }
+    return frames + remainder_frames;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Align decoded audio to the requested movie timestamp. Samples
+* preceding the target are consumed silently. If Nestegg returns
+* the first audio packet after the target, equivalent silence is
+* inserted so audio retains its position on the movie timeline.
+*/
+static void audio_align_packet(
+    audio_context *audio_ctx,
+    uint64_t packet_timestamp
+)
+{
+    uint64_t frame_count;
+    int available_samples;
+    int skipped_samples;
+
+    if(!audio_ctx->aligning || audio_ctx->avail_samples <= 0) {
+        return;
+    }
+
+    if(packet_timestamp < audio_ctx->output_timestamp) {
+        available_samples = audio_ctx->avail_samples;
+        frame_count = audio_nanoseconds_to_frames(
+            audio_ctx->output_timestamp - packet_timestamp,
+            audio_ctx->frequency
+        );
+        skipped_samples = frame_count < (uint64_t)available_samples
+            ? (int)frame_count
+            : available_samples;
+        vorbis_skip_pcm(&audio_ctx->vorbis_ctx, (size_t)skipped_samples);
+        audio_ctx->avail_samples -= skipped_samples;
+        if(skipped_samples < available_samples) {
+            audio_ctx->aligning = 0;
+        }
+        return;
+    }
+
+    audio_ctx->leading_silence_frames = audio_nanoseconds_to_frames(
+        packet_timestamp - audio_ctx->output_timestamp,
+        audio_ctx->frequency
+    );
+    audio_ctx->aligning = 0;
+}
+
 static int audio_decode_frame(
     audio_context *audio_ctx,
     uint8_t *audio_buf,
@@ -334,6 +422,25 @@ static int audio_decode_frame(
 
     while (samples)
     {
+        if(audio_ctx->leading_silence_frames) {
+            int silence_samples = audio_ctx->leading_silence_frames <
+                (uint64_t)samples
+                ? (int)audio_ctx->leading_silence_frames
+                : samples;
+            size_t silence_bytes =
+                (size_t)silence_samples *
+                (size_t)vorbis_ctx->channels *
+                sizeof(int16_t);
+
+            memset(audio_buf, 0, silence_bytes);
+            audio_buf += silence_bytes;
+            audio_ctx->leading_silence_frames -=
+                (uint64_t)silence_samples;
+            samples -= silence_samples;
+            samples_written += silence_samples;
+            continue;
+        }
+
         if (audio_ctx->avail_samples == 0)
         {
             nestegg_packet *pkt;
@@ -357,6 +464,8 @@ static int audio_decode_frame(
                 audio_ctx->avail_samples = vorbis_packet(vorbis_ctx, data, data_size);
             }
             nestegg_free_packet(pkt);
+            audio_align_packet(audio_ctx, timestamp);
+            continue;
         }
 
         int samples_read = MIN(audio_ctx->avail_samples, samples);
@@ -450,6 +559,7 @@ static int init_audio(
     audio_context *audio_ctx,
     int volume,
     int sound_channel,
+    uint64_t seek_timestamp,
     int replace_all_audio,
     volatile int *quit
 )
@@ -487,6 +597,11 @@ static int init_audio(
     audio_ctx->vorbis_ctx.channels = audioParams.channels;
     audio_ctx->frequency = (int)audioParams.rate;
     audio_ctx->avail_samples = audio_ctx->last_samples = 0;
+    audio_ctx->aligning = 1;
+    audio_ctx->output_timestamp = seek_timestamp <=
+        UINT64_MAX - audioParams.codec_delay
+        ? seek_timestamp + audioParams.codec_delay
+        : UINT64_MAX;
     audio_ctx->quit = quit;
     audio_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE, quit);
     if(!audio_ctx->packet_queue) {
@@ -537,6 +652,20 @@ static int init_audio(
         audio_ctx->channel,
         SOUND_VOLUME_DIVISOR_MUSIC
     );
+    if(!sound_pause_channel_owned(
+        audio_ctx->channel,
+        audio_ctx->stream_play_id,
+        1
+    )) {
+        sound_close_channel_pcm_stream(
+            audio_ctx->channel,
+            audio_ctx->stream_play_id
+        );
+        queue_destroy(audio_ctx->packet_queue);
+        audio_ctx->packet_queue = NULL;
+        vorbis_destroy(&(audio_ctx->vorbis_ctx));
+        return -1;
+    }
     return 0;
 }
 
@@ -878,6 +1007,7 @@ webm_context *webm_start_playback_ex(
             &(ctx->audio_ctx),
             volume,
             sound_channel,
+            seek_timestamp,
             replace_all_audio,
             &ctx->quit
         ) == 0) {
