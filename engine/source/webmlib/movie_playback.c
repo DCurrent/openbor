@@ -13,7 +13,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Allocate an optional movie cache without the engine's fatal
+* allocation wrapper. Automatic mode must be able to recover from
+* allocation pressure by falling back to streamed playback.
+*/
+static void *movie_cache_allocate_nonfatal(size_t size)
+{
+    return malloc(size);
+}
+
 #include "globals.h"
+#include "ram.h"
 #include "screen.h"
 #include "sound_channel.h"
 #include "soundmix.h"
@@ -23,8 +37,14 @@
 
 #define MOVIE_SOURCE_CAPACITY_INITIAL 64U
 #define MOVIE_REVERSE_SEEK_INTERVAL UINT64_C(33333333)
+#define MOVIE_CACHE_READ_CHUNK_SIZE (1024U * 1024U)
+#define MOVIE_CACHE_RESERVE_MINIMUM (UINT64_C(128) * UINT64_C(1024) * UINT64_C(1024))
 
-extern int buffer_pakfile(const char *filename, char **pbuffer, size_t *psize);
+typedef enum e_movie_cache_result {
+    MOVIE_CACHE_RESULT_SUCCESS,
+    MOVIE_CACHE_RESULT_MEMORY,
+    MOVIE_CACHE_RESULT_IO
+} e_movie_cache_result;
 
 typedef struct s_movie_source {
     char *path;
@@ -42,6 +62,7 @@ typedef struct s_movie_playback_pool {
     size_t source_capacity;
     int next_source_id;
     uint64_t active_mask;
+    uint64_t cached_bytes;
     int initialized;
     int yuv_initialized;
 } s_movie_playback_pool;
@@ -303,14 +324,111 @@ void movie_playback_shutdown(void)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-13
 *
-* Load one reusable movie source. Stream mode validates the
-* path; cache mode retains one shared read-only byte buffer.
+* Determine whether an automatic movie cache preserves both its
+* share of total memory and the required free-memory cushion.
+* The budget scales without an upper cap for high-memory systems.
+*/
+static bool movie_source_auto_cache_fits(
+    uint64_t file_size,
+    uint64_t total_memory,
+    uint64_t available_memory,
+    uint64_t cached_bytes
+)
+{
+    uint64_t cache_budget;
+    uint64_t memory_reserve;
+
+    if(!file_size ||
+       !total_memory ||
+       !available_memory ||
+       file_size > (uint64_t)SIZE_MAX) {
+        return false;
+    }
+
+    cache_budget = total_memory / 4U;
+    memory_reserve = total_memory / 8U;
+    if(memory_reserve < MOVIE_CACHE_RESERVE_MINIMUM) {
+        memory_reserve = MOVIE_CACHE_RESERVE_MINIMUM;
+    }
+
+    if(file_size > cache_budget ||
+       cached_bytes > cache_budget - file_size ||
+       available_memory <= memory_reserve ||
+       file_size > available_memory - memory_reserve) {
+        return false;
+    }
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Read one validated movie source into a nonfatal allocation using
+* bounded packfile reads. Allocation pressure is distinguished from
+* I/O failure so automatic mode only falls back for memory limits.
+*/
+static e_movie_cache_result movie_source_read_cache(
+    int handle,
+    uint64_t file_size,
+    unsigned char **cache_buffer,
+    size_t *cache_size
+)
+{
+    unsigned char *buffer;
+    uint64_t read_position = 0;
+
+    if(handle < 0 ||
+       !file_size ||
+       file_size > (uint64_t)SIZE_MAX ||
+       !cache_buffer ||
+       !cache_size) {
+        return MOVIE_CACHE_RESULT_IO;
+    }
+
+    buffer = movie_cache_allocate_nonfatal((size_t)file_size);
+    if(!buffer) {
+        return MOVIE_CACHE_RESULT_MEMORY;
+    }
+
+    while(read_position < file_size) {
+        uint64_t bytes_remaining = file_size - read_position;
+        int read_size = bytes_remaining > MOVIE_CACHE_READ_CHUNK_SIZE
+            ? (int)MOVIE_CACHE_READ_CHUNK_SIZE
+            : (int)bytes_remaining;
+
+        if(readpackfile(
+            handle,
+            buffer + (size_t)read_position,
+            read_size
+        ) != read_size) {
+            free(buffer);
+            return MOVIE_CACHE_RESULT_IO;
+        }
+        read_position += (uint64_t)read_size;
+    }
+
+    *cache_buffer = buffer;
+    *cache_size = (size_t)file_size;
+    return MOVIE_CACHE_RESULT_SUCCESS;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Load one reusable movie source. Streaming remains the default,
+* forced cache fails cleanly, and automatic cache falls back to
+* streaming when its memory policy or allocation cannot be met.
 */
 int movie_source_load(const char *path, e_movie_loading_mode loading_mode)
 {
     s_movie_source source = { 0 };
+    e_movie_cache_result cache_result = MOVIE_CACHE_RESULT_SUCCESS;
+    packfile_signed_offset_t file_size;
+    bool attempt_cache;
     int handle = -1;
     int source_id;
 
@@ -326,24 +444,46 @@ int movie_source_load(const char *path, e_movie_loading_mode loading_mode)
         return -1;
     }
 
-    if(loading_mode == MOVIE_LOADING_CACHE) {
-        if(buffer_pakfile(
-            path,
-            (char**)&source.cache_buffer,
-            &source.cache_size
-        ) != 1 || !source.cache_size) {
-            free(source.path);
-            free(source.cache_buffer);
-            return -1;
-        }
-    } else {
-        handle = openpackfile(path, packfile);
-        if(handle < 0) {
-            free(source.path);
-            return -1;
-        }
-        closepackfile(handle);
+    handle = openpackfile(path, packfile);
+    if(handle < 0) {
+        free(source.path);
+        return -1;
     }
+    file_size = seekpackfile64(handle, 0, SEEK_END);
+    if(file_size <= 0 || seekpackfile64(handle, 0, SEEK_SET) < 0) {
+        closepackfile(handle);
+        free(source.path);
+        return -1;
+    }
+
+    attempt_cache = loading_mode == MOVIE_LOADING_CACHE ||
+        (loading_mode == MOVIE_LOADING_AUTO &&
+         movie_source_auto_cache_fits(
+             (uint64_t)file_size,
+             getSystemRam(BYTES),
+             getFreeRam(BYTES),
+             movie_playback_pool.cached_bytes
+         ));
+    if(attempt_cache) {
+        cache_result = movie_source_read_cache(
+            handle,
+            (uint64_t)file_size,
+            &source.cache_buffer,
+            &source.cache_size
+        );
+    }
+    closepackfile(handle);
+
+    if(cache_result == MOVIE_CACHE_RESULT_IO ||
+       (cache_result == MOVIE_CACHE_RESULT_MEMORY &&
+        loading_mode == MOVIE_LOADING_CACHE)) {
+        free(source.path);
+        free(source.cache_buffer);
+        return -1;
+    }
+    source.loading_mode = source.cache_buffer
+        ? MOVIE_LOADING_CACHE
+        : MOVIE_LOADING_STREAM;
 
     source_id = movie_playback_pool.next_source_id;
     if(!movie_source_reserve((size_t)source_id + 1U)) {
@@ -353,9 +493,9 @@ int movie_source_load(const char *path, e_movie_loading_mode loading_mode)
     }
 
     source.id = source_id;
-    source.loading_mode = loading_mode;
     source.active = 1;
     movie_playback_pool.source[source_id] = source;
+    movie_playback_pool.cached_bytes += (uint64_t)source.cache_size;
     ++movie_playback_pool.next_source_id;
     return source_id;
 }
@@ -375,6 +515,11 @@ bool movie_source_unload(int source_id)
         return false;
     }
 
+    if((uint64_t)source->cache_size <= movie_playback_pool.cached_bytes) {
+        movie_playback_pool.cached_bytes -= (uint64_t)source->cache_size;
+    } else {
+        movie_playback_pool.cached_bytes = 0;
+    }
     free(source->path);
     free(source->cache_buffer);
     memset(source, 0, sizeof(*source));

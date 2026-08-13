@@ -1164,6 +1164,7 @@ bool mapstrings_transconst(ScriptVariant **varlist, int paramCount)
         ICMPCONST(MOVIE_CHANNEL_AUTO)
         ICMPCONST(MOVIE_LOADING_STREAM)
         ICMPCONST(MOVIE_LOADING_CACHE)
+        ICMPCONST(MOVIE_LOADING_AUTO)
         ICMPCONST(MOVIE_LOADING_END)
 #endif
 

@@ -117,8 +117,8 @@ static const s_property_access_map movie_get_property_map(
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Load one reusable streamed or cached movie source and return
-* its stable integer ID.
+* Load one reusable streamed, cached, or automatic movie source
+* and return its stable integer ID. Omitted mode remains stream.
 */
 HRESULT openbor_movie_load(
     ScriptVariant **varlist,

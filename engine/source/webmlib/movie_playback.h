@@ -23,6 +23,7 @@
 typedef enum e_movie_loading_mode {
     MOVIE_LOADING_STREAM,
     MOVIE_LOADING_CACHE,
+    MOVIE_LOADING_AUTO,
     MOVIE_LOADING_END
 } e_movie_loading_mode;
 
