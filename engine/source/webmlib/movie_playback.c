@@ -704,6 +704,11 @@ static bool movie_playback_open_media(
         );
     }
     if(!playback->rgb_frame) {
+        printf(
+            "Error: Unable to allocate %d*%d movie conversion screen.\n",
+            playback->video_mode.width,
+            playback->video_mode.height
+        );
         movie_playback_close_decoder(playback);
         return false;
     }

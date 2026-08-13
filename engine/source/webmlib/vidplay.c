@@ -84,6 +84,7 @@ typedef struct {
 
 typedef struct {
     int packhandle;
+    packfile_signed_offset_t stream_size;
     const unsigned char *cache_buffer;
     size_t cache_size;
     size_t cache_position;
@@ -107,19 +108,27 @@ struct webm_context {
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-13
 *
-* Read or seek either a creator-requested memory cache or
-* the ordinary packfile stream through the same Nestegg I/O.
+* Read or seek either a creator-requested memory cache or the
+* ordinary packfile stream through the same Nestegg I/O. Streamed
+* reads supply complete spans, while successful seeks return zero
+* as required by the decoder callback contract.
 */
 static int webm_io_read(void *buffer, size_t length, void *userdata)
 {
     webm_io_context *io_ctx = userdata;
+    packfile_signed_offset_t stream_position;
+    size_t read_position = 0;
     int bytesRead;
 
     if(io_ctx->cache_buffer) {
-        size_t remaining = io_ctx->cache_size - io_ctx->cache_position;
+        size_t remaining;
 
+        if(io_ctx->cache_position > io_ctx->cache_size) {
+            return -1;
+        }
+        remaining = io_ctx->cache_size - io_ctx->cache_position;
         if(remaining < length) {
             return 0;
         }
@@ -132,13 +141,34 @@ static int webm_io_read(void *buffer, size_t length, void *userdata)
         return 1;
     }
 
-    if(length > (size_t)INT_MAX) {
+    stream_position = seekpackfile64(io_ctx->packhandle, 0, SEEK_CUR);
+    if(stream_position < 0 ||
+       stream_position > io_ctx->stream_size ||
+       (uint64_t)length >
+           (uint64_t)(io_ctx->stream_size - stream_position)) {
+        return stream_position < 0 ? -1 : 0;
+    }
+
+    while(read_position < length) {
+        size_t remaining = length - read_position;
+        int read_length = remaining > (size_t)INT_MAX
+            ? INT_MAX
+            : (int)remaining;
+
+        bytesRead = readpackfile(
+            io_ctx->packhandle,
+            (unsigned char*)buffer + read_position,
+            read_length
+        );
+        if(bytesRead <= 0) {
+            return -1;
+        }
+        read_position += (size_t)bytesRead;
+    }
+    if(read_position != length) {
         return -1;
     }
-    bytesRead = readpackfile(io_ctx->packhandle, buffer, (int)length);
-    if (bytesRead < 0) return -1;
-    else if ((size_t)bytesRead != length) return 0;
-    else return 1;
+    return 1;
 }
 
 static int webm_io_seek(int64_t offset, int whence, void *userdata)
@@ -171,10 +201,11 @@ static int webm_io_seek(int64_t offset, int whence, void *userdata)
         return 0;
     }
 
-    if(offset < INT_MIN || offset > INT_MAX) {
-        return -1;
-    }
-    return seekpackfile(io_ctx->packhandle, (int)offset, whence);
+    return seekpackfile64(
+        io_ctx->packhandle,
+        (packfile_signed_offset_t)offset,
+        whence
+    ) < 0 ? -1 : 0;
 }
 
 static int64_t webm_io_tell(void *userdata)
@@ -184,7 +215,7 @@ static int64_t webm_io_tell(void *userdata)
     if(io_ctx->cache_buffer) {
         return (int64_t)io_ctx->cache_position;
     }
-    return seekpackfile(io_ctx->packhandle, 0, SEEK_CUR);
+    return seekpackfile64(io_ctx->packhandle, 0, SEEK_CUR);
 }
 
 static FixedSizeQueue *queue_init(int max_size, volatile int *quit)
@@ -690,9 +721,37 @@ static void close_audio(audio_context *audio_ctx)
     );
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Resolve timestamps for laced video frames without requiring the
+* optional WebM DefaultDuration element. Prefer the track default,
+* then the packet duration, and finally preserve decode order with
+* the smallest representable timestamp step.
+*/
+static uint64_t video_packet_frame_delay(
+    video_context *video_ctx,
+    nestegg_packet *packet,
+    unsigned int chunks
+)
+{
+    uint64_t packet_duration = 0;
+
+    if(video_ctx->frame_delay || chunks < 2) {
+        return video_ctx->frame_delay;
+    }
+    nestegg_packet_duration(packet, &packet_duration);
+    if(packet_duration) {
+        packet_duration /= chunks;
+    }
+    return packet_duration ? packet_duration : UINT64_C(1);
+}
+
 static int video_thread(void *data)
 {
     video_context *ctx = (video_context*) data;
+    uint64_t frame_delay;
     uint64_t timestamp;
 
     while(!*ctx->quit)
@@ -705,6 +764,7 @@ static int video_thread(void *data)
         if (*ctx->quit || pkt == NULL) break;
         nestegg_packet_count(pkt, &chunks);
         nestegg_packet_tstamp(pkt, &timestamp);
+        frame_delay = video_packet_frame_delay(ctx, pkt, chunks);
 
         for (chunk = 0; chunk < chunks; ++chunk)
         {
@@ -751,7 +811,9 @@ static int video_thread(void *data)
                     yuv_frame_destroy(frame);
                     break;
                 }
-                timestamp += ctx->frame_delay;
+                timestamp = timestamp <= UINT64_MAX - frame_delay
+                    ? timestamp + frame_delay
+                    : UINT64_MAX;
             }
             if(*ctx->quit) break;
         }
@@ -765,10 +827,11 @@ static int video_thread(void *data)
 // returns 0 on success, -1 on error
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-13
 *
-* Initialize video queues against their owning decoder's
-* stop state so multiple contexts can run independently.
+* Initialize the video decoder and queues against their owning stop
+* state. DefaultDuration is optional - packet timestamps and packet
+* duration retain playback timing when the track omits it.
 */
 static int init_video(
     nestegg *nestegg_ctx,
@@ -778,8 +841,13 @@ static int init_video(
 )
 {
     nestegg_video_params video_params;
-    if(nestegg_track_video_params(nestegg_ctx, track, &video_params) < 0 ||
-       video_params.stereo_mode != NESTEGG_VIDEO_MONO ||
+    int has_default_duration;
+
+    if(nestegg_track_video_params(nestegg_ctx, track, &video_params) < 0) {
+        printf("Error: Unable to read WebM video track parameters\n");
+        return -1;
+    }
+    if(video_params.stereo_mode != NESTEGG_VIDEO_MONO ||
        video_params.width < 2 ||
        video_params.height < 2 ||
        (video_params.width & 1U) ||
@@ -802,22 +870,27 @@ static int init_video(
     video_ctx->height = video_params.height;
     video_ctx->display_width = video_params.display_width;
     video_ctx->display_height = video_params.display_height;
-    if(nestegg_track_default_duration(
+    has_default_duration = nestegg_track_default_duration(
         nestegg_ctx,
         track,
         &(video_ctx->frame_delay)
-    ) < 0 || !video_ctx->frame_delay) {
-        vpx_codec_destroy(&(video_ctx->vpx_ctx));
-        return -1;
-    }
-    printf("Video track: resolution=%i*%i, display resolution=%i*%i, %.2f frames/second\n",
+    ) == 0 && video_ctx->frame_delay;
+    if(has_default_duration) {
+        printf("Video track: resolution=%i*%i, display resolution=%i*%i, %.2f frames/second\n",
             video_params.width, video_params.height,
             video_params.display_width, video_params.display_height,
             1000000000.0 / video_ctx->frame_delay);
+    } else {
+        video_ctx->frame_delay = 0;
+        printf("Video track: resolution=%i*%i, display resolution=%i*%i, packet-timestamp timing\n",
+            video_params.width, video_params.height,
+            video_params.display_width, video_params.display_height);
+    }
     video_ctx->quit = quit;
     video_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE, quit);
     video_ctx->frame_queue = queue_init(FRAME_QUEUE_SIZE, quit);
     if(!video_ctx->packet_queue || !video_ctx->frame_queue) {
+        printf("Error: Unable to allocate WebM video queues\n");
         if(video_ctx->packet_queue) queue_destroy(video_ctx->packet_queue);
         if(video_ctx->frame_queue) queue_destroy(video_ctx->frame_queue);
         video_ctx->packet_queue = NULL;
@@ -919,11 +992,15 @@ webm_context *webm_start_playback_ex(
     if(!path || !path[0] ||
        sound_channel < 0 ||
        (unsigned int)sound_channel >= SOUND_CHANNEL_COUNT_MAX) {
+        printf("Error: Invalid WebM playback request\n");
         return NULL;
     }
 
     ctx = calloc(1, sizeof(*ctx));
-    if(!ctx) return NULL;
+    if(!ctx) {
+        printf("Error: Unable to allocate WebM playback context\n");
+        return NULL;
+    }
     ctx->io_ctx.packhandle = -1;
     ctx->audio_track = -1;
     ctx->video_track = -1;
@@ -935,6 +1012,7 @@ webm_context *webm_start_playback_ex(
 
     if(cache_buffer) {
         if(!cache_size) {
+            printf("Error: Cached WebM source %s has no data\n", path);
             goto error_io;
         }
         ctx->io_ctx.cache_buffer = cache_buffer;
@@ -945,11 +1023,27 @@ webm_context *webm_start_playback_ex(
             printf("Error: Unable to open file %s for playback\n", path);
             goto error_io;
         }
+        ctx->io_ctx.stream_size = seekpackfile64(
+            ctx->io_ctx.packhandle,
+            0,
+            SEEK_END
+        );
+        if(ctx->io_ctx.stream_size <= 0 ||
+           seekpackfile64(ctx->io_ctx.packhandle, 0, SEEK_SET) != 0) {
+            printf("Error: Unable to size WebM stream %s\n", path);
+            goto error_io;
+        }
     }
 
-    if(nestegg_init(&(ctx->nestegg_ctx), io, NULL, -1) < 0) goto error_io;
+    if(nestegg_init(&(ctx->nestegg_ctx), io, NULL, -1) < 0) {
+        printf("Error: Unable to initialize WebM container %s\n", path);
+        goto error_io;
+    }
     nestegg_duration(ctx->nestegg_ctx, &ctx->duration);
-    if(nestegg_track_count(ctx->nestegg_ctx, &num_tracks) < 0) goto error_nestegg;
+    if(nestegg_track_count(ctx->nestegg_ctx, &num_tracks) < 0) {
+        printf("Error: Unable to read WebM tracks from %s\n", path);
+        goto error_nestegg;
+    }
 
     for(i = 0; i < num_tracks; i++) {
         int track_type = nestegg_track_type(ctx->nestegg_ctx, i);
@@ -995,6 +1089,7 @@ webm_context *webm_start_playback_ex(
     }
     ctx->the_video_thread = thread_create(video_thread, "video", &(ctx->video_ctx));
     if(!ctx->the_video_thread) {
+        printf("Error: Unable to start WebM video decoder thread\n");
         webm_close(ctx);
         return NULL;
     }
@@ -1013,6 +1108,7 @@ webm_context *webm_start_playback_ex(
         ) == 0) {
             ctx->the_audio_thread = thread_create(audio_thread, "audio", &(ctx->audio_ctx));
             if(!ctx->the_audio_thread) {
+                printf("Error: Unable to start WebM audio decoder thread\n");
                 webm_close(ctx);
                 return NULL;
             }
@@ -1026,6 +1122,7 @@ webm_context *webm_start_playback_ex(
         /* Blocking legacy playback must service existing channel zero audio. */
         ctx->the_audio_thread = thread_create(bgm_update_thread, "bgm", ctx);
         if(!ctx->the_audio_thread) {
+            printf("Error: Unable to start WebM legacy audio service thread\n");
             webm_close(ctx);
             return NULL;
         }
@@ -1033,6 +1130,7 @@ webm_context *webm_start_playback_ex(
 
     ctx->the_demux_thread = thread_create(demux_thread, "demux", ctx);
     if(!ctx->the_demux_thread) {
+        printf("Error: Unable to start WebM demux thread\n");
         webm_close(ctx);
         return NULL;
     }
