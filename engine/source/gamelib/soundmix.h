@@ -163,7 +163,7 @@ size_t sound_group_set_position(
 void sound_volume_sample(int channel, int lvolume, int rvolume);
 bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame);
 bool sound_set_channel_period(int channel, uint64_t period);
-bool sound_set_channel_speed_owned(int channel, int play_id, unsigned int speed);
+bool sound_set_channel_speed_owned(int channel, int play_id, double speed);
 bool sound_pause_channel_owned(int channel, int play_id, int toggle);
 bool sound_set_channel_priority(int channel, unsigned int priority);
 bool sound_set_channel_position(int channel, uint64_t sample_position);

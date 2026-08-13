@@ -1864,6 +1864,41 @@ static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, in
     return (sound_sample_fixed_t)sample_period;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Calculate a producer stream period directly from its decimal
+* playback rate. Retaining the caller's full rate until the final
+* fixed-point conversion prevents movie and audio clocks from
+* diverging through integer percentage rounding.
+*/
+static sound_sample_fixed_t sound_sample_period_calculate_decimal(
+    double speed,
+    int sample_frequency
+)
+{
+    long double sample_period;
+    const long double period_max = (long double)UINT64_MAX;
+
+    if(!(speed > 0.0) || sample_frequency <= 0 || playfrequency <= 0) {
+        return 0;
+    }
+
+    sample_period =
+        (long double)SOUND_SAMPLE_FIXED_ONE *
+        (long double)speed *
+        (long double)sample_frequency /
+        (long double)playfrequency;
+    if(sample_period >= period_max - 0.5L) {
+        return UINT64_MAX;
+    }
+    if(sample_period < 1.0L) {
+        return 1;
+    }
+    return (sound_sample_fixed_t)(sample_period + 0.5L);
+}
+
 #define SOUND_STREAM_UPDATE_BYTE_BUDGET (256U * 1024U)
 
 static unsigned int sound_stream_update_cursor;
@@ -3128,13 +3163,15 @@ bool sound_set_channel_period(int channel, uint64_t period) {
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Change producer stream speed only while its play ID
-* still owns the requested generic sound channel.
+* Change producer stream speed only while its play ID still owns
+* the requested generic sound channel. Decimal rates retain their
+* precision through the final fixed-point period conversion.
 */
-bool sound_set_channel_speed_owned(int channel, int play_id, unsigned int speed) {
+bool sound_set_channel_speed_owned(int channel, int play_id, double speed) {
     channelstruct *record;
+    sound_sample_fixed_t period;
 
-    if(play_id < 0 || speed == 0) {
+    if(play_id < 0 || !(speed > 0.0)) {
         return false;
     }
 
@@ -3148,7 +3185,12 @@ bool sound_set_channel_speed_owned(int channel, int play_id, unsigned int speed)
         return false;
     }
 
-    record->fp_period = sound_sample_period_calculate(speed, record->frequency);
+    period = sound_sample_period_calculate_decimal(speed, record->frequency);
+    if(!period) {
+        SB_unlock_audio();
+        return false;
+    }
+    record->fp_period = period;
     SB_unlock_audio();
     return true;
 }

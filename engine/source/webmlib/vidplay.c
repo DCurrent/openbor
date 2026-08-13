@@ -1111,7 +1111,7 @@ void webm_set_audio_paused(webm_context *ctx, int paused)
     }
 }
 
-void webm_set_audio_speed(webm_context *ctx, unsigned int speed)
+void webm_set_audio_speed(webm_context *ctx, double speed)
 {
     if(ctx && ctx->audio_track >= 0) {
         sound_set_channel_speed_owned(

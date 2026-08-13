@@ -504,7 +504,6 @@ static bool movie_playback_open_media(
     s_movie_source *source = movie_source_get(playback->source_id);
     yuv_video_mode previous_mode = playback->video_mode;
     uint64_t duration;
-    unsigned int speed_percent;
 
     if(!source) {
         return false;
@@ -571,9 +570,7 @@ static bool movie_playback_open_media(
     playback->terminal_pending = 0;
 
     if(playback->speed > 0.0) {
-        speed_percent = (unsigned int)(playback->speed * 100.0 + 0.5);
-        if(speed_percent < 1U) speed_percent = 1U;
-        webm_set_audio_speed(playback->context, speed_percent);
+        webm_set_audio_speed(playback->context, playback->speed);
     }
     webm_set_audio_paused(
         playback->context,
@@ -1243,7 +1240,6 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
     uint64_t now;
     uint64_t position;
     double previous_speed;
-    unsigned int speed_percent;
 
     if(movie_playback_get_index(playback) < 0 ||
        !playback->active ||
@@ -1270,9 +1266,7 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
             return false;
         }
     } else if(speed > 0.0) {
-        speed_percent = (unsigned int)(speed * 100.0 + 0.5);
-        if(speed_percent < 1U) speed_percent = 1U;
-        webm_set_audio_speed(playback->context, speed_percent);
+        webm_set_audio_speed(playback->context, speed);
         webm_set_audio_paused(playback->context, playback->paused);
     } else {
         playback->reverse_pending = 0;
