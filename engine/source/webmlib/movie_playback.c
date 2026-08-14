@@ -39,6 +39,7 @@ static void *movie_cache_allocate_nonfatal(size_t size)
 #define MOVIE_REVERSE_SEEK_INTERVAL UINT64_C(33333333)
 #define MOVIE_CACHE_READ_CHUNK_SIZE (1024U * 1024U)
 #define MOVIE_CACHE_RESERVE_MINIMUM (UINT64_C(128) * UINT64_C(1024) * UINT64_C(1024))
+#define MOVIE_SPEED_ROUNDING_FACTOR 1000.0
 
 typedef enum e_movie_cache_result {
     MOVIE_CACHE_RESULT_SUCCESS,
@@ -68,6 +69,40 @@ typedef struct s_movie_playback_pool {
 } s_movie_playback_pool;
 
 static s_movie_playback_pool movie_playback_pool;
+
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Convert creator-supplied playback speed to one canonical float.
+* Clamp supported range and round to thousandths so video timing,
+* audio resampling, property reads, and later decoder reopens all
+* consume the same applied rate.
+*/
+static bool movie_playback_sanitize_speed(
+    double requested_speed,
+    float *applied_speed
+)
+{
+    if(!applied_speed || !isfinite(requested_speed)) {
+        return false;
+    }
+
+    if(requested_speed < MOVIE_SPEED_MIN) {
+        requested_speed = MOVIE_SPEED_MIN;
+    } else if(requested_speed > MOVIE_SPEED_MAX) {
+        requested_speed = MOVIE_SPEED_MAX;
+    }
+    requested_speed = round(
+        requested_speed * MOVIE_SPEED_ROUNDING_FACTOR
+    ) / MOVIE_SPEED_ROUNDING_FACTOR;
+
+    *applied_speed = (float)requested_speed;
+    if(*applied_speed == 0.0f) {
+        *applied_speed = 0.0f;
+    }
+    return true;
+}
 
 /*
 * Caskey, Damon V.
@@ -1345,15 +1380,14 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
     uint64_t now;
     uint64_t position;
     double previous_speed;
+    float applied_speed;
 
     if(movie_playback_get_index(playback) < 0 ||
        !playback->active ||
-       !isfinite(speed) ||
-       speed < MOVIE_SPEED_MIN ||
-       speed > MOVIE_SPEED_MAX) {
+       !movie_playback_sanitize_speed(speed, &applied_speed)) {
         return false;
     }
-    if(playback->speed == speed) {
+    if(playback->speed == applied_speed) {
         return true;
     }
 
@@ -1362,16 +1396,16 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
     previous_speed = playback->speed;
     playback->position_anchor = position;
     playback->clock_anchor = now;
-    playback->speed = speed;
+    playback->speed = applied_speed;
     playback->position = position / UINT64_C(1000000);
 
-    if(speed > 0.0 && previous_speed <= 0.0) {
+    if(playback->speed > 0.0 && previous_speed <= 0.0) {
         if(!movie_playback_open_media(playback, position, playback->volume)) {
             movie_playback_stop(playback);
             return false;
         }
-    } else if(speed > 0.0) {
-        webm_set_audio_speed(playback->context, speed);
+    } else if(playback->speed > 0.0) {
+        webm_set_audio_speed(playback->context, playback->speed);
         webm_set_audio_paused(playback->context, playback->paused);
     } else {
         playback->reverse_pending = 0;
