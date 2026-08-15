@@ -1129,6 +1129,11 @@ void movie_playback_update(int interrupt_requested)
             continue;
         }
 
+        webm_set_audio_paused(
+            playback->context,
+            playback->paused || playback->speed <= 0.0
+        );
+
         position = movie_playback_position_now(playback, now);
         playback->position = position / UINT64_C(1000000);
         if(playback->duration && playback->position > playback->duration) {

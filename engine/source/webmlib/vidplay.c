@@ -29,10 +29,22 @@
 #include "globals.h"
 #include "borendian.h"
 #include "soundmix.h"
+#include "timer.h"
 
-// lowering these might save a bit of memory but could also cause lag
-#define PACKET_QUEUE_SIZE 20
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Keep enough compressed packets ahead of both decoders that a full
+* video queue does not repeatedly stop the shared demuxer before it can
+* deliver the next audio packets. PCM output remains separately bounded
+* by the generic sound stream ring.
+*/
+#define AUDIO_PACKET_QUEUE_SIZE 64
+#define VIDEO_PACKET_QUEUE_SIZE 64
 #define FRAME_QUEUE_SIZE 10
+#define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
+#define AUDIO_PREROLL_TIMEOUT_MICROSECONDS UINT64_C(2000000)
 
 #define debug_printf(...) //printf(__VA_ARGS__)
 
@@ -63,7 +75,10 @@ typedef struct {
     int channel;
     int stream_play_id;
     int output_active;
+    int output_paused;
+    int prerolling;
     int aligning;
+    uint64_t observed_underrun_count;
     uint64_t output_timestamp;
     uint64_t leading_silence_frames;
     volatile int *quit;
@@ -579,6 +594,50 @@ static int audio_thread(void *data)
 
 /*
 * Caskey, Damon V.
+* 2026-08-15
+*
+* Let the decoder establish its PCM reserve before the owning movie clock
+* starts. The bounded wait preserves failure tolerance for malformed or
+* unusually slow inputs while ordinary playback begins with continuous
+* audio already available to the mixer.
+*/
+static void audio_wait_for_preroll(audio_context *audio_ctx)
+{
+    uint64_t start_time;
+
+    if(!audio_ctx || !audio_ctx->quit) {
+        return;
+    }
+    start_time = timer_uticks();
+
+    while(!*audio_ctx->quit) {
+        s_sound_pcm_stream_status status;
+        uint64_t now;
+
+        if(!sound_get_channel_pcm_stream_status_owned(
+            audio_ctx->channel,
+            audio_ctx->stream_play_id,
+            &status
+        )) {
+            return;
+        }
+        audio_ctx->observed_underrun_count = status.underrun_count;
+        if(status.ready_buffer_count >= AUDIO_PREROLL_BUFFER_COUNT ||
+           (status.producer_finished && status.ready_buffer_count > 0)) {
+            return;
+        }
+
+        now = timer_uticks();
+        if(now < start_time ||
+           now - start_time >= AUDIO_PREROLL_TIMEOUT_MICROSECONDS) {
+            return;
+        }
+        usleep(1000);
+    }
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-12
 *
 * Initialize WebM audio on an explicit generic channel with
@@ -634,7 +693,7 @@ static int init_audio(
         ? seek_timestamp + audioParams.codec_delay
         : UINT64_MAX;
     audio_ctx->quit = quit;
-    audio_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE, quit);
+    audio_ctx->packet_queue = queue_init(AUDIO_PACKET_QUEUE_SIZE, quit);
     if(!audio_ctx->packet_queue) {
         vorbis_destroy(&(audio_ctx->vorbis_ctx));
         return -1;
@@ -696,6 +755,19 @@ static int init_audio(
         audio_ctx->packet_queue = NULL;
         vorbis_destroy(&(audio_ctx->vorbis_ctx));
         return -1;
+    }
+    audio_ctx->output_paused = 1;
+    audio_ctx->prerolling = 1;
+    {
+        s_sound_pcm_stream_status status;
+
+        if(sound_get_channel_pcm_stream_status_owned(
+            audio_ctx->channel,
+            audio_ctx->stream_play_id,
+            &status
+        )) {
+            audio_ctx->observed_underrun_count = status.underrun_count;
+        }
     }
     return 0;
 }
@@ -887,7 +959,7 @@ static int init_video(
             video_params.display_width, video_params.display_height);
     }
     video_ctx->quit = quit;
-    video_ctx->packet_queue = queue_init(PACKET_QUEUE_SIZE, quit);
+    video_ctx->packet_queue = queue_init(VIDEO_PACKET_QUEUE_SIZE, quit);
     video_ctx->frame_queue = queue_init(FRAME_QUEUE_SIZE, quit);
     if(!video_ctx->packet_queue || !video_ctx->frame_queue) {
         printf("Error: Unable to allocate WebM video queues\n");
@@ -1134,6 +1206,9 @@ webm_context *webm_start_playback_ex(
         webm_close(ctx);
         return NULL;
     }
+    if(ctx->audio_track >= 0) {
+        audio_wait_for_preroll(&ctx->audio_ctx);
+    }
     return ctx;
 
 error_nestegg:
@@ -1193,19 +1268,77 @@ uint64_t webm_get_duration(webm_context *ctx)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-15
 *
-* Apply pause and speed changes only while this decoder's
-* play ID still owns its selected generic sound channel.
+* Apply requested pause state while retaining an internal preroll gate.
+* New and starved streams remain paused until most PCM buffers are ready,
+* preventing the mixer from alternating abruptly between decoded samples
+* and absolute silence. Short terminal streams may start with fewer buffers.
 */
 void webm_set_audio_paused(webm_context *ctx, int paused)
 {
-    if(ctx && ctx->audio_track >= 0) {
-        sound_pause_channel_owned(
-            ctx->audio_ctx.channel,
-            ctx->audio_ctx.stream_play_id,
-            paused
+    audio_context *audio_ctx;
+    s_sound_pcm_stream_status status;
+    int preroll_ready;
+
+    if(!ctx || ctx->audio_track < 0) {
+        return;
+    }
+    audio_ctx = &ctx->audio_ctx;
+
+    if(paused) {
+        audio_ctx->prerolling = 1;
+        if(!audio_ctx->output_paused &&
+           sound_pause_channel_owned(
+               audio_ctx->channel,
+               audio_ctx->stream_play_id,
+               1
+           )) {
+            audio_ctx->output_paused = 1;
+        }
+        return;
+    }
+
+    if(!sound_get_channel_pcm_stream_status_owned(
+        audio_ctx->channel,
+        audio_ctx->stream_play_id,
+        &status
+    )) {
+        return;
+    }
+
+    if(status.underrun_count != audio_ctx->observed_underrun_count) {
+        audio_ctx->observed_underrun_count = status.underrun_count;
+        printf(
+            "Warning: WebM audio underrun on sound channel %d; rebuilding PCM reserve.\n",
+            audio_ctx->channel
         );
+        audio_ctx->prerolling = 1;
+        if(!audio_ctx->output_paused &&
+           sound_pause_channel_owned(
+               audio_ctx->channel,
+               audio_ctx->stream_play_id,
+               1
+           )) {
+            audio_ctx->output_paused = 1;
+        }
+    }
+
+    preroll_ready =
+        status.ready_buffer_count >= AUDIO_PREROLL_BUFFER_COUNT ||
+        (status.producer_finished && status.ready_buffer_count > 0);
+    if(audio_ctx->prerolling && !preroll_ready) {
+        return;
+    }
+
+    audio_ctx->prerolling = 0;
+    if(audio_ctx->output_paused &&
+       sound_pause_channel_owned(
+           audio_ctx->channel,
+           audio_ctx->stream_play_id,
+           0
+       )) {
+        audio_ctx->output_paused = 0;
     }
 }
 

@@ -1432,9 +1432,16 @@ static void sound_mix_stream_channel(
         for(;;) {
             stream_buffer = &stream->buffer[stream->read_buffer];
             if(!stream_buffer->ready) {
+                if(!stream->producer_finished && !stream->underrun_active) {
+                    stream->underrun_active = 1;
+                    if(stream->underrun_count < UINT64_MAX) {
+                        stream->underrun_count++;
+                    }
+                }
                 stream->fp_buffer_position = buffer_position_fixed;
                 return;
             }
+            stream->underrun_active = 0;
 
             buffer_length_fixed = SOUND_SAMPLE_INT_TO_FIX(stream_buffer->frame_count);
             if(buffer_position_fixed < buffer_length_fixed) {
@@ -1444,6 +1451,9 @@ static void sound_mix_stream_channel(
             buffer_position_fixed -= buffer_length_fixed;
             terminal = stream_buffer->terminal;
             stream_buffer->ready = 0;
+            if(stream->ready_buffer_count > 0) {
+                stream->ready_buffer_count--;
+            }
             stream->read_buffer = (stream->read_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
 
             if(terminal) {
@@ -3574,6 +3584,43 @@ int sound_queue_channel_pcm_stream(
     );
     SB_unlock_audio_direct();
     return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Read live-producer queue state only while the supplied play ID still
+* owns the channel. The SDL device lock makes the snapshot coherent with
+* both producer publication and real-time mixer consumption.
+*/
+bool sound_get_channel_pcm_stream_status_owned(
+    int channel,
+    int play_id,
+    s_sound_pcm_stream_status *status
+) {
+    channelstruct *record;
+
+    if(play_id < 0 || !status) {
+        return false;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record ||
+       !sound_channel_pool_is_active(&sound_channel_pool, channel) ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    status->underrun_count = record->stream.underrun_count;
+    status->ready_buffer_count = record->stream.ready_buffer_count;
+    status->producer_finished = record->stream.producer_finished;
+    status->underrun_active = record->stream.underrun_active;
+    SB_unlock_audio();
+    return true;
 }
 
 /*

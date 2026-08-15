@@ -111,6 +111,21 @@ typedef struct
     bool stream;
 } s_soundcache;
 
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Snapshot live-producer buffering without exposing mutable mixer
+* internals. WebM uses this state to complete preroll before enabling
+* output and to detect a genuine PCM underrun after playback starts.
+*/
+typedef struct s_sound_pcm_stream_status {
+    uint64_t underrun_count;
+    unsigned int ready_buffer_count;
+    int producer_finished;
+    int underrun_active;
+} s_sound_pcm_stream_status;
+
 typedef struct s_audio_global
 {
     List samplelist;
@@ -173,6 +188,11 @@ int sound_getpos_sample(int channel);
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset);
 int sound_open_channel_pcm_stream(int channel, int frequency, int channels, int volume);
 int sound_queue_channel_pcm_stream(int channel, int play_id, const void *pcm, uint64_t frame_count, int terminal);
+bool sound_get_channel_pcm_stream_status_owned(
+    int channel,
+    int play_id,
+    s_sound_pcm_stream_status *status
+);
 void sound_close_channel_pcm_stream(int channel, int play_id);
 void sound_close_music();
 void sound_update_music();
