@@ -45,6 +45,9 @@
 #define AUDIO_PACKET_QUEUE_SIZE 64
 #define VIDEO_PACKET_QUEUE_SIZE 512
 #define FRAME_QUEUE_SIZE 10
+#define VIDEO_DECODER_THREAD_MAX 8U
+#define VIDEO_PACKET_QUEUE_BACKPRESSURE_THRESHOLD \
+    ((VIDEO_PACKET_QUEUE_SIZE * 3) / 4)
 #define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
 #define AUDIO_PREROLL_TIMEOUT_MICROSECONDS UINT64_C(2000000)
 
@@ -61,6 +64,7 @@ typedef struct {
     int start;
     int size;
     int max_size;
+    uint64_t replacement_count;
     volatile int *quit;
     bor_mutex *mutex;
     bor_cond *not_full;
@@ -70,6 +74,8 @@ typedef struct {
 
 typedef struct {
     FixedSizeQueue *packet_queue;
+    FixedSizeQueue *video_packet_queue;
+    FixedSizeQueue *video_frame_queue;
     vorbis_context vorbis_ctx;
     int frequency;
     int avail_samples;
@@ -95,6 +101,7 @@ typedef struct {
     int height;
     int display_width;
     int display_height;
+    int playback_paused;
     uint64_t frame_delay;
     volatile int *quit;
 } video_context;
@@ -249,6 +256,7 @@ static FixedSizeQueue *queue_init(int max_size, volatile int *quit)
     queue->start = 0;
     queue->size = 0;
     queue->max_size = max_size;
+    queue->replacement_count = 0;
     queue->quit = quit;
     queue->mutex = mutex_create();
     queue->not_full = cond_create();
@@ -346,6 +354,105 @@ static int queue_try_get(FixedSizeQueue *queue, void **data)
     cond_signal(queue->not_full);
     mutex_unlock(queue->mutex);
     return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Capture queue occupancy and replacement totals only when an underrun is
+* reported. Normal decoding and publication incur no diagnostic polling.
+*/
+static int queue_get_status(
+    FixedSizeQueue *queue,
+    uint64_t *replacement_count
+)
+{
+    int size;
+
+    if(replacement_count) {
+        *replacement_count = 0;
+    }
+    if(!queue) {
+        return -1;
+    }
+
+    mutex_lock(queue->mutex);
+    size = queue->size;
+    if(replacement_count) {
+        *replacement_count = queue->replacement_count;
+    }
+    mutex_unlock(queue->mutex);
+    return size;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Publish decoded frames in timestamp order during ordinary read-ahead.
+* When active playback stalls long enough to fill most of the compressed
+* video reserve, replace the oldest decoded frame instead of allowing video
+* backpressure to stop the shared demuxer and starve audio. Paused playback
+* retains every queued frame and continues using bounded blocking behavior.
+*/
+static int video_frame_queue_insert(
+    video_context *video_ctx,
+    void *data,
+    void **replaced
+)
+{
+    FixedSizeQueue *frame_queue;
+
+    if(!video_ctx || !video_ctx->frame_queue ||
+       !video_ctx->packet_queue || !replaced) {
+        return -1;
+    }
+    frame_queue = video_ctx->frame_queue;
+    *replaced = NULL;
+
+    while(!*frame_queue->quit) {
+        int index;
+        int video_packet_count = queue_get_status(
+            video_ctx->packet_queue,
+            NULL
+        );
+
+        mutex_lock(frame_queue->mutex);
+        if(*frame_queue->quit) {
+            mutex_unlock(frame_queue->mutex);
+            return -1;
+        }
+        if(frame_queue->size == frame_queue->max_size &&
+           !video_ctx->playback_paused &&
+           video_packet_count >=
+               VIDEO_PACKET_QUEUE_BACKPRESSURE_THRESHOLD) {
+            *replaced = frame_queue->data[frame_queue->start];
+            frame_queue->start =
+                (frame_queue->start + 1) % frame_queue->max_size;
+            --frame_queue->size;
+            if(frame_queue->replacement_count < UINT64_MAX) {
+                frame_queue->replacement_count++;
+            }
+        }
+        if(frame_queue->size < frame_queue->max_size) {
+            index = (frame_queue->start + frame_queue->size) %
+                frame_queue->max_size;
+            frame_queue->data[index] = data;
+            ++frame_queue->size;
+            cond_signal(frame_queue->not_empty);
+            mutex_unlock(frame_queue->mutex);
+            return 0;
+        }
+
+        cond_wait_timed(
+            frame_queue->not_full,
+            frame_queue->mutex,
+            10
+        );
+        mutex_unlock(frame_queue->mutex);
+    }
+    return -1;
 }
 
 void queue_destroy(FixedSizeQueue *queue)
@@ -598,12 +705,46 @@ static int audio_thread(void *data)
                    (underrun_count > audio_ctx->reported_underrun_count &&
                     underrun_count - audio_ctx->reported_underrun_count >=
                         UINT64_C(16))) {
+                    s_sound_pcm_stream_status status = { 0 };
+                    uint64_t dropped_frames;
+                    int audio_packets;
+                    int decoded_frames;
+                    int video_packets;
+
+                    sound_get_channel_pcm_stream_status_owned(
+                        audio_ctx->channel,
+                        audio_ctx->stream_play_id,
+                        &status
+                    );
+                    audio_packets = queue_get_status(
+                        audio_ctx->packet_queue,
+                        NULL
+                    );
+                    video_packets = queue_get_status(
+                        audio_ctx->video_packet_queue,
+                        NULL
+                    );
+                    decoded_frames = queue_get_status(
+                        audio_ctx->video_frame_queue,
+                        &dropped_frames
+                    );
                     audio_ctx->reported_underrun_count = underrun_count;
                     printf(
                         "Warning: WebM audio underrun on sound channel %d "
-                        "(%" PRIu64 " total).\n",
+                        "(%" PRIu64 " total): PCM=%u/%u, "
+                        "packets=%d/%d audio and %d/%d video, "
+                        "frames=%d/%d (%" PRIu64 " stale dropped).\n",
                         audio_ctx->channel,
-                        underrun_count
+                        underrun_count,
+                        status.ready_buffer_count,
+                        SOUND_STREAM_BUFFER_COUNT,
+                        audio_packets,
+                        AUDIO_PACKET_QUEUE_SIZE,
+                        video_packets,
+                        VIDEO_PACKET_QUEUE_SIZE,
+                        decoded_frames,
+                        FRAME_QUEUE_SIZE,
+                        dropped_frames
                     );
                 }
             }
@@ -887,6 +1028,8 @@ static int video_thread(void *data)
             }
             while((img = vpx_codec_get_frame(&ctx->vpx_ctx, &iter)))
             {
+                void *replaced_frame = NULL;
+
                 if(img->d_w != (unsigned int)ctx->width ||
                    img->d_h != (unsigned int)ctx->height) {
                     printf("Error: WebM frame dimensions changed during playback\n");
@@ -910,12 +1053,17 @@ static int video_thread(void *data)
                     memcpy(frame->cb+(y*img->d_w/2), img->planes[2]+(y*img->stride[2]), img->d_w / 2);
                 }
 
-                if (queue_insert(ctx->frame_queue, (void *)frame) < 0)
+                if(video_frame_queue_insert(
+                    ctx,
+                    (void *)frame,
+                    &replaced_frame
+                ) < 0)
                 {
                     debug_printf("destroying last frame\n");
                     yuv_frame_destroy(frame);
                     break;
                 }
+                yuv_frame_destroy((yuv_frame *)replaced_frame);
                 timestamp = timestamp <= UINT64_MAX - frame_delay
                     ? timestamp + frame_delay
                     : UINT64_MAX;
@@ -925,18 +1073,70 @@ static int video_thread(void *data)
         nestegg_free_packet(pkt);
     }
 
-    queue_insert(ctx->frame_queue, NULL);
+    {
+        void *replaced_frame = NULL;
+
+        if(video_frame_queue_insert(
+            ctx,
+            NULL,
+            &replaced_frame
+        ) == 0) {
+            yuv_frame_destroy((yuv_frame *)replaced_frame);
+        }
+    }
     return 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Select a bounded VP8 worker count from source resolution and available
+* logical processors. Multi-core systems retain one processor for the main
+* engine and audio when possible, while one- and two-core devices remain
+* able to use every processor required for practical decoding.
+*/
+static unsigned int video_decoder_thread_count(
+    unsigned int width,
+    unsigned int height
+)
+{
+    uint64_t pixel_count = (uint64_t)width * (uint64_t)height;
+    unsigned int resolution_limit;
+    unsigned int threads;
+    int cpu_count = SDL_GetCPUCount();
+
+    if(pixel_count <= UINT64_C(640) * UINT64_C(480)) {
+        resolution_limit = 1;
+    } else if(pixel_count <= UINT64_C(1280) * UINT64_C(720)) {
+        resolution_limit = 2;
+    } else if(pixel_count <= UINT64_C(1920) * UINT64_C(1080)) {
+        resolution_limit = 4;
+    } else {
+        resolution_limit = VIDEO_DECODER_THREAD_MAX;
+    }
+
+    threads = cpu_count > 0 ? (unsigned int)cpu_count : 1U;
+    if(threads > 2U) {
+        --threads;
+    }
+    if(threads > resolution_limit) {
+        threads = resolution_limit;
+    }
+    if(threads > VIDEO_DECODER_THREAD_MAX) {
+        threads = VIDEO_DECODER_THREAD_MAX;
+    }
+    return threads ? threads : 1U;
 }
 
 // returns 0 on success, -1 on error
 /*
 * Caskey, Damon V.
-* 2026-08-13
+* 2026-08-15
 *
-* Initialize the video decoder and queues against their owning stop
-* state. DefaultDuration is optional - packet timestamps and packet
-* duration retain playback timing when the track omits it.
+* Initialize a resolution-aware multithreaded video decoder and queues
+* against their owning stop state. DefaultDuration is optional - packet
+* timestamps and packet duration retain playback timing when omitted.
 */
 static int init_video(
     nestegg *nestegg_ctx,
@@ -946,6 +1146,7 @@ static int init_video(
 )
 {
     nestegg_video_params video_params;
+    vpx_codec_dec_cfg_t decoder_config = { 0 };
     int has_default_duration;
 
     if(nestegg_track_video_params(nestegg_ctx, track, &video_params) < 0) {
@@ -966,7 +1167,18 @@ static int init_video(
         return -1;
     }
 
-    if (vpx_codec_dec_init(&(video_ctx->vpx_ctx), vpx_codec_vp8_dx(), NULL, 0))
+    decoder_config.threads = video_decoder_thread_count(
+        video_params.width,
+        video_params.height
+    );
+    decoder_config.w = video_params.width;
+    decoder_config.h = video_params.height;
+    if(vpx_codec_dec_init(
+        &(video_ctx->vpx_ctx),
+        vpx_codec_vp8_dx(),
+        &decoder_config,
+        0
+    ))
     {
         printf("Error: failed to initialize libvpx\n");
         return -1;
@@ -975,6 +1187,7 @@ static int init_video(
     video_ctx->height = video_params.height;
     video_ctx->display_width = video_params.display_width;
     video_ctx->display_height = video_params.display_height;
+    video_ctx->playback_paused = 1;
     has_default_duration = nestegg_track_default_duration(
         nestegg_ctx,
         track,
@@ -991,6 +1204,11 @@ static int init_video(
             video_params.width, video_params.height,
             video_params.display_width, video_params.display_height);
     }
+    printf(
+        "Video decoder: %u thread%s.\n",
+        decoder_config.threads,
+        decoder_config.threads == 1U ? "" : "s"
+    );
     video_ctx->quit = quit;
     video_ctx->packet_queue = queue_init(VIDEO_PACKET_QUEUE_SIZE, quit);
     video_ctx->frame_queue = queue_init(FRAME_QUEUE_SIZE, quit);
@@ -1225,6 +1443,10 @@ webm_context *webm_start_playback_ex(
             replace_all_audio,
             &ctx->quit
         ) == 0) {
+            ctx->audio_ctx.video_packet_queue =
+                ctx->video_ctx.packet_queue;
+            ctx->audio_ctx.video_frame_queue =
+                ctx->video_ctx.frame_queue;
             ctx->the_audio_thread = thread_create(audio_thread, "audio", &(ctx->audio_ctx));
             if(!ctx->the_audio_thread) {
                 printf("Error: Unable to start WebM audio decoder thread\n");
@@ -1284,8 +1506,8 @@ void webm_close(webm_context *ctx)
     ctx->quit = 1;
     if(ctx->the_demux_thread) thread_join(ctx->the_demux_thread);
     if(ctx->the_video_thread) thread_join(ctx->the_video_thread);
-    close_video(&(ctx->video_ctx));
     if(ctx->the_audio_thread) thread_join(ctx->the_audio_thread);
+    close_video(&(ctx->video_ctx));
     if(ctx->audio_track >= 0) close_audio(&(ctx->audio_ctx));
     if(ctx->nestegg_ctx) nestegg_destroy(ctx->nestegg_ctx);
     if(ctx->io_ctx.packhandle >= 0) closepackfile(ctx->io_ctx.packhandle);
@@ -1317,19 +1539,28 @@ uint64_t webm_get_duration(webm_context *ctx)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Apply pause state only when it actually changes. Initial PCM preroll is
-* completed synchronously before the movie clock begins, so ordinary frame
-* updates never need to poll stream status or lock the SDL audio device.
+* Apply pause state to decoder backpressure and audio output. Initial PCM
+* preroll is completed synchronously before the movie clock begins, so
+* ordinary frame updates never need to poll stream status.
 */
 void webm_set_audio_paused(webm_context *ctx, int paused)
 {
     audio_context *audio_ctx;
 
-    if(!ctx || ctx->audio_track < 0) {
+    if(!ctx) {
         return;
     }
-    audio_ctx = &ctx->audio_ctx;
     paused = paused != 0;
+    if(ctx->video_ctx.frame_queue) {
+        mutex_lock(ctx->video_ctx.frame_queue->mutex);
+        ctx->video_ctx.playback_paused = paused;
+        mutex_unlock(ctx->video_ctx.frame_queue->mutex);
+    }
+    if(ctx->audio_track < 0) {
+        return;
+    }
+
+    audio_ctx = &ctx->audio_ctx;
     if(audio_ctx->output_paused == paused) {
         return;
     }
