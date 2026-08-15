@@ -37,7 +37,7 @@ static const s_movie_property_info movie_properties[] = {
       "MOVIE_PROPERTY_DURATION", VT_UINTEGER64 },
     { MOVIE_PROPERTY_HEIGHT, PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
       PROPERTY_MEMBER_OFFSET(s_movie_playback, height),
-      "MOVIE_PROPERTY_HEIGHT", VT_INTEGER },
+      "MOVIE_PROPERTY_HEIGHT", VT_UINTEGER64 },
     { MOVIE_PROPERTY_INTERRUPT, PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
       PROPERTY_MEMBER_OFFSET(s_movie_playback, interrupt),
       "MOVIE_PROPERTY_INTERRUPT", VT_INTEGER },
@@ -67,7 +67,7 @@ static const s_movie_property_info movie_properties[] = {
       "MOVIE_PROPERTY_SPEED", VT_DECIMAL },
     { MOVIE_PROPERTY_WIDTH, PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
       PROPERTY_MEMBER_OFFSET(s_movie_playback, width),
-      "MOVIE_PROPERTY_WIDTH", VT_INTEGER },
+      "MOVIE_PROPERTY_WIDTH", VT_UINTEGER64 },
     { MOVIE_PROPERTY_END, PROPERTY_ACCESS_CONFIG_NONE, 0,
       "Movie", VT_EMPTY }
 };
@@ -480,8 +480,8 @@ HRESULT openbor_movie_set_property(
                 movie_playback_set_black_filter(playback, integer_value != 0);
             break;
         case MOVIE_PROPERTY_HEIGHT:
-            result = SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &integer_value)) &&
-                movie_playback_set_height(playback, (int)integer_value);
+            result = SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[2], &unsigned_value)) &&
+                movie_playback_set_height(playback, unsigned_value);
             break;
         case MOVIE_PROPERTY_INTERRUPT:
             result = SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &integer_value)) &&
@@ -512,8 +512,8 @@ HRESULT openbor_movie_set_property(
                 movie_playback_set_speed(playback, decimal_value);
             break;
         case MOVIE_PROPERTY_WIDTH:
-            result = SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &integer_value)) &&
-                movie_playback_set_width(playback, (int)integer_value);
+            result = SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[2], &unsigned_value)) &&
+                movie_playback_set_width(playback, unsigned_value);
             break;
         case MOVIE_PROPERTY_ACTIVE:
         case MOVIE_PROPERTY_CHANNEL:

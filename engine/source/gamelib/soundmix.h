@@ -117,7 +117,7 @@ typedef struct
 *
 * Snapshot live-producer buffering without exposing mutable mixer
 * internals. WebM uses this state to complete preroll before enabling
-* output and to detect a genuine PCM underrun after playback starts.
+* output. Ongoing underrun telemetry rides the normal publication call.
 */
 typedef struct s_sound_pcm_stream_status {
     uint64_t underrun_count;
@@ -187,7 +187,15 @@ bool sound_set_channel_volume_divisor(int channel, int volume_divisor);
 int sound_getpos_sample(int channel);
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset);
 int sound_open_channel_pcm_stream(int channel, int frequency, int channels, int volume);
-int sound_queue_channel_pcm_stream(int channel, int play_id, const void *pcm, uint64_t frame_count, int terminal);
+int sound_queue_channel_pcm_stream(
+    int channel,
+    int play_id,
+    const void *pcm,
+    uint64_t frame_count,
+    int terminal,
+    uint64_t *underrun_count,
+    unsigned int *retry_delay_microseconds
+);
 bool sound_get_channel_pcm_stream_status_owned(
     int channel,
     int play_id,

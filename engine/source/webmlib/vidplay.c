@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <assert.h>
 #include <limits.h>
@@ -36,12 +37,13 @@
 * 2026-08-15
 *
 * Keep enough compressed packets ahead of both decoders that a full
-* video queue does not repeatedly stop the shared demuxer before it can
-* deliver the next audio packets. PCM output remains separately bounded
-* by the generic sound stream ring.
+* video queue does not stop the shared demuxer before the audio packet
+* reserve fills. Video needs more packet slots because its packet rate
+* may greatly exceed the audio rate. Queue allocation stores pointers;
+* PCM output remains separately bounded by the generic stream ring.
 */
 #define AUDIO_PACKET_QUEUE_SIZE 64
-#define VIDEO_PACKET_QUEUE_SIZE 64
+#define VIDEO_PACKET_QUEUE_SIZE 512
 #define FRAME_QUEUE_SIZE 10
 #define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
 #define AUDIO_PREROLL_TIMEOUT_MICROSECONDS UINT64_C(2000000)
@@ -76,9 +78,9 @@ typedef struct {
     int stream_play_id;
     int output_active;
     int output_paused;
-    int prerolling;
     int aligning;
     uint64_t observed_underrun_count;
+    uint64_t reported_underrun_count;
     uint64_t output_timestamp;
     uint64_t leading_silence_frames;
     volatile int *quit;
@@ -526,6 +528,14 @@ static int audio_decode_frame(
     return samples_written * vorbis_ctx->channels * (int)sizeof(int16_t);
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Decode and publish WebM audio from an elevated-priority producer.
+* High-resolution VP8 decoding and software composition must not prevent
+* this thread from replenishing the real-time mixer's PCM reserve.
+*/
 static int audio_thread(void *data)
 {
     audio_context *audio_ctx = (audio_context *)data;
@@ -533,6 +543,11 @@ static int audio_thread(void *data)
     int frame_count;
     int queue_result;
     int terminal;
+    unsigned int retry_delay_microseconds;
+    uint64_t underrun_count;
+
+    /* Priority elevation may be denied on restricted platforms. */
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 
     while(!*audio_ctx->quit)
     {
@@ -567,12 +582,31 @@ static int audio_thread(void *data)
                     audio_ctx->stream_play_id,
                     frame_count > 0 ? audio_ctx->pcm_buffer : NULL,
                     (uint64_t)frame_count,
-                    terminal
+                    terminal,
+                    &underrun_count,
+                    &retry_delay_microseconds
                 );
                 if(queue_result == 0) {
-                    usleep(1000);
+                    usleep(retry_delay_microseconds);
                 }
             } while(!*audio_ctx->quit && queue_result == 0);
+
+            if(queue_result > 0 &&
+               underrun_count != audio_ctx->observed_underrun_count) {
+                audio_ctx->observed_underrun_count = underrun_count;
+                if(!audio_ctx->reported_underrun_count ||
+                   (underrun_count > audio_ctx->reported_underrun_count &&
+                    underrun_count - audio_ctx->reported_underrun_count >=
+                        UINT64_C(16))) {
+                    audio_ctx->reported_underrun_count = underrun_count;
+                    printf(
+                        "Warning: WebM audio underrun on sound channel %d "
+                        "(%" PRIu64 " total).\n",
+                        audio_ctx->channel,
+                        underrun_count
+                    );
+                }
+            }
 
             if(queue_result < 0) {
                 /*
@@ -699,7 +733,7 @@ static int init_audio(
         return -1;
     }
     printf("Audio track: %f Hz, %d channels, %d bits/sample\n",
-            audioParams.rate, audioParams.channels, audioParams.depth / audioParams.channels);
+            audioParams.rate, audioParams.channels, audioParams.depth);
     if(audio_ctx->frequency < SOUND_MUSIC_FREQUENCY_MIN ||
        audio_ctx->frequency > SOUND_MUSIC_FREQUENCY_MAX)
     {
@@ -757,7 +791,6 @@ static int init_audio(
         return -1;
     }
     audio_ctx->output_paused = 1;
-    audio_ctx->prerolling = 1;
     {
         s_sound_pcm_stream_status status;
 
@@ -998,11 +1031,25 @@ static void close_video(video_context *video_ctx)
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Route container packets to their decoder queues. WebM playback with
+* audio elevates this shared producer so video work cannot prevent it
+* from restoring the compressed audio reserve.
+*/
 static int demux_thread(void *data)
 {
     webm_context *ctx = (webm_context *)data;
     nestegg_packet *pkt;
     int r;
+
+    if(ctx->audio_track >= 0) {
+        /* Priority elevation may be denied on restricted platforms. */
+        SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
+    }
+
     while ((r = nestegg_read_packet(ctx->nestegg_ctx, &pkt)) > 0)
     {
         unsigned int track;
@@ -1270,75 +1317,29 @@ uint64_t webm_get_duration(webm_context *ctx)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Apply requested pause state while retaining an internal preroll gate.
-* New and starved streams remain paused until most PCM buffers are ready,
-* preventing the mixer from alternating abruptly between decoded samples
-* and absolute silence. Short terminal streams may start with fewer buffers.
+* Apply pause state only when it actually changes. Initial PCM preroll is
+* completed synchronously before the movie clock begins, so ordinary frame
+* updates never need to poll stream status or lock the SDL audio device.
 */
 void webm_set_audio_paused(webm_context *ctx, int paused)
 {
     audio_context *audio_ctx;
-    s_sound_pcm_stream_status status;
-    int preroll_ready;
 
     if(!ctx || ctx->audio_track < 0) {
         return;
     }
     audio_ctx = &ctx->audio_ctx;
-
-    if(paused) {
-        audio_ctx->prerolling = 1;
-        if(!audio_ctx->output_paused &&
-           sound_pause_channel_owned(
-               audio_ctx->channel,
-               audio_ctx->stream_play_id,
-               1
-           )) {
-            audio_ctx->output_paused = 1;
-        }
+    paused = paused != 0;
+    if(audio_ctx->output_paused == paused) {
         return;
     }
 
-    if(!sound_get_channel_pcm_stream_status_owned(
+    if(sound_pause_channel_owned(
         audio_ctx->channel,
         audio_ctx->stream_play_id,
-        &status
+        paused
     )) {
-        return;
-    }
-
-    if(status.underrun_count != audio_ctx->observed_underrun_count) {
-        audio_ctx->observed_underrun_count = status.underrun_count;
-        printf(
-            "Warning: WebM audio underrun on sound channel %d; rebuilding PCM reserve.\n",
-            audio_ctx->channel
-        );
-        audio_ctx->prerolling = 1;
-        if(!audio_ctx->output_paused &&
-           sound_pause_channel_owned(
-               audio_ctx->channel,
-               audio_ctx->stream_play_id,
-               1
-           )) {
-            audio_ctx->output_paused = 1;
-        }
-    }
-
-    preroll_ready =
-        status.ready_buffer_count >= AUDIO_PREROLL_BUFFER_COUNT ||
-        (status.producer_finished && status.ready_buffer_count > 0);
-    if(audio_ctx->prerolling && !preroll_ready) {
-        return;
-    }
-
-    audio_ctx->prerolling = 0;
-    if(audio_ctx->output_paused &&
-       sound_pause_channel_owned(
-           audio_ctx->channel,
-           audio_ctx->stream_play_id,
-           0
-       )) {
-        audio_ctx->output_paused = 0;
+        audio_ctx->output_paused = paused;
     }
 }
 

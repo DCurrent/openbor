@@ -147,6 +147,44 @@ static s_screen *movie_playback_alloc_screen(int width, int height)
     return screen;
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Resolve each creator-selected composition dimension. Zero follows the
+* destination screen, MOVIE_SIZE_NATIVE follows the decoded video, and an
+* explicit positive value requests that exact processing size.
+*/
+static bool movie_playback_resolve_dimensions(
+    const s_movie_playback *playback,
+    const s_screen *destination,
+    int *width,
+    int *height
+)
+{
+    uint64_t resolved_width = playback->width;
+    uint64_t resolved_height = playback->height;
+
+    if(resolved_width == 0) {
+        resolved_width = (uint64_t)destination->width;
+    } else if(resolved_width == MOVIE_SIZE_NATIVE) {
+        resolved_width = (uint64_t)playback->current_frame->width;
+    }
+    if(resolved_height == 0) {
+        resolved_height = (uint64_t)destination->height;
+    } else if(resolved_height == MOVIE_SIZE_NATIVE) {
+        resolved_height = (uint64_t)playback->current_frame->height;
+    }
+
+    if(resolved_width > (uint64_t)INT_MAX ||
+       resolved_height > (uint64_t)INT_MAX) {
+        return false;
+    }
+    *width = (int)resolved_width;
+    *height = (int)resolved_height;
+    return movie_playback_dimensions_valid(*width, *height);
+}
+
 static char *movie_copy_path(const char *path)
 {
     char *copy;
@@ -732,21 +770,6 @@ static bool movie_playback_open_media(
         if(playback->rgb_frame) freescreen(&playback->rgb_frame);
         if(playback->scaled_frame) freescreen(&playback->scaled_frame);
     }
-    if(!playback->rgb_frame) {
-        playback->rgb_frame = movie_playback_alloc_screen(
-            playback->video_mode.width,
-            playback->video_mode.height
-        );
-    }
-    if(!playback->rgb_frame) {
-        printf(
-            "Error: Unable to allocate %d*%d movie conversion screen.\n",
-            playback->video_mode.width,
-            playback->video_mode.height
-        );
-        movie_playback_close_decoder(playback);
-        return false;
-    }
 
     playback->position_anchor = position;
     playback->clock_anchor = timer_uticks();
@@ -853,10 +876,42 @@ void movie_playback_stop_all(void)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-15
 *
-* Convert and scale a current frame only when its pixels or
-* destination dimensions change, then reuse it for composition.
+* Protect absolute black after conversion when a movie frame will be drawn
+* into a subscreen that reserves RGB 0,0,0 as its transparency mask.
+*/
+static void movie_playback_filter_black(
+    const s_movie_playback *playback,
+    s_screen *frame
+)
+{
+    size_t pixel_count;
+    size_t pixel_index;
+    uint32_t *pixel;
+    uint32_t protected_black;
+
+    if(!playback->black_filter) {
+        return;
+    }
+
+    pixel_count = (size_t)frame->width * (size_t)frame->height;
+    pixel = (uint32_t *)frame->data;
+    protected_black = colour32(1, 1, 1);
+    for(pixel_index = 0; pixel_index < pixel_count; pixel_index++) {
+        if(pixel[pixel_index] == 0) {
+            pixel[pixel_index] = protected_black;
+        }
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Convert a current frame only when its pixels or destination dimensions
+* change. Resized output converts directly from YUV at the requested size,
+* avoiding a full-resolution RGB conversion and subsequent scaling pass.
 */
 static bool movie_playback_prepare_frame(
     s_movie_playback *playback,
@@ -864,43 +919,40 @@ static bool movie_playback_prepare_frame(
     s_screen **render_frame
 )
 {
-    int refresh = playback->frame_dirty;
-    int width = playback->width ? playback->width : destination->width;
-    int height = playback->height ? playback->height : destination->height;
+    int height;
+    int width;
 
-    if(!playback->current_frame || !playback->rgb_frame) {
+    if(!playback->current_frame) {
         return false;
     }
-    if(width < 1 || height < 1 ||
-       !movie_playback_dimensions_valid(width, height)) {
+    if(!movie_playback_resolve_dimensions(
+        playback,
+        destination,
+        &width,
+        &height
+    )) {
         return false;
     }
 
-    if(refresh) {
-        size_t pixel_count;
-        size_t pixel_index;
-        uint32_t *pixel;
-        uint32_t protected_black;
-
-        yuv_to_rgb(playback->current_frame, playback->rgb_frame);
+    if(playback->frame_dirty) {
+        playback->rgb_frame_dirty = 1;
         playback->scaled_frame_dirty = 1;
-        if(playback->black_filter) {
-            pixel_count =
-                (size_t)playback->rgb_frame->width *
-                (size_t)playback->rgb_frame->height;
-            pixel = (uint32_t*)playback->rgb_frame->data;
-            protected_black = colour32(1, 1, 1);
-            for(pixel_index = 0;
-                pixel_index < pixel_count;
-                pixel_index++) {
-                if(pixel[pixel_index] == 0) {
-                    pixel[pixel_index] = protected_black;
-                }
-            }
-        }
     }
-    if(width == playback->rgb_frame->width &&
-       height == playback->rgb_frame->height) {
+
+    if(width == playback->current_frame->width &&
+       height == playback->current_frame->height) {
+        if(!playback->rgb_frame) {
+            playback->rgb_frame = movie_playback_alloc_screen(width, height);
+            playback->rgb_frame_dirty = 1;
+        }
+        if(!playback->rgb_frame) {
+            return false;
+        }
+        if(playback->rgb_frame_dirty) {
+            yuv_to_rgb(playback->current_frame, playback->rgb_frame);
+            movie_playback_filter_black(playback, playback->rgb_frame);
+            playback->rgb_frame_dirty = 0;
+        }
         playback->frame_dirty = 0;
         *render_frame = playback->rgb_frame;
         return true;
@@ -913,17 +965,23 @@ static bool movie_playback_prepare_frame(
     }
     if(!playback->scaled_frame) {
         playback->scaled_frame = movie_playback_alloc_screen(width, height);
-        refresh = 1;
+        playback->scaled_frame_dirty = 1;
     }
     if(!playback->scaled_frame) {
         return false;
     }
-    if(refresh || playback->scaled_frame_dirty) {
-        scalescreen32(playback->scaled_frame, playback->rgb_frame);
+    if(playback->scaled_frame_dirty) {
+        if(!yuv_to_rgb_scaled(
+            playback->current_frame,
+            playback->scaled_frame
+        )) {
+            return false;
+        }
+        movie_playback_filter_black(playback, playback->scaled_frame);
+        playback->scaled_frame_dirty = 0;
     }
 
     playback->frame_dirty = 0;
-    playback->scaled_frame_dirty = 0;
     *render_frame = playback->scaled_frame;
     return true;
 }
@@ -1129,11 +1187,6 @@ void movie_playback_update(int interrupt_requested)
             continue;
         }
 
-        webm_set_audio_paused(
-            playback->context,
-            playback->paused || playback->speed <= 0.0
-        );
-
         position = movie_playback_position_now(playback, now);
         playback->position = position / UINT64_C(1000000);
         if(playback->duration && playback->position > playback->duration) {
@@ -1233,9 +1286,10 @@ bool movie_playback_draw_to_screen(s_screen *screen, int channel)
 * Property mutation helpers preserve decoder, timing, audio,
 * scaling, signed-rate, and external screen invariants.
 */
-bool movie_playback_set_height(s_movie_playback *playback, int height)
+bool movie_playback_set_height(s_movie_playback *playback, uint64_t height)
 {
-    if(movie_playback_get_index(playback) < 0 || height < 0) {
+    if(movie_playback_get_index(playback) < 0 ||
+       (height != MOVIE_SIZE_NATIVE && height > (uint64_t)INT_MAX)) {
         return false;
     }
     playback->height = height;
@@ -1420,9 +1474,10 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
     return true;
 }
 
-bool movie_playback_set_width(s_movie_playback *playback, int width)
+bool movie_playback_set_width(s_movie_playback *playback, uint64_t width)
 {
-    if(movie_playback_get_index(playback) < 0 || width < 0) {
+    if(movie_playback_get_index(playback) < 0 ||
+       (width != MOVIE_SIZE_NATIVE && width > (uint64_t)INT_MAX)) {
         return false;
     }
     playback->width = width;

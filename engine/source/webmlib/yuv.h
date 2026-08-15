@@ -13,6 +13,8 @@
 
 typedef struct {
     u64 timestamp;
+    int width;
+    int height;
     void *lum;
     void *cb;
     void *cr;
@@ -39,5 +41,8 @@ void yuv_clear(void);
 
 // Performs YUV->RGB color conversion on a single frame; requires initialized context
 void yuv_to_rgb(yuv_frame *in, s_screen *out);
+
+// Converts and nearest-neighbor scales a YUV frame directly to a 32-bit screen
+bool yuv_to_rgb_scaled(const yuv_frame *in, s_screen *out);
 
 #endif

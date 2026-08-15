@@ -149,6 +149,8 @@ yuv_frame *yuv_frame_create(int width, int height)
         yuv_frame_destroy(frame);
         return NULL;
     }
+    frame->width = width;
+    frame->height = height;
     return frame;
 }
 
@@ -421,4 +423,96 @@ void yuv_to_rgb(yuv_frame *in, s_screen *out)
 #else
     convert(in->lum, in->cr, in->cb, out->data, out->height, out->width, 0);
 #endif
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Convert YUV 4:2:0 directly into the requested 32-bit output dimensions.
+* Nearest-neighbor source selection matches the movie compositing scaler
+* without first converting every full-resolution source pixel.
+*/
+bool yuv_to_rgb_scaled(const yuv_frame *in, s_screen *out)
+{
+    const unsigned char *cb;
+    const unsigned char *cr;
+    const unsigned char *lum;
+    uint32_t *destination;
+    uint64_t x_step;
+    uint64_t y_position = 0;
+    uint64_t y_step;
+    int chroma_width;
+    int destination_x;
+    int destination_y;
+
+    if(!yuv_initialized || bytes_per_pixel != 4 || !in || !out ||
+       !in->lum || !in->cb || !in->cr ||
+       in->width < 2 || in->height < 2 ||
+       (in->width & 1) || (in->height & 1) ||
+       out->width < 1 || out->height < 1 ||
+       pixelbytes[out->pixelformat] != 4) {
+        return false;
+    }
+
+    lum = (const unsigned char *)in->lum;
+#if REVERSE_COLOR
+    cr = (const unsigned char *)in->cb;
+    cb = (const unsigned char *)in->cr;
+#else
+    cr = (const unsigned char *)in->cr;
+    cb = (const unsigned char *)in->cb;
+#endif
+    destination = (uint32_t *)out->data;
+    chroma_width = in->width / 2;
+    x_step = ((uint64_t)in->width << 16) / (uint64_t)out->width;
+    y_step = ((uint64_t)in->height << 16) / (uint64_t)out->height;
+
+    for(destination_y = 0;
+        destination_y < out->height;
+        destination_y++) {
+        const unsigned char *cb_row;
+        const unsigned char *cr_row;
+        const unsigned char *lum_row;
+        uint64_t x_position = 0;
+        int source_y = (int)(y_position >> 16);
+
+        if(source_y >= in->height) {
+            source_y = in->height - 1;
+        }
+        cb_row = cb + (source_y / 2) * chroma_width;
+        cr_row = cr + (source_y / 2) * chroma_width;
+        lum_row = lum + source_y * in->width;
+
+        for(destination_x = 0;
+            destination_x < out->width;
+            destination_x++) {
+            int cb_value;
+            int cb_b;
+            int cr_value;
+            int cr_r;
+            int crb_g;
+            int luminance;
+            int source_x = (int)(x_position >> 16);
+
+            if(source_x >= in->width) {
+                source_x = in->width - 1;
+            }
+            cb_value = cb_row[source_x / 2];
+            cr_value = cr_row[source_x / 2];
+            cr_r = 256 + colortab[cr_value];
+            crb_g = 768 + 256 +
+                colortab[cr_value + 256] +
+                colortab[cb_value + 512];
+            cb_b = 1536 + 256 + colortab[cb_value + 768];
+            luminance = lum_row[source_x];
+            *destination++ =
+                rgb_2_pix[luminance + cr_r] |
+                rgb_2_pix[luminance + crb_g] |
+                rgb_2_pix[luminance + cb_b];
+            x_position += x_step;
+        }
+        y_position += y_step;
+    }
+    return true;
 }

@@ -19,6 +19,7 @@
 #define MOVIE_CHANNEL_AUTO (-1)
 #define MOVIE_SPEED_MIN (-16.0)
 #define MOVIE_SPEED_MAX 16.0
+#define MOVIE_SIZE_NATIVE UINT64_MAX
 
 typedef enum e_movie_loading_mode {
     MOVIE_LOADING_STREAM,
@@ -46,8 +47,8 @@ typedef struct s_movie_playback {
     int black_filter;
     int offset_x;
     int offset_y;
-    int width;
-    int height;
+    uint64_t width;
+    uint64_t height;
     int sound_channel;
     int source_id;
     float speed;
@@ -65,6 +66,7 @@ typedef struct s_movie_playback {
     int volume;
     bool replace_all_audio;
     int frame_dirty;
+    int rgb_frame_dirty;
     int scaled_frame_dirty;
     int reverse_pending;
     int terminal_pending;
@@ -94,7 +96,7 @@ bool movie_playback_draw_to_screen(s_screen *screen, int channel);
 void movie_playback_stop(s_movie_playback *playback);
 void movie_playback_stop_all(void);
 
-bool movie_playback_set_height(s_movie_playback *playback, int height);
+bool movie_playback_set_height(s_movie_playback *playback, uint64_t height);
 bool movie_playback_set_black_filter(
     s_movie_playback *playback,
     int black_filter
@@ -115,6 +117,6 @@ bool movie_playback_set_sound_channel(
     int volume
 );
 bool movie_playback_set_speed(s_movie_playback *playback, double speed);
-bool movie_playback_set_width(s_movie_playback *playback, int width);
+bool movie_playback_set_width(s_movie_playback *playback, uint64_t width);
 
 #endif

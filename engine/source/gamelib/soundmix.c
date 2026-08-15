@@ -3546,11 +3546,75 @@ int sound_open_channel_pcm_stream(
 
 /*
 * Caskey, Damon V.
-* 2026-08-05
+* 2026-08-15
 *
-* Copy one live PCM block into a generic channel's
-* rotating queue. Direct SDL locking is used because
-* producers such as WebM publish from decoder threads.
+* Estimate when a full producer ring will release its next slot. The
+* decoder wakes shortly before that boundary, with a 50 millisecond cap
+* so pause, stop, and ownership changes remain responsive.
+*/
+static unsigned int sound_stream_producer_retry_delay_microseconds(
+    const channelstruct *record
+) {
+    const s_sound_stream *stream;
+    const s_sound_stream_buffer *read_buffer;
+    const uint64_t delay_maximum = UINT64_C(50000);
+    const uint64_t delay_minimum = UINT64_C(1000);
+    const uint64_t delay_margin = UINT64_C(1000);
+    sound_sample_fixed_t buffer_length;
+    sound_sample_fixed_t remaining;
+    uint64_t output_frames;
+    uint64_t maximum_delay_frames;
+    uint64_t delay;
+
+    if(!record || record->fp_period == 0 || playfrequency <= 0) {
+        return (unsigned int)delay_minimum;
+    }
+
+    stream = &record->stream;
+    read_buffer = &stream->buffer[stream->read_buffer];
+    if(!read_buffer->ready) {
+        return (unsigned int)delay_minimum;
+    }
+
+    buffer_length = SOUND_SAMPLE_INT_TO_FIX(read_buffer->frame_count);
+    if(stream->fp_buffer_position >= buffer_length) {
+        return (unsigned int)delay_minimum;
+    }
+
+    remaining = buffer_length - stream->fp_buffer_position;
+    output_frames = remaining / record->fp_period;
+    if(remaining % record->fp_period) {
+        output_frames++;
+    }
+
+    maximum_delay_frames =
+        ((uint64_t)playfrequency * delay_maximum + UINT64_C(999999)) /
+        UINT64_C(1000000);
+    if(output_frames >= maximum_delay_frames) {
+        return (unsigned int)delay_maximum;
+    }
+
+    delay = output_frames * UINT64_C(1000000) /
+        (uint64_t)playfrequency;
+    delay = delay > delay_margin
+        ? delay - delay_margin
+        : delay_minimum;
+    if(delay < delay_minimum) {
+        delay = delay_minimum;
+    }
+    return (unsigned int)delay;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Copy one live PCM block into a generic channel's rotating queue.
+* Direct SDL locking is used because producers such as WebM publish
+* from decoder threads. Optional telemetry is captured while the same
+* lock is held so producers do not need a second status query. Full
+* queues return a bounded retry delay instead of encouraging millisecond
+* polling against the SDL device lock.
 *
 * Returns 1 when queued, 0 while all buffers are ready,
 * and -1 after replacement or malformed input.
@@ -3560,10 +3624,19 @@ int sound_queue_channel_pcm_stream(
     int play_id,
     const void *pcm,
     uint64_t frame_count,
-    int terminal
+    int terminal,
+    uint64_t *underrun_count,
+    unsigned int *retry_delay_microseconds
 ) {
     channelstruct *record;
     int result;
+
+    if(underrun_count) {
+        *underrun_count = 0;
+    }
+    if(retry_delay_microseconds) {
+        *retry_delay_microseconds = 1000U;
+    }
 
     SB_lock_audio_direct();
     record = sound_channel_pool_get(&sound_channel_pool, channel);
@@ -3582,6 +3655,13 @@ int sound_queue_channel_pcm_stream(
         frame_count,
         terminal
     );
+    if(underrun_count) {
+        *underrun_count = record->stream.underrun_count;
+    }
+    if(result == 0 && retry_delay_microseconds) {
+        *retry_delay_microseconds =
+            sound_stream_producer_retry_delay_microseconds(record);
+    }
     SB_unlock_audio_direct();
     return result;
 }
