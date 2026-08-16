@@ -1084,8 +1084,10 @@ static bool movie_playback_render_to(
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Poll forward-decoded frames without blocking. Reverse seeks
-* retain pending state until reaching the requested timestamp.
+* Poll only the decoded frames present when this update begins. A decoder
+* producing stale frames must not refill the queue faster than the main thread
+* can empty it and turn one nonblocking poll into an unbounded engine stall.
+* Reverse seeks retain pending state until reaching the requested timestamp.
 */
 static void movie_playback_poll_frames(
     s_movie_playback *playback,
@@ -1093,9 +1095,13 @@ static void movie_playback_poll_frames(
     int *terminal
 )
 {
+    int remaining = webm_get_pending_frame_count(playback->context);
     int promoted = 0;
 
-    while(1) {
+    if(playback->next_frame) {
+        ++remaining;
+    }
+    while(remaining-- > 0) {
         int result;
 
         if(!playback->next_frame) {

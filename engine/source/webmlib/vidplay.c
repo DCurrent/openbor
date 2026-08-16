@@ -48,6 +48,8 @@
 #define VIDEO_DECODER_THREAD_MAX 8U
 #define VIDEO_PACKET_QUEUE_BACKPRESSURE_THRESHOLD \
     ((VIDEO_PACKET_QUEUE_SIZE * 3) / 4)
+#define AUDIO_RECOVERY_PCM_BUFFER_COUNT \
+    (SOUND_STREAM_BUFFER_COUNT / 2U)
 #define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
 #define AUDIO_PREROLL_TIMEOUT_MICROSECONDS UINT64_C(2000000)
 
@@ -65,6 +67,7 @@ typedef struct {
     int size;
     int max_size;
     uint64_t replacement_count;
+    uint64_t resync_count;
     volatile int *quit;
     bor_mutex *mutex;
     bor_cond *not_full;
@@ -257,6 +260,7 @@ static FixedSizeQueue *queue_init(int max_size, volatile int *quit)
     queue->size = 0;
     queue->max_size = max_size;
     queue->replacement_count = 0;
+    queue->resync_count = 0;
     queue->quit = quit;
     queue->mutex = mutex_create();
     queue->not_full = cond_create();
@@ -360,18 +364,23 @@ static int queue_try_get(FixedSizeQueue *queue, void **data)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Capture queue occupancy and replacement totals only when an underrun is
-* reported. Normal decoding and publication incur no diagnostic polling.
+* Capture queue occupancy, replacement totals, and recovery events only when
+* reporting exceptional state. Normal decoding and publication incur no
+* diagnostic polling.
 */
 static int queue_get_status(
     FixedSizeQueue *queue,
-    uint64_t *replacement_count
+    uint64_t *replacement_count,
+    uint64_t *resync_count
 )
 {
     int size;
 
     if(replacement_count) {
         *replacement_count = 0;
+    }
+    if(resync_count) {
+        *resync_count = 0;
     }
     if(!queue) {
         return -1;
@@ -382,8 +391,195 @@ static int queue_get_status(
     if(replacement_count) {
         *replacement_count = queue->replacement_count;
     }
+    if(resync_count) {
+        *resync_count = queue->resync_count;
+    }
     mutex_unlock(queue->mutex);
     return size;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Identify a VP8 keyframe from its uncompressed frame tag and start code.
+* WebM video packets may contain laced frames; recovery resumes only when
+* the first frame in a packet establishes an independent decode sequence.
+*/
+static int video_packet_is_keyframe(nestegg_packet *packet)
+{
+    unsigned char *data;
+    size_t data_size;
+
+    if(!packet ||
+       nestegg_packet_data(packet, 0, &data, &data_size) < 0 ||
+       !data ||
+       data_size < 10U) {
+        return 0;
+    }
+
+    return !(data[0] & 1U) &&
+        data[3] == 0x9dU &&
+        data[4] == 0x01U &&
+        data[5] == 0x2aU;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Read playback pause state under the same frame-queue lock used by
+* webm_set_audio_paused(). Paused movies retain their complete compressed
+* and decoded queues because their audio reserve is intentionally idle.
+*/
+static int video_playback_is_paused(video_context *video_ctx)
+{
+    int paused;
+
+    if(!video_ctx || !video_ctx->frame_queue) {
+        return 1;
+    }
+
+    mutex_lock(video_ctx->frame_queue->mutex);
+    paused = video_ctx->playback_paused;
+    mutex_unlock(video_ctx->frame_queue->mutex);
+    return paused;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Detect genuine audio starvation risk before sacrificing video backlog.
+* Empty compressed audio alone is harmless while the PCM ring remains
+* healthy. Recovery begins only when both reserves are depleted and active
+* playback would otherwise let a full video queue block the shared demuxer.
+*/
+static int webm_audio_reserve_is_critical(webm_context *ctx)
+{
+    s_sound_pcm_stream_status status;
+
+    if(!ctx ||
+       ctx->audio_track < 0 ||
+       video_playback_is_paused(&ctx->video_ctx) ||
+       queue_get_status(ctx->audio_ctx.packet_queue, NULL, NULL) != 0 ||
+       !sound_get_channel_pcm_stream_status_owned(
+           ctx->audio_ctx.channel,
+           ctx->audio_ctx.stream_play_id,
+           &status
+       )) {
+        return 0;
+    }
+
+    return !status.producer_finished &&
+        status.ready_buffer_count <= AUDIO_RECOVERY_PCM_BUFFER_COUNT;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Try to publish one compressed video packet without waiting. Recovery uses
+* this only after it has begun shedding newly demuxed video packets. Existing
+* queue order and decoder dependencies remain untouched until a later
+* keyframe can be admitted safely.
+*/
+static int video_packet_queue_try_insert(
+    FixedSizeQueue *queue,
+    nestegg_packet *packet
+)
+{
+    int index;
+
+    if(!queue || !packet) {
+        return -1;
+    }
+
+    mutex_lock(queue->mutex);
+    if(*queue->quit) {
+        mutex_unlock(queue->mutex);
+        return -1;
+    }
+    if(queue->size == queue->max_size) {
+        mutex_unlock(queue->mutex);
+        return 0;
+    }
+    index = (queue->start + queue->size) % queue->max_size;
+    queue->data[index] = packet;
+    queue->size++;
+    cond_signal(queue->not_empty);
+    mutex_unlock(queue->mutex);
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Record a newly demuxed video packet sacrificed to preserve audio. Beginning
+* a recovery increments the event count once; subsequent discards remain in
+* that event until a keyframe is admitted without rewriting the live queue.
+*/
+static void video_packet_queue_record_drop(
+    FixedSizeQueue *queue,
+    int begin_recovery
+)
+{
+    if(!queue) {
+        return;
+    }
+
+    mutex_lock(queue->mutex);
+    if(queue->replacement_count < UINT64_MAX) {
+        queue->replacement_count++;
+    }
+    if(begin_recovery && queue->resync_count < UINT64_MAX) {
+        queue->resync_count++;
+    }
+    mutex_unlock(queue->mutex);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Insert compressed video with ordinary bounded blocking while audio has
+* usable reserves. Return zero without consuming the packet when audio
+* becomes critical, allowing the demuxer to perform keyframe recovery.
+*/
+static int video_packet_queue_insert(
+    webm_context *ctx,
+    nestegg_packet *packet
+)
+{
+    FixedSizeQueue *queue;
+
+    if(!ctx || !(queue = ctx->video_ctx.packet_queue)) {
+        return -1;
+    }
+
+    while(!ctx->quit) {
+        int index;
+        int queue_full;
+
+        mutex_lock(queue->mutex);
+        if(queue->size < queue->max_size) {
+            index = (queue->start + queue->size) % queue->max_size;
+            queue->data[index] = packet;
+            queue->size++;
+            cond_signal(queue->not_empty);
+            mutex_unlock(queue->mutex);
+            return 1;
+        }
+
+        cond_wait_timed(queue->not_full, queue->mutex, 10);
+        queue_full = queue->size == queue->max_size;
+        mutex_unlock(queue->mutex);
+        if(queue_full && webm_audio_reserve_is_critical(ctx)) {
+            return 0;
+        }
+    }
+    return -1;
 }
 
 /*
@@ -415,6 +611,7 @@ static int video_frame_queue_insert(
         int index;
         int video_packet_count = queue_get_status(
             video_ctx->packet_queue,
+            NULL,
             NULL
         );
 
@@ -706,7 +903,9 @@ static int audio_thread(void *data)
                     underrun_count - audio_ctx->reported_underrun_count >=
                         UINT64_C(16))) {
                     s_sound_pcm_stream_status status = { 0 };
+                    uint64_t dropped_packets;
                     uint64_t dropped_frames;
+                    uint64_t resync_count;
                     int audio_packets;
                     int decoded_frames;
                     int video_packets;
@@ -718,22 +917,27 @@ static int audio_thread(void *data)
                     );
                     audio_packets = queue_get_status(
                         audio_ctx->packet_queue,
+                        NULL,
                         NULL
                     );
                     video_packets = queue_get_status(
                         audio_ctx->video_packet_queue,
-                        NULL
+                        &dropped_packets,
+                        &resync_count
                     );
                     decoded_frames = queue_get_status(
                         audio_ctx->video_frame_queue,
-                        &dropped_frames
+                        &dropped_frames,
+                        NULL
                     );
                     audio_ctx->reported_underrun_count = underrun_count;
                     printf(
                         "Warning: WebM audio underrun on sound channel %d "
                         "(%" PRIu64 " total): PCM=%u/%u, "
                         "packets=%d/%d audio and %d/%d video, "
-                        "frames=%d/%d (%" PRIu64 " stale dropped).\n",
+                        "frames=%d/%d (%" PRIu64 " stale dropped), "
+                        "recovery=%" PRIu64 " incoming packets skipped in %" PRIu64
+                        " keyframe resync event%s.\n",
                         audio_ctx->channel,
                         underrun_count,
                         status.ready_buffer_count,
@@ -744,7 +948,10 @@ static int audio_thread(void *data)
                         VIDEO_PACKET_QUEUE_SIZE,
                         decoded_frames,
                         FRAME_QUEUE_SIZE,
-                        dropped_frames
+                        dropped_frames,
+                        dropped_packets,
+                        resync_count,
+                        resync_count == 1U ? "" : "s"
                     );
                 }
             }
@@ -1253,14 +1460,44 @@ static void close_video(video_context *video_ctx)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Route container packets to their decoder queues. WebM playback with
-* audio elevates this shared producer so video work cannot prevent it
-* from restoring the compressed audio reserve.
+* Report the first completed compressed-video recovery and then every
+* sixteenth occurrence. Producer-side shedding protects the decoder's live
+* queue while keeping exceptional recovery visible when audio remains clean.
+*/
+static void video_packet_queue_report_resync(FixedSizeQueue *queue)
+{
+    uint64_t dropped_packets;
+    uint64_t resync_count;
+
+    queue_get_status(queue, &dropped_packets, &resync_count);
+    if(resync_count &&
+       (resync_count == 1U || !(resync_count % UINT64_C(16)))) {
+        printf(
+            "Warning: WebM video backlog recovery skipped %" PRIu64
+            " incoming compressed packets in %" PRIu64
+            " keyframe resync event%s.\n",
+            dropped_packets,
+            resync_count,
+            resync_count == 1U ? "" : "s"
+        );
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Route container packets to their decoder queues. WebM playback with audio
+* elevates this shared producer and protects a critical audio reserve from
+* compressed-video head-of-line blocking. Recovery leaves the live decoder
+* queue intact, sheds only newly arriving video, and resumes admission at a
+* verified keyframe once queue capacity is available.
 */
 static int demux_thread(void *data)
 {
     webm_context *ctx = (webm_context *)data;
     nestegg_packet *pkt;
+    int discard_video_until_keyframe = 0;
     int r;
 
     if(ctx->audio_track >= 0) {
@@ -1283,10 +1520,49 @@ static int demux_thread(void *data)
         }
         else if (track == ctx->video_track)
         {
-            if (queue_insert(ctx->video_ctx.packet_queue, pkt) < 0)
-            {
+            int insert_result;
+
+            if(discard_video_until_keyframe) {
+                if(video_packet_is_keyframe(pkt)) {
+                    insert_result = video_packet_queue_try_insert(
+                        ctx->video_ctx.packet_queue,
+                        pkt
+                    );
+                    if(insert_result > 0) {
+                        discard_video_until_keyframe = 0;
+                        video_packet_queue_report_resync(
+                            ctx->video_ctx.packet_queue
+                        );
+                        if(ctx->quit) break;
+                        continue;
+                    }
+                    if(insert_result < 0) {
+                        nestegg_free_packet(pkt);
+                        break;
+                    }
+                }
+                video_packet_queue_record_drop(
+                    ctx->video_ctx.packet_queue,
+                    0
+                );
+                nestegg_free_packet(pkt);
+                if(ctx->quit) break;
+                continue;
+            }
+            insert_result = video_packet_queue_insert(ctx, pkt);
+            if(insert_result < 0) {
                 nestegg_free_packet(pkt);
                 break;
+            }
+            if(insert_result == 0) {
+                video_packet_queue_record_drop(
+                    ctx->video_ctx.packet_queue,
+                    1
+                );
+                nestegg_free_packet(pkt);
+                discard_video_until_keyframe = 1;
+                if(ctx->quit) break;
+                continue;
             }
         }
         else
@@ -1296,8 +1572,11 @@ static int demux_thread(void *data)
 
         if (ctx->quit) break;
     }
-    queue_insert(ctx->video_ctx.packet_queue, NULL);
+    if(discard_video_until_keyframe) {
+        video_packet_queue_report_resync(ctx->video_ctx.packet_queue);
+    }
     if (ctx->audio_track >= 0) queue_insert(ctx->audio_ctx.packet_queue, NULL);
+    queue_insert(ctx->video_ctx.packet_queue, NULL);
     return 0;
 }
 
@@ -1583,6 +1862,29 @@ void webm_set_audio_speed(webm_context *ctx, double speed)
             speed
         );
     }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Snapshot decoded-frame occupancy for one bounded main-thread poll. Frames
+* published after this count is captured remain queued for the next engine
+* update instead of extending the current update indefinitely.
+*/
+int webm_get_pending_frame_count(webm_context *ctx)
+{
+    int count;
+
+    if(!ctx) {
+        return 0;
+    }
+    count = queue_get_status(
+        ctx->video_ctx.frame_queue,
+        NULL,
+        NULL
+    );
+    return count > 0 ? count : 0;
 }
 
 /*
