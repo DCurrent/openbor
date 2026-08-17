@@ -676,21 +676,33 @@ uint64_t movie_playback_get_active_mask(void)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Resolve signed playback rate into a bounded nanosecond
-* position, including stationary and reverse playback.
+* Use consumed PCM time as the master during forward playback. Each
+* successful owned-channel snapshot also reanchors the monotonic fallback,
+* preserving continuity for silent media, reverse playback, and replaced
+* audio channels.
 */
 static uint64_t movie_playback_position_now(
-    const s_movie_playback *playback,
+    s_movie_playback *playback,
     uint64_t now
 )
 {
+    uint64_t audio_position;
     double elapsed;
     double position;
 
     if(playback->paused || playback->speed == 0.0) {
         return playback->position_anchor;
+    }
+    if(playback->speed > 0.0 &&
+       webm_get_audio_playback_position(
+           playback->context,
+           &audio_position
+       )) {
+        playback->position_anchor = audio_position;
+        playback->clock_anchor = now;
+        return audio_position;
     }
 
     elapsed = now >= playback->clock_anchor

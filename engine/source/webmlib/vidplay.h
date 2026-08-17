@@ -29,6 +29,10 @@ webm_context *webm_start_playback_ex(
 );
 void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims);
 uint64_t webm_get_duration(webm_context *ctx);
+int webm_get_audio_playback_position(
+    webm_context *ctx,
+    uint64_t *position
+);
 void webm_set_audio_paused(webm_context *ctx, int paused);
 void webm_set_audio_speed(webm_context *ctx, double speed);
 void webm_close(webm_context *ctx);

@@ -3232,6 +3232,41 @@ bool sound_pause_channel_owned(int channel, int play_id, int toggle) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-17
+*
+* Snapshot the source frame consumed by an active push stream only while
+* the supplied play ID still owns its channel. Reading under the SDL audio
+* lock turns the callback's fixed-point cursor into a stable playback clock
+* without exposing mutable mixer state to decoder or presentation threads.
+*/
+bool sound_get_channel_pcm_stream_playback_frame_owned(
+    int channel,
+    int play_id,
+    uint64_t *playback_frame
+) {
+    channelstruct *record;
+
+    if(play_id < 0 || !playback_frame) {
+        return false;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record ||
+       !sound_channel_pool_is_active(&sound_channel_pool, channel) ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    *playback_frame = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-04
 *
 * Update replacement priority without racing the

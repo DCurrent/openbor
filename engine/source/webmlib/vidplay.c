@@ -90,6 +90,7 @@ typedef struct {
     int aligning;
     uint64_t observed_underrun_count;
     uint64_t reported_underrun_count;
+    uint64_t playback_start_timestamp;
     uint64_t output_timestamp;
     uint64_t leading_silence_frames;
     volatile int *quit;
@@ -714,6 +715,42 @@ static uint64_t audio_nanoseconds_to_frames(
 
 /*
 * Caskey, Damon V.
+* 2026-08-17
+*
+* Convert a consumed PCM source-frame count to its media timeline duration
+* without overflowing the 64-bit nanosecond clock. Whole seconds are split
+* before multiplication so long-running streams retain bounded arithmetic.
+*/
+static uint64_t audio_frames_to_nanoseconds(
+    uint64_t frame_count,
+    int frequency
+)
+{
+    const uint64_t nanoseconds_per_second = UINT64_C(1000000000);
+    uint64_t whole_seconds;
+    uint64_t remainder_frames;
+    uint64_t remainder_nanoseconds;
+    uint64_t nanoseconds;
+
+    if(frequency <= 0) {
+        return UINT64_MAX;
+    }
+
+    whole_seconds = frame_count / (uint64_t)frequency;
+    remainder_frames = frame_count % (uint64_t)frequency;
+    if(whole_seconds > UINT64_MAX / nanoseconds_per_second) {
+        return UINT64_MAX;
+    }
+    nanoseconds = whole_seconds * nanoseconds_per_second;
+    remainder_nanoseconds =
+        remainder_frames * nanoseconds_per_second / (uint64_t)frequency;
+    return nanoseconds <= UINT64_MAX - remainder_nanoseconds
+        ? nanoseconds + remainder_nanoseconds
+        : UINT64_MAX;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-12
 *
 * Align decoded audio to the requested movie timestamp. Samples
@@ -1070,6 +1107,7 @@ static int init_audio(
     audio_ctx->frequency = (int)audioParams.rate;
     audio_ctx->avail_samples = audio_ctx->last_samples = 0;
     audio_ctx->aligning = 1;
+    audio_ctx->playback_start_timestamp = seek_timestamp;
     audio_ctx->output_timestamp = seek_timestamp <=
         UINT64_MAX - audioParams.codec_delay
         ? seek_timestamp + audioParams.codec_delay
@@ -1812,6 +1850,49 @@ void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims)
 uint64_t webm_get_duration(webm_context *ctx)
 {
     return ctx ? ctx->duration : 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Resolve the movie timeline from PCM frames consumed by this WebM object's
+* owned sound channel. The clock stops with real audio during pauses and
+* underruns, and becomes unavailable if another producer takes the channel.
+*/
+int webm_get_audio_playback_position(
+    webm_context *ctx,
+    uint64_t *position
+)
+{
+    audio_context *audio_ctx;
+    uint64_t playback_frame;
+    uint64_t elapsed;
+
+    if(!ctx || !position || ctx->audio_track < 0) {
+        return 0;
+    }
+
+    audio_ctx = &ctx->audio_ctx;
+    if(!sound_get_channel_pcm_stream_playback_frame_owned(
+        audio_ctx->channel,
+        audio_ctx->stream_play_id,
+        &playback_frame
+    )) {
+        return 0;
+    }
+
+    elapsed = audio_frames_to_nanoseconds(
+        playback_frame,
+        audio_ctx->frequency
+    );
+    *position = elapsed <= UINT64_MAX - audio_ctx->playback_start_timestamp
+        ? audio_ctx->playback_start_timestamp + elapsed
+        : UINT64_MAX;
+    if(ctx->duration && *position > ctx->duration) {
+        *position = ctx->duration;
+    }
+    return 1;
 }
 
 /*

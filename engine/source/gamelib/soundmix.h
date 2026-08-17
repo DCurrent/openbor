@@ -180,6 +180,11 @@ bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame);
 bool sound_set_channel_period(int channel, uint64_t period);
 bool sound_set_channel_speed_owned(int channel, int play_id, double speed);
 bool sound_pause_channel_owned(int channel, int play_id, int toggle);
+bool sound_get_channel_pcm_stream_playback_frame_owned(
+    int channel,
+    int play_id,
+    uint64_t *playback_frame
+);
 bool sound_set_channel_priority(int channel, unsigned int priority);
 bool sound_set_channel_position(int channel, uint64_t sample_position);
 bool sound_set_channel_volume(int channel, unsigned int spatial_channel, int volume);
