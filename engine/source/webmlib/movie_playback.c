@@ -36,7 +36,6 @@ static void *movie_cache_allocate_nonfatal(size_t size)
 #include "movie_playback.h"
 
 #define MOVIE_SOURCE_CAPACITY_INITIAL 64U
-#define MOVIE_REVERSE_SEEK_INTERVAL UINT64_C(33333333)
 #define MOVIE_CACHE_READ_CHUNK_SIZE (1024U * 1024U)
 #define MOVIE_CACHE_RESERVE_MINIMUM (UINT64_C(128) * UINT64_C(1024) * UINT64_C(1024))
 #define MOVIE_SPEED_ROUNDING_FACTOR 1000.0
@@ -100,12 +99,12 @@ static s_movie_playback_pool movie_playback_pool;
 
 /*
 * Caskey, Damon V.
-* 2026-08-13
+* 2026-08-17
 *
-* Convert creator-supplied playback speed to one canonical float.
-* Clamp supported range and round to thousandths so video timing,
-* audio resampling, property reads, and later decoder reopens all
-* consume the same applied rate.
+* Convert creator-supplied forward playback speed to one canonical float.
+* Reject negative rates because backward navigation is provided by explicit
+* seeks, then clamp the upper range and round to thousandths so video timing,
+* audio resampling, property reads, and decoder reopens share one rate.
 */
 static bool movie_playback_sanitize_speed(
     double requested_speed,
@@ -117,8 +116,9 @@ static bool movie_playback_sanitize_speed(
     }
 
     if(requested_speed < MOVIE_SPEED_MIN) {
-        requested_speed = MOVIE_SPEED_MIN;
-    } else if(requested_speed > MOVIE_SPEED_MAX) {
+        return false;
+    }
+    if(requested_speed > MOVIE_SPEED_MAX) {
         requested_speed = MOVIE_SPEED_MAX;
     }
     requested_speed = round(
@@ -827,8 +827,7 @@ static int movie_playback_decoder_ready(
 *
 * Use consumed PCM time as the master during forward playback. Each
 * successful owned-channel snapshot also reanchors the monotonic fallback,
-* preserving continuity for silent media, reverse playback, and replaced
-* audio channels.
+* preserving continuity for silent media and replaced audio channels.
 */
 static uint64_t movie_playback_position_now(
     s_movie_playback *playback,
@@ -968,7 +967,6 @@ static bool movie_playback_begin_media(
     playback->volume = volume;
     playback->position_anchor = position;
     playback->position = position / UINT64_C(1000000);
-    playback->reverse_pending = playback->speed < 0.0;
     playback->terminal_pending = 0;
     playback->failed = 0;
     return movie_playback_start_pending_decoder(playback) >= 0;
@@ -1046,7 +1044,6 @@ static int movie_playback_poll_decoder(s_movie_playback *playback)
     playback->clock_anchor = timer_uticks();
     playback->position =
         playback->position_anchor / UINT64_C(1000000);
-    playback->reverse_pending = playback->speed < 0.0;
     playback->terminal_pending = 0;
     decoder->ready = 1;
 
@@ -1055,7 +1052,7 @@ static int movie_playback_poll_decoder(s_movie_playback *playback)
     }
     webm_set_audio_paused(
         decoder->context,
-        playback->paused || playback->speed <= 0.0
+        playback->paused || playback->speed == 0.0
     );
     return 1;
 }
@@ -1360,7 +1357,7 @@ static bool movie_playback_render_to(
 * Poll only the decoded frames present when this update begins. A decoder
 * producing stale frames must not refill the queue faster than the main thread
 * can empty it and turn one nonblocking poll into an unbounded engine stall.
-* Reverse seeks retain pending state until reaching the requested timestamp.
+* Explicit seeks retain the previous frame until replacement becomes ready.
 */
 static void movie_playback_poll_frames(
     s_movie_playback *playback,
@@ -1390,16 +1387,12 @@ static void movie_playback_poll_frames(
         }
 
         if(playback->next_frame->timestamp > position) {
-            if((!playback->current_frame || playback->reverse_pending) &&
-               !promoted) {
+            if(!playback->current_frame && !promoted) {
                 yuv_frame_destroy(playback->current_frame);
                 playback->current_frame = playback->next_frame;
                 playback->next_frame = NULL;
                 playback->frame_dirty = 1;
                 promoted = 1;
-            }
-            if(playback->reverse_pending) {
-                playback->reverse_pending = 0;
             }
             break;
         }
@@ -1410,15 +1403,6 @@ static void movie_playback_poll_frames(
         playback->frame_dirty = 1;
         promoted = 1;
 
-        if(playback->speed < 0.0 &&
-           playback->current_frame->timestamp == position) {
-            playback->reverse_pending = 0;
-            break;
-        }
-    }
-
-    if(*terminal && playback->reverse_pending) {
-        playback->reverse_pending = 0;
     }
 }
 
@@ -1428,7 +1412,7 @@ static void movie_playback_poll_frames(
 *
 * Advance playback clocks and decoder state independently from composition.
 * Lifecycle polling keeps open, seek, preroll, and teardown work off the
-* engine thread while reverse rates periodically request forward decodes.
+* engine thread. Backward navigation remains an explicit seek operation.
 */
 void movie_playback_update(int interrupt_requested)
 {
@@ -1487,48 +1471,12 @@ void movie_playback_update(int interrupt_requested)
             playback->position = playback->duration;
         }
 
-        if(playback->speed < 0.0 &&
-           !playback->paused &&
-           !playback->reverse_pending &&
-           playback->position_anchor >= position &&
-           playback->position_anchor - position >=
-               MOVIE_REVERSE_SEEK_INTERVAL) {
-            if(!movie_playback_begin_media(
-                playback,
-                position,
-                playback->volume
-            )) {
-                movie_playback_stop(playback);
-                continue;
-            }
-        }
-
         if((playback->speed > 0.0 && !playback->paused) ||
-           !playback->current_frame ||
-           playback->reverse_pending) {
+           !playback->current_frame) {
             movie_playback_poll_frames(playback, position, &terminal);
         }
 
-        if(playback->speed < 0.0 &&
-           position == 0 &&
-           !playback->reverse_pending) {
-            if(playback->repeat && playback->duration) {
-                uint64_t repeat_position =
-                    (playback->duration - 1U) * UINT64_C(1000000);
-                if(!movie_playback_begin_media(
-                    playback,
-                    repeat_position,
-                    playback->volume
-                )) {
-                    movie_playback_stop(playback);
-                }
-            } else {
-                movie_playback_stop(playback);
-            }
-            continue;
-        }
-
-        if(terminal && playback->speed >= 0.0) {
+        if(terminal) {
             if(playback->frame_dirty) {
                 playback->terminal_pending = 1;
             } else if(playback->repeat) {
@@ -1662,7 +1610,7 @@ bool movie_playback_set_paused(s_movie_playback *playback, int paused)
     if(movie_playback_decoder_ready(playback)) {
         webm_set_audio_paused(
             playback->context,
-            paused || playback->speed <= 0.0
+            paused || playback->speed == 0.0
         );
     }
     return true;
@@ -1754,7 +1702,7 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
     playback->speed = applied_speed;
     playback->position = position / UINT64_C(1000000);
 
-    if(playback->speed > 0.0 && previous_speed <= 0.0) {
+    if(playback->speed > 0.0 && previous_speed == 0.0) {
         if(!movie_playback_begin_media(playback, position, playback->volume)) {
             movie_playback_stop(playback);
             return false;
@@ -1763,8 +1711,7 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
               movie_playback_decoder_ready(playback)) {
         webm_set_audio_speed(playback->context, playback->speed);
         webm_set_audio_paused(playback->context, playback->paused);
-    } else if(playback->speed <= 0.0) {
-        playback->reverse_pending = 0;
+    } else if(playback->speed == 0.0) {
         playback->terminal_pending = 0;
         if(movie_playback_decoder_ready(playback)) {
             webm_set_audio_paused(playback->context, 1);

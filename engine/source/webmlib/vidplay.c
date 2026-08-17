@@ -1884,8 +1884,7 @@ static void webm_close_resources(webm_context *ctx)
 *
 * Perform container open, initial seek, and decoder creation on the lifecycle
 * worker, then publish PREROLLING when audio must establish its PCM reserve.
-* Reverse playback and ordinary seeks use the same decoder path as initial
-* playback.
+* Explicit seeks use the same decoder path as initial playback.
 */
 static int webm_open_resources(webm_context *ctx)
 {
@@ -2412,6 +2411,7 @@ void webm_set_audio_paused(webm_context *ctx, int paused)
 void webm_set_audio_speed(webm_context *ctx, double speed)
 {
     if(ctx &&
+       speed > 0.0 &&
        webm_get_decoder_state(ctx) == WEBM_DECODER_STATE_READY &&
        ctx->audio_track >= 0) {
         sound_set_channel_speed_owned(

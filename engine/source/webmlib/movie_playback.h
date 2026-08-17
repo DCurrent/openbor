@@ -17,7 +17,7 @@
 
 #define MOVIE_CHANNEL_COUNT 64U
 #define MOVIE_CHANNEL_AUTO (-1)
-#define MOVIE_SPEED_MIN (-16.0)
+#define MOVIE_SPEED_MIN 0.0
 #define MOVIE_SPEED_MAX 16.0
 #define MOVIE_SIZE_NATIVE UINT64_MAX
 
@@ -69,7 +69,6 @@ typedef struct s_movie_playback {
     int frame_dirty;
     int rgb_frame_dirty;
     int scaled_frame_dirty;
-    int reverse_pending;
     int terminal_pending;
 } s_movie_playback;
 
