@@ -34,20 +34,25 @@
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
-* Keep enough compressed packets ahead of both decoders that a full
-* video queue does not stop the shared demuxer before the audio packet
-* reserve fills. Video needs more packet slots because its packet rate
-* may greatly exceed the audio rate. Queue allocation stores pointers;
-* PCM output remains separately bounded by the generic stream ring.
+* Balance decoder reserves after the playback clock, backlog recovery, and
+* asynchronous lifecycle are stable. Sixty-four audio packets cover ordinary
+* Vorbis scheduling jitter. One hundred twenty-eight video packets retain
+* roughly two seconds at 60 FPS without preserving the many seconds of stale
+* compressed work held by the former 512-packet queue. Six decoded YUV frames
+* provide 100-200 milliseconds of read-ahead across 30-60 FPS while bounding
+* the software renderer's per-movie frame memory. Demux and audio producers
+* retain high priority because both block frequently; VP8 decoding remains at
+* normal priority so it cannot starve the engine. The proven eight-buffer
+* generic PCM ring remains unchanged.
 */
 #define AUDIO_PACKET_QUEUE_SIZE 64
-#define VIDEO_PACKET_QUEUE_SIZE 512
-#define FRAME_QUEUE_SIZE 10
+#define VIDEO_PACKET_QUEUE_SIZE 128
+#define FRAME_QUEUE_SIZE 6
 #define VIDEO_DECODER_THREAD_MAX 8U
 #define VIDEO_PACKET_QUEUE_BACKPRESSURE_THRESHOLD \
-    ((VIDEO_PACKET_QUEUE_SIZE * 3) / 4)
+    (VIDEO_PACKET_QUEUE_SIZE / 2)
 #define AUDIO_RECOVERY_PCM_BUFFER_COUNT \
     (SOUND_STREAM_BUFFER_COUNT / 2U)
 #define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
@@ -758,10 +763,10 @@ static int video_packet_queue_insert(
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
 * Publish decoded frames in timestamp order during ordinary read-ahead.
-* When active playback stalls long enough to fill most of the compressed
+* When active playback stalls long enough to fill half of the compressed
 * video reserve, replace the oldest decoded frame instead of allowing video
 * backpressure to stop the shared demuxer and starve audio. Paused playback
 * retains every queued frame and continues using bounded blocking behavior.
@@ -1147,7 +1152,7 @@ static int audio_thread(void *data)
                         "(%" PRIu64 " total): PCM=%u/%u, "
                         "packets=%d/%d audio and %d/%d video, "
                         "frames=%d/%d (%" PRIu64 " stale dropped), "
-                        "recovery=%" PRIu64 " incoming packets skipped in %" PRIu64
+                        "recovery=%" PRIu64 " compressed packets discarded in %" PRIu64
                         " keyframe resync event%s.\n",
                         audio_ctx->channel,
                         underrun_count,
