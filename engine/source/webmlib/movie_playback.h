@@ -51,6 +51,7 @@ typedef struct s_movie_playback {
     uint64_t height;
     int sound_channel;
     int source_id;
+    int failed;
     float speed;
     uint64_t duration;
     uint64_t position;

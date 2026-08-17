@@ -57,8 +57,36 @@ typedef struct s_movie_source {
     int id;
 } s_movie_source;
 
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Keep asynchronous decoder ownership outside the stable script-visible
+* playback record. Each decoder retains its movie source until lifecycle
+* teardown reaches CLOSED, including decoders retired by seeks or channel
+* replacement while their worker is still running.
+*/
+typedef struct s_movie_decoder {
+    webm_context *context;
+    int source_id;
+    int channel;
+    int ready;
+    struct s_movie_decoder *next;
+} s_movie_decoder;
+
+typedef struct s_movie_decoder_request {
+    uint64_t position;
+    int source_id;
+    int volume;
+    int pending;
+} s_movie_decoder_request;
+
 typedef struct s_movie_playback_pool {
     s_movie_playback channel[MOVIE_CHANNEL_COUNT];
+    s_movie_decoder *decoder[MOVIE_CHANNEL_COUNT];
+    s_movie_decoder_request decoder_request[MOVIE_CHANNEL_COUNT];
+    unsigned int retiring_decoder_count[MOVIE_CHANNEL_COUNT];
+    s_movie_decoder *retired_decoder;
     s_movie_source *source;
     size_t source_capacity;
     int next_source_id;
@@ -275,16 +303,102 @@ static void movie_source_release(int source_id)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Close decoder-owned resources separately from the retained
-* current frame so seeks can display the old frame until ready.
+* Poll decoder retirement without waiting during runtime updates. Shutdown
+* may explicitly wait after every playback has stopped. Source references
+* remain held until each lifecycle worker has released its borrowed path and
+* cache storage.
+*/
+static void movie_playback_reap_retired_decoders(int wait)
+{
+    s_movie_decoder **cursor = &movie_playback_pool.retired_decoder;
+
+    while(*cursor) {
+        s_movie_decoder *decoder = *cursor;
+        int closed;
+
+        if(wait) {
+            webm_close(decoder->context);
+            closed = 1;
+        }
+        else {
+            closed = webm_poll_closed(decoder->context);
+        }
+        if(!closed) {
+            cursor = &decoder->next;
+            continue;
+        }
+
+        *cursor = decoder->next;
+        if(decoder->channel >= 0 &&
+           (unsigned int)decoder->channel < MOVIE_CHANNEL_COUNT &&
+           movie_playback_pool.retiring_decoder_count[
+               decoder->channel
+           ]) {
+            --movie_playback_pool.retiring_decoder_count[
+                decoder->channel
+            ];
+        }
+        movie_source_release(decoder->source_id);
+        free(decoder);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Move the channel's decoder directly to asynchronous retirement without
+* allocating or joining. Per-channel retirement counts serialize a later
+* replacement while allowing repeated pending seeks to collapse to one.
+*/
+static void movie_playback_retire_decoder(s_movie_playback *playback)
+{
+    int channel;
+    s_movie_decoder *decoder;
+
+    if(!playback) {
+        return;
+    }
+    channel = playback->index;
+    if(channel >= 0 &&
+       (unsigned int)channel < MOVIE_CHANNEL_COUNT &&
+       &movie_playback_pool.channel[channel] == playback &&
+       (decoder = movie_playback_pool.decoder[channel])) {
+        movie_playback_pool.decoder[channel] = NULL;
+        playback->context = NULL;
+        decoder->channel = channel;
+        ++movie_playback_pool.retiring_decoder_count[channel];
+        webm_request_close(decoder->context);
+        decoder->next = movie_playback_pool.retired_decoder;
+        movie_playback_pool.retired_decoder = decoder;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Retire the current decoder and cancel pending replacement intent when the
+* owning playback itself closes. Its queued look-ahead frame is released
+* immediately because it belongs to the canceled decode sequence.
 */
 static void movie_playback_close_decoder(s_movie_playback *playback)
 {
-    if(playback->context) {
-        webm_close(playback->context);
-        playback->context = NULL;
+    int channel;
+
+    if(!playback) {
+        return;
+    }
+    channel = playback->index;
+    movie_playback_retire_decoder(playback);
+    if(channel >= 0 && (unsigned int)channel < MOVIE_CHANNEL_COUNT) {
+        memset(
+            &movie_playback_pool.decoder_request[channel],
+            0,
+            sizeof(movie_playback_pool.decoder_request[channel])
+        );
     }
     yuv_frame_destroy(playback->next_frame);
     playback->next_frame = NULL;
@@ -356,7 +470,9 @@ bool movie_playback_init(void)
         movie_playback_reset_record(&movie_playback_pool.channel[channel]);
     }
 
-    if(!movie_source_reserve(MOVIE_SOURCE_CAPACITY_INITIAL)) {
+    if(!webm_lifecycle_init() ||
+       !movie_source_reserve(MOVIE_SOURCE_CAPACITY_INITIAL)) {
+        webm_lifecycle_shutdown();
         memset(&movie_playback_pool, 0, sizeof(movie_playback_pool));
         return false;
     }
@@ -382,6 +498,7 @@ void movie_playback_shutdown(void)
     }
 
     movie_playback_stop_all();
+    movie_playback_reap_retired_decoders(1);
     for(source_id = 0;
         source_id < movie_playback_pool.source_capacity;
         source_id++) {
@@ -392,6 +509,7 @@ void movie_playback_shutdown(void)
     if(movie_playback_pool.yuv_initialized) {
         yuv_clear();
     }
+    webm_lifecycle_shutdown();
     memset(&movie_playback_pool, 0, sizeof(movie_playback_pool));
 }
 
@@ -575,14 +693,17 @@ int movie_source_load(const char *path, e_movie_loading_mode loading_mode)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Unload an inactive source. Live playbacks retain their
-* source until stopped and therefore reject premature unload.
+* Unload a source only after active and asynchronously retiring decoders
+* release it. Each call first reaps completed teardown without waiting.
 */
 bool movie_source_unload(int source_id)
 {
-    s_movie_source *source = movie_source_get(source_id);
+    s_movie_source *source;
+
+    movie_playback_reap_retired_decoders(0);
+    source = movie_source_get(source_id);
 
     if(!source || source->references) {
         return false;
@@ -678,6 +799,32 @@ uint64_t movie_playback_get_active_mask(void)
 * Caskey, Damon V.
 * 2026-08-17
 *
+* Test whether the current channel decoder has crossed its asynchronous
+* READY boundary. Property mutations may update pending playback intent
+* before this point without touching partially initialized decoder fields.
+*/
+static int movie_playback_decoder_ready(
+    const s_movie_playback *playback
+)
+{
+    int channel;
+    s_movie_decoder *decoder;
+
+    if(!playback) {
+        return 0;
+    }
+    channel = playback->index;
+    if(channel < 0 || (unsigned int)channel >= MOVIE_CHANNEL_COUNT) {
+        return 0;
+    }
+    decoder = movie_playback_pool.decoder[channel];
+    return decoder && decoder->ready;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
 * Use consumed PCM time as the master during forward playback. Each
 * successful owned-channel snapshot also reanchors the monotonic fallback,
 * preserving continuity for silent media, reverse playback, and replaced
@@ -692,7 +839,9 @@ static uint64_t movie_playback_position_now(
     double elapsed;
     double position;
 
-    if(playback->paused || playback->speed == 0.0) {
+    if(playback->paused ||
+       playback->speed == 0.0 ||
+       !movie_playback_decoder_ready(playback)) {
         return playback->position_anchor;
     }
     if(playback->speed > 0.0 &&
@@ -720,83 +869,195 @@ static uint64_t movie_playback_position_now(
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Open or seek the WebM backend from a reusable movie source
-* while preserving the last frame until replacement is ready.
+* Start the latest pending decoder request only after the previous decoder
+* for this movie channel reaches CLOSED. Repeated seeks during teardown
+* replace the request in place instead of accumulating lifecycle threads.
 */
-static bool movie_playback_open_media(
+static int movie_playback_start_pending_decoder(
+    s_movie_playback *playback
+)
+{
+    s_movie_decoder_request *request;
+    s_movie_source *source;
+    s_movie_decoder *decoder;
+    webm_context *context;
+    int channel = playback->index;
+
+    if(channel < 0 || (unsigned int)channel >= MOVIE_CHANNEL_COUNT) {
+        return -1;
+    }
+    request = &movie_playback_pool.decoder_request[channel];
+    if(!request->pending) {
+        return movie_playback_pool.decoder[channel] ? 1 : -1;
+    }
+    if(movie_playback_pool.retiring_decoder_count[channel]) {
+        return 0;
+    }
+    source = movie_source_get(request->source_id);
+    if(!source || playback->source_id != request->source_id) {
+        request->pending = 0;
+        return -1;
+    }
+
+    decoder = calloc(1, sizeof(*decoder));
+    if(!decoder) {
+        request->pending = 0;
+        return -1;
+    }
+    ++source->references;
+    context = webm_start_playback_ex(
+        source->path,
+        request->volume,
+        playback->sound_channel,
+        source->cache_buffer,
+        source->cache_size,
+        request->position,
+        playback->speed > 0.0,
+        playback->replace_all_audio
+    );
+    if(!context) {
+        movie_source_release(request->source_id);
+        request->pending = 0;
+        free(decoder);
+        return -1;
+    }
+
+    decoder->context = context;
+    decoder->source_id = request->source_id;
+    decoder->channel = channel;
+    movie_playback_pool.decoder[channel] = decoder;
+    playback->context = context;
+    request->pending = 0;
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Begin an asynchronous WebM open or seek from a reusable source while
+* preserving the last frame until replacement is ready. Decoder ownership
+* retains an additional source reference through asynchronous teardown.
+*/
+static bool movie_playback_begin_media(
     s_movie_playback *playback,
     uint64_t position,
     int volume
 )
 {
     s_movie_source *source = movie_source_get(playback->source_id);
-    yuv_video_mode previous_mode = playback->video_mode;
-    uint64_t duration;
+    s_movie_decoder_request *request;
+    int channel = playback->index;
 
-    if(!source) {
+    if(!source ||
+       channel < 0 ||
+       (unsigned int)channel >= MOVIE_CHANNEL_COUNT) {
         return false;
     }
 
-    movie_playback_close_decoder(playback);
+    movie_playback_retire_decoder(playback);
+    yuv_frame_destroy(playback->next_frame);
+    playback->next_frame = NULL;
+    request = &movie_playback_pool.decoder_request[channel];
+    request->position = position;
+    request->source_id = playback->source_id;
+    request->volume = volume;
+    request->pending = 1;
     playback->volume = volume;
-    playback->context = webm_start_playback_ex(
-        source->path,
-        volume,
-        playback->sound_channel,
-        source->cache_buffer,
-        source->cache_size,
-        position,
-        playback->speed > 0.0,
-        playback->replace_all_audio
-    );
-    if(!playback->context) {
-        return false;
-    }
-
-    webm_get_video_info(playback->context, &playback->video_mode);
-    duration = webm_get_duration(playback->context);
-    playback->duration = duration / UINT64_C(1000000);
-    if((playback->video_mode.width & 1) ||
-       (playback->video_mode.height & 1) ||
-       playback->video_mode.width > (INT_MAX >> 16) ||
-       playback->video_mode.height > (INT_MAX >> 16) ||
-       !movie_playback_dimensions_valid(
-           playback->video_mode.width,
-           playback->video_mode.height
-       )) {
-        printf(
-            "Error: Movie frame dimensions %d*%d cannot be represented by the 32-bit screen renderer.\n",
-            playback->video_mode.width,
-            playback->video_mode.height
-        );
-        movie_playback_close_decoder(playback);
-        return false;
-    }
-
-    if(previous_mode.width != playback->video_mode.width ||
-       previous_mode.height != playback->video_mode.height) {
-        yuv_frame_destroy(playback->current_frame);
-        playback->current_frame = NULL;
-        if(playback->rgb_frame) freescreen(&playback->rgb_frame);
-        if(playback->scaled_frame) freescreen(&playback->scaled_frame);
-    }
-
     playback->position_anchor = position;
-    playback->clock_anchor = timer_uticks();
     playback->position = position / UINT64_C(1000000);
     playback->reverse_pending = playback->speed < 0.0;
     playback->terminal_pending = 0;
+    playback->failed = 0;
+    return movie_playback_start_pending_decoder(playback) >= 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Poll an asynchronous decoder and commit its immutable media metadata once
+* READY is published. Movie clocks begin at this boundary, preventing open,
+* seek, and preroll latency from advancing the presentation timeline.
+*/
+static int movie_playback_poll_decoder(s_movie_playback *playback)
+{
+    s_movie_decoder *decoder;
+    e_webm_decoder_state state;
+    yuv_video_mode video_mode = { 0 };
+    uint64_t duration;
+    int channel = playback->index;
+
+    if(channel < 0 ||
+       (unsigned int)channel >= MOVIE_CHANNEL_COUNT ||
+       !(decoder = movie_playback_pool.decoder[channel])) {
+        return -1;
+    }
+    if(decoder->ready) {
+        return 1;
+    }
+
+    state = webm_get_decoder_state(decoder->context);
+    if(state == WEBM_DECODER_STATE_FAILED ||
+       state == WEBM_DECODER_STATE_CLOSING ||
+       state == WEBM_DECODER_STATE_CLOSED) {
+        return -1;
+    }
+    if(state != WEBM_DECODER_STATE_READY) {
+        return 0;
+    }
+
+    webm_get_video_info(decoder->context, &video_mode);
+    duration = webm_get_duration(decoder->context);
+    if((video_mode.width & 1) ||
+       (video_mode.height & 1) ||
+       video_mode.width > (INT_MAX >> 16) ||
+       video_mode.height > (INT_MAX >> 16) ||
+       !movie_playback_dimensions_valid(
+           video_mode.width,
+           video_mode.height
+       )) {
+        printf(
+            "Error: Movie frame dimensions %d*%d cannot be represented by the 32-bit screen renderer.\n",
+            video_mode.width,
+            video_mode.height
+        );
+        return -1;
+    }
+
+    if(playback->video_mode.width != video_mode.width ||
+       playback->video_mode.height != video_mode.height) {
+        yuv_frame_destroy(playback->current_frame);
+        playback->current_frame = NULL;
+        if(playback->rgb_frame) {
+            freescreen(&playback->rgb_frame);
+        }
+        if(playback->scaled_frame) {
+            freescreen(&playback->scaled_frame);
+        }
+    }
+    playback->video_mode = video_mode;
+    playback->duration = duration / UINT64_C(1000000);
+    if(duration && playback->position_anchor >= duration) {
+        playback->position_anchor = duration - 1U;
+    }
+    playback->clock_anchor = timer_uticks();
+    playback->position =
+        playback->position_anchor / UINT64_C(1000000);
+    playback->reverse_pending = playback->speed < 0.0;
+    playback->terminal_pending = 0;
+    decoder->ready = 1;
 
     if(playback->speed > 0.0) {
-        webm_set_audio_speed(playback->context, playback->speed);
+        webm_set_audio_speed(decoder->context, playback->speed);
     }
     webm_set_audio_paused(
-        playback->context,
+        decoder->context,
         playback->paused || playback->speed <= 0.0
     );
-    return true;
+    return 1;
 }
 
 /*
@@ -842,7 +1103,7 @@ s_movie_playback *movie_playback_play(
     playback->source_id = source_id;
     playback->replace_all_audio = replace_all_audio;
     ++source->references;
-    if(!movie_playback_open_media(playback, 0, volume)) {
+    if(!movie_playback_begin_media(playback, 0, volume)) {
         movie_playback_reset_record(playback);
         return NULL;
     }
@@ -1163,10 +1424,11 @@ static void movie_playback_poll_frames(
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Advance playback clocks and decoder state independently from
-* composition. Reverse rates periodically seek and decode forward.
+* Advance playback clocks and decoder state independently from composition.
+* Lifecycle polling keeps open, seek, preroll, and teardown work off the
+* engine thread while reverse rates periodically request forward decodes.
 */
 void movie_playback_update(int interrupt_requested)
 {
@@ -1178,11 +1440,13 @@ void movie_playback_update(int interrupt_requested)
         return;
     }
 
+    movie_playback_reap_retired_decoders(0);
     now = timer_uticks();
     active_mask = movie_playback_pool.active_mask;
     while((channel = sound_channel_mask_first(active_mask)) >= 0) {
         s_movie_playback *playback = &movie_playback_pool.channel[channel];
         uint64_t position;
+        int decoder_result;
         int terminal = 0;
 
         active_mask &= ~(UINT64_C(1) << channel);
@@ -1190,9 +1454,21 @@ void movie_playback_update(int interrupt_requested)
             movie_playback_stop(playback);
             continue;
         }
+        decoder_result = movie_playback_start_pending_decoder(playback);
+        if(decoder_result > 0) {
+            decoder_result = movie_playback_poll_decoder(playback);
+        }
+        if(decoder_result < 0) {
+            movie_playback_stop(playback);
+            playback->failed = 1;
+            continue;
+        }
+        if(decoder_result == 0) {
+            continue;
+        }
         if(playback->terminal_pending) {
             if(playback->repeat) {
-                if(!movie_playback_open_media(
+                if(!movie_playback_begin_media(
                     playback,
                     0,
                     playback->volume
@@ -1217,7 +1493,7 @@ void movie_playback_update(int interrupt_requested)
            playback->position_anchor >= position &&
            playback->position_anchor - position >=
                MOVIE_REVERSE_SEEK_INTERVAL) {
-            if(!movie_playback_open_media(
+            if(!movie_playback_begin_media(
                 playback,
                 position,
                 playback->volume
@@ -1239,7 +1515,7 @@ void movie_playback_update(int interrupt_requested)
             if(playback->repeat && playback->duration) {
                 uint64_t repeat_position =
                     (playback->duration - 1U) * UINT64_C(1000000);
-                if(!movie_playback_open_media(
+                if(!movie_playback_begin_media(
                     playback,
                     repeat_position,
                     playback->volume
@@ -1256,7 +1532,7 @@ void movie_playback_update(int interrupt_requested)
             if(playback->frame_dirty) {
                 playback->terminal_pending = 1;
             } else if(playback->repeat) {
-                if(!movie_playback_open_media(
+                if(!movie_playback_begin_media(
                     playback,
                     0,
                     playback->volume
@@ -1383,10 +1659,12 @@ bool movie_playback_set_paused(s_movie_playback *playback, int paused)
         playback->clock_anchor = now;
     }
     playback->paused = paused;
-    webm_set_audio_paused(
-        playback->context,
-        paused || playback->speed <= 0.0
-    );
+    if(movie_playback_decoder_ready(playback)) {
+        webm_set_audio_paused(
+            playback->context,
+            paused || playback->speed <= 0.0
+        );
+    }
     return true;
 }
 
@@ -1409,7 +1687,7 @@ bool movie_playback_set_position(
     }
 
     position_ns = position * UINT64_C(1000000);
-    if(!movie_playback_open_media(playback, position_ns, volume)) {
+    if(!movie_playback_begin_media(playback, position_ns, volume)) {
         movie_playback_stop(playback);
         return false;
     }
@@ -1445,7 +1723,7 @@ bool movie_playback_set_sound_channel(
 
     position = movie_playback_position_now(playback, timer_uticks());
     playback->sound_channel = sound_channel;
-    if(!movie_playback_open_media(playback, position, volume)) {
+    if(!movie_playback_begin_media(playback, position, volume)) {
         movie_playback_stop(playback);
         return false;
     }
@@ -1477,17 +1755,20 @@ bool movie_playback_set_speed(s_movie_playback *playback, double speed)
     playback->position = position / UINT64_C(1000000);
 
     if(playback->speed > 0.0 && previous_speed <= 0.0) {
-        if(!movie_playback_open_media(playback, position, playback->volume)) {
+        if(!movie_playback_begin_media(playback, position, playback->volume)) {
             movie_playback_stop(playback);
             return false;
         }
-    } else if(playback->speed > 0.0) {
+    } else if(playback->speed > 0.0 &&
+              movie_playback_decoder_ready(playback)) {
         webm_set_audio_speed(playback->context, playback->speed);
         webm_set_audio_paused(playback->context, playback->paused);
-    } else {
+    } else if(playback->speed <= 0.0) {
         playback->reverse_pending = 0;
         playback->terminal_pending = 0;
-        webm_set_audio_paused(playback->context, 1);
+        if(movie_playback_decoder_ready(playback)) {
+            webm_set_audio_paused(playback->context, 1);
+        }
     }
     return true;
 }

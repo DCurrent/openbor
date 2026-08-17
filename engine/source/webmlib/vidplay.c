@@ -68,7 +68,7 @@ typedef struct {
     int max_size;
     uint64_t replacement_count;
     uint64_t resync_count;
-    volatile int *quit;
+    SDL_atomic_t *quit;
     bor_mutex *mutex;
     bor_cond *not_full;
     bor_cond *not_empty;
@@ -93,7 +93,7 @@ typedef struct {
     uint64_t playback_start_timestamp;
     uint64_t output_timestamp;
     uint64_t leading_silence_frames;
-    volatile int *quit;
+    SDL_atomic_t *quit;
     uint8_t pcm_buffer[SOUND_STREAM_BUFFER_SIZE];
 } audio_context;
 
@@ -107,7 +107,7 @@ typedef struct {
     int display_height;
     int playback_paused;
     uint64_t frame_delay;
-    volatile int *quit;
+    SDL_atomic_t *quit;
 } video_context;
 
 typedef struct {
@@ -130,9 +130,126 @@ struct webm_context {
     bor_thread *the_demux_thread;
     bor_thread *the_video_thread;
     bor_thread *the_audio_thread;
+    bor_thread *the_lifecycle_thread;
+    bor_mutex *lifecycle_mutex;
+    bor_cond *lifecycle_condition;
+    char *path;
     uint64_t duration;
-    volatile int quit;
+    uint64_t seek_timestamp;
+    e_webm_decoder_state decoder_state;
+    int volume;
+    int sound_channel;
+    int play_audio;
+    int replace_all_audio;
+    int close_requested;
+    int video_initialized;
+    int audio_initialized;
+    SDL_atomic_t quit;
 };
+
+static bor_mutex *webm_lifecycle_operation_mutex;
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Read the decoder stop flag with SDL atomics. Queue, demux, codec, and
+* lifecycle workers share this flag without relying on volatile accesses
+* that provide no cross-thread synchronization in C.
+*/
+static int webm_stop_is_requested(SDL_atomic_t *stop)
+{
+    return !stop || SDL_AtomicGet(stop) != 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Publish decoder cancellation through the same SDL atomic consumed by every
+* queue and worker, preserving one stop path across lifecycle transitions.
+*/
+static void webm_request_decoder_stop(SDL_atomic_t *stop)
+{
+    if(stop) {
+        SDL_AtomicSet(stop, 1);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Serialize decoder resource acquisition and release on lifecycle workers.
+* Independent decoding remains concurrent, while sound-channel replacement,
+* container setup, and teardown cannot overtake one another during rapid
+* asynchronous channel replacement.
+*/
+int webm_lifecycle_init(void)
+{
+    if(webm_lifecycle_operation_mutex) {
+        return 1;
+    }
+    webm_lifecycle_operation_mutex = mutex_create();
+    return webm_lifecycle_operation_mutex != NULL;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Release shared lifecycle serialization after every decoder has reached
+* CLOSED and its lifecycle thread has been reaped during engine shutdown.
+*/
+void webm_lifecycle_shutdown(void)
+{
+    if(webm_lifecycle_operation_mutex) {
+        mutex_destroy(webm_lifecycle_operation_mutex);
+        webm_lifecycle_operation_mutex = NULL;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Retain the source path for the lifetime of an asynchronous decoder open.
+* The movie source registry may otherwise release its caller-owned string
+* before the lifecycle worker has finished opening a streamed source.
+*/
+static char *webm_copy_path(const char *path)
+{
+    char *copy;
+    size_t length;
+
+    if(!path || !path[0]) {
+        return NULL;
+    }
+    length = strlen(path) + 1U;
+    copy = malloc(length);
+    if(copy) {
+        memcpy(copy, path, length);
+    }
+    return copy;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Read asynchronous cancellation under the lifecycle mutex. The engine
+* thread publishes only this request; the lifecycle worker remains the sole
+* writer of the decoder stop flag consumed by demux and codec workers.
+*/
+static int webm_close_is_requested(webm_context *ctx)
+{
+    int close_requested;
+
+    mutex_lock(ctx->lifecycle_mutex);
+    close_requested = ctx->close_requested;
+    mutex_unlock(ctx->lifecycle_mutex);
+    return close_requested;
+}
 
 /*
 * Caskey, Damon V.
@@ -246,7 +363,7 @@ static int64_t webm_io_tell(void *userdata)
     return seekpackfile64(io_ctx->packhandle, 0, SEEK_CUR);
 }
 
-static FixedSizeQueue *queue_init(int max_size, volatile int *quit)
+static FixedSizeQueue *queue_init(int max_size, SDL_atomic_t *quit)
 {
     FixedSizeQueue *queue;
 
@@ -288,7 +405,7 @@ int queue_insert(FixedSizeQueue *queue, void *data)
     {
         while(cond_wait_timed(queue->not_full, queue->mutex, 10) != 0)
         {
-            if (*queue->quit)
+            if(webm_stop_is_requested(queue->quit))
             {
                 mutex_unlock(queue->mutex);
                 return -1;
@@ -316,7 +433,7 @@ void *queue_get(FixedSizeQueue *queue)
     {
         while (cond_wait_timed(queue->not_empty, queue->mutex, 10) != 0)
         {
-            if (*queue->quit)
+            if(webm_stop_is_requested(queue->quit))
             {
                 mutex_unlock(queue->mutex);
                 return NULL;
@@ -496,7 +613,7 @@ static int video_packet_queue_try_insert(
     }
 
     mutex_lock(queue->mutex);
-    if(*queue->quit) {
+    if(webm_stop_is_requested(queue->quit)) {
         mutex_unlock(queue->mutex);
         return -1;
     }
@@ -537,7 +654,7 @@ static int video_packet_queue_begin_resync(
     }
 
     mutex_lock(queue->mutex);
-    if(*queue->quit) {
+    if(webm_stop_is_requested(queue->quit)) {
         mutex_unlock(queue->mutex);
         return -1;
     }
@@ -615,7 +732,7 @@ static int video_packet_queue_insert(
         return -1;
     }
 
-    while(!ctx->quit) {
+    while(!webm_stop_is_requested(&ctx->quit)) {
         int index;
         int queue_full;
 
@@ -664,7 +781,7 @@ static int video_frame_queue_insert(
     frame_queue = video_ctx->frame_queue;
     *replaced = NULL;
 
-    while(!*frame_queue->quit) {
+    while(!webm_stop_is_requested(frame_queue->quit)) {
         int index;
         int video_packet_count = queue_get_status(
             video_ctx->packet_queue,
@@ -673,7 +790,7 @@ static int video_frame_queue_insert(
         );
 
         mutex_lock(frame_queue->mutex);
-        if(*frame_queue->quit) {
+        if(webm_stop_is_requested(frame_queue->quit)) {
             mutex_unlock(frame_queue->mutex);
             return -1;
         }
@@ -722,7 +839,7 @@ static int bgm_update_thread(void *data)
 {
     webm_context *ctx = data;
 
-    while (!ctx->quit)
+    while(!webm_stop_is_requested(&ctx->quit))
     {
         sound_update_music();
         usleep(5000);
@@ -946,7 +1063,7 @@ static int audio_thread(void *data)
     /* Priority elevation may be denied on restricted platforms. */
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 
-    while(!*audio_ctx->quit)
+    while(!webm_stop_is_requested(audio_ctx->quit))
     {
         decoded_bytes = audio_decode_frame(
             audio_ctx,
@@ -986,7 +1103,8 @@ static int audio_thread(void *data)
                 if(queue_result == 0) {
                     usleep(retry_delay_microseconds);
                 }
-            } while(!*audio_ctx->quit && queue_result == 0);
+            } while(!webm_stop_is_requested(audio_ctx->quit) &&
+                    queue_result == 0);
 
             if(queue_result > 0 &&
                underrun_count != audio_ctx->observed_underrun_count) {
@@ -1076,16 +1194,19 @@ static int audio_thread(void *data)
 * unusually slow inputs while ordinary playback begins with continuous
 * audio already available to the mixer.
 */
-static void audio_wait_for_preroll(audio_context *audio_ctx)
+static void audio_wait_for_preroll(webm_context *ctx)
 {
+    audio_context *audio_ctx;
     uint64_t start_time;
 
-    if(!audio_ctx || !audio_ctx->quit) {
+    if(!ctx || !ctx->audio_initialized) {
         return;
     }
+    audio_ctx = &ctx->audio_ctx;
     start_time = timer_uticks();
 
-    while(!*audio_ctx->quit) {
+    while(!webm_stop_is_requested(audio_ctx->quit) &&
+          !webm_close_is_requested(ctx)) {
         s_sound_pcm_stream_status status;
         uint64_t now;
 
@@ -1126,7 +1247,7 @@ static int init_audio(
     int sound_channel,
     uint64_t seek_timestamp,
     int replace_all_audio,
-    volatile int *quit
+    SDL_atomic_t *quit
 )
 {
     // read vorbis header and initialize vorbis decoding
@@ -1301,14 +1422,14 @@ static int video_thread(void *data)
     uint64_t frame_delay;
     uint64_t timestamp;
 
-    while(!*ctx->quit)
+    while(!webm_stop_is_requested(ctx->quit))
     {
         unsigned int chunk, chunks;
         nestegg_packet *pkt;
 
         debug_printf("video queue size=%i\n", ctx->packet_queue->size);
         pkt = queue_get(ctx->packet_queue);
-        if (*ctx->quit || pkt == NULL) break;
+        if(webm_stop_is_requested(ctx->quit) || pkt == NULL) break;
         nestegg_packet_count(pkt, &chunks);
         nestegg_packet_tstamp(pkt, &timestamp);
         frame_delay = video_packet_frame_delay(ctx, pkt, chunks);
@@ -1324,7 +1445,7 @@ static int video_thread(void *data)
             if (vpx_codec_decode(&ctx->vpx_ctx, data, data_size, NULL, 0))
             {
                 printf("Error: libvpx failed to decode chunk\n");
-                *ctx->quit = 1;
+                webm_request_decoder_stop(ctx->quit);
                 break;
             }
             while((img = vpx_codec_get_frame(&ctx->vpx_ctx, &iter)))
@@ -1334,13 +1455,13 @@ static int video_thread(void *data)
                 if(img->d_w != (unsigned int)ctx->width ||
                    img->d_h != (unsigned int)ctx->height) {
                     printf("Error: WebM frame dimensions changed during playback\n");
-                    *ctx->quit = 1;
+                    webm_request_decoder_stop(ctx->quit);
                     break;
                 }
                 yuv_frame *frame = yuv_frame_create(img->d_w, img->d_h);
                 if(!frame) {
                     printf("Error: Unable to allocate a decoded WebM frame\n");
-                    *ctx->quit = 1;
+                    webm_request_decoder_stop(ctx->quit);
                     break;
                 }
                 frame->timestamp = timestamp;
@@ -1369,7 +1490,7 @@ static int video_thread(void *data)
                     ? timestamp + frame_delay
                     : UINT64_MAX;
             }
-            if(*ctx->quit) break;
+            if(webm_stop_is_requested(ctx->quit)) break;
         }
         nestegg_free_packet(pkt);
     }
@@ -1443,7 +1564,7 @@ static int init_video(
     nestegg *nestegg_ctx,
     int track,
     video_context *video_ctx,
-    volatile int *quit
+    SDL_atomic_t *quit
 )
 {
     nestegg_video_params video_params;
@@ -1627,7 +1748,7 @@ static int demux_thread(void *data)
                         video_packet_queue_report_resync(
                             ctx->video_ctx.packet_queue
                         );
-                        if(ctx->quit) break;
+                        if(webm_stop_is_requested(&ctx->quit)) break;
                         continue;
                     }
                     if(insert_result < 0) {
@@ -1639,7 +1760,7 @@ static int demux_thread(void *data)
                     ctx->video_ctx.packet_queue
                 );
                 nestegg_free_packet(pkt);
-                if(ctx->quit) break;
+                if(webm_stop_is_requested(&ctx->quit)) break;
                 continue;
             }
             insert_result = video_packet_queue_insert(ctx, pkt);
@@ -1661,7 +1782,7 @@ static int demux_thread(void *data)
                     video_packet_queue_report_resync(
                         ctx->video_ctx.packet_queue
                     );
-                    if(ctx->quit) break;
+                    if(webm_stop_is_requested(&ctx->quit)) break;
                     continue;
                 }
                 video_packet_queue_record_drop(
@@ -1669,7 +1790,7 @@ static int demux_thread(void *data)
                 );
                 nestegg_free_packet(pkt);
                 discard_video_until_keyframe = 1;
-                if(ctx->quit) break;
+                if(webm_stop_is_requested(&ctx->quit)) break;
                 continue;
             }
         }
@@ -1678,7 +1799,7 @@ static int demux_thread(void *data)
             nestegg_free_packet(pkt);
         }
 
-        if (ctx->quit) break;
+        if(webm_stop_is_requested(&ctx->quit)) break;
     }
     if(discard_video_until_keyframe) {
         video_packet_queue_report_resync(ctx->video_ctx.packet_queue);
@@ -1690,12 +1811,332 @@ static int demux_thread(void *data)
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Open one independently owned decoder. Optional shared cache,
-* initial seek, and sound routing are established before its worker
-* threads become visible. Reverse contexts omit the audio track so
-* paused producer queues cannot back-pressure video demuxing.
+* Publish an asynchronous lifecycle stage unless teardown was requested.
+* Cancellation also raises the decoder stop flag so in-progress preroll and
+* decoder workers leave their bounded waits without engine-thread joins.
+*/
+static int webm_publish_decoder_state(
+    webm_context *ctx,
+    e_webm_decoder_state state
+)
+{
+    int accepted;
+
+    mutex_lock(ctx->lifecycle_mutex);
+    accepted = !ctx->close_requested;
+    if(accepted) {
+        ctx->decoder_state = state;
+    }
+    else {
+        ctx->decoder_state = WEBM_DECODER_STATE_CLOSING;
+        webm_request_decoder_stop(&ctx->quit);
+    }
+    mutex_unlock(ctx->lifecycle_mutex);
+    return accepted;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Join decoder workers and release every resource opened by the lifecycle
+* thread. Initialization flags make the same path safe for partial opens,
+* failed seeks, ordinary stops, and engine shutdown.
+*/
+static void webm_close_resources(webm_context *ctx)
+{
+    webm_request_decoder_stop(&ctx->quit);
+    if(ctx->the_demux_thread) {
+        thread_join(ctx->the_demux_thread);
+        ctx->the_demux_thread = NULL;
+    }
+    if(ctx->the_video_thread) {
+        thread_join(ctx->the_video_thread);
+        ctx->the_video_thread = NULL;
+    }
+    if(ctx->the_audio_thread) {
+        thread_join(ctx->the_audio_thread);
+        ctx->the_audio_thread = NULL;
+    }
+    if(ctx->video_initialized) {
+        close_video(&ctx->video_ctx);
+        ctx->video_initialized = 0;
+    }
+    if(ctx->audio_initialized) {
+        close_audio(&ctx->audio_ctx);
+        ctx->audio_initialized = 0;
+    }
+    if(ctx->nestegg_ctx) {
+        nestegg_destroy(ctx->nestegg_ctx);
+        ctx->nestegg_ctx = NULL;
+    }
+    if(ctx->io_ctx.packhandle >= 0) {
+        closepackfile(ctx->io_ctx.packhandle);
+        ctx->io_ctx.packhandle = -1;
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Perform container open, initial seek, and decoder creation on the lifecycle
+* worker, then publish PREROLLING when audio must establish its PCM reserve.
+* Reverse playback and ordinary seeks use the same decoder path as initial
+* playback.
+*/
+static int webm_open_resources(webm_context *ctx)
+{
+    nestegg_io io;
+    int video_track = -1;
+    int audio_track = -1;
+    unsigned int num_tracks;
+    unsigned int i;
+
+    io.read = webm_io_read;
+    io.seek = webm_io_seek;
+    io.tell = webm_io_tell;
+    io.userdata = &ctx->io_ctx;
+
+    if(ctx->io_ctx.cache_buffer) {
+        if(!ctx->io_ctx.cache_size) {
+            printf("Error: Cached WebM source %s has no data\n", ctx->path);
+            return -1;
+        }
+    }
+    else {
+        ctx->io_ctx.packhandle = openpackfile(ctx->path, packfile);
+        if(ctx->io_ctx.packhandle < 0) {
+            printf("Error: Unable to open file %s for playback\n", ctx->path);
+            return -1;
+        }
+        ctx->io_ctx.stream_size = seekpackfile64(
+            ctx->io_ctx.packhandle,
+            0,
+            SEEK_END
+        );
+        if(ctx->io_ctx.stream_size <= 0 ||
+           seekpackfile64(ctx->io_ctx.packhandle, 0, SEEK_SET) != 0) {
+            printf("Error: Unable to size WebM stream %s\n", ctx->path);
+            return -1;
+        }
+    }
+
+    if(!webm_publish_decoder_state(
+        ctx,
+        WEBM_DECODER_STATE_OPENING
+    )) {
+        return -1;
+    }
+    if(nestegg_init(&ctx->nestegg_ctx, io, NULL, -1) < 0) {
+        printf("Error: Unable to initialize WebM container %s\n", ctx->path);
+        return -1;
+    }
+    nestegg_duration(ctx->nestegg_ctx, &ctx->duration);
+    if(nestegg_track_count(ctx->nestegg_ctx, &num_tracks) < 0) {
+        printf("Error: Unable to read WebM tracks from %s\n", ctx->path);
+        return -1;
+    }
+
+    for(i = 0; i < num_tracks; ++i) {
+        int track_type = nestegg_track_type(ctx->nestegg_ctx, i);
+        int codec = nestegg_track_codec_id(ctx->nestegg_ctx, i);
+
+        if(track_type == NESTEGG_TRACK_VIDEO && video_track < 0) {
+            if(codec != NESTEGG_CODEC_VP8) {
+                printf("Error: unsupported video codec; only VP8 is supported\n");
+                return -1;
+            }
+            video_track = (int)i;
+        }
+        else if(track_type == NESTEGG_TRACK_AUDIO && audio_track < 0) {
+            if(codec != NESTEGG_CODEC_VORBIS) {
+                printf("Error: unsupported audio codec; only Vorbis is supported\n");
+                return -1;
+            }
+            audio_track = (int)i;
+        }
+    }
+    if(video_track < 0) {
+        printf("Error: WebM file %s does not contain a video track\n", ctx->path);
+        return -1;
+    }
+
+    if(!webm_publish_decoder_state(
+        ctx,
+        WEBM_DECODER_STATE_SEEKING
+    )) {
+        return -1;
+    }
+    if(ctx->duration && ctx->seek_timestamp >= ctx->duration) {
+        ctx->seek_timestamp = ctx->duration - 1U;
+    }
+    if(ctx->seek_timestamp &&
+       nestegg_track_seek(
+           ctx->nestegg_ctx,
+           (unsigned int)video_track,
+           ctx->seek_timestamp
+       ) < 0) {
+        printf("Error: Unable to seek WebM file %s\n", ctx->path);
+        return -1;
+    }
+    if(!webm_publish_decoder_state(
+        ctx,
+        WEBM_DECODER_STATE_OPENING
+    )) {
+        return -1;
+    }
+
+    ctx->video_track = video_track;
+    if(init_video(
+        ctx->nestegg_ctx,
+        ctx->video_track,
+        &ctx->video_ctx,
+        &ctx->quit
+    ) < 0) {
+        return -1;
+    }
+    ctx->video_initialized = 1;
+    ctx->the_video_thread = thread_create(
+        video_thread,
+        "video",
+        &ctx->video_ctx
+    );
+    if(!ctx->the_video_thread) {
+        printf("Error: Unable to start WebM video decoder thread\n");
+        return -1;
+    }
+
+    if(audio_track >= 0 && ctx->play_audio) {
+        ctx->audio_track = audio_track;
+        if(init_audio(
+            ctx->nestegg_ctx,
+            ctx->audio_track,
+            &ctx->audio_ctx,
+            ctx->volume,
+            ctx->sound_channel,
+            ctx->seek_timestamp,
+            ctx->replace_all_audio,
+            &ctx->quit
+        ) == 0) {
+            ctx->audio_initialized = 1;
+            ctx->audio_ctx.video_packet_queue =
+                ctx->video_ctx.packet_queue;
+            ctx->audio_ctx.video_frame_queue =
+                ctx->video_ctx.frame_queue;
+            ctx->the_audio_thread = thread_create(
+                audio_thread,
+                "audio",
+                &ctx->audio_ctx
+            );
+            if(!ctx->the_audio_thread) {
+                printf("Error: Unable to start WebM audio decoder thread\n");
+                return -1;
+            }
+        }
+        else {
+            printf(
+                "Warning: Unable to open the WebM audio track on channel %d\n",
+                ctx->sound_channel
+            );
+            ctx->audio_track = -1;
+        }
+    }
+    else if(audio_track < 0 &&
+            ctx->replace_all_audio &&
+            sound_query_music(NULL, NULL)) {
+        /* Blocking legacy playback retains its channel-zero service. */
+        ctx->the_audio_thread = thread_create(bgm_update_thread, "bgm", ctx);
+        if(!ctx->the_audio_thread) {
+            printf("Error: Unable to start WebM legacy audio service thread\n");
+            return -1;
+        }
+    }
+
+    ctx->the_demux_thread = thread_create(demux_thread, "demux", ctx);
+    if(!ctx->the_demux_thread) {
+        printf("Error: Unable to start WebM demux thread\n");
+        return -1;
+    }
+    if(ctx->audio_track >= 0) {
+        if(!webm_publish_decoder_state(
+            ctx,
+            WEBM_DECODER_STATE_PREROLLING
+        )) {
+            return -1;
+        }
+    }
+    return webm_stop_is_requested(&ctx->quit) ? -1 : 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Own the decoder lifecycle after the constructor returns. Successful opens
+* wait in READY until an asynchronous close request arrives; failed opens
+* remain observable as FAILED until the movie layer retires the context.
+*/
+static int webm_lifecycle_thread(void *data)
+{
+    webm_context *ctx = data;
+    int open_result;
+
+    mutex_lock(webm_lifecycle_operation_mutex);
+    open_result = webm_open_resources(ctx);
+    mutex_unlock(webm_lifecycle_operation_mutex);
+    if(open_result == 0 && ctx->audio_track >= 0) {
+        audio_wait_for_preroll(ctx);
+        if(webm_stop_is_requested(&ctx->quit) ||
+           webm_close_is_requested(ctx)) {
+            open_result = -1;
+        }
+    }
+    if(open_result < 0) {
+        mutex_lock(webm_lifecycle_operation_mutex);
+        webm_close_resources(ctx);
+        mutex_unlock(webm_lifecycle_operation_mutex);
+    }
+
+    mutex_lock(ctx->lifecycle_mutex);
+    if(ctx->close_requested) {
+        ctx->decoder_state = WEBM_DECODER_STATE_CLOSING;
+    }
+    else {
+        ctx->decoder_state = open_result == 0
+            ? WEBM_DECODER_STATE_READY
+            : WEBM_DECODER_STATE_FAILED;
+    }
+    cond_broadcast(ctx->lifecycle_condition);
+    while(!ctx->close_requested) {
+        cond_wait(ctx->lifecycle_condition, ctx->lifecycle_mutex);
+    }
+    ctx->decoder_state = WEBM_DECODER_STATE_CLOSING;
+    webm_request_decoder_stop(&ctx->quit);
+    mutex_unlock(ctx->lifecycle_mutex);
+
+    if(open_result == 0) {
+        mutex_lock(webm_lifecycle_operation_mutex);
+        webm_close_resources(ctx);
+        mutex_unlock(webm_lifecycle_operation_mutex);
+    }
+
+    mutex_lock(ctx->lifecycle_mutex);
+    ctx->decoder_state = WEBM_DECODER_STATE_CLOSED;
+    cond_broadcast(ctx->lifecycle_condition);
+    mutex_unlock(ctx->lifecycle_mutex);
+    return 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Allocate an independently owned decoder request and return as soon as its
+* lifecycle worker starts. Container I/O, seeking, codec initialization, and
+* audio preroll continue asynchronously behind the published state machine.
 */
 webm_context *webm_start_playback_ex(
     const char *path,
@@ -1709,14 +2150,16 @@ webm_context *webm_start_playback_ex(
 )
 {
     webm_context *ctx;
-    nestegg_io io;
-    int video_track = -1, audio_track = -1;
-    unsigned int num_tracks, i;
 
     if(!path || !path[0] ||
        sound_channel < 0 ||
-       (unsigned int)sound_channel >= SOUND_CHANNEL_COUNT_MAX) {
+       (unsigned int)sound_channel >= SOUND_CHANNEL_COUNT_MAX ||
+       (cache_buffer && !cache_size)) {
         printf("Error: Invalid WebM playback request\n");
+        return NULL;
+    }
+    if(!webm_lifecycle_init()) {
+        printf("Error: Unable to initialize WebM lifecycle synchronization\n");
         return NULL;
     }
 
@@ -1725,164 +2168,121 @@ webm_context *webm_start_playback_ex(
         printf("Error: Unable to allocate WebM playback context\n");
         return NULL;
     }
+    ctx->path = webm_copy_path(path);
+    ctx->lifecycle_mutex = mutex_create();
+    ctx->lifecycle_condition = cond_create();
+    if(!ctx->path || !ctx->lifecycle_mutex || !ctx->lifecycle_condition) {
+        if(ctx->lifecycle_condition) {
+            cond_destroy(ctx->lifecycle_condition);
+        }
+        if(ctx->lifecycle_mutex) {
+            mutex_destroy(ctx->lifecycle_mutex);
+        }
+        free(ctx->path);
+        free(ctx);
+        return NULL;
+    }
+
     ctx->io_ctx.packhandle = -1;
+    ctx->io_ctx.cache_buffer = cache_buffer;
+    ctx->io_ctx.cache_size = cache_size;
     ctx->audio_track = -1;
     ctx->video_track = -1;
-
-    io.read = webm_io_read;
-    io.seek = webm_io_seek;
-    io.tell = webm_io_tell;
-    io.userdata = &ctx->io_ctx;
-
-    if(cache_buffer) {
-        if(!cache_size) {
-            printf("Error: Cached WebM source %s has no data\n", path);
-            goto error_io;
-        }
-        ctx->io_ctx.cache_buffer = cache_buffer;
-        ctx->io_ctx.cache_size = cache_size;
-    } else {
-        ctx->io_ctx.packhandle = openpackfile(path, packfile);
-        if(ctx->io_ctx.packhandle < 0) {
-            printf("Error: Unable to open file %s for playback\n", path);
-            goto error_io;
-        }
-        ctx->io_ctx.stream_size = seekpackfile64(
-            ctx->io_ctx.packhandle,
-            0,
-            SEEK_END
-        );
-        if(ctx->io_ctx.stream_size <= 0 ||
-           seekpackfile64(ctx->io_ctx.packhandle, 0, SEEK_SET) != 0) {
-            printf("Error: Unable to size WebM stream %s\n", path);
-            goto error_io;
-        }
-    }
-
-    if(nestegg_init(&(ctx->nestegg_ctx), io, NULL, -1) < 0) {
-        printf("Error: Unable to initialize WebM container %s\n", path);
-        goto error_io;
-    }
-    nestegg_duration(ctx->nestegg_ctx, &ctx->duration);
-    if(nestegg_track_count(ctx->nestegg_ctx, &num_tracks) < 0) {
-        printf("Error: Unable to read WebM tracks from %s\n", path);
-        goto error_nestegg;
-    }
-
-    for(i = 0; i < num_tracks; i++) {
-        int track_type = nestegg_track_type(ctx->nestegg_ctx, i);
-        int codec = nestegg_track_codec_id(ctx->nestegg_ctx, i);
-
-        if(track_type == NESTEGG_TRACK_VIDEO && video_track < 0) {
-            if(codec != NESTEGG_CODEC_VP8) {
-                printf("Error: unsupported video codec; only VP8 is supported\n");
-                goto error_nestegg;
-            }
-            video_track = (int)i;
-        } else if(track_type == NESTEGG_TRACK_AUDIO && audio_track < 0) {
-            if(codec != NESTEGG_CODEC_VORBIS) {
-                printf("Error: unsupported audio codec; only Vorbis is supported\n");
-                goto error_nestegg;
-            }
-            audio_track = (int)i;
-        }
-    }
-
-    if(video_track < 0) {
-        printf("Error: WebM file %s does not contain a video track\n", path);
-        goto error_nestegg;
-    }
-
-    if(ctx->duration && seek_timestamp >= ctx->duration) {
-        seek_timestamp = ctx->duration - 1;
-    }
-    if(seek_timestamp &&
-       nestegg_track_seek(ctx->nestegg_ctx, (unsigned int)video_track, seek_timestamp) < 0) {
-        printf("Error: Unable to seek WebM file %s\n", path);
-        goto error_nestegg;
-    }
-
-    ctx->video_track = video_track;
-    if(init_video(
-        ctx->nestegg_ctx,
-        ctx->video_track,
-        &(ctx->video_ctx),
-        &ctx->quit
-    ) < 0) {
-        goto error_nestegg;
-    }
-    ctx->the_video_thread = thread_create(video_thread, "video", &(ctx->video_ctx));
-    if(!ctx->the_video_thread) {
-        printf("Error: Unable to start WebM video decoder thread\n");
-        webm_close(ctx);
+    ctx->seek_timestamp = seek_timestamp;
+    ctx->volume = volume;
+    ctx->sound_channel = sound_channel;
+    ctx->play_audio = play_audio != 0;
+    ctx->replace_all_audio = replace_all_audio != 0;
+    ctx->decoder_state = WEBM_DECODER_STATE_OPENING;
+    SDL_AtomicSet(&ctx->quit, 0);
+    ctx->the_lifecycle_thread = thread_create(
+        webm_lifecycle_thread,
+        "webm-lifecycle",
+        ctx
+    );
+    if(!ctx->the_lifecycle_thread) {
+        cond_destroy(ctx->lifecycle_condition);
+        mutex_destroy(ctx->lifecycle_mutex);
+        free(ctx->path);
+        free(ctx);
         return NULL;
-    }
-
-    if(audio_track >= 0 && play_audio) {
-        ctx->audio_track = audio_track;
-        if(init_audio(
-            ctx->nestegg_ctx,
-            ctx->audio_track,
-            &(ctx->audio_ctx),
-            volume,
-            sound_channel,
-            seek_timestamp,
-            replace_all_audio,
-            &ctx->quit
-        ) == 0) {
-            ctx->audio_ctx.video_packet_queue =
-                ctx->video_ctx.packet_queue;
-            ctx->audio_ctx.video_frame_queue =
-                ctx->video_ctx.frame_queue;
-            ctx->the_audio_thread = thread_create(audio_thread, "audio", &(ctx->audio_ctx));
-            if(!ctx->the_audio_thread) {
-                printf("Error: Unable to start WebM audio decoder thread\n");
-                webm_close(ctx);
-                return NULL;
-            }
-        } else {
-            printf("Warning: Unable to open the WebM audio track on channel %d\n", sound_channel);
-            ctx->audio_track = -1;
-        }
-    } else if(audio_track < 0 &&
-              replace_all_audio &&
-              sound_query_music(NULL, NULL)) {
-        /* Blocking legacy playback must service existing channel zero audio. */
-        ctx->the_audio_thread = thread_create(bgm_update_thread, "bgm", ctx);
-        if(!ctx->the_audio_thread) {
-            printf("Error: Unable to start WebM legacy audio service thread\n");
-            webm_close(ctx);
-            return NULL;
-        }
-    }
-
-    ctx->the_demux_thread = thread_create(demux_thread, "demux", ctx);
-    if(!ctx->the_demux_thread) {
-        printf("Error: Unable to start WebM demux thread\n");
-        webm_close(ctx);
-        return NULL;
-    }
-    if(ctx->audio_track >= 0) {
-        audio_wait_for_preroll(&ctx->audio_ctx);
     }
     return ctx;
-
-error_nestegg:
-    nestegg_destroy(ctx->nestegg_ctx);
-error_io:
-    if(ctx->io_ctx.packhandle >= 0) {
-        closepackfile(ctx->io_ctx.packhandle);
-    }
-    free(ctx);
-    return NULL;
 }
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-17
 *
-* Stop one decoder without signaling any other WebM
-* object, then release its queues, codec, and I/O source.
+* Snapshot one decoder lifecycle state under its owner mutex so the movie
+* layer can advance transitions without reading partially published state.
+*/
+e_webm_decoder_state webm_get_decoder_state(webm_context *ctx)
+{
+    e_webm_decoder_state state;
+
+    if(!ctx) {
+        return WEBM_DECODER_STATE_FAILED;
+    }
+    mutex_lock(ctx->lifecycle_mutex);
+    state = ctx->decoder_state;
+    mutex_unlock(ctx->lifecycle_mutex);
+    return state;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Request decoder cancellation without waiting for lifecycle, demux, audio,
+* or video workers. The owning movie channel later reaps the context after
+* CLOSED is observable.
+*/
+void webm_request_close(webm_context *ctx)
+{
+    if(!ctx) {
+        return;
+    }
+
+    mutex_lock(ctx->lifecycle_mutex);
+    if(ctx->decoder_state != WEBM_DECODER_STATE_CLOSED) {
+        ctx->close_requested = 1;
+        ctx->decoder_state = WEBM_DECODER_STATE_CLOSING;
+        cond_broadcast(ctx->lifecycle_condition);
+    }
+    mutex_unlock(ctx->lifecycle_mutex);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Reap one decoder only after asynchronous teardown is complete. CLOSED is
+* published at the lifecycle worker's exit boundary, keeping this poll free
+* of container I/O and decoder-thread waits during normal engine updates.
+*/
+int webm_poll_closed(webm_context *ctx)
+{
+    if(!ctx ||
+       webm_get_decoder_state(ctx) != WEBM_DECODER_STATE_CLOSED) {
+        return 0;
+    }
+
+    thread_join(ctx->the_lifecycle_thread);
+    cond_destroy(ctx->lifecycle_condition);
+    mutex_destroy(ctx->lifecycle_mutex);
+    free(ctx->path);
+    free(ctx);
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Provide a blocking finalizer only for engine shutdown and legacy ownership
+* boundaries. Runtime movie stop and replacement use request-plus-poll so
+* teardown never joins decoder workers on an engine update.
 */
 void webm_close(webm_context *ctx)
 {
@@ -1890,21 +2290,20 @@ void webm_close(webm_context *ctx)
         return;
     }
 
-    ctx->quit = 1;
-    if(ctx->the_demux_thread) thread_join(ctx->the_demux_thread);
-    if(ctx->the_video_thread) thread_join(ctx->the_video_thread);
-    if(ctx->the_audio_thread) thread_join(ctx->the_audio_thread);
-    close_video(&(ctx->video_ctx));
-    if(ctx->audio_track >= 0) close_audio(&(ctx->audio_ctx));
-    if(ctx->nestegg_ctx) nestegg_destroy(ctx->nestegg_ctx);
-    if(ctx->io_ctx.packhandle >= 0) closepackfile(ctx->io_ctx.packhandle);
+    webm_request_close(ctx);
+    thread_join(ctx->the_lifecycle_thread);
+    cond_destroy(ctx->lifecycle_condition);
+    mutex_destroy(ctx->lifecycle_mutex);
+    free(ctx->path);
     free(ctx);
 }
 
 void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims)
 {
-    assert(ctx);
-    assert(dims);
+    if(!ctx || !dims ||
+       webm_get_decoder_state(ctx) != WEBM_DECODER_STATE_READY) {
+        return;
+    }
     dims->width = ctx->video_ctx.width;
     dims->height = ctx->video_ctx.height;
     dims->display_width = ctx->video_ctx.display_width;
@@ -1919,7 +2318,10 @@ void webm_get_video_info(webm_context *ctx, yuv_video_mode *dims)
 */
 uint64_t webm_get_duration(webm_context *ctx)
 {
-    return ctx ? ctx->duration : 0;
+    return ctx &&
+        webm_get_decoder_state(ctx) == WEBM_DECODER_STATE_READY
+        ? ctx->duration
+        : 0;
 }
 
 /*
@@ -1939,7 +2341,9 @@ int webm_get_audio_playback_position(
     uint64_t playback_frame;
     uint64_t elapsed;
 
-    if(!ctx || !position || ctx->audio_track < 0) {
+    if(!ctx || !position ||
+       webm_get_decoder_state(ctx) != WEBM_DECODER_STATE_READY ||
+       ctx->audio_track < 0) {
         return 0;
     }
 
@@ -1967,17 +2371,18 @@ int webm_get_audio_playback_position(
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
-* Apply pause state to decoder backpressure and audio output. Initial PCM
-* preroll is completed synchronously before the movie clock begins, so
-* ordinary frame updates never need to poll stream status.
+* Apply pause state to decoder backpressure and audio output only after the
+* asynchronous lifecycle publishes READY. Pending requests retain their
+* desired pause state in the owning movie record until that transition.
 */
 void webm_set_audio_paused(webm_context *ctx, int paused)
 {
     audio_context *audio_ctx;
 
-    if(!ctx) {
+    if(!ctx ||
+       webm_get_decoder_state(ctx) != WEBM_DECODER_STATE_READY) {
         return;
     }
     paused = paused != 0;
@@ -2006,7 +2411,9 @@ void webm_set_audio_paused(webm_context *ctx, int paused)
 
 void webm_set_audio_speed(webm_context *ctx, double speed)
 {
-    if(ctx && ctx->audio_track >= 0) {
+    if(ctx &&
+       webm_get_decoder_state(ctx) == WEBM_DECODER_STATE_READY &&
+       ctx->audio_track >= 0) {
         sound_set_channel_speed_owned(
             ctx->audio_ctx.channel,
             ctx->audio_ctx.stream_play_id,
@@ -2027,7 +2434,8 @@ int webm_get_pending_frame_count(webm_context *ctx)
 {
     int count;
 
-    if(!ctx) {
+    if(!ctx ||
+       webm_get_decoder_state(ctx) != WEBM_DECODER_STATE_READY) {
         return 0;
     }
     count = queue_get_status(
@@ -2046,13 +2454,22 @@ int webm_get_pending_frame_count(webm_context *ctx)
 */
 int webm_try_get_next_frame(webm_context *ctx, yuv_frame **frame)
 {
+    e_webm_decoder_state state;
     void *queued_frame;
 
     if(!ctx || !frame) {
         return -1;
     }
+    state = webm_get_decoder_state(ctx);
+    if(state != WEBM_DECODER_STATE_READY) {
+        return state == WEBM_DECODER_STATE_FAILED ||
+            state == WEBM_DECODER_STATE_CLOSING ||
+            state == WEBM_DECODER_STATE_CLOSED
+            ? -1
+            : 0;
+    }
     if(!queue_try_get(ctx->video_ctx.frame_queue, &queued_frame)) {
-        return ctx->quit ? -1 : 0;
+        return webm_stop_is_requested(&ctx->quit) ? -1 : 0;
     }
 
     *frame = queued_frame;

@@ -51936,11 +51936,15 @@ int playwebm(const char *path, int noskip)
     }
 
 quit:
+    if(playback && playback->failed && retval > 0) {
+        retval = 0;
+    }
     if(playback && playback->active) {
         movie_playback_stop(playback);
     }
-    if(source_id >= 0 && !movie_source_unload(source_id)) {
-        retval = 0;
+    while(source_id >= 0 && !movie_source_unload(source_id)) {
+        movie_playback_update(0);
+        usleep(1000);
     }
     return retval;
 }
