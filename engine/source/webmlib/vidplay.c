@@ -478,12 +478,11 @@ static int webm_audio_reserve_is_critical(webm_context *ctx)
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
-* Try to publish one compressed video packet without waiting. Recovery uses
-* this only after it has begun shedding newly demuxed video packets. Existing
-* queue order and decoder dependencies remain untouched until a later
-* keyframe can be admitted safely.
+* Try to publish the first verified keyframe following a compressed-video
+* queue reset without waiting. The demuxer is the queue's only producer, so
+* capacity remains available after the stale backlog has been discarded.
 */
 static int video_packet_queue_try_insert(
     FixedSizeQueue *queue,
@@ -515,16 +514,76 @@ static int video_packet_queue_try_insert(
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
-* Record a newly demuxed video packet sacrificed to preserve audio. Beginning
-* a recovery increments the event count once; subsequent discards remain in
-* that event until a keyframe is admitted without rewriting the live queue.
+* Atomically discard the stale compressed-video backlog and optionally make
+* the packet that triggered recovery its new head when that packet is already
+* a verified keyframe. Packet destruction occurs after releasing the queue
+* lock so the decoder can resume immediately from the replacement boundary.
 */
-static void video_packet_queue_record_drop(
+static int video_packet_queue_begin_resync(
     FixedSizeQueue *queue,
-    int begin_recovery
+    nestegg_packet *recovery_keyframe
 )
+{
+    nestegg_packet *discarded_packets[VIDEO_PACKET_QUEUE_SIZE];
+    int discarded_count;
+    int i;
+
+    if(!queue ||
+       queue->max_size < 1 ||
+       queue->max_size > VIDEO_PACKET_QUEUE_SIZE) {
+        return -1;
+    }
+
+    mutex_lock(queue->mutex);
+    if(*queue->quit) {
+        mutex_unlock(queue->mutex);
+        return -1;
+    }
+    discarded_count = queue->size;
+    for(i = 0; i < discarded_count; ++i) {
+        int index = (queue->start + i) % queue->max_size;
+
+        discarded_packets[i] = queue->data[index];
+        queue->data[index] = NULL;
+    }
+    queue->start = 0;
+    queue->size = 0;
+    if((uint64_t)discarded_count >
+       UINT64_MAX - queue->replacement_count) {
+        queue->replacement_count = UINT64_MAX;
+    }
+    else {
+        queue->replacement_count += (uint64_t)discarded_count;
+    }
+    if(queue->resync_count < UINT64_MAX) {
+        queue->resync_count++;
+    }
+    if(recovery_keyframe) {
+        queue->data[0] = recovery_keyframe;
+        queue->size = 1;
+        cond_signal(queue->not_empty);
+    }
+    cond_signal(queue->not_full);
+    mutex_unlock(queue->mutex);
+
+    for(i = 0; i < discarded_count; ++i) {
+        if(discarded_packets[i]) {
+            nestegg_free_packet(discarded_packets[i]);
+        }
+    }
+    return 1;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Record a newly demuxed packet discarded while waiting for the first
+* verified keyframe after a compressed-video queue reset.
+*/
+static void video_packet_queue_record_drop(FixedSizeQueue *queue)
 {
     if(!queue) {
         return;
@@ -533,9 +592,6 @@ static void video_packet_queue_record_drop(
     mutex_lock(queue->mutex);
     if(queue->replacement_count < UINT64_MAX) {
         queue->replacement_count++;
-    }
-    if(begin_recovery && queue->resync_count < UINT64_MAX) {
-        queue->resync_count++;
     }
     mutex_unlock(queue->mutex);
 }
@@ -1496,11 +1552,11 @@ static void close_video(video_context *video_ctx)
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
 * Report the first completed compressed-video recovery and then every
-* sixteenth occurrence. Producer-side shedding protects the decoder's live
-* queue while keeping exceptional recovery visible when audio remains clean.
+* sixteenth occurrence. The discard total includes stale queued packets and
+* newly demuxed packets skipped before the next verified keyframe.
 */
 static void video_packet_queue_report_resync(FixedSizeQueue *queue)
 {
@@ -1511,8 +1567,8 @@ static void video_packet_queue_report_resync(FixedSizeQueue *queue)
     if(resync_count &&
        (resync_count == 1U || !(resync_count % UINT64_C(16)))) {
         printf(
-            "Warning: WebM video backlog recovery skipped %" PRIu64
-            " incoming compressed packets in %" PRIu64
+            "Warning: WebM video backlog recovery discarded %" PRIu64
+            " compressed packets in %" PRIu64
             " keyframe resync event%s.\n",
             dropped_packets,
             resync_count,
@@ -1523,13 +1579,13 @@ static void video_packet_queue_report_resync(FixedSizeQueue *queue)
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-17
 *
 * Route container packets to their decoder queues. WebM playback with audio
 * elevates this shared producer and protects a critical audio reserve from
-* compressed-video head-of-line blocking. Recovery leaves the live decoder
-* queue intact, sheds only newly arriving video, and resumes admission at a
-* verified keyframe once queue capacity is available.
+* compressed-video head-of-line blocking. Recovery atomically discards the
+* stale compressed queue and resumes admission at a verified keyframe so the
+* decoder does not spend the recovery interval processing obsolete work.
 */
 static int demux_thread(void *data)
 {
@@ -1580,8 +1636,7 @@ static int demux_thread(void *data)
                     }
                 }
                 video_packet_queue_record_drop(
-                    ctx->video_ctx.packet_queue,
-                    0
+                    ctx->video_ctx.packet_queue
                 );
                 nestegg_free_packet(pkt);
                 if(ctx->quit) break;
@@ -1593,9 +1648,24 @@ static int demux_thread(void *data)
                 break;
             }
             if(insert_result == 0) {
-                video_packet_queue_record_drop(
+                int packet_is_keyframe = video_packet_is_keyframe(pkt);
+
+                if(video_packet_queue_begin_resync(
                     ctx->video_ctx.packet_queue,
-                    1
+                    packet_is_keyframe ? pkt : NULL
+                ) < 0) {
+                    nestegg_free_packet(pkt);
+                    break;
+                }
+                if(packet_is_keyframe) {
+                    video_packet_queue_report_resync(
+                        ctx->video_ctx.packet_queue
+                    );
+                    if(ctx->quit) break;
+                    continue;
+                }
+                video_packet_queue_record_drop(
+                    ctx->video_ctx.packet_queue
                 );
                 nestegg_free_packet(pkt);
                 discard_video_until_keyframe = 1;
