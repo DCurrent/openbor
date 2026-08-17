@@ -1927,10 +1927,10 @@ void execute_onblockz_script(entity *ent)
     }
 }
 
-void execute_onblocka_script(entity *ent, entity *other)
+void execute_onblocky_script(entity *ent, entity *other)
 {
     ScriptVariant tempvar;
-    Script *cs = ent->scripts->onblocka_script;
+    Script *cs = ent->scripts->onblocky_script;
     if(Script_IsInitialized(cs))
     {
         ScriptVariant_Init(&tempvar);
@@ -17256,8 +17256,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ONBLOCKZSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockz_script, "onblockzscript", filename, 1, 0);
                 break;
-            case CMD_MODEL_ONBLOCKASCRIPT:
-                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocka_script, "onblockascript", filename, 1, 0);
+            case CMD_MODEL_ONBLOCKYSCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocky_script, "onblockyscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONMOVEXSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onmovex_script, "onmovexscript", filename, 1, 0);
@@ -31837,7 +31837,7 @@ void check_gravity(entity *e)
                 {
                     self->velocity.y = 0;
                     self->hithead = other;
-                    execute_onblocka_script(self, other);
+                    execute_onblocky_script(self, other);
                 }
             }
             else
