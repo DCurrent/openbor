@@ -43,17 +43,17 @@
 * compressed work held by the former 512-packet queue. Six decoded YUV frames
 * provide 100-200 milliseconds of read-ahead across 30-60 FPS while bounding
 * the software renderer's per-movie frame memory. Three decoded frames establish
-* video preroll before the audio-master clock starts. Demux and audio producers
-* retain high priority because both block frequently; VP8 decoding remains at
-* normal priority so it cannot starve the engine. The proven eight-buffer PCM
-* ring remains unchanged.
+* video preroll before the audio-master clock starts. Full decoded-frame queues
+* apply backpressure without discarding ordered presentation work; exceptional
+* audio starvation remains isolated to compressed keyframe recovery. Demux and
+* audio producers retain high priority because both block frequently; VP8
+* decoding remains at normal priority so it cannot starve the engine. The proven
+* eight-buffer PCM ring remains unchanged.
 */
 #define AUDIO_PACKET_QUEUE_SIZE 64
 #define VIDEO_PACKET_QUEUE_SIZE 128
 #define FRAME_QUEUE_SIZE 6
 #define VIDEO_DECODER_THREAD_MAX 8U
-#define VIDEO_PACKET_QUEUE_BACKPRESSURE_THRESHOLD \
-    (VIDEO_PACKET_QUEUE_SIZE / 2)
 #define AUDIO_RECOVERY_PCM_BUFFER_COUNT \
     (SOUND_STREAM_BUFFER_COUNT / 2U)
 #define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
@@ -763,103 +763,6 @@ static int video_packet_queue_insert(
     return -1;
 }
 
-/*
-* Caskey, Damon V.
-* 2026-08-18
-*
-* Report decoded frames displaced by sustained frame-queue backpressure even
-* when the protected PCM reserve remains healthy. The first replacement and
-* each sixteenth total keep video loss visible without flooding the log.
-*/
-static void video_frame_queue_report_replacement(
-    uint64_t replacement_count
-)
-{
-    if(replacement_count &&
-       (replacement_count == 1U ||
-        !(replacement_count % UINT64_C(16)))) {
-        printf(
-            "Warning: WebM decoded-frame backpressure discarded %" PRIu64
-            " queued frame%s.\n",
-            replacement_count,
-            replacement_count == 1U ? "" : "s"
-        );
-    }
-}
-
-/*
-* Caskey, Damon V.
-* 2026-08-17
-*
-* Publish decoded frames in timestamp order during ordinary read-ahead.
-* When active playback stalls long enough to fill half of the compressed
-* video reserve, replace the oldest decoded frame instead of allowing video
-* backpressure to stop the shared demuxer and starve audio. Paused playback
-* retains every queued frame and continues using bounded blocking behavior.
-*/
-static int video_frame_queue_insert(
-    video_context *video_ctx,
-    void *data,
-    void **replaced
-)
-{
-    FixedSizeQueue *frame_queue;
-
-    if(!video_ctx || !video_ctx->frame_queue ||
-       !video_ctx->packet_queue || !replaced) {
-        return -1;
-    }
-    frame_queue = video_ctx->frame_queue;
-    *replaced = NULL;
-
-    while(!webm_stop_is_requested(frame_queue->quit)) {
-        int index;
-        int video_packet_count = queue_get_status(
-            video_ctx->packet_queue,
-            NULL,
-            NULL
-        );
-        uint64_t replacement_count = 0;
-
-        mutex_lock(frame_queue->mutex);
-        if(webm_stop_is_requested(frame_queue->quit)) {
-            mutex_unlock(frame_queue->mutex);
-            return -1;
-        }
-        if(frame_queue->size == frame_queue->max_size &&
-           !video_ctx->playback_paused &&
-           video_packet_count >=
-               VIDEO_PACKET_QUEUE_BACKPRESSURE_THRESHOLD) {
-            *replaced = frame_queue->data[frame_queue->start];
-            frame_queue->start =
-                (frame_queue->start + 1) % frame_queue->max_size;
-            --frame_queue->size;
-            if(frame_queue->replacement_count < UINT64_MAX) {
-                frame_queue->replacement_count++;
-            }
-            replacement_count = frame_queue->replacement_count;
-        }
-        if(frame_queue->size < frame_queue->max_size) {
-            index = (frame_queue->start + frame_queue->size) %
-                frame_queue->max_size;
-            frame_queue->data[index] = data;
-            ++frame_queue->size;
-            cond_signal(frame_queue->not_empty);
-            mutex_unlock(frame_queue->mutex);
-            video_frame_queue_report_replacement(replacement_count);
-            return 0;
-        }
-
-        cond_wait_timed(
-            frame_queue->not_full,
-            frame_queue->mutex,
-            10
-        );
-        mutex_unlock(frame_queue->mutex);
-    }
-    return -1;
-}
-
 void queue_destroy(FixedSizeQueue *queue)
 {
     cond_destroy(queue->not_full);
@@ -1149,7 +1052,6 @@ static int audio_thread(void *data)
                         UINT64_C(16))) {
                     s_sound_pcm_stream_status status = { 0 };
                     uint64_t dropped_packets;
-                    uint64_t dropped_frames;
                     uint64_t resync_count;
                     int audio_packets;
                     int decoded_frames;
@@ -1172,7 +1074,7 @@ static int audio_thread(void *data)
                     );
                     decoded_frames = queue_get_status(
                         audio_ctx->video_frame_queue,
-                        &dropped_frames,
+                        NULL,
                         NULL
                     );
                     audio_ctx->reported_underrun_count = underrun_count;
@@ -1180,7 +1082,7 @@ static int audio_thread(void *data)
                         "Warning: WebM audio underrun on sound channel %d "
                         "(%" PRIu64 " total): PCM=%u/%u, "
                         "packets=%d/%d audio and %d/%d video, "
-                        "frames=%d/%d (%" PRIu64 " stale dropped), "
+                        "frames=%d/%d, "
                         "recovery=%" PRIu64 " compressed packets discarded in %" PRIu64
                         " keyframe resync event%s.\n",
                         audio_ctx->channel,
@@ -1193,7 +1095,6 @@ static int audio_thread(void *data)
                         VIDEO_PACKET_QUEUE_SIZE,
                         decoded_frames,
                         FRAME_QUEUE_SIZE,
-                        dropped_frames,
                         dropped_packets,
                         resync_count,
                         resync_count == 1U ? "" : "s"
@@ -1552,8 +1453,6 @@ static int video_thread(void *data)
             }
             while((img = vpx_codec_get_frame(&ctx->vpx_ctx, &iter)))
             {
-                void *replaced_frame = NULL;
-
                 if(img->d_w != (unsigned int)ctx->width ||
                    img->d_h != (unsigned int)ctx->height) {
                     printf("Error: WebM frame dimensions changed during playback\n");
@@ -1577,17 +1476,12 @@ static int video_thread(void *data)
                     memcpy(frame->cb+(y*img->d_w/2), img->planes[2]+(y*img->stride[2]), img->d_w / 2);
                 }
 
-                if(video_frame_queue_insert(
-                    ctx,
-                    (void *)frame,
-                    &replaced_frame
-                ) < 0)
+                if(queue_insert(ctx->frame_queue, (void *)frame) < 0)
                 {
                     debug_printf("destroying last frame\n");
                     yuv_frame_destroy(frame);
                     break;
                 }
-                yuv_frame_destroy((yuv_frame *)replaced_frame);
                 timestamp = timestamp <= UINT64_MAX - frame_delay
                     ? timestamp + frame_delay
                     : UINT64_MAX;
@@ -1597,17 +1491,7 @@ static int video_thread(void *data)
         nestegg_free_packet(pkt);
     }
 
-    {
-        void *replaced_frame = NULL;
-
-        if(video_frame_queue_insert(
-            ctx,
-            NULL,
-            &replaced_frame
-        ) == 0) {
-            yuv_frame_destroy((yuv_frame *)replaced_frame);
-        }
-    }
+    queue_insert(ctx->frame_queue, NULL);
     return 0;
 }
 
@@ -1718,13 +1602,13 @@ static int init_video(
         &(video_ctx->frame_delay)
     ) == 0 && video_ctx->frame_delay;
     if(has_default_duration) {
-        printf("Video track: resolution=%i*%i, display resolution=%i*%i, %.2f frames/second\n",
+        printf("\n\nVideo track: resolution=%i*%i, display resolution=%i*%i, %.2f frames/second\n",
             video_params.width, video_params.height,
             video_params.display_width, video_params.display_height,
             1000000000.0 / video_ctx->frame_delay);
     } else {
         video_ctx->frame_delay = 0;
-        printf("Video track: resolution=%i*%i, display resolution=%i*%i, packet-timestamp timing\n",
+        printf("\n\nVideo track: resolution=%i*%i, display resolution=%i*%i, packet-timestamp timing\n",
             video_params.width, video_params.height,
             video_params.display_width, video_params.display_height);
     }
