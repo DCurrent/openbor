@@ -6,6 +6,7 @@
  * Copyright (c) OpenBOR Team
  */
 
+#include <inttypes.h>
 #include <limits.h>
 #include <math.h>
 #include <stdint.h>
@@ -39,6 +40,8 @@ static void *movie_cache_allocate_nonfatal(size_t size)
 #define MOVIE_CACHE_READ_CHUNK_SIZE (1024U * 1024U)
 #define MOVIE_CACHE_RESERVE_MINIMUM (UINT64_C(128) * UINT64_C(1024) * UINT64_C(1024))
 #define MOVIE_SPEED_ROUNDING_FACTOR 1000.0
+#define MOVIE_VIDEO_LATE_TOLERANCE_NANOSECONDS UINT64_C(50000000)
+#define MOVIE_PRESENTATION_DROP_REPORT_INTERVAL UINT64_C(16)
 
 typedef enum e_movie_cache_result {
     MOVIE_CACHE_RESULT_SUCCESS,
@@ -959,6 +962,7 @@ static bool movie_playback_begin_media(
     movie_playback_retire_decoder(playback);
     yuv_frame_destroy(playback->next_frame);
     playback->next_frame = NULL;
+    playback->current_frame_presented = playback->current_frame != NULL;
     request = &movie_playback_pool.decoder_request[channel];
     request->position = position;
     request->source_id = playback->source_id;
@@ -1029,6 +1033,7 @@ static int movie_playback_poll_decoder(s_movie_playback *playback)
        playback->video_mode.height != video_mode.height) {
         yuv_frame_destroy(playback->current_frame);
         playback->current_frame = NULL;
+        playback->current_frame_presented = 0;
         if(playback->rgb_frame) {
             freescreen(&playback->rgb_frame);
         }
@@ -1347,17 +1352,77 @@ static bool movie_playback_render_to(
         playback->offset_x,
         playback->offset_y
     );
+    playback->current_frame_presented = 1;
     return true;
 }
 
 /*
 * Caskey, Damon V.
-* 2026-08-12
+* 2026-08-18
 *
-* Poll only the decoded frames present when this update begins. A decoder
-* producing stale frames must not refill the queue faster than the main thread
-* can empty it and turn one nonblocking poll into an unbounded engine stall.
-* Explicit seeks retain the previous frame until replacement becomes ready.
+* Record decoded frames intentionally omitted from presentation after their
+* lateness exceeds the bounded audio-master tolerance. Report the first drop
+* and each subsequent group so video loss remains observable independently
+* from healthy PCM reserves and compressed-packet recovery.
+*/
+static void movie_playback_record_presentation_drop(
+    s_movie_playback *playback,
+    uint64_t frame_timestamp,
+    uint64_t position
+)
+{
+    uint64_t lateness = position >= frame_timestamp
+        ? position - frame_timestamp
+        : 0;
+
+    if(playback->presentation_drop_count < UINT64_MAX) {
+        ++playback->presentation_drop_count;
+    }
+    if(lateness > playback->maximum_presentation_lateness) {
+        playback->maximum_presentation_lateness = lateness;
+    }
+    if(playback->presentation_drop_count == 1U ||
+       !(playback->presentation_drop_count %
+            MOVIE_PRESENTATION_DROP_REPORT_INTERVAL)) {
+        printf(
+            "Warning: Movie channel %d discarded %" PRIu64
+            " late decoded video frame%s for audio synchronization "
+            "(maximum lateness=%" PRIu64 " ms).\n",
+            playback->index,
+            playback->presentation_drop_count,
+            playback->presentation_drop_count == 1U ? "" : "s",
+            playback->maximum_presentation_lateness / UINT64_C(1000000)
+        );
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-18
+*
+* Transfer the retained look-ahead frame into presentation ownership. One
+* promotion remains pending until composition acknowledges it, preventing
+* repeated engine updates from silently replacing an undisplayed frame.
+*/
+static void movie_playback_promote_next_frame(
+    s_movie_playback *playback
+)
+{
+    yuv_frame_destroy(playback->current_frame);
+    playback->current_frame = playback->next_frame;
+    playback->next_frame = NULL;
+    playback->frame_dirty = 1;
+    playback->current_frame_presented = 0;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-18
+*
+* Promote one due frame per presentation opportunity and preserve ordinary
+* scheduling jitter behind the audio master. Only frames beyond the lateness
+* tolerance may be discarded, while the initial queue snapshot still prevents
+* a decoder from extending one engine update without bound.
 */
 static void movie_playback_poll_frames(
     s_movie_playback *playback,
@@ -1366,8 +1431,6 @@ static void movie_playback_poll_frames(
 )
 {
     int remaining = webm_get_pending_frame_count(playback->context);
-    int promoted = 0;
-
     if(playback->next_frame) {
         ++remaining;
     }
@@ -1386,23 +1449,49 @@ static void movie_playback_poll_frames(
             }
         }
 
+        if(playback->current_frame &&
+           !playback->current_frame_presented) {
+            uint64_t current_timestamp =
+                playback->current_frame->timestamp;
+
+            if(playback->next_frame->timestamp > position ||
+               current_timestamp > position ||
+               position - current_timestamp <=
+                    MOVIE_VIDEO_LATE_TOLERANCE_NANOSECONDS) {
+                break;
+            }
+            movie_playback_record_presentation_drop(
+                playback,
+                current_timestamp,
+                position
+            );
+            yuv_frame_destroy(playback->current_frame);
+            playback->current_frame = NULL;
+            playback->frame_dirty = 0;
+        }
+
         if(playback->next_frame->timestamp > position) {
-            if(!playback->current_frame && !promoted) {
-                yuv_frame_destroy(playback->current_frame);
-                playback->current_frame = playback->next_frame;
-                playback->next_frame = NULL;
-                playback->frame_dirty = 1;
-                promoted = 1;
+            if(!playback->current_frame) {
+                movie_playback_promote_next_frame(playback);
             }
             break;
         }
 
-        yuv_frame_destroy(playback->current_frame);
-        playback->current_frame = playback->next_frame;
-        playback->next_frame = NULL;
-        playback->frame_dirty = 1;
-        promoted = 1;
+        if(position - playback->next_frame->timestamp >
+                MOVIE_VIDEO_LATE_TOLERANCE_NANOSECONDS &&
+           remaining > 1) {
+            movie_playback_record_presentation_drop(
+                playback,
+                playback->next_frame->timestamp,
+                position
+            );
+            yuv_frame_destroy(playback->next_frame);
+            playback->next_frame = NULL;
+            continue;
+        }
 
+        movie_playback_promote_next_frame(playback);
+        break;
     }
 }
 

@@ -70,6 +70,9 @@ typedef struct s_movie_playback {
     int rgb_frame_dirty;
     int scaled_frame_dirty;
     int terminal_pending;
+    int current_frame_presented;
+    uint64_t presentation_drop_count;
+    uint64_t maximum_presentation_lateness;
 } s_movie_playback;
 
 bool movie_playback_init(void);

@@ -34,7 +34,7 @@
 
 /*
 * Caskey, Damon V.
-* 2026-08-17
+* 2026-08-18
 *
 * Balance decoder reserves after the playback clock, backlog recovery, and
 * asynchronous lifecycle are stable. Sixty-four audio packets cover ordinary
@@ -42,10 +42,11 @@
 * roughly two seconds at 60 FPS without preserving the many seconds of stale
 * compressed work held by the former 512-packet queue. Six decoded YUV frames
 * provide 100-200 milliseconds of read-ahead across 30-60 FPS while bounding
-* the software renderer's per-movie frame memory. Demux and audio producers
+* the software renderer's per-movie frame memory. Three decoded frames establish
+* video preroll before the audio-master clock starts. Demux and audio producers
 * retain high priority because both block frequently; VP8 decoding remains at
-* normal priority so it cannot starve the engine. The proven eight-buffer
-* generic PCM ring remains unchanged.
+* normal priority so it cannot starve the engine. The proven eight-buffer PCM
+* ring remains unchanged.
 */
 #define AUDIO_PACKET_QUEUE_SIZE 64
 #define VIDEO_PACKET_QUEUE_SIZE 128
@@ -56,7 +57,8 @@
 #define AUDIO_RECOVERY_PCM_BUFFER_COUNT \
     (SOUND_STREAM_BUFFER_COUNT / 2U)
 #define AUDIO_PREROLL_BUFFER_COUNT ((SOUND_STREAM_BUFFER_COUNT * 3U) / 4U)
-#define AUDIO_PREROLL_TIMEOUT_MICROSECONDS UINT64_C(2000000)
+#define VIDEO_PREROLL_FRAME_COUNT ((FRAME_QUEUE_SIZE + 1) / 2)
+#define WEBM_PREROLL_TIMEOUT_MICROSECONDS UINT64_C(2000000)
 
 #define debug_printf(...) //printf(__VA_ARGS__)
 
@@ -763,6 +765,30 @@ static int video_packet_queue_insert(
 
 /*
 * Caskey, Damon V.
+* 2026-08-18
+*
+* Report decoded frames displaced by sustained frame-queue backpressure even
+* when the protected PCM reserve remains healthy. The first replacement and
+* each sixteenth total keep video loss visible without flooding the log.
+*/
+static void video_frame_queue_report_replacement(
+    uint64_t replacement_count
+)
+{
+    if(replacement_count &&
+       (replacement_count == 1U ||
+        !(replacement_count % UINT64_C(16)))) {
+        printf(
+            "Warning: WebM decoded-frame backpressure discarded %" PRIu64
+            " queued frame%s.\n",
+            replacement_count,
+            replacement_count == 1U ? "" : "s"
+        );
+    }
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-17
 *
 * Publish decoded frames in timestamp order during ordinary read-ahead.
@@ -793,6 +819,7 @@ static int video_frame_queue_insert(
             NULL,
             NULL
         );
+        uint64_t replacement_count = 0;
 
         mutex_lock(frame_queue->mutex);
         if(webm_stop_is_requested(frame_queue->quit)) {
@@ -810,6 +837,7 @@ static int video_frame_queue_insert(
             if(frame_queue->replacement_count < UINT64_MAX) {
                 frame_queue->replacement_count++;
             }
+            replacement_count = frame_queue->replacement_count;
         }
         if(frame_queue->size < frame_queue->max_size) {
             index = (frame_queue->start + frame_queue->size) %
@@ -818,6 +846,7 @@ static int video_frame_queue_insert(
             ++frame_queue->size;
             cond_signal(frame_queue->not_empty);
             mutex_unlock(frame_queue->mutex);
+            video_frame_queue_report_replacement(replacement_count);
             return 0;
         }
 
@@ -1192,45 +1221,113 @@ static int audio_thread(void *data)
 
 /*
 * Caskey, Damon V.
-* 2026-08-15
+* 2026-08-18
 *
-* Let the decoder establish its PCM reserve before the owning movie clock
-* starts. The bounded wait preserves failure tolerance for malformed or
-* unusually slow inputs while ordinary playback begins with continuous
-* audio already available to the mixer.
+* Snapshot the decoded-video preroll reserve under its queue lock. A queued
+* terminal marker also completes preroll for movies shorter than the ordinary
+* frame target, including a valid stream that reaches end before three frames.
 */
-static void audio_wait_for_preroll(webm_context *ctx)
+static int video_preroll_ready(
+    video_context *video_ctx,
+    int *decoded_frame_count
+)
 {
-    audio_context *audio_ctx;
+    FixedSizeQueue *queue;
+    int decoded_frames = 0;
+    int terminal = 0;
+    int i;
+
+    if(decoded_frame_count) {
+        *decoded_frame_count = 0;
+    }
+    if(!video_ctx || !(queue = video_ctx->frame_queue)) {
+        return 0;
+    }
+
+    mutex_lock(queue->mutex);
+    for(i = 0; i < queue->size; ++i) {
+        int index = (queue->start + i) % queue->max_size;
+
+        if(queue->data[index]) {
+            ++decoded_frames;
+        }
+        else {
+            terminal = 1;
+        }
+    }
+    mutex_unlock(queue->mutex);
+
+    if(decoded_frame_count) {
+        *decoded_frame_count = decoded_frames;
+    }
+    return decoded_frames >= VIDEO_PREROLL_FRAME_COUNT || terminal;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-18
+*
+* Hold the asynchronous READY boundary until both decoded video and owned
+* PCM have useful reserves. A bounded timeout preserves failure tolerance,
+* while silent and very short movies become ready from video alone or their
+* terminal marker instead of starting an audio clock ahead of presentation.
+*/
+static void webm_wait_for_preroll(webm_context *ctx)
+{
     uint64_t start_time;
 
-    if(!ctx || !ctx->audio_initialized) {
+    if(!ctx || !ctx->video_initialized) {
         return;
     }
-    audio_ctx = &ctx->audio_ctx;
     start_time = timer_uticks();
 
-    while(!webm_stop_is_requested(audio_ctx->quit) &&
+    while(!webm_stop_is_requested(&ctx->quit) &&
           !webm_close_is_requested(ctx)) {
-        s_sound_pcm_stream_status status;
+        s_sound_pcm_stream_status status = { 0 };
         uint64_t now;
+        int audio_ready = !ctx->audio_initialized;
+        int decoded_frame_count = 0;
+        int video_ready = video_preroll_ready(
+            &ctx->video_ctx,
+            &decoded_frame_count
+        );
 
-        if(!sound_get_channel_pcm_stream_status_owned(
-            audio_ctx->channel,
-            audio_ctx->stream_play_id,
-            &status
-        )) {
-            return;
+        if(ctx->audio_initialized) {
+            audio_context *audio_ctx = &ctx->audio_ctx;
+
+            if(!sound_get_channel_pcm_stream_status_owned(
+                audio_ctx->channel,
+                audio_ctx->stream_play_id,
+                &status
+            )) {
+                audio_ready = 1;
+            }
+            else {
+                audio_ctx->observed_underrun_count =
+                    status.underrun_count;
+                audio_ready =
+                    status.ready_buffer_count >=
+                        AUDIO_PREROLL_BUFFER_COUNT ||
+                    status.producer_finished;
+            }
         }
-        audio_ctx->observed_underrun_count = status.underrun_count;
-        if(status.ready_buffer_count >= AUDIO_PREROLL_BUFFER_COUNT ||
-           (status.producer_finished && status.ready_buffer_count > 0)) {
+        if(video_ready && audio_ready) {
             return;
         }
 
         now = timer_uticks();
         if(now < start_time ||
-           now - start_time >= AUDIO_PREROLL_TIMEOUT_MICROSECONDS) {
+           now - start_time >= WEBM_PREROLL_TIMEOUT_MICROSECONDS) {
+            printf(
+                "Warning: WebM preroll timed out with video=%d/%d "
+                "decoded frames and audio=%u/%u PCM buffers.\n",
+                decoded_frame_count,
+                VIDEO_PREROLL_FRAME_COUNT,
+                status.ready_buffer_count,
+                ctx->audio_initialized
+                    ? AUDIO_PREROLL_BUFFER_COUNT
+                    : 0U
+            );
             return;
         }
         usleep(1000);
@@ -1885,11 +1982,11 @@ static void webm_close_resources(webm_context *ctx)
 
 /*
 * Caskey, Damon V.
-* 2026-08-17
+* 2026-08-18
 *
 * Perform container open, initial seek, and decoder creation on the lifecycle
-* worker, then publish PREROLLING when audio must establish its PCM reserve.
-* Explicit seeks use the same decoder path as initial playback.
+* worker, then publish PREROLLING while video and optional audio establish
+* their reserves. Explicit seeks use the same decoder path as initial playback.
 */
 static int webm_open_resources(webm_context *ctx)
 {
@@ -2064,13 +2161,11 @@ static int webm_open_resources(webm_context *ctx)
         printf("Error: Unable to start WebM demux thread\n");
         return -1;
     }
-    if(ctx->audio_track >= 0) {
-        if(!webm_publish_decoder_state(
-            ctx,
-            WEBM_DECODER_STATE_PREROLLING
-        )) {
-            return -1;
-        }
+    if(!webm_publish_decoder_state(
+        ctx,
+        WEBM_DECODER_STATE_PREROLLING
+    )) {
+        return -1;
     }
     return webm_stop_is_requested(&ctx->quit) ? -1 : 0;
 }
@@ -2091,8 +2186,8 @@ static int webm_lifecycle_thread(void *data)
     mutex_lock(webm_lifecycle_operation_mutex);
     open_result = webm_open_resources(ctx);
     mutex_unlock(webm_lifecycle_operation_mutex);
-    if(open_result == 0 && ctx->audio_track >= 0) {
-        audio_wait_for_preroll(ctx);
+    if(open_result == 0) {
+        webm_wait_for_preroll(ctx);
         if(webm_stop_is_requested(&ctx->quit) ||
            webm_close_is_requested(ctx)) {
             open_result = -1;
