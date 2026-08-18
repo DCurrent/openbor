@@ -15,16 +15,15 @@
 
 /*
 * Caskey, Damon V.
-* 2026-08-01
+* 2026-08-15
 *
-* Streamed channels use SOUND_STREAM_BUFFER_COUNT
- * retained PCM buffers. At the largest supported input
- * format, each SOUND_STREAM_BUFFER_SIZE buffer supplies
- * approximately 57 milliseconds of data. Total reserve
- * is approximately 57 milliseconds multiplied by
- * SOUND_STREAM_BUFFER_COUNT.
+* Streamed channels retain SOUND_STREAM_BUFFER_COUNT PCM buffers.
+* Eight buffers absorb source I/O, decoder, and demux scheduling
+* jitter without forcing the real-time mixer into silence. At the
+* largest supported input format, each buffer supplies approximately
+* 57 milliseconds of data.
  */
-#define SOUND_STREAM_BUFFER_COUNT 4U
+#define SOUND_STREAM_BUFFER_COUNT 8U
 #define SOUND_STREAM_BUFFER_SIZE  (16U * 1024U)
 #define SOUND_STREAM_HANDLE_CLOSED (-1)
 
@@ -44,10 +43,13 @@ typedef struct s_sound_stream {
     uint64_t source_frame_count;
     uint64_t loop_start_frame;
     uint64_t fp_buffer_position;
+    uint64_t underrun_count;
     size_t block_align;
+    unsigned int ready_buffer_count;
     int handle;
     int looping;
     int producer_finished;
+    int underrun_active;
 } s_sound_stream;
 
 typedef bool (*sound_stream_read_callback)(

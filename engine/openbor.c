@@ -1927,10 +1927,10 @@ void execute_onblockz_script(entity *ent)
     }
 }
 
-void execute_onblocka_script(entity *ent, entity *other)
+void execute_onblocky_script(entity *ent, entity *other)
 {
     ScriptVariant tempvar;
-    Script *cs = ent->scripts->onblocka_script;
+    Script *cs = ent->scripts->onblocky_script;
     if(Script_IsInitialized(cs))
     {
         ScriptVariant_Init(&tempvar);
@@ -17256,8 +17256,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ONBLOCKZSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblockz_script, "onblockzscript", filename, 1, 0);
                 break;
-            case CMD_MODEL_ONBLOCKASCRIPT:
-                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocka_script, "onblockascript", filename, 1, 0);
+            case CMD_MODEL_ONBLOCKYSCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onblocky_script, "onblockyscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONMOVEXSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onmovex_script, "onmovexscript", filename, 1, 0);
@@ -31837,7 +31837,7 @@ void check_gravity(entity *e)
                 {
                     self->velocity.y = 0;
                     self->hithead = other;
-                    execute_onblocka_script(self, other);
+                    execute_onblocky_script(self, other);
                 }
             }
             else
@@ -39974,13 +39974,13 @@ int common_trymove(float xdir, float zdir)
         {
             xdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, &level->walls[wall], PLANE_X, wall);
+            execute_onblockw_script(self, &level->walls[wall], wall, PLANE_X);
         }
         if(zdir && (wall = checkwall_below(self->position.x, z, T_MAX_CHECK_ALTITUDE)) >= 0 && level->walls[wall].height > self->position.y)
         {
             zdir = 0;
             if ( self->falling && (self->modeldata.hitwalltype < 0 || (self->modeldata.hitwalltype >= 0 && level->walls[wall].type == self->modeldata.hitwalltype)) ) hit |= 1;
-            execute_onblockw_script(self, &level->walls[wall], PLANE_Z, wall);
+            execute_onblockw_script(self, &level->walls[wall], wall, PLANE_Z);
         }
 
         if ( hit && !self->hitwall && validanim(self, ANI_HITWALL) ) ent_set_anim(self, ANI_HITWALL, 0);
@@ -50914,6 +50914,11 @@ void update(int ingame, int usevwait)
     getinterval();
     if(playrecstatus->status == A_REC_PLAY && !_pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
     inputrefresh(playrecstatus->status);
+#ifdef WEBM
+    movie_playback_update(
+        (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0
+    );
+#endif
     if(playrecstatus->status == A_REC_REC && !_pause && level) if ( !recordInputs() ) stopRecordInputs();
 
     if ((!_pause && ingame == 1) || alwaysupdate)
@@ -51861,71 +51866,86 @@ playgif_end:
 
 
 #ifdef WEBM
-// Returns 0 on error, -1 on escape
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Preserve blocking playwebm() behavior as a wrapper around
+* the reusable movie APIs. Return 1 on completion, 0 on error,
+* or -1 when creator-enabled input interrupts playback.
+*/
 int playwebm(const char *path, int noskip)
 {
     int retval = 1;
-    webm_context *ctx = NULL;
-    yuv_video_mode info;
-    s_screen *rgb_frame = NULL;
+    int source_id = -1;
+    s_movie_playback *playback = NULL;
 
-    ctx = webm_start_playback(path, savedata.musicvol);
-    if(ctx == NULL) {retval=0; goto quit;}
+    movie_playback_stop_all();
+    source_id = movie_source_load(path, MOVIE_LOADING_STREAM);
+    if(source_id < 0) {
+        return 0;
+    }
+    playback = movie_playback_play(
+        source_id,
+        MOVIE_CHANNEL_AUTO,
+        savedata.musicvol,
+        true
+    );
+    if(!playback) {
+        retval = 0;
+        goto quit;
+    }
+    if(!movie_playback_set_interrupt(playback, !noskip)) {
+        retval = 0;
+        goto quit;
+    }
 
-    // set video output to YUV mode
-    webm_get_video_info(ctx, &info);
-    int status = video_setup_yuv_overlay(&info);
-    if(!status) {retval=0; goto quit;}
+    clearscreen(vscreen);
+    video_copy_screen(vscreen);
+    while(playback->active) {
+        int interrupt_requested;
+        int present_frame;
 
-    // allocate s_screen for screenshot capture
-    yuv_init(2);
-    rgb_frame = allocscreen(info.width, info.height, PIXEL_16);
-    if(!rgb_frame) {retval=0; goto quit;}
-
-    u64 start_time = timer_uticks();
-    u64 next_frame_time = 0;
-    yuv_frame *frame = NULL;
-
-    while(1)
-    {
         inputrefresh(playrecstatus->status);
-        if(!noskip && (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)))
-        {
+        interrupt_requested =
+            (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0;
+        if(interrupt_requested && playback->interrupt) {
             retval = -1;
-            yuv_frame_destroy(frame);
+        }
+        movie_playback_update(interrupt_requested);
+        if(!playback->active) {
             break;
         }
-        else if(frame && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
-        {
-            yuv_to_rgb(frame, rgb_frame);
-            screenshot(rgb_frame, NULL, 0);
-        }
-
-        u64 time_passed = timer_uticks() - start_time;
-
-        if(next_frame_time <= time_passed)
-        {
-            // display the current frame
-            if(frame)
-            {
-                video_display_yuv_frame();
-                yuv_frame_destroy(frame);
+        present_frame = playback->frame_dirty;
+        if(present_frame) {
+            clearscreen(vscreen);
+            if(!movie_playback_draw_to_screen(vscreen, playback->index)) {
+                retval = 0;
+                break;
             }
-
-            // prepare the next frame for display
-            frame = webm_get_next_frame(ctx);
-            if(frame == NULL) break;
-            video_prepare_yuv_frame(frame);
-            next_frame_time = frame->timestamp / 1000;
         }
-        else usleep(next_frame_time - time_passed);
+        if(playback->current_frame &&
+           !noscreenshot &&
+           (bothnewkeys & FLAG_SCREENSHOT)) {
+            screenshot(vscreen, getpal, 1);
+        }
+        if(present_frame) {
+            video_copy_screen(vscreen);
+        }
+        usleep(1000);
     }
 
 quit:
-    if(ctx) webm_close(ctx);
-    if(rgb_frame) freescreen(&rgb_frame);
-    yuv_clear();
-    video_set_mode(videomodes);
+    if(playback && playback->failed && retval > 0) {
+        retval = 0;
+    }
+    if(playback && playback->active) {
+        movie_playback_stop(playback);
+    }
+    while(source_id >= 0 && !movie_source_unload(source_id)) {
+        movie_playback_update(0);
+        usleep(1000);
+    }
     return retval;
 }
 #endif

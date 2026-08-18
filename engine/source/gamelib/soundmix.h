@@ -26,6 +26,7 @@
 #define		SOUND_OUTPUT_BITS_DEFAULT		24
 #define		SOUND_OUTPUT_FREQUENCY_DEFAULT	48000
 #define     SOUND_CHANNEL_MUSIC_DEFAULT       0
+#define     SOUND_VOLUME_DIVISOR_MUSIC        60
 #define     SOUND_PLAY_CHANCE_MAX             100U
 #define		CHANNEL_PLAYING		1
 #define		CHANNEL_LOOPING		2
@@ -110,6 +111,21 @@ typedef struct
     bool stream;
 } s_soundcache;
 
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Snapshot live-producer buffering without exposing mutable mixer
+* internals. WebM uses this state to complete preroll before enabling
+* output. Ongoing underrun telemetry rides the normal publication call.
+*/
+typedef struct s_sound_pcm_stream_status {
+    uint64_t underrun_count;
+    unsigned int ready_buffer_count;
+    int producer_finished;
+    int underrun_active;
+} s_sound_pcm_stream_status;
+
 typedef struct s_audio_global
 {
     List samplelist;
@@ -162,6 +178,13 @@ size_t sound_group_set_position(
 void sound_volume_sample(int channel, int lvolume, int rvolume);
 bool sound_set_channel_loop_offset(int channel, uint64_t loop_start_frame);
 bool sound_set_channel_period(int channel, uint64_t period);
+bool sound_set_channel_speed_owned(int channel, int play_id, double speed);
+bool sound_pause_channel_owned(int channel, int play_id, int toggle);
+bool sound_get_channel_pcm_stream_playback_frame_owned(
+    int channel,
+    int play_id,
+    uint64_t *playback_frame
+);
 bool sound_set_channel_priority(int channel, unsigned int priority);
 bool sound_set_channel_position(int channel, uint64_t sample_position);
 bool sound_set_channel_volume(int channel, unsigned int spatial_channel, int volume);
@@ -169,7 +192,20 @@ bool sound_set_channel_volume_divisor(int channel, int volume_divisor);
 int sound_getpos_sample(int channel);
 int sound_open_music(char *filename, char *packname, int volume, int loop, u32 music_offset);
 int sound_open_channel_pcm_stream(int channel, int frequency, int channels, int volume);
-int sound_queue_channel_pcm_stream(int channel, int play_id, const void *pcm, uint64_t frame_count, int terminal);
+int sound_queue_channel_pcm_stream(
+    int channel,
+    int play_id,
+    const void *pcm,
+    uint64_t frame_count,
+    int terminal,
+    uint64_t *underrun_count,
+    unsigned int *retry_delay_microseconds
+);
+bool sound_get_channel_pcm_stream_status_owned(
+    int channel,
+    int play_id,
+    s_sound_pcm_stream_status *status
+);
 void sound_close_channel_pcm_stream(int channel, int play_id);
 void sound_close_music();
 void sound_update_music();

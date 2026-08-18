@@ -925,6 +925,50 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "playwebm";
     }
+    else if (functionRef == ((void *)openbor_movie_load))
+    {
+        return "movie_load";
+    }
+    else if (functionRef == ((void *)openbor_movie_unload))
+    {
+        return "movie_unload";
+    }
+    else if (functionRef == ((void *)openbor_movie_play))
+    {
+        return "movie_play";
+    }
+    else if (functionRef == ((void *)openbor_movie_draw_to_screen))
+    {
+        return "movie_draw_to_screen";
+    }
+    else if (functionRef == ((void *)openbor_movie_set_sound_channel))
+    {
+        return "movie_set_sound_channel";
+    }
+    else if (functionRef == ((void *)openbor_movie_stop))
+    {
+        return "movie_stop";
+    }
+    else if (functionRef == ((void *)openbor_movie_get_channel_object))
+    {
+        return "movie_get_channel_object";
+    }
+    else if (functionRef == ((void *)openbor_movie_get_channel_index))
+    {
+        return "movie_get_channel_index";
+    }
+    else if (functionRef == ((void *)openbor_movie_get_channel_mask))
+    {
+        return "movie_get_channel_mask";
+    }
+    else if (functionRef == ((void *)openbor_movie_get_property))
+    {
+        return "movie_get_property";
+    }
+    else if (functionRef == ((void *)openbor_movie_set_property))
+    {
+        return "movie_set_property";
+    }
     else if (functionRef == ((void *)openbor_playgif))
     {
         return "playgif";
@@ -1755,6 +1799,28 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_menu_options, "options");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playwebm, "playwebm");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_load, "movie_load");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_unload, "movie_unload");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_play, "movie_play");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_draw_to_screen, "movie_draw_to_screen");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_set_sound_channel, "movie_set_sound_channel");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_stop, "movie_stop");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_get_channel_object, "movie_get_channel_object");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_get_channel_index, "movie_get_channel_index");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_get_channel_mask, "movie_get_channel_mask");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_get_property, "movie_get_property");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_set_property, "movie_set_property");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_playgif, "playgif");
     List_InsertAfter(&theFunctionList,

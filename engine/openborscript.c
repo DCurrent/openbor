@@ -423,6 +423,9 @@ void _freeheapnode(void *ptr)
 void Script_Global_Clear()
 {
     int i, size;
+#ifdef WEBM
+    movie_playback_shutdown();
+#endif
     List_Clear(&theFunctionList);
     // dump all un-freed variants
     size = List_GetSize(&scriptheap);
@@ -15865,7 +15868,7 @@ HRESULT openbor_hallfame(ScriptVariant **varlist , ScriptVariant **pretvar, int 
 HRESULT openbor_playwebm(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     LONG temp = 0; //noskip
-    extern int playwebm(char * filename, int noskip); // avoid implicit declaration
+    extern int playwebm(const char *filename, int noskip); // avoid implicit declaration
 
     if(paramCount < 1)
     {

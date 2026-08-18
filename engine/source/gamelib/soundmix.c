@@ -76,7 +76,7 @@ Caution: move vorbis headers here otherwise the structs will
     This way we don't need to increase the volume too much in the audio files, preventing distortions and quality loss
 */ 
 #define		MAX_SAMPLE_VOLUME   100 // 64 for backw. compat
-#define		MAX_MUSIC_VOLUME    60 // 64 for backw. compat
+#define		MAX_MUSIC_VOLUME    SOUND_VOLUME_DIVISOR_MUSIC // 64 for backw. compat
 // Hardware settings for SoundBlaster (change only if latency is too big)
 #define		SB_BUFFER_SIZE		 0x8000
 #define		SB_BUFFER_SIZE_MASK	 0x7FFF
@@ -1432,9 +1432,16 @@ static void sound_mix_stream_channel(
         for(;;) {
             stream_buffer = &stream->buffer[stream->read_buffer];
             if(!stream_buffer->ready) {
+                if(!stream->producer_finished && !stream->underrun_active) {
+                    stream->underrun_active = 1;
+                    if(stream->underrun_count < UINT64_MAX) {
+                        stream->underrun_count++;
+                    }
+                }
                 stream->fp_buffer_position = buffer_position_fixed;
                 return;
             }
+            stream->underrun_active = 0;
 
             buffer_length_fixed = SOUND_SAMPLE_INT_TO_FIX(stream_buffer->frame_count);
             if(buffer_position_fixed < buffer_length_fixed) {
@@ -1444,6 +1451,9 @@ static void sound_mix_stream_channel(
             buffer_position_fixed -= buffer_length_fixed;
             terminal = stream_buffer->terminal;
             stream_buffer->ready = 0;
+            if(stream->ready_buffer_count > 0) {
+                stream->ready_buffer_count--;
+            }
             stream->read_buffer = (stream->read_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
 
             if(terminal) {
@@ -1862,6 +1872,41 @@ static sound_sample_fixed_t sound_sample_period_calculate(unsigned int speed, in
     }
 
     return (sound_sample_fixed_t)sample_period;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-13
+*
+* Calculate a producer stream period directly from its decimal
+* playback rate. Retaining the caller's full rate until the final
+* fixed-point conversion prevents movie and audio clocks from
+* diverging through integer percentage rounding.
+*/
+static sound_sample_fixed_t sound_sample_period_calculate_decimal(
+    double speed,
+    int sample_frequency
+)
+{
+    long double sample_period;
+    const long double period_max = (long double)UINT64_MAX;
+
+    if(!(speed > 0.0) || sample_frequency <= 0 || playfrequency <= 0) {
+        return 0;
+    }
+
+    sample_period =
+        (long double)SOUND_SAMPLE_FIXED_ONE *
+        (long double)speed *
+        (long double)sample_frequency /
+        (long double)playfrequency;
+    if(sample_period >= period_max - 0.5L) {
+        return UINT64_MAX;
+    }
+    if(sample_period < 1.0L) {
+        return 1;
+    }
+    return (sound_sample_fixed_t)(sample_period + 0.5L);
 }
 
 #define SOUND_STREAM_UPDATE_BYTE_BUDGET (256U * 1024U)
@@ -3126,6 +3171,102 @@ bool sound_set_channel_period(int channel, uint64_t period) {
 
 /*
 * Caskey, Damon V.
+* 2026-08-12
+*
+* Change producer stream speed only while its play ID still owns
+* the requested generic sound channel. Decimal rates retain their
+* precision through the final fixed-point period conversion.
+*/
+bool sound_set_channel_speed_owned(int channel, int play_id, double speed) {
+    channelstruct *record;
+    sound_sample_fixed_t period;
+
+    if(play_id < 0 || !(speed > 0.0)) {
+        return false;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH ||
+       record->frequency <= 0) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    period = sound_sample_period_calculate_decimal(speed, record->frequency);
+    if(!period) {
+        SB_unlock_audio();
+        return false;
+    }
+    record->fp_period = period;
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-12
+*
+* Pause a producer stream only while its play ID still
+* identifies the live channel record.
+*/
+bool sound_pause_channel_owned(int channel, int play_id, int toggle) {
+    channelstruct *record;
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(play_id < 0 ||
+       !record ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    sound_channel_pool_pause(&sound_channel_pool, channel, toggle);
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-17
+*
+* Snapshot the source frame consumed by an active push stream only while
+* the supplied play ID still owns its channel. Reading under the SDL audio
+* lock turns the callback's fixed-point cursor into a stable playback clock
+* without exposing mutable mixer state to decoder or presentation threads.
+*/
+bool sound_get_channel_pcm_stream_playback_frame_owned(
+    int channel,
+    int play_id,
+    uint64_t *playback_frame
+) {
+    channelstruct *record;
+
+    if(play_id < 0 || !playback_frame) {
+        return false;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record ||
+       !sound_channel_pool_is_active(&sound_channel_pool, channel) ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    *playback_frame = SOUND_SAMPLE_FIX_TO_INT(record->fp_samplepos);
+    SB_unlock_audio();
+    return true;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-04
 *
 * Update replacement priority without racing the
@@ -3440,11 +3581,75 @@ int sound_open_channel_pcm_stream(
 
 /*
 * Caskey, Damon V.
-* 2026-08-05
+* 2026-08-15
 *
-* Copy one live PCM block into a generic channel's
-* rotating queue. Direct SDL locking is used because
-* producers such as WebM publish from decoder threads.
+* Estimate when a full producer ring will release its next slot. The
+* decoder wakes shortly before that boundary, with a 50 millisecond cap
+* so pause, stop, and ownership changes remain responsive.
+*/
+static unsigned int sound_stream_producer_retry_delay_microseconds(
+    const channelstruct *record
+) {
+    const s_sound_stream *stream;
+    const s_sound_stream_buffer *read_buffer;
+    const uint64_t delay_maximum = UINT64_C(50000);
+    const uint64_t delay_minimum = UINT64_C(1000);
+    const uint64_t delay_margin = UINT64_C(1000);
+    sound_sample_fixed_t buffer_length;
+    sound_sample_fixed_t remaining;
+    uint64_t output_frames;
+    uint64_t maximum_delay_frames;
+    uint64_t delay;
+
+    if(!record || record->fp_period == 0 || playfrequency <= 0) {
+        return (unsigned int)delay_minimum;
+    }
+
+    stream = &record->stream;
+    read_buffer = &stream->buffer[stream->read_buffer];
+    if(!read_buffer->ready) {
+        return (unsigned int)delay_minimum;
+    }
+
+    buffer_length = SOUND_SAMPLE_INT_TO_FIX(read_buffer->frame_count);
+    if(stream->fp_buffer_position >= buffer_length) {
+        return (unsigned int)delay_minimum;
+    }
+
+    remaining = buffer_length - stream->fp_buffer_position;
+    output_frames = remaining / record->fp_period;
+    if(remaining % record->fp_period) {
+        output_frames++;
+    }
+
+    maximum_delay_frames =
+        ((uint64_t)playfrequency * delay_maximum + UINT64_C(999999)) /
+        UINT64_C(1000000);
+    if(output_frames >= maximum_delay_frames) {
+        return (unsigned int)delay_maximum;
+    }
+
+    delay = output_frames * UINT64_C(1000000) /
+        (uint64_t)playfrequency;
+    delay = delay > delay_margin
+        ? delay - delay_margin
+        : delay_minimum;
+    if(delay < delay_minimum) {
+        delay = delay_minimum;
+    }
+    return (unsigned int)delay;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Copy one live PCM block into a generic channel's rotating queue.
+* Direct SDL locking is used because producers such as WebM publish
+* from decoder threads. Optional telemetry is captured while the same
+* lock is held so producers do not need a second status query. Full
+* queues return a bounded retry delay instead of encouraging millisecond
+* polling against the SDL device lock.
 *
 * Returns 1 when queued, 0 while all buffers are ready,
 * and -1 after replacement or malformed input.
@@ -3454,10 +3659,19 @@ int sound_queue_channel_pcm_stream(
     int play_id,
     const void *pcm,
     uint64_t frame_count,
-    int terminal
+    int terminal,
+    uint64_t *underrun_count,
+    unsigned int *retry_delay_microseconds
 ) {
     channelstruct *record;
     int result;
+
+    if(underrun_count) {
+        *underrun_count = 0;
+    }
+    if(retry_delay_microseconds) {
+        *retry_delay_microseconds = 1000U;
+    }
 
     SB_lock_audio_direct();
     record = sound_channel_pool_get(&sound_channel_pool, channel);
@@ -3476,8 +3690,52 @@ int sound_queue_channel_pcm_stream(
         frame_count,
         terminal
     );
+    if(underrun_count) {
+        *underrun_count = record->stream.underrun_count;
+    }
+    if(result == 0 && retry_delay_microseconds) {
+        *retry_delay_microseconds =
+            sound_stream_producer_retry_delay_microseconds(record);
+    }
     SB_unlock_audio_direct();
     return result;
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-15
+*
+* Read live-producer queue state only while the supplied play ID still
+* owns the channel. The SDL device lock makes the snapshot coherent with
+* both producer publication and real-time mixer consumption.
+*/
+bool sound_get_channel_pcm_stream_status_owned(
+    int channel,
+    int play_id,
+    s_sound_pcm_stream_status *status
+) {
+    channelstruct *record;
+
+    if(play_id < 0 || !status) {
+        return false;
+    }
+
+    SB_lock_audio();
+    record = sound_channel_pool_get(&sound_channel_pool, channel);
+    if(!record ||
+       !sound_channel_pool_is_active(&sound_channel_pool, channel) ||
+       record->playid != play_id ||
+       record->stream_source != SOUND_CHANNEL_STREAM_SOURCE_PUSH) {
+        SB_unlock_audio();
+        return false;
+    }
+
+    status->underrun_count = record->stream.underrun_count;
+    status->ready_buffer_count = record->stream.ready_buffer_count;
+    status->producer_finished = record->stream.producer_finished;
+    status->underrun_active = record->stream.underrun_active;
+    SB_unlock_audio();
+    return true;
 }
 
 /*

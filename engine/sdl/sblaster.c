@@ -16,7 +16,6 @@ static SDL_AudioSpec cspec;
 static SDL_AudioDeviceID audio_dev;
 static int voicevol = 15;
 static int buffsize = 4096;
-static unsigned int audio_lock_depth;
 
 static void callback(void *userdata, Uint8 *stream, int len)
 {
@@ -80,55 +79,31 @@ void SB_playstop()
 		return;
 	}
 
-	started = 0;
 	//SDL_CloseAudio();
     SDL_CloseAudioDevice(audio_dev);
+	started = 0;
 	audio_dev = 0;
-	audio_lock_depth = 0;
 }
 
 /*
 * Caskey, Damon V.
-* 2026-08-04
+* 2026-08-17
 *
-* Exclude the SDL callback while the main thread
-* publishes or tears down shared mixer state. Nested
-* engine helpers share one device lock.
+* Delegate every lock pair to SDL. Its audio device
+* mutex owns recursive depth per thread while excluding
+* the callback and all other threads. A process-wide
+* depth counter cannot represent that ownership safely.
 */
 void SB_lock_audio()
 {
-	if(!started)
-	{
-		return;
-	}
-
-	if(audio_lock_depth++ == 0)
-	{
-		SB_lock_audio_direct();
-	}
+	SB_lock_audio_direct();
 }
 
 void SB_unlock_audio()
 {
-	if(!started || audio_lock_depth == 0)
-	{
-		return;
-	}
-
-	if(--audio_lock_depth == 0)
-	{
-		SB_unlock_audio_direct();
-	}
+	SB_unlock_audio_direct();
 }
 
-/*
-* Caskey, Damon V.
-* 2026-08-05
-*
-* Lock the SDL device without participating in the
-* main-thread nesting counter. Live PCM producer
-* threads use this pair exactly once per publication.
-*/
 void SB_lock_audio_direct()
 {
 	if(started)

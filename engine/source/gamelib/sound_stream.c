@@ -214,6 +214,7 @@ int sound_stream_fill(
     buffer->frame_count = frames_to_read;
     buffer->terminal = !stream->looping && frames_to_read == available_frames;
     buffer->ready = 1;
+    stream->ready_buffer_count++;
     stream->next_source_frame += frames_to_read;
     stream->write_buffer = (stream->write_buffer + 1U) % SOUND_STREAM_BUFFER_COUNT;
     SB_unlock_audio();
@@ -273,6 +274,7 @@ int sound_stream_push_locked(
     buffer->frame_count = frame_count;
     buffer->terminal = terminal ? 1 : 0;
     buffer->ready = 1;
+    stream->ready_buffer_count++;
     stream->next_source_frame += frame_count;
     stream->source_frame_count = stream->next_source_frame;
     stream->producer_finished = terminal ? 1 : 0;

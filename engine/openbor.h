@@ -54,6 +54,7 @@
 #ifdef WEBM
 #include    "yuv.h"
 #include    "vidplay.h"
+#include    "movie_playback.h"
 #endif
 
 /*
@@ -2975,7 +2976,7 @@ typedef struct
     Script         *onblockp_script;                //execute when blocked by platform.
     Script         *onblocko_script;                //execute when blocked by obstacle.
     Script         *onblockz_script;                //execute when blocked by Z.
-    Script         *onblocka_script;                //execute when "hit head".
+    Script         *onblocky_script;                //execute when "hit head".
     Script         *onmovex_script;                 //execute when moving along X axis.
     Script         *onmovez_script;                 //execute when moving along Z axis.
     Script         *onmovea_script;                 //execute when moving along A axis.
@@ -4458,7 +4459,7 @@ void    execute_onblockw_script                 (entity *ent, s_terrain *wall, i
 void    execute_onblockp_script                 (entity *ent, int plane, entity *platform);
 void    execute_onblocko_script                 (entity *ent, int plane, entity *other);
 void    execute_onblockz_script                 (entity *ent);
-void    execute_onblocka_script                 (entity *ent, entity *other);
+void    execute_onblocky_script                 (entity *ent, entity *other);
 void    execute_onmovex_script                  (entity *ent);
 void    execute_onmovez_script                  (entity *ent);
 void    execute_onmovea_script                  (entity *ent);
