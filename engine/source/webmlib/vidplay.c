@@ -36,19 +36,14 @@
 * Caskey, Damon V.
 * 2026-08-18
 *
-* Balance decoder reserves after the playback clock, backlog recovery, and
-* asynchronous lifecycle are stable. Sixty-four audio packets cover ordinary
-* Vorbis scheduling jitter. One hundred twenty-eight video packets retain
-* roughly two seconds at 60 FPS without preserving the many seconds of stale
-* compressed work held by the former 512-packet queue. Six decoded YUV frames
-* provide 100-200 milliseconds of read-ahead across 30-60 FPS while bounding
-* the software renderer's per-movie frame memory. Three decoded frames establish
-* video preroll before the audio-master clock starts. Full decoded-frame queues
-* apply backpressure without discarding ordered presentation work; exceptional
-* audio starvation remains isolated to compressed keyframe recovery. Demux and
-* audio producers retain high priority because both block frequently; VP8
-* decoding remains at normal priority so it cannot starve the engine. The proven
-* eight-buffer PCM ring remains unchanged.
+* Configure bounded decoder reserves and worker priorities. Sixty-four audio
+* packets absorb Vorbis scheduling jitter. One hundred twenty-eight compressed
+* video packets cover roughly two seconds at 60 FPS. Six decoded YUV frames
+* provide 100-200 milliseconds of presentation read-ahead across 30-60 FPS,
+* with three required for preroll. Full decoded-frame queues block their
+* producer to preserve presentation order. Audio and demux producers use high
+* priority; VP8 decoding uses normal priority to preserve engine capacity. PCM
+* output uses an eight-buffer ring.
 */
 #define AUDIO_PACKET_QUEUE_SIZE 64
 #define VIDEO_PACKET_QUEUE_SIZE 128
@@ -489,9 +484,8 @@ static int queue_try_get(FixedSizeQueue *queue, void **data)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Capture queue occupancy, replacement totals, and recovery events only when
-* reporting exceptional state. Normal decoding and publication incur no
-* diagnostic polling.
+* Snapshot queue occupancy and cumulative discard and resynchronization totals
+* under the queue lock for diagnostics.
 */
 static int queue_get_status(
     FixedSizeQueue *queue,
@@ -575,10 +569,8 @@ static int video_playback_is_paused(video_context *video_ctx)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Detect genuine audio starvation risk before sacrificing video backlog.
-* Empty compressed audio alone is harmless while the PCM ring remains
-* healthy. Recovery begins only when both reserves are depleted and active
-* playback would otherwise let a full video queue block the shared demuxer.
+* Authorize compressed-video recovery during active playback when the audio
+* packet queue is empty and the PCM reserve reaches its critical threshold.
 */
 static int webm_audio_reserve_is_critical(webm_context *ctx)
 {
@@ -724,9 +716,9 @@ static void video_packet_queue_record_drop(FixedSizeQueue *queue)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Insert compressed video with ordinary bounded blocking while audio has
-* usable reserves. Return zero without consuming the packet when audio
-* becomes critical, allowing the demuxer to perform keyframe recovery.
+* Insert compressed video with bounded blocking while audio has usable
+* reserves. Return zero without consuming the packet to request keyframe
+* recovery when the audio reserve becomes critical.
 */
 static int video_packet_queue_insert(
     webm_context *ctx,
@@ -771,7 +763,7 @@ void queue_destroy(FixedSizeQueue *queue)
     free(queue);
 }
 
-// used to keep playing current BGM in videos with no audio track
+// Service existing BGM for videos without an audio track.
 static int bgm_update_thread(void *data)
 {
     webm_context *ctx = data;
@@ -1079,7 +1071,7 @@ static int audio_thread(void *data)
                     );
                     audio_ctx->reported_underrun_count = underrun_count;
                     printf(
-                        "Warning: WebM audio underrun on sound channel %d "
+                        "\nWarning: WebM audio underrun on sound channel %d "
                         "(%" PRIu64 " total): PCM=%u/%u, "
                         "packets=%d/%d audio and %d/%d video, "
                         "frames=%d/%d, "
@@ -1124,9 +1116,8 @@ static int audio_thread(void *data)
 * Caskey, Damon V.
 * 2026-08-18
 *
-* Snapshot the decoded-video preroll reserve under its queue lock. A queued
-* terminal marker also completes preroll for movies shorter than the ordinary
-* frame target, including a valid stream that reaches end before three frames.
+* Snapshot the decoded-video preroll reserve under its queue lock. A terminal
+* marker satisfies preroll for streams containing fewer than three frames.
 */
 static int video_preroll_ready(
     video_context *video_ctx,
@@ -1168,10 +1159,9 @@ static int video_preroll_ready(
 * Caskey, Damon V.
 * 2026-08-18
 *
-* Hold the asynchronous READY boundary until both decoded video and owned
-* PCM have useful reserves. A bounded timeout preserves failure tolerance,
-* while silent and very short movies become ready from video alone or their
-* terminal marker instead of starting an audio clock ahead of presentation.
+* Hold the asynchronous READY boundary until decoded video and owned PCM have
+* useful reserves. Silent and short streams satisfy preroll through track
+* absence or a terminal marker. A bounded timeout limits initialization delay.
 */
 static void webm_wait_for_preroll(webm_context *ctx)
 {
@@ -1220,7 +1210,7 @@ static void webm_wait_for_preroll(webm_context *ctx)
         if(now < start_time ||
            now - start_time >= WEBM_PREROLL_TIMEOUT_MICROSECONDS) {
             printf(
-                "Warning: WebM preroll timed out with video=%d/%d "
+                "\nWarning: WebM preroll timed out with video=%d/%d "
                 "decoded frames and audio=%u/%u PCM buffers.\n",
                 decoded_frame_count,
                 VIDEO_PREROLL_FRAME_COUNT,
@@ -1239,8 +1229,8 @@ static void webm_wait_for_preroll(webm_context *ctx)
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Initialize WebM audio on an explicit generic channel with
-* play-ID ownership and optional legacy replace-all behavior.
+* Initialize WebM audio on an explicit generic channel with play-ID ownership
+* and optional exclusive audio control.
 */
 static int init_audio(
     nestegg *ctx,
@@ -1303,14 +1293,14 @@ static int init_audio(
     if(audio_ctx->frequency < SOUND_MUSIC_FREQUENCY_MIN ||
        audio_ctx->frequency > SOUND_MUSIC_FREQUENCY_MAX)
     {
-        printf("Warning: the audio frequency (%i Hz) is outside the supported %i-%i Hz range\n",
+        printf("\nWarning: the audio frequency (%i Hz) is outside the supported %i-%i Hz range\n",
                 audio_ctx->frequency,
                 SOUND_MUSIC_FREQUENCY_MIN,
                 SOUND_MUSIC_FREQUENCY_MAX);
     }
 
     if(replace_all_audio) {
-        /* Legacy fullscreen playback retains its replace-all behavior. */
+        /* Fullscreen playback requests exclusive audio ownership. */
         sound_stopall_sample(true);
     }
     audio_ctx->channel = sound_channel;
@@ -1636,7 +1626,7 @@ static void close_video(video_context *video_ctx)
 {
     if(vpx_codec_destroy(&(video_ctx->vpx_ctx)))
     {
-        printf("Warning: failed to destroy libvpx context: %s\n", vpx_codec_error(&video_ctx->vpx_ctx));
+        printf("\nWarning: failed to destroy libvpx context: %s\n", vpx_codec_error(&video_ctx->vpx_ctx));
     }
     if(video_ctx->packet_queue)
     {
@@ -1674,7 +1664,7 @@ static void video_packet_queue_report_resync(FixedSizeQueue *queue)
     if(resync_count &&
        (resync_count == 1U || !(resync_count % UINT64_C(16)))) {
         printf(
-            "Warning: WebM video backlog recovery discarded %" PRIu64
+            "\nWarning: WebM video backlog recovery discarded %" PRIu64
             " compressed packets in %" PRIu64
             " keyframe resync event%s.\n",
             dropped_packets,
@@ -2023,7 +2013,7 @@ static int webm_open_resources(webm_context *ctx)
         }
         else {
             printf(
-                "Warning: Unable to open the WebM audio track on channel %d\n",
+                "\nWarning: Unable to open the WebM audio track on channel %d\n",
                 ctx->sound_channel
             );
             ctx->audio_track = -1;
@@ -2032,10 +2022,10 @@ static int webm_open_resources(webm_context *ctx)
     else if(audio_track < 0 &&
             ctx->replace_all_audio &&
             sound_query_music(NULL, NULL)) {
-        /* Blocking legacy playback retains its channel-zero service. */
+        /* Service channel-zero music during silent fullscreen playback. */
         ctx->the_audio_thread = thread_create(bgm_update_thread, "bgm", ctx);
         if(!ctx->the_audio_thread) {
-            printf("Error: Unable to start WebM legacy audio service thread\n");
+            printf("Error: Unable to start WebM audio service thread\n");
             return -1;
         }
     }
@@ -2263,9 +2253,8 @@ int webm_poll_closed(webm_context *ctx)
 * Caskey, Damon V.
 * 2026-08-17
 *
-* Provide a blocking finalizer only for engine shutdown and legacy ownership
-* boundaries. Runtime movie stop and replacement use request-plus-poll so
-* teardown never joins decoder workers on an engine update.
+* Finalize decoder ownership synchronously where blocking is permitted.
+* Runtime movie stop and replacement use asynchronous request and poll calls.
 */
 void webm_close(webm_context *ctx)
 {
@@ -2410,9 +2399,8 @@ void webm_set_audio_speed(webm_context *ctx, double speed)
 * Caskey, Damon V.
 * 2026-08-15
 *
-* Snapshot decoded-frame occupancy for one bounded main-thread poll. Frames
-* published after this count is captured remain queued for the next engine
-* update instead of extending the current update indefinitely.
+* Snapshot decoded-frame occupancy to bound dequeue attempts during the current
+* engine update. Frames published afterward remain queued for the next update.
 */
 int webm_get_pending_frame_count(webm_context *ctx)
 {

@@ -63,10 +63,8 @@ typedef struct s_movie_source {
 * Caskey, Damon V.
 * 2026-08-17
 *
-* Keep asynchronous decoder ownership outside the stable script-visible
-* playback record. Each decoder retains its movie source until lifecycle
-* teardown reaches CLOSED, including decoders retired by seeks or channel
-* replacement while their worker is still running.
+* Own asynchronous decoder lifecycle independently from the script-visible
+* playback record. Each decoder holds its movie source through CLOSED.
 */
 typedef struct s_movie_decoder {
     webm_context *context;
@@ -308,10 +306,9 @@ static void movie_source_release(int source_id)
 * Caskey, Damon V.
 * 2026-08-17
 *
-* Poll decoder retirement without waiting during runtime updates. Shutdown
-* may explicitly wait after every playback has stopped. Source references
-* remain held until each lifecycle worker has released its borrowed path and
-* cache storage.
+* Reap completed decoder retirement during runtime updates. The wait option
+* provides synchronous shutdown after playback has stopped. Decoder source
+* references remain valid through lifecycle completion.
 */
 static void movie_playback_reap_retired_decoders(int wait)
 {
@@ -352,9 +349,8 @@ static void movie_playback_reap_retired_decoders(int wait)
 * Caskey, Damon V.
 * 2026-08-17
 *
-* Move the channel's decoder directly to asynchronous retirement without
-* allocating or joining. Per-channel retirement counts serialize a later
-* replacement while allowing repeated pending seeks to collapse to one.
+* Queue the channel decoder for asynchronous retirement. Per-channel counts
+* gate decoder creation, and one request slot coalesces repeated pending seeks.
 */
 static void movie_playback_retire_decoder(s_movie_playback *playback)
 {
@@ -613,9 +609,9 @@ static e_movie_cache_result movie_source_read_cache(
 * Caskey, Damon V.
 * 2026-08-13
 *
-* Load one reusable movie source. Streaming remains the default,
-* forced cache fails cleanly, and automatic cache falls back to
-* streaming when its memory policy or allocation cannot be met.
+* Load one reusable movie source according to its stream, cache, or automatic
+* memory policy. Forced cache reports failure; automatic cache may select
+* streaming when memory requirements are not met.
 */
 int movie_source_load(const char *path, e_movie_loading_mode loading_mode)
 {
@@ -873,9 +869,8 @@ static uint64_t movie_playback_position_now(
 * Caskey, Damon V.
 * 2026-08-17
 *
-* Start the latest pending decoder request only after the previous decoder
-* for this movie channel reaches CLOSED. Repeated seeks during teardown
-* replace the request in place instead of accumulating lifecycle threads.
+* Start the latest pending decoder request after the retiring decoder reaches
+* CLOSED. One pending slot coalesces repeated seeks during teardown.
 */
 static int movie_playback_start_pending_decoder(
     s_movie_playback *playback
@@ -1066,9 +1061,9 @@ static int movie_playback_poll_decoder(s_movie_playback *playback)
 * Caskey, Damon V.
 * 2026-08-12
 *
-* Create one playback from a reusable source. Automatic mode
-* takes the lowest free slot; explicit selection replaces it.
-* Legacy callers may request their historical audio takeover.
+* Create one playback from a reusable source. Automatic mode takes the lowest
+* free slot; explicit selection replaces that channel. Exclusive audio mode
+* stops other channel playback for fullscreen ownership.
 */
 s_movie_playback *movie_playback_play(
     int source_id,
@@ -1360,10 +1355,8 @@ static bool movie_playback_render_to(
 * Caskey, Damon V.
 * 2026-08-18
 *
-* Record decoded frames intentionally omitted from presentation after their
-* lateness exceeds the bounded audio-master tolerance. Report the first drop
-* and each subsequent group so video loss remains observable independently
-* from healthy PCM reserves and compressed-packet recovery.
+* Record decoded frames omitted after exceeding the audio-master lateness
+* tolerance. Track maximum lateness and rate-limit diagnostic output.
 */
 static void movie_playback_record_presentation_drop(
     s_movie_playback *playback,
@@ -1385,7 +1378,7 @@ static void movie_playback_record_presentation_drop(
        !(playback->presentation_drop_count %
             MOVIE_PRESENTATION_DROP_REPORT_INTERVAL)) {
         printf(
-            "Warning: Movie channel %d discarded %" PRIu64
+            "\nWarning: Movie channel %d discarded %" PRIu64
             " late decoded video frame%s for audio synchronization "
             "(maximum lateness=%" PRIu64 " ms).\n",
             playback->index,
@@ -1400,9 +1393,8 @@ static void movie_playback_record_presentation_drop(
 * Caskey, Damon V.
 * 2026-08-18
 *
-* Transfer the retained look-ahead frame into presentation ownership. One
-* promotion remains pending until composition acknowledges it, preventing
-* repeated engine updates from silently replacing an undisplayed frame.
+* Transfer the look-ahead frame into presentation ownership and mark it pending
+* until composition acknowledges it.
 */
 static void movie_playback_promote_next_frame(
     s_movie_playback *playback
@@ -1419,10 +1411,9 @@ static void movie_playback_promote_next_frame(
 * Caskey, Damon V.
 * 2026-08-18
 *
-* Promote one due frame per presentation opportunity and preserve ordinary
-* scheduling jitter behind the audio master. Only frames beyond the lateness
-* tolerance may be discarded, while the initial queue snapshot still prevents
-* a decoder from extending one engine update without bound.
+* Promote one due frame per presentation opportunity under the audio master.
+* Protect frames within the lateness tolerance and bound work to the initial
+* decoded-queue snapshot.
 */
 static void movie_playback_poll_frames(
     s_movie_playback *playback,
