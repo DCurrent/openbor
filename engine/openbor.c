@@ -43905,7 +43905,8 @@ int player_check_special()
     {
     case AJSPECIAL_KEY_SPECIAL:
         
-        if (player_keys & FLAG_SPECIAL) {
+        if (player_keys & FLAG_SPECIAL)
+        {
             thekey = FLAG_SPECIAL;
         }        
 
@@ -43913,31 +43914,36 @@ int player_check_special()
 
     case AJSPECIAL_KEY_DOUBLE:
 
-        if (!validanim(self, ANI_BLOCK) && player_keys & FLAG_SPECIAL) {
+        if (!validanim(self, ANI_BLOCK) && player_keys & FLAG_SPECIAL)
+        {
             thekey = FLAG_SPECIAL;
-        
-        } else if (player_keys & FLAG_JUMP && player_keys & FLAG_ATTACK) {
+        }
+        else if (player_keys & FLAG_JUMP && player_keys & FLAG_ATTACK)
+        {
             thekey = FLAG_JUMP | FLAG_ATTACK;
         }
         break;
 
     case AJSPECIAL_KEY_ATTACK2:
 
-        if (player_keys & FLAG_ATTACK2) {
+        if (player_keys & FLAG_ATTACK2)
+        {
             thekey = FLAG_ATTACK2;
         }
         break;
 
     case AJSPECIAL_KEY_ATTACK3:
 
-        if (player_keys & FLAG_ATTACK3)  {
+        if (player_keys & FLAG_ATTACK3)
+        {
             thekey = FLAG_ATTACK3;
         }
         break;
 
     case AJSPECIAL_KEY_ATTACK4:
 
-        if (player_keys & FLAG_ATTACK4) {
+        if (player_keys & FLAG_ATTACK4)
+        {
             thekey = FLAG_ATTACK4;
         }
         break;
@@ -43946,16 +43952,19 @@ int player_check_special()
         thekey = 0;
     }
 
-    if (!thekey) {
+    if (!thekey)
+    {
         return 0;
     }
 
-    if(check_special()) {
+    if(check_special())
+    {
         self->stalltime = 0;
         player[self->playerindex].playkeys &= ~thekey;
         return 1;
-    
-    } else {
+    }
+    else
+    {
         return 0;
     }
 }
@@ -52641,8 +52650,7 @@ static void load_select_screen_info(s_savelevel *save)
 int selectplayer(int *players, char *filename, int useSavedGame)
 {
 	s_model *tempmodel;
-	s_model *model_old = NULL;
-	s_model *model_new = NULL;
+	s_model *model_new[MAX_PLAYERS] = { NULL };
 	int i;
 	int exit = 0;
 	int escape = 0;
@@ -52993,10 +53001,11 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 						// Transition from select (player selected another model, and the
 						// select out transition is now finished). Repeat of left/right key 
 						// logic below and probably needs consolidation.
-						if (example[i]->animnum == ANI_SELECTOUT && model_new)
+						if (example[i]->animnum == ANI_SELECTOUT && model_new[i])
 						{
 							// Apply new model.
-							ent_set_model(example[i], model_new->name, 0);
+							ent_set_model(example[i], model_new[i]->name, 0);
+							model_new[i] = NULL;
 
 							// Copy example model name to player name variable.
 							strcpy(player[i].name, example[i]->model->name);
@@ -53082,17 +53091,15 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					}
 
 					// Get model in use right now.
-					model_old = example[i]->model;
-
 					// Let's get the new model. Left key = previous model 
 					// in cycle. Right key = next.
 					if ((player[i].newkeys & FLAG_MOVELEFT))
 					{
-						model_new = prevplayermodeln(model_old, i);
+						model_new[i] = prevplayermodeln(example[i]->model, i);
 					}
 					else
 					{
-						model_new = nextplayermodeln(model_old, i);
+						model_new[i] = nextplayermodeln(example[i]->model, i);
 					}
 
 					// Do we have a select out transition? If so play it here. 
@@ -53104,7 +53111,8 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 					else
 					{
 						// Apply new model.
-						ent_set_model(example[i], model_new->name, 0);
+						ent_set_model(example[i], model_new[i]->name, 0);
+						model_new[i] = NULL;
 
 						// Copy example model name to player name variable.
 						strcpy(player[i].name, example[i]->model->name);
