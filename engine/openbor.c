@@ -43905,8 +43905,7 @@ int player_check_special()
     {
     case AJSPECIAL_KEY_SPECIAL:
         
-        if (player_keys & FLAG_SPECIAL)
-        {
+        if (player_keys & FLAG_SPECIAL) {
             thekey = FLAG_SPECIAL;
         }        
 
@@ -43914,37 +43913,32 @@ int player_check_special()
 
     case AJSPECIAL_KEY_DOUBLE:
 
-        if (!validanim(self, ANI_BLOCK) && player_keys & FLAG_SPECIAL)
-        {
+        if (!validanim(self, ANI_BLOCK) && player_keys & FLAG_SPECIAL) {
             thekey = FLAG_SPECIAL;
-        }
-        else if (player_keys & FLAG_JUMP && player_keys & FLAG_ATTACK)
-        {
-            thekey = FLAG_SPECIAL;
+        
+        } else if (player_keys & FLAG_JUMP && player_keys & FLAG_ATTACK) {
+            thekey = FLAG_JUMP | FLAG_ATTACK;
         }
         break;
 
     case AJSPECIAL_KEY_ATTACK2:
 
-        if (player_keys & FLAG_ATTACK2)
-        {
-            thekey = FLAG_SPECIAL;
+        if (player_keys & FLAG_ATTACK2) {
+            thekey = FLAG_ATTACK2;
         }
         break;
 
     case AJSPECIAL_KEY_ATTACK3:
 
-        if (player_keys & FLAG_ATTACK3)
-        {
-            thekey = FLAG_SPECIAL;
+        if (player_keys & FLAG_ATTACK3)  {
+            thekey = FLAG_ATTACK3;
         }
         break;
 
     case AJSPECIAL_KEY_ATTACK4:
 
-        if (player_keys & FLAG_ATTACK4)
-        {
-            thekey = FLAG_SPECIAL;
+        if (player_keys & FLAG_ATTACK4) {
+            thekey = FLAG_ATTACK4;
         }
         break;
     
@@ -43952,19 +43946,16 @@ int player_check_special()
         thekey = 0;
     }
 
-    if (!thekey)
-    {
+    if (!thekey) {
         return 0;
     }
 
-    if(check_special())
-    {
+    if(check_special()) {
         self->stalltime = 0;
         player[self->playerindex].playkeys &= ~thekey;
         return 1;
-    }
-    else
-    {
+    
+    } else {
         return 0;
     }
 }
