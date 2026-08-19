@@ -32,6 +32,7 @@ HRESULT openbor_movie_load(ScriptVariant **varlist, ScriptVariant **pretvar, int
 HRESULT openbor_movie_unload(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_play(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_draw_to_screen(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
+HRESULT openbor_movie_draw_to_yuv(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_set_sound_channel(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_stop(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);
 HRESULT openbor_movie_get_channel_object(ScriptVariant **varlist, ScriptVariant **pretvar, int paramCount);

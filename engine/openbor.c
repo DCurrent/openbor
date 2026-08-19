@@ -51879,6 +51879,7 @@ int playwebm(const char *path, int noskip)
     int retval = 1;
     int source_id = -1;
     s_movie_playback *playback = NULL;
+    s_screen *screenshot_frame = NULL;
 
     movie_playback_stop_all();
     source_id = movie_source_load(path, MOVIE_LOADING_STREAM);
@@ -51900,8 +51901,10 @@ int playwebm(const char *path, int noskip)
         goto quit;
     }
 
-    clearscreen(vscreen);
-    video_copy_screen(vscreen);
+    /* Legacy playback uses the WebM display size and hardware YUV output. */
+    movie_playback_set_width(playback, MOVIE_SIZE_NATIVE);
+    movie_playback_set_height(playback, MOVIE_SIZE_NATIVE);
+
     while(playback->active) {
         int interrupt_requested;
         int present_frame;
@@ -51918,8 +51921,7 @@ int playwebm(const char *path, int noskip)
         }
         present_frame = playback->frame_dirty;
         if(present_frame) {
-            clearscreen(vscreen);
-            if(!movie_playback_draw_to_screen(vscreen, playback->index)) {
+            if(!movie_playback_draw_to_yuv(playback->index)) {
                 retval = 0;
                 break;
             }
@@ -51927,15 +51929,30 @@ int playwebm(const char *path, int noskip)
         if(playback->current_frame &&
            !noscreenshot &&
            (bothnewkeys & FLAG_SCREENSHOT)) {
-            screenshot(vscreen, getpal, 1);
-        }
-        if(present_frame) {
-            video_copy_screen(vscreen);
+            if(!screenshot_frame ||
+               screenshot_frame->width != playback->current_frame->width ||
+               screenshot_frame->height != playback->current_frame->height) {
+                if(screenshot_frame) {
+                    freescreen(&screenshot_frame);
+                }
+                screenshot_frame = allocscreen(
+                    playback->current_frame->width,
+                    playback->current_frame->height,
+                    PIXEL_32
+                );
+            }
+            if(screenshot_frame) {
+                yuv_to_rgb(playback->current_frame, screenshot_frame);
+                screenshot(screenshot_frame, NULL, 0);
+            }
         }
         usleep(1000);
     }
 
 quit:
+    if(screenshot_frame) {
+        freescreen(&screenshot_frame);
+    }
     if(playback && playback->failed && retval > 0) {
         retval = 0;
     }

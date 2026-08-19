@@ -96,6 +96,7 @@ bool movie_playback_get_snapshot(
 uint64_t movie_playback_get_active_mask(void);
 void movie_playback_update(int interrupt_requested);
 bool movie_playback_draw_to_screen(s_screen *screen, int channel);
+bool movie_playback_draw_to_yuv(int channel);
 void movie_playback_stop(s_movie_playback *playback);
 void movie_playback_stop_all(void);
 

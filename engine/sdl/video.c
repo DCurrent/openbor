@@ -201,6 +201,11 @@ int video_set_mode(s_videomodes videomodes)
 	return 1;
 }
 
+int video_restore_mode(void)
+{
+	return video_set_mode(stored_videomodes);
+}
+
 void video_fullscreen_flip()
 {
 	int restore_yuv = yuv_mode;

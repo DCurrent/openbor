@@ -941,6 +941,10 @@ const char *Script_GetFunctionName(void *functionRef)
     {
         return "movie_draw_to_screen";
     }
+    else if (functionRef == ((void *)openbor_movie_draw_to_yuv))
+    {
+        return "movie_draw_to_yuv";
+    }
     else if (functionRef == ((void *)openbor_movie_set_sound_channel))
     {
         return "movie_set_sound_channel";
@@ -1807,6 +1811,8 @@ void Script_LoadSystemFunctions()
                      (void *)openbor_movie_play, "movie_play");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_movie_draw_to_screen, "movie_draw_to_screen");
+    List_InsertAfter(&theFunctionList,
+                     (void *)openbor_movie_draw_to_yuv, "movie_draw_to_yuv");
     List_InsertAfter(&theFunctionList,
                      (void *)openbor_movie_set_sound_channel, "movie_set_sound_channel");
     List_InsertAfter(&theFunctionList,

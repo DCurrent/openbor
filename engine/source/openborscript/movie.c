@@ -278,6 +278,32 @@ error:
 
 /*
 * Caskey, Damon V.
+* 2026-08-18
+*
+* Present a movie channel directly through the exclusive hardware YUV path.
+*/
+HRESULT openbor_movie_draw_to_yuv(
+    ScriptVariant **varlist,
+    ScriptVariant **pretvar,
+    int paramCount
+)
+{
+    LONG channel;
+
+    *pretvar = NULL;
+    if(paramCount < 1 ||
+       FAILED(ScriptVariant_IntegerValue(varlist[0], &channel)) ||
+       channel < 0 ||
+       (unsigned int)channel >= MOVIE_CHANNEL_COUNT ||
+       !movie_playback_draw_to_yuv((int)channel)) {
+        printf("\nScript error: movie_draw_to_yuv(int channel). Movie channel is invalid.\n");
+        return E_FAIL;
+    }
+    return S_OK;
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-12
 *
 * Reopen a playback at its current position on a selected
@@ -563,6 +589,7 @@ MOVIE_UNSUPPORTED(openbor_movie_load)
 MOVIE_UNSUPPORTED(openbor_movie_unload)
 MOVIE_UNSUPPORTED(openbor_movie_play)
 MOVIE_UNSUPPORTED(openbor_movie_draw_to_screen)
+MOVIE_UNSUPPORTED(openbor_movie_draw_to_yuv)
 MOVIE_UNSUPPORTED(openbor_movie_set_sound_channel)
 MOVIE_UNSUPPORTED(openbor_movie_stop)
 MOVIE_UNSUPPORTED(openbor_movie_get_channel_object)

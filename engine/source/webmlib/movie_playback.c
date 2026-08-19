@@ -33,6 +33,7 @@ static void *movie_cache_allocate_nonfatal(size_t size)
 #include "sound_channel.h"
 #include "soundmix.h"
 #include "timer.h"
+#include "video.h"
 #include "vidplay.h"
 #include "movie_playback.h"
 
@@ -97,6 +98,17 @@ typedef struct s_movie_playback_pool {
 } s_movie_playback_pool;
 
 static s_movie_playback_pool movie_playback_pool;
+
+/*
+* Caskey, Damon V.
+* 2026-08-18
+*
+* Track exclusive hardware YUV presentation independently from decoder
+* channels. The overlay replaces the normal game texture until playback
+* ends, at which point the configured game video mode is restored.
+*/
+static int movie_yuv_channel = -1;
+static yuv_video_mode movie_yuv_mode;
 
 /*
 * Caskey, Damon V.
@@ -1124,6 +1136,11 @@ void movie_playback_stop(s_movie_playback *playback)
     if(channel < 0) {
         return;
     }
+    if(movie_yuv_channel == channel) {
+        movie_yuv_channel = -1;
+        memset(&movie_yuv_mode, 0, sizeof(movie_yuv_mode));
+        video_restore_mode();
+    }
     movie_playback_pool.active_mask &= ~(UINT64_C(1) << channel);
     movie_playback_reset_record(&movie_playback_pool.channel[channel]);
 }
@@ -1599,6 +1616,59 @@ bool movie_playback_draw_to_screen(s_screen *screen, int channel)
         return false;
     }
     return movie_playback_render_to(playback, screen);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-18
+*
+* Present one retained decoder frame through the hardware YUV path. This is
+* an exclusive final-output operation, not a compositing operation. Width and
+* height select the overlay's logical display size; zero and native both use
+* the WebM display dimensions. Playback timing and transport remain owned by
+* the channel and therefore work identically to screen composition.
+*/
+bool movie_playback_draw_to_yuv(int channel)
+{
+    s_movie_playback *playback;
+    yuv_video_mode mode;
+
+    if(!movie_playback_pool.initialized ||
+       channel < 0 ||
+       (unsigned int)channel >= MOVIE_CHANNEL_COUNT) {
+        return false;
+    }
+    playback = &movie_playback_pool.channel[channel];
+    if(!playback->active ||
+       !(movie_playback_pool.active_mask & (UINT64_C(1) << channel))) {
+        return false;
+    }
+    if(!playback->current_frame) {
+        return true;
+    }
+
+    mode = playback->video_mode;
+    if(playback->width && playback->width != MOVIE_SIZE_NATIVE) {
+        mode.display_width = (int)playback->width;
+    }
+    if(playback->height && playback->height != MOVIE_SIZE_NATIVE) {
+        mode.display_height = (int)playback->height;
+    }
+    if(movie_yuv_channel != channel ||
+       memcmp(&movie_yuv_mode, &mode, sizeof(mode))) {
+        if(!video_setup_yuv_overlay(&mode)) {
+            return false;
+        }
+        movie_yuv_channel = channel;
+        movie_yuv_mode = mode;
+    }
+    if(!video_prepare_yuv_frame(playback->current_frame) ||
+       !video_display_yuv_frame()) {
+        return false;
+    }
+    playback->frame_dirty = 0;
+    playback->current_frame_presented = 1;
+    return true;
 }
 
 /*
