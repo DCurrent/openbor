@@ -514,7 +514,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ONFALLSCRIPT, "onfallscript");
     LIST_ADD(CMD_MODEL_ONKILLSCRIPT, "onkillscript");
     LIST_ADD(CMD_MODEL_ONMODELCOPYSCRIPT, "onmodelcopyscript");
-    LIST_ADD(CMD_MODEL_ONMOVEASCRIPT, "onmoveascript");
+    LIST_ADD(CMD_MODEL_ONMOVEYSCRIPT, "onmoveyscript");
     LIST_ADD(CMD_MODEL_ONMOVEXSCRIPT, "onmovexscript");
     LIST_ADD(CMD_MODEL_ONMOVEZSCRIPT, "onmovezscript");
     LIST_ADD(CMD_MODEL_ONPAINSCRIPT, "onpainscript");

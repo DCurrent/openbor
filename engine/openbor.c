@@ -17265,8 +17265,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
             case CMD_MODEL_ONMOVEZSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onmovez_script, "onmovezscript", filename, 1, 0);
                 break;
-            case CMD_MODEL_ONMOVEASCRIPT:
-                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onmovea_script, "onmoveascript", filename, 1, 0);
+            case CMD_MODEL_ONMOVEYSCRIPT:
+                pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onmovea_script, "onmoveyscript", filename, 1, 0);
                 break;
             case CMD_MODEL_ONDEATHSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->ondeath_script, "ondeathscript", filename, 1, 0);
