@@ -4749,6 +4749,7 @@ void ent_set_colourmap(entity *ent, uint64_t which);
 void predrawstatus();
 void drawstatus();
 void addscore(int playerindex, int64_t add);
+void execute_score_script_all(int playerindex, int64_t score);
 void free_ent(entity *e);
 void free_ents();
 int alloc_ents();

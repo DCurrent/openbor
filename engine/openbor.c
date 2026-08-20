@@ -855,6 +855,7 @@ Script updated_script;		//execute when ingame update finished
 Script loading_script;		// in loading screen
 Script input_script_all;  //keyscript for all players
 Script key_script_all;		//keyscript for all players
+Script score_script_all;    //score listener for all players
 Script timetick_script;		//time tick script.
 
 //player script
@@ -1182,6 +1183,7 @@ void init_scripts()
     Script_Init(&endlevel_script,   "endlevel",  NULL, 1);
 	Script_Init(&input_script_all, "inputall", NULL, 1);
     Script_Init(&key_script_all,    "keyall",   NULL,  1);
+    Script_Init(&score_script_all,  "scoreall", NULL,  1);
     Script_Init(&timetick_script,   "timetick",  NULL, 1);
     Script_Init(&loading_script,    "loading",   NULL, 1);
     for(i = 0; i < MAX_PLAYERS; i++)
@@ -1237,6 +1239,10 @@ void load_scripts()
     if(!load_script(&key_script_all,    "data/scripts/keyall.c"))
     {
         Script_Clear(&key_script_all,       2);
+    }
+    if(!load_script(&score_script_all,  "data/scripts/scoreall.c"))
+    {
+        Script_Clear(&score_script_all,     2);
     }
     if(!load_script(&timetick_script,   "data/scripts/timetick.c"))
     {
@@ -1332,6 +1338,7 @@ void load_scripts()
     Script_Compile(&endlevel_script);
 	Script_Compile(&input_script_all);
     Script_Compile(&key_script_all);
+    Script_Compile(&score_script_all);
     Script_Compile(&timetick_script);
     Script_Compile(&loading_script);
     for(i = 0; i < MAX_PLAYERS; i++)
@@ -1381,6 +1388,7 @@ void clear_scripts()
     Script_Clear(&endlevel_script,  2);
 	Script_Clear(&input_script_all, 2);
     Script_Clear(&key_script_all,   2);
+    Script_Clear(&score_script_all, 2);
     Script_Clear(&timetick_script,  2);
     Script_Clear(&loading_script,   2);
     for(i = 0; i < MAX_PLAYERS; i++)
@@ -2499,6 +2507,37 @@ void execute_key_script_all(int player)
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "player", &tempvar);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-20
+*
+* Execute the shared score listener with the zero-based
+* player index and signed 64-bit score adjustment.
+*/
+void execute_score_script_all(int playerindex, int64_t score)
+{
+    ScriptVariant tempvar;
+    Script *cs = &score_script_all;
+
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)playerindex;
+        Script_Set_Local_Variant(cs, "player", &tempvar);
+
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER64);
+        tempvar.llVal = score;
+        Script_Set_Local_Variant(cs, "score", &tempvar);
+
+        Script_Execute(cs);
+
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "player", &tempvar);
+        Script_Set_Local_Variant(cs, "score", &tempvar);
     }
 }
 
@@ -26742,6 +26781,8 @@ void addscore(int playerindex, int64_t add)
         ScriptVariant_Clear(&var);
         Script_Set_Local_Variant(cs, "score", &var);
     }
+
+    execute_score_script_all(playerindex, add);
 }
 
 
