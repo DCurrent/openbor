@@ -75,8 +75,8 @@ typedef uint64_t key_mask_t;
 			"Special thanks to SEGA and SNK.\n\n"
 
 #define		COMPATIBLEVERSION	    0x00033749
-#define		CV_SAVED_GAME		    0x00033748
-#define		CV_HIGH_SCORE		    0x00033747
+#define		CV_SAVED_GAME		    0x00033750
+#define		CV_HIGH_SCORE		    0x00033751
 #define     GAME_SPEED_DEFAULT              200
 #define		THINK_SPEED			    2
 #define		COUNTER_SPEED_DEFAULT		    (GAME_SPEED_DEFAULT*2)
@@ -3605,7 +3605,7 @@ typedef struct
     int index;      // Assign on model read. ~~
     char *name;     // Model name and default entity name. ~~
     char *path;     // Path, so scripts can dynamically get files, sprites, sounds, etc. ~~
-    unsigned score; // Points given to player when defeated or collected as item. ~~
+    uint64_t score; // Points given to player when defeated or collected as item. ~~
     int health;     // Starting and maximum hit points. ~~ hp
     float scroll;   // Autoscroll like panel entity. ~~
     unsigned offscreenkill; // Distance allowed out of screen until killed. ~~
@@ -4104,7 +4104,7 @@ typedef struct
     char alias[MAX_NAME_LEN];
     int health[MAX_PLAYERS];
     int mp; // mp's variable for mpbar by tails
-    unsigned score; // So score can be overridden for enemies/obstacles
+    uint64_t score; // So score can be overridden for enemies/obstacles
     int multiple; // So score can be overridden for enemies/obstacles
     s_axis_principal_float position;  //x, y, z location.
     unsigned credit;
@@ -4748,7 +4748,7 @@ unsigned char *model_get_colourmap(s_model *model, unsigned which);
 void ent_set_colourmap(entity *ent, uint64_t which);
 void predrawstatus();
 void drawstatus();
-void addscore(int playerindex, int add);
+void addscore(int playerindex, uint64_t add);
 void free_ent(entity *e);
 void free_ents();
 int alloc_ents();
@@ -5048,7 +5048,7 @@ typedef struct
     unsigned stage; // Stage
     unsigned pLives[MAX_PLAYERS]; // Player Lives Left
     unsigned pCredits[MAX_PLAYERS]; // Player Credits Left
-    unsigned pScores[MAX_PLAYERS]; // Player Scores
+    uint64_t pScores[MAX_PLAYERS]; // Player Scores
     unsigned credits; // Number Of Credits
     unsigned times_completed;
     unsigned which_set;
@@ -5071,7 +5071,7 @@ typedef struct
 typedef struct
 {
     unsigned compatibleversion;
-    unsigned highsc[10];
+    uint64_t highsc[10];
     char hscoren[10][MAX_NAME_LEN];
 } s_savescore;
 

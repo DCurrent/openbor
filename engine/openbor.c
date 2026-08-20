@@ -4086,6 +4086,25 @@ static bool command_token_get_uint64(const s_command_token* token, uint64_t* res
 
 /*
 * Caskey, Damon V.
+* 2026-08-20
+*
+* Convert a null-terminated command argument to an
+* unsigned 64-bit integer using the bounded token parser.
+*/
+static bool command_argument_get_uint64(const char* argument, uint64_t* result) {
+    s_command_token token;
+
+    assert(argument);
+    assert(result);
+
+    token.text = argument;
+    token.length = strlen(argument);
+
+    return command_token_get_uint64(&token, result);
+}
+
+/*
+* Caskey, Damon V.
 * 2026-08-06
 *
 * Convert a delay unit name to its internal constant. Model
@@ -15743,7 +15762,16 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_SCORE:
-                newchar->score = GET_INT_ARG(1);
+                if(!command_argument_get_uint64(GET_ARG(1), &newchar->score))
+                {
+                    borShutdown(
+                        1,
+                        "Invalid unsigned 64-bit score '%s' in %s, line %zu.\n",
+                        GET_ARG(1),
+                        filename,
+                        line
+                    );
+                }
                 newchar->multiple = GET_INT_ARG(2);			// New var multiple for force/scoring
                 break;
             case CMD_MODEL_SMARTBOMB:
@@ -24582,10 +24610,15 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_SCORE:
             // So score can be overriden in the levels .txt file
-            next.score = GET_INT_ARG(1);
-            if(next.score == -1)
+            if(!command_argument_get_uint64(GET_ARG(1), &next.score))
             {
-                next.score = 0;    // So negative values cannot be added
+                borShutdown(
+                    1,
+                    "Invalid unsigned 64-bit score '%s' in %s, line %d.\n",
+                    GET_ARG(1),
+                    filename,
+                    line
+                );
             }
             next.multiple = GET_INT_ARG(2);
             if(next.multiple == -1)
@@ -25387,7 +25420,9 @@ void updatestatus() {
                     }
 
                     if(set->continuescore == 2) {
-                        player[i].score = player[i].score + 1;
+                        if(player[i].score < UINT64_MAX) {
+                            player[i].score++;
+                        }
                     }
                 }
             }
@@ -26212,13 +26247,13 @@ void predrawstatus()
             tmp = player[i].score; //work around issue on 64bit where sizeof(long) != sizeof(int)
             if(!pscore[i][2] && !pscore[i][3] && !pscore[i][4] && !pscore[i][5])
             {
-                font_printf(videomodes.shiftpos[i] + pscore[i][0], savedata.windowpos + pscore[i][1], pscore[i][6], 0, (scoreformat ? "%s - %09lu" : "%s - %lu"), (char *)(player[i].ent->name), tmp);
+                font_printf(videomodes.shiftpos[i] + pscore[i][0], savedata.windowpos + pscore[i][1], pscore[i][6], 0, (scoreformat ? "%s - %09" PRIu64 : "%s - %" PRIu64), (char *)(player[i].ent->name), tmp);
             }
             else
             {
                 font_printf(videomodes.shiftpos[i] + pscore[i][0], savedata.windowpos + pscore[i][1], pscore[i][6], 0, "%s", player[i].ent->name);
                 font_printf(videomodes.shiftpos[i] + pscore[i][2], savedata.windowpos + pscore[i][3], pscore[i][6], 0, "-");
-                font_printf(videomodes.shiftpos[i] + pscore[i][4], savedata.windowpos + pscore[i][5], pscore[i][6], 0, (scoreformat ? "%09lu" : "%lu"), tmp);
+                font_printf(videomodes.shiftpos[i] + pscore[i][4], savedata.windowpos + pscore[i][5], pscore[i][6], 0, (scoreformat ? "%09" PRIu64 : "%" PRIu64), tmp);
             }
 
             if(player[i].ent->energy_state.health_current <= 0)
@@ -26617,10 +26652,19 @@ void update_loading(s_loadingbar *s,  int value, int max)
     }
 }
 
-void addscore(int playerindex, int add)
+/*
+* Caskey, Damon V.
+* 2026-08-20
+*
+* Add an unsigned 64-bit score award to a player. Saturate
+* at UINT64_MAX, award crossed life thresholds without an
+* unbounded loop, and execute the player's score script.
+*/
+void addscore(int playerindex, uint64_t add)
 {
+    uint64_t life_awards = 0;
+    uint64_t old_score = 0;
     uint64_t s = 0;
-    uint64_t next1up = 0;
     ScriptVariant var; // used for execute script
     Script *cs;
 
@@ -26631,28 +26675,42 @@ void addscore(int playerindex, int add)
 
     playerindex &= 3;
 
-    s = player[playerindex].score;
+    old_score = player[playerindex].score;
+    s = old_score;
     cs = score_script + playerindex;
 
-    if (lifescore > 0) next1up = ((s / lifescore) + 1) * lifescore;
-	else lifescore = 0;
-
-    s += add;
-    if(s > 999999999)
+    if(add > UINT64_MAX - s)
     {
-        s = 999999999;
+        s = UINT64_MAX;
+    }
+    else
+    {
+        s += add;
     }
 
-    while(s > next1up)
+    /*
+    * Awarded life after score exceeds the boundary.
+    */
+    if(lifescore > 0 && s > old_score)
     {
+        life_awards = ((s - 1) / lifescore) - (old_score / lifescore);
+    }
 
+    if(life_awards > 0)
+    {
         if(global_sample_list.one_up >= 0)
         {
             sound_play_sample(global_sample_list.one_up, 0, savedata.effectvol, savedata.effectvol, 100);
         }
 
-        player[playerindex].lives++;
-        next1up += lifescore;
+        if(life_awards > UINT64_MAX - player[playerindex].lives)
+        {
+            player[playerindex].lives = UINT64_MAX;
+        }
+        else
+        {
+            player[playerindex].lives += life_awards;
+        }
     }
 
     player[playerindex].score = s;
@@ -26661,8 +26719,8 @@ void addscore(int playerindex, int add)
     if(Script_IsInitialized(cs))
     {
         ScriptVariant_Init(&var);
-        ScriptVariant_ChangeType(&var, VT_INTEGER);
-        var.lVal = (LONG)add;
+        ScriptVariant_ChangeType(&var, VT_UINTEGER64);
+        var.ullVal = add;
         Script_Set_Local_Variant(cs, "score", &var);
         Script_Execute(cs);
         ScriptVariant_Clear(&var);
@@ -52118,7 +52176,7 @@ void hallfame(int addtoscore)
 {
     int done = 0;
     int topten[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    u32 score;
+    uint64_t score;
     char name[MAX_NAME_LEN + 1];
     int i, p, y;
     char tmpBuff[MAX_BUFFER_LEN] = {""};
@@ -52181,7 +52239,7 @@ void hallfame(int addtoscore)
         for(i = 0; i < 10; i++)
         {
             font_printf(_colx(topten[i], col1), y + videomodes.vShift, topten[i], 0, "%2i.  %s", i + 1, savescore.hscoren[i]);
-            font_printf(_colx(topten[i], col2), y + videomodes.vShift, topten[i], 0, (scoreformat ? "%09lu" : "%u"), savescore.highsc[i]);
+            font_printf(_colx(topten[i], col2), y + videomodes.vShift, topten[i], 0, (scoreformat ? "%09" PRIu64 : "%" PRIu64), savescore.highsc[i]);
             y += (videomodes.vRes - videomodes.vShift - 56 - 32) / 10; //font_heights[topten[i]] + 6;
         }
 
@@ -52283,7 +52341,7 @@ void showcomplete(int num)
         font_printf(videomodes.hShift + tscore[0], videomodes.vShift + tscore[1], 0, 0, Tr("Total Score"));
         for(i = 0, j = 2, k = 3; i < levelsets[current_set].maxplayers; i++, j = j + 2, k = k + 2) if(player[i].lives > 0)
             {
-                font_printf(videomodes.hShift + tscore[j], videomodes.vShift + tscore[k], 0, 0, (scoreformat ? "%09lu" : "%lu"), player[i].score);
+                font_printf(videomodes.hShift + tscore[j], videomodes.vShift + tscore[k], 0, 0, (scoreformat ? "%09" PRIu64 : "%" PRIu64), player[i].score);
             }
 
         while(_time > nexttime)

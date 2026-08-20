@@ -312,7 +312,7 @@ static const model_property_info model_properties[] = {
      .id_string = "MODEL_PROPERTY_SCORE",
      .config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
      .offset = PROPERTY_MEMBER_OFFSET(s_model, score),
-     .type = VT_INTEGER },
+     .type = VT_UINTEGER64 },
 
     {.property = MODEL_PROPERTY_SCROLL,
      .id_string = "MODEL_PROPERTY_SCROLL",
@@ -553,7 +553,6 @@ HRESULT openbor_set_model_property(ScriptVariant** varlist, ScriptVariant** cons
 
     return property_access_set_member(acting_object, &property_map, varlist[ARG_VALUE]);
 }
-
 
 
 
