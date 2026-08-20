@@ -2430,7 +2430,8 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             tempvar.dblVal = (DOUBLE)p->position.z;
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
             tempvar.dblVal = (DOUBLE)p->position.y;
-            Script_Set_Local_Variant(cs, "spawna", &tempvar);
+            Script_Set_Local_Variant(cs, "spawna", &tempvar); // Legacy alias for spawny.
+            Script_Set_Local_Variant(cs, "spawny", &tempvar);
             ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
             tempvar.lVal = (LONG)p->at;
             Script_Set_Local_Variant(cs, "spawnat", &tempvar);
@@ -2443,6 +2444,7 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             Script_Set_Local_Variant(cs, "spawnx", &tempvar);
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
             Script_Set_Local_Variant(cs, "spawna", &tempvar);
+            Script_Set_Local_Variant(cs, "spawny", &tempvar);
             Script_Set_Local_Variant(cs, "spawnat", &tempvar);
         }
     }
