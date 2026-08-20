@@ -810,7 +810,78 @@ int isRawData() {
 #endif
 
 
+/*
+- Caskey, Damon V.
+- 2026-08-19
+-
+- Open a loose filesystem asset through the direct
+  handle table. This preserves external file overrides
+  while allowing packed assets to remain cached.
+*/
+static int openPackfileLoose(const char *filename) {
+    int virtual_handle;
+    int real_handle;
+    int file_permission = 666;
+    packfile_signed_offset_t loose_file_size;
+    s_packfile_handle *handle_record;
+    const char *disk_filename;
+#ifdef LINUX
+    char *case_corrected_path;
+#endif
+
+    if(!filename)  {
+        return -1;
+    }
+
+#ifdef WIN
+    disk_filename = slashback(filename);
+#else
+    disk_filename = slashfwd(filename);
+#endif
+
+    real_handle = open(disk_filename, O_RDONLY | O_BINARY, file_permission);
+
+#ifdef LINUX
+    if(real_handle == -1)  {
+        case_corrected_path = casesearch(".", disk_filename);
+        if(case_corrected_path != NULL)  {
+            disk_filename = case_corrected_path;
+            real_handle = open(disk_filename, O_RDONLY | O_BINARY, file_permission);
+        }
+    }
+#endif
+
+    if(real_handle == -1)  {
+        return -1;
+    }
+
+    loose_file_size = packfile_seek_fd(real_handle, 0, SEEK_END);
+    if(loose_file_size < 0 ||
+       packfile_seek_fd(real_handle, 0, SEEK_SET) < 0 ||
+       !packfile_asset_size_is_supported((packfile_size_t)loose_file_size, disk_filename))  {
+        close(real_handle);
+        return -1;
+    }
+
+    virtual_handle = packfile_acquire_handle(PACKFILE_HANDLE_DIRECT);
+    if(virtual_handle == -1)  {
+        close(real_handle);
+        return -1;
+    }
+
+    handle_record = packfile_handle_get_type(
+        &packfile_handle_table,
+        virtual_handle,
+        PACKFILE_HANDLE_DIRECT
+    );
+    handle_record->file_descriptor = real_handle;
+    handle_record->size = (packfile_size_t)loose_file_size;
+    return virtual_handle;
+}
+
 int openpackfile(const char *filename, const char *packfilename) {
+    int loose_handle;
+
 #ifdef VERBOSE
     char *pointsto;
 
@@ -825,6 +896,14 @@ int openpackfile(const char *filename, const char *packfilename) {
     }
     printf("openpackfile called: f: %s, p: %s, dest: %s\n", filename, packfilename, pointsto);
 #endif
+
+    if(pOpenPackfile == openPackfileCached)  {
+        loose_handle = openPackfileLoose(filename);
+        if(loose_handle >= 0)  {
+            return loose_handle;
+        }
+    }
+
     return pOpenPackfile(filename, packfilename);
 }
 
@@ -833,83 +912,22 @@ int openPackfile(const char *filename, const char *packfilename) {
     int real_handle;
     int file_permission = 666;
     s_packfile_handle *handle_record;
-    const char *disk_filename;
     const char *pak_filename;
     packfile_format format;
     packfile_entry entry;
     packfile_offset_t table_position;
-#ifdef LINUX
-    char *case_corrected_path;
-#endif
+
+    virtual_handle = openPackfileLoose(filename);
+    if(virtual_handle >= 0)  {
+        return virtual_handle;
+    }
 
     virtual_handle = packfile_acquire_handle(PACKFILE_HANDLE_DIRECT);
     if(virtual_handle == -1)  {
         return -1;
     }
     handle_record = packfile_handle_get_type(&packfile_handle_table, virtual_handle, PACKFILE_HANDLE_DIRECT);
-
-#ifdef WIN
-    disk_filename = slashback(filename);
-#else
-    disk_filename = slashfwd(filename);
-#endif
-
     pak_filename = filename;
-
-    /*
-    * Loose file override: prefer a separate file over the same file inside the pack.
-    */
-    real_handle = open(disk_filename, O_RDONLY | O_BINARY, file_permission);
-    if(real_handle != -1)  {
-        packfile_signed_offset_t loose_file_size;
-
-        loose_file_size = packfile_seek_fd(real_handle, 0, SEEK_END);
-        if(loose_file_size < 0 || packfile_seek_fd(real_handle, 0, SEEK_SET) < 0)  {
-            close(real_handle);
-            packfile_handle_release(&packfile_handle_table, virtual_handle);
-            return -1;
-        }
-
-        if(!packfile_asset_size_is_supported((packfile_size_t)loose_file_size, disk_filename))  {
-            close(real_handle);
-            packfile_handle_release(&packfile_handle_table, virtual_handle);
-            return -1;
-        }
-
-        handle_record->file_descriptor = real_handle;
-        handle_record->size = (packfile_size_t)loose_file_size;
-        return virtual_handle;
-    }
-
-#ifdef LINUX
-    /*
-    * Try a case-insensitive search for a separate file.
-    */
-    case_corrected_path = casesearch(".", disk_filename);
-    if(case_corrected_path != NULL)  {
-        real_handle = open(case_corrected_path, O_RDONLY | O_BINARY, file_permission);
-        if(real_handle != -1)  {
-            packfile_signed_offset_t loose_file_size;
-
-            loose_file_size = packfile_seek_fd(real_handle, 0, SEEK_END);
-            if(loose_file_size < 0 || packfile_seek_fd(real_handle, 0, SEEK_SET) < 0)  {
-                close(real_handle);
-                packfile_handle_release(&packfile_handle_table, virtual_handle);
-                return -1;
-            }
-
-            if(!packfile_asset_size_is_supported((packfile_size_t)loose_file_size, case_corrected_path))  {
-                close(real_handle);
-                packfile_handle_release(&packfile_handle_table, virtual_handle);
-                return -1;
-            }
-
-            handle_record->file_descriptor = real_handle;
-            handle_record->size = (packfile_size_t)loose_file_size;
-            return virtual_handle;
-        }
-    }
-#endif
 
     real_handle = open(packfilename, O_RDONLY | O_BINARY, file_permission);
     if(real_handle == -1)  {
