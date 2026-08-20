@@ -4088,10 +4088,10 @@ static bool command_token_get_uint64(const s_command_token* token, uint64_t* res
 * Caskey, Damon V.
 * 2026-08-20
 *
-* Convert a null-terminated command argument to an
-* unsigned 64-bit integer using the bounded token parser.
+* Convert a null-terminated command argument to a
+* signed 64-bit integer using the bounded token parser.
 */
-static bool command_argument_get_uint64(const char* argument, uint64_t* result) {
+static bool command_argument_get_int64(const char* argument, int64_t* result) {
     s_command_token token;
 
     assert(argument);
@@ -4100,7 +4100,7 @@ static bool command_argument_get_uint64(const char* argument, uint64_t* result) 
     token.text = argument;
     token.length = strlen(argument);
 
-    return command_token_get_uint64(&token, result);
+    return command_token_get_int64(&token, result);
 }
 
 /*
@@ -15762,11 +15762,11 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 break;
             case CMD_MODEL_SCORE:
-                if(!command_argument_get_uint64(GET_ARG(1), &newchar->score))
+                if(!command_argument_get_int64(GET_ARG(1), &newchar->score))
                 {
                     borShutdown(
                         1,
-                        "Invalid unsigned 64-bit score '%s' in %s, line %zu.\n",
+                        "Invalid signed 64-bit score '%s' in %s, line %zu.\n",
                         GET_ARG(1),
                         filename,
                         line
@@ -24610,11 +24610,11 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_SCORE:
             // So score can be overriden in the levels .txt file
-            if(!command_argument_get_uint64(GET_ARG(1), &next.score))
+            if(!command_argument_get_int64(GET_ARG(1), &next.score))
             {
                 borShutdown(
                     1,
-                    "Invalid unsigned 64-bit score '%s' in %s, line %d.\n",
+                    "Invalid signed 64-bit score '%s' in %s, line %d.\n",
                     GET_ARG(1),
                     filename,
                     line
@@ -26656,12 +26656,14 @@ void update_loading(s_loadingbar *s,  int value, int max)
 * Caskey, Damon V.
 * 2026-08-20
 *
-* Add an unsigned 64-bit score award to a player. Saturate
-* at UINT64_MAX, award crossed life thresholds without an
-* unbounded loop, and execute the player's score script.
+* Apply a signed 64-bit score adjustment to an unsigned
+* player score. Saturate at zero or UINT64_MAX, award
+* crossed life thresholds without an unbounded loop, and
+* execute the player's score script.
 */
-void addscore(int playerindex, uint64_t add)
+void addscore(int playerindex, int64_t add)
 {
+    uint64_t add_magnitude = 0;
     uint64_t life_awards = 0;
     uint64_t old_score = 0;
     uint64_t s = 0;
@@ -26679,17 +26681,31 @@ void addscore(int playerindex, uint64_t add)
     s = old_score;
     cs = score_script + playerindex;
 
-    if(add > UINT64_MAX - s)
+    if(add >= 0)
     {
-        s = UINT64_MAX;
+        add_magnitude = (uint64_t)add;
+
+        if(add_magnitude > UINT64_MAX - s)
+        {
+            s = UINT64_MAX;
+        }
+        else
+        {
+            s += add_magnitude;
+        }
     }
     else
     {
-        s += add;
+        add_magnitude = add == INT64_MIN
+            ? (uint64_t)INT64_MAX + UINT64_C(1)
+            : (uint64_t)-add;
+
+        s = add_magnitude > s ? 0 : s - add_magnitude;
     }
 
     /*
-    * Awarded life after score exceeds the boundary.
+    * Preserve the legacy strict threshold comparison: a
+    * life is awarded only after score exceeds the boundary.
     */
     if(lifescore > 0 && s > old_score)
     {
@@ -26719,8 +26735,8 @@ void addscore(int playerindex, uint64_t add)
     if(Script_IsInitialized(cs))
     {
         ScriptVariant_Init(&var);
-        ScriptVariant_ChangeType(&var, VT_UINTEGER64);
-        var.ullVal = add;
+        ScriptVariant_ChangeType(&var, VT_INTEGER64);
+        var.llVal = add;
         Script_Set_Local_Variant(cs, "score", &var);
         Script_Execute(cs);
         ScriptVariant_Clear(&var);

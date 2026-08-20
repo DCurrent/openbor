@@ -3605,7 +3605,7 @@ typedef struct
     int index;      // Assign on model read. ~~
     char *name;     // Model name and default entity name. ~~
     char *path;     // Path, so scripts can dynamically get files, sprites, sounds, etc. ~~
-    uint64_t score; // Points given to player when defeated or collected as item. ~~
+    int64_t score; // Points added to or deducted from the player when defeated or collected as item. ~~
     int health;     // Starting and maximum hit points. ~~ hp
     float scroll;   // Autoscroll like panel entity. ~~
     unsigned offscreenkill; // Distance allowed out of screen until killed. ~~
@@ -4104,7 +4104,7 @@ typedef struct
     char alias[MAX_NAME_LEN];
     int health[MAX_PLAYERS];
     int mp; // mp's variable for mpbar by tails
-    uint64_t score; // So score can be overridden for enemies/obstacles
+    int64_t score; // So score can be overridden for enemies/obstacles
     int multiple; // So score can be overridden for enemies/obstacles
     s_axis_principal_float position;  //x, y, z location.
     unsigned credit;
@@ -4748,7 +4748,7 @@ unsigned char *model_get_colourmap(s_model *model, unsigned which);
 void ent_set_colourmap(entity *ent, uint64_t which);
 void predrawstatus();
 void drawstatus();
-void addscore(int playerindex, uint64_t add);
+void addscore(int playerindex, int64_t add);
 void free_ent(entity *e);
 void free_ents();
 int alloc_ents();
