@@ -11107,6 +11107,14 @@ void collision_body_initialize_frame_property(s_addframe_data* data, ptrdiff_t f
 
     /* Populate the animation frame with the pointer to the clone. */
     data->animation->collision_body[frame] = collision_clone;
+
+    /*
+    * Preserve legacy vulnerability behavior. A frame is vulnerable
+    * when it contains at least one active body collision box.
+    */
+    data->animation->vulnerable[frame] =
+        collision_clone
+        && collision_clone->active_status != COLLISION_ACTIVE_STATUS_NONE;
 }
 
 /*
