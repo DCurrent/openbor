@@ -856,6 +856,9 @@ Script loading_script;		// in loading screen
 Script input_script_all;  //keyscript for all players
 Script key_script_all;		//keyscript for all players
 Script score_script_all;    //score listener for all players
+Script join_script_all;     //join listener for all players
+Script respawn_script_all;  //respawn listener for all players
+Script pdie_script_all;     //death listener for all players
 Script timetick_script;		//time tick script.
 
 //player script
@@ -1184,6 +1187,9 @@ void init_scripts()
 	Script_Init(&input_script_all, "inputall", NULL, 1);
     Script_Init(&key_script_all,    "keyall",   NULL,  1);
     Script_Init(&score_script_all,  "scoreall", NULL,  1);
+    Script_Init(&join_script_all,   "joinall",  NULL,  1);
+    Script_Init(&respawn_script_all, "respawnall", NULL, 1);
+    Script_Init(&pdie_script_all,   "dieall",   NULL,  1);
     Script_Init(&timetick_script,   "timetick",  NULL, 1);
     Script_Init(&loading_script,    "loading",   NULL, 1);
     for(i = 0; i < MAX_PLAYERS; i++)
@@ -1243,6 +1249,18 @@ void load_scripts()
     if(!load_script(&score_script_all,  "data/scripts/scoreall.c"))
     {
         Script_Clear(&score_script_all,     2);
+    }
+    if(!load_script(&join_script_all,   "data/scripts/joinall.c"))
+    {
+        Script_Clear(&join_script_all,      2);
+    }
+    if(!load_script(&respawn_script_all, "data/scripts/respawnall.c"))
+    {
+        Script_Clear(&respawn_script_all,   2);
+    }
+    if(!load_script(&pdie_script_all,   "data/scripts/dieall.c"))
+    {
+        Script_Clear(&pdie_script_all,      2);
     }
     if(!load_script(&timetick_script,   "data/scripts/timetick.c"))
     {
@@ -1339,6 +1357,9 @@ void load_scripts()
 	Script_Compile(&input_script_all);
     Script_Compile(&key_script_all);
     Script_Compile(&score_script_all);
+    Script_Compile(&join_script_all);
+    Script_Compile(&respawn_script_all);
+    Script_Compile(&pdie_script_all);
     Script_Compile(&timetick_script);
     Script_Compile(&loading_script);
     for(i = 0; i < MAX_PLAYERS; i++)
@@ -1389,6 +1410,9 @@ void clear_scripts()
 	Script_Clear(&input_script_all, 2);
     Script_Clear(&key_script_all,   2);
     Script_Clear(&score_script_all, 2);
+    Script_Clear(&join_script_all,  2);
+    Script_Clear(&respawn_script_all, 2);
+    Script_Clear(&pdie_script_all,  2);
     Script_Clear(&timetick_script,  2);
     Script_Clear(&loading_script,   2);
     for(i = 0; i < MAX_PLAYERS; i++)
@@ -2430,8 +2454,8 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             tempvar.dblVal = (DOUBLE)p->position.z;
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
             tempvar.dblVal = (DOUBLE)p->position.y;
-            Script_Set_Local_Variant(cs, "spawna", &tempvar); // Legacy alias for spawny.
             Script_Set_Local_Variant(cs, "spawny", &tempvar);
+            Script_Set_Local_Variant(cs, "spawna", &tempvar); // Legacy alias.
             ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
             tempvar.lVal = (LONG)p->at;
             Script_Set_Local_Variant(cs, "spawnat", &tempvar);
@@ -2517,7 +2541,7 @@ void execute_key_script_all(int player)
 * 2026-08-20
 *
 * Execute the shared score listener with the zero-based
-* player index and signed 64-bit score adjustment.
+* playerindex and signed 64-bit score adjustment.
 */
 void execute_score_script_all(int playerindex, int64_t score)
 {
@@ -2529,7 +2553,7 @@ void execute_score_script_all(int playerindex, int64_t score)
         ScriptVariant_Init(&tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
         tempvar.lVal = (LONG)playerindex;
-        Script_Set_Local_Variant(cs, "player", &tempvar);
+        Script_Set_Local_Variant(cs, "playerindex", &tempvar);
 
         ScriptVariant_ChangeType(&tempvar, VT_INTEGER64);
         tempvar.llVal = score;
@@ -2538,7 +2562,7 @@ void execute_score_script_all(int playerindex, int64_t score)
         Script_Execute(cs);
 
         ScriptVariant_Clear(&tempvar);
-        Script_Set_Local_Variant(cs, "player", &tempvar);
+        Script_Set_Local_Variant(cs, "playerindex", &tempvar);
         Script_Set_Local_Variant(cs, "score", &tempvar);
     }
 }
@@ -2591,12 +2615,37 @@ void execute_key_script(int index)
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-20
+*
+* Execute a shared player event script with the zero-based
+* playerindex that triggered the event.
+*/
+static void execute_player_script_all(Script *cs, int playerindex)
+{
+    ScriptVariant tempvar;
+
+    if(Script_IsInitialized(cs))
+    {
+        ScriptVariant_Init(&tempvar);
+        ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+        tempvar.lVal = (LONG)playerindex;
+        Script_Set_Local_Variant(cs, "playerindex", &tempvar);
+        Script_Execute(cs);
+        ScriptVariant_Clear(&tempvar);
+        Script_Set_Local_Variant(cs, "playerindex", &tempvar);
+    }
+}
+
 void execute_join_script(int index)
 {
     if(Script_IsInitialized(&join_script[index]))
     {
         Script_Execute(&join_script[index]);
     }
+
+    execute_player_script_all(&join_script_all, index);
 }
 
 void execute_respawn_script(int index)
@@ -2605,6 +2654,8 @@ void execute_respawn_script(int index)
     {
         Script_Execute(&respawn_script[index]);
     }
+
+    execute_player_script_all(&respawn_script_all, index);
 }
 
 void execute_pdie_script(int index)
@@ -2613,6 +2664,8 @@ void execute_pdie_script(int index)
     {
         Script_Execute(&pdie_script[index]);
     }
+
+    execute_player_script_all(&pdie_script_all, index);
 }
 
 // ------------------------ Save/load -----------------------------
