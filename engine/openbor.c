@@ -852,6 +852,8 @@ Script level_script;		//execute when level start
 Script endlevel_script;		//execute when level finished
 Script update_script;		//execute when ingame update
 Script updated_script;		//execute when ingame update finished
+Script update_logic_script;   //execute before each logical tick
+Script updated_logic_script;  //execute after each logical tick
 Script loading_script;		// in loading screen
 Script input_script_all;  //keyscript for all players
 Script key_script_all;		//keyscript for all players
@@ -1182,6 +1184,8 @@ void init_scripts()
     Script_Global_Init();
     Script_Init(&update_script,     "update",  NULL,  1);
     Script_Init(&updated_script,    "updated",  NULL, 1);
+    Script_Init(&update_logic_script,  "updatelogic",  NULL, 1);
+    Script_Init(&updated_logic_script, "updatedlogic", NULL, 1);
     Script_Init(&level_script,      "level",    NULL,  1);
     Script_Init(&endlevel_script,   "endlevel",  NULL, 1);
 	Script_Init(&input_script_all, "inputall", NULL, 1);
@@ -1229,6 +1233,14 @@ void load_scripts()
     if(!load_script(&updated_script,    "data/scripts/updated.c"))
     {
         Script_Clear(&updated_script,       2);
+    }
+    if(!load_script(&update_logic_script, "data/scripts/updatelogic.c"))
+    {
+        Script_Clear(&update_logic_script,  2);
+    }
+    if(!load_script(&updated_logic_script, "data/scripts/updatedlogic.c"))
+    {
+        Script_Clear(&updated_logic_script, 2);
     }
     if(!load_script(&level_script,      "data/scripts/level.c"))
     {
@@ -1352,6 +1364,8 @@ void load_scripts()
     }
     Script_Compile(&update_script);
     Script_Compile(&updated_script);
+    Script_Compile(&update_logic_script);
+    Script_Compile(&updated_logic_script);
     Script_Compile(&level_script);
     Script_Compile(&endlevel_script);
 	Script_Compile(&input_script_all);
@@ -1405,6 +1419,8 @@ void clear_scripts()
     //and will never have another chance to be loaded, so just clear the variable list in it
     Script_Clear(&update_script,    2);
     Script_Clear(&updated_script,   2);
+    Script_Clear(&update_logic_script,  2);
+    Script_Clear(&updated_logic_script, 2);
     Script_Clear(&level_script,     2);
     Script_Clear(&endlevel_script,  2);
 	Script_Clear(&input_script_all, 2);
@@ -2455,7 +2471,7 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
             tempvar.dblVal = (DOUBLE)p->position.y;
             Script_Set_Local_Variant(cs, "spawny", &tempvar);
-            Script_Set_Local_Variant(cs, "spawna", &tempvar); // Legacy alias.
+            Script_Set_Local_Variant(cs, "spawna", &tempvar);
             ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
             tempvar.lVal = (LONG)p->at;
             Script_Set_Local_Variant(cs, "spawnat", &tempvar);
@@ -2467,8 +2483,8 @@ void execute_spawn_script(s_spawn_entry *p, entity *e)
             Script_Set_Local_Variant(cs, "self", &tempvar);
             Script_Set_Local_Variant(cs, "spawnx", &tempvar);
             Script_Set_Local_Variant(cs, "spawnz", &tempvar);
-            Script_Set_Local_Variant(cs, "spawna", &tempvar);
             Script_Set_Local_Variant(cs, "spawny", &tempvar);
+            Script_Set_Local_Variant(cs, "spawna", &tempvar);
             Script_Set_Local_Variant(cs, "spawnat", &tempvar);
         }
     }
@@ -23481,6 +23497,8 @@ void free_level(s_level *lv)
     //offload scripts
     Script_Clear(&(lv->update_script), 2);
     Script_Clear(&(lv->updated_script), 2);
+    Script_Clear(&(lv->update_logic_script), 2);
+    Script_Clear(&(lv->updated_logic_script), 2);
     Script_Clear(&(lv->key_script), 2);
     Script_Clear(&(lv->level_script), 2);
     Script_Clear(&(lv->endlevel_script), 2);
@@ -24481,6 +24499,8 @@ void load_level(char *filename)
             break;
         case CMD_LEVEL_UPDATESCRIPT:
         case CMD_LEVEL_UPDATEDSCRIPT:
+        case CMD_LEVEL_UPDATELOGICSCRIPT:
+        case CMD_LEVEL_UPDATEDLOGICSCRIPT:
         case CMD_LEVEL_KEYSCRIPT:
         case CMD_LEVEL_LEVELSCRIPT:
         case CMD_LEVEL_ENDLEVELSCRIPT:
@@ -24493,6 +24513,14 @@ void load_level(char *filename)
             case CMD_LEVEL_UPDATEDSCRIPT:
                 tempscript = &(level->updated_script);
                 scriptname = "levelupdatedscript";
+                break;
+            case CMD_LEVEL_UPDATELOGICSCRIPT:
+                tempscript = &(level->update_logic_script);
+                scriptname = "levelupdatelogicscript";
+                break;
+            case CMD_LEVEL_UPDATEDLOGICSCRIPT:
+                tempscript = &(level->updated_logic_script);
+                scriptname = "levelupdatedlogicscript";
                 break;
             case CMD_LEVEL_KEYSCRIPT:
                 tempscript = &(level->key_script);
@@ -50715,6 +50743,44 @@ void execute_updatedscripts()
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-21
+*
+* Execute global and level scripts immediately before an
+* engine logical clock tick is processed.
+*/
+void execute_updatelogicscripts()
+{
+    if(Script_IsInitialized(&update_logic_script))
+    {
+        Script_Execute(&update_logic_script);
+    }
+    if(level && Script_IsInitialized(&level->update_logic_script))
+    {
+        Script_Execute(&level->update_logic_script);
+    }
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-21
+*
+* Execute global and level scripts after an engine logical
+* clock tick is processed, before its clock value advances.
+*/
+void execute_updatedlogicscripts()
+{
+    if(Script_IsInitialized(&updated_logic_script))
+    {
+        Script_Execute(&updated_logic_script);
+    }
+    if(level && Script_IsInitialized(&level->updated_logic_script))
+    {
+        Script_Execute(&level->updated_logic_script);
+    }
+}
+
 void draw_textobjs()
 {
     int i;
@@ -51140,6 +51206,11 @@ void update(int ingame, int usevwait)
 
         while(_time < newtime)
         {
+            if(ingame == 1 || alwaysupdate)
+            {
+                execute_updatelogicscripts();
+            }
+
             if(ingame == 1)
             {
                 update_scroller();
@@ -51193,6 +51264,12 @@ void update(int ingame, int usevwait)
             {
                 update_ents();
             }
+
+            if(ingame == 1 || alwaysupdate)
+            {
+                execute_updatedlogicscripts();
+            }
+
             ++_time;
         }
 

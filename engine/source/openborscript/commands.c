@@ -758,7 +758,9 @@ List *createLevelCommandList(void)
     LIST_ADD(CMD_LEVEL_SPAWNSCRIPT, "spawnscript");
     LIST_ADD(CMD_LEVEL_STAGENUMBER, "stagenumber");
     LIST_ADD(CMD_LEVEL_TYPE, "type");
+    LIST_ADD(CMD_LEVEL_UPDATEDLOGICSCRIPT, "updatedlogicscript");
     LIST_ADD(CMD_LEVEL_UPDATEDSCRIPT, "updatedscript");
+    LIST_ADD(CMD_LEVEL_UPDATELOGICSCRIPT, "updatelogicscript");
     LIST_ADD(CMD_LEVEL_UPDATESCRIPT, "updatescript");
     LIST_ADD(CMD_LEVEL_VBGSPEED, "vbgspeed");
     LIST_ADD(CMD_LEVEL_WAIT, "wait");

@@ -1072,7 +1072,9 @@ typedef enum
     LEVEL_PROPERTY_SCRIPT_LEVEL_END,                // Script endlevel_script;
     LEVEL_PROPERTY_SCRIPT_LEVEL_START,              // Script level_script;
     LEVEL_PROPERTY_SCRIPT_KEY,                      // Script key_script;
+    LEVEL_PROPERTY_SCRIPT_UPDATE_LOGIC,             // Script update_logic_script;
     LEVEL_PROPERTY_SCRIPT_UPDATE,                   // Script update_script;
+    LEVEL_PROPERTY_SCRIPT_UPDATED_LOGIC,            // Script updated_logic_script;
     LEVEL_PROPERTY_SCRIPT_UPDATED,                  // Script updated_script;
     LEVEL_PROPERTY_SCROLL_DIRECTION,                // int scrolldir;
     LEVEL_PROPERTY_SCROLL_VELOCITY,                 // float scrollspeed;
@@ -4303,6 +4305,8 @@ typedef struct
 //---------------------scripts-------------------------------
     Script update_script;
     Script updated_script;
+    Script update_logic_script;
+    Script updated_logic_script;
     Script key_script;
     Script level_script;
     Script endlevel_script;
