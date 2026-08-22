@@ -3811,6 +3811,17 @@ typedef struct
     char *name;
     char *path;
     s_model *model;
+    Script *load_script;
+    Script *unload_script;
+    enum
+    {
+        MODEL_LIFECYCLE_UNLOADED,
+        MODEL_LIFECYCLE_LOADING,
+        MODEL_LIFECYCLE_LOAD_EVENT,
+        MODEL_LIFECYCLE_LOADED,
+        MODEL_LIFECYCLE_UNLOAD_EVENT,
+        MODEL_LIFECYCLE_UNLOADING
+    } lifecycle;
     int loadflag;
     int selectable;
 } s_modelcache;

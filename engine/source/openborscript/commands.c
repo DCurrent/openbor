@@ -513,6 +513,8 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_ONENTITYCOLLISIONSCRIPT, "onentitycollisionscript");
     LIST_ADD(CMD_MODEL_ONFALLSCRIPT, "onfallscript");
     LIST_ADD(CMD_MODEL_ONKILLSCRIPT, "onkillscript");
+    LIST_ADD(CMD_MODEL_MODELLOADSCRIPT, "modelloadscript");
+    LIST_ADD(CMD_MODEL_MODELUNLOADSCRIPT, "modelunloadscript");
     LIST_ADD(CMD_MODEL_ONMODELCOPYSCRIPT, "onmodelcopyscript");
     LIST_ADD(CMD_MODEL_ONMOVEYSCRIPT, "onmoveyscript");
     LIST_ADD(CMD_MODEL_ONMOVEXSCRIPT, "onmovexscript");

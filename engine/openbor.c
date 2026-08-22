@@ -854,6 +854,8 @@ Script update_script;		//execute when ingame update
 Script updated_script;		//execute when ingame update finished
 Script update_logic_script;   //execute before each logical tick
 Script updated_logic_script;  //execute after each logical tick
+Script model_load_script;     //execute after any model finishes loading
+Script model_unload_script;   //execute before any model is unloaded
 Script loading_script;		// in loading screen
 Script input_script_all;  //keyscript for all players
 Script key_script_all;		//keyscript for all players
@@ -1186,6 +1188,8 @@ void init_scripts()
     Script_Init(&updated_script,    "updated",  NULL, 1);
     Script_Init(&update_logic_script,  "updatelogic",  NULL, 1);
     Script_Init(&updated_logic_script, "updatedlogic", NULL, 1);
+    Script_Init(&model_load_script,    "modelload",    NULL, 1);
+    Script_Init(&model_unload_script,  "modelunload",  NULL, 1);
     Script_Init(&level_script,      "level",    NULL,  1);
     Script_Init(&endlevel_script,   "endlevel",  NULL, 1);
 	Script_Init(&input_script_all, "inputall", NULL, 1);
@@ -1241,6 +1245,14 @@ void load_scripts()
     if(!load_script(&updated_logic_script, "data/scripts/updatedlogic.c"))
     {
         Script_Clear(&updated_logic_script, 2);
+    }
+    if(!load_script(&model_load_script, "data/scripts/modelload.c"))
+    {
+        Script_Clear(&model_load_script, 2);
+    }
+    if(!load_script(&model_unload_script, "data/scripts/modelunload.c"))
+    {
+        Script_Clear(&model_unload_script, 2);
     }
     if(!load_script(&level_script,      "data/scripts/level.c"))
     {
@@ -1366,6 +1378,8 @@ void load_scripts()
     Script_Compile(&updated_script);
     Script_Compile(&update_logic_script);
     Script_Compile(&updated_logic_script);
+    Script_Compile(&model_load_script);
+    Script_Compile(&model_unload_script);
     Script_Compile(&level_script);
     Script_Compile(&endlevel_script);
 	Script_Compile(&input_script_all);
@@ -1421,6 +1435,8 @@ void clear_scripts()
     Script_Clear(&updated_script,   2);
     Script_Clear(&update_logic_script,  2);
     Script_Clear(&updated_logic_script, 2);
+    Script_Clear(&model_load_script,    2);
+    Script_Clear(&model_unload_script,  2);
     Script_Clear(&level_script,     2);
     Script_Clear(&endlevel_script,  2);
 	Script_Clear(&input_script_all, 2);
@@ -7793,15 +7809,101 @@ void cache_model_sprites(s_model *m, int ld)
     }
 }
 
+/*
+* Caskey, Damon V.
+* 2026-08-21
+*
+* Execute a model lifecycle script with the model template,
+* stable cache index, and model name exposed as local values.
+*/
+static void execute_model_lifecycle_script(Script *cs, s_model *model)
+{
+    ScriptVariant tempvar;
+
+    if(!Script_IsInitialized(cs))
+    {
+        return;
+    }
+
+    ScriptVariant_Init(&tempvar);
+
+    ScriptVariant_ChangeType(&tempvar, VT_PTR);
+    tempvar.ptrVal = (VOID *)model;
+    Script_Set_Local_Variant(cs, "model", &tempvar);
+
+    ScriptVariant_ChangeType(&tempvar, VT_INTEGER);
+    tempvar.lVal = (LONG)model->index;
+    Script_Set_Local_Variant(cs, "modelindex", &tempvar);
+
+    ScriptVariant_ChangeType(&tempvar, VT_STR);
+    tempvar.strVal = StrCache_CreateNewFrom(model_cache[model->index].name);
+    Script_Set_Local_Variant(cs, "modelname", &tempvar);
+
+    Script_Execute(cs);
+
+    ScriptVariant_Clear(&tempvar);
+    Script_Set_Local_Variant(cs, "model", &tempvar);
+    Script_Set_Local_Variant(cs, "modelindex", &tempvar);
+    Script_Set_Local_Variant(cs, "modelname", &tempvar);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-21
+*
+* Execute model-owned setup before notifying the global
+* model-load observer of a completed model parse.
+*/
+static void execute_model_load_scripts(s_model *model)
+{
+    s_modelcache *cache = &model_cache[model->index];
+
+    execute_model_lifecycle_script(cache->load_script, model);
+    execute_model_lifecycle_script(&model_load_script, model);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-21
+*
+* Execute model-owned teardown before notifying the global
+* model-unload observer and beginning native destruction.
+*/
+static void execute_model_unload_scripts(s_model *model)
+{
+    s_modelcache *cache = &model_cache[model->index];
+
+    execute_model_lifecycle_script(cache->unload_script, model);
+    execute_model_lifecycle_script(&model_unload_script, model);
+}
+
 
 // Unload single model from memory
 int free_model(s_model *model)
 {
     int i;
+    s_modelcache *cache;
+
     if(!model)
     {
         return 0;
     }
+
+    cache = &model_cache[model->index];
+
+    /*
+    * Ignore recursive removal from lifecycle callbacks and
+    * attempts to remove a model that has not finished loading.
+    */
+    if(cache->lifecycle != MODEL_LIFECYCLE_LOADED)
+    {
+        return 0;
+    }
+
+    cache->lifecycle = MODEL_LIFECYCLE_UNLOAD_EVENT;
+    execute_model_unload_scripts(model);
+    cache->lifecycle = MODEL_LIFECYCLE_UNLOADING;
+
     printf("Unload '%s' ", model->name);
 
     if(hasFreetype(model, MF_ANIMLIST))
@@ -7894,9 +7996,13 @@ int free_model(s_model *model)
     }
     printf(".");
 
-    model_cache[model->index].model = NULL;
+    cache->model = NULL;
     deleteModel(model->name);
     printf(".");
+
+    Script_Clear(cache->load_script, 1);
+    Script_Clear(cache->unload_script, 1);
+    cache->lifecycle = MODEL_LIFECYCLE_UNLOADED;
 
     printf("Done.\n");
 
@@ -12189,6 +12295,8 @@ void cache_model(char *name, char *path, int flag)
     model_cache[models_cached].path[len] = 0;
 
     model_cache[models_cached].loadflag = flag;
+    model_cache[models_cached].load_script = alloc_script();
+    model_cache[models_cached].unload_script = alloc_script();
 
     _peek_model_name(models_cached);
     ++models_cached;
@@ -12202,6 +12310,12 @@ void free_modelcache()
         while(models_cached)
         {
             --models_cached;
+            Script_Clear(model_cache[models_cached].load_script, 2);
+            free(model_cache[models_cached].load_script);
+            model_cache[models_cached].load_script = NULL;
+            Script_Clear(model_cache[models_cached].unload_script, 2);
+            free(model_cache[models_cached].unload_script);
+            model_cache[models_cached].unload_script = NULL;
             free(model_cache[models_cached].name);
             model_cache[models_cached].name = NULL;
             free(model_cache[models_cached].path);
@@ -15754,6 +15868,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
         borShutdown(1, "Fatal: No cache entry for '%s' within '%s'\n\n", name, owner);
     }
 
+    model_cache[cacheindex].lifecycle = MODEL_LIFECYCLE_LOADING;
+
     // Get the text file name of model.
     filename = model_cache[cacheindex].path;
     printf(" from %s \n", filename);
@@ -17422,6 +17538,36 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 break;
             case CMD_MODEL_ONKILLSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->onkill_script, "onkillscript", filename, 1, 0);
+                break;
+            case CMD_MODEL_MODELLOADSCRIPT:
+                if(Script_IsInitialized(model_cache[cacheindex].load_script))
+                {
+                    Script_Clear(model_cache[cacheindex].load_script, 1);
+                }
+                pos += lcmHandleCommandScripts(
+                    &arglist,
+                    buf + pos,
+                    model_cache[cacheindex].load_script,
+                    "modelloadscript",
+                    filename,
+                    1,
+                    0
+                );
+                break;
+            case CMD_MODEL_MODELUNLOADSCRIPT:
+                if(Script_IsInitialized(model_cache[cacheindex].unload_script))
+                {
+                    Script_Clear(model_cache[cacheindex].unload_script, 1);
+                }
+                pos += lcmHandleCommandScripts(
+                    &arglist,
+                    buf + pos,
+                    model_cache[cacheindex].unload_script,
+                    "modelunloadscript",
+                    filename,
+                    1,
+                    0
+                );
                 break;
             case CMD_MODEL_DIDBLOCKSCRIPT:
                 pos += lcmHandleCommandScripts(&arglist, buf + pos, newchar->scripts->didblock_script, "didblockscript", filename, 1, 0);
@@ -21043,6 +21189,9 @@ lCleanup:
 
     if(!shutdownmessage)
     {
+        model_cache[cacheindex].lifecycle = MODEL_LIFECYCLE_LOAD_EVENT;
+        execute_model_load_scripts(newchar);
+        model_cache[cacheindex].lifecycle = MODEL_LIFECYCLE_LOADED;
         printf(" ...done!\n");
         return newchar;
     }

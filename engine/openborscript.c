@@ -15778,7 +15778,6 @@ loadmodel_error:
 //unload_model("name");
 HRESULT openbor_unload_model(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG unload = 0;
     s_model *model;
     if(paramCount < 1)
     {
@@ -15789,7 +15788,7 @@ HRESULT openbor_unload_model(ScriptVariant **varlist , ScriptVariant **pretvar, 
         goto unload_model_error;
     }
 
-    model = load_cached_model(StrCache_Get(varlist[0]->strVal), "openbor_loadmodel", (char)unload);
+    model = findmodel(StrCache_Get(varlist[0]->strVal));
 
     if(paramCount >= 1 && model)
     {
