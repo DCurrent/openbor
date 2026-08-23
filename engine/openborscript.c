@@ -3725,8 +3725,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_animpos:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animpos;
+        ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+        (*pretvar)->ullVal = ent->animpos;
         break;
     }
     case _ep_animvalid:
@@ -4325,8 +4325,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_guardpoints:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->guardpoints;
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER64);
+        (*pretvar)->llVal = ent->guardpoints;
         break;
     }
     case _ep_hasplatforms:
@@ -5200,8 +5200,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     }
     case _ep_seal:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->seal;
+        ScriptVariant_ChangeType(*pretvar, VT_INTEGER64);
+        (*pretvar)->llVal = ent->seal;
         break;
     }
     case _ep_sealtime:
@@ -5621,6 +5621,8 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     s_model *tempmodel ;
     char *tempstr = NULL;
     LONG ltemp, ltemp2;
+    int64_t lltemp;
+    uint64_t ulltemp;
     DOUBLE dbltemp;
     int propind;
     int i = 0;
@@ -5873,9 +5875,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_animpos:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        if(SUCCEEDED(ScriptVariant_Unsigned64Value(varlist[2], &ulltemp)))
         {
-            ent->animpos = (LONG)ltemp;
+            ent->animpos = ulltemp;
         }
         break;
     }
@@ -6404,9 +6406,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_guardpoints:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        if(SUCCEEDED(ScriptVariant_Integer64Value(varlist[2], &lltemp)))
         {
-            ent->guardpoints = (LONG)ltemp;
+            ent->guardpoints = lltemp;
         }
         break;
     }
@@ -7185,9 +7187,9 @@ HRESULT openbor_changeentityproperty(ScriptVariant **varlist , ScriptVariant **p
     }
     case _ep_seal:
     {
-        if(SUCCEEDED(ScriptVariant_IntegerValue(varlist[2], &ltemp)))
+        if(SUCCEEDED(ScriptVariant_Integer64Value(varlist[2], &lltemp)))
         {
-            ent->seal = (LONG)ltemp;
+            ent->seal = lltemp;
         }
         break;
     }

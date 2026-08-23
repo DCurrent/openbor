@@ -53,7 +53,7 @@ static const entity_property_info entity_properties[] = {
 	.id_string = "ENTITY_PROPERTY_ANIMATION_FRAME",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, animpos),
-	.type = VT_INTEGER },
+	.type = VT_UINTEGER64 },
 
 	{.property = ENTITY_PROPERTY_ANIMATION_ID,
 	.id_string = "ENTITY_PROPERTY_ANIMATION_ID",
@@ -365,7 +365,7 @@ static const entity_property_info entity_properties[] = {
 	.id_string = "ENTITY_PROPERTY_GUARD_POINTS",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, guardpoints),
-	.type = VT_INTEGER },
+	.type = VT_INTEGER64 },
 
 	{.property = ENTITY_PROPERTY_GUARD_TIME,
 	.id_string = "ENTITY_PROPERTY_GUARD_TIME",
@@ -737,7 +737,7 @@ static const entity_property_info entity_properties[] = {
 	.id_string = "ENTITY_PROPERTY_SEAL_ENERGY",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, seal),
-	.type = VT_INTEGER },
+	.type = VT_INTEGER64 },
 
 	{.property = ENTITY_PROPERTY_SEAL_TIME,
 	.id_string = "ENTITY_PROPERTY_SEAL_TIME",
