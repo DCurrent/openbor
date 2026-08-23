@@ -2450,6 +2450,45 @@ void execute_entity_key_script(entity *ent)
         return;
     }
     cs = ent->scripts->key_script;
+
+    /*
+    * Caskey, Damon V.
+    * 2026-08-23
+    *
+    * Temporary diagnostic for tracing the SORX aerial-recovery
+    * regression. Report the complete native gate state only when
+    * a falling player holds the recovery chord.
+    */
+    if(ent->playerindex >= 0
+        && ent->playerindex < MAX_PLAYERS
+        && ent->drop
+        && (player[ent->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP))
+            == (FLAG_MOVEUP | FLAG_JUMP))
+    {
+        printf(
+            "AERIAL_RECOVERY_GATE player=%" PRId64
+            " animation=%" PRIu64
+            " fall=%" PRIu64
+            " frame=%" PRIu64
+            " seal=%" PRId64
+            " dead=%d"
+            " guard=%" PRId64
+            " maxguard=%d"
+            " projectile=%d"
+            " linked=%d\n",
+            ent->playerindex,
+            (uint64_t)ent->animnum,
+            (uint64_t)ANI_FALL,
+            ent->animpos,
+            ent->seal,
+            (ent->death_state & DEATH_STATE_DEAD) != 0,
+            ent->guardpoints,
+            ent->modeldata.guardpoints,
+            ent->projectile,
+            ent->link != NULL
+        );
+    }
+
     if(Script_IsInitialized(cs))
     {
         ScriptVariant_Init(&tempvar);
