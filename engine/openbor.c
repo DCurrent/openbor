@@ -33925,6 +33925,29 @@ void update_ents()
         if(ent_list[i]->exists && _time != ent_list[i]->timestamp)// dont update fresh entity
         {
             self = ent_list[i];
+            bool trace_aerial_recovery = self->playerindex >= 0
+                && max_follows >= 9
+                && self->animnum == animfollows[8];
+
+            if(trace_aerial_recovery)
+            {
+                printf(
+                    "AERIAL_RECOVERY_UPDATE stage=start"
+                    " player=%" PRId64
+                    " animation=%" PRIu64
+                    " falling=%d"
+                    " drop=%d"
+                    " velocity_y=%f"
+                    " takeaction_fall=%d\n",
+                    self->playerindex,
+                    (uint64_t)self->animnum,
+                    self->falling,
+                    self->drop,
+                    self->velocity.y,
+                    self->takeaction == common_fall
+                );
+            }
+
             self->update_mark = UPDATE_MARK_NONE;
             if(level)
             {
@@ -33943,16 +33966,57 @@ void update_ents()
             {
 
                 execute_updateentity_script(self);// execute a script
+                if(trace_aerial_recovery)
+                {
+                    printf(
+                        "AERIAL_RECOVERY_UPDATE stage=updateentity"
+                        " animation=%" PRIu64
+                        " falling=%d drop=%d velocity_y=%f takeaction_fall=%d\n",
+                        (uint64_t)self->animnum,
+                        self->falling,
+                        self->drop,
+                        self->velocity.y,
+                        self->takeaction == common_fall
+                    );
+                }
                 if(!self->exists)
                 {
                     continue;
                 }
                 check_ai();// check ai
+                if(trace_aerial_recovery)
+                {
+                    printf(
+                        "AERIAL_RECOVERY_UPDATE stage=check_ai"
+                        " animation=%" PRIu64
+                        " falling=%d drop=%d velocity_y=%f takeaction_fall=%d\n",
+                        (uint64_t)self->animnum,
+                        self->falling,
+                        self->drop,
+                        self->velocity.y,
+                        self->takeaction == common_fall
+                    );
+                }
                 if(!self->exists)
                 {
                     continue;
                 }
                 update_animation(); // if not frozen, update animation
+                if(trace_aerial_recovery)
+                {
+                    printf(
+                        "AERIAL_RECOVERY_UPDATE stage=animation"
+                        " animation=%" PRIu64
+                        " frame=%" PRIu64
+                        " falling=%d drop=%d velocity_y=%f takeaction_fall=%d\n",
+                        (uint64_t)self->animnum,
+                        self->animpos,
+                        self->falling,
+                        self->drop,
+                        self->velocity.y,
+                        self->takeaction == common_fall
+                    );
+                }
                 if(!self->exists)
                 {
                     continue;
