@@ -2443,6 +2443,9 @@ void execute_ondraw_script(entity *ent)
 
 void execute_entity_key_script(entity *ent)
 {
+    int recovery_chord;
+    animation_id_t recovery_animation_before;
+    int64_t recovery_guard_before;
     ScriptVariant tempvar;
     Script *cs ;
     if(!ent)
@@ -2450,6 +2453,14 @@ void execute_entity_key_script(entity *ent)
         return;
     }
     cs = ent->scripts->key_script;
+
+    recovery_chord = ent->playerindex >= 0
+        && ent->playerindex < MAX_PLAYERS
+        && ent->drop
+        && (player[ent->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP))
+            == (FLAG_MOVEUP | FLAG_JUMP);
+    recovery_animation_before = ent->animnum;
+    recovery_guard_before = ent->guardpoints;
 
     /*
     * Caskey, Damon V.
@@ -2459,11 +2470,7 @@ void execute_entity_key_script(entity *ent)
     * regression. Report the complete native gate state only when
     * a falling player holds the recovery chord.
     */
-    if(ent->playerindex >= 0
-        && ent->playerindex < MAX_PLAYERS
-        && ent->drop
-        && (player[ent->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP))
-            == (FLAG_MOVEUP | FLAG_JUMP))
+    if(recovery_chord)
     {
         printf(
             "AERIAL_RECOVERY_GATE player=%" PRId64
@@ -2513,6 +2520,29 @@ void execute_entity_key_script(entity *ent)
         tempvar.lVal = (LONG)ent->playerindex;
         Script_Set_Local_Variant(cs, "player",  &tempvar);
         Script_Execute(cs);
+
+        if(recovery_chord)
+        {
+            printf(
+                "AERIAL_RECOVERY_RESULT player=%" PRId64
+                " animation_before=%" PRIu64
+                " animation_after=%" PRIu64
+                " guard_before=%" PRId64
+                " guard_after=%" PRId64
+                " projectile_after=%d"
+                " falling_after=%d"
+                " drop_after=%d\n",
+                ent->playerindex,
+                (uint64_t)recovery_animation_before,
+                (uint64_t)ent->animnum,
+                recovery_guard_before,
+                ent->guardpoints,
+                ent->projectile,
+                ent->falling,
+                ent->drop
+            );
+        }
+
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
         Script_Set_Local_Variant(cs, "self",    &tempvar);
