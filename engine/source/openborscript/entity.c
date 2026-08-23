@@ -59,13 +59,13 @@ static const entity_property_info entity_properties[] = {
 	.id_string = "ENTITY_PROPERTY_ANIMATION_ID",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, animnum),
-	.type = VT_INTEGER },
+	.type = VT_UINTEGER64 },
 
 	{.property = ENTITY_PROPERTY_ANIMATION_ID_PREVIOUS,
 	.id_string = "ENTITY_PROPERTY_ANIMATION_ID_PREVIOUS",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, animnum_previous),
-	.type = VT_INTEGER },
+	.type = VT_UINTEGER64 },
 
 	{.property = ENTITY_PROPERTY_ANIMATION_STATE,
 	.id_string = "ENTITY_PROPERTY_ANIMATION_STATE",
@@ -425,7 +425,7 @@ static const entity_property_info entity_properties[] = {
 	.id_string = "ENTITY_PROPERTY_JUMP_ANIMATION_ID",
 	.config_flags = PROPERTY_ACCESS_CONFIG_MACRO_DEFAULT,
 	.offset = PROPERTY_MEMBER_OFFSET(entity, jump.animation_id),
-	.type = VT_INTEGER },
+	.type = VT_UINTEGER64 },
 
 	{.property = ENTITY_PROPERTY_JUMP_STATE,
 	.id_string = "ENTITY_PROPERTY_JUMP_STATE",

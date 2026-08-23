@@ -30,13 +30,15 @@ else if(stricmp(#x, constname)==0) {\
 #define ICMPSCONSTA(x, y) \
 else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '1' && constname[sizeof(#x)-1]<='9') \
 { \
-	v.lVal = (LONG)(y[atoi(constname+(sizeof(#x)-1))-1]);\
+	ScriptVariant_ChangeType(&v, VT_UINTEGER64);\
+	v.ullVal = (uint64_t)(y[atoi(constname+(sizeof(#x)-1))-1]);\
 }
 
 #define ICMPSCONSTB(x, y) \
 else if(strnicmp(constname, #x, sizeof(#x)-1)==0 && constname[sizeof(#x)-1] >= '1' && constname[sizeof(#x)-1]<='9') \
 { \
-	v.lVal = (LONG)(y[atoi(constname+(sizeof(#x)-1))+STA_ATKS-1]);\
+	ScriptVariant_ChangeType(&v, VT_UINTEGER64);\
+	v.ullVal = (uint64_t)(y[atoi(constname+(sizeof(#x)-1))+STA_ATKS-1]);\
 }
 
 #define ICMPSCONSTC(x) \

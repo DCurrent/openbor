@@ -3559,7 +3559,8 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
             (*pretvar)->lVal = (LONG)(ent->death_state & DEATH_STATE_DEAD);
             break;
         case _ep_aiflag_jumpid:
-            (*pretvar)->lVal = (LONG)ent->jump.animation_id;
+            ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+            (*pretvar)->ullVal = ent->jump.animation_id;
             break;
         case _ep_aiflag_jumping:
             (*pretvar)->lVal = (LONG)ent->jumping;
@@ -3712,14 +3713,14 @@ HRESULT openbor_getentityproperty(ScriptVariant **varlist , ScriptVariant **pret
     case _ep_animnum:
     case _ep_animationid:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animnum;
+        ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+        (*pretvar)->ullVal = ent->animnum;
         break;
     }
     case _ep_prevanimationid:
     {
-        ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
-        (*pretvar)->lVal = (LONG)ent->animnum_previous;
+        ScriptVariant_ChangeType(*pretvar, VT_UINTEGER64);
+        (*pretvar)->ullVal = ent->animnum_previous;
         break;
     }
     case _ep_animpos:
@@ -15500,7 +15501,8 @@ updateframe_error:
 //executeanimation(entity, int anim, int resetable);
 HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG anim, resetable = 0;
+    animation_id_t anim = ANI_NONE;
+    LONG resetable = 0;
     entity *e;
 
     *pretvar = NULL;
@@ -15544,7 +15546,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
         return S_OK;
     }
 
-    if(paramCount > 1 && FAILED(ScriptVariant_IntegerValue(varlist[1], &anim)))
+    if(paramCount > 1 && FAILED(ScriptVariant_Unsigned64Value(varlist[1], &anim)))
     {
         goto executeanimation_error;
     }
@@ -15552,7 +15554,7 @@ HRESULT openbor_executeanimation(ScriptVariant **varlist , ScriptVariant **pretv
     {
         goto executeanimation_error;
     }
-    ent_set_anim(e, (int)anim, (int)resetable);
+    ent_set_anim(e, anim, (int)resetable);
 
     return S_OK;
 
@@ -15564,7 +15566,8 @@ executeanimation_error:
 //performattack(entity, int anim, int resetable);
 HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG anim, resetable = 0;
+    animation_id_t anim = ANI_NONE;
+    LONG resetable = 0;
     entity *e;
 
     *pretvar = NULL;
@@ -15607,7 +15610,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
         return S_OK;
     }
 
-    if(paramCount > 1 && FAILED(ScriptVariant_IntegerValue(varlist[1], &anim)))
+    if(paramCount > 1 && FAILED(ScriptVariant_Unsigned64Value(varlist[1], &anim)))
     {
         goto performattack_error;
     }
@@ -15615,7 +15618,7 @@ HRESULT openbor_performattack(ScriptVariant **varlist , ScriptVariant **pretvar,
     {
         goto performattack_error;
     }
-    ent_set_anim(e, (int)anim, (int)resetable);
+    ent_set_anim(e, anim, (int)resetable);
 
     return S_OK;
 
@@ -15627,7 +15630,8 @@ performattack_error:
 //setidle(entity, int anim, int resetable, int stalladd);
 HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    LONG anim = 0, resetable = 0, stalladd = 0;
+    animation_id_t anim = ANI_NONE;
+    LONG resetable = 0, stalladd = 0;
     entity *e;
     extern unsigned int _time;
 
@@ -15675,7 +15679,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
         return S_OK;
     }
 
-    if(paramCount > 1 && FAILED(ScriptVariant_IntegerValue(varlist[1], &anim)))
+    if(paramCount > 1 && FAILED(ScriptVariant_Unsigned64Value(varlist[1], &anim)))
     {
         goto setidle_error;
     }
@@ -15687,7 +15691,7 @@ HRESULT openbor_setidle(ScriptVariant **varlist , ScriptVariant **pretvar, int p
     {
         goto setidle_error;
     }
-    ent_set_anim(e, (int)anim, (int)resetable);
+    ent_set_anim(e, anim, (int)resetable);
 
     if(stalladd > 0)
     {
