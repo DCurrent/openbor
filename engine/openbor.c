@@ -34751,8 +34751,7 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
 
     if (ent
         && attack
-        && ent->playerindex >= 0
-        && ent->projectile != BLAST_NONE)
+        && ent->playerindex >= 0)
     {
         printf(
             "AERIAL_RECOVERY_FALL player=%" PRId64
