@@ -1001,6 +1001,8 @@ typedef enum e_animations //Animations
     
 typedef uint64_t animation_id_t;
 
+#define ANIMATION_ID_INVALID UINT64_MAX
+
 typedef enum
 {
     BOSS_SLOW_OFF,
@@ -4808,7 +4810,7 @@ void biker_drive(void);
 void ent_default_init(entity *e);
 void ent_spawn_ent(entity *ent);
 void ent_summon_ent(entity *ent);
-void ent_set_anim(entity *ent, animation_id_t aninum, bool resetable);
+void ent_set_anim(entity *ent, animation_id_t aninum, int resetable);
 void ent_set_colourmap(entity *ent, uint64_t which);
 void ent_set_model(entity *ent, char *modelname, int syncAnim);
 entity *spawn_attack_flash(entity *ent, s_attack *attack, int attack_flash, int model_flash);

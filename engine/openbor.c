@@ -12516,9 +12516,10 @@ static int translate_attack_type(char* command, char* filename)
 }
 
 //move here to ease animation name to id logic
-static int translate_ani_id(const char *value, s_model *newchar, s_anim *newanim)
+static animation_id_t translate_ani_id(const char *value, s_model *newchar, s_anim *newanim)
 {
-    int ani_id = -1, tempInt;
+    animation_id_t ani_id = ANIMATION_ID_INVALID;
+    int tempInt;
     //those are dummy values to simplify code
     static s_model mdl;
     static s_anim ani;
@@ -15772,8 +15773,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
     ArgList arglist;
 
-    int ani_id = ANI_NONE;
-    int script_id = -1;
+    animation_id_t ani_id = ANI_NONE;
+    animation_id_t script_id = ANIMATION_ID_INVALID;
     int frm_id = -1;
     bool at_cmd_mergeable = false;
     int i = 0;
@@ -17822,7 +17823,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     ani_id = translate_ani_id(value, newchar, newanim);
                 }
 
-                if(ani_id < 0)
+                if(ani_id == ANIMATION_ID_INVALID)
                 {
                     shutdownmessage = "Invalid animation name!";
                     goto lCleanup;
@@ -17850,6 +17851,8 @@ s_model *load_cached_model(char *name, char *owner, char unload)
 
                 int freespecial_number;
 
+                animation_id_t sync_animation_id;
+
                 s_command_token animation_name_token;
 
                 const char* freespecial_error;
@@ -17876,9 +17879,13 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 * "none" intentionally translates to FRAME_NONE and
                 * continues to disable the default synchronization.
                 */
-                newanim->sync = freespecial_recognized
+                sync_animation_id = freespecial_recognized
                     ? animspecials[freespecial_number - 1]
                     : translate_ani_id(value, NULL, NULL);
+
+                newanim->sync = sync_animation_id == ANIMATION_ID_INVALID
+                    ? FRAME_NONE
+                    : (int64_t)sync_animation_id;
             }
                 break;
             case CMD_MODEL_DELAY:
@@ -18422,7 +18429,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                     /*
                     * Cancel belongs to the currently active animation.
                     */
-                    if(!newanim || ani_id < 0) {
+                    if(!newanim || ani_id == ANIMATION_ID_INVALID) {
                         shutdownmessage =
                             "Cannot add cancel command: animation not specified.\n";
 
@@ -20760,7 +20767,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 }
                 scriptbuf[scriptlen - strclen(sur_text)] = 0; // cut last chars
                 scriptlen = strlen(scriptbuf);
-                if(ani_id >= 0)
+                if(ani_id != ANIMATION_ID_INVALID)
                 {
                     if(script_id != ani_id)  // if expression 1
                     {
@@ -20785,7 +20792,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 buffer_append(&scriptbuf, buf + pos - len, len, &sbsize, &scriptlen);
                 pos += strclen("@end_script");
 
-                if(ani_id >= 0)
+                if(ani_id != ANIMATION_ID_INVALID)
                 {
                     buffer_append(&scriptbuf, endifid_text, 0xffffff, &sbsize, &scriptlen);// put back last  chars
                 }
@@ -20799,7 +20806,7 @@ s_model *load_cached_model(char *name, char *owner, char unload)
                 bool first_command_argument;
 
                 //translate @cmd into script function call
-                if(ani_id < 0)
+                if(ani_id == ANIMATION_ID_INVALID)
                 {
                     shutdownmessage = "command '@cmd' must follow an animation!";
                     goto lCleanup;
@@ -28291,7 +28298,7 @@ uf_interrupted:
 }
 
 
-void ent_set_anim(entity *acting_entity, animation_id_t aninum, bool resetable) {
+void ent_set_anim(entity *acting_entity, animation_id_t aninum, int resetable) {
 
     s_anim *ani = NULL;
     int animpos;
