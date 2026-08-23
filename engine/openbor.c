@@ -2469,8 +2469,15 @@ void execute_entity_key_script(entity *ent)
             "AERIAL_RECOVERY_GATE player=%" PRId64
             " animation=%" PRIu64
             " fall=%" PRIu64
+            " mapped_fall=%" PRIu64
             " frame=%" PRIu64
             " seal=%" PRId64
+            " sealtime=%" PRIu64
+            " time=%" PRIu64
+            " nextanim=%" PRIu64
+            " animating=%d"
+            " falling=%d"
+            " drop=%d"
             " dead=%d"
             " guard=%" PRId64
             " maxguard=%d"
@@ -2479,8 +2486,15 @@ void execute_entity_key_script(entity *ent)
             ent->playerindex,
             (uint64_t)ent->animnum,
             (uint64_t)ANI_FALL,
+            (uint64_t)animfalls[ATK_NORMAL],
             ent->animpos,
             ent->seal,
+            ent->sealtime,
+            _time,
+            ent->nextanim,
+            ent->animating,
+            ent->falling,
+            ent->drop,
             (ent->death_state & DEATH_STATE_DEAD) != 0,
             ent->guardpoints,
             ent->modeldata.guardpoints,
