@@ -34749,6 +34749,35 @@ int set_fall(entity *ent, entity *other, s_attack *attack, int reset)
 {
     int fall = 0;
 
+    if (ent
+        && attack
+        && ent->playerindex >= 0
+        && ent->projectile != BLAST_NONE)
+    {
+        printf(
+            "AERIAL_RECOVERY_FALL player=%" PRId64
+            " attack_type=%d"
+            " selected=%" PRIu64
+            " previous=%" PRIu64
+            " reset=%d"
+            " seal=%" PRId64
+            " sealtime=%" PRIu64
+            " time=%" PRIu64
+            " projectile=%d"
+            " linked=%d\n",
+            ent->playerindex,
+            attack->attack_type,
+            (uint64_t)animfalls[attack->attack_type],
+            (uint64_t)ent->animnum,
+            reset,
+            ent->seal,
+            ent->sealtime,
+            _time,
+            ent->projectile,
+            ent->link != NULL
+        );
+    }
+
     if ( ent->inbackpain ) fall = animbackfalls[attack->attack_type];
     else fall = animfalls[attack->attack_type];
    
