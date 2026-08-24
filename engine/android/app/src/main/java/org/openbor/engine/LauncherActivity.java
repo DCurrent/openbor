@@ -2,16 +2,12 @@ package org.openbor.engine;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
-import android.database.Cursor;
-import android.net.Uri;
+import android.content.res.AssetFileDescriptor;
+import android.os.Build;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -25,23 +21,20 @@ import java.util.concurrent.Executors;
 - Caskey, Damon V.
 - 2026-08-24
 -
-- Launch packaged games directly, keep game import available in generic builds,
-- and route installed game selection through OpenBOR's native module menu.
+- Prepare the game PAK bundled with a standalone Android package before
+- starting OpenBOR. Each packaged game owns its private application storage.
 */
 public class LauncherActivity extends Activity {
 
     private static final String TAG = "LauncherActivity";
-    private static final int PICK_PAK_FILE_REQUEST_CODE = 1;
     private static final int COPY_BUFFER_SIZE = 64 * 1024;
     private static final String PAK_DIRECTORY_NAME = "Paks";
     private static final String BUNDLED_PAK_NAME = "bor.pak";
 
-    private final ExecutorService copyExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService installExecutor = Executors.newSingleThreadExecutor();
     private String applicationName = "OpenBOR";
     private File pakDirectory;
-    private ProgressDialog progressDialog;
     private boolean gameStarted;
-    private boolean pickerOpen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,199 +43,126 @@ public class LauncherActivity extends Activity {
 
         File externalFilesDirectory = getExternalFilesDir(null);
         if (externalFilesDirectory == null) {
-            showFatalError("The game could not access its application storage.");
+            showStorageError("Application storage is unavailable.");
             return;
         }
 
         pakDirectory = new File(externalFilesDirectory, PAK_DIRECTORY_NAME);
         if (!pakDirectory.isDirectory() && !pakDirectory.mkdirs()) {
-            showFatalError("The game could not create its data folder.");
+            showStorageError("The game data folder could not be created.");
             return;
         }
 
-        preparePaksAndContinue();
+        preparePackagedGame();
     }
 
     /*
     - Caskey, Damon V.
     - 2026-08-24
     -
-    - Packaged games install their bundled asset and launch directly.
-    - Generic builds offer import or play when one or more PAKs already exist.
+    - Install bundled game data on a worker thread. OpenBOR starts only after
+    - the copied PAK is flushed, closed, validated, and published.
     */
-    private void preparePaksAndContinue() {
-        copyExecutor.execute(() -> {
+    private void preparePackagedGame() {
+        installExecutor.execute(() -> {
             try {
-                boolean packagedGame = installBundledPakIfPresent();
-                int pakCount = countInstalledPaks();
-                Log.i(TAG, "Installed PAK count: " + pakCount);
-
-                runOnUiThread(() -> {
-                    if (packagedGame) {
-                        startGameActivity();
-                    } else if (pakCount == 0) {
-                        showPakSelectionDialog();
-                    } else {
-                        showLaunchOptions(pakCount);
-                    }
-                });
-            } catch (Exception exception) {
-                Log.e(TAG, "Could not prepare PAK storage.", exception);
-                runOnUiThread(() -> showRetryDialog(
-                    "The game could not prepare its data. " + safeMessage(exception),
-                    this::preparePaksAndContinue));
-            }
-        });
-    }
-
-    private void showPakSelectionDialog() {
-        if (pickerOpen || gameStarted) {
-            return;
-        }
-
-        pickerOpen = true;
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-
-        try {
-            startActivityForResult(intent, PICK_PAK_FILE_REQUEST_CODE);
-        } catch (Exception exception) {
-            pickerOpen = false;
-            Log.e(TAG, "Could not launch the Android file picker.", exception);
-            showFatalError("The game could not open a file picker. Please install or enable a file manager.");
-        }
-    }
-
-    /*
-    - Caskey, Damon V.
-    - 2026-08-24
-    -
-    - Keep PAK import accessible after first launch while handing installed PAK
-    - selection to the native OpenBOR menu.
-    */
-    private void showLaunchOptions(int pakCount) {
-        if (pickerOpen || gameStarted || isFinishing()) {
-            return;
-        }
-
-        String message = pakCount == 1
-            ? "1 game is installed."
-            : pakCount + " games are installed. Play will open the game selector.";
-
-        new AlertDialog.Builder(this)
-            .setTitle(applicationName)
-            .setMessage(message)
-            .setPositiveButton("Play", (dialog, which) -> startGameActivity())
-            .setNeutralButton("Import Game", (dialog, which) -> showPakSelectionDialog())
-            .setNegativeButton("Exit", (dialog, which) -> finish())
-            .setCancelable(false)
-            .show();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode != PICK_PAK_FILE_REQUEST_CODE) {
-            return;
-        }
-
-        pickerOpen = false;
-        if (resultCode == Activity.RESULT_CANCELED) {
-            int pakCount = countInstalledPaks();
-            if (pakCount > 0) {
-                showLaunchOptions(pakCount);
-            } else {
-                finish();
-            }
-            return;
-        }
-
-        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
-            showRetryDialog("The game could not read the selected file.", this::showPakSelectionDialog);
-            return;
-        }
-
-        Uri pakUri = data.getData();
-        String fileName = getSafeFileName(pakUri);
-        if (!isPakFileName(fileName)) {
-            showRetryDialog("Please select a file with the .pak extension.", this::showPakSelectionDialog);
-            return;
-        }
-
-        persistReadPermission(pakUri, data.getFlags());
-        copySelectedPakFile(pakUri, fileName, getFileSize(pakUri));
-    }
-
-    /*
-    - Caskey, Damon V.
-    - 2026-08-24
-    -
-    - Copy on a worker thread and publish only a fully closed, size-checked file.
-    */
-    private void copySelectedPakFile(Uri pakUri, String fileName, long expectedSize) {
-        showProgress("Importing " + fileName + "...");
-
-        copyExecutor.execute(() -> {
-            File destinationFile = new File(pakDirectory, fileName);
-            File temporaryFile = new File(pakDirectory, fileName + ".part");
-
-            try {
-                ContentResolver resolver = getContentResolver();
-                try (InputStream input = resolver.openInputStream(pakUri)) {
-                    if (input == null) {
-                        throw new IOException("The selected file could not be opened.");
-                    }
-                    copyToTemporaryFile(input, temporaryFile, expectedSize);
+                if (!hasBundledPak()) {
+                    runOnUiThread(this::showPackagingError);
+                    return;
                 }
 
-                replaceFile(temporaryFile, destinationFile);
-                Log.i(TAG, "Imported PAK: " + destinationFile.getAbsolutePath());
-                runOnUiThread(() -> {
-                    dismissProgress();
-                    Toast.makeText(this, "Imported " + fileName + ".", Toast.LENGTH_SHORT).show();
-                    startGameActivity();
-                });
+                installBundledPak();
+                runOnUiThread(this::startGameActivity);
             } catch (Exception exception) {
-                deleteQuietly(temporaryFile);
-                Log.e(TAG, "Could not import PAK " + fileName + ".", exception);
-                runOnUiThread(() -> {
-                    dismissProgress();
-                    showRetryDialog(
-                        "The game could not import " + fileName + ". " + safeMessage(exception),
-                        this::showPakSelectionDialog);
-                });
+                Log.e(TAG, "Could not prepare bundled game data.", exception);
+                runOnUiThread(() -> showStorageError(safeMessage(exception)));
             }
         });
     }
 
-    private boolean installBundledPakIfPresent() throws Exception {
-        if (!hasBundledPak()) {
-            return false;
-        }
+    /*
+    - Caskey, Damon V.
+    - 2026-08-24
+    -
+    - Copy to a temporary file beside the destination, synchronize it to disk,
+    - then replace the installed PAK without exposing a partial file.
+    */
+    private void installBundledPak() throws Exception {
+        long versionCode = getVersionCode();
+        File destinationFile = new File(pakDirectory, "game-" + versionCode + ".pak");
+        long expectedSize = getBundledPakSize();
 
-        String versionName = getVersionName();
-        File destinationFile = new File(pakDirectory, safeVersionFileName(versionName) + ".pak");
-        if (destinationFile.isFile() && destinationFile.length() > 0) {
-            removeOldBundledPaks(destinationFile);
-            return true;
+        if (isCompleteFile(destinationFile, expectedSize)) {
+            removeOldPaks(destinationFile);
+            return;
         }
 
         File temporaryFile = new File(pakDirectory, destinationFile.getName() + ".part");
+        deleteQuietly(temporaryFile);
+
         try (InputStream input = getAssets().open(BUNDLED_PAK_NAME)) {
-            copyToTemporaryFile(input, temporaryFile, -1);
+            copyToTemporaryFile(input, temporaryFile, expectedSize);
+            replaceFile(temporaryFile, destinationFile);
         } catch (Exception exception) {
             deleteQuietly(temporaryFile);
             throw exception;
         }
 
-        replaceFile(temporaryFile, destinationFile);
-        removeOldBundledPaks(destinationFile);
+        removeOldPaks(destinationFile);
         Log.i(TAG, "Installed bundled PAK: " + destinationFile.getAbsolutePath());
-        return true;
+    }
+
+    private void copyToTemporaryFile(
+        InputStream input,
+        File temporaryFile,
+        long expectedSize) throws IOException {
+
+        long copiedSize = 0;
+        byte[] buffer = new byte[COPY_BUFFER_SIZE];
+
+        try (FileOutputStream output = new FileOutputStream(temporaryFile, false)) {
+            int bytesRead;
+            while ((bytesRead = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytesRead);
+                copiedSize += bytesRead;
+            }
+            output.flush();
+            output.getFD().sync();
+        }
+
+        if (copiedSize <= 0 || temporaryFile.length() != copiedSize) {
+            throw new IOException("The bundled PAK copy is incomplete.");
+        }
+        if (expectedSize >= 0 && copiedSize != expectedSize) {
+            throw new IOException(
+                "The bundled PAK size is " + copiedSize + " bytes; expected " + expectedSize + ".");
+        }
+    }
+
+    /*
+    - Caskey, Damon V.
+    - 2026-08-24
+    -
+    - Preserve the previous installed PAK until the completed replacement is
+    - in place. Both renames stay inside one directory for atomic publication.
+    */
+    private void replaceFile(File temporaryFile, File destinationFile) throws IOException {
+        File backupFile = new File(pakDirectory, destinationFile.getName() + ".bak");
+        deleteQuietly(backupFile);
+
+        boolean hadDestination = destinationFile.isFile();
+        if (hadDestination && !destinationFile.renameTo(backupFile)) {
+            throw new IOException("The previous game data could not be preserved.");
+        }
+
+        if (!temporaryFile.renameTo(destinationFile)) {
+            if (hadDestination && !backupFile.renameTo(destinationFile)) {
+                Log.e(TAG, "Could not restore the previous PAK after replacement failed.");
+            }
+            throw new IOException("The completed game data could not be installed.");
+        }
+
+        deleteQuietly(backupFile);
     }
 
     private boolean hasBundledPak() throws IOException {
@@ -259,16 +179,44 @@ public class LauncherActivity extends Activity {
         return false;
     }
 
-    private String getVersionName() throws Exception {
-        PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-        if (packageInfo.versionName == null || packageInfo.versionName.trim().isEmpty()) {
-            return "bor";
+    private long getBundledPakSize() {
+        try (AssetFileDescriptor descriptor = getAssets().openFd(BUNDLED_PAK_NAME)) {
+            return descriptor.getLength();
+        } catch (IOException exception) {
+            Log.i(TAG, "Bundled PAK length is unavailable; copy validation will use bytes written.");
+            return -1;
         }
-        return packageInfo.versionName;
     }
 
-    private String safeVersionFileName(String versionName) {
-        return versionName.replaceAll("[^A-Za-z0-9._-]", "_");
+    private long getVersionCode() throws Exception {
+        PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            return packageInfo.getLongVersionCode();
+        }
+        return packageInfo.versionCode;
+    }
+
+    private boolean isCompleteFile(File file, long expectedSize) {
+        if (!file.isFile() || file.length() <= 0) {
+            return false;
+        }
+        return expectedSize < 0 || file.length() == expectedSize;
+    }
+
+    private void removeOldPaks(File currentPak) {
+        File[] files = pakDirectory.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            String fileName = file.getName().toLowerCase(Locale.ROOT);
+            if (!file.equals(currentPak) && file.isFile()
+                && (fileName.endsWith(".pak") || fileName.endsWith(".part")
+                    || fileName.endsWith(".bak"))) {
+                deleteQuietly(file);
+            }
+        }
     }
 
     private String getApplicationName() {
@@ -283,150 +231,8 @@ public class LauncherActivity extends Activity {
         return "OpenBOR";
     }
 
-    private void removeOldBundledPaks(File currentPak) {
-        File[] files = pakDirectory.listFiles();
-        if (files == null) {
-            return;
-        }
-
-        for (File file : files) {
-            if (!file.equals(currentPak) && file.isFile() && isPakFileName(file.getName())) {
-                deleteQuietly(file);
-            }
-        }
-    }
-
-    private int countInstalledPaks() {
-        if (pakDirectory == null) {
-            return 0;
-        }
-
-        File[] files = pakDirectory.listFiles(file ->
-            file.isFile() && file.length() > 0 && isPakFileName(file.getName()));
-        return files == null ? 0 : files.length;
-    }
-
-    private boolean isPakFileName(String fileName) {
-        return fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".pak");
-    }
-
-    private String getSafeFileName(Uri uri) {
-        String result = null;
-        if ("content".equals(uri.getScheme())) {
-            try (Cursor cursor = getContentResolver().query(
-                uri,
-                new String[] {OpenableColumns.DISPLAY_NAME},
-                null,
-                null,
-                null)) {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    if (nameIndex >= 0) {
-                        result = cursor.getString(nameIndex);
-                    }
-                }
-            } catch (Exception exception) {
-                Log.w(TAG, "Could not query the selected file name.", exception);
-            }
-        }
-
-        if (result == null || result.trim().isEmpty()) {
-            result = uri.getLastPathSegment();
-        }
-        if (result == null) {
-            return null;
-        }
-
-        result = result.replace('\\', '/');
-        int separator = result.lastIndexOf('/');
-        return separator >= 0 ? result.substring(separator + 1) : result;
-    }
-
-    private long getFileSize(Uri uri) {
-        try (Cursor cursor = getContentResolver().query(
-            uri,
-            new String[] {OpenableColumns.SIZE},
-            null,
-            null,
-            null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
-                    return cursor.getLong(sizeIndex);
-                }
-            }
-        } catch (Exception exception) {
-            Log.w(TAG, "Could not query the selected file size.", exception);
-        }
-        return -1;
-    }
-
-    private void persistReadPermission(Uri uri, int resultFlags) {
-        int readFlag = resultFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION;
-        if (readFlag == 0) {
-            return;
-        }
-
-        try {
-            getContentResolver().takePersistableUriPermission(uri, readFlag);
-        } catch (SecurityException exception) {
-            // The transient grant is enough for the immediate background copy.
-            Log.w(TAG, "The selected provider did not grant persistent read access.", exception);
-        }
-    }
-
-    private void copyToTemporaryFile(InputStream input, File temporaryFile, long expectedSize)
-        throws IOException {
-        deleteQuietly(temporaryFile);
-        long copiedSize = 0;
-
-        try (FileOutputStream output = new FileOutputStream(temporaryFile)) {
-            byte[] buffer = new byte[COPY_BUFFER_SIZE];
-            int read;
-            while ((read = input.read(buffer)) != -1) {
-                output.write(buffer, 0, read);
-                copiedSize += read;
-            }
-            output.flush();
-            output.getFD().sync();
-        }
-
-        if (copiedSize == 0) {
-            throw new IOException("The selected PAK is empty.");
-        }
-        if (expectedSize >= 0 && copiedSize != expectedSize) {
-            throw new IOException(
-                "The copy was incomplete (expected " + expectedSize + " bytes, copied " + copiedSize + ").");
-        }
-    }
-
-    private void replaceFile(File temporaryFile, File destinationFile) throws IOException {
-        File backupFile = new File(pakDirectory, destinationFile.getName() + ".bak");
-        deleteQuietly(backupFile);
-
-        boolean hadDestination = destinationFile.exists();
-        if (hadDestination && !destinationFile.renameTo(backupFile)) {
-            throw new IOException("The existing PAK could not be replaced.");
-        }
-
-        if (!temporaryFile.renameTo(destinationFile)) {
-            if (hadDestination && !backupFile.renameTo(destinationFile)) {
-                Log.e(TAG, "Could not restore the previous PAK after an import failure.");
-            }
-            throw new IOException("The imported PAK could not be installed.");
-        }
-
-        deleteQuietly(backupFile);
-    }
-
-    private void deleteQuietly(File file) {
-        if (file.exists() && !file.delete()) {
-            Log.w(TAG, "Could not delete " + file.getAbsolutePath());
-        }
-    }
-
     private void startGameActivity() {
-        if (gameStarted) {
+        if (gameStarted || isFinishing() || isDestroyed()) {
             return;
         }
 
@@ -435,39 +241,18 @@ public class LauncherActivity extends Activity {
         finish();
     }
 
-    private void showProgress(String message) {
-        dismissProgress();
-        progressDialog = new ProgressDialog(this);
-        progressDialog.setIndeterminate(true);
-        progressDialog.setCancelable(false);
-        progressDialog.setMessage(message);
-        progressDialog.show();
+    private void showPackagingError() {
+        showFatalError(
+            "This APK does not contain game data. Add the game package as "
+                + "app/src/main/assets/bor.pak and rebuild.");
     }
 
-    private void dismissProgress() {
-        if (progressDialog != null) {
-            progressDialog.dismiss();
-            progressDialog = null;
-        }
-    }
-
-    private void showRetryDialog(String message, Runnable retryAction) {
-        if (isFinishing()) {
-            return;
-        }
-
-        new AlertDialog.Builder(this)
-            .setTitle(applicationName)
-            .setMessage(message)
-            .setPositiveButton("Retry", (dialog, which) -> retryAction.run())
-            .setNegativeButton("Exit", (dialog, which) -> finish())
-            .setCancelable(false)
-            .show();
+    private void showStorageError(String detail) {
+        showFatalError(applicationName + " could not prepare its game data. " + detail);
     }
 
     private void showFatalError(String message) {
-        Log.e(TAG, message);
-        if (isFinishing()) {
+        if (isFinishing() || isDestroyed()) {
             return;
         }
 
@@ -481,13 +266,20 @@ public class LauncherActivity extends Activity {
 
     private String safeMessage(Exception exception) {
         String message = exception.getMessage();
-        return message == null || message.trim().isEmpty() ? "Please try again." : message;
+        return message == null || message.trim().isEmpty()
+            ? "No additional error information is available."
+            : message;
+    }
+
+    private void deleteQuietly(File file) {
+        if (file.isFile() && !file.delete()) {
+            Log.w(TAG, "Could not delete " + file.getAbsolutePath());
+        }
     }
 
     @Override
     protected void onDestroy() {
-        dismissProgress();
-        copyExecutor.shutdownNow();
+        installExecutor.shutdownNow();
         super.onDestroy();
     }
 }
