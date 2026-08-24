@@ -517,6 +517,7 @@ List *createModelCommandList(void)
     LIST_ADD(CMD_MODEL_MODELUNLOADSCRIPT, "modelunloadscript");
     LIST_ADD(CMD_MODEL_ONMODELCOPYSCRIPT, "onmodelcopyscript");
     LIST_ADD(CMD_MODEL_ONMOVEYSCRIPT, "onmoveyscript");
+    LIST_ADD(CMD_MODEL_ONMOVEYSCRIPT, "onmoveascript"); // Legacy vertical-axis name.
     LIST_ADD(CMD_MODEL_ONMOVEXSCRIPT, "onmovexscript");
     LIST_ADD(CMD_MODEL_ONMOVEZSCRIPT, "onmovezscript");
     LIST_ADD(CMD_MODEL_ONPAINSCRIPT, "onpainscript");
