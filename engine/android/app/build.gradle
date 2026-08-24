@@ -1,96 +1,229 @@
 apply plugin: 'com.android.application'
 
-android {
-  compileSdkVersion 35
-    defaultConfig {
-      minSdkVersion 21
-        targetSdkVersion 35
+/*
+- Caskey, Damon V.
+- 2026-08-24
+-
+- Load standalone game identity from one creator-facing properties file while
+- keeping the Java namespace fixed to the engine source package.
+*/
+def gamePropertiesFile = rootProject.file('game.properties')
+def gameProperties = new Properties()
+if (gamePropertiesFile.isFile()) {
+    gamePropertiesFile.withInputStream { stream -> gameProperties.load(stream) }
+}
 
-        //////////// MODFY FOR CUSTOM APK /////////////////
-        applicationId "org.openbor.engine"
-        namespace "org.openbor.engine"
-        versionCode 1
-        versionName "1.0.0"
-        resValue "string", "app_name", "Openbor"
-        ///////////////////////////////////////////////////
+def gameSetting = { String key, String fallback ->
+    String value = project.hasProperty(key)
+        ? project.property(key).toString()
+        : gameProperties.getProperty(key, fallback)
+    return value == null ? fallback : value.trim()
+}
+
+def defaultApplicationId = 'org.openbor.engine'
+def gameApplicationId = gameSetting('game.applicationId', defaultApplicationId)
+def gameName = gameSetting('game.name', 'OpenBOR')
+def gameVersionName = gameSetting('game.versionName', '1.0.0')
+def gameVersionCodeText = gameSetting('game.versionCode', '1')
+def configuredPakPath = gameSetting('game.pak', '')
+def gameVersionCode
+
+try {
+    gameVersionCode = Integer.parseInt(gameVersionCodeText)
+} catch (NumberFormatException exception) {
+    throw new GradleException('game.versionCode must be a positive whole number.', exception)
+}
+
+def sourceAssetsDirectory = file('src/main/assets')
+def sourcePakFile = configuredPakPath
+    ? rootProject.file(configuredPakPath)
+    : new File(sourceAssetsDirectory, 'bor.pak')
+def generatedAssetsDirectory = layout.buildDirectory.dir('generated/openborAssets').get().asFile
+
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.isFile()) {
+    keystorePropertiesFile.withInputStream { stream -> keystoreProperties.load(stream) }
+}
+
+android {
+    namespace 'org.openbor.engine'
+    compileSdkVersion 35
+
+    defaultConfig {
+        minSdkVersion 21
+        targetSdkVersion 35
+        applicationId gameApplicationId
+        versionCode gameVersionCode
+        versionName gameVersionName
+        resValue 'string', 'app_name', gameName
 
         externalNativeBuild {
-          ndkBuild {
-              abiFilters 'arm64-v8a'
-          }
+            ndkBuild {
+                abiFilters 'arm64-v8a'
+            }
         }
     }
 
-  signingConfigs {
+    androidResources {
+        noCompress.add('pak')
+    }
+
+    signingConfigs {
         debug {
-        // ... your debug keystore details here ...
-        // For example, if you have a debug.keystore in your project root
-        storeFile file('debug.keystore')
-        storePassword 'android' // Default password for debug keystore
-        keyAlias 'androiddebugkey' // Default alias
-        keyPassword 'android' // Default password for alias
-    }
-    
-    release {
-      // only try to find keystore.properties when it's release build
-      /*
-        def keystorePropertiesFile = rootProject.file("keystore.properties")
-        def keystoreProperties = new Properties()
-        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
 
-        keyAlias keystoreProperties['keyAlias']
-        keyPassword keystoreProperties['keyPassword']
-        storeFile file(keystoreProperties['storeFile'])
-        storePassword keystoreProperties['storePassword']
-        */
-    } 
-  }
-
-  buildTypes {
-  
-  android.applicationVariants.all { variant ->
-    variant.outputs.all {
-        outputFileName = "OpenBOR.apk";
-		}
-	}
-     debug {
-        // Do NOT add 'signingConfig signingConfigs.release' here
-        // It should inherit the default debug signing or you define 'signingConfig signingConfigs.debug'
-    }
-    release {
-      minifyEnabled false
-        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        signingConfig signingConfigs.release
-    }
-  }
-
-  if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
-    sourceSets.main {
-      jniLibs.srcDir 'libs'
-    }
-    externalNativeBuild {
-      ndkBuild {
-        path 'jni/Android.mk'
-      }
+        release {
+            if (keystorePropertiesFile.isFile()) {
+                keyAlias keystoreProperties.getProperty('keyAlias')
+                keyPassword keystoreProperties.getProperty('keyPassword')
+                storeFile file(keystoreProperties.getProperty('storeFile', ''))
+                storePassword keystoreProperties.getProperty('storePassword')
+            }
+        }
     }
 
-  }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
 
-  lintOptions {
-    abortOnError false
-  }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            if (variant.buildType.name == 'debug') {
+                outputFileName = 'OpenBOR.apk'
+            } else {
+                String safeName = gameName.replaceAll('[^A-Za-z0-9._-]+', '-')
+                String safeVersionName = gameVersionName.replaceAll('[^A-Za-z0-9._-]+', '-')
+                outputFileName = "${safeName}-${safeVersionName}.apk"
+            }
+        }
+    }
+
+    sourceSets.main.assets.setSrcDirs([generatedAssetsDirectory])
+
+    if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
+        sourceSets.main {
+            jniLibs.srcDir 'libs'
+        }
+        externalNativeBuild {
+            ndkBuild {
+                path 'jni/Android.mk'
+            }
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
     ndkVersion '21.4.7075529'
     buildToolsVersion '36.0.0'
 }
 
+/*
+- Caskey, Damon V.
+- 2026-08-24
+-
+- Stage exactly one game PAK under the asset name expected by the launcher.
+- Sync removes stale generated data when a creator changes the source PAK.
+*/
+def stageGamePak = tasks.register('stageGamePak', Sync) {
+    into generatedAssetsDirectory
+
+    from(sourceAssetsDirectory) {
+        exclude 'bor.pak'
+    }
+
+    from(sourcePakFile) {
+        rename { 'bor.pak' }
+    }
+}
+
+tasks.matching { task -> task.name == 'preBuild' }.configureEach {
+    dependsOn stageGamePak
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-24
+-
+- Stop release builds before packaging when game identity, data, or signing
+- would create an unusable or unsafe update.
+*/
+def validateStandaloneRelease = tasks.register('validateStandaloneRelease') {
+    doLast {
+        if (!(gameApplicationId ==~ /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/)) {
+            throw new GradleException(
+                'game.applicationId must contain two or more lowercase identifier segments.')
+        }
+        if (gameApplicationId == defaultApplicationId) {
+            throw new GradleException(
+                'Set a unique game.applicationId before building a release APK.')
+        }
+        if (!gameName || gameName.equalsIgnoreCase('OpenBOR')) {
+            throw new GradleException('Set game.name to the title players should see.')
+        }
+        if (gameVersionCode <= 0) {
+            throw new GradleException('game.versionCode must be greater than zero.')
+        }
+        if (!gameVersionName) {
+            throw new GradleException('game.versionName must not be empty.')
+        }
+        if (!sourcePakFile.isFile() || sourcePakFile.length() <= 0) {
+            throw new GradleException(
+                "Game PAK not found or empty: ${sourcePakFile}. Set game.pak or add app/src/main/assets/bor.pak.")
+        }
+        if (!keystorePropertiesFile.isFile()) {
+            throw new GradleException('keystore.properties is required for release builds.')
+        }
+
+        List<String> missingSigningValues = [
+            'storeFile',
+            'storePassword',
+            'keyAlias',
+            'keyPassword'
+        ].findAll { key -> !keystoreProperties.getProperty(key, '').trim() }
+        if (!missingSigningValues.isEmpty()) {
+            throw new GradleException(
+                "Missing keystore.properties values: ${missingSigningValues.join(', ')}")
+        }
+
+        File releaseStoreFile = file(keystoreProperties.getProperty('storeFile'))
+        if (!releaseStoreFile.isFile()) {
+            throw new GradleException("Release keystore not found: ${releaseStoreFile}")
+        }
+        if (releaseStoreFile.name.equalsIgnoreCase('debug.keystore')
+            || keystoreProperties.getProperty('keyAlias').equalsIgnoreCase('androiddebugkey')) {
+            throw new GradleException('Release builds must not use the Android debug certificate.')
+        }
+    }
+}
+
+tasks.matching { task -> task.name == 'preReleaseBuild' }.configureEach {
+    dependsOn validateStandaloneRelease
+}
+
 dependencies {
-  implementation fileTree(include: ['*.jar'], dir: 'libs')
-  implementation 'androidx.appcompat:appcompat:1.0.2'
-  implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.0"))
-  //needed to fix sdk 34+ crashing
-  implementation 'org.jetbrains:annotations:16.0.2'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'androidx.appcompat:appcompat:1.0.2'
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.0')
+    // Required to prevent an SDK 34+ startup crash.
+    implementation 'org.jetbrains:annotations:16.0.2'
 }
