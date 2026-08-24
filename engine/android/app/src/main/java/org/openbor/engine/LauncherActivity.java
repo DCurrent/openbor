@@ -79,8 +79,10 @@ public class LauncherActivity extends Activity {
                 runOnUiThread(() -> {
                     if (pakCount == 0) {
                         showPakSelectionDialog();
-                    } else {
+                    } else if (isDedicatedBuild()) {
                         startGameActivity();
+                    } else {
+                        showLaunchOptions(pakCount);
                     }
                 });
             } catch (Exception exception) {
@@ -113,6 +115,32 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    /*
+    - Caskey, Damon V.
+    - 2026-08-24
+    -
+    - Keep PAK import accessible after first launch while handing installed PAK
+    - selection to the native OpenBOR menu.
+    */
+    private void showLaunchOptions(int pakCount) {
+        if (pickerOpen || gameStarted || isFinishing()) {
+            return;
+        }
+
+        String message = pakCount == 1
+            ? "1 PAK is installed."
+            : pakCount + " PAKs are installed. OpenBOR will show the module selector.";
+
+        new AlertDialog.Builder(this)
+            .setTitle("OpenBOR")
+            .setMessage(message)
+            .setPositiveButton("Start OpenBOR", (dialog, which) -> startGameActivity())
+            .setNeutralButton("Import PAK", (dialog, which) -> showPakSelectionDialog())
+            .setNegativeButton("Exit", (dialog, which) -> finish())
+            .setCancelable(false)
+            .show();
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -123,8 +151,9 @@ public class LauncherActivity extends Activity {
 
         pickerOpen = false;
         if (resultCode == Activity.RESULT_CANCELED) {
-            if (countInstalledPaks() > 0) {
-                startGameActivity();
+            int pakCount = countInstalledPaks();
+            if (pakCount > 0 && !isDedicatedBuild()) {
+                showLaunchOptions(pakCount);
             } else {
                 finish();
             }
@@ -190,7 +219,7 @@ public class LauncherActivity extends Activity {
     }
 
     private void installBundledPakForDedicatedBuild() throws Exception {
-        if (GENERIC_PACKAGE_NAME.equals(getPackageName())) {
+        if (!isDedicatedBuild()) {
             return;
         }
 
@@ -212,6 +241,10 @@ public class LauncherActivity extends Activity {
         replaceFile(temporaryFile, destinationFile);
         removeOldDedicatedPaks(destinationFile);
         Log.i(TAG, "Installed bundled PAK: " + destinationFile.getAbsolutePath());
+    }
+
+    private boolean isDedicatedBuild() {
+        return !GENERIC_PACKAGE_NAME.equals(getPackageName());
     }
 
     private String getVersionName() throws Exception {
