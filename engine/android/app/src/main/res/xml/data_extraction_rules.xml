@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="external" path="Paks/" />
+        <exclude domain="external" path="Logs/" />
+        <exclude domain="external" path="ScreenShots/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="external" path="Paks/" />
+        <exclude domain="external" path="Logs/" />
+        <exclude domain="external" path="ScreenShots/" />
+    </device-transfer>
+</data-extraction-rules>
