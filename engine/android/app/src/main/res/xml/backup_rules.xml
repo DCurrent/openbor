@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="external" path="Paks/" />
+    <exclude domain="external" path="Logs/" />
+    <exclude domain="external" path="ScreenShots/" />
+</full-backup-content>
