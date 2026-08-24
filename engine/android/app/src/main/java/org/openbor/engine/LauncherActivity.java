@@ -1,10 +1,15 @@
-package org.openbor.engine; // Make sure this matches your package name
+package org.openbor.engine;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
+import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -12,66 +17,99 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-// You might need to import AlertDialog and DialogInterface if you use showErrorAndRetryDialog
-// import android.app.AlertDialog;
-// import android.content.DialogInterface;
-
+/*
+- Caskey, Damon V.
+- 2026-08-24
+-
+- Route existing PAK files to OpenBOR's native module selector, import a PAK only
+- when storage is empty, and restore bundled bor.pak support for dedicated APKs.
+*/
 public class LauncherActivity extends Activity {
 
     private static final String TAG = "LauncherActivity";
     private static final int PICK_PAK_FILE_REQUEST_CODE = 1;
-    private static final String DEST_SUB_FOLDER_NAME = "Paks"; // Subdirectory for copied .pak files
+    private static final int COPY_BUFFER_SIZE = 64 * 1024;
+    private static final String GENERIC_PACKAGE_NAME = "org.openbor.engine";
+    private static final String PAK_DIRECTORY_NAME = "Paks";
+    private static final String BUNDLED_PAK_NAME = "bor.pak";
+
+    private final ExecutorService copyExecutor = Executors.newSingleThreadExecutor();
+    private File pakDirectory;
+    private ProgressDialog progressDialog;
+    private boolean gameStarted;
+    private boolean pickerOpen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Set your layout if you have one, or keep it simple for testing
-        // setContentView(R.layout.activity_launcher);
 
-        // Immediately try to show the file picker when the activity is created
-        showPakSelectionDialog();
+        File externalFilesDirectory = getExternalFilesDir(null);
+        if (externalFilesDirectory == null) {
+            showFatalError("OpenBOR could not access its application storage.");
+            return;
+        }
+
+        pakDirectory = new File(externalFilesDirectory, PAK_DIRECTORY_NAME);
+        if (!pakDirectory.isDirectory() && !pakDirectory.mkdirs()) {
+            showFatalError("OpenBOR could not create its Paks folder.");
+            return;
+        }
+
+        preparePaksAndContinue();
+    }
+
+    /*
+    - Caskey, Damon V.
+    - 2026-08-24
+    -
+    - Dedicated APKs install their bundled asset before PAK count is evaluated.
+    - Generic builds launch native selection when one or more PAKs already exist.
+    */
+    private void preparePaksAndContinue() {
+        copyExecutor.execute(() -> {
+            try {
+                installBundledPakForDedicatedBuild();
+                int pakCount = countInstalledPaks();
+                Log.i(TAG, "Installed PAK count: " + pakCount);
+
+                runOnUiThread(() -> {
+                    if (pakCount == 0) {
+                        showPakSelectionDialog();
+                    } else {
+                        startGameActivity();
+                    }
+                });
+            } catch (Exception exception) {
+                Log.e(TAG, "Could not prepare PAK storage.", exception);
+                runOnUiThread(() -> showRetryDialog(
+                    "OpenBOR could not prepare its game data. " + safeMessage(exception),
+                    this::preparePaksAndContinue));
+            }
+        });
     }
 
     private void showPakSelectionDialog() {
-        Log.d(TAG, "Showing .pak file selection dialog...");
-        Toast.makeText(this, "Select .pak file to copy!.", Toast.LENGTH_LONG).show();
-        // ACTION_OPEN_DOCUMENT allows the user to pick a document that is "owned" by an app.
-        // This is suitable for files the user wants to grant you access to, like from Downloads.
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-
-        // Filter to show only files that can be opened.
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-
-        // Specify the MIME type for .pak files or general binary files.
-        // A specific MIME type like "application/octet-stream" is often used for arbitrary binary data.
-        // If your .pak files have a known MIME type, use that.
-        intent.setType("*/*"); // Allow all file types for broader selection
-        String[] mimeTypes = {"application/octet-stream", "application/zip", "application/x-pak"}; // Common for custom data, zip
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
-
-
-        // OPTIONAL: Suggest a starting location (Android 11+ for this to be consistently respected)
-        // This tries to open the picker directly in the Downloads directory.
-        // It's a hint and might not work on all devices/Android versions.
-        try {
-            Uri downloadsUri = Uri.parse("content://com.android.providers.downloads.documents/document/downloads");
-            if (downloadsUri != null) {
-                 intent.putExtra(android.provider.DocumentsContract.EXTRA_INITIAL_URI, downloadsUri);
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Could not set initial URI to Downloads. " + e.getMessage());
+        if (pickerOpen || gameStarted) {
+            return;
         }
 
+        pickerOpen = true;
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
         try {
             startActivityForResult(intent, PICK_PAK_FILE_REQUEST_CODE);
-        } catch (Exception e) {
-            Log.e(TAG, "Could not launch file picker: " + e.getMessage(), e);
-            Toast.makeText(this, "Error opening file picker. Please ensure a file manager is installed.", Toast.LENGTH_LONG).show();
-            // Decide what to do if the picker cannot be launched (e.g., finish activity or retry)
-            finish(); // For this simple example, we'll just exit
+        } catch (Exception exception) {
+            pickerOpen = false;
+            Log.e(TAG, "Could not launch the Android file picker.", exception);
+            showFatalError("OpenBOR could not open a file picker. Please install or enable a file manager.");
         }
     }
 
@@ -79,163 +117,320 @@ public class LauncherActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == PICK_PAK_FILE_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
-                Uri uri = data.getData();
-                Log.d(TAG, "Selected file URI: " + uri.toString());
+        if (requestCode != PICK_PAK_FILE_REQUEST_CODE) {
+            return;
+        }
 
-                String fileName = getFileName(uri); // Helper method to get file name from URI
-
-                if (fileName != null && fileName.toLowerCase().endsWith(".pak")) {
-                    File destinationRootFolder = new File(getExternalFilesDir(null), DEST_SUB_FOLDER_NAME);
-                    // Ensure the destination folder exists
-                    if (!destinationRootFolder.exists()) {
-                        if (!destinationRootFolder.mkdirs()) {
-                            Log.e(TAG, "Failed to create destination folder: " + destinationRootFolder.getAbsolutePath());
-                            Toast.makeText(this, "Failed to create game data folder.", Toast.LENGTH_LONG).show();
-                            showErrorAndRetryDialog("Failed to prepare game data folder. Try again?");
-                            return;
-                        }
-                    }
-
-                    File destinationFile = new File(destinationRootFolder, fileName);
-
-                    // Check if the file already exists in the destination
-                    if (destinationFile.exists()) {
-                        Log.d(TAG, "File " + fileName + " already exists in Paks folder. Launching game.");
-                        Toast.makeText(this, fileName + " already in game folder. Starting game.", Toast.LENGTH_LONG).show();
-                        startGameActivity();
-                    } else {
-                        Log.d(TAG, "Selected file: " + fileName + " is a .pak file and needs to be copied. Copying...");
-                        copySelectedPakFile(uri, fileName);
-                    }
-                } else {
-                    Log.w(TAG, "Selected file is not a .pak file: " + (fileName != null ? fileName : "Unknown"));
-                    Toast.makeText(this, "Please select a file with the .pak extension.", Toast.LENGTH_LONG).show();
-                    showPakSelectionDialog(); // Prompt user again
-                }
-            } else if (resultCode == Activity.RESULT_CANCELED) {
-                Log.d(TAG, "File selection cancelled by user.");
-                Toast.makeText(this, "File selection cancelled.", Toast.LENGTH_SHORT).show();
-                // If user cancels, we might want to prompt again or exit
-                startGameActivity(); // Continue to start engine
+        pickerOpen = false;
+        if (resultCode == Activity.RESULT_CANCELED) {
+            if (countInstalledPaks() > 0) {
+                startGameActivity();
             } else {
-                Log.e(TAG, "Unknown result from file picker: resultCode=" + resultCode);
-                Toast.makeText(this, "An error occurred during file selection.", Toast.LENGTH_LONG).show();
-                showPakSelectionDialog(); // Re-prompt
+                finish();
             }
+            return;
         }
+
+        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
+            showRetryDialog("OpenBOR could not read the selected file.", this::showPakSelectionDialog);
+            return;
+        }
+
+        Uri pakUri = data.getData();
+        String fileName = getSafeFileName(pakUri);
+        if (!isPakFileName(fileName)) {
+            showRetryDialog("Please select a file with the .pak extension.", this::showPakSelectionDialog);
+            return;
+        }
+
+        persistReadPermission(pakUri, data.getFlags());
+        copySelectedPakFile(pakUri, fileName, getFileSize(pakUri));
     }
 
-    private void copySelectedPakFile(Uri pakFileUri, String fileName) {
-        File destinationRootFolder = new File(getExternalFilesDir(null), DEST_SUB_FOLDER_NAME);
-        File destinationFile = new File(destinationRootFolder, fileName);
+    /*
+    - Caskey, Damon V.
+    - 2026-08-24
+    -
+    - Copy on a worker thread and publish only a fully closed, size-checked file.
+    */
+    private void copySelectedPakFile(Uri pakUri, String fileName, long expectedSize) {
+        showProgress("Importing " + fileName + "...");
 
-        InputStream in = null;
-        OutputStream out = null;
-        try {
-            // !!! Crucial for ACTION_OPEN_DOCUMENT URIs !!!
-            // Grants your app persistent read access to the selected URI.
-            // This is the direct solution to the SecurityException you encountered earlier.
-            final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
-            getContentResolver().takePersistableUriPermission(pakFileUri, takeFlags);
+        copyExecutor.execute(() -> {
+            File destinationFile = new File(pakDirectory, fileName);
+            File temporaryFile = new File(pakDirectory, fileName + ".part");
 
-            in = getContentResolver().openInputStream(pakFileUri);
-            if (in == null) {
-                throw new IOException("Failed to open input stream for URI: " + pakFileUri.toString());
-            }
-            out = new FileOutputStream(destinationFile);
-            copyFile(in, out); // Your utility copy method
-            Toast.makeText(this, "Copied " + fileName + " to game data folder!", Toast.LENGTH_LONG).show();
-            Log.d(TAG, "Successfully copied: " + fileName + " to " + destinationFile.getAbsolutePath());
-            startGameActivity(); // Launch the game after successful copy
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to copy selected .pak file: " + fileName, e);
-            Toast.makeText(this, "Error copying " + fileName + ". Please try again.", Toast.LENGTH_LONG).show();
-            // Clean up partially copied file
-            if (destinationFile.exists() && !destinationFile.delete()) {
-                Log.w(TAG, "Could not delete partially copied file: " + destinationFile.getAbsolutePath());
-            }
-            showErrorAndRetryDialog("Failed to copy " + fileName + ". Would you like to try again?");
-        } catch (SecurityException e) {
-            Log.e(TAG, "SecurityException while copying file: " + e.getMessage(), e);
-            Toast.makeText(this, "Permission denied to read selected file. Please ensure app has storage access if prompted, or choose an accessible file.", Toast.LENGTH_LONG).show();
-            showErrorAndRetryDialog("Permission denied. Select another file?");
-        } finally {
             try {
-                if (in != null) in.close();
-                if (out != null) {
-                    out.flush(); // Ensure all buffered data is written
-                    out.close();
+                ContentResolver resolver = getContentResolver();
+                try (InputStream input = resolver.openInputStream(pakUri)) {
+                    if (input == null) {
+                        throw new IOException("The selected file could not be opened.");
+                    }
+                    copyToTemporaryFile(input, temporaryFile, expectedSize);
                 }
-            } catch (IOException e) {
-                Log.e(TAG, "Error closing streams for " + fileName + ": " + e.getMessage());
+
+                replaceFile(temporaryFile, destinationFile);
+                Log.i(TAG, "Imported PAK: " + destinationFile.getAbsolutePath());
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    Toast.makeText(this, "Imported " + fileName + ".", Toast.LENGTH_SHORT).show();
+                    startGameActivity();
+                });
+            } catch (Exception exception) {
+                deleteQuietly(temporaryFile);
+                Log.e(TAG, "Could not import PAK " + fileName + ".", exception);
+                runOnUiThread(() -> {
+                    dismissProgress();
+                    showRetryDialog(
+                        "OpenBOR could not import " + fileName + ". " + safeMessage(exception),
+                        this::showPakSelectionDialog);
+                });
+            }
+        });
+    }
+
+    private void installBundledPakForDedicatedBuild() throws Exception {
+        if (GENERIC_PACKAGE_NAME.equals(getPackageName())) {
+            return;
+        }
+
+        String versionName = getVersionName();
+        File destinationFile = new File(pakDirectory, safeVersionFileName(versionName) + ".pak");
+        if (destinationFile.isFile() && destinationFile.length() > 0) {
+            removeOldDedicatedPaks(destinationFile);
+            return;
+        }
+
+        File temporaryFile = new File(pakDirectory, destinationFile.getName() + ".part");
+        try (InputStream input = getAssets().open(BUNDLED_PAK_NAME)) {
+            copyToTemporaryFile(input, temporaryFile, -1);
+        } catch (Exception exception) {
+            deleteQuietly(temporaryFile);
+            throw exception;
+        }
+
+        replaceFile(temporaryFile, destinationFile);
+        removeOldDedicatedPaks(destinationFile);
+        Log.i(TAG, "Installed bundled PAK: " + destinationFile.getAbsolutePath());
+    }
+
+    private String getVersionName() throws Exception {
+        PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+        if (packageInfo.versionName == null || packageInfo.versionName.trim().isEmpty()) {
+            return "bor";
+        }
+        return packageInfo.versionName;
+    }
+
+    private String safeVersionFileName(String versionName) {
+        return versionName.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
+    private void removeOldDedicatedPaks(File currentPak) {
+        File[] files = pakDirectory.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (!file.equals(currentPak) && file.isFile() && isPakFileName(file.getName())) {
+                deleteQuietly(file);
             }
         }
     }
 
-    // --- Utility Methods (Keep these as they were or adapt them) ---
+    private int countInstalledPaks() {
+        if (pakDirectory == null) {
+            return 0;
+        }
 
-    // This method needs to be implemented based on your actual game launch
-private void startGameActivity() {
-    Log.d(TAG, "Attempting to start GameActivity..."); // <--- ADD THIS
-    Toast.makeText(this, "Starting OpenBOR!", Toast.LENGTH_SHORT).show();
-    Intent gameIntent = new Intent(this, GameActivity.class); // Assuming GameActivity is your game's main activity
-    startActivity(gameIntent);
-    finish(); // Optional: close LauncherActivity if it's no longer needed
-}
-
-    // This is a placeholder; implement your actual dialog logic
-    private void showErrorAndRetryDialog(String message) {
-        Log.e(TAG, "Error: " + message);
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-        // Example of a simple dialog, you'll need AlertDialog imports:
-        // new AlertDialog.Builder(this)
-        //     .setTitle("Error")
-        //     .setMessage(message)
-        //     .setPositiveButton("Retry", new DialogInterface.OnClickListener() {
-        //         public void onClick(DialogInterface dialog, int which) {
-        //             showPakSelectionDialog(); // Try again
-        //         }
-        //     })
-        //     .setNegativeButton("Exit", new DialogInterface.OnClickListener() {
-        //         public void onClick(DialogInterface dialog, int which) {
-        //             finish(); // Exit the app
-        //         }
-        //     })
-        //     .setCancelable(false) // User must choose an option
-        //     .show();
-        showPakSelectionDialog(); // For this example, just re-prompt directly
+        File[] files = pakDirectory.listFiles(file ->
+            file.isFile() && file.length() > 0 && isPakFileName(file.getName()));
+        return files == null ? 0 : files.length;
     }
 
-    // Helper method to get the file name from a content URI
-    // This is a common pattern for ACTION_OPEN_DOCUMENT URIs.
-    private String getFileName(Uri uri) {
+    private boolean isPakFileName(String fileName) {
+        return fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".pak");
+    }
+
+    private String getSafeFileName(Uri uri) {
         String result = null;
-        if (uri.getScheme().equals("content")) {
-            try (android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+        if ("content".equals(uri.getScheme())) {
+            try (Cursor cursor = getContentResolver().query(
+                uri,
+                new String[] {OpenableColumns.DISPLAY_NAME},
+                null,
+                null,
+                null)) {
                 if (cursor != null && cursor.moveToFirst()) {
-                    int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
-                    if (nameIndex != -1) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex >= 0) {
                         result = cursor.getString(nameIndex);
                     }
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error getting file name from URI: " + uri.toString(), e);
+            } catch (Exception exception) {
+                Log.w(TAG, "Could not query the selected file name.", exception);
             }
         }
-        if (result == null) {
-            result = uri.getLastPathSegment(); // Fallback
+
+        if (result == null || result.trim().isEmpty()) {
+            result = uri.getLastPathSegment();
         }
-        return result;
+        if (result == null) {
+            return null;
+        }
+
+        result = result.replace('\\', '/');
+        int separator = result.lastIndexOf('/');
+        return separator >= 0 ? result.substring(separator + 1) : result;
     }
 
-    // Utility method to copy an InputStream to an OutputStream
-    private void copyFile(InputStream in, OutputStream out) throws IOException {
-        byte[] buffer = new byte[1024];
-        int read;
-        while ((read = in.read(buffer)) != -1) {
-            out.write(buffer, 0, read);
+    private long getFileSize(Uri uri) {
+        try (Cursor cursor = getContentResolver().query(
+            uri,
+            new String[] {OpenableColumns.SIZE},
+            null,
+            null,
+            null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) {
+                    return cursor.getLong(sizeIndex);
+                }
+            }
+        } catch (Exception exception) {
+            Log.w(TAG, "Could not query the selected file size.", exception);
         }
+        return -1;
+    }
+
+    private void persistReadPermission(Uri uri, int resultFlags) {
+        int readFlag = resultFlags & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        if (readFlag == 0) {
+            return;
+        }
+
+        try {
+            getContentResolver().takePersistableUriPermission(uri, readFlag);
+        } catch (SecurityException exception) {
+            // The transient grant is enough for the immediate background copy.
+            Log.w(TAG, "The selected provider did not grant persistent read access.", exception);
+        }
+    }
+
+    private void copyToTemporaryFile(InputStream input, File temporaryFile, long expectedSize)
+        throws IOException {
+        deleteQuietly(temporaryFile);
+        long copiedSize = 0;
+
+        try (FileOutputStream output = new FileOutputStream(temporaryFile)) {
+            byte[] buffer = new byte[COPY_BUFFER_SIZE];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                output.write(buffer, 0, read);
+                copiedSize += read;
+            }
+            output.flush();
+            output.getFD().sync();
+        }
+
+        if (copiedSize == 0) {
+            throw new IOException("The selected PAK is empty.");
+        }
+        if (expectedSize >= 0 && copiedSize != expectedSize) {
+            throw new IOException(
+                "The copy was incomplete (expected " + expectedSize + " bytes, copied " + copiedSize + ").");
+        }
+    }
+
+    private void replaceFile(File temporaryFile, File destinationFile) throws IOException {
+        File backupFile = new File(pakDirectory, destinationFile.getName() + ".bak");
+        deleteQuietly(backupFile);
+
+        boolean hadDestination = destinationFile.exists();
+        if (hadDestination && !destinationFile.renameTo(backupFile)) {
+            throw new IOException("The existing PAK could not be replaced.");
+        }
+
+        if (!temporaryFile.renameTo(destinationFile)) {
+            if (hadDestination && !backupFile.renameTo(destinationFile)) {
+                Log.e(TAG, "Could not restore the previous PAK after an import failure.");
+            }
+            throw new IOException("The imported PAK could not be installed.");
+        }
+
+        deleteQuietly(backupFile);
+    }
+
+    private void deleteQuietly(File file) {
+        if (file.exists() && !file.delete()) {
+            Log.w(TAG, "Could not delete " + file.getAbsolutePath());
+        }
+    }
+
+    private void startGameActivity() {
+        if (gameStarted) {
+            return;
+        }
+
+        gameStarted = true;
+        startActivity(new Intent(this, GameActivity.class));
+        finish();
+    }
+
+    private void showProgress(String message) {
+        dismissProgress();
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setIndeterminate(true);
+        progressDialog.setCancelable(false);
+        progressDialog.setMessage(message);
+        progressDialog.show();
+    }
+
+    private void dismissProgress() {
+        if (progressDialog != null) {
+            progressDialog.dismiss();
+            progressDialog = null;
+        }
+    }
+
+    private void showRetryDialog(String message, Runnable retryAction) {
+        if (isFinishing()) {
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("OpenBOR")
+            .setMessage(message)
+            .setPositiveButton("Retry", (dialog, which) -> retryAction.run())
+            .setNegativeButton("Exit", (dialog, which) -> finish())
+            .setCancelable(false)
+            .show();
+    }
+
+    private void showFatalError(String message) {
+        Log.e(TAG, message);
+        if (isFinishing()) {
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+            .setTitle("OpenBOR")
+            .setMessage(message)
+            .setPositiveButton("Exit", (dialog, which) -> finish())
+            .setCancelable(false)
+            .show();
+    }
+
+    private String safeMessage(Exception exception) {
+        String message = exception.getMessage();
+        return message == null || message.trim().isEmpty() ? "Please try again." : message;
+    }
+
+    @Override
+    protected void onDestroy() {
+        dismissProgress();
+        copyExecutor.shutdownNow();
+        super.onDestroy();
     }
 }
