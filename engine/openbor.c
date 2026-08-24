@@ -2049,15 +2049,84 @@ void execute_onmovez_script(entity *ent)
 
 void execute_onmovea_script(entity *ent)
 {
+    animation_id_t animation_before;
+    int script_initialized;
+    int trace_throw_recovery;
     ScriptVariant tempvar;
     Script *cs = ent->scripts->onmovea_script;
-    if(Script_IsInitialized(cs))
+
+    script_initialized = Script_IsInitialized(cs);
+    trace_throw_recovery = ent->playerindex >= 0
+        && ent->playerindex < MAX_PLAYERS
+        && (player[ent->playerindex].keys & (FLAG_MOVEUP | FLAG_JUMP))
+            == (FLAG_MOVEUP | FLAG_JUMP);
+
+    /*
+    * Caskey, Damon V.
+    * 2026-08-24
+    *
+    * Trace the SORX scripted throw-recovery path around
+    * the vertical movement hook. This distinguishes hook
+    * dispatch from script gating and animation overwrite.
+    */
+    if(trace_throw_recovery)
     {
+        printf(
+            "THROW_RECOVERY_ONMOVE stage=before"
+            " player=%" PRId64
+            " initialized=%d"
+            " animation=%" PRIu64
+            " fall9=%" PRIu64
+            " fall10=%" PRIu64
+            " land=%" PRIu64
+            " frame=%" PRIu64
+            " velocity_y=%f"
+            " type=%d"
+            " health=%" PRId64
+            " falling=%d"
+            " drop=%d\n",
+            ent->playerindex,
+            script_initialized,
+            (uint64_t)ent->animnum,
+            (uint64_t)ANI_FALL9,
+            (uint64_t)ANI_FALL10,
+            (uint64_t)ANI_LAND,
+            ent->animpos,
+            ent->velocity.y,
+            ent->modeldata.type,
+            ent->health,
+            ent->falling,
+            ent->drop
+        );
+    }
+
+    if(script_initialized)
+    {
+        animation_before = ent->animnum;
         ScriptVariant_Init(&tempvar);
         ScriptVariant_ChangeType(&tempvar, VT_PTR);
         tempvar.ptrVal = (VOID *)ent;
         Script_Set_Local_Variant(cs, "self", &tempvar);
         Script_Execute(cs);
+
+        if(trace_throw_recovery)
+        {
+            printf(
+                "THROW_RECOVERY_ONMOVE stage=after"
+                " animation_before=%" PRIu64
+                " animation_after=%" PRIu64
+                " frame=%" PRIu64
+                " velocity_y=%f"
+                " falling=%d"
+                " drop=%d\n",
+                (uint64_t)animation_before,
+                (uint64_t)ent->animnum,
+                ent->animpos,
+                ent->velocity.y,
+                ent->falling,
+                ent->drop
+            );
+        }
 
         //clear to save variant space
         ScriptVariant_Clear(&tempvar);
