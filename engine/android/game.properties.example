@@ -1,0 +1,9 @@
+# Copy this file to game.properties in the engine/android directory.
+# Keep applicationId stable after the first public release.
+game.applicationId=io.github.creator.game
+game.name=Game Title
+game.versionCode=1
+game.versionName=1.0.0
+
+# Relative paths start in engine/android. Absolute paths also work.
+game.pak=path/to/game.pak
