@@ -25,19 +25,19 @@ import java.util.concurrent.Executors;
 - Caskey, Damon V.
 - 2026-08-24
 -
-- Route existing PAK files to OpenBOR's native module selector, import a PAK only
-- when storage is empty, and restore bundled bor.pak support for dedicated APKs.
+- Launch packaged games directly, keep game import available in generic builds,
+- and route installed game selection through OpenBOR's native module menu.
 */
 public class LauncherActivity extends Activity {
 
     private static final String TAG = "LauncherActivity";
     private static final int PICK_PAK_FILE_REQUEST_CODE = 1;
     private static final int COPY_BUFFER_SIZE = 64 * 1024;
-    private static final String GENERIC_PACKAGE_NAME = "org.openbor.engine";
     private static final String PAK_DIRECTORY_NAME = "Paks";
     private static final String BUNDLED_PAK_NAME = "bor.pak";
 
     private final ExecutorService copyExecutor = Executors.newSingleThreadExecutor();
+    private String applicationName = "OpenBOR";
     private File pakDirectory;
     private ProgressDialog progressDialog;
     private boolean gameStarted;
@@ -46,16 +46,17 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applicationName = getApplicationName();
 
         File externalFilesDirectory = getExternalFilesDir(null);
         if (externalFilesDirectory == null) {
-            showFatalError("OpenBOR could not access its application storage.");
+            showFatalError("The game could not access its application storage.");
             return;
         }
 
         pakDirectory = new File(externalFilesDirectory, PAK_DIRECTORY_NAME);
         if (!pakDirectory.isDirectory() && !pakDirectory.mkdirs()) {
-            showFatalError("OpenBOR could not create its Paks folder.");
+            showFatalError("The game could not create its data folder.");
             return;
         }
 
@@ -66,21 +67,21 @@ public class LauncherActivity extends Activity {
     - Caskey, Damon V.
     - 2026-08-24
     -
-    - Dedicated APKs install their bundled asset before PAK count is evaluated.
-    - Generic builds launch native selection when one or more PAKs already exist.
+    - Packaged games install their bundled asset and launch directly.
+    - Generic builds offer import or play when one or more PAKs already exist.
     */
     private void preparePaksAndContinue() {
         copyExecutor.execute(() -> {
             try {
-                installBundledPakForDedicatedBuild();
+                boolean packagedGame = installBundledPakIfPresent();
                 int pakCount = countInstalledPaks();
                 Log.i(TAG, "Installed PAK count: " + pakCount);
 
                 runOnUiThread(() -> {
-                    if (pakCount == 0) {
-                        showPakSelectionDialog();
-                    } else if (isDedicatedBuild()) {
+                    if (packagedGame) {
                         startGameActivity();
+                    } else if (pakCount == 0) {
+                        showPakSelectionDialog();
                     } else {
                         showLaunchOptions(pakCount);
                     }
@@ -88,7 +89,7 @@ public class LauncherActivity extends Activity {
             } catch (Exception exception) {
                 Log.e(TAG, "Could not prepare PAK storage.", exception);
                 runOnUiThread(() -> showRetryDialog(
-                    "OpenBOR could not prepare its game data. " + safeMessage(exception),
+                    "The game could not prepare its data. " + safeMessage(exception),
                     this::preparePaksAndContinue));
             }
         });
@@ -111,7 +112,7 @@ public class LauncherActivity extends Activity {
         } catch (Exception exception) {
             pickerOpen = false;
             Log.e(TAG, "Could not launch the Android file picker.", exception);
-            showFatalError("OpenBOR could not open a file picker. Please install or enable a file manager.");
+            showFatalError("The game could not open a file picker. Please install or enable a file manager.");
         }
     }
 
@@ -128,14 +129,14 @@ public class LauncherActivity extends Activity {
         }
 
         String message = pakCount == 1
-            ? "1 PAK is installed."
-            : pakCount + " PAKs are installed. OpenBOR will show the module selector.";
+            ? "1 game is installed."
+            : pakCount + " games are installed. Play will open the game selector.";
 
         new AlertDialog.Builder(this)
-            .setTitle("OpenBOR")
+            .setTitle(applicationName)
             .setMessage(message)
-            .setPositiveButton("Start OpenBOR", (dialog, which) -> startGameActivity())
-            .setNeutralButton("Import PAK", (dialog, which) -> showPakSelectionDialog())
+            .setPositiveButton("Play", (dialog, which) -> startGameActivity())
+            .setNeutralButton("Import Game", (dialog, which) -> showPakSelectionDialog())
             .setNegativeButton("Exit", (dialog, which) -> finish())
             .setCancelable(false)
             .show();
@@ -152,7 +153,7 @@ public class LauncherActivity extends Activity {
         pickerOpen = false;
         if (resultCode == Activity.RESULT_CANCELED) {
             int pakCount = countInstalledPaks();
-            if (pakCount > 0 && !isDedicatedBuild()) {
+            if (pakCount > 0) {
                 showLaunchOptions(pakCount);
             } else {
                 finish();
@@ -161,7 +162,7 @@ public class LauncherActivity extends Activity {
         }
 
         if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
-            showRetryDialog("OpenBOR could not read the selected file.", this::showPakSelectionDialog);
+            showRetryDialog("The game could not read the selected file.", this::showPakSelectionDialog);
             return;
         }
 
@@ -211,23 +212,23 @@ public class LauncherActivity extends Activity {
                 runOnUiThread(() -> {
                     dismissProgress();
                     showRetryDialog(
-                        "OpenBOR could not import " + fileName + ". " + safeMessage(exception),
+                        "The game could not import " + fileName + ". " + safeMessage(exception),
                         this::showPakSelectionDialog);
                 });
             }
         });
     }
 
-    private void installBundledPakForDedicatedBuild() throws Exception {
-        if (!isDedicatedBuild()) {
-            return;
+    private boolean installBundledPakIfPresent() throws Exception {
+        if (!hasBundledPak()) {
+            return false;
         }
 
         String versionName = getVersionName();
         File destinationFile = new File(pakDirectory, safeVersionFileName(versionName) + ".pak");
         if (destinationFile.isFile() && destinationFile.length() > 0) {
-            removeOldDedicatedPaks(destinationFile);
-            return;
+            removeOldBundledPaks(destinationFile);
+            return true;
         }
 
         File temporaryFile = new File(pakDirectory, destinationFile.getName() + ".part");
@@ -239,12 +240,23 @@ public class LauncherActivity extends Activity {
         }
 
         replaceFile(temporaryFile, destinationFile);
-        removeOldDedicatedPaks(destinationFile);
+        removeOldBundledPaks(destinationFile);
         Log.i(TAG, "Installed bundled PAK: " + destinationFile.getAbsolutePath());
+        return true;
     }
 
-    private boolean isDedicatedBuild() {
-        return !GENERIC_PACKAGE_NAME.equals(getPackageName());
+    private boolean hasBundledPak() throws IOException {
+        String[] assetNames = getAssets().list("");
+        if (assetNames == null) {
+            return false;
+        }
+
+        for (String assetName : assetNames) {
+            if (BUNDLED_PAK_NAME.equals(assetName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String getVersionName() throws Exception {
@@ -259,7 +271,19 @@ public class LauncherActivity extends Activity {
         return versionName.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
-    private void removeOldDedicatedPaks(File currentPak) {
+    private String getApplicationName() {
+        try {
+            CharSequence label = getApplicationInfo().loadLabel(getPackageManager());
+            if (label != null && !label.toString().trim().isEmpty()) {
+                return label.toString();
+            }
+        } catch (Exception exception) {
+            Log.w(TAG, "Could not read the application label.", exception);
+        }
+        return "OpenBOR";
+    }
+
+    private void removeOldBundledPaks(File currentPak) {
         File[] files = pakDirectory.listFiles();
         if (files == null) {
             return;
@@ -433,7 +457,7 @@ public class LauncherActivity extends Activity {
         }
 
         new AlertDialog.Builder(this)
-            .setTitle("OpenBOR")
+            .setTitle(applicationName)
             .setMessage(message)
             .setPositiveButton("Retry", (dialog, which) -> retryAction.run())
             .setNegativeButton("Exit", (dialog, which) -> finish())
@@ -448,7 +472,7 @@ public class LauncherActivity extends Activity {
         }
 
         new AlertDialog.Builder(this)
-            .setTitle("OpenBOR")
+            .setTitle(applicationName)
             .setMessage(message)
             .setPositiveButton("Exit", (dialog, which) -> finish())
             .setCancelable(false)
