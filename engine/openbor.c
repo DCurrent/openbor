@@ -2094,7 +2094,7 @@ void execute_onmovea_script(entity *ent)
             ent->animpos,
             ent->velocity.y,
             ent->modeldata.type,
-            ent->health,
+            ent->energy_state.health_current,
             ent->falling,
             ent->drop
         );
