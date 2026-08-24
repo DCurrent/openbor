@@ -10719,19 +10719,82 @@ HRESULT openbor_getfilestreamline(ScriptVariant **varlist , ScriptVariant **pret
 
 /*
 - Caskey, Damon V.
+- 2026-08-24
+-
+- Read one requested file-stream argument using the legacy
+  whitespace-only rules. Quote characters remain literal and
+  whitespace inside quotes still separates arguments.
+*/
+static bool filestream_argument_read_legacy(
+    const char* command_line,
+    size_t argument_index,
+    const char** argument_text,
+    size_t* argument_length
+) {
+    const char* cursor;
+    const char* start;
+    size_t current_index = 0;
+
+    assert(command_line);
+    assert(argument_text);
+    assert(argument_length);
+
+    *argument_text = NULL;
+    *argument_length = 0;
+    cursor = command_line;
+
+    while(*cursor && *cursor != '\r' && *cursor != '\n') {
+        while(*cursor == ' ' || *cursor == '\t') {
+            cursor++;
+        }
+
+        if(!*cursor || *cursor == '\r' || *cursor == '\n') {
+            break;
+        }
+
+        start = cursor;
+
+        while(
+            *cursor
+            && *cursor != ' '
+            && *cursor != '\t'
+            && *cursor != '\r'
+            && *cursor != '\n'
+        ) {
+            cursor++;
+        }
+
+        if(current_index == argument_index) {
+            *argument_text = start;
+            *argument_length = (size_t)(cursor - start);
+            return true;
+        }
+
+        current_index++;
+    }
+
+    return false;
+}
+
+/*
+- Caskey, Damon V.
 - 2026-08-11
 -
-- Read one requested file-stream argument sequentially and
-  copy only its decoded value into exact-sized script storage.
-  Opening and closing quote delimiters are discarded. Numeric
-  conversions reuse the same temporary script string.
+- Read one requested file-stream argument into exact-sized
+  script storage. Three arguments retain the legacy literal
+  quote behavior. An optional nonzero fourth argument enables
+  modern quote grouping and delimiter removal. Numeric
+  conversions reuse the resulting temporary script string.
 */
 HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount) {
     e_command_argument_read_result argument_result = COMMAND_ARGUMENT_READ_END;
     s_command_argument_view argument_view = {0};
+    const char *legacy_argument_text = NULL;
     char *converted_text;
     ScriptVariant *arg = NULL;
     LONG filestreamindex, argument;
+    LONG decode_quotes = 0;
+    bool legacy_argument_found = false;
     size_t argument_length = 0;
     char *argtype = NULL;
 
@@ -10773,20 +10836,39 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
         return E_FAIL;
     }
 
-    if(argument >= 0) {
-        argument_result = command_argument_read(
-            filestreams[filestreamindex].buf
-                + filestreams[filestreamindex].pos,
-            (size_t)argument,
-            &argument_view
-        );
+    if(paramCount >= 4) {
+        arg = varlist[3];
 
-        if(argument_result == COMMAND_ARGUMENT_READ_INVALID) {
-            printf("File stream argument contains an unterminated quote.\n");
+        if(FAILED(ScriptVariant_IntegerValue(arg, &decode_quotes))) {
+            printf("Quote decoding flag must be an integer.\n");
             return E_FAIL;
         }
+    }
 
-        argument_length = argument_view.length;
+    if(argument >= 0) {
+        if(decode_quotes) {
+            argument_result = command_argument_read(
+                filestreams[filestreamindex].buf
+                    + filestreams[filestreamindex].pos,
+                (size_t)argument,
+                &argument_view
+            );
+
+            if(argument_result == COMMAND_ARGUMENT_READ_INVALID) {
+                printf("File stream argument contains an unterminated quote.\n");
+                return E_FAIL;
+            }
+
+            argument_length = argument_view.length;
+        } else {
+            legacy_argument_found = filestream_argument_read_legacy(
+                filestreams[filestreamindex].buf
+                    + filestreams[filestreamindex].pos,
+                (size_t)argument,
+                &legacy_argument_text,
+                &argument_length
+            );
+        }
     }
 
     if(argument_length > MAX_SCRIPT_STRING_LENGTH) {
@@ -10801,7 +10883,7 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
     (*pretvar)->strVal = StrCache_Pop((int)argument_length);
     converted_text = StrCache_Get((*pretvar)->strVal);
 
-    if(argument_result == COMMAND_ARGUMENT_READ_SUCCESS) {
+    if(decode_quotes && argument_result == COMMAND_ARGUMENT_READ_SUCCESS) {
         if(!command_argument_copy(
                 &argument_view,
                 converted_text,
@@ -10810,6 +10892,9 @@ HRESULT openbor_getfilestreamargument(ScriptVariant **varlist , ScriptVariant **
             ScriptVariant_Clear(*pretvar);
             return E_FAIL;
         }
+    } else if(!decode_quotes && legacy_argument_found) {
+        memcpy(converted_text, legacy_argument_text, argument_length);
+        converted_text[argument_length] = '\0';
     } else {
         converted_text[0] = '\0';
     }
