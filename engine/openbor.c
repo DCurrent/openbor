@@ -56498,6 +56498,18 @@ void openborMain(int argc, char **argv)
     printf("Game Selected: %s\n\n", packfile);
     loadsettings();
     startup();
+
+#ifdef __ANDROID__
+    /*
+    * Caskey, Damon V.
+    * 2026-08-27
+    *
+    * Trace Android startup completion and main-menu input so
+    * clean process exits can be assigned to a concrete branch.
+    */
+    printf("\nAndroid main diagnostic: startup returned.\n");
+#endif
+
 	bothnewkeys = 0;
 
     if(skiptoset < 0)
@@ -56538,6 +56550,22 @@ void openborMain(int argc, char **argv)
 
     while(!quit)
     {
+#ifdef __ANDROID__
+        if(bothnewkeys)
+        {
+            printf(
+                "\nAndroid main diagnostic: input=0x%016llx selector=%d "
+                "players=[0x%016llx,0x%016llx,0x%016llx,0x%016llx]\n",
+                (unsigned long long)bothnewkeys,
+                selector,
+                (unsigned long long)player[0].newkeys,
+                (unsigned long long)player[1].newkeys,
+                (unsigned long long)player[2].newkeys,
+                (unsigned long long)player[3].newkeys
+            );
+        }
+#endif
+
         if(skiptoset < 0 && !(goto_mainmenu_flag&8))
         {
             if(_time >= introtime)
@@ -56736,6 +56764,16 @@ void openborMain(int argc, char **argv)
         }
         update(0, 0);
     }
+
+#ifdef __ANDROID__
+    printf(
+        "\nAndroid main diagnostic: loop ended quit=%d input=0x%016llx selector=%d\n",
+        quit,
+        (unsigned long long)bothnewkeys,
+        selector
+    );
+#endif
+
     borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 }
 

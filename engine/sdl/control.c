@@ -116,22 +116,6 @@ void getPads(Uint8* keystate, Uint8* keystate_def)
 				break;
 #endif
 			case SDL_QUIT:
-#ifdef __ANDROID__
-			{
-				SDL_Event pending_event = {0};
-				const char *signal_hint = SDL_GetHint(SDL_HINT_NO_SIGNAL_HANDLERS);
-				int pending_count = SDL_PeepEvents(&pending_event,
-				                                        1,
-				                                        SDL_PEEKEVENT,
-				                                        SDL_FIRSTEVENT,
-				                                        SDL_LASTEVENT);
-
-				printf("\nAndroid SDL_QUIT diagnostic: signal_handlers=%s pending_count=%d next_event=%u\n",
-				       signal_hint ? signal_hint : "(unset)",
-				       pending_count,
-				       pending_count > 0 ? pending_event.type : 0);
-			}
-#endif
 				borShutdown(0, DEFAULT_SHUTDOWN_MESSAGE);
 				break;
 

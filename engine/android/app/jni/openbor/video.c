@@ -61,16 +61,6 @@ void initSDL()
     init_flags |= SDL_INIT_NOPARACHUTE;
 #endif
 
-    /*
-    * Caskey, Damon V.
-    * 2026-08-27
-    *
-    * Android owns application lifecycle through SDLActivity callbacks.
-    * Leave SIGINT and SIGTERM handling to the platform so SDL does not
-    * translate external process signals into synthetic quit events.
-    */
-    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
-
     if(SDL_Init(init_flags) < 0)
     {
         printf("SDL Failed to Init!!!! (%s)\n", SDL_GetError());
