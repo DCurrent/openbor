@@ -23,6 +23,10 @@
 #include <ctype.h>
 #include <limits.h>
 
+#if ANDROID
+#include <dlfcn.h>
+#endif
+
 #define NaN 0xAAAAAAAA
 
 char E_OUT_OF_MEMORY[] = "Error: Could not allocate sufficient memory.\n";
@@ -51941,6 +51945,46 @@ void borShutdown(int status, const char *msg, ...)
 
     shuttingdown = 1;
     va_start(arglist, msg);
+
+#if ANDROID
+    /*
+    * Caskey, Damon V.
+    * 2026-08-27
+    *
+    * Record the native caller of borShutdown() so Android clean exits
+    * during startup can be resolved to an exact source instruction.
+    */
+    {
+        void *return_address = __builtin_extract_return_addr(
+            __builtin_return_address(0)
+        );
+        Dl_info caller_info = {0};
+        uintptr_t return_offset = 0;
+        uintptr_t call_offset = 0;
+        const char *module_name = "(unknown)";
+
+        if(dladdr(return_address, &caller_info) && caller_info.dli_fbase)
+        {
+            return_offset = (uintptr_t)return_address
+                - (uintptr_t)caller_info.dli_fbase;
+            call_offset = return_offset >= 4
+                ? return_offset - 4
+                : return_offset;
+            module_name = caller_info.dli_fname
+                ? caller_info.dli_fname
+                : "(unknown)";
+        }
+
+        printf(
+            "\nAndroid shutdown caller: status=%d module=%s "
+            "return_offset=0x%" PRIxPTR " call_offset=0x%" PRIxPTR "\n",
+            status,
+            module_name,
+            return_offset,
+            call_offset
+        );
+    }
+#endif
 
     //printf("savedata.logo %d\n", savedata.logo);
 
