@@ -5862,7 +5862,7 @@ void load_background(char *filename)
     // then attempt to load 24bit color depth background. If THAT
     // fails, something is wrong and we better shut down to avoid
     // a crash.
-    if(!loadscreen(filename, packfile, NULL, PIXEL_x8, &background))
+    if(!loadscreen_indexed_probe(filename, packfile, NULL, PIXEL_x8, &background))
     {
         if (loadscreen32(filename, packfile, &background))
         {
@@ -6030,7 +6030,7 @@ void cache_background(char *filename)
     }
     else if(pixelformat == PIXEL_x8)
     {
-        if(!loadscreen(filename, packfile, NULL, pixelformat, &bg))
+        if(!loadscreen_indexed_probe(filename, packfile, NULL, pixelformat, &bg))
         {
             if(!loadscreen32(filename, packfile, &bg))
             {

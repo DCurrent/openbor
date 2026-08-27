@@ -96,7 +96,7 @@ static void closepng()
 * handle remains open for readpng() and must later be released by
 * closepng().
 */
-static int openpng(const char *filename, const char *packfilename) {
+static int openpng(const char *filename, const char *packfilename, int report_color_type_error) {
 
     uint64_t magic;
     struct png_chunk_header chunk_header;
@@ -190,18 +190,23 @@ static int openpng(const char *filename, const char *packfilename) {
     }
 
     /*
-    * Color type must be grayscale or indexed for this decoder. A color
-    * type mismatch is not necessarily an invalid asset: background
-    * loading intentionally probes this indexed path before falling back
-    * to loadscreen32(), which supports RGB and RGBA PNG images. Keep the
-    * expected routing result silent so valid truecolor backgrounds are
-    * not reported as engine errors.
+    * Color type must be grayscale or indexed. Truecolor, alpha, and
+    * truecolor-alpha PNG images are not supported by this decoder.
+    *
+    * Normal indexed image loads report the mismatch loudly. Background
+    * loading may suppress this one diagnostic while probing the indexed
+    * path because it immediately falls back to the RGB/RGBA decoder.
     */
     if(ihdr_data[9] != 0 && ihdr_data[9] != 3) {
+        if(report_color_type_error) {
+            printf("\n\n Error: The image %s has unsupported color type. Use indexed PNG images.\n", filename);
+        }
 #ifdef VERBOSE
-        printf("openpng: indexed decoder skipped unsupported color type %u for '%s'\n",
-               ihdr_data[9],
-               filename);
+        else {
+            printf("openpng: indexed background probe skipped color type %u for '%s'\n",
+                   ihdr_data[9],
+                   filename);
+        }
 #endif
         goto openpng_abort;
     }
@@ -665,7 +670,7 @@ static const char *get_image_extension(const char *filename) {
 *
 * Returns 1 on success, or 0 if no supported image could be opened.
 */
-static int openimage(char *filename, char *packfile) {
+static int openimage(char *filename, char *packfile, int report_color_type_error) {
 
     char fnam[MAX_BUFFER_LEN];
     const char *ext = NULL;
@@ -697,7 +702,7 @@ static int openimage(char *filename, char *packfile) {
 
         if(stricmp(ext, ".png") == 0) {
 
-            if(openpng(filename, packfile)) {
+            if(openpng(filename, packfile, report_color_type_error)) {
                 open_type = OT_PNG;
                 return 1;
             }
@@ -716,7 +721,7 @@ static int openimage(char *filename, char *packfile) {
     */
 
     snprintf(fnam, sizeof(fnam), "%s.png", filename);
-    if(openpng(fnam, packfile)) {
+    if(openpng(fnam, packfile, report_color_type_error)) {
         open_type = OT_PNG;
         return 1;
     }
@@ -772,7 +777,15 @@ static void closeimage()
 
 // ============================== Interface ===============================
 
-int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen) {
+/*
+* Caskey, Damon V.
+* 2026-08-27
+*
+* Shared indexed screen loader. report_color_type_error controls only
+* the diagnostic for an incompatible PNG color type. Every other image
+* validation error remains loud.
+*/
+static int loadscreen_internal(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen, int report_color_type_error) {
     int result;
     unsigned char *p;
 
@@ -784,7 +797,7 @@ int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s
         freescreen(screen);
     }
 
-    if(!openimage(filename, packfile)){
+    if(!openimage(filename, packfile, report_color_type_error)){
         return 0;
     }
 
@@ -820,6 +833,22 @@ int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s
     }
 
     return 1;
+}
+
+int loadscreen(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen) {
+    return loadscreen_internal(filename, packfile, pal, format, screen, 1);
+}
+
+/*
+* Caskey, Damon V.
+* 2026-08-27
+*
+* Probe an image through the indexed screen decoder without reporting
+* an incompatible color type. Background loading uses this probe before
+* falling back to loadscreen32(). Other validation errors remain loud.
+*/
+int loadscreen_indexed_probe(char *filename, char *packfile, unsigned char *pal, int format, s_screen **screen) {
+    return loadscreen_internal(filename, packfile, pal, format, screen, 0);
 }
 
 /*
@@ -906,7 +935,7 @@ s_bitmap *loadbitmap(char *filename, char *packfile, int format)
            format);
     #endif
 
-    if(!openimage(filename, packfile))
+    if(!openimage(filename, packfile, 1))
     {
         #ifdef VERBOSE
             printf("loadbitmap: openimage FAILED for '%s'\n", filename);
@@ -970,7 +999,7 @@ int loadimagepalette(char *filename, char *packfile, unsigned char *pal)
 {
     int result;
 
-    if(!openimage(filename, packfile))
+    if(!openimage(filename, packfile, 1))
     {
         return 0;
     }
