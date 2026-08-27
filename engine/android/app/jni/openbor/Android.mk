@@ -102,5 +102,12 @@ LOCAL_LDLIBS := -ldl -lGLESv2 -llog
 
 LOCAL_STATIC_LIBRARIES := png vorbisidec SDL2 vpx libhidapi
 
+# Caskey, Damon V.
+# 2026-08-27
+#
+# NDK r27 and earlier require explicit linker alignment for compatibility
+# with Android devices using 16 KB memory pages.
+LOCAL_LDFLAGS += -Wl,-z,max-page-size=16384 -Wl,-z,common-page-size=16384
+
 include $(BUILD_SHARED_LIBRARY)
 $(call import-module,android/cpufeatures)
