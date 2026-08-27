@@ -190,11 +190,19 @@ static int openpng(const char *filename, const char *packfilename) {
     }
 
     /*
-    * Color type must be grayscale or indexed. Truecolor, alpha, and
-    * truecolor-alpha PNG images are not supported by this loader.
+    * Color type must be grayscale or indexed for this decoder. A color
+    * type mismatch is not necessarily an invalid asset: background
+    * loading intentionally probes this indexed path before falling back
+    * to loadscreen32(), which supports RGB and RGBA PNG images. Keep the
+    * expected routing result silent so valid truecolor backgrounds are
+    * not reported as engine errors.
     */
     if(ihdr_data[9] != 0 && ihdr_data[9] != 3) {
-        printf("\n\n Error: The image %s has unsupported color type. Use indexed PNG images.\n", filename);
+#ifdef VERBOSE
+        printf("openpng: indexed decoder skipped unsupported color type %u for '%s'\n",
+               ihdr_data[9],
+               filename);
+#endif
         goto openpng_abort;
     }
 
