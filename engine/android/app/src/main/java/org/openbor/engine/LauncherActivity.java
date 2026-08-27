@@ -10,9 +10,11 @@ import android.os.Bundle;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,9 +32,11 @@ public class LauncherActivity extends Activity {
     private static final int COPY_BUFFER_SIZE = 64 * 1024;
     private static final String PAK_DIRECTORY_NAME = "Paks";
     private static final String BUNDLED_PAK_NAME = "bor.pak";
+    private static final String PAK_VERSION_MARKER_NAME = ".installed-pak-version";
 
     private final ExecutorService installExecutor = Executors.newSingleThreadExecutor();
     private String applicationName = "OpenBOR";
+    private String installedPakName = "game.pak";
     private File pakDirectory;
     private boolean gameStarted;
 
@@ -40,6 +44,7 @@ public class LauncherActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applicationName = getApplicationName();
+        installedPakName = getString(R.string.installed_pak_name);
 
         File externalFilesDirectory = getExternalFilesDir(null);
         if (externalFilesDirectory == null) {
@@ -89,10 +94,12 @@ public class LauncherActivity extends Activity {
     */
     private void installBundledPak() throws Exception {
         long versionCode = getVersionCode();
-        File destinationFile = new File(pakDirectory, "game-" + versionCode + ".pak");
+        File destinationFile = new File(pakDirectory, installedPakName);
+        File versionMarker = new File(pakDirectory, PAK_VERSION_MARKER_NAME);
         long expectedSize = getBundledPakSize();
 
-        if (isCompleteFile(destinationFile, expectedSize)) {
+        if (isCompleteFile(destinationFile, expectedSize)
+            && isInstalledVersion(versionMarker, versionCode)) {
             removeOldPaks(destinationFile);
             return;
         }
@@ -103,6 +110,7 @@ public class LauncherActivity extends Activity {
         try (InputStream input = getAssets().open(BUNDLED_PAK_NAME)) {
             copyToTemporaryFile(input, temporaryFile, expectedSize);
             replaceFile(temporaryFile, destinationFile);
+            writeVersionMarker(versionMarker, versionCode);
         } catch (Exception exception) {
             deleteQuietly(temporaryFile);
             throw exception;
@@ -201,6 +209,50 @@ public class LauncherActivity extends Activity {
             return false;
         }
         return expectedSize < 0 || file.length() == expectedSize;
+    }
+
+    /*
+     * Caskey, Damon V.
+     * 2026-08-27
+     *
+     * Preserve a creator-selected PAK name across application updates while
+     * using Android's monotonically increasing version code to refresh data.
+     */
+    private boolean isInstalledVersion(File versionMarker, long versionCode) {
+        if (!versionMarker.isFile()) {
+            return false;
+        }
+
+        byte[] value = new byte[64];
+        try (InputStream input = new FileInputStream(versionMarker)) {
+            int bytesRead = input.read(value);
+            if (bytesRead <= 0) {
+                return false;
+            }
+            String installedVersion = new String(
+                value, 0, bytesRead, StandardCharsets.US_ASCII).trim();
+            return Long.toString(versionCode).equals(installedVersion);
+        } catch (IOException exception) {
+            Log.w(TAG, "Could not read the installed PAK version.", exception);
+            return false;
+        }
+    }
+
+    private void writeVersionMarker(File versionMarker, long versionCode)
+        throws IOException {
+
+        File temporaryFile = new File(
+            pakDirectory, PAK_VERSION_MARKER_NAME + ".part");
+        deleteQuietly(temporaryFile);
+
+        byte[] value = Long.toString(versionCode).getBytes(StandardCharsets.US_ASCII);
+        try (FileOutputStream output = new FileOutputStream(temporaryFile, false)) {
+            output.write(value);
+            output.flush();
+            output.getFD().sync();
+        }
+
+        replaceFile(temporaryFile, versionMarker);
     }
 
     private void removeOldPaks(File currentPak) {

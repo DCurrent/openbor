@@ -26,12 +26,18 @@ def gameName = gameSetting('game.name', 'OpenBOR')
 def gameVersionName = gameSetting('game.versionName', '1.0.0')
 def gameVersionCodeText = gameSetting('game.versionCode', '1')
 def configuredPakPath = gameSetting('game.pak', '')
+def installedPakName = gameSetting('game.pakName', 'game.pak')
 def gameVersionCode
 
 try {
     gameVersionCode = Integer.parseInt(gameVersionCodeText)
 } catch (NumberFormatException exception) {
     throw new GradleException('game.versionCode must be a positive whole number.', exception)
+}
+
+if (!(installedPakName ==~ /^[A-Za-z0-9][A-Za-z0-9._-]*\.pak$/)) {
+    throw new GradleException(
+        'game.pakName must be a plain file name ending in .pak; folders are not allowed.')
 }
 
 def sourceAssetsDirectory = file('src/main/assets')
@@ -57,6 +63,7 @@ android {
         versionCode gameVersionCode
         versionName gameVersionName
         resValue 'string', 'app_name', gameName
+        resValue 'string', 'installed_pak_name', installedPakName
 
         externalNativeBuild {
             ndkBuild {

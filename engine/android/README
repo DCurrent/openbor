@@ -41,6 +41,7 @@ the values:
     game.versionCode=1
     game.versionName=1.0.0
     game.pak=path/to/game.pak
+    game.pakName=game.pak
 
 Property details:
 
@@ -55,8 +56,8 @@ game.name
 
 game.versionCode
     Positive whole number used by Android to order releases. Increase it for
-    every update. The launcher also uses this value to install updated PAK data
-    without exposing a partial copy.
+    every update. The launcher also uses this value as the installed-data
+    revision, without changing the PAK file name.
 
 game.versionName
     Player-facing release label, such as 1.0.0.
@@ -64,6 +65,12 @@ game.versionName
 game.pak
     Source PAK path. Relative paths start in engine/android; absolute paths also
     work. Use forward slashes in Windows paths, for example C:/Games/MyGame.pak.
+
+game.pakName
+    Stable file name created in the application's Paks directory. Keep it
+    unchanged across updates because OpenBOR derives save and configuration
+    names from the PAK file name. Use the name expected by any game scripts that
+    inspect their archive, for example SORX.pak or 1.0.0.pak.
 
 Leaving game.pak empty uses app/src/main/assets/bor.pak for compatibility with
 the original packaging workflow. Gradle stages either source as assets/bor.pak,
@@ -168,9 +175,10 @@ For an update to an existing game:
 
 1. Keep game.applicationId unchanged.
 2. Keep the same release signing key.
-3. Increase game.versionCode.
-4. Set the new game.versionName.
-5. Point game.pak to the updated PAK and rebuild.
+3. Keep game.pakName unchanged.
+4. Increase game.versionCode.
+5. Set the new game.versionName.
+6. Point game.pak to the updated PAK and rebuild.
 
 Android treats a changed application ID as a different app. Matching IDs with
 different signing keys cannot update one another. Matching identity, signing
@@ -216,7 +224,7 @@ Android refuses to install an update
 
 The old game data still launches during local testing
     Increase game.versionCode and rebuild. The version code is the package data
-    revision boundary.
+    revision boundary; game.pakName remains stable.
 
 The first launch takes time
     First launch must copy the bundled PAK into the engine's filesystem storage.
