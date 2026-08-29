@@ -10,6 +10,10 @@
 # Script acquires the verison number from GIT Repository and creates
 # a version.h as well as the environment variable to be used.
 
+# Caskey, Damon V. - 2026-08-29
+# Keep generated metadata separate from the tracked source-archive fallback.
+VERSION_HEADER_TEMP="version.generated.tmp"
+
 function get_revnum {
   if test -d "../.git" || test -d ".git"; then
     VERSION_BUILD=`git rev-list --count HEAD`
@@ -43,7 +47,7 @@ fi
 }
 
 function write_version {
-rm -rf version.tmp
+rm -f "${VERSION_HEADER_TEMP}"
 echo "$VERSION_NAME-v$VERSION_MAJOR.$VERSION_MINOR.$VERSION_BUILD-$VERSION_COMMIT" > version.txt
 echo "/*
  * OpenBOR - http://www.ChronoCrash.com
@@ -60,17 +64,17 @@ echo "/*
 #define VERSION_MAJOR \"$VERSION_MAJOR\"
 #define VERSION_MINOR \"$VERSION_MINOR\"
 #define VERSION_BUILD \"$VERSION_BUILD\"
-#define VERSION_BUILD_INT $VERSION_BUILD" >> version.tmp
+#define VERSION_BUILD_INT $VERSION_BUILD" >> "${VERSION_HEADER_TEMP}"
 
 if [ -z "${VERSION_COMMIT}" ]; then
   echo "#define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD
 
-#endif" >> version.tmp
+#endif" >> "${VERSION_HEADER_TEMP}"
 else
   echo "#define VERSION_COMMIT \"${VERSION_COMMIT}\"
 #define VERSION \"v\"VERSION_MAJOR\".\"VERSION_MINOR\" Build \"VERSION_BUILD\" (commit hash: \"VERSION_COMMIT\")\"
 
-#endif" >> version.tmp
+#endif" >> "${VERSION_HEADER_TEMP}"
 fi
 
 rm -rf resources/meta.xml
@@ -162,19 +166,25 @@ All Rights Reserved</string>
 
 function replace_version {
   if [ ! -f version.h ]; then
-    mv version.tmp version.h
+    mv "${VERSION_HEADER_TEMP}" version.h
   else
     OLD=""
     NEW=""
     if command -v md5sum &> /dev/null; then
       OLD=`md5sum version.h | awk '{print $1}'`
-      NEW=`md5sum version.tmp | awk '{print $1}'`
+      NEW=`md5sum "${VERSION_HEADER_TEMP}" | awk '{print $1}'`
     elif command -v md5 &> /dev/null; then
       OLD=`md5 version.h | awk '{print $4}'`
-      NEW=`md5 version.tmp | awk '{print $4}'`
+      NEW=`md5 "${VERSION_HEADER_TEMP}" | awk '{print $4}'`
+    else
+      # Caskey, Damon V. - 2026-08-29
+      # The bundled Windows shell has no md5 utility. Always promote the newly
+      # generated header there so Android builds cannot retain stale metadata.
+      mv -f "${VERSION_HEADER_TEMP}" version.h
+      return
     fi
     if [ "${OLD}" != "${NEW}" ]; then
-      mv version.tmp version.h
+      mv "${VERSION_HEADER_TEMP}" version.h
     fi
   fi
 }
@@ -206,4 +216,3 @@ case $1 in
     replace_version
     ;;
 esac
-

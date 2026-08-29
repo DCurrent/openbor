@@ -6,6 +6,8 @@
 /app/.gradle
 /app/.externalNativeBuild
 /build
+/output/
+/game.pak
 /keystore.properties
 *.jks
 /app/local.properties

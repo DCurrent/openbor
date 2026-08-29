@@ -1,3 +1,8 @@
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+
 apply plugin: 'com.android.application'
 
 /*
@@ -10,7 +15,7 @@ apply plugin: 'com.android.application'
 def gamePropertiesFile = rootProject.file('game.properties')
 def gameProperties = new Properties()
 if (gamePropertiesFile.isFile()) {
-    gamePropertiesFile.withInputStream { stream -> gameProperties.load(stream) }
+    gamePropertiesFile.withReader('UTF-8') { reader -> gameProperties.load(reader) }
 }
 
 def gameSetting = { String key, String fallback ->
@@ -28,6 +33,8 @@ def gameVersionCodeText = gameSetting('game.versionCode', '1')
 def configuredPakPath = gameSetting('game.pak', '')
 def installedPakName = gameSetting('game.pakName', 'game.pak')
 def gameVersionCode
+def safeGameName = gameName.replaceAll('[^A-Za-z0-9._-]+', '-')
+def safeGameVersionName = gameVersionName.replaceAll('[^A-Za-z0-9._-]+', '-')
 
 try {
     gameVersionCode = Integer.parseInt(gameVersionCodeText)
@@ -111,9 +118,7 @@ android {
             if (variant.buildType.name == 'debug') {
                 outputFileName = 'OpenBOR.apk'
             } else {
-                String safeName = gameName.replaceAll('[^A-Za-z0-9._-]+', '-')
-                String safeVersionName = gameVersionName.replaceAll('[^A-Za-z0-9._-]+', '-')
-                outputFileName = "${safeName}-${safeVersionName}.apk"
+                outputFileName = "${safeGameName}-${safeGameVersionName}.apk"
             }
         }
     }
@@ -176,27 +181,6 @@ tasks.matching { task -> task.name == 'preBuild' }.configureEach {
 */
 def validateStandaloneRelease = tasks.register('validateStandaloneRelease') {
     doLast {
-        if (!(gameApplicationId ==~ /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/)) {
-            throw new GradleException(
-                'game.applicationId must contain two or more lowercase identifier segments.')
-        }
-        if (gameApplicationId == defaultApplicationId) {
-            throw new GradleException(
-                'Set a unique game.applicationId before building a release APK.')
-        }
-        if (!gameName || gameName.equalsIgnoreCase('OpenBOR')) {
-            throw new GradleException('Set game.name to the title players should see.')
-        }
-        if (gameVersionCode <= 0) {
-            throw new GradleException('game.versionCode must be greater than zero.')
-        }
-        if (!gameVersionName) {
-            throw new GradleException('game.versionName must not be empty.')
-        }
-        if (!sourcePakFile.isFile() || sourcePakFile.length() <= 0) {
-            throw new GradleException(
-                "Game PAK not found or empty: ${sourcePakFile}. Set game.pak or add app/src/main/assets/bor.pak.")
-        }
         if (!keystorePropertiesFile.isFile()) {
             throw new GradleException('keystore.properties is required for release builds.')
         }
@@ -225,6 +209,225 @@ def validateStandaloneRelease = tasks.register('validateStandaloneRelease') {
 
 tasks.matching { task -> task.name == 'preReleaseBuild' }.configureEach {
     dependsOn validateStandaloneRelease
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-29
+-
+- Create a strong per-game Android release key and the ignored Gradle signing
+- configuration without requiring creators to operate keytool themselves.
+*/
+def createReleaseKey = tasks.register('createReleaseKey') {
+    group = 'OpenBOR game packaging'
+    description = 'Creates the release key used to sign this game and its updates.'
+
+    doLast {
+        File releaseStoreFile = rootProject.file('release-key.jks')
+        if (releaseStoreFile.exists() || keystorePropertiesFile.exists()) {
+            throw new GradleException(
+                'Release signing already exists. Nothing was replaced. Back up release-key.jks and keystore.properties.')
+        }
+
+        File keytoolFile = new File(
+            System.getProperty('java.home'),
+            System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')
+                ? 'bin/keytool.exe'
+                : 'bin/keytool')
+        if (!keytoolFile.isFile()) {
+            throw new GradleException("JDK keytool was not found: ${keytoolFile}")
+        }
+
+        byte[] randomPassword = new byte[32]
+        new SecureRandom().nextBytes(randomPassword)
+        String password = Base64.getUrlEncoder().withoutPadding().encodeToString(randomPassword)
+        String alias = 'openbor-release'
+
+        project.exec {
+            commandLine keytoolFile.absolutePath,
+                '-genkeypair',
+                '-noprompt',
+                '-storetype', 'PKCS12',
+                '-keystore', releaseStoreFile.absolutePath,
+                '-storepass', password,
+                '-keypass', password,
+                '-alias', alias,
+                '-keyalg', 'RSA',
+                '-keysize', '4096',
+                '-validity', '36500',
+                '-dname', 'CN=OpenBOR Android Release, OU=OpenBOR, O=ChronoCrash'
+        }
+
+        Properties generatedSigning = new Properties()
+        generatedSigning.setProperty('storeFile', '../release-key.jks')
+        generatedSigning.setProperty('storePassword', password)
+        generatedSigning.setProperty('keyAlias', alias)
+        generatedSigning.setProperty('keyPassword', password)
+        keystorePropertiesFile.withOutputStream { output ->
+            generatedSigning.store(
+                output,
+                'Generated by the OpenBOR Android release-key task. Keep this file private.')
+        }
+
+        logger.lifecycle('')
+        logger.lifecycle('Release key created successfully.')
+        logger.lifecycle("BACK UP: ${releaseStoreFile.absolutePath}")
+        logger.lifecycle("BACK UP: ${keystorePropertiesFile.absolutePath}")
+        logger.lifecycle('Both files are required to publish updates outside Google Play App Signing.')
+    }
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-29
+-
+- Validate every creator-controlled value used by the standalone packaging
+- helpers. Engine-only Gradle builds remain available without game.properties.
+*/
+def validateStandaloneGame = tasks.register('validateStandaloneGame') {
+    group = 'OpenBOR game packaging'
+    description = 'Validates standalone game identity and packaged data.'
+
+    doLast {
+        if (!gamePropertiesFile.isFile()) {
+            throw new GradleException(
+                'game.properties is missing. Copy game.properties.example and enter the game settings.')
+        }
+        if (!(gameApplicationId ==~ /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/)) {
+            throw new GradleException(
+                'game.applicationId must contain two or more lowercase identifier segments.')
+        }
+        if (gameApplicationId == defaultApplicationId) {
+            throw new GradleException(
+                'Set a unique game.applicationId before packaging a standalone game.')
+        }
+        if (!gameName || gameName.equalsIgnoreCase('OpenBOR')) {
+            throw new GradleException('Set game.name to the title players should see.')
+        }
+        if (gameVersionCode <= 0) {
+            throw new GradleException('game.versionCode must be greater than zero.')
+        }
+        if (!gameVersionName) {
+            throw new GradleException('game.versionName must not be empty.')
+        }
+        if (!sourcePakFile.isFile() || sourcePakFile.length() <= 0) {
+            throw new GradleException(
+                "Game PAK not found or empty: ${sourcePakFile}. Set game.pak to the correct file.")
+        }
+    }
+}
+
+validateStandaloneRelease.configure {
+    dependsOn validateStandaloneGame
+}
+
+/*
+- Caskey, Damon V.
+- 2026-08-29
+-
+- Verify the exact PAK stored in a completed APK, then publish the verified
+- artifact to the creator-facing output directory with a useful file name.
+*/
+def publishVerifiedApk = { File packagedApk, File publishedApk ->
+    if (!packagedApk.isFile() || packagedApk.length() <= 0) {
+        throw new GradleException("Completed APK was not found: ${packagedApk}")
+    }
+
+    MessageDigest sourceDigest = MessageDigest.getInstance('SHA-256')
+    sourcePakFile.withInputStream { input ->
+        byte[] buffer = new byte[1024 * 1024]
+        int bytesRead
+        while ((bytesRead = input.read(buffer)) != -1) {
+            sourceDigest.update(buffer, 0, bytesRead)
+        }
+    }
+
+    String sourceHash = sourceDigest.digest().encodeHex().toString()
+    String packagedHash
+    ZipFile archive = new ZipFile(packagedApk)
+    try {
+        ZipEntry pakEntry = archive.getEntry('assets/bor.pak')
+        if (pakEntry == null) {
+            throw new GradleException('The completed APK does not contain assets/bor.pak.')
+        }
+        if (pakEntry.method != ZipEntry.STORED) {
+            throw new GradleException('The game PAK was compressed inside the APK.')
+        }
+        if (pakEntry.size != sourcePakFile.length()) {
+            throw new GradleException(
+                "The APK contains ${pakEntry.size} PAK bytes; expected ${sourcePakFile.length()}.")
+        }
+
+        MessageDigest packagedDigest = MessageDigest.getInstance('SHA-256')
+        archive.getInputStream(pakEntry).withCloseable { input ->
+            byte[] buffer = new byte[1024 * 1024]
+            int bytesRead
+            while ((bytesRead = input.read(buffer)) != -1) {
+                packagedDigest.update(buffer, 0, bytesRead)
+            }
+        }
+        packagedHash = packagedDigest.digest().encodeHex().toString()
+    } finally {
+        archive.close()
+    }
+
+    if (sourceHash != packagedHash) {
+        throw new GradleException('The PAK in the completed APK does not match the source PAK.')
+    }
+
+    publishedApk.parentFile.mkdirs()
+    project.copy {
+        from packagedApk
+        into publishedApk.parentFile
+        rename { publishedApk.name }
+    }
+
+    logger.lifecycle('')
+    logger.lifecycle("Verified PAK bytes: ${sourcePakFile.length()}")
+    logger.lifecycle("Verified PAK SHA-256: ${sourceHash}")
+    logger.lifecycle("READY: ${publishedApk.absolutePath}")
+}
+
+def outputDirectory = rootProject.file('output')
+
+def packageStandaloneDebug = tasks.register('packageStandaloneDebug') {
+    group = 'OpenBOR game packaging'
+    description = 'Builds and verifies a standalone test APK.'
+    dependsOn validateStandaloneGame, 'assembleDebug'
+
+    doLast {
+        File publishedApk = new File(
+            outputDirectory, "${safeGameName}-${safeGameVersionName}-debug.apk")
+        publishVerifiedApk(
+            project.file('build/outputs/apk/debug/OpenBOR.apk'),
+            publishedApk)
+        new File(outputDirectory, 'latest-debug-apk.txt').setText(
+            publishedApk.absolutePath + System.lineSeparator(), 'UTF-8')
+    }
+}
+
+def packageStandaloneRelease = tasks.register('packageStandaloneRelease') {
+    group = 'OpenBOR game packaging'
+    description = 'Builds, signs, verifies, and publishes a standalone release APK.'
+    dependsOn validateStandaloneRelease, 'assembleRelease'
+
+    doLast {
+        File publishedApk = new File(
+            outputDirectory, "${safeGameName}-${safeGameVersionName}.apk")
+        publishVerifiedApk(
+            project.file("build/outputs/apk/release/${safeGameName}-${safeGameVersionName}.apk"),
+            publishedApk)
+        new File(outputDirectory, 'latest-release-apk.txt').setText(
+            publishedApk.absolutePath + System.lineSeparator(), 'UTF-8')
+    }
+}
+
+tasks.matching { task -> task.name == 'assembleDebug' }.configureEach {
+    mustRunAfter validateStandaloneGame
+}
+
+tasks.matching { task -> task.name == 'assembleRelease' }.configureEach {
+    mustRunAfter validateStandaloneRelease
 }
 
 dependencies {

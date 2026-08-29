@@ -1,1 +1,4 @@
-keytool -genkey -v -keystore my-key.jks -alias alias_name -keyalg RSA -keysize 2048 -validity 10000
+@echo off
+rem Compatibility entry point for the original OpenBOR Android helper.
+call "%~dp0build.bat" key
+exit /b %errorlevel%

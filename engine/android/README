@@ -1,234 +1,241 @@
 OpenBOR Android Standalone Game Guide
 =====================================
 
-Packaging model
----------------
-
 OpenBOR games ship as standalone Android applications. One APK contains one
-OpenBOR engine build and one game PAK. Players launch the game by its title and
-icon; no PAK picker or shared OpenBOR library is involved.
+OpenBOR engine build and one game PAK. Players launch the game by its own title
+and icon; no PAK picker or shared OpenBOR installation is involved.
 
-Every game needs its own Android application ID. Distinct IDs let several
-OpenBOR games remain installed together, with separate PAKs, saves, logs, and
-screenshots.
-
-The source tree without a game configuration is an engine build template, not
-an end-user game package.
+Every game needs a permanent Android application ID and release signing key.
+Those two values give Android updates their identity. Distinct IDs also let
+several OpenBOR games remain installed together with separate PAKs, saves,
+logs, and screenshots.
 
 
-Requirements
-------------
+Windows quick start
+-------------------
+
+One-time requirements:
 
 - JDK 17
-- Android SDK platform 35
-- Android Build Tools 36.0.0
-- Android NDK 21.4.7075529
-- 64-bit ARM Android device or emulator for testing
+- Android Studio or the Android SDK command-line tools
+- Roughly 4 GB of free build space, plus the size of the game PAK
 
-The Gradle wrapper is included. Existing build.bat and build.sh scripts can set
-up or invoke the development build, while the commands below make each build
-type explicit.
+Double-click build.bat after installing the requirements. The builder locates
+normal JDK and Android SDK installations automatically. Missing Android SDK
+Platform 35, Build Tools 36.0.0, or NDK 21.4.7075529 components can be installed
+through the same menu when sdkmanager is available.
+
+First game setup:
+
+1. Put the game PAK beside build.bat and name the source file game.pak.
+2. Run build.bat and choose "Edit game settings."
+3. Replace the example values, then save and close Notepad.
+4. Replace the launcher artwork and optional loading background.
+5. Choose "Build a test APK."
+6. Test the game, then choose "Build a signed release APK."
+
+The release choice creates a permanent release key automatically when none is
+configured. Finished and verified packages appear in engine/android/output.
+No PowerShell commands, Gradle commands, PAK copying, APK inspection, or manual
+signing steps are required.
 
 
-1. Configure the game
----------------------
+Game settings
+-------------
 
-Copy game.properties.example to game.properties in engine/android, then edit
-the values:
+The builder creates game.properties from game.properties.example. Six settings
+describe the standalone package:
 
     game.applicationId=io.github.creator.game
     game.name=Game Title
     game.versionCode=1
     game.versionName=1.0.0
-    game.pak=path/to/game.pak
+    game.pak=game.pak
     game.pakName=game.pak
-
-Property details:
 
 game.applicationId
     Permanent Android identity for this game. Use two or more lowercase
     segments, normally a reversed domain you control. Creators without a domain
     can use a stable form such as io.github.account.gametitle. Never reuse one
-    ID for unrelated games, and never change the ID after publishing a game.
+    ID for unrelated games, and never change the ID after publishing.
 
 game.name
     Title displayed by Android.
 
 game.versionCode
     Positive whole number used by Android to order releases. Increase it for
-    every update. The launcher also uses this value as the installed-data
-    revision, without changing the PAK file name.
+    every published update. The launcher also uses this value to refresh the
+    installed PAK without changing its stable name.
 
 game.versionName
     Player-facing release label, such as 1.0.0.
 
 game.pak
-    Source PAK path. Relative paths start in engine/android; absolute paths also
-    work. Use forward slashes in Windows paths, for example C:/Games/MyGame.pak.
+    Source PAK path. Keeping game.pak beside build.bat is simplest. Relative
+    paths start in engine/android; absolute paths also work. Use forward slashes
+    in Windows paths, for example C:/Games/MyGame.pak.
 
 game.pakName
-    Stable file name created in the application's Paks directory. Keep it
+    Stable name created in the installed application's Paks directory. Keep it
     unchanged across updates because OpenBOR derives save and configuration
-    names from the PAK file name. Use the name expected by any game scripts that
-    inspect their archive, for example SORX.pak or 1.0.0.pak.
+    names from the PAK name. Use the name expected by any module script that
+    inspects its archive, such as SORX.pak or 1.0.0.pak.
 
-Leaving game.pak empty uses app/src/main/assets/bor.pak for compatibility with
-the original packaging workflow. Gradle stages either source as assets/bor.pak,
-stores it uncompressed in the package, and rejects a missing or empty PAK for a
-release build.
-
-The engine Java namespace remains org.openbor.engine. Creators change only
-game.applicationId; changing the namespace would break the source package and
-does not provide additional install isolation.
+The engine Java namespace remains org.openbor.engine. Change only
+game.applicationId. Renaming the source namespace breaks the Java package and
+does not provide more installation isolation.
 
 
-2. Add game branding
---------------------
+Branding
+--------
 
 Replace the launcher artwork under app/src/main/res/mipmap-* while preserving
-the existing resource names. Replace app/src/main/res/drawable/background.png
-if a custom loading background is desired. game.name supplies the application
-label.
+the existing resource names. Each density folder contains the background,
+foreground, monochrome, and round icon resources used by Android launchers.
+
+Replace app/src/main/res/drawable/background.png to customize the loading
+screen. game.name supplies the application label.
+
+Automated icon generation is intentionally outside the first packaging helper.
+Android adaptive icons contain separate foreground, background, monochrome, and
+safe-area decisions, so silently resizing one flat image would often produce a
+poor production icon.
 
 
-3. Build and test a debug APK
------------------------------
+Test packages
+-------------
 
-From engine/android:
+Choose "Build a test APK" from build.bat. The builder performs these actions:
 
-Windows:
+1. Validates game.properties and the source PAK.
+2. Regenerates OpenBOR engine version metadata.
+3. Rebuilds the native engine and Android application.
+4. Confirms assets/bor.pak is stored without compression.
+5. Compares the source and packaged PAK size and SHA-256 hash.
+6. Places Game-Title-1.0.0-debug.apk in the output folder.
+7. Offers to install it when adb and a connected device are available.
 
-    gradlew.bat clean assembleDebug
-
-Linux or macOS:
-
-    ./gradlew clean assembleDebug
-
-The output is:
-
-    app/build/outputs/apk/debug/OpenBOR.apk
-
-Install and test the complete game, including first launch, second launch,
-save creation, controller input, and an update over the installed test build.
+Test first launch, later launches, save creation, controller input, focus
+changes, level transitions, and installation over the previous test build.
 
 
-4. Create a release key
------------------------
+Release signing and production packages
+---------------------------------------
 
-Every installable APK must be signed. One game must keep the same release key
-for its entire update lifetime. Store the keystore and passwords securely, with
-an offline backup. Losing a self-managed signing key can permanently prevent
-future updates.
+Choose "Build a signed release APK" when testing is complete. The first release
+build creates these ignored local files:
 
-Use make-my-key.bat on Windows or make-my-key.sh on Linux/macOS, or create a key
-with Android Studio. Then create engine/android/keystore.properties:
+    release-key.jks
+    keystore.properties
 
-    storePassword=your_store_password
-    keyPassword=your_key_password
-    keyAlias=your_alias
-    storeFile=../my-key.jks
+The generated key uses RSA 4096, a random 256-bit password, and a 100-year
+validity period. Both files must be backed up together in secure, separate
+locations. Losing a self-managed signing key can permanently prevent future
+updates outside Google Play App Signing.
 
-storeFile is resolved from engine/android/app. The example points to
-engine/android/my-key.jks.
+Release packaging validates the game identity, version, PAK, signing settings,
+keystore, and certificate choice before compilation. The completed signed APK
+is verified against the source PAK and copied to the output folder as:
 
-Never commit keystore.properties, the keystore, or passwords. Existing ignore
-rules exclude keystore.properties and *.jks. Release validation also rejects
-debug.keystore and the standard androiddebugkey alias.
+    Game-Title-1.0.0.apk
+
+Never commit release-key.jks, keystore.properties, or their passwords. Existing
+ignore rules exclude those files.
 
 
-5. Build the release
+Publishing an update
 --------------------
 
-From engine/android:
+Every update must preserve three values:
 
-Windows:
+- game.applicationId
+- game.pakName
+- release-key.jks and its matching keystore.properties
 
-    gradlew.bat clean assembleRelease
+Increase game.versionCode for every published update and set the desired
+game.versionName. Replace game.pak, run the release build again, then install or
+publish the verified APK from the output folder.
 
-Linux or macOS:
+Changing the application ID produces a different application. Matching IDs
+signed with different keys cannot update each other. Matching identity, key,
+and a higher version code produce a normal in-place update.
 
-    ./gradlew clean assembleRelease
-
-The signed APK is written under:
-
-    app/build/outputs/apk/release/
-
-Its file name uses game.name and game.versionName. Google Play distribution can
-use bundleRelease instead of assembleRelease, followed by Play App Signing and
-the normal Play Console release process.
-
-Release validation stops the build when it finds:
-
-- the default org.openbor.engine application ID
-- an invalid application ID
-- the default OpenBOR title
-- a missing or empty PAK
-- an invalid version code or version name
-- missing signing settings or keystore
-- the Android debug certificate
+Google Play distribution can use bundleRelease and Play App Signing. Keep the
+generated key even when Google Play treats it as an upload key for later
+releases.
 
 
-Updates and parallel installs
------------------------------
+Linux and macOS
+---------------
 
-For an update to an existing game:
+JDK 17 and the required Android SDK packages must already be installed. Run one
+of these commands from engine/android:
 
-1. Keep game.applicationId unchanged.
-2. Keep the same release signing key.
-3. Keep game.pakName unchanged.
-4. Increase game.versionCode.
-5. Set the new game.versionName.
-6. Point game.pak to the updated PAK and rebuild.
+    ./build.sh debug
+    ./build.sh release
+    ./build.sh key
 
-Android treats a changed application ID as a different app. Matching IDs with
-different signing keys cannot update one another. Matching identity, signing
-key, and an increased version code produce a normal in-place update.
-
-For another OpenBOR game, create another configuration with another application
-ID and signing policy. Both games can then remain installed because Android
-assigns each ID its own app-specific storage.
+The release action creates the key when necessary and writes the same verified
+artifacts to engine/android/output.
 
 
-Runtime storage and security
-----------------------------
+Direct Gradle tasks
+-------------------
 
-The launcher copies the bundled PAK on a background thread into the Paks folder
-under Android app-specific external storage. Copying uses a 64 KiB buffer,
-flushes and synchronizes the completed file, validates its size, then publishes
-it with a same-directory rename. The engine starts only after the stream closes.
+Build automation can invoke the underlying tasks without the helpers:
+
+    gradlew.bat clean packageStandaloneDebug
+    gradlew.bat createReleaseKey
+    gradlew.bat clean packageStandaloneRelease
+
+Standard assembleDebug, assembleRelease, and bundleRelease tasks remain
+available for engine developers and custom release systems.
+
+
+Runtime behavior
+----------------
+
+The launcher copies the bundled PAK on a background thread into Android
+app-specific external storage. Copying uses a 64 KiB buffer, flushes and
+synchronizes the completed file, validates its size, then publishes it with a
+same-directory rename. The engine starts only after the stream closes.
 
 Only LauncherActivity is exported to other applications. GameActivity is
-private and starts only after the launcher prepares game data. No broad storage
+private and starts after the launcher prepares game data. No broad storage
 permission is requested.
 
-Android backup rules preserve normal user data such as Saves while excluding
+Backup rules preserve normal user data such as Saves while excluding
 regenerable or oversized Paks, Logs, and ScreenShots directories. Uninstalling
-an app can still remove its app-specific files, so never treat device storage or
-Android backup as the creator's only copy of important data.
+an application can still remove its app-specific files.
 
 
 Troubleshooting
 ---------------
 
-"This APK does not contain game data"
-    game.pak points to the wrong file, or app/src/main/assets/bor.pak is absent.
-    Correct the source and rebuild.
+"JDK 17 was not found"
+    Install Eclipse Temurin JDK 17 or select JDK 17 for JAVA_HOME. Later JDK
+    releases are not substituted automatically because this build is pinned to
+    the JDK version required by its Android Gradle Plugin.
 
-Release validation fails on application ID
-    Choose a unique lowercase ID with two or more segments. Do not change an ID
-    already used for a published build.
+"Android SDK was not found"
+    Install Android Studio or the Android command-line tools. The builder checks
+    ANDROID_SDK_ROOT, ANDROID_HOME, the normal Android Studio location, and
+    C:/android/sdk.
+
+"Game PAK not found or empty"
+    Put game.pak beside build.bat or correct game.pak in game.properties.
 
 Android refuses to install an update
-    Confirm the application ID and signing key match the installed version, then
-    increase game.versionCode.
+    Confirm the application ID and release key match the installed version,
+    then increase game.versionCode.
 
-The old game data still launches during local testing
-    Increase game.versionCode and rebuild. The version code is the package data
-    revision boundary; game.pakName remains stable.
+Old game data still launches during local testing
+    Increase game.versionCode and rebuild. The installed PAK name remains stable
+    while the version code controls replacement.
 
-The first launch takes time
-    First launch must copy the bundled PAK into the engine's filesystem storage.
-    Later launches reuse the validated installed copy for that version code.
+First launch takes time
+    First launch copies the bundled PAK into the engine filesystem. Later
+    launches reuse the verified installed copy for that version code.
 
 
 Android references
@@ -236,6 +243,9 @@ Android references
 
 Application ID and namespace:
 https://developer.android.com/build/configure-app-module#set-application-id
+
+SDK command-line tools:
+https://developer.android.com/tools/sdkmanager
 
 Application signing:
 https://developer.android.com/studio/publish/app-signing

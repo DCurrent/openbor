@@ -5,8 +5,9 @@ game.name=Game Title
 game.versionCode=1
 game.versionName=1.0.0
 
-# Relative paths start in engine/android. Absolute paths also work.
-game.pak=path/to/game.pak
+# Easiest setup: place game.pak beside build.bat. Relative and absolute paths
+# also work; use forward slashes in absolute Windows paths.
+game.pak=game.pak
 
 # Stable file name used inside the application's Paks directory.
 # Keep this unchanged across updates. Scripts may depend on it.
