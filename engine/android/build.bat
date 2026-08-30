@@ -147,9 +147,28 @@ if not defined JAVA_EXE (
 for %%D in ("%JAVA_EXE%\..\..") do set "JAVA_HOME=%%~fD"
 
 :check_java_version
+rem ---------------------------------------------------------------------------
+rem Caskey, Damon V.
+rem 2026-08-30
+rem
+rem Read version metadata from the JDK release file. This avoids cmd.exe
+rem breaking a quoted Java executable path that contains spaces inside FOR /F.
+rem ---------------------------------------------------------------------------
 set "JAVA_VERSION="
 set "JAVA_MAJOR="
-for /f tokens^=2^ delims^=^" %%V in ('"%JAVA_EXE%" -version 2^>^&1 ^| findstr /i /c:"version"') do if not defined JAVA_VERSION set "JAVA_VERSION=%%V"
+
+if not exist "%JAVA_HOME%\bin\javac.exe" (
+    echo JDK 17 is required. javac.exe was not found under:
+    echo %JAVA_HOME%
+    exit /b 1
+)
+if not exist "%JAVA_HOME%\release" (
+    echo JDK release metadata was not found under:
+    echo %JAVA_HOME%
+    exit /b 1
+)
+
+for /f "tokens=2 delims==" %%V in ('findstr /b /c:"JAVA_VERSION=" "%JAVA_HOME%\release"') do if not defined JAVA_VERSION set "JAVA_VERSION=%%~V"
 for /f "tokens=1 delims=." %%M in ("%JAVA_VERSION%") do set "JAVA_MAJOR=%%M"
 if not "%JAVA_MAJOR%"=="17" (
     echo JDK 17 is required. Found Java %JAVA_VERSION% at:
