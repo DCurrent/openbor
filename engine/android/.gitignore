@@ -8,6 +8,7 @@
 /build
 /output/
 /game.pak
+/game.properties
 /keystore.properties
 *.jks
 /app/local.properties
