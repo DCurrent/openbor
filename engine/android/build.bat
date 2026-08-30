@@ -66,6 +66,8 @@ if errorlevel 1 goto :failed
 
 echo.
 echo Test APK completed successfully.
+rem Command-line builds finish without waiting for an interactive choice.
+if not "%~1"=="" goto :finished
 call :offer_device_install
 goto :finished
 
@@ -271,7 +273,9 @@ exit /b 0
 
 :offer_device_install
 if not exist "%ANDROID_SDK%\platform-tools\adb.exe" exit /b 0
-choice /c YN /n /m "Install the test APK on a connected device? [Y/N]: "
+echo.
+echo Install the test APK on a connected device?
+choice /c YN /n /m "Press Y to install or N to skip: "
 if errorlevel 2 exit /b 0
 
 set "TEST_APK="
