@@ -19,4 +19,5 @@ tools/win-sdk/*
 /openbor_vs
 **/.DS_Store
 tools/borpak/source/borpak
+tools/borpak/source/borpak.exe
 build/
