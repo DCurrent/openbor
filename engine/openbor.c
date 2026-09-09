@@ -839,10 +839,10 @@ s_player            player[MAX_PLAYERS];
 key_mask_t  bothkeys;
 key_mask_t  bothnewkeys;
 
-s_playercontrols    playercontrols1;
-s_playercontrols    playercontrols2;
-s_playercontrols    playercontrols3;
-s_playercontrols    playercontrols4;
+s_playercontrols    playercontrols1 = {0, 0, 0};
+s_playercontrols    playercontrols2 = {1, 0, 0};
+s_playercontrols    playercontrols3 = {2, 0, 0};
+s_playercontrols    playercontrols4 = {3, 0, 0};
 s_playercontrols   *playercontrolpointers[] = {&playercontrols1, &playercontrols2, &playercontrols3, &playercontrols4};
 s_playercontrols    default_control;
 int default_keys[MAX_BTN_NUM];
@@ -2785,113 +2785,6 @@ void execute_pdie_script(int index)
 
 // ------------------------ Save/load -----------------------------
 
-void clearbuttons(int player)
-{
-    savedata.joyrumble[player] = 0;
-
-    if (player == 0)
-    {
-        savedata.keys[0][SDID_MOVEUP]    = CONTROL_DEFAULT1_UP; //Kratus (22-04-21) Maintain the key config only for player 1 because other modules will not work with CONTROL_NONE
-        savedata.keys[0][SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        savedata.keys[0][SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        savedata.keys[0][SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        savedata.keys[0][SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        savedata.keys[0][SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        savedata.keys[0][SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        savedata.keys[0][SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        savedata.keys[0][SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        savedata.keys[0][SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        savedata.keys[0][SDID_START]     = CONTROL_DEFAULT1_START;
-        savedata.keys[0][SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-        #ifdef SDL
-            //savedata.keys[0][SDID_ESC]       = CONTROL_DEFAULT1_ESC;
-        #endif
-
-        /* *************** SET DEFAULT KEYS *************** */
-        // White Dragon: These are default keys: for Android is the touchpad and for Win/Linux etc. is the keyboard
-        default_keys[SDID_MOVEUP]    = CONTROL_DEFAULT1_UP;
-        default_keys[SDID_MOVEDOWN]  = CONTROL_DEFAULT1_DOWN;
-        default_keys[SDID_MOVELEFT]  = CONTROL_DEFAULT1_LEFT;
-        default_keys[SDID_MOVERIGHT] = CONTROL_DEFAULT1_RIGHT;
-        default_keys[SDID_ATTACK]    = CONTROL_DEFAULT1_FIRE1;
-        default_keys[SDID_ATTACK2]   = CONTROL_DEFAULT1_FIRE2;
-        default_keys[SDID_ATTACK3]   = CONTROL_DEFAULT1_FIRE3;
-        default_keys[SDID_ATTACK4]   = CONTROL_DEFAULT1_FIRE4;
-        default_keys[SDID_JUMP]      = CONTROL_DEFAULT1_FIRE5;
-        default_keys[SDID_SPECIAL]   = CONTROL_DEFAULT1_FIRE6;
-        default_keys[SDID_START]     = CONTROL_DEFAULT1_START;
-        default_keys[SDID_SCREENSHOT] = CONTROL_DEFAULT1_SCREENSHOT;
-
-        control_setkey(&default_control, FLAG_ESC,        CONTROL_ESC);
-        control_setkey(&default_control, FLAG_MOVEUP,     default_keys[SDID_MOVEUP]);
-        control_setkey(&default_control, FLAG_MOVEDOWN,   default_keys[SDID_MOVEDOWN]);
-        control_setkey(&default_control, FLAG_MOVELEFT,   default_keys[SDID_MOVELEFT]);
-        control_setkey(&default_control, FLAG_MOVERIGHT,  default_keys[SDID_MOVERIGHT]);
-        control_setkey(&default_control, FLAG_ATTACK,     default_keys[SDID_ATTACK]);
-        control_setkey(&default_control, FLAG_ATTACK2,    default_keys[SDID_ATTACK2]);
-        control_setkey(&default_control, FLAG_ATTACK3,    default_keys[SDID_ATTACK3]);
-        control_setkey(&default_control, FLAG_ATTACK4,    default_keys[SDID_ATTACK4]);
-        control_setkey(&default_control, FLAG_JUMP,       default_keys[SDID_JUMP]);
-        control_setkey(&default_control, FLAG_SPECIAL,    default_keys[SDID_SPECIAL]);
-        control_setkey(&default_control, FLAG_START,      default_keys[SDID_START]);
-        control_setkey(&default_control, FLAG_SCREENSHOT, default_keys[SDID_SCREENSHOT]);
-    }
-    else if (player == 1)
-    {
-        savedata.keys[1][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[1][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[1][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[1][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[1][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[1][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[1][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[1][SDID_START]     = CONTROL_NONE;
-        savedata.keys[1][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[1][SDID_ESC]       = CONTROL_DEFAULT2_ESC;
-        #endif
-    }
-    else if (player == 2)
-    {
-        savedata.keys[2][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[2][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[2][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[2][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[2][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[2][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[2][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[2][SDID_START]     = CONTROL_NONE;
-        savedata.keys[2][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[2][SDID_ESC]       = CONTROL_DEFAULT3_ESC;
-        #endif
-    }
-    else if (player == 3)
-    {
-        savedata.keys[3][SDID_MOVEUP]    = CONTROL_NONE; //Kratus (20-04-21) Used to clear all keys
-        savedata.keys[3][SDID_MOVEDOWN]  = CONTROL_NONE;
-        savedata.keys[3][SDID_MOVELEFT]  = CONTROL_NONE;
-        savedata.keys[3][SDID_MOVERIGHT] = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK]    = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK2]   = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK3]   = CONTROL_NONE;
-        savedata.keys[3][SDID_ATTACK4]   = CONTROL_NONE;
-        savedata.keys[3][SDID_JUMP]      = CONTROL_NONE;
-        savedata.keys[3][SDID_SPECIAL]   = CONTROL_NONE;
-        savedata.keys[3][SDID_START]     = CONTROL_NONE;
-        savedata.keys[3][SDID_SCREENSHOT] = CONTROL_NONE;
-        #ifdef SDL
-            //savedata.keys[3][SDID_ESC]       = CONTROL_DEFAULT4_ESC;
-        #endif
-    }
-}
-
 void clearsettings()
 {
     int i = 0;
@@ -2932,8 +2825,9 @@ void clearsettings()
 
     for (i = 0; i < MAX_PLAYERS; i++)
     {
-        clearbuttons(i);
+        savedata.joyrumble[i] = 0;
     }
+    control_clearmappings();
 }
 
 
@@ -2952,6 +2846,15 @@ void savesettings()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
+
+    // save controls
+    getBasePath(path, "Saves", 0);
+    getPakName(tmpname, 5);
+    strcat(path, tmpname);
+    if (!control_savemappings(path))
+    {
+        printf("Failed to save controls to %s\n", path);
+    }
 }
 
 void saveasdefault()
@@ -2967,6 +2870,14 @@ void saveasdefault()
     }
     fwrite(&savedata, 1, sizeof(savedata), handle);
     fclose(handle);
+
+    // save controls
+    getBasePath(path, "Saves", 0);
+    strcat(path, "default.controls");
+    if (!control_savemappings(path))
+    {
+        printf("Failed to save controls to %s\n", path);
+    }
 }
 
 
@@ -2995,6 +2906,15 @@ void loadsettings()
     {
         clearsettings();
     }
+
+    // load controls
+    getBasePath(path, "Saves", 0);
+    getPakName(tmpname, 5);
+    strcat(path, tmpname);
+    if (!control_loadmappings(path))
+    {
+        printf("Failed to load controls from %s\n", path);
+    }
 }
 
 void loadfromdefault()
@@ -3014,6 +2934,14 @@ void loadfromdefault()
     if(savedata.compatibleversion != COMPATIBLEVERSION)
     {
         clearsettings();
+    }
+
+    // load controls
+    getBasePath(path, "Saves", 0);
+    strcat(path, "default.controls");
+    if (!control_loadmappings(path))
+    {
+        printf("Failed to load controls from %s\n", path);
     }
 }
 
@@ -51825,6 +51753,7 @@ void fade_out(int type, int speed)
 
 void apply_controls()
 {
+#if 0 // TODO
     int p;
 
     for(p = 0; p < MAX_PLAYERS; p++)
@@ -51843,6 +51772,7 @@ void apply_controls()
         control_setkey(playercontrolpointers[p], FLAG_START,      savedata.keys[p][SDID_START]);
         control_setkey(playercontrolpointers[p], FLAG_SCREENSHOT, savedata.keys[p][SDID_SCREENSHOT]);
     }
+#endif
 }
 
 
@@ -52280,10 +52210,6 @@ void startup()
     // init. input recorder
     init_input_recorder();
 
-    printf("Loading fonts................\t");
-    load_all_fonts();
-    printf("Done!\n");
-
     printf("Loading sprites..............\t");
     load_special_sprites();
     printf("Done!\n");
@@ -52294,6 +52220,14 @@ void startup()
 
     printf("Loading model constants......\t");
     load_model_constants();
+    printf("Done!\n");
+
+    printf("Loading menu.txt.............\t");
+    load_menu_txt();
+    printf("Done!\n");
+
+    printf("Loading fonts................\t");
+    load_all_fonts();
     printf("Done!\n");
 
     printf("Loading script settings......\t");
@@ -52312,10 +52246,6 @@ void startup()
     {
         borShutdown(1, "Not enough memory for game objects!\n");
     }
-    printf("Done!\n");
-
-    printf("Loading menu.txt.............\t");
-    load_menu_txt();
     printf("Done!\n");
 
     /*
@@ -52351,7 +52281,7 @@ void startup()
 
     if(savedata.logo++ > 10)
     {
-        savedata.logo = 0;
+        savedata.logo = 1;
     }
 
     printf("Save settings so far.........\t");
@@ -52964,7 +52894,7 @@ void savelevelinfo()
 void tryvictorypose(entity *ent)
 {
     if( ent &&
-       ent->inpain & ~IN_PAIN_NONE &&
+       !(ent->inpain & ~IN_PAIN_NONE) &&
        !ent->falling &&
        !(ent->death_state & DEATH_STATE_DEAD) &&
        !ent->rising &&
@@ -53615,7 +53545,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 				}
 				else if (!player[i].hasplayed
 					&& (noshare || credits > 0)
-					&& (player[i].newkeys & FLAG_ANYBUTTON))
+					&& any_button_except_esc(player[i].newkeys))
 				{
 
 					//  Now this player has played.
@@ -53654,7 +53584,7 @@ int selectplayer(int *players, char *filename, int useSavedGame)
 						sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
 					}
 				}
-				else if ((player[i].newkeys & FLAG_ANYBUTTON) && example[i]) //Kratus (01-05-21) Moved the "anybutton" code to before of the "left/right" code to fix a bug that makes no character chosen when both are pressed together
+				else if (any_button_except_esc(player[i].newkeys) && example[i]) //Kratus (01-05-21) Moved the "anybutton" code to before of the "left/right" code to fix a bug that makes no character chosen when both are pressed together
 				{
 					if (global_sample_list.beep_2 >= 0)
 					{
@@ -54126,7 +54056,7 @@ int menu_difficulty()
         }
         //if(selector<num_difficulties) slider = selector * 4.5;
 
-        if(bothnewkeys & FLAG_ANYBUTTON)
+        if(any_button_except_esc(bothnewkeys))
         {
 
             if(global_sample_list.beep_2 >= 0)
@@ -54358,7 +54288,7 @@ int choose_mode(int *players)
             selector = 0;
         }
 
-        if(bothnewkeys & FLAG_ANYBUTTON)
+        if(any_button_except_esc(bothnewkeys))
         {
             if(global_sample_list.beep_2 >= 0)
             {
@@ -54810,26 +54740,38 @@ finish:
 
     while(!quit)
     {
-        voffset = -6;
-        _menutextm(2, -8, 0, Tr("Player %i"), player + 1);
+        int deviceID = playercontrolpointers[player]->deviceID;
+        int *mapping = control_getmappings(deviceID);
+        
+        // if a device is disconnected while it's being configured
+        if (!control_isvaliddevice(playercontrolpointers[player]->deviceID))
+        {
+            quit = 1;
+            break;
+        }
+
+        voffset = -7;
+        _menutextm(2, -9, 0, Tr("Player %i"), player + 1);
         for(i = 0; i < MAX_BTN_NUM; i++)
         {
             if(!disabledkey[i])
             {
                 _menutext((selector == i), col1, voffset, "%s", buttonnames[i]);
-                _menutext((selector == i), col2, voffset, "%s", control_getkeyname(savedata.keys[player][i]));
+                _menutext((selector == i), col2, voffset, "%s", i == setting ? "..." : control_getkeyname(deviceID, mapping[i]));
                 voffset++;
             }
         }
 
-        ++voffset;
+        //++voffset;
         if(savedata.joyrumble[player])
         {
-            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Rumble Enabled"));
+            _menutext((selector == OPTIONS_NUM - 3), col1, voffset, Tr("Rumble"));
+            _menutext((selector == OPTIONS_NUM - 3), col2, voffset++, Tr("Enabled"));
         }
         else
         {
-            _menutext((selector == OPTIONS_NUM - 3), col1, voffset++, Tr("Rumble Disabled"));
+            _menutext((selector == OPTIONS_NUM - 3), col1, voffset, Tr("Rumble"));
+            _menutext((selector == OPTIONS_NUM - 3), col2, voffset++, Tr("Disabled"));
         }
 
         _menutextm((selector == OPTIONS_NUM - 2), ++voffset, 0, Tr("OK"));
@@ -54839,23 +54781,24 @@ finish:
 
         if(setting > -1)
         {
-            if(bothnewkeys & FLAG_ESC)
+            k = control_getremappedkey();
+            if (k >= 0)
             {
-                savedata.keys[player][setting] = ok;
+                safe_set(mapping, setting, k, ok);
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
+
+                // Prevent the newly configured button from counting as "pressed" and starting config again
+                playercontrolpointers[player]->keyflags |= (1 << setting);
+                
+                setting = -1;
+                control_remapdevice(-1);
+                // Prevent accidental screenshot
+                bothnewkeys = 0;
+            }
+            else if (bothnewkeys & FLAG_ESC)
+            {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 50);
                 setting = -1;
-            }
-            if(setting > -1)
-            {
-                k = control_scankey();
-                if(k)
-                {
-                    safe_set(savedata.keys[player], setting, k, ok);
-                    sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
-                    setting = -1;
-                    // Prevent accidental screenshot
-                    bothnewkeys = 0;
-                }
             }
         }
         else
@@ -54895,18 +54838,17 @@ finish:
                 while(disabledkey[selector]) if(++selector > MAX_BTN_NUM - 1) break;
             }
 
-            if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+            if (selector == OPTIONS_NUM - 3 && (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys)))
+            {
+                // TODO: make rumble enable/disable a property of device, not player
+                sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
+                savedata.joyrumble[player] = !savedata.joyrumble[player];
+            }
+            else if (bothnewkeys & FLAG_ANYBUTTON)
             {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
-                if (selector != OPTIONS_NUM - 3 &&
-                    bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT)) continue;
-
-                if(selector == OPTIONS_NUM - 3)
-                {
-                    savedata.joyrumble[player] ^= 1;
-                }
-                else if(selector == OPTIONS_NUM - 2) // OK
+                if(selector == OPTIONS_NUM - 2) // OK
                 {
                     quit = 2;
                 }
@@ -54916,14 +54858,14 @@ finish:
                 }
                 else if(selector == OPTIONS_NUM) // default
                 {
-                    clearbuttons(player);
+                    control_resetmappings(deviceID);
+                    savedata.joyrumble[player] = 0;
                 }
                 else
                 {
                     setting = selector;
-                    ok = savedata.keys[player][setting];
-                    savedata.keys[player][setting] = 0;
-                    keyboard_getlastkey();
+                    ok = mapping[setting];
+                    control_remapdevice(deviceID);
                 }
             }
         }
@@ -54946,15 +54888,34 @@ finish:
     printf("Done!\n");
 }
 
+// Set device safely (with switching)
+static void safe_set_device(int player, int newdevice, int olddevice)
+{
+    int i;
+    for (i = 0; i < levelsets[current_set].maxplayers; i++)
+    {
+        if (playercontrolpointers[i]->deviceID == newdevice)
+        {
+            playercontrolpointers[i]->deviceID = olddevice;
+        }
+    }
+    playercontrolpointers[player]->deviceID = newdevice;
+}
+
 void menu_options_input()
 {
     int quit = 0;
-    int selector = 1; // 0
-    int x_pos = -6;
+    int selector = 0;
+    const int col1 = -8;
+    const int col2 = 0;
+    const int max_players = levelsets[current_set].maxplayers;
+    const int base = -4 + (4 - max_players);
+    int active_devices = 0;
+    int selected_device = playercontrolpointers[0]->deviceID;
     #if ANDROID
-    int OPTIONS_NUM = 6;
+    const int OPTIONS_NUM = 9;
     #else
-    int OPTIONS_NUM = 5;
+    const int OPTIONS_NUM = 8;
     #endif
 
     screen_status |= IN_SCREEN_CONTROL_OPTIONS_MENU;
@@ -54964,97 +54925,180 @@ void menu_options_input()
     // Useful to refresh some text translation if the language is changed "on-the-fly" and re-detect all active controls
     control_init(savedata.usejoy);
 
-    while(!quit)
+    while (!quit)
     {
-        _menutextm(2, x_pos-1, 0, Tr("Control Options"));
-        if(savedata.usejoy)
+        _menutextm(2, base - 2, 0, Tr("Control Options"));
+
+        for (int i = 0; i < max_players; i++)
         {
-            _menutext((selector == 0), x_pos, -2, Tr("GamePads Enabled"));
-            if(!control_getjoyenabled())
+            // _menutext((selector == i), col1, base + i + (selector < i), Tr("Player %i"), i+1);
+            // _menutext((selector == i), col2, base + i + (selector < i), "< %s >",
+            
+            _menutext((selector == i), col1, base + i, Tr("Player %i"), i+1);
+            _menutext((selector == i), col2, base + i, "< %s >",
+                      control_getdevicename(selector == i ? selected_device : playercontrolpointers[i]->deviceID));
+        }
+
+        // if (selector < max_players)
+        // {
+        //     _menutextm(1, selector + base + 1, 0, Tr("Press Start to apply, Up or Down to cancel"));
+        // }
+
+        active_devices = 0;
+        for (int i = 0; i < max_players; i++)
+        {
+            if (control_isvaliddevice(playercontrolpointers[i]->deviceID))
             {
-                _menutext((selector == 0), x_pos+11, -2, Tr(" - Device Not Ready"));
+                _menutextm((selector == 4+i), 1 + active_devices, 0, Tr("Setup Player %i..."), i + 1);
+                ++active_devices;
             }
         }
-        else
-        {
-            _menutext((selector == 0), x_pos, -2, Tr("GamePads Disabled"));
-        }
-        _menutext((selector == 1), x_pos,-1, Tr("Setup Player 1..."));
-        _menutext((selector == 2), x_pos, 0, Tr("Setup Player 2..."));
-        _menutext((selector == 3), x_pos, 1, Tr("Setup Player 3..."));
-        _menutext((selector == 4), x_pos, 2, Tr("Setup Player 4..."));
+
         #if ANDROID
-        if(savedata.is_touchpad_vibration_enabled)
+        if (savedata.is_touchpad_vibration_enabled)
         {
-            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Enabled"));
+            _menutextm((selector == 8), 2 + active_devices, 0, Tr("Touchpad Vibration Enabled"));
         }
         else
         {
-            _menutextm((selector == 5), 4, 0, Tr("Touchpad Vibration Disabled"));
+            _menutextm((selector == 8), 2 + active_devices, 0, Tr("Touchpad Vibration Disabled"));
         }
-        _menutextm((selector == 6), 6, 0, Tr("Back"));
+        _menutextm((selector == 9), 4 + active_devices, 0, Tr("Back"));
         #else
-        _menutextm((selector == 5), 5, 0, Tr("Back"));
+        _menutextm((selector == 8), 2 + active_devices, 0, Tr("Back"));
         #endif
 
         update((level != NULL), 0);
 
-        if(bothnewkeys & FLAG_ESC)
+        if (bothnewkeys & FLAG_ESC)
         {
             quit = 1;
         }
-        if(bothnewkeys & FLAG_MOVEUP)
+        if (bothnewkeys & FLAG_MOVEUP)
         {
             --selector;
             if(global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
+
+            // skip over invisible configuration entries for non-existent devices
+            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(playercontrolpointers[selector - 4]->deviceID))
+            {
+                --selector;
+            }
+
+            // skip over invisible configuration entries for non-existent players
+            while (selector >= 4 && selector <= 7 && selector - 4 >= max_players)
+            {
+                --selector;
+            }
+
+            // skip over invisible device selection entries for non-existent players
+            if (selector < 4 && selector >= max_players)
+            {
+                selector = max_players - 1;
+            }
         }
-        if(bothnewkeys & FLAG_MOVEDOWN)
+        if (bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
             if(global_sample_list.beep >= 0)
             {
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
+
+            // skip over invisible device selection entries for non-existent players
+            if (selector < 4 && selector >= max_players)
+            {
+                selector = 4;
+            }
+
+            // skip over invisible configuration entries for non-existent devices
+            while (selector >= 4 && selector <= 7 && !control_isvaliddevice(playercontrolpointers[selector - 4]->deviceID))
+            {
+                ++selector;
+            }
+
+            // skip over invisible configuration entries for non-existent players
+            while (selector >= 4 && selector <= 7 && selector - 4 >= max_players)
+            {
+                ++selector;
+            }
         }
-        if(selector < 0)
+        if (selector < 0)
         {
             selector = OPTIONS_NUM;
         }
-        if(selector > OPTIONS_NUM)
+        if (selector > OPTIONS_NUM)
         {
             selector = 0;
         }
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if (selector < 4 && (bothnewkeys & (FLAG_MOVEUP | FLAG_MOVEDOWN)))
         {
+            selected_device = playercontrolpointers[selector]->deviceID;
+        }
+
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
+        {
+            // Left/right only make sense for device reassignment
+            if (selector >= 4 && !any_button_except_esc(bothnewkeys))
+            {
+                continue;
+            }
 
             if(global_sample_list.beep_2 >= 0)
             {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
 
-            switch(selector)
+            switch (selector)
             {
             case 0:
-                control_usejoy((savedata.usejoy ^= 1));
-                break;
             case 1:
-                keyboard_setup(0);
-                break;
             case 2:
-                keyboard_setup(1);
-                break;
             case 3:
-                keyboard_setup(2);
+                if (bothnewkeys & FLAG_MOVELEFT)
+                {
+                    do {
+                        --selected_device;
+                        if (selected_device < 0)
+                        {
+                            selected_device = MAX_DEVICES - 1;
+                        }
+                    } while (!control_isvaliddevice(selected_device));
+                }
+                else if (bothnewkeys & FLAG_MOVERIGHT)
+                {
+                    do {
+                        ++selected_device;
+                        if (selected_device >= MAX_DEVICES)
+                        {
+                            selected_device = 0;
+                        }
+                    } while (!control_isvaliddevice(selected_device));
+                }
+                else // any_button_except_esc(bothnewkeys)
+                {
+                    // assign selected device to player
+                    safe_set_device(selector, selected_device, playercontrolpointers[selector]->deviceID);
+                }
                 break;
             case 4:
+                keyboard_setup(0);
+                break;
+            case 5:
+                keyboard_setup(1);
+                break;
+            case 6:
+                keyboard_setup(2);
+                break;
+            case 7:
                 keyboard_setup(3);
                 break;
             #if ANDROID
-            case 5:
-                savedata.is_touchpad_vibration_enabled ^= 1;
+            case 8:
+                savedata.is_touchpad_vibration_enabled = !savedata.is_touchpad_vibration_enabled;
                 break;
             #endif
             default:
@@ -55135,7 +55179,7 @@ void menu_options_sound()
             selector = 0;
         }
 
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             dir = 0;
 
@@ -55302,7 +55346,7 @@ void menu_options_config()     //  OX. Load from / save to default.cfg. Restore 
             selector = 0;
         }
 
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(any_button_except_esc(bothnewkeys))
         {
 
             if(global_sample_list.beep_2 >= 0)
@@ -55632,8 +55676,8 @@ void menu_options_debug() {
 
         // Toggle selection value on left/right or
         // trigger button press.
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON)) {
-            
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
+        {
             if(global_sample_list.beep_2 >= 0) {
                 sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
             }
@@ -55859,7 +55903,7 @@ void menu_options_cheats()
         * Toggle selection value on left/right or
         * trigger button press.
         */
-        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if (bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             if (global_sample_list.beep_2 >= 0)
             {
@@ -56041,7 +56085,7 @@ void menu_options_system()
             selector = 0;
         }
 
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(any_button_except_esc(bothnewkeys))
         {
             sound_play_sample(global_sample_list.beep_2, 0, savedata.effectvol, savedata.effectvol, 100);
 
@@ -56098,36 +56142,36 @@ void menu_options_video()
 
     while(!quit)
     {
-        _menutextm(2, -5, 0, Tr("Video Options"));
-        _menutext((selector == 0), col1, -3, Tr("Brightness:"));
-        _menutext((selector == 0), col2, -3, "%i", savedata.brightness);
-        _menutext((selector == 1), col1, -2, Tr("Gamma:"));
-        _menutext((selector == 1), col2, -2, "%i", savedata.gamma);
-        _menutext((selector == 2), col1, -1, Tr("Window Offset:"));
-        _menutext((selector == 2), col2, -1, "%i", savedata.windowpos);
+        _menutextm(2, -7, 0, Tr("Video Options"));
+        _menutext((selector == 0), col1, -5, Tr("Brightness:"));
+        _menutext((selector == 0), col2, -5, "%i", savedata.brightness);
+        _menutext((selector == 1), col1, -4, Tr("Gamma:"));
+        _menutext((selector == 1), col2, -4, "%i", savedata.gamma);
+        _menutext((selector == 2), col1, -3, Tr("Window Offset:"));
+        _menutext((selector == 2), col2, -3, "%i", savedata.windowpos);
 
 #if SDL
-        _menutext((selector == 3), col1, 0, Tr("Display Mode:"));
-        _menutext((selector == 3), col2, 0, savedata.fullscreen ? Tr("Full") : Tr("Window"));
+        _menutext((selector == 3), col1, -2, Tr("Display Mode:"));
+        _menutext((selector == 3), col2, -2, savedata.fullscreen ? Tr("Full") : Tr("Window"));
 
-        _menutext((selector == 4), col1, 1, Tr("Video Backend:"));
-        _menutext((selector == 4), col2, 1, (opengl ? Tr("OpenGL") : Tr("SDL")));
+        _menutext((selector == 4), col1, -1, Tr("Video Backend:"));
+        _menutext((selector == 4), col2, -1, (opengl ? Tr("OpenGL") : Tr("SDL")));
 
-        _menutext((selector == 5), col1, 2, Tr("Scale:"));
+        _menutext((selector == 5), col1, 0, Tr("Scale:"));
 #ifdef ANDROID
         if(savedata.hwscale == 0)
 #else
 		if(savedata.fullscreen)
 #endif
         {
-            _menutext((selector == 5), col2, 2, Tr("Automatic"));
+            _menutext((selector == 5), col2, 0, Tr("Automatic"));
         }
         else
         {
-            _menutext((selector == 5), col2, 2, "%4.2fx - %ix%i", savedata.hwscale, (int)(videomodes.hRes * savedata.hwscale), (int)(videomodes.vRes * savedata.hwscale));
+            _menutext((selector == 5), col2, 0, "%4.2fx - %ix%i", savedata.hwscale, (int)(videomodes.hRes * savedata.hwscale), (int)(videomodes.vRes * savedata.hwscale));
         }
 
-        _menutext((selector == 6), col1, 3, Tr("Hardware Filter:"));
+        _menutext((selector == 6), col1, 1, Tr("Hardware Filter:"));
         {
             char *filterName;
             if (savedata.hwscale == 1.0 && !savedata.fullscreen)
@@ -56138,11 +56182,11 @@ void menu_options_video()
                 filterName = "Simple";
             else
                 filterName = "Bilinear";
-            _menutext((selector == 6), col2, 3, Tr(filterName));
+            _menutext((selector == 6), col2, 1, Tr(filterName));
         }
 
-        _menutext((selector == 7), col1, 4, Tr("Software Filter:"));
-        _menutext((selector == 7), col2, 4, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
+        _menutext((selector == 7), col1, 2, Tr("Software Filter:"));
+        _menutext((selector == 7), col2, 2, ((savedata.hwscale >= 2.0 || savedata.fullscreen) ? Tr(GfxBlitterNames[savedata.swfilter]) : Tr("Disabled")));
 
         char fpslimit_text[32];
         switch (savedata.fpslimit)
@@ -56164,20 +56208,20 @@ void menu_options_video()
                 break;
         }
 
-        _menutext((selector == 8), col1, 5, Tr("FPS Limit:"));
-        _menutext((selector == 8), col2, 5, fpslimit_text);
+        _menutext((selector == 8), col1, 3, Tr("FPS Limit:"));
+        _menutext((selector == 8), col2, 3, fpslimit_text);
 
         if(savedata.fullscreen)
         {
-            _menutext((selector == 9), col1, 6, Tr("Fullscreen Type:"));
-            _menutext((selector == 9), col2, 6, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
+            _menutext((selector == 9), col1, 4, Tr("Fullscreen Type:"));
+            _menutext((selector == 9), col2, 4, (savedata.stretch ? Tr("Stretch to Screen") : Tr("Preserve Aspect Ratio")));
         }
         else if(selector == 9)
         {
             selector = (bothnewkeys & FLAG_MOVEUP) ? 8 : 10;
         }
 
-        _menutextm((selector == 10), 9, 0, Tr("Back"));
+        _menutextm((selector == 10), 7, 0, Tr("Back"));
         if(selector < 0)
         {
             selector = 10;
@@ -56210,7 +56254,7 @@ void menu_options_video()
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT) || any_button_except_esc(bothnewkeys))
         {
             dir = 0;
 
@@ -56396,7 +56440,7 @@ void menu_options()
         {
             quit = 1;
         }
-        if(bothnewkeys & FLAG_MOVEUP)
+        else if(bothnewkeys & FLAG_MOVEUP)
         {
             if(selector <= VIDEO_OPTION)
             {
@@ -56409,7 +56453,7 @@ void menu_options()
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        if(bothnewkeys & FLAG_MOVEDOWN)
+        else if(bothnewkeys & FLAG_MOVEDOWN)
         {
             ++selector;
             if(selector > BACK_OPTION)
@@ -56422,7 +56466,7 @@ void menu_options()
                 sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
             }
         }
-        if(bothnewkeys & (FLAG_MOVELEFT | FLAG_MOVERIGHT | FLAG_ANYBUTTON))
+        else if(any_button_except_esc(bothnewkeys))
         {
 
             if(global_sample_list.beep_2 >= 0)
@@ -56625,7 +56669,7 @@ void openborMain(int argc, char **argv)
                     sound_play_sample(global_sample_list.beep, 0, savedata.effectvol, savedata.effectvol, 100);
                 }
             }
-            if(bothnewkeys & (FLAG_ANYBUTTON))
+            if(any_button_except_esc(bothnewkeys))
             {
                 if(global_sample_list.beep_2 >= 0)
                 {

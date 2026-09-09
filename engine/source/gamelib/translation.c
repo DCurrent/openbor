@@ -100,11 +100,26 @@ static int ob_loadtrans()
         This operation is needed only if the english translation file uses some custom menu texts for english language too
     */
     if(buffer_pakfile("translation/translation.txt", &buf, &size) != 1)
-        if(buffer_pakfile("data/translation.txt", &buf, &size) != 1) // if above fails, try other location, too
-        {
-            return 0;
-        }
+    {
+        goto default_file;
+    }
+    else
+    {
+        goto proceed;
+    }
 
+default_file:
+
+    if(buffer_pakfile("data/translation.txt", &buf, &size) != 1)
+    {
+        return 0;
+    }
+    else
+    {
+        goto proceed;
+    }
+
+proceed:
     //printf("Loading translation table\n");
 
     pos = 0;
@@ -225,3 +240,5 @@ char *ob_gettrans(char *id)
 
     return (laststr = id);
 }
+
+

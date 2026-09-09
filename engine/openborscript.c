@@ -7818,10 +7818,23 @@ toss_error:
 // ===== getplayerproperty =====
 enum playerproperty_enum
 {
+    _pp_button_attack1,
+    _pp_button_attack2,
+    _pp_button_attack3,
+    _pp_button_attack4,
+    _pp_button_jump,
+    _pp_button_movedown,
+    _pp_button_moveleft,
+    _pp_button_moveright,
+    _pp_button_moveup,
+    _pp_button_screenshot,
+    _pp_button_special,
+    _pp_button_start,
     _pp_colourmap,
     _pp_combokey,
     _pp_combostep,
     _pp_credits,
+    _pp_device_name,
     _pp_disablekeys,
     _pp_ent,
     _pp_entity,
@@ -7853,10 +7866,23 @@ int mapstrings_playerproperty(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+        "button_attack1",
+        "button_attack2",
+        "button_attack3",
+        "button_attack4",
+        "button_jump",
+        "button_movedown",
+        "button_moveleft",
+        "button_moveright",
+        "button_moveup",
+        "button_screenshot",
+        "button_special",
+        "button_start",
         "colourmap",
         "combokey",
         "combostep",
         "credits",
+        "device_name",
         "disablekeys",
         "ent",
         "entity",
@@ -7937,6 +7963,78 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
 
     switch(prop)
     {
+    case _pp_button_attack1: //Kratus (2026), allow button name detection via "getplayerproperty"
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_ATTACK));
+        break;
+    }
+    case _pp_button_attack2:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_ATTACK2));
+        break;
+    }
+    case _pp_button_attack3:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_ATTACK3));
+        break;
+    }
+    case _pp_button_attack4:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_ATTACK4));
+        break;
+    }
+    case _pp_button_jump:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_JUMP));
+        break;
+    }
+    case _pp_button_movedown:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_MOVEDOWN));
+        break;
+    }
+    case _pp_button_moveleft:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_MOVELEFT));
+        break;
+    }
+    case _pp_button_moveright:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_MOVERIGHT));
+        break;
+    }
+    case _pp_button_moveup:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_MOVEUP));
+        break;
+    }
+    case _pp_button_screenshot:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_SCREENSHOT));
+        break;
+    }
+    case _pp_button_special:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_SPECIAL));
+        break;
+    }
+    case _pp_button_start:
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getmappedkeyname(playercontrolpointers[index]->deviceID, SDID_START));
+        break;
+    }
     case _pp_ent:
     case _pp_entity:
     {
@@ -7991,6 +8089,12 @@ HRESULT openbor_getplayerproperty(ScriptVariant **varlist , ScriptVariant **pret
     {
         ScriptVariant_ChangeType(*pretvar, VT_INTEGER);
         (*pretvar)->lVal = (LONG)player[index].lives;
+        break;
+    }
+    case _pp_device_name: //Kratus (2026), allow device name detection via "getplayerproperty"
+    {
+        ScriptVariant_ChangeType(*pretvar, VT_STR);
+        (*pretvar)->strVal = StrCache_CreateNewFrom(control_getdevicename(playercontrolpointers[index]->deviceID));
         break;
     }
     case _pp_disablekeys:

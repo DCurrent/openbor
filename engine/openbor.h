@@ -576,7 +576,8 @@ typedef enum
     SDID_SPECIAL,
     SDID_START,
     SDID_SCREENSHOT,
-    SDID_ESC
+    SDID_ESC,
+    SDID_COUNT,
 } e_key_id;
 
 
@@ -605,6 +606,11 @@ typedef enum
     FLAG_FORWARD = 0x40000000,
     FLAG_BACKWARD = 0x80000000
 } e_key_def;
+
+static inline bool any_button_except_esc(int keys)
+{
+    return (keys & FLAG_ANYBUTTON) && !(keys & FLAG_ESC);
+}
 
 // Caskey, Damon V.
 // 2013-12-27
@@ -5052,6 +5058,13 @@ int freeRecordedInputs(void);
 a_playrecstatus* init_input_recorder(void);
 void free_input_recorder(void);
 void goto_mainmenu(int);
+
+extern s_playercontrols    playercontrols1;
+extern s_playercontrols    playercontrols2;
+extern s_playercontrols    playercontrols3;
+extern s_playercontrols    playercontrols4;
+extern s_playercontrols   *playercontrolpointers[];
+extern s_playercontrols    default_control;
 
 /**
  *  Only structures written to disk need to be packed.
