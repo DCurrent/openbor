@@ -13632,6 +13632,7 @@ int mapstrings_layerproperty(ScriptVariant **varlist, int paramCount)
         "generic",
         "neon",
         "panel",
+        "screen",
         "water",
     };
 
