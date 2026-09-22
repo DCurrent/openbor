@@ -57,7 +57,8 @@
             printf(FAILMSG, propname, ##args);  \
             printf("\n Available properties:\n"); \
             \
-            for(proplist_cursor = 0; LIST[proplist_cursor] != NULL; proplist_cursor++){ \
+            /* The lists carry no NULL terminator, so stop at MAXINDEX (their length) */ \
+            for(proplist_cursor = 0; proplist_cursor < MAXINDEX; proplist_cursor++){ \
                printf("\n\t%s", LIST[proplist_cursor]); \
             } \
             \
