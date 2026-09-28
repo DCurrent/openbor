@@ -325,7 +325,7 @@ static void set_default_controller_mappings(InputDevice *device)
     device->mappings[SDID_SPECIAL]    = SDL_CONTROLLER_BUTTON_X;
     device->mappings[SDID_START]      = SDL_CONTROLLER_BUTTON_START;
     device->mappings[SDID_SCREENSHOT] = SDL_CONTROLLER_BUTTON_BACK;
-    device->mappings[SDID_ESC]        = SDL_CONTROLLER_BUTTON_GUIDE;
+    device->mappings[SDID_ESC]        = SDL_SCANCODE_ESCAPE;
 }
 
 static void set_default_joystick_mappings(InputDevice *device)
@@ -344,7 +344,7 @@ static void set_default_joystick_mappings(InputDevice *device)
     device->mappings[SDID_SPECIAL]    = 3;
     device->mappings[SDID_START]      = 6;
     device->mappings[SDID_SCREENSHOT] = 7;
-    device->mappings[SDID_ESC]        = device->mappings[SDID_SPECIAL];
+    device->mappings[SDID_ESC]        = SDL_SCANCODE_ESCAPE;
 }
 
 void control_resetmappings(int deviceID)
