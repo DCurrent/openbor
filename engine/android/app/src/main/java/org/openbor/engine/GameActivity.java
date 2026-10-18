@@ -22,6 +22,8 @@ package org.openbor.engine;
 
 import org.libsdl.app.SDLActivity;
 
+import java.io.File;
+
 import android.util.Log;
 import android.os.Bundle;
 import android.content.Context;
@@ -112,6 +114,27 @@ public Intent registerReceiver(@Nullable BroadcastReceiver receiver, IntentFilte
       "SDL2",
       "openbor"
     };
+  }
+
+  /**
+   * Returns the library holding SDL_main ("libopenbor.so").
+   *
+   * SDL 2.0.10 dlopen()s this exact string. The stock version returns an absolute path in
+   * nativeLibraryDir, which only exists when the installer extracts the .so files. A
+   * Play/App Bundle install leaves them unextracted inside the split APK, so that path is
+   * missing and the game closes immediately. When the extracted file is absent we return
+   * the bare soname so the linker loads it straight from the split APK instead.
+   */
+  @Override
+  protected String getMainSharedObject() {
+    String[] libraries = getLibraries();
+    String libraryName = "lib" + libraries[libraries.length - 1] + ".so";
+    String extractedPath = getContext().getApplicationInfo().nativeLibraryDir + "/" + libraryName;
+
+    if (new File(extractedPath).exists()) {
+      return extractedPath;
+    }
+    return libraryName;
   }
 
   @Override
