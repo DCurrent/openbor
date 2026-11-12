@@ -7,6 +7,7 @@
 #define OPENBOR_GPU_RENDERER_H
 
 #include "types.h"
+#include <stdint.h>
 
 /* Logical image row zero is texture row zero, matching the old upload path. */
 int gpu_gl_init(void);
@@ -24,5 +25,21 @@ typedef struct gpu_renderer_stats
     unsigned long fallback_draws;
 } gpu_renderer_stats;
 const gpu_renderer_stats *gpu_gl_get_stats(void);
+
+/* Optional timer diagnostics retain context-local lifecycle totals. Pending
+ * includes open scopes and ended pairs awaiting asynchronous availability. */
+typedef struct gpu_query_stats
+{
+    int supported;
+    int enabled;
+    unsigned pending;
+    uint64_t issued;
+    uint64_t completed;
+    uint64_t dropped;
+    uint64_t deferred;
+    uint64_t errors;
+    uint64_t abandoned;
+} gpu_query_stats;
+const gpu_query_stats *gpu_gl_get_query_stats(void);
 
 #endif

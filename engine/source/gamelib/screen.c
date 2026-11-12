@@ -17,6 +17,7 @@
 #include "transform.h"
 #include "screen.h"
 #include "gpu.h"
+#include "engine_profile.h"
 
 s_screen *allocscreen(int width, int height, int pixelformat)
 {
@@ -62,9 +63,15 @@ void freescreen(s_screen **screen)
     (*screen) = NULL;
 }
 
-// Screen copy func. Supports clipping.
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Copy a screen with destination clipping. Profile a declined native copy
+ * through synchronization and CPU copying as one inclusive software span.
+ */
 void copyscreen(s_screen *dest, s_screen *src)
 {
+    ep_scope software;
     unsigned char *sp, *dp;
     int width = src->width;
     int height = src->height;
@@ -80,6 +87,10 @@ void copyscreen(s_screen *dest, s_screen *src)
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_COPIES, 1);
+    /* Synchronization belongs to this fallback's wall time. A readback, when
+     * required, also appears in its own inclusive transfer measurement. */
     gpu_sync_cpu(src);
     gpu_prepare_cpu_write(dest);
 
@@ -98,6 +109,7 @@ void copyscreen(s_screen *dest, s_screen *src)
     if(dest->width == src->width)
     {
         memcpy(dest->data, src->data, width * height * pixelbytes[(int)pixelformat]);
+        engine_profile_span_end(software, EP_SPAN_SOFTWARE);
         return;
     }
 
@@ -109,10 +121,18 @@ void copyscreen(s_screen *dest, s_screen *src)
         dp += dest->width * pixelbytes[(int)pixelformat];
     }
     while(--height);
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Clear either resident GPU storage or its CPU shadow. Count and time the
+ * software path separately so mixed-renderer costs remain visible.
+ */
 void clearscreen(s_screen *s)
 {
+    ep_scope software;
     if(s == NULL)
     {
         return;
@@ -121,9 +141,12 @@ void clearscreen(s_screen *s)
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_CLEARS, 1);
     /* Clearing replaces every pixel, so no previous GPU contents are needed. */
     gpu_mark_cpu_dirty(s);
     memset(s->data, 0, s->width * s->height * pixelbytes[(int)s->pixelformat]);
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
 // Screen copy function with offset options. Supports clipping.
@@ -593,8 +616,15 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Dispatch a screen draw with its repeats and effects. A software fallback
+ * is measured once around the complete operation, including coherence work.
+ */
 void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
 {
+    ep_scope software;
     int xrepeat, yrepeat, xspan, yspan, i, j, dx, dy;
 
     drawmethod_global_init(drawmethod);
@@ -605,6 +635,8 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
     gpu_sync_cpu(src);
     gpu_prepare_cpu_write(dest);
 
@@ -628,7 +660,7 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
             _putscreen(dest, src, dx, dy, drawmethod);
         }
     }
-
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
 // Scale screen

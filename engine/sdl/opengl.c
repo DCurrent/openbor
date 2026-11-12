@@ -20,6 +20,8 @@
 #include "video.h"
 #include "loadgl.h"
 #include "gpu_renderer.h"
+#include "gpu.h"
+#include "engine_profile.h"
 #include <math.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
@@ -390,6 +392,20 @@ int video_gl_set_mode(s_videomodes videomodes)
 	{
 		printf("Native GPU drawing disabled while a CPU output filter is active.\n");
 	}
+
+	/* Confirm the active scene backend and driver in the regular engine log.
+	 * GL presentation alone does not indicate whether scene drawing is native. */
+	{
+		const char *vendor = (const char *)glGetString(GL_VENDOR);
+		const char *renderer_name = (const char *)glGetString(GL_RENDERER);
+		const char *version = (const char *)glGetString(GL_VERSION);
+		engine_profile_log("kind=video_backend backend=OpenGL native_active=%d "
+		                   "requested_swap_interval=%d actual_swap_interval=%d refresh_hz=%d output_bytes=%d "
+		                   "vendor=\"%s\" renderer=\"%s\" version=\"%s\"",
+		                   gpu_is_active(), savedata.fpslimit == 1, SDL_GL_GetSwapInterval(),
+		                   video_current_refresh_rate(), videomodes.pixel, vendor ? vendor : "unknown",
+		                   renderer_name ? renderer_name : "unknown", version ? version : "unknown");
+	}
 	return 1;
 error:
 	/* Release any partial context before the caller constructs an SDL presenter. */
@@ -469,6 +485,10 @@ void render()
  */
 int video_gl_copy_screen(s_videosurface* surface)
 {
+	uint64_t gpu_scope = engine_profile_gpu_begin(EP_GPU_PRESENT);
+	ep_scope setup_scope = engine_profile_span_begin();
+	ep_scope swap_scope;
+
 	/*
 	 * Native draws and explicit CPU readbacks can leave an offscreen target
 	 * bound. Reestablish the window framebuffer, projection and RGB shader.
@@ -493,9 +513,14 @@ int video_gl_copy_screen(s_videosurface* surface)
 
 	// render the frame
 	render();
+	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
+	engine_profile_gpu_end(gpu_scope);
 
-	// display the rendered frame on the screen
+	/* End the GPU presentation interval before a possibly blocking swap.
+	 * Swap and the explicit FPS limiter receive separate CPU measurements. */
+	swap_scope = engine_profile_span_begin();
 	SDL_GL_SwapWindow(window);
+	engine_profile_span_end(swap_scope, EP_SPAN_SWAP);
 
 	if(savedata.fpslimit >= 2)
 	{
@@ -519,10 +544,15 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	int nativeWidth, nativeHeight;
 	GLfloat savedTcx, savedTcy;
 	float scaleFactor;
+	uint64_t gpu_scope = engine_profile_gpu_begin(EP_GPU_PRESENT);
+	ep_scope setup_scope = engine_profile_span_begin();
+	ep_scope swap_scope;
 
 	if(!gpu_gl_get_screen_texture(screen, &nativeTexture, &nativeWidth, &nativeHeight))
 	{
 		/* Let the caller select CPU conversion/upload for unsupported screen types. */
+		engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
+		engine_profile_gpu_end(gpu_scope);
 		return 0;
 	}
 
@@ -558,7 +588,13 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	/* Restore nearest sampling before this screen is reused as a scene texture. */
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
+	engine_profile_gpu_end(gpu_scope);
+
+	/* Keep swap waiting separate from submitting the final presentation quad. */
+	swap_scope = engine_profile_span_begin();
 	SDL_GL_SwapWindow(window);
+	engine_profile_span_end(swap_scope, EP_SPAN_SWAP);
 	if(savedata.fpslimit >= 2)
 	{
 		FramerateDelay();

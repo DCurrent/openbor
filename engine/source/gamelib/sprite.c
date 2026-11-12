@@ -14,6 +14,7 @@
 #include "sprite.h"
 #include "transform.h"
 #include "gpu.h"
+#include "engine_profile.h"
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -661,8 +662,15 @@ static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawm
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Dispatch a sprite and its repetitions through the selected renderer.
+ * Profile one software fallback around destination coherence and all repeats.
+ */
 void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
+    ep_scope software;
     int xrepeat, yrepeat, xspan, yspan, i, j, dx, dy;
 
     drawmethod_global_init(drawmethod);
@@ -672,6 +680,8 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
     gpu_prepare_cpu_write(screen);
 
     if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
@@ -694,7 +704,7 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
             _putsprite(dx, dy, sprite, screen, drawmethod);
         }
     }
-
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
 

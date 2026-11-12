@@ -6,6 +6,7 @@
 #if defined(OPENGL) && !defined(ANDROID)
 
 #include <limits.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,9 +18,16 @@
 #include "gpu_shader.h"
 #include "gpu_transform.h"
 #include "gpu_renderer.h"
+#include "engine_profile.h"
 
 #define GPU_CACHE_BUCKETS 1024
 #define GPU_BLEND_TABLE_SIZE (256 * 256)
+#define GPU_QUERY_CAPACITY 256
+#define GPU_QUERY_TOKEN_BITS 9
+#define GPU_QUERY_SLOT_MASK ((UINT64_C(1) << GPU_QUERY_TOKEN_BITS) - 1)
+#ifndef GL_TIMESTAMP
+#define GL_TIMESTAMP 0x8E28
+#endif
 #if REVERSE_COLOR
 #define GPU_PACKED_FORMAT GL_BGRA
 #else
@@ -90,6 +98,332 @@ static GLint maximum_texture_size;
 static int initialized, tables_dirty = 1, table_mask, palette_valid;
 static unsigned palette_cache[256];
 static const unsigned char *table_pointers[MAX_BLENDINGS];
+static ep_fallback native_failure = EP_FALLBACK_OTHER;
+
+/* Private declarations keep optional timer entry points independent from the
+ * GL 2.1 presentation loader and from newer typedefs in platform GL headers. */
+typedef void (APIENTRYP gpu_query_generate_fn)(GLsizei count, GLuint *ids);
+typedef void (APIENTRYP gpu_query_delete_fn)(GLsizei count, const GLuint *ids);
+typedef void (APIENTRYP gpu_query_counter_fn)(GLuint id, GLenum target);
+typedef void (APIENTRYP gpu_query_info_fn)(GLenum target, GLenum name, GLint *value);
+typedef void (APIENTRYP gpu_query_available_fn)(GLuint id, GLenum name, GLint *value);
+typedef void (APIENTRYP gpu_query_result_fn)(GLuint id, GLenum name, uint64_t *value);
+
+typedef enum gpu_query_state
+{
+    GPU_QUERY_FREE,
+    GPU_QUERY_OPEN,
+    GPU_QUERY_PENDING
+} gpu_query_state;
+
+typedef struct gpu_query_pair
+{
+    GLuint begin;
+    GLuint end;
+    uint64_t token;
+    uint64_t frame_id;
+    ep_gpu_kind kind;
+    gpu_query_state state;
+} gpu_query_pair;
+
+static gpu_query_generate_fn query_generate;
+static gpu_query_delete_fn query_delete;
+static gpu_query_counter_fn query_counter;
+static gpu_query_info_fn query_info;
+static gpu_query_available_fn query_available;
+static gpu_query_result_fn query_result;
+static gpu_query_pair query_pairs[GPU_QUERY_CAPACITY];
+static unsigned query_free[GPU_QUERY_CAPACITY];
+static unsigned query_pending[GPU_QUERY_CAPACITY];
+static unsigned query_free_count, query_pending_head, query_pending_count;
+static int query_objects_created;
+static uint64_t query_generation;
+static gpu_query_stats query_stats;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Stop optional timestamp sampling after unusable results or a setup error,
+ * leaving native drawing and CPU profiling available for the current context.
+ */
+static void gpu_query_disable(const char *reason, GLenum observed_error)
+{
+    /* Detach first so any later generic scope begins become explicit skipped
+     * samples. Keep existing query objects until teardown, without waiting for
+     * their results or changing the renderer's framebuffer/material state. */
+    engine_profile_set_gpu_backend(NULL);
+    query_stats.enabled = 0;
+    query_stats.errors++;
+    engine_profile_log("kind=gpu_timer state=disabled reason=%s observed_gl_error=%u pending=%u",
+                       reason, (unsigned)observed_error, query_stats.pending);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Reserve a timestamp pair for one recorded engine scope. Saturation drops
+ * measurement work instead of waiting for the GPU or recycling live results.
+ */
+static uint64_t gpu_query_begin(uint64_t frame_id, ep_gpu_kind kind)
+{
+    gpu_query_pair *pair;
+    unsigned index;
+    if(!query_stats.enabled || !frame_id || (unsigned)kind >= EP_GPU_COUNT)
+    {
+        return 0;
+    }
+
+    /* Tokens encode a slot and a generation that survives context recreation.
+     * Old scope ends therefore cannot accidentally close a newly allocated
+     * scope at the same slot. Exhaustion is handled like a full query ring. */
+    if(!query_free_count || query_generation == (UINT64_MAX >> GPU_QUERY_TOKEN_BITS))
+    {
+        query_stats.dropped++;
+        engine_profile_count(EP_COUNT_GPU_QUERY_DROPPED, 1);
+        return 0;
+    }
+    index = query_free[--query_free_count];
+    pair = &query_pairs[index];
+    pair->token = (++query_generation << GPU_QUERY_TOKEN_BITS) | (index + 1);
+    pair->frame_id = frame_id;
+    pair->kind = kind;
+    pair->state = GPU_QUERY_OPEN;
+    query_stats.pending++;
+
+    /* Timestamp commands do not open a GL query target, so scene, queue and
+     * presentation scopes can nest. Leave the shared GL error state untouched:
+     * a diagnostic scope must not consume an earlier renderer error. */
+    query_counter(pair->begin, GL_TIMESTAMP);
+    query_stats.issued++;
+    engine_profile_count(EP_COUNT_GPU_QUERY_PAIRS, 1);
+    return pair->token;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * End a live timestamp scope and queue its pair for later nonblocking polling.
+ */
+static void gpu_query_end(uint64_t handle)
+{
+    unsigned slot = (unsigned)(handle & GPU_QUERY_SLOT_MASK);
+    gpu_query_pair *pair;
+    if(!query_stats.enabled || !slot || slot > GPU_QUERY_CAPACITY)
+    {
+        return;
+    }
+    pair = &query_pairs[slot - 1];
+    if(pair->token != handle || pair->state != GPU_QUERY_OPEN)
+    {
+        return;
+    }
+
+    /* End-order FIFO matches the order of timestamp commands in the GL
+     * stream. If its oldest end is unavailable, later ends can be left for
+     * the next poll without scanning every pending pair. */
+    query_counter(pair->end, GL_TIMESTAMP);
+    pair->state = GPU_QUERY_PENDING;
+    query_pending[(query_pending_head + query_pending_count) % GPU_QUERY_CAPACITY] = slot - 1;
+    query_pending_count++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Consume only timestamp pairs whose two endpoints are already available.
+ * Results keep their originating frame ID even when collection is delayed.
+ */
+static void gpu_query_poll(void)
+{
+    if(!query_stats.enabled)
+    {
+        return;
+    }
+
+    /* Readiness checks precede every 64-bit result request. Unavailable work
+     * remains in the ring; there is no flush, completion wait, or reuse of an
+     * object whose prior measurement is still in flight. */
+    while(query_pending_count)
+    {
+        unsigned index = query_pending[query_pending_head];
+        gpu_query_pair *pair = &query_pairs[index];
+        GLint begin_ready = 0, end_ready = 0;
+        uint64_t begin_ns = UINT64_MAX, end_ns = UINT64_MAX;
+        query_available(pair->begin, GL_QUERY_RESULT_AVAILABLE, &begin_ready);
+        query_available(pair->end, GL_QUERY_RESULT_AVAILABLE, &end_ready);
+        if(!begin_ready || !end_ready)
+        {
+            query_stats.deferred++;
+            return;
+        }
+        query_result(pair->begin, GL_QUERY_RESULT, &begin_ns);
+        query_result(pair->end, GL_QUERY_RESULT, &end_ns);
+
+        /* Availability failures leave their initialized flags false. Result
+         * failures must not turn an unwritten output into a believable elapsed
+         * time either. Sentinels and ordering protect the measurement without
+         * consuming error flags owned by the surrounding renderer. */
+        if(begin_ns == UINT64_MAX || end_ns == UINT64_MAX || end_ns < begin_ns)
+        {
+            gpu_query_disable("invalid_timestamp_result", GL_NO_ERROR);
+            return;
+        }
+
+        /* These values measure elapsed GPU command spans, including possible
+         * idle time between CPU submissions. The core decides whether the
+         * original frame is still reportable or must count as a late result. */
+        engine_profile_gpu_result(pair->frame_id, pair->kind, end_ns - begin_ns);
+        pair->state = GPU_QUERY_FREE;
+        pair->token = 0;
+        query_free[query_free_count++] = index;
+        query_pending_head = (query_pending_head + 1) % GPU_QUERY_CAPACITY;
+        query_pending_count--;
+        query_stats.pending--;
+        query_stats.completed++;
+    }
+}
+
+static const ep_gpu_backend query_backend =
+{
+    gpu_query_begin, gpu_query_end, gpu_query_poll
+};
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Enable optional timestamp pairs only when the current desktop context
+ * supplies a complete 64-bit timer-query implementation.
+ */
+static void gpu_query_init(void)
+{
+    const char *setting = getenv("OPENBOR_PROFILE_GPU");
+    const char *version;
+    GLuint ids[GPU_QUERY_CAPACITY * 2];
+    GLint counter_bits = 0;
+    int major = 0, minor = 0;
+    unsigned index;
+    GLenum error;
+
+    /* CPU profiling and native drawing remain independent of timer support.
+     * GL 2.1 contexts without ARB_timer_query simply report an unsupported
+     * optional measurement path, retaining all ordinary rendering behavior. */
+    memset(&query_stats, 0, sizeof(query_stats));
+    memset(query_pairs, 0, sizeof(query_pairs));
+    query_free_count = query_pending_head = query_pending_count = 0;
+    query_objects_created = 0;
+    engine_profile_set_gpu_backend(NULL);
+    if(!engine_profile_enabled() || (setting && !strcmp(setting, "0")))
+    {
+        engine_profile_log("kind=gpu_timer state=disabled reason=%s",
+                           engine_profile_enabled() ? "OPENBOR_PROFILE_GPU=0" : "OPENBOR_PROFILE=0");
+        return;
+    }
+    version = (const char *)glGetString(GL_VERSION);
+    if(version)
+    {
+        sscanf(version, "%d.%d", &major, &minor);
+    }
+    if(!(major > 3 || (major == 3 && minor >= 3)) &&
+       !SDL_GL_ExtensionSupported("GL_ARB_timer_query"))
+    {
+        engine_profile_log("kind=gpu_timer state=unsupported reason=no_ARB_timer_query_or_core_3_3");
+        return;
+    }
+
+    /* Resolve optional symbols separately from mandatory drawing functions.
+     * Missing timer entry points must never disable the native renderer. */
+    query_generate = (gpu_query_generate_fn)SDL_GL_GetProcAddress("glGenQueries");
+    query_delete = (gpu_query_delete_fn)SDL_GL_GetProcAddress("glDeleteQueries");
+    query_counter = (gpu_query_counter_fn)SDL_GL_GetProcAddress("glQueryCounter");
+    query_info = (gpu_query_info_fn)SDL_GL_GetProcAddress("glGetQueryiv");
+    query_available = (gpu_query_available_fn)SDL_GL_GetProcAddress("glGetQueryObjectiv");
+    query_result = (gpu_query_result_fn)SDL_GL_GetProcAddress("glGetQueryObjectui64v");
+    if(!query_generate || !query_delete || !query_counter || !query_info ||
+       !query_available || !query_result)
+    {
+        engine_profile_log("kind=gpu_timer state=unsupported reason=missing_timer_entry_point");
+        return;
+    }
+    query_info(GL_TIMESTAMP, GL_QUERY_COUNTER_BITS, &counter_bits);
+    error = glGetError();
+    if(error != GL_NO_ERROR || counter_bits != 64)
+    {
+        engine_profile_log("kind=gpu_timer state=unsupported reason=timestamp_counter bits=%d gl_error=%u",
+                           counter_bits, (unsigned)error);
+        return;
+    }
+    query_stats.supported = 1;
+
+    /* Allocate a bounded pool once per context. Query storage can stay busy
+     * across several frames; exhaustion drops samples rather than delaying
+     * drawing. Generations intentionally survive this initialization. */
+    memset(ids, 0, sizeof(ids));
+    query_generate(GPU_QUERY_CAPACITY * 2, ids);
+    error = glGetError();
+    if(error != GL_NO_ERROR)
+    {
+        query_delete(GPU_QUERY_CAPACITY * 2, ids);
+        gpu_query_disable("query_allocation", error);
+        return;
+    }
+    for(index = 0; index < GPU_QUERY_CAPACITY; index++)
+    {
+        query_pairs[index].begin = ids[index * 2];
+        query_pairs[index].end = ids[index * 2 + 1];
+        query_free[index] = GPU_QUERY_CAPACITY - index - 1;
+    }
+    query_free_count = GPU_QUERY_CAPACITY;
+    query_objects_created = 1;
+    query_stats.enabled = 1;
+    engine_profile_set_gpu_backend(&query_backend);
+    engine_profile_log("kind=gpu_timer state=enabled supported=1 counter_bits=64 pair_capacity=%d measurement=elapsed_command_span may_include_gpu_idle=1 result_policy=nonblocking",
+                       GPU_QUERY_CAPACITY);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Release optional query objects while their context still exists, abandoning
+ * unavailable samples rather than forcing completion during a mode change.
+ */
+static void gpu_query_shutdown(void)
+{
+    GLuint ids[GPU_QUERY_CAPACITY * 2];
+    unsigned index;
+
+    /* Accept any results already ready, then detach callbacks before deleting
+     * names. Pending/open handles are invalidated; a future context receives
+     * fresh tokens even if the driver happens to recycle the same GL names. */
+    gpu_query_poll();
+    engine_profile_set_gpu_backend(NULL);
+    query_stats.enabled = 0;
+    query_stats.abandoned += query_stats.pending;
+    if(query_objects_created)
+    {
+        for(index = 0; index < GPU_QUERY_CAPACITY; index++)
+        {
+            ids[index * 2] = query_pairs[index].begin;
+            ids[index * 2 + 1] = query_pairs[index].end;
+        }
+        query_delete(GPU_QUERY_CAPACITY * 2, ids);
+    }
+    if(query_stats.supported)
+    {
+        engine_profile_log("kind=gpu_timer state=teardown issued=%" PRIu64 " completed=%" PRIu64 " dropped=%" PRIu64 " deferred_polls=%" PRIu64 " errors=%" PRIu64 " abandoned=%" PRIu64,
+                           query_stats.issued, query_stats.completed, query_stats.dropped,
+                           query_stats.deferred, query_stats.errors, query_stats.abandoned);
+    }
+    memset(query_pairs, 0, sizeof(query_pairs));
+    query_free_count = query_pending_head = query_pending_count = 0;
+    query_objects_created = 0;
+    query_stats.pending = 0;
+}
 
 /*
  * Damon V. Caskey
@@ -99,6 +433,7 @@ static const unsigned char *table_pointers[MAX_BLENDINGS];
  */
 static void gpu_fatal(const char *operation)
 {
+    engine_profile_log("kind=renderer state=fatal operation=\"%s\"", operation);
     fprintf(stderr, "GPU renderer: %s failed; refusing to use stale image data.\n", operation);
     abort();
 }
@@ -119,6 +454,7 @@ static int gpu_load_functions(void)
         gpu_##name = (type)SDL_GL_GetProcAddress("gl" #name); \
         if(!gpu_##name) \
         { \
+            engine_profile_log("kind=renderer state=unavailable reason=missing_entry_point function=gl" #name); \
             return 0; \
         } \
     } while(0)
@@ -132,6 +468,7 @@ static int gpu_load_functions(void)
         } \
         if(!gpu_##name) \
         { \
+            engine_profile_log("kind=renderer state=unavailable reason=missing_entry_point function=gl" #name); \
             return 0; \
         } \
     } while(0)
@@ -175,6 +512,7 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
     char message[4096];
     if(!shader)
     {
+        engine_profile_log("kind=renderer state=unavailable reason=shader_allocation type=%u", (unsigned)type);
         return 0;
     }
 
@@ -186,6 +524,7 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
         /* Keep the driver's explanation before releasing the failed object,
          * so startup can report the shader issue and retain software drawing. */
         gpu_GetShaderInfoLog(shader, sizeof(message), NULL, message);
+        engine_profile_log("kind=renderer state=unavailable reason=shader_compile diagnostic=\"%s\"", message);
         fprintf(stderr, "GPU renderer shader: %s\n", message);
         gpu_DeleteShader(shader);
         return 0;
@@ -218,6 +557,7 @@ static GLuint gpu_new_texture(int width, int height, GLenum internal_format,
                               GLenum format, GLenum type, const void *pixels)
 {
     GLuint texture = 0;
+    ep_scope upload_scope = engine_profile_span_begin();
     glGenTextures(1, &texture);
     gpu_bind_texture(0, texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -227,8 +567,21 @@ static GLuint gpu_new_texture(int width, int height, GLenum internal_format,
     glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, type, pixels);
     if(glGetError() != GL_NO_ERROR)
     {
+        engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+        native_failure = EP_FALLBACK_RESOURCE;
         glDeleteTextures(1, &texture);
         return 0;
+    }
+    engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+
+    /* Null input allocates storage without transferring CPU image pixels.
+     * Count initial sprite uploads separately from later screen refreshes;
+     * both contribute to the same image-transfer total and byte measure. */
+    if(pixels)
+    {
+        engine_profile_count(EP_COUNT_IMAGE_UPLOADS, 1);
+        engine_profile_count(EP_COUNT_IMAGE_UPLOAD_BYTES,
+                             (uint64_t)width * height * (format == GL_LUMINANCE ? 1 : 4));
     }
     return texture;
 }
@@ -319,6 +672,7 @@ static int gpu_upload_screen(gpu_image *image, s_screen *screen)
 {
     GLenum format = image->format == PIXEL_32 ? GPU_PACKED_FORMAT : GL_LUMINANCE;
     GLenum type = image->format == PIXEL_32 ? GL_UNSIGNED_INT_8_8_8_8_REV : GL_UNSIGNED_BYTE;
+    ep_scope upload_scope;
     if(!image->cpu_dirty)
     {
         return 1;
@@ -326,6 +680,7 @@ static int gpu_upload_screen(gpu_image *image, s_screen *screen)
 
     /* CPU mutations own the complete screen version. Reset unpack state
      * explicitly because uploads share a context with presentation code. */
+    upload_scope = engine_profile_span_begin();
     gpu_bind_texture(0, image->texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -335,8 +690,14 @@ static int gpu_upload_screen(gpu_image *image, s_screen *screen)
                    format, type, screen->data);
     if(glGetError() != GL_NO_ERROR)
     {
+        engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+        native_failure = EP_FALLBACK_RESOURCE;
         return 0;
     }
+    engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+    engine_profile_count(EP_COUNT_IMAGE_UPLOADS, 1);
+    engine_profile_count(EP_COUNT_IMAGE_UPLOAD_BYTES,
+                         (uint64_t)image->width * image->height * (image->format == PIXEL_32 ? 4 : 1));
 
     /* Both copies now describe the same pixels; transfer ownership only
      * after the driver has accepted the upload. */
@@ -362,12 +723,15 @@ static gpu_image *gpu_screen_image(s_screen *screen, int upload)
        screen->width > maximum_texture_size || screen->height > maximum_texture_size ||
        (screen->pixelformat != PIXEL_32 && screen->pixelformat != PIXEL_x8))
     {
+        native_failure = screen && screen->pixelformat != PIXEL_32 && screen->pixelformat != PIXEL_x8
+                       ? EP_FALLBACK_SOURCE_FORMAT : EP_FALLBACK_IMAGE_SIZE;
         return NULL;
     }
     image = gpu_find_image(screen, 0);
     if(image && (image->width != screen->width || image->height != screen->height ||
                  image->format != screen->pixelformat))
     {
+        native_failure = EP_FALLBACK_RESOURCE;
         return NULL;
     }
     if(!image)
@@ -375,6 +739,7 @@ static gpu_image *gpu_screen_image(s_screen *screen, int upload)
         image = (gpu_image *)calloc(1, sizeof(*image));
         if(!image)
         {
+            native_failure = EP_FALLBACK_RESOURCE;
             return NULL;
         }
         image->owner = screen;
@@ -400,6 +765,7 @@ static gpu_image *gpu_screen_image(s_screen *screen, int upload)
                                      GL_TEXTURE_2D, image->texture, 0);
             if(gpu_CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
+                native_failure = EP_FALLBACK_RESOURCE;
                 gpu_BindFramebuffer(GL_FRAMEBUFFER, 0);
                 gpu_delete_image(image);
                 return NULL;
@@ -434,6 +800,7 @@ static gpu_image *gpu_sprite_image(s_sprite *sprite)
     if(!sprite || sprite->width <= 0 || sprite->height <= 0 ||
        sprite->width > maximum_texture_size || sprite->height > maximum_texture_size)
     {
+        native_failure = EP_FALLBACK_IMAGE_SIZE;
         return NULL;
     }
     image = gpu_find_image(sprite, 1);
@@ -443,11 +810,13 @@ static gpu_image *gpu_sprite_image(s_sprite *sprite)
     }
     if((size_t)sprite->width > SIZE_MAX / (size_t)sprite->height)
     {
+        native_failure = EP_FALLBACK_IMAGE_SIZE;
         return NULL;
     }
     pixels = (unsigned char *)calloc((size_t)sprite->width, (size_t)sprite->height);
     if(!pixels)
     {
+        native_failure = EP_FALLBACK_RESOURCE;
         return NULL;
     }
 
@@ -464,6 +833,7 @@ static gpu_image *gpu_sprite_image(s_sprite *sprite)
             int run = *line++;
             if(skip > sprite->width - x || run > sprite->width - x - skip)
             {
+                native_failure = EP_FALLBACK_OTHER;
                 free(pixels);
                 return NULL;
             }
@@ -476,6 +846,7 @@ static gpu_image *gpu_sprite_image(s_sprite *sprite)
     image = (gpu_image *)calloc(1, sizeof(*image));
     if(!image)
     {
+        native_failure = EP_FALLBACK_RESOURCE;
         free(pixels);
         return NULL;
     }
@@ -512,6 +883,7 @@ static int gpu_read_screen(s_screen *screen)
     gpu_image *image = gpu_find_image(screen, 0);
     size_t i, count;
     unsigned *pixels;
+    ep_scope readback_scope;
     if(!image || !image->gpu_dirty)
     {
         return 1;
@@ -519,6 +891,7 @@ static int gpu_read_screen(s_screen *screen)
 
     /* This is the synchronization boundary for CPU consumers. Repeated CPU
      * reads reuse the populated shadow until another GPU draw changes it. */
+    readback_scope = engine_profile_span_begin();
     gpu_BindFramebuffer(GL_FRAMEBUFFER, image->framebuffer);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ROW_LENGTH, 0);
@@ -528,6 +901,7 @@ static int gpu_read_screen(s_screen *screen)
                  GL_UNSIGNED_INT_8_8_8_8_REV, screen->data);
     if(glGetError() != GL_NO_ERROR)
     {
+        engine_profile_span_end(readback_scope, EP_SPAN_READBACK);
         return 0;
     }
     count = (size_t)image->width * image->height;
@@ -536,6 +910,11 @@ static int gpu_read_screen(s_screen *screen)
     {
         pixels[i] &= 0x00ffffffu;
     }
+    /* Wall time includes the existing blocking readback and RGB-shadow scrub.
+     * Byte counts describe the whole transfer even for a single-pixel caller. */
+    engine_profile_span_end(readback_scope, EP_SPAN_READBACK);
+    engine_profile_count(EP_COUNT_READBACKS, 1);
+    engine_profile_count(EP_COUNT_READBACK_BYTES, (uint64_t)count * sizeof(*pixels));
     image->gpu_dirty = 0;
     stats.readbacks++;
     return 1;
@@ -596,6 +975,7 @@ static int gpu_set_palette(const unsigned char *palette)
 {
     if(!palette)
     {
+        native_failure = EP_FALLBACK_PALETTE;
         return 0;
     }
 
@@ -603,6 +983,7 @@ static int gpu_set_palette(const unsigned char *palette)
      * accepted values only after upload so failures remain retryable. */
     if(!palette_valid || memcmp(palette_cache, palette, sizeof(palette_cache)))
     {
+        ep_scope upload_scope = engine_profile_span_begin();
         gpu_bind_texture(1, palette_texture);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -610,8 +991,13 @@ static int gpu_set_palette(const unsigned char *palette)
                        GL_UNSIGNED_INT_8_8_8_8_REV, palette);
         if(glGetError() != GL_NO_ERROR)
         {
+            engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+            native_failure = EP_FALLBACK_RESOURCE;
             return 0;
         }
+        engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+        engine_profile_count(EP_COUNT_PALETTE_UPLOADS, 1);
+        engine_profile_count(EP_COUNT_PALETTE_UPLOAD_BYTES, sizeof(palette_cache));
         memcpy(palette_cache, palette, sizeof(palette_cache));
         palette_valid = 1;
         stats.uploads++;
@@ -628,6 +1014,7 @@ static int gpu_set_palette(const unsigned char *palette)
 static int gpu_set_tables(void)
 {
     int i;
+    ep_scope upload_scope;
 
     /* Pointer replacement catches newly allocated tables; the explicit
      * invalidation callback also covers edits to an existing allocation. */
@@ -651,10 +1038,12 @@ static int gpu_set_tables(void)
         {
             if(blendtables[i])
             {
+                native_failure = EP_FALLBACK_BLEND;
                 return 0;
             }
         }
     }
+    upload_scope = engine_profile_span_begin();
     gpu_bind_texture(4, table_texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -668,13 +1057,18 @@ static int gpu_set_tables(void)
                            GL_LUMINANCE, GL_UNSIGNED_BYTE, blendtables[i]);
             if(glGetError() != GL_NO_ERROR)
             {
+                engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+                native_failure = EP_FALLBACK_RESOURCE;
                 return 0;
             }
+            engine_profile_count(EP_COUNT_TABLE_UPLOADS, 1);
+            engine_profile_count(EP_COUNT_TABLE_UPLOAD_BYTES, GPU_BLEND_TABLE_SIZE);
             table_mask |= 1 << i;
             stats.uploads++;
         }
         table_pointers[i] = blendtables[i];
     }
+    engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
     tables_dirty = 0;
     return 1;
 }
@@ -714,11 +1108,13 @@ static int gpu_collect_quad(const gpu_vertex vertices[4], int wrap, void *unused
         gpu_quad *replacement;
         if(capacity < quad_capacity || capacity > SIZE_MAX / sizeof(*quad_buffer))
         {
+            native_failure = EP_FALLBACK_RESOURCE;
             return 0;
         }
         replacement = (gpu_quad *)realloc(quad_buffer, capacity * sizeof(*quad_buffer));
         if(!replacement)
         {
+            native_failure = EP_FALLBACK_RESOURCE;
             return 0;
         }
         quad_buffer = replacement;
@@ -736,6 +1132,7 @@ static int gpu_collect_quad(const gpu_vertex vertices[4], int wrap, void *unused
         if(!isfinite(vertices[i].x) || !isfinite(vertices[i].y) ||
            !isfinite(vertices[i].u) || !isfinite(vertices[i].v))
         {
+            native_failure = EP_FALLBACK_TRANSFORM;
             return 0;
         }
         if(vertices[i].x < bounds_left)
@@ -806,6 +1203,7 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
     int y = self_draw ? 0 : rectangle[1];
     int width = self_draw ? target->width : rectangle[2];
     int height = self_draw ? target->height : rectangle[3];
+    ep_scope copy_scope;
     if(!target->snapshot)
     {
         target->snapshot = gpu_new_texture(target->width, target->height,
@@ -818,12 +1216,22 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
 
     /* Matching source/destination offsets preserve screen-space addressing.
      * Blends sample only the copied rectangle; self-draws need the whole image. */
+    copy_scope = engine_profile_span_begin();
     gpu_BindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
     gpu_bind_texture(3, target->snapshot);
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x, y, x, y, width, height);
     if(glGetError() != GL_NO_ERROR)
     {
+        engine_profile_span_end(copy_scope, EP_SPAN_DEST_COPY);
+        native_failure = EP_FALLBACK_RESOURCE;
         return 0;
+    }
+    engine_profile_span_end(copy_scope, EP_SPAN_DEST_COPY);
+    engine_profile_count(EP_COUNT_DEST_COPIES, 1);
+    engine_profile_count(EP_COUNT_DEST_COPY_BYTES, (uint64_t)width * height * 4);
+    if(self_draw)
+    {
+        engine_profile_count(EP_COUNT_SELF_COPIES, 1);
     }
     stats.destination_copies++;
     return 1;
@@ -848,7 +1256,8 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     int self_draw = source == target;
     int fill = primitive || method->fillcolor != 0;
     GLuint texture = source ? source->texture : white_texture;
-    size_t q;
+    size_t q, batches = 0;
+    ep_scope state_scope, submit_scope;
 
     /* Finish resource preparation before touching destination pixels. Empty
      * or fully clipped geometry is already a successful, completed draw. */
@@ -858,10 +1267,12 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     }
     if(blend_mode > MAX_BLENDINGS || method->tintmode > MAX_BLENDINGS)
     {
+        native_failure = EP_FALLBACK_BLEND;
         return 0;
     }
     if(indexed && !palette && !fill)
     {
+        native_failure = EP_FALLBACK_PALETTE;
         return 0;
     }
     if(indexed && palette && !gpu_set_palette(palette))
@@ -886,6 +1297,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
 
     /* Establish every raster state shared with the presenter. The material
      * shader computes the final RGB value, including destination blending. */
+    state_scope = engine_profile_span_begin();
     gpu_BindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
     glViewport(0, 0, target->width, target->height);
     glEnable(GL_SCISSOR_TEST);
@@ -929,9 +1341,11 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_uniform_color(uniforms.tint_color, method->tintcolor);
     gpu_Uniform3f(uniforms.channels, method->channelr / 255.0f,
                   method->channelg / 255.0f, method->channelb / 255.0f);
+    engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
 
     /* Adjacent row strips share state and one submission. Queue entries are
      * never sorted by texture or moved across capture/mutation boundaries. */
+    submit_scope = engine_profile_span_begin();
     for(q = 0; q < quad_count; q++)
     {
         if(quad_buffer[q].wrap != wrap)
@@ -943,6 +1357,7 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
             wrap = quad_buffer[q].wrap;
             gpu_Uniform1i(uniforms.wrap, wrap);
             glBegin(GL_QUADS);
+            batches++;
         }
         for(i = 0; i < 4; i++)
         {
@@ -959,6 +1374,13 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     {
         gpu_fatal("scene draw");
     }
+    /* CPU submission time includes the existing driver error check. Quads and
+     * begin/end batches remain separate counts because one plane image can
+     * emit many row quads while still sharing a single submission batch. */
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    engine_profile_count(EP_COUNT_NATIVE_QUADS, quad_count);
+    engine_profile_count(EP_COUNT_NATIVE_BATCHES, batches);
 
     /* Subsequent GPU consumers can use the texture immediately. Its CPU
      * shadow becomes current only when an explicit reader synchronizes it. */
@@ -996,6 +1418,7 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     final_y = (long long)y + (long long)(method->yrepeat - 1) * method->yspan;
     if(final_x < INT_MIN || final_x > INT_MAX || final_y < INT_MIN || final_y > INT_MAX)
     {
+        native_failure = EP_FALLBACK_TRANSFORM;
         return 0;
     }
     parameters.source_width = source->width;
@@ -1012,10 +1435,19 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     {
         for(i = 0; i < method->xrepeat; i++)
         {
+            ep_scope geometry_scope;
+            int geometry_result;
             parameters.x = (int)((long long)x + (long long)i * method->xspan);
             parameters.y = (int)((long long)y + (long long)j * method->yspan);
             quad_count = 0;
-            if(gpu_transform_draw(&parameters, method, gpu_collect_quad, NULL) == GPU_TRANSFORM_FAILED ||
+            geometry_scope = engine_profile_span_begin();
+            geometry_result = gpu_transform_draw(&parameters, method, gpu_collect_quad, NULL);
+            engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+            if(geometry_result == GPU_TRANSFORM_FAILED && native_failure == EP_FALLBACK_OTHER)
+            {
+                native_failure = EP_FALLBACK_TRANSFORM;
+            }
+            if(geometry_result == GPU_TRANSFORM_FAILED ||
                !gpu_render_quads(target, source, mask, palette, method, sprite, 0, 0))
             {
                 /* Earlier instances may already have changed the target.
@@ -1045,8 +1477,10 @@ static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y, const s_
 {
     gpu_image *target, *source;
     const unsigned char *palette;
+    native_failure = EP_FALLBACK_OTHER;
     if(!dest || !src || dest->pixelformat != PIXEL_32)
     {
+        native_failure = dest && src ? EP_FALLBACK_TARGET_FORMAT : EP_FALLBACK_OTHER;
         goto fallback;
     }
     if(src->width <= 0 || src->height <= 0)
@@ -1071,6 +1505,7 @@ static int gpu_screen_draw(s_screen *dest, s_screen *src, int x, int y, const s_
 fallback:
     /* The caller synchronizes CPU shadows before entering the software
      * rasterizer. Reaching here guarantees that this draw changed no pixels. */
+    engine_profile_fallback(native_failure);
     stats.fallback_draws++;
     return 0;
 }
@@ -1085,8 +1520,10 @@ static int gpu_sprite_draw(s_screen *dest, s_sprite *sprite, int x, int y, const
 {
     gpu_image *target, *source, *mask = NULL;
     const unsigned char *palette;
+    native_failure = EP_FALLBACK_OTHER;
     if(!dest || !sprite || dest->pixelformat != PIXEL_32)
     {
+        native_failure = dest && sprite ? EP_FALLBACK_TARGET_FORMAT : EP_FALLBACK_OTHER;
         goto fallback;
     }
     if(sprite->width <= 0 || sprite->height <= 0)
@@ -1095,10 +1532,12 @@ static int gpu_sprite_draw(s_screen *dest, s_sprite *sprite, int x, int y, const
     }
     if(sprite->pixelformat != PIXEL_x8 && sprite->pixelformat != PIXEL_8)
     {
+        native_failure = EP_FALLBACK_SOURCE_FORMAT;
         goto fallback;
     }
     if(sprite->mask && (sprite->mask->width != sprite->width || sprite->mask->height != sprite->height))
     {
+        native_failure = EP_FALLBACK_MASK;
         goto fallback;
     }
 
@@ -1121,6 +1560,7 @@ static int gpu_sprite_draw(s_screen *dest, s_sprite *sprite, int x, int y, const
         return 1;
     }
 fallback:
+    engine_profile_fallback(native_failure);
     stats.fallback_draws++;
     return 0;
 }
@@ -1152,8 +1592,10 @@ static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
     gpu_image *target;
     const s_drawmethod *method = drawmethod && (drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
                               ? drawmethod : &plainmethod;
+    native_failure = EP_FALLBACK_OTHER;
     if(!dest || dest->pixelformat != PIXEL_32)
     {
+        native_failure = dest ? EP_FALLBACK_TARGET_FORMAT : EP_FALLBACK_OTHER;
         goto fallback;
     }
     if(width <= 0 || height <= 0)
@@ -1165,12 +1607,18 @@ static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
      * still supplies clipping, tint and blend behavior for every primitive. */
     target = gpu_screen_image(dest, 1);
     quad_count = 0;
-    if(target && gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height) &&
-       gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color))
+    if(target)
     {
-        return 1;
+        ep_scope geometry_scope = engine_profile_span_begin();
+        int geometry_ready = gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height);
+        engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color))
+        {
+            return 1;
+        }
     }
 fallback:
+    engine_profile_fallback(native_failure);
     stats.fallback_draws++;
     return 0;
 }
@@ -1291,14 +1739,21 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
                          unsigned color, const s_drawmethod *drawmethod)
 {
     gpu_image *target;
-    int dx, dy, step_x, step_y, threshold;
+    int dx, dy, step_x, step_y, threshold, geometry_ready;
+    ep_scope geometry_scope = {0, 0};
     const s_drawmethod *method = drawmethod && (drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
                               ? drawmethod : &plainmethod;
+    native_failure = EP_FALLBACK_OTHER;
     if(!dest || dest->pixelformat != PIXEL_32)
     {
+        native_failure = dest ? EP_FALLBACK_TARGET_FORMAT : EP_FALLBACK_OTHER;
         goto fallback;
     }
-    if(!gpu_clip_line(&sx, &sy, &ex, &ey, dest->width, dest->height))
+    geometry_scope = engine_profile_span_begin();
+    geometry_ready = gpu_clip_line(&sx, &sy, &ex, &ey, dest->width, dest->height);
+    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    geometry_scope.frame_id = 0;
+    if(!geometry_ready)
     {
         return 1;
     }
@@ -1312,6 +1767,7 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
     step_x = ex < sx ? -1 : 1;
     step_y = ey < sy ? -1 : 1;
     quad_count = 0;
+    geometry_scope = engine_profile_span_begin();
 
     /* Walk the dominant axis with the engine's integer error threshold.
      * Each covered pixel becomes a unit quad; collect the entire line before
@@ -1352,12 +1808,18 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
     }
     /* Both axis loops stop before the endpoint. Appending it explicitly also
      * covers zero-length lines through the same material and clipping path. */
-    if(gpu_collect_rectangle((float)ex, (float)ey, 1.0f, 1.0f) &&
-       gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color))
+    geometry_ready = gpu_collect_rectangle((float)ex, (float)ey, 1.0f, 1.0f);
+    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    geometry_scope.frame_id = 0;
+    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color))
     {
         return 1;
     }
 fallback:
+    /* Failed collection still consumed preparation time. Clearing frame_id
+     * above ensures paths that already ended the span cannot charge it twice. */
+    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    engine_profile_fallback(native_failure);
     stats.fallback_draws++;
     return 0;
 }
@@ -1371,8 +1833,11 @@ fallback:
 static int gpu_screen_clear(s_screen *screen)
 {
     gpu_image *target;
+    ep_scope state_scope, submit_scope;
+    native_failure = EP_FALLBACK_OTHER;
     if(!screen || screen->pixelformat != PIXEL_32)
     {
+        engine_profile_fallback(screen ? EP_FALLBACK_TARGET_FORMAT : EP_FALLBACK_OTHER);
         return 0;
     }
 
@@ -1381,17 +1846,23 @@ static int gpu_screen_clear(s_screen *screen)
     target = gpu_screen_image(screen, 0);
     if(!target)
     {
+        engine_profile_fallback(native_failure);
         return 0;
     }
+    state_scope = engine_profile_span_begin();
     gpu_BindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
     glDisable(GL_SCISSOR_TEST);
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
+    submit_scope = engine_profile_span_begin();
     glClear(GL_COLOR_BUFFER_BIT);
     if(glGetError() != GL_NO_ERROR)
     {
         gpu_fatal("screen clear");
     }
+    engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
+    engine_profile_count(EP_COUNT_NATIVE_CLEARS, 1);
     target->gpu_dirty = 1;
     target->cpu_dirty = 0;
     return 1;
@@ -1408,6 +1879,7 @@ static int gpu_screen_copy(s_screen *dest, s_screen *src)
     s_drawmethod method = plainmethod;
     if(!dest || !src || dest->pixelformat != src->pixelformat)
     {
+        engine_profile_fallback(dest && src ? EP_FALLBACK_SOURCE_FORMAT : EP_FALLBACK_OTHER);
         return 0;
     }
     if(dest == src)
@@ -1437,16 +1909,32 @@ int gpu_gl_init(void)
     char message[4096];
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
+    const char *vendor, *device, *version;
     if(initialized)
     {
         return 1;
     }
     if(setting && !strcmp(setting, "0"))
     {
+        engine_profile_log("kind=renderer state=disabled reason=OPENBOR_GPU=0 native_active=0");
         fprintf(stderr, "GPU scene rendering disabled by OPENBOR_GPU=0.\n");
         return 0;
     }
-    if(!SDL_GL_GetCurrentContext() || !gpu_load_functions())
+    if(!SDL_GL_GetCurrentContext())
+    {
+        engine_profile_log("kind=renderer state=unavailable reason=no_current_GL_context native_active=0");
+        return 0;
+    }
+
+    /* Capability records use the engine logger so the game's ordinary log
+     * identifies its actual driver, instead of relying on detached stderr. */
+    vendor = (const char *)glGetString(GL_VENDOR);
+    device = (const char *)glGetString(GL_RENDERER);
+    version = (const char *)glGetString(GL_VERSION);
+    engine_profile_log("kind=renderer state=probing vendor=\"%s\" device=\"%s\" GL_version=\"%s\"",
+                       vendor ? vendor : "unavailable", device ? device : "unavailable",
+                       version ? version : "unavailable");
+    if(!gpu_load_functions())
     {
         return 0;
     }
@@ -1462,6 +1950,8 @@ int gpu_gl_init(void)
      * destination snapshot and atlas occupy five independent texture units. */
     if(maximum_texture_size < 1536 || units < 5)
     {
+        engine_profile_log("kind=renderer state=unavailable reason=insufficient_capabilities max_texture=%d texture_units=%d native_active=0",
+                           maximum_texture_size, units);
         return 0;
     }
     vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
@@ -1473,6 +1963,7 @@ int gpu_gl_init(void)
     program = gpu_CreateProgram();
     if(!program)
     {
+        engine_profile_log("kind=renderer state=unavailable reason=program_allocation");
         goto failed;
     }
     gpu_AttachShader(program, vertex);
@@ -1482,6 +1973,7 @@ int gpu_gl_init(void)
     if(!linked)
     {
         gpu_GetProgramInfoLog(program, sizeof(message), NULL, message);
+        engine_profile_log("kind=renderer state=unavailable reason=program_link diagnostic=\"%s\"", message);
         fprintf(stderr, "GPU renderer program: %s\n", message);
         goto failed;
     }
@@ -1529,6 +2021,9 @@ int gpu_gl_init(void)
     initialized = 1;
     gpu_register_backend(&renderer_backend);
     gpu_gl_prepare_present();
+    engine_profile_log("kind=renderer state=enabled native_active=1 target_format=RGB32 source_formats=indexed_RGB32 max_texture=%d texture_units=%d",
+                       maximum_texture_size, units);
+    gpu_query_init();
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
     return 1;
 failed:
@@ -1559,6 +2054,7 @@ failed:
         glDeleteTextures(1, &table_texture);
     }
     program = white_texture = palette_texture = table_texture = 0;
+    engine_profile_log("kind=renderer state=unavailable reason=initialization_failed native_active=0");
     fprintf(stderr, "Native GPU scene renderer unavailable; retaining software rendering.\n");
     return 0;
 }
@@ -1577,6 +2073,11 @@ void gpu_gl_shutdown(void)
     {
         return;
     }
+
+    /* Timestamp collection must stop before context teardown. Polling here
+     * accepts only ready samples; normal screen preservation below retains its
+     * existing behavior independently of optional measurement completion. */
+    gpu_query_shutdown();
 
     /* Preserve screens while their framebuffers and context still exist.
      * Sprites retain their encoded CPU source and can be uploaded afresh. */
@@ -1683,6 +2184,19 @@ void gpu_gl_prepare_present(void)
 const gpu_renderer_stats *gpu_gl_get_stats(void)
 {
     return &stats;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Expose optional query coverage and lifecycle totals to native regressions.
+ */
+const gpu_query_stats *gpu_gl_get_query_stats(void)
+{
+    /* Reading diagnostics never polls the driver or changes query ownership.
+     * Tests can distinguish unsupported timing from native drawing failure. */
+    return &query_stats;
 }
 
 #endif

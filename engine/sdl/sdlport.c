@@ -12,6 +12,7 @@
 #include "video.h"
 #include "opengl.h"
 #include "menu.h"
+#include "engine_profile.h"
 #include <time.h>
 #include <unistd.h>
 
@@ -63,6 +64,9 @@ char* AndroidRoot(char *relPath)
  */
 void borExit(int reset)
 {
+	/* Flush the final partial measurement window before the shutdown delay or
+	 * context teardown can be mistaken for gameplay work. */
+	engine_profile_shutdown();
 	SDL_Delay(1000);
 
 	/* Drain native drawing while its SDL window and GL context remain valid. */

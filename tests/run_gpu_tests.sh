@@ -14,6 +14,7 @@ test_flags=(-std=c99 -O2 -Wall -Werror -D_DEFAULT_SOURCE -DPP_TEST
             -ffunction-sections -fdata-sections -Iengine -Iengine/source
             -Iengine/source/gamelib -Iengine/source/gfxlib)
 test_link_flags=(-Wl,--gc-sections -lm)
+test_profile_sources=(engine/source/gamelib/engine_profile.c)
 # Append optional sanitizer or diagnostic flags after the defaults so callers
 # can select the same instrumentation for both CPU and native test binaries.
 if [[ -n ${OPENBOR_TEST_CFLAGS:-} ]]; then
@@ -42,15 +43,36 @@ run_test()
     fi
 }
 
+# Verify profiler configuration in separate processes because environment
+# settings are intentionally sampled once at engine startup. Explicit fixtures
+# then supply deterministic clocks and query completion without SDL.
+"$test_compiler" "${test_flags[@]}" tests/test_engine_profile.c \
+    "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_engine_profile"
+env -u OPENBOR_PROFILE -u OPENBOR_PROFILE_FRAMES -u OPENBOR_PROFILE_WARMUP \
+    "$test_build_dir/test_engine_profile" --environment-defaults
+OPENBOR_PROFILE=0 "$test_build_dir/test_engine_profile" --environment-disabled
+OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=7 OPENBOR_PROFILE_WARMUP=2 \
+    "$test_build_dir/test_engine_profile" --environment-custom
+OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=1001 OPENBOR_PROFILE_WARMUP=-1 \
+    "$test_build_dir/test_engine_profile" --environment-defaults
+run_test "$test_build_dir/test_engine_profile"
+
+# Keep unrelated renderer fixtures independent of the diagnostic branch's
+# default-on setting. The native profiling suite explicitly enables its own
+# collection windows and exercises GPU query opt-out separately.
+export OPENBOR_PROFILE=0
+
 # Run context-independent contracts first so hosts without SDL still verify
 # stable ordering, transform arithmetic, and CPU/GPU ownership transitions.
 "$test_compiler" "${test_flags[@]}" tests/test_spriteq_sort.c \
-    "${test_link_flags[@]}" -o "$test_build_dir/test_spriteq_sort"
+    "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_spriteq_sort"
 run_test "$test_build_dir/test_spriteq_sort"
 
 "$test_compiler" "${test_flags[@]}" tests/test_gpu_transform.c \
     engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_shader.c \
-    engine/source/gamelib/pixelformat.c "${test_link_flags[@]}" \
+    engine/source/gamelib/pixelformat.c "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_gpu_transform"
 
@@ -63,7 +85,7 @@ test_software_sources=(engine/source/gamelib/gpu.c
     engine/source/gamelib/bitmap.c engine/source/gamelib/transform.c
     engine/source/gamelib/pixelformat.c engine/source/omath.c)
 "$test_compiler" "${test_flags[@]}" tests/test_gpu_coherence.c \
-    "${test_software_sources[@]}" "${test_link_flags[@]}" \
+    "${test_software_sources[@]}" "${test_profile_sources[@]}" "${test_link_flags[@]}" \
     -o "$test_build_dir/test_gpu_coherence"
 run_test "$test_build_dir/test_gpu_coherence"
 
@@ -91,13 +113,14 @@ test_gpu_flags=("${test_flags[@]}" "${test_sdl_flags[@]}"
     -DSDL=1 -DLINUX=1 -DOPENGL=1 -DLOADGL=1 -Iengine/sdl
     -Iengine/source/pnglib -Iengine/source/webmlib)
 test_gpu_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c
-    engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c engine/sdl/loadgl.c)
+    engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c engine/sdl/loadgl.c
+    "${test_profile_sources[@]}")
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-offscreen}
 
 # Native suites require a real GL context. Keep lifecycle/capture checks,
 # pixel-level transform comparisons, and presentation transitions separate
 # so a failure identifies the affected boundary.
-for test_name in test_gpu_renderer test_gpu_shutdown; do
+for test_name in test_gpu_renderer test_gpu_shutdown test_gpu_profile; do
     "$test_compiler" "${test_gpu_flags[@]}" "tests/$test_name.c" \
         "${test_gpu_sources[@]}" "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
         -o "$test_build_dir/$test_name"

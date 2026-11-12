@@ -12,6 +12,7 @@
 #include "types.h"
 #include "draw.h"
 #include "gpu.h"
+#include "engine_profile.h"
 
 #ifndef		NULL
 #define		NULL	 ((void*)0)
@@ -369,14 +370,23 @@ static int draw_init( s_drawmethod *drawmethod)
 
 //======================== root methods ==================================
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Draw a filled rectangle through the native or format-specific CPU path.
+ * Time software fallback from synchronization through completed rasterization.
+ */
 void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
     int alpha = draw_init(drawmethod);
+    ep_scope software;
 
     if(gpu_draw_box(screen, x, y, width, height, (unsigned)colour, drawmethod))
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
     gpu_prepare_cpu_write(screen);
 
     switch(screen->pixelformat)
@@ -391,16 +401,26 @@ void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s
         drawbox32(x, y, width, height, colour, screen, alpha);
         break;
     }
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Draw a line while exposing the complete CPU fallback cost. The lower-level
+ * pixel loops remain inside this one timed software dispatch.
+ */
 void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
     int alpha = draw_init(drawmethod);
+    ep_scope software;
 
     if(gpu_draw_line(screen, sx, sy, ex, ey, (unsigned)colour, drawmethod))
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
     gpu_prepare_cpu_write(screen);
 
     switch(screen->pixelformat)
@@ -415,11 +435,19 @@ void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_dra
         line32(sx, sy, ex, ey, colour, screen, alpha);
         break;
     }
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Draw one in-bounds pixel and measure any software fallback. Clipped pixels
+ * leave both renderers untouched and do not count as software dispatches.
+ */
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
     int alpha = draw_init(drawmethod);
+    ep_scope software;
 
     /* Reject unsigned off-screen coordinates before the rectangle API's
      * signed conversion. Single pixels share its native drawing operation. */
@@ -431,6 +459,8 @@ void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod
     {
         return;
     }
+    software = engine_profile_span_begin();
+    engine_profile_count(EP_COUNT_SOFTWARE_DRAWS, 1);
     gpu_prepare_cpu_write(screen);
     switch(screen->pixelformat)
     {
@@ -444,4 +474,5 @@ void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod
         _putpixel32(x, y, colour, screen, alpha);
         break;
     }
+    engine_profile_span_end(software, EP_SPAN_SOFTWARE);
 }

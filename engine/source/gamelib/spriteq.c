@@ -15,6 +15,7 @@
 #include "sprite.h"
 #include "draw.h"
 #include "globals.h"
+#include "engine_profile.h"
 
 // This should be enough for most games...
 // But bear in mind that text is also composed of sprites!
@@ -328,12 +329,33 @@ static void spriteq_sort()
     }
 }
 
-// newonly is 1 means don't draw locked sprites
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Play the sorted queue into its selected destination, retaining new-only and
+ * layer-range filtering. Measure sorting separately from playback and classify
+ * screen captures independently from the frame's main destination.
+ */
 void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int dy)
 {
     int i, x, y;
+    int accepted = 0;
+    int main_target = engine_profile_is_main_target(screen);
+    ep_scope sort_scope = engine_profile_span_begin();
+    ep_scope playback_scope;
+    uint64_t gpu_scope;
 
+    /* Sorting sees the complete queue even when this draw accepts only a layer
+     * range or the unlocked suffix. Record both the examined and accepted sizes. */
     spriteq_sort();
+    engine_profile_span_end(sort_scope, main_target ? EP_SPAN_MAIN_SORT : EP_SPAN_CAPTURE_SORT);
+    engine_profile_count(main_target ? EP_COUNT_MAIN_QUEUE_CALLS : EP_COUNT_CAPTURE_QUEUE_CALLS, 1);
+    engine_profile_count(main_target ? EP_COUNT_MAIN_ENTRIES : EP_COUNT_CAPTURE_ENTRIES, spritequeue_len);
+
+    /* Optional GPU timestamps bracket playback alone. Their asynchronous result
+     * belongs to the originating frame even if another capture follows it. */
+    gpu_scope = engine_profile_gpu_begin(main_target ? EP_GPU_MAIN_QUEUE : EP_GPU_CAPTURE);
+    playback_scope = engine_profile_span_begin();
 
     for(i = 0; i < spritequeue_len; i++)
     {
@@ -371,7 +393,14 @@ void spriteq_draw(s_screen *screen, int newonly, int minz, int maxz, int dx, int
         default:
             continue;
         }
+        accepted++;
     }
+
+    /* Accepted commands can still be clipped by their rasterizer. Keep this
+     * command count distinct from the backend's native-draw and fallback counts. */
+    engine_profile_span_end(playback_scope, main_target ? EP_SPAN_MAIN_PLAYBACK : EP_SPAN_CAPTURE_PLAYBACK);
+    engine_profile_gpu_end(gpu_scope);
+    engine_profile_count(main_target ? EP_COUNT_MAIN_ACCEPTED : EP_COUNT_CAPTURE_ACCEPTED, accepted);
 }
 
 // UT: lock the spriteq, don't clearn old sprites

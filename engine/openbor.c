@@ -18,6 +18,7 @@
 #include "translation.h"
 #include "soundmix.h"
 #include "gpu.h"
+#include "engine_profile.h"
 #include "source/bitmask.h" // Inline bitmask utility functions.
 #include <inttypes.h>
 #include <stdbool.h>
@@ -51477,18 +51478,26 @@ void free_input_recorder()
     }
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Advance input, simulation and drawing in their existing order. Exclusive
+ * profiling checkpoints separate deliberate pacing from engine work, while
+ * nested queue/presentation spans retain more detailed costs within each phase.
+ */
 void update(int ingame, int usevwait)
 {
     int i = 0;
     int p_keys = 0;
+    uint64_t profile_frame = engine_profile_frame_begin(ingame == 1 && !_pause, level, vscreen);
+    uint64_t profile_scene = 0;
 
 #if SDL
     if (savedata.fpslimit == 1) // vsync enabled
     {
-        // To reduce input latency, wait until the last 4 ms (4000 us) of the current
-        // frame to read inputs or do anything else. We can get away with this because
-        // the CPUs of all modern computers - even phones and low-end, outdated PCs -
-        // are complete overkill for OpenBOR's needs.
+        /* Retain the existing late-input policy: wait one refresh period minus
+         * 4 ms before polling. Its measured cost remains separate from rendering
+         * so a slow frame cannot disguise this deliberate pacing as draw work. */
         s64 target_time = timer_uticks() + 1000000/video_current_refresh_rate() - 4000;
         u64 current_time = timer_uticks();
         while (current_time < target_time)
@@ -51498,22 +51507,41 @@ void update(int ingame, int usevwait)
         }
     }
 #endif
+    engine_profile_frame_mark(profile_frame, EP_PHASE_PRE_WAIT);
 
+    /* Input recording/playback and movie polling happen before game scripts.
+     * Keep their complete CPU cost in the input phase without changing order. */
     getinterval();
-    if(playrecstatus->status == A_REC_PLAY && !_pause && level) if ( !playRecordedInputs() ) stopRecordInputs();
+    if(playrecstatus->status == A_REC_PLAY && !_pause && level)
+    {
+        if(!playRecordedInputs())
+        {
+            stopRecordInputs();
+        }
+    }
     inputrefresh(playrecstatus->status);
 #ifdef WEBM
     movie_playback_update(
         (bothnewkeys & (FLAG_ESC | FLAG_ANYBUTTON)) != 0
     );
 #endif
-    if(playrecstatus->status == A_REC_REC && !_pause && level) if ( !recordInputs() ) stopRecordInputs();
+    if(playrecstatus->status == A_REC_REC && !_pause && level)
+    {
+        if(!recordInputs())
+        {
+            stopRecordInputs();
+        }
+    }
+    engine_profile_frame_mark(profile_frame, EP_PHASE_INPUT);
 
     if ((!_pause && ingame == 1) || alwaysupdate)
     {
         execute_updatescripts();
     }
+    engine_profile_frame_mark(profile_frame, EP_PHASE_UPDATE_SCRIPT);
 
+    /* Fixed-step work can run several times for one presented frame. Account
+     * for the whole catch-up loop, including entity and logic-script updates. */
     newtime = 0;
     if(!_pause)
     {
@@ -51564,7 +51592,10 @@ void update(int ingame, int usevwait)
 
                     for(i = 0; i < MAX_PLAYERS; i++)
                     {
-                        if (!player[i].ent) ++all_p_alive;
+                        if (!player[i].ent)
+                        {
+                            ++all_p_alive;
+                        }
                     }
                     all_p_alive = (all_p_alive >= MAX_PLAYERS) ? 1 : 0;
 
@@ -51575,13 +51606,19 @@ void update(int ingame, int usevwait)
 
                         for(i = 0; i < MAX_PLAYERS; i++)
                         {
-                            if (!player[i].joining) ++all_p_nojoin;
+                            if (!player[i].joining)
+                            {
+                                ++all_p_nojoin;
+                            }
                         }
                         all_p_nojoin = (all_p_nojoin >= MAX_PLAYERS) ? 1 : 0;
 
                         for(i = 0; i < MAX_PLAYERS; i++)
                         {
-                            if (player[i].credits < 1) ++all_p_nocredits;
+                            if (player[i].credits < 1)
+                            {
+                                ++all_p_nocredits;
+                            }
                         }
                         all_p_nocredits = (all_p_nocredits >= MAX_PLAYERS) ? 1 : 0;
 
@@ -51618,9 +51655,14 @@ void update(int ingame, int usevwait)
         }
 
     }
+    engine_profile_frame_mark(profile_frame, EP_PHASE_SIMULATION);
 
     /************ gfx queueing ************/
 
+    /* Scene timestamps include direct drawing and nested screen captures as
+     * well as final queue playback. CPU checkpoints remain exclusive; these
+     * optional GPU timeline intervals are reported as a separate measurement. */
+    profile_scene = engine_profile_gpu_begin(EP_GPU_SCENE);
     clearscreen(vscreen);
 
     if(ingame == 1 && !_pause)
@@ -51647,10 +51689,13 @@ void update(int ingame, int usevwait)
 
     // entity sprites queueing
     if(ingame == 1 || check_in_screen())
+    {
         if(!_pause)
         {
             display_ents();
         }
+    }
+    engine_profile_frame_mark(profile_frame, EP_PHASE_DRAW_SETUP);
 
     /************ updated script  ************/
     if(ingame == 1 || alwaysupdate)
@@ -51681,19 +51726,28 @@ void update(int ingame, int usevwait)
             sound_pause_music(1);
             sound_pause_sample(1);
             sound_play_sample(global_sample_list.pause, 0, savedata.effectvol, savedata.effectvol, 100);
+
+            /* Menus can call update() recursively. Close this scene and discard
+             * the interrupted frame before the menu starts its own updates. */
+            engine_profile_gpu_end(profile_scene);
+            engine_profile_frame_cancel(profile_frame, "pause");
             pausemenu();
             return;
         }
     }
     if( ingame == 1 && (goto_mainmenu_flag&1) )
     {
+        engine_profile_gpu_end(profile_scene);
+        engine_profile_frame_cancel(profile_frame, "main_menu");
         backto_mainmenu();
         return;
     }
+    engine_profile_frame_mark(profile_frame, EP_PHASE_DRAW_SCRIPT);
 
     /********** update screen **************/
 
     spriteq_draw(vscreen, 0, MIN_INT, MAX_INT, 0, 0); // notice, always draw sprites at the very end of other methods
+    engine_profile_frame_mark(profile_frame, EP_PHASE_MAIN_QUEUE);
 
     if(_pause != 2 && !noscreenshot && (bothnewkeys & FLAG_SCREENSHOT))
     {
@@ -51709,9 +51763,16 @@ void update(int ingame, int usevwait)
     {
         if( debug_xy_msg.x >= 0 && debug_xy_msg.y >= 0 )
         {
-            if ( debug_xy_msg.font_index < 0 ) debug_xy_msg.font_index = 0;
+            if ( debug_xy_msg.font_index < 0 )
+            {
+                debug_xy_msg.font_index = 0;
+            }
             screen_printf(vscreen, debug_xy_msg.x, debug_xy_msg.y, debug_xy_msg.font_index, debug_msg);
-        } else screen_printf(vscreen, 0, videomodes.vRes-fontheight(0), 0, debug_msg);
+        }
+        else
+        {
+            screen_printf(vscreen, 0, videomodes.vRes-fontheight(0), 0, debug_msg);
+        }
     }
     else
     {
@@ -51725,16 +51786,22 @@ void update(int ingame, int usevwait)
         }
 #endif
     }
+    engine_profile_gpu_end(profile_scene);
+    engine_profile_frame_mark(profile_frame, EP_PHASE_OVERLAY);
 
+    /* The presenter records setup, swap and explicit FPS limiting separately
+     * inside this phase. Its GPU timestamp ends before waiting for the swap. */
     if(usevwait)
     {
         vga_vwait();
     }
     video_copy_screen(vscreen);
+    engine_profile_frame_mark(profile_frame, EP_PHASE_PRESENT);
     spriteq_clear();
 
     check_music();
     sound_update_music();
+    engine_profile_frame_end(profile_frame);
 }
 
 

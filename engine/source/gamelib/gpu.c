@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gpu.h"
+#include "engine_profile.h"
 
 static const gpu_backend *active_backend;
 
@@ -55,6 +56,7 @@ int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmet
     /* An absent renderer or unsupported operation leaves ownership with the caller. */
     if(!active_backend || !active_backend->draw_screen)
     {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
         return 0;
     }
 
@@ -75,6 +77,7 @@ int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_draw
 {
     if(!active_backend || !active_backend->draw_sprite)
     {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
         return 0;
     }
 
@@ -91,6 +94,7 @@ int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned c
 {
     if(!active_backend || !active_backend->draw_box)
     {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
         return 0;
     }
 
@@ -107,6 +111,7 @@ int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color
 {
     if(!active_backend || !active_backend->draw_line)
     {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
         return 0;
     }
 
@@ -123,6 +128,7 @@ int gpu_clear_screen(s_screen *screen)
 {
     if(!active_backend || !active_backend->clear_screen)
     {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
         return 0;
     }
 
@@ -139,6 +145,7 @@ int gpu_copy_screen(s_screen *dest, s_screen *src)
 {
     if(!active_backend || !active_backend->copy_screen)
     {
+        engine_profile_fallback(EP_FALLBACK_NO_BACKEND);
         return 0;
     }
 

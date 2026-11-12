@@ -25,6 +25,8 @@
 #include "pngdec.h"
 #include "videocommon.h"
 #include "timer.h"
+#include "gpu.h"
+#include "engine_profile.h"
 #include "../resources/OpenBOR_Icon_32x32_png.h"
 
 SDL_Window *window = NULL;
@@ -205,6 +207,17 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
  */
 int video_set_mode(s_videomodes videomodes)
 {
+	/* Configuration changes can replace the renderer or its synchronization
+	 * policy. Finish the old measurement window before recording the new mode. */
+	engine_profile_reset("video_mode");
+	engine_profile_log("kind=video_config requested_backend=%s fpslimit=%d "
+	                   "fullscreen=%d scale=%.2f software_filter=%d filter_active=%d "
+	                   "source_width=%d source_height=%d source_bytes=%d",
+	                   savedata.usegl ? "OpenGL" : "SDL", savedata.fpslimit,
+	                   savedata.fullscreen, (double)savedata.hwscale, savedata.swfilter,
+	                   !!(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)),
+	                   videomodes.hRes, videomodes.vRes, videomodes.pixel);
+
 	/* Store game dimensions before preprocessing can expand the output image. */
 	stored_videomodes = videomodes;
 	yuv_mode = 0;
@@ -261,6 +274,19 @@ int video_set_mode(s_videomodes videomodes)
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	video_stretch(savedata.stretch);
 
+	/* SDL can select a driver independently of the requested engine backend.
+	 * Record its actual capabilities rather than inferring them from defaults. */
+	{
+		SDL_RendererInfo information;
+		int information_valid = SDL_GetRendererInfo(renderer, &information) == 0;
+		engine_profile_log("kind=video_backend backend=SDL native_active=%d driver=%s "
+		                   "requested_vsync=%d actual_vsync=%d refresh_hz=%d output_bytes=%d",
+		                   gpu_is_active(), information_valid && information.name ? information.name : "unknown",
+		                   savedata.fpslimit == 1,
+		                   information_valid ? !!(information.flags & SDL_RENDERER_PRESENTVSYNC) : -1,
+		                   video_current_refresh_rate(), videomodes.pixel);
+	}
+
 	return 1;
 }
 
@@ -277,28 +303,60 @@ void video_fullscreen_flip()
 	if(restore_yuv) video_setup_yuv_overlay(&stored_yuv_mode);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Submit the SDL presentation quad and brightness overlay, measuring window
+ * preparation separately from SDL's potentially blocking presentation call.
+ */
 void blit()
 {
+	ep_scope setup_scope = engine_profile_span_begin();
+	ep_scope swap_scope;
+
+	/* Preserve the existing composition order before handing the frame to SDL. */
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 
 	if (brightness > 0)
+	{
 		SDL_SetRenderDrawColor(renderer, 255, 255, 255, brightness-1);
+	}
 	else if (brightness < 0)
+	{
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, (-brightness)-1);
+	}
 	SDL_RenderFillRect(renderer, NULL);
+	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
 
+	/* Present may wait for vertical synchronization or outstanding GPU work.
+	 * Keep that wait visible instead of charging it to the preceding draw calls. */
+	swap_scope = engine_profile_span_begin();
 	SDL_RenderPresent(renderer);
+	engine_profile_span_end(swap_scope, EP_SPAN_SWAP);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Retain the selected 200/500 FPS limiter and measure its actual elapsed wait.
+ * The deadline and sleep loop are unchanged so profiling does not alter pacing.
+ */
 void FramerateDelay()
 {
     static u64 last_time = 0;
+    ep_scope limiter_scope = engine_profile_span_begin();
 
-    if (savedata.fpslimit < 2 || savedata.fpslimit > 3) return;
+    if (savedata.fpslimit < 2 || savedata.fpslimit > 3)
+    {
+        engine_profile_span_end(limiter_scope, EP_SPAN_LIMITER);
+        return;
+    }
     int fps_limit = savedata.fpslimit == 3 ? 500 : 200;
 
+    /* This minimum frame interval only sleeps when the preceding work has
+     * finished before its deadline. Slow frames receive no additional delay. */
     u64 target_time = last_time + 1000000/fps_limit;
     u64 current_time = timer_uticks();
     while (current_time < target_time)
@@ -307,6 +365,7 @@ void FramerateDelay()
         current_time = timer_uticks();
     }
     last_time = current_time;
+    engine_profile_span_end(limiter_scope, EP_SPAN_LIMITER);
 }
 
 /*
@@ -318,6 +377,9 @@ void FramerateDelay()
  */
 int video_copy_screen(s_screen* src)
 {
+	ep_scope setup_scope;
+	s_videosurface *surface;
+
 	/*
 	 * Native GPU screens already contain the composed frame. Present their
 	 * texture before requesting CPU pixels or applying legacy conversion.
@@ -331,7 +393,9 @@ int video_copy_screen(s_screen* src)
 	 * The native path declined this image or presentation mode. Synchronize
 	 * its CPU shadow and apply the configured palette conversion/output filter.
 	 */
-	s_videosurface *surface = getVideoSurface(src);
+	setup_scope = engine_profile_span_begin();
+	surface = getVideoSurface(src);
+	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
 
 	if(opengl)
 	{
@@ -339,7 +403,9 @@ int video_copy_screen(s_screen* src)
 	}
 
 	/* SDL presentation uploads the completed CPU image to its streaming texture. */
+	setup_scope = engine_profile_span_begin();
 	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
+	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
 	blit();
 
 	if(savedata.fpslimit >= 2)
