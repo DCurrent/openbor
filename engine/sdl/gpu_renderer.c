@@ -28,6 +28,8 @@
 #define GPU_PALETTE_HASH_MULTIPLIER UINT32_C(16777619)
 #define GPU_PALETTE_HASH_MIX_FIRST UINT32_C(0x85ebca6b)
 #define GPU_PALETTE_HASH_MIX_SECOND UINT32_C(0xc2b2ae35)
+#define GPU_TEXTURE_UNITS 5
+#define GPU_FIXED_RASTER_CALLS 6
 #define GPU_QUERY_CAPACITY 256
 #define GPU_QUERY_TOKEN_BITS 9
 #define GPU_QUERY_SLOT_MASK ((UINT64_C(1) << GPU_QUERY_TOKEN_BITS) - 1)
@@ -95,6 +97,39 @@ typedef struct gpu_uniforms
     GLint fill_color, tint_color, channels;
 } gpu_uniforms;
 
+typedef struct gpu_uniform_value
+{
+    int valid;
+    GLint integer;
+    GLfloat vector[3];
+} gpu_uniform_value;
+
+typedef struct gpu_material_state
+{
+    gpu_uniform_value target_size, source_size;
+    gpu_uniform_value source, palette, mask, destination, tables;
+    gpu_uniform_value palette_row;
+    gpu_uniform_value indexed, masked, color_key, fill, has_destination, wrap;
+    gpu_uniform_value blend_mode, tint_mode, table_mask;
+    gpu_uniform_value fill_color, tint_color, channels;
+} gpu_material_state;
+
+typedef struct gpu_state_cache
+{
+    /* Validity belongs to the current context and renderer ownership period,
+     * never to numeric GL names alone. Unknown state is restored on demand. */
+    int active_unit_valid, active_unit;
+    unsigned texture_valid;
+    GLuint textures[GPU_TEXTURE_UNITS];
+    int framebuffer_valid, program_valid;
+    GLuint framebuffer, program;
+    int viewport_valid, viewport_width, viewport_height;
+    int scissor_enabled_valid, scissor_enabled, scissor_rectangle_valid;
+    int scissor_rectangle[4];
+    int raster_valid, color_mask_valid, clear_color_valid;
+    gpu_material_state material;
+} gpu_state_cache;
+
 typedef struct gpu_palette_entry
 {
     /* Own the exact values instead of retaining a caller's palette pointer.
@@ -111,6 +146,7 @@ static size_t quad_count, quad_capacity;
 static float bounds_left, bounds_top, bounds_right, bounds_bottom;
 static GLuint program, white_texture, palette_texture, table_texture;
 static gpu_uniforms uniforms;
+static gpu_state_cache gl_state;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
 static int initialized, tables_dirty = 1, table_mask;
@@ -559,17 +595,305 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Bind a texture with pixel-art sampling, irrespective of the presenter's
- * scaling filter. Rendering and display scaling deliberately use separate state.
+ * Forget context-local GL assumptions before another rendering owner takes
+ * control, or after resource destruction/recovery makes those values uncertain.
+ */
+void gpu_gl_invalidate_state(void)
+{
+    /* No GL queries or synchronization are needed. The next native operation
+     * restores each required value, including the private program's uniforms. */
+    memset(&gl_state, 0, sizeof(gl_state));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Select a texture unit only when it differs from the known active unit.
+ */
+static void gpu_select_texture_unit(int unit)
+{
+    if(gl_state.active_unit_valid && gl_state.active_unit == unit)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_ActiveTexture(GL_TEXTURE0 + unit);
+    gl_state.active_unit = unit;
+    gl_state.active_unit_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Establish a sampler binding without disturbing the active unit on a hit.
+ * Texture edits use gpu_edit_texture() because they also require an active unit.
  */
 static void gpu_bind_texture(int unit, GLuint texture)
 {
-    gpu_ActiveTexture(GL_TEXTURE0 + unit);
+    unsigned bit = 1u << unit;
+    if((gl_state.texture_valid & bit) && gl_state.textures[unit] == texture)
+    {
+        stats.state_reuses++;
+        return;
+    }
+
+    /* Sampling does not depend on the current active unit. Only a changed
+     * binding needs to select that unit before issuing its GL call. */
+    gpu_select_texture_unit(unit);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl_state.textures[unit] = texture;
+    gl_state.texture_valid |= bit;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Select both the active unit and texture for allocation, upload, or copying.
+ */
+static void gpu_edit_texture(int unit, GLuint texture)
+{
+    /* A cached binding does not imply that its unit remains active. Uploads
+     * and texture-copy commands always operate on the currently active unit. */
+    gpu_select_texture_unit(unit);
+    gpu_bind_texture(unit, texture);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Share framebuffer tracking across drawing, allocation, copies and readbacks.
+ */
+static void gpu_bind_framebuffer(GLuint framebuffer)
+{
+    if(gl_state.framebuffer_valid && gl_state.framebuffer == framebuffer)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_BindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    gl_state.framebuffer = framebuffer;
+    gl_state.framebuffer_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Restore the private scene program only when its current binding is unknown
+ * or different. External program changes invalidate this shared assumption.
+ */
+static void gpu_use_program(void)
+{
+    if(gl_state.program_valid && gl_state.program == program)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_UseProgram(program);
+    gl_state.program = program;
+    gl_state.program_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Set the native target's zero-origin viewport only when its dimensions change.
+ */
+static void gpu_set_viewport(int width, int height)
+{
+    if(gl_state.viewport_valid && gl_state.viewport_width == width &&
+       gl_state.viewport_height == height)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    glViewport(0, 0, width, height);
+    gl_state.viewport_width = width;
+    gl_state.viewport_height = height;
+    gl_state.viewport_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Track scissor enable separately from its rectangle so clears and draws can
+ * alternate without invalidating unrelated material or raster state.
+ */
+static void gpu_set_scissor_enabled(int enabled)
+{
+    if(gl_state.scissor_enabled_valid && gl_state.scissor_enabled == enabled)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    if(enabled)
+    {
+        glEnable(GL_SCISSOR_TEST);
+    }
+    else
+    {
+        glDisable(GL_SCISSOR_TEST);
+    }
+    gl_state.scissor_enabled = enabled;
+    gl_state.scissor_enabled_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Preserve exact per-draw clipping while avoiding an identical scissor call.
+ */
+static void gpu_set_scissor_rectangle(const int rectangle[4])
+{
+    if(gl_state.scissor_rectangle_valid &&
+       memcmp(gl_state.scissor_rectangle, rectangle, sizeof(gl_state.scissor_rectangle)) == 0)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    glScissor(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
+    memcpy(gl_state.scissor_rectangle, rectangle, sizeof(gl_state.scissor_rectangle));
+    gl_state.scissor_rectangle_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Restore the scene's fixed raster policy once per ownership period. Shader
+ * composition owns blending; depth, culling and legacy tests stay disabled.
+ */
+static void gpu_set_draw_raster(void)
+{
+    if(gl_state.raster_valid)
+    {
+        stats.state_reuses += GPU_FIXED_RASTER_CALLS;
+        return;
+    }
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glDisable(GL_DITHER);
+    gl_state.raster_valid = 1;
+    stats.state_changes += GPU_FIXED_RASTER_CALLS;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Enable complete color writes for both clear and draw operations without
+ * incorrectly marking the rest of the native raster configuration as known.
+ */
+static void gpu_set_color_mask(void)
+{
+    if(gl_state.color_mask_valid)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    gl_state.color_mask_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Retain the native opaque-black clear color independently of draw state.
+ */
+static void gpu_set_clear_color(void)
+{
+    if(gl_state.clear_color_valid)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    gl_state.clear_color_valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Update a scalar integer material value only when its exact value changes.
+ */
+static void gpu_uniform_integer(GLint location, gpu_uniform_value *cached, GLint value)
+{
+    if(cached->valid && cached->integer == value)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_Uniform1i(location, value);
+    cached->integer = value;
+    cached->valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Update a scalar floating-point material value without approximating equality.
+ */
+static void gpu_uniform_float(GLint location, gpu_uniform_value *cached, GLfloat value)
+{
+    if(cached->valid && cached->vector[0] == value)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_Uniform1f(location, value);
+    cached->vector[0] = value;
+    cached->valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Update both dimensions together when a source or target size changes.
+ */
+static void gpu_uniform_pair(GLint location, gpu_uniform_value *cached, GLfloat x, GLfloat y)
+{
+    if(cached->valid && cached->vector[0] == x && cached->vector[1] == y)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_Uniform2f(location, x, y);
+    cached->vector[0] = x;
+    cached->vector[1] = y;
+    cached->valid = 1;
+    stats.state_changes++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Keep independent channel values exact while reusing an unchanged vector.
+ */
+static void gpu_uniform_vector(GLint location, gpu_uniform_value *cached,
+                               GLfloat x, GLfloat y, GLfloat z)
+{
+    if(cached->valid && cached->vector[0] == x && cached->vector[1] == y && cached->vector[2] == z)
+    {
+        stats.state_reuses++;
+        return;
+    }
+    gpu_Uniform3f(location, x, y, z);
+    cached->vector[0] = x;
+    cached->vector[1] = y;
+    cached->vector[2] = z;
+    cached->valid = 1;
+    stats.state_changes++;
 }
 
 /*
@@ -583,7 +907,13 @@ static GLuint gpu_new_texture(int width, int height, GLenum internal_format,
     GLuint texture = 0;
     ep_scope upload_scope = engine_profile_span_begin();
     glGenTextures(1, &texture);
-    gpu_bind_texture(0, texture);
+    gpu_edit_texture(0, texture);
+    /* Texture sampling belongs to the object, not the active binding. Set
+     * it once; the presenter must restore NEAREST after borrowing a target. */
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
@@ -593,6 +923,7 @@ static GLuint gpu_new_texture(int width, int height, GLenum internal_format,
     {
         engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
         native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
         glDeleteTextures(1, &texture);
         return 0;
     }
@@ -648,6 +979,9 @@ static gpu_image *gpu_find_image(const void *owner, int sprite)
  */
 static void gpu_delete_image(gpu_image *image)
 {
+    /* Deleting a bound object can change GL state, and its numeric name may
+     * be recycled. Forget cached assumptions before either can be observed. */
+    gpu_gl_invalidate_state();
     if(image->framebuffer)
     {
         gpu_DeleteFramebuffers(1, &image->framebuffer);
@@ -705,7 +1039,7 @@ static int gpu_upload_screen(gpu_image *image, s_screen *screen)
     /* CPU mutations own the complete screen version. Reset unpack state
      * explicitly because uploads share a context with presentation code. */
     upload_scope = engine_profile_span_begin();
-    gpu_bind_texture(0, image->texture);
+    gpu_edit_texture(0, image->texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
@@ -716,6 +1050,7 @@ static int gpu_upload_screen(gpu_image *image, s_screen *screen)
     {
         engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
         native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
         return 0;
     }
     engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
@@ -784,13 +1119,13 @@ static gpu_image *gpu_screen_image(s_screen *screen, int upload)
             /* Rendering writes directly into the texture attached here.
              * Later screen draws can sample that texture without readback. */
             gpu_GenFramebuffers(1, &image->framebuffer);
-            gpu_BindFramebuffer(GL_FRAMEBUFFER, image->framebuffer);
+            gpu_bind_framebuffer(image->framebuffer);
             gpu_FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                                      GL_TEXTURE_2D, image->texture, 0);
             if(gpu_CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
             {
                 native_failure = EP_FALLBACK_RESOURCE;
-                gpu_BindFramebuffer(GL_FRAMEBUFFER, 0);
+                gpu_bind_framebuffer(0);
                 gpu_delete_image(image);
                 return NULL;
             }
@@ -916,7 +1251,7 @@ static int gpu_read_screen(s_screen *screen)
     /* This is the synchronization boundary for CPU consumers. Repeated CPU
      * reads reuse the populated shadow until another GPU draw changes it. */
     readback_scope = engine_profile_span_begin();
-    gpu_BindFramebuffer(GL_FRAMEBUFFER, image->framebuffer);
+    gpu_bind_framebuffer(image->framebuffer);
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
     glPixelStorei(GL_PACK_ROW_LENGTH, 0);
     glPixelStorei(GL_PACK_SKIP_ROWS, 0);
@@ -926,6 +1261,7 @@ static int gpu_read_screen(s_screen *screen)
     if(glGetError() != GL_NO_ERROR)
     {
         engine_profile_span_end(readback_scope, EP_SPAN_READBACK);
+        gpu_gl_invalidate_state();
         return 0;
     }
     count = (size_t)image->width * image->height;
@@ -1209,7 +1545,7 @@ static int gpu_set_palette(const unsigned char *palette)
      * Ordered GL commands preserve earlier draws that sampled an evicted
      * row; the new contents apply only to subsequent draw submissions. */
     upload_scope = engine_profile_span_begin();
-    gpu_bind_texture(1, palette_texture);
+    gpu_edit_texture(1, palette_texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
@@ -1225,6 +1561,7 @@ static int gpu_set_palette(const unsigned char *palette)
          * later draws cannot reuse a CPU snapshot with uncertain GPU data. */
         gpu_reset_palette_cache();
         native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
         return 0;
     }
     engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
@@ -1295,7 +1632,7 @@ static int gpu_set_tables(void)
         }
     }
     upload_scope = engine_profile_span_begin();
-    gpu_bind_texture(4, table_texture);
+    gpu_edit_texture(4, table_texture);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     /* Each mode occupies one 256-row slice. The presence mask lets the
@@ -1310,6 +1647,7 @@ static int gpu_set_tables(void)
             {
                 engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
                 native_failure = EP_FALLBACK_RESOURCE;
+                gpu_gl_invalidate_state();
                 return 0;
             }
             engine_profile_count(EP_COUNT_TABLE_UPLOADS, 1);
@@ -1330,8 +1668,16 @@ static int gpu_set_tables(void)
  * Convert packed engine RGB into normalized shader channel values without
  * assigning transparency to the unused high byte.
  */
-static void gpu_uniform_color(GLint location, unsigned color)
+static void gpu_uniform_color(GLint location, gpu_uniform_value *cached, unsigned color)
 {
+    /* The packed alpha byte is outside the engine RGB contract. Comparing
+     * the effective color also avoids repeat normalization of unchanged RGB. */
+    color &= 0x00ffffffu;
+    if(cached->valid && cached->integer == (GLint)color)
+    {
+        stats.state_reuses++;
+        return;
+    }
 #if REVERSE_COLOR
     gpu_Uniform3f(location, ((color >> 16) & 255) / 255.0f,
                   ((color >> 8) & 255) / 255.0f, (color & 255) / 255.0f);
@@ -1339,6 +1685,9 @@ static void gpu_uniform_color(GLint location, unsigned color)
     gpu_Uniform3f(location, (color & 255) / 255.0f,
                   ((color >> 8) & 255) / 255.0f, ((color >> 16) & 255) / 255.0f);
 #endif
+    cached->integer = (GLint)color;
+    cached->valid = 1;
+    stats.state_changes++;
 }
 
 /*
@@ -1468,13 +1817,14 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
     /* Matching source/destination offsets preserve screen-space addressing.
      * Blends sample only the copied rectangle; self-draws need the whole image. */
     copy_scope = engine_profile_span_begin();
-    gpu_BindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
-    gpu_bind_texture(3, target->snapshot);
+    gpu_bind_framebuffer(target->framebuffer);
+    gpu_edit_texture(3, target->snapshot);
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x, y, x, y, width, height);
     if(glGetError() != GL_NO_ERROR)
     {
         engine_profile_span_end(copy_scope, EP_SPAN_DEST_COPY);
         native_failure = EP_FALLBACK_RESOURCE;
+        gpu_gl_invalidate_state();
         return 0;
     }
     engine_profile_span_end(copy_scope, EP_SPAN_DEST_COPY);
@@ -1508,6 +1858,8 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     int fill = primitive || method->fillcolor != 0;
     GLuint texture = source ? source->texture : white_texture;
     size_t q, batches = 0;
+    uint64_t previous_state_changes = stats.state_changes;
+    uint64_t previous_state_reuses = stats.state_reuses;
     ep_scope state_scope, submit_scope;
 
     /* Finish resource preparation before touching destination pixels. Empty
@@ -1546,58 +1898,56 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
         texture = target->snapshot;
     }
 
-    /* Establish every raster state shared with the presenter. The material
-     * shader computes the final RGB value, including destination blending. */
+    /* Reassert only unknown or changed state. Internal resource operations
+     * use these same setters; an external owner invalidates them at handoff.
+     * The material shader still computes final RGB and destination blending. */
     state_scope = engine_profile_span_begin();
-    gpu_BindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
-    glViewport(0, 0, target->width, target->height);
-    glEnable(GL_SCISSOR_TEST);
-    glScissor(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
-    glDisable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_ALPHA_TEST);
-    glDisable(GL_STENCIL_TEST);
-    glDisable(GL_DITHER);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    gpu_UseProgram(program);
+    gpu_bind_framebuffer(target->framebuffer);
+    gpu_set_viewport(target->width, target->height);
+    gpu_set_scissor_enabled(1);
+    gpu_set_scissor_rectangle(rectangle);
+    gpu_set_draw_raster();
+    gpu_set_color_mask();
+    gpu_use_program();
     gpu_bind_texture(0, texture);
     gpu_bind_texture(1, palette_texture);
     gpu_bind_texture(2, masked ? mask->texture : white_texture);
     gpu_bind_texture(3, needs_destination ? target->snapshot : white_texture);
     gpu_bind_texture(4, table_texture);
-    gpu_ActiveTexture(GL_TEXTURE0);
+    gpu_select_texture_unit(0);
 
     /* Keep geometry in engine pixel units and pass the existing drawmethod
      * as material state. Palette, mask and blend tables remain independent
      * textures so changing a color effect preserves the cached source image. */
-    gpu_Uniform2f(uniforms.target_size, (float)target->width, (float)target->height);
-    gpu_Uniform2f(uniforms.source_size, source ? (float)source->width : 1.0f,
-                  source ? (float)source->height : 1.0f);
-    gpu_Uniform1i(uniforms.source, 0);
-    gpu_Uniform1i(uniforms.palette, 1);
+    gpu_uniform_pair(uniforms.target_size, &gl_state.material.target_size,
+                      (float)target->width, (float)target->height);
+    gpu_uniform_pair(uniforms.source_size, &gl_state.material.source_size,
+                      source ? (float)source->width : 1.0f,
+                      source ? (float)source->height : 1.0f);
+    gpu_uniform_integer(uniforms.source, &gl_state.material.source, 0);
+    gpu_uniform_integer(uniforms.palette, &gl_state.material.palette, 1);
     /* Palette selection changes a row coordinate rather than replacing a
      * shared 1 KiB texture on every alternating indexed draw. Non-indexed
      * draws ignore it; indexed fills retain their source-coverage behavior. */
-    gpu_Uniform1f(uniforms.palette_row,
-                  ((float)(palette_selected_slot == GPU_PALETTE_NO_SLOT
-                           ? 0 : palette_selected_slot) + 0.5f) / GPU_PALETTE_CACHE_CAPACITY);
-    gpu_Uniform1i(uniforms.mask, 2);
-    gpu_Uniform1i(uniforms.destination, 3);
-    gpu_Uniform1i(uniforms.tables, 4);
-    gpu_Uniform1i(uniforms.indexed, indexed);
-    gpu_Uniform1i(uniforms.masked, masked);
-    gpu_Uniform1i(uniforms.color_key, !primitive &&
-                  (source_is_sprite || (method->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY)));
-    gpu_Uniform1i(uniforms.fill, fill);
-    gpu_Uniform1i(uniforms.has_destination, needs_destination);
-    gpu_Uniform1i(uniforms.blend_mode, blend_mode);
-    gpu_Uniform1i(uniforms.tint_mode, (int)method->tintmode);
-    gpu_Uniform1i(uniforms.table_mask, table_mask);
-    gpu_uniform_color(uniforms.fill_color, primitive ? color : method->fillcolor);
-    gpu_uniform_color(uniforms.tint_color, method->tintcolor);
-    gpu_Uniform3f(uniforms.channels, method->channelr / 255.0f,
-                  method->channelg / 255.0f, method->channelb / 255.0f);
+    gpu_uniform_float(uniforms.palette_row, &gl_state.material.palette_row,
+                       ((float)(palette_selected_slot == GPU_PALETTE_NO_SLOT
+                                ? 0 : palette_selected_slot) + 0.5f) / GPU_PALETTE_CACHE_CAPACITY);
+    gpu_uniform_integer(uniforms.mask, &gl_state.material.mask, 2);
+    gpu_uniform_integer(uniforms.destination, &gl_state.material.destination, 3);
+    gpu_uniform_integer(uniforms.tables, &gl_state.material.tables, 4);
+    gpu_uniform_integer(uniforms.indexed, &gl_state.material.indexed, indexed);
+    gpu_uniform_integer(uniforms.masked, &gl_state.material.masked, masked);
+    gpu_uniform_integer(uniforms.color_key, &gl_state.material.color_key, !primitive &&
+                         (source_is_sprite || (method->config & DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY)));
+    gpu_uniform_integer(uniforms.fill, &gl_state.material.fill, fill);
+    gpu_uniform_integer(uniforms.has_destination, &gl_state.material.has_destination, needs_destination);
+    gpu_uniform_integer(uniforms.blend_mode, &gl_state.material.blend_mode, blend_mode);
+    gpu_uniform_integer(uniforms.tint_mode, &gl_state.material.tint_mode, (int)method->tintmode);
+    gpu_uniform_integer(uniforms.table_mask, &gl_state.material.table_mask, table_mask);
+    gpu_uniform_color(uniforms.fill_color, &gl_state.material.fill_color, primitive ? color : method->fillcolor);
+    gpu_uniform_color(uniforms.tint_color, &gl_state.material.tint_color, method->tintcolor);
+    gpu_uniform_vector(uniforms.channels, &gl_state.material.channels, method->channelr / 255.0f,
+                        method->channelg / 255.0f, method->channelb / 255.0f);
     engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
 
     /* Adjacent row strips share state and one submission. Queue entries are
@@ -1612,7 +1962,9 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
                 glEnd();
             }
             wrap = quad_buffer[q].wrap;
-            gpu_Uniform1i(uniforms.wrap, wrap);
+            /* Grouping follows the collected geometry even when the material
+             * value is already resident from a preceding queue entry. */
+            gpu_uniform_integer(uniforms.wrap, &gl_state.material.wrap, wrap);
             glBegin(GL_QUADS);
             batches++;
         }
@@ -1638,6 +1990,11 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
     engine_profile_count(EP_COUNT_NATIVE_QUADS, quad_count);
     engine_profile_count(EP_COUNT_NATIVE_BATCHES, batches);
+    /* Aggregate once per completed draw rather than adding profiling calls
+     * to every cached setter. These counts include preparation and wrap state;
+     * the existing setup timer intentionally retains its narrower boundary. */
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, stats.state_changes - previous_state_changes);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, stats.state_reuses - previous_state_reuses);
 
     /* Subsequent GPU consumers can use the texture immediately. Its CPU
      * shadow becomes current only when an explicit reader synchronizes it. */
@@ -2090,6 +2447,8 @@ fallback:
 static int gpu_screen_clear(s_screen *screen)
 {
     gpu_image *target;
+    uint64_t previous_state_changes = stats.state_changes;
+    uint64_t previous_state_reuses = stats.state_reuses;
     ep_scope state_scope, submit_scope;
     native_failure = EP_FALLBACK_OTHER;
     if(!screen || screen->pixelformat != PIXEL_32)
@@ -2107,10 +2466,10 @@ static int gpu_screen_clear(s_screen *screen)
         return 0;
     }
     state_scope = engine_profile_span_begin();
-    gpu_BindFramebuffer(GL_FRAMEBUFFER, target->framebuffer);
-    glDisable(GL_SCISSOR_TEST);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    gpu_bind_framebuffer(target->framebuffer);
+    gpu_set_scissor_enabled(0);
+    gpu_set_color_mask();
+    gpu_set_clear_color();
     engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
     submit_scope = engine_profile_span_begin();
     glClear(GL_COLOR_BUFFER_BIT);
@@ -2120,6 +2479,8 @@ static int gpu_screen_clear(s_screen *screen)
     }
     engine_profile_span_end(submit_scope, EP_SPAN_GPU_SUBMIT);
     engine_profile_count(EP_COUNT_NATIVE_CLEARS, 1);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, stats.state_changes - previous_state_changes);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, stats.state_reuses - previous_state_reuses);
     target->gpu_dirty = 1;
     target->cpu_dirty = 0;
     return 1;
@@ -2171,6 +2532,9 @@ int gpu_gl_init(void)
     {
         return 1;
     }
+    /* State and object names from a previous context must never influence
+     * setup of its replacement, including initialization failure retries. */
+    gpu_gl_invalidate_state();
     if(setting && !strcmp(setting, "0"))
     {
         engine_profile_log("kind=renderer state=disabled reason=OPENBOR_GPU=0 native_active=0");
@@ -2205,7 +2569,7 @@ int gpu_gl_init(void)
 
     /* The blend atlas needs six 256-row slices. Source, palette, mask,
      * destination snapshot and atlas occupy five independent texture units. */
-    if(maximum_texture_size < 1536 || units < 5)
+    if(maximum_texture_size < 1536 || units < GPU_TEXTURE_UNITS)
     {
         engine_profile_log("kind=renderer state=unavailable reason=insufficient_capabilities max_texture=%d texture_units=%d native_active=0",
                            maximum_texture_size, units);
@@ -2245,8 +2609,8 @@ int gpu_gl_init(void)
         goto failed;
     }
 
-    /* Resolve uniform locations once for this linked program. Every draw
-     * updates their values without another string lookup in the driver. */
+    /* Resolve locations once for this linked program. Cached values update
+     * only on change or ownership invalidation, without driver string lookups. */
 #define GPU_UNIFORM(member, name) uniforms.member = gpu_GetUniformLocation(program, name)
     GPU_UNIFORM(target_size, "targetSize");
     GPU_UNIFORM(source_size, "sourceSize");
@@ -2291,12 +2655,16 @@ int gpu_gl_init(void)
                        (uint64_t)(sizeof(palette_cache) + sizeof(palette_buckets)
                                   + sizeof(palette_cache_count) + sizeof(palette_lru_head)
                                   + sizeof(palette_lru_tail) + sizeof(palette_selected_slot)));
+    engine_profile_log("kind=state_cache state=enabled texture_units=%u cpu_bytes=%" PRIu64
+                       " policy=compare_on_change",
+                       (unsigned)GPU_TEXTURE_UNITS, (uint64_t)sizeof(gl_state));
     gpu_query_init();
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
     return 1;
 failed:
     /* Initialization can fail at any stage. Release only acquired resources;
      * dispatch remains unregistered so callers continue with software draws. */
+    gpu_gl_invalidate_state();
     if(vertex)
     {
         gpu_DeleteShader(vertex);
@@ -2338,6 +2706,7 @@ failed:
 void gpu_gl_shutdown(void)
 {
     size_t bucket;
+    gpu_gl_invalidate_state();
     if(!initialized)
     {
         return;
@@ -2419,6 +2788,9 @@ int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, i
 void gpu_gl_prepare_present(void)
 {
     int unit;
+    /* The external owner may change any shared binding, raster value or
+     * program. Forget assumptions now, before its first raw GL operation. */
+    gpu_gl_invalidate_state();
     if(!initialized)
     {
         return;
@@ -2436,7 +2808,7 @@ void gpu_gl_prepare_present(void)
 
     /* Reset every texture unit used by scene rendering. Descending order
      * leaves unit zero active for the existing single-texture presenter. */
-    for(unit = 4; unit >= 0; unit--)
+    for(unit = GPU_TEXTURE_UNITS - 1; unit >= 0; unit--)
     {
         gpu_ActiveTexture(GL_TEXTURE0 + unit);
         glBindTexture(GL_TEXTURE_2D, 0);

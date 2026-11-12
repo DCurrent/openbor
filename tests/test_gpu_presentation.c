@@ -17,6 +17,8 @@ s_savedata savedata;
 GfxBlitterTypes GfxBlitters[BLITTER_MAX * 2];
 extern SDL_Window *window;
 extern int nativeWidth, nativeHeight;
+extern void video_gl_setup_screen(void);
+extern void video_gl_init_texture(int index, int width, int height, int bytes_per_pixel);
 
 /*
  * Damon V. Caskey
@@ -51,6 +53,64 @@ static void verify_presented_frame(void)
     assert((pixels[58] & 0x00ffffff) == 0x000000ff);
     assert((pixels[18] & 0x00ffffff) == 0x00123456);
     read_buffer(GL_BACK);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Return to cached native drawing after public presentation helpers change
+ * the current program, viewport or texture bindings outside a frame handoff.
+ */
+static void test_presenter_state_boundaries(s_screen *screen)
+{
+    void (APIENTRY *get_texture_parameter)(GLenum, GLenum, GLint *) = SDL_GL_GetProcAddress("glGetTexParameteriv");
+    s_screen *target = test_screen(16, 16, PIXEL_32);
+    unsigned texture;
+    int width, height;
+    GLint minimum_filter, maximum_filter;
+
+    /* Runtime gamma/brightness updates select the presentation program even
+     * when their values are unchanged. Native draws must reselect their own. */
+    assert(gpu_draw_box(target, 10, 10, 3, 3, 0x00123456, &plainmethod));
+    video_gl_set_color_correction(0, 0);
+    assert(gpu_draw_box(target, 10, 10, 3, 3, 0x00654321, &plainmethod));
+    gpu_sync_cpu(target);
+    assert(test_pixel(target, 11, 11) == 0x00654321);
+
+    /* The window viewport is smaller than this native target, so retaining
+     * the presenter's viewport would move or discard the tested rectangle. */
+    assert(gpu_draw_box(target, 10, 10, 3, 3, 0x00654321, &plainmethod));
+    video_gl_setup_screen();
+    assert(gpu_draw_box(target, 10, 10, 3, 3, 0x0013579b, &plainmethod));
+    gpu_sync_cpu(target);
+    assert(test_pixel(target, 11, 11) == 0x0013579b);
+
+    /* Recreating the legacy upload texture changes unit-zero ownership.
+     * Native sampling must recover even though its source handle is stable. */
+    assert(gpu_draw_screen(target, screen, 0, 0, &plainmethod));
+    video_gl_init_texture(0, 8, 8, 4);
+    assert(gpu_draw_screen(target, screen, 8, 0, &plainmethod));
+    gpu_sync_cpu(target);
+    assert(test_pixel(target, 10, 0) == 0x000000ff);
+    assert(test_pixel(target, 10, 7) == 0x0000ff00);
+
+    /* The presenter temporarily requests linear display filtering. Its
+     * borrowed native texture must be returned with pixel-art sampling. */
+    assert(video_copy_screen(screen));
+    assert(gpu_draw_screen(target, screen, 0, 8, &plainmethod));
+    gpu_sync_cpu(target);
+    assert(test_pixel(target, 2, 8) == 0x000000ff);
+    assert(test_pixel(target, 2, 15) == 0x0000ff00);
+    assert(gpu_gl_get_screen_texture(screen, &texture, &width, &height));
+    assert(width == 8 && height == 8);
+    gpu_gl_invalidate_state();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    assert(get_texture_parameter);
+    get_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, &minimum_filter);
+    get_texture_parameter(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, &maximum_filter);
+    assert(minimum_filter == GL_NEAREST && maximum_filter == GL_NEAREST);
+    release_test_screen(target);
 }
 
 /*
@@ -98,6 +158,7 @@ int main(void)
     assert(video_copy_screen(screen));
     assert(gpu_gl_get_stats()->readbacks == readbacks);
     verify_presented_frame();
+    test_presenter_state_boundaries(screen);
 
     /* The old context must preserve live screen contents before replacement. */
     assert(video_set_mode(mode));

@@ -236,6 +236,8 @@ static void test_disabled(void)
     engine_profile_span_end(scope, EP_SPAN_PALETTE_LOOKUP);
     engine_profile_frame_mark(0, EP_PHASE_INPUT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 900);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, 31);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, 52);
     engine_profile_count(EP_COUNT_PALETTE_CACHE_HITS, 10);
     engine_profile_count(EP_COUNT_PALETTE_CACHE_MISSES, 5);
     engine_profile_count(EP_COUNT_PALETTE_CACHE_EVICTIONS, 2);
@@ -500,6 +502,79 @@ static void test_palette_cache_accounting(void)
     assert(strstr(test_count_max_log, " palette_cache_hits=8.000000"));
     assert(strstr(test_count_max_log, " palette_cache_misses=2.000000"));
     assert(strstr(test_count_max_log, " palette_cache_evictions=1.000000"));
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Keep emitted and avoided cached-state setter counts independent from draw
+ * counts and the existing setup/transfer spans. Unequal frame totals verify
+ * accumulation, maxima, public field names and their per-frame units.
+ */
+static void test_gpu_state_accounting(void)
+{
+    const ep_report *report;
+    ep_scope state, upload;
+    uint64_t first, second;
+
+    test_configure(1, 2, 0);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, 999);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, 999);
+    first = test_begin(1000);
+    assert(first);
+
+    /* Successful operation deltas may include preparation outside the setup
+     * span. Counts must not manufacture elapsed time or change span scope. */
+    test_time_us = 1100;
+    state = engine_profile_span_begin();
+    test_time_us = 1175;
+    engine_profile_span_end(state, EP_SPAN_GPU_STATE);
+    upload = engine_profile_span_begin();
+    test_time_us = 1375;
+    engine_profile_span_end(upload, EP_SPAN_UPLOAD);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, 3);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, 11);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, 4);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, 20);
+    engine_profile_count(EP_COUNT_NATIVE_DRAWS, 2);
+    test_end(first, 1500);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, 999);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, 999);
+
+    /* The next completed body has fewer changes and more reuse, so swapping
+     * enum labels or using sums as maxima cannot satisfy the fixture. */
+    second = test_begin(11000);
+    assert(second > first);
+    test_time_us = 11100;
+    state = engine_profile_span_begin();
+    test_time_us = 11225;
+    engine_profile_span_end(state, EP_SPAN_GPU_STATE);
+    upload = engine_profile_span_begin();
+    test_time_us = 11325;
+    engine_profile_span_end(upload, EP_SPAN_UPLOAD);
+    engine_profile_count(EP_COUNT_GPU_STATE_CHANGES, 3);
+    engine_profile_count(EP_COUNT_GPU_STATE_REUSES, 67);
+    engine_profile_count(EP_COUNT_NATIVE_DRAWS, 1);
+    test_end(second, 11400);
+    assert(test_begin(21000) == 0);
+
+    report = engine_profile_last_report();
+    assert(report->frames == 2);
+    assert(report->interval_us == 20000 && report->update_us == 900);
+    assert(report->counts[EP_COUNT_NATIVE_DRAWS] == 3);
+    assert(report->counts[EP_COUNT_GPU_STATE_CHANGES] == 10);
+    assert(report->counts[EP_COUNT_GPU_STATE_REUSES] == 98);
+    assert(report->count_max[EP_COUNT_GPU_STATE_CHANGES] == 7);
+    assert(report->count_max[EP_COUNT_GPU_STATE_REUSES] == 67);
+    assert(report->spans_us[EP_SPAN_GPU_STATE] == 200);
+    assert(report->spans_us[EP_SPAN_UPLOAD] == 300);
+    assert(strstr(test_count_mean_log, " gpu_state_changes=5.000000"));
+    assert(strstr(test_count_mean_log, " gpu_state_reuses=49.000000"));
+    assert(strstr(test_count_max_log, " gpu_state_changes=7.000000"));
+    assert(strstr(test_count_max_log, " gpu_state_reuses=67.000000"));
+    assert(strstr(test_span_log, " gpu_state_ms=0.100000"));
+    assert(strstr(test_span_log, " upload_ms=0.150000"));
 }
 
 /*
@@ -946,6 +1021,7 @@ int main(int argc, char **argv)
     test_warmup_and_restart();
     test_exclusive_phases_and_inclusive_spans();
     test_palette_cache_accounting();
+    test_gpu_state_accounting();
     test_profile_entry_phase();
     test_cancel_pause_and_reset();
     test_nested_update();
@@ -955,6 +1031,6 @@ int main(int argc, char **argv)
     test_cancelled_gpu_result();
     test_reconfigured_frame_identity();
     engine_profile_configure(0, 1, 0);
-    puts("Engine profiler tests passed: pairing, windows, phases, spans, counters, palette-cache accounting, invalidation, p95, delayed GPU results.");
+    puts("Engine profiler tests passed: pairing, windows, phases, spans, counters, palette/state-cache accounting, invalidation, p95, delayed GPU results.");
     return 0;
 }

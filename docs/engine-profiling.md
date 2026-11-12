@@ -8,7 +8,9 @@ Date: 2026-11-12
 
 `experiment/gpu-profiling` measures engine boundaries around the existing
 renderer. `experiment/gpu-palette-cache` retains those measurements while
-adding a bounded resident palette cache and cache-specific accounting.
+adding bounded resident palettes, context-local graphics-state caching, and
+cache-specific accounting. Successive changes remain on that same branch;
+use the individual commits below for controlled comparisons.
 Profiling is enabled by default on both diagnostic branches. Games, including
 DC3D, require no script, asset, lighting, or rendering changes.
 
@@ -174,6 +176,55 @@ describe the engine's native submission groups, not physical GPU utilization.
 CPU native spans separate geometry preparation, state/material work, and
 command submission.
 
+### Cached graphics-state accounting
+
+The native renderer remembers context-local framebuffer, viewport, scissor,
+fixed raster, program, texture-binding, and material-uniform state. Cached
+setters issue a GL call only when its required value changes or the previous
+state is unknown. This avoids redundant driver calls without reordering draws
+or combining queue entries into batches.
+
+| Field | Meaning |
+| --- | --- |
+| `gpu_state_changes` | Cached GL setter calls actually emitted during successful native draw/clear operations. |
+| `gpu_state_reuses` | Cached GL setter calls avoided because the required state was already known to match. |
+| `gpu_state_ms` | Existing CPU state/material setup span; its timing boundary is unchanged. |
+
+Each successful native quad submission publishes an aggregate delta from
+`gpu_render_quads()`: palette/table/snapshot preparation within that function,
+material/setup, and geometry-wrap handling. Source/target image creation or
+uploads performed by its caller before that boundary are excluded. Clear
+operations include their target preparation and clear setup. These deltas are
+therefore not limited to setters inside `gpu_state_ms`, nor do they count every
+resource operation. Independent presentation/readback helpers are also excluded
+from the frame counters. The renderer's internal 64-bit lifetime statistics
+include every cached setter, including those excluded preparations/helpers.
+
+The two counts use per-accepted-frame means in `counts_mean` and single-frame
+maxima in `counts_max`. They count setter calls, not draws, unique state values,
+hardware commands, GPU occupancy, or time saved. The first draw after
+invalidation must establish state again, so required state restoration is a
+change, not a cache failure. Logical reuse is evidence of avoided calls, not a
+guaranteed frame-rate improvement.
+
+`gpu_state_ms` does not expand to cover every counted setter. Resource
+preparation remains in its calling phase, transfers remain in `upload_ms` or
+`readback_ms`, and snapshots remain in `dest_copy_ms`. Those nested spans already
+belong to their enclosing update phases; do not add them to frame time or infer
+per-setter latency by dividing the setup-only span by the wider operation count.
+
+Presentation/external helper boundaries invalidate state ownership; the next
+native operation restores its required state without querying GL to validate
+the cache. Resource uploads, clear/readback operations, deletion, recovery, and
+context teardown update or invalidate tracked state as appropriate. No new
+GPU wait, flush, draw reordering, or hot-path `glGet` validation is introduced.
+`OPENBOR_PROFILE=0` leaves state reuse active while disabling its frame reports.
+Startup reports `kind=state_cache state=enabled`, its tracked texture-unit count,
+and the CPU cache structure's byte size for the current build. This state cache
+does not allocate additional GPU image storage.
+
+### Transfers and fallback work
+
 Image, palette, and blend-table uploads have separate counts and byte totals.
 Readbacks count actual GPU-to-CPU image synchronization. Destination copies
 count GPU snapshots used by blending or self-drawing; self-copies are also
@@ -304,9 +355,11 @@ and work counters are intended to distinguish those cases.
 ### Comparing the resident-palette change
 
 Use profiling commit `722df2d` as the baseline and
-`experiment/gpu-palette-cache` as the changed renderer. This step changes palette
+palette-cache commit `f2c96c3` as the changed renderer. That commit changes palette
 residency only; cross-entry state caching, draw batching, destination-copy
 optimization, frame pacing, and game scripts remain outside its scope.
+The same branch now contains subsequent state-caching work, so its moving tip
+is not a palette-only comparison point.
 
 1. Build both revisions with matching compiler/build settings, then keep the
    same game content, machine, resolution, output scaling/filter, and frame
@@ -335,6 +388,35 @@ Fewer uploads establish reduced palette-transfer work, not a guaranteed total
 frame-rate improvement. Per-draw state and submission costs, destination copies,
 and script execution may remain dominant after palette reuse improves.
 
+### Comparing redundant-state elimination
+
+Use palette-cache commit `f2c96c3` as the baseline and the state-cache update on
+`experiment/gpu-palette-cache` as the changed renderer. Keep the same scene,
+route or stationary view, build options, driver, presentation settings, pacing,
+and profiler configuration. Record the exact commit from each executable's log
+and collect repeated full windows after warmup.
+
+1. Compare `gpu_state_ms` and the enclosing `main_queue_ms`/`draw_script_ms`,
+   then mean/p95/max frame intervals. The state cache may also affect resource
+   preparation outside the setup span, so the whole-frame result matters.
+2. Inspect `gpu_state_changes` and `gpu_state_reuses` in the changed build.
+   Their absence in the baseline is not a measured zero. Match native
+   draw/quad/batch counts and scene conditions before attributing differences
+   to the optimization; the cache does not intentionally reduce draw count.
+3. Compare image/palette uploads, destination copies, readbacks, and fallback
+   totals independently. State reuse must not hide an unexpected transfer or
+   software fallback. Native sprites already reuse resident index textures;
+   repeated draws should not require repeated source-image uploads.
+4. Verify exact output around target changes, captures, palette/mask changes,
+   clipping, self-drawing, presentation, movie transitions, and context changes.
+   Restored state is essential at these ownership boundaries even when it
+   reduces the observed reuse fraction.
+5. Repeat with GPU timestamps disabled and then all profiling disabled to
+   check observer overhead. Neither opt-out disables the state cache.
+
+These counters establish avoided cached setter calls. Only matched real-device
+timings establish whether that reduction improves the workload's frame rate.
+
 ## Regression tests
 
 Run `bash tests/run_gpu_tests.sh`. The context-independent suite checks disabled
@@ -344,6 +426,9 @@ nested updates, context resets, long gaps, nearest-rank p95, and delayed GPU
 results across cancellation and collector reconfiguration. Palette accounting
 also checks lookup/upload separation, hit/miss/eviction totals and maxima,
 disabled collection, and the public log names and per-frame units.
+State accounting checks independent change/reuse totals, per-frame maxima,
+public labels, exclusion outside sampled bodies, and unchanged setup/transfer
+span accounting.
 
 With SDL2 development files and an available desktop OpenGL context, the runner
 also verifies real native counters and byte totals, independent timestamp

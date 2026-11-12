@@ -76,7 +76,8 @@ static const char *const counter_names[EP_COUNT_COUNT] =
 {
     "main_calls", "main_entries", "main_accepted", "capture_calls",
     "capture_entries", "capture_accepted", "native_draws", "native_quads",
-    "native_batches", "native_clears", "image_uploads", "image_upload_bytes",
+    "native_batches", "native_clears", "gpu_state_changes", "gpu_state_reuses",
+    "image_uploads", "image_upload_bytes",
     "palette_uploads", "palette_upload_bytes", "palette_cache_hits",
     "palette_cache_misses", "palette_cache_evictions", "table_uploads", "table_upload_bytes",
     "readbacks", "readback_bytes", "dest_copies", "dest_copy_bytes", "self_copies",

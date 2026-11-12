@@ -18,8 +18,13 @@
 /* Logical image row zero is texture row zero, matching the old upload path. */
 int gpu_gl_init(void);
 void gpu_gl_shutdown(void);
+/* Borrowed textures remain renderer-owned. External consumers must restore
+ * their NEAREST/CLAMP sampling policy before native drawing resumes. */
 int gpu_gl_get_screen_texture(s_screen *screen, unsigned *texture, int *width, int *height);
 void gpu_gl_prepare_present(void);
+/* Call before another context owner changes tracked GL state. This forgets
+ * cached assumptions without querying the driver or changing GL state. */
+void gpu_gl_invalidate_state(void);
 
 /* Internal diagnostics used by regression tests, not script-visible state. */
 typedef struct gpu_renderer_stats
@@ -33,6 +38,9 @@ typedef struct gpu_renderer_stats
     unsigned long palette_cache_misses;
     unsigned long palette_cache_evictions;
     unsigned long palette_uploads;
+    /* High-frequency setup totals need 64 bits on Windows LLP64 as well. */
+    uint64_t state_changes;
+    uint64_t state_reuses;
 } gpu_renderer_stats;
 const gpu_renderer_stats *gpu_gl_get_stats(void);
 

@@ -64,6 +64,10 @@ typedef enum ep_counter
     EP_COUNT_NATIVE_QUADS,
     EP_COUNT_NATIVE_BATCHES,
     EP_COUNT_NATIVE_CLEARS,
+    /* Cached GL setter calls emitted or skipped during successful native
+     * draws/clears, not physical GPU commands or elapsed GPU work. */
+    EP_COUNT_GPU_STATE_CHANGES,
+    EP_COUNT_GPU_STATE_REUSES,
     EP_COUNT_IMAGE_UPLOADS,
     EP_COUNT_IMAGE_UPLOAD_BYTES,
     EP_COUNT_PALETTE_UPLOADS,

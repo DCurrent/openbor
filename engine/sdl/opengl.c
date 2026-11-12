@@ -159,9 +159,16 @@ void video_gl_shutdown(void)
 	opengl = 0;
 }
 
-// calculates scale factors and offsets based on viewport and texture sizes
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Restore the window viewport and fixed-function projection independently
+ * of any previously cached native offscreen rendering state.
+ */
 void video_gl_setup_screen()
 {
+	/* This helper can also run outside a complete presentation pass. */
+	gpu_gl_invalidate_state();
 	// set up the viewport
 	glViewport(0, 0, viewportWidth, viewportHeight);
 
@@ -175,11 +182,19 @@ void video_gl_setup_screen()
 	glLoadIdentity();
 }
 
-// initializes the OpenGL texture for the game screen
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Allocate the presenter's RGB or video-plane texture, invalidating native
+ * bindings before replacing objects or selecting a different texture unit.
+ */
 void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
 {
 	int allocTextureWidth, allocTextureHeight;
 	SDL_Surface *surface;
+
+	/* Deletion and allocation can reuse GL names as well as change bindings. */
+	gpu_gl_invalidate_state();
 
 	// set texture format
 	switch(bytesPerPixel)
@@ -433,8 +448,15 @@ void video_gl_clearscreen()
 	SDL_GL_SwapWindow(window);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Draw a presentation quad using window-owned state. Keep its direct texture
+ * unit change visible to the native cache even when invoked independently.
+ */
 void video_gl_draw_quad(int x, int y, int width, int height)
 {
+	gpu_gl_invalidate_state();
 	glClear(GL_COLOR_BUFFER_BIT);
 	glActiveTexture(GL_TEXTURE0);
 	glBegin(GL_QUADS);
@@ -585,7 +607,8 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	tcx = savedTcx;
 	tcy = savedTcy;
 
-	/* Restore nearest sampling before this screen is reused as a scene texture. */
+	/* Native sampling parameters are initialized once, not reissued per draw.
+	 * Restore this borrowed texture's NEAREST policy before returning ownership. */
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	engine_profile_span_end(setup_scope, EP_SPAN_PRESENT_SETUP);
@@ -604,15 +627,35 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 
 // Set the brightness and gamma values
 int lastGamma = 0, lastBrightness = 0;
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Change the presentation shader's color correction without leaving the
+ * native renderer believing its own program is still bound.
+ */
 void video_gl_set_color_correction(int gamma, int brightness)
 {
+	/* Runtime menu updates can reach this helper between two native draws. */
+	gpu_gl_invalidate_state();
 	lastGamma = gamma;
 	lastBrightness = brightness;
 	GLint brightnessLocation, gammaLocation;
-	if(gamma < -256) gamma = -256;
-	if(gamma > 256) gamma = 256;
-	if(brightness < -256) brightness = -256;
-	if(brightness > 256) brightness = 256;
+	if(gamma < -256)
+	{
+		gamma = -256;
+	}
+	if(gamma > 256)
+	{
+		gamma = 256;
+	}
+	if(brightness < -256)
+	{
+		brightness = -256;
+	}
+	if(brightness > 256)
+	{
+		brightness = 256;
+	}
 
 	glUseProgramObjectARB(shaderProgram);
 	brightnessLocation = glGetUniformLocationARB(shaderProgram, "brightness");

@@ -41,8 +41,10 @@ No affine/curve API from the separate transform experiment is added here.
 No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
-palette reuse. This step retains draw order and existing render operations; it
-does not introduce cross-entry state caching or draw batching.
+palette reuse and subsequent context-local state caching. Palette-only commit
+`f2c96c3` remains the comparison point before redundant-state elimination.
+Both changes retain draw order and existing render operations; neither adds
+cross-entry draw batching.
 
 ## Where the boundary moved
 
@@ -59,6 +61,22 @@ use row geometry so their existing settings keep their established meanings.
 `video_copy_screen()` tries native texture presentation before requesting the
 CPU frame through `getVideoSurface()`. Merely uploading a completed CPU frame
 would not constitute native scene rendering; the new path avoids that step.
+
+## Sprite residency
+
+Sprites retain their compact RLE-encoded CPU source. On the first supported
+native draw, the renderer decodes that source into a temporary index buffer,
+uploads an indexed GPU texture, and frees the temporary buffer. Later draws
+reuse the texture across frames; they do not decode or upload the image again.
+Separate resident palettes preserve cheap color swaps, and opacity masks use
+their own cached index textures.
+
+The GPU copy lasts until sprite release, re-encoding, or native context
+shutdown. The CPU source supports existing software fallback and rebuilding
+resources after context changes. Eager upload would move first-use work into
+loading, not eliminate a transfer currently repeated on every draw. Discarding
+the CPU source would require a separate lifetime/restoration design and is not
+part of state caching.
 
 ## Screen ownership and synchronization
 
@@ -154,6 +172,46 @@ counters continue to record actual successful updates. See
 for the baseline comparison procedure. Performance depends on reuse and the
 remaining engine workload; no speedup is assumed from the allocation alone.
 
+## Context-local graphics-state reuse
+
+The native renderer caches framebuffer binding, viewport, scissor, fixed raster
+state, shader program, five texture-unit bindings, and material uniforms.
+Cached setters compare the required value with the known current value and
+emit GL calls only for changes or unknown state. Texture filtering and clamp
+parameters are initialized with their texture objects instead of being
+reapplied on every bind. Presentation's temporary filtering retains its own
+restoration contract.
+
+The cache describes one current context, not a set of assumptions that may
+survive arbitrary external GL calls. Presentation and external helper ownership
+boundaries explicitly invalidate tracked state. The next native operation
+restores its required values; no hot-path `glGet` checks are needed to discover
+what external code changed. Internal clear, readback, upload, and snapshot
+paths participate in cache maintenance. Texture/framebuffer deletion, failed
+resource recovery, initialization, and context replacement update or invalidate
+the relevant remembered state before numeric GL names can be reused.
+
+This changes setup frequency, not the sequence or meaning of rendering:
+
+- Queue entries retain their original order and are not batched together.
+- Destination snapshots and self-draw handling remain unchanged.
+- Palette contents and residency keep their existing validation rules.
+- No new CPU/GPU synchronization wait or flush is introduced.
+- Unsupported operations retain the coherent software fallback path.
+
+`gpu_state_changes` and `gpu_state_reuses` report emitted and avoided cached
+setter calls as aggregate deltas for successful native draw/clear operations.
+Quad-submission deltas include palette/table/snapshot preparation inside
+`gpu_render_quads()` and wrap handling outside the existing setup-only
+`gpu_state_ms` span. Caller-side source/target image creation and uploads before
+that boundary are excluded; clear deltas include target preparation. Independent
+resource/presentation helpers are also excluded from frame counters, while
+internal 64-bit lifetime statistics still count all cached setters. These are
+call counts, not hardware draw counts,
+GPU utilization, or an assumed amount of time saved. See
+[state accounting and comparison guidance](engine-profiling.md#cached-graphics-state-accounting)
+before interpreting them.
+
 ## Color and intended-behavior corrections
 
 RGB32 screen alpha bytes are unused in the engine's color contract. Native
@@ -199,6 +257,8 @@ The suites cover:
 - Resident palette reuse, in-place edits, unaligned input, equal contents at
   different addresses, full-hash collisions, LRU overflow, upload-error recovery,
   capture ordering, and fresh residency after actual context recreation.
+- Cached-state reuse with pixel verification across material, texture, target,
+  clipping, presentation, resource replacement, and context transitions.
 - Native transform output compared with production CPU rendering.
 - Real presentation, orientation, output-filter/video transitions and mode changes.
 - Deliberately colliding texture-cache identities during shutdown.

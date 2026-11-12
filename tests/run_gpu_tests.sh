@@ -120,7 +120,7 @@ export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-offscreen}
 # Native suites require a real GL context. Keep lifecycle/capture checks,
 # pixel-level transform comparisons, and presentation transitions separate
 # so a failure identifies the affected boundary.
-for test_name in test_gpu_renderer test_gpu_shutdown test_gpu_palette_cache test_gpu_profile; do
+for test_name in test_gpu_renderer test_gpu_shutdown test_gpu_palette_cache test_gpu_state_cache test_gpu_profile; do
     "$test_compiler" "${test_gpu_flags[@]}" "tests/$test_name.c" \
         "${test_gpu_sources[@]}" "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
         -o "$test_build_dir/$test_name"
