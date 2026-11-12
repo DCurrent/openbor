@@ -575,6 +575,14 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
 {
     gfx_entry gfx;
 
+    if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
+    {
+        /* The affine matrix replaces the legacy transform, even at zero scale. */
+        gfx.sprite = frame;
+        gfx_draw_affine(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
+        return;
+    }
+
     if(!drawmethod->scalex || !drawmethod->scaley)
     {
         return;    // zero size

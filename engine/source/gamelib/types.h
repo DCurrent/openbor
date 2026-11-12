@@ -248,7 +248,8 @@ typedef enum e_drawmethod_config
     DRAWMETHOD_CONFIG_ENABLED                   = (1 << 2),
     DRAWMETHOD_CONFIG_FLIP_ROTATE               = (1 << 3),
     DRAWMETHOD_CONFIG_FLIP_X                    = (1 << 4),
-    DRAWMETHOD_CONFIG_FLIP_Y                    = (1 << 5)
+    DRAWMETHOD_CONFIG_FLIP_Y                    = (1 << 5),
+    DRAWMETHOD_CONFIG_AFFINE                    = (1 << 6)
     
 } e_drawmethod_config;
 
@@ -272,6 +273,25 @@ typedef struct
     };
     e_water_mode watermode;
 } water_transform;
+
+/*
+ * Source-to-destination affine transform (2x3 matrix).
+ *
+ * x' = m00 * x + m01 * y + tx
+ * y' = m10 * x + m11 * y + ty
+ *
+ * Source coordinates are relative to the draw pivot. The matrix has its
+ * own opt-in flag and does not share the legacy scale/shear/water state.
+ */
+typedef struct
+{
+    float m00;
+    float m01;
+    float m10;
+    float m11;
+    float tx;
+    float ty;
+} affine_transform;
 
 typedef struct
 {
@@ -306,6 +326,7 @@ typedef struct
     int clipw;				// ~~
     int cliph;				// ~~
     water_transform water;	
+	affine_transform affine;
 	int tag;				// ~~
     e_object_type object_type;
 } s_drawmethod;

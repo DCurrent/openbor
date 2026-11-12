@@ -481,6 +481,13 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
         alpha = 0;
         transbg = 0;
     }
+    else if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
+    {
+        /* Opt-in affine takes precedence over legacy shear, rotation and water. */
+        gfx.screen = src;
+        gfx_draw_affine(dest, &gfx, x, y, 0, 0, drawmethod);
+        return;
+    }
     else if(drawmethod->water.watermode && drawmethod->water.amplitude)
     {
         gfx.screen = src;
