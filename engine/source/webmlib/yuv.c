@@ -88,6 +88,7 @@
 #include <stdint.h>
 #include "globals.h"
 #include "yuv.h"
+#include "gpu.h"
 
 static int *colortab;
 static uint32_t *rgb_2_pix;
@@ -418,6 +419,8 @@ void yuv_to_rgb(yuv_frame *in, s_screen *out)
                     unsigned char *cb, unsigned char *out,
                     int rows, int cols, int mod);
     convert = (bytes_per_pixel == 2) ? Color16DitherYV12Mod1X : Color32DitherYV12Mod1X;
+    /* Full-frame conversion replaces all pixels and invalidates any upload. */
+    gpu_mark_cpu_dirty(out);
 #if REVERSE_COLOR
     convert(in->lum, in->cb, in->cr, out->data, out->height, out->width, 0);
 #else
@@ -463,6 +466,8 @@ bool yuv_to_rgb_scaled(const yuv_frame *in, s_screen *out)
     cr = (const unsigned char *)in->cr;
     cb = (const unsigned char *)in->cb;
 #endif
+    /* No old destination pixels are required by this full-frame conversion. */
+    gpu_mark_cpu_dirty(out);
     destination = (uint32_t *)out->data;
     chroma_width = in->width / 2;
     x_step = ((uint64_t)in->width << 16) / (uint64_t)out->width;

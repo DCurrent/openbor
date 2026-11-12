@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include "globals.h"
 #include "types.h"
+#include "gpu.h"
 
 #define		TRANS_INDEX		0x00
 
@@ -105,6 +106,8 @@ void getbitmap(int x, int y, int width, int height, s_bitmap *bitmap, s_screen *
     bitmap->clipped_x_offset = 0;
     bitmap->clipped_y_offset = 0;
 
+    /* Bitmap extraction is an explicit CPU read of the rendered screen. */
+    gpu_sync_cpu(screen);
     d = 0;
     for(j = 0; j < height; j++)
     {
@@ -159,6 +162,8 @@ void putbitmap(int x, int y, s_bitmap *bitmap, s_screen *screen)
         return;
     }
 
+    /* Preserve target pixels outside the bitmap while switching to CPU. */
+    gpu_prepare_cpu_write(screen);
     d = (y * screen->width) + x;
 
     do

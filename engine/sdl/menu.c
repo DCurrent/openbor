@@ -16,6 +16,7 @@
 #include "hankaku.h"
 #include "stristr.h"
 #include "stringptr.h"
+#include "gpu.h"
 
 #include "pngdec.h"
 #include "../resources/OpenBOR_Logo_480x272_png.h"
@@ -216,6 +217,9 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 		va_start(arglist, format);
 		vsprintf(buf, format, arglist);
 		va_end(arglist);
+
+	/* Menu text writes pixels directly rather than using the sprite queue. */
+	gpu_prepare_cpu_write(vscreen);
 
 	for(i=0; i<sizeof(buf); i++)
 	{

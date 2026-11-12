@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "types.h"
+#include "gpu.h"
 
 //with remap, work only under 8bit pixel format
 void putscreenx8p32(s_screen *dest, s_screen *src, int x, int y, int key, u32 *remap, u32(*blendfp)(u32, u32))
@@ -77,6 +78,9 @@ void putscreenx8p32(s_screen *dest, s_screen *src, int x, int y, int key, u32 *r
         y = ymin;
     }
 
+    /* Low-level entry points can bypass putscreen(). */
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp += (soy * sw + sox);
     dp += (y * dw + x);
 
@@ -238,6 +242,8 @@ void blendscreen32(s_screen *dest, s_screen *src, int x, int y, int key, u32(*bl
         y = ymin;
     }
 
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp += (soy * sw + sox);
     dp += (y * dw + x);
 
@@ -339,6 +345,8 @@ void scalescreen32(s_screen *dest, s_screen *src)
     {
         return;
     }
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp = (u32 *)src->data;
     dp = (u32 *)dest->data;
 

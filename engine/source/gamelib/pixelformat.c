@@ -13,6 +13,7 @@
 #include "types.h"
 #include "globals.h"
 #include "borendian.h"
+#include "gpu.h"
 
 #ifndef NULL
 #define NULL (void*)0
@@ -623,6 +624,8 @@ void set_blendtables(unsigned char *tables[])
     {
         blendtables[i] = tables[i];
     }
+    /* GPU blend lookup textures must track replacements of these tables. */
+    gpu_invalidate_tables();
 }
 
 //getting too long so make 2 functions

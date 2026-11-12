@@ -10,6 +10,7 @@
 #include "packfile.h"
 #include "ram.h"
 #include "video.h"
+#include "opengl.h"
 #include "menu.h"
 #include <time.h>
 #include <unistd.h>
@@ -56,6 +57,7 @@ char* AndroidRoot(char *relPath)
 void borExit(int reset)
 {
 	SDL_Delay(1000);
+	video_gl_shutdown();
 	SDL_Quit(); // call this instead of atexit(SDL_Quit); It's best practice!
     exit(reset);
 }

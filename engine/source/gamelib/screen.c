@@ -16,6 +16,7 @@
 #include "types.h"
 #include "transform.h"
 #include "screen.h"
+#include "gpu.h"
 
 s_screen *allocscreen(int width, int height, int pixelformat)
 {
@@ -54,6 +55,8 @@ void freescreen(s_screen **screen)
 {
     if((*screen) != NULL)
     {
+        /* Release any render target before its CPU identity can be reused. */
+        gpu_release_screen(*screen);
         free((*screen));
     }
     (*screen) = NULL;
@@ -71,6 +74,14 @@ void copyscreen(s_screen *dest, s_screen *src)
     {
         return;
     }
+
+    /* Keep copies between render targets on the GPU when supported. */
+    if(gpu_copy_screen(dest, src))
+    {
+        return;
+    }
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
 
     if(height > dest->height)
     {
@@ -106,6 +117,12 @@ void clearscreen(s_screen *s)
     {
         return;
     }
+    if(gpu_clear_screen(s))
+    {
+        return;
+    }
+    /* Clearing replaces every pixel, so no previous GPU contents are needed. */
+    gpu_mark_cpu_dirty(s);
     memset(s->data, 0, s->width * s->height * pixelbytes[(int)s->pixelformat]);
 }
 
@@ -182,6 +199,9 @@ void copyscreen_o(s_screen *dest, s_screen *src, int x, int y)
         return;
     }
 
+    /* Public software entry points must also observe preceding GPU draws. */
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp = src->data + (soy * sw + sox) * pixelbytes[(int)pixelformat];
     dp = dest->data + (y * dw + x) * pixelbytes[(int)pixelformat];
     linew = cw * pixelbytes[(int)pixelformat];
@@ -264,6 +284,8 @@ void copyscreen_trans(s_screen *dest, s_screen *src, int x, int y)
         y = ymin;
     }
 
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp = src->data + (soy * sw + sox);
     dp = dest->data + (y * dw + x);
     // Copy data
@@ -353,6 +375,8 @@ void copyscreen_remap(s_screen *dest, s_screen *src, int x, int y, unsigned char
         y = ymin;
     }
 
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp += (soy * sw + sox);
     dp += (y * dw + x);
 
@@ -444,6 +468,8 @@ void blendscreen(s_screen *dest, s_screen *src, int x, int y, unsigned char *lut
         y = ymin;
     }
 
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp += soy * sw + sox;
     dp += y * dw + x;
 
@@ -573,6 +599,15 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
 
     drawmethod_global_init(drawmethod);
 
+    /* One dispatch includes all repeats; unsupported effects retain their
+     * original software path with current source and destination shadows. */
+    if(gpu_draw_screen(dest, src, x, y, drawmethod))
+    {
+        return;
+    }
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
+
     if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         xrepeat = drawmethod->xrepeat;
@@ -617,6 +652,8 @@ void scalescreen(s_screen *dest, s_screen *src)
     {
         return;
     }
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp = src->data;
     dp = dest->data;
 

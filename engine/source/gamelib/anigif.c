@@ -15,6 +15,7 @@
 #include "types.h"
 #include "screen.h"
 #include "anigif.h"
+#include "gpu.h"
 
 // Animated GIF player.
 
@@ -141,6 +142,9 @@ static int decodegifblock(anigif_info *info, gifblockstruct *gb, int n)
     {
         return 0;
     }
+
+    /* GIF disposal/transparency can preserve pixels from a previous frame. */
+    gpu_prepare_cpu_write(buf);
 
     p = q = b;
     bitsleft = 8;
@@ -588,6 +592,12 @@ static void anigif_updatebuffer(anigif_info *info)
     int i, l = backbuffer->width * backbuffer->height;
     unsigned int *ps32, *ppr32, *ppg32, *ppb32;
 
+    /* The public GIF buffers can also be script render targets. Resolve
+     * channel reads, then replace the combined CPU image without readback. */
+    gpu_sync_cpu(gifbuffer[0]);
+    gpu_sync_cpu(gifbuffer[1]);
+    gpu_sync_cpu(gifbuffer[2]);
+    gpu_mark_cpu_dirty(backbuffer);
     ps32 = (unsigned int *)(backbuffer->data);
     ppr32 = (unsigned int *)(gifbuffer[0]->data);
     ppg32 = (unsigned int *)(gifbuffer[1]->data);

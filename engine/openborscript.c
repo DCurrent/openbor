@@ -34,6 +34,7 @@
 #include "ImportCache.h"
 #include "models.h"
 #include "scriptcommon.h"
+#include "gpu.h"
 #include <limits.h>
 #include <stdint.h>
 
@@ -411,10 +412,17 @@ void _freeheapnode(void *ptr)
     }
     else if(((s_sprite *)ptr)->magic == sprite_magic)
     {
+        gpu_release_sprite((s_sprite *)ptr);
         if(((s_sprite *)ptr)->mask)
         {
+            gpu_release_sprite(((s_sprite *)ptr)->mask);
             free(((s_sprite *)ptr)->mask);
         }
+    }
+    else if(((s_screen *)ptr)->magic == screen_magic)
+    {
+        /* Script-owned screens bypass freescreen() during heap cleanup. */
+        gpu_release_screen((s_screen *)ptr);
     }
     free(ptr);
 }
@@ -16617,6 +16625,12 @@ HRESULT openbor_getgfxproperty(ScriptVariant **varlist , ScriptVariant **pretvar
             }
             else
             {
+                /* Pixel queries require current pixels, not a stale CPU
+                 * shadow. Ordinary metadata queries never force readback. */
+                if(screen->magic == screen_magic)
+                {
+                    gpu_sync_cpu(screen);
+                }
                 switch(screen->pixelformat)
                 {
                 case PIXEL_8:

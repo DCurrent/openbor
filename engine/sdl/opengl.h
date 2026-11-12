@@ -18,6 +18,8 @@
 // OpenGL video functions
 int video_gl_set_mode(s_videomodes);
 int video_gl_copy_screen(s_videosurface*);
+int video_gl_copy_gpu_screen(s_screen*);
+void video_gl_shutdown(void);
 void video_gl_clearscreen();
 void video_gl_set_color_correction(int, int);
 
@@ -31,6 +33,8 @@ int video_gl_display_yuv_frame(void);
 // define dummy macros for OpenGL video functions if OpenGL is not supported
 #define video_gl_set_mode(X)					0
 #define video_gl_copy_screen(X)					0
+#define video_gl_copy_gpu_screen(X)                 0
+#define video_gl_shutdown()
 #define video_gl_clearscreen()
 #define video_gl_set_color_correction(X,Y)
 #define video_gl_setup_yuv_overlay(X)           0

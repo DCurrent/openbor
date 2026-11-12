@@ -19,6 +19,7 @@
 #include "opengl.h"
 #include "video.h"
 #include "loadgl.h"
+#include "gpu_renderer.h"
 #include <math.h>
 
 #define nextpowerof2(x) pow(2,ceil(log(x)/log(2)))
@@ -122,6 +123,33 @@ static const char *fragmentShaderSourceYUV =
         "    gl_Position = ftransform();\n"
         "}\n";*/
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Synchronize live native render targets before discarding their GL context.
+ * Reset context-owned names so a new context never deletes unrelated objects
+ * that happen to receive the same numeric names.
+ */
+void video_gl_shutdown(void)
+{
+	if(context)
+	{
+		if(window && SDL_GL_GetCurrentContext() != context &&
+		   SDL_GL_MakeCurrent(window, context) < 0)
+		{
+			/* Never read another context's framebuffer into a live screen shadow. */
+			fprintf(stderr, "Unable to restore GL context for screen preservation: %s\n", SDL_GetError());
+			abort();
+		}
+		gpu_gl_shutdown();
+		SDL_GL_DeleteContext(context);
+		context = NULL;
+	}
+	memset(gltexture, 0, sizeof(gltexture));
+	shaderProgram = 0;
+	opengl = 0;
+}
+
 // calculates scale factors and offsets based on viewport and texture sizes
 void video_gl_setup_screen()
 {
@@ -204,6 +232,9 @@ int video_gl_set_mode(s_videomodes videomodes)
 {
 	GLint maxTextureSize;
 
+	/* Mode switches must preserve script-created screens across GL contexts. */
+	video_gl_shutdown();
+
 	displayWidth = textureWidth = videomodes.hRes;
 	displayHeight = textureHeight = videomodes.vRes;
 
@@ -233,8 +264,6 @@ int video_gl_set_mode(s_videomodes videomodes)
 		printf("Failed to create OpenGL-compatible window (%s)...", SDL_GetError());
 		goto error;
 	}
-	if((context = SDL_GL_GetCurrentContext()))
-		SDL_GL_DeleteContext(context);
 	context = SDL_GL_CreateContext(window);
 
 	// make sure the context was created successfully
@@ -317,16 +346,27 @@ int video_gl_set_mode(s_videomodes videomodes)
 	video_gl_set_color_correction(savedata.gamma, savedata.brightness);
 
 	opengl = 1;
+	/*
+	 * CPU output filters operate on the whole composed image. Keep that mode
+	 * fully on the legacy path instead of reading a GPU frame back each time.
+	 * Initialization failure leaves the existing GL presenter usable.
+	 */
+	if(!(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)))
+		gpu_gl_init();
+	else
+		printf("Native GPU drawing disabled while a CPU output filter is active.\n");
 	return 1;
 error:
 	printf("falling back to SDL video backend\n");
-	opengl = 0;
+	video_gl_shutdown();
 	savedata.usegl = 0;
 	return 0;
 }
 
 void video_gl_clearscreen()
 {
+	/* Native scene rendering may have left an offscreen framebuffer bound. */
+	gpu_gl_prepare_present();
 	// clear both buffers in a double-buffered setup
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapWindow(window);
@@ -379,6 +419,15 @@ void render()
 
 int video_gl_copy_screen(s_videosurface* surface)
 {
+	/* Restore presentation state after any native offscreen drawing. */
+	gpu_gl_prepare_present();
+	video_gl_setup_screen();
+	glUseProgramObjectARB(shaderProgram);
+	glDisable(GL_BLEND);
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_DEPTH_TEST);
+	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), textureWidth, textureHeight);
+
 	// update texture contents with new surface contents
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
@@ -397,6 +446,58 @@ int video_gl_copy_screen(s_videosurface* surface)
 
 	if (savedata.fpslimit >= 2) FramerateDelay();
 
+	return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Present a GPU-resident screen with the normal display scaling and color
+ * correction, without converting or uploading its CPU pixel buffer. Return
+ * zero when the native renderer cannot provide this screen so the caller can
+ * use the existing software presentation path.
+ */
+int video_gl_copy_gpu_screen(s_screen *screen)
+{
+	unsigned nativeTexture;
+	int nativeWidth, nativeHeight;
+	GLfloat savedTcx, savedTcy;
+	float scaleFactor;
+
+	if(!gpu_gl_get_screen_texture(screen, &nativeTexture, &nativeWidth, &nativeHeight))
+		return 0;
+
+	/*
+	 * The native renderer owns its draw state. Reestablish everything used by
+	 * the presenter, including framebuffer zero, shader and orthographic view.
+	 */
+	gpu_gl_prepare_present();
+	video_gl_setup_screen();
+	glUseProgramObjectARB(shaderProgram);
+	glDisable(GL_BLEND);
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_DEPTH_TEST);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, nativeTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), nativeWidth, nativeHeight);
+	scaleFactor = MIN((float)viewportWidth / nativeWidth, (float)viewportHeight / nativeHeight);
+	glUniform1fARB(glGetUniformLocationARB(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
+
+	/* Native targets use exact texture dimensions and the CPU upload orientation. */
+	savedTcx = tcx;
+	savedTcy = tcy;
+	tcx = tcy = 1.0f;
+	render();
+	tcx = savedTcx;
+	tcy = savedTcy;
+
+	/* Scene sampling is nearest-neighbor; filtering belongs only to presentation. */
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	SDL_GL_SwapWindow(window);
+	if(savedata.fpslimit >= 2) FramerateDelay();
 	return 1;
 }
 
@@ -422,6 +523,8 @@ void video_gl_set_color_correction(int gamma, int brightness)
 // set up YUV mode
 int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 {
+	/* Movies retain the existing upload path; preserve native screens first. */
+	gpu_gl_shutdown();
 	textureWidth = mode->width;
 	textureHeight = mode->height;
 	displayWidth = mode->display_width;
@@ -448,6 +551,12 @@ int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 // render the frame
 int video_gl_prepare_yuv_frame(yuv_frame *frame)
 {
+	gpu_gl_prepare_present();
+	video_gl_setup_screen();
+	glUseProgramObjectARB(shaderProgram);
+	glDisable(GL_BLEND);
+	glDisable(GL_SCISSOR_TEST);
+	glDisable(GL_DEPTH_TEST);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight,

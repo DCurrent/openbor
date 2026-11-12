@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Damon V. Caskey
+# 2026-11-12
+# Build focused renderer regressions without the game's audio/media dependencies.
+# Linux/SDL2 is the reference headless test environment. Native GL correctness
+# on a software driver is not evidence of hardware rendering performance.
+set -euo pipefail
+
+test_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$test_root"
+test_build_dir=${OPENBOR_TEST_BUILD_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/openbor-gpu-tests.XXXXXX")}
+mkdir -p "$test_build_dir"
+test_compiler=${CC:-cc}
+test_flags=(-std=c99 -O2 -Wall -Werror -D_DEFAULT_SOURCE -DPP_TEST
+            -ffunction-sections -fdata-sections -Iengine -Iengine/source
+            -Iengine/source/gamelib -Iengine/source/gfxlib)
+test_link_flags=(-Wl,--gc-sections -lm)
+if [[ -n ${OPENBOR_TEST_CFLAGS:-} ]]; then
+    read -r -a test_extra_flags <<< "$OPENBOR_TEST_CFLAGS"
+    test_flags+=("${test_extra_flags[@]}")
+fi
+
+# Damon V. Caskey
+# 2026-11-12
+# Distinguish an unavailable graphics context from a test assertion failure.
+# CI can require native GL coverage with OPENBOR_REQUIRE_GPU_TESTS=1.
+run_test()
+{
+    local test_status
+    if "$1"; then
+        return 0
+    else
+        test_status=$?
+        if [[ $test_status == 77 && ${OPENBOR_REQUIRE_GPU_TESTS:-0} != 1 ]]; then
+            printf 'SKIP: %s requires an SDL/OpenGL context.\n' "$1"
+            return 0
+        fi
+        return "$test_status"
+    fi
+}
+
+"$test_compiler" "${test_flags[@]}" tests/test_spriteq_sort.c \
+    "${test_link_flags[@]}" -o "$test_build_dir/test_spriteq_sort"
+run_test "$test_build_dir/test_spriteq_sort"
+
+"$test_compiler" "${test_flags[@]}" tests/test_gpu_transform.c \
+    engine/source/gamelib/gpu_transform.c engine/source/gamelib/gpu_shader.c \
+    engine/source/gamelib/pixelformat.c "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_gpu_transform"
+run_test "$test_build_dir/test_gpu_transform"
+
+test_software_sources=(engine/source/gamelib/gpu.c
+    engine/source/gamelib/screen.c engine/source/gamelib/screen16.c
+    engine/source/gamelib/screen32.c engine/source/gamelib/draw.c
+    engine/source/gamelib/draw16.c engine/source/gamelib/draw32.c
+    engine/source/gamelib/sprite.c engine/source/gamelib/spritex8p16.c
+    engine/source/gamelib/spritex8p32.c engine/source/gamelib/spriteq.c
+    engine/source/gamelib/bitmap.c engine/source/gamelib/transform.c
+    engine/source/gamelib/pixelformat.c engine/source/omath.c)
+"$test_compiler" "${test_flags[@]}" tests/test_gpu_coherence.c \
+    "${test_software_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_gpu_coherence"
+run_test "$test_build_dir/test_gpu_coherence"
+
+if [[ -n ${OPENBOR_TEST_SDL_CFLAGS:-} && -n ${OPENBOR_TEST_SDL_LIBS:-} ]]; then
+    read -r -a test_sdl_flags <<< "$OPENBOR_TEST_SDL_CFLAGS"
+    read -r -a test_sdl_libs <<< "$OPENBOR_TEST_SDL_LIBS"
+elif command -v sdl2-config >/dev/null 2>&1; then
+    read -r -a test_sdl_flags <<< "$(sdl2-config --cflags)"
+    read -r -a test_sdl_libs <<< "$(sdl2-config --libs)"
+elif command -v pkg-config >/dev/null 2>&1 && pkg-config --exists sdl2; then
+    read -r -a test_sdl_flags <<< "$(pkg-config --cflags sdl2)"
+    read -r -a test_sdl_libs <<< "$(pkg-config --libs sdl2)"
+else
+    printf 'SDL2 development files were not found; native GL tests were not built.\n' >&2
+    if [[ ${OPENBOR_REQUIRE_GPU_TESTS:-0} == 1 ]]; then exit 1; fi
+    printf 'CPU renderer tests passed. Test binaries: %s\n' "$test_build_dir"
+    exit 0
+fi
+
+test_gpu_flags=("${test_flags[@]}" "${test_sdl_flags[@]}"
+    -DSDL=1 -DLINUX=1 -DOPENGL=1 -DLOADGL=1 -Iengine/sdl
+    -Iengine/source/pnglib -Iengine/source/webmlib)
+test_gpu_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c
+    engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c engine/sdl/loadgl.c)
+export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-offscreen}
+
+for test_name in test_gpu_renderer test_gpu_shutdown; do
+    "$test_compiler" "${test_gpu_flags[@]}" "tests/$test_name.c" \
+        "${test_gpu_sources[@]}" "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+        -o "$test_build_dir/$test_name"
+    run_test "$test_build_dir/$test_name"
+done
+
+"$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_transform_gl.c \
+    "${test_gpu_sources[@]}" engine/source/gamelib/transform.c \
+    engine/source/gamelib/pixelformat.c engine/source/gamelib/draw32.c \
+    engine/source/omath.c "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    -o "$test_build_dir/test_gpu_transform_gl"
+run_test "$test_build_dir/test_gpu_transform_gl"
+
+"$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_presentation.c \
+    "${test_gpu_sources[@]}" engine/sdl/opengl.c engine/sdl/video.c \
+    engine/sdl/videocommon.c engine/sdl/timer.c \
+    "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    -o "$test_build_dir/test_gpu_presentation"
+run_test "$test_build_dir/test_gpu_presentation"
+
+printf 'Renderer regression tests completed. Test binaries: %s\n' "$test_build_dir"

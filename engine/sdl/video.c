@@ -83,7 +83,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 
 	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-	if(!(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
+	if(window && !(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
 		SDL_GetWindowPosition(window, &last_x, &last_y);
 
 	if (gl)
@@ -98,17 +98,20 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
 	}
 
+	/* Release SDL renderer resources while their owning window still exists. */
+	if(texture) SDL_DestroyTexture(texture);
+	if(renderer) SDL_DestroyRenderer(renderer);
+	texture = NULL;
+	renderer = NULL;
+
 	if(window && gl != last_gl)
 	{
+		/* Read back live render targets while their old GL context still exists. */
+		if(last_gl) video_gl_shutdown();
 		SDL_DestroyWindow(window);
 		window = NULL;
 	}
 	last_gl = gl;
-
-	if(renderer) SDL_DestroyRenderer(renderer);
-	if(texture)  SDL_DestroyTexture(texture);
-	renderer = NULL;
-	texture = NULL;
 
 	if(window)
 	{
@@ -164,6 +167,7 @@ int video_set_mode(s_videomodes videomodes)
 
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
+		video_gl_shutdown();
 		return 0;
 	}
 
@@ -248,6 +252,12 @@ void FramerateDelay()
 
 int video_copy_screen(s_screen* src)
 {
+	/*
+	 * Native GPU screens already contain the composed frame. Present their
+	 * texture before requesting CPU pixels or applying legacy conversion.
+	 */
+	if(opengl && !yuv_mode && video_gl_copy_gpu_screen(src)) return 1;
+
 	// do any needed scaling and color conversion
 	s_videosurface *surface = getVideoSurface(src);
 

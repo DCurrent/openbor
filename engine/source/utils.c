@@ -19,6 +19,7 @@
 #include "stristr.h"
 #include "openbor.h"
 #include "packfile.h"
+#include "gpu.h"
 
 #include <dirent.h>
 
@@ -398,6 +399,8 @@ void screenshot(s_screen *vscreen, unsigned char *pal, int ingame)
 
     if(shotnum < 10000)
     {
+        /* Screenshots intentionally read the logical frame at this point. */
+        gpu_sync_cpu(vscreen);
         savepng(shotname, vscreen, pal);
     }
     if(ingame)

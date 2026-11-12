@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include "types.h"
+#include "gpu.h"
 
 #ifndef		NULL
 #define		NULL	 ((void*)0)
@@ -135,6 +136,8 @@ void line32(int sx, int sy, int ex, int ey, unsigned colour, s_screen *screen, i
     sy *= screen->width;
     ey *= screen->width;
 
+    /* Preserve preceding GPU draws before this public software primitive. */
+    gpu_prepare_cpu_write(screen);
     data = (unsigned *)screen->data;
 
     colour &= 0x00FFFFFF;
@@ -253,6 +256,7 @@ void drawbox32(int x, int y, int width, int height, unsigned colour, s_screen *s
         height = screen->height - y;
     }
 
+    gpu_prepare_cpu_write(screen);
     cp = ((unsigned *)screen->data) + (y * screen->width + x);
     colour &= 0x00FFFFFF;
 
@@ -282,6 +286,7 @@ void _putpixel32(unsigned x, unsigned y, unsigned colour, s_screen *screen, int 
         return;
     }
     pixind = x + y * screen->width;
+    gpu_prepare_cpu_write(screen);
     data = (unsigned *)screen->data + pixind;
     colour &= 0x00FFFFFF;
     blendfp = getblendfunction32(alpha);

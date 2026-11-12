@@ -12,6 +12,7 @@
 #include <string.h>
 #include "globals.h"
 #include "types.h"
+#include "gpu.h"
 #include "sprite.h"
 /////////////////////////////////////////////////////////////////////////////
 
@@ -433,6 +434,8 @@ void putsprite_x8p16(
         h = ymax - y;
     }
     // calculate destination pointer
+    /* This software sprite entry is also exposed directly to engine code. */
+    gpu_prepare_cpu_write(screen);
     dest = ((unsigned short *)(screen->data)) + y * screenwidth;
     if(remap)
     {

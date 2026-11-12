@@ -14,6 +14,7 @@
 #include "types.h"
 #include "sprite.h"
 #include "transform.h"
+#include "gpu.h"
 
 static transpixelfunc pfp;
 static unsigned int fillcolor;
@@ -684,6 +685,15 @@ void calc_wp_cond()
 
 void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *drawmethod)
 {
+
+    /* All software transform loops enter here once, outside the pixel loop.
+     * Resolve render-target sources and preserve destination pixels before
+     * a legacy effect takes ownership of the CPU shadow. */
+    if(src->screen->magic == screen_magic)
+    {
+        gpu_sync_cpu(src->screen);
+    }
+    gpu_prepare_cpu_write(dest);
 
     spf = dpf = 0; //source pixel format
     drawfp = draw_pixel_dummy;

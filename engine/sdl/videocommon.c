@@ -12,6 +12,7 @@
 #include "savedata.h"
 #include "gfx.h"
 #include "videocommon.h"
+#include "gpu.h"
 
 static SDL_Surface *screen = NULL;
 static SDL_Surface *bscreen = NULL;
@@ -75,6 +76,9 @@ s_videosurface *getVideoSurface(s_screen *src)
 	int h;
 	SDL_Surface* ds = NULL;
 	SDL_Rect rectdes, rectsrc;
+
+	/* Legacy conversion and upload paths need the latest CPU copy, not stale pixels. */
+	gpu_sync_cpu(src);
 
 	if(bscreen)
 	{

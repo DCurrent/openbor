@@ -40,7 +40,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install build-essential git cmake zstd \
-          libsdl2-dev libvorbis-dev libpng-dev libvpx-dev
+          libsdl2-dev libvorbis-dev libpng-dev libvpx-dev libgl1-mesa-dri
     - name: Setup Macos dependencies
       if: runner.os == 'macOS'
       run: |
@@ -57,6 +57,13 @@ jobs:
         ${{ matrix.platform.source_cmd }}
         cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
         ${{ matrix.platform.cmake }}
+    - name: Native GPU regression tests
+      if: runner.os == 'Linux'
+      env:
+        SDL_VIDEODRIVER: offscreen
+        LIBGL_ALWAYS_SOFTWARE: '1'
+        OPENBOR_REQUIRE_GPU_TESTS: '1'
+      run: bash tests/run_gpu_tests.sh
     - name: Build
       run: |
         ${{ matrix.platform.source_cmd }}

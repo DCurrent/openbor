@@ -11,6 +11,7 @@
 
 #include "types.h"
 #include "draw.h"
+#include "gpu.h"
 
 #ifndef		NULL
 #define		NULL	 ((void*)0)
@@ -127,6 +128,7 @@ void line(int sx, int sy, int ex, int ey, int colour, s_screen *screen, int alph
     sy *= screen->width;
     ey *= screen->width;
 
+    gpu_prepare_cpu_write(screen);
     lut = alpha > 0 ? blendtables[alpha - 1] : NULL;
 
     if(lut)
@@ -246,6 +248,7 @@ void drawbox(int x, int y, int width, int height, int colour, s_screen *screen, 
         height = screen->height - y;
     }
 
+    gpu_prepare_cpu_write(screen);
     cp = (unsigned char *)screen->data + y * screen->width + x;
     lut = alpha > 0 ? blendtables[alpha - 1] : NULL;
     if(lut)
@@ -274,6 +277,7 @@ void _putpixel(int x, int y, int colour, s_screen *screen, int alpha)
     {
         return;
     }
+    gpu_prepare_cpu_write(screen);
     pixind = x + y * screen->width;
     lut = alpha > 0 ? blendtables[alpha - 1] + (colour << 8) : NULL;
     screen->data[pixind] = (lut && screen->data[pixind]) ? (lut[(int)(screen->data[pixind]) & 0xFF]) : colour;
@@ -369,6 +373,12 @@ void putbox(int x, int y, int width, int height, int colour, s_screen *screen, s
 {
     int alpha = draw_init(drawmethod);
 
+    if(gpu_draw_box(screen, x, y, width, height, (unsigned)colour, drawmethod))
+    {
+        return;
+    }
+    gpu_prepare_cpu_write(screen);
+
     switch(screen->pixelformat)
     {
     case PIXEL_8:
@@ -387,6 +397,12 @@ void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_dra
 {
     int alpha = draw_init(drawmethod);
 
+    if(gpu_draw_line(screen, sx, sy, ex, ey, (unsigned)colour, drawmethod))
+    {
+        return;
+    }
+    gpu_prepare_cpu_write(screen);
+
     switch(screen->pixelformat)
     {
     case PIXEL_8:
@@ -404,6 +420,18 @@ void putline(int sx, int sy, int ex, int ey, int colour, s_screen *screen, s_dra
 void putpixel(unsigned x, unsigned y, int colour, s_screen *screen, s_drawmethod *drawmethod)
 {
     int alpha = draw_init(drawmethod);
+
+    /* Reject unsigned off-screen coordinates before the rectangle API's
+     * signed conversion. Single pixels share its native drawing operation. */
+    if(x >= (unsigned)screen->width || y >= (unsigned)screen->height)
+    {
+        return;
+    }
+    if(gpu_draw_box(screen, (int)x, (int)y, 1, 1, (unsigned)colour, drawmethod))
+    {
+        return;
+    }
+    gpu_prepare_cpu_write(screen);
     switch(screen->pixelformat)
     {
     case PIXEL_8:

@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include "types.h"
+#include "gpu.h"
 
 #ifndef		NULL
 #define		NULL	 ((void*)0)
@@ -135,6 +136,8 @@ void line16(int sx, int sy, int ex, int ey, unsigned short colour, s_screen *scr
     sy *= screen->width;
     ey *= screen->width;
 
+    /* Preserve preceding GPU draws before this public software primitive. */
+    gpu_prepare_cpu_write(screen);
     data = (unsigned short *)screen->data;
 
     blendfp = getblendfunction16(alpha);
@@ -251,6 +254,7 @@ void drawbox16(int x, int y, int width, int height, unsigned short colour, s_scr
         height = screen->height - y;
     }
 
+    gpu_prepare_cpu_write(screen);
     cp = ((unsigned short *)screen->data) + (y * screen->width + x);
 
     blendfp = getblendfunction16(alpha);
@@ -279,6 +283,7 @@ void _putpixel16(unsigned x, unsigned y, unsigned short colour, s_screen *screen
         return;
     }
     pixind = x + y * screen->width;
+    gpu_prepare_cpu_write(screen);
     data = (unsigned short *)screen->data + pixind;
     blendfp = getblendfunction16(alpha);
     __putpixel16(data);

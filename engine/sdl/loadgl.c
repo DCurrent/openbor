@@ -33,10 +33,15 @@ void (APIENTRY *ptr_glDeleteTextures)(GLsizei n, const GLuint *textures);
 void (APIENTRY *ptr_glBindTexture)(GLenum target, GLuint texture);
 void (APIENTRY *ptr_glTexImage2D)(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
 void (APIENTRY *ptr_glTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels);
+void (APIENTRY *ptr_glCopyTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
+void (APIENTRY *ptr_glPixelStorei)(GLenum pname, GLint param);
+void (APIENTRY *ptr_glReadPixels)(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels);
 
 void (APIENTRY *ptr_glClear)(GLbitfield mask);
 void (APIENTRY *ptr_glClearColor)(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
 void (APIENTRY *ptr_glColor4f)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+void (APIENTRY *ptr_glColorMask)(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
+void (APIENTRY *ptr_glScissor)(GLint x, GLint y, GLsizei width, GLsizei height);
 void (APIENTRY *ptr_glBlendFunc)(GLenum sfactor, GLenum dfactor);
 void (APIENTRY *ptr_glTexEnvi)(GLenum, GLenum, GLint);
 void (APIENTRY *ptr_glTexEnvfv)(GLenum, GLenum, const GLfloat*);
@@ -53,6 +58,7 @@ void (APIENTRY *ptr_glTexParameteri)(GLenum target, GLenum pname, GLint param);
 void (APIENTRY *ptr_glBegin)(GLenum mode);
 void (APIENTRY *ptr_glEnd)(void);
 void (APIENTRY *ptr_glVertex2i)(GLint x, GLint y);
+void (APIENTRY *ptr_glVertex2f)(GLfloat x, GLfloat y);
 void (APIENTRY *ptr_glTexCoord2f)(GLfloat s, GLfloat t);
 
 // optional multitexturing extension (core in OpenGL 1.3 and OpenGL ES 1.0)
@@ -87,10 +93,15 @@ int LoadGLFunctions()
 	LOADFUNC("glBindTexture", ptr_glBindTexture);
 	LOADFUNC("glTexImage2D", ptr_glTexImage2D);
 	LOADFUNC("glTexSubImage2D", ptr_glTexSubImage2D);
+	LOADFUNC("glCopyTexSubImage2D", ptr_glCopyTexSubImage2D);
+	LOADFUNC("glPixelStorei", ptr_glPixelStorei);
+	LOADFUNC("glReadPixels", ptr_glReadPixels);
 
 	LOADFUNC("glClear", ptr_glClear);
 	LOADFUNC("glClearColor", ptr_glClearColor);
 	LOADFUNC("glColor4f", ptr_glColor4f);
+	LOADFUNC("glColorMask", ptr_glColorMask);
+	LOADFUNC("glScissor", ptr_glScissor);
 	LOADFUNC("glBlendFunc", ptr_glBlendFunc);
 	LOADFUNC("glTexEnvi", ptr_glTexEnvi);
 	LOADFUNC("glTexEnvfv", ptr_glTexEnvfv);
@@ -107,6 +118,7 @@ int LoadGLFunctions()
 	LOADFUNC("glBegin", ptr_glBegin);
 	LOADFUNC("glEnd", ptr_glEnd);
 	LOADFUNC("glVertex2i", ptr_glVertex2i);
+	LOADFUNC("glVertex2f", ptr_glVertex2f);
 	LOADFUNC("glTexCoord2f", ptr_glTexCoord2f);
 
 	// load multisampling functions; try the ARB versions if the core versions are not available
@@ -181,6 +193,36 @@ void APIENTRY glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint y
 	ptr_glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Copy framebuffer regions into native renderer snapshots without CPU reads.
+ */
+void APIENTRY glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	ptr_glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Configure pixel transfer alignment through the existing dynamic GL loader.
+ */
+void APIENTRY glPixelStorei(GLenum pname, GLint param)
+{
+	ptr_glPixelStorei(pname, param);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Read GPU screen pixels only when an explicit CPU consumer requests them.
+ */
+void APIENTRY glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels)
+{
+	ptr_glReadPixels(x, y, width, height, format, type, pixels);
+}
+
 void APIENTRY glClear(GLbitfield mask)
 {
 	ptr_glClear(mask);
@@ -194,6 +236,26 @@ void APIENTRY glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf
 void APIENTRY glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
 	ptr_glColor4f(red, green, blue, alpha);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Reset color-write masks when changing between scene and presentation passes.
+ */
+void APIENTRY glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+{
+	ptr_glColorMask(red, green, blue, alpha);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Restrict native rendering to the engine's requested destination clip region.
+ */
+void APIENTRY glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	ptr_glScissor(x, y, width, height);
 }
 
 void APIENTRY glBlendFunc(GLenum sfactor, GLenum dfactor)
@@ -259,6 +321,16 @@ void APIENTRY glEnd(void)
 void APIENTRY glVertex2i(GLint x, GLint y)
 {
 	ptr_glVertex2i(x, y);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Submit transformed fractional pixel edges through the dynamic GL interface.
+ */
+void APIENTRY glVertex2f(GLfloat x, GLfloat y)
+{
+	ptr_glVertex2f(x, y);
 }
 
 void APIENTRY glTexCoord2f(GLfloat s, GLfloat t)

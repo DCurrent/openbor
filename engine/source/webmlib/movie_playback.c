@@ -36,6 +36,7 @@ static void *movie_cache_allocate_nonfatal(size_t size)
 #include "video.h"
 #include "vidplay.h"
 #include "movie_playback.h"
+#include "gpu.h"
 
 #define MOVIE_SOURCE_CAPACITY_INITIAL 64U
 #define MOVIE_CACHE_READ_CHUNK_SIZE (1024U * 1024U)
@@ -1182,6 +1183,7 @@ static void movie_playback_filter_black(
         return;
     }
 
+    gpu_prepare_cpu_write(frame);
     pixel_count = (size_t)frame->width * (size_t)frame->height;
     pixel = (uint32_t *)frame->data;
     protected_black = colour32(1, 1, 1);
@@ -1325,6 +1327,10 @@ static void movie_playback_copy_frame(
         return;
     }
 
+    /* Movie composition may follow GPU draws on this same screen. Keep the
+     * clipped border intact and make the converted CPU frame visible. */
+    gpu_sync_cpu((s_screen *)source);
+    gpu_prepare_cpu_write(destination);
     source_row = source->data +
         ((source_y * source->width + source_x) * (int)sizeof(uint32_t));
     destination_row = destination->data +

@@ -64,6 +64,7 @@ file(GLOB         SRC_GFX    "engine/source/gfxlib/*.c"  "engine/source/gfxlib/*
 file(GLOB_RECURSE SRC_WEBM   "engine/source/webmlib/*.c" "engine/source/webmlib/*.h")
 file(GLOB         SRC_SDL    "engine/sdl/*.c" "engine/sdl/*.h")
 file(GLOB         SRC_OPENGL "engine/sdl/opengl.*")
+file(GLOB         SRC_GPU_OPENGL "engine/sdl/gpu_renderer.*")
 file(GLOB         SRC_LOADGL "engine/sdl/loadgl.*")
 
 # Exclude GFX & Tests
@@ -71,6 +72,7 @@ list(FILTER SRC_CORE EXCLUDE REGEX ".*test*" )
 list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/gfxlib/.*" )
 list(FILTER SRC_CORE EXCLUDE REGEX "engine/source/webmlib/.*" )
 list(FILTER SRC_SDL EXCLUDE REGEX "engine/sdl/.*gl.*" )
+list(FILTER SRC_SDL EXCLUDE REGEX "engine/sdl/gpu_renderer\\.[ch]$" )
 
 # Target Sources
 set(SRC_FILES
@@ -125,7 +127,7 @@ endif()
 
 if(USE_OPENGL)
   add_definitions(-DOPENGL)
-  target_sources(${PROJECT_NAME} PRIVATE ${SRC_OPENGL})
+  target_sources(${PROJECT_NAME} PRIVATE ${SRC_OPENGL} ${SRC_GPU_OPENGL})
 endif()
 
 if(USE_LOADGL)

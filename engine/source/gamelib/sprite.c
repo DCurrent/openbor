@@ -13,6 +13,7 @@
 #include "types.h"
 #include "sprite.h"
 #include "transform.h"
+#include "gpu.h"
 /////////////////////////////////////////////////////////////////////////////
 
 
@@ -520,6 +521,7 @@ void putsprite_8(
         h = ymax - y;
     }
     // calculate destination pointer
+    gpu_prepare_cpu_write(screen);
     dest = ((unsigned char *)(screen->data)) + y * screenwidth;
 
     if(blend && remap)
@@ -579,6 +581,9 @@ void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod 
     {
         return;    // zero size
     }
+
+    /* This public software entry may be called without the root dispatcher. */
+    gpu_prepare_cpu_write(screen);
 
     // no scale, no shift, no flip, no fill, so use common method
     if(!drawmethod->water.watermode 
@@ -662,6 +667,13 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
 
     drawmethod_global_init(drawmethod);
 
+    /* The native backend handles repeats as part of this draw operation. */
+    if(gpu_draw_sprite(screen, sprite, x, y, drawmethod))
+    {
+        return;
+    }
+    gpu_prepare_cpu_write(screen);
+
     if(drawmethod && drawmethod->config & DRAWMETHOD_CONFIG_ENABLED)
     {
         xrepeat = drawmethod->xrepeat;
@@ -704,6 +716,8 @@ unsigned encodesprite(
 
     if(dest)
     {
+        /* Encoding can replace a previously uploaded sprite at this address. */
+        gpu_release_sprite(dest);
         dest->magic = sprite_magic;
     }
 

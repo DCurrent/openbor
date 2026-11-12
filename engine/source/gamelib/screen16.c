@@ -8,6 +8,7 @@
 
 #include "globals.h"
 #include "types.h"
+#include "gpu.h"
 
 //with remap, work only under 8bit pixel format
 void putscreenx8p16(s_screen *dest, s_screen *src, int x, int y, int key, unsigned short *remap, unsigned short(*blendfp)(unsigned short, unsigned short))
@@ -76,6 +77,9 @@ void putscreenx8p16(s_screen *dest, s_screen *src, int x, int y, int key, unsign
         y = ymin;
     }
 
+    /* Low-level entry points can bypass putscreen(). */
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp += (soy * sw + sox);
     dp += (y * dw + x);
 
@@ -238,6 +242,8 @@ void blendscreen16(s_screen *dest, s_screen *src, int x, int y, int key, u16(*bl
         y = ymin;
     }
 
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp += (soy * sw + sox);
     dp += (y * dw + x);
 
@@ -338,6 +344,8 @@ void scalescreen16(s_screen *dest, s_screen *src)
     {
         return;
     }
+    gpu_sync_cpu(src);
+    gpu_prepare_cpu_write(dest);
     sp = (u16 *)src->data;
     dp = (u16 *)dest->data;
 

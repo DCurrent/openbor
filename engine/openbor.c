@@ -17,6 +17,7 @@
 #include "models.h"
 #include "translation.h"
 #include "soundmix.h"
+#include "gpu.h"
 #include "source/bitmask.h" // Inline bitmask utility functions.
 #include <inttypes.h>
 #include <stdbool.h>
@@ -6251,6 +6252,7 @@ void freesprites()
     {
         if(sprite_list != NULL)
         {
+            gpu_release_sprite(sprite_list->sprite);
             free(sprite_list->sprite);
             sprite_list->sprite = NULL;
             free(sprite_list->filename);
@@ -6358,6 +6360,7 @@ void cachesprite(int index, int load) {
 
                         // Free the target sprite's resources, then remove
                         // its pointer from sprite map.
+                        gpu_release_sprite(sprite);
                         free(sprite);
                         map_node->sprite = NULL;
 
@@ -6492,6 +6495,7 @@ int loadsprite(char *filename, int offset_x, int offset_y, int bmpformat) {
     curr->filename = malloc(len + 1);
 
     if(curr->sprite == NULL || curr->filename == NULL) {
+        gpu_release_sprite(curr->sprite);
         free(curr->sprite);
         free(curr->filename);
         free(curr);
@@ -23704,10 +23708,19 @@ void free_level(s_level *lv)
     {
         if(lv->layers[i].gfx.handle && lv->layers[i].gfx.handle != background)
         {
-            if(lv->layers[i].gfx.sprite->magic == sprite_magic &&
-               lv->layers[i].gfx.sprite->mask != NULL)
+            /* Layer surfaces may own either cached sprites or render targets. */
+            if(lv->layers[i].gfx.sprite->magic == sprite_magic)
             {
-                free(lv->layers[i].gfx.sprite->mask);
+                gpu_release_sprite(lv->layers[i].gfx.sprite);
+                if(lv->layers[i].gfx.sprite->mask != NULL)
+                {
+                    gpu_release_sprite(lv->layers[i].gfx.sprite->mask);
+                    free(lv->layers[i].gfx.sprite->mask);
+                }
+            }
+            else if(lv->layers[i].gfx.screen->magic == screen_magic)
+            {
+                gpu_release_screen(lv->layers[i].gfx.screen);
             }
             free(lv->layers[i].gfx.handle);
             lv->layers[i].gfx.handle = NULL;

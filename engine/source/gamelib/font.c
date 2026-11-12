@@ -17,6 +17,7 @@
 #include "sprite.h"
 #include "spriteq.h"
 #include "font.h"
+#include "gpu.h"
 
 
 s_font **fonts[MAX_FONTS];
@@ -118,8 +119,10 @@ void _font_unload(s_font *font)
     {
         if(font->token[i] != NULL)
         {
+            gpu_release_sprite(font->token[i]);
             if(font->token[i]->mask != NULL)
             {
+                gpu_release_sprite(font->token[i]->mask);
                 free(font->token[i]->mask);
             }
             free(font->token[i]);
