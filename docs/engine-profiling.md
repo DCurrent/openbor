@@ -9,7 +9,8 @@ Date: 2026-11-12
 `experiment/gpu-profiling` measures engine boundaries around the existing
 renderer. `experiment/gpu-palette-cache` retains those measurements while
 adding bounded resident palettes, context-local graphics-state caching, and
-cache-specific accounting. Successive changes remain on that same branch;
+cache-specific accounting. It also provides sampled interpreter/native-call
+profiling within the existing frame phases. Successive changes remain on that same branch;
 use the individual commits below for controlled comparisons.
 Profiling is enabled by default on both diagnostic branches. Games, including
 DC3D, require no script, asset, lighting, or rendering changes.
@@ -58,6 +59,8 @@ normal engine startup recreates its log.
 | `OPENBOR_PROFILE` | Enabled on this branch | Exact value `0` disables collection and its timer reads. |
 | `OPENBOR_PROFILE_FRAMES` | `300` | Accepted intervals per full report, from `1` through `1000`. Invalid values use the default. |
 | `OPENBOR_PROFILE_WARMUP` | `60` | Eligible update entries skipped after startup or a reset, from `0` through `100000`. Invalid values use the default. |
+| `OPENBOR_PROFILE_SCRIPT` | Enabled on this branch | Exact value `0` disables detailed interpreter/native-call timing without disabling the existing frame, renderer, or GPU reports. |
+| `OPENBOR_PROFILE_SCRIPT_INTERVAL` | `16` | Measure all interpreter/native transitions within one eligible recorded frame out of this many, from `1` through `1000`. Invalid values use `16`. Value `1` measures every recorded frame and has greater observer cost. |
 | `OPENBOR_PROFILE_GPU` | Enabled when supported | Exact value `0` disables GPU timestamps while leaving CPU profiling and native rendering enabled. |
 | `OPENBOR_GPU` | Native renderer enabled when supported | Existing exact value `0` selects software scene drawing while retaining the selected OpenGL presenter. This is independent of timestamp sampling. |
 
@@ -126,6 +129,13 @@ nanoseconds until reporting.
 | `gpu_elapsed` | Completed timestamp samples for one scope, mean per available sample, and sum divided by accepted frame count. |
 | `diagnostics` | Cancelled frames, rejected gaps, late GPU results, clock-read count, and the skipped-reporting-frame marker. |
 | `palette_cache` | Native-cache configuration, including capacity and memory sizes; this is a lifecycle record, not a per-window measurement. |
+| `script_config` | Detailed script-profiling enablement, whole-frame sampling interval, fixed limits, and the explicit `overhead_subtracted=0` policy. |
+| `script_summary` | Valid detailed, invalid detailed, and nondetailed frame counts; separate detailed/nondetailed interval and update means; detailed clock reads, errors, and registry coverage. |
+| `script_phase` | Per-phase interpreter/native/outside split, using only valid detailed frames as its denominator. |
+| `script_native` | Up to eight native function names per phase, ranked by accumulated exclusive time, with measured calls and per-sample/per-call means. |
+| `script_slow` | One of up to three slowest valid detailed frames, identified by its frame ID, complete interval, update duration, outside-update residual, and detail clock reads. |
+| `script_slow_phases`, `script_slow_spans`, `script_slow_counts` | Matching ordinary phase/span/work data for that individual slow sampled frame. |
+| `script_slow_split`, `script_slow_native` | The same frame's per-phase interpreter/native split and up to eight highest-cost native phase/name entries. |
 
 ### Exclusive CPU phases
 
@@ -152,6 +162,133 @@ The current VSync path waits approximately one refresh period minus 4 ms before
 polling input. The constant is not a fixed 4 ms sleep. `pre_wait_ms` measures
 the actual retained delay. The 200/500 FPS limiter and buffer swap have their
 own nested spans; the profiler changes none of these pacing rules.
+
+### Sampled interpreter and native-call profiling
+
+The `draw_script_ms` phase includes both interpreted execution and native engine
+functions called by scripts. Its name alone cannot establish which part is
+expensive. Detailed script profiling measures those boundaries in the engine;
+DC3D and other modules require no instrumentation or gameplay changes.
+
+By default, one complete eligible recorded frame out of every 16 receives
+detailed timing. Every interpreter/native transition within that selected frame
+is measured. Individual native calls are not sparsely sampled or extrapolated.
+The existing all-frame reports still contain every accepted frame, including
+both detailed and nondetailed frames.
+
+| Detailed phase component | Meaning |
+| --- | --- |
+| `interpreter_self_ms` | Exclusive wall time inside the instrumented interpreter execution scopes while no native engine function owns the current execution context. This includes script instruction execution and interpreter dispatch work, not just script arithmetic. |
+| `native_self_ms` | Exclusive CPU-side wall time in script-callable native functions. Nested interpreter callbacks, and native calls made by those callbacks, are charged to their own execution contexts instead of being counted twice. |
+| `outside_interpreter_ms` | The matching phase's remaining wall time outside those measured interpreter/native scopes, including host-side script setup and surrounding engine work. It is not an estimate of GPU execution time. |
+
+Those components partition each phase for the same valid detailed samples.
+They are a breakdown of existing phase time, not additional time to add to the
+frame. Inclusive renderer spans can lie inside `native_self_ms`; adding those
+spans again would double-count their cost. Native CPU wall time can include
+driver work or waits and remains distinct from optional GPU elapsed spans.
+
+Each native function is identified internally by a bounded registry ID and
+reported by its script-call name, resolved while CALL instructions are compiled.
+Runtime dispatch uses the cached ID instead of scanning names for each
+invocation. IDs survive collector resets within that process; compare function
+names, not numeric IDs, across independent runs. The log ranks up to eight
+native functions within each frame phase, so the same function's draw-script
+costs can be distinguished from its simulation costs. Ranking is by exclusive
+time, then call count, with stable phase/ID tie ordering. The phase total still
+includes native work below that reporting cutoff.
+
+`calls` and `native_calls` are measured invocation totals, while
+`calls_per_sample` and `self_ms_per_sample` use valid detailed frames as the
+denominator. `self_us_per_call` is accumulated exclusive time divided by the
+recorded calls, not an independently measured latency percentile. Counts refer
+to native entries in that phase; execution time crossing a phase boundary is
+split at the boundary. These fields do not describe all calls made by the game
+across the complete window.
+If execution continues into a phase with no native entry, that phase can have
+nonzero self time and zero calls. Its per-call mean is unavailable (displayed
+as zero), not evidence of free execution.
+
+Detailed means use their own valid sampled-frame count. They must not be
+compared as if they used the ordinary window's denominator. The detailed report
+also identifies invalid and nondetailed frames. An independent nondetailed-frame
+mean helps distinguish the workload under ordinary profiling from frames with
+extra call-boundary instrumentation; it is still not an uninstrumented baseline
+or a causal overhead estimate. Workload can differ between selected frames,
+and detail acceptance bookkeeping can run at the following frame's entry.
+`sampled_frames + invalid_frames + unsampled_frames` equals the ordinary
+accepted frame count. Zero samples indicate unavailable detail, not zero cost.
+
+#### Matching individual slow frames
+
+Each reporting window retains up to three slowest valid detailed samples,
+ranked by their complete entry-to-entry intervals. Their frame IDs, phase
+durations, inclusive renderer spans, work counters, interpreter/native split,
+and up to eight most expensive native `(phase, function ID)` entries refer to
+the same frame. These records make it possible to associate a particular slow
+frame with the operations performed in that frame instead of attributing a
+window-wide average to its maximum or p95.
+
+These are the slowest **sampled** frames, not necessarily the slowest frames in
+the whole window. Nondetailed frames have no native-function breakdown, and
+instrumented frames can be slower because of measurement itself. Set
+`OPENBOR_PROFILE_SCRIPT_INTERVAL=1` for an every-frame diagnostic run when
+coverage is more important than observer cost. Even then, retain the existing
+rules for warmup, cancelled frames, discontinuities, and reporting barriers.
+
+Details travel with the originating frame through pending interval pairing.
+Cancelled, rejected, or final unpaired frames cannot contribute native-function
+totals to an accepted report. Logging and selection of slow samples occur at
+separate boundaries: snapshots are selected once a completed interval is
+accepted, and logging is deferred until the report. Neither occurs inside
+individual native calls.
+
+#### Bounds, diagnostics, and observer overhead
+
+Storage is bounded: 512 function-ID slots include ID zero, `other_native`;
+registered names use 96-byte buffers including the terminator; the
+execution-context stack has 128 entries. Compiled instructions also retain one
+unsigned native-ID field, including when detailed timing is disabled.
+Unclassified or unregistrable native functions remain visible through
+the fallback ID rather than silently disappearing from native totals. Detailed
+stack overflow, mismatched scopes, invalid clocks, or unclosed scopes invalidate
+that frame's detailed accounting. Its otherwise valid ordinary frame sample is
+retained, and detailed diagnostics identify the discarded breakdown.
+
+`error_flags` combines bit values `1` for stack depth, `2` for scope order or
+identity, `4` for a detail-clock discontinuity, and `8` for unclosed scopes.
+The summary's `clock_reads` includes detail reads from invalid accepted frames
+as well as valid ones. `registry_names` counts the process-lifetime registered
+names excluding `other_native`; `registry_fallbacks` counts registration
+attempts rejected for invalid/oversized names or exhausted capacity. It is
+cumulative across windows, not a per-window unknown-call count.
+
+Timing occurs at execution-category boundaries rather than on every opcode.
+Nondetailed frames bypass the detail timing and registry lookup path. Nevertheless,
+selected frames incur additional timer reads and accounting work. That observer
+cost remains in measured wall time; the profiler does not subtract a guessed
+overhead or claim that sampled-frame FPS is unperturbed. Detailed clock-read
+counts expose instrumentation volume, not an exact overhead duration.
+
+The clock has microsecond resolution. An individually tiny native call can
+therefore record zero microseconds while still incrementing its call count.
+Inspect accumulated costs across sufficient calls and repeated runs rather
+than interpreting a zero-duration call as free work. High call counts can also
+make profiling overhead significant even when individual functions are cheap.
+
+For a comparison with earlier renderer-profile logs, disable only this new
+detail layer before launching the executable:
+
+```powershell
+$env:OPENBOR_PROFILE_SCRIPT = "0"
+.\OpenBOR.exe
+```
+
+For a detailed run, restart with `OPENBOR_PROFILE_SCRIPT=1`; optionally set
+`OPENBOR_PROFILE_SCRIPT_INTERVAL=1` for complete eligible-frame coverage or
+leave it at `16` for the default cadence. Keep the same scene, route, pacing,
+and existing CPU/GPU profiler settings when comparing runs. The detail opt-out
+does not disable palette residency, graphics-state caching, or native drawing.
 
 ### Nested spans and work counts
 
@@ -344,8 +481,9 @@ comparing GPU means. Incomplete coverage can bias an apparently fast result.
 5. Repeat with `OPENBOR_GPU=0` only when testing the native/software boundary,
    retaining the same presenter and pacing. Repeat with
    `OPENBOR_PROFILE_GPU=0` to estimate timestamp instrumentation overhead without
-   switching renderers. Finally compare `OPENBOR_PROFILE=0` when assessing the
-   total diagnostic overhead.
+   switching renderers, and with `OPENBOR_PROFILE_SCRIPT=0` to check detailed
+   script-profiling overhead separately. Finally compare `OPENBOR_PROFILE=0`
+   when assessing the total diagnostic overhead.
 
 No expected speedup is encoded in this procedure. Heavy captures may remain
 GPU-resident while CPU setup, command count, destination snapshots, pacing, or
@@ -390,8 +528,9 @@ and script execution may remain dominant after palette reuse improves.
 
 ### Comparing redundant-state elimination
 
-Use palette-cache commit `f2c96c3` as the baseline and the state-cache update on
-`experiment/gpu-palette-cache` as the changed renderer. Keep the same scene,
+Use palette-cache commit `f2c96c3` as the baseline and state-cache commit
+`3e2dd97` as the changed renderer. The branch tip now also includes additional
+script profiling, so it is not a state-cache-only comparison point. Keep the same scene,
 route or stationary view, build options, driver, presentation settings, pacing,
 and profiler configuration. Record the exact commit from each executable's log
 and collect repeated full windows after warmup.
@@ -429,6 +568,24 @@ disabled collection, and the public log names and per-frame units.
 State accounting checks independent change/reuse totals, per-frame maxima,
 public labels, exclusion outside sampled bodies, and unchanged setup/transfer
 span accounting.
+
+Script-detail regressions check independent enablement and interval bounds,
+whole-frame cadence across reporting barriers, exact exclusive reentry,
+same-owner recursion without additional clocks, phase-crossing charges,
+zero-duration native calls, valid/invalid/nondetailed denominators, bounded
+top-function and slow-frame rankings, copied native names, registry fallback,
+scope/clock/depth failures, and cancellation/reset/gap/shutdown exclusion.
+The runtime integration fixture executes production parsing, compilation,
+imports, immediate code, main/init/clear functions, helpers, native aliases,
+callbacks, and native error paths. Its native game-service stubs provide
+deterministic work; script execution and argument/return handling remain real.
+
+The generated `test_script_profile_integration` test executable also accepts
+`--benchmark` for an optional native-heavy interpreter-loop comparison of
+detail disabled, interval 16, and interval 1. It rotates three trials per mode,
+uses a monotonic host clock, discards log I/O, and reports observations without
+timing-based pass/fail assertions. This measures that synthetic host workload,
+not the production SDL timer's exact overhead or DC3D/GPU performance.
 
 With SDL2 development files and an available desktop OpenGL context, the runner
 also verifies real native counters and byte totals, independent timestamp

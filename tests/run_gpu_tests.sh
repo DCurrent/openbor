@@ -58,6 +58,47 @@ OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=1001 OPENBOR_PROFILE_WARMUP=-1 \
     "$test_build_dir/test_engine_profile" --environment-defaults
 run_test "$test_build_dir/test_engine_profile"
 
+# Sample whole script frames and retain exact exclusive native/interpreter
+# attribution. Fresh processes verify environment parsing separately from the
+# deterministic clock, scope, registry and slow-frame accounting fixtures.
+"$test_compiler" "${test_flags[@]}" tests/test_script_profile.c \
+    "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_script_profile"
+env -u OPENBOR_PROFILE_SCRIPT -u OPENBOR_PROFILE_SCRIPT_INTERVAL \
+    OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=5 OPENBOR_PROFILE_WARMUP=0 \
+    "$test_build_dir/test_script_profile" --environment-defaults
+OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=5 OPENBOR_PROFILE_WARMUP=0 \
+    OPENBOR_PROFILE_SCRIPT=0 OPENBOR_PROFILE_SCRIPT_INTERVAL=16 \
+    "$test_build_dir/test_script_profile" --environment-disabled
+OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=5 OPENBOR_PROFILE_WARMUP=0 \
+    OPENBOR_PROFILE_SCRIPT=1 OPENBOR_PROFILE_SCRIPT_INTERVAL=2 \
+    "$test_build_dir/test_script_profile" --environment-custom
+for test_script_interval in -1 0 1001 invalid; do
+    OPENBOR_PROFILE=1 OPENBOR_PROFILE_FRAMES=5 OPENBOR_PROFILE_WARMUP=0 \
+        OPENBOR_PROFILE_SCRIPT=1 OPENBOR_PROFILE_SCRIPT_INTERVAL=$test_script_interval \
+        "$test_build_dir/test_script_profile" --environment-defaults
+done
+run_test "$test_build_dir/test_script_profile"
+
+# Execute actual compiled scripts with native callbacks, imports and errors.
+# PP_TEST=0 retains test-safe logging declarations while selecting the normal
+# packed-file preprocessor path supplied by the fixture's in-memory file API.
+test_script_sources=(engine/source/scriptlib/Interpreter.c
+    engine/source/scriptlib/Instruction.c engine/source/scriptlib/Parser.c
+    engine/source/scriptlib/ParserSet.c engine/source/scriptlib/Lexer.c
+    engine/source/scriptlib/List.c engine/source/scriptlib/Stack.c
+    engine/source/scriptlib/StackedSymbolTable.c engine/source/scriptlib/SymbolTable.c
+    engine/source/scriptlib/ScriptVariant.c engine/source/scriptlib/ScriptVariantInteger.c
+    engine/source/scriptlib/ImportCache.c engine/source/preprocessorlib/pp_parser.c
+    engine/source/preprocessorlib/pp_lexer.c engine/source/preprocessorlib/pp_expr.c)
+"$test_compiler" "${test_flags[@]}" -UPP_TEST -DPP_TEST=0 \
+    -Iengine/source/scriptlib -Iengine/source/preprocessorlib \
+    -include tests/script_profile_fixture_globals.h \
+    tests/test_script_profile_integration.c "${test_script_sources[@]}" \
+    "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_script_profile_integration"
+run_test "$test_build_dir/test_script_profile_integration"
+
 # Keep unrelated renderer fixtures independent of the diagnostic branch's
 # default-on setting. The native profiling suite explicitly enables its own
 # collection windows and exercises GPU query opt-out separately.

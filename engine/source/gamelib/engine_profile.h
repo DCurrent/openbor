@@ -11,6 +11,13 @@
 #define EP_DEFAULT_WARMUP 60
 #define EP_MAX_WINDOW 1000
 #define EP_MAX_GAP_US UINT64_C(1000000)
+#define EP_DEFAULT_SCRIPT_INTERVAL 16
+#define EP_SCRIPT_MAX_INTERVAL 1000
+#define EP_SCRIPT_MAX_FUNCTIONS 512
+#define EP_SCRIPT_NAME_LENGTH 96
+#define EP_SCRIPT_STACK_LIMIT 128
+#define EP_SCRIPT_SLOW_FRAMES 3
+#define EP_SCRIPT_TOP_FUNCTIONS 8
 
 /* These checkpoints partition update() in execution order. Nested spans
  * below describe inclusive costs within those checkpoints and must be read
@@ -127,6 +134,91 @@ typedef struct ep_scope
     uint64_t start_us;
 } ep_scope;
 
+/* Detailed script timing samples entire frames. Each scope identifies one
+ * stack entry so callbacks, stale returns and duplicate ends cannot silently
+ * double-count interpreter/native work. Function ID zero is the overflow or
+ * unregistered bucket; compiled instruction IDs survive collector resets. */
+typedef struct ep_script_scope
+{
+    uint64_t frame_id;
+    uint64_t serial;
+    unsigned depth;
+} ep_script_scope;
+
+typedef enum ep_script_error
+{
+    EP_SCRIPT_ERROR_DEPTH = 1,
+    EP_SCRIPT_ERROR_SCOPE = 2,
+    EP_SCRIPT_ERROR_CLOCK = 4,
+    EP_SCRIPT_ERROR_UNCLOSED = 8
+} ep_script_error;
+
+typedef struct ep_script_phase
+{
+    uint64_t interpreter_us;
+    uint64_t native_us;
+    uint64_t native_calls;
+} ep_script_phase;
+
+typedef struct ep_native_stat
+{
+    uint64_t calls;
+    uint64_t self_us;
+} ep_native_stat;
+
+typedef struct ep_script_frame
+{
+    unsigned sampled;
+    unsigned valid;
+    unsigned error_flags;
+    uint64_t clock_reads;
+    ep_script_phase phases[EP_PHASE_COUNT];
+} ep_script_frame;
+
+typedef struct ep_script_native_top
+{
+    unsigned function_id;
+    ep_phase phase;
+    uint64_t calls;
+    uint64_t self_us;
+} ep_script_native_top;
+
+/* These snapshots retain only the slowest valid detailed samples, not the
+ * slowest unsampled frames. Their IDs, phase times and work counts all refer
+ * to the same accepted entry-to-entry interval. */
+typedef struct ep_script_slow_frame
+{
+    uint64_t frame_id;
+    uint64_t interval_us;
+    uint64_t update_us;
+    uint64_t phases_us[EP_PHASE_COUNT];
+    uint64_t spans_us[EP_SPAN_COUNT];
+    uint64_t counts[EP_COUNT_COUNT];
+    ep_script_frame script;
+    unsigned top_count;
+    ep_script_native_top top[EP_SCRIPT_TOP_FUNCTIONS];
+} ep_script_slow_frame;
+
+typedef struct ep_script_report
+{
+    uint64_t window_id;
+    unsigned interval;
+    unsigned sampled_frames;
+    unsigned invalid_frames;
+    unsigned unsampled_frames;
+    unsigned error_flags;
+    uint64_t interval_us;
+    uint64_t update_us;
+    uint64_t unsampled_interval_us;
+    uint64_t unsampled_update_us;
+    uint64_t clock_reads;
+    uint64_t phases_us[EP_PHASE_COUNT];
+    ep_script_phase phases[EP_PHASE_COUNT];
+    ep_native_stat functions[EP_PHASE_COUNT][EP_SCRIPT_MAX_FUNCTIONS];
+    unsigned slow_count;
+    ep_script_slow_frame slow[EP_SCRIPT_SLOW_FRAMES];
+} ep_script_report;
+
 typedef struct ep_gpu_backend
 {
     uint64_t (*begin)(uint64_t frame_id, ep_gpu_kind kind);
@@ -185,6 +277,18 @@ void engine_profile_count(ep_counter counter, uint64_t amount);
 void engine_profile_fallback(ep_fallback reason);
 void engine_profile_log(const char *format, ...);
 const ep_report *engine_profile_last_report(void);
+
+/* The direct gate avoids function calls, clocks and registry lookups on
+ * unsampled frames. It is owned exclusively by the collector. Script/native
+ * hooks must still end a nonzero scope if its frame was cancelled meanwhile. */
+extern int engine_profile_script_active;
+void engine_profile_script_configure(int enabled, unsigned interval);
+unsigned engine_profile_native_register(const char *name);
+const char *engine_profile_native_name(unsigned function_id);
+ep_script_scope engine_profile_script_begin(void);
+ep_script_scope engine_profile_native_begin(unsigned function_id);
+void engine_profile_script_end(ep_script_scope scope);
+const ep_script_report *engine_profile_last_script_report(void);
 
 /* Timestamp scopes are backend optional. Polling consumes only already-ready
  * results. Results retain their originating frame ID and are discarded with

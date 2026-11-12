@@ -28,7 +28,25 @@ typedef struct ep_frame
     uint64_t fallbacks[EP_FALLBACK_COUNT];
     uint64_t gpu_ns[EP_GPU_COUNT];
     uint64_t gpu_samples[EP_GPU_COUNT];
+    ep_script_frame script;
 } ep_frame;
+
+typedef struct ep_script_entry
+{
+    uint64_t serial;
+    unsigned native;
+    unsigned function_id;
+} ep_script_entry;
+
+/* Compiled instructions retain these IDs after their source tokens are freed.
+ * Keep this bounded registry outside resettable frame/report state. */
+static char script_names[EP_SCRIPT_MAX_FUNCTIONS][EP_SCRIPT_NAME_LENGTH] =
+{
+    "other_native"
+};
+static unsigned script_name_count = 1;
+static uint64_t script_registry_overflows;
+int engine_profile_script_active;
 
 static struct
 {
@@ -47,10 +65,24 @@ static struct
     uint64_t gaps;
     uint64_t late_gpu;
     uint64_t clock_reads;
+    int script_enabled;
+    unsigned script_interval;
+    unsigned script_depth;
+    unsigned script_slow_count;
+    ep_phase script_phase;
+    uint64_t script_sequence;
+    uint64_t script_serial;
+    uint64_t script_last_us;
+    ep_script_entry script_stack[EP_SCRIPT_STACK_LIMIT];
+    ep_native_stat script_current[EP_PHASE_COUNT][EP_SCRIPT_MAX_FUNCTIONS];
+    ep_native_stat script_pending[EP_PHASE_COUNT][EP_SCRIPT_MAX_FUNCTIONS];
+    ep_native_stat script_window[EP_PHASE_COUNT][EP_SCRIPT_MAX_FUNCTIONS];
+    ep_script_slow_frame script_slow[EP_SCRIPT_SLOW_FRAMES];
     ep_frame current;
     ep_frame pending;
     ep_frame frames[EP_MAX_WINDOW];
     ep_report last_report;
+    ep_script_report last_script_report;
 } profile;
 
 static uint64_t (*profile_clock_hook)(void);
@@ -165,6 +197,22 @@ static unsigned ep_environment_unsigned(const char *name, unsigned fallback,
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * Describe the separate, bounded script-detail sampling policy. No native
+ * call timing is extrapolated to frames that were not selected in advance.
+ */
+static void ep_script_log_config(void)
+{
+    engine_profile_log("kind=script_config enabled=%d interval=%u "
+        "sampling=whole_frame timing=exclusive_cpu_us functions=%u stack=%u "
+        "slow_frames=%u top_functions=%u overhead_subtracted=0",
+        profile.script_enabled, profile.script_interval,
+        (unsigned)EP_SCRIPT_MAX_FUNCTIONS, (unsigned)EP_SCRIPT_STACK_LIMIT,
+        (unsigned)EP_SCRIPT_SLOW_FRAMES, (unsigned)EP_SCRIPT_TOP_FUNCTIONS);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
  * Initialize the diagnostic branch's defaults on first use. Explicit test
  * configuration bypasses environment parsing through the same state object.
  */
@@ -202,11 +250,13 @@ void engine_profile_set_hooks(uint64_t (*clock_us)(void), void (*log_line)(const
 void engine_profile_configure(int enabled, unsigned frames, unsigned warmup)
 {
     uint64_t next_id = profile.next_id;
+    const char *script_setting = getenv("OPENBOR_PROFILE_SCRIPT");
     /* Keep the clock, log sink and optional GPU provider independently owned
      * so tests and renderer context setup can install them in either order.
      * Frame identities also survive reconfiguration: outstanding GPU samples
      * and CPU scopes must never attach to a new frame with a recycled ID. */
     memset(&profile, 0, sizeof(profile));
+    engine_profile_script_active = 0;
     profile.next_id = next_id;
     profile.configured = 1;
     profile.enabled = enabled != 0;
@@ -217,10 +267,14 @@ void engine_profile_configure(int enabled, unsigned frames, unsigned warmup)
     }
     profile.warmup = warmup;
     profile.warm_left = warmup;
+    profile.script_enabled = !script_setting || strcmp(script_setting, "0") != 0;
+    profile.script_interval = ep_environment_unsigned("OPENBOR_PROFILE_SCRIPT_INTERVAL",
+        EP_DEFAULT_SCRIPT_INTERVAL, 1, EP_SCRIPT_MAX_INTERVAL);
     engine_profile_log("kind=config enabled=%d frames=%u warmup=%u gap_ms=%u "
         "clock=monotonic_us gpu_time=elapsed_command_span",
         profile.enabled, profile.window, profile.warmup,
         (unsigned)(EP_MAX_GAP_US / 1000));
+    ep_script_log_config();
 }
 
 /*
@@ -287,6 +341,272 @@ void engine_profile_log(const char *format, ...)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * Change detailed timing at an explicit sample barrier. Compiled native IDs
+ * remain valid; only collected samples and the frame-selection cadence reset.
+ */
+void engine_profile_script_configure(int enabled, unsigned interval)
+{
+    ep_initialize();
+    engine_profile_reset("script_config");
+    engine_profile_script_active = 0;
+    profile.script_depth = 0;
+    profile.script_sequence = 0;
+    profile.script_enabled = enabled != 0;
+    profile.script_interval = interval && interval <= EP_SCRIPT_MAX_INTERVAL
+        ? interval : EP_DEFAULT_SCRIPT_INTERVAL;
+    ep_script_log_config();
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Copy a native CALL name while its compiler token still exists. Registry
+ * searches occur at compilation, never during runtime dispatch. Reject names
+ * that cannot be logged as a bounded identifier and preserve ID zero as a
+ * visible fallback bucket instead of losing its calls or execution time.
+ */
+unsigned engine_profile_native_register(const char *name)
+{
+    unsigned length = 0;
+    unsigned i;
+    if(!name || !*name)
+    {
+        script_registry_overflows++;
+        return 0;
+    }
+    while(length < EP_SCRIPT_NAME_LENGTH && name[length])
+    {
+        unsigned char c = (unsigned char)name[length];
+        if(!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+             || (length && c >= '0' && c <= '9')))
+        {
+            script_registry_overflows++;
+            return 0;
+        }
+        length++;
+    }
+    if(length == EP_SCRIPT_NAME_LENGTH)
+    {
+        script_registry_overflows++;
+        return 0;
+    }
+    for(i = 1; i < script_name_count; i++)
+    {
+        if(strcmp(script_names[i], name) == 0)
+        {
+            return i;
+        }
+    }
+    if(script_name_count == EP_SCRIPT_MAX_FUNCTIONS)
+    {
+        script_registry_overflows++;
+        return 0;
+    }
+    memcpy(script_names[script_name_count], name, length + 1);
+    return script_name_count++;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Resolve a persistent profiling ID without consulting interpreter storage.
+ * The fallback label also covers manually constructed, unregistered CALLs.
+ */
+const char *engine_profile_native_name(unsigned function_id)
+{
+    return script_names[function_id < script_name_count ? function_id : 0];
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Stop only detailed accounting if its nesting or clock becomes unreliable.
+ * Ordinary frame profiling continues and records this rejected detail sample.
+ */
+static void ep_script_invalidate(unsigned error)
+{
+    profile.current.script.valid = 0;
+    profile.current.script.error_flags |= error;
+    profile.script_depth = 0;
+    engine_profile_script_active = 0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Count additional script-detail timer reads separately from the ordinary
+ * profiler. These are measured reads, not an estimated overhead correction.
+ */
+static uint64_t ep_script_now(void)
+{
+    profile.current.script.clock_reads++;
+    return ep_now();
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Charge elapsed CPU wall time exclusively to the innermost category and
+ * current engine phase. Native callbacks temporarily surrender ownership to
+ * the interpreter, so neither nested scripts nor native children are doubled.
+ */
+static int ep_script_charge(uint64_t now)
+{
+    const ep_script_entry *entry;
+    ep_script_phase *phase;
+    uint64_t elapsed;
+    if(now < profile.script_last_us)
+    {
+        ep_script_invalidate(EP_SCRIPT_ERROR_CLOCK);
+        return 0;
+    }
+    if(!profile.script_depth)
+    {
+        profile.script_last_us = now;
+        return 1;
+    }
+    elapsed = now - profile.script_last_us;
+    entry = &profile.script_stack[profile.script_depth - 1];
+    phase = &profile.current.script.phases[profile.script_phase];
+    if(entry->native)
+    {
+        phase->native_us += elapsed;
+        profile.script_current[profile.script_phase][entry->function_id].self_us += elapsed;
+    }
+    else
+    {
+        phase->interpreter_us += elapsed;
+    }
+    profile.script_last_us = now;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Recognize nested scopes with the same timing owner. Script helper recursion
+ * needs stack identity but no extra clock reads or opcode-level instrumentation.
+ */
+static int ep_script_same_owner(const ep_script_entry *left, const ep_script_entry *right)
+{
+    return left->native == right->native
+        && (!left->native || left->function_id == right->function_id);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Enter a bounded interpreter/native scope on selected frames only. The
+ * public direct gate avoids even this function call on other frames. Timer
+ * boundaries are necessary only when ownership changes, not on every opcode.
+ */
+static ep_script_scope ep_script_push(unsigned native, unsigned function_id)
+{
+    ep_script_scope scope = {0, 0, 0};
+    ep_script_entry entry;
+    if(!engine_profile_script_active)
+    {
+        return scope;
+    }
+    if(profile.script_depth == EP_SCRIPT_STACK_LIMIT)
+    {
+        ep_script_invalidate(EP_SCRIPT_ERROR_DEPTH);
+        return scope;
+    }
+    entry.native = native;
+    entry.function_id = function_id < script_name_count ? function_id : 0;
+    entry.serial = ++profile.script_serial;
+    if(!profile.script_depth
+       || !ep_script_same_owner(&profile.script_stack[profile.script_depth - 1], &entry))
+    {
+        uint64_t now = ep_script_now();
+        if(now < profile.current.last_us || !ep_script_charge(now))
+        {
+            ep_script_invalidate(EP_SCRIPT_ERROR_CLOCK);
+            return scope;
+        }
+        profile.script_last_us = now;
+    }
+    profile.script_stack[profile.script_depth++] = entry;
+    if(native)
+    {
+        profile.current.script.phases[profile.script_phase].native_calls++;
+        profile.script_current[profile.script_phase][entry.function_id].calls++;
+    }
+    scope.frame_id = profile.current.id;
+    scope.serial = entry.serial;
+    scope.depth = profile.script_depth;
+    return scope;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Measure evaluator execution, including argument/return bookkeeping but
+ * excluding separately owned native bodies and outer host script setup.
+ */
+ep_script_scope engine_profile_script_begin(void)
+{
+    return ep_script_push(0, 0);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Measure a native engine body called through the script dispatcher. Counts
+ * remain exact even when a tiny call resolves to zero integer microseconds.
+ */
+ep_script_scope engine_profile_native_begin(unsigned function_id)
+{
+    return ep_script_push(1, function_id);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Close a matching scope and resume its parent owner. Frame and serial guards
+ * reject cancelled/reconfigured scopes and detect duplicate or out-of-order
+ * returns without corrupting another frame or manufacturing a negative cost.
+ */
+void engine_profile_script_end(ep_script_scope scope)
+{
+    if(!engine_profile_script_active || !scope.frame_id
+       || scope.frame_id != profile.current.id)
+    {
+        return;
+    }
+    if(!profile.script_depth || scope.depth != profile.script_depth
+       || scope.serial != profile.script_stack[profile.script_depth - 1].serial)
+    {
+        ep_script_invalidate(EP_SCRIPT_ERROR_SCOPE);
+        return;
+    }
+    if(profile.script_depth == 1
+       || !ep_script_same_owner(&profile.script_stack[profile.script_depth - 1],
+                                &profile.script_stack[profile.script_depth - 2]))
+    {
+        if(!ep_script_charge(ep_script_now()))
+        {
+            return;
+        }
+    }
+    profile.script_depth--;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Expose raw accepted detailed samples, including their own denominator and
+ * matching slow-frame snapshots, for deterministic regression checks.
+ */
+const ep_script_report *engine_profile_last_script_report(void)
+{
+    return &profile.last_script_report;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
  * Order integer sample durations for an exact nearest-rank percentile.
  * Subtraction is avoided so a large duration cannot overflow the comparator.
  */
@@ -304,7 +624,8 @@ static int ep_compare_duration(const void *left, const void *right)
  * are inclusive; count means and maxima describe the same accepted frames.
  */
 static void ep_log_series(const char *kind, const char *const *names,
-                           const uint64_t *values, unsigned count, double divisor)
+                           const uint64_t *values, unsigned count, double divisor,
+                           uint64_t frame_id)
 {
     char fields[3072];
     size_t used = 0;
@@ -320,8 +641,242 @@ static void ep_log_series(const char *kind, const char *const *names,
         }
         used += (size_t)written;
     }
-    engine_profile_log("kind=%s window=%" PRIu64 "%s", kind,
-                       profile.last_report.window_id, fields);
+    if(frame_id)
+    {
+        engine_profile_log("kind=%s window=%" PRIu64 " frame=%" PRIu64 "%s", kind,
+                           profile.last_report.window_id, frame_id, fields);
+    }
+    else
+    {
+        engine_profile_log("kind=%s window=%" PRIu64 "%s", kind,
+                           profile.last_report.window_id, fields);
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Retain a bounded ranking by exclusive native time, breaking ties by call
+ * count and then stable phase/ID order. This work runs only at acceptance or
+ * reporting, never at an individual native dispatch boundary.
+ */
+static unsigned ep_script_top(ep_script_native_top *top,
+    const ep_native_stat functions[EP_PHASE_COUNT][EP_SCRIPT_MAX_FUNCTIONS],
+    unsigned selected_phase)
+{
+    unsigned count = 0;
+    unsigned phase, id;
+    for(phase = 0; phase < EP_PHASE_COUNT; phase++)
+    {
+        if(selected_phase < EP_PHASE_COUNT && phase != selected_phase)
+        {
+            continue;
+        }
+        for(id = 0; id < script_name_count; id++)
+        {
+            const ep_native_stat *stat = &functions[phase][id];
+            unsigned position = 0;
+            unsigned move;
+            if(!stat->calls && !stat->self_us)
+            {
+                continue;
+            }
+            while(position < count
+                  && (top[position].self_us > stat->self_us
+                      || (top[position].self_us == stat->self_us
+                          && top[position].calls >= stat->calls)))
+            {
+                position++;
+            }
+            if(position == EP_SCRIPT_TOP_FUNCTIONS)
+            {
+                continue;
+            }
+            if(count < EP_SCRIPT_TOP_FUNCTIONS)
+            {
+                count++;
+            }
+            for(move = count - 1; move > position; move--)
+            {
+                top[move] = top[move - 1];
+            }
+            top[position].function_id = id;
+            top[position].phase = (ep_phase)phase;
+            top[position].calls = stat->calls;
+            top[position].self_us = stat->self_us;
+        }
+    }
+    return count;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Accept detail only after the matching next entry establishes this frame's
+ * interval. Cancelled, discontinuous and unpaired bodies never reach window
+ * totals. Retain the slowest selected frames with their own complete CPU work.
+ */
+static void ep_script_accept(const ep_frame *frame)
+{
+    unsigned phase, id, position, move;
+    ep_script_slow_frame *slow;
+    if(!frame->script.sampled || !frame->script.valid)
+    {
+        return;
+    }
+    for(phase = 0; phase < EP_PHASE_COUNT; phase++)
+    {
+        for(id = 0; id < script_name_count; id++)
+        {
+            profile.script_window[phase][id].calls += profile.script_pending[phase][id].calls;
+            profile.script_window[phase][id].self_us += profile.script_pending[phase][id].self_us;
+        }
+    }
+    position = 0;
+    while(position < profile.script_slow_count
+          && profile.script_slow[position].interval_us >= frame->interval_us)
+    {
+        position++;
+    }
+    if(position == EP_SCRIPT_SLOW_FRAMES)
+    {
+        return;
+    }
+    if(profile.script_slow_count < EP_SCRIPT_SLOW_FRAMES)
+    {
+        profile.script_slow_count++;
+    }
+    for(move = profile.script_slow_count - 1; move > position; move--)
+    {
+        profile.script_slow[move] = profile.script_slow[move - 1];
+    }
+    slow = &profile.script_slow[position];
+    memset(slow, 0, sizeof(*slow));
+    slow->frame_id = frame->id;
+    slow->interval_us = frame->interval_us;
+    slow->update_us = frame->update_us;
+    memcpy(slow->phases_us, frame->phases_us, sizeof(slow->phases_us));
+    memcpy(slow->spans_us, frame->spans_us, sizeof(slow->spans_us));
+    memcpy(slow->counts, frame->counts, sizeof(slow->counts));
+    slow->script = frame->script;
+    slow->top_count = ep_script_top(slow->top, profile.script_pending, EP_PHASE_COUNT);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Show one phase partition on its own selected-frame denominator. Evaluator
+ * self time is not pure opcode arithmetic: dispatch and measurement overhead
+ * remain observed work. Host work outside evaluator scopes stays separate.
+ */
+static void ep_script_log_phase(const char *kind, uint64_t frame_id, unsigned phase,
+                                uint64_t elapsed, const ep_script_phase *script,
+                                double samples)
+{
+    char identity[96];
+    uint64_t inside = script->interpreter_us + script->native_us;
+    uint64_t outside = elapsed >= inside ? elapsed - inside : 0;
+    if(frame_id)
+    {
+        snprintf(identity, sizeof(identity), " frame=%" PRIu64, frame_id);
+    }
+    else
+    {
+        identity[0] = '\0';
+    }
+    engine_profile_log("kind=%s window=%" PRIu64 "%s phase=%.*s "
+        "phase_ms=%.6f interpreter_self_ms=%.6f native_self_ms=%.6f "
+        "outside_interpreter_ms=%.6f native_calls=%" PRIu64 " calls_per_sample=%.6f",
+        kind, profile.last_report.window_id, identity,
+        (int)strlen(phase_names[phase]) - 3, phase_names[phase],
+        elapsed / (samples * 1000.0), script->interpreter_us / (samples * 1000.0),
+        script->native_us / (samples * 1000.0), outside / (samples * 1000.0),
+        script->native_calls, script->native_calls / samples);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Publish the selected-frame partition, native rankings and correlated slow
+ * snapshots. Ordinary and detailed interval means describe different sampled
+ * work and are not treated as an exact instrumentation-overhead comparison.
+ */
+static void ep_script_publish(void)
+{
+    const ep_script_report *report = &profile.last_script_report;
+    unsigned phase, i;
+    double samples = report->sampled_frames;
+    double ordinary = report->unsampled_frames;
+    engine_profile_log("kind=script_summary window=%" PRIu64 " enabled=%d interval=%u "
+        "sampled_frames=%u invalid_frames=%u unsampled_frames=%u "
+        "sampled_frame_mean_ms=%.6f sampled_update_mean_ms=%.6f "
+        "unsampled_frame_mean_ms=%.6f unsampled_update_mean_ms=%.6f "
+        "clock_reads=%" PRIu64 " error_flags=%u registry_names=%u "
+        "registry_fallbacks=%" PRIu64 " overhead_subtracted=0",
+        report->window_id, profile.script_enabled, report->interval,
+        report->sampled_frames, report->invalid_frames, report->unsampled_frames,
+        samples ? report->interval_us / (samples * 1000.0) : 0.0,
+        samples ? report->update_us / (samples * 1000.0) : 0.0,
+        ordinary ? report->unsampled_interval_us / (ordinary * 1000.0) : 0.0,
+        ordinary ? report->unsampled_update_us / (ordinary * 1000.0) : 0.0,
+        report->clock_reads, report->error_flags, script_name_count - 1,
+        script_registry_overflows);
+    if(!report->sampled_frames)
+    {
+        return;
+    }
+    for(phase = 0; phase < EP_PHASE_COUNT; phase++)
+    {
+        ep_script_native_top top[EP_SCRIPT_TOP_FUNCTIONS];
+        unsigned count;
+        ep_script_log_phase("script_phase", 0, phase, report->phases_us[phase],
+                            &report->phases[phase], samples);
+        count = ep_script_top(top, report->functions, phase);
+        for(i = 0; i < count; i++)
+        {
+            engine_profile_log("kind=script_native window=%" PRIu64
+                " phase=%.*s rank=%u function=%s calls=%" PRIu64
+                " calls_per_sample=%.6f self_ms_per_sample=%.6f self_us_per_call=%.6f",
+                report->window_id, (int)strlen(phase_names[phase]) - 3, phase_names[phase],
+                i + 1, engine_profile_native_name(top[i].function_id), top[i].calls,
+                top[i].calls / samples, top[i].self_us / (samples * 1000.0),
+                top[i].calls ? top[i].self_us / (double)top[i].calls : 0.0);
+        }
+    }
+    for(i = 0; i < report->slow_count; i++)
+    {
+        const ep_script_slow_frame *slow = &report->slow[i];
+        unsigned native;
+        engine_profile_log("kind=script_slow window=%" PRIu64 " rank=%u frame=%" PRIu64
+            " sampled=1 frame_ms=%.6f update_ms=%.6f outside_update_ms=%.6f "
+            "clock_reads=%" PRIu64,
+            report->window_id, i + 1, slow->frame_id, slow->interval_us / 1000.0,
+            slow->update_us / 1000.0, (slow->interval_us - slow->update_us) / 1000.0,
+            slow->script.clock_reads);
+        ep_log_series("script_slow_phases", phase_names, slow->phases_us,
+                      EP_PHASE_COUNT, 1000.0, slow->frame_id);
+        ep_log_series("script_slow_spans", span_names, slow->spans_us,
+                      EP_SPAN_COUNT, 1000.0, slow->frame_id);
+        ep_log_series("script_slow_counts", counter_names, slow->counts,
+                      EP_COUNT_COUNT, 1.0, slow->frame_id);
+        for(phase = 0; phase < EP_PHASE_COUNT; phase++)
+        {
+            ep_script_log_phase("script_slow_split", slow->frame_id, phase,
+                slow->phases_us[phase], &slow->script.phases[phase], 1.0);
+        }
+        for(native = 0; native < slow->top_count; native++)
+        {
+            const ep_script_native_top *top = &slow->top[native];
+            engine_profile_log("kind=script_slow_native window=%" PRIu64
+                " frame=%" PRIu64 " phase=%.*s rank=%u function=%s calls=%" PRIu64
+                " self_ms=%.6f self_us_per_call=%.6f",
+                report->window_id, slow->frame_id,
+                (int)strlen(phase_names[top->phase]) - 3, phase_names[top->phase],
+                native + 1, engine_profile_native_name(top->function_id), top->calls,
+                top->self_us / 1000.0,
+                top->calls ? top->self_us / (double)top->calls : 0.0);
+        }
+    }
 }
 
 /*
@@ -333,6 +888,7 @@ static void ep_log_series(const char *kind, const char *const *names,
 static void ep_publish(unsigned partial, const char *reason)
 {
     ep_report *report = &profile.last_report;
+    ep_script_report *script = &profile.last_script_report;
     uint64_t durations[EP_MAX_WINDOW];
     unsigned i, j, rank;
     double frames;
@@ -348,12 +904,43 @@ static void ep_publish(unsigned partial, const char *reason)
     report->first_frame_id = profile.frames[0].id;
     report->last_frame_id = profile.frames[profile.accepted - 1].id;
     report->interval_min_us = UINT64_MAX;
+    memset(script, 0, sizeof(*script));
+    script->window_id = report->window_id;
+    script->interval = profile.script_interval;
+    memcpy(script->functions, profile.script_window, sizeof(script->functions));
+    script->slow_count = profile.script_slow_count;
+    memcpy(script->slow, profile.script_slow, sizeof(script->slow));
     for(i = 0; i < profile.accepted; i++)
     {
         const ep_frame *frame = &profile.frames[i];
         durations[i] = frame->interval_us;
         report->interval_us += frame->interval_us;
         report->update_us += frame->update_us;
+        script->clock_reads += frame->script.clock_reads;
+        script->error_flags |= frame->script.error_flags;
+        if(!frame->script.sampled)
+        {
+            script->unsampled_frames++;
+            script->unsampled_interval_us += frame->interval_us;
+            script->unsampled_update_us += frame->update_us;
+        }
+        else if(!frame->script.valid)
+        {
+            script->invalid_frames++;
+        }
+        else
+        {
+            script->sampled_frames++;
+            script->interval_us += frame->interval_us;
+            script->update_us += frame->update_us;
+            for(j = 0; j < EP_PHASE_COUNT; j++)
+            {
+                script->phases_us[j] += frame->phases_us[j];
+                script->phases[j].interpreter_us += frame->script.phases[j].interpreter_us;
+                script->phases[j].native_us += frame->script.phases[j].native_us;
+                script->phases[j].native_calls += frame->script.phases[j].native_calls;
+            }
+        }
         if(frame->interval_us < report->interval_min_us)
         {
             report->interval_min_us = frame->interval_us;
@@ -410,11 +997,11 @@ static void ep_publish(unsigned partial, const char *reason)
         report->interval_us ? frames * 1000000.0 / report->interval_us : 0.0,
         report->interval_min_us / 1000.0, report->interval_p95_us / 1000.0,
         report->interval_max_us / 1000.0);
-    ep_log_series("phases_exclusive", phase_names, report->phases_us, EP_PHASE_COUNT, frames * 1000.0);
-    ep_log_series("spans_inclusive", span_names, report->spans_us, EP_SPAN_COUNT, frames * 1000.0);
-    ep_log_series("counts_mean", counter_names, report->counts, EP_COUNT_COUNT, frames);
-    ep_log_series("counts_max", counter_names, report->count_max, EP_COUNT_COUNT, 1.0);
-    ep_log_series("fallback_totals", fallback_names, report->fallbacks, EP_FALLBACK_COUNT, 1.0);
+    ep_log_series("phases_exclusive", phase_names, report->phases_us, EP_PHASE_COUNT, frames * 1000.0, 0);
+    ep_log_series("spans_inclusive", span_names, report->spans_us, EP_SPAN_COUNT, frames * 1000.0, 0);
+    ep_log_series("counts_mean", counter_names, report->counts, EP_COUNT_COUNT, frames, 0);
+    ep_log_series("counts_max", counter_names, report->count_max, EP_COUNT_COUNT, 1.0, 0);
+    ep_log_series("fallback_totals", fallback_names, report->fallbacks, EP_FALLBACK_COUNT, 1.0, 0);
     for(i = 0; i < EP_GPU_COUNT; i++)
     {
         /* Nested GPU spans overlap and timestamp elapsed time can include
@@ -430,12 +1017,16 @@ static void ep_publish(unsigned partial, const char *reason)
         " reporting_frame_skipped=1",
         report->window_id, report->cancelled_frames, report->gap_frames,
         report->late_gpu_results, report->clock_reads);
+    ep_script_publish();
 
     profile.accepted = 0;
     profile.cancelled = 0;
     profile.gaps = 0;
     profile.late_gpu = 0;
     profile.clock_reads = 0;
+    memset(profile.script_window, 0, sizeof(profile.script_window));
+    profile.script_slow_count = 0;
+    memset(profile.script_slow, 0, sizeof(profile.script_slow));
 }
 
 /*
@@ -495,6 +1086,7 @@ uint64_t engine_profile_frame_begin(int eligible, const void *scene, const void 
         }
         profile.pending.interval_us = interval;
         profile.frames[profile.accepted++] = profile.pending;
+        ep_script_accept(&profile.pending);
         memset(&profile.pending, 0, sizeof(profile.pending));
         if(profile.accepted == profile.window)
         {
@@ -511,7 +1103,19 @@ uint64_t engine_profile_frame_begin(int eligible, const void *scene, const void 
     memset(&profile.current, 0, sizeof(profile.current));
     profile.current.id = ++profile.next_id;
     profile.current.start_us = now;
+    profile.script_depth = 0;
+    profile.script_serial = 0;
+    profile.script_phase = EP_PHASE_PRE_WAIT;
+    engine_profile_script_active = profile.script_enabled
+        && profile.script_sequence++ % profile.script_interval == 0;
+    if(engine_profile_script_active)
+    {
+        profile.current.script.sampled = 1;
+        profile.current.script.valid = 1;
+        memset(profile.script_current, 0, sizeof(profile.script_current));
+    }
     profile.current.last_us = ep_now();
+    profile.script_last_us = profile.current.last_us;
     if(profile.current.last_us < now)
     {
         engine_profile_frame_cancel(profile.current.id, "clock_backwards");
@@ -547,7 +1151,15 @@ void engine_profile_frame_mark(uint64_t frame_id, ep_phase completed_phase)
         return;
     }
     profile.current.phases_us[completed_phase] += now - profile.current.last_us;
+    if(engine_profile_script_active)
+    {
+        /* A mark can occur inside a callback. Split its current owner at the
+         * already-read phase boundary instead of taking an additional clock. */
+        ep_script_charge(now);
+    }
     profile.current.last_us = now;
+    profile.script_phase = completed_phase + 1 < EP_PHASE_COUNT
+        ? (ep_phase)(completed_phase + 1) : EP_PHASE_FINISH;
 }
 
 /*
@@ -567,8 +1179,17 @@ void engine_profile_frame_end(uint64_t frame_id)
     {
         return;
     }
+    if(engine_profile_script_active && profile.script_depth)
+    {
+        ep_script_invalidate(EP_SCRIPT_ERROR_UNCLOSED);
+    }
+    engine_profile_script_active = 0;
     profile.current.update_us = profile.current.last_us - profile.current.start_us;
     profile.pending = profile.current;
+    if(profile.current.script.sampled && profile.current.script.valid)
+    {
+        memcpy(profile.script_pending, profile.script_current, sizeof(profile.script_pending));
+    }
     memset(&profile.current, 0, sizeof(profile.current));
 }
 
@@ -585,6 +1206,8 @@ void engine_profile_frame_cancel(uint64_t frame_id, const char *reason)
         return;
     }
     profile.cancelled++;
+    engine_profile_script_active = 0;
+    profile.script_depth = 0;
     memset(&profile.current, 0, sizeof(profile.current));
     engine_profile_log("kind=cancel frame=%" PRIu64 " reason=%s", frame_id,
                        reason ? reason : "unspecified");
@@ -607,6 +1230,8 @@ void engine_profile_reset(const char *reason)
     {
         profile.cancelled++;
     }
+    engine_profile_script_active = 0;
+    profile.script_depth = 0;
     ep_publish(1, reason ? reason : "reset");
     memset(&profile.current, 0, sizeof(profile.current));
     memset(&profile.pending, 0, sizeof(profile.pending));
@@ -614,6 +1239,7 @@ void engine_profile_reset(const char *reason)
     profile.scene = NULL;
     profile.main_target = NULL;
     profile.warm_left = profile.warmup;
+    profile.script_sequence = 0;
 }
 
 /*

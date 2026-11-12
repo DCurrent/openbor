@@ -9,6 +9,7 @@
 #include "../openborscript/config.h"
 #include "Interpreter.h"
 #include "ImportCache.h"
+#include "engine_profile.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -293,6 +294,7 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter) {
         hr = Interpreter_EvaluateCall(pinterpreter);
     
     } else if(currentCall->functionRef) {
+        ep_script_scope native_scope = {0, 0, 0};
 
         /*
         * Native functions receive the contiguous parameter
@@ -301,7 +303,22 @@ HRESULT Interpreter_Call(Interpreter *pinterpreter) {
 
         pretvar = currentCall->theVal;
 
+        /*
+        * Damon V. Caskey
+        * 2026-11-12
+        * Time only the native function body. Parameter preparation and
+        * exception reporting remain interpreter work. The frame gate
+        * avoids clocks and collector calls on unmeasured frames.
+        */
+        if(engine_profile_script_active)
+        {
+            native_scope = engine_profile_native_begin(currentCall->profile_native_id);
+        }
         hr = currentCall->functionRef(parameters, &pretvar, paramCount);
+        if(native_scope.frame_id)
+        {
+            engine_profile_script_end(native_scope);
+        }
 
         if(FAILED(hr)) {
             
@@ -413,6 +430,18 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter *pinterpreter)
     HRESULT hr = S_OK;
     Instruction *pInstruction = NULL;
     int size, index;
+    ep_script_scope script_scope = {0, 0, 0};
+
+    /*
+    * Damon V. Caskey
+    * 2026-11-12
+    * Cover immediate bytecode as well as main(). Nested evaluation scopes
+    * share one exclusive VM interval until execution enters native code.
+    */
+    if(engine_profile_script_active)
+    {
+        script_scope = engine_profile_script_begin();
+    }
 
     if(pinterpreter->bHasImmediateCode)
     {
@@ -471,6 +500,10 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter *pinterpreter)
 
     pinterpreter->bReset = FALSE;
 
+    if(script_scope.frame_id)
+    {
+        engine_profile_script_end(script_scope);
+    }
     return hr;
 }
 
@@ -484,11 +517,28 @@ HRESULT Interpreter_EvaluateImmediate(Interpreter *pinterpreter)
 HRESULT Interpreter_EvaluateCall(Interpreter *pinterpreter)
 {
     HRESULT hr = S_OK;
+    ep_script_scope script_scope = {0, 0, 0};
+
+    /*
+    * Damon V. Caskey
+    * 2026-11-12
+    * Direct init/clear and imported/script helper calls also enter here.
+    * Reentrant native-to-script calls suspend the parent native interval
+    * so neither interpreter nor native totals count the child twice.
+    */
+    if(engine_profile_script_active)
+    {
+        script_scope = engine_profile_script_begin();
+    }
     //Evaluate instructions until an error occurs or until the m_bCallCompleted
     //flag is set to true.
     while( ( SUCCEEDED(hr) ) && ( !pinterpreter->bCallCompleted )) //pinterpreter->bReset &&
     {
         hr = Interpreter_EvalInstruction(pinterpreter);
+    }
+    if(script_scope.frame_id)
+    {
+        engine_profile_script_end(script_scope);
     }
     return hr;
 }
@@ -723,6 +773,7 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
 
             pToken = pInstruction->theToken;
             pInstruction->functionRef = NULL;
+            pInstruction->profile_native_id = 0;
 
             /*
             * Resolve the call target. Calls may reference a
@@ -750,6 +801,15 @@ HRESULT Interpreter_CompileInstructions(Interpreter *pinterpreter)
             } else if(List_FindByName(pinterpreter->ptheFunctionList, pToken->theSource)) {
 
                 pInstruction->functionRef = (SCRIPTFUNCTION)List_Retrieve(pinterpreter->ptheFunctionList);
+
+                /*
+                * Damon V. Caskey
+                * 2026-11-12
+                * Tokens are freed after compilation. Register and copy
+                * the native name now, retaining only a stable numeric
+                * ID for constant-time accounting during execution.
+                */
+                pInstruction->profile_native_id = engine_profile_native_register(pToken->theSource);
 
             } else {
 

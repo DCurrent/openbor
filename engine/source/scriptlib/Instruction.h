@@ -28,6 +28,9 @@ typedef struct Instruction
     unsigned OpCode;
     unsigned jumpTargetType;
     unsigned step;
+    /* Stable diagnostic ID survives compile-time token disposal. Zero is
+     * the profiler's unknown/overflow bucket, not a callable target. */
+    unsigned profile_native_id;
     Token *theToken;
     CHAR *Label;//[MAX_STR_LEN+1];
     ScriptVariant *theVal;
