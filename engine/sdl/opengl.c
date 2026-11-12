@@ -132,6 +132,10 @@ static const char *fragmentShaderSourceYUV =
  */
 void video_gl_shutdown(void)
 {
+	/*
+	 * Render targets belong to this context. Make it current before draining
+	 * newer GPU pixels into their CPU owners so those owners can outlive it.
+	 */
 	if(context)
 	{
 		if(window && SDL_GL_GetCurrentContext() != context &&
@@ -141,10 +145,13 @@ void video_gl_shutdown(void)
 			fprintf(stderr, "Unable to restore GL context for screen preservation: %s\n", SDL_GetError());
 			abort();
 		}
+		/* Finish screen preservation and release scene resources before the context. */
 		gpu_gl_shutdown();
 		SDL_GL_DeleteContext(context);
 		context = NULL;
 	}
+
+	/* Numeric GL object names become reusable after context destruction. */
 	memset(gltexture, 0, sizeof(gltexture));
 	shaderProgram = 0;
 	opengl = 0;
@@ -228,13 +235,24 @@ void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
 	surface = NULL;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Create the desktop GL presentation context and its completed-image shader.
+ * Preserve live screens across mode changes, validate the presentation path,
+ * then enable native scene drawing when the selected output mode supports it.
+ */
 int video_gl_set_mode(s_videomodes videomodes)
 {
 	GLint maxTextureSize;
 
-	/* Mode switches must preserve script-created screens across GL contexts. */
+	/*
+	 * Script-created screens can survive display changes. Drain their latest
+	 * pixels while the previous window/context pair is still intact.
+	 */
 	video_gl_shutdown();
 
+	/* These dimensions describe the completed image after CPU preprocessing. */
 	displayWidth = textureWidth = videomodes.hRes;
 	displayHeight = textureHeight = videomodes.vRes;
 
@@ -242,8 +260,11 @@ int video_gl_set_mode(s_videomodes videomodes)
 	viewportWidth = savedata.fullscreen ? nativeWidth : (int)(videomodes.hRes * MAX(0.25,videomodes.hScale));
 	viewportHeight = savedata.fullscreen ? nativeHeight : (int)(videomodes.vRes * MAX(0.25,videomodes.vScale));
 
-	// zero width/height means close the window, not make it enormous!
-	if((viewportWidth == 0) || (viewportHeight == 0)) return 0;
+	/* Zero-sized modes close video use instead of creating a presentation target. */
+	if((viewportWidth == 0) || (viewportHeight == 0))
+	{
+		return 0;
+	}
 
 	// set up OpenGL double buffering
 	if(SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
@@ -257,7 +278,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 #endif
 
-	// get window and initialize OpenGL context
+	/* The window must advertise GL support before SDL can create its context. */
 	SetVideoMode(viewportWidth, viewportHeight, 0, true);
 	if(!window)
 	{
@@ -280,17 +301,24 @@ int video_gl_set_mode(s_videomodes videomodes)
 		goto error;
 	}
 
-	// try to disable vertical retrace syncing (VSync)
+	/* Keep the existing frame-pacing selection when recreating the context. */
 	if(SDL_GL_SetSwapInterval(savedata.fpslimit == 1) < 0)
 	{
 		printf("Warning: can't disable vertical retrace sync (%s)...\n", SDL_GetError());
 	}
 
 #ifdef LOADGL
-	// load OpenGL functions dynamically in Linux/Windows/OSX
-	if(LoadGLFunctions() == 0) goto error;
+	/* Resolve required GL entry points against the newly created context. */
+	if(LoadGLFunctions() == 0)
+	{
+		goto error;
+	}
 #endif
 
+	/*
+	 * Check the completed-image presenter's requirements before creating its
+	 * texture and shader. Native drawing performs its own capability checks.
+	 */
 	if(!SDL_GL_ExtensionSupported("GL_ARB_fragment_shader"))
 	{
 		printf("OpenGL fragment shaders not supported...");
@@ -315,7 +343,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	// set proper viewport width/height for high-DPI support
 	SDL_GL_GetDrawableSize(window, &viewportWidth, &viewportHeight);
 
-	// set background to black
+	/* Establish clean window-frame state before creating presentation resources. */
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -331,7 +359,10 @@ int video_gl_set_mode(s_videomodes videomodes)
 	// set up offsets, scale factors, and viewport
 	video_gl_setup_screen();
 
-	// set up a GLSL fragment shader if supported
+	/*
+	 * This shader owns final display scaling and color correction. Scene draws
+	 * bind their own program; each presentation pass restores this one.
+	 */
 	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
 	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceHighQualityRGB, NULL);
 	glCompileShaderARB(fragmentShader);
@@ -352,22 +383,34 @@ int video_gl_set_mode(s_videomodes videomodes)
 	 * Initialization failure leaves the existing GL presenter usable.
 	 */
 	if(!(savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen)))
+	{
 		gpu_gl_init();
+	}
 	else
+	{
 		printf("Native GPU drawing disabled while a CPU output filter is active.\n");
+	}
 	return 1;
 error:
+	/* Release any partial context before the caller constructs an SDL presenter. */
 	printf("falling back to SDL video backend\n");
 	video_gl_shutdown();
 	savedata.usegl = 0;
 	return 0;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Clear both window buffers after restoring the presentation framebuffer.
+ * Native offscreen targets retain their contents for subsequent scene draws.
+ */
 void video_gl_clearscreen()
 {
-	/* Native scene rendering may have left an offscreen framebuffer bound. */
+	/* Route clearing back to the window after any offscreen scene operation. */
 	gpu_gl_prepare_present();
-	// clear both buffers in a double-buffered setup
+
+	/* Clearing both sides prevents an old image from returning on the next swap. */
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapWindow(window);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -417,9 +460,19 @@ void render()
 		video_gl_draw_quad(xOffset, yOffset, scaledWidth, scaledHeight);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Present a completed CPU image through the GL output texture. Restore the
+ * window's render state after native operations, upload the synchronized
+ * pixels, then apply the existing display scaling and frame-pacing policy.
+ */
 int video_gl_copy_screen(s_videosurface* surface)
 {
-	/* Restore presentation state after any native offscreen drawing. */
+	/*
+	 * Native draws and explicit CPU readbacks can leave an offscreen target
+	 * bound. Reestablish the window framebuffer, projection and RGB shader.
+	 */
 	gpu_gl_prepare_present();
 	video_gl_setup_screen();
 	glUseProgramObjectARB(shaderProgram);
@@ -428,7 +481,7 @@ int video_gl_copy_screen(s_videosurface* surface)
 	glDisable(GL_DEPTH_TEST);
 	glUniform2fARB(glGetUniformLocationARB(shaderProgram, "texDims"), textureWidth, textureHeight);
 
-	// update texture contents with new surface contents
+	/* Upload the caller's already converted/filtered CPU image as one texture. */
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight, textureColorFormat[0],
@@ -444,7 +497,10 @@ int video_gl_copy_screen(s_videosurface* surface)
 	// display the rendered frame on the screen
 	SDL_GL_SwapWindow(window);
 
-	if (savedata.fpslimit >= 2) FramerateDelay();
+	if(savedata.fpslimit >= 2)
+	{
+		FramerateDelay();
+	}
 
 	return 1;
 }
@@ -465,7 +521,10 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	float scaleFactor;
 
 	if(!gpu_gl_get_screen_texture(screen, &nativeTexture, &nativeWidth, &nativeHeight))
+	{
+		/* Let the caller select CPU conversion/upload for unsupported screen types. */
 		return 0;
+	}
 
 	/*
 	 * The native renderer owns its draw state. Reestablish everything used by
@@ -485,7 +544,10 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	scaleFactor = MIN((float)viewportWidth / nativeWidth, (float)viewportHeight / nativeHeight);
 	glUniform1fARB(glGetUniformLocationARB(shaderProgram, "scaleFactor"), ceilf(scaleFactor));
 
-	/* Native targets use exact texture dimensions and the CPU upload orientation. */
+	/*
+	 * Native targets occupy their full texture. Preserve the legacy presenter's
+	 * texture-coordinate limits so a later CPU upload can reuse its allocation.
+	 */
 	savedTcx = tcx;
 	savedTcy = tcy;
 	tcx = tcy = 1.0f;
@@ -493,11 +555,14 @@ int video_gl_copy_gpu_screen(s_screen *screen)
 	tcx = savedTcx;
 	tcy = savedTcy;
 
-	/* Scene sampling is nearest-neighbor; filtering belongs only to presentation. */
+	/* Restore nearest sampling before this screen is reused as a scene texture. */
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	SDL_GL_SwapWindow(window);
-	if(savedata.fpslimit >= 2) FramerateDelay();
+	if(savedata.fpslimit >= 2)
+	{
+		FramerateDelay();
+	}
 	return 1;
 }
 
@@ -520,11 +585,19 @@ void video_gl_set_color_correction(int gamma, int brightness)
 	glUniform1fARB(gammaLocation, gamma / 256.0);
 }
 
-// set up YUV mode
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Switch the presenter from game RGB output to decoded YUV video planes.
+ * Preserve native screen contents before retiring scene drawing, then prepare
+ * three plane textures and the conversion shader used during movie playback.
+ */
 int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 {
-	/* Movies retain the existing upload path; preserve native screens first. */
+	/* Scripted screens remain valid while movie frames use the upload path. */
 	gpu_gl_shutdown();
+
+	/* Source plane dimensions and display aspect can differ for decoded video. */
 	textureWidth = mode->width;
 	textureHeight = mode->height;
 	displayWidth = mode->display_width;
@@ -533,7 +606,7 @@ int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 	video_gl_init_texture(1, mode->width/2, mode->height/2, 1);
 	video_gl_init_texture(2, mode->width/2, mode->height/2, 1);
 
-	// set up shader to do YUV->RGB conversion
+	/* The movie shader combines the three planes and retains display correction. */
 	GLuint fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
 	glShaderSourceARB(fragmentShader, 1, &fragmentShaderSourceYUV, NULL);
 	glCompileShaderARB(fragmentShader);
@@ -548,15 +621,24 @@ int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 	return 1;
 }
 
-// render the frame
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Upload a decoded movie frame and compose it into the window back buffer.
+ * Restore presentation state, update full-resolution luma and half-resolution
+ * chroma planes, then leave the final swap to the video timing path.
+ */
 int video_gl_prepare_yuv_frame(yuv_frame *frame)
 {
+	/* Reassert window state so previous offscreen work cannot redirect the movie. */
 	gpu_gl_prepare_present();
 	video_gl_setup_screen();
 	glUseProgramObjectARB(shaderProgram);
 	glDisable(GL_BLEND);
 	glDisable(GL_SCISSOR_TEST);
 	glDisable(GL_DEPTH_TEST);
+
+	/* Each texture unit remains paired with the sampler configured for its plane. */
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gltexture[0]);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, textureWidth, textureHeight,
@@ -575,6 +657,7 @@ int video_gl_prepare_yuv_frame(yuv_frame *frame)
 			textureColorFormat[2], texturePixelFormat[2], frame->cb);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	/* Compose all three updated planes with the current display aspect setting. */
 	render();
 	return 1;
 }

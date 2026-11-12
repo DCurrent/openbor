@@ -2,8 +2,8 @@
  * Native GPU shutdown regression for colliding resource-cache identities.
  * Build using the command in test_gpu_renderer.c, replacing that test filename
  * with this one. Add -fsanitize=address -fno-omit-frame-pointer for the lifetime
- * check. Run with SDL_VIDEODRIVER=offscreen. Mesa validates correctness here,
- * not hardware performance. Exit status 77 means no GL context was available.
+ * check. Run with SDL_VIDEODRIVER=offscreen. Exit status 77 means no GL context
+ * was available.
  *
  * Reuse the native test allocation/dispatch fixtures without running its suite.
  */
@@ -58,7 +58,10 @@ int main(void)
     if(!context)
     {
         fprintf(stderr, "SKIP: GL context unavailable: %s\n", SDL_GetError());
-        if(window) SDL_DestroyWindow(window);
+        if(window)
+        {
+            SDL_DestroyWindow(window);
+        }
         SDL_Quit();
         return 77;
     }
@@ -107,7 +110,10 @@ int main(void)
     }
 
     /* Cached identities are gone, so releasing every CPU owner is harmless. */
-    for(i = 0; i < count; ++i) release_test_screen(candidates[i]);
+    for(i = 0; i < count; ++i)
+    {
+        release_test_screen(candidates[i]);
+    }
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();

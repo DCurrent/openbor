@@ -79,11 +79,26 @@ PFNGLUNIFORM1FARBPROC glUniform1fARB;
 PFNGLUNIFORM2FARBPROC glUniform2fARB;
 PFNGLUNIFORM4FARBPROC glUniform4fARB;
 
-#define LOADFUNC(X,Y) { Y = SDL_GL_GetProcAddress(X); if(!Y) { printf("Failed to load OpenGL function " X "..."); return 0; } }
+#define LOADFUNC(X,Y) \
+{ \
+	Y = SDL_GL_GetProcAddress(X); \
+	if(!Y) \
+	{ \
+		printf("Failed to load OpenGL function " X "..."); \
+		return 0; \
+	} \
+}
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Resolve graphics entry points from the current SDL context. Required core
+ * functions gate presentation availability; optional shader capabilities are
+ * checked by the presentation and native-renderer initialization paths.
+ */
 int LoadGLFunctions()
 {
-	// Load every OpenGL function we use in video.c
+	/* Resolve projection and texture operations shared by both drawing paths. */
 	LOADFUNC("glViewport", ptr_glViewport);
 	LOADFUNC("glMatrixMode", ptr_glMatrixMode);
 	LOADFUNC("glLoadIdentity", ptr_glLoadIdentity);
@@ -97,6 +112,7 @@ int LoadGLFunctions()
 	LOADFUNC("glPixelStorei", ptr_glPixelStorei);
 	LOADFUNC("glReadPixels", ptr_glReadPixels);
 
+	/* Drawing and write-mask state must be restored when render targets change. */
 	LOADFUNC("glClear", ptr_glClear);
 	LOADFUNC("glClearColor", ptr_glClearColor);
 	LOADFUNC("glColor4f", ptr_glColor4f);
@@ -121,15 +137,22 @@ int LoadGLFunctions()
 	LOADFUNC("glVertex2f", ptr_glVertex2f);
 	LOADFUNC("glTexCoord2f", ptr_glTexCoord2f);
 
-	// load multisampling functions; try the ARB versions if the core versions are not available
+	/*
+	 * Multitexturing became core after the original API. Older compatible
+	 * contexts may expose the same operations under their ARB extension names.
+	 */
 	ptr_glActiveTexture = SDL_GL_GetProcAddress("glActiveTexture");
 	if(!ptr_glActiveTexture)
+	{
 		LOADFUNC("glActiveTextureARB", ptr_glActiveTexture);
+	}
 	ptr_glMultiTexCoord2f = SDL_GL_GetProcAddress("glMultiTexCoord2f");
 	if(!ptr_glMultiTexCoord2f)
+	{
 		LOADFUNC("glMultiTexCoord2fARB", ptr_glMultiTexCoord2f);
+	}
 
-	// load optional GLSL extensions
+	/* Preserve the presenter's shader bindings independently of scene shaders. */
 	glCreateShaderObjectARB = SDL_GL_GetProcAddress("glCreateShader");
 	glShaderSourceARB = SDL_GL_GetProcAddress("glShaderSource");
 	glCompileShaderARB = SDL_GL_GetProcAddress("glCompileShader");

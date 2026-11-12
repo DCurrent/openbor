@@ -68,6 +68,13 @@ s_videomodes setupPreBlitProcessing(s_videomodes videomodes)
 	return videomodes;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Expose a CPU-readable presentation image. Resolve newer GPU screen contents
+ * before accessing pixels, then perform any configured palette conversion or
+ * software output scaling while respecting SDL surface pitch.
+ */
 s_videosurface *getVideoSurface(s_screen *src)
 {
 	unsigned char *sp;
@@ -77,23 +84,48 @@ s_videosurface *getVideoSurface(s_screen *src)
 	SDL_Surface* ds = NULL;
 	SDL_Rect rectdes, rectsrc;
 
-	/* Legacy conversion and upload paths need the latest CPU copy, not stale pixels. */
+	/*
+	 * Conversion, output filters and texture uploads all read CPU storage.
+	 * Screens produced by native drawing must first update that shadow;
+	 * screens whose CPU copy is already current need no readback.
+	 */
 	gpu_sync_cpu(src);
 
 	if(bscreen)
 	{
+		/* Limit the row copy to the overlapping source and conversion surfaces. */
 		width = screen->w;
-		if(width > src->width) width = src->width;
+		if(width > src->width)
+		{
+			width = src->width;
+		}
 		height = screen->h;
-		if(height > src->height) height = src->height;
-		if(!width || !height) return NULL;
+		if(height > src->height)
+		{
+			height = src->height;
+		}
+		if(!width || !height)
+		{
+			return NULL;
+		}
 		h = height;
 
+		/* Software filters require a padded intermediate image around the source. */
 		rectdes.x = rectdes.y = 0;
-		rectdes.w = width*2; rectdes.h = height*2;
-		if(bscreen2) {rectsrc.x = 2; rectsrc.y = 4;}
-		else         {rectsrc.x = 0; rectsrc.y = 0;}
-		rectsrc.w = width; rectsrc.h = height;
+		rectdes.w = width*2;
+		rectdes.h = height*2;
+		if(bscreen2)
+		{
+			rectsrc.x = 2;
+			rectsrc.y = 4;
+		}
+		else
+		{
+			rectsrc.x = 0;
+			rectsrc.y = 0;
+		}
+		rectsrc.w = width;
+		rectsrc.h = height;
 
 		sp = (unsigned char*)src->data;
 		ds = bscreen;
@@ -102,19 +134,27 @@ s_videosurface *getVideoSurface(s_screen *src)
 		linew = width*bytes_per_pixel;
 		slinew = src->width*bytes_per_pixel;
 
-		do{
+		/* Engine rows are tightly packed; SDL rows advance by their surface pitch. */
+		do
+		{
 			memcpy(dp, sp, linew);
 			sp += slinew;
 			dp += ds->pitch;
-		}while(--h);
+		}
+		while(--h);
 
 		if (bscreen2)
 		{
+			/* Convert into the padded format expected by the selected CPU filter. */
 			SDL_BlitSurface(bscreen, NULL, bscreen2, &rectsrc);
 
 			(*GfxBlitters[savedata.swfilter])((u8*)bscreen2->pixels+bscreen2->pitch*4+4, bscreen2->pitch, pDeltaBuffer+bscreen2->pitch, (u8*)screen->pixels, screen->pitch, screen->w/2, screen->h/2);
 		}
-		else SDL_BlitSurface(bscreen, NULL, screen, NULL);
+		else
+		{
+			/* Palette-only conversion can write directly to the presentation image. */
+			SDL_BlitSurface(bscreen, NULL, screen, NULL);
+		}
 		
 		videoSurface.width = screen->w;
 		videoSurface.height = screen->h;
@@ -123,6 +163,7 @@ s_videosurface *getVideoSurface(s_screen *src)
 	}
 	else
 	{
+		/* Compatible CPU images can be presented directly without an extra copy. */
 		videoSurface.width = src->width;
 		videoSurface.height = src->height;
 		videoSurface.pitch = src->width * pixelbytes[(int)src->pixelformat];

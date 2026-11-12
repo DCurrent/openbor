@@ -54,10 +54,21 @@ char* AndroidRoot(char *relPath)
 }
 #endif
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * End the platform session after native rendering has released its resources.
+ * SDL must remain available until the renderer has synchronized live screens
+ * and destroyed the graphics context that owns their texture storage.
+ */
 void borExit(int reset)
 {
 	SDL_Delay(1000);
+
+	/* Drain native drawing while its SDL window and GL context remain valid. */
 	video_gl_shutdown();
+
+	/* All context-dependent cleanup is complete before SDL shuts down its devices. */
 	SDL_Quit(); // call this instead of atexit(SDL_Quit); It's best practice!
     exit(reset);
 }

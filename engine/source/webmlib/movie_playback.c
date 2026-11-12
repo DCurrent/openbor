@@ -1299,31 +1299,48 @@ static void movie_playback_copy_frame(
     int height = source->height;
     int row;
 
-    if(destination_x < 0) {
+    /* Negative placement clips from the source's leading edges. Keep offset
+     * arithmetic wide until the surviving rectangle is within both screens. */
+    if(destination_x < 0)
+    {
         int64_t clipped_width = -destination_x;
-        if(clipped_width >= width) return;
+        if(clipped_width >= width)
+        {
+            return;
+        }
         source_x = (int)clipped_width;
         width -= source_x;
         destination_x = 0;
     }
-    if(destination_y < 0) {
+    if(destination_y < 0)
+    {
         int64_t clipped_height = -destination_y;
-        if(clipped_height >= height) return;
+        if(clipped_height >= height)
+        {
+            return;
+        }
         source_y = (int)clipped_height;
         height -= source_y;
         destination_y = 0;
     }
+
+    /* Bound the trailing edges against the destination before calculating
+     * row addresses. Fully clipped frames leave screen ownership unchanged. */
     if(destination_x >= destination->width ||
-       destination_y >= destination->height) {
+       destination_y >= destination->height)
+    {
         return;
     }
-    if(width > destination->width - destination_x) {
+    if(width > destination->width - destination_x)
+    {
         width = (int)(destination->width - destination_x);
     }
-    if(height > destination->height - destination_y) {
+    if(height > destination->height - destination_y)
+    {
         height = (int)(destination->height - destination_y);
     }
-    if(width <= 0 || height <= 0) {
+    if(width <= 0 || height <= 0)
+    {
         return;
     }
 
@@ -1336,7 +1353,8 @@ static void movie_playback_copy_frame(
     destination_row = destination->data +
         (((int)destination_y * destination->width + (int)destination_x) *
          (int)sizeof(uint32_t));
-    for(row = 0; row < height; row++) {
+    for(row = 0; row < height; row++)
+    {
         memcpy(destination_row, source_row, (size_t)width * sizeof(uint32_t));
         source_row += source->width * (int)sizeof(uint32_t);
         destination_row += destination->width * (int)sizeof(uint32_t);

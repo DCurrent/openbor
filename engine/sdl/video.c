@@ -74,6 +74,13 @@ void video_set_window_title(const char* title)
 
 static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR565, SDL_PIXELFORMAT_BGR888, SDL_PIXELFORMAT_ABGR8888};
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Prepare the SDL window for the selected presentation backend. Keep resource
+ * destruction in ownership order, preserving GPU-backed screen contents before
+ * replacing a window whose graphics context owns those screens.
+ */
 int SetVideoMode(int w, int h, int bpp, bool gl)
 {
 	int flags = SDL_WINDOW_SHOWN | SDL_WINDOW_INPUT_FOCUS;
@@ -81,10 +88,16 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	static int last_x = SDL_WINDOWPOS_UNDEFINED;
 	static int last_y = SDL_WINDOWPOS_UNDEFINED;
 
-	if(savedata.fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	/* Retain the windowed position so leaving fullscreen restores its location. */
+	if(savedata.fullscreen)
+	{
+		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
 
 	if(window && !(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP))
+	{
 		SDL_GetWindowPosition(window, &last_x, &last_y);
+	}
 
 	if (gl)
 	{
@@ -98,21 +111,38 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		flags |= SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
 	}
 
-	/* Release SDL renderer resources while their owning window still exists. */
-	if(texture) SDL_DestroyTexture(texture);
-	if(renderer) SDL_DestroyRenderer(renderer);
+	/*
+	 * Release texture storage before its renderer, then release the renderer
+	 * while its window still exists. Both resources are recreated for the new
+	 * mode, even when the window itself can be reused.
+	 */
+	if(texture)
+	{
+		SDL_DestroyTexture(texture);
+	}
+	if(renderer)
+	{
+		SDL_DestroyRenderer(renderer);
+	}
 	texture = NULL;
 	renderer = NULL;
 
 	if(window && gl != last_gl)
 	{
-		/* Read back live render targets while their old GL context still exists. */
-		if(last_gl) video_gl_shutdown();
+		/*
+		 * Changing presentation families requires a new window. Synchronize
+		 * live native targets before destroying their old context and window.
+		 */
+		if(last_gl)
+		{
+			video_gl_shutdown();
+		}
 		SDL_DestroyWindow(window);
 		window = NULL;
 	}
 	last_gl = gl;
 
+	/* Reuse compatible windows; otherwise create one with the required flags. */
 	if(window)
 	{
 		if(savedata.fullscreen)
@@ -123,7 +153,9 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		{
 #ifndef WIN // hiding and showing the window is problematic on Windows
 			if(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP)
+			{
 				SDL_HideWindow(window);
+			}
 #endif
 			SDL_SetWindowFullscreen(window, 0);
 			SDL_SetWindowSize(window, w, h);
@@ -144,9 +176,13 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		// SDL_Surface* icon = (SDL_Surface*)pngToSurface((void*)openbor_icon_32x32_png.data);
 		// SDL_SetWindowIcon(window, icon);
 		// SDL_FreeSurface(icon);
-		if(!savedata.fullscreen) SDL_GetWindowPosition(window, &last_x, &last_y);
+		if(!savedata.fullscreen)
+		{
+			SDL_GetWindowPosition(window, &last_x, &last_y);
+		}
 	}
 
+	/* The SDL presenter owns an SDL renderer; the GL path creates its context later. */
 	if(!gl)
 	{
 		renderer = SDL_CreateRenderer(window, -1, savedata.fpslimit == 1 ? SDL_RENDERER_PRESENTVSYNC : 0);
@@ -160,11 +196,20 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 	return 1;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Select presentation for a normal game screen. Preserve the original mode
+ * for restoration, prepare any CPU conversion/filter surfaces, and choose
+ * OpenGL or the SDL streaming-texture path using the existing user settings.
+ */
 int video_set_mode(s_videomodes videomodes)
 {
+	/* Store game dimensions before preprocessing can expand the output image. */
 	stored_videomodes = videomodes;
 	yuv_mode = 0;
 
+	/* Zero-sized modes end video use and must drain live native screen storage. */
 	if(videomodes.hRes==0 && videomodes.vRes==0)
 	{
 		video_gl_shutdown();
@@ -176,9 +221,18 @@ int video_set_mode(s_videomodes videomodes)
 	// 8-bit color should be transparently converted to 32-bit
 	assert(videomodes.pixel == 2 || videomodes.pixel == 4);
 
-	// try OpenGL initialization first
-	if(savedata.usegl && video_gl_set_mode(videomodes)) return 1;
-	else opengl = 0;
+	/*
+	 * OpenGL initializes both presentation and any supported native drawing.
+	 * If it cannot initialize, continue through the SDL streaming-image path.
+	 */
+	if(savedata.usegl && video_gl_set_mode(videomodes))
+	{
+		return 1;
+	}
+	else
+	{
+		opengl = 0;
+	}
 
 	if(!SetVideoMode(videomodes.hRes * videomodes.hScale,
 	                 videomodes.vRes * videomodes.vScale,
@@ -189,10 +243,15 @@ int video_set_mode(s_videomodes videomodes)
 
 	if(savedata.hwfilter ||
 	   (videomodes.hScale == 1 && videomodes.vScale == 1 && !savedata.fullscreen))
+	{
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+	}
 	else
+	{
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	}
 
+	/* Uploads use the preprocessed format and dimensions selected above. */
 	texture = SDL_CreateTexture(renderer,
 	                            pixelformats[videomodes.pixel-1],
 	                            SDL_TEXTUREACCESS_STREAMING,
@@ -250,23 +309,43 @@ void FramerateDelay()
     last_time = current_time;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Present the completed game image. Try a resident GPU texture first, then
+ * obtain synchronized CPU pixels only when a legacy upload or output filter
+ * is required. Each successful path retains its normal frame pacing.
+ */
 int video_copy_screen(s_screen* src)
 {
 	/*
 	 * Native GPU screens already contain the composed frame. Present their
 	 * texture before requesting CPU pixels or applying legacy conversion.
 	 */
-	if(opengl && !yuv_mode && video_gl_copy_gpu_screen(src)) return 1;
+	if(opengl && !yuv_mode && video_gl_copy_gpu_screen(src))
+	{
+		return 1;
+	}
 
-	// do any needed scaling and color conversion
+	/*
+	 * The native path declined this image or presentation mode. Synchronize
+	 * its CPU shadow and apply the configured palette conversion/output filter.
+	 */
 	s_videosurface *surface = getVideoSurface(src);
 
-	if(opengl) return video_gl_copy_screen(surface);
+	if(opengl)
+	{
+		return video_gl_copy_screen(surface);
+	}
 
+	/* SDL presentation uploads the completed CPU image to its streaming texture. */
 	SDL_UpdateTexture(texture, NULL, surface->data, surface->pitch);
 	blit();
 
-	if (savedata.fpslimit >= 2) FramerateDelay();
+	if(savedata.fpslimit >= 2)
+	{
+		FramerateDelay();
+	}
 
 	return 1;
 }

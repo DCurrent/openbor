@@ -52,21 +52,51 @@ static unsigned canonical_rotation_pixel(const s_screen *source, const s_drawmet
     double zx = method->scalex / 256.0, zy = method->scaley / 256.0;
     int degrees = (int)fmod(method->rotate, 360.0f), source_x, source_y;
     double angle, sine, cosine, u, v, nearest;
-    if(method->config & DRAWMETHOD_CONFIG_FLIP_X) zx = -zx;
-    else degrees = -degrees;
-    if(method->config & DRAWMETHOD_CONFIG_FLIP_Y) { zy = -zy; degrees = -degrees; }
+
+    /* Preserve the engine's flip-dependent rotation orientation before
+     * inverting the independent axis scales. Quarter-turns use exact
+     * coefficients so boundary samples do not drift across texels. */
+    if(method->config & DRAWMETHOD_CONFIG_FLIP_X)
+    {
+        zx = -zx;
+    }
+    else
+    {
+        degrees = -degrees;
+    }
+    if(method->config & DRAWMETHOD_CONFIG_FLIP_Y)
+    {
+        zy = -zy;
+        degrees = -degrees;
+    }
     angle = degrees * (3.14159265358979323846 / 180.0);
     sine = sin(angle); cosine = cos(angle);
-    if(degrees % 90 == 0) { sine = round(sine); cosine = round(cosine); }
+    if(degrees % 90 == 0)
+    {
+        sine = round(sine);
+        cosine = round(cosine);
+    }
+
+    /* Map the destination sample back around the method pivot. Snap only the
+     * documented integer-boundary tolerance, then reject samples outside the
+     * source rather than relying on the legacy transformed bounding box. */
     u = method->centerx + (dest_x-x)*cosine/zx - (dest_y-y)*sine/zy;
     v = method->centery + (dest_x-x)*sine/zx + (dest_y-y)*cosine/zy;
     nearest = floor(u + 0.5);
-    if(fabs(u-nearest) < 0.0001) u = nearest;
+    if(fabs(u-nearest) < 0.0001)
+    {
+        u = nearest;
+    }
     nearest = floor(v + 0.5);
-    if(fabs(v-nearest) < 0.0001) v = nearest;
+    if(fabs(v-nearest) < 0.0001)
+    {
+        v = nearest;
+    }
     source_x = (int)floor(u); source_y = (int)floor(v);
     if(source_x < 0 || source_x >= source->width || source_y < 0 || source_y >= source->height)
+    {
         return 0;
+    }
     return ((const unsigned *)source->data)[source_y*source->width + source_x] & 0x00ffffffu;
 }
 
@@ -90,8 +120,17 @@ static unsigned canonical_plane_pixel(const s_screen *source, const s_screen *ta
     float factor = (method->water.endsize - size) / source->height;
     float step, start;
     double position, nearest;
-    if(right > target->width) right = target->width;
-    if(dest_x < left || dest_x >= right || row < 0 || row >= source->height) return 0;
+
+    /* Clip destination coverage before evaluating texture position. Invisible
+     * preceding rows still contribute to the plane's vertical recurrence. */
+    if(right > target->width)
+    {
+        right = target->width;
+    }
+    if(dest_x < left || dest_x >= right || row < 0 || row >= source->height)
+    {
+        return 0;
+    }
     for(i = 0; i < row; ++i, size += factor)
     {
         step = 1.0f / size;
@@ -99,16 +138,28 @@ static unsigned canonical_plane_pixel(const s_screen *source, const s_screen *ta
             : method->water.perspective == WATER_PERSPECTIVE_STRETCH
               ? step * source->height / source->width : 1.0f;
     }
+    /* Evaluate horizontal position from its origin rather than accumulating
+     * per-pixel float error. Positive modulo then preserves wrapped sampling
+     * for negative scroll positions and source coordinates. */
     step = 1.0f / size;
     start = method->water.wavetime - origin_x + source->width
           - (target->width / 2.0f - left) * step;
     position = (double)start + (dest_x - left) * (double)step;
     nearest = floor(position + 0.5);
-    if(fabs(position - nearest) < 0.0001) position = nearest;
+    if(fabs(position - nearest) < 0.0001)
+    {
+        position = nearest;
+    }
     source_x = (int)position % source->width;
     source_y = (int)sy % source->height;
-    if(source_x < 0) source_x += source->width;
-    if(source_y < 0) source_y += source->height;
+    if(source_x < 0)
+    {
+        source_x += source->width;
+    }
+    if(source_y < 0)
+    {
+        source_y += source->height;
+    }
     return ((const unsigned *)source->data)[source_y * source->width + source_x] & 0x00ffffffu;
 }
 
@@ -120,6 +171,7 @@ static unsigned canonical_plane_pixel(const s_screen *source, const s_screen *ta
  */
 void *checkAlloc(void *pointer, size_t size, const char *function, const char *file, int line)
 {
+    /* Keep production allocation failures fatal while omitting log metadata. */
     (void)size; (void)function; (void)file; (void)line;
     assert(pointer);
     return pointer;
@@ -134,6 +186,9 @@ void *checkAlloc(void *pointer, size_t size, const char *function, const char *f
 static s_screen *make_screen(int width, int height)
 {
     s_screen *screen = calloc(1, sizeof(*screen) + (size_t)width * height * 4);
+
+    /* Zeroed inline RGB pixels make untouched coverage explicit in both the
+     * software reference and its independently rendered native counterpart. */
     assert(screen);
     screen->magic = screen_magic;
     screen->width = width;
@@ -154,18 +209,36 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
 {
     gfx_entry entry;
     int pixel, differences = 0;
+
+    /* Reset each target through its owning path. Software receives a current
+     * CPU shadow, while native clear preserves a GPU-resident comparison. */
     entry.screen = source;
     gpu_prepare_cpu_write(reference);
     memset(reference->data, 0, (size_t)reference->width * reference->height * 4);
     assert(gpu_clear_screen(native));
     drawmethod_global_init(method);
-    if(family == 0) gfx_draw_scale(reference, &entry, x, y, 0, 0, method);
-    else if(family == 1) gfx_draw_water(reference, &entry, x, y, 0, 0, method);
-    else if(family == 2) gfx_draw_plane(reference, &entry, x, y, 0, 0, method);
-    else gfx_draw_rotate(reference, &entry, x, y, 0, 0, method);
+    if(family == 0)
+    {
+        gfx_draw_scale(reference, &entry, x, y, 0, 0, method);
+    }
+    else if(family == 1)
+    {
+        gfx_draw_water(reference, &entry, x, y, 0, 0, method);
+    }
+    else if(family == 2)
+    {
+        gfx_draw_plane(reference, &entry, x, y, 0, 0, method);
+    }
+    else
+    {
+        gfx_draw_rotate(reference, &entry, x, y, 0, 0, method);
+    }
 
     assert(gpu_draw_screen(native, source, x, y, method));
     gpu_sync_cpu(native);
+    /* Ordinary transforms compare directly with production software. Plane
+     * drift and rotation bounds/sampling use independent canonical mappings;
+     * count those intended corrections separately from rendering failures. */
     for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
     {
         unsigned expected = ((unsigned *)reference->data)[pixel] & 0x00ffffffu;
@@ -174,7 +247,10 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
         {
             unsigned canonical = canonical_plane_pixel(source, reference, method, x, y,
                                  pixel % reference->width, pixel / reference->width);
-            if(expected != canonical) ++plane_drift_corrections;
+            if(expected != canonical)
+            {
+                ++plane_drift_corrections;
+            }
             expected = canonical;
         }
         else if(family == 3)
@@ -183,20 +259,28 @@ static void compare_draw(s_screen *source, s_screen *reference, s_screen *native
                                  pixel % reference->width, pixel / reference->width);
             if(expected != canonical)
             {
-                if(expected == 0) ++rotation_bounds_corrections;
-                else ++rotation_sample_corrections;
+                if(expected == 0)
+                {
+                    ++rotation_bounds_corrections;
+                }
+                else
+                {
+                    ++rotation_sample_corrections;
+                }
             }
             expected = canonical;
         }
         if(expected != actual)
         {
             if(differences < 5)
+            {
                 fprintf(stderr, "family%d at(%d,%d) scale(%d,%d) shift%d flip%d pivot(%d,%d) "
                         "clip(%d,%d,%d,%d) rotate%.1f pixel(%d,%d) expected%06x actual%06x\n",
                         family, x, y, method->scalex, method->scaley, method->shiftx,
                         method->config, method->centerx, method->centery,
                         method->clipx, method->clipy, method->clipw, method->cliph, method->rotate,
                         pixel % reference->width, pixel / reference->width, expected, actual);
+            }
             ++differences;
         }
     }
@@ -216,9 +300,16 @@ static void test_scale(s_screen *source, s_screen *reference, s_screen *native)
     const int scales[] = {64, 128, 192, 256, 384, 512, 640};
     const int shears[] = {0, 128, -96};
     int scale, shear, flip, location;
+
+    /* Cross independent scale/shear/flip choices with interior, edge and
+     * explicit-clip placements. Unequal axis scales expose mapping mistakes
+     * that uniform enlargements would conceal. */
     for(scale = 0; scale < 7; ++scale)
+    {
         for(shear = 0; shear < 3; ++shear)
+        {
             for(flip = 0; flip < 4; ++flip)
+            {
                 for(location = 0; location < 4; ++location)
                 {
                     s_drawmethod method = plainmethod;
@@ -237,6 +328,9 @@ static void test_scale(s_screen *source, s_screen *reference, s_screen *native)
                                  location == 0 ? 24 : location == 1 ? 1 : location == 2 ? 60 : 8,
                                  location == 0 ? 24 : location == 1 ? 1 : location == 2 ? 62 : 8);
                 }
+            }
+        }
+    }
 }
 
 /*
@@ -248,8 +342,13 @@ static void test_scale(s_screen *source, s_screen *reference, s_screen *native)
 static void test_water(s_screen *source, s_screen *reference, s_screen *native)
 {
     int mode, location, time;
+
+    /* Opposite phase offsets and clipped placements verify that cropping
+     * preserves the source row's phase in both existing wave modes. */
     for(mode = 1; mode <= 2; ++mode)
+    {
         for(location = 0; location < 3; ++location)
+        {
             for(time = -12; time <= 37; time += 49)
             {
                 s_drawmethod method = plainmethod;
@@ -261,6 +360,8 @@ static void test_water(s_screen *source, s_screen *reference, s_screen *native)
                              location == 0 ? 20 : location == 1 ? -4 : 60,
                              location == 0 ? 20 : location == 1 ? -3 : 60);
             }
+        }
+    }
 }
 
 /*
@@ -272,8 +373,13 @@ static void test_water(s_screen *source, s_screen *reference, s_screen *native)
 static void test_plane(s_screen *source, s_screen *reference, s_screen *native)
 {
     int perspective, location, sizes;
+
+    /* Exercise flat, expanding and contracting row scales in every vertical
+     * sampling mode, including planes clipped at the top/left and bottom/right. */
     for(perspective = 0; perspective <= 2; ++perspective)
+    {
         for(location = 0; location < 3; ++location)
+        {
             for(sizes = 0; sizes < 3; ++sizes)
             {
                 s_drawmethod method = plainmethod;
@@ -286,6 +392,8 @@ static void test_plane(s_screen *source, s_screen *reference, s_screen *native)
                              location == 0 ? 20 : location == 1 ? -4 : 60,
                              location == 0 ? 20 : location == 1 ? -3 : 60);
             }
+        }
+    }
 }
 
 /*
@@ -298,7 +406,11 @@ static void test_rotate(s_screen *source, s_screen *reference, s_screen *native)
 {
     const int angles[] = {90, 180, 270, 33};
     int angle, flip;
+
+    /* Exact quarter-turns check boundary sampling; the oblique angle adds
+     * interpolation coverage. Keep unequal scale and a nonzero pivot in each. */
     for(angle = 0; angle < 4; ++angle)
+    {
         for(flip = 0; flip < 4; ++flip)
         {
             s_drawmethod method = plainmethod;
@@ -309,6 +421,7 @@ static void test_rotate(s_screen *source, s_screen *reference, s_screen *native)
                            | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
             compare_draw(source, reference, native, &method, 3, 28, 28);
         }
+    }
 }
 
 /*
@@ -323,9 +436,16 @@ static void test_lines(s_screen *reference, s_screen *native)
 {
     const int deltas[] = {-80, -40, -20, -1, 0, 1, 20, 40, 80};
     int dx, dy, direction, clipped, pixel;
+
+    /* Sweep every octant and endpoint order, including zero-length lines.
+     * Large deltas extend beyond the target so endpoint clipping is exercised
+     * alongside the drawmethod's independent rectangular scissor. */
     for(dx = 0; dx < 9; ++dx)
+    {
         for(dy = 0; dy < 9; ++dy)
+        {
             for(direction = 0; direction < 2; ++direction)
+            {
                 for(clipped = 0; clipped < 2; ++clipped)
                 {
                     s_drawmethod method = plainmethod;
@@ -345,12 +465,19 @@ static void test_lines(s_screen *reference, s_screen *native)
                     line32(sx, sy, ex, ey, 0x00abcdefu, reference, 0);
                     assert(gpu_draw_line(native, sx, sy, ex, ey, 0x00abcdefu, &method));
                     gpu_sync_cpu(native);
+
+                    /* Production software supplies line coverage. Apply the
+                     * intended scissor to that reference independently because
+                     * its legacy pixel loop ignores drawmethod clip bounds. */
                     for(pixel = 0; pixel < reference->width * reference->height; ++pixel)
                     {
                         int x = pixel % reference->width, y = pixel / reference->width;
                         unsigned expected = ((unsigned *)reference->data)[pixel] & 0x00ffffffu;
                         unsigned actual = ((unsigned *)native->data)[pixel] & 0x00ffffffu;
-                        if(clipped && (x < 16 || x >= 48 || y < 16 || y >= 48)) expected = 0;
+                        if(clipped && (x < 16 || x >= 48 || y < 16 || y >= 48))
+                        {
+                            expected = 0;
+                        }
                         if(expected != actual)
                         {
                             fprintf(stderr, "line(%d,%d)-(%d,%d) clip%d pixel(%d,%d) "
@@ -361,6 +488,9 @@ static void test_lines(s_screen *reference, s_screen *native)
                     }
                     ++compared_lines;
                 }
+            }
+        }
+    }
 }
 
 /*
@@ -375,13 +505,23 @@ int main(void)
     SDL_GLContext context;
     s_screen *source, *reference, *native;
     int pixel;
-    if(SDL_Init(SDL_INIT_VIDEO) != 0) return 77;
+
+    /* Acquire the same compatibility context used by the desktop renderer.
+     * An unavailable context is a skip; native initialization must succeed
+     * before any pixel comparison is counted. */
+    if(SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        return 77;
+    }
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
     window = SDL_CreateWindow("OpenBOR transform tests", 0, 0, 64, 64, SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN);
     context = window ? SDL_GL_CreateContext(window) : NULL;
     if(!context)
     {
-        if(window) SDL_DestroyWindow(window);
+        if(window)
+        {
+            SDL_DestroyWindow(window);
+        }
         SDL_Quit();
         return 77;
     }
@@ -391,13 +531,21 @@ int main(void)
     source = make_screen(16, 12);
     reference = make_screen(64, 64);
     native = make_screen(64, 64);
+
+    /* Unique nonzero source pixels identify sampling errors and distinguish
+     * transparent uncovered destination pixels from valid source coverage. */
     for(pixel = 0; pixel < source->width * source->height; ++pixel)
+    {
         ((unsigned *)source->data)[pixel] = 0x00100000u | (unsigned)(pixel + 1);
+    }
     test_scale(source, reference, native);
     test_water(source, reference, native);
     test_plane(source, reference, native);
     test_rotate(source, reference, native);
     test_lines(reference, native);
+
+    /* Retire identities while the context still exists, then report ordinary
+     * comparisons and the explicitly tracked intended corrections separately. */
     gpu_release_screen(source); gpu_release_screen(reference); gpu_release_screen(native);
     free(source); free(reference); free(native);
     gpu_gl_shutdown();

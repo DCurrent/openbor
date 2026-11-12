@@ -203,6 +203,13 @@ static int findPaks(void)
 	return i;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ * Draw launcher-menu text into the screen's CPU pixel storage. Preserve any
+ * native-rendered image beneath the text before writing glyph rows, then
+ * leave the screen marked for upload when presentation next uses it.
+ */
 static void printText(int x, int y, int col, int backcol, int fill, char *format, ...)
 {
 	int x1, y1, i;
@@ -214,26 +221,54 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 	char buf[128] = {""};
 	int pitch = vscreen->width*bpp/8;
 	va_list arglist;
-		va_start(arglist, format);
-		vsprintf(buf, format, arglist);
-		va_end(arglist);
 
-	/* Menu text writes pixels directly rather than using the sprite queue. */
+	/* Format the menu label before traversing the fixed-width bitmap font. */
+	va_start(arglist, format);
+	vsprintf(buf, format, arglist);
+	va_end(arglist);
+
+	/*
+	 * Glyphs modify only part of the screen. Resolve its current pixels first,
+	 * then transfer write ownership to the CPU copy before any glyph is drawn.
+	 */
 	gpu_prepare_cpu_write(vscreen);
 
 	for(i=0; i<sizeof(buf); i++)
 	{
 		ch = buf[i];
-		// mapping
-		if (ch<0x20) ch = 0;
-		else if (ch<0x80) { ch -= 0x20; }
-		else if (ch<0xa0) {	ch = 0;	}
-		else ch -= 0x40;
+		/* Map character codes into the compact font's printable glyph ranges. */
+		if(ch < 0x20)
+		{
+			ch = 0;
+		}
+		else if(ch < 0x80)
+		{
+			ch -= 0x20;
+		}
+		else if(ch < 0xa0)
+		{
+			ch = 0;
+		}
+		else
+		{
+			ch -= 0x40;
+		}
 		font = (u8 *)&hankaku_font10[ch*10];
-		// draw
-		if (bpp == 16) line16 = (u16*)(vscreen->data + x*2 + y * pitch);
-		else           line32 = (u32*)(vscreen->data + x*4 + y * pitch);
 
+		/* Select a correctly sized pixel pointer at this glyph's destination. */
+		if(bpp == 16)
+		{
+			line16 = (u16*)(vscreen->data + x*2 + y * pitch);
+		}
+		else
+		{
+			line32 = (u32*)(vscreen->data + x*4 + y * pitch);
+		}
+
+		/*
+		 * Each font byte supplies one five-pixel row. Set foreground pixels and
+		 * optionally fill the background, preserving untouched pixels otherwise.
+		 */
 		for (y1=0; y1<10; y1++)
 		{
 			data = *font++;
@@ -241,22 +276,47 @@ static void printText(int x, int y, int col, int backcol, int fill, char *format
 			{
 				if (data & 1)
 				{
-					if (bpp == 16) *line16 = col;
-				    else           *line32 = col;
+					if(bpp == 16)
+					{
+						*line16 = col;
+					}
+					else
+					{
+						*line32 = col;
+					}
 				}
 				else if (fill)
 				{
-					if (bpp == 16) *line16 = backcol;
-					else           *line32 = backcol;
+					if(bpp == 16)
+					{
+						*line16 = backcol;
+					}
+					else
+					{
+						*line32 = backcol;
+					}
 				}
 
-				if (bpp == 16) line16++;
-				else           line32++;
+				if(bpp == 16)
+				{
+					line16++;
+				}
+				else
+				{
+					line32++;
+				}
 
 				data = data >> 1;
 			}
-			if (bpp == 16) line16 += pitch/2-5;
-			else           line32 += pitch/4-5;
+			/* Advance to the next row after the five glyph pixels just consumed. */
+			if(bpp == 16)
+			{
+				line16 += pitch/2-5;
+			}
+			else
+			{
+				line32 += pitch/4-5;
+			}
 		}
 		x+=5;
 	}

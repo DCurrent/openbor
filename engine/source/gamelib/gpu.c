@@ -17,6 +17,7 @@ static const gpu_backend *active_backend;
  */
 void gpu_register_backend(const gpu_backend *backend)
 {
+    /* Publish callbacks only after their context, shaders and resources are ready. */
     active_backend = backend;
 }
 
@@ -24,10 +25,11 @@ void gpu_register_backend(const gpu_backend *backend)
  * Damon V. Caskey
  * 2026-11-12
  * Return drawing to the software path after the backend has synchronized
- * live screens and released its graphics-context resources.
+ * live screens. Context teardown can then finish without accepting new draws.
  */
 void gpu_unregister_backend(void)
 {
+    /* Subsequent drawing entry points will select their existing CPU paths. */
     active_backend = NULL;
 }
 
@@ -38,6 +40,7 @@ void gpu_unregister_backend(void)
  */
 int gpu_is_active(void)
 {
+    /* Individual callbacks still decide whether a particular draw is supported. */
     return active_backend != NULL;
 }
 
@@ -49,8 +52,18 @@ int gpu_is_active(void)
  */
 int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmethod *method)
 {
-    return active_backend && active_backend->draw_screen &&
-        active_backend->draw_screen(dest, src, x, y, method);
+    /* An absent renderer or unsupported operation leaves ownership with the caller. */
+    if(!active_backend || !active_backend->draw_screen)
+    {
+        return 0;
+    }
+
+    /*
+     * Give the backend the original screen identities so resident targets can
+     * be sampled directly. Zero means the destination remains safe for the
+     * caller's synchronized software fallback; any nonzero result is success.
+     */
+    return active_backend->draw_screen(dest, src, x, y, method) != 0;
 }
 
 /*
@@ -60,8 +73,13 @@ int gpu_draw_screen(s_screen *dest, s_screen *src, int x, int y, const s_drawmet
  */
 int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_drawmethod *method)
 {
-    return active_backend && active_backend->draw_sprite &&
-        active_backend->draw_sprite(dest, sprite, x, y, method);
+    if(!active_backend || !active_backend->draw_sprite)
+    {
+        return 0;
+    }
+
+    /* Sprite identity remains intact so the backend can reuse its decoded texture. */
+    return active_backend->draw_sprite(dest, sprite, x, y, method) != 0;
 }
 
 /*
@@ -71,8 +89,13 @@ int gpu_draw_sprite(s_screen *dest, s_sprite *sprite, int x, int y, const s_draw
  */
 int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned color, const s_drawmethod *method)
 {
-    return active_backend && active_backend->draw_box &&
-        active_backend->draw_box(dest, x, y, width, height, color, method);
+    if(!active_backend || !active_backend->draw_box)
+    {
+        return 0;
+    }
+
+    /* One-pixel and larger rectangles share the same destination/coherence rules. */
+    return active_backend->draw_box(dest, x, y, width, height, color, method) != 0;
 }
 
 /*
@@ -82,8 +105,13 @@ int gpu_draw_box(s_screen *dest, int x, int y, int width, int height, unsigned c
  */
 int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color, const s_drawmethod *method)
 {
-    return active_backend && active_backend->draw_line &&
-        active_backend->draw_line(dest, x1, y1, x2, y2, color, method);
+    if(!active_backend || !active_backend->draw_line)
+    {
+        return 0;
+    }
+
+    /* Keep endpoint and drawmethod information available for exact native coverage. */
+    return active_backend->draw_line(dest, x1, y1, x2, y2, color, method) != 0;
 }
 
 /*
@@ -93,8 +121,13 @@ int gpu_draw_line(s_screen *dest, int x1, int y1, int x2, int y2, unsigned color
  */
 int gpu_clear_screen(s_screen *screen)
 {
-    return active_backend && active_backend->clear_screen &&
-        active_backend->clear_screen(screen);
+    if(!active_backend || !active_backend->clear_screen)
+    {
+        return 0;
+    }
+
+    /* Clearing the full image allows the backend to skip old-pixel reads. */
+    return active_backend->clear_screen(screen) != 0;
 }
 
 /*
@@ -104,8 +137,13 @@ int gpu_clear_screen(s_screen *screen)
  */
 int gpu_copy_screen(s_screen *dest, s_screen *src)
 {
-    return active_backend && active_backend->copy_screen &&
-        active_backend->copy_screen(dest, src);
+    if(!active_backend || !active_backend->copy_screen)
+    {
+        return 0;
+    }
+
+    /* Preserve both owner identities so compatible copies stay in GPU storage. */
+    return active_backend->copy_screen(dest, src) != 0;
 }
 
 /*
@@ -117,8 +155,18 @@ int gpu_copy_screen(s_screen *dest, s_screen *src)
  */
 void gpu_sync_cpu(s_screen *screen)
 {
-    if(screen && active_backend && active_backend->sync_cpu &&
-       !active_backend->sync_cpu(screen))
+    /* Software-only screens already expose the authoritative image to CPU readers. */
+    if(!screen || !active_backend || !active_backend->sync_cpu)
+    {
+        return;
+    }
+
+    /*
+     * The backend checks which copy is newer and downloads only when needed.
+     * Failed synchronization must stop the CPU consumer before it reads or
+     * modifies a stale shadow and destroys the last valid image version.
+     */
+    if(!active_backend->sync_cpu(screen))
     {
         fprintf(stderr, "GPU renderer: unable to synchronize screen pixels.\n");
         abort();
@@ -133,6 +181,10 @@ void gpu_sync_cpu(s_screen *screen)
  */
 void gpu_mark_cpu_dirty(s_screen *screen)
 {
+    /*
+     * Record the version change without uploading yet. Full-image replacement
+     * can use this directly; partial edits first need gpu_prepare_cpu_write().
+     */
     if(screen && active_backend && active_backend->mark_cpu_dirty)
     {
         active_backend->mark_cpu_dirty(screen);
@@ -147,7 +199,10 @@ void gpu_mark_cpu_dirty(s_screen *screen)
  */
 void gpu_prepare_cpu_write(s_screen *screen)
 {
+    /* Preserve pixels outside the CPU writer's region before changing ownership. */
     gpu_sync_cpu(screen);
+
+    /* The next GPU consumer must upload the image produced by this CPU write. */
     gpu_mark_cpu_dirty(screen);
 }
 
@@ -159,6 +214,7 @@ void gpu_prepare_cpu_write(s_screen *screen)
  */
 void gpu_release_screen(s_screen *screen)
 {
+    /* Evict the pointer-keyed cache entry before the allocation can be reused. */
     if(screen && active_backend && active_backend->release_screen)
     {
         active_backend->release_screen(screen);
@@ -172,6 +228,7 @@ void gpu_release_screen(s_screen *screen)
  */
 void gpu_release_sprite(s_sprite *sprite)
 {
+    /* Decoded GPU data becomes invalid when the source sprite is replaced or freed. */
     if(sprite && active_backend && active_backend->release_sprite)
     {
         active_backend->release_sprite(sprite);
@@ -185,6 +242,7 @@ void gpu_release_sprite(s_sprite *sprite)
  */
 void gpu_invalidate_tables(void)
 {
+    /* In-place table edits can retain their pointers, so callers signal them explicitly. */
     if(active_backend && active_backend->invalidate_tables)
     {
         active_backend->invalidate_tables();

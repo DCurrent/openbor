@@ -1,7 +1,7 @@
 /*
  * Exercise production rendering entry points with a deliberately separate
- * mock GPU image. No window or graphics driver is required. This tests the
- * ownership/coherence contract, not native shader output or performance.
+ * mock GPU image. The separate storage makes missing ownership transitions
+ * observable without a window or graphics driver.
  *
  * Build from the repository root:
  * gcc -std=c99 -O1 -DPP_TEST=1 -ffunction-sections -fdata-sections \
@@ -65,6 +65,7 @@ const s_drawmethod plainmethod = {
  */
 void *checkAlloc(void *ptr, size_t size, const char *func, const char *file, int line)
 {
+    /* Keep allocation failure fatal while omitting the engine log context. */
     (void)size;
     (void)func;
     (void)file;
@@ -84,10 +85,14 @@ static mock_image *mock_find(s_screen *screen, int create)
     int i;
     mock_image *empty = NULL;
 
+    /* Only RGB32 images participate in this fixture's native path. Other
+     * formats exercise the production software fallback without a cache slot. */
     if(!screen || screen->pixelformat != PIXEL_32)
     {
         return NULL;
     }
+    /* Reuse identity before choosing a free slot. Read-only lookups must never
+     * manufacture a resource and hide an absent upload or release. */
     for(i = 0; i < MOCK_SCREEN_CAPACITY; ++i)
     {
         if(images[i].screen == screen)
@@ -103,6 +108,7 @@ static mock_image *mock_find(s_screen *screen, int create)
     {
         return NULL;
     }
+    /* New resources start CPU-owned; their first native use performs upload. */
     assert(empty);
     assert(screen->width * screen->height <= MOCK_PIXEL_CAPACITY);
     memset(empty, 0, sizeof(*empty));
@@ -120,6 +126,8 @@ static mock_image *mock_ready(s_screen *screen)
 {
     mock_image *image = mock_find(screen, 1);
 
+    /* Copy only a changed CPU version. Otherwise the independent GPU image
+     * remains authoritative, even while the CPU shadow contains older pixels. */
     if(image && image->cpu_dirty)
     {
         memcpy(image->pixels, screen->data,
@@ -140,6 +148,8 @@ static int mock_sync(s_screen *screen)
 {
     mock_image *image = mock_find(screen, 0);
 
+    /* Clear the pending-readback flag after copying so repeated pixel queries
+     * share the same current shadow until another native draw occurs. */
     if(image && image->gpu_dirty)
     {
         memcpy(screen->data, image->pixels,
@@ -159,6 +169,8 @@ static void mock_dirty(s_screen *screen)
 {
     mock_image *image = mock_find(screen, 0);
 
+    /* CPU ownership supersedes the prior native version. Partial writers are
+     * responsible for synchronizing retained pixels before reaching this hook. */
     if(image)
     {
         image->cpu_dirty = 1;
@@ -178,6 +190,8 @@ static int mock_box(s_screen *screen, int x, int y, int width, int height,
     mock_image *image;
     int px, py;
 
+    /* Reject unsupported work before changing any pixels so the original
+     * software operation can run once against the synchronized target. */
     if(reject_draws || (method && (method->config & DRAWMETHOD_CONFIG_ENABLED) &&
        method->alpha > 0))
     {
@@ -188,6 +202,7 @@ static int mock_box(s_screen *screen, int x, int y, int width, int height,
     {
         return 0;
     }
+    /* Clip the opaque fill to image bounds and leave the CPU shadow stale. */
     for(py = y; py < y + height; ++py)
     {
         for(px = x; px < x + width; ++px)
@@ -212,6 +227,7 @@ static int mock_clear(s_screen *screen)
 {
     mock_image *image = mock_find(screen, 1);
 
+    /* Full replacement needs no upload of the pixels being discarded. */
     if(!image)
     {
         return 0;
@@ -234,6 +250,8 @@ static int mock_screen(s_screen *dest, s_screen *src, int x, int y,
     mock_image *source, *target;
     int px, py;
 
+    /* Restrict this mock to distinct, untransformed RGB32 images. The rejected
+     * cases verify that production fallbacks acquire the correct CPU version. */
     if(reject_draws || dest == src || dest->pixelformat != PIXEL_32 ||
        src->pixelformat != PIXEL_32 ||
        (method && (method->config & DRAWMETHOD_CONFIG_ENABLED)))
@@ -243,6 +261,7 @@ static int mock_screen(s_screen *dest, s_screen *src, int x, int y,
     source = mock_ready(src);
     target = mock_ready(dest);
     assert(source && target);
+    /* Copy the overlap while retaining target pixels outside the source. */
     for(py = 0; py < src->height; ++py)
     {
         for(px = 0; px < src->width; ++px)
@@ -267,6 +286,7 @@ static int mock_screen(s_screen *dest, s_screen *src, int x, int y,
  */
 static int mock_copy(s_screen *dest, s_screen *src)
 {
+    /* Copy uses replacement at the origin, independent of global draw state. */
     return mock_screen(dest, src, 0, 0, NULL);
 }
 
@@ -280,6 +300,8 @@ static void mock_release_screen(s_screen *screen)
 {
     mock_image *image = mock_find(screen, 0);
 
+    /* Remove identity as well as pixel ownership so allocator address reuse
+     * cannot inherit the retired target's contents. */
     if(image)
     {
         memset(image, 0, sizeof(*image));
@@ -294,6 +316,8 @@ static void mock_release_screen(s_screen *screen)
  */
 static void mock_release_sprite(s_sprite *sprite)
 {
+    /* Re-encoding calls this with fresh storage as well as existing sprites;
+     * eviction depends on identity, so the allocation's fields stay unread. */
     (void)sprite;
     ++released_sprites;
 }
@@ -305,6 +329,7 @@ static void mock_release_sprite(s_sprite *sprite)
  */
 static void mock_invalidate_tables(void)
 {
+    /* The count verifies that the public setter reaches native lookup state. */
     ++invalidated_tables;
 }
 
@@ -330,6 +355,7 @@ static s_screen *test_screen(int width, int height, unsigned color)
     int i;
     s_screen *screen = allocscreen(width, height, PIXEL_32);
 
+    /* Initialize the CPU-owned image before any native resource can upload it. */
     assert(screen);
     for(i = 0; i < width * height; ++i)
     {
@@ -387,7 +413,10 @@ int main(void)
     clearscreen(large);
     assert(downloads == previous_downloads);
     gpu_sync_cpu(large);
-    for(i = 0; i < 64; ++i) assert(((unsigned *)large->data)[i] == 0);
+    for(i = 0; i < 64; ++i)
+    {
+        assert(((unsigned *)large->data)[i] == 0);
+    }
 
     /* Unsupported transform reads GPU source and preserves target borders. */
     putbox(0, 0, 4, 4, 0x765432, small, NULL);
@@ -475,7 +504,10 @@ int main(void)
     freescreen(&large);
     freescreen(&capture);
     assert(released_screens == 4);
-    for(i = 0; i < MOCK_SCREEN_CAPACITY; ++i) assert(!images[i].screen);
+    for(i = 0; i < MOCK_SCREEN_CAPACITY; ++i)
+    {
+        assert(!images[i].screen);
+    }
     assert(native_draws > 0);
     gpu_unregister_backend();
     assert(!gpu_is_active());

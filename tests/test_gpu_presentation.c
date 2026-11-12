@@ -1,8 +1,8 @@
 /*
  * Exercise the production SDL/OpenGL presenter and context lifecycle.
  * Run through tests/run_gpu_tests.sh, or compile with the native renderer test
- * flags plus video.c, opengl.c, videocommon.c and timer.c. No game module is
- * needed. The existing native test fixtures are reused with their independent
+ * flags plus video.c, opengl.c, videocommon.c and timer.c. The existing native
+ * test fixtures are reused with their independent
  * entry point renamed; --gc-sections discards the unused test suite.
  */
 #define main unused_backend_test_suite
@@ -25,6 +25,8 @@ extern int nativeWidth, nativeHeight;
  */
 void _usleep(u32 microseconds)
 {
+    /* SDL accepts whole milliseconds; round upward to preserve the requested
+     * minimum delay when the engine supplies a fractional millisecond. */
     SDL_Delay((microseconds + 999) / 1000);
 }
 
@@ -33,12 +35,15 @@ void _usleep(u32 microseconds)
  * 2026-11-12
  * Inspect the displayed framebuffer to catch vertical inversion or missing
  * presentation-state restoration after native render-to-texture operations.
- * This explicit test inspection is not part of the engine's frame path.
  */
 static void verify_presented_frame(void)
 {
     void (APIENTRY *read_buffer)(GLenum) = SDL_GL_GetProcAddress("glReadBuffer");
     unsigned pixels[64];
+
+    /* Inspect the front buffer after presentation. GL's bottom-up row order
+     * maps the logical bottom green strip to the first sampled row and the
+     * logical top red strip to the last one. Restore the normal read target. */
     assert(read_buffer);
     read_buffer(GL_FRONT);
     glReadPixels(0, 0, 8, 8, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -65,6 +70,8 @@ int main(void)
                         .cb = chroma_u, .cr = chroma_v };
     unsigned long readbacks;
 
+    /* Use the real video lifecycle so context selection and GPU registration
+     * match engine startup. Missing platform support is reported as a skip. */
     if(SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         fprintf(stderr, "SKIP: SDL video unavailable: %s\n", SDL_GetError());
@@ -81,6 +88,8 @@ int main(void)
         SDL_Quit();
         return 77;
     }
+    /* Distinct top/bottom strips expose inverted presentation, while the
+     * center fill verifies pixels survive the native-target handoff. */
     assert(gpu_is_active());
     assert(gpu_draw_box(screen, 0, 0, 8, 8, 0x00123456, &plainmethod));
     assert(gpu_draw_box(screen, 0, 0, 8, 1, 0x000000ff, &plainmethod));
@@ -101,6 +110,8 @@ int main(void)
     assert(opengl && !gpu_is_active());
     assert(test_pixel(screen, 2, 2) == 0x00abcdef);
 
+    /* Returning from a CPU filter must restore native drawing. Entering YUV
+     * mode then retires that context's scene resources with current shadows. */
     savedata.swfilter = 0;
     savedata.hwscale = 1.0f;
     assert(video_set_mode(mode));
@@ -138,6 +149,8 @@ int main(void)
     readbacks = gpu_gl_get_stats()->readbacks;
     assert(video_copy_screen(screen));
     assert(gpu_gl_get_stats()->readbacks == readbacks);
+    /* Final teardown must preserve the last displayed version before the
+     * script-visible screen allocation outlives its graphics context. */
     video_set_mode(closed);
     assert(!opengl && !gpu_is_active());
     assert(test_pixel(screen, 2, 2) == 0x00010203);
