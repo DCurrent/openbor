@@ -9,6 +9,7 @@
 // Sprite queueing and sorting
 
 #include <stdio.h>
+#include <string.h>
 #include "types.h"
 #include "screen.h"
 #include "sprite.h"
@@ -28,6 +29,7 @@
 #define         SQT_SCREEN      6
 
 #define         SQ_MAX_PARAMS   3
+#define         SPRITEQ_INSERTION_SORT_THRESHOLD 32
 
 typedef struct
 {
@@ -43,6 +45,7 @@ typedef struct
 
 static qstruct queue[MAXQSPRITES];
 static qstruct *order[MAXQSPRITES];
+static qstruct *sort_scratch[MAXQSPRITES];
 
 static int spritequeue_len = 0;
 static int spriteq_old_len = 0;
@@ -231,68 +234,97 @@ void spriteq_add_box(int x, int y, int width, int height, int z, int colour, s_d
 }
 
 
-// Double sort code (sorts high and low simultaneously from 2 directions)
-// Can't get much faster than this - I think
+/*
+ * Compare the two queue keys without subtraction, which could overflow for
+ * sprites using extreme positive or negative layer values.
+ */
+static int spriteq_compare(const qstruct *left, const qstruct *right)
+{
+    if(left->z < right->z) return -1;
+    if(left->z > right->z) return 1;
+    if(left->sortid < right->sortid) return -1;
+    if(left->sortid > right->sortid) return 1;
+    return 0;
+}
+
+/*
+ * Stable sort by layer, then sort ID. Equal keys retain queue submission
+ * order, including when the same queue is drawn more than once.
+ *
+ * Sort the pointer array rather than moving queue records: queue locking and
+ * the "new only" draw option identify entries by their original addresses.
+ * The temporary array is allocated once, not on every frame.
+ */
 static void spriteq_sort()
 {
-    int i, lidx, hidx, lz, hz, start, end, lsid, hsid;
-    void *tempp;
+    int i, j, width, start, middle, end, left, right, write;
+    qstruct *current;
+    qstruct **source = order;
+    qstruct **destination = sort_scratch;
+    qstruct **temp;
 
-    start = 0;
-    end = spritequeue_len - 1;
+    if(spritequeue_len < 2) return;
 
-    while(start < end)
+    /* Already sorted queues, including identical-key queues, need no work. */
+    for(i = 1; i < spritequeue_len; i++)
     {
-        lidx = end;
-        hidx = start;
+        if(spriteq_compare(order[i - 1], order[i]) > 0) break;
+    }
+    if(i == spritequeue_len) return;
 
-        lz = order[lidx]->z;
-        hz = order[hidx]->z;
-        lsid = order[lidx]->sortid;
-        hsid = order[hidx]->sortid;
-
-        // Search for lowest and highest Z coord
-        for(i = start; i <= end; i++)
+    /* Avoid merge passes for the short queues common in menus and HUDs. */
+    if(spritequeue_len <= SPRITEQ_INSERTION_SORT_THRESHOLD)
+    {
+        for(i = 1; i < spritequeue_len; i++)
         {
-            if(order[i]->z < lz || (order[i]->z == lz && order[i]->sortid < lsid))
+            current = order[i];
+            j = i;
+            while(j > 0 && spriteq_compare(current, order[j - 1]) < 0)
             {
-                lidx = i;
-                lz = order[i]->z;
-                lsid = order[i]->sortid;
+                order[j] = order[j - 1];
+                --j;
             }
-            if(order[i]->z > hz || (order[i]->z == hz && order[i]->sortid > hsid))
+            order[j] = current;
+        }
+        return;
+    }
+
+    /* Bottom-up merge sort guarantees O(n log n) worst-case work. */
+    for(width = 1; width < spritequeue_len; width *= 2)
+    {
+        for(start = 0; start < spritequeue_len; start += width * 2)
+        {
+            middle = start + width;
+            if(middle > spritequeue_len) middle = spritequeue_len;
+            end = start + width * 2;
+            if(end > spritequeue_len) end = spritequeue_len;
+
+            left = start;
+            right = middle;
+            for(write = start; write < end; write++)
             {
-                hidx = i;
-                hz = order[i]->z;
-                hsid = order[i]->sortid;
+                /* Left wins a tie, preserving the original submission order. */
+                if(left < middle &&
+                    (right == end || spriteq_compare(source[left], source[right]) <= 0))
+                {
+                    destination[write] = source[left++];
+                }
+                else
+                {
+                    destination[write] = source[right++];
+                }
             }
         }
 
-        // No need to sort equal values!
-        if(hz == lz && hsid == lsid)
-        {
-            return;
-        }
+        temp = source;
+        source = destination;
+        destination = temp;
+    }
 
-        // Exchange values (low)
-        tempp = order[start];
-        order[start] = order[lidx];
-        order[lidx] = tempp;
-
-        // Prevent confusion:
-        // This value may already have been exchanged!
-        if(hidx == start)
-        {
-            hidx = lidx;
-        }
-
-        // Exchange values (high)
-        tempp = order[end];
-        order[end] = order[hidx];
-        order[hidx] = tempp;
-
-        ++start;
-        --end;
+    /* The draw path always reads order[], regardless of the number of passes. */
+    if(source != order)
+    {
+        memcpy(order, source, spritequeue_len * sizeof(*order));
     }
 }
 
