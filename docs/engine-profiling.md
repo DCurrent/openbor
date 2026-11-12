@@ -7,8 +7,10 @@ Date: 2026-11-12
 ## Purpose and scope
 
 `experiment/gpu-profiling` measures engine boundaries around the existing
-renderer. Profiling is enabled by default on this diagnostic branch. Games,
-including DC3D, require no script, asset, lighting, or rendering changes.
+renderer. `experiment/gpu-palette-cache` retains those measurements while
+adding a bounded resident palette cache and cache-specific accounting.
+Profiling is enabled by default on both diagnostic branches. Games, including
+DC3D, require no script, asset, lighting, or rendering changes.
 
 The profiler separates update phases, main-queue playback, offscreen captures,
 CPU-side native-renderer work, presentation, transfers, and software fallbacks.
@@ -61,8 +63,10 @@ Renderer configuration is logged when the video mode is selected. Check
 `kind=video_config`, `kind=video_backend`, `kind=renderer`, and `kind=gpu_timer`
 before interpreting timing. They identify frame-limit selection, output-filter
 state, dimensions, active native drawing, requested/actual swap interval, driver
-information, and optional timer availability. OpenGL presentation alone does
-not establish that scene drawing used the GPU.
+information, and optional timer availability. The palette-cache branch also
+logs `kind=palette_cache` when its resident atlas is enabled, including capacity,
+palette bytes, GPU logical bytes, CPU cache bytes, and the `content_lru` policy.
+OpenGL presentation alone does not establish that scene drawing used the GPU.
 
 ## Frame sampling and window boundaries
 
@@ -119,6 +123,7 @@ nanoseconds until reporting.
 | `fallback_totals` | Number of declined native operations by reason, including an absent native backend. |
 | `gpu_elapsed` | Completed timestamp samples for one scope, mean per available sample, and sum divided by accepted frame count. |
 | `diagnostics` | Cancelled frames, rejected gaps, late GPU results, clock-read count, and the skipped-reporting-frame marker. |
+| `palette_cache` | Native-cache configuration, including capacity and memory sizes; this is a lifecycle record, not a per-window measurement. |
 
 ### Exclusive CPU phases
 
@@ -181,6 +186,61 @@ pixel routine in the engine. When a fallback first synchronizes a GPU-authored
 screen, its inclusive software span includes that readback; `readback_ms`
 also records the transfer itself. Adding both would count that time twice.
 
+### Resident palette-cache accounting
+
+The palette-cache branch keeps up to 1024 complete 256-color palettes in a
+256-by-1024 RGBA8 atlas. Its logical GPU payload is 1,048,576 bytes (1 MiB).
+CPU content copies also occupy 1 MiB, with fixed additional lookup/LRU metadata.
+The configuration record's `cpu_bytes` reports the complete cache structure's
+actual size for the build (1,073,168 bytes with 32-bit `int` and the current
+layout); driver allocation overhead is not measured.
+
+| Field | Meaning |
+| --- | --- |
+| `palette_lookup_ms` | CPU selected-row comparison, content hashing and collision verification, victim selection, and hit-side LRU maintenance, ending before any texture upload. |
+| `palette_cache_hits` | Palette lookups whose complete contents already have a resident atlas row. |
+| `palette_cache_misses` | Palette lookups whose contents are absent and require an attempted row upload. |
+| `palette_cache_evictions` | Occupied rows replaced after a successful upload when the bounded cache is full. |
+| `palette_uploads` / `palette_upload_bytes` | Actual successful palette updates and their logical payload; their existing meaning is unchanged. |
+
+Cache counts use the usual per-frame means in `counts_mean` and single-frame
+maxima in `counts_max`. Hits plus misses count eligible palette lookups, not
+unique palettes. Reusing an evicted palette produces another miss, so misses
+also cannot be interpreted as a distinct-palette count. When useful, compute
+the hit fraction as `hits / (hits + misses)` with a nonzero denominator.
+
+Content identity, rather than pointer identity, lets equal palettes at different
+addresses share one row. Consecutive reuse first compares the selected row's
+complete contents; other lookups hash the contents and verify matching
+candidates in full. These checks guard against collisions and detect edits
+made in place. No caller palette pointers are retained. Least-recently-used
+victim selection and list updates are deterministic and constant-time; hash
+bucket traversal and content verification remain visible in `palette_lookup_ms`.
+
+Lookup and upload are separate spans within the calling frame phase. They are
+not extra time to add to `main_queue_ms`, `draw_script_ms`, or frame time.
+`upload_ms` remains the combined CPU duration of instrumented image, palette,
+and table uploads, so inspect their individual counters to identify the source
+of changes. Source-image uploads are independent of palette residency.
+
+Successful-miss content copies, hash-chain publication, and eviction/insertion
+bookkeeping happen after the upload. They remain within the calling frame
+phase but are not included in `palette_lookup_ms` or `upload_ms`. Therefore
+lookup time does not claim to measure every CPU cache-management operation.
+Misses count attempted residency changes; a failed upload increments neither
+successful-upload nor eviction counts, so those totals need not match misses
+on an error path.
+
+Cache residency lasts for the native renderer's context lifetime. Frame and
+report boundaries, profiler warmup, and menus do not themselves flush it;
+native draws during unmeasured periods can populate or update it. Native
+shutdown or context recreation discards the old residency, and successful
+initialization begins with an empty atlas. An upload error also invalidates
+residency rather than reusing uncertain GPU contents. `OPENBOR_PROFILE=0`
+disables measurement while leaving the cache active; `OPENBOR_GPU=0` disables
+the entire native renderer. No cache-only runtime switch is provided. The first
+measured gameplay window is therefore not necessarily a cold-cache window.
+
 ### Optional GPU timestamps
 
 Desktop GPU timestamps require OpenGL 3.3 or `GL_ARB_timer_query`, the complete
@@ -241,13 +301,49 @@ GPU-resident while CPU setup, command count, destination snapshots, pacing, or
 software fallbacks dominate another part of the frame. The combined timing
 and work counters are intended to distinguish those cases.
 
+### Comparing the resident-palette change
+
+Use profiling commit `722df2d` as the baseline and
+`experiment/gpu-palette-cache` as the changed renderer. This step changes palette
+residency only; cross-entry state caching, draw batching, destination-copy
+optimization, frame pacing, and game scripts remain outside its scope.
+
+1. Build both revisions with matching compiler/build settings, then keep the
+   same game content, machine, resolution, output scaling/filter, and frame
+   limit. Confirm `native_active=1` and actual swap interval in both logs, and
+   `kind=palette_cache state=enabled` in the changed build.
+2. Reproduce the same stationary view or repeatable route, including the same
+   point-light workload. Collect several complete windows after warmup and
+   preserve each complete log. Restart the executable before each independent
+   trial; menu/loading draws can still populate residency before gameplay.
+3. Compare `main_queue_ms`, `upload_ms`, `palette_uploads`, and
+   `palette_upload_bytes` first, then frame mean/p95 and effective FPS. The new
+   branch's `palette_lookup_ms` and hit/miss/eviction fields show the CPU work
+   exchanged for fewer uploads. Those fields do not exist in the baseline log;
+   their absence is not a measured zero.
+4. Keep first-observed and steady-state windows separate. Frequent misses with
+   evictions can indicate a working set exceeding capacity or continuously
+   changing contents; frequent hits with lower uploads demonstrate reuse. Do
+   not expect every workload to fit the cache or every miss to be a new unique
+   palette. Compare source-image and table upload counts independently.
+5. Verify output and ordering at the same views. Repeat matching runs with GPU
+   timestamps disabled, then with all profiling disabled, when evaluating
+   observer overhead. The lookup instrumentation itself adds clock reads, and
+   `profile_entry_ms` does not capture all per-operation measurement overhead.
+
+Fewer uploads establish reduced palette-transfer work, not a guaranteed total
+frame-rate improvement. Per-draw state and submission costs, destination copies,
+and script execution may remain dominant after palette reuse improves.
+
 ## Regression tests
 
 Run `bash tests/run_gpu_tests.sh`. The context-independent suite checks disabled
 operation, environment defaults/bounds, warmup, pending interval pairing,
 partial/full windows, report barriers, nested scopes, counters/bytes, pauses,
 nested updates, context resets, long gaps, nearest-rank p95, and delayed GPU
-results across cancellation and collector reconfiguration.
+results across cancellation and collector reconfiguration. Palette accounting
+also checks lookup/upload separation, hit/miss/eviction totals and maxima,
+disabled collection, and the public log names and per-frame units.
 
 With SDL2 development files and an available desktop OpenGL context, the runner
 also verifies real native counters and byte totals, independent timestamp

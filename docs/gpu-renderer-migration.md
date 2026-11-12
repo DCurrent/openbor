@@ -22,7 +22,7 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Operation | Migration behavior |
 | --- | --- |
 | RGB32 screens and scene composition | GPU textures and framebuffer objects |
-| Indexed sprites, source palettes and remaps | Cached index textures and draw-time palette lookup |
+| Indexed sprites, source palettes and remaps | Cached index textures, bounded resident palette atlas, and draw-time palette lookup |
 | Alpha-mask sprites | Separate indexed opacity texture, existing precedence and opacity equation |
 | Existing scale, flip, rotation, shear, water and plane transforms | GPU pixel sampling with existing transform parameters |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
@@ -39,6 +39,10 @@ from rendering into an indexed framebuffer, which remains on the software path.
 
 No affine/curve API from the separate transform experiment is added here.
 No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
+
+`experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
+palette reuse. This step retains draw order and existing render operations; it
+does not introduce cross-entry state caching or draw batching.
 
 ## Where the boundary moved
 
@@ -106,6 +110,50 @@ source because transformed sampling can access pixels outside that rectangle.
 Snapshots are reused, not allocated for each draw. Queue entries are not
 reordered by texture or material.
 
+## Resident source palettes
+
+The renderer stores up to 1024 complete 256-color palettes in one
+256-by-1024 RGBA8 atlas, selecting the resident row for each indexed draw. The
+atlas has a fixed logical payload of 1,048,576 bytes (1 MiB). CPU copies of its
+palette contents require another 1 MiB plus bounded lookup and recency metadata;
+the profiling configuration record reports that structure's complete
+`cpu_bytes` size for the current build (1,073,168 bytes with 32-bit `int` and the
+current layout). These figures exclude driver overhead.
+
+Consecutive reuse compares the complete contents of the previously selected
+row. Other lookups hash the complete palette and verify matching candidates
+with a full comparison. Identical values at different source addresses reuse
+one resident row, hash collisions cannot silently select another palette, and
+in-place edits are recognized on the next lookup. The cache owns copies of
+contents, not caller pointers, so a palette's address may be freed or reused
+without leaving a retained reference.
+
+Unused rows fill first. Once all rows are occupied, deterministic
+least-recently-used replacement selects a victim with constant-time list
+maintenance. Uploading a replacement happens in the same ordered GL command
+stream as drawing. Previously issued draws therefore retain their earlier
+palette use; later draws select the replacement without reordering the queue.
+Eviction trades a future upload for bounded memory rather than retaining an
+unlimited set of transient palettes.
+
+Residency survives frame boundaries, warmup, report windows, and menus while
+the native context remains alive. Renderer shutdown or context recreation
+discards residency and reconstructs an empty atlas on successful initialization.
+Palette uploads are independent of source-image uploads, and disabling the
+profiler with `OPENBOR_PROFILE=0` does not disable this renderer cache.
+`OPENBOR_GPU=0` disables the entire native renderer; no cache-only runtime
+switch is added. An upload error invalidates residency before fallback so a
+later lookup cannot trust uncertain GPU row contents.
+
+`palette_lookup_ms`, `palette_cache_hits`, `palette_cache_misses`, and
+`palette_cache_evictions` expose lookup work and reuse. The lookup span ends
+before upload; successful-miss content copies and insertion/eviction bookkeeping
+remain in the calling frame phase, outside that span. Existing palette upload
+counters continue to record actual successful updates. See
+[the engine profiling guide](engine-profiling.md#comparing-the-resident-palette-change)
+for the baseline comparison procedure. Performance depends on reuse and the
+remaining engine workload; no speedup is assumed from the allocation alone.
+
 ## Color and intended-behavior corrections
 
 RGB32 screen alpha bytes are unused in the engine's color contract. Native
@@ -148,6 +196,9 @@ The suites cover:
   fallback, indexed operations, replay semantics and resource eviction.
 - Actual OpenGL capture/reuse, no-readback assertions, dirty uploads, palettes,
   masks, blend tables, overlapping self-draws and context recreation.
+- Resident palette reuse, in-place edits, unaligned input, equal contents at
+  different addresses, full-hash collisions, LRU overflow, upload-error recovery,
+  capture ordering, and fresh residency after actual context recreation.
 - Native transform output compared with production CPU rendering.
 - Real presentation, orientation, output-filter/video transitions and mode changes.
 - Deliberately colliding texture-cache identities during shutdown.

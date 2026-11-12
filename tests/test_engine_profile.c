@@ -31,6 +31,9 @@ static unsigned test_query_count;
 static unsigned test_query_ends;
 static unsigned test_query_polls;
 static uint64_t test_query_poll_delay_us;
+static char test_span_log[4096];
+static char test_count_mean_log[4096];
+static char test_count_max_log[4096];
 static test_query test_queries[32];
 static int test_scene;
 static int test_main_target;
@@ -53,13 +56,26 @@ static uint64_t test_clock(void)
  * Damon V. Caskey
  * 2026-11-12
  *
- * Validate the engine-log prefix while retaining only the number of lines.
- * Numerical assertions use the report snapshot instead of rounded log text.
+ * Validate the engine-log prefix and retain the named series used to check
+ * field labels and per-frame formatting. Exact accounting assertions use the
+ * report snapshot instead of depending only on rounded log text.
  */
 static void test_log(const char *line)
 {
     assert(line);
     assert(strncmp(line, "[ENGINE PROFILE]", 16) == 0);
+    if(strstr(line, "kind=spans_inclusive "))
+    {
+        snprintf(test_span_log, sizeof(test_span_log), "%s", line);
+    }
+    else if(strstr(line, "kind=counts_mean "))
+    {
+        snprintf(test_count_mean_log, sizeof(test_count_mean_log), "%s", line);
+    }
+    else if(strstr(line, "kind=counts_max "))
+    {
+        snprintf(test_count_max_log, sizeof(test_count_max_log), "%s", line);
+    }
     ++test_log_lines;
 }
 
@@ -147,6 +163,9 @@ static void test_configure(int enabled, unsigned frames, unsigned warmup)
     test_query_ends = 0;
     test_query_polls = 0;
     test_query_poll_delay_us = 0;
+    test_span_log[0] = '\0';
+    test_count_mean_log[0] = '\0';
+    test_count_max_log[0] = '\0';
     memset(test_queries, 0, sizeof(test_queries));
     engine_profile_set_hooks(test_clock, test_log);
     engine_profile_configure(enabled, frames, warmup);
@@ -214,8 +233,12 @@ static void test_disabled(void)
     scope = engine_profile_span_begin();
     assert(scope.frame_id == 0);
     engine_profile_span_end(scope, EP_SPAN_CAPTURE_PLAYBACK);
+    engine_profile_span_end(scope, EP_SPAN_PALETTE_LOOKUP);
     engine_profile_frame_mark(0, EP_PHASE_INPUT);
     engine_profile_count(EP_COUNT_NATIVE_DRAWS, 900);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_HITS, 10);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_MISSES, 5);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_EVICTIONS, 2);
     engine_profile_fallback(EP_FALLBACK_SOURCE_FORMAT);
     assert(engine_profile_gpu_begin(EP_GPU_SCENE) == 0);
     engine_profile_gpu_end(0);
@@ -387,6 +410,96 @@ static void test_exclusive_phases_and_inclusive_spans(void)
     assert(report->phases_us[EP_PHASE_FINISH] == 1000);
     assert(report->spans_us[EP_SPAN_CAPTURE_PLAYBACK] == 1300);
     assert(report->spans_us[EP_SPAN_GPU_GEOMETRY] == 500);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Keep resident-palette lookup work separate from actual upload work. Distinct
+ * frame values check accumulated counts, maxima and formatted means, including
+ * the unchanged successful-upload counters used for baseline comparisons.
+ */
+static void test_palette_cache_accounting(void)
+{
+    const ep_report *report;
+    ep_scope lookup, upload;
+    uint64_t first, second;
+
+    test_configure(1, 2, 0);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_HITS, 999);
+    first = test_begin(1000);
+    assert(first);
+
+    /* The renderer finishes content lookup before starting any upload.
+     * These sibling spans must not charge the same time to both fields;
+     * post-upload cache publication remains only in the enclosing phase. */
+    test_time_us = 1100;
+    lookup = engine_profile_span_begin();
+    test_time_us = 1150;
+    engine_profile_span_end(lookup, EP_SPAN_PALETTE_LOOKUP);
+    upload = engine_profile_span_begin();
+    test_time_us = 1350;
+    engine_profile_span_end(upload, EP_SPAN_UPLOAD);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_HITS, 4);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_MISSES, 2);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_EVICTIONS, 1);
+    engine_profile_count(EP_COUNT_PALETTE_UPLOADS, 2);
+    engine_profile_count(EP_COUNT_PALETTE_UPLOAD_BYTES, 2048);
+    test_time_us = 1400;
+    engine_profile_frame_mark(first, EP_PHASE_MAIN_QUEUE);
+    test_end(first, 1500);
+
+    /* Vary the second frame so an accidental field-order shift or a sum
+     * incorrectly substituted for a maximum cannot pass the assertions. */
+    second = test_begin(11000);
+    assert(second > first);
+    test_time_us = 11100;
+    lookup = engine_profile_span_begin();
+    test_time_us = 11175;
+    engine_profile_span_end(lookup, EP_SPAN_PALETTE_LOOKUP);
+    upload = engine_profile_span_begin();
+    test_time_us = 11575;
+    engine_profile_span_end(upload, EP_SPAN_UPLOAD);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_HITS, 8);
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_MISSES, 1);
+    engine_profile_count(EP_COUNT_PALETTE_UPLOADS, 1);
+    engine_profile_count(EP_COUNT_PALETTE_UPLOAD_BYTES, 1024);
+    test_time_us = 11600;
+    engine_profile_frame_mark(second, EP_PHASE_MAIN_QUEUE);
+    test_end(second, 11700);
+    assert(test_begin(21000) == 0);
+
+    report = engine_profile_last_report();
+    assert(report->frames == 2);
+    assert(report->interval_us == 20000 && report->update_us == 1200);
+    assert(report->phases_us[EP_PHASE_MAIN_QUEUE] == 1000);
+    assert(report->phases_us[EP_PHASE_FINISH] == 200);
+    assert(report->spans_us[EP_SPAN_PALETTE_LOOKUP] == 125);
+    assert(report->spans_us[EP_SPAN_UPLOAD] == 600);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_HITS] == 12);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_MISSES] == 3);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_EVICTIONS] == 1);
+    assert(report->count_max[EP_COUNT_PALETTE_CACHE_HITS] == 8);
+    assert(report->count_max[EP_COUNT_PALETTE_CACHE_MISSES] == 2);
+    assert(report->count_max[EP_COUNT_PALETTE_CACHE_EVICTIONS] == 1);
+    assert(report->counts[EP_COUNT_PALETTE_UPLOADS] == 3);
+    assert(report->counts[EP_COUNT_PALETTE_UPLOAD_BYTES] == 3072);
+    assert(report->count_max[EP_COUNT_PALETTE_UPLOADS] == 2);
+    assert(report->count_max[EP_COUNT_PALETTE_UPLOAD_BYTES] == 2048);
+
+    /* Verify the public log labels as well as raw array indices. Existing
+     * upload fields retain their meaning when the new fields are inserted. */
+    assert(strstr(test_span_log, " palette_lookup_ms=0.062500"));
+    assert(strstr(test_span_log, " upload_ms=0.300000"));
+    assert(strstr(test_count_mean_log, " palette_cache_hits=6.000000"));
+    assert(strstr(test_count_mean_log, " palette_cache_misses=1.500000"));
+    assert(strstr(test_count_mean_log, " palette_cache_evictions=0.500000"));
+    assert(strstr(test_count_mean_log, " palette_uploads=1.500000"));
+    assert(strstr(test_count_mean_log, " palette_upload_bytes=1536.000000"));
+    assert(strstr(test_count_max_log, " palette_cache_hits=8.000000"));
+    assert(strstr(test_count_max_log, " palette_cache_misses=2.000000"));
+    assert(strstr(test_count_max_log, " palette_cache_evictions=1.000000"));
 }
 
 /*
@@ -832,6 +945,7 @@ int main(int argc, char **argv)
     test_pending_window_and_counters();
     test_warmup_and_restart();
     test_exclusive_phases_and_inclusive_spans();
+    test_palette_cache_accounting();
     test_profile_entry_phase();
     test_cancel_pause_and_reset();
     test_nested_update();
@@ -841,6 +955,6 @@ int main(int argc, char **argv)
     test_cancelled_gpu_result();
     test_reconfigured_frame_identity();
     engine_profile_configure(0, 1, 0);
-    puts("Engine profiler tests passed: pairing, windows, phases, spans, counters, invalidation, p95, delayed GPU results.");
+    puts("Engine profiler tests passed: pairing, windows, phases, spans, counters, palette-cache accounting, invalidation, p95, delayed GPU results.");
     return 0;
 }

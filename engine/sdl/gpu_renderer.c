@@ -22,6 +22,12 @@
 
 #define GPU_CACHE_BUCKETS 1024
 #define GPU_BLEND_TABLE_SIZE (256 * 256)
+#define GPU_PALETTE_CACHE_BUCKETS 2048
+#define GPU_PALETTE_NO_SLOT (-1)
+#define GPU_PALETTE_HASH_SEED UINT32_C(2166136261)
+#define GPU_PALETTE_HASH_MULTIPLIER UINT32_C(16777619)
+#define GPU_PALETTE_HASH_MIX_FIRST UINT32_C(0x85ebca6b)
+#define GPU_PALETTE_HASH_MIX_SECOND UINT32_C(0xc2b2ae35)
 #define GPU_QUERY_CAPACITY 256
 #define GPU_QUERY_TOKEN_BITS 9
 #define GPU_QUERY_SLOT_MASK ((UINT64_C(1) << GPU_QUERY_TOKEN_BITS) - 1)
@@ -56,6 +62,7 @@ static PFNGLUSEPROGRAMPROC gpu_UseProgram;
 static PFNGLDELETEPROGRAMPROC gpu_DeleteProgram;
 static PFNGLGETUNIFORMLOCATIONPROC gpu_GetUniformLocation;
 static PFNGLUNIFORM1IPROC gpu_Uniform1i;
+static PFNGLUNIFORM1FPROC gpu_Uniform1f;
 static PFNGLUNIFORM2FPROC gpu_Uniform2f;
 static PFNGLUNIFORM3FPROC gpu_Uniform3f;
 static PFNGLACTIVETEXTUREPROC gpu_ActiveTexture;
@@ -82,10 +89,21 @@ typedef struct gpu_uniforms
 {
     GLint target_size, source_size;
     GLint source, palette, mask, destination, tables;
+    GLint palette_row;
     GLint indexed, masked, color_key, fill, has_destination, wrap;
     GLint blend_mode, tint_mode, table_mask;
     GLint fill_color, tint_color, channels;
 } gpu_uniforms;
+
+typedef struct gpu_palette_entry
+{
+    /* Own the exact values instead of retaining a caller's palette pointer.
+     * Scripts may mutate or release that allocation before the next draw. */
+    uint32_t colors[GPU_PALETTE_COLORS];
+    uint32_t hash;
+    int hash_next;
+    int lru_previous, lru_next;
+} gpu_palette_entry;
 
 static gpu_image *image_cache[GPU_CACHE_BUCKETS];
 static gpu_quad *quad_buffer;
@@ -95,8 +113,13 @@ static GLuint program, white_texture, palette_texture, table_texture;
 static gpu_uniforms uniforms;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
-static int initialized, tables_dirty = 1, table_mask, palette_valid;
-static unsigned palette_cache[256];
+static int initialized, tables_dirty = 1, table_mask;
+static gpu_palette_entry palette_cache[GPU_PALETTE_CACHE_CAPACITY];
+static int palette_buckets[GPU_PALETTE_CACHE_BUCKETS];
+static int palette_cache_count;
+static int palette_lru_head = GPU_PALETTE_NO_SLOT;
+static int palette_lru_tail = GPU_PALETTE_NO_SLOT;
+static int palette_selected_slot = GPU_PALETTE_NO_SLOT;
 static const unsigned char *table_pointers[MAX_BLENDINGS];
 static ep_fallback native_failure = EP_FALLBACK_OTHER;
 
@@ -492,6 +515,7 @@ static int gpu_load_functions(void)
     GPU_LOAD(DeleteProgram, PFNGLDELETEPROGRAMPROC);
     GPU_LOAD(GetUniformLocation, PFNGLGETUNIFORMLOCATIONPROC);
     GPU_LOAD(Uniform1i, PFNGLUNIFORM1IPROC);
+    GPU_LOAD(Uniform1f, PFNGLUNIFORM1FPROC);
     GPU_LOAD(Uniform2f, PFNGLUNIFORM2FPROC);
     GPU_LOAD(Uniform3f, PFNGLUNIFORM3FPROC);
     GPU_LOAD(ActiveTexture, PFNGLACTIVETEXTUREPROC);
@@ -968,40 +992,267 @@ static void gpu_dirty_tables(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
- * Update the small draw-time palette only when its actual values change.
- * Pointer identity alone is insufficient because scripts can edit a palette.
+ *
+ * Forget all palette residency after context replacement or an uncertain
+ * upload. Unreachable old CPU snapshots need not be cleared or reallocated.
+ */
+static void gpu_reset_palette_cache(void)
+{
+    int bucket;
+
+    /* Only entries reachable through a bucket or the selected-slot shortcut
+     * can be reused. Emptying those roots invalidates every previous row. */
+    for(bucket = 0; bucket < GPU_PALETTE_CACHE_BUCKETS; bucket++)
+    {
+        palette_buckets[bucket] = GPU_PALETTE_NO_SLOT;
+    }
+    palette_cache_count = 0;
+    palette_lru_head = GPU_PALETTE_NO_SLOT;
+    palette_lru_tail = GPU_PALETTE_NO_SLOT;
+    palette_selected_slot = GPU_PALETTE_NO_SLOT;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Hash the complete palette for bounded bucket lookup. Exact content checks
+ * resolve collisions; this process-local word hash is not an identity token.
+ */
+static uint32_t gpu_palette_hash(const unsigned char *palette)
+{
+    uint32_t hash = GPU_PALETTE_HASH_SEED;
+    unsigned color;
+
+    /* memcpy permits palettes supplied at an unaligned address and avoids
+     * aliasing assumptions. Word-at-a-time mixing shortens the dependency
+     * chain compared with separately hashing each of the palette's bytes. */
+    for(color = 0; color < GPU_PALETTE_COLORS; color++)
+    {
+        uint32_t value;
+        memcpy(&value, palette + color * sizeof(value), sizeof(value));
+        hash = (hash ^ value) * GPU_PALETTE_HASH_MULTIPLIER;
+    }
+
+    /* Diffuse upper color-channel bits into low bucket bits. Without this
+     * final mixing, palettes that differ only in upper bytes could collect
+     * in one bucket even when their full word hashes differ. */
+    hash ^= hash >> 16;
+    hash *= GPU_PALETTE_HASH_MIX_FIRST;
+    hash ^= hash >> 13;
+    hash *= GPU_PALETTE_HASH_MIX_SECOND;
+    hash ^= hash >> 16;
+    return hash;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Detach one resident slot from the recency list before promotion or reuse.
+ * Hash membership is independent and remains unchanged by a cache hit.
+ */
+static void gpu_palette_unlink_lru(int slot)
+{
+    gpu_palette_entry *entry = &palette_cache[slot];
+
+    /* Repair both neighbors, including either end of the list. A slot is
+     * always resident when this helper is called, so its links are current. */
+    if(entry->lru_previous != GPU_PALETTE_NO_SLOT)
+    {
+        palette_cache[entry->lru_previous].lru_next = entry->lru_next;
+    }
+    else
+    {
+        palette_lru_head = entry->lru_next;
+    }
+    if(entry->lru_next != GPU_PALETTE_NO_SLOT)
+    {
+        palette_cache[entry->lru_next].lru_previous = entry->lru_previous;
+    }
+    else
+    {
+        palette_lru_tail = entry->lru_previous;
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Place a detached or newly populated slot at the most-recently-used end.
+ */
+static void gpu_palette_link_front(int slot)
+{
+    gpu_palette_entry *entry = &palette_cache[slot];
+
+    /* New slots and promoted hits use the same list insertion. The first
+     * resident entry owns both endpoints; subsequent insertions keep tail. */
+    entry->lru_previous = GPU_PALETTE_NO_SLOT;
+    entry->lru_next = palette_lru_head;
+    if(palette_lru_head != GPU_PALETTE_NO_SLOT)
+    {
+        palette_cache[palette_lru_head].lru_previous = slot;
+    }
+    else
+    {
+        palette_lru_tail = slot;
+    }
+    palette_lru_head = slot;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Select an exact resident palette match and retain hot rows in constant
+ * recency-list time. No GL calls or uploads are required on this path.
+ */
+static void gpu_palette_select(int slot)
+{
+    /* Consecutive matching draws already use the list head. Other hits
+     * move only their own links; no full-cache scan or age counter is needed. */
+    if(palette_lru_head != slot)
+    {
+        gpu_palette_unlink_lru(slot);
+        gpu_palette_link_front(slot);
+    }
+    palette_selected_slot = slot;
+    stats.palette_cache_hits++;
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_HITS, 1);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Remove an evicted row from both lookup and recency structures. Collision
+ * chains retain their remaining entries even when the removed row is inside.
+ */
+static void gpu_palette_remove(int slot)
+{
+    gpu_palette_entry *entry = &palette_cache[slot];
+    unsigned bucket = entry->hash & (GPU_PALETTE_CACHE_BUCKETS - 1);
+    int *link = &palette_buckets[bucket];
+
+    /* Follow links by address so removing a chain head or interior entry
+     * uses the same update and never discards a colliding neighbor. */
+    while(*link != GPU_PALETTE_NO_SLOT && *link != slot)
+    {
+        link = &palette_cache[*link].hash_next;
+    }
+    if(*link == slot)
+    {
+        *link = entry->hash_next;
+    }
+    gpu_palette_unlink_lru(slot);
+    if(palette_selected_slot == slot)
+    {
+        palette_selected_slot = GPU_PALETTE_NO_SLOT;
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
+ *
+ * Resolve a palette by current contents and upload only cache misses. Each
+ * atlas row retains its own snapshot across draws and frames until evicted.
  */
 static int gpu_set_palette(const unsigned char *palette)
 {
+    uint32_t hash;
+    unsigned bucket;
+    int slot;
+    gpu_palette_entry *entry;
+    ep_scope lookup_scope, upload_scope;
+
     if(!palette)
     {
         native_failure = EP_FALLBACK_PALETTE;
         return 0;
     }
 
-    /* Comparing 256 entries also catches in-place palette edits. Cache the
-     * accepted values only after upload so failures remain retryable. */
-    if(!palette_valid || memcmp(palette_cache, palette, sizeof(palette_cache)))
+    /* Consecutive identical values need no hash traversal. Compare contents
+     * even when callers reuse one address so in-place edits remain visible. */
+    lookup_scope = engine_profile_span_begin();
+    if(palette_selected_slot != GPU_PALETTE_NO_SLOT &&
+       !memcmp(palette_cache[palette_selected_slot].colors, palette, GPU_PALETTE_BYTES))
     {
-        ep_scope upload_scope = engine_profile_span_begin();
-        gpu_bind_texture(1, palette_texture);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 256, 1, GPU_PACKED_FORMAT,
-                       GL_UNSIGNED_INT_8_8_8_8_REV, palette);
-        if(glGetError() != GL_NO_ERROR)
-        {
-            engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
-            native_failure = EP_FALLBACK_RESOURCE;
-            return 0;
-        }
-        engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
-        engine_profile_count(EP_COUNT_PALETTE_UPLOADS, 1);
-        engine_profile_count(EP_COUNT_PALETTE_UPLOAD_BYTES, sizeof(palette_cache));
-        memcpy(palette_cache, palette, sizeof(palette_cache));
-        palette_valid = 1;
-        stats.uploads++;
+        gpu_palette_select(palette_selected_slot);
+        engine_profile_span_end(lookup_scope, EP_SPAN_PALETTE_LOOKUP);
+        return 1;
     }
+
+    /* Values, not pointer identity, determine residency. Matching hashes
+     * still require an exact full-palette comparison, including entry zero. */
+    hash = gpu_palette_hash(palette);
+    bucket = hash & (GPU_PALETTE_CACHE_BUCKETS - 1);
+    for(slot = palette_buckets[bucket]; slot != GPU_PALETTE_NO_SLOT;
+        slot = palette_cache[slot].hash_next)
+    {
+        entry = &palette_cache[slot];
+        if(entry->hash == hash && !memcmp(entry->colors, palette, GPU_PALETTE_BYTES))
+        {
+            gpu_palette_select(slot);
+            engine_profile_span_end(lookup_scope, EP_SPAN_PALETTE_LOOKUP);
+            return 1;
+        }
+    }
+    stats.palette_cache_misses++;
+    engine_profile_count(EP_COUNT_PALETTE_CACHE_MISSES, 1);
+    slot = palette_cache_count < GPU_PALETTE_CACHE_CAPACITY
+         ? palette_cache_count : palette_lru_tail;
+    engine_profile_span_end(lookup_scope, EP_SPAN_PALETTE_LOOKUP);
+
+    /* Fill unused rows first, then replace the least-recently-used row.
+     * Ordered GL commands preserve earlier draws that sampled an evicted
+     * row; the new contents apply only to subsequent draw submissions. */
+    upload_scope = engine_profile_span_begin();
+    gpu_bind_texture(1, palette_texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, slot, GPU_PALETTE_COLORS, 1, GPU_PACKED_FORMAT,
+                   GL_UNSIGNED_INT_8_8_8_8_REV, palette);
+    if(glGetError() != GL_NO_ERROR)
+    {
+        engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+
+        /* A pending driver error does not prove the upload left its row
+         * unchanged. Forget all lookup roots, including the fast path, so
+         * later draws cannot reuse a CPU snapshot with uncertain GPU data. */
+        gpu_reset_palette_cache();
+        native_failure = EP_FALLBACK_RESOURCE;
+        return 0;
+    }
+    engine_profile_span_end(upload_scope, EP_SPAN_UPLOAD);
+    engine_profile_count(EP_COUNT_PALETTE_UPLOADS, 1);
+    engine_profile_count(EP_COUNT_PALETTE_UPLOAD_BYTES, GPU_PALETTE_BYTES);
+    stats.palette_uploads++;
+    stats.uploads++;
+
+    /* Publish the new contents only after a successful transfer. Old rows
+     * remain immutable snapshots until selected as victims; returning to an
+     * earlier palette value can therefore hit even after in-place edits. */
+    if(palette_cache_count == GPU_PALETTE_CACHE_CAPACITY)
+    {
+        gpu_palette_remove(slot);
+        stats.palette_cache_evictions++;
+        engine_profile_count(EP_COUNT_PALETTE_CACHE_EVICTIONS, 1);
+    }
+    else
+    {
+        palette_cache_count++;
+    }
+    entry = &palette_cache[slot];
+    memcpy(entry->colors, palette, GPU_PALETTE_BYTES);
+    entry->hash = hash;
+    entry->hash_next = palette_buckets[bucket];
+    palette_buckets[bucket] = slot;
+    gpu_palette_link_front(slot);
+    palette_selected_slot = slot;
     return 1;
 }
 
@@ -1325,6 +1576,12 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
                   source ? (float)source->height : 1.0f);
     gpu_Uniform1i(uniforms.source, 0);
     gpu_Uniform1i(uniforms.palette, 1);
+    /* Palette selection changes a row coordinate rather than replacing a
+     * shared 1 KiB texture on every alternating indexed draw. Non-indexed
+     * draws ignore it; indexed fills retain their source-coverage behavior. */
+    gpu_Uniform1f(uniforms.palette_row,
+                  ((float)(palette_selected_slot == GPU_PALETTE_NO_SLOT
+                           ? 0 : palette_selected_slot) + 0.5f) / GPU_PALETTE_CACHE_CAPACITY);
     gpu_Uniform1i(uniforms.mask, 2);
     gpu_Uniform1i(uniforms.destination, 3);
     gpu_Uniform1i(uniforms.tables, 4);
@@ -1978,7 +2235,10 @@ int gpu_gl_init(void)
         goto failed;
     }
     white_texture = gpu_new_texture(1, 1, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, white);
-    palette_texture = gpu_new_texture(256, 1, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    /* Reserve one bounded atlas for all palette rows. Content snapshots
+     * become resident lazily, while the allocation stays fixed at 1 MiB. */
+    palette_texture = gpu_new_texture(GPU_PALETTE_COLORS, GPU_PALETTE_CACHE_CAPACITY,
+                                      GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     table_texture = gpu_new_texture(256, 1536, GL_LUMINANCE8, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
     if(!white_texture || !palette_texture || !table_texture)
     {
@@ -1992,6 +2252,7 @@ int gpu_gl_init(void)
     GPU_UNIFORM(source_size, "sourceSize");
     GPU_UNIFORM(source, "sourceTexture");
     GPU_UNIFORM(palette, "paletteTexture");
+    GPU_UNIFORM(palette_row, "paletteRow");
     GPU_UNIFORM(mask, "maskTexture");
     GPU_UNIFORM(destination, "destinationTexture");
     GPU_UNIFORM(tables, "blendTableTexture");
@@ -2015,7 +2276,7 @@ int gpu_gl_init(void)
     gpu_DeleteShader(fragment);
     memset(&stats, 0, sizeof(stats));
     memset(table_pointers, 0, sizeof(table_pointers));
-    palette_valid = 0;
+    gpu_reset_palette_cache();
     tables_dirty = 1;
     table_mask = 0;
     initialized = 1;
@@ -2023,6 +2284,13 @@ int gpu_gl_init(void)
     gpu_gl_prepare_present();
     engine_profile_log("kind=renderer state=enabled native_active=1 target_format=RGB32 source_formats=indexed_RGB32 max_texture=%d texture_units=%d",
                        maximum_texture_size, units);
+    engine_profile_log("kind=palette_cache state=enabled capacity=%u palette_bytes=%" PRIu64
+                       " gpu_bytes=%" PRIu64 " cpu_bytes=%" PRIu64 " policy=content_lru",
+                       (unsigned)GPU_PALETTE_CACHE_CAPACITY, (uint64_t)GPU_PALETTE_BYTES,
+                       (uint64_t)GPU_PALETTE_CACHE_CAPACITY * GPU_PALETTE_BYTES,
+                       (uint64_t)(sizeof(palette_cache) + sizeof(palette_buckets)
+                                  + sizeof(palette_cache_count) + sizeof(palette_lru_head)
+                                  + sizeof(palette_lru_tail) + sizeof(palette_selected_slot)));
     gpu_query_init();
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
     return 1;
@@ -2054,6 +2322,7 @@ failed:
         glDeleteTextures(1, &table_texture);
     }
     program = white_texture = palette_texture = table_texture = 0;
+    gpu_reset_palette_cache();
     engine_profile_log("kind=renderer state=unavailable reason=initialization_failed native_active=0");
     fprintf(stderr, "Native GPU scene renderer unavailable; retaining software rendering.\n");
     return 0;
@@ -2113,6 +2382,7 @@ void gpu_gl_shutdown(void)
     quad_buffer = NULL;
     quad_count = quad_capacity = 0;
     program = white_texture = palette_texture = table_texture = 0;
+    gpu_reset_palette_cache();
     initialized = 0;
 }
 

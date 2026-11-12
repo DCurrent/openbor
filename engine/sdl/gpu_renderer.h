@@ -9,6 +9,12 @@
 #include "types.h"
 #include <stdint.h>
 
+/* Each resident atlas row owns a complete immutable palette snapshot. The
+ * fixed limit bounds both GPU storage and the matching CPU content cache. */
+#define GPU_PALETTE_COLORS 256
+#define GPU_PALETTE_CACHE_CAPACITY 1024
+#define GPU_PALETTE_BYTES (GPU_PALETTE_COLORS * sizeof(uint32_t))
+
 /* Logical image row zero is texture row zero, matching the old upload path. */
 int gpu_gl_init(void);
 void gpu_gl_shutdown(void);
@@ -23,6 +29,10 @@ typedef struct gpu_renderer_stats
     unsigned long readbacks;
     unsigned long destination_copies;
     unsigned long fallback_draws;
+    unsigned long palette_cache_hits;
+    unsigned long palette_cache_misses;
+    unsigned long palette_cache_evictions;
+    unsigned long palette_uploads;
 } gpu_renderer_stats;
 const gpu_renderer_stats *gpu_gl_get_stats(void);
 

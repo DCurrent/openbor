@@ -172,6 +172,88 @@ static void test_native_profile_counters(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * Attribute palette hits, misses and row uploads to an accepted frame without
+ * confusing unchanged indexed pixels with new palette content versions.
+ */
+static void test_native_profile_palette_counters(void)
+{
+    uint32_t first[GPU_PALETTE_COLORS] = {0};
+    uint32_t second[GPU_PALETTE_COLORS] = {0};
+    uint32_t equal_contents[GPU_PALETTE_COLORS];
+    s_screen *source = test_screen(4, 1, PIXEL_x8);
+    s_screen *target = test_screen(4, 1, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    const ep_report *report;
+    uint64_t frame;
+    unsigned index;
+
+    first[1] = UINT32_C(0x00112233);
+    second[1] = UINT32_C(0x00445566);
+    memcpy(equal_contents, first, GPU_PALETTE_BYTES);
+    memcpy(source->palette, first, GPU_PALETTE_BYTES);
+    memset(source->data, 1, 4);
+    engine_profile_configure(1, 1, 0);
+    assert(SDL_setenv("OPENBOR_PROFILE_GPU", "0", 1) == 0);
+    assert(gpu_gl_init());
+
+    /* Warm both images and the first palette outside the collection window.
+     * Every later pixel upload would therefore be an unintended reupload. */
+    assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+    frame = profile_test_begin(target);
+    assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+    method.table = (unsigned char *)second;
+    assert(gpu_draw_screen(target, source, 0, 0, &method));
+    assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+    method.table = (unsigned char *)equal_contents;
+    assert(gpu_draw_screen(target, source, 0, 0, &method));
+    ((uint32_t *)source->palette)[1] = UINT32_C(0x00778899);
+    assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+    memcpy(source->palette, first, GPU_PALETTE_BYTES);
+    assert(gpu_draw_screen(target, source, 0, 0, &plainmethod));
+    assert(profile_test_read_pixel(target, 1, 0) == first[1]);
+    report = profile_test_finish(frame, target);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_HITS] == 4);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_MISSES] == 2);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_EVICTIONS] == 0);
+    assert(report->counts[EP_COUNT_PALETTE_UPLOADS] == 2);
+    assert(report->counts[EP_COUNT_PALETTE_UPLOAD_BYTES] == 2 * GPU_PALETTE_BYTES);
+    assert(report->counts[EP_COUNT_IMAGE_UPLOADS] == 0);
+    assert(report->counts[EP_COUNT_IMAGE_UPLOAD_BYTES] == 0);
+    assert(report->counts[EP_COUNT_NATIVE_DRAWS] == 6);
+    release_test_screen(target);
+    release_test_screen(source);
+    gpu_gl_shutdown();
+
+    /* Start a separate empty cache and exceed its capacity inside one frame.
+     * Exactly one row replacement must appear in the eviction counter. */
+    source = test_screen(4, 1, PIXEL_x8);
+    target = test_screen(4, 1, PIXEL_32);
+    memset(source->data, 1, 4);
+    engine_profile_configure(1, 1, 0);
+    assert(gpu_gl_init());
+    frame = profile_test_begin(target);
+    for(index = 0; index <= GPU_PALETTE_CACHE_CAPACITY; ++index)
+    {
+        first[1] = UINT32_C(0x00200000) + index;
+        method.table = (unsigned char *)first;
+        assert(gpu_draw_screen(target, source, 0, 0, &method));
+    }
+    assert(profile_test_read_pixel(target, 1, 0) == first[1]);
+    report = profile_test_finish(frame, target);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_HITS] == 0);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_MISSES] == GPU_PALETTE_CACHE_CAPACITY + 1);
+    assert(report->counts[EP_COUNT_PALETTE_CACHE_EVICTIONS] == 1);
+    assert(report->counts[EP_COUNT_PALETTE_UPLOADS] == GPU_PALETTE_CACHE_CAPACITY + 1);
+    assert(report->counts[EP_COUNT_PALETTE_UPLOAD_BYTES] ==
+           (GPU_PALETTE_CACHE_CAPACITY + 1) * GPU_PALETTE_BYTES);
+    release_test_screen(target);
+    release_test_screen(source);
+    gpu_gl_shutdown();
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-12
  *
  * Verify nested timestamp pairs and a saturated ring against a real driver.
  * Pixel assertions complete actual rendering before polling, so production
@@ -403,6 +485,7 @@ int main(void)
     assert(LoadGLFunctions());
     test_native_profile_disabled();
     test_native_profile_counters();
+    test_native_profile_palette_counters();
     timestamps_supported = test_native_profile_queries();
     if(timestamps_supported)
     {

@@ -40,6 +40,8 @@ typedef enum ep_span_kind
     EP_SPAN_GPU_GEOMETRY,
     EP_SPAN_GPU_STATE,
     EP_SPAN_GPU_SUBMIT,
+    /* Content lookup and hit-side LRU work end before any upload. */
+    EP_SPAN_PALETTE_LOOKUP,
     EP_SPAN_UPLOAD,
     EP_SPAN_READBACK,
     EP_SPAN_DEST_COPY,
@@ -66,6 +68,10 @@ typedef enum ep_counter
     EP_COUNT_IMAGE_UPLOAD_BYTES,
     EP_COUNT_PALETTE_UPLOADS,
     EP_COUNT_PALETTE_UPLOAD_BYTES,
+    /* Residency events remain distinct from successful GPU updates. */
+    EP_COUNT_PALETTE_CACHE_HITS,
+    EP_COUNT_PALETTE_CACHE_MISSES,
+    EP_COUNT_PALETTE_CACHE_EVICTIONS,
     EP_COUNT_TABLE_UPLOADS,
     EP_COUNT_TABLE_UPLOAD_BYTES,
     EP_COUNT_READBACKS,
