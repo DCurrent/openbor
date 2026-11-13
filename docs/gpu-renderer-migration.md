@@ -51,6 +51,63 @@ palette reuse and subsequent context-local state caching. Palette-only commit
 Both changes retain draw order and existing render operations; neither adds
 cross-entry draw batching.
 
+## Startup capability report
+
+Video initialization writes a prominent `[GPU]` section to the ordinary
+`Logs/OpenBorLog.txt`, before gameplay and before any scene draw is required.
+The report also runs when a video mode recreates the graphics context. These
+records are independent of profiling and remain visible with
+`OPENBOR_PROFILE=0`; no per-frame logging is added.
+
+The graphics section identifies the requested presenter, scene dimensions and
+bit depth, CPU output-filter selection, and the actual presenter selected.
+The native OpenGL capability check reports:
+
+- Driver vendor, renderer name, OpenGL version and GLSL version.
+- Every missing required shader or framebuffer entry point, including the
+  framebuffer extension alternatives.
+- Maximum texture size, fragment texture units and fragment-uniform capacity,
+  with the native requirements beside the reported limits.
+- Actual shader compilation and linking, including driver diagnostics on
+  failure and any retry without the optional affine shader.
+- Shared texture allocation and a real 1x1 RGBA8 framebuffer completeness
+  probe, using the existing white texture without drawing into it.
+
+Each native capability report ends with one of these results:
+
+| Result | Meaning |
+| --- | --- |
+| `NATIVE` | Native scene rendering and affine transforms are available within the backend's supported formats and draw methods. |
+| `LIMITED NATIVE` | The material renderer is available, while affine transforms use CPU software rendering. |
+| `SOFTWARE` | Native scene rendering is unavailable or explicitly disabled; scene draws use CPU software rendering. |
+
+Missing capabilities and initialization failures produce `WARNING` records
+with the cause, the work that moves to the CPU, and the statement
+`Significant slowdown is possible.` For example, insufficient affine capacity
+produces these records during initialization:
+
+```text
+[GPU] WARNING: Insufficient fragment uniform components for native affine transforms: 64 available, 256 required. Affine draws will use CPU software rendering.
+[GPU] RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.
+[GPU] WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.
+```
+
+Intentional settings are identified as configuration choices. Selecting SDL
+presentation, enabling a CPU output filter, or setting `OPENBOR_GPU=0` is not
+reported as a GPU capability defect. If a setting prevents native
+initialization, the log explicitly says the native capabilities were not
+tested. Accelerated SDL presentation only displays the completed image and
+does not establish native scene rendering. Recognized software OpenGL driver
+names also trigger a warning: a usable shader backend on such a driver still
+executes on the CPU.
+
+Successful initialization cannot predict every future image or operation.
+The startup report lists potential CPU fallback for 8/16-bit destinations,
+unsupported draw methods, numerically extreme transforms, images exceeding
+the reported texture-size limit, and resource allocation failures. Existing
+coherent fallback remains available; its potential performance cost is visible
+at startup rather than waiting for an affected draw.
+
 ## Where the boundary moved
 
 `gpu.c`/`gpu.h` provide window-system-independent dispatch and synchronization.
@@ -272,8 +329,9 @@ Native affine requires at least 256 fragment-uniform components, allowing
 conservative array padding. Contexts with less capacity retain the earlier
 native renderer and use software for affine draws. If an older compiler rejects
 the optional affine shader, initialization retries the earlier material shader.
-The renderer log records
-`fragment_uniform_components` and `native_affine`. Repeated affine draws
+The ordinary startup capability report warns about the reason and the CPU
+performance consequence before any affine draw. Optional profiling records
+also retain `fragment_uniform_components` and `native_affine`. Repeated affine draws
 validate every instance first and retain their original blending order.
 
 ## Validation
@@ -286,6 +344,11 @@ The suites cover:
 - Existing stable queue sorting.
 - All byte pairs for the six blend equations.
 - Transform parameter validation and emitted geometry.
+- Startup capability reports with profiling disabled, limited native and full
+  software fallback warnings, real shader compile/link failures, framebuffer
+  rejection, clean GL error handling, and no repeated draw-time log output.
+- Production GPU logging routed to the ordinary engine log independently of
+  profiling, including bounded and literal driver diagnostics.
 - Production rasterizers with a separate-image mock backend to check ownership,
   fallback, indexed operations, replay semantics and resource eviction.
 - Actual OpenGL capture/reuse, no-readback assertions, dirty uploads, palettes,

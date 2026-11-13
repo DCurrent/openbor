@@ -41,6 +41,12 @@ int opengl = 0; // OpenGL backend currently in use?
 int nativeWidth, nativeHeight; // monitor resolution used in fullscreen mode
 int brightness = 0;
 
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Initialize SDL and expose an unavailable GL library in the startup log.
+ * Later video initialization reports the actual selected rendering path.
+ */
 void initSDL()
 {
 	SDL_DisplayMode video_info;
@@ -58,7 +64,7 @@ void initSDL()
 #ifdef LOADGL
 	if(SDL_GL_LoadLibrary(NULL) < 0)
 	{
-		printf("Warning: couldn't load OpenGL library (%s)\n", SDL_GetError());
+		gpu_log("WARNING: OpenGL library loading failed: %s. GPU rendering may be unavailable; video initialization will report the selected fallback.", SDL_GetError());
 	}
 #endif
 
@@ -79,6 +85,7 @@ static unsigned pixelformats[4] = {SDL_PIXELFORMAT_INDEX8, SDL_PIXELFORMAT_BGR56
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Keep window/presenter creation failures in startup diagnostics.
  * Prepare the SDL window for the selected presentation backend. Keep resource
  * destruction in ownership order, preserving GPU-backed screen contents before
  * replacing a window whose graphics context owns those screens.
@@ -170,7 +177,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		window = SDL_CreateWindow(windowTitle, last_x, last_y, w, h, flags);
 		if(!window)
 		{
-			printf("Error: failed to create window: %s\n", SDL_GetError());
+			gpu_log("ERROR: Failed to create the %s presentation window: %s.", gl ? "OpenGL" : "SDL", SDL_GetError());
 			return 0;
 		}
 		
@@ -190,7 +197,7 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 		renderer = SDL_CreateRenderer(window, -1, savedata.fpslimit == 1 ? SDL_RENDERER_PRESENTVSYNC : 0);
 		if(!renderer)
 		{
-			printf("Error: failed to create renderer: %s\n", SDL_GetError());
+			gpu_log("ERROR: Failed to create the SDL presenter: %s.", SDL_GetError());
 			return 0;
 		}
 	}
@@ -201,12 +208,41 @@ int SetVideoMode(int w, int h, int bpp, bool gl)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Report mode settings and CPU drawing consequences without profiling.
  * Select presentation for a normal game screen. Preserve the original mode
  * for restoration, prepare any CPU conversion/filter surfaces, and choose
  * OpenGL or the SDL streaming-texture path using the existing user settings.
  */
 int video_set_mode(s_videomodes videomodes)
 {
+	int requested_gl = savedata.usegl;
+	int filter_active = savedata.swfilter && (savedata.hwscale >= 2.0 || savedata.fullscreen);
+	int report_mode = videomodes.hRes > 0 && videomodes.vRes > 0;
+
+	/* Report the authored scene format before conversion or filtering changes
+	 * the presentation image. These diagnostics run only at mode initialization. */
+	if(report_mode)
+	{
+		gpu_log("========== GRAPHICS INITIALIZATION ==========");
+		gpu_log("Requested presentation=%s; scene=%dx%d, %d-bit; CPU output filter=%s (filter=%d).",
+		        requested_gl ? "OpenGL" : "SDL", videomodes.hRes, videomodes.vRes,
+		        videomodes.pixel * 8, filter_active ? "active" : "inactive", savedata.swfilter);
+		if(videomodes.pixel != 4)
+		{
+			gpu_log("WARNING: The %d-bit main scene uses CPU drawing. Native scene targets require RGB32; converting the finished image for presentation does not accelerate scene drawing. Significant slowdown is possible.", videomodes.pixel * 8);
+		}
+		if(!requested_gl)
+		{
+			gpu_log("WARNING: SDL presentation is selected in settings. Scene drawing will use the CPU. Significant slowdown is possible. Native OpenGL capabilities are not tested in this mode.");
+		}
+#ifndef OPENGL
+		else
+		{
+			gpu_log("WARNING: This build has no native OpenGL backend. Requested OpenGL presentation will use the SDL path with CPU scene drawing. Significant slowdown is possible.");
+		}
+#endif
+	}
+
 	/* Configuration changes can replace the renderer or its synchronization
 	 * policy. Finish the old measurement window before recording the new mode. */
 	engine_profile_reset("video_mode");
@@ -240,6 +276,7 @@ int video_set_mode(s_videomodes videomodes)
 	 */
 	if(savedata.usegl && video_gl_set_mode(videomodes))
 	{
+		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
 		return 1;
 	}
 	else
@@ -251,6 +288,7 @@ int video_set_mode(s_videomodes videomodes)
 	                 videomodes.vRes * videomodes.vScale,
 	                 videomodes.pixel * 8, false))
 	{
+		if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
 		return 0;
 	}
 
@@ -269,6 +307,10 @@ int video_set_mode(s_videomodes videomodes)
 	                            pixelformats[videomodes.pixel-1],
 	                            SDL_TEXTUREACCESS_STREAMING,
 	                            videomodes.hRes, videomodes.vRes);
+	if(!texture)
+	{
+		gpu_log("ERROR: SDL presentation texture creation failed: %s.", SDL_GetError());
+	}
 
 	SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -279,6 +321,11 @@ int video_set_mode(s_videomodes videomodes)
 	{
 		SDL_RendererInfo information;
 		int information_valid = SDL_GetRendererInfo(renderer, &information) == 0;
+		gpu_log("SDL presentation %s: driver=%s; presentation acceleration=%s; scene drawing=CPU.",
+		        texture ? "ready" : "unavailable",
+		        information_valid && information.name ? information.name : "unknown",
+		        information_valid ? ((information.flags & SDL_RENDERER_ACCELERATED) ? "yes" : "no") : "unknown");
+		gpu_log("SDL presentation acceleration only displays completed images; it does not enable native scene drawing.");
 		engine_profile_log("kind=video_backend backend=SDL native_active=%d driver=%s "
 		                   "requested_vsync=%d actual_vsync=%d refresh_hz=%d output_bytes=%d",
 		                   gpu_is_active(), information_valid && information.name ? information.name : "unknown",
@@ -287,6 +334,7 @@ int video_set_mode(s_videomodes videomodes)
 		                   video_current_refresh_rate(), videomodes.pixel);
 	}
 
+	if(report_mode) gpu_log("========== END GRAPHICS INITIALIZATION ==========");
 	return 1;
 }
 
@@ -443,6 +491,12 @@ void video_set_color_correction(int gm, int br)
 	if(opengl) video_gl_set_color_correction(gm, br);
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Report the actual movie presenter after selecting the existing GL or SDL
+ * upload path. Playback does not enable native scene drawing.
+ */
 int video_setup_yuv_overlay(const yuv_video_mode *mode)
 {
 	stored_yuv_mode = *mode;
@@ -457,6 +511,14 @@ int video_setup_yuv_overlay(const yuv_video_mode *mode)
 	                            mode->width, mode->height);
 	if(!stretch)
 		SDL_RenderSetLogicalSize(renderer, mode->display_width, mode->display_height);
+	if(texture)
+	{
+		gpu_log("Video playback uses SDL YUV presentation. Native scene drawing remains inactive in this mode.");
+	}
+	else
+	{
+		gpu_log("ERROR: SDL YUV presentation texture creation failed: %s.", SDL_GetError());
+	}
 	return texture ? 1 : 0;
 }
 

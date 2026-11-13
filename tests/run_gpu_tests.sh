@@ -135,6 +135,13 @@ bash tests/test_interpreter_dispatch_codegen.sh "${test_dispatch_objects[@]}"
 # collection windows and exercises GPU query opt-out separately.
 export OPENBOR_PROFILE=0
 
+# Compile the actual production log path without PP_TEST. Renderer capability
+# records must still reach writeToLogFile when profiling is disabled.
+"$test_compiler" "${test_flags[@]}" -UPP_TEST tests/test_gpu_logging.c \
+    engine/source/gamelib/gpu.c "${test_profile_sources[@]}" \
+    "${test_link_flags[@]}" -o "$test_build_dir/test_gpu_logging"
+run_test "$test_build_dir/test_gpu_logging"
+
 # Run context-independent contracts first so hosts without SDL still verify
 # stable ordering, transform arithmetic, and CPU/GPU ownership transitions.
 "$test_compiler" "${test_flags[@]}" tests/test_spriteq_sort.c \
@@ -197,6 +204,13 @@ test_gpu_sources=(engine/source/gamelib/gpu.c engine/source/gamelib/gpu_shader.c
     engine/source/gamelib/gpu_transform.c engine/sdl/gpu_renderer.c engine/sdl/loadgl.c
     "${test_profile_sources[@]}")
 export SDL_VIDEODRIVER=${SDL_VIDEODRIVER:-offscreen}
+
+# Capability failures must be prominent before the first scene draw even when
+# profiling is disabled. Loader interception belongs only to this fixture.
+"$test_compiler" "${test_gpu_flags[@]}" tests/test_gpu_capabilities.c \
+    "${test_gpu_sources[@]}" "${test_link_flags[@]}" "${test_sdl_libs[@]}" \
+    -Wl,--wrap=SDL_GL_GetProcAddress -o "$test_build_dir/test_gpu_capabilities"
+run_test "$test_build_dir/test_gpu_capabilities"
 
 # Native suites require a real GL context. Keep lifecycle/capture checks,
 # pixel-level transform comparisons, and presentation transitions separate

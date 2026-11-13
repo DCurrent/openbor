@@ -506,11 +506,13 @@ static void gpu_fatal(const char *operation)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Report every missing required entry point in the startup log.
  * Obtain shader/FBO entry points from SDL's current context. EXT FBO names
  * retain support for the engine's existing desktop compatibility context.
  */
 static int gpu_load_functions(void)
 {
+    int available = 1;
     /* Resolve the complete dispatch set before registering the backend.
      * Missing entry points leave the existing software renderer available. */
 #define GPU_LOAD(name, type) \
@@ -520,7 +522,8 @@ static int gpu_load_functions(void)
         if(!gpu_##name) \
         { \
             engine_profile_log("kind=renderer state=unavailable reason=missing_entry_point function=gl" #name); \
-            return 0; \
+            gpu_log("WARNING: Required OpenGL entry point gl" #name " is missing."); \
+            available = 0; \
         } \
     } while(0)
 #define GPU_LOAD_FBO(name, type) \
@@ -534,7 +537,8 @@ static int gpu_load_functions(void)
         if(!gpu_##name) \
         { \
             engine_profile_log("kind=renderer state=unavailable reason=missing_entry_point function=gl" #name); \
-            return 0; \
+            gpu_log("WARNING: Required OpenGL entry point gl" #name " is missing (including its EXT alternative)."); \
+            available = 0; \
         } \
     } while(0)
     GPU_LOAD_FBO(GenFramebuffers, PFNGLGENFRAMEBUFFERSPROC);
@@ -563,7 +567,7 @@ static int gpu_load_functions(void)
     GPU_LOAD(ActiveTexture, PFNGLACTIVETEXTUREPROC);
 #undef GPU_LOAD_FBO
 #undef GPU_LOAD
-    return 1;
+    return available;
 }
 
 /*
@@ -581,6 +585,8 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
     if(!shader)
     {
         engine_profile_log("kind=renderer state=unavailable reason=shader_allocation type=%u", (unsigned)type);
+        gpu_log("WARNING: %s %s shader allocation failed.", affine_supported ? "affine" : "material",
+                type == GL_VERTEX_SHADER ? "vertex" : "fragment");
         return 0;
     }
 
@@ -596,8 +602,14 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
     {
         /* Keep the driver's explanation before releasing the failed object,
          * so startup can report the shader issue and retain software drawing. */
+        message[0] = '\0';
         gpu_GetShaderInfoLog(shader, sizeof(message), NULL, message);
+        message[sizeof(message) - 1] = '\0';
         engine_profile_log("kind=renderer state=unavailable reason=shader_compile diagnostic=\"%s\"", message);
+        gpu_log("WARNING: %s %s shader compilation failed. Driver diagnostic: %s",
+                affine_supported ? "affine" : "material",
+                type == GL_VERTEX_SHADER ? "vertex" : "fragment",
+                message[0] ? message : "not provided");
         fprintf(stderr, "GPU renderer shader: %s\n", message);
         gpu_DeleteShader(shader);
         return 0;
@@ -2609,20 +2621,103 @@ static const gpu_backend renderer_backend = {
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ * Prove the RGB32 render-target format works before advertising native scene
+ * drawing. Entry points alone cannot establish framebuffer completeness.
+ */
+static int gpu_probe_rgb32_target(void)
+{
+    GLuint framebuffer = 0;
+    GLenum status = 0, error, cleanup_error;
+
+    /* The shared white texel already has the required RGBA8 storage. Attaching
+     * it temporarily requires no scene owner, pixel transfer, clear or draw. */
+    gpu_GenFramebuffers(1, &framebuffer);
+    if(framebuffer)
+    {
+        gpu_BindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        gpu_FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                GL_TEXTURE_2D, white_texture, 0);
+        status = gpu_CheckFramebufferStatus(GL_FRAMEBUFFER);
+    }
+    error = glGetError();
+
+    /* Detach the probe from the active context before deleting it, including
+     * failed probes. Subsequent owners must restore their own cached state. */
+    gpu_BindFramebuffer(GL_FRAMEBUFFER, 0);
+    if(framebuffer)
+    {
+        gpu_DeleteFramebuffers(1, &framebuffer);
+    }
+    gpu_gl_invalidate_state();
+    cleanup_error = glGetError();
+    if(error == GL_NO_ERROR)
+    {
+        error = cleanup_error;
+    }
+    if(!framebuffer || status != GL_FRAMEBUFFER_COMPLETE || error != GL_NO_ERROR)
+    {
+        engine_profile_log("kind=renderer state=unavailable reason=RGB32_framebuffer status=0x%x GL_error=0x%x",
+                           (unsigned)status, (unsigned)error);
+        gpu_log("WARNING: RGB32 framebuffer probe failed: status=0x%x, GL error=0x%x.",
+                (unsigned)status, (unsigned)error);
+        return 0;
+    }
+    gpu_log("RGB32 framebuffer probe: passed (1x1 RGBA8 render target).");
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Close every startup capability report with its actual drawing path and
+ * performance consequences, independently of optional profiling records.
+ */
+static void gpu_log_capability_result(int native_available)
+{
+    if(native_available)
+    {
+        if(affine_supported)
+        {
+            gpu_log("RESULT: NATIVE - native scene rendering and affine transforms available.");
+        }
+        else
+        {
+            gpu_log("RESULT: LIMITED NATIVE - native scene rendering available; affine transforms use CPU software rendering.");
+            gpu_log("WARNING: Affine transforms will use CPU software rendering. Significant slowdown is possible.");
+        }
+        /* Startup validates this backend, not every future resource or effect.
+         * State these restrictions before gameplay can encounter a fallback. */
+        gpu_log("Native scope: RGB32 destinations; indexed and RGB32 sources; supported draw methods.");
+        gpu_log("Potential CPU fallbacks: 8/16-bit destinations, unsupported draw methods, numerically extreme transforms, images exceeding %d pixels on either axis, or resource allocation failures. Significant slowdown is possible when these paths are used.",
+                maximum_texture_size);
+    }
+    else
+    {
+        gpu_log("RESULT: SOFTWARE - native scene rendering unavailable; draws use CPU software rendering.");
+        gpu_log("WARNING: Scene drawing will use CPU software rendering. Significant slowdown is possible.");
+    }
+    gpu_log("========== END GPU CAPABILITY REPORT ==========");
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * 2026-11-13 - Keep affine uniform capacity optional for existing GL contexts.
+ * 2026-11-13 - Report startup capabilities and fallback costs without profiling.
  * Initialize native scene rendering only after all required capabilities and
  * shader resources are usable. Failure leaves the existing renderer intact.
  */
 int gpu_gl_init(void)
 {
     GLuint vertex = 0, fragment = 0;
+    GLenum limits_error;
     GLint linked = 0, units = 0, fragment_components = 0;
-    int digit;
+    int digit, functions_available;
     char message[4096];
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
-    const char *vendor, *device, *version;
+    const char *vendor, *device, *version, *shader_version;
     if(initialized)
     {
         return 1;
@@ -2630,30 +2725,48 @@ int gpu_gl_init(void)
     /* State and object names from a previous context must never influence
      * setup of its replacement, including initialization failure retries. */
     gpu_gl_invalidate_state();
+    affine_supported = 0;
+    maximum_texture_size = 0;
+    gpu_log("========== GPU CAPABILITY REPORT ==========");
     if(setting && !strcmp(setting, "0"))
     {
         engine_profile_log("kind=renderer state=disabled reason=OPENBOR_GPU=0 native_active=0");
+        gpu_log("Native scene drawing was disabled by OPENBOR_GPU=0. GPU capabilities were not tested; this is a configuration choice.");
+        gpu_log_capability_result(0);
         fprintf(stderr, "GPU scene rendering disabled by OPENBOR_GPU=0.\n");
         return 0;
     }
     if(!SDL_GL_GetCurrentContext())
     {
         engine_profile_log("kind=renderer state=unavailable reason=no_current_GL_context native_active=0");
+        gpu_log("WARNING: Native GPU capabilities cannot be checked: no current OpenGL context.");
+        gpu_log_capability_result(0);
         return 0;
     }
 
-    /* Capability records use the engine logger so the game's ordinary log
-     * identifies its actual driver, instead of relying on detached stderr. */
+    /* Ordinary records always reach OpenBorLog.txt. Profiling retains its
+     * separate structured records without controlling startup visibility. */
     vendor = (const char *)glGetString(GL_VENDOR);
     device = (const char *)glGetString(GL_RENDERER);
     version = (const char *)glGetString(GL_VERSION);
+    shader_version = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
+    gpu_log("Driver: vendor=\"%s\"; renderer=\"%s\"; OpenGL=\"%s\"; GLSL=\"%s\".",
+            vendor ? vendor : "unavailable", device ? device : "unavailable",
+            version ? version : "unavailable", shader_version ? shader_version : "unavailable");
+    /* These established renderer names explicitly identify software drivers.
+     * Capability success on such a driver is not hardware acceleration. */
+    if(device && (strstr(device, "llvmpipe") || strstr(device, "softpipe") ||
+                  strstr(device, "SwiftShader") || strstr(device, "Software Rasterizer") ||
+                  strstr(device, "Software Renderer") ||
+                  strstr(device, "GDI Generic") || strstr(device, "Microsoft Basic Render Driver")))
+    {
+        gpu_log("WARNING: OpenGL renderer \"%s\" identifies a software implementation. Native backend availability does not mean GPU hardware acceleration; rendering executes on the CPU. Significant slowdown is possible.", device);
+    }
     engine_profile_log("kind=renderer state=probing vendor=\"%s\" device=\"%s\" GL_version=\"%s\"",
                        vendor ? vendor : "unavailable", device ? device : "unavailable",
                        version ? version : "unavailable");
-    if(!gpu_load_functions())
-    {
-        return 0;
-    }
+    functions_available = gpu_load_functions();
+    gpu_log("Required shader and framebuffer entry points: %s.", functions_available ? "available" : "MISSING");
     /* Clear errors left by capability probes before checking our allocations. */
     while(glGetError() != GL_NO_ERROR)
     {
@@ -2662,16 +2775,44 @@ int gpu_gl_init(void)
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximum_texture_size);
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
     glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &fragment_components);
+    limits_error = glGetError();
+    if(limits_error != GL_NO_ERROR)
+    {
+        gpu_log("WARNING: GPU limits could not be verified: OpenGL capability query failed with GL error=0x%x.",
+                (unsigned)limits_error);
+        /* Unsupported capability enums must not leave errors for the existing
+         * presenter after native initialization has declined this context. */
+        while(glGetError() != GL_NO_ERROR)
+        {
+            /* Consume any remaining errors from the three independent queries. */
+        }
+    }
     /* Allow conservative vec4 padding for array elements. Smaller GL 2.1
      * implementations keep all earlier native features and use CPU affines. */
     affine_supported = fragment_components >= 256;
+    gpu_log("Limits: maximum texture size=%d (native requires >=1536); fragment texture units=%d (native requires >=%d); fragment uniform components=%d (native affine requires >=256).",
+            maximum_texture_size, units, GPU_TEXTURE_UNITS, fragment_components);
+    if(!affine_supported)
+    {
+        gpu_log("WARNING: Insufficient fragment uniform components for native affine transforms: %d available, 256 required. Affine draws will use CPU software rendering.", fragment_components);
+    }
+    if(maximum_texture_size < 1536)
+    {
+        gpu_log("WARNING: Insufficient maximum texture size for the native blend atlas: %d available, 1536 required.", maximum_texture_size);
+    }
+    if(units < GPU_TEXTURE_UNITS)
+    {
+        gpu_log("WARNING: Insufficient fragment texture units for native scene rendering: %d available, %d required.", units, GPU_TEXTURE_UNITS);
+    }
 
     /* The blend atlas needs six 256-row slices. Source, palette, mask,
      * destination snapshot and atlas occupy five independent texture units. */
-    if(maximum_texture_size < 1536 || units < GPU_TEXTURE_UNITS)
+    if(!functions_available || limits_error != GL_NO_ERROR ||
+       maximum_texture_size < 1536 || units < GPU_TEXTURE_UNITS)
     {
         engine_profile_log("kind=renderer state=unavailable reason=insufficient_capabilities max_texture=%d texture_units=%d native_active=0",
                            maximum_texture_size, units);
+        gpu_log_capability_result(0);
         return 0;
     }
 compile_scene_shader:
@@ -2685,6 +2826,7 @@ compile_scene_shader:
     if(!program)
     {
         engine_profile_log("kind=renderer state=unavailable reason=program_allocation");
+        gpu_log("WARNING: Native shader program allocation failed.");
         goto failed;
     }
     gpu_AttachShader(program, vertex);
@@ -2693,11 +2835,16 @@ compile_scene_shader:
     gpu_GetProgramiv(program, GL_LINK_STATUS, &linked);
     if(!linked)
     {
+        message[0] = '\0';
         gpu_GetProgramInfoLog(program, sizeof(message), NULL, message);
+        message[sizeof(message) - 1] = '\0';
         engine_profile_log("kind=renderer state=unavailable reason=program_link diagnostic=\"%s\"", message);
+        gpu_log("WARNING: %s shader link failed. Driver diagnostic: %s",
+                affine_supported ? "affine" : "material", message[0] ? message : "not provided");
         fprintf(stderr, "GPU renderer program: %s\n", message);
         goto shader_failed;
     }
+    gpu_log("Native %s shader: compiled and linked successfully.", affine_supported ? "affine/material" : "material");
     white_texture = gpu_new_texture(1, 1, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, white);
     /* Reserve one bounded atlas for all palette rows. Content snapshots
      * become resident lazily, while the allocation stays fixed at 1 MiB. */
@@ -2705,6 +2852,14 @@ compile_scene_shader:
                                       GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     table_texture = gpu_new_texture(256, 1536, GL_LUMINANCE8, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);
     if(!white_texture || !palette_texture || !table_texture)
+    {
+        gpu_log("WARNING: Native shared texture allocation failed: white=%s, palette=%s, blend atlas=%s.",
+                white_texture ? "ready" : "failed", palette_texture ? "ready" : "failed",
+                table_texture ? "ready" : "failed");
+        goto failed;
+    }
+    gpu_log("Native shared textures: allocated successfully.");
+    if(!gpu_probe_rgb32_target())
     {
         goto failed;
     }
@@ -2774,6 +2929,7 @@ compile_scene_shader:
                        " policy=compare_on_change",
                        (unsigned)GPU_TEXTURE_UNITS, (uint64_t)sizeof(gl_state));
     gpu_query_init();
+    gpu_log_capability_result(1);
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
     return 1;
 shader_failed:
@@ -2788,6 +2944,7 @@ shader_failed:
         vertex = fragment = program = 0;
         affine_supported = 0;
         engine_profile_log("kind=renderer state=retry reason=affine_shader_unavailable native_affine=0");
+        gpu_log("WARNING: The optional affine shader is unusable. Retrying the material shader; affine draws will use CPU software rendering if that retry succeeds.");
         goto compile_scene_shader;
     }
 failed:
@@ -2821,6 +2978,7 @@ failed:
     program = white_texture = palette_texture = table_texture = 0;
     gpu_reset_palette_cache();
     engine_profile_log("kind=renderer state=unavailable reason=initialization_failed native_active=0");
+    gpu_log_capability_result(0);
     fprintf(stderr, "Native GPU scene renderer unavailable; retaining software rendering.\n");
     return 0;
 }

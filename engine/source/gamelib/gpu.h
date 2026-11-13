@@ -42,6 +42,8 @@ typedef struct gpu_backend
     void (*invalidate_tables)(void);
 } gpu_backend;
 
+/* Ordinary startup diagnostics are independent of optional frame profiling. */
+void gpu_log(const char *format, ...);
 void gpu_register_backend(const gpu_backend *backend);
 void gpu_unregister_backend(void);
 int gpu_is_active(void);

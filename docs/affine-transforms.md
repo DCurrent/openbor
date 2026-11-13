@@ -6,6 +6,14 @@ on the GPU; the software renderer supplies the same public geometry contract
 when hardware drawing is unavailable or a material needs the existing fallback.
 No intermediate screen is required just to apply an affine transform.
 
+Hardware capability and fallback warnings appear in the ordinary engine log
+during video initialization, even when profiling is disabled. If native
+affine support is unavailable, the startup report identifies the cause and
+states that affine draws will use CPU software rendering with a possible
+significant slowdown. See the
+[startup capability report](gpu-renderer-migration.md#startup-capability-report)
+for the general renderer checks and other potential fallback conditions.
+
 This is a reusable engine capability. Perspective projections, nonlinear curves,
 public programmable materials and 24-bit asset loading remain separate work.
 

@@ -4,11 +4,43 @@
  * Copyright (c) OpenBOR Team
  */
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include "gpu.h"
 #include "engine_profile.h"
+#ifndef PP_TEST
+#include "utils.h"
+#endif
 
 static const gpu_backend *active_backend;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Keep renderer availability and performance warnings in the ordinary engine
+ * log even when profiling is disabled. Callers supply startup diagnostics,
+ * rather than adding formatting or file writes to individual drawing calls.
+ */
+void gpu_log(const char *format, ...)
+{
+    char message[4096];
+    va_list arguments;
+    if(!format)
+    {
+        return;
+    }
+
+    /* Bound driver-provided diagnostics and treat their contents as data. */
+    va_start(arguments, format);
+    vsnprintf(message, sizeof(message), format, arguments);
+    va_end(arguments);
+#ifndef PP_TEST
+    writeToLogFile("[GPU] %s\n", message);
+#else
+    /* Standalone fixtures capture the same records without the game runtime. */
+    fprintf(stdout, "[GPU] %s\n", message);
+#endif
+}
 
 /*
  * Damon V. Caskey

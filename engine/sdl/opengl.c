@@ -255,6 +255,7 @@ void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Make presentation failures and CPU drawing modes visible at startup.
  * Create the desktop GL presentation context and its completed-image shader.
  * Preserve live screens across mode changes, validate the presentation path,
  * then enable native scene drawing when the selected output mode supports it.
@@ -262,6 +263,7 @@ void video_gl_init_texture(int index, int width, int height, int bytesPerPixel)
 int video_gl_set_mode(s_videomodes videomodes)
 {
 	GLint maxTextureSize;
+	const char *fallback_reason = "OpenGL initialization failed";
 
 	/*
 	 * Script-created screens can survive display changes. Drain their latest
@@ -286,7 +288,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	// set up OpenGL double buffering
 	if(SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1) != 0)
 	{
-		printf("Can't set up OpenGL double buffering (%s)...", SDL_GetError());
+		fallback_reason = "OpenGL double buffering is unavailable";
+		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
 		goto error;
 	}
 
@@ -299,7 +302,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	SetVideoMode(viewportWidth, viewportHeight, 0, true);
 	if(!window)
 	{
-		printf("Failed to create OpenGL-compatible window (%s)...", SDL_GetError());
+		fallback_reason = "the OpenGL-compatible window could not be created";
+		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
 		goto error;
 	}
 	context = SDL_GL_CreateContext(window);
@@ -307,14 +311,16 @@ int video_gl_set_mode(s_videomodes videomodes)
 	// make sure the context was created successfully
 	if(!context)
 	{
-		printf("OpenGL initialization failed (%s)...", SDL_GetError());
+		fallback_reason = "the OpenGL context could not be created";
+		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
 		goto error;
 	}
 
 	// update viewport size based on actual dimensions
 	if(SDL_GL_MakeCurrent(window, context) < 0)
 	{
-		printf("MakeCurrent on OpenGL context failed (%s)...", SDL_GetError());
+		fallback_reason = "the OpenGL context could not be activated";
+		gpu_log("WARNING: %s: %s.", fallback_reason, SDL_GetError());
 		goto error;
 	}
 
@@ -328,6 +334,8 @@ int video_gl_set_mode(s_videomodes videomodes)
 	/* Resolve required GL entry points against the newly created context. */
 	if(LoadGLFunctions() == 0)
 	{
+		fallback_reason = "required OpenGL entry points are unavailable";
+		gpu_log("WARNING: %s. Native scene capabilities could not be checked.", fallback_reason);
 		goto error;
 	}
 #endif
@@ -338,14 +346,16 @@ int video_gl_set_mode(s_videomodes videomodes)
 	 */
 	if(!SDL_GL_ExtensionSupported("GL_ARB_fragment_shader"))
 	{
-		printf("OpenGL fragment shaders not supported...");
+		fallback_reason = "the required GL_ARB_fragment_shader capability is missing";
+		gpu_log("WARNING: %s.", fallback_reason);
 		goto error;
 	}
 
 	// reject the Mesa software renderer (swrast) because it's slow
 	if(stricmp((const char*)glGetString(GL_RENDERER), "Software Rasterizer") == 0)
 	{
-		printf("Not going to use the Mesa software renderer...");
+		fallback_reason = "the OpenGL driver reports the unsupported Software Rasterizer";
+		gpu_log("WARNING: %s.", fallback_reason);
 		goto error;
 	}
 
@@ -353,9 +363,15 @@ int video_gl_set_mode(s_videomodes videomodes)
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
 	if((textureWidth > maxTextureSize) || (textureHeight > maxTextureSize))
 	{
-		printf("Unable to create a %ix%i OpenGL texture (max texture size %i)...", textureWidth, textureHeight, maxTextureSize);
+		fallback_reason = "the presentation texture exceeds the GPU texture-size limit";
+		gpu_log("WARNING: %s: requested=%dx%d, maximum=%d.", fallback_reason,
+		        textureWidth, textureHeight, maxTextureSize);
 		goto error;
 	}
+	/* Presenter support does not establish native scene support. The native
+	 * renderer performs its own checks below unless settings choose CPU drawing. */
+	gpu_log("OpenGL presentation capabilities: fragment shader extension=available; maximum texture=%d; requested texture=%dx%d.",
+	        maxTextureSize, textureWidth, textureHeight);
 
 	// set proper viewport width/height for high-DPI support
 	SDL_GL_GetDrawableSize(window, &viewportWidth, &viewportHeight);
@@ -405,7 +421,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	}
 	else
 	{
-		printf("Native GPU drawing disabled while a CPU output filter is active.\n");
+		gpu_log("WARNING: CPU output filter %d is active. Scene drawing will use the CPU; OpenGL only presents completed frames. Significant slowdown is possible. Native scene capabilities were not tested because this filter selects software drawing.", savedata.swfilter);
 	}
 
 	/* Confirm the active scene backend and driver in the regular engine log.
@@ -414,6 +430,9 @@ int video_gl_set_mode(s_videomodes videomodes)
 		const char *vendor = (const char *)glGetString(GL_VENDOR);
 		const char *renderer_name = (const char *)glGetString(GL_RENDERER);
 		const char *version = (const char *)glGetString(GL_VERSION);
+		gpu_log("OpenGL presentation ready: vendor=\"%s\"; renderer=\"%s\"; version=\"%s\"; native drawing backend=%s.",
+		        vendor ? vendor : "unknown", renderer_name ? renderer_name : "unknown",
+		        version ? version : "unknown", gpu_is_active() ? "active" : "inactive (CPU scene drawing)");
 		engine_profile_log("kind=video_backend backend=OpenGL native_active=%d "
 		                   "requested_swap_interval=%d actual_swap_interval=%d refresh_hz=%d output_bytes=%d "
 		                   "vendor=\"%s\" renderer=\"%s\" version=\"%s\"",
@@ -424,7 +443,7 @@ int video_gl_set_mode(s_videomodes videomodes)
 	return 1;
 error:
 	/* Release any partial context before the caller constructs an SDL presenter. */
-	printf("falling back to SDL video backend\n");
+	gpu_log("WARNING: GPU presentation fallback: %s. Switching to SDL presentation and CPU scene drawing. Significant slowdown is possible.", fallback_reason);
 	video_gl_shutdown();
 	savedata.usegl = 0;
 	return 0;
@@ -667,6 +686,7 @@ void video_gl_set_color_correction(int gamma, int brightness)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Identify movie presentation separately from native scene drawing.
  * Switch the presenter from game RGB output to decoded YUV video planes.
  * Preserve native screen contents before retiring scene drawing, then prepare
  * three plane textures and the conversion shader used during movie playback.
@@ -675,6 +695,7 @@ int video_gl_setup_yuv_overlay(const yuv_video_mode *mode)
 {
 	/* Scripted screens remain valid while movie frames use the upload path. */
 	gpu_gl_shutdown();
+	gpu_log("Video playback uses OpenGL YUV presentation. Native scene drawing is suspended until normal game video-mode initialization resumes.");
 
 	/* Source plane dimensions and display aspect can differ for decoded video. */
 	textureWidth = mode->width;
