@@ -16,6 +16,9 @@
  */
 
 #include <assert.h>
+#include <float.h>
+#include <limits.h>
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +43,7 @@ const s_drawmethod plainmethod = {
     .scalex = 256, .scaley = 256,
     .xrepeat = 1, .yrepeat = 1,
     .channelr = 255, .channelg = 255, .channelb = 255,
+    .affine = {1, 0, 0, 1, 0, 0},
     .object_type = OBJECT_TYPE_DRAWMETHOD
 };
 
@@ -446,6 +450,327 @@ static void test_sprite_mask(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Exercise affine source selection before palette, fill, tint and compositing
+ * while changing material state without re-uploading the indexed image.
+ */
+static void test_affine_palette_materials(void)
+{
+    s_screen *source = test_screen(4, 4, PIXEL_x8);
+    s_screen *target = test_screen(8, 8, PIXEL_32);
+    unsigned *palette = (unsigned *)source->palette;
+    unsigned remap[256] = {0};
+    const unsigned background = 0x00317bcd;
+    unsigned long uploads = 0;
+    int material, x, y, shift;
+
+    /* Index zero is uncovered even when its palette is white. Another index
+     * deliberately resolves to visible black, so coverage cannot use RGB. */
+    palette[0] = 0x00ffffff;
+    palette[1] = 0;
+    palette[2] = 0x00d98b43;
+    palette[3] = 0x0012a6e8;
+    remap[0] = 0x00ffffff;
+    remap[1] = 0x0042a135;
+    remap[2] = 0x006c2be7;
+    remap[3] = 0x00e87329;
+    for(y = 0; y < 4; ++y)
+        for(x = 0; x < 4; ++x)
+            source->data[y * 4 + x] = (unsigned char)((x + y) % 4);
+
+    /* The quarter-turn plus 2x scale has an exact hand-calculated mapping:
+     * source x = destination y / 2, source y = 3 - destination x / 2. */
+    for(material = 0; material < 11; ++material)
+    {
+        s_drawmethod method = plainmethod;
+        const unsigned *active_palette = palette;
+        method.config |= DRAWMETHOD_CONFIG_AFFINE | DRAWMETHOD_CONFIG_BACKGROUND_TRANSPARENCY;
+        method.affine = (affine_transform){0, -2, 2, 0, 8, 0};
+        if(material == 1)
+        {
+            method.table = (unsigned char *)remap;
+            active_palette = remap;
+        }
+        if(material == 2) method.fillcolor = 0x00ab731f;
+        if(material == 3)
+        {
+            method.tintmode = 2;
+            method.tintcolor = 0x0092c7ef;
+            method.alpha = 1;
+        }
+        if(material == 4)
+        {
+            method.alpha = 6;
+            method.channelr = 17; method.channelg = 128; method.channelb = 251;
+        }
+        if(material >= 5) method.alpha = material - 4;
+        if(material == 6) palette[2] = 0x00a1e549;
+        assert(gpu_draw_box(target, 0, 0, 8, 8, background, &plainmethod));
+        assert(gpu_draw_screen(target, source, 0, 0, &method));
+        /* Palette updates upload atlas rows, while the unchanged index image
+         * must retain its original texture across every material change. */
+        if(material == 0)
+            uploads = gpu_gl_get_stats()->uploads - gpu_gl_get_stats()->palette_uploads;
+        assert(gpu_gl_get_stats()->uploads - gpu_gl_get_stats()->palette_uploads == uploads);
+        gpu_sync_cpu(target);
+
+        /* Reconstruct material results from integer color equations after
+         * the independently known geometric mapping and source-index test. */
+        for(y = 0; y < 8; ++y)
+        {
+            for(x = 0; x < 8; ++x)
+            {
+                unsigned index = source->data[(3 - x / 2) * 4 + y / 2];
+                unsigned expected = background;
+                if(index)
+                {
+                    unsigned color = method.fillcolor ? method.fillcolor : active_palette[index];
+                    const unsigned opacity[3] = {method.channelr, method.channelg, method.channelb};
+                    expected = 0;
+                    for(shift = 0; shift < 24; shift += 8)
+                    {
+                        unsigned channel = color >> shift;
+                        if(method.tintmode)
+                        {
+                            channel = gpu_shader_blend_reference((int)method.tintmode,
+                                      method.tintcolor >> shift, channel);
+                        }
+                        if(material == 4)
+                        {
+                            channel = gpu_shader_channel_reference(channel, background >> shift,
+                                                                   opacity[shift / 8]);
+                        }
+                        else if(method.alpha > 0)
+                        {
+                            channel = gpu_shader_blend_reference(method.alpha, channel, background >> shift);
+                        }
+                        expected |= (channel & 255u) << shift;
+                    }
+                }
+                assert(test_pixel(target, x, y) == expected);
+            }
+        }
+    }
+    release_test_screen(target);
+    release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Affine RLE sprites retain pivots, palette remaps, repeated placements,
+ * explicit clipping and mask precedence using the transformed source texel.
+ */
+static void test_affine_sprite_mask(void)
+{
+    const unsigned char indices[4] = {1, 2, 3, 0};
+    const unsigned char opacities[4] = {255, 128, 0, 64};
+    const unsigned background = 0x0032579b;
+    unsigned remap[256] = {0};
+    s_sprite *sprite = test_sprite(indices);
+    s_sprite *mask = test_sprite(opacities);
+    s_screen *target = test_screen(8, 10, PIXEL_32);
+    s_drawmethod method = plainmethod;
+    int x, y, shift;
+
+    /* Both source and drawmethod pivots contribute before the matrix. Two
+     * repeated strips land at x=5..6 and x=1..2; clipping retains only x=2,5,6. */
+    remap[0] = 0x00ffffff;
+    remap[1] = 0;
+    remap[2] = 0x00e0a060;
+    remap[3] = 0x0017b9da;
+    sprite->centerx = 1;
+    sprite->mask = mask;
+    method.config |= DRAWMETHOD_CONFIG_AFFINE;
+    method.affine = (affine_transform){0, -2, 2, 0, 1, 2};
+    method.centerx = 1;
+    method.xrepeat = 2; method.xspan = -4;
+    method.clipx = 2; method.clipy = 1; method.clipw = 5; method.cliph = 6;
+    method.table = (unsigned char *)remap;
+    method.alpha = 6; method.tintmode = 1; method.tintcolor = 0x00ffffff;
+    method.channelr = method.channelg = method.channelb = 0;
+    assert(gpu_draw_box(target, 0, 0, 8, 10, background, &plainmethod));
+    assert(gpu_draw_sprite(target, sprite, 6, 2, &method));
+    gpu_sync_cpu(target);
+    for(y = 0; y < 10; ++y)
+    {
+        for(x = 0; x < 8; ++x)
+        {
+            unsigned expected = background;
+            if(y >= 1 && y < 7 && (x == 2 || x == 5 || x == 6) && indices[y / 2])
+            {
+                unsigned color = remap[indices[y / 2]];
+                expected = 0;
+                for(shift = 0; shift < 24; shift += 8)
+                {
+                    expected |= gpu_shader_channel_reference(color >> shift, background >> shift,
+                                                             opacities[y / 2]) << shift;
+                }
+            }
+            assert(test_pixel(target, x, y) == expected);
+        }
+    }
+    gpu_release_sprite(mask); gpu_release_sprite(sprite);
+    free(mask); free(sprite);
+    release_test_screen(target);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Queue copies preserve affine settings while replay samples current screen
+ * contents. Overlapping repeats must blend sequentially and captures stay GPU
+ * resident until the final assertion requests a readback.
+ */
+static void test_affine_queue_replay(void)
+{
+    s_screen *source = test_screen(2, 2, PIXEL_32);
+    s_screen *capture = test_screen(10, 5, PIXEL_32);
+    s_screen *output = test_screen(10, 5, PIXEL_32);
+    const unsigned colors[2] = {0x00c1a539, 0x002f87e1};
+    const unsigned background = 0x00112335;
+    s_drawmethod method = plainmethod;
+    int replay, x, y, pixel, shift;
+
+    method.config |= DRAWMETHOD_CONFIG_AFFINE;
+    method.affine = (affine_transform){2, 0, 0, 1, 1, 0};
+    method.alpha = 6;
+    method.xrepeat = 2; method.xspan = 2;
+    spriteq_unlock(); spriteq_clear();
+    spriteq_add_screen(0, 1, 7, source, &method, 0);
+    method.affine.tx = 1000;
+    method.config &= ~DRAWMETHOD_CONFIG_AFFINE;
+
+    /* Mutating the caller's method after enqueue must not affect its copy.
+     * Mutating source pixels before the next replay must affect that replay. */
+    for(replay = 0; replay < 2; ++replay)
+    {
+        unsigned once = 0, twice = 0;
+        unsigned long readbacks;
+        gpu_prepare_cpu_write(source);
+        for(pixel = 0; pixel < 4; ++pixel) ((unsigned *)source->data)[pixel] = colors[replay];
+        for(shift = 0; shift < 24; shift += 8)
+        {
+            unsigned first = gpu_shader_blend_reference(6, colors[replay] >> shift, background >> shift);
+            once |= first << shift;
+            twice |= gpu_shader_blend_reference(6, colors[replay] >> shift, first) << shift;
+        }
+        readbacks = gpu_gl_get_stats()->readbacks;
+        assert(gpu_draw_box(capture, 0, 0, 10, 5, background, &plainmethod));
+        spriteq_draw(capture, 0, 7, 7, 1, 0);
+        assert(gpu_draw_screen(output, capture, 0, 0, &plainmethod));
+        assert(gpu_gl_get_stats()->readbacks == readbacks);
+        gpu_sync_cpu(output);
+        for(y = 0; y < 5; ++y)
+        {
+            for(x = 0; x < 10; ++x)
+            {
+                unsigned expected = background;
+                if(y >= 1 && y < 3 && x >= 2 && x < 8)
+                    expected = x >= 4 && x < 6 ? twice : once;
+                assert(test_pixel(output, x, y) == expected);
+            }
+        }
+    }
+    spriteq_clear();
+    release_test_screen(output); release_test_screen(capture); release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Unsupported affine inputs must leave the entire destination available for
+ * software fallback. Valid collapsed or offscreen maps are successful no-ops.
+ */
+static void test_affine_rejection_atomicity(void)
+{
+    s_screen *source = test_screen(2, 2, PIXEL_32);
+    s_screen *target = test_screen(8, 8, PIXEL_32);
+    const unsigned background = 0x0013579b;
+    int scenario, pixel;
+
+    for(pixel = 0; pixel < 4; ++pixel)
+        ((unsigned *)source->data)[pixel] = 0x00e8c6a4;
+
+    /* Every nonfinite coefficient is rejected even when other instances would
+     * be on-screen. Overflowing final spans likewise reject before the first
+     * ordinary, visible instance has a chance to blend into the destination. */
+    for(scenario = 0; scenario < 19; ++scenario)
+    {
+        s_drawmethod method = plainmethod;
+        float *coefficients[] = {&method.affine.m00, &method.affine.m01,
+                                 &method.affine.m10, &method.affine.m11,
+                                 &method.affine.tx, &method.affine.ty};
+        unsigned long draws, fallbacks;
+        int handled = scenario == 13 || scenario == 14;
+        method.config |= DRAWMETHOD_CONFIG_AFFINE;
+        method.affine = (affine_transform){1, 0, 0, 1, 0, 0};
+        method.alpha = 6;
+        method.xrepeat = 2; method.xspan = 3;
+        if(scenario < 12)
+        {
+            *coefficients[scenario / 2] = scenario & 1 ? INFINITY : NAN;
+        }
+        else if(scenario == 12)
+        {
+            method.xrepeat = 3;
+            method.xspan = INT_MAX;
+        }
+        else if(scenario == 13)
+        {
+            method.affine = (affine_transform){1, 1, 1, 1, 0, 0};
+        }
+        else if(scenario == 14)
+        {
+            method.affine.tx = FLT_MAX;
+            method.affine.ty = -FLT_MAX;
+        }
+        else if(scenario == 15)
+        {
+            method.affine.m00 = method.affine.m11 = FLT_MAX;
+        }
+        else if(scenario == 16)
+        {
+            method.affine.m00 = nextafterf(0.0f, 1.0f);
+        }
+        else if(scenario == 17)
+        {
+            /* This finite shear exceeds the sampler's fractional precision.
+             * Reject it rather than discarding its nonzero encoding remainder. */
+            method.affine.m01 = 0x1p-60f;
+        }
+        else
+        {
+            /* The first wide instance is visibly supported. The later one
+             * still spans the target but exceeds exact signed-offset limits,
+             * so preflight must reject both before either one is composited. */
+            method.affine.m00 = 1000000.0f;
+            method.xspan = -70000;
+            method.xrepeat = 1;
+            assert(gpu_draw_screen(target, source, 0, 0, &method));
+            gpu_sync_cpu(target);
+            assert(test_pixel(target, 0, 0) != background);
+            method.xrepeat = 2;
+        }
+        assert(gpu_draw_box(target, 0, 0, 8, 8, background, &plainmethod));
+        draws = gpu_gl_get_stats()->draws;
+        fallbacks = gpu_gl_get_stats()->fallback_draws;
+        assert(gpu_draw_screen(target, source, 0, 0, &method) == handled);
+        assert(gpu_gl_get_stats()->draws == draws);
+        assert(gpu_gl_get_stats()->fallback_draws == fallbacks + !handled);
+        gpu_sync_cpu(target);
+        for(pixel = 0; pixel < 64; ++pixel)
+            assert(test_pixel(target, pixel % 8, pixel / 8) == background);
+    }
+    release_test_screen(target); release_test_screen(source);
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  * Verify uploaded blend-table lookup orientation and same-pointer table edits.
  * Custom tables are explicitly invalidated by the engine after replacement.
@@ -562,6 +887,10 @@ int main(void)
     test_indexed_palette();
     test_blend_modes();
     test_sprite_mask();
+    test_affine_palette_materials();
+    test_affine_sprite_mask();
+    test_affine_queue_replay();
+    test_affine_rejection_atomicity();
     test_custom_blend_table();
     test_shutdown();
     SDL_GL_DeleteContext(context);
@@ -572,10 +901,11 @@ int main(void)
     assert(LoadGLFunctions());
     assert(gpu_gl_init());
     test_queue_capture();
+    test_affine_queue_replay();
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();
-    puts("GPU renderer tests passed: captures, ordering, palette, blend, coherence, recreation.");
+    puts("GPU renderer tests passed: captures, ordering, palette, blend, affine, coherence, recreation.");
     return 0;
 }

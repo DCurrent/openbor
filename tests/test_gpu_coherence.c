@@ -54,7 +54,8 @@ const s_drawmethod plainmethod = {
     .config = DRAWMETHOD_CONFIG_ENABLED,
     .scalex = 256, .scaley = 256,
     .xrepeat = 1, .yrepeat = 1,
-    .channelr = 255, .channelg = 255, .channelb = 255
+    .channelr = 255, .channelg = 255, .channelb = 255,
+    .affine = {.m00 = 1.0f, .m11 = 1.0f}
 };
 
 /*
@@ -366,7 +367,104 @@ static s_screen *test_screen(int width, int height, unsigned color)
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ * Check representable repeat instances and visible affine cancellation of
+ * extreme integer draw positions in both screen and sprite fallbacks.
+ */
+static void test_affine_repeat_limits(s_screen *source, s_sprite *sprite, s_screen *dest)
+{
+    unsigned palette[256] = {0};
+    int kind, scenario, x, y;
+
+    /* Equal RGB channels make repeated half blends independently predictable.
+     * Native fills leave CPU shadows stale before each software operation. */
+    palette[1] = 0x808080;
+    putbox(0, 0, source->width, source->height, 0x808080, source, NULL);
+    for(kind = 0; kind < 2; kind++)
+    {
+        int source_width = kind ? sprite->width : source->width;
+        int source_height = kind ? sprite->height : source->height;
+        for(scenario = 0; scenario < 4; scenario++)
+        {
+            s_drawmethod method = plainmethod;
+            int draw_x, draw_y;
+
+            method.config |= DRAWMETHOD_CONFIG_AFFINE;
+            method.alpha = BLEND_HALF + 1;
+            method.table = (unsigned char *)palette;
+            if(scenario < 2)
+            {
+                /* The valid first instance starts at (-1,-1) after the
+                 * matrix translation cancels INT_MAX. Later positive spans
+                 * are either unused or outside the integer drawing API. */
+                draw_x = draw_y = INT_MAX;
+                method.affine.tx = method.affine.ty = -2147483648.0f;
+                method.xrepeat = method.yrepeat = scenario ? 3 : 1;
+                method.xspan = method.yspan = scenario ? 1 : INT_MAX;
+            }
+            else if(scenario == 2)
+            {
+                /* The lower boundary has a valid first image at the origin;
+                 * negative spans must not wrap into additional instances. */
+                draw_x = draw_y = INT_MIN;
+                method.affine.tx = method.affine.ty = 2147483648.0f;
+                method.xrepeat = method.yrepeat = 3;
+                method.xspan = method.yspan = -1;
+            }
+            else
+            {
+                /* Ordinary overlapping repeats still blend once per covered
+                 * instance in the existing row/column submission order. */
+                draw_x = draw_y = 0;
+                method.xrepeat = method.yrepeat = 2;
+                method.xspan = method.yspan = 1;
+            }
+
+            putbox(0, 0, dest->width, dest->height, 0x202020, dest, NULL);
+            if(kind)
+            {
+                putsprite(draw_x, draw_y, sprite, dest, &method);
+            }
+            else
+            {
+                putscreen(dest, source, draw_x, draw_y, &method);
+            }
+            for(y = 0; y < dest->height; y++)
+            {
+                for(x = 0; x < dest->width; x++)
+                {
+                    int count, blend;
+                    unsigned channel = 0x20;
+                    if(scenario < 2)
+                    {
+                        count = x < source_width - 1 && y < source_height - 1;
+                    }
+                    else if(scenario == 2)
+                    {
+                        count = x < source_width && y < source_height;
+                    }
+                    else
+                    {
+                        int columns = (x < source_width) + (x >= 1 && x <= source_width);
+                        int rows = (y < source_height) + (y >= 1 && y <= source_height);
+                        count = columns * rows;
+                    }
+                    for(blend = 0; blend < count; blend++)
+                    {
+                        channel = (0x80 + channel) / 2;
+                    }
+                    assert(((unsigned *)dest->data)[y * dest->width + x] ==
+                           (channel << 16 | channel << 8 | channel));
+                }
+            }
+        }
+    }
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Include affine fallback repeat boundaries under sanitizers.
  * Cover native dispatch, synchronous CPU access, software fallback, direct
  * low-level calls, queue capture/replay, and resource lifetime together.
  */
@@ -494,6 +592,8 @@ int main(void)
     reject_draws = 0;
     set_blendtables(tables);
     assert(invalidated_tables == 1);
+
+    test_affine_repeat_limits(small, sprite, large);
 
     /* Free wrappers must evict resources before addresses can be recycled. */
     gpu_release_sprite(sprite);

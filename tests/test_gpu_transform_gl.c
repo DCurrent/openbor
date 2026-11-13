@@ -30,6 +30,7 @@ const s_drawmethod plainmethod = {
     .scalex = 256, .scaley = 256,
     .xrepeat = 1, .yrepeat = 1,
     .channelr = 255, .channelg = 255, .channelb = 255,
+    .affine = {1, 0, 0, 1, 0, 0},
     .object_type = OBJECT_TYPE_DRAWMETHOD
 };
 
@@ -38,6 +39,46 @@ static unsigned rotation_bounds_corrections;
 static unsigned rotation_sample_corrections;
 static unsigned compared_draws;
 static unsigned compared_lines;
+static unsigned compared_affine_draws;
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Independently solve the documented affine mapping at a destination pixel
+ * center. Long-double arithmetic separates the oracle from the compensated
+ * shader and the software rasterizer's direct double-precision implementation.
+ */
+static unsigned canonical_affine_pixel(const s_screen *source, const s_drawmethod *method,
+                                       int draw_x, int draw_y, int dest_x, int dest_y)
+{
+    long double a = method->affine.m00, b = method->affine.m01;
+    long double c = method->affine.m10, d = method->affine.m11;
+    long double x = dest_x + 0.5L - draw_x - method->affine.tx;
+    long double y = dest_y + 0.5L - draw_y - method->affine.ty;
+    long double determinant, u, v;
+
+    /* Apply clipping independently of emitted geometry. Flip flags reflect
+     * local source axes before the matrix, preserving its pivot convention. */
+    if(method->clipw > 0 && method->cliph > 0 &&
+       (dest_x < method->clipx || dest_x >= method->clipx + method->clipw ||
+        dest_y < method->clipy || dest_y >= method->clipy + method->cliph))
+    {
+        return 0;
+    }
+    if(method->config & DRAWMETHOD_CONFIG_FLIP_X) { a = -a; c = -c; }
+    if(method->config & DRAWMETHOD_CONFIG_FLIP_Y) { b = -b; d = -d; }
+    determinant = a * d - b * c;
+    if(determinant == 0.0L) return 0;
+    u = (d * x - b * y) / determinant + method->centerx;
+    v = (a * y - c * x) / determinant + method->centery;
+
+    /* Preserve the side of every authored boundary without a snap epsilon.
+     * These float-coefficient fixtures fit the wider intermediate precision. */
+    if(u < 0 || v < 0 || u >= source->width || v >= source->height) return 0;
+    return ((const unsigned *)source->data)[(int)floorl(v) * source->width
+                                           + (int)floorl(u)] & 0x00ffffffu;
+}
 
 /*
  * Damon V. Caskey
@@ -426,6 +467,171 @@ static void test_rotate(s_screen *source, s_screen *reference, s_screen *native)
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Compare native and production-software affine pixels with an independent
+ * analytic result, including transforms with repeating inverse coefficients.
+ */
+static void compare_affine_draw(s_screen *source, s_screen *reference, s_screen *native,
+                                s_drawmethod *method, int x, int y)
+{
+    gfx_entry entry;
+    int pixel, differences = 0;
+
+    /* Both implementations must preserve the authored map at pixel centers.
+     * The independent result prevents a shared boundary error from passing
+     * merely because the native and fallback implementations agree. */
+    entry.screen = source;
+    gpu_prepare_cpu_write(reference);
+    memset(reference->data, 0, (size_t)reference->width * reference->height * 4);
+    assert(gpu_clear_screen(native));
+    drawmethod_global_init(method);
+    gfx_draw_affine(reference, &entry, x, y, 0, 0, method);
+    assert(gpu_draw_screen(native, source, x, y, method));
+    gpu_sync_cpu(native);
+    for(pixel = 0; pixel < native->width * native->height; ++pixel)
+    {
+        unsigned expected = canonical_affine_pixel(source, method, x, y,
+                            pixel % native->width, pixel / native->width);
+        unsigned actual = ((const unsigned *)native->data)[pixel] & 0x00ffffffu;
+        unsigned software = ((const unsigned *)reference->data)[pixel] & 0x00ffffffu;
+        if(actual != expected || software != expected)
+        {
+            if(differences < 5)
+            {
+                fprintf(stderr, "affine [%.9g,%.9g;%.9g,%.9g]+(%.9g,%.9g) at(%d,%d) flip%d pivot(%d,%d) "
+                        "clip(%d,%d,%d,%d) pixel(%d,%d) expected%06x actual%06x software%06x\n",
+                        method->affine.m00, method->affine.m01,
+                        method->affine.m10, method->affine.m11,
+                        method->affine.tx, method->affine.ty, x, y, method->config,
+                        method->centerx, method->centery,
+                        method->clipx, method->clipy, method->clipw, method->cliph,
+                        pixel % native->width, pixel / native->width, expected, actual, software);
+            }
+            ++differences;
+        }
+    }
+    assert(differences == 0);
+    ++compared_affine_draws;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Exercise affine image coverage, sampling, clipping and dormant legacy
+ * settings, including legitimate samples immediately beside texel edges.
+ */
+static void test_affine(s_screen *source, s_screen *reference, s_screen *native)
+{
+    const affine_transform matrices[] =
+    {
+        {1, 0, 0, 1, 0, 0},
+        {1, 0, 0, 1, 3.25f, -2.5f},
+        {2, 0, 0, 0.5f, 0.25f, 0.75f},
+        {1, 0.5f, 0, 1, 0, 0},
+        {1, 0.5f, -0.5f, 0.75f, -1.25f, 1.5f},
+        {0, -1, 1, 0, 0, 0},
+        {-1, 0, 0, 1, 0.5f, 0.5f},
+        {0.9659258f, -0.2588190f, 0.2588190f, 0.9659258f, 0, 0},
+        {1.5f, 0, 0, 0.75f, 0, 0},
+        {3, 0, 0, 3, 0.5f, 0.5f},
+        {0.7f, 0.2f, -0.3f, 0.9f, 0.5f, 0.5f},
+        {1.1f, 0.2f, 0.3f, 1.1f, 0.5f, 0.5f}
+    };
+    const float translations[] =
+    {
+        0.5f, 0.49995f, 0.50005f, -0.5f, -0.49995f, -0.50005f
+    };
+    unsigned matrix, translation;
+    int flip, location, adjacent;
+
+    /* Dyadic, oblique and repeating inverse steps all retain the actual float
+     * coefficients. In particular, 3x scaling with half-pixel translation puts
+     * exact texel boundaries at a repeating 1/3 inverse step. */
+    for(matrix = 0; matrix < sizeof(matrices) / sizeof(matrices[0]); ++matrix)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            for(location = 0; location < 4; ++location)
+            {
+                s_drawmethod method = plainmethod;
+                method.config |= DRAWMETHOD_CONFIG_AFFINE
+                               | (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                               | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+                method.affine = matrices[matrix];
+                method.centerx = 3;
+                method.centery = 2;
+                if(location == 3)
+                {
+                    method.clipx = 4; method.clipy = 5;
+                    method.clipw = 10; method.cliph = 9;
+                }
+                compare_affine_draw(source, reference, native, &method,
+                                    location == 0 ? 24 : location == 1 ? 1 : location == 2 ? 60 : 8,
+                                    location == 0 ? 24 : location == 1 ? 1 : location == 2 ? 62 : 8);
+            }
+        }
+    }
+
+    /* A nearby real fractional translation must not be rounded onto an exact
+     * boundary by the shader's policy for a different transform family. */
+    for(translation = 0; translation < sizeof(translations) / sizeof(translations[0]); ++translation)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            s_drawmethod method = plainmethod;
+            method.config |= DRAWMETHOD_CONFIG_AFFINE
+                           | (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                           | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+            method.affine = (affine_transform){1, 0, 0, 1, translations[translation], 0.5f};
+            compare_affine_draw(source, reference, native, &method, 24, 24);
+        }
+    }
+    for(adjacent = 0; adjacent < 2; ++adjacent)
+    {
+        s_drawmethod method = plainmethod;
+        method.config |= DRAWMETHOD_CONFIG_AFFINE;
+        method.affine = (affine_transform){1, 0, 0, 1, nextafterf(0.5f, adjacent ? 1.0f : 0.0f), 0.5f};
+        compare_affine_draw(source, reference, native, &method, 0, 0);
+    }
+
+    /* Tiny supported translations remain meaningful at exact source texel
+     * boundaries. Half-size X maps each destination center onto an odd texel
+     * boundary, where a positive 2^-42 shift selects the preceding texel. */
+    for(adjacent = 0; adjacent < 2; ++adjacent)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            s_drawmethod method = plainmethod;
+            method.config |= DRAWMETHOD_CONFIG_AFFINE
+                           | (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                           | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+            method.affine = (affine_transform){0.5f, 0, 0, 1,
+                                               adjacent ? 0x1p-42f : -0x1p-42f, 0.5f};
+            method.centerx = 3; method.centery = 2;
+            compare_affine_draw(source, reference, native, &method, 24, 24);
+        }
+    }
+
+    /* Affine takes precedence even when the saved legacy values are unusable.
+     * A rank-one matrix is a valid empty draw through the same native path. */
+    {
+        s_drawmethod method = plainmethod;
+        method.config |= DRAWMETHOD_CONFIG_AFFINE;
+        method.affine = (affine_transform){1, 0.5f, 0, 1, 0, 0};
+        method.scalex = 0; method.scaley = -256;
+        method.rotate = NAN;
+        method.water.watermode = WATER_MODE_SHEAR;
+        method.water.beginsize = -1; method.water.endsize = NAN;
+        compare_affine_draw(source, reference, native, &method, 5, 6);
+        method.affine = (affine_transform){1, 1, 1, 1, 0, 0};
+        compare_affine_draw(source, reference, native, &method, 5, 6);
+    }
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Compare production Bresenham coverage across octants, both endpoint orders,
@@ -542,6 +748,7 @@ int main(void)
     test_water(source, reference, native);
     test_plane(source, reference, native);
     test_rotate(source, reference, native);
+    test_affine(source, reference, native);
     test_lines(reference, native);
 
     /* Retire identities while the context still exists, then report ordinary
@@ -550,9 +757,10 @@ int main(void)
     free(source); free(reference); free(native);
     gpu_gl_shutdown();
     SDL_GL_DeleteContext(context); SDL_DestroyWindow(window); SDL_Quit();
-    printf("GPU transform pixel tests passed: %u draws, %u lines; corrected legacy pixels: "
-           "plane boundaries=%u, rotation coverage=%u, rotation sampling=%u.\n",
-           compared_draws, compared_lines, plane_drift_corrections,
+    printf("GPU transform pixel tests passed: %u draws, %u affine draws, %u lines; "
+           "corrected legacy pixels: plane boundaries=%u, rotation coverage=%u, "
+           "rotation sampling=%u.\n",
+           compared_draws, compared_affine_draws, compared_lines, plane_drift_corrections,
            rotation_bounds_corrections, rotation_sample_corrections);
     return 0;
 }

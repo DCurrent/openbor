@@ -10,6 +10,7 @@
  */
 
 #include <assert.h>
+#include <float.h>
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
@@ -460,6 +461,163 @@ static void test_coordinate_limits(void)
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Check that emitted affine geometry carries the documented source mapping,
+ * including local flips and both pivot contributions, in one native quad.
+ */
+static void test_affine_mapping(void)
+{
+    const affine_transform matrices[] =
+    {
+        {1, 0, 0, 1, 0, 0},
+        {2, 0, 0, 0.5f, 0.25f, -0.75f},
+        {1, 0.5f, -0.25f, 1, -1.5f, 2.25f},
+        {0, -1, 1, 0, 0, 0},
+        {-1, 0, 0, 1, 0.5f, 0.5f}
+    };
+    gpu_transform_parameters p = {8, 6, 64, 64, 24, 25, 2, 1, 1};
+    unsigned matrix;
+    int flip, vertex;
+
+    /* Recover destination coordinates from each emitted source coordinate.
+     * This is independent of whether the backend chooses transformed corners
+     * or a conservative rectangle with inverse-mapped texture coordinates. */
+    for(matrix = 0; matrix < sizeof(matrices) / sizeof(matrices[0]); ++matrix)
+    {
+        for(flip = 0; flip < 4; ++flip)
+        {
+            s_drawmethod m = method();
+            capture_state state;
+            m.config |= DRAWMETHOD_CONFIG_AFFINE
+                      | (flip & 1 ? DRAWMETHOD_CONFIG_FLIP_X : 0)
+                      | (flip & 2 ? DRAWMETHOD_CONFIG_FLIP_Y : 0);
+            m.affine = matrices[matrix];
+            m.centerx = 1;
+            m.centery = -2;
+            memset(&state, 0, sizeof(state));
+            assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_DRAWN);
+            assert(state.count == 1 && state.quads[0].wrap == GPU_SAMPLE_AFFINE);
+            for(vertex = 0; vertex < 4; ++vertex)
+            {
+                const gpu_vertex *v = &state.quads[0].vertices[vertex];
+                double local_x = v->u - p.centerx - m.centerx;
+                double local_y = v->v - p.centery - m.centery;
+                if(flip & 1) local_x = -local_x;
+                if(flip & 2) local_y = -local_y;
+                near_value(v->x, p.x + m.affine.tx
+                           + m.affine.m00 * local_x + m.affine.m01 * local_y);
+                near_value(v->y, p.y + m.affine.ty
+                           + m.affine.m10 * local_x + m.affine.m11 * local_y);
+            }
+        }
+    }
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * An enabled affine matrix owns geometry even when stored legacy transform
+ * fields would otherwise reject or hide a draw. Disabling it restores scale.
+ */
+static void test_affine_precedence(void)
+{
+    gpu_transform_parameters p = {8, 6, 64, 64, 20, 30, 2, 1, 1};
+    s_drawmethod m = method();
+    capture_state state;
+
+    /* Deliberately invalid dormant settings expose premature legacy checks.
+     * The matrix remains an ordinary identity with the existing source pivot. */
+    m.config |= DRAWMETHOD_CONFIG_AFFINE;
+    m.affine.m00 = m.affine.m11 = 1.0f;
+    m.scalex = 0;
+    m.scaley = -256;
+    m.rotate = NAN;
+    m.shiftx = INT_MAX;
+    m.water.watermode = WATER_MODE_SHEAR;
+    m.water.beginsize = -1.0f;
+    m.water.endsize = NAN;
+    memset(&state, 0, sizeof(state));
+    assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_DRAWN);
+    assert(state.count == 1);
+    near_value(state.quads[0].vertices[0].x, 18);
+    near_value(state.quads[0].vertices[0].y, 29);
+
+    /* The flag is opt-in. A disabled matrix must not override the established
+     * zero-scale sprite rule, and disabling the whole method restores identity. */
+    m.config &= ~DRAWMETHOD_CONFIG_AFFINE;
+    memset(&state, 0, sizeof(state));
+    assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_EMPTY);
+    assert(state.count == 0);
+    m.config = DRAWMETHOD_CONFIG_AFFINE;
+    memset(&state, 0, sizeof(state));
+    assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_DRAWN);
+    near_value(state.quads[0].vertices[0].x, 18);
+    near_value(state.quads[0].vertices[0].y, 29);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Reject malformed matrices before geometry emission and handle collapsed or
+ * distant finite transforms without unsafe coordinate conversion.
+ */
+static void test_affine_validation(void)
+{
+    gpu_transform_parameters p = {8, 6, 64, 64, 20, 30, 0, 0, 0};
+    s_drawmethod m = method();
+    capture_state state;
+    float *fields[6];
+    unsigned field;
+
+    m.config |= DRAWMETHOD_CONFIG_AFFINE;
+    m.affine.m00 = m.affine.m11 = 1.0f;
+    fields[0] = &m.affine.m00; fields[1] = &m.affine.m01;
+    fields[2] = &m.affine.m10; fields[3] = &m.affine.m11;
+    fields[4] = &m.affine.tx; fields[5] = &m.affine.ty;
+    for(field = 0; field < sizeof(fields) / sizeof(fields[0]); ++field)
+    {
+        float saved = *fields[field];
+        *fields[field] = field & 1 ? INFINITY : NAN;
+        memset(&state, 0, sizeof(state));
+        assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_FAILED);
+        assert(state.count == 0);
+        *fields[field] = saved;
+    }
+
+    /* A finite zero determinant has no area, even when neither basis vector
+     * is zero. Whole-draw rejection must not emit a partially valid shape. */
+    m.affine.m00 = m.affine.m01 = m.affine.m10 = m.affine.m11 = 1.0f;
+    memset(&state, 0, sizeof(state));
+    assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_EMPTY);
+    assert(state.count == 0);
+
+    /* A finite translation can exceed the integer destination range. It is
+     * simply offscreen and must be clipped before any integer conversion. */
+    m.affine = (affine_transform){1, 0, 0, 1, FLT_MAX, -FLT_MAX};
+    memset(&state, 0, sizeof(state));
+    assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_EMPTY);
+    assert(state.count == 0);
+
+    /* Visible extreme and subnormal scales, and a tiny nonzero shear beyond
+     * the native fraction encoding, must request fallback before emission. */
+    p.x = p.y = 0;
+    for(field = 0; field < 3; ++field)
+    {
+        m.affine = (affine_transform){1, 0, 0, 1, 0, 0};
+        if(field == 0) m.affine.m00 = m.affine.m11 = FLT_MAX;
+        if(field == 1) m.affine.m00 = nextafterf(0.0f, 1.0f);
+        if(field == 2) m.affine.m01 = 0x1p-60f;
+        memset(&state, 0, sizeof(state));
+        assert(gpu_transform_draw(&p, &m, capture, &state) == GPU_TRANSFORM_FAILED);
+        assert(state.count == 0);
+    }
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Run the standalone renderer arithmetic suite and report a concise result.
@@ -475,6 +633,9 @@ int main(void)
     test_water();
     test_validation();
     test_coordinate_limits();
+    test_affine_mapping();
+    test_affine_precedence();
+    test_affine_validation();
     puts("GPU transform/blend tests passed (393216 exhaustive blend pairs).");
     return 0;
 }

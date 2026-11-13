@@ -12,6 +12,7 @@
 	Last update: 10 feb 2003
 */
 #include <stdio.h>
+#include <limits.h>
 #include <string.h>
 #include "types.h"
 #include "transform.h"
@@ -517,7 +518,12 @@ void blendscreen(s_screen *dest, s_screen *src, int x, int y, unsigned char *lut
     while(--ch);
 }
 
-
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Select software screen geometry and preserve the existing pixel operations.
+ * Explicit affine geometry overrides the stored legacy transform settings.
+ */
 static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
 {
     unsigned char *table;
@@ -529,6 +535,13 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
         table = NULL;
         alpha = 0;
         transbg = 0;
+    }
+    else if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
+    {
+        /* Opt-in affine takes precedence over legacy shear, rotation and water. */
+        gfx.screen = src;
+        gfx_draw_affine(dest, &gfx, x, y, 0, 0, drawmethod);
+        return;
     }
     else if(drawmethod->water.watermode && drawmethod->water.amplitude)
     {
@@ -619,13 +632,15 @@ static void _putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
  * Dispatch a screen draw with its repeats and effects. A software fallback
  * is measured once around the complete operation, including coherence work.
  */
 void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawmethod)
 {
     ep_scope software;
-    int xrepeat, yrepeat, xspan, yspan, i, j, dx, dy;
+    int xrepeat, yrepeat, xspan, yspan, i, j;
+    s64 dx, dy;
 
     drawmethod_global_init(drawmethod);
 
@@ -653,11 +668,23 @@ void putscreen(s_screen *dest, s_screen *src, int x, int y, s_drawmethod *drawme
         xspan = yspan = 0;
     }
 
-    for(j = 0, dy = y; j < yrepeat; j++, dy += yspan)
+    /* Calculate only actual instances in wider arithmetic. Unrepresentable
+     * coordinates are skipped, and no unused final increment can overflow. */
+    for(j = 0; j < yrepeat; j++)
     {
-        for(i = 0, dx = x; i < xrepeat; i++, dx += xspan)
+        dy = (s64)y + (s64)j * yspan;
+        if(dy < INT_MIN || dy > INT_MAX)
         {
-            _putscreen(dest, src, dx, dy, drawmethod);
+            continue;
+        }
+        for(i = 0; i < xrepeat; i++)
+        {
+            dx = (s64)x + (s64)i * xspan;
+            if(dx < INT_MIN || dx > INT_MAX)
+            {
+                continue;
+            }
+            _putscreen(dest, src, (int)dx, (int)dy, drawmethod);
         }
     }
     engine_profile_span_end(software, EP_SPAN_SOFTWARE);

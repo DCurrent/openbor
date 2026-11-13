@@ -9,6 +9,7 @@
 /////////////////////////////////////////////////////////////////////////////
 /*#include <stdio.h>
 #include <string.h>*/
+#include <limits.h>
 #include "globals.h"
 #include "types.h"
 #include "sprite.h"
@@ -573,10 +574,23 @@ void putsprite_8(
 
 /////////////////////////////////////////////////////////////////////////////
 
-// scalex scaley flipy ...
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Select software sprite geometry, including the opt-in affine matrix.
+ * The common transform initializer synchronizes affine fallback pixels.
+ */
 void putsprite_ex(int x, int y, s_sprite *frame, s_screen *screen, s_drawmethod *drawmethod)
 {
     gfx_entry gfx;
+
+    if(drawmethod->config & DRAWMETHOD_CONFIG_AFFINE)
+    {
+        /* The affine matrix replaces the legacy transform, even at zero scale. */
+        gfx.sprite = frame;
+        gfx_draw_affine(screen, &gfx, x, y, frame->centerx, frame->centery, drawmethod);
+        return;
+    }
 
     if(!drawmethod->scalex || !drawmethod->scaley)
     {
@@ -665,13 +679,15 @@ static void _putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawm
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Bound actual repeat positions before narrowing to pixel coordinates.
  * Dispatch a sprite and its repetitions through the selected renderer.
  * Profile one software fallback around destination coherence and all repeats.
  */
 void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *drawmethod)
 {
     ep_scope software;
-    int xrepeat, yrepeat, xspan, yspan, i, j, dx, dy;
+    int xrepeat, yrepeat, xspan, yspan, i, j;
+    s64 dx, dy;
 
     drawmethod_global_init(drawmethod);
 
@@ -697,11 +713,23 @@ void putsprite(int x, int y, s_sprite *sprite, s_screen *screen, s_drawmethod *d
         xspan = yspan = 0;
     }
 
-    for(j = 0, dy = y; j < yrepeat; j++, dy += yspan)
+    /* Preserve repeat order while calculating each position in 64 bits.
+     * Out-of-range instances cannot be submitted to the integer pixel API. */
+    for(j = 0; j < yrepeat; j++)
     {
-        for(i = 0, dx = x; i < xrepeat; i++, dx += xspan)
+        dy = (s64)y + (s64)j * yspan;
+        if(dy < INT_MIN || dy > INT_MAX)
         {
-            _putsprite(dx, dy, sprite, screen, drawmethod);
+            continue;
+        }
+        for(i = 0; i < xrepeat; i++)
+        {
+            dx = (s64)x + (s64)i * xspan;
+            if(dx < INT_MIN || dx > INT_MAX)
+            {
+                continue;
+            }
+            _putsprite((int)dx, (int)dy, sprite, screen, drawmethod);
         }
     }
     engine_profile_span_end(software, EP_SPAN_SOFTWARE);

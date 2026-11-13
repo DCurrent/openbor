@@ -2,17 +2,18 @@
 
 Author: Damon V. Caskey
 
-Date: 2026-11-12
+Date: 2026-11-13
 
 ## Scope
 
 This branch introduces native scene rendering into the existing desktop
-OpenGL backend. It is a migration implementation, not the removal of every
-software renderer and not a new set of game or script features.
+OpenGL backend. The software renderer remains available for unsupported
+operations. The branch also adds opt-in, general-purpose affine transforms
+for sprites and screens.
 
 Existing OpenGL selection automatically enables native drawing when the
-required shaders and render targets initialize successfully. There is no new
-script API. `OPENBOR_GPU=0` disables native scene drawing for comparison with
+required shaders and render targets initialize successfully. Existing drawing
+calls select it automatically. `OPENBOR_GPU=0` disables native scene drawing for comparison with
 the existing software renderer and OpenGL presenter.
 
 The first native target format is `PIXEL_32`. Indexed sprite artwork remains
@@ -25,6 +26,7 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Indexed sprites, source palettes and remaps | Cached index textures, bounded resident palette atlas, and draw-time palette lookup |
 | Alpha-mask sprites | Separate indexed opacity texture, existing precedence and opacity equation |
 | Existing scale, flip, rotation, shear, water and plane transforms | GPU pixel sampling with existing transform parameters |
+| Opt-in 2x3 affine transforms | One bounded quad, shader pixel-center sampling, existing material operations and software fallback |
 | Six blend modes, tint, independent channel opacity | Shader composition; existing channel lookup tables are uploaded when used |
 | Boxes, dots and lines | Native rendering; lines retain integer point coverage |
 | Queue sorting, layers, offsets, lock/newonly and replay | Existing queue implementation, unchanged |
@@ -37,7 +39,10 @@ from rendering into an indexed framebuffer, which remains on the software path.
 | Android | Existing renderer retained; no native GLES migration claimed |
 | Video playback | Existing movie path retained, with synchronized transitions |
 
-No affine/curve API from the separate transform experiment is added here.
+The affine contract from the separate transform experiment is available through
+`changedrawmethod()`; see [the affine guide](affine-transforms.md). New projective
+and curve mappings, public programmable shaders and 24-bit asset loading remain
+separate capabilities.
 No frame limiter, 4 ms wait, game tick, or input scheduling change is included.
 
 `experiment/gpu-palette-cache` builds on profiling commit `722df2d` with resident
@@ -240,6 +245,37 @@ snap to that boundary. Differences from repeated CPU floating addition or old
 rotation coefficient truncation are checked against independent canonical
 samplers, not accepted with a general neighboring-pixel tolerance.
 
+Affine has its own sampling policy. It inverse-maps destination pixel centers
+and selects source texels without the legacy rotation/plane snapping band.
+The CPU supplies homogeneous numerators and a positive determinant, encoded as
+whole parts and seven signed fractional bytes. The shader evaluates an initial
+quotient from fragment coordinates and corrects the selected texel with exact
+integer-valued byte-carry remainder comparisons. This
+preserves exact rational boundaries, including 3x scale, and real fractional
+translations immediately beside a half pixel. It avoids both interpolated UV
+drift and pre-rounded reciprocal steps. These comparisons also avoid relying
+on compensated float expressions that shader compilers may reassociate.
+GLSL 1.20 remains the required language baseline.
+
+Preflight bounds each scaled numerator contribution, including its full target
+extent, to 2^18. The largest absolute pixel offset from draw position on each
+target axis, plus the larger source extent including its absolute pivot, plus
+two, must total at most 65535. Draw position and pivot remain separate from the
+source numerator origin so exact pivot samples do not suffer cancellation.
+Values requiring more than 56 fractional
+bits after homogeneous scaling also select coherent software fallback instead
+of being quantized. These bounds keep all byte products and carries exact in
+ordinary 32-bit shader floats. The CPU's per-draw setup still uses double
+precision; this does not claim arbitrary-precision matrix arithmetic.
+
+Native affine requires at least 256 fragment-uniform components, allowing
+conservative array padding. Contexts with less capacity retain the earlier
+native renderer and use software for affine draws. If an older compiler rejects
+the optional affine shader, initialization retries the earlier material shader.
+The renderer log records
+`fragment_uniform_components` and `native_affine`. Repeated affine draws
+validate every instance first and retain their original blending order.
+
 ## Validation
 
 Run `bash tests/run_gpu_tests.sh` with SDL2 development files installed.
@@ -260,6 +296,9 @@ The suites cover:
 - Cached-state reuse with pixel verification across material, texture, target,
   clipping, presentation, resource replacement, and context transitions.
 - Native transform output compared with production CPU rendering.
+- Affine geometry and pixels checked against independent mappings, including
+  adjacent fractional translations, clipped pivots/flips, material effects,
+  repeated blend order, queue copies, capture/replay and invalid-input atomicity.
 - Real presentation, orientation, output-filter/video transitions and mode changes.
 - Deliberately colliding texture-cache identities during shutdown.
 
@@ -276,3 +315,10 @@ not claim full retirement of that code. Remaining work includes native indexed
 and 16-bit destinations, Android/GLES integration, additional batching, and
 GPU equivalents for selected CPU output filters. These are separate from new
 rendering features: retaining the existing drawing capabilities is the goal.
+
+Future programmable materials should apply after source color decoding so
+indexed palettes and direct RGB assets can share geometry and material effects.
+True-color recoloring also needs a defined authoring contract: color transforms,
+lookup textures and optional region masks can express different kinds of color
+changes. RGB values alone do not retain the palette-index identities that
+indexed artwork currently supplies.

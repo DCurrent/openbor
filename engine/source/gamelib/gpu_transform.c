@@ -49,6 +49,201 @@ static int gpu_emit_rect(float left, float top, float right, float bottom,
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Encode a bounded homogeneous term as an integer and seven fractional bytes.
+ * Signed digits retain tiny negative values without subtracting them from one.
+ */
+static int gpu_affine_digits(double value, float digits[8])
+{
+    int index;
+    for(index = 0; index < 8; ++index)
+    {
+        double whole = trunc(value);
+        digits[index] = (float)whole;
+        value = (value - whole) * 256.0;
+    }
+    /* Unsupported precision selects software; never silently quantize it. */
+    return value == 0.0;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Render the opt-in source-to-destination affine matrix as one native quad.
+ * The fragment shader evaluates homogeneous inverse coordinates at pixel
+ * centers. Keeping numerators separate from their determinant avoids rounding
+ * a repeating reciprocal, such as 1/3, onto the wrong side of a texel edge.
+ */
+int gpu_transform_draw_affine(const gpu_transform_parameters *p, const s_drawmethod *m,
+                              gpu_affine_sampling *sampling,
+                              gpu_transform_emit_quad emit, void *userdata)
+{
+    double a, b, c, d, pivot_x, pivot_y;
+    double origin_x, origin_y, determinant;
+    double inverse00, inverse01, inverse10, inverse11;
+    double scale, numerator_x[3], numerator_y[3], dx, dy, extent_x, extent_y;
+    double min_x = DBL_MAX, min_y = DBL_MAX;
+    double max_x = -DBL_MAX, max_y = -DBL_MAX;
+    gpu_affine_sampling local_sampling;
+    gpu_vertex vertices[4];
+    int index, exponent, digit;
+
+    if(!p || !m || !emit || p->source_width <= 0 || p->source_height <= 0
+       || p->target_width <= 0 || p->target_height <= 0)
+    {
+        return GPU_TRANSFORM_FAILED;
+    }
+    a = m->affine.m00;
+    b = m->affine.m01;
+    c = m->affine.m10;
+    d = m->affine.m11;
+    pivot_x = (double)p->centerx + m->centerx;
+    pivot_y = (double)p->centery + m->centery;
+
+    /* Validate all authored coefficients before bounding or inverting them.
+     * A collapsed source has no drawable area and succeeds without a draw. */
+    if(!gpu_finite(a) || !gpu_finite(b) || !gpu_finite(c) || !gpu_finite(d)
+       || !gpu_finite(m->affine.tx) || !gpu_finite(m->affine.ty))
+    {
+        return GPU_TRANSFORM_FAILED;
+    }
+    if(m->config & DRAWMETHOD_CONFIG_FLIP_X)
+    {
+        a = -a;
+        c = -c;
+    }
+    if(m->config & DRAWMETHOD_CONFIG_FLIP_Y)
+    {
+        b = -b;
+        d = -d;
+    }
+    determinant = a * d - b * c;
+    if(determinant == 0.0)
+    {
+        return GPU_TRANSFORM_EMPTY;
+    }
+    origin_x = (double)p->x + m->affine.tx - a * pivot_x - b * pivot_y;
+    origin_y = (double)p->y + m->affine.ty - c * pivot_x - d * pivot_y;
+
+    /* Bound source pixel edges in double precision before intersecting with
+     * the target. Large offscreen coordinates never reach integer casts or
+     * the GPU; clipping does not change the continuous source sample phase. */
+    for(index = 0; index < 4; ++index)
+    {
+        double u = index == 1 || index == 2 ? p->source_width : 0;
+        double v = index >= 2 ? p->source_height : 0;
+        double x = origin_x + a * u + b * v;
+        double y = origin_y + c * u + d * v;
+
+        min_x = fmin(min_x, x);
+        max_x = fmax(max_x, x);
+        min_y = fmin(min_y, y);
+        max_y = fmax(max_y, y);
+    }
+    min_x = fmax(0.0, floor(min_x));
+    min_y = fmax(0.0, floor(min_y));
+    max_x = fmin((double)p->target_width, ceil(max_x));
+    max_y = fmin((double)p->target_height, ceil(max_y));
+    if(min_x >= max_x || min_y >= max_y)
+    {
+        return GPU_TRANSFORM_EMPTY;
+    }
+
+    /* Fractional bytes multiply exact integer pixel coordinates. Bound the
+     * sum of all operands, including the corrected source candidate, so each
+     * signed product/addition remains below float's exact 24-bit range. */
+    extent_x = fmax(fabs((double)p->x), fabs((double)p->target_width - 1.0 - p->x));
+    extent_y = fmax(fabs((double)p->y), fabs((double)p->target_height - 1.0 - p->y));
+    if(extent_x + extent_y + fmax(p->source_width + fabs(pivot_x),
+                                 p->source_height + fabs(pivot_y)) + 2.0 > 65535.0)
+    {
+        return GPU_TRANSFORM_FAILED;
+    }
+
+    inverse00 = d / determinant;
+    inverse01 = -b / determinant;
+    inverse10 = -c / determinant;
+    inverse11 = a / determinant;
+
+    /* Scale all homogeneous terms by the same exact power of two. A positive
+     * denominator near one keeps shader division and integer products in
+     * range without altering their ratio or introducing another reciprocal. */
+    frexp(fabs(determinant), &exponent);
+    scale = ldexp(determinant < 0.0 ? -1.0 : 1.0, -exponent);
+    /* Keep integer placement and source pivot separate from the rational
+     * mapping. Pre-canceling either in a double origin can move an exact
+     * pivot sample across a texel boundary for an oblique authored matrix. */
+    dx = 0.5 - (double)m->affine.tx;
+    dy = 0.5 - (double)m->affine.ty;
+    numerator_x[0] = d * scale;
+    numerator_x[1] = -b * scale;
+    numerator_x[2] = (d * dx - b * dy) * scale;
+    numerator_y[0] = -c * scale;
+    numerator_y[1] = a * scale;
+    numerator_y[2] = (a * dy - c * dx) * scale;
+    if(!sampling)
+    {
+        sampling = &local_sampling;
+    }
+    sampling->anchor[0] = (float)p->x;
+    sampling->anchor[1] = (float)p->y;
+    sampling->pivot[0] = (float)pivot_x;
+    sampling->pivot[1] = (float)pivot_y;
+    for(index = 0; index < 3; ++index)
+    {
+        float digits_x[8], digits_y[8];
+        /* Bound approximate-quotient error below one texel, even after
+         * cancellation. Byte-carry residuals then correct at most one step.
+         * Extreme mappings remain atomic software operations. */
+        double extent = index == 0 ? fmax(1.0, extent_x) : index == 1 ? fmax(1.0, extent_y) : 1;
+        if(!gpu_finite(numerator_x[index]) || !gpu_finite(numerator_y[index])
+           || fabs(numerator_x[index]) * extent > 262144.0
+           || fabs(numerator_y[index]) * extent > 262144.0
+           || !gpu_affine_digits(numerator_x[index], digits_x)
+           || !gpu_affine_digits(numerator_y[index], digits_y))
+        {
+            return GPU_TRANSFORM_FAILED;
+        }
+        sampling->approximate_x[index] = (float)numerator_x[index];
+        sampling->approximate_y[index] = (float)numerator_y[index];
+        for(digit = 0; digit < 8; ++digit)
+        {
+            sampling->x[digit][index] = digits_x[digit];
+            sampling->y[digit][index] = digits_y[digit];
+        }
+    }
+    determinant *= scale;
+    sampling->approximate_denominator = (float)determinant;
+    if(!gpu_affine_digits(determinant, sampling->denominator))
+    {
+        return GPU_TRANSFORM_FAILED;
+    }
+    /* A single callback follows validation of all vertices. Unlike legacy
+     * rotation, affine samples at pixel centers, so no half-pixel subtraction
+     * belongs in the inverse mapping attached to destination pixel edges. */
+    for(index = 0; index < 4; ++index)
+    {
+        double x = index == 1 || index == 2 ? max_x : min_x;
+        double y = index >= 2 ? max_y : min_y;
+        double u = inverse00 * (x - origin_x) + inverse01 * (y - origin_y);
+        double v = inverse10 * (x - origin_x) + inverse11 * (y - origin_y);
+
+        if(!gpu_finite(u) || !gpu_finite(v))
+        {
+            return GPU_TRANSFORM_FAILED;
+        }
+        vertices[index].x = (float)x;
+        vertices[index].y = (float)y;
+        vertices[index].u = (float)u;
+        vertices[index].v = (float)v;
+    }
+    return emit(vertices, GPU_SAMPLE_AFFINE, userdata) ? GPU_TRANSFORM_DRAWN : GPU_TRANSFORM_FAILED;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
  *
  * Reproduce the existing plane's row-wise scale and accumulated vertical
@@ -607,6 +802,7 @@ static int gpu_draw_scale(const gpu_transform_parameters *p, const s_drawmethod 
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Dispatch explicit affine matrices before dormant legacy state.
  *
  * Select exactly one existing transformation family. Validate before emission,
  * and leave repeats, painter ordering, materials and target synchronization to
@@ -634,6 +830,13 @@ int gpu_transform_draw(const gpu_transform_parameters *p, const s_drawmethod *me
         plain.scalex = 256;
         plain.scaley = 256;
         m = &plain;
+    }
+
+    /* Affine owns geometry while enabled. Stored legacy scale, rotation and
+     * water values do not participate, including zero or invalid old values. */
+    if(m->config & DRAWMETHOD_CONFIG_AFFINE)
+    {
+        return gpu_transform_draw_affine(p, m, NULL, emit, userdata);
     }
 
     /* Sprite dispatch treats zero scale as invisible before water selection.

@@ -148,6 +148,15 @@ run_test "$test_build_dir/test_spriteq_sort"
     -o "$test_build_dir/test_gpu_transform"
 run_test "$test_build_dir/test_gpu_transform"
 
+# Affine's software implementation remains the fallback for unavailable native
+# rendering. Keep its pixel-center, pivot, clipping and sprite rules tested
+# independently of the OpenGL fixtures below.
+"$test_compiler" "${test_flags[@]}" tests/test_affine_transform.c \
+    engine/source/gamelib/transform.c engine/source/gamelib/gpu.c \
+    "${test_profile_sources[@]}" "${test_link_flags[@]}" \
+    -o "$test_build_dir/test_affine_transform"
+run_test "$test_build_dir/test_affine_transform"
+
 test_software_sources=(engine/source/gamelib/gpu.c
     engine/source/gamelib/screen.c engine/source/gamelib/screen16.c
     engine/source/gamelib/screen32.c engine/source/gamelib/draw.c

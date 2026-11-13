@@ -35,6 +35,7 @@
 #include "models.h"
 #include "scriptcommon.h"
 #include "gpu.h"
+#include <float.h>
 #include <limits.h>
 #include <stdint.h>
 
@@ -2795,6 +2796,14 @@ enum drawmethod_enum
     _dm_xspan,
     _dm_yrepeat,
     _dm_yspan,
+    _dm_affine,
+    _dm_affine00,
+    _dm_affine01,
+    _dm_affine10,
+    _dm_affine11,
+    _dm_affineenabled,
+    _dm_affinex,
+    _dm_affiney,
     _dm_the_end,
 };
 
@@ -14794,6 +14803,11 @@ clearscreen_error:
     return E_FAIL;
 }
 
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Resolve sorted property names without changing existing numeric property IDs.
+ */
 int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
 {
     char *propname = NULL;
@@ -14801,6 +14815,14 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
 
     static const char *proplist[] =
     {
+        "affine",
+        "affine00",
+        "affine01",
+        "affine10",
+        "affine11",
+        "affineenabled",
+        "affinex",
+        "affiney",
         "alpha",
         "amplitude",
         "beginsize",
@@ -14842,24 +14864,76 @@ int mapstrings_drawmethodproperty(ScriptVariant **varlist, int paramCount)
         "yspan",
     };
 
+    /*
+     * searchList() is a binary search, so names must stay alphabetized.
+     * Preserve the ordinal values of existing properties for script callers
+     * that pass integer IDs instead of property names.
+     */
+    static const int property_ids[] =
+    {
+        _dm_affine, _dm_affine00, _dm_affine01, _dm_affine10,
+        _dm_affine11, _dm_affineenabled, _dm_affinex, _dm_affiney,
+        _dm_alpha, _dm_amplitude, _dm_beginsize, _dm_centerx,
+        _dm_centery, _dm_channelb, _dm_channelg, _dm_channelr,
+        _dm_clip, _dm_cliph, _dm_clipw, _dm_clipx, _dm_clipy,
+        _dm_enabled, _dm_endsize, _dm_fillcolor, _dm_flag,
+        _dm_fliprotate, _dm_flipx, _dm_flipy, _dm_perspective,
+        _dm_remap, _dm_reset, _dm_rotate, _dm_scalex,
+        _dm_scaley, _dm_shiftx, _dm_table, _dm_tintcolor,
+        _dm_tintmode, _dm_transbg, _dm_watermode, _dm_wavelength,
+        _dm_wavespeed, _dm_wavetime, _dm_xrepeat, _dm_xspan,
+        _dm_yrepeat, _dm_yspan
+    };
 
     if(paramCount < 2)
     {
         return 1;
     }
-    MAPSTRINGS(varlist[1], proplist, _dm_the_end,
-               "Property name '%s' is not supported by drawmethod.\n");
+    if(varlist[1]->vt == VT_STR)
+    {
+        MAPSTRINGS(varlist[1], proplist, _dm_the_end,
+                   "Property name '%s' is not supported by drawmethod.\n");
+        varlist[1]->lVal = property_ids[varlist[1]->lVal];
+    }
 
     return 1;
 }
 
-// changedrawmethod(entity, propertyname, value);
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Convert a script number to a finite matrix component without truncating
+ * its fractional part. Atomic matrix updates must validate every argument
+ * before changing the draw method.
+ */
+static int drawmethod_affine_value(ScriptVariant *value, float *result)
+{
+    DOUBLE number;
+
+    if(FAILED(ScriptVariant_DecimalValue(value, &number)) ||
+       !(number >= -FLT_MAX && number <= FLT_MAX))
+    {
+        return 0;
+    }
+    /* Validate in script precision before narrowing to the drawmethod field. */
+    *result = (float)number;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Update entity or script drawing state, validating complete affine matrices
+ * before enabling them or changing any stored coefficient.
+ */
 HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
     entity *e;
     LONG temp = 0;
     DOUBLE ftemp = 0;
     s_drawmethod *pmethod;
+    float components[6];
+    int i;
     *pretvar = NULL;
 
     if(paramCount < 3)
@@ -14867,7 +14941,11 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
         goto changedm_error;
     }
 
-    mapstrings_drawmethodproperty(varlist, paramCount);
+    /* Unknown strings must not be interpreted as numeric property IDs. */
+    if(!mapstrings_drawmethodproperty(varlist, paramCount))
+    {
+        return E_FAIL;
+    }
 
     if(varlist[0]->vt == VT_EMPTY)
     {
@@ -14894,6 +14972,57 @@ HRESULT openbor_changedrawmethod(ScriptVariant **varlist , ScriptVariant **pretv
     switch(varlist[1]->lVal)
     {
 
+    case _dm_affine:
+        /* changedrawmethod(entity, "affine", m00, m01, m10, m11, tx, ty) */
+        if(paramCount < 8)
+        {
+            return E_FAIL;
+        }
+        for(i = 0; i < 6; i++)
+        {
+            if(!drawmethod_affine_value(varlist[i + 2], &components[i]))
+            {
+                return E_FAIL;
+            }
+        }
+        pmethod->affine.m00 = components[0];
+        pmethod->affine.m01 = components[1];
+        pmethod->affine.m10 = components[2];
+        pmethod->affine.m11 = components[3];
+        pmethod->affine.tx = components[4];
+        pmethod->affine.ty = components[5];
+        pmethod->config |= DRAWMETHOD_CONFIG_AFFINE;
+        break;
+    case _dm_affineenabled:
+        if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
+        {
+            return E_FAIL;
+        }
+        pmethod->config = temp ? (pmethod->config | DRAWMETHOD_CONFIG_AFFINE)
+                        : (pmethod->config & ~DRAWMETHOD_CONFIG_AFFINE);
+        break;
+    case _dm_affine00:
+    case _dm_affine01:
+    case _dm_affine10:
+    case _dm_affine11:
+    case _dm_affinex:
+    case _dm_affiney:
+        if(!drawmethod_affine_value(varlist[2], &components[0]))
+        {
+            return E_FAIL;
+        }
+        switch(varlist[1]->lVal)
+        {
+        case _dm_affine00: pmethod->affine.m00 = components[0]; break;
+        case _dm_affine01: pmethod->affine.m01 = components[0]; break;
+        case _dm_affine10: pmethod->affine.m10 = components[0]; break;
+        case _dm_affine11: pmethod->affine.m11 = components[0]; break;
+        case _dm_affinex:  pmethod->affine.tx = components[0]; break;
+        case _dm_affiney:  pmethod->affine.ty = components[0]; break;
+        default: break;
+        }
+        pmethod->config |= DRAWMETHOD_CONFIG_AFFINE;
+        break;
     case _dm_alpha:
         if(FAILED(ScriptVariant_IntegerValue(varlist[2], &temp)))
         {
@@ -15199,16 +15328,14 @@ changedm_error:
     return E_FAIL;
 }
 
-//getdrawmethod(<entity>, <property>)
+/*
+ * Damon V. Caskey
+ * 2013-11-09
+ * Read current drawmethod settings for module scripts.
+ * 2026-11-13: expose affine enable state and fractional matrix coefficients.
+ */
 HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar, int paramCount)
 {
-    /*
-    getdrawmethod
-    Damon V. Caskey
-    2013-11-09
-
-    Allow module author to read current drawmethod settings.
-    */
     entity *e;
     s_drawmethod *pmethod;
 
@@ -15218,7 +15345,12 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
     }
 
     ScriptVariant_Clear(*pretvar);
-    mapstrings_drawmethodproperty(varlist, paramCount);
+    /* Preserve a failed name lookup instead of treating its string as an ID. */
+    if(!mapstrings_drawmethodproperty(varlist, paramCount))
+    {
+        *pretvar = NULL;
+        return E_FAIL;
+    }
 
     if(varlist[0]->vt == VT_EMPTY)
     {
@@ -15246,6 +15378,34 @@ HRESULT openbor_getdrawmethod(ScriptVariant **varlist , ScriptVariant **pretvar,
 
     switch(varlist[1]->lVal)
     {
+        case _dm_affine:
+        case _dm_affineenabled:
+            (*pretvar)->lVal = (int)!!(pmethod->config & DRAWMETHOD_CONFIG_AFFINE);
+            break;
+        case _dm_affine00:
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = pmethod->affine.m00;
+            break;
+        case _dm_affine01:
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = pmethod->affine.m01;
+            break;
+        case _dm_affine10:
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = pmethod->affine.m10;
+            break;
+        case _dm_affine11:
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = pmethod->affine.m11;
+            break;
+        case _dm_affinex:
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = pmethod->affine.tx;
+            break;
+        case _dm_affiney:
+            ScriptVariant_ChangeType(*pretvar, VT_DECIMAL);
+            (*pretvar)->dblVal = pmethod->affine.ty;
+            break;
         case _dm_alpha:
             (*pretvar)->lVal = (e_blend_mode)pmethod->alpha;
             break;

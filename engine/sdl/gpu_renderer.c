@@ -95,6 +95,9 @@ typedef struct gpu_uniforms
     GLint indexed, masked, color_key, fill, has_destination, wrap;
     GLint blend_mode, tint_mode, table_mask;
     GLint fill_color, tint_color, channels;
+    GLint affine_approximate_x, affine_approximate_y, affine_approximate_d;
+    GLint affine_anchor, affine_pivot;
+    GLint affine_x[8], affine_y[8], affine_d[8];
 } gpu_uniforms;
 
 typedef struct gpu_uniform_value
@@ -112,6 +115,9 @@ typedef struct gpu_material_state
     gpu_uniform_value indexed, masked, color_key, fill, has_destination, wrap;
     gpu_uniform_value blend_mode, tint_mode, table_mask;
     gpu_uniform_value fill_color, tint_color, channels;
+    gpu_uniform_value affine_approximate_x, affine_approximate_y, affine_approximate_d;
+    gpu_uniform_value affine_anchor, affine_pivot;
+    gpu_uniform_value affine_x[8], affine_y[8], affine_d[8];
 } gpu_material_state;
 
 typedef struct gpu_state_cache
@@ -149,7 +155,7 @@ static gpu_uniforms uniforms;
 static gpu_state_cache gl_state;
 static gpu_renderer_stats stats;
 static GLint maximum_texture_size;
-static int initialized, tables_dirty = 1, table_mask;
+static int initialized, tables_dirty = 1, table_mask, affine_supported;
 static gpu_palette_entry palette_cache[GPU_PALETTE_CACHE_CAPACITY];
 static int palette_buckets[GPU_PALETTE_CACHE_BUCKETS];
 static int palette_cache_count;
@@ -563,6 +569,7 @@ static int gpu_load_functions(void)
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Select optional affine arithmetic without raising legacy limits.
  * Compile one scene shader, preserving the driver's diagnostic on failure.
  */
 static GLuint gpu_compile_shader(GLenum type, const char *source)
@@ -570,13 +577,19 @@ static GLuint gpu_compile_shader(GLenum type, const char *source)
     GLuint shader = gpu_CreateShader(type);
     GLint success = 0;
     char message[4096];
+    const char *parts[2];
     if(!shader)
     {
         engine_profile_log("kind=renderer state=unavailable reason=shader_allocation type=%u", (unsigned)type);
         return 0;
     }
 
-    gpu_ShaderSource(shader, 1, &source, NULL);
+    /* Both internal sources start with the same version directive. Insert a
+     * capability define after it, keeping the directive first as GLSL needs. */
+    parts[0] = affine_supported ? "#version 120\n#define GPU_AFFINE 1\n"
+                                : "#version 120\n#define GPU_AFFINE 0\n";
+    parts[1] = strchr(source, '\n') + 1;
+    gpu_ShaderSource(shader, 2, parts, NULL);
     gpu_CompileShader(shader);
     gpu_GetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if(!success)
@@ -1841,13 +1854,15 @@ static int gpu_snapshot_target(gpu_image *target, const int rectangle[4], int se
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Supply independent affine sample state for either source format.
  * Render a prepared image draw in painter order. Source palette/tint work
  * stays in the shader; destination-dependent effects sample a separate GPU
  * snapshot, never the attachment currently being written.
  */
 static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mask,
                             const unsigned char *palette, const s_drawmethod *method,
-                            int source_is_sprite, int primitive, unsigned color)
+                            int source_is_sprite, int primitive, unsigned color,
+                            const gpu_affine_sampling *affine)
 {
     int rectangle[4], i, wrap = -1;
     int indexed = source && source->format == PIXEL_x8;
@@ -1948,6 +1963,30 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_uniform_color(uniforms.tint_color, &gl_state.material.tint_color, method->tintcolor);
     gpu_uniform_vector(uniforms.channels, &gl_state.material.channels, method->channelr / 255.0f,
                         method->channelg / 255.0f, method->channelb / 255.0f);
+    if(affine)
+    {
+        /* Geometry and color remain separate. These small per-draw values
+         * select affine texels for indexed and direct-color materials alike. */
+        gpu_uniform_vector(uniforms.affine_approximate_x, &gl_state.material.affine_approximate_x,
+                           affine->approximate_x[0], affine->approximate_x[1], affine->approximate_x[2]);
+        gpu_uniform_vector(uniforms.affine_approximate_y, &gl_state.material.affine_approximate_y,
+                           affine->approximate_y[0], affine->approximate_y[1], affine->approximate_y[2]);
+        gpu_uniform_float(uniforms.affine_approximate_d, &gl_state.material.affine_approximate_d,
+                          affine->approximate_denominator);
+        gpu_uniform_pair(uniforms.affine_anchor, &gl_state.material.affine_anchor,
+                         affine->anchor[0], affine->anchor[1]);
+        gpu_uniform_pair(uniforms.affine_pivot, &gl_state.material.affine_pivot,
+                         affine->pivot[0], affine->pivot[1]);
+        for(i = 0; i < 8; ++i)
+        {
+            gpu_uniform_vector(uniforms.affine_x[i], &gl_state.material.affine_x[i],
+                               affine->x[i][0], affine->x[i][1], affine->x[i][2]);
+            gpu_uniform_vector(uniforms.affine_y[i], &gl_state.material.affine_y[i],
+                               affine->y[i][0], affine->y[i][1], affine->y[i][2]);
+            gpu_uniform_float(uniforms.affine_d[i], &gl_state.material.affine_d[i],
+                              affine->denominator[i]);
+        }
+    }
     engine_profile_span_end(state_scope, EP_SPAN_GPU_STATE);
 
     /* Adjacent row strips share state and one submission. Queue entries are
@@ -2006,7 +2045,26 @@ static int gpu_render_quads(gpu_image *target, gpu_image *source, gpu_image *mas
 
 /*
  * Damon V. Caskey
+ * 2026-11-13
+ *
+ * Accept already validated transform output without retaining or drawing it.
+ * Affine repeats use this callback to prove that every instance is supported
+ * before any earlier instance can change the target and prohibit fallback.
+ */
+static int gpu_preflight_quad(const gpu_vertex vertices[4], int wrap, void *userdata)
+{
+    /* The transform validates coordinates before emission. This pass needs
+     * only its result, so it neither allocates a batch nor touches GPU state. */
+    (void)vertices;
+    (void)wrap;
+    (void)userdata;
+    return 1;
+}
+
+/*
+ * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Preflight all affine repeats before the first target write.
  * Apply existing repeat/span semantics using the same prepared source image.
  * Collect each instance before drawing, and reject overflowing spans before
  * submission so software fallback cannot repeat already-composited instances.
@@ -2021,6 +2079,11 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     gpu_transform_parameters parameters;
     long long final_x, final_y;
     int i, j, submitted = 0;
+    if((method->config & DRAWMETHOD_CONFIG_AFFINE) && !affine_supported)
+    {
+        native_failure = EP_FALLBACK_TRANSFORM;
+        return 0;
+    }
     if(method->xrepeat <= 0 || method->yrepeat <= 0)
     {
         return 1;
@@ -2043,26 +2106,56 @@ static int gpu_render_image(gpu_image *target, gpu_image *source, gpu_image *mas
     parameters.centery = centery;
     parameters.is_sprite = sprite;
 
+    /* Extreme affine inverses can be representable for one clipped instance
+     * but not another. Validate all repeated mappings while fallback remains
+     * possible; the common single-instance draw needs no duplicate setup. */
+    if((method->config & DRAWMETHOD_CONFIG_AFFINE)
+       && (method->xrepeat > 1 || method->yrepeat > 1))
+    {
+        ep_scope geometry_scope = engine_profile_span_begin();
+        for(j = 0; j < method->yrepeat; j++)
+        {
+            for(i = 0; i < method->xrepeat; i++)
+            {
+                parameters.x = (int)((long long)x + (long long)i * method->xspan);
+                parameters.y = (int)((long long)y + (long long)j * method->yspan);
+                if(gpu_transform_draw(&parameters, method, gpu_preflight_quad, NULL)
+                   == GPU_TRANSFORM_FAILED)
+                {
+                    engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+                    native_failure = EP_FALLBACK_TRANSFORM;
+                    return 0;
+                }
+            }
+        }
+        engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
+    }
+
     /* Submit repeats in their original order so overlapping instances blend
      * against prior ones. Each instance shares the source and scratch storage. */
     for(j = 0; j < method->yrepeat; j++)
     {
         for(i = 0; i < method->xrepeat; i++)
         {
+            gpu_affine_sampling affine;
+            int use_affine = method->config & DRAWMETHOD_CONFIG_AFFINE;
             ep_scope geometry_scope;
             int geometry_result;
             parameters.x = (int)((long long)x + (long long)i * method->xspan);
             parameters.y = (int)((long long)y + (long long)j * method->yspan);
             quad_count = 0;
             geometry_scope = engine_profile_span_begin();
-            geometry_result = gpu_transform_draw(&parameters, method, gpu_collect_quad, NULL);
+            geometry_result = use_affine
+                            ? gpu_transform_draw_affine(&parameters, method, &affine, gpu_collect_quad, NULL)
+                            : gpu_transform_draw(&parameters, method, gpu_collect_quad, NULL);
             engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
             if(geometry_result == GPU_TRANSFORM_FAILED && native_failure == EP_FALLBACK_OTHER)
             {
                 native_failure = EP_FALLBACK_TRANSFORM;
             }
             if(geometry_result == GPU_TRANSFORM_FAILED ||
-               !gpu_render_quads(target, source, mask, palette, method, sprite, 0, 0))
+               !gpu_render_quads(target, source, mask, palette, method, sprite, 0, 0,
+                                 use_affine ? &affine : NULL))
             {
                 /* Earlier instances may already have changed the target.
                  * Only failure before any submission can safely fall back. */
@@ -2226,7 +2319,7 @@ static int gpu_box_draw(s_screen *dest, int x, int y, int width, int height,
         ep_scope geometry_scope = engine_profile_span_begin();
         int geometry_ready = gpu_collect_rectangle((float)x, (float)y, (float)width, (float)height);
         engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
-        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color))
+        if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL))
         {
             return 1;
         }
@@ -2425,7 +2518,7 @@ static int gpu_line_draw(s_screen *dest, int sx, int sy, int ex, int ey,
     geometry_ready = gpu_collect_rectangle((float)ex, (float)ey, 1.0f, 1.0f);
     engine_profile_span_end(geometry_scope, EP_SPAN_GPU_GEOMETRY);
     geometry_scope.frame_id = 0;
-    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color))
+    if(geometry_ready && gpu_render_quads(target, NULL, NULL, NULL, method, 0, 1, color, NULL))
     {
         return 1;
     }
@@ -2517,13 +2610,15 @@ static const gpu_backend renderer_backend = {
 /*
  * Damon V. Caskey
  * 2026-11-12
+ * 2026-11-13 - Keep affine uniform capacity optional for existing GL contexts.
  * Initialize native scene rendering only after all required capabilities and
  * shader resources are usable. Failure leaves the existing renderer intact.
  */
 int gpu_gl_init(void)
 {
     GLuint vertex = 0, fragment = 0;
-    GLint linked = 0, units = 0;
+    GLint linked = 0, units = 0, fragment_components = 0;
+    int digit;
     char message[4096];
     const unsigned char white[4] = {255, 255, 255, 255};
     const char *setting = getenv("OPENBOR_GPU");
@@ -2566,6 +2661,10 @@ int gpu_gl_init(void)
     }
     glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maximum_texture_size);
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
+    glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &fragment_components);
+    /* Allow conservative vec4 padding for array elements. Smaller GL 2.1
+     * implementations keep all earlier native features and use CPU affines. */
+    affine_supported = fragment_components >= 256;
 
     /* The blend atlas needs six 256-row slices. Source, palette, mask,
      * destination snapshot and atlas occupy five independent texture units. */
@@ -2575,11 +2674,12 @@ int gpu_gl_init(void)
                            maximum_texture_size, units);
         return 0;
     }
+compile_scene_shader:
     vertex = gpu_compile_shader(GL_VERTEX_SHADER, gpu_vertex_shader_source);
     fragment = gpu_compile_shader(GL_FRAGMENT_SHADER, gpu_fragment_shader_source);
     if(!vertex || !fragment)
     {
-        goto failed;
+        goto shader_failed;
     }
     program = gpu_CreateProgram();
     if(!program)
@@ -2596,7 +2696,7 @@ int gpu_gl_init(void)
         gpu_GetProgramInfoLog(program, sizeof(message), NULL, message);
         engine_profile_log("kind=renderer state=unavailable reason=program_link diagnostic=\"%s\"", message);
         fprintf(stderr, "GPU renderer program: %s\n", message);
-        goto failed;
+        goto shader_failed;
     }
     white_texture = gpu_new_texture(1, 1, GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, white);
     /* Reserve one bounded atlas for all palette rows. Content snapshots
@@ -2632,6 +2732,21 @@ int gpu_gl_init(void)
     GPU_UNIFORM(fill_color, "fillColor");
     GPU_UNIFORM(tint_color, "tintColor");
     GPU_UNIFORM(channels, "channelOpacity");
+    GPU_UNIFORM(affine_approximate_x, "affineApproximateX");
+    GPU_UNIFORM(affine_approximate_y, "affineApproximateY");
+    GPU_UNIFORM(affine_approximate_d, "affineApproximateD");
+    GPU_UNIFORM(affine_anchor, "affineAnchor");
+    GPU_UNIFORM(affine_pivot, "affinePivot");
+    for(digit = 0; digit < 8; ++digit)
+    {
+        char name[32];
+        snprintf(name, sizeof(name), "affineX[%d]", digit);
+        GPU_UNIFORM(affine_x[digit], name);
+        snprintf(name, sizeof(name), "affineY[%d]", digit);
+        GPU_UNIFORM(affine_y[digit], name);
+        snprintf(name, sizeof(name), "affineD[%d]", digit);
+        GPU_UNIFORM(affine_d[digit], name);
+    }
 #undef GPU_UNIFORM
 
     /* Publish the backend only after shader linking and shared allocation
@@ -2646,8 +2761,8 @@ int gpu_gl_init(void)
     initialized = 1;
     gpu_register_backend(&renderer_backend);
     gpu_gl_prepare_present();
-    engine_profile_log("kind=renderer state=enabled native_active=1 target_format=RGB32 source_formats=indexed_RGB32 max_texture=%d texture_units=%d",
-                       maximum_texture_size, units);
+    engine_profile_log("kind=renderer state=enabled native_active=1 target_format=RGB32 source_formats=indexed_RGB32 max_texture=%d texture_units=%d fragment_uniform_components=%d native_affine=%d",
+                       maximum_texture_size, units, fragment_components, affine_supported);
     engine_profile_log("kind=palette_cache state=enabled capacity=%u palette_bytes=%" PRIu64
                        " gpu_bytes=%" PRIu64 " cpu_bytes=%" PRIu64 " policy=content_lru",
                        (unsigned)GPU_PALETTE_CACHE_CAPACITY, (uint64_t)GPU_PALETTE_BYTES,
@@ -2661,6 +2776,20 @@ int gpu_gl_init(void)
     gpu_query_init();
     fprintf(stderr, "Native GPU scene renderer enabled (RGB32 targets, indexed textures).\n");
     return 1;
+shader_failed:
+    /* Optional affine arithmetic must not retire an otherwise usable native
+     * backend. Older compilers can reject its instruction count even when
+     * their uniform capacity is sufficient; retry the original material. */
+    if(affine_supported)
+    {
+        if(vertex) gpu_DeleteShader(vertex);
+        if(fragment) gpu_DeleteShader(fragment);
+        if(program) gpu_DeleteProgram(program);
+        vertex = fragment = program = 0;
+        affine_supported = 0;
+        engine_profile_log("kind=renderer state=retry reason=affine_shader_unavailable native_affine=0");
+        goto compile_scene_shader;
+    }
 failed:
     /* Initialization can fail at any stage. Release only acquired resources;
      * dispatch remains unregistered so callers continue with software draws. */

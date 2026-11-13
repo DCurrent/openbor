@@ -25,6 +25,17 @@ typedef struct gpu_transform_parameters
     int is_sprite;
 } gpu_transform_parameters;
 
+typedef struct gpu_affine_sampling
+{
+    /* Homogeneous local-source numerators at the draw position's pixel center.
+     * Each row contains X step, Y step and origin. Approximate floats choose
+     * a candidate; whole parts plus seven signed fractional bytes correct its
+     * boundary without relying on optimizer-sensitive compensated arithmetic. */
+    float approximate_x[3], approximate_y[3], approximate_denominator;
+    float anchor[2], pivot[2];
+    float x[8][3], y[8][3], denominator[8];
+} gpu_affine_sampling;
+
 enum gpu_transform_result
 {
     /* FAILED requests fallback; EMPTY and DRAWN both complete native handling. */
@@ -40,7 +51,8 @@ enum gpu_sampling_mode
     GPU_SAMPLE_FLOOR = 0,
     GPU_SAMPLE_TILE = 1,
     GPU_SAMPLE_FIXED8 = 2,
-    GPU_SAMPLE_CONTINUOUS = 3
+    GPU_SAMPLE_CONTINUOUS = 3,
+    GPU_SAMPLE_AFFINE = 4
 };
 
 /*
@@ -58,5 +70,11 @@ typedef int (*gpu_transform_emit_quad)(const gpu_vertex vertices[4], int wrap_so
 int gpu_transform_draw(const gpu_transform_parameters *parameters,
                        const s_drawmethod *method,
                        gpu_transform_emit_quad emit, void *userdata);
+
+/* The native renderer retains the affine sampling state alongside its quad.
+ * Generic geometry callers can use gpu_transform_draw without retaining it. */
+int gpu_transform_draw_affine(const gpu_transform_parameters *parameters,
+                              const s_drawmethod *method, gpu_affine_sampling *sampling,
+                              gpu_transform_emit_quad emit, void *userdata);
 
 #endif

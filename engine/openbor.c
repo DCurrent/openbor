@@ -116,7 +116,10 @@ const s_drawmethod plainmethod =
     .clipy      = 0,
     .clipw      = 0,
     .cliph      = 0,
-    .water = {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0}
+    .water = {{.beginsize = 0.0}, {.endsize = 0.0}, 0, {.wavespeed = 0}, 0},
+    /* Identity is ready for opt-in use, while the affine config flag stays off. */
+    .affine = {.m00 = 1.0f, .m01 = 0.0f, .m10 = 0.0f,
+               .m11 = 1.0f, .tx = 0.0f, .ty = 0.0f}
 };
 
 // Caskey, Damon V.

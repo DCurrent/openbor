@@ -10,6 +10,7 @@
 //         This file defines some common methods used by the gamelib
 ////////////////////////////////////////////////////////////////////////////
 #include <assert.h>
+#include <float.h>
 #include "globals.h"
 #include "types.h"
 #include "sprite.h"
@@ -816,6 +817,145 @@ void init_gfx_global_draw_stuff(s_screen *dest, gfx_entry *src, s_drawmethod *dr
         return;
     }
     src_seek(0, 0);
+}
+
+/*
+ * Damon V. Caskey
+ * 2026-11-13
+ * Render a source through a full, opt-in 2x3 affine matrix.
+ *
+ * The four transformed corners provide a conservative screen-space rectangle.
+ * Each destination pixel center is then mapped backwards into source space,
+ * so rotation, nonuniform scale, skew and reflections require no holes or
+ * intermediate surface. The determinant is computed once per draw; source
+ * samples are evaluated directly so non-dyadic steps cannot accumulate drift.
+ * Existing pixel writers retain palette, color-key, alpha mask, tint and blend
+ * behavior.
+ */
+void gfx_draw_affine(s_screen *dest, gfx_entry *src, int x, int y, int centerx, int centery, s_drawmethod *drawmethod)
+{
+    const affine_transform *matrix = &drawmethod->affine;
+    double a = matrix->m00;
+    double b = matrix->m01;
+    double c = matrix->m10;
+    double d = matrix->m11;
+    double determinant;
+    double originx, originy, widthx, widthy, heightx, heighty;
+    double pivotx, pivoty;
+    double x0, x1, x2, x3, y0, y1, y2, y3;
+    double minx, maxx, miny, maxy;
+    double samplex, sampley, sourcex, sourcey;
+    int left, right, top, bottom, i, j;
+
+    /* Reject malformed matrices before they can reach integer coordinates. */
+    if(!(a >= -FLT_MAX && a <= FLT_MAX &&
+         b >= -FLT_MAX && b <= FLT_MAX &&
+         c >= -FLT_MAX && c <= FLT_MAX &&
+         d >= -FLT_MAX && d <= FLT_MAX &&
+         matrix->tx >= -FLT_MAX && matrix->tx <= FLT_MAX &&
+         matrix->ty >= -FLT_MAX && matrix->ty <= FLT_MAX))
+    {
+        return;
+    }
+
+    /* Facing flips remain composable with the new matrix, around its pivot. */
+    if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_X)
+    {
+        a = -a;
+        c = -c;
+    }
+    if(drawmethod->config & DRAWMETHOD_CONFIG_FLIP_Y)
+    {
+        b = -b;
+        d = -d;
+    }
+
+    determinant = a * d - b * c;
+    if(determinant == 0.0)
+    {
+        return; /* A collapsed plane has no inverse or drawable area. */
+    }
+
+    init_gfx_global_draw_stuff(dest, src, drawmethod);
+    if(trans_sw <= 0 || trans_sh <= 0)
+    {
+        return;
+    }
+
+    pivotx = (double)centerx + drawmethod->centerx;
+    pivoty = (double)centery + drawmethod->centery;
+    originx = (double)x + matrix->tx - a * pivotx - b * pivoty;
+    originy = (double)y + matrix->ty - c * pivotx - d * pivoty;
+    widthx = a * trans_sw;
+    widthy = c * trans_sw;
+    heightx = b * trans_sh;
+    heighty = d * trans_sh;
+
+    /* Bound all four projected corners, then intersect with the active clip. */
+    x0 = originx;
+    x1 = originx + widthx;
+    x2 = originx + heightx;
+    x3 = x1 + heightx;
+    y0 = originy;
+    y1 = originy + widthy;
+    y2 = originy + heighty;
+    y3 = y1 + heighty;
+    minx = MIN(MIN(x0, x1), MIN(x2, x3));
+    maxx = MAX(MAX(x0, x1), MAX(x2, x3));
+    miny = MIN(MIN(y0, y1), MIN(y2, y3));
+    maxy = MAX(MAX(y0, y1), MAX(y2, y3));
+
+    left = MAX(0, xmin);
+    right = MIN(trans_dw, xmax);
+    top = MAX(0, ymin);
+    bottom = MIN(trans_dh, ymax);
+    if(left >= right || top >= bottom ||
+       minx >= right || maxx <= left || miny >= bottom || maxy <= top)
+    {
+        return;
+    }
+
+    /* Clamp before casting: off-screen transforms may be very large. */
+    if(minx > left)   left = (int)floor(minx);
+    if(maxx < right)  right = (int)ceil(maxx);
+    if(miny > top)    top = (int)floor(miny);
+    if(maxy < bottom) bottom = (int)ceil(maxy);
+
+    /*
+     * Evaluate the inverse at each destination pixel center. Truncating a
+     * 1/3 step to 32.32 fixed point makes an exact texel boundary fall into
+     * the previous texel after three increments. Direct division removes
+     * that drift without snapping nearby authored samples onto a boundary.
+     *
+     * Subtract draw position and translation before adding the source pivot.
+     * Folding the pivot into a rounded inverse origin can lose the distinction
+     * between an exact half-pixel translation and its neighboring float values.
+     */
+#define affine_begin() \
+    for(j = top; j < bottom; j++) \
+    { \
+        sampley = (double)j + 0.5 - y - matrix->ty; \
+        dest_seek(left, j); \
+        for(i = left; i < right; i++) \
+        { \
+            samplex = (double)i + 0.5 - x - matrix->tx; \
+            sourcex = (d * samplex - b * sampley) / determinant + pivotx; \
+            sourcey = (a * sampley - c * samplex) / determinant + pivoty; \
+            if(sourcex >= 0.0 && sourcex < trans_sw && \
+               sourcey >= 0.0 && sourcey < trans_sh) \
+            { \
+                src_seek((int)sourcex, (int)sourcey);
+
+#define affine_end() \
+            } \
+            dest_inc(); \
+        } \
+    }
+
+    writepixelswitch(affine_begin(), affine_end())
+
+#undef affine_begin
+#undef affine_end
 }
 
 #if 0
